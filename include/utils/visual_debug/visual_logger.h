@@ -45,8 +45,9 @@ public:
     constexpr VisualLogger() noexcept = default;
 
     template<typename... Args>
-    constexpr VisualLogger(const std::string& id, const std::filesystem::path& vtu_path, Args&& ... args) : id_ { id }, vtu_path_ { vtu_path }
+    VisualLogger(const std::string& id, const std::filesystem::path& vtu_path, Args&& ... args) : id_ { id }, vtu_path_ { vtu_path }
     {
+        const std::scoped_lock lock { mutex_ };
         spdlog::info( "Visual Debugger: Initializing vtu <{}> file(s) in {}", id_, vtu_path_.string());
         visual_data_.reserve( sizeof...( Args ));
         (visual_data_.emplace_back( args ), ...);
@@ -54,23 +55,47 @@ public:
         {
             spdlog::debug( "Visual Debugger: logging: {}", visual_data_ | views::get( & VisualDataInfo::name ));
         }
-
-        vtu11::writePVtu( vtu_path_.string(), id_, getDatasetInfos(), idx_ );
+        vtu11::writePVtu( vtu_path_.string(), id_, getDatasetInfos(), 1 );
     };
 
-    VisualLogger(const VisualLogger& other) noexcept = default;
+    VisualLogger(const VisualLogger& other) noexcept : id_ { other.id_ }
+                                                       , idx_ { other.idx_ }
+                                                       , vtu_path_ { other.vtu_path_ }
+                                                       , layer_map_ { other.layer_map_ }
+                                                       , visual_data_ { other.visual_data_ } { };
 
-    VisualLogger(VisualLogger&& other) noexcept = default;
+    VisualLogger(VisualLogger&& other) noexcept : id_ { std::move( other.id_ ) }
+                                                  , idx_ { std::exchange( other.idx_, 0 ) }
+                                                  , vtu_path_ { std::move( other.vtu_path_ ) }
+                                                  , layer_map_ { std::move( other.layer_map_ ) }
+                                                  , visual_data_ { std::move( other.visual_data_ ) } { };
 
-    VisualLogger& operator=(const VisualLogger& other) = default;
+    VisualLogger& operator=(const VisualLogger& other)
+    {
+        const std::scoped_lock lock { mutex_ };
+        id_ = other.id_;
+        idx_ = other.idx_, 0;
+        vtu_path_ = other.vtu_path_;
+        layer_map_ = other.layer_map_;
+        visual_data_ = other.visual_data_;
+        return * this;
+    };
 
-    VisualLogger& operator=(VisualLogger&& other) noexcept = default;
+    VisualLogger& operator=(VisualLogger&& other) noexcept
+    {
+        const std::scoped_lock lock { mutex_ };
+        id_ = std::move( other.id_ );
+        idx_ = std::exchange( other.idx_, 0 );
+        vtu_path_ = std::move( other.vtu_path_ );
+        layer_map_ = std::move( other.layer_map_ );
+        visual_data_ = std::move( other.visual_data_ );
+        return * this;
+    };
 
     ~VisualLogger()
     {
-        const auto idx = idx_++;
-        spdlog::info( "Visual Debugger: Finalizing vtu <{}> with a total of {} parallel vtu(s) files", id_, idx );
-        vtu11::writePVtu( vtu_path_.string(), id_, getDatasetInfos(), idx ); // Need to write this again since we now know the exact number of vtu files
+        const std::scoped_lock lock { mutex_ };
+        vtu11::writePVtu( vtu_path_.string(), id_, getDatasetInfos(), idx_ ); // Need to write this again since we now know the exact number of vtu files
     };
 
     constexpr void log(const polygon auto& poly, const int layer_idx) { };
@@ -90,8 +115,9 @@ public:
     constexpr void log(const st_edges_viewable auto& polys, const int layer_idx) { };
 
 private:
+    std::mutex mutex_;
     std::string id_ { };
-    size_t idx_ { 1UL };
+    size_t idx_ { };
     std::filesystem::path vtu_path_ { };
     shared_layer_map_t layer_map_ { };
     std::vector<VisualDataInfo> visual_data_ { };
@@ -118,6 +144,7 @@ private:
 
     void writePartition(vtu11::Vtu11UnstructuredMesh& mesh_partition, const std::vector<vtu11::DataSetData>& dataset_data = { })
     {
+        const std::scoped_lock lock { mutex_ };
         const auto idx = idx_++;
         spdlog::info( "Visual Debugger: writing <{}> partition {}", id_, idx );
         vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, getDatasetInfos(), dataset_data, idx, "RawBinary" );

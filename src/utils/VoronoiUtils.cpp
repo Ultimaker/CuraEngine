@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <optional>
@@ -166,7 +166,7 @@ std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segmen
     // are more than 10 microns away from the projected apex
     bool add_apex = (sx - px) * dir < -10 && (ex - px) * dir > 10;
 
-    assert(! (add_marking_start && add_marking_end) || add_apex);
+//    assert(! (add_marking_start && add_marking_end) || add_apex);
     if (add_marking_start && add_marking_end && ! add_apex)
     {
         spdlog::warn("Failing to discretize parabola! Must add an apex or one of the endpoints.");

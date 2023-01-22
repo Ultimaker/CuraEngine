@@ -5,7 +5,7 @@
 #define INCLUDE_UTILS_VISUAL_DEBUG_LOGGER_H
 
 #include <memory>
-#include <variant>
+#include <mutex>
 
 #include <boost/serialization/singleton.hpp>
 
@@ -40,7 +40,10 @@ public:
     {
         if ( Enabled())
         {
-            loggers_.insert_or_assign( id, std::make_shared<VisualLogger>( id, VisualDebugPath(), std::forward<Args>( args )... ));
+            if ( !loggers_.contains( id ))
+            {
+                loggers_.emplace( id, std::make_shared<VisualLogger>( id, VisualDebugPath(), std::forward<Args>( args )... ));
+            }
         }
         else
         {
@@ -59,6 +62,7 @@ public:
     template<typename... Args>
     shared_visual_logger_t Logger(const std::string& id, Args&& ... args)
     {
+        const std::scoped_lock lock { mutex_ };
         if ( loggers_.contains( id ))
         {
             return Get( id );
@@ -66,15 +70,12 @@ public:
         return MakeLogger( id, std::forward<Args>( args )... );
     }
 
-
-    // CTAD
-
-
 private:
     [[nodiscard]] bool Enabled();
 
     [[nodiscard]] std::filesystem::path VisualDebugPath();
 
+    std::mutex mutex_;
     std::string now_ { };
     std::unordered_map<std::string, shared_visual_logger_t> loggers_ { };
     shared_layer_map_t layer_map_ { };
