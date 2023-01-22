@@ -15,6 +15,7 @@
 #include <fmt/ranges.h>
 #include <range/v3/to_container.hpp>
 #include <range/v3/view/iota.hpp>
+#include <range/v3/view/join.hpp>
 #include <range/v3/view/repeat.hpp>
 #include <range/v3/view/stride.hpp>
 #include <range/v3/view/take.hpp>
@@ -24,6 +25,7 @@
 
 #include "utils/concepts/arachne.h"
 #include "utils/concepts/geometry.h"
+#include "utils/views/coord.h"
 #include "utils/views/get.h"
 #include "utils/visual_debug/visual_data_info.h"
 
@@ -38,6 +40,7 @@ inline namespace enabled
 class VisualLogger
 {
 public:
+    using value_type = double;
 
     constexpr VisualLogger() noexcept = default;
 
@@ -76,6 +79,12 @@ public:
 
     constexpr void log(const vertices auto& vertices)
     {
+        auto points = vertices | ranges::views::transform( [](const auto& vert) { return views::coord_view( vert.p ); } ) | ranges::views::join | ranges::to<std::vector<value_type>>;
+        auto connectivity = getConnectivity( points.size());
+        auto offsets = getOffsets( connectivity.size(), 3 );
+        auto types = getCellTypes( connectivity.size(), 5 );
+        vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets, types };
+        writePartition( mesh_partition );
     };
 
     constexpr void log(const st_edges_viewable auto& polys, const int layer_idx) { };
@@ -92,9 +101,9 @@ private:
         return ranges::views::iota( 0 ) | ranges::views::take( no_points * 3 ) | ranges::to<std::vector<vtu11::VtkIndexType>>;
     }
 
-    [[nodiscard]] std::vector<vtu11::VtkIndexType> getOffsets(size_t no_cells)
+    [[nodiscard]] std::vector<vtu11::VtkIndexType> getOffsets(size_t no_cells, size_t step)
     {
-        return ranges::views::iota( 0 ) | ranges::views::take( no_cells ) | ranges::views::stride( 3 ) | ranges::to<std::vector<vtu11::VtkIndexType>>;
+        return ranges::views::iota( 0 ) | ranges::views::take( no_cells ) | ranges::views::stride( step ) | ranges::to<std::vector<vtu11::VtkIndexType>>;
     }
 
     [[nodiscard]] std::vector<vtu11::VtkCellType> getCellTypes(size_t no_cells, vtu11::VtkIndexType cell_type)
@@ -107,7 +116,7 @@ private:
         return visual_data_ | ranges::views::transform( [](auto& val) { return val.getDataSetInfo(); } ) | ranges::to<std::vector<vtu11::DataSetInfo>>;
     }
 
-    void writePartition(vtu11::Vtu11UnstructuredMesh& mesh_partition, const std::vector<vtu11::DataSetData>& dataset_data)
+    void writePartition(vtu11::Vtu11UnstructuredMesh& mesh_partition, const std::vector<vtu11::DataSetData>& dataset_data = { })
     {
         const auto idx = idx_++;
         spdlog::info( "Visual Debugger: writing <{}> partition {}", id_, idx );
