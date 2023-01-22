@@ -70,7 +70,10 @@ public:
 
     constexpr void log(const polygons auto& polys, const int layer_idx) { };
 
-    constexpr void log(const mesh auto& mesh) { };
+    constexpr void log(const vertices auto& vertices)
+    {
+
+    };
 
     constexpr void log(const st_edges_viewable auto& polys, const int layer_idx) { };
 
