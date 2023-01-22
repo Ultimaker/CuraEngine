@@ -31,7 +31,7 @@
 
 namespace cura::debug
 {
-using layer_map_t = std::unordered_map<int, unsigned long long>;
+using layer_map_t = std::unordered_map<int, double>;
 using shared_layer_map_t = std::shared_ptr<layer_map_t>;
 
 #ifdef VISUAL_DEBUG
@@ -98,7 +98,7 @@ public:
         vtu11::writePVtu( vtu_path_.string(), id_, getDatasetInfos(), idx_ ); // Need to write this again since we now know the exact number of vtu files
     };
 
-    void setValue(std::shared_ptr<layer_map_t> layer_map)
+    void setValue(shared_layer_map_t& layer_map)
     {
         layer_map_ = layer_map;
     }

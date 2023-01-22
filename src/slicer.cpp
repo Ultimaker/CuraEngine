@@ -18,7 +18,6 @@
 #include "utils/SparsePointGridInclusive.h"
 #include "utils/ThreadPool.h"
 #include "utils/gettime.h"
-#include "utils/views/get.h"
 #include "utils/visual_debug/logger.h"
 
 
@@ -797,7 +796,7 @@ Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_c
 
 #ifdef VISUAL_DEBUG
     spdlog::debug("Visual Debugger: Initializing layer_map");
-    debug::Loggers::get_mutable_instance().setAll( layers | views::get(&SlicerLayer::z) | ranges::views::enumerate | ranges::to<debug::layer_map_t> );
+    debug::Loggers::get_mutable_instance().setAll( layers | ranges::views::transform([]( const auto& layer ) { return static_cast<double>( layer.z ); }) | ranges::views::enumerate | ranges::to<debug::layer_map_t> );
 #endif
 
     std::vector<std::pair<int32_t, int32_t>> zbbox = buildZHeightsForFaces(*mesh);
