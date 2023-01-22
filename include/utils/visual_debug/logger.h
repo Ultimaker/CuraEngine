@@ -43,6 +43,7 @@ public:
             if ( !loggers_.contains( id ))
             {
                 loggers_.emplace( id, std::make_shared<VisualLogger>( id, VisualDebugPath(), std::forward<Args>( args )... ));
+                Get( id )->setValue( layer_map_ );
             }
         }
         else
@@ -68,6 +69,16 @@ public:
             return Get( id );
         }
         return MakeLogger( id, std::forward<Args>( args )... );
+    }
+
+    void setAll(layer_map_t&& layer_map)
+    {
+        const std::scoped_lock lock { mutex_ };
+        layer_map_ = std::make_shared<layer_map_t>( std::forward<layer_map_t>( layer_map ));
+        for ( auto& [ _, logger ] : loggers_ )
+        {
+            logger->setValue( layer_map_ );
+        }
     }
 
 private:

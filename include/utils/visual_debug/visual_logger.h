@@ -53,7 +53,7 @@ public:
         (visual_data_.emplace_back( args ), ...);
         if ( !visual_data_.empty())
         {
-            spdlog::debug( "Visual Debugger: logging: {}", visual_data_ | views::get( & VisualDataInfo::name ));
+            spdlog::debug( "Visual Debugger: <{}> logging: {}", id_, visual_data_ | views::get( & VisualDataInfo::name ));
         }
         vtu11::writePVtu( vtu_path_.string(), id_, getDatasetInfos(), 1 );
     };
@@ -98,6 +98,11 @@ public:
         vtu11::writePVtu( vtu_path_.string(), id_, getDatasetInfos(), idx_ ); // Need to write this again since we now know the exact number of vtu files
     };
 
+    void setValue(std::shared_ptr<layer_map_t> layer_map)
+    {
+        layer_map_ = layer_map;
+    }
+
     constexpr void log(const polygon auto& poly, const int layer_idx) { };
 
     constexpr void log(const polygons auto& polys, const int layer_idx) { };
@@ -116,7 +121,7 @@ public:
                 points.emplace_back( static_cast<value_type>(vertex.p.z));
             }
         }
-        auto connectivity = getConnectivity( mesh.faces.size() * 3);
+        auto connectivity = getConnectivity( mesh.faces.size() * 3 );
         auto offsets = getOffsets( connectivity.size(), 3 );
         auto types = getCellTypes( offsets.size(), 5 );
         vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets, types };
