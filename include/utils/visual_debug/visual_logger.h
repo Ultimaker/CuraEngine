@@ -14,6 +14,10 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <range/v3/to_container.hpp>
+#include <range/v3/view/iota.hpp>
+#include <range/v3/view/repeat.hpp>
+#include <range/v3/view/stride.hpp>
+#include <range/v3/view/take.hpp>
 #include <range/v3/view/transform.hpp>
 #include <spdlog/spdlog.h>
 #include <vtu11/vtu11.hpp>
@@ -72,7 +76,6 @@ public:
 
     constexpr void log(const vertices auto& vertices)
     {
-
     };
 
     constexpr void log(const st_edges_viewable auto& polys, const int layer_idx) { };
@@ -84,7 +87,22 @@ private:
     shared_layer_map_t layer_map_ { };
     std::vector<VisualDataInfo> visual_data_ { };
 
-    constexpr std::vector<vtu11::DataSetInfo> getDatasetInfos()
+    [[nodiscard]] std::vector<vtu11::VtkIndexType> getConnectivity(size_t no_points)
+    {
+        return ranges::views::iota( 0 ) | ranges::views::take( no_points * 3 ) | ranges::to<std::vector<vtu11::VtkIndexType>>;
+    }
+
+    [[nodiscard]] std::vector<vtu11::VtkIndexType> getOffsets(size_t no_cells)
+    {
+        return ranges::views::iota( 0 ) | ranges::views::take( no_cells ) | ranges::views::stride( 3 ) | ranges::to<std::vector<vtu11::VtkIndexType>>;
+    }
+
+    [[nodiscard]] std::vector<vtu11::VtkCellType> getCellTypes(size_t no_cells, vtu11::VtkIndexType cell_type)
+    {
+        return ranges::views::repeat( cell_type ) | ranges::views::take( no_cells ) | ranges::to<std::vector<vtu11::VtkCellType>>;
+    }
+
+    [[nodiscard]] constexpr std::vector<vtu11::DataSetInfo> getDatasetInfos()
     {
         return visual_data_ | ranges::views::transform( [](auto& val) { return val.getDataSetInfo(); } ) | ranges::to<std::vector<vtu11::DataSetInfo>>;
     }
