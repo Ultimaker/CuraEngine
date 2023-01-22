@@ -74,8 +74,8 @@ template<class T>
 concept mesh =
 requires( T m )
 {
-    { m.vertices } -> vertices;
-    { m.faces } -> faces;
+    m.vertices;
+    m.faces;
 	{ m.mesh_name } -> std::convertible_to<std::string>;
 };// FIXME: define proper concept
 

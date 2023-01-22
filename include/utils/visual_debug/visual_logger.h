@@ -102,12 +102,23 @@ public:
 
     constexpr void log(const polygons auto& polys, const int layer_idx) { };
 
-    constexpr void log(const vertices auto& vertices)
+    constexpr void log(const mesh auto& mesh)
     {
-        auto points = vertices | ranges::views::transform( [](const auto& vert) { return views::coord_view( vert.p ); } ) | ranges::views::join | ranges::to<std::vector<value_type>>;
-        auto connectivity = getConnectivity( points.size());
+        // FIXME: add the last face as well
+        std::vector<value_type> points { };
+        for ( const auto& face : mesh.faces )
+        {
+            for ( const auto& vertex_idx : face.vertex_index )
+            {
+                const auto& vertex = mesh.vertices[vertex_idx];
+                points.emplace_back( static_cast<value_type>(vertex.p.x));
+                points.emplace_back( static_cast<value_type>(vertex.p.y));
+                points.emplace_back( static_cast<value_type>(vertex.p.z));
+            }
+        }
+        auto connectivity = getConnectivity( mesh.faces.size() * 3);
         auto offsets = getOffsets( connectivity.size(), 3 );
-        auto types = getCellTypes( connectivity.size(), 5 );
+        auto types = getCellTypes( offsets.size(), 5 );
         vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets, types };
         writePartition( mesh_partition );
     };
@@ -124,7 +135,7 @@ private:
 
     [[nodiscard]] std::vector<vtu11::VtkIndexType> getConnectivity(size_t no_points)
     {
-        return ranges::views::iota( 0 ) | ranges::views::take( no_points * 3 ) | ranges::to<std::vector<vtu11::VtkIndexType>>;
+        return ranges::views::iota( 0 ) | ranges::views::take( no_points ) | ranges::to<std::vector<vtu11::VtkIndexType>>;
     }
 
     [[nodiscard]] std::vector<vtu11::VtkIndexType> getOffsets(size_t no_cells, size_t step)
@@ -147,7 +158,7 @@ private:
         const std::scoped_lock lock { mutex_ };
         const auto idx = idx_++;
         spdlog::info( "Visual Debugger: writing <{}> partition {}", id_, idx );
-        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, getDatasetInfos(), dataset_data, idx, "RawBinary" );
+        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, getDatasetInfos(), dataset_data, idx, "Ascii" );
     }
 };
 } // namespace enabled
