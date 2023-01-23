@@ -13,13 +13,18 @@
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <range/v3/action/sort.hpp>
 #include <range/v3/to_container.hpp>
+#include <range/v3/view/concat.hpp>
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/filter.hpp>
 #include <range/v3/view/iota.hpp>
 #include <range/v3/view/join.hpp>
 #include <range/v3/view/repeat.hpp>
 #include <range/v3/view/stride.hpp>
 #include <range/v3/view/take.hpp>
 #include <range/v3/view/transform.hpp>
+#include <range/v3/view/zip.hpp>
 #include <spdlog/spdlog.h>
 #include <vtu11/vtu11.hpp>
 
@@ -39,6 +44,27 @@ inline namespace enabled
 {
 class VisualLogger
 {
+private:
+    [[nodiscard]] static constexpr auto isCellVisualDataInfo(const VisualDataInfo& visual_data_info)
+    {
+        return visual_data_info.dataset_type == vtu11::DataSetType::CellData;
+    }
+
+    [[nodiscard]] static constexpr auto isPointVisualDataInfo(const VisualDataInfo& visual_data_info)
+    {
+        return visual_data_info.dataset_type == vtu11::DataSetType::PointData;
+    }
+
+    [[nodiscard]] constexpr auto getCellVisualData()
+    {
+        return visual_data_ | ranges::views::filter( & VisualLogger::isCellVisualDataInfo );
+    }
+
+    [[nodiscard]] constexpr auto getPointVisualData()
+    {
+        return visual_data_ | ranges::views::filter( & VisualLogger::isPointVisualDataInfo );
+    }
+
 public:
     using value_type = double;
 
@@ -51,6 +77,7 @@ public:
         spdlog::info( "Visual Debugger: Initializing vtu <{}> file(s) in {}", id_, vtu_path_.string());
         visual_data_.reserve( sizeof...( Args ));
         (visual_data_.emplace_back( args ), ...);
+        ranges::sort( visual_data_, { }, & VisualDataInfo::dataset_type );
         if ( !visual_data_.empty())
         {
             spdlog::debug( "Visual Debugger: <{}> logging: {}", id_, visual_data_ | views::get( & VisualDataInfo::name ));
@@ -128,7 +155,37 @@ public:
         writePartition( mesh_partition );
     };
 
-    constexpr void log(const st_edges_viewable auto& polys, const int layer_idx) { };
+    void log(const st_edges_viewable auto& st_edges, const int layer_idx)
+    {
+        std::vector<value_type> points { };
+        auto cell_datas = ranges::views::repeat( vtu11::DataSetData { } ) | ranges::views::take( ranges::distance( getCellVisualData())) | ranges::to_vector;
+        auto point_datas = ranges::views::repeat( vtu11::DataSetData { } ) | ranges::views::take( ranges::distance( getPointVisualData())) | ranges::to_vector;
+        for ( const auto& st_edge : st_edges )
+        {
+            // log cell data
+            for ( auto [ cell_data, data ] : ranges::views::zip( cell_datas, getCellVisualData()))
+            {
+                cell_data.emplace_back( 1. );
+            }
+            for ( const auto& node : { st_edge.from, st_edge.to } )
+            {
+                // log node data
+                for ( auto [ node_data, data ] : ranges::views::zip( point_datas, getPointVisualData()))
+                {
+                    node_data.emplace_back( 0. );
+                }
+                points.emplace_back( static_cast<value_type>(node->p.X));
+                points.emplace_back( static_cast<value_type>(node->p.Y));
+                points.emplace_back( layer_map_->at( layer_idx ));
+            }
+        }
+        auto connectivity = getConnectivity( points.size() / 3 );
+        auto offsets = getOffsets( connectivity.size(), 3 );
+        auto types = getCellTypes( offsets.size(), 3 );
+        vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets, types };
+
+        writePartition( mesh_partition, ranges::views::concat( point_datas, cell_datas ) | ranges::to_vector );
+    };
 
 private:
     std::mutex mutex_;
@@ -148,7 +205,7 @@ private:
         return ranges::views::iota( 0 ) | ranges::views::take( no_cells ) | ranges::views::stride( step ) | ranges::to<std::vector<vtu11::VtkIndexType>>;
     }
 
-    [[nodiscard]] std::vector<vtu11::VtkCellType> getCellTypes(size_t no_cells, vtu11::VtkIndexType cell_type)
+    [[nodiscard]] constexpr std::vector<vtu11::VtkCellType> getCellTypes(size_t no_cells, vtu11::VtkIndexType cell_type)
     {
         return ranges::views::repeat( cell_type ) | ranges::views::take( no_cells ) | ranges::to<std::vector<vtu11::VtkCellType>>;
     }
@@ -162,8 +219,10 @@ private:
     {
         const std::scoped_lock lock { mutex_ };
         const auto idx = idx_++;
+        const auto dataset_info = getDatasetInfos();
         spdlog::info( "Visual Debugger: writing <{}> partition {}", id_, idx );
-        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, getDatasetInfos(), dataset_data, idx, "Ascii" );
+        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, dataset_info, dataset_data, idx, "ascii" );
+//        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, dataset_info, dataset_data, idx, "rawbinarycompressed" );
     }
 };
 } // namespace enabled
