@@ -364,20 +364,21 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys,
                                                coord_t discretization_step_size,
                                                coord_t transition_filter_dist,
                                                coord_t allowed_filter_deviation,
-                                               coord_t beading_propagation_transition_dist)
+                                               coord_t beading_propagation_transition_dist,
+                                               int layer_idx)
     : transitioning_angle(transitioning_angle)
     , discretization_step_size(discretization_step_size)
     , transition_filter_dist(transition_filter_dist)
     , allowed_filter_deviation(allowed_filter_deviation)
     , beading_propagation_transition_dist(beading_propagation_transition_dist)
     , beading_strategy(beading_strategy)
+    , layer_idx(layer_idx)
 {
     constructFromPolygons(polys);
 }
 
 void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
 {
-    constexpr auto layer_idx = 1;  // TODO: get it from the actual layer
     auto vlogger_polys = debug::Loggers::get_mutable_instance().Logger( "ST_polys" );
     vlogger_polys->log( polys, layer_idx );
     vd_edge_to_he_edge.clear();
