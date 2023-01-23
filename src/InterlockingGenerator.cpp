@@ -1,4 +1,4 @@
-//Copyright (c) 2022 Ultimaker B.V.
+//Copyright (c) 2023 UltiMaker
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "InterlockingGenerator.h"
@@ -190,8 +190,14 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
     const size_t max_layer_count = std::max(mesh_a.layers.size(), mesh_b.layers.size());
 
     std::vector<Polygons> structure_per_layer[2]; // for each mesh the structure on each layer
-    structure_per_layer[0].resize((max_layer_count + 1) / beam_layer_count);
-    structure_per_layer[1].resize((max_layer_count + 1) / beam_layer_count);
+
+    // Every `beam_layer_count` number of layers are combined to an interlocking beam layer
+    // to store these we need ceil(max_layer_count / beam_layer_count) of these layers
+    // the formula is rewritten as (max_layer_count + beam_layer_count - 1) / beam_layer_count, so it works for integer division
+    size_t num_interlocking_layers = (max_layer_count + beam_layer_count - 1) / beam_layer_count;
+    structure_per_layer[0].resize(num_interlocking_layers);
+    structure_per_layer[1].resize(num_interlocking_layers);
+
     // Only compute cell structure for half the layers, because since our beams are two layers high, every odd layer of the structure will be the same as the layer below.
     for (const GridPoint3& grid_loc : cells)
     {
