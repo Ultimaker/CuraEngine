@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "WallsComputation.h"
 #include "Application.h"
@@ -61,14 +61,14 @@ void WallsComputation::generateWalls(SliceLayerPart* part)
         generateSpiralInsets(part, line_width_0, wall_0_inset, recompute_outline_based_on_outer_wall);
         if (layer_nr <= static_cast<LayerIndex>(settings.get<size_t>("initial_bottom_layers")))
         {
-            WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, wall_count, wall_0_inset, settings);
+            WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, wall_count, wall_0_inset, settings, layer_nr);
             part->wall_toolpaths = wall_tool_paths.getToolPaths();
             part->inner_area = wall_tool_paths.getInnerContour();
         }
     }
     else
     {
-        WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, wall_count, wall_0_inset, settings);
+        WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, wall_count, wall_0_inset, settings, layer_nr);
         part->wall_toolpaths = wall_tool_paths.getToolPaths();
         part->inner_area = wall_tool_paths.getInnerContour();
     }

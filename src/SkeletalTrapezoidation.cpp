@@ -1,23 +1,20 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "SkeletalTrapezoidation.h"
 
-#include <spdlog/spdlog.h>
-
-#include "settings/types/Ratio.h"
 #include <functional>
 #include <queue>
 #include <sstream>
 #include <stack>
 #include <unordered_set>
 
+#include <spdlog/spdlog.h>
+
+#include "settings/types/Ratio.h"
 #include "BoostInterface.hpp"
-
 #include "utils/VoronoiUtils.h"
-
 #include "utils/linearAlg2D.h"
-
 #include "utils/macros.h"
 
 #define SKELETAL_TRAPEZOIDATION_BEAD_SEARCH_MAX 1000 // A limit to how long it'll keep searching for adjacent beads. Increasing will re-use beadings more often (saving performance), but search longer for beading (costing performance).
@@ -365,13 +362,15 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys,
                                                coord_t discretization_step_size,
                                                coord_t transition_filter_dist,
                                                coord_t allowed_filter_deviation,
-                                               coord_t beading_propagation_transition_dist)
+                                               coord_t beading_propagation_transition_dist,
+                                               int layer_idx)
     : transitioning_angle(transitioning_angle)
     , discretization_step_size(discretization_step_size)
     , transition_filter_dist(transition_filter_dist)
     , allowed_filter_deviation(allowed_filter_deviation)
     , beading_propagation_transition_dist(beading_propagation_transition_dist)
     , beading_strategy(beading_strategy)
+    , layer_idx(layer_idx)
 {
     constructFromPolygons(polys);
 }
