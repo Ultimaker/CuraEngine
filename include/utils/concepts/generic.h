@@ -12,7 +12,7 @@ namespace cura
 template<typename T>
 concept hashable = requires(T value)
 {
-    { std::hash<T>{}(value) } -> std::convertible_to<std::size_t>;
+    { std::hash<T>{}(value) } -> concepts::convertible_to<std::size_t>;
 };
 } // namespace cura
 
