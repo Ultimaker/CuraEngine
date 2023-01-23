@@ -4,6 +4,8 @@
 #ifndef INCLUDE_UTILS_VISUAL_DEBUG_VISUAL_DATA_INFO_H
 #define INCLUDE_UTILS_VISUAL_DEBUG_VISUAL_DATA_INFO_H
 
+#include <functional>
+
 #include <vtu11/vtu11.hpp>
 
 namespace cura::debug
@@ -13,7 +15,7 @@ struct VisualDataInfo
     std::string name;
     vtu11::DataSetType dataset_type;
     std::size_t components;
-    std::any projection;
+    std::function<double(void)> projection;
 
     [[nodiscard]] vtu11::DataSetInfo getDataSetInfo()
     {

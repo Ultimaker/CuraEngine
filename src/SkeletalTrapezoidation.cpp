@@ -458,11 +458,11 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
                                                                            debug::VisualDataInfo { .name = "isCentral",
                                                                                                    .dataset_type = vtu11::DataSetType::CellData,
                                                                                                    .components = 1UL,
-                                                                                                   .projection = [](const auto& val) { return static_cast<double>(val.data.isCentral()); }},
+                                                                                                   .projection = []() { return static_cast<double>(1); }},
                                                                            debug::VisualDataInfo { .name = "distance_to_boundary",
                                                                                                    .dataset_type = vtu11::DataSetType::PointData,
                                                                                                    .components = 1UL,
-                                                                                                   .projection = [](const auto& val) { return static_cast<double>(val.data.distance_to_boundary); }} );
+                                                                                                   .projection = []() { return static_cast<double>(2); }} );
     vlogger_st_graph->log( graph.edges, layer_idx );
 
     // Set [incident_edge] the the first possible edge that way we can iterate over all reachable edges from node.incident_edge,

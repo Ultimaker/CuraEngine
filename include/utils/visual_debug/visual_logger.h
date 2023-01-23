@@ -157,6 +157,15 @@ public:
 
     void log(const st_edges_viewable auto& st_edges, const int layer_idx)
     {
+        // Add layer_idx to datas
+        if (initial_log_)
+        {
+            visual_data_.push_back( VisualDataInfo { .name = "layer_idx", .dataset_type = vtu11::DataSetType::PointData, .components = 1, .projection = [ &layer_idx ]() { return static_cast<value_type>( layer_idx ); }} );
+            visual_data_.push_back( VisualDataInfo { .name = "layer_idx", .dataset_type = vtu11::DataSetType::CellData, .components = 1, .projection = [ &layer_idx ]() { return static_cast<value_type>( layer_idx ); }} );
+            ranges::sort( visual_data_, { }, & VisualDataInfo::dataset_type );
+            initial_log_ = false;
+        }
+
         std::vector<value_type> points { };
         auto cell_datas = ranges::views::repeat( vtu11::DataSetData { } ) | ranges::views::take( ranges::distance( getCellVisualData())) | ranges::to_vector;
         auto point_datas = ranges::views::repeat( vtu11::DataSetData { } ) | ranges::views::take( ranges::distance( getPointVisualData())) | ranges::to_vector;
@@ -165,14 +174,14 @@ public:
             // log cell data
             for ( auto [ cell_data, data ] : ranges::views::zip( cell_datas, getCellVisualData()))
             {
-                cell_data.emplace_back( 1. );
+                cell_data.emplace_back( std::invoke(data.projection) );
             }
             for ( const auto& node : { st_edge.from, st_edge.to } )
             {
                 // log node data
                 for ( auto [ node_data, data ] : ranges::views::zip( point_datas, getPointVisualData()))
                 {
-                    node_data.emplace_back( 0. );
+                    node_data.emplace_back( std::invoke(data.projection) );
                 }
                 points.emplace_back( static_cast<value_type>(node->p.X));
                 points.emplace_back( static_cast<value_type>(node->p.Y));
@@ -194,6 +203,7 @@ private:
     std::filesystem::path vtu_path_ { };
     shared_layer_map_t layer_map_ { };
     std::vector<VisualDataInfo> visual_data_ { };
+    bool initial_log_ { true };
 
     [[nodiscard]] std::vector<vtu11::VtkIndexType> getConnectivity(size_t no_points)
     {
@@ -221,8 +231,7 @@ private:
         const auto idx = idx_++;
         const auto dataset_info = getDatasetInfos();
         spdlog::info( "Visual Debugger: writing <{}> partition {}", id_, idx );
-        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, dataset_info, dataset_data, idx, "ascii" );
-//        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, dataset_info, dataset_data, idx, "rawbinarycompressed" );
+       vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, dataset_info, dataset_data, idx, "rawbinarycompressed" );
     }
 };
 } // namespace enabled
