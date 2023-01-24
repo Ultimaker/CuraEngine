@@ -17,6 +17,7 @@
 #include <range/v3/algorithm/contains.hpp>
 #include <range/v3/to_container.hpp>
 #include <range/v3/view/concat.hpp>
+#include <range/v3/view/drop.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/iota.hpp>
@@ -109,7 +110,62 @@ public:
 
     constexpr void log(const polygon auto& poly, const int layer_idx) { };
 
-    constexpr void log(const polygons auto& polys, const int layer_idx) { };
+    template<typename... VDI>
+    constexpr void log(const polygons auto& polys, const int layer_idx, VDI... visual_data_infos)
+    {
+        ( updateDataInfos( visual_data_infos ), ...);
+
+        std::vector<value_type> points { };
+        std::vector<vtu11::VtkIndexType> offsets { 0 };
+        auto cell_datas = ranges::views::repeat( vtu11::DataSetData { } ) | ranges::views::take( cell_dataset_info_.size()) | ranges::to_vector;
+        auto point_datas = ranges::views::repeat( vtu11::DataSetData { } ) | ranges::views::take( point_dataset_info_.size()) | ranges::to_vector;
+
+        for ( const auto& poly : polys)
+        {
+            offsets.push_back(offsets.back() + poly.size() );
+            // log cell data
+            size_t cell_data_idx { };
+            for ( const auto& data : cell_dataset_info_ )
+            {
+                ([ & ] {
+                  if constexpr ( visual_data_infos.dataset_type == vtu11::DataSetType::CellData )
+                  {
+                      if ( visual_data_infos == data )
+                      {
+                          cell_datas[cell_data_idx++].emplace_back( static_cast<double>( std::invoke( visual_data_infos.projection, poly )));
+                      }
+                  }
+                }(), ...);
+            }
+
+            for ( const auto& point : poly )
+            {
+                // log node data
+                size_t pont_data_idx { };
+                for ( const auto& data : point_dataset_info_ )
+                {
+                    ([ & ] {
+                      if constexpr ( visual_data_infos.dataset_type == vtu11::DataSetType::PointData )
+                      {
+                          if ( visual_data_infos == data )
+                          {
+                              point_datas[pont_data_idx++].emplace_back( static_cast<double>( std::invoke( visual_data_infos.projection, point )));
+                          }
+                      }
+                    }(), ...);
+                }
+                points.emplace_back( static_cast<value_type>(point.X));
+                points.emplace_back( static_cast<value_type>(point.Y));
+                points.emplace_back( layer_map_->at( layer_idx ));
+            }
+        }
+
+        auto connectivity = getConnectivity( points.size() / 3 );
+        auto types = getCellTypes( offsets.size() - 1, 7 );
+        vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets | ranges::views::drop(1) | ranges::to_vector, types };
+
+        writePartition( mesh_partition, ranges::views::concat( point_datas, cell_datas ) | ranges::to_vector );
+    };
 
     constexpr void log(const mesh auto& mesh)
     {
@@ -131,24 +187,6 @@ public:
         vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets, types };
         writePartition( mesh_partition );
     };
-
-    constexpr void updateDataInfos(const auto& visual_data_info) noexcept
-    {
-        if ( visual_data_info.dataset_type == vtu11::DataSetType::CellData )
-        {
-            if ( std::find( cell_dataset_info_.begin(), cell_dataset_info_.end(), visual_data_info ) == cell_dataset_info_.end())
-            {
-                cell_dataset_info_.emplace_back( static_cast<vtu11::DataSetInfo>(visual_data_info));
-            }
-        }
-        else if ( visual_data_info.dataset_type == vtu11::DataSetType::PointData )
-        {
-            if ( std::find( point_dataset_info_.begin(), point_dataset_info_.end(), visual_data_info ) == point_dataset_info_.end())
-            {
-                point_dataset_info_.emplace_back( static_cast<vtu11::DataSetInfo>(visual_data_info));
-            }
-        }
-    }
 
     template<typename... VDI>
     constexpr void log(const st_edges_viewable auto& st_edges, const int layer_idx, VDI... visual_data_infos)
@@ -225,6 +263,25 @@ private:
     [[nodiscard]] constexpr std::vector<vtu11::VtkCellType> getCellTypes(size_t no_cells, vtu11::VtkIndexType cell_type)
     {
         return ranges::views::repeat( cell_type ) | ranges::views::take( no_cells ) | ranges::to<std::vector<vtu11::VtkCellType>>;
+    }
+
+    void updateDataInfos(const auto& visual_data_info) noexcept
+    {
+        const std::scoped_lock lock { mutex_ };
+        if ( visual_data_info.dataset_type == vtu11::DataSetType::CellData )
+        {
+            if ( std::find( cell_dataset_info_.begin(), cell_dataset_info_.end(), visual_data_info ) == cell_dataset_info_.end())
+            {
+                cell_dataset_info_.emplace_back( static_cast<vtu11::DataSetInfo>(visual_data_info));
+            }
+        }
+        else if ( visual_data_info.dataset_type == vtu11::DataSetType::PointData )
+        {
+            if ( std::find( point_dataset_info_.begin(), point_dataset_info_.end(), visual_data_info ) == point_dataset_info_.end())
+            {
+                point_dataset_info_.emplace_back( static_cast<vtu11::DataSetInfo>(visual_data_info));
+            }
+        }
     }
 
     void writePartition(vtu11::Vtu11UnstructuredMesh& mesh_partition, const std::vector<vtu11::DataSetData>& dataset_data = { })
