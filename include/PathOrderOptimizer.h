@@ -135,7 +135,6 @@ public:
      */
     void optimize()
     {
-        spdlog::info("getOptimizedOrder");
         if(paths.empty())
         {
             return;
