@@ -196,7 +196,7 @@ public:
             }
         }
         auto connectivity = getConnectivity( points.size() / 3 );
-        auto offsets = getOffsets( connectivity.size(), 3 );
+        auto offsets = getOffsets( connectivity.size(), 2 );
         auto types = getCellTypes( offsets.size(), 3 );
         vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets, types };
 
@@ -237,7 +237,7 @@ private:
         {
             spdlog::debug( "Visual Debugger: <{}> logging: {}", id_, data_set_info_view | ranges::views::transform( [](const auto& dsi) { return std::get<0>( dsi ); } ));
         }
-        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, data_set_info_view | ranges::to_vector, dataset_data, idx, "rawbinarycompressed" );
+        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, data_set_info_view | ranges::to_vector, dataset_data, idx, "ascii" );
     }
 };
 } // namespace enabled
