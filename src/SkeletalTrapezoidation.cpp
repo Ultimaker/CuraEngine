@@ -455,16 +455,13 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
     separatePointyQuadEndNodes();
     graph.collapseSmallEdges();
 
-    auto vlogger_st_graph = debug::Loggers::get_mutable_instance().Logger( "ST_graph_edges",
-                                                                           debug::VisualDataInfo { .name = "isCentral",
-                                                                                                   .dataset_type = vtu11::DataSetType::CellData,
-                                                                                                   .components = 1UL,
-                                                                                                   .projection = []() { return static_cast<double>(1); }},
-                                                                           debug::VisualDataInfo { .name = "distance_to_boundary",
-                                                                                                   .dataset_type = vtu11::DataSetType::PointData,
-                                                                                                   .components = 1UL,
-                                                                                                   .projection = []() { return static_cast<double>(2); }} );
-    vlogger_st_graph->log( graph.edges, layer_idx );
+    auto vlogger_st_graph = debug::Loggers::get_mutable_instance().Logger( "ST_graph_edges");
+    vlogger_st_graph->log( graph.edges,
+                           layer_idx,
+                           debug::CellVisualDataInfo { "layer_idx", [&]( const auto& val ) { return layer_idx; } },
+                           debug::PointVisualDataInfo { "layer_idx", [&]( const auto& val ) { return layer_idx; } },
+                           debug::CellVisualDataInfo { "type", []( const auto& val ) { return 1; } },
+                           debug::PointVisualDataInfo { "distance_to_boundary", []( const auto& val ) { return val.data.distance_to_boundary; } } );
 
     // Set [incident_edge] the the first possible edge that way we can iterate over all reachable edges from node.incident_edge,
     // without needing to iterate backward
