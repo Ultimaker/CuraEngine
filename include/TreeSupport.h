@@ -41,6 +41,9 @@ constexpr coord_t SUPPORT_TREE_COLLISION_RESOLUTION = 500; // Only has an effect
 
 constexpr coord_t SUPPORT_TREE_MAX_DEVIATION = 0;
 
+using PropertyAreasUnordered = std::unordered_map<TreeSupportElement, Polygons>;
+using PropertyAreas = std::map<TreeSupportElement, Polygons>;
+
 /*!
  * \brief Generates a tree structure to support your models.
  */

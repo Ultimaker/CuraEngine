@@ -430,9 +430,6 @@ struct TreeSupportElement
     }
 };
 
-using PropertyAreasUnordered = std::unordered_map<TreeSupportElement, Polygons>;
-using PropertyAreas = std::map<TreeSupportElement, Polygons>;
-
 } // namespace cura
 
 namespace std
