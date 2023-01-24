@@ -455,15 +455,7 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
     separatePointyQuadEndNodes();
     graph.collapseSmallEdges();
 
-    auto vlogger_st_graph = debug::Loggers::get_mutable_instance().Logger( "ST_graph_edges");
-    vlogger_st_graph->log( graph.edges,
-                           layer_idx,
-                           debug::CellVisualDataInfo { "layer_idx", [&]( const auto& val ) { return layer_idx; } },
-                           debug::PointVisualDataInfo { "layer_idx", [&]( const auto& val ) { return layer_idx; } },
-                           debug::CellVisualDataInfo { "type", []( const auto& val ) { return 1; } },
-                           debug::PointVisualDataInfo { "distance_to_boundary", []( const auto& val ) { return val.data.distance_to_boundary; } } );
-
-    // Set [incident_edge] the the first possible edge that way we can iterate over all reachable edges from node.incident_edge,
+    // Set [incident_edge] the first possible edge that way we can iterate over all reachable edges from node.incident_edge,
     // without needing to iterate backward
     for (edge_t& edge : graph.edges)
     {
@@ -531,6 +523,21 @@ void SkeletalTrapezoidation::generateToolpaths(std::vector<VariableWidthLines>& 
     generateExtraRibs();
 
     generateSegments();
+
+    auto vlogger_st_graph = debug::Loggers::get_mutable_instance().Logger( "ST_graph_final");
+    vlogger_st_graph->log( graph.edges,
+                           layer_idx,
+                           debug::CellVisualDataInfo { "layer_idx", [&]( const auto& val ) { return layer_idx; } },
+                           debug::PointVisualDataInfo { "layer_idx", [&]( const auto& val ) { return layer_idx; } },
+                           debug::CellVisualDataInfo { "type", []( const auto& val ) { return val.data.type; } },
+                           debug::CellVisualDataInfo { "isCentral", []( const auto& val ) { return static_cast<int>(val.data.isCentral()); } },
+                           debug::CellVisualDataInfo { "hasTransitions", []( const auto& val ) { return val.data.hasTransitions(); } },
+                           debug::CellVisualDataInfo { "hasTransitionEnds", []( const auto& val ) { return val.data.hasTransitionEnds(); } },
+                           debug::CellVisualDataInfo { "hasExtrusionJunctions", []( const auto& val ) { return val.data.hasExtrusionJunctions(); } },
+                           debug::PointVisualDataInfo { "distance_to_boundary", []( const auto& val ) { return val.data.distance_to_boundary; } },
+                           debug::PointVisualDataInfo { "bead_count", []( const auto& val ) { return val.data.bead_count; } },
+                           debug::PointVisualDataInfo { "transition_ratio", []( const auto& val ) { return val.data.transition_ratio; } }
+                           );
 }
 
 void SkeletalTrapezoidation::updateIsCentral()
