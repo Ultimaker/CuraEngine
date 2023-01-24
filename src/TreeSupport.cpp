@@ -2507,7 +2507,7 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
     const coord_t max_radius_change_per_layer = 1 + config.support_line_width / 2; // This is the upper limit a radius may change per layer. +1 to avoid rounding errors.
 
     // Smooth upward.
-    for (const auto layer_idx : ranges::views::iota(0UL, layer_tree_polygons.size() - 1UL))
+    for (const auto layer_idx : ranges::views::iota(0UL, std::max<size_t>(layer_tree_polygons.size(), 1UL) - 1UL))
     {
         std::vector<std::pair<TreeSupportElement*, Polygons>> processing;
         processing.insert(processing.end(), layer_tree_polygons[layer_idx].begin(), layer_tree_polygons[layer_idx].end());
@@ -2561,7 +2561,7 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
 
     // Smooth downwards.
     std::unordered_set<TreeSupportElement*> updated_last_iteration;
-    for (const auto layer_idx : ranges::views::iota(0UL, layer_tree_polygons.size() - 1UL) | ranges::views::reverse)
+    for (const auto layer_idx : ranges::views::iota(0UL, std::max<size_t>(layer_tree_polygons.size(), 1UL) - 1UL) | ranges::views::reverse)
     {
         std::vector<std::pair<TreeSupportElement*, Polygons>> processing;
         processing.insert(processing.end(), layer_tree_polygons[layer_idx].begin(), layer_tree_polygons[layer_idx].end());
