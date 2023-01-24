@@ -134,14 +134,14 @@ public:
 
     constexpr void updateDataInfos(const auto& visual_data_info) noexcept
     {
-        if ( visual_data_info.dataset_type == 1 )
+        if ( visual_data_info.dataset_type == vtu11::DataSetType::CellData )
         {
             if ( std::find( cell_dataset_info_.begin(), cell_dataset_info_.end(), visual_data_info ) == cell_dataset_info_.end())
             {
                 cell_dataset_info_.emplace_back( static_cast<vtu11::DataSetInfo>(visual_data_info));
             }
         }
-        else if ( visual_data_info.dataset_type == 0 )
+        else if ( visual_data_info.dataset_type == vtu11::DataSetType::PointData )
         {
             if ( std::find( point_dataset_info_.begin(), point_dataset_info_.end(), visual_data_info ) == point_dataset_info_.end())
             {
@@ -165,7 +165,7 @@ public:
             for ( const auto& data : cell_dataset_info_ )
             {
                 ([ & ] {
-                  if constexpr ( visual_data_infos.dataset_type == 1 )
+                  if constexpr ( visual_data_infos.dataset_type == vtu11::DataSetType::CellData )
                   {
                       if ( visual_data_infos == data )
                       {
@@ -181,7 +181,7 @@ public:
                 for ( const auto& data : point_dataset_info_ )
                 {
                     ([ & ] {
-                      if constexpr ( visual_data_infos.dataset_type == 0 )
+                      if constexpr ( visual_data_infos.dataset_type == vtu11::DataSetType::PointData )
                       {
                           if ( visual_data_infos == data )
                           {
