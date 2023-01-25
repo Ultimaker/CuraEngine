@@ -114,8 +114,6 @@ public:
     template<typename... VDI>
     constexpr void log(const polygons auto& polys, const int layer_idx, VDI... visual_data_infos)
     {
-        updateDataInfos( CellVisualDataInfo { "layer_idx", & layer_idx } );
-        updateDataInfos( PointVisualDataInfo { "layer_idx", & layer_idx } );
         ( updateDataInfos( visual_data_infos ), ...);
 
         std::vector<value_type> points { };
@@ -135,14 +133,7 @@ public:
                   {
                       if ( visual_data_infos == data )
                       {
-                          if constexpr ( std::is_invocable_v<decltype( visual_data_infos.projection ), decltype( poly )> )
-                          {
-                              cell_datas[cell_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, poly )));
-                          }
-                          else
-                          {
-                              cell_datas[cell_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection )));
-                          }
+                          cell_datas[cell_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, poly )));
                       }
                   }
                 }(), ...);
@@ -159,14 +150,7 @@ public:
                       {
                           if ( visual_data_infos == data )
                           {
-                              if constexpr ( std::is_invocable_v<decltype( visual_data_infos.projection ), decltype( point )> )
-                              {
-                                  point_datas[pont_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, point )));
-                              }
-                              else
-                              {
-                                  point_datas[pont_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection )));
-                              }
+                              point_datas[pont_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, point )));
                           }
                       }
                     }(), ...);
@@ -208,8 +192,6 @@ public:
     template<typename... VDI>
     constexpr void log(const st_edges_viewable auto& st_edges, const int layer_idx, VDI... visual_data_infos)
     {
-        updateDataInfos( CellVisualDataInfo { "layer_idx", & layer_idx } );
-        updateDataInfos( PointVisualDataInfo { "layer_idx", & layer_idx } );
         ( updateDataInfos( visual_data_infos ), ...);
 
         std::vector<value_type> points { };
@@ -226,14 +208,7 @@ public:
                   {
                       if ( visual_data_infos == data )
                       {
-                          if constexpr ( std::is_invocable_v<decltype( visual_data_infos.projection ), decltype( st_edge )> )
-                          {
-                              cell_datas[cell_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, st_edge )));
-                          }
-                          else
-                          {
-                              cell_datas[cell_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection )));
-                          }
+                          cell_datas[cell_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, st_edge )));
                       }
                   }
                 }(), ...);
@@ -249,14 +224,7 @@ public:
                       {
                           if ( visual_data_infos == data )
                           {
-                              if constexpr ( std::is_invocable_v<decltype( visual_data_infos.projection ), decltype( * node )> )
-                              {
-                                  point_datas[pont_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, * node )));
-                              }
-                              else
-                              {
-                                  point_datas[pont_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection )));
-                              }
+                              point_datas[pont_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, * node )));
                           }
                       }
                     }(), ...);
