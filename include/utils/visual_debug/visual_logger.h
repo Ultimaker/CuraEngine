@@ -10,6 +10,7 @@
 #include <mutex>
 #include <tuple>
 #include <utility>
+#include <type_traits>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -113,6 +114,8 @@ public:
     template<typename... VDI>
     constexpr void log(const polygons auto& polys, const int layer_idx, VDI... visual_data_infos)
     {
+        updateDataInfos( CellVisualDataInfo { "layer_idx", & layer_idx } );
+        updateDataInfos( PointVisualDataInfo { "layer_idx", & layer_idx } );
         ( updateDataInfos( visual_data_infos ), ...);
 
         std::vector<value_type> points { };
@@ -120,9 +123,9 @@ public:
         auto cell_datas = ranges::views::repeat( vtu11::DataSetData { } ) | ranges::views::take( cell_dataset_info_.size()) | ranges::to_vector;
         auto point_datas = ranges::views::repeat( vtu11::DataSetData { } ) | ranges::views::take( point_dataset_info_.size()) | ranges::to_vector;
 
-        for ( const auto& poly : polys)
+        for ( const auto& poly : polys )
         {
-            offsets.push_back(offsets.back() + poly.size() );
+            offsets.push_back( offsets.back() + poly.size());
             // log cell data
             size_t cell_data_idx { };
             for ( const auto& data : cell_dataset_info_ )
@@ -132,7 +135,14 @@ public:
                   {
                       if ( visual_data_infos == data )
                       {
-                          cell_datas[cell_data_idx++].emplace_back( static_cast<double>( std::invoke( visual_data_infos.projection, poly )));
+                          if constexpr ( std::is_invocable_v<decltype( visual_data_infos.projection ), decltype( poly )> )
+                          {
+                              cell_datas[cell_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, poly )));
+                          }
+                          else
+                          {
+                              cell_datas[cell_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection )));
+                          }
                       }
                   }
                 }(), ...);
@@ -149,7 +159,14 @@ public:
                       {
                           if ( visual_data_infos == data )
                           {
-                              point_datas[pont_data_idx++].emplace_back( static_cast<double>( std::invoke( visual_data_infos.projection, point )));
+                              if constexpr ( std::is_invocable_v<decltype( visual_data_infos.projection ), decltype( point )> )
+                              {
+                                  point_datas[pont_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, point )));
+                              }
+                              else
+                              {
+                                  point_datas[pont_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection )));
+                              }
                           }
                       }
                     }(), ...);
@@ -162,7 +179,7 @@ public:
 
         auto connectivity = getConnectivity( points.size() / 3 );
         auto types = getCellTypes( offsets.size() - 1, 7 );
-        vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets | ranges::views::drop(1) | ranges::to_vector, types };
+        vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets | ranges::views::drop( 1 ) | ranges::to_vector, types };
 
         writePartition( mesh_partition, ranges::views::concat( point_datas, cell_datas ) | ranges::to_vector );
     };
@@ -191,6 +208,8 @@ public:
     template<typename... VDI>
     constexpr void log(const st_edges_viewable auto& st_edges, const int layer_idx, VDI... visual_data_infos)
     {
+        updateDataInfos( CellVisualDataInfo { "layer_idx", & layer_idx } );
+        updateDataInfos( PointVisualDataInfo { "layer_idx", & layer_idx } );
         ( updateDataInfos( visual_data_infos ), ...);
 
         std::vector<value_type> points { };
@@ -207,7 +226,14 @@ public:
                   {
                       if ( visual_data_infos == data )
                       {
-                          cell_datas[cell_data_idx++].emplace_back( static_cast<double>( std::invoke( visual_data_infos.projection, st_edge )));
+                          if constexpr ( std::is_invocable_v<decltype( visual_data_infos.projection ), decltype( st_edge )> )
+                          {
+                              cell_datas[cell_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, st_edge )));
+                          }
+                          else
+                          {
+                              cell_datas[cell_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection )));
+                          }
                       }
                   }
                 }(), ...);
@@ -223,7 +249,14 @@ public:
                       {
                           if ( visual_data_infos == data )
                           {
-                              point_datas[pont_data_idx++].emplace_back( static_cast<double>( std::invoke( visual_data_infos.projection, * node )));
+                              if constexpr ( std::is_invocable_v<decltype( visual_data_infos.projection ), decltype( * node )> )
+                              {
+                                  point_datas[pont_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, * node )));
+                              }
+                              else
+                              {
+                                  point_datas[pont_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection )));
+                              }
                           }
                       }
                     }(), ...);
@@ -294,7 +327,7 @@ private:
         {
             spdlog::debug( "Visual Debugger: <{}> logging: {}", id_, data_set_info_view | ranges::views::transform( [](const auto& dsi) { return std::get<0>( dsi ); } ));
         }
-        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, data_set_info_view | ranges::to_vector, dataset_data, idx, "ascii" );
+        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, data_set_info_view | ranges::to_vector, dataset_data, idx, "rawbinarycompressed" );
     }
 };
 } // namespace enabled

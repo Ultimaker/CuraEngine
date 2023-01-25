@@ -380,10 +380,7 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys,
 void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
 {
     auto vlogger_polys = debug::Loggers::get_mutable_instance().Logger( "ST_polys" );
-    vlogger_polys->log( polys, layer_idx,
-                        debug::CellVisualDataInfo { "layer_idx", [&]( const auto& val ) { return layer_idx; } },
-                        debug::PointVisualDataInfo { "layer_idx", [&]( const auto& val ) { return layer_idx; } }
-                        );
+    vlogger_polys->log( polys, layer_idx);
     vd_edge_to_he_edge.clear();
     vd_node_to_he_node.clear();
 
@@ -530,8 +527,6 @@ void SkeletalTrapezoidation::generateToolpaths(std::vector<VariableWidthLines>& 
     auto vlogger_st_graph = debug::Loggers::get_mutable_instance().Logger( "ST_graph_final");
     vlogger_st_graph->log( graph.edges,
                            layer_idx,
-                           debug::CellVisualDataInfo { "layer_idx", [&]( const auto& val ) { return layer_idx; } },
-                           debug::PointVisualDataInfo { "layer_idx", [&]( const auto& val ) { return layer_idx; } },
                            debug::CellVisualDataInfo { "type", []( const auto& val ) { return val.data.type; } },
                            debug::CellVisualDataInfo { "isCentral", []( const auto& val ) { return static_cast<int>(val.data.isCentral()); } },
                            debug::CellVisualDataInfo { "hasTransitions", []( const auto& val ) { return val.data.hasTransitions(); } },
