@@ -380,7 +380,8 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys,
 void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
 {
     auto vlogger_polys = debug::Loggers::get_mutable_instance().Logger( "ST_polys" );
-    vlogger_polys->log( polys, layer_idx);
+    vlogger_polys->log( polys, layer_idx,
+                        debug::CellVisualDataInfo { "area", []( const auto& val ) { return ClipperLib::Area(val); } });
     vd_edge_to_he_edge.clear();
     vd_node_to_he_node.clear();
 
