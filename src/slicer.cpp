@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <algorithm> // remove_if
@@ -1004,17 +1004,43 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
 
     const coord_t xy_offset = mesh.settings.get<coord_t>("xy_offset");
     const coord_t xy_offset_0 = mesh.settings.get<coord_t>("xy_offset_layer_0");
+    const coord_t xy_offset_hole = mesh.settings.get<coord_t>("hole_xy_offset");
+    cura::parallel_for<size_t>
+    (
+        0,
+        layers.size(),
+        [&layers, layer_apply_initial_xy_offset, xy_offset, xy_offset_0, xy_offset_hole](size_t layer_nr)
+        {
+            const coord_t xy_offset_local = (layer_nr <= layer_apply_initial_xy_offset) ? xy_offset_0 : xy_offset;
+            if (xy_offset_local != 0)
+            {
+                layers[layer_nr].polygons = layers[layer_nr].polygons.offset(xy_offset_local, ClipperLib::JoinType::jtRound);
+            }
+            if (xy_offset_hole != 0)
+            {
+                auto parts = layers[layer_nr].polygons.splitIntoParts();
+                layers[layer_nr].polygons.clear();
 
-    cura::parallel_for<size_t>(0,
-                               layers.size(),
-                               [&layers, layer_apply_initial_xy_offset, xy_offset, xy_offset_0](size_t layer_nr)
-                               {
-                                   const coord_t xy_offset_local = (layer_nr <= layer_apply_initial_xy_offset) ? xy_offset_0 : xy_offset;
-                                   if (xy_offset_local != 0)
-                                   {
-                                       layers[layer_nr].polygons = layers[layer_nr].polygons.offset(xy_offset_local, ClipperLib::JoinType::jtRound);
-                                   }
-                               });
+                Polygons holes;
+                for (auto& part : parts)
+                {
+                    for (const PolygonRef poly : part)
+                    {
+                        if (poly.orientation())
+                        {
+                            layers[layer_nr].polygons.add(poly);
+                        }
+                        else
+                        {
+                            holes.add(poly.offset(xy_offset_hole));
+                        }
+                    }
+                }
+
+                layers[layer_nr].polygons = layers[layer_nr].polygons.difference(holes.unionPolygons());
+            }
+        }
+    );
 
     mesh.expandXY(xy_offset);
 }
