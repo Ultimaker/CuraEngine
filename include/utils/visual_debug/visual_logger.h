@@ -35,6 +35,7 @@
 #include "utils/concepts/geometry.h"
 #include "utils/views/coord.h"
 #include "utils/views/get.h"
+#include "utils/visual_debug/cell_types.h"
 #include "utils/visual_debug/visual_data_info.h"
 
 namespace cura::debug
@@ -162,7 +163,7 @@ public:
         }
 
         auto connectivity = getConnectivity( points.size() / 3 );
-        auto types = getCellTypes( offsets.size() - 1, 7 );
+        auto types = getCellTypes( offsets.size() - 1, static_cast<long>(CellTypes::POLYGON) );
         vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets | ranges::views::drop( 1 ) | ranges::to_vector, types };
 
         writePartition( mesh_partition, ranges::views::concat( point_datas, cell_datas ) | ranges::to_vector );
@@ -184,7 +185,7 @@ public:
         }
         auto connectivity = getConnectivity( mesh.faces.size() * 3 );
         auto offsets = getOffsets( connectivity.size(), 3 );
-        auto types = getCellTypes( offsets.size(), 5 );
+        auto types = getCellTypes( offsets.size(), static_cast<long>(CellTypes::TRIANGLE) );
         vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets, types };
         writePartition( mesh_partition );
     };
@@ -236,7 +237,7 @@ public:
         }
         auto connectivity = getConnectivity( points.size() / 3 );
         auto offsets = getOffsets( connectivity.size(), 2 );
-        auto types = getCellTypes( offsets.size(), 3 );
+        auto types = getCellTypes( offsets.size(), static_cast<long>(CellTypes::LINE) );
         vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets, types };
 
         writePartition( mesh_partition, ranges::views::concat( point_datas, cell_datas ) | ranges::to_vector );
