@@ -51,8 +51,12 @@ class PointVisualDataInfo : public VisualDataInfo<PointVisualDataInfo<Proj, Nm>,
 template<class Proj>
 CellVisualDataInfo(const std::string& name, Proj&& projection) -> CellVisualDataInfo<Proj, 1UL>;
 
+CellVisualDataInfo(const std::string& name) -> CellVisualDataInfo<std::identity, 1UL>;
+
 template<class Proj>
 PointVisualDataInfo(const std::string& name, Proj&& projection) -> PointVisualDataInfo<Proj, 1UL>;
+
+PointVisualDataInfo(const std::string& name) -> PointVisualDataInfo<std::identity, 1UL>;
 } // namespace cura::debug
 
 #endif //INCLUDE_UTILS_VISUAL_DEBUG_VISUAL_DATA_INFO_H

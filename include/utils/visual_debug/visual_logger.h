@@ -55,15 +55,16 @@ public:
     constexpr VisualLogger() noexcept = default;
 
     template<typename... Args>
-    VisualLogger(const std::string& id, const std::filesystem::path& vtu_path, Args&& ... args) : id_ { id }, vtu_path_ { vtu_path }
+    VisualLogger(const std::string& id, const size_t logger_idx, const std::filesystem::path& vtu_path, Args&& ... args) : id_ { id }, logger_idx_{ logger_idx }, vtu_path_ { vtu_path }
     {
         const std::scoped_lock lock { mutex_ };
-        spdlog::info( "Visual Debugger: Initializing vtu <{}> file(s) in {}", id_, vtu_path_.string());
+        spdlog::info( "Visual Debugger: Initializing Logger <{}>-<{}> file(s) in {}", id_, logger_idx_, vtu_path_.string());
         vtu11::writePVtu( vtu_path_.string(), id_, { }, 1 );
     };
 
     VisualLogger(const VisualLogger& other) noexcept : id_ { other.id_ }
                                                        , idx_ { other.idx_ }
+                                                       , logger_idx_ { other.logger_idx_ }
                                                        , vtu_path_ { other.vtu_path_ }
                                                        , layer_map_ { other.layer_map_ }
                                                        , cell_dataset_info_ { other.cell_dataset_info_ }
@@ -71,6 +72,7 @@ public:
 
     VisualLogger(VisualLogger&& other) noexcept : id_ { std::move( other.id_ ) }
                                                   , idx_ { std::exchange( other.idx_, 0 ) }
+                                                  , logger_idx_ { std::exchange( other.logger_idx_, 0) }
                                                   , vtu_path_ { std::move( other.vtu_path_ ) }
                                                   , layer_map_ { std::move( other.layer_map_ ) }
                                                   , cell_dataset_info_ { std::move( other.cell_dataset_info_ ) }
@@ -80,7 +82,8 @@ public:
     {
         const std::scoped_lock lock { mutex_ };
         id_ = other.id_;
-        idx_ = other.idx_, 0;
+        idx_ = other.idx_;
+        logger_idx_ = other.logger_idx_;
         vtu_path_ = other.vtu_path_;
         layer_map_ = other.layer_map_;
         cell_dataset_info_ = other.cell_dataset_info_;
@@ -93,6 +96,7 @@ public:
         const std::scoped_lock lock { mutex_ };
         id_ = std::move( other.id_ );
         idx_ = std::exchange( other.idx_, 0 );
+        logger_idx_ = std::exchange( other.logger_idx_, 0 );
         vtu_path_ = std::move( other.vtu_path_ );
         layer_map_ = std::move( other.layer_map_ );
         cell_dataset_info_ = std::move( other.cell_dataset_info_ );
@@ -116,6 +120,12 @@ public:
     template<typename... VDI>
     constexpr void log(const polygons auto& polys, const int layer_idx, VDI... visual_data_infos)
     {
+        updateDataInfos( CellVisualDataInfo { "log_idx" } );
+        updateDataInfos( CellVisualDataInfo { "layer_idx" } );
+        updateDataInfos( CellVisualDataInfo { "logger_idx" } );
+        updateDataInfos( PointVisualDataInfo { "log_idx" } );
+        updateDataInfos( PointVisualDataInfo { "layer_idx" } );
+        updateDataInfos( PointVisualDataInfo { "logger_idx" } );
         ( updateDataInfos( visual_data_infos ), ...);
 
         std::vector<value_type> points { };
@@ -127,28 +137,29 @@ public:
         {
             offsets.push_back( offsets.back() + poly.size());
             // log cell data
-            for ( const auto& data : cell_dataset_info_ )
-            {
-                ([ & ] {
-                  if constexpr ( visual_data_infos.dataset_type == vtu11::DataSetType::CellData )
-                  {
-                      cell_datas[visual_data_infos.name].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, poly )));
-                  }
-                }(), ...);
-            }
+            ([ & ] {
+              if constexpr ( visual_data_infos.dataset_type == vtu11::DataSetType::CellData )
+              {
+                  cell_datas[visual_data_infos.name].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, poly )));
+              }
+            }(), ...); // variadic arguments to the log call
+            cell_datas["log_idx"].emplace_back( static_cast<value_type>( idx_ ));
+            cell_datas["layer_idx"].emplace_back( static_cast<value_type>( layer_idx ));
+            cell_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
 
             for ( const auto& point : poly )
             {
                 // log node data
-                for ( const auto& data : point_dataset_info_ )
-                {
-                    ([ & ] {
-                      if constexpr ( visual_data_infos.dataset_type == vtu11::DataSetType::PointData )
-                      {
-                          point_datas[visual_data_infos.name].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, point )));
-                      }
-                    }(), ...);
-                }
+                ([ & ] {
+                  if constexpr ( visual_data_infos.dataset_type == vtu11::DataSetType::PointData )
+                  {
+                      point_datas[visual_data_infos.name].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, point )));
+                  }
+                }(), ...); // variadic arguments to the log call
+                point_datas["log_idx"].emplace_back( static_cast<value_type>( idx_ ));
+                point_datas["layer_idx"].emplace_back( static_cast<value_type>( layer_idx ));
+                point_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
+
                 points.emplace_back( static_cast<value_type>(point.X));
                 points.emplace_back( static_cast<value_type>(point.Y));
                 points.emplace_back( layer_map_->at( layer_idx ));
@@ -186,6 +197,12 @@ public:
     template<typename... VDI>
     constexpr void log(const st_edges_viewable auto& st_edges, const int layer_idx, VDI... visual_data_infos)
     {
+        updateDataInfos( CellVisualDataInfo { "log_idx" } );
+        updateDataInfos( CellVisualDataInfo { "layer_idx" } );
+        updateDataInfos( CellVisualDataInfo { "logger_idx" } );
+        updateDataInfos( PointVisualDataInfo { "log_idx" } );
+        updateDataInfos( PointVisualDataInfo { "layer_idx" } );
+        updateDataInfos( PointVisualDataInfo { "logger_idx" } );
         ( updateDataInfos( visual_data_infos ), ...);
 
         std::vector<value_type> points { };
@@ -194,30 +211,29 @@ public:
         for ( const auto& st_edge : st_edges )
         {
             // log cell data
-            for ( const auto& data : cell_dataset_info_ )
-            {
-                ([ & ] {
-                  if constexpr ( visual_data_infos.dataset_type == vtu11::DataSetType::CellData )
-                  {
-                      cell_datas[visual_data_infos.name].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, st_edge )));
-                  }
-                }(), ...);
-            }
+            ([ & ] {
+              if constexpr ( visual_data_infos.dataset_type == vtu11::DataSetType::CellData )
+              {
+                  cell_datas[visual_data_infos.name].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, st_edge )));
+              }
+            }(), ...); // variadic arguments to the log call
+            cell_datas["log_idx"].emplace_back( static_cast<value_type>( idx_ ));
+            cell_datas["layer_idx"].emplace_back( static_cast<value_type>( layer_idx ));
+            cell_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
+
             for ( const auto& node : { st_edge.from, st_edge.to } )
             {
                 // log node data
-                for ( const auto& data : point_dataset_info_ )
-                {
-                    ([ & ] {
-                      if constexpr ( visual_data_infos.dataset_type == vtu11::DataSetType::PointData )
-                      {
-                          if ( visual_data_infos == data )
-                          {
-                              point_datas[visual_data_infos.name].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, * node )));
-                          }
-                      }
-                    }(), ...);
-                }
+                ([ & ] {
+                  if constexpr ( visual_data_infos.dataset_type == vtu11::DataSetType::PointData )
+                  {
+                      point_datas[visual_data_infos.name].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, * node )));
+                  }
+                }(), ...); // variadic arguments to the log call
+                point_datas["log_idx"].emplace_back( static_cast<value_type>( idx_ ));
+                point_datas["layer_idx"].emplace_back( static_cast<value_type>( layer_idx ));
+                point_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
+
                 points.emplace_back( static_cast<value_type>(node->p.X));
                 points.emplace_back( static_cast<value_type>(node->p.Y));
                 points.emplace_back( layer_map_->at( layer_idx ));
@@ -234,6 +250,7 @@ public:
 private:
     std::mutex mutex_;
     std::string id_ { };
+    size_t logger_idx_ { };
     size_t idx_ { };
     std::filesystem::path vtu_path_ { };
     shared_layer_map_t layer_map_ { };
@@ -278,11 +295,11 @@ private:
     {
         const std::scoped_lock lock { mutex_ };
         const auto idx = idx_++;
-        spdlog::info( "Visual Debugger: <{}> writing partition {}", id_, idx );
+        spdlog::info( "Visual Debugger: <{}>-<{}> writing partition {}", id_, logger_idx_, idx );
         auto data_set_info_view = ranges::views::concat( point_dataset_info_, cell_dataset_info_ );
         if ( !data_set_info_view.empty())
         {
-            spdlog::debug( "Visual Debugger: <{}> logging: {}", id_, data_set_info_view | ranges::views::transform( [](const auto& dsi) { return std::get<0>( dsi ); } ));
+            spdlog::debug( "Visual Debugger: <{}>-<{}> logging: {}", id_, logger_idx_, data_set_info_view | ranges::views::transform( [](const auto& dsi) { return std::get<0>( dsi ); } ));
         }
         vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, data_set_info_view | ranges::to_vector, dataset_data, idx, "rawbinarycompressed" );
     }

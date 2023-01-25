@@ -42,7 +42,7 @@ public:
         {
             if ( !loggers_.contains( id ))
             {
-                loggers_.emplace( id, std::make_shared<VisualLogger>( id, VisualDebugPath(), std::forward<Args>( args )... ));
+                loggers_.emplace( id, std::make_shared<VisualLogger>( id, loggers_.size(), VisualDebugPath(), std::forward<Args>( args )... ));
                 Get( id )->setValue( layer_map_ );
             }
         }
