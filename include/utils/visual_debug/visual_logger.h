@@ -107,7 +107,7 @@ public:
     ~VisualLogger()
     {
         const std::scoped_lock lock { mutex_ };
-        vtu11::writePVtu( vtu_path_.string(), id_, ranges::views::concat( point_dataset_info_, cell_dataset_info_ ) | ranges::to_vector, idx_ ); // Need to write this again since we now know the exact number of vtu files
+        //vtu11::writePVtu( vtu_path_.string(), id_, ranges::views::concat( point_dataset_info_, cell_dataset_info_ ) | ranges::to_vector, idx_ ); // Need to write this again since we now know the exact number of vtu files
     };
 
     void setValue(shared_layer_map_t& layer_map)
@@ -176,28 +176,48 @@ public:
         auto types = getCellTypes( offsets.size() - 1, static_cast<long>(CellTypes::POLYGON));
         vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets | ranges::views::drop( 1 ) | ranges::to_vector, types };
 
-        writePartition( mesh_partition, ranges::views::concat( point_datas | ranges::views::values, cell_datas | ranges::views::values ) | ranges::to_vector );
+        writePartition( mesh_partition, point_datas, cell_datas );
     };
 
     constexpr void log(const mesh auto& mesh)
     {
         // FIXME: add the last face as well
+        updateDataInfos( CellVisualDataInfo { "log_idx" } );
+        updateDataInfos( CellVisualDataInfo { "logger_idx" } );
+        updateDataInfos( CellVisualDataInfo { "cell_idx" } );
+        updateDataInfos( PointVisualDataInfo { "log_idx" } );
+        updateDataInfos( PointVisualDataInfo { "logger_idx" } );
+        updateDataInfos( PointVisualDataInfo { "point_idx" } );
+
+        auto cell_datas = cell_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<std::unordered_map<std::string, vtu11::DataSetData>>;
+        auto point_datas = point_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<std::unordered_map<std::string, vtu11::DataSetData>>;
+
         std::vector<value_type> points { };
+        size_t cell_idx { };
         for ( const auto& face : mesh.faces )
         {
+            cell_datas["log_idx"].emplace_back( static_cast<value_type>( idx_ ));
+            cell_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
+            cell_datas["cell_idx"].emplace_back( static_cast<value_type>( cell_idx++ ));
+
+            size_t point_idx { };
             for ( const auto& vertex_idx : face.vertex_index )
             {
                 const auto& vertex = mesh.vertices[vertex_idx];
                 points.emplace_back( static_cast<value_type>(vertex.p.x));
                 points.emplace_back( static_cast<value_type>(vertex.p.y));
                 points.emplace_back( static_cast<value_type>(vertex.p.z));
+
+                point_datas["log_idx"].emplace_back( static_cast<value_type>( idx_ ));
+                point_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
+                point_datas["point_idx"].emplace_back( static_cast<value_type>( point_idx++ ));
             }
         }
         auto connectivity = getConnectivity( mesh.faces.size() * 3 );
         auto offsets = getOffsets( connectivity.size(), 3 );
         auto types = getCellTypes( offsets.size(), static_cast<long>(CellTypes::TRIANGLE));
         vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets, types };
-        writePartition( mesh_partition );
+        writePartition( mesh_partition, point_datas, cell_datas );
     };
 
     template<typename... VDI>
@@ -256,7 +276,7 @@ public:
         auto types = getCellTypes( offsets.size(), static_cast<long>(CellTypes::LINE));
         vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets, types };
 
-        writePartition( mesh_partition, ranges::views::concat( point_datas | ranges::views::values, cell_datas | ranges::views::values ) | ranges::to_vector );
+        writePartition( mesh_partition, point_datas, cell_datas );
     };
 
 private:
@@ -303,19 +323,24 @@ private:
         }
     }
 
-    void writePartition(vtu11::Vtu11UnstructuredMesh& mesh_partition, const std::vector<vtu11::DataSetData>& dataset_data = { })
+    void writePartition(vtu11::Vtu11UnstructuredMesh& mesh_partition, const auto& point_data, const auto& cell_data)
     {
         const std::scoped_lock lock { mutex_ };
         const auto idx = idx_++;
         spdlog::info( "Visual Debugger: <{}>-<{}> writing partition {}", id_, logger_idx_, idx );
-        auto data_set_info_view = ranges::views::concat( point_dataset_info_, cell_dataset_info_ );
-        if ( !data_set_info_view.empty())
+        auto dataset_infos = ranges::actions::sort( ranges::views::concat( point_dataset_info_, cell_dataset_info_ ) | ranges::to_vector );
+        std::vector<vtu11::DataSetData> data { };
+        auto dataset_data = ranges::views::concat( point_data, cell_data ) | ranges::to<std::unordered_map<std::string, vtu11::DataSetData>>;
+        for ( const auto& [ name, _, __ ] : dataset_infos )
         {
-            spdlog::debug( "Visual Debugger: <{}>-<{}> logging: {}", id_, logger_idx_, data_set_info_view | ranges::views::transform( [](const auto& dsi) { return std::get<0>( dsi ); } ));
+            data.push_back( dataset_data[name] );
         }
-//        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, data_set_info_view | ranges::to_vector, dataset_data, idx, "rawbinarycompressed" );
-        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, data_set_info_view | ranges::to_vector, dataset_data, idx, "ascii" );
-        vtu11::writePVtu( vtu_path_.string(), id_, ranges::views::concat( point_dataset_info_, cell_dataset_info_ ) | ranges::to_vector, idx_ );  // Make sure it is up to data
+        if ( !dataset_infos.empty())
+        {
+            spdlog::debug( "Visual Debugger: <{}>-<{}> logging: {}", id_, logger_idx_, dataset_infos | ranges::views::transform( [](const auto& dsi) { return std::get<0>( dsi ); } ));
+        }
+        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, data_set_info_view | ranges::to_vector, dataset_data, idx, "rawbinarycompressed" );
+        vtu11::writePVtu( vtu_path_.string(), id_, dataset_infos, idx_ );  // Make sure it is up to data
     }
 };
 } // namespace enabled
