@@ -339,7 +339,8 @@ private:
         {
             spdlog::debug( "Visual Debugger: <{}>-<{}> logging: {}", id_, logger_idx_, dataset_infos | ranges::views::transform( [](const auto& dsi) { return std::get<0>( dsi ); } ));
         }
-        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, dataset_infos | ranges::to_vector, dataset_data, idx, "rawbinarycompressed" );
+        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition,dataset_infos, data, idx, "rawbinarycompressed" );
+//        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, dataset_infos, data, idx, "ascii" );
         vtu11::writePVtu( vtu_path_.string(), id_, dataset_infos, idx_ );  // Make sure it is up to data
     }
 };
