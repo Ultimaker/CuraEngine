@@ -9,8 +9,8 @@
 #include <memory>
 #include <mutex>
 #include <tuple>
-#include <utility>
 #include <type_traits>
+#include <utility>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -27,6 +27,7 @@
 #include <range/v3/view/stride.hpp>
 #include <range/v3/view/take.hpp>
 #include <range/v3/view/transform.hpp>
+#include <range/v3/view/map.hpp>
 #include <range/v3/view/zip.hpp>
 #include <spdlog/spdlog.h>
 #include <vtu11/vtu11.hpp>
@@ -119,23 +120,19 @@ public:
 
         std::vector<value_type> points { };
         std::vector<vtu11::VtkIndexType> offsets { 0 };
-        auto cell_datas = ranges::views::repeat( vtu11::DataSetData { } ) | ranges::views::take( cell_dataset_info_.size()) | ranges::to_vector;
-        auto point_datas = ranges::views::repeat( vtu11::DataSetData { } ) | ranges::views::take( point_dataset_info_.size()) | ranges::to_vector;
+        auto cell_datas = cell_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<std::unordered_map<std::string, vtu11::DataSetData>>;
+        auto point_datas = point_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<std::unordered_map<std::string, vtu11::DataSetData>>;
 
         for ( const auto& poly : polys )
         {
             offsets.push_back( offsets.back() + poly.size());
             // log cell data
-            size_t cell_data_idx { };
             for ( const auto& data : cell_dataset_info_ )
             {
                 ([ & ] {
                   if constexpr ( visual_data_infos.dataset_type == vtu11::DataSetType::CellData )
                   {
-                      if ( visual_data_infos == data )
-                      {
-                          cell_datas[cell_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, poly )));
-                      }
+                      cell_datas[visual_data_infos.name].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, poly )));
                   }
                 }(), ...);
             }
@@ -143,16 +140,12 @@ public:
             for ( const auto& point : poly )
             {
                 // log node data
-                size_t pont_data_idx { };
                 for ( const auto& data : point_dataset_info_ )
                 {
                     ([ & ] {
                       if constexpr ( visual_data_infos.dataset_type == vtu11::DataSetType::PointData )
                       {
-                          if ( visual_data_infos == data )
-                          {
-                              point_datas[pont_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, point )));
-                          }
+                          point_datas[visual_data_infos.name].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, point )));
                       }
                     }(), ...);
                 }
@@ -163,10 +156,10 @@ public:
         }
 
         auto connectivity = getConnectivity( points.size() / 3 );
-        auto types = getCellTypes( offsets.size() - 1, static_cast<long>(CellTypes::POLYGON) );
+        auto types = getCellTypes( offsets.size() - 1, static_cast<long>(CellTypes::POLYGON));
         vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets | ranges::views::drop( 1 ) | ranges::to_vector, types };
 
-        writePartition( mesh_partition, ranges::views::concat( point_datas, cell_datas ) | ranges::to_vector );
+        writePartition( mesh_partition, ranges::views::concat( point_datas | ranges::views::values, cell_datas | ranges::views::values ) | ranges::to_vector );
     };
 
     constexpr void log(const mesh auto& mesh)
@@ -185,7 +178,7 @@ public:
         }
         auto connectivity = getConnectivity( mesh.faces.size() * 3 );
         auto offsets = getOffsets( connectivity.size(), 3 );
-        auto types = getCellTypes( offsets.size(), static_cast<long>(CellTypes::TRIANGLE) );
+        auto types = getCellTypes( offsets.size(), static_cast<long>(CellTypes::TRIANGLE));
         vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets, types };
         writePartition( mesh_partition );
     };
@@ -196,28 +189,23 @@ public:
         ( updateDataInfos( visual_data_infos ), ...);
 
         std::vector<value_type> points { };
-        auto cell_datas = ranges::views::repeat( vtu11::DataSetData { } ) | ranges::views::take( cell_dataset_info_.size()) | ranges::to_vector;
-        auto point_datas = ranges::views::repeat( vtu11::DataSetData { } ) | ranges::views::take( point_dataset_info_.size()) | ranges::to_vector;
+        auto cell_datas = cell_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<std::unordered_map<std::string, vtu11::DataSetData>>;
+        auto point_datas = point_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<std::unordered_map<std::string, vtu11::DataSetData>>;
         for ( const auto& st_edge : st_edges )
         {
             // log cell data
-            size_t cell_data_idx { };
             for ( const auto& data : cell_dataset_info_ )
             {
                 ([ & ] {
                   if constexpr ( visual_data_infos.dataset_type == vtu11::DataSetType::CellData )
                   {
-                      if ( visual_data_infos == data )
-                      {
-                          cell_datas[cell_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, st_edge )));
-                      }
+                      cell_datas[visual_data_infos.name].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, st_edge )));
                   }
                 }(), ...);
             }
             for ( const auto& node : { st_edge.from, st_edge.to } )
             {
                 // log node data
-                size_t pont_data_idx { };
                 for ( const auto& data : point_dataset_info_ )
                 {
                     ([ & ] {
@@ -225,7 +213,7 @@ public:
                       {
                           if ( visual_data_infos == data )
                           {
-                              point_datas[pont_data_idx++].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, * node )));
+                              point_datas[visual_data_infos.name].emplace_back( static_cast<value_type>( std::invoke( visual_data_infos.projection, * node )));
                           }
                       }
                     }(), ...);
@@ -237,10 +225,10 @@ public:
         }
         auto connectivity = getConnectivity( points.size() / 3 );
         auto offsets = getOffsets( connectivity.size(), 2 );
-        auto types = getCellTypes( offsets.size(), static_cast<long>(CellTypes::LINE) );
+        auto types = getCellTypes( offsets.size(), static_cast<long>(CellTypes::LINE));
         vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets, types };
 
-        writePartition( mesh_partition, ranges::views::concat( point_datas, cell_datas ) | ranges::to_vector );
+        writePartition( mesh_partition, ranges::views::concat( point_datas | ranges::views::values, cell_datas | ranges::views::values ) | ranges::to_vector );
     };
 
 private:
