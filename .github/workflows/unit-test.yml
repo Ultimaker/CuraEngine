@@ -74,9 +74,8 @@ jobs:
 
             -   name: Install Python requirements and Create default Conan profile
                 run: |
-                    pip install -r requirements-conan-package.txt
-                    conan profile new default --detect
-                working-directory: .github/workflows/
+                    pip install -r https://raw.githubusercontent.com/Ultimaker/Cura/main/.github/workflows/requirements-conan-package.txt
+                #  Note the runner requirements are always installed from the main branch in the Ultimaker/Cura repo
 
             -   name: Use Conan download cache (Bash)
                 if: ${{ runner.os != 'Windows' }}
@@ -93,10 +92,21 @@ jobs:
 
             -   name: Install Linux system requirements
                 if: ${{ runner.os == 'Linux' }}
-                run: sudo apt install build-essential checkinstall zlib1g-dev libssl-dev ninja-build autoconf libx11-dev libx11-xcb-dev libfontenc-dev libice-dev libsm-dev libxau-dev libxaw7-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxdmcp-dev libxext-dev libxfixes-dev libxi-dev libxinerama-dev libxkbfile-dev libxmu-dev libxmuu-dev libxpm-dev libxrandr-dev libxrender-dev libxres-dev libxss-dev libxt-dev libxtst-dev libxv-dev libxvmc-dev libxxf86vm-dev xtrans-dev libxcb-render0-dev libxcb-render-util0-dev libxcb-xkb-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev libxcb-shape0-dev libxcb-sync-dev libxcb-xfixes0-dev libxcb-xinerama0-dev xkb-data libxcb-dri3-dev uuid-dev libxcb-util-dev libxkbcommon-x11-dev -y
+                run: |
+                    sudo apt update
+                    sudo apt upgrade
+                    sudo apt install build-essential checkinstall libegl-dev zlib1g-dev libssl-dev ninja-build autoconf libx11-dev libx11-xcb-dev libfontenc-dev libice-dev libsm-dev libxau-dev libxaw7-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxdmcp-dev libxext-dev libxfixes-dev libxi-dev libxinerama-dev libxkbfile-dev libxmu-dev libxmuu-dev libxpm-dev libxrandr-dev libxrender-dev libxres-dev libxss-dev libxt-dev libxtst-dev libxv-dev libxvmc-dev libxxf86vm-dev xtrans-dev libxcb-render0-dev libxcb-render-util0-dev libxcb-xkb-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev libxcb-shape0-dev libxcb-sync-dev libxcb-xfixes0-dev libxcb-xinerama0-dev xkb-data libxcb-dri3-dev uuid-dev libxcb-util-dev libxkbcommon-x11-dev pkg-config -y
+
+            -   name: Use GCC-10 on ubuntu as default
+                if: ${{ runner.os == 'Linux' }}
+                run: |
+                    sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 10
+                    sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 10
 
             -   name: Get Conan configuration
-                run: conan config install https://github.com/Ultimaker/conan-config.git
+                run: |
+                    conan profile new default --detect
+                    conan config install https://github.com/Ultimaker/conan-config.git
 
             -   name: Install dependencies
                 run: conan install . ${{ needs.conan-recipe-version.outputs.recipe_id_full }} -o enable_testing=True -s build_type=Release --build=missing --update -g GitHubActionsRunEnv -g GitHubActionsBuildEnv

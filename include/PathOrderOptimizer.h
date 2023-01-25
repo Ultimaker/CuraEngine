@@ -15,14 +15,14 @@
 #include "settings/ZSeamConfig.h" //To read the seam configuration.
 #include "utils/linearAlg2D.h" //To find the angle of corners to hide seams.
 #include "utils/polygonUtils.h"
-#include "utils/Simplify.h"
+#include <range/v3/view/enumerate.hpp>
 
 namespace cura
 {
 
 /*!
  * Path order optimization class.
- * 
+ *
  * Utility class for optimizing the order in which things are printed, by
  * minimizing the distance traveled between different items to be printed. For
  * each item to be printed, it also chooses a starting point as to where on the
@@ -365,8 +365,10 @@ protected:
      */
     bool reverse_direction;
 
+public:
     static const std::unordered_set<std::pair<PathType, PathType>> no_order_requirements;
 
+protected:
     /*!
      * Order requirements on the paths.
      * For each pair the first needs to be printe before the second.
@@ -415,71 +417,57 @@ protected:
             return vert;
         }
 
-        // Don't know the path-type here, or whether it has a simplify. Also, simplification occurs in-place, which is not wanted here: Copy the polygon.
-        // A course simplification is needed, since Arachne has a tendency to 'smear' corners out over multiple line segments.
-        // Which in itself is a good thing, but will mess up the detection of sharp corners and such.
-        Polygon simple_poly(*path.converted);
-        if (seam_config.simplify_curvature > 0 && simple_poly.size() > 2)
-        {
-            const coord_t max_simplify_dist = seam_config.simplify_curvature;
-            simple_poly = Simplify(max_simplify_dist, max_simplify_dist / 2, 0).polygon(simple_poly);
-        }
-        if(simple_poly.empty()) //Simplify removed everything because it's all too small.
-        {
-            simple_poly = Polygon(*path.converted); //Restore the original. We have to output a vertex as the seam position, so there needs to be a vertex.
-        }
-
-        const Point focus_fixed_point = (seam_config.type == EZSeamType::USER_SPECIFIED)
-            ? seam_config.pos
-            : Point(0, std::sqrt(std::numeric_limits<coord_t>::max())); //Use sqrt, so the squared size can be used when comparing distances.
-        const size_t start_from_pos = std::min_element(simple_poly.begin(), simple_poly.end(), [focus_fixed_point](const Point& a, const Point& b) {
-            return vSize2(a - focus_fixed_point) < vSize2(b - focus_fixed_point);
-        }) - simple_poly.begin();
-        const size_t end_before_pos = simple_poly.size() + start_from_pos;
-
-        // Find a seam position in the simple polygon:
-        Point best_point;
+        size_t best_i;
         float best_score = std::numeric_limits<float>::infinity();
-        Point previous = simple_poly[(start_from_pos - 1 + simple_poly.size()) % simple_poly.size()];
-        for(size_t i = start_from_pos; i < end_before_pos; ++i)
+        for(const auto& [i, here]: **path.converted | ranges::views::enumerate)
         {
-            const Point& here = simple_poly[i % simple_poly.size()];
-            const Point& next = simple_poly[(i + 1) % simple_poly.size()];
-
             //For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
             //For SHARPEST_CORNER, use a fixed starting score of 0.
             const coord_t distance = (combing_boundary == nullptr)
                 ? getDirectDistance(here, target_pos)
                 : getCombingDistance(here, target_pos);
-            const float score_distance = (seam_config.type == EZSeamType::SHARPEST_CORNER && seam_config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE) ? 0 : static_cast<float>(distance) / 1000000;
-            const float corner_angle = LinearAlg2D::getAngleLeft(previous, here, next) / M_PI - 1; //Between -1 and 1.
+            const float score_distance = (seam_config.type == EZSeamType::SHARPEST_CORNER && seam_config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE) ? MM2INT(10) : vSize2(here - target_pos);
+
+            float corner_angle = cornerAngle(path, i);
             // angles < 0 are concave (left turning)
             // angles > 0 are convex (right turning)
 
-            float score;
-            const float corner_shift = seam_config.type != EZSeamType::USER_SPECIFIED ? 10000 : 0; //Allow up to 20mm shifting of the seam to find a good location. For SHARPEST_CORNER, this shift is the only factor. For USER_SPECIFIED, don't allow shifting.
+            float corner_shift;
+            if (seam_config.type == EZSeamType::SHORTEST)
+            {
+                // the more a corner satisfies our criteria, the closer it appears to be
+                // shift 10mm for a very acute corner
+                corner_shift = MM2INT(10) * MM2INT(10);
+            }
+            else
+            {
+                // the larger the distance from prev_point to p1, the more a corner will "attract" the seam
+                // so the user has some control over where the seam will lie.
+
+                // the divisor here may need adjusting to obtain the best results (TBD)
+                corner_shift = score_distance / 10;
+            }
+
+            float score = score_distance;
             switch(seam_config.corner_pref)
             {
             default:
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
-                score = score_distance;
-                if(corner_angle < 0) //Indeed a concave corner? Give it some advantage over other corners. More advantage for sharper corners.
+                if(corner_angle < 0) // Indeed a concave corner? Give it some advantage over other corners. More advantage for sharper corners.
                 {
                     score -= (-corner_angle + 1.0) * corner_shift;
                 }
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
-                score = score_distance;
-                if(corner_angle > 0) //Indeed a convex corner?
+                if(corner_angle > 0) // Indeed a convex corner?
                 {
                     score -= (corner_angle + 1.0) * corner_shift;
                 }
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
-                score = score_distance - std::abs(corner_angle) * corner_shift; //Still give sharper corners more advantage.
+                score -= std::abs(corner_angle) * corner_shift; //Still give sharper corners more advantage.
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
-                score = score_distance; //No advantage for sharper corners.
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED: //Give sharper corners some advantage, but sharper concave corners even more.
                 {
@@ -488,57 +476,113 @@ protected:
                     {
                         score_corner *= 2;
                     }
-                    score = score_distance - score_corner;
+                    score -= score_corner;
                     break;
                 }
             }
 
-            if(seam_config.type == EZSeamType::USER_SPECIFIED) //If user-specified, the seam always needs to be the closest vertex that applies within the filter of the CornerPrefType. Give it a big penalty otherwise.
-            {
-                if((seam_config.corner_pref == EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER && corner_angle >= 0)
-                || (seam_config.corner_pref == EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER && corner_angle <= 0))
-                {
-                    score += 1000; //1 meter penalty.
-                }
-            }
-
             constexpr float EPSILON = 25.0;
-            if (seam_config.type != EZSeamType::SKIRT_BRIM && fabs(best_score - score) <= EPSILON)
+            if(fabs(best_score - score) <= EPSILON)
             {
                 // add breaker for two candidate starting location with similar score
                 // if we don't do this then we (can) get an un-even seam
                 // ties are broken by favouring points with lower x-coord
                 // if x-coord for both points are equal then break ties by
                 // favouring points with lower y-coord
-                if (here.X != best_point.X ? here.X < best_point.X : here.Y < best_point.Y)
+                const Point& best_point = (*path.converted)[best_i];
+                if(fabs(here.Y - best_point.Y) <= EPSILON ? best_point.X < here.X : best_point.Y < here.Y)
                 {
-                    best_point = here;
+                    best_score = std::min(best_score, score);
+                    best_i = i;
                 }
-                best_score = std::min(best_score, score);
             }
             else if(score < best_score)
             {
-                best_point = here;
+                best_i = i;
                 best_score = score;
             }
-            previous = here;
         }
 
-        // Which point in the real deal is closest to the simple polygon version?
-        size_t best_index = 0;
-        coord_t closest_dist2 = std::numeric_limits<coord_t>::max();
-        for (size_t i = 0; i < path.converted->size(); ++i)
+        return best_i;
+    }
+
+    /*!
+    * Some models have very sharp corners, but also have a high resolution. If a sharp corner
+    * consists of many points each point individual might have a shallow corner, but the
+    * collective angle of all nearby points is greater. To counter this the cornerAngle is
+    * calculated from all points within angle_query_distance of the query point. Angles closer
+    * to the current point are weighted more towards the total angle then points further away.
+    * The formula for the angle weight is: 1 - (distance_to_query / angle_query_distance)^fall_off_strength
+    * \param path The vertex data of a path
+    * \param i index of the query point
+    * \param angle_query_distance query range (default to 0.1mm)
+    * \param fall_off_strength fall of strength of the angle weight
+    * \return sum of angles of all points p in range i - angle_query_distance < p < i + angle_query_distance
+    */
+    float cornerAngle(const PathOrderPath<PathType>& path, int i, const coord_t angle_query_distance = 100, const float fall_off_strength = 0.5)
+    {
+        // If the edge length becomes too small we cannot accurately calculate the angle
+        // define a minimum edge length, so we don't get deviant values in the angle calculations
+        constexpr coord_t min_edge_length = 10;
+        constexpr coord_t min_edge_length2 = min_edge_length * min_edge_length;
+
+        const int offset_index = i % path.converted->size();
+        Point here = (*path.converted)[offset_index];
+
+        const std::function<Point(const int, const Point&)> find_neighbour_point = [&offset_index, &path](const int direction, const Point& here)
         {
-            const Point& here = (*path.converted)[i];
-            const coord_t dist2 = vSize2(best_point - here);
-            if (dist2 < closest_dist2)
+            int offset_index_ = offset_index;
+            Point neighbour;
+            do
             {
-                closest_dist2 = dist2;
-                best_index = i;
+                offset_index_ = (offset_index_ + path.converted->size() + direction) % path.converted->size();
+                neighbour = (*path.converted)[offset_index_];
+            }
+            while (vSize2(here - neighbour) < min_edge_length2 && offset_index_ != offset_index); // find previous point that is at least min_edge_length units away from here
+            return neighbour;
+        };
+
+        const std::function<coord_t(Point&, Point&, Point&)> iterate_to_previous_point = [&find_neighbour_point](Point& previous_, Point& here_, Point& next_)
+        {
+            const auto dist = vSize(here_ - next_);
+            next_ = here_;
+            here_ = previous_;
+            previous_ = find_neighbour_point(-1, here_);
+            return dist;
+        };
+        Point previous = find_neighbour_point(-1, here);
+
+        const std::function<coord_t(Point&, Point&, Point&)> iterate_to_next_point = [&find_neighbour_point](Point& previous_, Point& here_, Point& next_)
+        {
+            const auto dist = vSize(here_ - previous_);
+            previous_ = here_;
+            here_ = next_;
+            next_ = find_neighbour_point(1, here_);
+            return dist;
+        };
+        Point next = find_neighbour_point(1, here);
+
+        float corner_angle = LinearAlg2D::getAngleLeft(previous, here, next) - M_PI;
+
+        for (const auto& iterate_func : {iterate_to_previous_point, iterate_to_next_point})
+        {
+            Point next_ = next;
+            Point here_ = here;
+            Point previous_ = previous;
+            for
+            (
+                coord_t distance_to_query = iterate_func(previous_, here_, next_);
+                distance_to_query < angle_query_distance && here_ != here;
+                distance_to_query += iterate_func(previous_, here_, next_)
+            )
+            {
+                // angles further away from the query point are weighted less
+                const float angle_weight = 1.0 - pow(distance_to_query / angle_query_distance, fall_off_strength);
+                corner_angle += (LinearAlg2D::getAngleLeft(previous_, here_, next_) - M_PI) * angle_weight;
             }
         }
 
-        return best_index;
+        return corner_angle / M_PI; // Limit angle between -1 and 1.
     }
 
     /*!

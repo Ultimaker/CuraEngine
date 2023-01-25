@@ -299,6 +299,15 @@ Polygons Polygons::intersectionPolyLines(const Polygons& polylines, bool restitc
     return ret;
 }
 
+void Polygons::toPolylines()
+{
+    for (PolygonRef poly : *this)
+    {
+        if (poly.empty()) continue;
+        poly.emplace_back(poly.front());
+    }
+}
+
 void Polygons::splitPolylinesIntoSegments(Polygons& result) const
 {
     for (ConstPolygonRef poly : *this)
@@ -527,33 +536,35 @@ void Polygons::removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& 
 void Polygons::removeSmallAreas(const double min_area_size, const bool remove_holes)
 {
     auto new_end = paths.end();
-    if(remove_holes)
+    if (remove_holes)
     {
-        for(auto it = paths.begin(); it < new_end; it++)
+        for (auto it = paths.begin(); it < new_end;)
         {
             // All polygons smaller than target are removed by replacing them with a polygon from the back of the vector
-            if(std::abs(INT2MM2(ClipperLib::Area(*it))) < min_area_size)
+            if (std::abs(INT2MM2(ClipperLib::Area(*it))) < min_area_size)
             {
-                new_end--;
-                *it = std::move(*new_end);
-                it--; // wind back the iterator such that the polygon just swaped in is checked next
+                *it = std::move(*--new_end);
+                continue;
             }
+            it++; // Skipped on removal such that the polygon just swaped in is checked next
         }
     }
     else
     {
         // For each polygon, computes the signed area, move small outlines at the end of the vector and keep references on small holes
         std::vector<PolygonRef> small_holes;
-        for(auto it = paths.begin(); it < new_end; it++) {
+        for (auto it = paths.begin(); it < new_end;)
+        {
             double area = INT2MM2(ClipperLib::Area(*it));
             if (std::abs(area) < min_area_size)
             {
-                if(area >= 0)
+                if (area >= 0)
                 {
-                    new_end--;
-                    if(it < new_end) {
+                    --new_end;
+                    if (it < new_end)
+                    {
                         std::swap(*new_end, *it);
-                        it--;
+                        continue;
                     }
                     else
                     { // Don't self-swap the last Path
@@ -565,24 +576,68 @@ void Polygons::removeSmallAreas(const double min_area_size, const bool remove_ho
                     small_holes.push_back(*it);
                 }
             }
+            it++; // Skipped on removal such that the polygon just swaped in is checked next
         }
 
         // Removes small holes that have their first point inside one of the removed outlines
         // Iterating in reverse ensures that unprocessed small holes won't be moved
         const auto removed_outlines_start = new_end;
-        for(auto hole_it = small_holes.rbegin(); hole_it < small_holes.rend(); hole_it++)
+        for (auto hole_it = small_holes.rbegin(); hole_it < small_holes.rend(); hole_it++)
         {
-            for(auto outline_it = removed_outlines_start; outline_it < paths.end() ; outline_it++)
+            for (auto outline_it = removed_outlines_start; outline_it < paths.end(); outline_it++)
             {
-                if(PolygonRef(*outline_it).inside(*hole_it->begin())) {
-                    new_end--;
-                    **hole_it = std::move(*new_end);
+                if (PolygonRef(*outline_it).inside(*hole_it->begin()))
+                {
+                    **hole_it = std::move(*--new_end);
                     break;
                 }
             }
         }
     }
-    paths.resize(new_end-paths.begin());
+    paths.resize(new_end - paths.begin());
+}
+
+void Polygons::removeSmallCircumference(const coord_t min_circumference_size, const bool remove_holes)
+{
+    removeSmallAreaCircumference(0.0, min_circumference_size, remove_holes);
+}
+
+void Polygons::removeSmallAreaCircumference(const double min_area_size, const coord_t min_circumference_size, const bool remove_holes)
+{
+    Polygons new_polygon;
+
+    bool outline_is_removed = false;
+    for (ConstPolygonRef poly : paths)
+    {
+        double area = poly.area();
+        auto circumference = poly.polygonLength();
+        bool is_outline = area >= 0;
+
+        if (is_outline)
+        {
+            if (circumference >= min_circumference_size && std::abs(area) >= min_area_size)
+            {
+                new_polygon.add(poly);
+                outline_is_removed = false;
+            }
+            else
+            {
+                outline_is_removed = true;
+            }
+        }
+        else if (outline_is_removed)
+        {
+            // containing parent outline is removed; hole should be removed as well
+        }
+        else if (!remove_holes || (circumference >= min_circumference_size && std::abs(area) >= min_area_size))
+        {
+            // keep hole-polygon if we do not remove holes, or if its
+            // circumference is bigger then the minimum circumference size
+            new_polygon.add(poly);
+        }
+    }
+
+    *this = new_polygon;
 }
 
 void Polygons::removeDegenerateVerts()
@@ -1337,6 +1392,32 @@ void Polygons::splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, st
             splitIntoParts_processPolyTreeNode(child->Childs[i], ret);
         }
         ret.push_back(part);
+    }
+}
+
+std::vector<Polygons> Polygons::sortByNesting() const
+{
+    std::vector<Polygons> ret;
+    ClipperLib::Clipper clipper(clipper_init);
+    ClipperLib::PolyTree resultPolyTree;
+    clipper.AddPaths(paths, ClipperLib::ptSubject, true);
+    clipper.Execute(ClipperLib::ctUnion, resultPolyTree);
+
+    sortByNesting_processPolyTreeNode(&resultPolyTree, 0, ret);
+    return ret;
+}
+
+void Polygons::sortByNesting_processPolyTreeNode(ClipperLib::PolyNode* node, const size_t nesting_idx, std::vector<Polygons>& ret) const
+{
+    for (int n = 0; n < node->ChildCount(); n++)
+    {
+        ClipperLib::PolyNode* child = node->Childs[n];
+        if (nesting_idx >= ret.size())
+        {
+            ret.resize(nesting_idx + 1);
+        }
+        ret[nesting_idx].add(child->Contour);
+        sortByNesting_processPolyTreeNode(child, nesting_idx + 1, ret);
     }
 }
 

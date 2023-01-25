@@ -9,6 +9,7 @@
 #include <limits> //For numeric_limits::min and max.
 #include <stdint.h> //For int32_t and int64_t.
 #include <type_traits> // for operations on any arithmetic number type
+#include <cassert>
 
 #include "Coord_t.h"
 
@@ -24,6 +25,7 @@ public:
     Point3(const coord_t _x, const coord_t _y, const coord_t _z): x(_x), y(_y), z(_z) {}
 
     Point3 operator +(const Point3& p) const;
+    Point3 operator -() const;
     Point3 operator -(const Point3& p) const;
     Point3 operator *(const Point3& p) const; //!< Element-wise multiplication. For dot product, use .dot()!
     Point3 operator /(const Point3& p) const;
@@ -36,6 +38,11 @@ public:
     Point3 operator /(const num_t i) const
     {
         return Point3(x / i, y / i, z / i);
+    }
+    template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
+    Point3 operator %(const num_t i) const
+    {
+        return Point3(x % i, y % i, z % i);
     }
 
     Point3& operator +=(const Point3& p);
@@ -113,6 +120,20 @@ public:
         return x*p.x + y*p.y + z*p.z;
     }
 
+    coord_t& operator[] (const size_t index)
+    {
+        assert(index < 3);
+        switch(index)
+        {
+            case 0: return x;
+            case 1: return y;
+            default: return z;
+        }
+    }
+    const coord_t& operator[] (const size_t index) const
+    {
+        return const_cast<Point3*>(this)->operator[] (index);
+    }
 };
 
 /*!
@@ -128,6 +149,23 @@ inline Point3 operator*(const num_t i, const Point3& rhs)
     return rhs * i;
 }
 
+} // namespace cura
+
+
+namespace std {
+    template <>
+    struct hash<cura::Point3> {
+        size_t operator()(const cura::Point3 & pp) const
+        {
+            static int prime = 31;
+            int result = 89;
+            result = result * prime + pp.x;
+            result = result * prime + pp.y;
+            result = result * prime + pp.z;
+            return result;
+        }
+    };
 }
+
 
 #endif //UTILS_POINT3_H

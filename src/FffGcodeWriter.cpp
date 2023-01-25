@@ -5,6 +5,7 @@
 #include <limits> // numeric_limits
 #include <list>
 #include <optional>
+#include <unordered_set>
 
 #include <boost/uuid/random_generator.hpp> //For generating a UUID.
 #include <boost/uuid/uuid_io.hpp> //For generating a UUID.
@@ -83,9 +84,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     setConfigFanSpeedLayerTime();
 
-    setConfigRetraction(storage);
-
-    setConfigWipe(storage);
+    setConfigRetractionAndWipe(storage);
 
     if (scene.current_mesh_group == scene.mesh_groups.begin())
     {
@@ -165,7 +164,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
 
     constexpr bool force = true;
-    gcode.writeRetraction(storage.retraction_config_per_extruder[gcode.getExtruderNr()], force); // retract after finishing each meshgroup
+    gcode.writeRetraction(storage.retraction_wipe_config_per_extruder[gcode.getExtruderNr()].retraction_config, force); // retract after finishing each meshgroup
 }
 
 unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const int layer_nr, const int last_layer_nr)
@@ -296,63 +295,66 @@ void FffGcodeWriter::setConfigFanSpeedLayerTime()
     }
 }
 
-void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
+static void retractionAndWipeConfigFromSettings(const Settings& settings, RetractionAndWipeConfig* config)
 {
-    Scene& scene = Application::getInstance().current_slice->scene;
-    for (size_t extruder_index = 0; extruder_index < scene.extruders.size(); extruder_index++)
-    {
-        ExtruderTrain& train = scene.extruders[extruder_index];
-        RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder_index];
-        retraction_config.distance = (train.settings.get<bool>("retraction_enable")) ? train.settings.get<double>("retraction_amount") : 0; // Retraction distance in mm.
-        retraction_config.prime_volume = train.settings.get<double>("retraction_extra_prime_amount"); // Extra prime volume in mm^3.
-        retraction_config.speed = train.settings.get<Velocity>("retraction_retract_speed");
-        retraction_config.primeSpeed = train.settings.get<Velocity>("retraction_prime_speed");
-        retraction_config.zHop = train.settings.get<coord_t>("retraction_hop");
-        retraction_config.retraction_min_travel_distance = train.settings.get<coord_t>("retraction_min_travel");
-        retraction_config.retraction_extrusion_window = train.settings.get<double>("retraction_extrusion_window"); // Window to count retractions in in mm of extruded filament.
-        retraction_config.retraction_count_max = train.settings.get<size_t>("retraction_count_max");
+    RetractionConfig& retraction_config = config->retraction_config;
+    retraction_config.distance = (settings.get<bool>("retraction_enable")) ? settings.get<double>("retraction_amount") : 0; // Retraction distance in mm.
+    retraction_config.prime_volume = settings.get<double>("retraction_extra_prime_amount"); // Extra prime volume in mm^3.
+    retraction_config.speed = settings.get<Velocity>("retraction_retract_speed");
+    retraction_config.primeSpeed = settings.get<Velocity>("retraction_prime_speed");
+    retraction_config.zHop = settings.get<coord_t>("retraction_hop");
+    retraction_config.retraction_min_travel_distance = settings.get<coord_t>("retraction_min_travel");
+    retraction_config.retraction_extrusion_window = settings.get<double>("retraction_extrusion_window"); // Window to count retractions in in mm of extruded filament.
+    retraction_config.retraction_count_max = settings.get<size_t>("retraction_count_max");
 
-        RetractionConfig& switch_retraction_config = storage.extruder_switch_retraction_config_per_extruder[extruder_index];
-        switch_retraction_config.distance = train.settings.get<double>("switch_extruder_retraction_amount"); // Retraction distance in mm.
-        switch_retraction_config.prime_volume = 0.0;
-        switch_retraction_config.speed = train.settings.get<Velocity>("switch_extruder_retraction_speed");
-        switch_retraction_config.primeSpeed = train.settings.get<Velocity>("switch_extruder_prime_speed");
-        switch_retraction_config.zHop = train.settings.get<coord_t>("retraction_hop_after_extruder_switch_height");
-        switch_retraction_config.retraction_min_travel_distance = 0; // no limitation on travel distance for an extruder switch retract
-        switch_retraction_config.retraction_extrusion_window = 99999.9; // so that extruder switch retractions won't affect the retraction buffer (extruded_volume_at_previous_n_retractions)
-        switch_retraction_config.retraction_count_max = 9999999; // extruder switch retraction is never limited
-    }
+    config->retraction_hop_after_extruder_switch = settings.get<bool>("retraction_hop_after_extruder_switch");
+    config->switch_extruder_extra_prime_amount = settings.get<double>("switch_extruder_extra_prime_amount");
+    RetractionConfig& switch_retraction_config = config->extruder_switch_retraction_config;
+    switch_retraction_config.distance = settings.get<double>("switch_extruder_retraction_amount"); // Retraction distance in mm.
+    switch_retraction_config.prime_volume = 0.0;
+    switch_retraction_config.speed = settings.get<Velocity>("switch_extruder_retraction_speed");
+    switch_retraction_config.primeSpeed = settings.get<Velocity>("switch_extruder_prime_speed");
+    switch_retraction_config.zHop = settings.get<coord_t>("retraction_hop_after_extruder_switch_height");
+    switch_retraction_config.retraction_min_travel_distance = 0; // No limitation on travel distance for an extruder switch retract.
+    switch_retraction_config.retraction_extrusion_window = 99999.9; // So that extruder switch retractions won't affect the retraction buffer (extruded_volume_at_previous_n_retractions).
+    switch_retraction_config.retraction_count_max = 9999999; // Extruder switch retraction is never limited.
+
+    WipeScriptConfig& wipe_config = config->wipe_config;
+
+    wipe_config.retraction_enable = settings.get<bool>("wipe_retraction_enable");
+    wipe_config.retraction_config.distance = settings.get<double>("wipe_retraction_amount");
+    wipe_config.retraction_config.speed = settings.get<Velocity>("wipe_retraction_retract_speed");
+    wipe_config.retraction_config.primeSpeed = settings.get<Velocity>("wipe_retraction_prime_speed");
+    wipe_config.retraction_config.prime_volume = settings.get<double>("wipe_retraction_extra_prime_amount");
+    wipe_config.retraction_config.retraction_min_travel_distance = 0;
+    wipe_config.retraction_config.retraction_extrusion_window = std::numeric_limits<double>::max();
+    wipe_config.retraction_config.retraction_count_max = std::numeric_limits<size_t>::max();
+
+    wipe_config.pause = settings.get<Duration>("wipe_pause");
+
+    wipe_config.hop_enable = settings.get<bool>("wipe_hop_enable");
+    wipe_config.hop_amount = settings.get<coord_t>("wipe_hop_amount");
+    wipe_config.hop_speed = settings.get<Velocity>("wipe_hop_speed");
+
+    wipe_config.brush_pos_x = settings.get<coord_t>("wipe_brush_pos_x");
+    wipe_config.repeat_count = settings.get<size_t>("wipe_repeat_count");
+    wipe_config.move_distance = settings.get<coord_t>("wipe_move_distance");
+    wipe_config.move_speed = settings.get<Velocity>("speed_travel");
+    wipe_config.max_extrusion_mm3 = settings.get<double>("max_extrusion_before_wipe");
+    wipe_config.clean_between_layers = settings.get<bool>("clean_between_layers");
 }
 
-void FffGcodeWriter::setConfigWipe(SliceDataStorage& storage)
+void FffGcodeWriter::setConfigRetractionAndWipe(SliceDataStorage& storage)
 {
     Scene& scene = Application::getInstance().current_slice->scene;
     for (size_t extruder_index = 0; extruder_index < scene.extruders.size(); extruder_index++)
     {
         ExtruderTrain& train = scene.extruders[extruder_index];
-        WipeScriptConfig& wipe_config = storage.wipe_config_per_extruder[extruder_index];
-
-        wipe_config.retraction_enable = train.settings.get<bool>("wipe_retraction_enable");
-        wipe_config.retraction_config.distance = train.settings.get<double>("wipe_retraction_amount");
-        wipe_config.retraction_config.speed = train.settings.get<Velocity>("wipe_retraction_retract_speed");
-        wipe_config.retraction_config.primeSpeed = train.settings.get<Velocity>("wipe_retraction_prime_speed");
-        wipe_config.retraction_config.prime_volume = train.settings.get<double>("wipe_retraction_extra_prime_amount");
-        wipe_config.retraction_config.retraction_min_travel_distance = 0;
-        wipe_config.retraction_config.retraction_extrusion_window = std::numeric_limits<double>::max();
-        wipe_config.retraction_config.retraction_count_max = std::numeric_limits<size_t>::max();
-
-        wipe_config.pause = train.settings.get<Duration>("wipe_pause");
-
-        wipe_config.hop_enable = train.settings.get<bool>("wipe_hop_enable");
-        wipe_config.hop_amount = train.settings.get<coord_t>("wipe_hop_amount");
-        wipe_config.hop_speed = train.settings.get<Velocity>("wipe_hop_speed");
-
-        wipe_config.brush_pos_x = train.settings.get<coord_t>("wipe_brush_pos_x");
-        wipe_config.repeat_count = train.settings.get<size_t>("wipe_repeat_count");
-        wipe_config.move_distance = train.settings.get<coord_t>("wipe_move_distance");
-        wipe_config.move_speed = train.settings.get<Velocity>("speed_travel");
-        wipe_config.max_extrusion_mm3 = train.settings.get<double>("max_extrusion_before_wipe");
-        wipe_config.clean_between_layers = train.settings.get<bool>("clean_between_layers");
+        retractionAndWipeConfigFromSettings(train.settings, &storage.retraction_wipe_config_per_extruder[extruder_index]);
+    }
+    for(SliceMeshStorage& mesh: storage.meshes)
+    {
+        retractionAndWipeConfigFromSettings(mesh.settings, &mesh.retraction_wipe_config);
     }
 }
 
@@ -360,19 +362,25 @@ size_t FffGcodeWriter::getStartExtruder(const SliceDataStorage& storage)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
-    const ExtruderTrain& skirt_brim_extruder = mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr");
+    const int skirt_brim_extruder_nr = mesh_group_settings.get<int>("skirt_brim_extruder_nr");
+    const ExtruderTrain* skirt_brim_extruder = (skirt_brim_extruder_nr < 0)? nullptr : &mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr");
 
     size_t start_extruder_nr;
-    if (adhesion_type == EPlatformAdhesion::SKIRT && (skirt_brim_extruder.settings.get<int>("skirt_line_count") > 0 || skirt_brim_extruder.settings.get<coord_t>("skirt_brim_minimal_length") > 0))
+    if (adhesion_type == EPlatformAdhesion::SKIRT
+        && skirt_brim_extruder
+        && (skirt_brim_extruder->settings.get<int>("skirt_line_count") > 0 || skirt_brim_extruder->settings.get<coord_t>("skirt_brim_minimal_length") > 0))
     {
-        start_extruder_nr = skirt_brim_extruder.extruder_nr;
+        start_extruder_nr = skirt_brim_extruder->extruder_nr;
     }
     else if ((adhesion_type == EPlatformAdhesion::BRIM || mesh_group_settings.get<bool>("prime_tower_brim_enable"))
-             && (skirt_brim_extruder.settings.get<int>("brim_line_count") > 0 || skirt_brim_extruder.settings.get<coord_t>("skirt_brim_minimal_length") > 0))
+        && skirt_brim_extruder
+        && (skirt_brim_extruder->settings.get<int>("brim_line_count") > 0 || skirt_brim_extruder->settings.get<coord_t>("skirt_brim_minimal_length") > 0))
     {
-        start_extruder_nr = skirt_brim_extruder.extruder_nr;
+        start_extruder_nr = skirt_brim_extruder->extruder_nr;
     }
-    else if (adhesion_type == EPlatformAdhesion::RAFT)
+    else if (adhesion_type == EPlatformAdhesion::RAFT
+        && skirt_brim_extruder
+    )
     {
         start_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr;
     }
@@ -643,7 +651,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
         processInitialLayerTemperature(storage, start_extruder_nr);
         gcode.writePrimeTrain(train.settings.get<Velocity>("speed_travel"));
         extruder_prime_layer_nr[start_extruder_nr] = std::numeric_limits<int>::min(); // set to most negative number so that layer processing never primes this extruder any more.
-        const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[start_extruder_nr];
+        const RetractionConfig& retraction_config = storage.retraction_wipe_config_per_extruder[start_extruder_nr].retraction_config;
         gcode.writeRetraction(retraction_config);
     }
     if (mesh_group_settings.get<bool>("relative_extrusion"))
@@ -658,7 +666,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
             gcode.resetExtrusionValue();
 
             // retract before first travel move
-            gcode.writeRetraction(storage.retraction_config_per_extruder[start_extruder_nr]);
+            gcode.writeRetraction(storage.retraction_wipe_config_per_extruder[start_extruder_nr].retraction_config);
         }
     }
     gcode.setExtruderFanNumber(start_extruder_nr);
@@ -1159,12 +1167,14 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     {
         return;
     }
-    const Polygons& original_skirt_brim = storage.skirt_brim[extruder_nr];
     gcode_layer.setSkirtBrimIsPlanned(extruder_nr);
+    
+    const std::vector<SkirtBrimLine>& original_skirt_brim = storage.skirt_brim[extruder_nr];
     if (original_skirt_brim.size() == 0)
     {
         return;
     }
+
     // Start brim close to the prime location
     const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
     Point start_close_to;
@@ -1179,72 +1189,113 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         start_close_to = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
 
-    Polygons first_skirt_brim;
-    Polygons skirt_brim;
-    // Plan parts that need to be printed first: for example, skirt needs to be printed before support-brim.
-    for (size_t i_part = 0; i_part < original_skirt_brim.size(); ++i_part)
+    // figure out order requirements
+    struct BrimLineReference
     {
-        if (i_part < storage.skirt_brim_max_locked_part_order[extruder_nr])
+        const size_t inset_idx;
+        ConstPolygonPointer poly;
+    };
+    
+    size_t total_line_count = 0;
+    for (const SkirtBrimLine& line : storage.skirt_brim[extruder_nr])
+    {
+        total_line_count += line.closed_polygons.size();
+        total_line_count += line.open_polylines.size();
+    }
+    Polygons all_brim_lines;
+    
+    // Add the support brim before the below algorithm which takes order requirements into account
+    // For support brim we don't care about the order, because support doesn't need to be accurate.
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    if (extruder_nr == mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr)
+    {
+        total_line_count += storage.support_brim.size();
+        Polygons support_brim_lines = storage.support_brim;
+        support_brim_lines.toPolylines();
+        all_brim_lines = support_brim_lines;
+    }
+    
+    all_brim_lines.reserve(total_line_count);
+
+    const coord_t line_w = train.settings.get<coord_t>("skirt_brim_line_width") * train.settings.get<Ratio>("initial_layer_line_width_factor");
+    const coord_t searching_radius = line_w * 2;
+    using GridT = SparsePointGridInclusive<BrimLineReference>;
+    GridT grid(searching_radius);
+
+    for (size_t inset_idx = 0; inset_idx < storage.skirt_brim[extruder_nr].size(); inset_idx++)
+    {
+        const SkirtBrimLine& offset = storage.skirt_brim[extruder_nr][inset_idx];
+        for (bool closed : { false, true })
         {
-            first_skirt_brim.add(original_skirt_brim[i_part]);
-        }
-        else
-        {
-            skirt_brim.add(original_skirt_brim[i_part]);
-        }
-    }
-
-    const auto brim_zseam_config = ZSeamConfig(EZSeamType::SKIRT_BRIM);
-
-    if (! first_skirt_brim.empty())
-    {
-        gcode_layer.addTravel(first_skirt_brim.back().closestPointTo(start_close_to));
-        gcode_layer.addPolygonsByOptimizer(first_skirt_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], brim_zseam_config);
-    }
-
-    if (skirt_brim.empty())
-    {
-        return;
-    }
-
-    if (train.settings.get<bool>("brim_outside_only"))
-    {
-        gcode_layer.addTravel(skirt_brim.back().closestPointTo(start_close_to));
-        gcode_layer.addPolygonsByOptimizer(skirt_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], brim_zseam_config);
-    }
-    else
-    {
-        Polygons outer_brim, inner_brim;
-        for (unsigned int index = 0; index < skirt_brim.size(); index++)
-        {
-            ConstPolygonRef polygon = skirt_brim[index];
-            if (polygon.area() > 0)
+            for (ConstPolygonRef line : closed? offset.closed_polygons : offset.open_polylines)
             {
-                outer_brim.add(polygon);
+                if (line.size() <= 1)
+                {
+                    continue;
+                }
+                all_brim_lines.emplace_back(line);
+                if (closed)
+                { // add closing segment
+                    all_brim_lines.back().add(line.front());
+                }
+                ConstPolygonPointer pp(all_brim_lines.back());
+                for (Point p : line)
+                {
+                    grid.insert(p, BrimLineReference{inset_idx, pp});
+                }
+            }
+        }
+    }
+
+    const Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    bool inner_to_outer = global_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM && // for skirt outer to inner is faster
+                            train.settings.get<coord_t>("brim_gap") < line_w; // for a large brim gap it's not so bad for the overextrudate to propagate inward.
+    std::unordered_set<std::pair<ConstPolygonPointer, ConstPolygonPointer>> order_requirements;
+    for (const std::pair<SquareGrid::GridPoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<BrimLineReference>>& p : grid)
+    {
+        const BrimLineReference& here = p.second.val;
+        Point loc_here = p.second.point;
+        std::vector<BrimLineReference> nearby_verts = grid.getNearbyVals(loc_here, searching_radius);
+        for (const BrimLineReference& nearby : nearby_verts)
+        {
+            if (nearby.poly == here.poly || nearby.inset_idx == here.inset_idx)
+            {
+                continue;
+            }
+            if ((nearby.inset_idx > here.inset_idx + 1) || (here.inset_idx > nearby.inset_idx + 1))
+            {
+                continue; // not directly adjacent
+            }
+            if ((nearby.inset_idx < here.inset_idx) == inner_to_outer)
+            {
+                order_requirements.emplace(std::make_pair(nearby.poly, here.poly));
             }
             else
             {
-                inner_brim.add(polygon);
+                order_requirements.emplace(std::make_pair(here.poly, nearby.poly));
             }
         }
-
-        if (! outer_brim.empty())
-        {
-            gcode_layer.addTravel(outer_brim.back().closestPointTo(start_close_to));
-            gcode_layer.addPolygonsByOptimizer(outer_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], brim_zseam_config);
-        }
-
-        if (! inner_brim.empty())
-        {
-            // Add polygon in reverse order
-            const coord_t wall_0_wipe_dist = 0;
-            const bool spiralize = false;
-            const float flow_ratio = 1.0;
-            const bool always_retract = false;
-            const bool reverse_order = true;
-            gcode_layer.addPolygonsByOptimizer(inner_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], brim_zseam_config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract, reverse_order);
-        }
     }
+    assert(all_brim_lines.size() == total_line_count); // Otherwise pointers would have gotten invalidated
+    
+    const bool enable_travel_optimization = true; // Use the combing outline while deciding in which order to print the lines. Can't hurt for only one layer.
+    const coord_t wipe_dist = 0u;
+    const Ratio flow_ratio = 1.0;
+    const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+    const bool reverse_print_direction = false;
+    gcode_layer.addLinesByOptimizer
+    (
+        all_brim_lines,
+        gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
+        SpaceFillType::PolyLines,
+        enable_travel_optimization,
+        wipe_dist,
+        flow_ratio,
+        start_close_to,
+        fan_speed,
+        reverse_print_direction,
+        order_requirements
+    );
 }
 
 void FffGcodeWriter::processOozeShield(const SliceDataStorage& storage, LayerPlan& gcode_layer) const
@@ -1461,7 +1512,7 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
         return;
     }
 
-    gcode_layer.setMesh(mesh.mesh_name);
+    gcode_layer.setMesh(&mesh);
 
     ZSeamConfig z_seam_config;
     if (mesh.isPrinted()) //"normal" meshes with walls, skin, infill, etc. get the traditional part ordering based on the z-seam settings.
@@ -1488,7 +1539,7 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
     {
         addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer);
     }
-    gcode_layer.setMesh("NONMESH");
+    gcode_layer.setMesh(nullptr);
 }
 
 void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer)
@@ -2075,7 +2126,7 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
             last_seam_vertex_idx = storage.spiralize_seam_vertex_indices[layer_nr - 1];
         }
     }
-    const bool is_bottom_layer = (layer_nr == mesh.settings.get<LayerIndex>("bottom_layers"));
+    const bool is_bottom_layer = (layer_nr == mesh.settings.get<LayerIndex>("initial_bottom_layers"));
     const bool is_top_layer = ((size_t)layer_nr == (storage.spiralize_wall_outlines.size() - 1) || storage.spiralize_wall_outlines[layer_nr + 1] == nullptr);
     const int seam_vertex_idx = storage.spiralize_seam_vertex_indices[layer_nr]; // use pre-computed seam vertex index for current layer
     // output a wall slice that is interpolated between the last and current walls
@@ -2420,8 +2471,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage,
     // generate skin_polygons and skin_lines
     const GCodePathConfig* skin_config = &mesh_config.skin_config;
     Ratio skin_density = 1.0;
-    const coord_t skin_overlap = mesh.settings.get<coord_t>("skin_overlap_mm");
-    coord_t extra_skin_overlap = 0;
+    const coord_t skin_overlap = 0;  // Skin overlap offset is applied in skin.cpp more overlap might be beneficial for curved bridges, but makes it worse in general.
     const bool bridge_settings_enabled = mesh.settings.get<bool>("bridge_settings_enabled");
     const bool bridge_enable_more_layers = bridge_settings_enabled && mesh.settings.get<bool>("bridge_enable_more_layers");
     const Ratio support_threshold = bridge_settings_enabled ? mesh.settings.get<Ratio>("bridge_skin_support_threshold") : 0.0_r;
@@ -2487,7 +2537,6 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage,
             if (bridge_settings_enabled)
             {
                 skin_config = config;
-                extra_skin_overlap = std::max(skin_overlap, (coord_t)(mesh_config.insetX_config.getLineWidth() / 2)) - skin_overlap; // Skin overlap offset is applied in skin.cpp only extra overlap is applied here
                 skin_density = density;
             }
             return true;
@@ -2555,7 +2604,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage,
     }
     const bool monotonic = mesh.settings.get<bool>("skin_monotonic");
     pattern = skin_part.is_narrow_skin ? EFillMethod::CONCENTRIC : pattern;
-    processSkinPrintFeature(storage, gcode_layer, mesh, mesh_config, extruder_nr, skin_part.skin_fill, *skin_config, pattern, skin_angle, extra_skin_overlap, skin_density, monotonic, added_something, fan_speed);
+    processSkinPrintFeature(storage, gcode_layer, mesh, mesh_config, extruder_nr, skin_part.skin_fill, *skin_config, pattern, skin_angle, skin_overlap, skin_density, monotonic, added_something, fan_speed);
 }
 
 void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage,
@@ -2828,15 +2877,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     }
     island_order_optimizer.optimize();
 
-    // Helper to determine the appropriate support area
-    const auto get_support_area = [](const Polygons& area, const int layer_nr, const EFillMethod pattern, const coord_t line_width, const coord_t brim_line_count)
-    {
-        if (layer_nr == 0 && pattern == EFillMethod::CONCENTRIC)
-        {
-            return area.offset(static_cast<int>(line_width * brim_line_count / 1000));
-        }
-        return area;
-    };
     const auto support_brim_line_count = infill_extruder.settings.get<coord_t>("support_brim_line_count");
     const auto support_connect_zigzags = infill_extruder.settings.get<bool>("support_connect_zigzags");
     const auto support_structure = infill_extruder.settings.get<ESupportStructure>("support_structure");
@@ -2897,7 +2937,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     support_line_distance_here /= 2;
                 }
 
-                const Polygons& area = get_support_area(part.infill_area_per_combine_per_density[density_idx][combine_idx], gcode_layer.getLayerNr(), support_pattern, support_line_width, support_brim_line_count);
+                const Polygons& area = part.infill_area_per_combine_per_density[density_idx][combine_idx];
 
                 constexpr size_t wall_count = 0; // Walls are generated somewhere else, so their layers aren't vertically combined.
                 constexpr bool skip_stitching = false;
@@ -2932,7 +2972,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 if ((! wall_toolpaths.empty() || ! support_polygons.empty() || ! support_lines.empty()))
                 {
                     int layer_nr = gcode_layer.getLayerNr();
-                    if (layer_nr > (int)infill_extruder.settings.get<size_t>("bottom_layers"))
+                    if (layer_nr > (int)infill_extruder.settings.get<size_t>("initial_bottom_layers"))
                     {
                         // bit of subtlety here... support is being used on a spiralized model and to ensure the travel move from the end of the last spiral
                         // to the start of the support does not go through the model we have to tell the slicer what the current location of the nozzle is
@@ -2994,7 +3034,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
             // If we're printing with a support wall, that support wall generates gap filling as well.
             // If not, the pattern may still generate gap filling (if it's connected infill or zigzag). We still want to print those.
-            if (wall_line_count == 0 && ! wall_toolpaths_here.empty())
+            if (wall_line_count == 0 || ! wall_toolpaths_here.empty())
             {
                 const GCodePathConfig& config = gcode_layer.configs_storage.support_infill_config[0];
                 constexpr bool retract_before_outer_wall = false;
@@ -3038,7 +3078,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     constexpr coord_t support_roof_overlap = 0; // the roofs should never be expanded outwards
     constexpr size_t infill_multiplier = 1;
     constexpr coord_t extra_infill_shift = 0;
-    constexpr size_t wall_line_count = 0;
+    const auto wall_line_count = roof_extruder.settings.get<size_t>("support_roof_wall_count");
     const Point infill_origin;
     constexpr bool skip_stitching = false;
     constexpr bool fill_gaps = true;
@@ -3145,11 +3185,12 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
         fill_angle = storage.support.support_bottom_angles.at(index);
     }
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
-    const bool connect_polygons = true; // less retractions and less moves only make the bottoms easier to print
+    constexpr bool connect_polygons = false; // Keep the same as roof, also does make a bit less sense when support infill is < 100% or support walls are set to > 0.
     constexpr coord_t support_bottom_overlap = 0; // the bottoms should never be expanded outwards
     constexpr size_t infill_multiplier = 1;
     constexpr coord_t extra_infill_shift = 0;
-    constexpr size_t wall_line_count = 0;
+    const auto wall_line_count = bottom_extruder.settings.get<size_t>("support_bottom_wall_count");
+
     const Point infill_origin;
     constexpr bool skip_stitching = false;
     constexpr bool fill_gaps = true;

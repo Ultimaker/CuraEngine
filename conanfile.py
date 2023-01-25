@@ -31,12 +31,14 @@ class CuraEngineConan(ConanFile):
         "enable_arcus": [True, False],
         "enable_openmp": [True, False],
         "enable_testing": [True, False],
+        "enable_benchmarks": [True, False],
         "enable_extensive_warnings": [True, False]
     }
     default_options = {
         "enable_arcus": True,
         "enable_openmp": True,
         "enable_testing": False,
+        "enable_benchmarks": False,
         "enable_extensive_warnings": False,
     }
     scm = {
@@ -77,6 +79,9 @@ class CuraEngineConan(ConanFile):
         if self.options.enable_testing:
             for req in self._um_data()["build_requirements_testing"]:
                 self.test_requires(req)
+        if self.options.enable_benchmarks:
+            for req in self._um_data()["build_requirements_benchmarks"]:
+                self.test_requires(req)
 
     def requirements(self):
         self.requires("standardprojectsettings/[>=0.1.0]@ultimaker/stable")
@@ -94,6 +99,7 @@ class CuraEngineConan(ConanFile):
         tc.variables["CURA_ENGINE_VERSION"] = self.version
         tc.variables["ENABLE_ARCUS"] = self.options.enable_arcus
         tc.variables["ENABLE_TESTING"] = self.options.enable_testing
+        tc.variables["ENABLE_BENCHMARKS"] = self.options.enable_benchmarks
         tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
         if self.settings.os != "Macos":
             tc.variables["ENABLE_OPENMP"] = self.options.enable_openmp

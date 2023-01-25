@@ -110,7 +110,6 @@ public:
         settings->add("layer_height", "0.1");
         settings->add("layer_start_x", "0");
         settings->add("layer_start_y", "0");
-        settings->add("limit_support_retractions", "false");
         settings->add("machine_center_is_zero", "false");
         settings->add("machine_depth", "1000");
         settings->add("machine_extruders_share_nozzle", "false");
@@ -200,7 +199,7 @@ public:
         retraction_config.retraction_count_max = settings->get<size_t>("retraction_count_max");
 
         auto* result = new SliceDataStorage();
-        result->retraction_config_per_extruder[0] = retraction_config;
+        result->retraction_wipe_config_per_extruder[0].retraction_config = retraction_config;
         return result;
     }
 
@@ -348,7 +347,7 @@ public:
         settings->add("retraction_hop_enabled", parameters.hop_enable);
         settings->add("retraction_combing", parameters.combing);
         settings->add("retraction_min_travel", parameters.is_long ? "1" : "10000"); // If disabled, give it a high minimum travel so we're sure that our travel move is shorter.
-        storage->retraction_config_per_extruder[0].retraction_min_travel_distance = settings->get<coord_t>("retraction_min_travel"); // Update the copy that the storage has of this.
+        storage->retraction_wipe_config_per_extruder[0].retraction_config.retraction_min_travel_distance = settings->get<coord_t>("retraction_min_travel"); // Update the copy that the storage has of this.
         settings->add("retraction_combing_max_distance", parameters.is_long_combing ? "1" : "10000");
 
         Polygons slice_data;

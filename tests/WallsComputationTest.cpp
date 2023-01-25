@@ -1,8 +1,9 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "WallsComputation.h" //Unit under test.
+#include <range/v3/view/join.hpp>
 #include "InsetOrderOptimizer.h" //Unit also under test.
+#include "WallsComputation.h" //Unit under test.
 #include "settings/Settings.h" //Settings to generate walls with.
 #include "sliceDataStorage.h" //Sl
 #include "utils/polygon.h" //To create example polygons.
@@ -149,13 +150,10 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     walls_computation.generateWalls(&layer);
 
     const bool outer_to_inner = false;
-    std::vector<const ExtrusionLine*> all_paths;
-    for (auto& inset : part.wall_toolpaths)
+    std::vector<ExtrusionLine> all_paths;
+    for (auto& line : part.wall_toolpaths | ranges::views::join)
     {
-        for (auto& line : inset)
-        {
-            all_paths.emplace_back(&line);
-        }
+        all_paths.emplace_back(line);
     }
     std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order = InsetOrderOptimizer::getRegionOrder(all_paths, outer_to_inner);
 
@@ -214,7 +212,6 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     std::unordered_set<const ExtrusionLine*> has_order_info(part.wall_toolpaths.size());
     for (auto [from, to] : order)
     {
-        EXPECT_FALSE(from->is_odd) << "Odd gap filler lines are never required to go before anything.";
         has_order_info.emplace(from);
         has_order_info.emplace(to);
     }

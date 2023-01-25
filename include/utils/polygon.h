@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_POLYGON_H
 #define UTILS_POLYGON_H
@@ -299,6 +299,18 @@ public:
         return res == 1;
     }
 
+    bool inside(const auto& polygon) const
+    {
+        for (const auto& point : *path)
+        {
+            if (! ClipperLib::PointInPolygon(point, *polygon.path))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /*!
      * Smooth out small perpendicular segments and store the result in \p result.
      * Smoothing is performed by removing the inner most vertex of a line segment smaller than \p remove_length
@@ -419,6 +431,10 @@ public:
     {
     }
 
+    /*!
+     * Reserve a number of polygons to prevent reallocation and breakage of pointers.
+     * \param min_size The minimum size the new underlying array should have.
+     */
     void reserve(size_t min_size)
     {
         path->reserve(min_size);
@@ -754,6 +770,11 @@ public:
         return paths.size();
     }
 
+    void reserve(size_t new_cap)
+    {
+        paths.reserve(new_cap);
+    }
+
     /*!
      * Convenience function to check if the polygon has no points.
      *
@@ -913,7 +934,14 @@ public:
     Polygons(const Polygons& other) { paths = other.paths; }
     Polygons(Polygons&& other) { paths = std::move(other.paths); }
     Polygons& operator=(const Polygons& other) { paths = other.paths; return *this; }
-    Polygons& operator=(Polygons&& other) { paths = std::move(other.paths); return *this; }
+    Polygons& operator=(Polygons&& other)
+    {
+        if (this != &other)
+        {
+            paths = std::move(other.paths);
+        }
+        return *this;
+    }
 
     bool operator==(const Polygons& other) const = delete;
 
@@ -969,6 +997,11 @@ public:
      * \return The resulting polylines limited to the area of this Polygons object
      */
     Polygons intersectionPolyLines(const Polygons& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu) const;
+
+    /*!
+     * Add the front to each polygon so that the polygon is represented as a polyline
+     */
+    void toPolylines();
 
     /*!
      * Split this poly line object into several line segment objects
@@ -1180,6 +1213,13 @@ public:
     std::vector<PolygonsPart> splitIntoParts(bool unionAll = false) const;
 
     /*!
+     * Sort the polygons into bins where each bin has polygons which are contained within one of the polygons in the previous bin.
+     * 
+     * \warning When polygons are crossing each other the result is undefined.
+     */
+    std::vector<Polygons> sortByNesting() const;
+
+    /*!
      * Utility method for creating the tube (or 'donut') of a shape.
      * \param inner_offset Offset relative to the original shape-outline towards the inside of the shape. Sort-of like a negative normal offset, except it's the offset part that's kept, not the shape.
      * \param outer_offset Offset relative to the original shape-outline towards the outside of the shape. Comparable to normal offset.
@@ -1196,6 +1236,7 @@ private:
      */
     void removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& node, const bool remove_holes, Polygons& ret) const;
     void splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const;
+    void sortByNesting_processPolyTreeNode(ClipperLib::PolyNode* node, const size_t nesting_idx, std::vector<Polygons>& ret) const;
 
 public:
     /*!
@@ -1216,6 +1257,22 @@ public:
      * However, holes that are contained within outlines whose area is below the threshold are removed though.
      */
     void removeSmallAreas(const double min_area_size, const bool remove_holes = false);
+
+    /*!
+     * Removes polygons with circumference smaller than \p min_circumference_size (in micron).
+     * Unless \p remove_holes is true, holes are not removed even if their circumference is below \p min_circumference_size.
+     * However, holes that are contained within outlines whose circumference is below the threshold are removed though.
+     */
+    [[maybe_unused]] void removeSmallCircumference(const coord_t min_circumference_size, const bool remove_holes = false);
+
+    /*!
+     * Removes polygons with circumference smaller than \p min_circumference_size (in micron) _and_
+     * an area smaller then \p min_area_size (note that min_area_size is in mm^2, not in micron^2).
+     * Unless \p remove_holes is true, holes are not removed even if their circumference is
+     * below \p min_circumference_size and their area smaller then \p min_area_size.
+     * However, holes that are contained within outlines whose circumference is below the threshold are removed though.
+     */
+    void removeSmallAreaCircumference(const double min_area_size, const coord_t min_circumference_size, const bool remove_holes = false);
 
     /*!
      * Removes overlapping consecutive line segments which don't delimit a
