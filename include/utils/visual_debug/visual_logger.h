@@ -62,54 +62,6 @@ public:
         vtu11::writePVtu( vtu_path_.string(), id_, { }, 1 );
     };
 
-    VisualLogger(const VisualLogger& other) noexcept : id_ { other.id_ }
-                                                       , idx_ { other.idx_ }
-                                                       , logger_idx_ { other.logger_idx_ }
-                                                       , vtu_path_ { other.vtu_path_ }
-                                                       , layer_map_ { other.layer_map_ }
-                                                       , cell_dataset_info_ { other.cell_dataset_info_ }
-                                                       , point_dataset_info_ { other.point_dataset_info_ } { };
-
-    VisualLogger(VisualLogger&& other) noexcept : id_ { std::move( other.id_ ) }
-                                                  , idx_ { std::exchange( other.idx_, 0 ) }
-                                                  , logger_idx_ { std::exchange( other.logger_idx_, 0 ) }
-                                                  , vtu_path_ { std::move( other.vtu_path_ ) }
-                                                  , layer_map_ { std::move( other.layer_map_ ) }
-                                                  , cell_dataset_info_ { std::move( other.cell_dataset_info_ ) }
-                                                  , point_dataset_info_ { std::move( other.point_dataset_info_ ) } { };
-
-    VisualLogger& operator=(const VisualLogger& other)
-    {
-        const std::scoped_lock lock { mutex_ };
-        id_ = other.id_;
-        idx_ = other.idx_;
-        logger_idx_ = other.logger_idx_;
-        vtu_path_ = other.vtu_path_;
-        layer_map_ = other.layer_map_;
-        cell_dataset_info_ = other.cell_dataset_info_;
-        point_dataset_info_ = other.point_dataset_info_;
-        return * this;
-    };
-
-    VisualLogger& operator=(VisualLogger&& other) noexcept
-    {
-        const std::scoped_lock lock { mutex_ };
-        id_ = std::move( other.id_ );
-        idx_ = std::exchange( other.idx_, 0 );
-        logger_idx_ = std::exchange( other.logger_idx_, 0 );
-        vtu_path_ = std::move( other.vtu_path_ );
-        layer_map_ = std::move( other.layer_map_ );
-        cell_dataset_info_ = std::move( other.cell_dataset_info_ );
-        point_dataset_info_ = std::move( other.point_dataset_info_ );
-        return * this;
-    };
-
-    ~VisualLogger()
-    {
-        const std::scoped_lock lock { mutex_ };
-        //vtu11::writePVtu( vtu_path_.string(), id_, ranges::views::concat( point_dataset_info_, cell_dataset_info_ ) | ranges::to_vector, idx_ ); // Need to write this again since we now know the exact number of vtu files
-    };
-
     void setValue(shared_layer_map_t& layer_map)
     {
         layer_map_ = layer_map;
