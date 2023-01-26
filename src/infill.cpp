@@ -82,40 +82,40 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
 
     inner_contour = generateWallToolPaths(toolpaths, outer_contour, wall_line_count, infill_line_width, infill_overlap, settings);
 
-    // It does not make sense to print a pattern in a narrow region. So the infill region
-    // is split into a narrow region that will be filled with walls and the normal region
+    // It does not make sense to print a pattern in a small region. So the infill region
+    // is split into a small region that will be filled with walls and the normal region
     // that will be filled with the pattern. This split of regions is not needed if the
-    // infill pattern is concentric.
+    // infill pattern is concentric or if the small_area_width is zero.
     if (pattern != EFillMethod::CONCENTRIC && small_area_width > 0)
     {
         // Split the infill region in a narrow region and the normal region.
-        Polygons narrow_infill = inner_contour;
+        Polygons small_infill = inner_contour;
         inner_contour = inner_contour.offset(-small_area_width / 2).offset(small_area_width / 2);
-        narrow_infill = narrow_infill.intersection(narrow_infill.difference(inner_contour));
-        narrow_infill = Simplify(max_resolution, max_deviation, 0).polygon(narrow_infill);
+        small_infill = small_infill.intersection(small_infill.difference(inner_contour));
+        small_infill = Simplify(max_resolution, max_deviation, 0).polygon(small_infill);
 
         // Small corners of a bigger area should not be considered narrow and are therefore added to the bigger area again.
-        for (PolygonsPart& narrow_infill_part : narrow_infill.splitIntoParts())
+        for (PolygonsPart& small_infill_part : small_infill.splitIntoParts())
         {
-            if (narrow_infill_part.offset(-infill_line_width / 2).offset(infill_line_width / 2).area() < infill_line_width * infill_line_width * 10)
+            if (small_infill_part.offset(-infill_line_width / 2).offset(infill_line_width / 2).area() < infill_line_width * infill_line_width * 10)
             {
-                if (! inner_contour.intersection(narrow_infill_part.offset(infill_line_width / 4)).empty())
+                if (! inner_contour.intersection(small_infill_part.offset(infill_line_width / 4)).empty())
                 {
-                    narrow_infill = narrow_infill.difference(narrow_infill_part);
-                    inner_contour = inner_contour.unionPolygons(narrow_infill_part);
+                    small_infill = small_infill.difference(small_infill_part);
+                    inner_contour = inner_contour.unionPolygons(small_infill_part);
                 }
             }
         }
 
         // Fill narrow area with walls.
         const size_t narrow_wall_count = std::round(small_area_width / infill_line_width) + 1;
-        WallToolPaths wall_toolpaths(narrow_infill, infill_line_width, narrow_wall_count, 0, settings);
-        std::vector<VariableWidthLines> narrow_infill_paths = wall_toolpaths.getToolPaths();
-        if (! narrow_infill_paths.empty())
+        WallToolPaths wall_toolpaths(small_infill, infill_line_width, narrow_wall_count, 0, settings);
+        std::vector<VariableWidthLines> small_infill_paths = wall_toolpaths.getToolPaths();
+        if (! small_infill_paths.empty())
         {
-            for (const auto& narrow_infill_path : narrow_infill_paths)
+            for (const auto& small_infill_path : small_infill_paths)
             {
-                toolpaths.push_back(narrow_infill_path);
+                toolpaths.push_back(small_infill_path);
             }
         }
     }
