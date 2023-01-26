@@ -23,11 +23,11 @@
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/iota.hpp>
 #include <range/v3/view/join.hpp>
+#include <range/v3/view/map.hpp>
 #include <range/v3/view/repeat.hpp>
 #include <range/v3/view/stride.hpp>
 #include <range/v3/view/take.hpp>
 #include <range/v3/view/transform.hpp>
-#include <range/v3/view/map.hpp>
 #include <range/v3/view/zip.hpp>
 #include <spdlog/spdlog.h>
 #include <vtu11/vtu11.hpp>
@@ -36,7 +36,8 @@
 #include "utils/concepts/geometry.h"
 #include "utils/views/coord.h"
 #include "utils/views/get.h"
-#include "utils/visual_debug/cell_types.h"
+#include "utils/visual_debug/cell_type.h"
+#include "utils/visual_debug/section_type.h"
 #include "utils/visual_debug/visual_data_info.h"
 
 namespace cura::debug
@@ -55,7 +56,7 @@ public:
     constexpr VisualLogger() noexcept = default;
 
     template<typename... Args>
-    VisualLogger(const std::string& id, const size_t logger_idx, const std::filesystem::path& vtu_path, Args&& ... args) : id_ { id }, logger_idx_ { logger_idx }, vtu_path_ { vtu_path }
+    VisualLogger(const std::string& id, const size_t logger_idx, const std::filesystem::path& vtu_path, SectionType section_type = SectionType::NA, Args&& ... args) : id_ { id }, logger_idx_ { logger_idx }, vtu_path_ { vtu_path }, section_type_ { section_type }
     {
         const std::scoped_lock lock { mutex_ };
         spdlog::info( "Visual Debugger: Initializing Logger <{}>-<{}> file(s) in {}", id_, logger_idx_, vtu_path_.string());
@@ -131,7 +132,7 @@ public:
         }
 
         auto connectivity = getConnectivity( points.size() / 3 );
-        auto types = getCellTypes( offsets.size() - 1, static_cast<long>(CellTypes::POLYGON));
+        auto types = getCellTypes( offsets.size() - 1, static_cast<long>(CellType::POLYGON));
         vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets | ranges::views::drop( 1 ) | ranges::to_vector, types };
 
         writePartition( mesh_partition, point_datas, cell_datas );
@@ -173,7 +174,7 @@ public:
         }
         auto connectivity = getConnectivity( mesh.faces.size() * 3 );
         auto offsets = getOffsets( connectivity.size(), 3 );
-        auto types = getCellTypes( offsets.size(), static_cast<long>(CellTypes::TRIANGLE));
+        auto types = getCellTypes( offsets.size(), static_cast<long>(CellType::TRIANGLE));
         vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets, types };
         writePartition( mesh_partition, point_datas, cell_datas );
     };
@@ -231,7 +232,7 @@ public:
         }
         auto connectivity = getConnectivity( points.size() / 3 );
         auto offsets = getOffsets( connectivity.size(), 2 );
-        auto types = getCellTypes( offsets.size(), static_cast<long>(CellTypes::LINE));
+        auto types = getCellTypes( offsets.size(), static_cast<long>(CellType::LINE));
         vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets, types };
 
         writePartition( mesh_partition, point_datas, cell_datas );
@@ -242,6 +243,7 @@ private:
     std::string id_ { };
     size_t logger_idx_ { };
     size_t idx_ { };
+    SectionType section_type_ { };
     std::filesystem::path vtu_path_ { };
     shared_layer_map_t layer_map_ { };
     std::vector<vtu11::DataSetInfo> cell_dataset_info_ { };
