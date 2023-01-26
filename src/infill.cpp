@@ -86,7 +86,7 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
     // is split into a narrow region that will be filled with walls and the normal region
     // that will be filled with the pattern. This split of regions is not needed if the
     // infill pattern is concentric.
-    if (pattern != EFillMethod::CONCENTRIC)
+    if (pattern != EFillMethod::CONCENTRIC && small_area_width > 0)
     {
         // Split the infill region in a narrow region and the normal region.
         Polygons narrow_infill = inner_contour;
