@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <limits>
@@ -13,6 +13,7 @@
 #include "utils/floatpoint.h" //To accept incoming meshes with floating point vertices.
 #include "utils/gettime.h"
 #include "utils/string.h"
+#include "utils/visual_debug/logger.h"
 
 namespace cura
 {
@@ -96,7 +97,8 @@ void MeshGroup::finalize()
     }
 
     // If a mesh position was given, put the mesh at this position in 3D space.
-    for (Mesh& mesh : meshes)
+    size_t mesh_idx { };
+    for (auto& mesh : meshes)
     {
         Point3 mesh_offset(mesh.settings.get<coord_t>("mesh_position_x"), mesh.settings.get<coord_t>("mesh_position_y"), mesh.settings.get<coord_t>("mesh_position_z"));
         if (mesh.settings.get<bool>("center_object"))
@@ -107,6 +109,8 @@ void MeshGroup::finalize()
             mesh_offset += Point3(-object_min.x - object_size.x / 2, -object_min.y - object_size.y / 2, -object_min.z);
         }
         mesh.translate(mesh_offset + meshgroup_offset);
+        auto vlogger = debug::Loggers::get_mutable_instance().MakeLogger( fmt::format("mesh_group_{}", mesh_idx++ ) );
+        vlogger->log(mesh);
     }
     scaleFromBottom(settings.get<Ratio>("material_shrinkage_percentage_xy"), settings.get<Ratio>("material_shrinkage_percentage_z")); // Compensate for the shrinkage of the material.
 }
