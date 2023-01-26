@@ -115,7 +115,13 @@ public:
         layer_map_ = layer_map;
     }
 
-    constexpr void log(const polygon auto& poly, const int layer_idx) { };
+    constexpr void log(const layer_viewable auto& layers)
+    {
+        for (const auto& [layer_idx, layer] : layers | ranges::views::enumerate)
+        {
+            log(layer.polygons, layer_idx);
+        }
+    };
 
     template<typename... VDI>
     constexpr void log(const polygons auto& polys, const int layer_idx, VDI... visual_data_infos)

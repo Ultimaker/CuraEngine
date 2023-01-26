@@ -81,10 +81,15 @@ requires( T m )
 
 template<class T>
 concept layer =
-requires( T layer ) { layer.z; };
+requires( T layer )
+{
+    layer.z;
+    layer.polygons;
+    ranges::range<decltype(layer.polygons)>;
+};
 
 template<class T>
-concept layer_viewable = std::ranges::range<T> && layer < typename T::value_type>;
+concept layer_viewable = ranges::range<T> && layer < typename T::value_type>;
 
 }// namespace cura
 
