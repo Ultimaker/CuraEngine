@@ -92,7 +92,7 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
         mesh_group.settings.add(setting.name(), setting.value());
     }
 
-    auto vlogger = debug::Loggers::get_mutable_instance().MakeLogger( "mesh" );
+    auto vlogger = debug::Loggers::get_mutable_instance().MakeLogger( "mesh_1" );
     FMatrix4x3 matrix;
     for (const cura::proto::Object& object : mesh_group_message.objects())
     {
