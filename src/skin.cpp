@@ -469,7 +469,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
         {
             assert((part.infill_area_per_combine_per_density.empty() && "infill_area_per_combine_per_density is supposed to be uninitialized"));
 
-            const Polygons& infill_area = Infill::generateWallToolPaths(part.infill_wall_toolpaths, part.getOwnInfillArea(), infill_wall_count, infill_wall_width, infill_overlap, mesh.settings, layer_idx);
+            const Polygons& infill_area = Infill::generateWallToolPaths(part.infill_wall_toolpaths, part.getOwnInfillArea(), infill_wall_count, infill_wall_width, infill_overlap, mesh.settings, layer_idx, SectionType::SKIN);
 
             if (infill_area.empty() || layer_idx < min_layer || layer_idx > max_layer)
             { // initialize infill_area_per_combine_per_density empty

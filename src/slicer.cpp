@@ -17,7 +17,7 @@
 #include "utils/SparsePointGridInclusive.h"
 #include "utils/ThreadPool.h"
 #include "utils/gettime.h"
-
+#include "utils/section_type.h"
 
 namespace cura
 {
@@ -800,7 +800,7 @@ Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_c
     spdlog::info("Slice of mesh took {:3} seconds", slice_timer.restart());
 
     makePolygons(*i_mesh, slicing_tolerance, layers);
-    scripta::log("sliced_polygons", layers, scripta::SectionType::NA);
+    scripta::log("sliced_polygons", layers, SectionType::NA);
     spdlog::info("Make polygons took {:3} seconds", slice_timer.restart());
 }
 

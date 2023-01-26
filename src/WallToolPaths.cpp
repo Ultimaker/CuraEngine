@@ -17,7 +17,7 @@ namespace cura
 {
 
 WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead_width, const size_t inset_count, const coord_t wall_0_inset,
-                             const Settings& settings, const int layer_idx)
+                             const Settings& settings, const int layer_idx, SectionType section_type)
     : outline(outline)
     , bead_width_0(nominal_bead_width)
     , bead_width_x(nominal_bead_width)
@@ -30,11 +30,12 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead
     , toolpaths_generated(false)
     , settings(settings)
     , layer_idx(layer_idx)
+    , section_type(section_type)
 {
 }
 
 WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0, const coord_t bead_width_x,
-                             const size_t inset_count, const coord_t wall_0_inset, const Settings& settings, const int layer_idx)
+                             const size_t inset_count, const coord_t wall_0_inset, const Settings& settings, const int layer_idx, SectionType section_type )
     : outline(outline)
     , bead_width_0(bead_width_0)
     , bead_width_x(bead_width_x)
@@ -47,6 +48,7 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0
     , toolpaths_generated(false)
     , settings(settings)
     , layer_idx(layer_idx)
+    , section_type( section_type )
 {
 }
 
@@ -122,7 +124,8 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
         transition_filter_dist,
         allowed_filter_deviation,
         wall_transition_length,
-        layer_idx
+        layer_idx,
+        section_type
     );
     wall_maker.generateToolpaths(toolpaths);
 

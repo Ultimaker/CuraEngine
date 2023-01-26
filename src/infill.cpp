@@ -48,7 +48,7 @@ static inline int computeScanSegmentIdx(int x, int line_width)
 namespace cura
 {
 
-Polygons Infill::generateWallToolPaths(std::vector<VariableWidthLines>& toolpaths, Polygons& outer_contour, const size_t wall_line_count, const coord_t line_width, const coord_t infill_overlap, const Settings& settings, int layer_idx)
+Polygons Infill::generateWallToolPaths(std::vector<VariableWidthLines>& toolpaths, Polygons& outer_contour, const size_t wall_line_count, const coord_t line_width, const coord_t infill_overlap, const Settings& settings, int layer_idx, SectionType section_type)
 {
     outer_contour = outer_contour.offset(infill_overlap);
 
@@ -56,7 +56,7 @@ Polygons Infill::generateWallToolPaths(std::vector<VariableWidthLines>& toolpath
     if (wall_line_count > 0)
     {
         constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
-        WallToolPaths wall_toolpaths(outer_contour, line_width, wall_line_count, wall_0_inset, settings, layer_idx);
+        WallToolPaths wall_toolpaths(outer_contour, line_width, wall_line_count, wall_0_inset, settings, layer_idx, section_type);
         wall_toolpaths.pushToolPaths(toolpaths);
         inner_contour = wall_toolpaths.getInnerContour();
     }
@@ -72,6 +72,7 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
                       Polygons& result_lines,
                       const Settings& settings,
                       int layer_idx,
+                      SectionType section_type,
                       const SierpinskiFillProvider* cross_fill_provider,
                       const LightningLayer* lightning_trees,
                       const SliceMeshStorage* mesh)
@@ -81,7 +82,7 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
         return;
     }
 
-    inner_contour = generateWallToolPaths(toolpaths, outer_contour, wall_line_count, infill_line_width, infill_overlap, settings, layer_idx);
+    inner_contour = generateWallToolPaths(toolpaths, outer_contour, wall_line_count, infill_line_width, infill_overlap, settings, layer_idx, section_type);
 
     // Apply a half-line-width offset if the pattern prints partly alongside the walls, to get an area that we can simply print the centreline alongside the edge.
     // The lines along the edge must lie next to the border, not on it.
@@ -97,7 +98,7 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
         // (Note that we give it a _full_ line width here, because unlike the old situation this can produce walls that are actually smaller than that.)
         constexpr coord_t gap_wall_count = 1; // Only need one wall here, less even, in a sense.
         constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
-        WallToolPaths wall_toolpaths(inner_contour, infill_line_width, gap_wall_count, wall_0_inset, settings, layer_idx);
+        WallToolPaths wall_toolpaths(inner_contour, infill_line_width, gap_wall_count, wall_0_inset, settings, layer_idx, section_type);
         std::vector<VariableWidthLines> gap_fill_paths = wall_toolpaths.getToolPaths();
 
         // Add the gap filling to the toolpaths and make the new inner contour 'aware' of the gap infill:
@@ -377,7 +378,7 @@ void Infill::generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths
 
         constexpr size_t inset_wall_count = 1; // 1 wall at a time.
         constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
-        WallToolPaths wall_toolpaths(current_inset, infill_line_width, inset_wall_count, wall_0_inset, settings, 0); // FIXME: @jellespijker pass the correct layer
+        WallToolPaths wall_toolpaths(current_inset, infill_line_width, inset_wall_count, wall_0_inset, settings, 0, SectionType::CONCENTRIC_INFILL); // FIXME: @jellespijker pass the correct layer
         const std::vector<VariableWidthLines> inset_paths = wall_toolpaths.getToolPaths();
         toolpaths.insert(toolpaths.end(), inset_paths.begin(), inset_paths.end());
 

@@ -1,5 +1,5 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef SKELETAL_TRAPEZOIDATION_EDGE_H
 #define SKELETAL_TRAPEZOIDATION_EDGE_H
@@ -16,7 +16,7 @@ namespace cura
 class SkeletalTrapezoidationEdge
 {
 private:
-    enum class Central { UNKNOWN = -1, NO, YES };
+    enum class Central : int { UNKNOWN = -1, NO = 0, YES = 1};
 
 public:
     /*!

@@ -363,7 +363,8 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys,
                                                coord_t transition_filter_dist,
                                                coord_t allowed_filter_deviation,
                                                coord_t beading_propagation_transition_dist,
-                                               int layer_idx)
+                                               int layer_idx,
+                                               SectionType section_type)
     : transitioning_angle(transitioning_angle)
     , discretization_step_size(discretization_step_size)
     , transition_filter_dist(transition_filter_dist)
@@ -371,6 +372,7 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys,
     , beading_propagation_transition_dist(beading_propagation_transition_dist)
     , beading_strategy(beading_strategy)
     , layer_idx(layer_idx)
+    , section_type(section_type)
 {
     constructFromPolygons(polys);
 }
