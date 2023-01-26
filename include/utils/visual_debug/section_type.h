@@ -6,14 +6,18 @@
 
 namespace cura::debug
 {
-enum class SectionType : long
+enum class SectionType : int
 {
     NA = -1,
-    WALL = 0,
-    INFILL = 1,
-    SKIN = 2,
-    SUPPORT = 3,
-    ADHESION = 4
+    WALL = 1,
+    INFILL = 2,
+    SKIN = 3,
+    SUPPORT = 4,
+    ADHESION = 5,
+    IRONING = 6,
+    MESH = 7,
+    DOTS = 8,
+    CONCENTRIC_INFILL = 9
 };
 } // namespace cura::debug
 

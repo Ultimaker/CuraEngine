@@ -19,6 +19,7 @@
 #include "utils/ThreadPool.h"
 #include "utils/gettime.h"
 #include "utils/visual_debug/logger.h"
+#include "utils/visual_debug/section_type.h"
 
 
 namespace cura
@@ -806,8 +807,8 @@ Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_c
     spdlog::info("Slice of mesh took {:.3} [s]", slice_timer.restart());
 
     makePolygons(*i_mesh, slicing_tolerance, layers);
-    auto vlogger = debug::Loggers::get_mutable_instance().Logger("sliced_polygons_0");
-    vlogger->log(layers);
+    auto vlogger = debug::Loggers::get_mutable_instance().Logger("sliced_polygons_0" );
+    vlogger->log(layers, debug::SectionType::NA);
     spdlog::info("Make polygons took {:.3} [s]", slice_timer.restart());
 }
 

@@ -55,11 +55,10 @@ public:
 
     constexpr VisualLogger() noexcept = default;
 
-    template<typename... Args>
-    VisualLogger(const std::string& id, const size_t logger_idx, const std::filesystem::path& vtu_path, SectionType section_type = SectionType::NA, Args&& ... args) : id_ { id }, logger_idx_ { logger_idx }, vtu_path_ { vtu_path }, section_type_ { section_type }
+    VisualLogger(const std::string& id, const size_t logger_idx, const std::filesystem::path& vtu_path ) : id_ { id }, logger_idx_ { logger_idx }, vtu_path_ { vtu_path }
     {
         const std::scoped_lock lock { mutex_ };
-        spdlog::info( "Visual Debugger: Initializing Logger <{}>-<{}> file(s) in {}", id_, logger_idx_, vtu_path_.string());
+        spdlog::info( "Visual Debugger: Initializing Logger <{}>-<{}> stored in {}", id_, logger_idx_, vtu_path_.string());
         vtu11::writePVtu( vtu_path_.string(), id_, { }, 1 );
     };
 
@@ -68,25 +67,27 @@ public:
         layer_map_ = layer_map;
     }
 
-    constexpr void log(const layer_viewable auto& layers)
+    constexpr void log(const layer_viewable auto& layers, SectionType section_type )
     {
         for (const auto& [layer_idx, layer] : layers | ranges::views::enumerate)
         {
-            log(layer.polygons, layer_idx);
+            log(layer.polygons, layer_idx, section_type);
         }
     };
 
     template<typename... VDI>
-    constexpr void log(const polygons auto& polys, const int layer_idx, VDI... visual_data_infos)
+    constexpr void log(const polygons auto& polys, const int layer_idx, SectionType section_type, VDI... visual_data_infos)
     {
         updateDataInfos( CellVisualDataInfo { "log_idx" } );
         updateDataInfos( CellVisualDataInfo { "layer_idx" } );
         updateDataInfos( CellVisualDataInfo { "logger_idx" } );
         updateDataInfos( CellVisualDataInfo { "cell_idx" } );
+        updateDataInfos( CellVisualDataInfo { "section_type" } );
         updateDataInfos( PointVisualDataInfo { "log_idx" } );
         updateDataInfos( PointVisualDataInfo { "layer_idx" } );
         updateDataInfos( PointVisualDataInfo { "logger_idx" } );
         updateDataInfos( PointVisualDataInfo { "point_idx" } );
+        updateDataInfos( PointVisualDataInfo { "section_type" } );
         ( updateDataInfos( visual_data_infos ), ...);
 
         std::vector<value_type> points { };
@@ -109,6 +110,7 @@ public:
             cell_datas["layer_idx"].emplace_back( static_cast<value_type>( layer_idx ));
             cell_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
             cell_datas["cell_idx"].emplace_back( static_cast<value_type>( cell_idx++ ));
+            cell_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type) ));
 
             size_t point_idx { };
             for ( const auto& point : poly )
@@ -124,6 +126,7 @@ public:
                 point_datas["layer_idx"].emplace_back( static_cast<value_type>( layer_idx ));
                 point_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
                 point_datas["point_idx"].emplace_back( static_cast<value_type>( point_idx++ ));
+                point_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type) ));
 
                 points.emplace_back( static_cast<value_type>(point.X));
                 points.emplace_back( static_cast<value_type>(point.Y));
@@ -138,15 +141,17 @@ public:
         writePartition( mesh_partition, point_datas, cell_datas );
     };
 
-    constexpr void log(const mesh auto& mesh)
+    constexpr void log(const mesh auto& mesh, SectionType section_type)
     {
         // FIXME: add the last face as well
         updateDataInfos( CellVisualDataInfo { "log_idx" } );
         updateDataInfos( CellVisualDataInfo { "logger_idx" } );
         updateDataInfos( CellVisualDataInfo { "cell_idx" } );
+        updateDataInfos( CellVisualDataInfo { "section_type" } );
         updateDataInfos( PointVisualDataInfo { "log_idx" } );
         updateDataInfos( PointVisualDataInfo { "logger_idx" } );
         updateDataInfos( PointVisualDataInfo { "point_idx" } );
+        updateDataInfos( PointVisualDataInfo { "section_type" } );
 
         auto cell_datas = cell_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<std::unordered_map<std::string, vtu11::DataSetData>>;
         auto point_datas = point_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<std::unordered_map<std::string, vtu11::DataSetData>>;
@@ -158,6 +163,7 @@ public:
             cell_datas["log_idx"].emplace_back( static_cast<value_type>( idx_ ));
             cell_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
             cell_datas["cell_idx"].emplace_back( static_cast<value_type>( cell_idx++ ));
+            cell_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type) ));
 
             size_t point_idx { };
             for ( const auto& vertex_idx : face.vertex_index )
@@ -170,6 +176,7 @@ public:
                 point_datas["log_idx"].emplace_back( static_cast<value_type>( idx_ ));
                 point_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
                 point_datas["point_idx"].emplace_back( static_cast<value_type>( point_idx++ ));
+                point_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type) ));
             }
         }
         auto connectivity = getConnectivity( mesh.faces.size() * 3 );
@@ -180,16 +187,18 @@ public:
     };
 
     template<typename... VDI>
-    constexpr void log(const st_edges_viewable auto& st_edges, const int layer_idx, VDI... visual_data_infos)
+    constexpr void log(const st_edges_viewable auto& st_edges, const int layer_idx, SectionType section_type, VDI... visual_data_infos)
     {
         updateDataInfos( CellVisualDataInfo { "log_idx" } );
         updateDataInfos( CellVisualDataInfo { "layer_idx" } );
         updateDataInfos( CellVisualDataInfo { "logger_idx" } );
         updateDataInfos( CellVisualDataInfo { "cell_idx" } );
+        updateDataInfos( CellVisualDataInfo { "section_type" } );
         updateDataInfos( PointVisualDataInfo { "log_idx" } );
         updateDataInfos( PointVisualDataInfo { "layer_idx" } );
         updateDataInfos( PointVisualDataInfo { "logger_idx" } );
         updateDataInfos( PointVisualDataInfo { "point_idx" } );
+        updateDataInfos( PointVisualDataInfo { "section_type" } );
         ( updateDataInfos( visual_data_infos ), ...);
 
         std::vector<value_type> points { };
@@ -209,6 +218,7 @@ public:
             cell_datas["layer_idx"].emplace_back( static_cast<value_type>( layer_idx ));
             cell_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
             cell_datas["cell_idx"].emplace_back( static_cast<value_type>( cell_idx++ ));
+            cell_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type) ));
 
             size_t point_idx { };
             for ( const auto& node : { st_edge.from, st_edge.to } )
@@ -224,6 +234,7 @@ public:
                 point_datas["layer_idx"].emplace_back( static_cast<value_type>( layer_idx ));
                 point_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
                 point_datas["point_idx"].emplace_back( static_cast<value_type>( point_idx++ ));
+                point_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type) ));
 
                 points.emplace_back( static_cast<value_type>(node->p.X));
                 points.emplace_back( static_cast<value_type>(node->p.Y));
@@ -243,7 +254,6 @@ private:
     std::string id_ { };
     size_t logger_idx_ { };
     size_t idx_ { };
-    SectionType section_type_ { };
     std::filesystem::path vtu_path_ { };
     shared_layer_map_t layer_map_ { };
     std::vector<vtu11::DataSetInfo> cell_dataset_info_ { };
@@ -299,8 +309,8 @@ private:
         {
             spdlog::debug( "Visual Debugger: <{}>-<{}> logging: {}", id_, logger_idx_, dataset_infos | ranges::views::transform( [](const auto& dsi) { return std::get<0>( dsi ); } ));
         }
-        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition,dataset_infos, data, idx, "rawbinarycompressed" );
-//        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, dataset_infos, data, idx, "ascii" );
+//        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition,dataset_infos, data, idx, "rawbinarycompressed" );
+        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, dataset_infos, data, idx, "ascii" );
         vtu11::writePVtu( vtu_path_.string(), id_, dataset_infos, idx_ );  // Make sure it is up to data
     }
 };

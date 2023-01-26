@@ -109,8 +109,8 @@ void MeshGroup::finalize()
             mesh_offset += Point3(-object_min.x - object_size.x / 2, -object_min.y - object_size.y / 2, -object_min.z);
         }
         mesh.translate(mesh_offset + meshgroup_offset);
-        auto vlogger = debug::Loggers::get_mutable_instance().MakeLogger( fmt::format("mesh_group_{}", mesh_idx++ ) );
-        vlogger->log(mesh);
+        auto vlogger = debug::Loggers::get_mutable_instance().Logger( fmt::format("mesh_group_{}", mesh_idx++ ) );
+        vlogger->log(mesh, debug::SectionType::MESH);
     }
     scaleFromBottom(settings.get<Ratio>("material_shrinkage_percentage_xy"), settings.get<Ratio>("material_shrinkage_percentage_z")); // Compensate for the shrinkage of the material.
 }

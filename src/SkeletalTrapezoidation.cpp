@@ -365,7 +365,8 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys,
                                                coord_t transition_filter_dist,
                                                coord_t allowed_filter_deviation,
                                                coord_t beading_propagation_transition_dist,
-                                               int layer_idx)
+                                               int layer_idx,
+                                               debug::SectionType section_type)
     : transitioning_angle(transitioning_angle)
     , discretization_step_size(discretization_step_size)
     , transition_filter_dist(transition_filter_dist)
@@ -373,6 +374,7 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys,
     , beading_propagation_transition_dist(beading_propagation_transition_dist)
     , beading_strategy(beading_strategy)
     , layer_idx(layer_idx)
+    , section_type(section_type)
 {
     constructFromPolygons(polys);
 }
@@ -380,7 +382,7 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys,
 void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
 {
     auto vlogger_polys = debug::Loggers::get_mutable_instance().Logger( "ST_polys" );
-    vlogger_polys->log( polys, layer_idx,
+    vlogger_polys->log( polys, layer_idx, section_type,
                         debug::CellVisualDataInfo { "area", []( const auto& val ) { return ClipperLib::Area(val); } });
     vd_edge_to_he_edge.clear();
     vd_node_to_he_node.clear();
@@ -506,27 +508,30 @@ void SkeletalTrapezoidation::generateToolpaths(std::vector<VariableWidthLines>& 
 {
     p_generated_toolpaths = &generated_toolpaths;
 
-    auto vlogger_st_graph_0 = debug::Loggers::get_mutable_instance().Logger( "ST_graph_0");
+    auto vlogger_st_graph_0 = debug::Loggers::get_mutable_instance().Logger( "ST_graph_0" );
     vlogger_st_graph_0->log( graph.edges,
                            layer_idx,
+                           section_type,
                            debug::CellVisualDataInfo { "type", []( const auto& val ) { return val.data.type; } },
                            debug::CellVisualDataInfo { "is_central", []( const auto& val ) { return static_cast<int>(val.data.is_central); } }
     );
 
     updateIsCentral();
 
-    auto vlogger_st_graph_1 = debug::Loggers::get_mutable_instance().Logger( "ST_graph_1");
+    auto vlogger_st_graph_1 = debug::Loggers::get_mutable_instance().Logger( "ST_graph_1" );
     vlogger_st_graph_1->log( graph.edges,
                              layer_idx,
+                             section_type,
                              debug::CellVisualDataInfo { "type", []( const auto& val ) { return val.data.type; } },
                              debug::CellVisualDataInfo { "is_central", []( const auto& val ) { return static_cast<int>(val.data.is_central); } }
     );
 
     filterCentral(central_filter_dist);
 
-    auto vlogger_st_graph_2 = debug::Loggers::get_mutable_instance().Logger( "ST_graph_2");
+    auto vlogger_st_graph_2 = debug::Loggers::get_mutable_instance().Logger( "ST_graph_2" );
     vlogger_st_graph_2->log( graph.edges,
                              layer_idx,
+                             section_type,
                              debug::CellVisualDataInfo { "type", []( const auto& val ) { return val.data.type; } },
                              debug::CellVisualDataInfo { "is_central", []( const auto& val ) { return static_cast<int>(val.data.is_central); } }
     );
@@ -538,45 +543,50 @@ void SkeletalTrapezoidation::generateToolpaths(std::vector<VariableWidthLines>& 
 
     updateBeadCount();
 
-    auto vlogger_st_graph_3 = debug::Loggers::get_mutable_instance().Logger( "ST_graph_3");
+    auto vlogger_st_graph_3 = debug::Loggers::get_mutable_instance().Logger( "ST_graph_3" );
     vlogger_st_graph_3->log( graph.edges,
                              layer_idx,
+                             section_type,
                              debug::CellVisualDataInfo { "type", []( const auto& val ) { return val.data.type; } },
                              debug::CellVisualDataInfo { "is_central", []( const auto& val ) { return static_cast<int>(val.data.is_central); } }
     );
 
     filterNoncentralRegions();
 
-    auto vlogger_st_graph_4 = debug::Loggers::get_mutable_instance().Logger( "ST_graph_4");
+    auto vlogger_st_graph_4 = debug::Loggers::get_mutable_instance().Logger( "ST_graph_4" );
     vlogger_st_graph_4->log( graph.edges,
                              layer_idx,
+                             section_type,
                              debug::CellVisualDataInfo { "type", []( const auto& val ) { return val.data.type; } },
                              debug::CellVisualDataInfo { "is_central", []( const auto& val ) { return static_cast<int>(val.data.is_central); } }
     );
 
     generateTransitioningRibs();
 
-    auto vlogger_st_graph_5 = debug::Loggers::get_mutable_instance().Logger( "ST_graph_5");
+    auto vlogger_st_graph_5 = debug::Loggers::get_mutable_instance().Logger( "ST_graph_5" );
     vlogger_st_graph_5->log( graph.edges,
                              layer_idx,
+                             section_type,
                              debug::CellVisualDataInfo { "type", []( const auto& val ) { return val.data.type; } },
                              debug::CellVisualDataInfo { "is_central", []( const auto& val ) { return static_cast<int>(val.data.is_central); } }
     );
 
     generateExtraRibs();
 
-    auto vlogger_st_graph_6 = debug::Loggers::get_mutable_instance().Logger( "ST_graph_6");
+    auto vlogger_st_graph_6 = debug::Loggers::get_mutable_instance().Logger( "ST_graph_6" );
     vlogger_st_graph_6->log( graph.edges,
                              layer_idx,
+                             section_type,
                              debug::CellVisualDataInfo { "type", []( const auto& val ) { return val.data.type; } },
                              debug::CellVisualDataInfo { "is_central", []( const auto& val ) { return static_cast<int>(val.data.is_central); } }
     );
 
     generateSegments();
 
-    auto vlogger_st_graph_7 = debug::Loggers::get_mutable_instance().Logger( "ST_graph_7");
+    auto vlogger_st_graph_7 = debug::Loggers::get_mutable_instance().Logger( "ST_graph_7" );
     vlogger_st_graph_7->log( graph.edges,
                            layer_idx,
+                           section_type,
                            debug::CellVisualDataInfo { "type", []( const auto& val ) { return val.data.type; } },
                            debug::CellVisualDataInfo { "is_central", []( const auto& val ) { return static_cast<int>(val.data.is_central); } },
                            debug::CellVisualDataInfo { "hasTransitions", []( const auto& val ) { return val.data.hasTransitions(); } },

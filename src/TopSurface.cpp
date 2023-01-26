@@ -89,7 +89,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     std::vector<VariableWidthLines> ironing_paths;
     Polygons ironing_polygons;
     Polygons ironing_lines;
-    infill_generator.generate(ironing_paths, ironing_polygons, ironing_lines, mesh.settings, layer.getLayerNr());
+    infill_generator.generate(ironing_paths, ironing_polygons, ironing_lines, mesh.settings, layer.getLayerNr(), debug::SectionType::IRONING);
 
     if(ironing_polygons.empty() && ironing_lines.empty() && ironing_paths.empty())
     {
