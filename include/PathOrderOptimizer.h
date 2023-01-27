@@ -18,6 +18,8 @@
 #include "utils/views/dfs.h"
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/filter.hpp>
+#include <range/v3/algorithm/partition_copy.hpp>
+#include <range/v3/iterator/insert_iterators.hpp>
 #include <range/v3/view/reverse.hpp>
 #include <range/v3/view/addressof.hpp>
 
@@ -210,7 +212,7 @@ public:
         }
 
 
-        if(reverse_direction)
+        if(reverse_direction && order_requirements->empty())
         {
             std::vector<OrderablePath> reversed = reverseOrderPaths(optimized_order);  //Reverse-insert the optimized order, to invert the ordering.
             std::swap(reversed, paths);
@@ -327,9 +329,11 @@ protected:
 
         // initialize the roots set with all possible nodes
         std::unordered_set<Path> roots;
+        std::unordered_set<Path> leaves;
         for (const auto& path : paths)
         {
             roots.insert(path.vertices);
+            leaves.insert(path.vertices);
         }
 
         // remove all edges from roots with an incoming edge
@@ -337,6 +341,7 @@ protected:
         for (const auto& [u, v] : order_requirements)
         {
             roots.erase(v);
+            leaves.erase(u);
         }
 
         // We used a shared visited set between runs of dfs. This is for the case when we reverse the ordering tree.
@@ -388,7 +393,7 @@ protected:
         };
 
         const std::function<std::nullptr_t(const Path, const std::nullptr_t)> handle_node =
-            [&current_position, &optimized_order, this, &visited]
+            [&current_position, &optimized_order, this]
             (const Path current_node, const std::nullptr_t _state)
             {
                 // We should make map from node <-> path for this stuff
@@ -416,12 +421,54 @@ protected:
                 return nullptr;
             };
 
-        while (roots.size() != 0)
-        {
-            Path root = findClosestPathVertices(current_position, roots);
-            roots.erase(root);
 
-            actions::dfs(root, order_requirements, handle_node, nullptr, visited, get_neighbours);
+        // We want all outer walls to be printed first (For outside in ordering) or last (for inside out ordering)
+        std::unordered_set<Path> outer_walls = reverse_direction ? leaves : roots;
+
+        if (reverse_direction)
+        {
+            visited.insert(outer_walls.begin(), outer_walls.end());
+
+            // Add all inner walls
+            while (!roots.empty())
+            {
+                Path root = findClosestPathVertices(current_position, roots);
+                roots.erase(root);
+                actions::dfs(root, order_requirements, handle_node, visited, nullptr, get_neighbours);
+            }
+
+            //Add all outer walls
+            while (!outer_walls.empty())
+            {
+                Path wall = findClosestPathVertices(current_position, outer_walls);
+                outer_walls.erase(wall);
+                handle_node(wall, nullptr);
+            }
+        }
+        else
+        {
+            // Add all outer walls
+            std::unordered_set<Path> root_neighbours;
+            while (!outer_walls.empty())
+            {
+                Path outer_wall = findClosestPathVertices(current_position, outer_walls);
+                outer_walls.erase(outer_wall);
+
+                handle_node(outer_wall, nullptr);
+                visited.insert(outer_wall);
+                for (auto path : get_neighbours(outer_wall, order_requirements))
+                {
+                    root_neighbours.emplace(path);
+                }
+            }
+
+            //Add all inner walls
+            while (!root_neighbours.empty())
+            {
+                Path root_neighbour = findClosestPathVertices(current_position, root_neighbours);
+                root_neighbours.erase(root_neighbour);
+                actions::dfs(root_neighbour, order_requirements, handle_node, visited, nullptr, get_neighbours);
+            }
         }
 
         return optimized_order;

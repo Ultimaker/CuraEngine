@@ -21,7 +21,6 @@
 #include <range/v3/view/drop.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/join.hpp>
-#include <range/v3/view/map.hpp>
 #include <range/v3/view/remove_if.hpp>
 #include <range/v3/view/reverse.hpp>
 #include <range/v3/view/take_exactly.hpp>
@@ -94,8 +93,7 @@ bool InsetOrderOptimizer::addToLayer()
     constexpr Polygons* combing_boundary = nullptr;
     // When we alternate walls, also alternate the direction at which the first wall starts in.
     // On even layers we start with normal direction, on odd layers with inverted direction.
-    constexpr bool reverse_all_paths = false;
-    PathOrderOptimizer<const ExtrusionLine*> order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops, combing_boundary, reverse_all_paths, order);
+    PathOrderOptimizer<const ExtrusionLine*> order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops, combing_boundary, reverse, order);
 
     for (const auto& line : walls_to_be_added)
     {
