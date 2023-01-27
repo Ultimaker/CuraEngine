@@ -11,6 +11,9 @@
 #include "utils/polygonUtils.h"
 #include "utils/VoxelUtils.h"
 
+#include <range/v3/view/view.hpp>
+#include <range/v3/view/zip.hpp>
+
 namespace cura
 {
 
@@ -52,15 +55,47 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
             const Point3 cell_size(cell_width, cell_width, 2 * beam_layer_count);
 
             InterlockingGenerator gen(mesh_a, mesh_b, beam_width_a, beam_width_b, rotation, cell_size, beam_layer_count, interface_dilation, air_dilation, air_filtering);
-
             gen.generateInterlockingStructure();
         }
 
     }
 }
 
-void InterlockingGenerator::generateInterlockingStructure()
+void InterlockingGenerator::handleThinAreas() const
 {
+    constexpr coord_t number_of_beams_detect = 4;
+    constexpr coord_t number_of_beams_expand = 2;
+    constexpr coord_t rounding_errors = 5;
+
+    const coord_t max_beam_width = std::max(beam_width_a, beam_width_b);
+    const coord_t detect = (max_beam_width * number_of_beams_detect) + rounding_errors;
+    const coord_t expand = (max_beam_width * number_of_beams_expand) + rounding_errors;
+
+    // Only alter layers when they are present in both mesh, zip should take care if that.
+    for (auto layer : ranges::views::zip(mesh_a.layers, mesh_b.layers))
+    {
+        Polygons& polys_a = std::get<0>(layer).polygons;
+        Polygons& polys_b = std::get<1>(layer).polygons;
+
+        // Get the areas of each mesh that are _not_ thin (large), by performing a morphological open.
+        const Polygons large_a{ polys_a.offset(-detect).offset(detect) };
+        const Polygons large_b{ polys_b.offset(-detect).offset(detect) };
+
+        // Derive the area that the thin areas need to expand into from the information we already have
+        const Polygons thin_expansion_a{ large_b.intersection(polys_a.difference(large_a).offset(expand)).offset(rounding_errors) };
+        const Polygons thin_expansion_b{ large_a.intersection(polys_b.difference(large_b).offset(expand)).offset(rounding_errors) };
+
+        // Expanded thin areas of the opposing polygon should 'eat into' the larger areas of the polygon,
+        // and conversely, add the expansions to their own thin areas.
+        polys_a = polys_a.difference(thin_expansion_b).unionPolygons(thin_expansion_a);
+        polys_b = polys_b.difference(thin_expansion_a).unionPolygons(thin_expansion_b);
+    }
+}
+
+void InterlockingGenerator::generateInterlockingStructure() const
+{
+    handleThinAreas();
+
     std::vector<std::unordered_set<GridPoint3>> voxels_per_mesh = getShellVoxels(interface_dilation);
 
     std::unordered_set<GridPoint3>& has_any_mesh = voxels_per_mesh[0];

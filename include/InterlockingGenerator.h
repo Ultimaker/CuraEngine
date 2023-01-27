@@ -58,7 +58,7 @@ protected:
     /*!
      * Generate an interlocking structure between two meshes
      */
-    void generateInterlockingStructure();
+    void generateInterlockingStructure() const;
 
     /*!
      * Private class for storing some variables used in the computation of the interlocking structure between two meshes.
@@ -86,6 +86,12 @@ protected:
     , air_dilation(air_dilation)
     , air_filtering(air_filtering)
     {}
+
+    /*! Special handling for thin strips of material.
+     *
+     * Expand the meshes into each other where they need it, namely when a thin strip of material needs to be attached.
+     */
+    void handleThinAreas() const;
 
     /*!
      * Compute the voxels overlapping with the shell of both models.
