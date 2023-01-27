@@ -43,8 +43,8 @@ constexpr void dfs(
     const Node& current_node,
     const Graph& graph,
     std::function<State(const Node, const State)> handle_node,
+    std::unordered_set<Node>& visited,
     const State& state = nullptr,
-    std::unordered_set<Node> visited = std::unordered_set<Node>(),
     std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours = details::get_neighbours<Node, Graph>
 ) {
     if (visited.contains(current_node))
@@ -57,7 +57,7 @@ constexpr void dfs(
 
     for (const auto& neighbour : get_neighbours(current_node, graph))
     {
-        dfs(neighbour, graph, handle_node, current_state, visited, get_neighbours);
+        dfs(neighbour, graph, handle_node, visited, current_state, get_neighbours);
     }
 }
 
@@ -70,7 +70,8 @@ constexpr void dfs_parent_state(const Node& current_node, const Graph& graph, st
         return current_node;
     };
 
-    dfs(current_node, graph, parent_view);
+    auto visited = std::unordered_set<Node>();
+    dfs(current_node, graph, parent_view, visited);
 }
 
 template<nodeable Node, graphable Graph>
@@ -81,8 +82,8 @@ constexpr void dfs_depth_state(const Node& current_node, const Graph& graph, std
         handle_node(current_node, depth);
         return depth + 1;
     };
-
-    dfs(current_node, graph, depth_view, 0u);
+    auto visited = std::unordered_set<Node>();
+    dfs(current_node, graph, depth_view, visited, 0u);
 }
 
 } // namespace cura::actions
