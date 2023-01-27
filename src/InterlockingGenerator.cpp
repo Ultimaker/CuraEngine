@@ -63,13 +63,14 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
 
 void InterlockingGenerator::handleThinAreas() const
 {
-    constexpr coord_t number_of_beams_detect = 4;
-    constexpr coord_t number_of_beams_expand = 2;
+    constexpr coord_t number_of_beams_detect = 2;
+    constexpr coord_t number_of_beams_expand = 1;
     constexpr coord_t rounding_errors = 5;
 
     const coord_t max_beam_width = std::max(beam_width_a, beam_width_b);
     const coord_t detect = (max_beam_width * number_of_beams_detect) + rounding_errors;
     const coord_t expand = (max_beam_width * number_of_beams_expand) + rounding_errors;
+    const coord_t close_gaps = std::min(mesh_a.mesh->settings.get<coord_t>("line_width"), mesh_b.mesh->settings.get<coord_t>("line_width")) / 4;
 
     // Only alter layers when they are present in both mesh, zip should take care if that.
     for (auto layer : ranges::views::zip(mesh_a.layers, mesh_b.layers))
@@ -87,8 +88,8 @@ void InterlockingGenerator::handleThinAreas() const
 
         // Expanded thin areas of the opposing polygon should 'eat into' the larger areas of the polygon,
         // and conversely, add the expansions to their own thin areas.
-        polys_a = polys_a.difference(thin_expansion_b).unionPolygons(thin_expansion_a);
-        polys_b = polys_b.difference(thin_expansion_a).unionPolygons(thin_expansion_b);
+        polys_a = polys_a.difference(thin_expansion_b).unionPolygons(thin_expansion_a).offset(close_gaps).offset(-close_gaps);
+        polys_b = polys_b.difference(thin_expansion_a).unionPolygons(thin_expansion_b).offset(close_gaps).offset(-close_gaps);
     }
 }
 
