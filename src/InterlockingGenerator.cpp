@@ -11,11 +11,11 @@
 #include "utils/polygonUtils.h"
 #include "utils/VoxelUtils.h"
 
-namespace cura 
+namespace cura
 {
-    
+
 // TODO: optimization: only go up to the min layer count + a couple of layers instead of max_layer_count
-  
+
 void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& volumes)
 {
     Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
@@ -55,7 +55,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
 
             gen.generateInterlockingStructure();
         }
-        
+
     }
 }
 
@@ -104,7 +104,7 @@ std::vector<std::unordered_set<GridPoint3>> InterlockingGenerator::getShellVoxel
         
         addBoundaryCells(rotated_polygons_per_layer, kernel, mesh_voxels);
     }
-    
+
     return voxels_per_mesh;
 }
 
@@ -232,25 +232,16 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
             {
                 break;
             }
-            const Polygons* areas_here = &structure_per_layer[mesh_idx][layer_nr / beam_layer_count];
-            Polygons area_here_limited_to_outline;
-            if ( ! air_filtering
-                || air_dilation.kernel_size.x < interface_dilation.kernel_size.x // prevent voxels floating in mid air
-                || air_dilation.kernel_size.y < interface_dilation.kernel_size.y
-                || air_dilation.kernel_size.z < interface_dilation.kernel_size.z
-            )
-            {
-                area_here_limited_to_outline = *areas_here;
-                Polygons layer_outlines = layer_regions[layer_nr];
-                layer_outlines.applyMatrix(unapply_rotation);
-                area_here_limited_to_outline = area_here_limited_to_outline.intersection(layer_outlines); // Prevent structure from protruding out of the models
-                areas_here = &area_here_limited_to_outline;
-            }
+
+            Polygons layer_outlines = layer_regions[layer_nr];
+            layer_outlines.applyMatrix(unapply_rotation);
+
+            const Polygons areas_here = structure_per_layer[mesh_idx][layer_nr / beam_layer_count].intersection(layer_outlines);
             const Polygons& areas_other = structure_per_layer[ ! mesh_idx][layer_nr / beam_layer_count];
 
             SlicerLayer& layer = mesh->layers[layer_nr];
             layer.polygons = layer.polygons.difference(areas_other) // reduce layer areas inward with beams from other mesh
-                                            .unionPolygons(*areas_here); // extend layer areas outward with newly added beams
+                                            .unionPolygons(areas_here); // extend layer areas outward with newly added beams
         }
     }
 }
