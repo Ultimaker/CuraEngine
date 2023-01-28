@@ -72,7 +72,7 @@ public:
     }
 
     template<typename... Args>
-    constexpr void log(Args&& ... args)
+    void log(Args&& ... args)
     {
         if ( enabled_ )
         {
