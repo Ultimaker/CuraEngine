@@ -195,7 +195,10 @@ find_package(Boost REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
-find_package(vtu11 REQUIRED)
+
+if(ENABLE_VISUAL_DEBUG)
+    find_package(vtu11 REQUIRED)
+endif()
 
 if (ENABLE_TESTING)
     find_package(GTest REQUIRED)
@@ -210,7 +213,7 @@ target_link_libraries(_CuraEngine
         rapidjson
         stb::stb
         boost::boost
-        vtu11::vtu11
+        $<$<BOOL:${ENABLE_VISUAL_DEBUG}>:vtu11::vtu11>
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
 
 if (NOT WIN32)
@@ -229,7 +232,7 @@ else ()
 endif (NOT WIN32)
 
 # Create the executable
-target_link_libraries(CuraEngine PRIVATE _CuraEngine)
+target_link_libraries(CuraEngine PUBLIC _CuraEngine)
 target_compile_definitions(CuraEngine PRIVATE VERSION=\"${CURA_ENGINE_VERSION}\")
 
 # Compiling the test environment.
