@@ -140,14 +140,9 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ToolpathVisualizer.cpp
         src/utils/VoronoiUtils.cpp
         src/utils/VoxelUtils.cpp
-        src/utils/visual_debug/logger.cpp
         )
 
-set(engine_HDRS
-        include/utils/visual_debug/visual_logger.h
-        )
-
-add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS} ${engine_HDRS} ${engine_PB_HEADERS})
+add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS} ${engine_PB_HEADERS})
 use_threads(_CuraEngine)
 
 target_include_directories(_CuraEngine

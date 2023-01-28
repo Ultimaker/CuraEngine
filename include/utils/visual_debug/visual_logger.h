@@ -59,7 +59,7 @@ public:
 
     constexpr VisualLogger() noexcept = default;
 
-    VisualLogger(const std::string& id, const size_t logger_idx, const std::filesystem::path& vtu_path ) : id_ { id }, logger_idx_ { logger_idx }, vtu_path_ { vtu_path }
+    VisualLogger(const std::string& id, const size_t logger_idx, const std::filesystem::path& vtu_path) : enabled_ { true }, id_ { id }, logger_idx_ { logger_idx }, vtu_path_ { vtu_path }
     {
         const std::scoped_lock lock { mutex_ };
         spdlog::info( "Visual Debugger: Initializing Logger <{}>-<{}> stored in {}", id_, logger_idx_, vtu_path_.string());
@@ -71,16 +71,26 @@ public:
         layer_map_ = layer_map;
     }
 
-    constexpr void log(const layer_viewable auto& layers, SectionType section_type )
+    template<typename... Args>
+    constexpr void log(Args&& ... args)
     {
-        for (const auto& [layer_idx, layer] : layers | ranges::views::enumerate)
+        if ( enabled_ )
         {
-            log(layer.polygons, layer_idx, section_type);
+            log_( std::forward<Args>( args )... );
+        }
+    };
+
+private:
+    constexpr void log_(const layer_viewable auto& layers, SectionType section_type)
+    {
+        for ( const auto& [ layer_idx, layer ] : layers | ranges::views::enumerate )
+        {
+            log( layer.polygons, layer_idx, section_type );
         }
     };
 
     template<typename... VDI>
-    constexpr void log(const polygons auto& polys, const int layer_idx, SectionType section_type, VDI... visual_data_infos)
+    constexpr void log_(const polygons auto& polys, const int layer_idx, SectionType section_type, VDI... visual_data_infos)
     {
         updateDataInfos( CellVisualDataInfo { "log_idx" } );
         updateDataInfos( CellVisualDataInfo { "layer_idx" } );
@@ -114,7 +124,7 @@ public:
             cell_datas["layer_idx"].emplace_back( static_cast<value_type>( layer_idx ));
             cell_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
             cell_datas["cell_idx"].emplace_back( static_cast<value_type>( cell_idx++ ));
-            cell_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type) ));
+            cell_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type)));
 
             size_t point_idx { };
             for ( const auto& point : poly )
@@ -130,7 +140,7 @@ public:
                 point_datas["layer_idx"].emplace_back( static_cast<value_type>( layer_idx ));
                 point_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
                 point_datas["point_idx"].emplace_back( static_cast<value_type>( point_idx++ ));
-                point_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type) ));
+                point_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type)));
 
                 points.emplace_back( static_cast<value_type>(point.X));
                 points.emplace_back( static_cast<value_type>(point.Y));
@@ -145,7 +155,7 @@ public:
         writePartition( mesh_partition, point_datas, cell_datas );
     };
 
-    constexpr void log(const mesh auto& mesh, SectionType section_type)
+    constexpr void log_(const mesh auto& mesh, SectionType section_type)
     {
         // FIXME: add the last face as well
         updateDataInfos( CellVisualDataInfo { "log_idx" } );
@@ -167,7 +177,7 @@ public:
             cell_datas["log_idx"].emplace_back( static_cast<value_type>( idx_ ));
             cell_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
             cell_datas["cell_idx"].emplace_back( static_cast<value_type>( cell_idx++ ));
-            cell_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type) ));
+            cell_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type)));
 
             size_t point_idx { };
             for ( const auto& vertex_idx : face.vertex_index )
@@ -180,7 +190,7 @@ public:
                 point_datas["log_idx"].emplace_back( static_cast<value_type>( idx_ ));
                 point_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
                 point_datas["point_idx"].emplace_back( static_cast<value_type>( point_idx++ ));
-                point_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type) ));
+                point_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type)));
             }
         }
         auto connectivity = getConnectivity( mesh.faces.size() * 3 );
@@ -191,7 +201,7 @@ public:
     };
 
     template<typename... VDI>
-    constexpr void log(const st_edges_viewable auto& st_edges, const int layer_idx, SectionType section_type, VDI... visual_data_infos)
+    constexpr void log_(const st_edges_viewable auto& st_edges, const int layer_idx, SectionType section_type, VDI... visual_data_infos)
     {
         updateDataInfos( CellVisualDataInfo { "log_idx" } );
         updateDataInfos( CellVisualDataInfo { "layer_idx" } );
@@ -222,7 +232,7 @@ public:
             cell_datas["layer_idx"].emplace_back( static_cast<value_type>( layer_idx ));
             cell_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
             cell_datas["cell_idx"].emplace_back( static_cast<value_type>( cell_idx++ ));
-            cell_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type) ));
+            cell_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type)));
 
             size_t point_idx { };
             for ( const auto& node : { st_edge.from, st_edge.to } )
@@ -238,7 +248,7 @@ public:
                 point_datas["layer_idx"].emplace_back( static_cast<value_type>( layer_idx ));
                 point_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
                 point_datas["point_idx"].emplace_back( static_cast<value_type>( point_idx++ ));
-                point_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type) ));
+                point_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type)));
 
                 points.emplace_back( static_cast<value_type>(node->p.X));
                 points.emplace_back( static_cast<value_type>(node->p.Y));
@@ -253,7 +263,7 @@ public:
         writePartition( mesh_partition, point_datas, cell_datas );
     };
 
-private:
+    bool enabled_ { false };
     std::mutex mutex_;
     std::string id_ { };
     size_t logger_idx_ { };
