@@ -6,6 +6,7 @@
 
 #include <functional>
 #include <string>
+#include <string_view>
 
 #ifdef VISUAL_DEBUG
 #include <vtu11/vtu11.hpp>
@@ -19,13 +20,13 @@ namespace cura::debug
 template<class T, class Proj = std::identity, vtu11::DataSetType DST = vtu11::DataSetType::CellData, size_t Nm = 1>
 struct VisualDataInfo
 {
-    std::string name { };
+    std::string_view name { };
     static constexpr vtu11::DataSetType dataset_type { DST };
     Proj projection { };
 
     [[nodiscard]] explicit operator vtu11::DataSetInfo() const
     {
-        return { name, DST, Nm };
+        return { static_cast<std::string>( name ), DST, Nm };
     }
 
     [[nodiscard]] constexpr bool operator==(const vtu11::DataSetInfo& other) const noexcept
@@ -81,13 +82,12 @@ struct PointVisualDataInfo : public VisualDataInfo<PointVisualDataInfo<Proj, Nm>
 template<class Proj>
 CellVisualDataInfo(const std::string& name, Proj&& projection) -> CellVisualDataInfo<Proj, 1UL>;
 
-CellVisualDataInfo(const std::string& name) -> CellVisualDataInfo<std::identity, 1UL>;
+CellVisualDataInfo(std::string_view name) -> CellVisualDataInfo<std::identity, 1UL>;
 
 template<class Proj>
 PointVisualDataInfo(const std::string& name, Proj&& projection) -> PointVisualDataInfo<Proj, 1UL>;
 
-PointVisualDataInfo(const std::string& name) -> PointVisualDataInfo<std::identity, 1UL>;
-}
-// namespace cura::debug
+PointVisualDataInfo(std::string_view name) -> PointVisualDataInfo<std::identity, 1UL>;
+} // namespace cura::debug
 
 #endif //INCLUDE_UTILS_VISUAL_DEBUG_VISUAL_DATA_INFO_H

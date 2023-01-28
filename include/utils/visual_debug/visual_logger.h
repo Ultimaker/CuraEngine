@@ -56,6 +56,7 @@ class VisualLogger
 {
 public:
     using value_type = double;
+    using mapped_data_t = std::unordered_map<std::string_view, vtu11::DataSetData>;
 
     constexpr VisualLogger() noexcept = default;
 
@@ -76,7 +77,7 @@ public:
     {
         if ( enabled_ )
         {
-            for (const auto& general_vdi : { "log_idx", "logger_idx", "idx", "section_type" } )
+            for (auto general_vdi : general_vdis_ )
             {
                 updateDataInfos( CellVisualDataInfo { general_vdi } );
                 updateDataInfos( PointVisualDataInfo { general_vdi } );
@@ -104,8 +105,8 @@ private:
 
         std::vector<value_type> points { };
         std::vector<vtu11::VtkIndexType> offsets { 0 };
-        auto cell_datas = cell_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<std::unordered_map<std::string, vtu11::DataSetData>>;
-        auto point_datas = point_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<std::unordered_map<std::string, vtu11::DataSetData>>;
+        auto cell_datas = cell_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<mapped_data_t>;
+        auto point_datas = point_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<mapped_data_t>;
 
         size_t cell_idx { };
         for ( const auto& poly : polys )
@@ -156,8 +157,8 @@ private:
     constexpr void log_(const mesh auto& mesh, SectionType section_type)
     {
         // FIXME: add the last face as well
-        auto cell_datas = cell_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<std::unordered_map<std::string, vtu11::DataSetData>>;
-        auto point_datas = point_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<std::unordered_map<std::string, vtu11::DataSetData>>;
+        auto cell_datas = cell_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<mapped_data_t>;
+        auto point_datas = point_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<mapped_data_t>;
 
         std::vector<value_type> points { };
         size_t cell_idx { };
@@ -199,8 +200,8 @@ private:
         ( updateDataInfos( visual_data_infos ), ...);
 
         std::vector<value_type> points { };
-        auto cell_datas = cell_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<std::unordered_map<std::string, vtu11::DataSetData>>;
-        auto point_datas = point_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<std::unordered_map<std::string, vtu11::DataSetData>>;
+        auto cell_datas = cell_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<mapped_data_t>;
+        auto point_datas = point_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<mapped_data_t>;
         size_t cell_idx { };
         for ( const auto& st_edge : st_edges )
         {
@@ -246,6 +247,7 @@ private:
         writePartition( mesh_partition, point_datas, cell_datas );
     };
 
+    static constexpr std::array<std::string_view, 4> general_vdis_ { "log_idx", "logger_idx", "idx", "section_type" };
     bool enabled_ { false };
     std::mutex mutex_;
     std::string id_ { };
@@ -297,7 +299,7 @@ private:
         spdlog::info( "Visual Debugger: <{}>-<{}> writing partition {}", id_, logger_idx_, idx );
         auto dataset_infos = ranges::actions::sort( ranges::views::concat( point_dataset_info_, cell_dataset_info_ ) | ranges::to_vector );
         std::vector<vtu11::DataSetData> data { };
-        auto dataset_data = ranges::views::concat( point_data, cell_data ) | ranges::to<std::unordered_map<std::string, vtu11::DataSetData>>;
+        auto dataset_data = ranges::views::concat( point_data, cell_data ) | ranges::to<mapped_data_t>;
         for ( const auto& [ name, _, __ ] : dataset_infos )
         {
             data.push_back( dataset_data[name] );
