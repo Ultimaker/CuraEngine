@@ -55,13 +55,18 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0
 const std::vector<VariableWidthLines>& WallToolPaths::generate()
 {
     const coord_t allowed_distance = settings.get<coord_t>("meshfix_maximum_deviation");
+
+    // Sometimes small slivers of polygons mess up the prepared_outline. By performing an open-close operation
+    // 1/4 of the min_wall_line_width these slivers are removed, while still keeping enough information to not
+    // degrade the print quality; These features can't be printed anyhow. See PR CuraEngine#1811 for some screenshots
+    const coord_t open_close_distance = settings.get<coord_t>("min_wall_line_width") / 4;
     const coord_t epsilon_offset = (allowed_distance / 2) - 1;
     const AngleRadians transitioning_angle = settings.get<AngleRadians>("wall_transition_angle");
     constexpr coord_t discretization_step_size = MM2INT(0.8);
 
     // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self intersections allowed:
     // TODO: Open question: Does this indeed fix all (or all-but-one-in-a-million) cases for manifold but otherwise possibly complex polygons?
-    Polygons prepared_outline = outline.offset(-epsilon_offset).offset(epsilon_offset * 2).offset(-epsilon_offset);
+    Polygons prepared_outline = outline.offset(-open_close_distance).offset(open_close_distance * 2).offset(-open_close_distance);
     prepared_outline = Simplify(settings).polygon(prepared_outline);
     PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
     prepared_outline.removeDegenerateVerts();
