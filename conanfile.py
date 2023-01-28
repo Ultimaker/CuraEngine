@@ -56,8 +56,6 @@ class CuraEngineConan(ConanFile):
     def config_options(self):
         if self.settings.os == "Macos":
             del self.options.enable_openmp
-        if self.settings.build_type == "Debug":
-            self.options.enable_visual_debug = True
 
     def configure(self):
         self.options["boost"].header_only = True

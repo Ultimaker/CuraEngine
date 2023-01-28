@@ -5,11 +5,16 @@
 #define INCLUDE_UTILS_VISUAL_DEBUG_VISUAL_DATA_INFO_H
 
 #include <functional>
+#include <string>
 
+#ifdef VISUAL_DEBUG
 #include <vtu11/vtu11.hpp>
+#endif
 
 namespace cura::debug
 {
+
+#ifdef VISUAL_DEBUG
 
 template<class T, class Proj = std::identity, vtu11::DataSetType DST = vtu11::DataSetType::CellData, size_t Nm = 1>
 struct VisualDataInfo
@@ -37,14 +42,39 @@ struct VisualDataInfo
 };
 
 template<class Proj = std::identity, size_t Nm = 1>
-class CellVisualDataInfo : public VisualDataInfo<CellVisualDataInfo<Proj, Nm>, Proj, vtu11::DataSetType::CellData, Nm>
+struct CellVisualDataInfo : public VisualDataInfo<CellVisualDataInfo<Proj, Nm>, Proj, vtu11::DataSetType::CellData, Nm>
 {
 };
 
 template<class Proj = std::identity, size_t Nm = 1>
-class PointVisualDataInfo : public VisualDataInfo<PointVisualDataInfo<Proj, Nm>, Proj, vtu11::DataSetType::PointData, Nm>
+struct PointVisualDataInfo : public VisualDataInfo<PointVisualDataInfo<Proj, Nm>, Proj, vtu11::DataSetType::PointData, Nm>
 {
 };
+
+#endif
+
+#ifndef VISUAL_DEBUG
+
+template<class T, class Proj = std::identity, size_t DST = 1, size_t Nm = 1>
+struct VisualDataInfo
+{
+};
+
+template<class Proj = std::identity, size_t Nm = 1>
+struct CellVisualDataInfo : public VisualDataInfo<CellVisualDataInfo<Proj, Nm>, Proj, 1, Nm>
+{
+    template<typename... Args>
+    constexpr CellVisualDataInfo(Args... args) { };
+};
+
+template<class Proj = std::identity, size_t Nm = 1>
+struct PointVisualDataInfo : public VisualDataInfo<PointVisualDataInfo<Proj, Nm>, Proj, 1, Nm>
+{
+    template<typename... Args>
+    constexpr PointVisualDataInfo(Args... args) { };
+};
+
+#endif
 
 // CTAD
 
@@ -57,6 +87,7 @@ template<class Proj>
 PointVisualDataInfo(const std::string& name, Proj&& projection) -> PointVisualDataInfo<Proj, 1UL>;
 
 PointVisualDataInfo(const std::string& name) -> PointVisualDataInfo<std::identity, 1UL>;
-} // namespace cura::debug
+}
+// namespace cura::debug
 
 #endif //INCLUDE_UTILS_VISUAL_DEBUG_VISUAL_DATA_INFO_H

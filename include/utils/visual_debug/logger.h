@@ -4,11 +4,14 @@
 #ifndef INCLUDE_UTILS_VISUAL_DEBUG_LOGGER_H
 #define INCLUDE_UTILS_VISUAL_DEBUG_LOGGER_H
 
+#include <filesystem>
 #include <memory>
 #include <mutex>
 
 #include <boost/serialization/singleton.hpp>
 
+#include "utils/visual_debug/section_type.h"
+#include "utils/visual_debug/visual_data_info.h"
 #include "utils/visual_debug/visual_logger.h"
 
 namespace cura::debug

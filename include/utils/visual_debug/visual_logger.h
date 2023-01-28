@@ -4,9 +4,12 @@
 #ifndef INCLUDE_UTILS_VISUAL_DEBUG_VISUAL_LOGGER_H
 #define INCLUDE_UTILS_VISUAL_DEBUG_VISUAL_LOGGER_H
 
-#include <any>
-#include <functional>
 #include <memory>
+#include <unordered_map>
+#ifdef VISUAL_DEBUG
+#include <any>
+#include <filesystem>
+#include <functional>
 #include <mutex>
 #include <tuple>
 #include <type_traits>
@@ -39,6 +42,7 @@
 #include "utils/visual_debug/cell_type.h"
 #include "utils/visual_debug/section_type.h"
 #include "utils/visual_debug/visual_data_info.h"
+#endif
 
 namespace cura::debug
 {
@@ -309,9 +313,8 @@ private:
         {
             spdlog::debug( "Visual Debugger: <{}>-<{}> logging: {}", id_, logger_idx_, dataset_infos | ranges::views::transform( [](const auto& dsi) { return std::get<0>( dsi ); } ));
         }
-//        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition,dataset_infos, data, idx, "rawbinarycompressed" );
-        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, dataset_infos, data, idx, "ascii" );
-        vtu11::writePVtu( vtu_path_.string(), id_, dataset_infos, idx_ );  // Make sure it is up to data
+        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, dataset_infos, data, idx, "rawbinarycompressed" );
+        vtu11::writePVtu( vtu_path_.string(), id_, dataset_infos, idx_ );  // Make sure it is up to date
     }
 };
 } // namespace enabled
