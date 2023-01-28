@@ -10,6 +10,8 @@
 #include <gtest/gtest.h>
 #include <unordered_set>
 
+#include "utils/visual_debug/section_type.h"
+
 #ifdef WALLS_COMPUTATION_TEST_SVG_OUTPUT
 #include "utils/SVG.h"
 #include "utils/polygon.h"
@@ -105,7 +107,7 @@ TEST_F(WallsComputationTest, GenerateWallsForLayerSinglePart)
     part.outline.add(square_shape);
 
     // Run the test.
-    walls_computation.generateWalls(&layer);
+    walls_computation.generateWalls(&layer, debug::SectionType::WALL);
 
     // Verify that something was generated.
     EXPECT_FALSE(part.wall_toolpaths.empty()) << "There must be some walls.";
@@ -127,7 +129,7 @@ TEST_F(WallsComputationTest, GenerateWallsZeroWalls)
     part.outline.add(square_shape);
 
     // Run the test.
-    walls_computation.generateWalls(&layer);
+    walls_computation.generateWalls(&layer, debug::SectionType::WALL);
 
     // Verify that there is still an inner area, outline and parts.
     EXPECT_EQ(part.inner_area.area(), square_shape.area()) << "There are no walls, so the inner area (for infill/skin) needs to be the entire part.";
@@ -148,7 +150,7 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     part.outline.add(ff_holes);
 
     // Run the test.
-    walls_computation.generateWalls(&layer);
+    walls_computation.generateWalls(&layer, debug::SectionType::WALL);
 
     const bool outer_to_inner = false;
     std::vector<ExtrusionLine> all_paths;
