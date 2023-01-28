@@ -85,7 +85,7 @@ requires( T layer )
 {
     layer.z;
     layer.polygons;
-    ranges::range<decltype(layer.polygons)>;
+    std::ranges::range<decltype(layer.polygons)>;
 };
 
 template<class T>
