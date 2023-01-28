@@ -76,6 +76,11 @@ public:
     {
         if ( enabled_ )
         {
+            for (const auto& general_vdi : { "log_idx", "logger_idx", "idx", "section_type" } )
+            {
+                updateDataInfos( CellVisualDataInfo { general_vdi } );
+                updateDataInfos( PointVisualDataInfo { general_vdi } );
+            }
             log_( std::forward<Args>( args )... );
         }
     };
@@ -92,16 +97,9 @@ private:
     template<typename... VDI>
     constexpr void log_(const polygons auto& polys, const int layer_idx, SectionType section_type, VDI... visual_data_infos)
     {
-        updateDataInfos( CellVisualDataInfo { "log_idx" } );
+
         updateDataInfos( CellVisualDataInfo { "layer_idx" } );
-        updateDataInfos( CellVisualDataInfo { "logger_idx" } );
-        updateDataInfos( CellVisualDataInfo { "cell_idx" } );
-        updateDataInfos( CellVisualDataInfo { "section_type" } );
-        updateDataInfos( PointVisualDataInfo { "log_idx" } );
         updateDataInfos( PointVisualDataInfo { "layer_idx" } );
-        updateDataInfos( PointVisualDataInfo { "logger_idx" } );
-        updateDataInfos( PointVisualDataInfo { "point_idx" } );
-        updateDataInfos( PointVisualDataInfo { "section_type" } );
         ( updateDataInfos( visual_data_infos ), ...);
 
         std::vector<value_type> points { };
@@ -123,7 +121,7 @@ private:
             cell_datas["log_idx"].emplace_back( static_cast<value_type>( idx_ ));
             cell_datas["layer_idx"].emplace_back( static_cast<value_type>( layer_idx ));
             cell_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
-            cell_datas["cell_idx"].emplace_back( static_cast<value_type>( cell_idx++ ));
+            cell_datas["idx"].emplace_back( static_cast<value_type>( cell_idx++ ));
             cell_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type)));
 
             size_t point_idx { };
@@ -139,7 +137,7 @@ private:
                 point_datas["log_idx"].emplace_back( static_cast<value_type>( idx_ ));
                 point_datas["layer_idx"].emplace_back( static_cast<value_type>( layer_idx ));
                 point_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
-                point_datas["point_idx"].emplace_back( static_cast<value_type>( point_idx++ ));
+                point_datas["idx"].emplace_back( static_cast<value_type>( point_idx++ ));
                 point_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type)));
 
                 points.emplace_back( static_cast<value_type>(point.X));
@@ -158,15 +156,6 @@ private:
     constexpr void log_(const mesh auto& mesh, SectionType section_type)
     {
         // FIXME: add the last face as well
-        updateDataInfos( CellVisualDataInfo { "log_idx" } );
-        updateDataInfos( CellVisualDataInfo { "logger_idx" } );
-        updateDataInfos( CellVisualDataInfo { "cell_idx" } );
-        updateDataInfos( CellVisualDataInfo { "section_type" } );
-        updateDataInfos( PointVisualDataInfo { "log_idx" } );
-        updateDataInfos( PointVisualDataInfo { "logger_idx" } );
-        updateDataInfos( PointVisualDataInfo { "point_idx" } );
-        updateDataInfos( PointVisualDataInfo { "section_type" } );
-
         auto cell_datas = cell_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<std::unordered_map<std::string, vtu11::DataSetData>>;
         auto point_datas = point_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<std::unordered_map<std::string, vtu11::DataSetData>>;
 
@@ -176,7 +165,7 @@ private:
         {
             cell_datas["log_idx"].emplace_back( static_cast<value_type>( idx_ ));
             cell_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
-            cell_datas["cell_idx"].emplace_back( static_cast<value_type>( cell_idx++ ));
+            cell_datas["idx"].emplace_back( static_cast<value_type>( cell_idx++ ));
             cell_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type)));
 
             size_t point_idx { };
@@ -189,7 +178,7 @@ private:
 
                 point_datas["log_idx"].emplace_back( static_cast<value_type>( idx_ ));
                 point_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
-                point_datas["point_idx"].emplace_back( static_cast<value_type>( point_idx++ ));
+                point_datas["idx"].emplace_back( static_cast<value_type>( point_idx++ ));
                 point_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type)));
             }
         }
@@ -203,16 +192,10 @@ private:
     template<typename... VDI>
     constexpr void log_(const st_edges_viewable auto& st_edges, const int layer_idx, SectionType section_type, VDI... visual_data_infos)
     {
-        updateDataInfos( CellVisualDataInfo { "log_idx" } );
+
         updateDataInfos( CellVisualDataInfo { "layer_idx" } );
-        updateDataInfos( CellVisualDataInfo { "logger_idx" } );
-        updateDataInfos( CellVisualDataInfo { "cell_idx" } );
-        updateDataInfos( CellVisualDataInfo { "section_type" } );
-        updateDataInfos( PointVisualDataInfo { "log_idx" } );
         updateDataInfos( PointVisualDataInfo { "layer_idx" } );
-        updateDataInfos( PointVisualDataInfo { "logger_idx" } );
-        updateDataInfos( PointVisualDataInfo { "point_idx" } );
-        updateDataInfos( PointVisualDataInfo { "section_type" } );
+
         ( updateDataInfos( visual_data_infos ), ...);
 
         std::vector<value_type> points { };
@@ -231,7 +214,7 @@ private:
             cell_datas["log_idx"].emplace_back( static_cast<value_type>( idx_ ));
             cell_datas["layer_idx"].emplace_back( static_cast<value_type>( layer_idx ));
             cell_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
-            cell_datas["cell_idx"].emplace_back( static_cast<value_type>( cell_idx++ ));
+            cell_datas["idx"].emplace_back( static_cast<value_type>( cell_idx++ ));
             cell_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type)));
 
             size_t point_idx { };
@@ -247,7 +230,7 @@ private:
                 point_datas["log_idx"].emplace_back( static_cast<value_type>( idx_ ));
                 point_datas["layer_idx"].emplace_back( static_cast<value_type>( layer_idx ));
                 point_datas["logger_idx"].emplace_back( static_cast<value_type>( logger_idx_ ));
-                point_datas["point_idx"].emplace_back( static_cast<value_type>( point_idx++ ));
+                point_datas["idx"].emplace_back( static_cast<value_type>( point_idx++ ));
                 point_datas["section_type"].emplace_back( static_cast<value_type>( static_cast<int>(section_type)));
 
                 points.emplace_back( static_cast<value_type>(node->p.X));
