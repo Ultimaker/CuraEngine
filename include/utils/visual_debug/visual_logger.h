@@ -230,6 +230,63 @@ private:
         writePartition( mesh_partition, point_datas, cell_datas );
     };
 
+    template<typename... VDI>
+    constexpr void log_(const toolpaths auto& toolpaths, const int layer_idx, SectionType section_type, VDI... visual_data_infos)
+    {
+        for ( const auto& toolpath : toolpaths )
+        {
+            log_( toolpath, layer_idx, section_type, visual_data_infos... );
+        }
+    };
+
+    template<typename... VDI>
+    constexpr void log_(const toolpath auto& toolpath, const int layer_idx, SectionType section_type, VDI... visual_data_infos)
+    {
+        updateDataInfos( CellVisualDataInfo { "layer_idx" } );
+        updateDataInfos( PointVisualDataInfo { "layer_idx" } );
+        ( updateDataInfos( visual_data_infos ), ...);
+
+        std::vector<value_type> points { };
+        std::vector<vtu11::VtkIndexType> offsets { 0 };
+        auto cell_datas = cell_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<mapped_data_t>;
+        auto point_datas = point_dataset_info_ | ranges::views::transform( [](const auto& dsi) { return std::make_pair( std::get<0>( dsi ), vtu11::DataSetData { } ); } ) | ranges::to<mapped_data_t>;
+        size_t cell_idx { };
+        for ( const auto& cell : toolpath )
+        {
+            offsets.push_back( offsets.back() + cell.size());
+            // log cell data
+            ([ & ] {
+              if constexpr ( visual_data_infos.dataset_type == vtu11::DataSetType::CellData )
+              {
+                  updateData( cell_datas, visual_data_infos.name, std::invoke( visual_data_infos.projection, cell ));
+              }
+            }(), ...); // variadic arguments to the log call
+            updateData( cell_datas, "idx", cell_idx++, "log_idx", idx_, "layer_idx", layer_idx, "logger_idx", logger_idx_, "section_type", static_cast<int>(section_type));
+
+            size_t point_idx { };
+            for ( const auto& point : cell.junctions )
+            {
+                // log node data
+                ([ & ] {
+                  if constexpr ( visual_data_infos.dataset_type == vtu11::DataSetType::PointData )
+                  {
+                      updateData( point_datas, visual_data_infos.name, std::invoke( visual_data_infos.projection, point ));
+                  }
+                }(), ...); // variadic arguments to the log call
+                updateData( point_datas, "idx", point_idx++, "log_idx", idx_, "layer_idx", layer_idx, "logger_idx", logger_idx_, "section_type", static_cast<int>(section_type));
+
+                points.emplace_back( static_cast<value_type>(point.p.X));
+                points.emplace_back( static_cast<value_type>(point.p.Y));
+                points.emplace_back( layer_map_->at( layer_idx ));
+            }
+        }
+        auto connectivity = getConnectivity( points.size() / 3 );
+        auto types = getCellTypes( offsets.size() - 1, static_cast<long>(CellType::POLY_LINE));
+        vtu11::Vtu11UnstructuredMesh mesh_partition { points, connectivity, offsets | ranges::views::drop( 1 ) | ranges::to_vector, types };
+
+        writePartition( mesh_partition, point_datas, cell_datas );
+    };
+
     template<class Property, class Data, class... Datas>
     inline constexpr void updateData(auto& container, const Property& property, const Data& data, Datas... datas)
     {
@@ -290,7 +347,7 @@ private:
         {
             spdlog::debug( "Visual Debugger: <{}>-<{}> logging: {}", id_, logger_idx_, dataset_infos | ranges::views::transform( [](const auto& dsi) { return std::get<0>( dsi ); } ));
         }
-        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, dataset_infos, data, idx, "ascii" );
+        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, dataset_infos, data, idx, "rawbinarycompressed" );
         vtu11::writePVtu( vtu_path_.string(), id_, dataset_infos, idx_ );  // Make sure it is up to date
     }
 };

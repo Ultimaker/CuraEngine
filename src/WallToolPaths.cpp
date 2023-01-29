@@ -12,6 +12,7 @@
 #include "ExtruderTrain.h"
 #include "utils/PolylineStitcher.h"
 #include "utils/Simplify.h"
+#include "utils/visual_debug/logger.h"
 
 namespace cura
 {
@@ -127,6 +128,16 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
         section_type
     );
     wall_maker.generateToolpaths(toolpaths);
+    {
+        auto vlogger = debug::Loggers::get_mutable_instance().Logger("toolpaths_1");
+        vlogger->log(toolpaths, layer_idx, section_type,
+                     debug::CellVisualDataInfo{ "is_closed", [](const auto& val){ return val.is_closed; } },
+                     debug::CellVisualDataInfo{ "is_odd", [](const auto& val){ return val.is_odd; } },
+                     debug::CellVisualDataInfo{ "inset_idx", [](const auto& val){ return val.inset_idx; } },
+                     debug::PointVisualDataInfo{ "width", [](const auto& val){ return val.w; } },
+                     debug::PointVisualDataInfo{ "perimeter_index", [](const auto& val){ return val.perimeter_index; } }
+                     );
+    }
 
     stitchToolPaths(toolpaths, settings);
     
