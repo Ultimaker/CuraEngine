@@ -11,6 +11,7 @@
 
 #include <boost/serialization/singleton.hpp>
 #include <fmt/chrono.h>
+#include <spdlog/spdlog.h>
 #include <spdlog/details/os.h>
 
 #include "utils/visual_debug/section_type.h"
