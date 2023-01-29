@@ -169,7 +169,7 @@ private:
             size_t point_idx { };
             for ( const auto& vertex_idx : cell.vertex_index )
             {
-                updateData( point_datas, "idx", point_idx++, "log_idx", idx_, "layer_idx", logger_idx_, "section_type", static_cast<int>(section_type));
+                updateData( point_datas, "idx", point_idx++, "log_idx", idx_, "logger_idx", logger_idx_, "section_type", static_cast<int>(section_type));
                 const auto& vertex = mesh.vertices[vertex_idx];
                 points.emplace_back( static_cast<value_type>(vertex.p.x));
                 points.emplace_back( static_cast<value_type>(vertex.p.y));
