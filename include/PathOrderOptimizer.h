@@ -269,8 +269,8 @@ protected:
     /*
      * Whether to print all outer walls in a group, one after another.
      *
-     * If this is enabled outer walls will be printer first and then all other
-     * walls will be printer. If reversed they will be printer last.
+     * If this is enabled outer walls will be printed first and then all other
+     * walls will be printed. If reversed they will be printed last.
      */
     bool group_outer_walls;
 
@@ -483,7 +483,7 @@ protected:
         }
         else
         {
-            while (roots.size() != 0)
+            while (!roots.empty)
             {
                 Path root = findClosestPathVertices(current_position, roots);
                 roots.erase(root);
