@@ -482,7 +482,6 @@ top_layers=0
 support_xy_distance=0.875
 wireframe_printspeed_up=5
 machine_feeder_wheel_diameter=10.0
-material_flow_dependent_temperature=False
 skin_no_small_gaps_heuristic=True
 speed_ironing=13.333333333333334
 wall_x_extruder_nr=-1
