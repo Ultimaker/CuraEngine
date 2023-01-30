@@ -49,23 +49,19 @@ public:
     {
         square_shape.emplace_back();
         square_shape.back().emplace_back(0, 0);
-        square_shape.back().emplace_back(MM2INT(10), 0);
-        square_shape.back().emplace_back(MM2INT(10), MM2INT(10));
-        square_shape.back().emplace_back(0, MM2INT(10));
+        square_shape.back().emplace_back(MM2INT(20), 0);
+        square_shape.back().emplace_back(MM2INT(20), MM2INT(20));
+        square_shape.back().emplace_back(0, MM2INT(20));
 
         ff_holes.emplace_back();
         ff_holes.back().emplace_back(0, 0);
-        ff_holes.back().emplace_back(10000, 0);
-        ff_holes.back().emplace_back(10000, 5000);
+        ff_holes.back().emplace_back(5000, 0);
+        ff_holes.back().emplace_back(5000, 5000);
         ff_holes.back().emplace_back(0, 5000);
         ff_holes.emplace_back();
-        ff_holes.back().emplace_back(1000, 1000);
-        ff_holes.back().emplace_back(1000, 4000);
-        ff_holes.back().emplace_back(4000, 2500);
-        ff_holes.emplace_back();
-        ff_holes.back().emplace_back(6000, 1000);
-        ff_holes.back().emplace_back(6000, 4000);
-        ff_holes.back().emplace_back(9000, 2500);
+        ff_holes.back().emplace_back(6000, 9000);
+        ff_holes.back().emplace_back(9000, 7500);
+        ff_holes.back().emplace_back(6000, 6000);
 
         // Settings for a simple 2 walls, about as basic as possible.
         settings.add("alternate_extra_perimeter", "false");
@@ -156,7 +152,7 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     {
         all_paths.emplace_back(line);
     }
-    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order = InsetOrderOptimizer::getRegionOrder(all_paths, outer_to_inner);
+    auto order = InsetOrderOptimizer::getRegionOrder(all_paths, outer_to_inner);
 
     // Verify that something was generated.
     EXPECT_FALSE(part.wall_toolpaths.empty()) << "There must be some walls.";
