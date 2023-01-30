@@ -380,21 +380,16 @@ protected:
                 order.push_back(best_candidate);
 
                 // update local_current_position
-                for (auto& path : paths)
+                auto path = vertices_to_paths[best_candidate];
+
+                if(path->is_closed)
                 {
-                    if (path.vertices == best_candidate)
-                    {
-                        if(path.is_closed)
-                        {
-                            local_current_position = (*path.converted)[path.start_vertex]; //We end where we started.
-                        }
-                        else
-                        {
-                            //Pick the other end from where we started.
-                            local_current_position = path.start_vertex == 0 ? path.converted->back() : path.converted->front();
-                        }
-                        break;
-                    }
+                    local_current_position = (*path->converted)[path->start_vertex]; //We end where we started.
+                }
+                else
+                {
+                    //Pick the other end from where we started.
+                    local_current_position = path->start_vertex == 0 ? path->converted->back() : path->converted->front();
                 }
             }
 
@@ -432,11 +427,12 @@ protected:
 
         if (group_outer_walls)
         {
-            // We want all outer walls to be printed first (For outside in ordering) or last (for inside out ordering)
-            std::unordered_set<Path> outer_walls = reverse_direction ? leaves : roots;
-
             if (reverse_direction)
             {
+                // When the order is reverse the leaves of the order requirement are the outer walls
+                std::unordered_set<Path> outer_walls = leaves;
+
+                // We don't want to add the outerwalls until after we finish all inner walls. Adding them to visited stops dfs from visiting these nodes.
                 visited.insert(outer_walls.begin(), outer_walls.end());
 
                 // Add all inner walls
@@ -457,6 +453,9 @@ protected:
             }
             else
             {
+                // The roots are the outer walls when reverse is false.
+                std::unordered_set<Path> outer_walls = roots;
+
                 // Add all outer walls
                 std::unordered_set<Path> root_neighbours;
                 while (! outer_walls.empty())
@@ -483,7 +482,7 @@ protected:
         }
         else
         {
-            while (!roots.empty)
+            while (!roots.empty())
             {
                 Path root = findClosestPathVertices(current_position, roots);
                 roots.erase(root);
