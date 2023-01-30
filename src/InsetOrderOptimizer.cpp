@@ -91,9 +91,10 @@ bool InsetOrderOptimizer::addToLayer()
 
     constexpr bool detect_loops = false;
     constexpr Polygons* combing_boundary = nullptr;
+    constexpr bool group_outer_walls = true;
     // When we alternate walls, also alternate the direction at which the first wall starts in.
     // On even layers we start with normal direction, on odd layers with inverted direction.
-    PathOrderOptimizer<const ExtrusionLine*> order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops, combing_boundary, reverse, order);
+    PathOrderOptimizer<const ExtrusionLine*> order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops, combing_boundary, reverse, order, group_outer_walls);
 
     for (const auto& line : walls_to_be_added)
     {

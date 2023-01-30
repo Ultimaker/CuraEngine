@@ -99,13 +99,14 @@ public:
      * it into a polygon.
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
-    PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_loops = false, const Polygons* combing_boundary = nullptr, const bool reverse_direction = false, const std::unordered_multimap<Path, Path>& order_requirements = no_order_requirements)
+    PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_loops = false, const Polygons* combing_boundary = nullptr, const bool reverse_direction = false, const std::unordered_multimap<Path, Path>& order_requirements = no_order_requirements, const bool group_outer_walls = false)
         : start_point(start_point)
         , seam_config(seam_config)
         , combing_boundary((combing_boundary != nullptr && !combing_boundary->empty()) ? combing_boundary : nullptr)
         , detect_loops(detect_loops)
         , reverse_direction(reverse_direction)
         , order_requirements(&order_requirements)
+        , group_outer_walls(group_outer_walls)
     {
     }
 
@@ -265,6 +266,14 @@ protected:
      */
     bool reverse_direction;
 
+    /*
+     * Whether to print all outer walls in a group, one after another.
+     *
+     * If this is enabled outer walls will be printer first and then all other
+     * walls will be printer. If reversed they will be printer last.
+     */
+    bool group_outer_walls;
+
     std::vector<OrderablePath> getOptimizedOrder(SparsePointGridInclusive<size_t> line_bucket_grid, size_t snap_radius)
     {
         std::vector<OrderablePath> optimized_order; //To store our result in.
@@ -421,53 +430,65 @@ protected:
                 return nullptr;
             };
 
-
-        // We want all outer walls to be printed first (For outside in ordering) or last (for inside out ordering)
-        std::unordered_set<Path> outer_walls = reverse_direction ? leaves : roots;
-
-        if (reverse_direction)
+        if (group_outer_walls)
         {
-            visited.insert(outer_walls.begin(), outer_walls.end());
+            // We want all outer walls to be printed first (For outside in ordering) or last (for inside out ordering)
+            std::unordered_set<Path> outer_walls = reverse_direction ? leaves : roots;
 
-            // Add all inner walls
-            while (!roots.empty())
+            if (reverse_direction)
             {
-                Path root = findClosestPathVertices(current_position, roots);
-                roots.erase(root);
-                actions::dfs(root, order_requirements, handle_node, visited, nullptr, get_neighbours);
+                visited.insert(outer_walls.begin(), outer_walls.end());
+
+                // Add all inner walls
+                while (! roots.empty())
+                {
+                    Path root = findClosestPathVertices(current_position, roots);
+                    roots.erase(root);
+                    actions::dfs(root, order_requirements, handle_node, visited, nullptr, get_neighbours);
+                }
+
+                // Add all outer walls
+                while (! outer_walls.empty())
+                {
+                    Path wall = findClosestPathVertices(current_position, outer_walls);
+                    outer_walls.erase(wall);
+                    handle_node(wall, nullptr);
+                }
             }
-
-            //Add all outer walls
-            while (!outer_walls.empty())
+            else
             {
-                Path wall = findClosestPathVertices(current_position, outer_walls);
-                outer_walls.erase(wall);
-                handle_node(wall, nullptr);
+                // Add all outer walls
+                std::unordered_set<Path> root_neighbours;
+                while (! outer_walls.empty())
+                {
+                    Path outer_wall = findClosestPathVertices(current_position, outer_walls);
+                    outer_walls.erase(outer_wall);
+
+                    handle_node(outer_wall, nullptr);
+                    visited.insert(outer_wall);
+                    for (auto path : get_neighbours(outer_wall, order_requirements))
+                    {
+                        root_neighbours.emplace(path);
+                    }
+                }
+
+                // Add all inner walls
+                while (! root_neighbours.empty())
+                {
+                    Path root_neighbour = findClosestPathVertices(current_position, root_neighbours);
+                    root_neighbours.erase(root_neighbour);
+                    actions::dfs(root_neighbour, order_requirements, handle_node, visited, nullptr, get_neighbours);
+                }
             }
         }
         else
         {
-            // Add all outer walls
-            std::unordered_set<Path> root_neighbours;
-            while (!outer_walls.empty())
+            while (roots.size() != 0)
             {
-                Path outer_wall = findClosestPathVertices(current_position, outer_walls);
-                outer_walls.erase(outer_wall);
+                Path root = findClosestPathVertices(current_position, roots);
+                roots.erase(root);
 
-                handle_node(outer_wall, nullptr);
-                visited.insert(outer_wall);
-                for (auto path : get_neighbours(outer_wall, order_requirements))
-                {
-                    root_neighbours.emplace(path);
-                }
-            }
-
-            //Add all inner walls
-            while (!root_neighbours.empty())
-            {
-                Path root_neighbour = findClosestPathVertices(current_position, root_neighbours);
-                root_neighbours.erase(root_neighbour);
-                actions::dfs(root_neighbour, order_requirements, handle_node, visited, nullptr, get_neighbours);
+                actions::dfs(root, order_requirements, handle_node, visited, nullptr, get_neighbours);
             }
         }
 
