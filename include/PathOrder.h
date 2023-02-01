@@ -4,9 +4,9 @@
 #ifndef PATHORDER_H
 #define PATHORDER_H
 
+#include "PathOrdering.h"
 #include "settings/ZSeamConfig.h" //To get the seam settings.
 #include "utils/polygonUtils.h"
-#include "PathOrderPath.h"
 
 namespace cura
 {
@@ -37,7 +37,7 @@ public:
      * pointer to the vertex data, whether to close the loop or not, the
      * direction in which to print the path and where to start the path.
      */
-    std::vector<PathOrderPath<PathType>> paths;
+    std::vector<PathOrdering<PathType>> paths;
 
     /*!
      * The location where the nozzle is assumed to start from before printing
@@ -108,7 +108,7 @@ protected:
      */
     void detectLoops()
     {
-        for(PathOrderPath<PathType>& path : paths)
+        for(PathOrdering<PathType>& path : paths)
         {
             if(path.is_closed) //Already a polygon. No need to detect loops.
             {

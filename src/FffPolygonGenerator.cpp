@@ -125,10 +125,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     if (use_variable_layer_heights)
     {
         // Calculate adaptive layer heights
-        const coord_t variable_layer_height_max_variation = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation");
-        const coord_t variable_layer_height_variation_step = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation_step");
-        const coord_t adaptive_threshold = mesh_group_settings.get<coord_t>("adaptive_layer_height_threshold");
-        adaptive_layer_heights = new AdaptiveLayerHeights(layer_thickness, variable_layer_height_max_variation, variable_layer_height_variation_step, adaptive_threshold);
+        const auto variable_layer_height_max_variation = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation");
+        const auto variable_layer_height_variation_step = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation_step");
+        const auto adaptive_threshold = mesh_group_settings.get<coord_t>("adaptive_layer_height_threshold");
+        adaptive_layer_heights = new AdaptiveLayerHeights(layer_thickness, variable_layer_height_max_variation,
+                                                          variable_layer_height_variation_step, adaptive_threshold,
+                                                          meshgroup);
 
         // Get the amount of layers
         slice_layer_count = adaptive_layer_heights->getLayerCount();
@@ -242,10 +244,10 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     {
         carveMultipleVolumes(slicerList);
     }
-    
+
     generateMultipleVolumesOverlap(slicerList);
 
-    
+
     if (Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("interlocking_enable"))
     {
         InterlockingGenerator::generateInterlockingStructure(slicerList);
@@ -702,8 +704,8 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     // combine infill
     SkinInfillAreaComputation::combineInfillLayers(mesh);
 
-    // fuzzy skin
-    if (mesh.settings.get<bool>("magic_fuzzy_skin_enabled"))
+    // Fuzzy skin. Disabled when using interlocking structures, the internal interlocking walls become fuzzy.
+    if (mesh.settings.get<bool>("magic_fuzzy_skin_enabled") && !mesh.settings.get<bool>("interlocking_enable"))
     {
         processFuzzyWalls(mesh);
     }
@@ -1019,7 +1021,10 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     }
 
     SkirtBrim skirt_brim(storage);
-    skirt_brim.generate();
+    if (adhesion_type != EPlatformAdhesion::NONE)
+    {
+        skirt_brim.generate();
+    }
 
     if (mesh_group_settings.get<bool>("support_brim_enable"))
     {

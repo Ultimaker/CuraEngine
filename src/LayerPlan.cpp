@@ -50,6 +50,7 @@ ExtruderPlan::ExtruderPlan
     fan_speed_layer_time_settings(fan_speed_layer_time_settings),
     retraction_config(retraction_config),
     extraTime(0.0),
+    temperatureFactor(0.0),
     slowest_path_speed(0.0)
 {
 }
@@ -455,21 +456,6 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
                         }
                     }
                 }
-                if (combPaths.size() == 1)
-                {
-                    CombPath comb_path = combPaths[0];
-                    if
-                    (
-                        mesh_or_extruder_settings.get<bool>("limit_support_retractions") &&
-                        combPaths.throughAir &&
-                        ! comb_path.cross_boundary &&
-                        comb_path.size() == 2 &&
-                        comb_path[0] == *last_planned_position && comb_path[1] == p
-                    )
-                    { // limit the retractions from support to support, which didn't cross anything
-                        retract = false;
-                    }
-                }
             }
 
             const coord_t maximum_travel_resolution = mesh_or_extruder_settings.get<coord_t>("meshfix_maximum_travel_resolution");
@@ -647,7 +633,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons,
 
     if (! reverse_order)
     {
-        for (const PathOrderPath<ConstPolygonPointer>& path : orderOptimizer.paths)
+        for (const PathOrdering<ConstPolygonPointer>& path : orderOptimizer.paths)
         {
             addPolygon(*path.vertices, path.start_vertex, path.backwards, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
@@ -656,7 +642,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons,
     {
         for (int index = orderOptimizer.paths.size() - 1; index >= 0; --index)
         {
-            const PathOrderPath<ConstPolygonPointer>& path = orderOptimizer.paths[index];
+            const PathOrdering<ConstPolygonPointer>& path = orderOptimizer.paths[index];
             addPolygon(**path.vertices, path.start_vertex, path.backwards, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
     }
@@ -998,7 +984,7 @@ void LayerPlan::addWall(const ExtrusionLine& wall,
 
     bool first_line = true;
     const coord_t small_feature_max_length = settings.get<coord_t>("small_feature_max_length");
-    const bool is_small_feature = (small_feature_max_length > 0) && cura::shorterThan(wall, small_feature_max_length);
+    const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr == 0 || wall.inset_idx == 0) && cura::shorterThan(wall, small_feature_max_length);
     Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
     const Velocity min_speed = fan_speed_layer_time_settings_per_extruder[getLastPlannedExtruderTrain()->extruder_nr].cool_min_speed;
     small_feature_speed_factor = std::max((double)small_feature_speed_factor, (double)(min_speed / non_bridge_config.getSpeed()));
@@ -1147,7 +1133,7 @@ void LayerPlan::addWalls(const Polygons& walls,
         orderOptimizer.addPolygon(walls[poly_idx]);
     }
     orderOptimizer.optimize();
-    for (const PathOrderPath<ConstPolygonPointer>& path : orderOptimizer.paths)
+    for (const PathOrdering<ConstPolygonPointer>& path : orderOptimizer.paths)
     {
         addWall(**path.vertices, path.start_vertex, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
     }
@@ -1163,7 +1149,7 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons,
                                     const std::optional<Point> near_start_location,
                                     const double fan_speed,
                                     const bool reverse_print_direction,
-                                    const std::unordered_set<std::pair<ConstPolygonPointer, ConstPolygonPointer>>& order_requirements)
+                                    const std::unordered_multimap<ConstPolygonPointer, ConstPolygonPointer>& order_requirements)
 {
     Polygons boundary;
     if (enable_travel_optimization && ! comb_boundary_minimum.empty())
@@ -1199,13 +1185,13 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons,
 }
 
 
-void LayerPlan::addLinesInGivenOrder(const std::vector<PathOrderPath<ConstPolygonPointer>>& paths, const GCodePathConfig& config, const SpaceFillType space_fill_type, const coord_t wipe_dist, const Ratio flow_ratio, const double fan_speed)
+void LayerPlan::addLinesInGivenOrder(const std::vector<PathOrdering<ConstPolygonPointer>>& paths, const GCodePathConfig& config, const SpaceFillType space_fill_type, const coord_t wipe_dist, const Ratio flow_ratio, const double fan_speed)
 {
     coord_t half_line_width = config.getLineWidth() / 2;
     coord_t line_width_2 = half_line_width * half_line_width;
     for (size_t order_idx = 0; order_idx < paths.size(); order_idx++)
     {
-        const PathOrderPath<ConstPolygonPointer>& path = paths[order_idx];
+        const PathOrdering<ConstPolygonPointer>& path = paths[order_idx];
         ConstPolygonRef polyline = *path.vertices;
         const size_t start_idx = path.start_vertex;
         assert(start_idx == 0 || start_idx == polyline.size() - 1 || path.is_closed);
@@ -1274,7 +1260,7 @@ void LayerPlan::addLinesInGivenOrder(const std::vector<PathOrderPath<ConstPolygo
             // Don't wipe if next starting point is very near
             if (wipe && (order_idx < paths.size() - 1))
             {
-                const PathOrderPath<ConstPolygonPointer>& next_path = paths[order_idx + 1];
+                const PathOrdering<ConstPolygonPointer>& next_path = paths[order_idx + 1];
                 ConstPolygonRef next_polygon = *next_path.vertices;
                 const size_t next_start = next_path.start_vertex;
                 const Point& next_p0 = next_polygon[next_start];
@@ -1515,13 +1501,14 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         double target_speed = 0.0;
         std::function<double(const GCodePath&)> slow_down_func
         {
-            [&target_speed](const GCodePath& path) { return target_speed / (path.config->getSpeed() * path.speed_factor); }
+            [&target_speed](const GCodePath& path) { return std::min(target_speed / (path.config->getSpeed() * path.speed_factor), 1.0); }
         };
 
         if (minExtrudeTime >= total_extrude_time_at_minimum_speed)
         {
             // Even at cool min speed extrusion is not taken enough time. So speed is set to cool min speed.
             target_speed = minimalSpeed;
+            temperatureFactor = 1.0;
 
             // Update stored naive time estimates
             estimates.extrude_time = total_extrude_time_at_minimum_speed;
@@ -1536,6 +1523,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
             // Linear interpolate between total_extrude_time_at_slowest_speed and total_extrude_time_at_minimum_speed
             const double factor = (total_extrude_time_at_minimum_speed - minExtrudeTime) / (total_extrude_time_at_minimum_speed - total_extrude_time_at_slowest_speed);
             target_speed = minimalSpeed * (1.0-factor) + slowest_path_speed * factor;
+            temperatureFactor = 1.0 - factor;
 
             // Update stored naive time estimates
             estimates.extrude_time = minExtrudeTime;
@@ -1549,7 +1537,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
                 [&slowest_path_speed = slowest_path_speed, &factor](const GCodePath& path)
                 {
                     const double target_speed = slowest_path_speed * (1.0 - factor) + (path.config->getSpeed() * path.speed_factor) * factor;
-                    return target_speed / (path.config->getSpeed() * path.speed_factor);
+                    return std::min(target_speed / (path.config->getSpeed() * path.speed_factor), 1.0);
                 };
 
             // Update stored naive time estimates
@@ -1562,8 +1550,9 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
             {
                 continue;
             }
-            path.speed_factor = slow_down_func(path);
-            path.estimates.extrude_time /= path.speed_factor;
+            Ratio slow_down_factor = slow_down_func(path);
+            path.speed_factor *= slow_down_factor;
+            path.estimates.extrude_time /= slow_down_factor;
         }
     }
 }
@@ -1984,7 +1973,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 {
                     gcode.writeTravel(path.points[point_idx], speed);
                 }
-                if (path.unretract_before_last_travel_move)
+                if (path.unretract_before_last_travel_move && final_travel_z == z)
                 {
                     // We need to unretract before the last travel move of the path if the next path is an outer wall.
                     gcode.writeUnretractionAndPrime();
@@ -2078,14 +2067,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             const RetractionAndWipeConfig& retraction_config = current_mesh ? current_mesh->retraction_wipe_config: storage.retraction_wipe_config_per_extruder[gcode.getExtruderNr()];
             gcode.writeRetraction(retraction_config.retraction_config);
             if (extruder_plan_idx == extruder_plans.size() - 1 || ! extruder.settings.get<bool>("machine_extruder_end_pos_abs"))
-            {   // Only move the head if it's the last extruder plan; otherwise it's already at the switching bay area or do it anyway when we switch extruder in-place.
-                gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
-                gcode.writeTravel(gcode.getPositionXY(), configs_storage.travel_config_per_extruder[extruder_nr].getSpeed());
-
-                const Point current_pos = gcode.getPositionXY();
-                const Point machine_middle = storage.machine_size.flatten().getMiddle();
-                const Point toward_middle_of_bed = current_pos - normal(current_pos - machine_middle, MM2INT(20.0));
-                gcode.writeTravel(toward_middle_of_bed, configs_storage.travel_config_per_extruder[extruder_nr].getSpeed());
+            { // only do the z-hop if it's the last extruder plan; otherwise it's already at the switching bay area
+                // or do it anyway when we switch extruder in-place
+                gcode.writeZhopStart(MM2INT(3.0));
             }
             gcode.writeDelay(extruder_plan.extraTime);
         }

@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_POLYGON_H
 #define UTILS_POLYGON_H
@@ -297,6 +297,18 @@ public:
             return border_result;
         }
         return res == 1;
+    }
+
+    bool inside(const auto& polygon) const
+    {
+        for (const auto& point : *path)
+        {
+            if (! ClipperLib::PointInPolygon(point, *polygon.path))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     /*!
@@ -1245,6 +1257,22 @@ public:
      * However, holes that are contained within outlines whose area is below the threshold are removed though.
      */
     void removeSmallAreas(const double min_area_size, const bool remove_holes = false);
+
+    /*!
+     * Removes polygons with circumference smaller than \p min_circumference_size (in micron).
+     * Unless \p remove_holes is true, holes are not removed even if their circumference is below \p min_circumference_size.
+     * However, holes that are contained within outlines whose circumference is below the threshold are removed though.
+     */
+    [[maybe_unused]] void removeSmallCircumference(const coord_t min_circumference_size, const bool remove_holes = false);
+
+    /*!
+     * Removes polygons with circumference smaller than \p min_circumference_size (in micron) _and_
+     * an area smaller then \p min_area_size (note that min_area_size is in mm^2, not in micron^2).
+     * Unless \p remove_holes is true, holes are not removed even if their circumference is
+     * below \p min_circumference_size and their area smaller then \p min_area_size.
+     * However, holes that are contained within outlines whose circumference is below the threshold are removed though.
+     */
+    void removeSmallAreaCircumference(const double min_area_size, const coord_t min_circumference_size, const bool remove_holes = false);
 
     /*!
      * Removes overlapping consecutive line segments which don't delimit a

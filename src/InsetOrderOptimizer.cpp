@@ -1,13 +1,34 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "InsetOrderOptimizer.h"
 #include "ExtruderTrain.h"
 #include "FffGcodeWriter.h"
+#include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
-#include "WallToolPaths.h"
+#include "utils/views/convert.h"
+#include "utils/views/dfs.h"
+#include <spdlog/spdlog.h>
 
 #include <iterator>
+#include <tuple>
+
+#include <range/v3/algorithm/max.hpp>
+#include <range/v3/algorithm/sort.hpp>
+#include <range/v3/range/operations.hpp>
+#include <range/v3/to_container.hpp>
+#include <range/v3/view/addressof.hpp>
+#include <range/v3/view/any_view.hpp>
+#include <range/v3/view/drop.hpp>
+#include <range/v3/view/drop_last.hpp>
+#include <range/v3/view/join.hpp>
+#include <range/v3/view/remove_if.hpp>
+#include <range/v3/view/reverse.hpp>
+#include <range/v3/view/take_exactly.hpp>
+#include <range/v3/view/transform.hpp>
+#include <range/v3/view/zip.hpp>
+
+namespace rg = ranges;
+namespace rv = ranges::views;
 
 namespace cura
 {
@@ -45,8 +66,6 @@ InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer,
     , z_seam_config(z_seam_config)
     , paths(paths)
     , layer_nr(gcode_layer.getLayerNr())
-    , added_something(false)
-    , retraction_region_calculated(false)
 {
 }
 
@@ -61,45 +80,8 @@ bool InsetOrderOptimizer::addToLayer()
     const bool use_one_extruder = wall_0_extruder_nr == wall_x_extruder_nr;
     const bool current_extruder_is_wall_x = wall_x_extruder_nr == extruder_nr;
 
-    const auto should_reverse = [&]()
-    {
-        if (use_one_extruder && current_extruder_is_wall_x)
-        {
-            // The entire wall is printed with the current extruder.
-            // Reversing the insets now depends on the inverse of the inset direction.
-            // If we want to print the outer insets first we start with the lowest and move forward
-            // otherwise we start with the highest and iterate back.
-            return ! outer_to_inner;
-        }
-        // If the wall is partially printed with the current extruder we need to move forward
-        // for the outer wall extruder and iterate back for the inner wall extruder
-        return current_extruder_is_wall_x;
-    }; // Helper lambda to ensure that the reverse bool can be a const type
-    const bool reverse = should_reverse();
-
-    // Switches the begin()...end() forward iterator for a rbegin()...rend() reverse iterator
-    // I can't wait till we use the C++20 standard and have access to ranges and views
-    const auto get_walls_to_be_added = [&](const bool reverse, const std::vector<VariableWidthLines>& paths)
-    {
-        if (paths.empty())
-        {
-            return std::vector<const ExtrusionLine*>{};
-        }
-        if (reverse)
-        {
-            if (use_one_extruder)
-            {
-                return wallsToBeAdded(paths.rbegin(), paths.rend()); // Complete wall with one extruder
-            }
-            return wallsToBeAdded(paths.rbegin(), std::prev(paths.rend())); // Ignore inner wall
-        }
-        if (use_one_extruder)
-        {
-            return wallsToBeAdded(paths.begin(), paths.end()); // Complete wall with one extruder
-        }
-        return wallsToBeAdded(paths.begin(), std::next(paths.begin())); // Ignore outer wall
-    };
-    const auto walls_to_be_added = get_walls_to_be_added(reverse, paths);
+    const bool reverse = shouldReversePath(use_one_extruder, current_extruder_is_wall_x, outer_to_inner);
+    auto walls_to_be_added = getWallsToBeAdded(reverse, use_one_extruder);
 
     const auto order = pack_by_inset ? getInsetOrder(walls_to_be_added, outer_to_inner) : getRegionOrder(walls_to_be_added, outer_to_inner);
 
@@ -109,28 +91,27 @@ bool InsetOrderOptimizer::addToLayer()
 
     constexpr bool detect_loops = false;
     constexpr Polygons* combing_boundary = nullptr;
+    constexpr bool group_outer_walls = true;
     // When we alternate walls, also alternate the direction at which the first wall starts in.
     // On even layers we start with normal direction, on odd layers with inverted direction.
-    constexpr bool reverse_all_paths = false;
-    PathOrderOptimizer<const ExtrusionLine*> order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops, combing_boundary, reverse_all_paths, order);
+    PathOrderOptimizer<const ExtrusionLine*> order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops, combing_boundary, reverse, order, group_outer_walls);
 
-    for (const ExtrusionLine* line : walls_to_be_added)
+    for (const auto& line : walls_to_be_added)
     {
-        if (line->is_closed)
+        if (line.is_closed)
         {
-            order_optimizer.addPolygon(line);
+            order_optimizer.addPolygon(&line);
         }
         else
         {
-            order_optimizer.addPolyline(line);
+            order_optimizer.addPolyline(&line);
         }
     }
-
 
     order_optimizer.optimize();
 
     cura::Point p_end{ 0, 0 };
-    for (const PathOrderPath<const ExtrusionLine*>& path : order_optimizer.paths)
+    for (const PathOrdering<const ExtrusionLine*>& path : order_optimizer.paths)
     {
         if (path.vertices->empty())
             continue;
@@ -159,142 +140,178 @@ bool InsetOrderOptimizer::addToLayer()
     return added_something;
 }
 
-
-std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getRegionOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner)
+InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& input, const bool outer_to_inner)
 {
-    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order_requirements;
-
-    // We build a grid where we map toolpath vertex locations to toolpaths,
-    // so that we can easily find which two toolpaths are next to each other,
-    // which is the requirement for there to be an order constraint.
-    //
-    // We use a PointGrid rather than a LineGrid to save on computation time.
-    // In very rare cases two insets might lie next to each other without having neighboring vertices, e.g.
-    //  \            .
-    //   |  /        .
-    //   | /         .
-    //   ||          .
-    //   | \         .
-    //   |  \        .
-    //  /            .
-    // However, because of how Arachne works this will likely never be the case for two consecutive insets.
-    // On the other hand one could imagine that two consecutive insets of a very large circle
-    // could be simplify()ed such that the remaining vertices of the two insets don't align.
-    // In those cases the order requirement is not captured,
-    // which means that the PathOrderOptimizer *might* result in a violation of the user set path order.
-    // This problem is expected to be not so severe and happen very sparsely.
-
-    coord_t max_line_w = 0u;
-    for (const ExtrusionLine* line : input)
-    { // compute max_line_w
-        for (const ExtrusionJunction& junction : *line)
-        {
-            max_line_w = std::max(max_line_w, junction.w);
-        }
+    if (input.empty()) // Early out
+    {
+        return {};
     }
-    if (max_line_w == 0u)
-        return order_requirements;
 
+    // Cache the polygons and get the signed area of each extrusion line and store them mapped against the pointers for those lines
     struct LineLoc
     {
-        ExtrusionJunction j;
         const ExtrusionLine* line;
+        Polygon poly;
+        double area;
     };
-    struct Locator
+    auto poly_views = input | views::convert<Polygon>(&ExtrusionLine::toPolygon);
+    auto pointer_view = input | rv::addressof;
+    auto locator_view = rv::zip(pointer_view, poly_views)
+                      | rv::transform(
+                            [](const auto& locator)
+                            {
+                                const auto poly = std::get<1>(locator);
+                                const auto line = std::get<0>(locator);
+                                return LineLoc {
+                                    .line = line,
+                                    .poly = poly,
+                                    .area = line->is_closed ? poly.area() : 0.0,
+                                };
+                            })
+                      | rg::to_vector;
+
+    // Sort polygons by increasing area, we are building the graph from the leaves (smallest area) upwards.
+    rg::sort( locator_view, [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &LineLoc::area);
+
+    // Create a bi-direction directed acyclic graph (Tree). Where polygon B is a child of A if B is inside A. The root of the graph is
+    // the polygon that contains all other polygons. The leaves are polygons that contain no polygons.
+    // We need a bi-directional graph as we are performing a dfs from the root down and from each of the hole (which are leaves in the graph) up the tree
+    std::unordered_multimap<const LineLoc*, const LineLoc*> graph;
+    std::unordered_set<LineLoc*> roots{ &rg::front(locator_view) };
+    for (const auto& locator : locator_view | rv::addressof | rv::drop(1))
     {
-        Point operator()(const LineLoc& elem)
+        std::vector<LineLoc*> erase;
+        for (const auto& root : roots)
         {
-            return elem.j.p;
+            if (root->poly.inside(locator->poly))
+            {
+                // The root polygon is inside the location polygon. It is no longer a root in the graph we are building.
+                // Add this relationship (locator <-> root) to the graph, and remove root from roots.
+                graph.emplace(locator, root);
+                graph.emplace(root, locator);
+                erase.emplace_back(root);
+            }
         }
-    };
-
-    // How much farther two verts may be apart due to corners.
-    // This distance must be smaller than 2, because otherwise
-    // we could create an order requirement between e.g.
-    // wall 2 of one region and wall 3 of another region,
-    // while another wall 3 of the first region would lie in between those two walls.
-    // However, higher values are better against the limitations of using a PointGrid rather than a LineGrid.
-    constexpr float diagonal_extension = 1.9;
-    const coord_t searching_radius = max_line_w * diagonal_extension;
-    using GridT = SparsePointGrid<LineLoc, Locator>;
-    GridT grid(searching_radius);
-
-
-    for (const ExtrusionLine* line : input)
-    {
-        for (const ExtrusionJunction& junction : *line)
+        for (const auto& node : erase)
         {
-            grid.insert(LineLoc{ junction, line });
+            roots.erase(node);
+        }
+        // We are adding to the graph from smallest area -> largest area. This means locator will always be the largest polygon in the graph so far.
+        // No polygon in the graph is big enough to contain locator, so it must be a root.
+        roots.emplace(locator);
+    }
+
+    std::unordered_multimap<const ExtrusionLine*, const ExtrusionLine*> order;
+
+    for (const LineLoc* root : roots)
+    {
+        std::map<const LineLoc*, unsigned int> min_depth;
+        std::map<const LineLoc*, const LineLoc*> min_node;
+        std::vector<const LineLoc*> hole_roots;
+
+        // Responsible for the following initialization
+        // - initialize all reachable nodes to root
+        // - mark all reachable nodes with their depth from the root
+        // - find hole roots, these are the innermost polygons enclosing a hole
+        {
+            const std::function<void(const LineLoc*, const unsigned int)> initialize_nodes =
+                [graph, root, &hole_roots, &min_node, &min_depth]
+                (const auto current_node, const auto depth)
+                {
+                    min_node[current_node] = root;
+                    min_depth[current_node] = depth;
+
+                    // find hole roots (defined by a positive area in clipper1), these are leaves of the tree structure
+                    // as odd walls are also leaves we filter them out by adding a non-zero area check
+                    if (current_node != root && graph.count(current_node) == 1 && current_node->line->is_closed && current_node->area > 0)
+                    {
+                        hole_roots.push_back(current_node);
+                    }
+                };
+
+            actions::dfs_depth_state(root, graph, initialize_nodes);
+        };
+
+        // For each hole root perform a dfs, and keep track of depth from hole root
+        // if the depth to a node is smaller than a depth calculated from another root update
+        // min_depth and min_node
+        {
+            for (auto& hole_root : hole_roots)
+            {
+                const std::function<void(const LineLoc*, const unsigned int)> update_nodes =
+                    [hole_root, &min_depth, &min_node]
+                    (const auto& current_node, auto depth)
+                    {
+                        if (depth < min_depth[current_node])
+                        {
+                            min_depth[current_node] = depth;
+                            min_node[current_node] = hole_root;
+                        }
+                    };
+
+                actions::dfs_depth_state(hole_root, graph, update_nodes);
+            }
+        };
+
+        // perform a dfs from the root and all hole roots $r$ and set the order constraints for each polyline for which
+        // the depth is closest to root $r$
+        {
+            const LineLoc* root_ = root;
+            const std::function<void(const LineLoc*, const LineLoc*)> set_order_constraints =
+                [&order, &min_node, &root_, graph, outer_to_inner]
+                (const auto& current_node, const auto& parent_node)
+                {
+                   if (min_node[current_node] == root_ && parent_node != nullptr)
+                   {
+                       if (outer_to_inner)
+                       {
+                           order.insert(std::make_pair(parent_node->line, current_node->line));
+                       }
+                       else
+                       {
+                           order.insert(std::make_pair(current_node->line, parent_node->line));
+                       }
+                   }
+                };
+
+            actions::dfs_parent_state(root, graph, set_order_constraints);
+
+            for (auto& hole_root : hole_roots)
+            {
+                root_ = hole_root;
+                actions::dfs_parent_state(hole_root, graph, set_order_constraints);
+            }
         }
     }
-    for (const std::pair<SquareGrid::GridPoint, LineLoc>& pair : grid)
-    {
-        const LineLoc& lineloc_here = pair.second;
-        const ExtrusionLine* here = lineloc_here.line;
-        Point loc_here = pair.second.j.p;
-        std::vector<LineLoc> nearby_verts = grid.getNearby(loc_here, searching_radius);
-        for (const LineLoc& lineloc_nearby : nearby_verts)
-        {
-            const ExtrusionLine* nearby = lineloc_nearby.line;
-            if (nearby == here)
-                continue;
-            if (nearby->inset_idx == here->inset_idx)
-                continue;
-            if (nearby->inset_idx > here->inset_idx + 1)
-                continue; // not directly adjacent
-            if (here->inset_idx > nearby->inset_idx + 1)
-                continue; // not directly adjacent
-            if (! shorterThan(loc_here - lineloc_nearby.j.p, (lineloc_here.j.w + lineloc_nearby.j.w) / 2 * diagonal_extension))
-                continue; // points are too far away from each other
-            if (here->is_odd || nearby->is_odd)
-            {
-                if (here->is_odd && ! nearby->is_odd && nearby->inset_idx < here->inset_idx)
-                {
-                    order_requirements.emplace(std::make_pair(nearby, here));
-                }
-                if (nearby->is_odd && ! here->is_odd && here->inset_idx < nearby->inset_idx)
-                {
-                    order_requirements.emplace(std::make_pair(here, nearby));
-                }
-            }
-            else if ((nearby->inset_idx < here->inset_idx) == outer_to_inner)
-            {
-                order_requirements.emplace(std::make_pair(nearby, here));
-            }
-            else
-            {
-                assert((nearby->inset_idx > here->inset_idx) == outer_to_inner);
-                order_requirements.emplace(std::make_pair(here, nearby));
-            }
-        }
-    }
-    return order_requirements;
+
+    // flip the key values if we want to print from inner to outer walls
+    return order;
 }
 
-std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getInsetOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner)
+InsetOrderOptimizer::value_type InsetOrderOptimizer::getInsetOrder(const auto& input, const bool outer_to_inner)
 {
-    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order;
+    value_type order;
 
     std::vector<std::vector<const ExtrusionLine*>> walls_by_inset;
     std::vector<std::vector<const ExtrusionLine*>> fillers_by_inset;
 
-    for (const ExtrusionLine* line : input)
+    for (const auto& line : input)
     {
-        if (line->is_odd)
+        if (line.is_odd)
         {
-            if (line->inset_idx >= fillers_by_inset.size())
+            if (line.inset_idx >= fillers_by_inset.size())
             {
-                fillers_by_inset.resize(line->inset_idx + 1);
+                fillers_by_inset.resize(line.inset_idx + 1);
             }
-            fillers_by_inset[line->inset_idx].emplace_back(line);
+            fillers_by_inset[line.inset_idx].emplace_back(&line);
         }
         else
         {
-            if (line->inset_idx >= walls_by_inset.size())
+            if (line.inset_idx >= walls_by_inset.size())
             {
-                walls_by_inset.resize(line->inset_idx + 1);
+                walls_by_inset.resize(line.inset_idx + 1);
             }
-            walls_by_inset[line->inset_idx].emplace_back(line);
+            walls_by_inset[line.inset_idx].emplace_back(&line);
         }
     }
     for (size_t inset_idx = 0; inset_idx + 1 < walls_by_inset.size(); inset_idx++)
@@ -329,5 +346,40 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     return order;
 }
 
+constexpr bool InsetOrderOptimizer::shouldReversePath(const bool use_one_extruder, const bool current_extruder_is_wall_x, const bool outer_to_inner)
+{
+    if (use_one_extruder && current_extruder_is_wall_x)
+    {
+        return ! outer_to_inner;
+    }
+    return current_extruder_is_wall_x;
+}
 
+std::vector<ExtrusionLine> InsetOrderOptimizer::getWallsToBeAdded(const bool reverse, const bool use_one_extruder)
+{
+    rg::any_view<VariableWidthLines> view;
+    if (reverse)
+    {
+        if (use_one_extruder)
+        {
+            view = paths | rv::reverse;
+        }
+        else
+        {
+            view = paths | rv::reverse | rv::drop_last(1);
+        }
+    }
+    else
+    {
+        if (use_one_extruder)
+        {
+            view = paths | rv::all;
+        }
+        else
+        {
+            view = paths | rv::take_exactly(1);
+        }
+    }
+    return view | rv::join | rv::remove_if(rg::empty) | rg::to_vector;
+}
 } // namespace cura
