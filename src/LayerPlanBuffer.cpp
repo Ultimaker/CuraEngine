@@ -148,6 +148,7 @@ void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, c
             const Duration time_before_path_end = acc_time - time_after_extruder_plan_start;
             bool wait = false;
             extruder_plan_before.insertCommand(path_idx, extruder_nr, temp, wait, time_this_path - time_before_path_end);
+            spdlog::info("Insert temp command temp: {}  time: {}", temp, time_this_path - time_before_path_end);
             return;
         }
     }
@@ -177,12 +178,13 @@ Preheat::WarmUpResult LayerPlanBuffer::computeStandbyTempPlan(std::vector<Extrud
             constexpr bool during_printing = false;
             Preheat::WarmUpResult warm_up = preheat_config.getWarmUpPointAfterCoolDown(in_between_time, extruder, temp_before, extruder_settings.get<Temperature>("material_standby_temperature"), initial_print_temp, during_printing);
             warm_up.heating_time = std::min(in_between_time, warm_up.heating_time + extra_preheat_time);
+            spdlog::info("warm_up: heating_time: {}, lowest_temperature: {} total_time_window: {}", warm_up.heating_time, warm_up.lowest_temperature, warm_up.total_time_window);
             return warm_up;
         }
         in_between_time += extruder_plan_before.estimates.getTotalTime();
     }
     // The last extruder plan with the same extruder falls outside of the buffer
-    // assume the nozzle has cooled down to strandby temperature already.
+    // assume the nozzle has cooled down to standby temperature already.
     Preheat::WarmUpResult warm_up;
     warm_up.total_time_window = in_between_time;
     warm_up.lowest_temperature = extruder_settings.get<Temperature>("material_standby_temperature");
@@ -194,6 +196,7 @@ Preheat::WarmUpResult LayerPlanBuffer::computeStandbyTempPlan(std::vector<Extrud
         warm_up.lowest_temperature = initial_print_temp - in_between_time * extruder_settings.get<Temperature>("machine_nozzle_heat_up_speed");
     }
     warm_up.heating_time = warm_up.heating_time + extra_preheat_time;
+
     return warm_up;
 }
 

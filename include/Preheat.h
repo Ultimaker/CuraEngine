@@ -53,28 +53,28 @@ public:
     Temperature getTemp(const size_t extruder, const Ratio& flow, const bool is_initial_layer);
 
     /*!
-     * Decide when to start warming up again after starting to cool down towards \p temp_mid.
+     * Decide when to start warming up again after starting to cool down towards \p temp_standby.
      * Two cases are considered: 
      * the case where the standby temperature is reached  \__/    .
      * and the case where it isn't  \/    .
      * 
-     * \warning it is assumed that \p temp_mid is lower than both \p temp_start and \p temp_end. If not somewhat weird results may follow.
+     * \warning it is assumed that \p temp_standby is lower than both \p temp_start and \p temp_end. If not somewhat weird results may follow.
      * 
     //                    ,temp_end
     //                   /                                    .
     //     ,temp_start  /                                     .
     //      \          /                                      .
     //       \________/                                       .
-    //               "-> temp_mid
+    //               "-> temp_standby
      * \param window_time The time window within which the cooldown and heat up must take place.
      * \param extruder The extruder used
      * \param temp_start The temperature from which to start cooling down
-     * \param temp_mid The temeprature to which we try to cool down
+     * \param temp_standby The temeprature to which we try to cool down
      * \param temp_end The temperature to which we need to have heated up at the end of the \p time_window
      * \param during_printing Whether the warming up and cooling down is performed during printing
      * \return The time before the end of the @p time_window to insert the preheat command and the temperature from which the heating starts
      */
-    WarmUpResult getWarmUpPointAfterCoolDown(double time_window, unsigned int extruder, double temp_start, double temp_mid, double temp_end, bool during_printing);
+    WarmUpResult getWarmUpPointAfterCoolDown(double time_window, unsigned int extruder, double temp_start, double temp_standby, double temp_end, bool during_printing);
 
     /*!
      * Decide when to start cooling down again after starting to warm up towards the \p temp_mid

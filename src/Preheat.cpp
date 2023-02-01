@@ -50,7 +50,7 @@ Temperature Preheat::getTemp(const size_t extruder, const Ratio& flow, const boo
     return extruder_settings.get<Temperature>("material_print_temperature");
 }
 
-Preheat::WarmUpResult Preheat::getWarmUpPointAfterCoolDown(double time_window, unsigned int extruder, double temp_start, double temp_mid, double temp_end, bool during_printing)
+Preheat::WarmUpResult Preheat::getWarmUpPointAfterCoolDown(double time_window, unsigned int extruder, double temp_start, double temp_standby, double temp_end, bool during_printing)
 {
     WarmUpResult result;
     const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder].settings;
@@ -73,18 +73,25 @@ Preheat::WarmUpResult Preheat::getWarmUpPointAfterCoolDown(double time_window, u
     //     ,temp_start  /                                     .
     //      \ ' ' ' ' '/ ' ' '> outer_temp                    .
     //       \________/                                       .
-    //               "-> temp_mid
+    //               "-> temp_standby
     //      ^^^^^^^^^^
     //      limited_time_window
     double outer_temp;
     double limited_time_window;
-    spdlog::info("initial/end: {}, temp_start: {}", temp_end, temp_start);
+    spdlog::info("PASSIVE EXTRUDER: temp_start/final: {}, temp_standby/standby: {}, end/initial: {}", temp_start, temp_standby, temp_end);
+    double total_temp_increase = 0.0;
+    double total_temp_decrease = 0.0;
+    double total_time_increase = 0.0;
+    double total_time_decrease = 0.0;
     if (temp_start < temp_end)
     { // extra time needed during heating
         double extra_heatup_time = (temp_end - temp_start) * time_to_heatup_1_degree;
         result.heating_time = extra_heatup_time;
         limited_time_window = time_window - extra_heatup_time;
         outer_temp = temp_start;
+
+        total_time_increase += extra_heatup_time;
+        total_temp_increase += temp_end - temp_start;
     }
     else
     {
@@ -92,33 +99,54 @@ Preheat::WarmUpResult Preheat::getWarmUpPointAfterCoolDown(double time_window, u
         result.heating_time = 0;
         limited_time_window = time_window - extra_cooldown_time;
         outer_temp = temp_end;
+
+        total_time_decrease += extra_cooldown_time;
+        total_temp_decrease += temp_start - temp_end;
     }
     if (limited_time_window < 0.0)
     {
         result.heating_time = 0.0;
-        result.lowest_temperature = std::min(temp_start, temp_end);
+        result.lowest_temperature = outer_temp;
+        spdlog::info("Early Exit");
+        spdlog::info("total_temp_decrease / total_time_decrease: {}", total_temp_decrease / total_time_decrease);
+        spdlog::info("total_temp_increase / total_time_increase: {}", total_temp_increase / total_time_increase);
         return result;
     }
 
     double time_ratio_cooldown_heatup = time_to_cooldown_1_degree / time_to_heatup_1_degree;
     spdlog::info("The heatup Stuff:");
-    double time_to_heat_from_standby_to_print_temp = getTimeToGoFromTempToTemp(extruder, temp_mid, outer_temp, during_printing);
-    double time_needed_to_reach_standby_temp = time_to_heat_from_standby_to_print_temp * (1.0 + time_ratio_cooldown_heatup);
+    double time_to_heat_from_standby_to_print_temp = getTimeToGoFromTempToTemp(extruder, temp_standby, outer_temp, during_printing);
+    double time_needed_to_reach_standby_temp = time_to_heat_from_standby_to_print_temp + (time_to_heat_from_standby_to_print_temp * time_ratio_cooldown_heatup);
+
     if (time_needed_to_reach_standby_temp < limited_time_window)
     {
         result.heating_time += time_to_heat_from_standby_to_print_temp;
-        result.lowest_temperature = temp_mid;
+        result.lowest_temperature = temp_standby;
+
+        total_time_increase += time_to_heat_from_standby_to_print_temp;
+        total_temp_increase += outer_temp - temp_standby;
+        total_time_decrease += time_to_heat_from_standby_to_print_temp * time_ratio_cooldown_heatup;
+        total_temp_decrease += outer_temp - temp_standby;
     }
     else
     {
         result.heating_time += limited_time_window * time_to_heatup_1_degree / (time_to_cooldown_1_degree + time_to_heatup_1_degree);
-        result.lowest_temperature = std::max(temp_mid, temp_end - result.heating_time / time_to_heatup_1_degree);
+        result.lowest_temperature = std::max(temp_standby, temp_end - result.heating_time / time_to_heatup_1_degree);
+
+        total_time_increase += limited_time_window * time_to_heatup_1_degree / (time_to_cooldown_1_degree + time_to_heatup_1_degree);
+        total_temp_increase += outer_temp - std::max(temp_standby, temp_end - result.heating_time / time_to_heatup_1_degree);
+        total_time_decrease += limited_time_window * time_to_heatup_1_degree / (time_to_cooldown_1_degree + time_to_heatup_1_degree) * time_ratio_cooldown_heatup;
+        total_temp_decrease += outer_temp - std::max(temp_standby, temp_end - result.heating_time / time_to_heatup_1_degree);
     }
 
     if (result.heating_time > time_window || result.heating_time < 0.0)
     {
         spdlog::warn("getWarmUpPointAfterCoolDown returns result outside of the time window!");
     }
+
+    spdlog::info("total_temp_decrease / total_time_decrease: {}", total_temp_decrease / total_time_decrease);
+    spdlog::info("total_temp_increase / total_time_increase: {}", total_temp_increase / total_time_increase);
+    spdlog::info("total_time {}", total_time_increase + total_time_decrease);
     return result;
 }
 
@@ -153,6 +181,7 @@ Preheat::CoolDownResult Preheat::getCoolDownPointAfterWarmUp(double time_window,
     //                    ^temp_end
     double outer_temp;
     double limited_time_window;
+    spdlog::info("ACTIVE EXTRUDER: temp_start/initial: {}, temp_mid/printing: {}, temp_end/final: {}", temp_start, temp_mid, temp_end);
     if (temp_start < temp_end)
     { // extra time needed during heating
         double extra_heatup_time = (temp_end - temp_start) * time_to_heatup_1_degree;
