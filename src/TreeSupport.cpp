@@ -330,7 +330,7 @@ std::pair<std::vector<TreeSupport::LineInformation>, std::vector<TreeSupport::Li
         LineInformation resulting_line;
         for (const std::pair<Point, LineStatus>& me : line)
         {
-            if ((evaluatePoint(me) && current == FREEING) || current == KEEPING)
+            if (evaluatePoint(me) == (current == FREEING))
             {
                 if (! resulting_line.empty())
                 {
