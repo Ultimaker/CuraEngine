@@ -11,6 +11,7 @@
 #include "utils/polygonUtils.h"
 #include "utils/VoxelUtils.h"
 
+#include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/view.hpp>
 #include <range/v3/view/zip.hpp>
 
@@ -57,14 +58,16 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
             InterlockingGenerator gen(mesh_a, mesh_b, beam_width_a, beam_width_b, rotation, cell_size, beam_layer_count, interface_dilation, air_dilation, air_filtering);
             gen.generateInterlockingStructure();
         }
-
     }
 }
 
-void InterlockingGenerator::handleThinAreas() const
+void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>& has_all_meshes) const
 {
-    constexpr coord_t number_of_beams_detect = 2;
-    constexpr coord_t number_of_beams_expand = 1;
+    Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const coord_t boundary_avoidance = global_settings.get<int>("interlocking_boundary_avoidance");
+
+    const coord_t number_of_beams_detect = boundary_avoidance;
+    const coord_t number_of_beams_expand = boundary_avoidance - 1;
     constexpr coord_t rounding_errors = 5;
 
     const coord_t max_beam_width = std::max(beam_width_a, beam_width_b);
@@ -72,8 +75,25 @@ void InterlockingGenerator::handleThinAreas() const
     const coord_t expand = (max_beam_width * number_of_beams_expand) + rounding_errors;
     const coord_t close_gaps = std::min(mesh_a.mesh->settings.get<coord_t>("line_width"), mesh_b.mesh->settings.get<coord_t>("line_width")) / 4;
 
-    // Only alter layers when they are present in both mesh, zip should take care if that.
-    for (auto layer : ranges::views::zip(mesh_a.layers, mesh_b.layers))
+    // Make an inclusionary polygon, to only actually handle thin areas near actual microstructures (so not in skin for example).
+    std::vector<Polygons> near_interlock_per_layer; // (std::min(mesh_a.layers.size(), mesh_b.layers.size()), Polygons());
+    near_interlock_per_layer.assign(std::min(mesh_a.layers.size(), mesh_b.layers.size()), Polygons());
+    for (const auto& cell : has_all_meshes)
+    {
+        const Point3 bottom_corner = vu.toLowerCorner(cell);
+        for (int layer_nr = bottom_corner.z; layer_nr < bottom_corner.z + cell_size.z && layer_nr < near_interlock_per_layer.size(); ++layer_nr)
+        {
+            near_interlock_per_layer[layer_nr].add(vu.toPolygon(cell));
+        }
+    }
+    for (auto& near_interlock : near_interlock_per_layer)
+    {
+        near_interlock = near_interlock.offset(rounding_errors).offset(-rounding_errors).unionPolygons().offset(detect);
+        near_interlock.applyMatrix(rotation.inverse());
+    }
+
+    // Only alter layers when they are present in both meshes, zip should take care if that.
+    for (auto [layer_nr, layer] : ranges::views::zip(mesh_a.layers, mesh_b.layers) | ranges::views::enumerate)
     {
         Polygons& polys_a = std::get<0>(layer).polygons;
         Polygons& polys_b = std::get<1>(layer).polygons;
@@ -82,9 +102,9 @@ void InterlockingGenerator::handleThinAreas() const
         const Polygons large_a{ polys_a.offset(-detect).offset(detect) };
         const Polygons large_b{ polys_b.offset(-detect).offset(detect) };
 
-        // Derive the area that the thin areas need to expand into from the information we already have
-        const Polygons thin_expansion_a{ large_b.intersection(polys_a.difference(large_a).offset(expand)).offset(rounding_errors) };
-        const Polygons thin_expansion_b{ large_a.intersection(polys_b.difference(large_b).offset(expand)).offset(rounding_errors) };
+        // Derive the area that the thin areas need to expand into (so the added areas to the thin strips) from the information we already have.
+        const Polygons thin_expansion_a{ large_b.intersection(polys_a.difference(large_a).offset(expand)).intersection(near_interlock_per_layer[layer_nr]).offset(rounding_errors) };
+        const Polygons thin_expansion_b{ large_a.intersection(polys_b.difference(large_b).offset(expand)).intersection(near_interlock_per_layer[layer_nr]).offset(rounding_errors) };
 
         // Expanded thin areas of the opposing polygon should 'eat into' the larger areas of the polygon,
         // and conversely, add the expansions to their own thin areas.
@@ -95,8 +115,6 @@ void InterlockingGenerator::handleThinAreas() const
 
 void InterlockingGenerator::generateInterlockingStructure() const
 {
-    handleThinAreas();
-
     std::vector<std::unordered_set<GridPoint3>> voxels_per_mesh = getShellVoxels(interface_dilation);
 
     std::unordered_set<GridPoint3>& has_any_mesh = voxels_per_mesh[0];
@@ -114,6 +132,8 @@ void InterlockingGenerator::generateInterlockingStructure() const
         {
             has_all_meshes.erase(p);
         }
+
+        handleThinAreas(has_all_meshes);
     }
 
     applyMicrostructureToOutlines(has_all_meshes, layer_regions);
@@ -128,7 +148,6 @@ std::vector<std::unordered_set<GridPoint3>> InterlockingGenerator::getShellVoxel
     {
         Slicer* mesh = (mesh_idx == 0)? &mesh_a : &mesh_b;
         std::unordered_set<GridPoint3>& mesh_voxels = voxels_per_mesh[mesh_idx];
-        
         
         std::vector<Polygons> rotated_polygons_per_layer(mesh->layers.size());
         for (size_t layer_nr = 0; layer_nr < mesh->layers.size(); layer_nr++)

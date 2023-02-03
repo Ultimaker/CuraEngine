@@ -90,8 +90,9 @@ protected:
     /*! Special handling for thin strips of material.
      *
      * Expand the meshes into each other where they need it, namely when a thin strip of material needs to be attached.
+     * \param has_all_meshes Only do this special handling if there's actually microstructure nearby that needs to be adhered to.
      */
-    void handleThinAreas() const;
+    void handleThinAreas(const std::unordered_set<GridPoint3>& has_all_meshes) const;
 
     /*!
      * Compute the voxels overlapping with the shell of both models.
