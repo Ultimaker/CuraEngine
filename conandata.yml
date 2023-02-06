@@ -7,10 +7,11 @@
     - "spdlog/1.10.0"
     - "fmt/9.0.0"
     - "range-v3/0.12.0"
+    - "vtu11/1.2.0"
   requirements_arcus:
     - "protobuf/3.21.4"
     - "arcus/5.2.2"
-    - "zlib/1.2.12"
+    - "zlib/1.2.13"
   build_requirements_arcus:
     - "protobuf/3.21.4"
   build_requirements_testing:
@@ -26,10 +27,11 @@
     - "spdlog/1.10.0"
     - "fmt/9.0.0"
     - "range-v3/0.12.0"
+    - "vtu11/1.2.0"
   requirements_arcus:
     - "protobuf/3.21.4"
     - "arcus/5.2.2"
-    - "zlib/1.2.12"
+    - "zlib/1.2.13"
   build_requirements_arcus:
     - "protobuf/3.21.4"
   build_requirements_testing:
@@ -45,10 +47,11 @@
     - "spdlog/1.10.0"
     - "fmt/9.0.0"
     - "range-v3/0.12.0"
+    - "vtu11/1.2.0"
   requirements_arcus:
     - "protobuf/3.21.4"
     - "arcus/5.2.2"
-    - "zlib/1.2.12"
+    - "zlib/1.2.13"
   build_requirements_arcus:
     - "protobuf/3.21.4"
   build_requirements_testing:
