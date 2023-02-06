@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "ExtruderTrain.h"
@@ -357,6 +357,10 @@ constexpr bool InsetOrderOptimizer::shouldReversePath(const bool use_one_extrude
 
 std::vector<ExtrusionLine> InsetOrderOptimizer::getWallsToBeAdded(const bool reverse, const bool use_one_extruder)
 {
+    if (paths.empty())
+    {
+        return { };
+    }
     rg::any_view<VariableWidthLines> view;
     if (reverse)
     {
