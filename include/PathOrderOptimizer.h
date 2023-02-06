@@ -1,21 +1,27 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef PATHORDEROPTIMIZER_H
 #define PATHORDEROPTIMIZER_H
 
-
+#include <spdlog/spdlog.h>
 #include <unordered_set>
 
 #include "InsetOrderOptimizer.h" // for makeOrderIncludeTransitive
-#include "PathOrderPath.h"
+#include "PathOrdering.h"
 #include "pathPlanning/CombPath.h" //To calculate the combing distance if we want to use combing.
 #include "pathPlanning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
 #include "settings/EnumSettings.h" //To get the seam settings.
 #include "settings/ZSeamConfig.h" //To read the seam configuration.
 #include "utils/linearAlg2D.h" //To find the angle of corners to hide seams.
 #include "utils/polygonUtils.h"
+#include "utils/views/dfs.h"
 #include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/filter.hpp>
+#include <range/v3/algorithm/partition_copy.hpp>
+#include <range/v3/iterator/insert_iterators.hpp>
+#include <range/v3/view/reverse.hpp>
+#include <range/v3/view/addressof.hpp>
 
 namespace cura
 {
@@ -48,10 +54,11 @@ namespace cura
  * \ref get_size in order for the optimizer to know how to read information from
  * your path.
  */
-template<typename PathType>
+template<typename Path>
 class PathOrderOptimizer
 {
 public:
+    using OrderablePath = PathOrdering<Path>;
     /*!
      * After optimizing, this contains the paths that need to be printed in the
      * correct order.
@@ -60,7 +67,12 @@ public:
      * pointer to the vertex data, whether or not to close the loop, the
      * direction in which to print the path and where to start the path.
      */
-    std::vector<PathOrderPath<PathType>> paths;
+    std::vector<OrderablePath> paths;
+
+    /*!
+     * Maps the path implementation to it's orderable path container
+     */
+    std::unordered_map<Path, OrderablePath*> vertices_to_paths;
 
     /*!
      * The location where the nozzle is assumed to start from before printing
@@ -87,13 +99,14 @@ public:
      * it into a polygon.
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
-    PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_loops = false, const Polygons* combing_boundary = nullptr, const bool reverse_direction = false, const std::unordered_set<std::pair<PathType, PathType>>& order_requirements = no_order_requirements)
-    : start_point(start_point)
-    , seam_config(seam_config)
-    , combing_boundary((combing_boundary != nullptr && !combing_boundary->empty()) ? combing_boundary : nullptr)
-    , detect_loops(detect_loops)
-    , reverse_direction(reverse_direction)
-    , order_requirements(&order_requirements)
+    PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_loops = false, const Polygons* combing_boundary = nullptr, const bool reverse_direction = false, const std::unordered_multimap<Path, Path>& order_requirements = no_order_requirements, const bool group_outer_walls = false)
+        : start_point(start_point)
+        , seam_config(seam_config)
+        , combing_boundary((combing_boundary != nullptr && !combing_boundary->empty()) ? combing_boundary : nullptr)
+        , detect_loops(detect_loops)
+        , reverse_direction(reverse_direction)
+        , order_requirements(&order_requirements)
+        , group_outer_walls(group_outer_walls)
     {
     }
 
@@ -101,7 +114,7 @@ public:
      * Add a new polygon to be optimized.
      * \param polygon The polygon to optimize.
      */
-    void addPolygon(const PathType& polygon)
+    void addPolygon(const Path& polygon)
     {
         constexpr bool is_closed = true;
         paths.emplace_back(polygon, is_closed);
@@ -111,7 +124,7 @@ public:
      * Add a new polyline to be optimized.
      * \param polyline The polyline to optimize.
      */
-    void addPolyline(const PathType& polyline)
+    void addPolyline(const Path& polyline)
     {
         constexpr bool is_closed = false;
         paths.emplace_back(polyline, is_closed);
@@ -131,15 +144,16 @@ public:
         }
 
         //Get the vertex data and store it in the paths.
-        for(PathOrderPath<PathType>& path : paths)
+        for(auto& path : paths)
         {
             path.converted = path.getVertexData();
+            vertices_to_paths.emplace(path.vertices, &path);
         }
 
         //If necessary, check polylines to see if they are actually polygons.
         if(detect_loops)
         {
-            for(PathOrderPath<PathType>& path : paths)
+            for(auto& path : paths)
             {
                 if(!path.is_closed)
                 {
@@ -152,9 +166,8 @@ public:
         //Add all vertices to a bucket grid so that we can find nearby endpoints quickly.
         const coord_t snap_radius = 10_mu; // 0.01mm grid cells. Chaining only needs to consider polylines which are next to each other.
         SparsePointGridInclusive<size_t> line_bucket_grid(snap_radius);
-        for(size_t i = 0; i < paths.size(); ++i)
+        for(const auto& [i, path]: paths | ranges::views::enumerate)
         {
-            const PathOrderPath<PathType>& path = paths[i];
             if (path.converted->empty())
             {
                 continue;
@@ -178,150 +191,38 @@ public:
         const bool precompute_start = seam_config.type == EZSeamType::RANDOM || seam_config.type == EZSeamType::USER_SPECIFIED || seam_config.type == EZSeamType::SHARPEST_CORNER;
         if(precompute_start)
         {
-            for(PathOrderPath<PathType>& path : paths)
+            for(auto& path : paths)
             {
-                if(!path.is_closed)
+                if(!path.is_closed || path.converted->empty())
                 {
                     continue; //Can't pre-compute the seam for open polylines since they're at the endpoint nearest to the current position.
-                }
-                if(path.converted->empty())
-                {
-                    continue;
                 }
                 path.start_vertex = findStartLocation(path, seam_config.pos);
             }
         }
-        
-        std::vector<size_t> blocked(paths.size(), 0); // Flag for seeing whether a path is blocked by a preceding toolpath to be printed first (and how many such blocking toolpaths there are)
-        std::vector<std::vector<size_t>> is_blocking(paths.size()); // For each path all paths that it is blocking, i.e. each path that it should precede
-        std::unordered_map<PathType, size_t> path_to_index;
-        for (size_t idx = 0; idx < paths.size(); idx++)
-        {
-            path_to_index.emplace(paths[idx].vertices, idx);
-        }
-        for (auto [before, after] : *order_requirements)
-        {
-            auto after_it = path_to_index.find(after);
-            assert(after_it != path_to_index.end());
-            blocked[after_it->second]++;
 
-            auto before_it = path_to_index.find(before);
-            assert(before_it != path_to_index.end());
-            is_blocking[before_it->second].emplace_back(after_it->second);
+        std::vector<OrderablePath> optimized_order; //To store our result in. At the end we'll std::swap.
+
+        if (order_requirements->empty())
+        {
+            optimized_order = getOptimizedOrder(line_bucket_grid, snap_radius);
+        }
+        else
+        {
+            optimized_order = getOptimizerOrderWithConstraints(line_bucket_grid, snap_radius, *order_requirements);
         }
 
 
-        std::vector<bool> picked(paths.size(), false); //Fixed size boolean flag for whether each path is already in the optimized vector.
-        Point current_position = start_point;
-        std::vector<PathOrderPath<PathType>> optimized_order; //To store our result in. At the end we'll std::swap.
-        optimized_order.reserve(paths.size());
-        while(optimized_order.size() < paths.size())
+        if(reverse_direction && order_requirements->empty())
         {
-            size_t best_candidate = 0;
-            coord_t best_distance2 = std::numeric_limits<coord_t>::max();
-
-            //First see if we already know about some nearby paths due to the line bucket grid.
-            std::vector<size_t> nearby_candidates = line_bucket_grid.getNearbyVals(current_position, snap_radius);
-            std::vector<size_t> available_candidates;
-            available_candidates.reserve(nearby_candidates.size());
-            for(const size_t candidate : nearby_candidates)
-            {
-                if(picked[candidate] || blocked[candidate])
-                {
-                    continue; //Not a valid candidate.
-                }
-                available_candidates.push_back(candidate);
-            }
-            if(available_candidates.empty()) //We may need to broaden our search through all candidates then.
-            {
-                for(size_t candidate = 0; candidate < paths.size(); ++candidate)
-                {
-                    if(picked[candidate] || blocked[candidate])
-                    {
-                        continue; //Not a valid candidate.
-                    }
-                    available_candidates.push_back(candidate);
-                }
-            }
-
-            for(const size_t candidate_path_index : available_candidates)
-            {
-                PathOrderPath<PathType>& path = paths[candidate_path_index];
-                if(path.converted->empty()) //No vertices in the path. Can't find the start position then or really plan it in. Put that at the end.
-                {
-                    if(best_distance2 == std::numeric_limits<coord_t>::max())
-                    {
-                        best_candidate = candidate_path_index;
-                    }
-                    continue;
-                }
-
-                if(!path.is_closed || !precompute_start) //Find the start location unless we've already precomputed it.
-                {
-                    path.start_vertex = findStartLocation(path, current_position);
-                    if(!path.is_closed) //Open polylines start at vertex 0 or vertex N-1. Indicate that they should be reversed if they start at N-1.
-                    {
-                        path.backwards = path.start_vertex > 0;
-                    }
-                }
-                const Point candidate_position = (*path.converted)[path.start_vertex];
-                coord_t distance2 = getDirectDistance(current_position, candidate_position);
-                if(distance2 < best_distance2 && combing_boundary) //If direct distance is longer than best combing distance, the combing distance can never be better, so only compute combing if necessary.
-                {
-                    distance2 = getCombingDistance(current_position, candidate_position);
-                }
-                if(distance2 < best_distance2) //Closer than the best candidate so far.
-                {
-                    best_candidate = candidate_path_index;
-                    best_distance2 = distance2;
-                }
-            }
-
-            PathOrderPath<PathType>& best_path = paths[best_candidate];
-            optimized_order.push_back(best_path);
-            picked[best_candidate] = true;
-            for (size_t unlocked_idx : is_blocking[best_candidate])
-            {
-                blocked[unlocked_idx]--;
-            }
-
-            if(!best_path.converted->empty()) //If all paths were empty, the best path is still empty. We don't upate the current position then.
-            {
-                if(best_path.is_closed)
-                {
-                    current_position = (*best_path.converted)[best_path.start_vertex]; //We end where we started.
-                }
-                else
-                {
-                    //Pick the other end from where we started.
-                    current_position = best_path.start_vertex == 0 ? best_path.converted->back() : best_path.converted->front();
-                }
-            }
-        }
-
-        //Apply the optimized order to the output field. Reverse if ordered to reverse.
-        if(reverse_direction)
-        {
-            //Reverse-insert the optimized order, to invert the ordering.
-            std::vector<PathOrderPath<PathType>> reversed;
-            //Don't replace with swap, assign or insert. They require functions that we can't implement for all template arguments for PathType.
-            reversed.reserve(optimized_order.size());
-            for(auto it = optimized_order.rbegin(); it != optimized_order.rend(); it++)
-            {
-                reversed.push_back(*it);
-                reversed.back().backwards = !reversed.back().backwards;
-                if(!reversed.back().is_closed)
-                {
-                    reversed.back().start_vertex = reversed.back().converted->size() - 1 - reversed.back().start_vertex;
-                }
-            }
+            std::vector<OrderablePath> reversed = reverseOrderPaths(optimized_order);  //Reverse-insert the optimized order, to invert the ordering.
             std::swap(reversed, paths);
         }
         else
         {
             std::swap(optimized_order, paths);
         }
-        
+
         combing_grid.reset();
     }
 protected:
@@ -365,15 +266,315 @@ protected:
      */
     bool reverse_direction;
 
+    /*
+     * Whether to print all outer walls in a group, one after another.
+     *
+     * If this is enabled outer walls will be printed first and then all other
+     * walls will be printed. If reversed they will be printed last.
+     */
+    bool group_outer_walls;
+
+    std::vector<OrderablePath> getOptimizedOrder(SparsePointGridInclusive<size_t> line_bucket_grid, size_t snap_radius)
+    {
+        std::vector<OrderablePath> optimized_order; //To store our result in.
+
+        Point current_position = start_point;
+
+        std::unordered_map<OrderablePath*, bool> picked(paths.size()); //Fixed size boolean flag for whether each path is already in the optimized vector.
+
+        auto isPicked = [&picked](OrderablePath* c) { return picked[c]; };
+        auto notPicked = [&picked](OrderablePath* c) { return !picked[c]; };
+
+        while(optimized_order.size() < paths.size())
+        {
+            //Use bucket grid to find paths within snap_radius
+            std::vector<OrderablePath*> nearby_candidates;
+            for (const auto i : line_bucket_grid.getNearbyVals(current_position, snap_radius))
+            {
+                nearby_candidates.push_back(&paths[i]); // Convert bucket indexes to corresponding paths
+            }
+
+            std::vector<OrderablePath*> available_candidates;
+            available_candidates.reserve(nearby_candidates.size());
+            for(auto candidate : nearby_candidates | ranges::views::filter(notPicked))
+            {
+                available_candidates.push_back(candidate);
+            }
+
+            if(available_candidates.empty()) // We need to broaden our search through all candidates
+            {
+                for(auto path : paths | ranges::views::addressof | ranges::views::filter(notPicked))
+                {
+                    available_candidates.push_back(path);
+                }
+            }
+
+            auto best_candidate = findClosestPath(current_position, available_candidates);
+
+            auto best_path = best_candidate;
+            optimized_order.push_back(*best_path);
+            picked[best_path] = true;
+
+            if(!best_path->converted->empty()) //If all paths were empty, the best path is still empty. We don't upate the current position then.
+            {
+                if(best_path->is_closed)
+                {
+                    current_position = (*best_path->converted)[best_path->start_vertex]; //We end where we started.
+                }
+                else
+                {
+                    //Pick the other end from where we started.
+                    current_position = best_path->start_vertex == 0 ? best_path->converted->back() : best_path->converted->front();
+                }
+            }
+        }
+
+        return optimized_order;
+    }
+
+    std::vector<OrderablePath> getOptimizerOrderWithConstraints(SparsePointGridInclusive<size_t> line_bucket_grid, size_t snap_radius, const std::unordered_multimap<Path, Path>& order_requirements)
+    {
+        std::vector<OrderablePath> optimized_order; //To store our result in.
+
+        // initialize the roots set with all possible nodes
+        std::unordered_set<Path> roots;
+        std::unordered_set<Path> leaves;
+        for (const auto& path : paths)
+        {
+            roots.insert(path.vertices);
+            leaves.insert(path.vertices);
+        }
+
+        // remove all edges from roots with an incoming edge
+        // result is a set of nodes that have no incoming edges; these are by definition the roots
+        for (const auto& [u, v] : order_requirements)
+        {
+            roots.erase(v);
+            leaves.erase(u);
+        }
+
+        // We used a shared visited set between runs of dfs. This is for the case when we reverse the ordering tree.
+        // In this case two roots can share the same children nodes, but we don't want to print them twice.
+        std::unordered_set<Path> visited;
+        Point current_position = start_point;
+
+        std::function<std::vector<Path>(const Path, const std::unordered_multimap<Path, Path>&)> get_neighbours =
+            [current_position, this](const Path current_node, const std::unordered_multimap<Path, Path>& graph)
+        {
+            std::vector<Path> order; // Output order to traverse neighbors
+
+            const auto& [neighbour_begin, neighbour_end] = graph.equal_range(current_node);
+            auto candidates_iterator = ranges::make_subrange(neighbour_begin, neighbour_end);
+            std::unordered_set<Path> candidates;
+            for (const auto& [_, neighbour] : candidates_iterator)
+            {
+                candidates.insert(neighbour);
+            }
+
+            auto local_current_position = current_position;
+            while (candidates.size() != 0)
+            {
+                Path best_candidate = findClosestPathVertices(local_current_position, candidates);
+
+                candidates.erase(best_candidate);
+                order.push_back(best_candidate);
+
+                // update local_current_position
+                auto path = vertices_to_paths[best_candidate];
+
+                if(path->is_closed)
+                {
+                    local_current_position = (*path->converted)[path->start_vertex]; //We end where we started.
+                }
+                else
+                {
+                    //Pick the other end from where we started.
+                    local_current_position = path->start_vertex == 0 ? path->converted->back() : path->converted->front();
+                }
+            }
+
+            return order;
+        };
+
+        const std::function<std::nullptr_t(const Path, const std::nullptr_t)> handle_node =
+            [&current_position, &optimized_order, this]
+            (const Path current_node, const std::nullptr_t _state)
+            {
+                // We should make map from node <-> path for this stuff
+                for (auto& path : paths)
+                {
+                    if (path.vertices == current_node)
+                    {
+                        if(path.is_closed)
+                        {
+                            current_position = (*path.converted)[path.start_vertex]; //We end where we started.
+                        }
+                        else
+                        {
+                            //Pick the other end from where we started.
+                            current_position = path.start_vertex == 0 ? path.converted->back() : path.converted->front();
+                        }
+
+                        // Add to optimized order
+                        optimized_order.push_back(path);
+
+                        break;
+                    }
+                }
+
+                return nullptr;
+            };
+
+        if (group_outer_walls)
+        {
+            if (reverse_direction)
+            {
+                // When the order is reverse the leaves of the order requirement are the outer walls
+                std::unordered_set<Path> outer_walls = leaves;
+
+                // We don't want to add the outerwalls until after we finish all inner walls. Adding them to visited stops dfs from visiting these nodes.
+                visited.insert(outer_walls.begin(), outer_walls.end());
+
+                // Add all inner walls
+                while (! roots.empty())
+                {
+                    Path root = findClosestPathVertices(current_position, roots);
+                    roots.erase(root);
+                    actions::dfs(root, order_requirements, handle_node, visited, nullptr, get_neighbours);
+                }
+
+                // Add all outer walls
+                while (! outer_walls.empty())
+                {
+                    Path wall = findClosestPathVertices(current_position, outer_walls);
+                    outer_walls.erase(wall);
+                    handle_node(wall, nullptr);
+                }
+            }
+            else
+            {
+                // The roots are the outer walls when reverse is false.
+                std::unordered_set<Path> outer_walls = roots;
+
+                // Add all outer walls
+                std::unordered_set<Path> root_neighbours;
+                while (! outer_walls.empty())
+                {
+                    Path outer_wall = findClosestPathVertices(current_position, outer_walls);
+                    outer_walls.erase(outer_wall);
+
+                    handle_node(outer_wall, nullptr);
+                    visited.insert(outer_wall);
+                    for (auto path : get_neighbours(outer_wall, order_requirements))
+                    {
+                        root_neighbours.emplace(path);
+                    }
+                }
+
+                // Add all inner walls
+                while (! root_neighbours.empty())
+                {
+                    Path root_neighbour = findClosestPathVertices(current_position, root_neighbours);
+                    root_neighbours.erase(root_neighbour);
+                    actions::dfs(root_neighbour, order_requirements, handle_node, visited, nullptr, get_neighbours);
+                }
+            }
+        }
+        else
+        {
+            while (!roots.empty())
+            {
+                Path root = findClosestPathVertices(current_position, roots);
+                roots.erase(root);
+
+                actions::dfs(root, order_requirements, handle_node, visited, nullptr, get_neighbours);
+            }
+        }
+
+        return optimized_order;
+    }
+
+    std::vector<OrderablePath> reverseOrderPaths(std::vector<OrderablePath> pathsOrderPaths)
+    {
+        std::vector<OrderablePath> reversed;
+        //Don't replace with swap, assign or insert. They require functions that we can't implement for all template arguments for Path.
+        reversed.reserve(pathsOrderPaths.size());
+        for(auto& path: pathsOrderPaths | ranges::views::reverse)
+        {
+            reversed.push_back(path);
+            reversed.back().backwards = !reversed.back().backwards;
+            if(!reversed.back().is_closed)
+            {
+                reversed.back().start_vertex = reversed.back().converted->size() - 1 - reversed.back().start_vertex;
+            }
+        }
+
+        return reversed;
+    }
+
+    Path findClosestPathVertices(Point start_position, std::unordered_set<Path> candidate_paths)
+    {
+        std::vector<OrderablePath*> candidate_orderable_paths;
+
+        for (auto& path : candidate_paths)
+        {
+            candidate_orderable_paths.push_back(vertices_to_paths.at(path));
+        }
+
+        OrderablePath* best_candidate = findClosestPath(start_position, candidate_orderable_paths);
+        return best_candidate->vertices;
+    }
+
+    OrderablePath* findClosestPath(Point start_position, std::vector<OrderablePath*> candidate_paths)
+    {
+        coord_t best_distance2 = std::numeric_limits<coord_t>::max();
+        OrderablePath* best_candidate = 0;
+
+        for(OrderablePath* path : candidate_paths)
+        {
+            if(path->converted->empty()) //No vertices in the path. Can't find the start position then or really plan it in. Put that at the end.
+            {
+                if(best_distance2 == std::numeric_limits<coord_t>::max())
+                {
+                    best_candidate = path;
+                }
+                continue;
+            }
+
+            const bool precompute_start = seam_config.type == EZSeamType::RANDOM || seam_config.type == EZSeamType::USER_SPECIFIED || seam_config.type == EZSeamType::SHARPEST_CORNER;
+            if(!path->is_closed || !precompute_start) //Find the start location unless we've already precomputed it.
+            {
+                path->start_vertex = findStartLocation(*path, start_position);
+                if(!path->is_closed) //Open polylines start at vertex 0 or vertex N-1. Indicate that they should be reversed if they start at N-1.
+                {
+                    path->backwards = path->start_vertex > 0;
+                }
+            }
+            const Point candidate_position = (*path->converted)[path->start_vertex];
+            coord_t distance2 = getDirectDistance(start_position, candidate_position);
+            if(distance2 < best_distance2 && combing_boundary) //If direct distance is longer than best combing distance, the combing distance can never be better, so only compute combing if necessary.
+            {
+                distance2 = getCombingDistance(start_position, candidate_position);
+            }
+            if(distance2 < best_distance2) //Closer than the best candidate so far.
+            {
+                best_candidate = path;
+                best_distance2 = distance2;
+            }
+        }
+
+        return best_candidate;
+    }
+
 public:
-    static const std::unordered_set<std::pair<PathType, PathType>> no_order_requirements;
+    static const std::unordered_multimap<Path, Path> no_order_requirements;
 
 protected:
     /*!
      * Order requirements on the paths.
      * For each pair the first needs to be printe before the second.
      */
-    const std::unordered_set<std::pair<PathType, PathType>>* order_requirements;
+    const std::unordered_multimap<Path, Path>* order_requirements;
 
     /*!
      * Find the vertex which will be the starting point of printing a polygon or
@@ -391,7 +592,7 @@ protected:
      * endpoints rather than 
      * \return An index to a vertex in that path where printing must start.
      */
-    size_t findStartLocation(const PathOrderPath<PathType>& path, const Point& target_pos)
+    size_t findStartLocation(const OrderablePath& path, const Point& target_pos)
     {
         if(!path.is_closed)
         {
@@ -470,19 +671,19 @@ protected:
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED: //Give sharper corners some advantage, but sharper concave corners even more.
+            {
+                float score_corner = std::abs(corner_angle) * corner_shift;
+                if(corner_angle < 0) //Concave corner.
                 {
-                    float score_corner = std::abs(corner_angle) * corner_shift;
-                    if(corner_angle < 0) //Concave corner.
-                    {
-                        score_corner *= 2;
-                    }
-                    score -= score_corner;
-                    break;
+                    score_corner *= 2;
                 }
+                score -= score_corner;
+                break;
+            }
             }
 
             constexpr float EPSILON = 25.0;
-            if(fabs(best_score - score) <= EPSILON)
+            if(std::abs(best_score - score) <= EPSILON)
             {
                 // add breaker for two candidate starting location with similar score
                 // if we don't do this then we (can) get an un-even seam
@@ -490,7 +691,7 @@ protected:
                 // if x-coord for both points are equal then break ties by
                 // favouring points with lower y-coord
                 const Point& best_point = (*path.converted)[best_i];
-                if(fabs(here.Y - best_point.Y) <= EPSILON ? best_point.X < here.X : best_point.Y < here.Y)
+                if(std::abs(here.Y - best_point.Y) <= EPSILON ? best_point.X < here.X : best_point.Y < here.Y)
                 {
                     best_score = std::min(best_score, score);
                     best_i = i;
@@ -519,7 +720,7 @@ protected:
     * \param fall_off_strength fall of strength of the angle weight
     * \return sum of angles of all points p in range i - angle_query_distance < p < i + angle_query_distance
     */
-    float cornerAngle(const PathOrderPath<PathType>& path, int i, const coord_t angle_query_distance = 100, const float fall_off_strength = 0.5)
+    float cornerAngle(const OrderablePath& path, int i, const coord_t angle_query_distance = 100, const float fall_off_strength = 0.5)
     {
         // If the edge length becomes too small we cannot accurately calculate the angle
         // define a minimum edge length, so we don't get deviant values in the angle calculations
@@ -653,7 +854,7 @@ protected:
         return rand() % polygon.size();
     }
 
-    bool isLoopingPolyline(const PathOrderPath<PathType>& path)
+    bool isLoopingPolyline(const OrderablePath& path)
     {
         if(path.converted->empty())
         {
@@ -663,8 +864,8 @@ protected:
     }
 };
 
-template<typename PathType>
-const std::unordered_set<std::pair<PathType, PathType>> PathOrderOptimizer<PathType>::no_order_requirements;
+template<typename Path>
+const std::unordered_multimap<Path, Path> PathOrderOptimizer<Path>::no_order_requirements;
 
 } //namespace cura
 
