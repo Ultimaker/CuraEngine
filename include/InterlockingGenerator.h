@@ -87,6 +87,12 @@ protected:
     , air_filtering(air_filtering)
     {}
 
+    /*! Aaa
+     *
+     * a
+     */
+    std::pair<Polygons, Polygons> growBorderAreasPerpendicular(const Polygons& a, const Polygons& b, const coord_t& detect) const;
+
     /*! Special handling for thin strips of material.
      *
      * Expand the meshes into each other where they need it, namely when a thin strip of material needs to be attached.

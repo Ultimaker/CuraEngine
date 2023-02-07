@@ -12,6 +12,7 @@
 #include "utils/VoxelUtils.h"
 
 #include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/iota.hpp>
 #include <range/v3/view/view.hpp>
 #include <range/v3/view/zip.hpp>
 
@@ -61,6 +62,24 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     }
 }
 
+std::pair<Polygons, Polygons> InterlockingGenerator::growBorderAreasPerpendicular(const Polygons& a, const Polygons& b, const coord_t& detect) const
+{
+    const coord_t min_line = std::min(mesh_a.mesh->settings.get<coord_t>("min_wall_line_width"), mesh_b.mesh->settings.get<coord_t>("min_wall_line_width"));
+
+    const Polygons total_shrunk = a.offset(min_line).unionPolygons(b.offset(min_line)).offset(2 * -min_line);
+
+    Polygons from_border_a = a.difference(total_shrunk);
+    Polygons from_border_b = b.difference(total_shrunk);
+
+    for (auto _ : ranges::view::iota(0, (detect / min_line) + 2))
+    {
+        from_border_a = from_border_a.offset(min_line).difference(from_border_b);
+        from_border_b = from_border_b.offset(min_line).difference(from_border_a);
+    }
+
+    return { from_border_a, from_border_b};
+}
+
 void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>& has_all_meshes) const
 {
     Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
@@ -76,7 +95,7 @@ void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>
     const coord_t close_gaps = std::min(mesh_a.mesh->settings.get<coord_t>("line_width"), mesh_b.mesh->settings.get<coord_t>("line_width")) / 4;
 
     // Make an inclusionary polygon, to only actually handle thin areas near actual microstructures (so not in skin for example).
-    std::vector<Polygons> near_interlock_per_layer; // (std::min(mesh_a.layers.size(), mesh_b.layers.size()), Polygons());
+    std::vector<Polygons> near_interlock_per_layer;
     near_interlock_per_layer.assign(std::min(mesh_a.layers.size(), mesh_b.layers.size()), Polygons());
     for (const auto& cell : has_all_meshes)
     {
@@ -98,18 +117,22 @@ void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>
         Polygons& polys_a = std::get<0>(layer).polygons;
         Polygons& polys_b = std::get<1>(layer).polygons;
 
+        const auto [from_border_a, from_border_b] = growBorderAreasPerpendicular(polys_a, polys_b, detect);
+
         // Get the areas of each mesh that are _not_ thin (large), by performing a morphological open.
         const Polygons large_a{ polys_a.offset(-detect).offset(detect) };
         const Polygons large_b{ polys_b.offset(-detect).offset(detect) };
 
         // Derive the area that the thin areas need to expand into (so the added areas to the thin strips) from the information we already have.
-        const Polygons thin_expansion_a{ large_b.intersection(polys_a.difference(large_a).offset(expand)).intersection(near_interlock_per_layer[layer_nr]).offset(rounding_errors) };
-        const Polygons thin_expansion_b{ large_a.intersection(polys_b.difference(large_b).offset(expand)).intersection(near_interlock_per_layer[layer_nr]).offset(rounding_errors) };
+        const Polygons thin_expansion_a{ large_b.intersection(polys_a.difference(large_a).offset(expand)).intersection(near_interlock_per_layer[layer_nr]).intersection(from_border_a).offset(rounding_errors) };
+        const Polygons thin_expansion_b{ large_a.intersection(polys_b.difference(large_b).offset(expand)).intersection(near_interlock_per_layer[layer_nr]).intersection(from_border_b).offset(rounding_errors) };
+
+        // TODO??: when 'grow' solution is finished, possibly replace the first 'large' over there with the entire model?
 
         // Expanded thin areas of the opposing polygon should 'eat into' the larger areas of the polygon,
         // and conversely, add the expansions to their own thin areas.
-        polys_a = polys_a.difference(thin_expansion_b).unionPolygons(thin_expansion_a).offset(close_gaps).offset(-close_gaps);
-        polys_b = polys_b.difference(thin_expansion_a).unionPolygons(thin_expansion_b).offset(close_gaps).offset(-close_gaps);
+        polys_a = polys_a.unionPolygons(thin_expansion_a).difference(thin_expansion_b).offset(close_gaps).offset(-close_gaps);
+        polys_b = polys_b.unionPolygons(thin_expansion_b).difference(thin_expansion_a).offset(close_gaps).offset(-close_gaps);
     }
 }
 
