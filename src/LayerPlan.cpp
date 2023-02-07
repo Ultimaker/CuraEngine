@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <algorithm>
@@ -1764,11 +1764,11 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             if (prev_retraction_config.retraction_hop_after_extruder_switch)
             {
                 z_hop_height = prev_retraction_config.extruder_switch_retraction_config.zHop;
-                gcode.switchExtruder(extruder_nr, prev_retraction_config.retraction_config, z_hop_height);
+                gcode.switchExtruder(extruder_nr, prev_retraction_config.extruder_switch_retraction_config, z_hop_height);
             }
             else
             {
-                gcode.switchExtruder(extruder_nr, prev_retraction_config.retraction_config);
+                gcode.switchExtruder(extruder_nr, prev_retraction_config.extruder_switch_retraction_config);
             }
 
             { // require printing temperature to be met
