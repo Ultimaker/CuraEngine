@@ -127,8 +127,6 @@ void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>
         const Polygons thin_expansion_a{ large_b.intersection(polys_a.difference(large_a).offset(expand)).intersection(near_interlock_per_layer[layer_nr]).intersection(from_border_a).offset(rounding_errors) };
         const Polygons thin_expansion_b{ large_a.intersection(polys_b.difference(large_b).offset(expand)).intersection(near_interlock_per_layer[layer_nr]).intersection(from_border_b).offset(rounding_errors) };
 
-        // TODO??: when 'grow' solution is finished, possibly replace the first 'large' over there with the entire model?
-
         // Expanded thin areas of the opposing polygon should 'eat into' the larger areas of the polygon,
         // and conversely, add the expansions to their own thin areas.
         polys_a = polys_a.unionPolygons(thin_expansion_a).difference(thin_expansion_b).offset(close_gaps).offset(-close_gaps);

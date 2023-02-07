@@ -87,9 +87,12 @@ protected:
     , air_filtering(air_filtering)
     {}
 
-    /*! Aaa
+    /*! Given two polygons, return the parts that border on air, and grow 'perpendicular' up to 'detect' distance.
      *
-     * a
+     * \param a The first polygon.
+     * \param b The second polygon.
+     * \param detec The expand distance. (Not equal to offset, but a series of small offsets and differences).
+     * \return A pair of polygons that repressent the 'borders' of a and b, but expanded 'perpendicularly'.
      */
     std::pair<Polygons, Polygons> growBorderAreasPerpendicular(const Polygons& a, const Polygons& b, const coord_t& detect) const;
 
