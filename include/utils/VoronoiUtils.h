@@ -32,6 +32,9 @@ public:
 
     static Point p(const vd_t::vertex_type* node);
     
+    static bool isFinite(const vd_t::vertex_type* const v);
+    static bool hasFiniteEndpoints(const vd_t::edge_type* const edge);
+
     static bool isSourcePoint(Point p, const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments, coord_t snap_dist = 10);
     
     static coord_t getDistance(Point p, const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments);
