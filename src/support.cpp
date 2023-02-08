@@ -1016,7 +1016,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
             // handle straight walls
             AreaSupport::handleWallStruts(infill_settings, layer_this);
             // handle towers
-            AreaSupport::handleTowers(infill_settings, layer_this, tower_roofs, mesh.overhang_points, layer_idx, layer_count);
+            AreaSupport::handleTowers(infill_settings, storage, layer_this, tower_roofs, mesh.overhang_points, layer_idx, layer_count);
         }
 
         if (layer_idx + 1 < layer_count)
@@ -1044,11 +1044,9 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                     if (layer_idx < layer_count - tower_top_layer_count && layer_idx >= tower_top_layer_count + bottom_empty_layer_count)
                     {
                         const Polygons& layer_below = xy_disallowed_per_layer[layer_idx - tower_top_layer_count - bottom_empty_layer_count];
-                        const Polygons& layer_above = support_areas[layer_idx + tower_top_layer_count];
                         const Point middle = AABB(poly).getMiddle();
-                        const bool has_support_above = layer_above.inside(middle);
                         const bool has_model_below = layer_below.inside(middle);
-                        if (has_support_above && ! has_model_below)
+                        if (!has_model_below)
                         {
                             Polygons tiny_tower_here;
                             tiny_tower_here.add(poly);
@@ -1337,7 +1335,7 @@ void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMes
 }
 
 
-void AreaSupport::handleTowers(const Settings& settings, Polygons& supportLayer_this, std::vector<Polygons>& tower_roofs, std::vector<std::vector<Polygons>>& overhang_points, LayerIndex layer_idx, size_t layer_count)
+void AreaSupport::handleTowers(const Settings& settings, const SliceDataStorage& storage, Polygons& supportLayer_this, std::vector<Polygons>& tower_roofs, std::vector<std::vector<Polygons>>& overhang_points, LayerIndex layer_idx, size_t layer_count)
 {
     LayerIndex layer_overhang_point = layer_idx + 1; // Start tower 1 layer below overhang point.
     if (layer_overhang_point >= static_cast<LayerIndex>(layer_count) - 1)
@@ -1388,7 +1386,13 @@ void AreaSupport::handleTowers(const Settings& settings, Polygons& supportLayer_
 
         if (tower_roof[0].area() < tower_diameter * tower_diameter)
         {
-            tower_roof = tower_roof.offset(tower_roof_expansion_distance);
+            const bool no_support = false;
+            const bool no_prime_tower = false;
+            Polygons model_outline = storage.getLayerOutlines(layer_idx, no_support, no_prime_tower);
+            tower_roof = tower_roof
+                .offset(tower_roof_expansion_distance)
+                // remove the model outline from the tower roof to prevent the support tower from growing through the model itself
+                .difference(model_outline);
         }
         else
         {
