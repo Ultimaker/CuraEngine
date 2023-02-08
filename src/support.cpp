@@ -1372,12 +1372,24 @@ void AreaSupport::handleTowers(const Settings& settings, const SliceDataStorage&
     // make tower roofs
     const coord_t layer_thickness = settings.get<coord_t>("layer_height");
     const AngleRadians tower_roof_angle = settings.get<AngleRadians>("support_tower_roof_angle");
-    const double tan_tower_roof_angle = tan(tower_roof_angle);
-    const coord_t tower_roof_expansion_distance = layer_thickness / tan_tower_roof_angle;
     const coord_t tower_diameter = settings.get<coord_t>("support_tower_diameter");
+    const coord_t support_line_width = settings.get<coord_t>("support_line_width");
+
+    coord_t tower_roof_expansion_distance;
+    if (tower_roof_angle == 0)
+    {
+        // maximum expansion distance needed to reach a tower_diameter^2 tower area
+        tower_roof_expansion_distance = tower_diameter / 2;
+    }
+    else
+    {
+        const double tan_tower_roof_angle = tan(tower_roof_angle);
+        tower_roof_expansion_distance = layer_thickness / tan_tower_roof_angle;
+    }
+
     for (Polygons& tower_roof: tower_roofs)
     {
-        if (tower_roof.size() == 0)
+        if (!tower_roof.empty())
         {
             continue;
         }
@@ -1389,10 +1401,27 @@ void AreaSupport::handleTowers(const Settings& settings, const SliceDataStorage&
             const bool no_support = false;
             const bool no_prime_tower = false;
             Polygons model_outline = storage.getLayerOutlines(layer_idx, no_support, no_prime_tower);
-            tower_roof = tower_roof
-                .offset(tower_roof_expansion_distance)
-                // remove the model outline from the tower roof to prevent the support tower from growing through the model itself
-                .difference(model_outline);
+
+            // Rather than offsetting the tower with tower_roof_expansion_distance we do this step wise to achieve two things
+            // - prevent support from folding around the model
+            // - provide method to early out the offsetting procedure when the desired area is reached
+            const coord_t offset_per_step = support_line_width / 2;
+            for (coord_t offset_cumulative = 0; offset_cumulative <= tower_roof_expansion_distance; offset_cumulative += offset_per_step)
+            {
+                tower_roof = tower_roof.offset(offset_per_step);
+                model_outline = model_outline.difference(tower_roof);
+                model_outline = model_outline.offset(offset_per_step);
+                tower_roof = tower_roof.difference(model_outline);
+
+                if (tower_roof[0].area() >= tower_diameter * tower_diameter)
+                {
+                    // the desired size of the roof tower is reached, add the support tower to the
+                    // current layer and clear the support tower itself
+                    supportLayer_this = supportLayer_this.unionPolygons(tower_roof);
+                    tower_roof.clear();
+                    break;
+                }
+            }
         }
         else
         {
