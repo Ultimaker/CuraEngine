@@ -1045,8 +1045,9 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                     {
                         const Polygons& layer_below = xy_disallowed_per_layer[layer_idx - tower_top_layer_count - bottom_empty_layer_count];
                         const Polygons& layer_above = support_areas[layer_idx + tower_top_layer_count];
-                        const bool has_support_above = !layer_above.intersection(poly).empty();
-                        const bool has_model_below = !layer_below.intersection(poly).empty();
+                        const Point middle = AABB(poly).getMiddle();
+                        const bool has_support_above = layer_above.inside(middle);
+                        const bool has_model_below = layer_below.inside(middle);
                         if (has_support_above && ! has_model_below)
                         {
                             Polygons tiny_tower_here;
