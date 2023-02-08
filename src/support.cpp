@@ -1389,7 +1389,7 @@ void AreaSupport::handleTowers(const Settings& settings, const SliceDataStorage&
 
     for (Polygons& tower_roof: tower_roofs)
     {
-        if (!tower_roof.empty())
+        if (tower_roof.empty())
         {
             continue;
         }
