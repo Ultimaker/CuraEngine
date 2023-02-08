@@ -1002,7 +1002,6 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
             // support area. Please note that the horizontal expansion is rounded down to an integer offset_per_step.
             Polygons model_outline = storage.getLayerOutlines(layer_idx, no_support, no_prime_tower);
             const coord_t offset_per_step = support_line_width / 2;
-            layer_this = layer_this.difference(model_outline);  // ensure the layer_this is not overlapping with the model_outline
             for (coord_t offset_cumulative = 0; offset_cumulative <= extension_offset; offset_cumulative += offset_per_step)
             {
                 layer_this = layer_this.offset(offset_per_step);
