@@ -9,6 +9,7 @@
 #include <range/v3/view/drop.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/filter.hpp>
 #include <range/v3/view/slice.hpp>
 #include <spdlog/spdlog.h>
 
@@ -1387,13 +1388,8 @@ void AreaSupport::handleTowers(const Settings& settings, const SliceDataStorage&
         tower_roof_expansion_distance = layer_thickness / tan_tower_roof_angle;
     }
 
-    for (Polygons& tower_roof: tower_roofs)
+    for (Polygons& tower_roof: tower_roofs | ranges::views::filter([](const auto& poly){ return ! poly.empty(); }))
     {
-        if (tower_roof.empty())
-        {
-            continue;
-        }
-
         supportLayer_this = supportLayer_this.unionPolygons(tower_roof);
 
         if (tower_roof[0].area() < tower_diameter * tower_diameter)
