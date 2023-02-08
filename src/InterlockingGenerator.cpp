@@ -71,10 +71,13 @@ std::pair<Polygons, Polygons> InterlockingGenerator::growBorderAreasPerpendicula
     Polygons from_border_a = a.difference(total_shrunk);
     Polygons from_border_b = b.difference(total_shrunk);
 
+    Polygons temp_a, temp_b;
     for (auto _ : ranges::view::iota(0, (detect / min_line) + 2))
     {
-        from_border_a = from_border_a.offset(min_line).difference(from_border_b);
-        from_border_b = from_border_b.offset(min_line).difference(from_border_a);
+        temp_a = from_border_a.offset(min_line);
+        temp_b = from_border_b.offset(min_line);
+        from_border_a = temp_a.difference(temp_b);
+        from_border_b = temp_b.difference(temp_a);
     }
 
     return { from_border_a, from_border_b};
