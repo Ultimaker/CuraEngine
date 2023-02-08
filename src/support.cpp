@@ -894,7 +894,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                                                // shrink a little so that areas that only protrude very slightly are ignored
                                                larger_area_below = mesh.layers[layer_idx - 1].getOutlines().difference(mesh.layers[layer_idx].getOutlines()).offset(-layer_thickness / 10);
 
-                                               if (larger_area_below.size())
+                                               if (! larger_area_below.empty())
                                                {
                                                    // if the layer below protrudes sufficiently such that a normal support at xy_distance could be placed there,
                                                    // we don't want to use the min XY distance in that area and so we remove the wide area from larger_area_below
@@ -1046,7 +1046,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                         const Polygons& layer_below = storage.getLayerOutlines(layer_idx - tower_top_layer_count - bottom_empty_layer_count, no_support, no_prime_tower);
                         const Point middle = AABB(poly).getMiddle();
                         const bool has_model_below = layer_below.inside(middle);
-                        if (!has_model_below)
+                        if (! has_model_below)
                         {
                             Polygons tiny_tower_here;
                             tiny_tower_here.add(poly);
@@ -1373,7 +1373,7 @@ void AreaSupport::handleTowers(const Settings& settings, const SliceDataStorage&
     const coord_t layer_thickness = settings.get<coord_t>("layer_height");
     const AngleRadians tower_roof_angle = settings.get<AngleRadians>("support_tower_roof_angle");
     const coord_t tower_diameter = settings.get<coord_t>("support_tower_diameter");
-    const coord_t support_line_width = settings.get<coord_t>("support_line_width");
+    const auto support_line_width = settings.get<coord_t>("support_line_width");
 
     coord_t tower_roof_expansion_distance;
     if (tower_roof_angle == 0)
@@ -1398,8 +1398,8 @@ void AreaSupport::handleTowers(const Settings& settings, const SliceDataStorage&
 
         if (tower_roof[0].area() < tower_diameter * tower_diameter)
         {
-            const bool no_support = false;
-            const bool no_prime_tower = false;
+            constexpr bool no_support = false;
+            constexpr bool no_prime_tower = false;
             Polygons model_outline = storage.getLayerOutlines(layer_idx, no_support, no_prime_tower);
 
             // Rather than offsetting the tower with tower_roof_expansion_distance we do this step wise to achieve two things
