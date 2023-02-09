@@ -1993,7 +1993,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 { // normal path to gcode algorithm
                     for (unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                     {
-                        const double extrude_speed = speed * path.speed_back_pressure_factor;
+                        double extrude_speed = speed * path.speed_back_pressure_factor;
                         communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), extrude_speed);
                         gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
                     }
@@ -2028,7 +2028,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         p0 = p1;
                         gcode.setZ(std::round(z + layer_thickness * length / totalLength));
 
-                        const double extrude_speed = speed * path.speed_back_pressure_factor;
+                        double extrude_speed = speed * path.speed_back_pressure_factor;
                         communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), extrude_speed);
                         gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
                     }
@@ -2120,7 +2120,7 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
 
     coord_t coasting_min_dist_considered = MM2INT(0.1); // hardcoded setting for when to not perform coasting
 
-    const double extrude_speed = path.config->getSpeed() * path.speed_factor * path.speed_back_pressure_factor;
+    double extrude_speed = path.config->getSpeed() * path.speed_factor * path.speed_back_pressure_factor;
 
     const double max_mm3_per_sec = extruder.settings.get<double>("material_max_mm3_per_sec"); //flow rate limiting
     const double mm3_per_sec = path.getExtrusionMM3perMM() * extrude_speed;
