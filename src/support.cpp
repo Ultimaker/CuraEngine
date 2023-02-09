@@ -1409,6 +1409,12 @@ void AreaSupport::handleTowers(const Settings& settings, const SliceDataStorage&
                 model_outline = model_outline.offset(offset_per_step);
                 tower_roof = tower_roof.difference(model_outline);
 
+                if (tower_roof.empty())
+                {
+                    // guard against the tower_roof getting empty; without this guard an empty tower
+                    // could indefinitely stay within the towers list
+                    break;
+                }
                 if (tower_roof[0].area() >= tower_diameter * tower_diameter)
                 {
                     // the desired size of the roof tower is reached, add the support tower to the
