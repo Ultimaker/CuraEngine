@@ -34,63 +34,50 @@ namespace cura
 
 bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Settings& mesh_settings, const Slicer* slicer)
 {
-    // handle extruder regions
-    // determine extruder number only if SUPPORT_SET_EXTRUDER
-    if (mesh_settings.get<bool>("anti_overhang_mesh")) // TODO: use "alternate extruder" or sth like that.
+// handle extruder regions
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+
+    // we use these length-2 arrays to handle the difference between support_infill_extruder_nr and support_extruder_nr_layer_0
+    const size_t default_support_infill_extruder_nr[2] {
+        mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr,
+        mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr,
+    };
+    const size_t extruder_nr[2] {
+        mesh_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr,
+        mesh_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr,
+    };
+    const size_t layer_start[2] {0, 1};
+    const size_t layer_end[2] {std::min<size_t>(1, slicer->layers.size()), slicer->layers.size()};
+    for (size_t layer_category = 0; layer_category <= 1; ++layer_category)
     {
-        const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-
-        const size_t support_infill_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr;
-
-        // find any extruder nr which is not the standard infill extruder nr.
-        std::vector<size_t> extruders{
-            // consider other support extruders first
-            mesh_group_settings.get<ExtruderTrain&>("support_interface_extruder_nr").extruder_nr,
-            mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr,
-            mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr,
-        };
-
-        for (size_t extruder_nr : extruders)
+        if (default_support_infill_extruder_nr[layer_category] != extruder_nr[layer_category])
         {
-            if (extruder_nr == support_infill_extruder_nr) continue;
-            
-            for (unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
+            for (unsigned int layer_nr = layer_start[layer_category]; layer_nr < layer_end[layer_category]; layer_nr++)
             {
                 SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
                 const SlicerLayer& slicer_layer = slicer->layers[layer_nr];
 
                 // use this support extruder.
-                while (support_layer.support_extruder_nr.size() <= extruder_nr)
+                while (support_layer.support_extruder_nr.size() <= extruder_nr[layer_category])
                 {
                     support_layer.support_extruder_nr.emplace_back();
                 }
 
                 // (add polygons to the relevant support layer.)
-                support_layer.support_extruder_nr[extruder_nr].add(slicer_layer.polygons);
+                support_layer.support_extruder_nr[extruder_nr[layer_category]].add(slicer_layer.polygons);
             }
-
-            // TODO -- remove this return (but not the break!) once alternate extruder has its own setting.
-            return true;
-
-            // don't consider any other extruders.
-            break;
         }
     }
 
     // ignore non-support-related meshes.
-    if (! mesh_settings.get<bool>("anti_overhang_mesh") && ! mesh_settings.get<bool>("support_mesh"))
+    if (!mesh_settings.get<bool>("anti_overhang_mesh") && !mesh_settings.get<bool>("support_mesh"))
     {
         return false;
     }
-    enum ModifierType
-    {
-        ANTI_OVERHANG,
-        SUPPORT_DROP_DOWN,
-        SUPPORT_VANILLA,
-    };
+    
+    enum ModifierType { ANTI_OVERHANG, SUPPORT_DROP_DOWN, SUPPORT_VANILLA };
     ModifierType modifier_type = (mesh_settings.get<bool>("anti_overhang_mesh")) ? ANTI_OVERHANG : ((mesh_settings.get<bool>("support_mesh_drop_down")) ? SUPPORT_DROP_DOWN : SUPPORT_VANILLA);
-    
-    
+
     // add polygons to layers
     for (unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
     {
