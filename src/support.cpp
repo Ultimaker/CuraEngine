@@ -9,6 +9,7 @@
 #include <range/v3/view/drop.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/filter.hpp>
 #include <range/v3/view/slice.hpp>
 #include <spdlog/spdlog.h>
 
@@ -891,9 +892,10 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                                            Polygons larger_area_below; // the areas in the layer below that protrude beyond the area of the current layer
                                            if (layer_idx > 1)
                                            {
-                                               larger_area_below = mesh.layers[layer_idx - 1].getOutlines().difference(mesh.layers[layer_idx].getOutlines());
+                                               // shrink a little so that areas that only protrude very slightly are ignored
+                                               larger_area_below = mesh.layers[layer_idx - 1].getOutlines().difference(mesh.layers[layer_idx].getOutlines()).offset(-layer_thickness / 10);
 
-                                               if (!larger_area_below.empty())
+                                               if (! larger_area_below.empty())
                                                {
                                                    // if the layer below protrudes sufficiently such that a normal support at xy_distance could be placed there,
                                                    // we don't want to use the min XY distance in that area and so we remove the wide area from larger_area_below
@@ -912,23 +914,6 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                                                        // wide enough for a normal support to be placed there
                                                        larger_area_below = larger_area_below.difference(area_beyond_limit.offset(limit_distance + 10));
                                                    }
-                                               }
-
-                                               {
-                                                   // Remove tiny "specs" in the `larger_area_below` polygon. As the polygon is a difference between the outline of
-                                                   // the current layer and the layer below this area is _usually_ a very narrow right surrounding the model (these
-                                                   // areas are desired). However, sometimes these areas become so narrow that only tiny dots are present. As the area
-                                                   // of both the rings and the specs are very small we cannot use the `removeSmallAreas` utility function. Instead, we
-                                                   // use the `removeSmallAreaCircumference` which removes polygons if both the area and circumference exceed a certain
-                                                   // threshold; we want a small circumference to differentiate between "rings" and "specs" (both have small area but
-                                                   // specs also have small circumference) and we want a small area to differentiate between larger blobs and "specs" in
-                                                   // polygon (both have a circumference but only "specs" have a "larger blobs" both have a small circumference but only
-                                                   // "specs" has a small area).
-                                                   const auto nozzle_diameter = mesh_group_settings.get<coord_t>("machine_nozzle_size");
-                                                   const coord_t min_circumference = nozzle_diameter * M_PI;
-                                                   const double min_area = INT2MM2((nozzle_diameter * nozzle_diameter) / 4 * M_PI);
-                                                   constexpr bool remove_holes = true;
-                                                   larger_area_below.removeSmallAreaCircumference(min_area, min_circumference, remove_holes);
                                                }
                                            }
 
@@ -1018,7 +1003,6 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
             // support area. Please note that the horizontal expansion is rounded down to an integer offset_per_step.
             Polygons model_outline = storage.getLayerOutlines(layer_idx, no_support, no_prime_tower);
             const coord_t offset_per_step = support_line_width / 2;
-            layer_this = layer_this.difference(model_outline);  // ensure the layer_this is not overlapping with the model_outline
             for (coord_t offset_cumulative = 0; offset_cumulative <= extension_offset; offset_cumulative += offset_per_step)
             {
                 layer_this = layer_this.offset(offset_per_step);
@@ -1033,7 +1017,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
             // handle straight walls
             AreaSupport::handleWallStruts(infill_settings, layer_this);
             // handle towers
-            AreaSupport::handleTowers(infill_settings, layer_this, tower_roofs, mesh.overhang_points, layer_idx, layer_count);
+            AreaSupport::handleTowers(infill_settings, storage, layer_this, tower_roofs, mesh.overhang_points, layer_idx, layer_count);
         }
 
         if (layer_idx + 1 < layer_count)
@@ -1060,12 +1044,10 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                     constexpr size_t tower_top_layer_count = 6; // number of layers after which to conclude that a tiny support area needs a tower
                     if (layer_idx < layer_count - tower_top_layer_count && layer_idx >= tower_top_layer_count + bottom_empty_layer_count)
                     {
-                        const Polygons& layer_below = xy_disallowed_per_layer[layer_idx - tower_top_layer_count - bottom_empty_layer_count];
-                        const Polygons& layer_above = support_areas[layer_idx + tower_top_layer_count];
+                        const Polygons& layer_below = storage.getLayerOutlines(layer_idx - tower_top_layer_count - bottom_empty_layer_count, no_support, no_prime_tower);
                         const Point middle = AABB(poly).getMiddle();
-                        const bool has_support_above = layer_above.inside(middle);
                         const bool has_model_below = layer_below.inside(middle);
-                        if (has_support_above && ! has_model_below)
+                        if (! has_model_below)
                         {
                             Polygons tiny_tower_here;
                             tiny_tower_here.add(poly);
@@ -1314,16 +1296,8 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
     //     Polygons overhang =  basic_overhang.unionPolygons(support_extension);
     //         presumably the computation above is slower than the one below
 
-    {
-        const auto nozzle_diameter = mesh.settings.get<coord_t>("machine_nozzle_size");
-        const coord_t min_circumference = nozzle_diameter * M_PI;
-        const double min_area = INT2MM2((nozzle_diameter * nozzle_diameter) / 4 * M_PI);
-        constexpr bool remove_holes = true;
-        basic_overhang.removeSmallAreaCircumference(min_area, min_circumference, remove_holes);
-    }
-
-    Polygons overhang_extended = basic_overhang.offset(max_dist_from_lower_layer + MM2INT(0.1)); // +0.1mm for easier joining with support from layer above
-    Polygons full_overhang = overhang_extended.intersection(supportLayer_supportee);
+    Polygons overhang_extented = basic_overhang.offset(max_dist_from_lower_layer + MM2INT(0.1)); // +0.1mm for easier joining with support from layer above
+    Polygons full_overhang = overhang_extented.intersection(supportLayer_supportee);
 
     return std::make_pair(basic_overhang, full_overhang);
 }
@@ -1362,7 +1336,7 @@ void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMes
 }
 
 
-void AreaSupport::handleTowers(const Settings& settings, Polygons& supportLayer_this, std::vector<Polygons>& tower_roofs, std::vector<std::vector<Polygons>>& overhang_points, LayerIndex layer_idx, size_t layer_count)
+void AreaSupport::handleTowers(const Settings& settings, const SliceDataStorage& storage, Polygons& supportLayer_this, std::vector<Polygons>& tower_roofs, std::vector<std::vector<Polygons>>& overhang_points, LayerIndex layer_idx, size_t layer_count)
 {
     LayerIndex layer_overhang_point = layer_idx + 1; // Start tower 1 layer below overhang point.
     if (layer_overhang_point >= static_cast<LayerIndex>(layer_count) - 1)
@@ -1399,21 +1373,51 @@ void AreaSupport::handleTowers(const Settings& settings, Polygons& supportLayer_
     // make tower roofs
     const coord_t layer_thickness = settings.get<coord_t>("layer_height");
     const AngleRadians tower_roof_angle = settings.get<AngleRadians>("support_tower_roof_angle");
-    const double tan_tower_roof_angle = tan(tower_roof_angle);
-    const coord_t tower_roof_expansion_distance = layer_thickness / tan_tower_roof_angle;
     const coord_t tower_diameter = settings.get<coord_t>("support_tower_diameter");
-    for (Polygons& tower_roof: tower_roofs)
-    {
-        if (tower_roof.size() == 0)
-        {
-            continue;
-        }
+    const auto support_line_width = settings.get<coord_t>("support_line_width");
 
+    coord_t tower_roof_expansion_distance;
+    if (tower_roof_angle == 0)
+    {
+        // maximum expansion distance needed to reach a tower_diameter^2 tower area
+        tower_roof_expansion_distance = tower_diameter / 2;
+    }
+    else
+    {
+        const double tan_tower_roof_angle = tan(tower_roof_angle);
+        tower_roof_expansion_distance = layer_thickness / tan_tower_roof_angle;
+    }
+
+    for (Polygons& tower_roof: tower_roofs | ranges::views::filter([](const auto& poly){ return ! poly.empty(); }))
+    {
         supportLayer_this = supportLayer_this.unionPolygons(tower_roof);
 
         if (tower_roof[0].area() < tower_diameter * tower_diameter)
         {
-            tower_roof = tower_roof.offset(tower_roof_expansion_distance);
+            constexpr bool no_support = false;
+            constexpr bool no_prime_tower = false;
+            Polygons model_outline = storage.getLayerOutlines(layer_idx, no_support, no_prime_tower);
+
+            // Rather than offsetting the tower with tower_roof_expansion_distance we do this step wise to achieve two things
+            // - prevent support from folding around the model
+            // - provide method to early out the offsetting procedure when the desired area is reached
+            const coord_t offset_per_step = support_line_width / 2;
+            for (coord_t offset_cumulative = 0; offset_cumulative <= tower_roof_expansion_distance; offset_cumulative += offset_per_step)
+            {
+                tower_roof = tower_roof.offset(offset_per_step);
+                model_outline = model_outline.difference(tower_roof);
+                model_outline = model_outline.offset(offset_per_step);
+                tower_roof = tower_roof.difference(model_outline);
+
+                if (tower_roof[0].area() >= tower_diameter * tower_diameter)
+                {
+                    // the desired size of the roof tower is reached, add the support tower to the
+                    // current layer and clear the support tower itself
+                    supportLayer_this = supportLayer_this.unionPolygons(tower_roof);
+                    tower_roof.clear();
+                    break;
+                }
+            }
         }
         else
         {

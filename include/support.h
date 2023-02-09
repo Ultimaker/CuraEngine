@@ -267,6 +267,7 @@ private:
      */
     static void handleTowers(
         const Settings& settings,
+        const SliceDataStorage& storage,
         Polygons& supportLayer_this,
         std::vector<Polygons>& tower_roofs,
         std::vector<std::vector<Polygons>>& overhang_points,
