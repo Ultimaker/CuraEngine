@@ -18,10 +18,11 @@ struct NozzleTempInsert
 {
     const unsigned int path_idx; //!< The path before which to insert this command
     double time_after_path_start; //!< The time after the start of the path, before which to insert the command -- used to insert temperature commands in between moves in a path.
+    double total_time;
     int extruder; //!< The extruder for which to set the temp
     double temperature; //!< The temperature of the temperature command to insert
     bool wait; //!< Whether to wait for the temperature to be reached
-    NozzleTempInsert(unsigned int path_idx, int extruder, double temperature, bool wait, double time_after_path_start = 0.0);
+    NozzleTempInsert(unsigned int path_idx, int extruder, double temperature, bool wait, double time_after_path_start = 0.0, double total_time = 0.0);
 
     /*!
      * Write the temperature command at the current position in the gcode.

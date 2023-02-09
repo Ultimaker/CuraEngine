@@ -8,9 +8,10 @@
 namespace cura
 {
 
-NozzleTempInsert::NozzleTempInsert(unsigned int path_idx, int extruder, double temperature, bool wait, double time_after_path_start)
+NozzleTempInsert::NozzleTempInsert(unsigned int path_idx, int extruder, double temperature, bool wait, double time_after_path_start, double total_time)
 : path_idx(path_idx)
 , time_after_path_start(time_after_path_start)
+, total_time(total_time)
 , extruder(extruder)
 , temperature(temperature)
 , wait(wait)

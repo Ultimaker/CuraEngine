@@ -108,7 +108,7 @@ private:
      * \param extruder_nr The extruder for which to set the temperature
      * \param temp The temperature of the preheat command
      */
-    void insertPreheatCommand(ExtruderPlan& extruder_plan_before, const Duration time_before_extruder_plan_end, const size_t extruder_nr, const Temperature temp);
+    void insertPreheatCommand(ExtruderPlan& extruder_plan_before, const Duration time_before_extruder_plan_end, const size_t extruder_nr, const Temperature temp, double total_time);
 
     /*!
      * Compute the time needed to preheat from standby to required (initial) printing temperature at the start of an extruder plan,

@@ -59,6 +59,10 @@ void ExtruderPlan::handleInserts(const int64_t& path_idx, GCodeExport& gcode, co
 {
     while (! inserts.empty() && path_idx >= inserts.front().path_idx && inserts.front().time_after_path_start < cumulative_path_time)
     { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
+        if (cumulative_path_time < 10000)
+        {
+            gcode.writeComment("cumulative_path_time: " + std::to_string(cumulative_path_time) + ", time_after_path_start: " + std::to_string(inserts.front().time_after_path_start) + ", total_time: " + std::to_string(inserts.front().total_time));
+        }
         inserts.front().write(gcode);
         inserts.pop_front();
     }
