@@ -1048,7 +1048,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                         const Polygons& layer_below = storage.getLayerOutlines(layer_idx - tower_top_layer_count - bottom_empty_layer_count, no_support, no_prime_tower);
                         const Point middle = AABB(poly).getMiddle();
                         const bool has_model_below = layer_below.inside(middle);
-                        const bool is_inside_disallowed_area = !disallowed_area.intersection(poly).empty();
+                        const bool is_inside_disallowed_area = ! disallowed_area.intersection(poly).empty();
                         if (! has_model_below && ! is_inside_disallowed_area)
                         {
                             Polygons tiny_tower_here;
@@ -1069,7 +1069,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
         moveUpFromModel(storage, stair_removal, sloped_areas_per_layer[layer_idx], layer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, bottom_stair_step_width);
 
         // inset using X/Y distance
-        if (!layer_this.empty())
+        if (! layer_this.empty())
         {
             layer_this = layer_this.difference(xy_disallowed_per_layer[layer_idx]);
         }
@@ -1145,7 +1145,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
     {
         Polygons& layer_this = support_areas[layer_idx];
 
-        if (!layer_this.empty())
+        if (! layer_this.empty())
         {
             Polygons& layer_below = support_areas[layer_idx - 1];
             Polygons& layer_above = support_areas[layer_idx + 1];
