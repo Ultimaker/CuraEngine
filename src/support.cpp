@@ -1044,10 +1044,12 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                     constexpr size_t tower_top_layer_count = 6; // number of layers after which to conclude that a tiny support area needs a tower
                     if (layer_idx < layer_count - tower_top_layer_count && layer_idx >= tower_top_layer_count + bottom_empty_layer_count)
                     {
+                        const Polygons& disallowed_area = xy_disallowed_per_layer[layer_idx];
                         const Polygons& layer_below = storage.getLayerOutlines(layer_idx - tower_top_layer_count - bottom_empty_layer_count, no_support, no_prime_tower);
                         const Point middle = AABB(poly).getMiddle();
                         const bool has_model_below = layer_below.inside(middle);
-                        if (! has_model_below)
+                        const bool is_inside_disallowed_area = ! disallowed_area.intersection(poly).empty();
+                        if (! has_model_below && ! is_inside_disallowed_area)
                         {
                             Polygons tiny_tower_here;
                             tiny_tower_here.add(poly);
@@ -1066,23 +1068,15 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
         // Move up from model, handle stair-stepping.
         moveUpFromModel(storage, stair_removal, sloped_areas_per_layer[layer_idx], layer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, bottom_stair_step_width);
 
-        support_areas[layer_idx] = layer_this;
-        Progress::messageProgress(Progress::Stage::SUPPORT, layer_count * (mesh_idx + 1) - layer_idx, layer_count * storage.meshes.size());
-    }
-
-    // Substract x/y-disallowed area from the support.
-    // This is done after the main loop, because at least one of the calculations there rely on other layers _without_ the x/y-disallowed area.
-    for (size_t layer_idx = layer_count - 1 - layer_z_distance_top; layer_idx != static_cast<size_t>(-1); layer_idx--)
-    {
-        Polygons& layer_this = support_areas[layer_idx];
-
         // inset using X/Y distance
-        if (layer_this.size() > 0)
+        if (! layer_this.empty())
         {
             layer_this = layer_this.difference(xy_disallowed_per_layer[layer_idx]);
         }
-    }
 
+        support_areas[layer_idx] = layer_this;
+        Progress::messageProgress(Progress::Stage::SUPPORT, layer_count * (mesh_idx + 1) - layer_idx, layer_count * storage.meshes.size());
+    }
 
     // do stuff for when support on buildplate only
     if (support_type == ESupportType::PLATFORM_ONLY)
@@ -1144,6 +1138,20 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                                        constexpr bool no_prime_tower = false;
                                        support_areas[layer_idx] = support_areas[layer_idx].difference(storage.getLayerOutlines(layer_idx + layer_z_distance_top - 1, no_support, no_prime_tower));
                                    });
+    }
+
+    // Procedure to remove floating support
+    for (size_t layer_idx = 1; layer_idx < layer_count - 1; layer_idx ++)
+    {
+        Polygons& layer_this = support_areas[layer_idx];
+
+        if (! layer_this.empty())
+        {
+            Polygons& layer_below = support_areas[layer_idx - 1];
+            Polygons& layer_above = support_areas[layer_idx + 1];
+            Polygons surrounding_layer = layer_above.unionPolygons(layer_below);
+            layer_this = layer_this.intersection(surrounding_layer);
+        }
     }
 
     for (size_t layer_idx = support_areas.size() - 1; layer_idx != static_cast<size_t>(std::max(-1, storage.support.layer_nr_max_filled_layer)); layer_idx--)
