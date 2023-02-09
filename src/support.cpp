@@ -1140,6 +1140,20 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                                    });
     }
 
+    // Procedure to remove floating support
+    for (size_t layer_idx = 1; layer_idx < layer_count - 1; layer_idx ++)
+    {
+        Polygons& layer_this = support_areas[layer_idx];
+
+        if (!layer_this.empty())
+        {
+            Polygons& layer_below = support_areas[layer_idx - 1];
+            Polygons& layer_above = support_areas[layer_idx + 1];
+            Polygons surrounding_layer = layer_above.unionPolygons(layer_below);
+            layer_this = layer_this.intersection(surrounding_layer);
+        }
+    }
+
     for (size_t layer_idx = support_areas.size() - 1; layer_idx != static_cast<size_t>(std::max(-1, storage.support.layer_nr_max_filled_layer)); layer_idx--)
     {
         if (support_areas[layer_idx].size() > 0)
