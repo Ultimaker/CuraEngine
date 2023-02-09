@@ -1068,23 +1068,15 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
         // Move up from model, handle stair-stepping.
         moveUpFromModel(storage, stair_removal, sloped_areas_per_layer[layer_idx], layer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, bottom_stair_step_width);
 
-        support_areas[layer_idx] = layer_this;
-        Progress::messageProgress(Progress::Stage::SUPPORT, layer_count * (mesh_idx + 1) - layer_idx, layer_count * storage.meshes.size());
-    }
-
-    // Substract x/y-disallowed area from the support.
-    // This is done after the main loop, because at least one of the calculations there rely on other layers _without_ the x/y-disallowed area.
-    for (size_t layer_idx = layer_count - 1 - layer_z_distance_top; layer_idx != static_cast<size_t>(-1); layer_idx--)
-    {
-        Polygons& layer_this = support_areas[layer_idx];
-
         // inset using X/Y distance
-        if (layer_this.size() > 0)
+        if (!layer_this.empty())
         {
             layer_this = layer_this.difference(xy_disallowed_per_layer[layer_idx]);
         }
-    }
 
+        support_areas[layer_idx] = layer_this;
+        Progress::messageProgress(Progress::Stage::SUPPORT, layer_count * (mesh_idx + 1) - layer_idx, layer_count * storage.meshes.size());
+    }
 
     // do stuff for when support on buildplate only
     if (support_type == ESupportType::PLATFORM_ONLY)
