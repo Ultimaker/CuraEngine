@@ -6,6 +6,7 @@
 #include <fstream> // ifstream.good()
 #include <map> // multimap (ordered map allowing duplicate keys)
 #include <numeric>
+#include <memory>
 
 #include <spdlog/spdlog.h>
 
@@ -392,6 +393,10 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     // layerparts2HTML(storage, "output/output.html");
 
     Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);
+
+    auto shared_meshes = storage.meshes | ranges::views::transform([](const auto& mesh){ return std::make_shared<SliceMeshStorage>(mesh); }) | ranges::to_vector;
+    auto overhangs = shared_meshes | support::views::supportable_meshes | support::views::meshes_overhangs;
+    auto foundations = shared_meshes | support::views::foundationable_meshes | support::views::meshes_foundation;
 
     AreaSupport::generateOverhangAreas(storage);
     AreaSupport::generateSupportAreas(storage);
