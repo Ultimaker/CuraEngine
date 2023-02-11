@@ -6,7 +6,6 @@
 
 #include <memory>
 
-#include "settings/types/LayerIndex.h"
 #include "sliceDataStorage.h"
 #include "utils/polygon.h"
 
@@ -15,16 +14,18 @@ namespace cura::support
 enum class SupportAreaType : int
 {
     OVERHANG = 1,
-    FOUNDATION = 2
+    FOUNDATION = 2,
+    SUPPORT = 3
 };
 
 
 struct SupportArea
 {
     std::shared_ptr<SliceMeshStorage> mesh;
-    LayerIndex layer_idx;
+    size_t layer_idx;
     std::shared_ptr<Polygons> outline;
     SupportAreaType area_type;
+    double area;
 };
 
 } // namespace cura::support
