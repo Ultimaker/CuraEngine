@@ -90,6 +90,15 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
     }
 }
 
+Polygons& SliceLayer::Outlines()
+{
+    if (outlines_.empty())
+    {
+        getOutlines(outlines_);
+    }
+    return outlines_;
+}
+
 SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
     : settings(mesh->settings)
     , mesh_name(mesh->mesh_name)

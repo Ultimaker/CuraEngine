@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef SLICE_DATA_STORAGE_H
 #define SLICE_DATA_STORAGE_H
@@ -191,7 +191,11 @@ public:
      */
     void getOutlines(Polygons& result, bool external_polys_only = false) const;
 
+    Polygons& Outlines();
+
     ~SliceLayer();
+private:
+    Polygons outlines_;
 };
 
 /******************/
