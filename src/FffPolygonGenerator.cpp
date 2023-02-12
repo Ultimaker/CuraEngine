@@ -51,7 +51,8 @@
 #include "utils/gettime.h"
 #include "utils/math.h"
 #include "utils/Simplify.h"
-#include "support//support.h"
+#include "support/support.h"
+#include "utils/views/to_shared_ptr.h"
 // clang-format on
 
 namespace cura
@@ -395,10 +396,10 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);
 
-    auto shared_meshes = storage.meshes | ranges::views::transform([](const auto& mesh){ return std::make_shared<SliceMeshStorage>(mesh); }) | ranges::to_vector;
+    auto shared_meshes = storage.meshes | views::to_shared_ptr | ranges::to_vector;
     auto overhangs = shared_meshes | support::views::supportable_meshes | support::views::meshes_overhangs;
-    auto foundations = shared_meshes | support::views::foundationable_meshes | support::views::meshes_foundation;
-    auto support_areas = overhangs | support::views::drop_down;
+    auto foundations = shared_meshes | support::views::foundationable_meshes | support::views::meshes_foundations;
+    auto support_areas = support::views::drop_down(overhangs, foundations) | ranges::to<support::support_area_graph_t>;
 
     AreaSupport::generateOverhangAreas(storage);
     AreaSupport::generateSupportAreas(storage);

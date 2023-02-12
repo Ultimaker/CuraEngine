@@ -7,9 +7,11 @@
 #include <cmath>
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 #include <range/v3/back.hpp>
 #include <range/v3/front.hpp>
+#include <range/v3/view/drop.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/iota.hpp>
@@ -22,9 +24,12 @@
 #include "support/support_area.h"
 #include "utils/Simplify.h"
 #include "utils/polygon.h"
+#include "utils/views/to_shared_ptr.h"
 
 namespace cura::support
 {
+using support_area_graph_t = std::unordered_multimap<std::shared_ptr<SupportArea>, std::shared_ptr<SupportArea>>;
+
 coord_t ModelSlopeDistance(const Settings& settings, const std::string& setting_angle_key)
 {
     const auto layer_height = settings.get<coord_t>("layer_height");
@@ -70,14 +75,26 @@ auto ComputeFoundation(std::shared_ptr<SliceMeshStorage> mesh)
     return ranges::make_view_closure(mesh_layer_outline_window);
 }
 
-auto DropDownSupport(const SupportArea& overhang)
+constexpr auto drop_down(auto&& overhangs, auto&& foundations)
 {
-    auto support_area = ranges::views::iota(0UL, overhang.layer_idx - 1)
-                      | ranges::views::transform([overhang](const auto& layer_idx) -> SupportArea {
-                                                     SliceLayer& layer = overhang.mesh->layers[layer_idx];
-                                                     Polygons actual_support = overhang.outline->difference(layer.Outlines());
-                                                     return  { .mesh = overhang.mesh, .layer_idx = layer_idx, .outline = std::make_shared<Polygons>(actual_support), .area_type = SupportAreaType::SUPPORT, .area = overhang.area }; });
-    return ranges::make_view_closure(support_area);
+    auto support_forest = overhangs
+                        | ranges::views::transform([](auto overhang) {
+                                                       auto layers_below = ranges::views::iota(0UL, overhang->layer_idx - 1)
+                                                                         | ranges::views::reverse
+                                                                         | ranges::views::transform([overhang](auto layer_idx) -> SupportArea{
+                                                                                                        return { .mesh = overhang->mesh,
+                                                                                                                 .layer_idx = layer_idx,
+                                                                                                                 .outline = overhang->outline,
+                                                                                                                 .area_type = SupportAreaType::SUPPORT,
+                                                                                                                 .area = overhang->area }; })
+                                                                         | cura::views::to_shared_ptr
+                                                                         | ranges::views::sliding(2)
+                                                                         // TODO: @jellespijker check against collision with foundations; if collided: alter the outline with that foundation, update area
+                                                                         | ranges::views::transform([](auto layers_window) -> support_area_graph_t::value_type { return { ranges::front(layers_window), ranges::back(layers_window) }; });
+                                                       return layers_below; });
+    // TODO: @jellespijker connect overhangs to first SupportArea below it
+    // TODO: @jellespijker connect foundations to first SupportArea above it
+    return ranges::make_view_closure(support_forest | ranges::views::join);
 }
 
 constexpr auto supportable_meshes = ranges::views::filter([](std::shared_ptr<SliceMeshStorage> mesh) {
@@ -91,10 +108,8 @@ constexpr auto foundationable_meshes = ranges::views::filter([](std::shared_ptr<
                                                                      && ! mesh->settings.get<bool>("anti_overhang_mesh")
                                                                      && ! mesh->settings.get<bool>("infill_mesh"); });
 
-constexpr auto meshes_overhangs = ranges::views::transform(&ComputeOverhang) | ranges::views::join;
-constexpr auto meshes_foundation = ranges::views::transform(&ComputeFoundation) | ranges::views::join;
-
-constexpr auto drop_down = ranges::views::transform(&DropDownSupport) | ranges::views::join;
+constexpr auto meshes_overhangs = ranges::views::transform(&ComputeOverhang) | ranges::views::join | cura::views::to_shared_ptr;
+constexpr auto meshes_foundations = ranges::views::transform(&ComputeFoundation) | ranges::views::join | cura::views::to_shared_ptr;
 
 } // namespace views
 
