@@ -8,11 +8,13 @@
 
 #include "sliceDataStorage.h"
 #include "utils/polygon.h"
+#include "utils/AABB.h"
 
 namespace cura::support
 {
 enum class SupportAreaType : int
 {
+    NONE = -1,
     OVERHANG = 1,
     FOUNDATION = 2,
     SUPPORT = 3
@@ -22,10 +24,11 @@ enum class SupportAreaType : int
 struct SupportArea
 {
     std::shared_ptr<SliceMeshStorage> mesh;
-    size_t layer_idx;
+    size_t layer_idx { 0 };
     std::shared_ptr<Polygons> outline;
-    SupportAreaType area_type;
-    double area;
+    SupportAreaType area_type { SupportAreaType::NONE };
+    double area { 0 };
+    AABB bounding_box;
 };
 
 } // namespace cura::support
