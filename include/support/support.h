@@ -14,6 +14,7 @@
 #include <range/v3/front.hpp>
 #include <range/v3/to_container.hpp>
 #include <range/v3/view/any_view.hpp>
+#include <range/v3/view/concat.hpp>
 #include <range/v3/view/drop.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/enumerate.hpp>
@@ -23,6 +24,7 @@
 #include <range/v3/view/partial_sum.hpp>
 #include <range/v3/view/reverse.hpp>
 #include <range/v3/view/sliding.hpp>
+#include <range/v3/view/tail.hpp>
 #include <range/v3/view/take.hpp>
 #include <range/v3/view/take_while.hpp>
 #include <range/v3/view/transform.hpp>
@@ -63,16 +65,14 @@ auto LayerIndexDiff(shared_mesh_t mesh, size_t layer_idx, const std::string& set
     ranges::any_view<SliceLayer> layer_diff;
     if (search_downwards)
     {
-         layer_diff = mesh->layers | ranges::views::take(layer_idx) | ranges::views::reverse;
+        layer_diff = mesh->layers | ranges::views::take(layer_idx) | ranges::views::reverse;
     }
     else
     {
-
-         layer_diff =  mesh->layers | ranges::views::take(layer_idx) ;
+        layer_diff = mesh->layers | ranges::views::take(layer_idx);
     }
 
-    return ranges::distance( layer_diff | cura::views::get(&SliceLayer::thickness) | ranges::views::partial_sum(std::plus{})
-                    | ranges::views::take_while([delta_distance](const auto distance) { return distance <= delta_distance; }));
+    return ranges::distance(layer_diff | cura::views::get(&SliceLayer::thickness) | ranges::views::partial_sum(std::plus{}) | ranges::views::take_while([delta_distance](const auto distance) { return distance <= delta_distance; }));
 }
 
 namespace views
@@ -133,13 +133,14 @@ constexpr auto drop_down(auto&& overhangs, auto&& foundations)
 
     // Create the support forest, which is a view of `support_area_graph_t::value_type` (linking area's top-down) of naively dropped down overhangs, designated as `SUPPORT`, going down to either a foundation or the build plate.
     // Note at this time the offsets and subtractions or intersection with the model isn't applied yet.
+    // TODO: @jellespijker take support_infill_sparse_thickness into account
     auto support_forest =
         overhangs
         | ranges::views::transform(
             [foundations_](shared_support_area_t overhang)
             {
                 const auto z_distance_top = LayerIndexDiff(overhang->mesh, overhang->layer_idx, "support_top_distance", true);
-                const auto z_distance_bottom = LayerIndexDiff(overhang->mesh, overhang->layer_idx, "support_bottom_distance", false);
+                // TODO: @jellespijker figure out how to handle the `support_bottom_distance` for `FOUNDATION_INTERFACE` area's
 
                 auto layers_below =
                     ranges::views::iota(0UL, overhang->layer_idx - z_distance_top) | ranges::views::reverse
@@ -154,31 +155,42 @@ constexpr auto drop_down(auto&& overhangs, auto&& foundations)
                                                           | ranges::views::filter([&support_area](auto foundation) { return support_area.bounding_box.hit(foundation->bounding_box); });
                             if (! ranges::empty(intersecting_foundations))
                             {
-                                Polygons outline = *support_area.outline;
+                                Polygons foundations_outline;
                                 for (const auto& foundation : intersecting_foundations)
                                 {
-                                    outline = outline.difference(*foundation->outline);
+                                    foundations_outline.add(*foundation->outline);
                                 }
-                                if (outline.empty())
+                                const Polygons partial_outline{ support_area.outline->intersection(foundations_outline) };
+                                if (! partial_outline.empty())
                                 {
-                                    spdlog::get("support")->debug("Support touch-down for layer: {} while processing mesh: {}", layer_idx, support_area.mesh->mesh_name);
-                                    support_area.area_type = SupportAreaType::NONE;
+									support_area.area_type = SupportAreaType::FOUNDATION_INTERFACE;
                                 }
                             }
                             return support_area;
                         })
-                    | cura::views::to_shared_ptr | ranges::views::take_while([](auto support_area) { return support_area->area_type != SupportAreaType::NONE; })
-                    | ranges::views::drop_last(z_distance_bottom)
+                    | cura::views::to_shared_ptr
                     | ranges::views::sliding(2)
                     | ranges::views::transform(
-                        [](auto layers_window) -> support_area_graph_t::value_type {
+                        [](auto layers_window) -> std::pair<shared_support_area_t, shared_support_area_t> {
                             return { ranges::front(layers_window), ranges::back(layers_window) };
                         });
+                // Tag the last SupportArea as FOUNDATION_INTERFACE
+                shared_support_area_t foundation_support_area = std::get<0>(ranges::back(layers_below));
+                foundation_support_area->area_type = SupportAreaType::FOUNDATION_INTERFACE;
 
-                return layers_below;
+                // Set top most support area as `OVERHANG_INTERFACE`
+                shared_support_area_t overhang_support_area = std::get<0>(ranges::front(layers_below));
+                overhang_support_area->area_type = SupportAreaType::OVERHANG_INTERFACE;
+
+                // Apply support horizontal expansion on all layers (since they're currently all pointers to the first overhang_support_area this only needs to be done once
+                const auto horizontal_expansion = overhang->mesh->settings.get<coord_t>("support_offset");
+                *overhang_support_area->outline = overhang_support_area->outline->offset(horizontal_expansion);
+
+                auto over_hang_support_view = ranges::views::single(std::pair<shared_support_area_t, shared_support_area_t>{ overhang, overhang_support_area });
+
+                return ranges::views::concat(over_hang_support_view, layers_below);
             });
-    // TODO: @jellespijker connect overhangs to first SupportArea below it
-    // TODO: @jellespijker connect foundations to first SupportArea above it
+    // NOTE: at this stage the outlines of the support area are still exactly the same as the overhang / all supports are also dropped until buildplate
     return ranges::make_view_closure(support_forest | ranges::views::join);
 }
 } // namespace actions

@@ -16,8 +16,10 @@ enum class SupportAreaType : int
 {
     NONE = -1,
     OVERHANG = 1,
-    FOUNDATION = 2,
-    SUPPORT = 3
+    OVERHANG_INTERFACE = 2,
+    FOUNDATION = 3,
+    FOUNDATION_INTERFACE = 4,
+    SUPPORT = 5
 };
 
 
