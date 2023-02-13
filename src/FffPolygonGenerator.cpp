@@ -399,7 +399,8 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     auto shared_meshes = storage.meshes | views::to_shared_ptr | ranges::to_vector;
     auto overhangs = shared_meshes | support::views::supportable_meshes | support::views::meshes_overhangs;
     auto foundations = shared_meshes | support::views::foundationable_meshes | support::views::meshes_foundations;
-    auto support_areas = support::views::drop_down(overhangs, foundations) | ranges::to<support::support_area_graph_t>;
+    auto support_areas = support::actions::drop_down(overhangs, foundations) | ranges::to<support::support_area_graph_t>;
+
 
     AreaSupport::generateOverhangAreas(storage);
     AreaSupport::generateSupportAreas(storage);

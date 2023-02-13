@@ -42,17 +42,19 @@ coord_t ModelSlopeDistance(const Settings& settings, const std::string& setting_
     return static_cast<coord_t>(tan_angle) * layer_height; // Maximum horizontal distance that can be bridged.
 }
 
+namespace views
+{
+namespace details
+{
 SupportArea MakeModelSupportAreaDiff(const auto& layers_window, const coord_t offset, std::shared_ptr<SliceMeshStorage> mesh, support::SupportAreaType area_type, const Simplify& simplify)
 {
-    Polygons& model_outline = std::get<1>(ranges::front(layers_window)).Outlines();
-    Polygons& other_model_outline = std::get<1>(ranges::back(layers_window)).Outlines();
+    Polygons const& model_outline = std::get<1>(ranges::front(layers_window)).Outlines();
+    Polygons const& other_model_outline = std::get<1>(ranges::back(layers_window)).Outlines();
     const Polygons model_diff_outline = simplify.polygon(model_outline.difference(other_model_outline.offset(offset)));
     const auto layer_idx = std::get<0>(ranges::front(layers_window));
     return { .mesh = mesh, .layer_idx = layer_idx, .outline = std::make_shared<Polygons>(model_diff_outline), .area_type = area_type, .area = model_diff_outline.area(), .bounding_box = AABB{ model_diff_outline } };
 }
 
-namespace views
-{
 auto ComputeOverhang(std::shared_ptr<SliceMeshStorage> mesh)
 {
     spdlog::get("support")->info("Compute support overhangs for {}", mesh->mesh_name);
@@ -76,6 +78,22 @@ auto ComputeFoundation(std::shared_ptr<SliceMeshStorage> mesh)
         | ranges::views::transform([min_dist_from_upper_layer, mesh, simplify](const auto& layers_window) { return MakeModelSupportAreaDiff(layers_window, min_dist_from_upper_layer, mesh, support::SupportAreaType::FOUNDATION, simplify); });
     return ranges::make_view_closure(mesh_layer_outline_window);
 }
+} // namespace details
+
+constexpr auto supportable_meshes =
+    ranges::views::filter([](std::shared_ptr<SliceMeshStorage> mesh)
+                          { return mesh->settings.get<bool>("support_enable") && ! mesh->settings.get<bool>("anti_overhang_mesh") && ! mesh->settings.get<bool>("infill_mesh") && ! mesh->settings.get<bool>("support_mesh"); });
+
+constexpr auto foundationable_meshes =
+    ranges::views::filter([](std::shared_ptr<SliceMeshStorage> mesh) { return mesh->settings.get<bool>("support_enable") && ! mesh->settings.get<bool>("anti_overhang_mesh") && ! mesh->settings.get<bool>("infill_mesh"); });
+
+constexpr auto meshes_overhangs = ranges::views::transform(&details::ComputeOverhang) | ranges::views::join | cura::views::to_shared_ptr;
+constexpr auto meshes_foundations = ranges::views::transform(&details::ComputeFoundation) | ranges::views::join | cura::views::to_shared_ptr;
+
+} // namespace views
+
+namespace actions
+{
 
 constexpr auto drop_down(auto&& overhangs, auto&& foundations)
 {
@@ -115,30 +133,18 @@ constexpr auto drop_down(auto&& overhangs, auto&& foundations)
                             }
                             return support_area;
                         })
-                    | ranges::views::take_while([](const SupportArea& support_area) { return support_area.area_type != SupportAreaType::NONE; }) | cura::views::to_shared_ptr | ranges::views::sliding(2)
+                    | cura::views::to_shared_ptr | ranges::views::take_while([](auto support_area) { return support_area->area_type != SupportAreaType::NONE; }) | ranges::views::sliding(2)
                     | ranges::views::transform(
                         [](auto layers_window) -> support_area_graph_t::value_type {
                             return { ranges::front(layers_window), ranges::back(layers_window) };
-                        })
-                    | ranges::views::reverse;
+                        });
                 return layers_below;
             });
     // TODO: @jellespijker connect overhangs to first SupportArea below it
     // TODO: @jellespijker connect foundations to first SupportArea above it
     return ranges::make_view_closure(support_forest | ranges::views::join);
 }
-
-constexpr auto supportable_meshes =
-    ranges::views::filter([](std::shared_ptr<SliceMeshStorage> mesh)
-                          { return mesh->settings.get<bool>("support_enable") && ! mesh->settings.get<bool>("anti_overhang_mesh") && ! mesh->settings.get<bool>("infill_mesh") && ! mesh->settings.get<bool>("support_mesh"); });
-
-constexpr auto foundationable_meshes =
-    ranges::views::filter([](std::shared_ptr<SliceMeshStorage> mesh) { return mesh->settings.get<bool>("support_enable") && ! mesh->settings.get<bool>("anti_overhang_mesh") && ! mesh->settings.get<bool>("infill_mesh"); });
-
-constexpr auto meshes_overhangs = ranges::views::transform(&ComputeOverhang) | ranges::views::join | cura::views::to_shared_ptr;
-constexpr auto meshes_foundations = ranges::views::transform(&ComputeFoundation) | ranges::views::join | cura::views::to_shared_ptr;
-
-} // namespace views
+} // namespace actions
 
 } // namespace cura::support
 
