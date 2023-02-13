@@ -995,7 +995,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
             // handle straight walls
             AreaSupport::handleWallStruts(infill_settings, layer_this);
             // handle towers
-            AreaSupport::handleTowers(infill_settings, storage, layer_this, tower_roofs, mesh.overhang_points, layer_idx, layer_count);
+            AreaSupport::handleTowers(infill_settings, xy_disallowed_per_layer[layer_idx], layer_this, tower_roofs, mesh.overhang_points, layer_idx, layer_count);
         }
 
         if (layer_idx + 1 < layer_count)
@@ -1329,7 +1329,7 @@ void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMes
 }
 
 
-void AreaSupport::handleTowers(const Settings& settings, const SliceDataStorage& storage, Polygons& supportLayer_this, std::vector<Polygons>& tower_roofs, std::vector<std::vector<Polygons>>& overhang_points, LayerIndex layer_idx, size_t layer_count)
+void AreaSupport::handleTowers(const Settings& settings, const Polygons& xy_disallowed_area, Polygons& supportLayer_this, std::vector<Polygons>& tower_roofs, std::vector<std::vector<Polygons>>& overhang_points, LayerIndex layer_idx, size_t layer_count)
 {
     LayerIndex layer_overhang_point = layer_idx + 1; // Start tower 1 layer below overhang point.
     if (layer_overhang_point >= static_cast<LayerIndex>(layer_count) - 1)
@@ -1389,7 +1389,7 @@ void AreaSupport::handleTowers(const Settings& settings, const SliceDataStorage&
         {
             constexpr bool no_support = false;
             constexpr bool no_prime_tower = false;
-            Polygons model_outline = storage.getLayerOutlines(layer_idx, no_support, no_prime_tower);
+            Polygons model_outline = xy_disallowed_area;
 
             // Rather than offsetting the tower with tower_roof_expansion_distance we do this step wise to achieve two things
             // - prevent support from folding around the model
