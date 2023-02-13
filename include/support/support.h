@@ -13,13 +13,17 @@
 #include <range/v3/empty.hpp>
 #include <range/v3/front.hpp>
 #include <range/v3/to_container.hpp>
+#include <range/v3/view/any_view.hpp>
 #include <range/v3/view/drop.hpp>
+#include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/iota.hpp>
 #include <range/v3/view/join.hpp>
+#include <range/v3/view/partial_sum.hpp>
 #include <range/v3/view/reverse.hpp>
 #include <range/v3/view/sliding.hpp>
+#include <range/v3/view/take.hpp>
 #include <range/v3/view/take_while.hpp>
 #include <range/v3/view/transform.hpp>
 #include <spdlog/spdlog.h>
@@ -28,11 +32,14 @@
 #include "support/support_area.h"
 #include "utils/Simplify.h"
 #include "utils/polygon.h"
+#include "utils/views/get.h"
 #include "utils/views/to_shared_ptr.h"
 
 namespace cura::support
 {
-using support_area_graph_t = std::unordered_multimap<std::shared_ptr<SupportArea>, std::shared_ptr<SupportArea>>;
+using shared_mesh_t = std::shared_ptr<SliceMeshStorage>;
+using shared_support_area_t = std::shared_ptr<SupportArea>;
+using support_area_graph_t = std::unordered_multimap<shared_support_area_t, shared_support_area_t>;
 
 coord_t ModelSlopeDistance(const Settings& settings, const std::string& setting_angle_key)
 {
@@ -42,11 +49,37 @@ coord_t ModelSlopeDistance(const Settings& settings, const std::string& setting_
     return static_cast<coord_t>(tan_angle) * layer_height; // Maximum horizontal distance that can be bridged.
 }
 
+/*!
+ * Finds the delta layers from a specific layer_idx counting down/up until the requested distance is reached
+ * @param mesh
+ * @param layer_idx
+ * @param setting_distance_key
+ * @param search_downwards
+ * @return
+ */
+auto LayerIndexDiff(shared_mesh_t mesh, size_t layer_idx, const std::string& setting_distance_key, const bool search_downwards)
+{
+    const auto delta_distance = mesh->settings.get<coord_t>(setting_distance_key);
+    ranges::any_view<SliceLayer> layer_diff;
+    if (search_downwards)
+    {
+         layer_diff = mesh->layers | ranges::views::take(layer_idx) | ranges::views::reverse;
+    }
+    else
+    {
+
+         layer_diff =  mesh->layers | ranges::views::take(layer_idx) ;
+    }
+
+    return ranges::distance( layer_diff | cura::views::get(&SliceLayer::thickness) | ranges::views::partial_sum(std::plus{})
+                    | ranges::views::take_while([delta_distance](const auto distance) { return distance <= delta_distance; }));
+}
+
 namespace views
 {
 namespace details
 {
-SupportArea MakeModelSupportAreaDiff(const auto& layers_window, const coord_t offset, std::shared_ptr<SliceMeshStorage> mesh, support::SupportAreaType area_type, const Simplify& simplify)
+SupportArea MakeModelSupportAreaDiff(const auto& layers_window, const coord_t offset, shared_mesh_t mesh, support::SupportAreaType area_type, const Simplify& simplify)
 {
     Polygons const& model_outline = std::get<1>(ranges::front(layers_window)).Outlines();
     Polygons const& other_model_outline = std::get<1>(ranges::back(layers_window)).Outlines();
@@ -55,7 +88,7 @@ SupportArea MakeModelSupportAreaDiff(const auto& layers_window, const coord_t of
     return { .mesh = mesh, .layer_idx = layer_idx, .outline = std::make_shared<Polygons>(model_diff_outline), .area_type = area_type, .area = model_diff_outline.area(), .bounding_box = AABB{ model_diff_outline } };
 }
 
-auto ComputeOverhang(std::shared_ptr<SliceMeshStorage> mesh)
+auto ComputeOverhang(shared_mesh_t mesh)
 {
     spdlog::get("support")->info("Compute support overhangs for {}", mesh->mesh_name);
     const auto max_dist_from_lower_layer = ModelSlopeDistance(mesh->settings, "support_angle");
@@ -68,7 +101,7 @@ auto ComputeOverhang(std::shared_ptr<SliceMeshStorage> mesh)
     return ranges::make_view_closure(mesh_layer_outline_window);
 }
 
-auto ComputeFoundation(std::shared_ptr<SliceMeshStorage> mesh)
+auto ComputeFoundation(shared_mesh_t mesh)
 {
     spdlog::get("support")->info("Compute support foundations for {}", mesh->mesh_name);
     const auto min_dist_from_upper_layer = ModelSlopeDistance(mesh->settings, "support_bottom_stair_step_min_slope");
@@ -80,12 +113,10 @@ auto ComputeFoundation(std::shared_ptr<SliceMeshStorage> mesh)
 }
 } // namespace details
 
-constexpr auto supportable_meshes =
-    ranges::views::filter([](std::shared_ptr<SliceMeshStorage> mesh)
-                          { return mesh->settings.get<bool>("support_enable") && ! mesh->settings.get<bool>("anti_overhang_mesh") && ! mesh->settings.get<bool>("infill_mesh") && ! mesh->settings.get<bool>("support_mesh"); });
+constexpr auto supportable_meshes = ranges::views::filter(
+    [](shared_mesh_t mesh) { return mesh->settings.get<bool>("support_enable") && ! mesh->settings.get<bool>("anti_overhang_mesh") && ! mesh->settings.get<bool>("infill_mesh") && ! mesh->settings.get<bool>("support_mesh"); });
 
-constexpr auto foundationable_meshes =
-    ranges::views::filter([](std::shared_ptr<SliceMeshStorage> mesh) { return mesh->settings.get<bool>("support_enable") && ! mesh->settings.get<bool>("anti_overhang_mesh") && ! mesh->settings.get<bool>("infill_mesh"); });
+constexpr auto foundationable_meshes = ranges::views::filter([](shared_mesh_t mesh) { return mesh->settings.get<bool>("support_enable") && ! mesh->settings.get<bool>("anti_overhang_mesh") && ! mesh->settings.get<bool>("infill_mesh"); });
 
 constexpr auto meshes_overhangs = ranges::views::transform(&details::ComputeOverhang) | ranges::views::join | cura::views::to_shared_ptr;
 constexpr auto meshes_foundations = ranges::views::transform(&details::ComputeFoundation) | ranges::views::join | cura::views::to_shared_ptr;
@@ -105,10 +136,13 @@ constexpr auto drop_down(auto&& overhangs, auto&& foundations)
     auto support_forest =
         overhangs
         | ranges::views::transform(
-            [&foundations, foundations_](auto overhang)
+            [foundations_](shared_support_area_t overhang)
             {
+                const auto z_distance_top = LayerIndexDiff(overhang->mesh, overhang->layer_idx, "support_top_distance", true);
+                const auto z_distance_bottom = LayerIndexDiff(overhang->mesh, overhang->layer_idx, "support_bottom_distance", false);
+
                 auto layers_below =
-                    ranges::views::iota(0UL, overhang->layer_idx) | ranges::views::reverse
+                    ranges::views::iota(0UL, overhang->layer_idx - z_distance_top) | ranges::views::reverse
                     | ranges::views::transform(
                         [overhang, foundations_](auto layer_idx) -> SupportArea
                         {
@@ -133,11 +167,14 @@ constexpr auto drop_down(auto&& overhangs, auto&& foundations)
                             }
                             return support_area;
                         })
-                    | cura::views::to_shared_ptr | ranges::views::take_while([](auto support_area) { return support_area->area_type != SupportAreaType::NONE; }) | ranges::views::sliding(2)
+                    | cura::views::to_shared_ptr | ranges::views::take_while([](auto support_area) { return support_area->area_type != SupportAreaType::NONE; })
+                    | ranges::views::drop_last(z_distance_bottom)
+                    | ranges::views::sliding(2)
                     | ranges::views::transform(
                         [](auto layers_window) -> support_area_graph_t::value_type {
                             return { ranges::front(layers_window), ranges::back(layers_window) };
                         });
+
                 return layers_below;
             });
     // TODO: @jellespijker connect overhangs to first SupportArea below it
