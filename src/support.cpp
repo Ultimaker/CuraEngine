@@ -1053,7 +1053,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
         layer_this.removeSmallAreas(minimum_support_area);
 
         // Perform close operation to remove areas from support area that are unprintable
-        auto offset_dist = min_even_wall_line_width + 10;
+        auto offset_dist = min_even_wall_line_width / 2 + 10;
         layer_this = layer_this.offset(-offset_dist).offset(offset_dist);
 
         // Move up from model, handle stair-stepping.
