@@ -858,6 +858,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
     const coord_t support_line_width = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings.get<coord_t>("support_line_width");
     const double sloped_areas_angle = mesh.settings.get<AngleRadians>("support_bottom_stair_step_min_slope");
     const coord_t sloped_area_detection_width = 10 + static_cast<coord_t>(layer_thickness / std::tan(sloped_areas_angle)) / 2;
+    const double minimum_support_area = mesh.settings.get<double>("minimum_support_area");
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, no_support, no_prime_tower).offset(xy_distance);
 
     cura::parallel_for<size_t>(1,
@@ -1033,6 +1034,12 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
             layer_this = AreaSupport::join(storage, *layer_above, layer_this, smoothing_distance).difference(model_mesh_on_layer);
         }
 
+        // inset using X/Y distance
+        if (!layer_this.empty())
+        {
+            layer_this = layer_this.difference(xy_disallowed_per_layer[layer_idx]);
+        }
+
         // make towers for small support
         if (use_towers)
         {
@@ -1065,14 +1072,11 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
             layer_this = layer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh_drop_down);
         }
 
+        // remove areas smaller than the minimum support area
+        layer_this.removeSmallAreas(minimum_support_area);
+
         // Move up from model, handle stair-stepping.
         moveUpFromModel(storage, stair_removal, sloped_areas_per_layer[layer_idx], layer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, bottom_stair_step_width);
-
-        // inset using X/Y distance
-        if (! layer_this.empty())
-        {
-            layer_this = layer_this.difference(xy_disallowed_per_layer[layer_idx]);
-        }
 
         support_areas[layer_idx] = layer_this;
         Progress::messageProgress(Progress::Stage::SUPPORT, layer_count * (mesh_idx + 1) - layer_idx, layer_count * storage.meshes.size());
