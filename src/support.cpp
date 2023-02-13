@@ -859,6 +859,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
     const double sloped_areas_angle = mesh.settings.get<AngleRadians>("support_bottom_stair_step_min_slope");
     const coord_t sloped_area_detection_width = 10 + static_cast<coord_t>(layer_thickness / std::tan(sloped_areas_angle)) / 2;
     const double minimum_support_area = mesh.settings.get<double>("minimum_support_area");
+    const double min_even_wall_line_width = mesh.settings.get<double>("min_even_wall_line_width");
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, no_support, no_prime_tower).offset(xy_distance);
 
     cura::parallel_for<size_t>(1,
@@ -1075,6 +1076,10 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
         // remove areas smaller than the minimum support area
         layer_this.removeSmallAreas(minimum_support_area);
 
+        // Perform close operation to remove areas from support area that are unprintable
+        auto offset_dist = min_even_wall_line_width + 10;
+        layer_this = layer_this.offset(-offset_dist).offset(offset_dist);
+
         // Move up from model, handle stair-stepping.
         moveUpFromModel(storage, stair_removal, sloped_areas_per_layer[layer_idx], layer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, bottom_stair_step_width);
 
@@ -1149,7 +1154,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
     {
         Polygons& layer_this = support_areas[layer_idx];
 
-        if (! layer_this.empty())
+        if (!layer_this.empty())
         {
             Polygons& layer_below = support_areas[layer_idx - 1];
             Polygons& layer_above = support_areas[layer_idx + 1];
