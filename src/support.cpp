@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <cmath> // sqrt, round
@@ -27,6 +27,7 @@
 #include "sliceDataStorage.h"
 #include "slicer.h"
 #include "support.h"
+#include "utils/Simplify.h"
 #include "utils/ThreadPool.h"
 #include "utils/math.h"
 
@@ -548,33 +549,8 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
     {
         joined = joined.offset(join_distance).offset(-join_distance);
     }
-
-    // remove jagged line pieces introduced by unioning separate overhang areas for consectuive layers
-    //
-    // support may otherwise look like:
-    //      _____________________      .
-    //     /                     \      } dist_from_lower_layer
-    //    /__                   __\    /
-    //      /''--...........--''\        `\                                                 .
-    //     /                     \         } dist_from_lower_layer
-    //    /__                   __\      ./
-    //      /''--...........--''\     `\                                                    .
-    //     /                     \      } dist_from_lower_layer
-    //    /_______________________\   ,/
-    //            rather than
-    //      _____________________
-    //     /                     \                                                          .
-    //    /                       \                                                         .
-    //    |                       |
-    //    |                       |
-    //    |                       |
-    //    |                       |
-    //    |                       |
-    //    |_______________________|
-    //
-    // dist_from_lower_layer may be up to max_dist_from_lower_layer (see below), but that value may be extremely high
-    const AngleDegrees max_smoothing_angle = 135; // maximum angle of inner corners to be smoothed
-    joined = joined.smooth_outward(max_smoothing_angle, smoothing_distance);
+    const Simplify simplify(infill_settings);
+    joined = simplify.polygon(joined);
 
     return joined;
 }
