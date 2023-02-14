@@ -1056,12 +1056,13 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
         // Move up from model, handle stair-stepping.
         moveUpFromModel(storage, stair_removal, sloped_areas_per_layer[layer_idx], layer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, bottom_stair_step_width);
 
+        // Perform close operation to remove areas from support area that are unprintable
+        // The maximum width of an odd wall = 2 * minimum even wall width.
+        auto offset_dist = min_even_wall_line_width + 10;
+        layer_this = layer_this.offset(-offset_dist).offset(offset_dist);
+
         // remove areas smaller than the minimum support area
         layer_this.removeSmallAreas(minimum_support_area);
-
-        // Perform close operation to remove areas from support area that are unprintable
-        auto offset_dist = min_even_wall_line_width / 2 + 10;
-        layer_this = layer_this.offset(-offset_dist).offset(offset_dist);
 
         support_areas[layer_idx] = layer_this;
         Progress::messageProgress(Progress::Stage::SUPPORT, layer_count * (mesh_idx + 1) - layer_idx, layer_count * storage.meshes.size());
