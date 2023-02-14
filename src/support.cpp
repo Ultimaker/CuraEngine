@@ -201,10 +201,10 @@ std::vector<Polygons> AreaSupport::computeExtruderRegions(const SliceDataStorage
         if (extruder_region.empty()) continue;
 
         // DEBUG (uncomment)
-        extruder_regions[default_extruder_nr] = global_support_areas.intersection(extruder_region);
+        extruder_regions[extruder_nr] = global_support_areas.intersection(extruder_region);
 
         // extruder_regions[extruder_nr] \= extruder_region
-        extruder_regions[extruder_nr] = extruder_regions[default_extruder_nr].difference(extruder_region);
+        extruder_regions[default_extruder_nr] = extruder_regions[default_extruder_nr].difference(extruder_region);
     }
     
     return extruder_regions;
