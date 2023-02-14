@@ -1059,7 +1059,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
         // Perform close operation to remove areas from support area that are unprintable
         // The maximum width of an odd wall = 2 * minimum even wall width.
         auto offset_dist = min_even_wall_line_width + 10;
-        layer_this = layer_this.offset(-offset_dist).offset(offset_dist);
+        layer_this = layer_this.offset(-offset_dist, ClipperLib::jtRound).offset(offset_dist, ClipperLib::jtRound);
 
         // remove areas smaller than the minimum support area
         layer_this.removeSmallAreas(minimum_support_area);
