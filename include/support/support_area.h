@@ -7,8 +7,8 @@
 #include <memory>
 
 #include "sliceDataStorage.h"
-#include "utils/polygon.h"
 #include "utils/AABB.h"
+#include "utils/polygon.h"
 
 namespace cura::support
 {
@@ -30,8 +30,8 @@ struct SupportArea
     size_t layer_idx { 0 };
     std::shared_ptr<Polygons> outline;
     SupportAreaType area_type { SupportAreaType::NONE };
-    double area { 0 };
-    AABB bounding_box;
+    std::shared_ptr<double> area { 0 };
+    std::shared_ptr<AABB> bounding_box;
 };
 
 } // namespace cura::support
