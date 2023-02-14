@@ -543,12 +543,6 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
     {
         joined = supportLayer_this.unionPolygons(supportLayer_up);
     }
-    // join different parts
-    const coord_t join_distance = infill_settings.get<coord_t>("support_join_distance");
-    if (join_distance > 0)
-    {
-        joined = joined.offset(join_distance).offset(-join_distance);
-    }
     const Simplify simplify(infill_settings);
     joined = simplify.polygon(joined);
 
@@ -966,6 +960,21 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
     for (size_t layer_idx = layer_count - 1 - layer_z_distance_top; layer_idx != static_cast<size_t>(-1); layer_idx--)
     {
         Polygons layer_this = mesh.full_overhang_areas[layer_idx + layer_z_distance_top];
+
+        // join different parts
+        const coord_t join_distance = infill_settings.get<coord_t>("support_join_distance");
+        if (join_distance > 0)
+        {
+            Polygons joining_areas = layer_this
+                                         .offset(join_distance, ClipperLib::jtRound)
+                                         .offset(-join_distance, ClipperLib::jtRound)
+                                         .difference(layer_this);
+            // To make sure the joining_areas have sufficient width the joining_areas are expanded with 2 line widths.
+            // Typically, the joining area is close to the model, so half of the offset will be removed by the model.
+            // The remaining half will be 2 line widths wide, allowing for a wall going back and forth.
+            joining_areas = joining_areas.offset(support_line_width * 2);
+            layer_this = layer_this.unionPolygons(joining_areas);
+        }
 
         if (extension_offset && ! is_support_mesh_place_holder)
         {
