@@ -636,13 +636,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
         mesh_support_areas_per_layer.resize(storage.print_layer_count, Polygons());
 
         generateSupportAreasForMesh(storage, *infill_settings, *roof_settings, *bottom_settings, mesh_idx, storage.print_layer_count, mesh_support_areas_per_layer);
-        const double minimum_support_area = mesh.settings.get<double>("minimum_support_area");
         for (size_t layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
         {
-            if (minimum_support_area > 0.0)
-            {
-                mesh_support_areas_per_layer[layer_idx].removeSmallAreas(minimum_support_area);
-            }
             global_support_areas_per_layer[layer_idx].add(mesh_support_areas_per_layer[layer_idx]);
         }
     }
