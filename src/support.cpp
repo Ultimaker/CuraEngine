@@ -824,7 +824,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
     const double sloped_areas_angle = mesh.settings.get<AngleRadians>("support_bottom_stair_step_min_slope");
     const coord_t sloped_area_detection_width = 10 + static_cast<coord_t>(layer_thickness / std::tan(sloped_areas_angle)) / 2;
     const double minimum_support_area = mesh.settings.get<double>("minimum_support_area");
-    const double min_even_wall_line_width = mesh.settings.get<double>("min_even_wall_line_width");
+    const coord_t min_even_wall_line_width = mesh.settings.get<coord_t>("min_even_wall_line_width");
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, no_support, no_prime_tower).offset(xy_distance);
 
     cura::parallel_for<size_t>(1,
