@@ -1087,7 +1087,6 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         processDraftShield(storage, gcode_layer);
     }
 
-    printf("%zu extruders this layer. helper parts: %s. Islands:%zu. Layer nr: %u.\n\n", extruder_order.size(), include_helper_parts ? "true" : "false", storage.support.supportLayers[layer_nr].support_infill_parts.size(), layer_nr);
 
     for (const size_t& extruder_nr : extruder_order)
     {
@@ -1095,9 +1094,8 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         {
             if (addSupportToGCode(storage, gcode_layer, extruder_nr))
             {
-                printf("%---> extruder nr: %zu, layer nr: %d, added something!\n", extruder_nr, layer_nr);
+                }
             }
-        }
 
         if (layer_nr >= 0)
         {
@@ -2812,7 +2810,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         return added_something;
     }
 
-    printf("---> Islands: %zu, extruder_nr: %zu, layer nr: %d\n\n", support_layer.support_infill_parts.size(), extruder_nr, gcode_layer.getLayerNr());
 
     // default extruder nr
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
@@ -2875,7 +2872,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         // only consider the islands for the current extruder
         if (part.extruder_nr == extruder_nr)
         {
-             printf("-------> Island no: %zu, extruder_nr: %zu, layer nr: %d\n\n", part_idx, extruder_nr, gcode_layer.getLayerNr());
             island_order_optimizer.addPolygon(&part);
         }
     }
