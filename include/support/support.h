@@ -40,6 +40,7 @@
 #include "support/support_area.h"
 #include "utils/Simplify.h"
 #include "utils/polygon.h"
+#include "utils/views/dfs.h"
 #include "utils/views/get.h"
 #include "utils/views/to_shared_ptr.h"
 
@@ -139,40 +140,19 @@ constexpr auto drop_down(auto&& overhangs, auto&& foundations)
 
     // Create the support forest, which is a view of `support_area_graph_t::value_type` (linking area's top-down) of naively dropped down overhangs, designated as `SUPPORT`, going down to either a foundation or the build plate.
     // Note at this time the offsets and subtractions or intersection with the model isn't applied yet.
-    // TODO: @jellespijker take support_infill_sparse_thickness into account
+    // TODO: @jellespijker take support_infill_sparse_thickness into account ( this should probably be done at the end )
     auto support_forest =
         overhangs
         | ranges::views::transform(
             [foundations_](shared_support_area_t overhang)
             {
                 const auto z_distance_top = LayerIndexDiff(overhang->mesh, overhang->layer_idx, "support_top_distance", true);
-                // TODO: @jellespijker figure out how to handle the `support_bottom_distance` for `FOUNDATION_INTERFACE` area's
-
                 auto layers_below =
                     ranges::views::iota(0UL, overhang->layer_idx - z_distance_top) | ranges::views::reverse
                     | ranges::views::transform(
                         [overhang, foundations_](auto layer_idx) -> SupportArea
                         {
-                            // Create a support area based on the foundation above it on the current layer
-                            SupportArea support_area{ .mesh = overhang->mesh, .layer_idx = layer_idx, .outline = overhang->outline, .area_type = SupportAreaType::SUPPORT, .area = overhang->area, .bounding_box = overhang->bounding_box };
-
-                            // Check against collision with foundations; if collided: alter the outline with that foundation and update area and bounding_box, if completely eaten away set type to NONE
-                            auto intersecting_foundations = foundations_ | ranges::views::filter([layer_idx](auto foundation) { return foundation->layer_idx == layer_idx; })
-                                                          | ranges::views::filter([&support_area](auto foundation) { return support_area.bounding_box.hit(foundation->bounding_box); });
-                            if (! ranges::empty(intersecting_foundations))
-                            {
-                                Polygons foundations_outline;
-                                for (const auto& foundation : intersecting_foundations)
-                                {
-                                    foundations_outline.add(*foundation->outline);
-                                }
-                                const Polygons partial_outline{ support_area.outline->intersection(foundations_outline) };
-                                if (! partial_outline.empty())
-                                {
-									support_area.area_type = SupportAreaType::FOUNDATION_INTERFACE;
-                                }
-                            }
-                            return support_area;
+                            return { .mesh = overhang->mesh, .layer_idx = layer_idx, .outline = overhang->outline, .area_type = SupportAreaType::SUPPORT, .area = overhang->area, .bounding_box = overhang->bounding_box };
                         })
                     | cura::views::to_shared_ptr
                     | ranges::views::sliding(2)
@@ -180,9 +160,6 @@ constexpr auto drop_down(auto&& overhangs, auto&& foundations)
                         [](auto layers_window) -> std::pair<shared_support_area_t, shared_support_area_t> {
                             return { ranges::front(layers_window), ranges::back(layers_window) };
                         });
-                // Tag the last SupportArea as FOUNDATION_INTERFACE
-                shared_support_area_t foundation_support_area = std::get<0>(ranges::back(layers_below));
-                foundation_support_area->area_type = SupportAreaType::FOUNDATION_INTERFACE;
 
                 // Set top most support area as `OVERHANG_INTERFACE`
                 shared_support_area_t overhang_support_area = std::get<0>(ranges::front(layers_below));
@@ -203,36 +180,58 @@ constexpr auto drop_down(auto&& overhangs, auto&& foundations)
 auto join_areas(auto&& support_areas)
 {
     spdlog::get("support")->info("Join support area's");
-    auto support_graph = support_areas | ranges::to<support::support_area_graph_t>;
+    support_area_graph_t support_graph = support_areas | ranges::to<support_area_graph_t>;
 
     // Get all overhang_interfaces offset them with half the support_join_distance (leave the actual Polygon pointer untouched to avoid loosing data from this destructive open-close)
-    using cache_t = std::tuple<shared_support_area_t, AABB, Polygons>;
+    using cache_t = std::tuple<shared_support_area_t, AABB, Polygons, coord_t>;
     auto overhang_interfaces = support_graph
                              | ranges::views::keys
                              | ranges::views::filter([](shared_support_area_t support_area){ return support_area->area_type == SupportAreaType::OVERHANG_INTERFACE; })
                              | ranges::views::transform([](shared_support_area_t support_area) -> cache_t {
-                                                            const auto support_join_distance = support_area->mesh->settings.get<coord_t>("support_join_distance") / 2;
+                                                            const auto support_join_distance = support_area->mesh->settings.get<coord_t>("support_join_distance");
                                                             const Polygons joined_outline { support_area->outline->offset(support_join_distance) };
-                                                            return { support_area, AABB { joined_outline }, joined_outline };
+                                                            return { support_area, AABB { joined_outline }, joined_outline, support_join_distance };
                                                         })
                              | ranges::to_vector;
-    overhang_interfaces = ranges::actions::sort(overhang_interfaces, ranges::greater{}, [](const cache_t& support_area){ return std::get<0>(support_area)->layer_idx; });
+    overhang_interfaces = ranges::actions::sort(overhang_interfaces, {}, [](const cache_t& support_area){ return std::get<0>(support_area)->layer_idx; });
 
-    // Get a range of ranges for all the intersecting overhang_interfaces sorted on layer_height
+    // Get a range of ranges for all the intersecting overhang_interfaces sorted on layer_height, smallest first
     auto connected_supports = overhang_interfaces
                             | ranges::views::transform([overhang_interfaces](const cache_t& support_area){
                                                            return overhang_interfaces
                                                                 | ranges::views::filter([support_area](const cache_t& other){ return std::get<0>(support_area) != std::get<0>(other); })
                                                                 | ranges::views::filter([support_area](const cache_t& other){ return std::get<1>(support_area).hit(std::get<1>(other)) && ! std::get<2>(support_area).intersection(std::get<2>(other)).empty(); }); });
 
-    for (cache_t connected_areas : connected_supports)
+    for (auto connected_areas : connected_supports)
     {
+        cache_t current_area = ranges::front(connected_areas);
+        shared_support_area_t current_overhang_interface = std::get<0>(current_area);
+        for (const cache_t& other : connected_areas | ranges::views::drop(1))
+        {
+            // traverse over the other support_chain until the layer is reached and merge them
+            // TODO: @jellespijker Double check how this behaves with making it a support interface
+            const std::function<std::nullptr_t(shared_support_area_t, std::nullptr_t)> handle_node = [&current_overhang_interface, current_area, other](auto support_area, auto _){
+                if (support_area->layer_idx == current_overhang_interface->layer_idx)
+                {
+                    support_area->area_type = SupportAreaType::MERGED;
+                    auto avg_join_distance = (std::get<3>(current_area) + std::get<3>(other)) / 2;
+                    current_overhang_interface->outline = std::make_shared<Polygons>(std::get<2>(current_area).unionPolygons(std::get<2>(other)).offset(- avg_join_distance));  // Merge the cached union offsets: "Cache is king!"
+                    current_overhang_interface->bounding_box = AABB { *current_overhang_interface->outline };
+                    current_overhang_interface->area = current_overhang_interface->outline->area();
+                }
+                return nullptr;
+            };
+            std::unordered_set<shared_support_area_t> visited;
+            cura::actions::dfs(current_overhang_interface, support_graph, handle_node, visited);
+        }
         // The first value in the subrange is the one that remains
         // merge the outline by adding the intersection area(s) and the other normal outline
         // update aabb and area
         // Do this for the first layers below the lowest layer_idx
         // TODO: @jellespijker keep book keeping up to date for chained intersections, keep in mind height changes
     }
+
+    // Loop again over all foundations trickling all changes downwards
 
     // TODO: @jellespijker update map accordingly
 

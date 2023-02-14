@@ -19,7 +19,8 @@ enum class SupportAreaType : int
     OVERHANG_INTERFACE = 2,
     FOUNDATION = 3,
     FOUNDATION_INTERFACE = 4,
-    SUPPORT = 5
+    MERGED = 5,
+    SUPPORT = 6
 };
 
 
