@@ -1036,8 +1036,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                         const Polygons& layer_below = storage.getLayerOutlines(layer_idx - tower_top_layer_count - bottom_empty_layer_count, no_support, no_prime_tower);
                         const Point middle = AABB(poly).getMiddle();
                         const bool has_model_below = layer_below.inside(middle);
-                        const bool is_inside_disallowed_area = ! disallowed_area.intersection(poly).empty();
-                        if (! has_model_below && ! is_inside_disallowed_area)
+                        if (! has_model_below)
                         {
                             Polygons tiny_tower_here;
                             tiny_tower_here.add(poly);
