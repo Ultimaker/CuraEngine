@@ -1401,9 +1401,9 @@ void AreaSupport::handleTowers(const Settings& settings, const Polygons& xy_disa
             const coord_t offset_per_step = support_line_width / 2;
             for (coord_t offset_cumulative = 0; offset_cumulative <= tower_roof_expansion_distance; offset_cumulative += offset_per_step)
             {
-                tower_roof = tower_roof.offset(offset_per_step);
+                tower_roof = tower_roof.offset(offset_per_step, ClipperLib::jtRound);
                 model_outline = model_outline.difference(tower_roof);
-                model_outline = model_outline.offset(offset_per_step);
+                model_outline = model_outline.offset(offset_per_step, ClipperLib::jtRound);
                 tower_roof = tower_roof.difference(model_outline);
 
                 if (tower_roof.empty())
