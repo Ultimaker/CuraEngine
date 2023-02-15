@@ -543,6 +543,26 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
     {
         joined = supportLayer_this.unionPolygons(supportLayer_up);
     }
+
+    // join different parts
+    const coord_t join_distance = infill_settings.get<coord_t>("support_join_distance");
+    if (join_distance > 0)
+    {
+        // first offset the layer a little inwards; this way tiny area's will not be joined
+        // (narrow areas; ergo small areas will be removed in a later step using this same offset)
+        // this inwards offset is later reversed by increasing the outwards offset
+        const coord_t join_distance = infill_settings.get<coord_t>("support_join_distance");
+        const coord_t support_line_width = infill_settings.get<coord_t>("support_line_width");
+        const coord_t min_even_wall_line_width = infill_settings.get<coord_t>("min_even_wall_line_width");
+        auto half_min_feature_width = min_even_wall_line_width + 10;
+
+        joined = joined
+             .offset(-half_min_feature_width)
+             .offset(join_distance + half_min_feature_width, ClipperLib::jtRound)
+             .offset(-join_distance, ClipperLib::jtRound)
+             .unionPolygons(joined);
+    }
+
     const Simplify simplify(infill_settings);
     joined = simplify.polygon(joined);
 
@@ -977,21 +997,6 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                 model_outline = model_outline.offset(offset_per_step);
                 layer_this = layer_this.difference(model_outline);
             }
-        }
-
-        // join different parts
-        const coord_t join_distance = infill_settings.get<coord_t>("support_join_distance");
-        if (join_distance > 0)
-        {
-            Polygons joining_areas = layer_this
-                                         .offset(join_distance, ClipperLib::jtRound)
-                                         .offset(-join_distance, ClipperLib::jtRound)
-                                         .difference(layer_this);
-            // To make sure the joining_areas have sufficient width the joining_areas are expanded with 2 line widths.
-            // Typically, the joining area is close to the model, so half of the offset will be removed by the model.
-            // The remaining half will be 2 line widths wide, allowing for a wall going back and forth.
-            joining_areas = joining_areas.offset(support_line_width * 2);
-            layer_this = layer_this.unionPolygons(joining_areas);
         }
 
         if (use_towers && ! is_support_mesh_place_holder)
