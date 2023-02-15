@@ -847,6 +847,9 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
     const coord_t min_even_wall_line_width = mesh.settings.get<coord_t>("min_even_wall_line_width");
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, no_support, no_prime_tower).offset(xy_distance);
 
+    // The maximum width of an odd wall = 2 * minimum even wall width.
+    auto half_min_feature_width = min_even_wall_line_width + 10;
+
     cura::parallel_for<size_t>(1,
                                layer_count,
                                [&](const size_t layer_idx)
@@ -990,13 +993,17 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
             // support area. Please note that the horizontal expansion is rounded down to an integer offset_per_step.
             Polygons model_outline = storage.getLayerOutlines(layer_idx, no_support, no_prime_tower);
             const coord_t offset_per_step = support_line_width / 2;
+
+            // perform a small offset we don't enlarge small features of the support
+            Polygons horizontal_expansion = layer_this.offset(-half_min_feature_width).offset(half_min_feature_width);
             for (coord_t offset_cumulative = 0; offset_cumulative <= extension_offset; offset_cumulative += offset_per_step)
             {
-                layer_this = layer_this.offset(offset_per_step);
-                model_outline = model_outline.difference(layer_this);
+                horizontal_expansion = horizontal_expansion.offset(offset_per_step);
+                model_outline = model_outline.difference(horizontal_expansion);
                 model_outline = model_outline.offset(offset_per_step);
-                layer_this = layer_this.difference(model_outline);
+                horizontal_expansion = horizontal_expansion.difference(model_outline);
             }
+            layer_this.unionPolygons(horizontal_expansion);
         }
 
         if (use_towers && ! is_support_mesh_place_holder)
@@ -1059,9 +1066,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
         moveUpFromModel(storage, stair_removal, sloped_areas_per_layer[layer_idx], layer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, bottom_stair_step_width);
 
         // Perform close operation to remove areas from support area that are unprintable
-        // The maximum width of an odd wall = 2 * minimum even wall width.
-        auto offset_dist = min_even_wall_line_width + 10;
-        layer_this = layer_this.offset(-offset_dist).offset(offset_dist);
+        layer_this = layer_this.offset(-half_min_feature_width).offset(half_min_feature_width);
 
         // remove areas smaller than the minimum support area
         layer_this.removeSmallAreas(minimum_support_area);
