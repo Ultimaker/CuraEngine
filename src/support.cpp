@@ -11,6 +11,7 @@
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/slice.hpp>
+#include <range/v3/view/zip.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get settings.
@@ -1027,12 +1028,6 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
             layer_this = AreaSupport::join(storage, *layer_above, layer_this, smoothing_distance).difference(model_mesh_on_layer);
         }
 
-        // inset using X/Y distance
-        if (!layer_this.empty())
-        {
-            layer_this = layer_this.difference(xy_disallowed_per_layer[layer_idx]);
-        }
-
         // make towers for small support
         if (use_towers)
         {
@@ -1073,6 +1068,20 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
 
         support_areas[layer_idx] = layer_this;
         Progress::messageProgress(Progress::Stage::SUPPORT, layer_count * (mesh_idx + 1) - layer_idx, layer_count * storage.meshes.size());
+    }
+
+    // Removal of the x/y distance needs to be outside the main loop
+    // doing this in the main loop would result in more smooth support
+    // structure. However, it would also remove polygon-parts close to the
+    // model. For surfaces close to the maximum overhang angle no support
+    // would be generated at all.
+    for (auto [support_layer, xy_disallowed_area] : ranges::views::zip(support_areas, xy_disallowed_per_layer))
+    {
+        // inset using X/Y distance
+        if (! support_layer.empty() && ! xy_disallowed_area.empty())
+        {
+            support_layer = support_layer.difference(xy_disallowed_area);
+        }
     }
 
     // do stuff for when support on buildplate only
