@@ -1041,7 +1041,8 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                     {
                         const Polygons& overhang_area_above = mesh.full_overhang_areas[layer_idx + layer_z_distance_top];
                         const bool has_model_above = ! overhang_area_above.intersection(poly).empty();
-                        if (has_model_above)
+                        const bool is_inside_disallowed_area = ! poly.intersection(xy_disallowed_per_layer[layer_idx]).empty();
+                        if (has_model_above && ! is_inside_disallowed_area)
                         {
                             Polygons tiny_tower_here;
                             tiny_tower_here.add(poly);
