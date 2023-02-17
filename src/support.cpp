@@ -1065,9 +1065,6 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
         // Move up from model, handle stair-stepping.
         moveUpFromModel(storage, stair_removal, sloped_areas_per_layer[layer_idx], layer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, bottom_stair_step_width);
 
-        // Perform close operation to remove areas from support area that are unprintable
-        layer_this = layer_this.offset(-half_min_feature_width).offset(half_min_feature_width);
-
         // remove areas smaller than the minimum support area
         layer_this.removeSmallAreas(minimum_support_area);
 
@@ -1136,6 +1133,17 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                                        support_areas[layer_idx] = support_areas[layer_idx].difference(storage.getLayerOutlines(layer_idx + layer_z_distance_top - 1, no_support, no_prime_tower));
                                    });
     }
+
+    // Perform close operation to remove areas from support area that are unprintable
+    cura::parallel_for<size_t>
+    (
+        0,
+        layer_count - layer_z_distance_top,
+        [&](const size_t layer_idx)
+        {
+            support_areas[layer_idx] = support_areas[layer_idx].offset(-half_min_feature_width).offset(half_min_feature_width);
+        }
+    );
 
     // Procedure to remove floating support
     for (size_t layer_idx = 1; layer_idx < layer_count - 1; layer_idx ++)
