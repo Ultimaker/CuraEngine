@@ -918,6 +918,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                                    {
                                        xy_disallowed_per_layer[layer_idx] = outlines.offset(xy_distance);
                                    }
+                                   xy_disallowed_per_layer[layer_idx] = xy_disallowed_per_layer[layer_idx].smooth(min_even_wall_line_width);
                                });
 
     std::vector<Polygons> tower_roofs;
@@ -1057,6 +1058,8 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
         { // handle support mesh which should be supported by more support
             layer_this = layer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh_drop_down);
         }
+
+        layer_this = layer_this.difference(xy_disallowed_per_layer[layer_idx]);
 
         // Move up from model, handle stair-stepping.
         moveUpFromModel(storage, stair_removal, sloped_areas_per_layer[layer_idx], layer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, bottom_stair_step_width);
