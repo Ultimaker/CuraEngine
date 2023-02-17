@@ -9,57 +9,148 @@
 namespace cura
 {
 
-const int vertex_meld_distance = MM2INT(0.03);
-/*!
- * returns a hash for the location, but first divides by the vertex_meld_distance,
- * so that any point within a box of vertex_meld_distance by vertex_meld_distance would get mapped to the same hash.
- */
-static inline uint32_t pointHash(const Point3& p)
+static inline uint64_t intersperse3bits(uint64_t x)
 {
-    return ((p.x + vertex_meld_distance / 2) / vertex_meld_distance) ^ (((p.y + vertex_meld_distance / 2) / vertex_meld_distance) << 10) ^ (((p.z + vertex_meld_distance / 2) / vertex_meld_distance) << 20);
+    x = (x | x << 32) & 0x1f00000000ffff;
+    x = (x | x << 16) & 0x1f0000ff0000ff;
+    x = (x | x << 8) & 0x100f00f00f00f00f;
+    x = (x | x << 4) & 0x10c30c30c30c30c3;
+    x = (x | x << 2) & 0x1249249249249249;
+    return x;
 }
 
-Mesh::Mesh(Settings& parent) : settings(parent), has_disconnected_faces(false), has_overlapping_faces(false)
+static inline uint64_t hash_point3(const Point3& v)
 {
+    return intersperse3bits(static_cast<uint64_t>(v.x)) | (intersperse3bits(static_cast<uint64_t>(v.y)) << 1) | (intersperse3bits(static_cast<uint64_t>(v.z)) << 2);
 }
 
-Mesh::Mesh() : settings(), has_disconnected_faces(false), has_overlapping_faces(false)
+HashMap3D::HashMap3D(size_t nvertices)
 {
+    // 2/3 load factor
+    size_t size = (nvertices * 3) / 2;
+    bits = 0;
+    while (size)
+    {
+        bits++;
+        size >>= 1;
+    }
+    bits = std::max(bits, min_bits);
+
+    init();
+}
+
+void HashMap3D::init()
+{
+    clear();
+    // Number of vertices that can be inserted before reaching the load factor threshold
+    free_vertices = (1 << (bits + 1)) / 3;
+    mask = (1 << bits) - 1;
+    map = std::make_unique<Item[]>(mask + 1); // map slots, value-initialized to 0
+}
+
+void HashMap3D::clear()
+{
+    free_vertices = 0;
+    map.reset();
+}
+
+HashMap3D::Item HashMap3D::insert(const Point3& v, const std::vector<MeshVertex>& vertices)
+{
+    // Lookup
+    const auto predicate = [&vertices, &v](Item item) { return vertices[item - 1].p == v; };
+    const hash_t hash = hash_point3(v);
+    const Item& slot = probe(hash, predicate);
+
+    if (slot)
+    {
+        // Found a vertex equal to v
+        return slot - 1;
+    }
+    else
+    {
+        constexpr auto const_false = [](Item) { return false; }; // Predicate for probing during insertion
+        // Check if a rehash is needed
+        if (! free_vertices)
+        {
+            bits += 2; // growth factor: 4
+            init();
+            free_vertices -= vertices.size();
+            const auto end = static_cast<ptrdiff_t>(vertices.size());
+            for (ptrdiff_t i = 0; i < end; i++)
+            {
+                probe(hash_point3(vertices[i].p), const_false) = i + 1;
+            }
+        }
+
+        // Insertion
+        free_vertices--;
+        Item item = vertices.size(); // New index
+        probe(hash, const_false) = item + 1;
+
+        return item;
+    }
+}
+
+template<typename P>
+inline HashMap3D::Item& HashMap3D::probe(hash_t hash, const P& predicate)
+{
+    // Python's dict hash perurbation algorithm https://github.com/python/cpython/blob/main/Objects/dictnotes.txt
+    hash_t perturb = hash;
+    hash_t idx = hash & mask;
+    while (map[idx] && ! predicate(map[idx]))
+    {
+        perturb >>= 5;
+        idx = (5 * idx) + 1 + perturb;
+        idx &= mask;
+    }
+    return map[idx];
+}
+
+Mesh::Mesh(size_t face_count) : spatial_map(face_count / 2)
+{
+    faces.reserve(face_count);
+    vertices.reserve(face_count / 2);
 }
 
 void Mesh::addFace(Point3& v0, Point3& v1, Point3& v2)
 {
-    int vi0 = findIndexOfVertex(v0);
-    int vi1 = findIndexOfVertex(v1);
-    int vi2 = findIndexOfVertex(v2);
+    mesh_idx_t vi0 = findIndexOfVertex(v0);
+    mesh_idx_t vi1 = findIndexOfVertex(v1);
+    mesh_idx_t vi2 = findIndexOfVertex(v2);
     if (vi0 == vi1 || vi1 == vi2 || vi0 == vi2)
         return; // the face has two vertices which get assigned the same location. Don't add the face.
 
-    int idx = faces.size(); // index of face to be added
-    faces.emplace_back();
-    MeshFace& face = faces[idx];
-    face.vertex_index[0] = vi0;
-    face.vertex_index[1] = vi1;
-    face.vertex_index[2] = vi2;
-    vertices[face.vertex_index[0]].connected_faces.push_back(idx);
-    vertices[face.vertex_index[1]].connected_faces.push_back(idx);
-    vertices[face.vertex_index[2]].connected_faces.push_back(idx);
+    mesh_idx_t idx = faces.size(); // index of face to be added
+    faces.emplace_back(MeshFace{ { vi0, vi1, vi2 }, {} });
+    vertices[vi0].connected_faces.push_back(idx);
+    vertices[vi1].connected_faces.push_back(idx);
+    vertices[vi2].connected_faces.push_back(idx);
 }
 
 void Mesh::clear()
 {
+    spatial_map.clear();
     faces.clear();
     vertices.clear();
-    vertex_hash_map.clear();
 }
 
 void Mesh::finish()
 {
     // Finish up the mesh, clear the vertex_hash_map, as it's no longer needed from this point on and uses quite a bit of memory.
-    vertex_hash_map.clear();
+    spatial_map.clear();
+    // Shrink to fit vectors if more than 1/3 is wasted
+    if (faces.size() * 3 < 2 * faces.capacity())
+    {
+        faces.shrink_to_fit();
+    }
+    if (vertices.size() * 3 < 2 * vertices.capacity())
+    {
+        vertices.shrink_to_fit();
+    }
+
 
     // For each face, store which other face is connected with it.
-    for (unsigned int i = 0; i < faces.size(); i++)
+    for (ptrdiff_t i = 0; i < ptrdiff_t(faces.size()); i++)
     {
         MeshFace& face = faces[i];
         // faces are connected via the outside
@@ -105,23 +196,16 @@ bool Mesh::isPrinted() const
     return ! settings.get<bool>("infill_mesh") && ! settings.get<bool>("cutting_mesh") && ! settings.get<bool>("anti_overhang_mesh");
 }
 
-int Mesh::findIndexOfVertex(const Point3& v)
+inline mesh_idx_t Mesh::findIndexOfVertex(const Point3& v)
 {
-    uint32_t hash = pointHash(v);
-
-    for (unsigned int idx = 0; idx < vertex_hash_map[hash].size(); idx++)
+    const mesh_idx_t new_idx = vertices.size();
+    auto idx = spatial_map.insert(v, vertices);
+    if (idx == new_idx)
     {
-        if ((vertices[vertex_hash_map[hash][idx]].p - v).testLength(vertex_meld_distance))
-        {
-            return vertex_hash_map[hash][idx];
-        }
+        vertices.emplace_back(v);
+        aabb.include(v);
     }
-    vertex_hash_map[hash].push_back(vertices.size());
-    vertices.emplace_back(v);
-
-    aabb.include(v);
-
-    return vertices.size() - 1;
+    return idx;
 }
 
 /*!
@@ -148,10 +232,10 @@ See <a href="http://stackoverflow.com/questions/14066933/direct-way-of-computing
 
 
 */
-int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVertexIdx) const
+inline ptrdiff_t Mesh::getFaceIdxWithPoints(mesh_idx_t idx0, mesh_idx_t idx1, mesh_idx_t notFaceIdx, mesh_idx_t notFaceVertexIdx) const
 {
-    std::vector<int> candidateFaces; // in case more than two faces meet at an edge, multiple candidates are generated
-    for (int f : vertices[idx0].connected_faces) // search through all faces connected to the first vertex and find those that are also connected to the second
+    boost::container::small_vector<mesh_idx_t, 5> candidateFaces; // in case more than two faces meet at an edge, multiple candidates are generated
+    for (mesh_idx_t f : vertices[idx0].connected_faces) // search through all faces connected to the first vertex and find those that are also connected to the second
     {
         if (f == notFaceIdx)
         {
@@ -203,11 +287,11 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
     }
 
     double smallestAngle = 1000; // more then 2 PI (impossible angle)
-    int bestIdx = -1;
+    ptrdiff_t bestIdx = -1;
 
-    for (int candidateFace : candidateFaces)
+    for (mesh_idx_t candidateFace : candidateFaces)
     {
-        int candidateVertex;
+        ptrdiff_t candidateVertex;
         { // find third vertex belonging to the face (besides idx0 and idx1)
             for (candidateVertex = 0; candidateVertex < 3; candidateVertex++)
                 if (faces[candidateFace].vertex_index[candidateVertex] != idx0 && faces[candidateFace].vertex_index[candidateVertex] != idx1)

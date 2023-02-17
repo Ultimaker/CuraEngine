@@ -81,7 +81,7 @@ public:
 //            a.x*b.y-a.y*b.x);
     }
 
-    Point3 toPoint3()
+    Point3 toPoint3() const
     {
         return Point3(MM2INT(x), MM2INT(y), MM2INT(z));
     }

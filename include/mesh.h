@@ -6,11 +6,15 @@
 
 #include "settings/Settings.h"
 #include "utils/AABB3D.h"
-#include "utils/floatpoint.h"
 #include "utils/FMatrix4x3.h"
+#include "utils/NoCopy.h"
+#include <boost/container/small_vector.hpp>
+#include <memory>
 
 namespace cura
 {
+using mesh_idx_t = uint32_t; //!< Type for vertex and face indices
+
 /*!
 Vertex type to be used in a Mesh.
 
@@ -20,9 +24,11 @@ class MeshVertex
 {
 public:
     Point3 p; //!< location of the vertex
-    std::vector<uint32_t> connected_faces; //!< list of the indices of connected faces
+    boost::container::small_vector<mesh_idx_t, 8> connected_faces; //!< list of the indices of connected faces
 
-    MeshVertex(Point3 p) : p(p) {connected_faces.reserve(8);} //!< doesn't set connected_faces
+    MeshVertex(Point3 p) : p(p)
+    {
+    } //!< doesn't set connected_faces
 };
 
 /*! A MeshFace is a 3 dimensional model triangle with 3 points. These points are already converted to integers
@@ -49,8 +55,48 @@ In such a case the face_index stored in connected_face_index is the one connecte
 class MeshFace
 {
 public:
-    int vertex_index[3] = {-1}; //!< counter-clockwise ordering
-    int connected_face_index[3]; //!< same ordering as vertex_index (connected_face 0 is connected via vertex 0 and 1, etc.)
+    mesh_idx_t vertex_index[3] = {}; //!< counter-clockwise ordering
+    mesh_idx_t connected_face_index[3]; //!< same ordering as vertex_index (connected_face 0 is connected via vertex 0 and 1, etc.)
+};
+
+/*!
+ * \brief 3D Spatial hashmap
+ * Generates unique identifiers for deduplicated 3D vertices that are no closer to each other than a static distance (vertex_meld_distance).
+ * Use Morton encoding and Python's dict probing.
+ */
+class HashMap3D
+{
+public:
+    using Item = mesh_idx_t;
+    using hash_t = uint64_t;
+
+    HashMap3D() : HashMap3D(0){};
+    HashMap3D(size_t nvertices);
+
+    void clear(); //!< Drop content, free memory.
+
+    /*!
+     * Insert a new 3D point into the map and returns its identifier.
+     * If a previously inserted point is found, returns its identifier instead.
+     * \param vertices Vector mapping identifiers to already inserted points. New identifier are generated from it's size. Read when rehashing.
+     */
+    Item insert(const Point3& p, const std::vector<MeshVertex>& vertices);
+
+private:
+    static constexpr uint8_t min_bits = 10; //!< Default log2 size of the map when zero initialized.
+    std::unique_ptr<Item[]> map;
+    hash_t mask = 0; //!< Bit mask for open adressing in map. (map.size()-1)
+    mesh_idx_t free_vertices = 0; //!< Number of vertices that can be inserted before a rehash (when reaching 0)
+    uint8_t bits = min_bits; //!< log2 size of map
+
+    void init(); //!< Allocate the map. bits must be set beforehand.
+
+    /*!
+     * Probing primitive.
+     * Iterates over slots starting from the specified hash. Stops when an empty slot (=0) is found or when the predicates returns true.
+     */
+    template<typename P>
+    Item& probe(hash_t hash, const P& predicate);
 };
 
 
@@ -59,19 +105,17 @@ A Mesh is the most basic representation of a 3D model. It contains all the faces
 
 See MeshFace for the specifics of how/when faces are connected.
 */
-class Mesh
+class Mesh : public NoCopy
 {
-    //! The vertex_hash_map stores a index reference of each vertex for the hash of that location. Allows for quick retrieval of points with the same location.
-    std::unordered_map<uint32_t, std::vector<uint32_t> > vertex_hash_map;
     AABB3D aabb;
 public:
-    std::vector<MeshVertex> vertices;//!< list of all vertices in the mesh
+    std::vector<MeshVertex> vertices; //!< list of all vertices in the mesh
     std::vector<MeshFace> faces; //!< list of all faces in the mesh
-    Settings settings;
+    Settings settings = {};
     std::string mesh_name;
 
-    Mesh(Settings& parent);
-    Mesh();
+    Mesh() = default;
+    Mesh(size_t face_count);
 
     void addFace(Point3& v0, Point3& v1, Point3& v2); //!< add a face to the mesh without settings it's connected_faces.
     void clear(); //!< clears all data
@@ -81,7 +125,7 @@ public:
     Point3 max() const; //!< max (in x,y and z) vertex of the bounding box
     AABB3D getAABB() const; //!< Get the axis aligned bounding box
     void expandXY(int64_t offset); //!< Register applied horizontal expansion in the AABB
-    
+
     /*!
      * Offset the whole mesh (all vertices and the bounding box).
      * \param offset The offset byu which to offset the whole mesh.
@@ -107,24 +151,25 @@ public:
      */
     bool isPrinted() const;
 private:
-    mutable bool has_disconnected_faces; //!< Whether it has been logged that this mesh contains disconnected faces
-    mutable bool has_overlapping_faces; //!< Whether it has been logged that this mesh contains overlapping faces
-    int findIndexOfVertex(const Point3& v); //!< find index of vertex close to the given point, or create a new vertex and return its index.
+    HashMap3D spatial_map = {};
+
+    mutable bool has_disconnected_faces = false; //!< Whether it has been logged that this mesh contains disconnected faces
+    mutable bool has_overlapping_faces = false; //!< Whether it has been logged that this mesh contains overlapping faces
+    mesh_idx_t findIndexOfVertex(const Point3& v); //!< find index of vertex close to the given point, or create a new vertex and return its index.
 
     /*!
      * Get the index of the face connected to the face with index \p notFaceIdx, via vertices \p idx0 and \p idx1.
-     * 
+     *
      * In case multiple faces connect with the same edge, return the next counter-clockwise face when viewing from \p idx1 to \p idx0.
-     * 
+     *
      * \param idx0 the first vertex index
      * \param idx1 the second vertex index
      * \param notFaceIdx the index of a face which shouldn't be returned
      * \param notFaceVertexIdx should be the third vertex of face \p notFaceIdx.
      * \return the face index of a face sharing the edge from \p idx0 to \p idx1
-    */
-    int getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVertexIdx) const;
+     */
+    ptrdiff_t getFaceIdxWithPoints(mesh_idx_t idx0, mesh_idx_t idx1, mesh_idx_t notFaceIdx, mesh_idx_t notFaceVertexIdx) const;
 };
 
 }//namespace cura
-#endif//MESH_H
-
+#endif // MESH_H

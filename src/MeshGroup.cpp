@@ -113,6 +113,10 @@ void MeshGroup::finalize()
 
 void MeshGroup::scaleFromBottom(const Ratio factor_xy, const Ratio factor_z)
 {
+    if (factor_xy == 1.0 && factor_z == 1.0)
+    {
+        return;
+    }
     const Point3 center = (max() + min()) / 2;
     const Point3 origin(center.x, center.y, 0);
 
@@ -273,10 +277,11 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMa
     const char* ext = strrchr(filename, '.');
     if (ext && (strcmp(ext, ".stl") == 0 || strcmp(ext, ".STL") == 0))
     {
-        Mesh mesh(object_parent_settings);
+        Mesh mesh;
+        mesh.settings.setParent(&object_parent_settings);
         if (loadMeshSTL(&mesh, filename, transformation)) // Load it! If successful...
         {
-            meshgroup->meshes.push_back(mesh);
+            meshgroup->meshes.emplace_back(std::move(mesh));
             spdlog::info("loading '{}' took {:3} seconds", filename, load_timer.restart());
             return true;
         }

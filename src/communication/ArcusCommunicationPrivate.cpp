@@ -91,7 +91,6 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
         mesh_group.settings.add(setting.name(), setting.value());
     }
 
-    FMatrix4x3 matrix;
     for (const cura::proto::Object& object : mesh_group_message.objects())
     {
         const size_t bytes_per_face = sizeof(FPoint3) * 3; // 3 vectors per face.
@@ -103,7 +102,7 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
             continue;
         }
 
-        mesh_group.meshes.emplace_back();
+        mesh_group.meshes.emplace_back(face_count);
         Mesh& mesh = mesh_group.meshes.back();
 
         // Load the settings for the mesh.
@@ -114,15 +113,15 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
         ExtruderTrain& extruder = mesh.settings.get<ExtruderTrain&>("extruder_nr"); // Set the parent setting to the correct extruder.
         mesh.settings.setParent(&extruder.settings);
 
+        const char* vertices = object.vertices().data();
         for (size_t face = 0; face < face_count; face++)
         {
-            const std::string data = object.vertices().substr(face * bytes_per_face, bytes_per_face);
-            const FPoint3* float_vertices = reinterpret_cast<const FPoint3*>(data.data());
+            const FPoint3* float_vertices = reinterpret_cast<const FPoint3*>(vertices + face * bytes_per_face);
 
             Point3 verts[3];
-            verts[0] = matrix.apply(float_vertices[0]);
-            verts[1] = matrix.apply(float_vertices[1]);
-            verts[2] = matrix.apply(float_vertices[2]);
+            verts[0] = float_vertices[0].toPoint3();
+            verts[1] = float_vertices[1].toPoint3();
+            verts[2] = float_vertices[2].toPoint3();
             mesh.addFace(verts[0], verts[1], verts[2]);
         }
 
