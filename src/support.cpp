@@ -6,12 +6,14 @@
 #include <fstream> // ifstream.good()
 #include <utility> // pair
 
+#include <range/v3/numeric/accumulate.hpp>
 #include <range/v3/view/drop.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/slice.hpp>
 #include <spdlog/spdlog.h>
+#include <range/v3/view/transform.hpp>
 
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
@@ -30,6 +32,9 @@
 #include "utils/Simplify.h"
 #include "utils/ThreadPool.h"
 #include "utils/math.h"
+#include "SkeletalTrapezoidation.h"
+#include "utils/VoronoiUtils.h"
+#include "BoostInterface.hpp"
 
 namespace cura
 {
@@ -783,6 +788,112 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
                                });
 }
 
+Polygons AreaSupport::generateXYDisallowedArea(const SliceMeshStorage& storage, const Settings& infill_settings, const LayerIndex layer_idx)
+{
+    Polygons layer_below = storage.layers[layer_idx - 1].getOutlines();
+    Polygons layer_current = storage.layers[layer_idx].getOutlines();
+
+    const auto& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const auto layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
+
+    const auto xy_distance = infill_settings.get<coord_t>("support_xy_distance");
+    const auto xy_distance_overhang = infill_settings.get<coord_t>("support_xy_distance_overhang");
+    const auto z_distance_top = mesh_group_settings.get<coord_t>("support_top_distance");
+    const auto overhang_angle = mesh_group_settings.get<AngleDegrees>("support_angle") / (180.0f / M_PI);
+    const auto xy_distance_natural = z_distance_top / std::tan(M_PI / 2.0f - overhang_angle);
+
+    const auto layer_delta = layer_current.difference(layer_below);
+
+    const cura::coord_t snap_radius = 10;
+    cura::SparsePointGridInclusive<std::pair<size_t, cura::coord_t>> grid_points(snap_radius);
+
+    // populate the sparce grid with the polygon points from the current layer
+    for (auto& poly: layer_current)
+    {
+        for (auto& point: poly)
+        {
+            grid_points.insert(point, { 0, 0 });
+        }
+    }
+
+    // construct a voronoi diagram
+    std::vector<SkeletalTrapezoidation::Segment> segments;
+    for (auto [poly_idx, poly]: layer_delta | ranges::views::enumerate)
+    {
+        for (auto [point_idx, _p]: poly | ranges::views::enumerate)
+        {
+            segments.emplace_back(&layer_delta, poly_idx, point_idx);
+        }
+    }
+
+    boost::polygon::voronoi_diagram<double> vonoroi_diagram;
+    boost::polygon::construct_voronoi(segments.begin(), segments.end(), &vonoroi_diagram);
+
+    for (auto& edge: vonoroi_diagram.edges())
+    {
+        if (edge.is_infinite())
+        {
+            continue;
+        }
+
+        auto p0 = VoronoiUtils::p(edge.vertex0());
+        auto p1 = VoronoiUtils::p(edge.vertex1());
+
+        auto nearby_vals_p0 = grid_points.getNearbyVals(p0, 0);
+        auto nearby_vals_p1 = grid_points.getNearbyVals(p1, 0);
+
+        if (! layer_delta.inside(p0) && ! layer_delta.inside(p1))
+        {
+            continue;
+        }
+
+        if (nearby_vals_p0.empty() && nearby_vals_p1.empty())
+        {
+            continue;
+        }
+
+        size_t dist_to_boundary = 2 * cura::vSize(p0 - p1);
+        // p0 to p1 is the distance to the center between the two polygons; two times
+        // this distance is (approximately) the distance between the boundaries
+        auto n = ranges::accumulate(nearby_vals_p0 | ranges::views::transform([](auto& tuple){ return tuple.first; }), 0);
+        auto cumulative_dist_to_boundary = ranges::accumulate(nearby_vals_p0 | ranges::views::transform([](auto& tuple){ return tuple.second; }), 0);
+        n += 1;
+        cumulative_dist_to_boundary += dist_to_boundary;
+        grid_points.insert(p0, { n, cumulative_dist_to_boundary });
+    }
+
+    std::vector<int> varying_offsets;
+
+    for (const auto& poly: layer_current)
+    {
+        for (const auto& p: poly)
+        {
+            auto nearby_vals = grid_points.getNearbyVals(p, snap_radius);
+
+            auto n = ranges::accumulate(nearby_vals | ranges::views::transform([](auto& tuple){ return tuple.first; }), 0);
+            auto cumulative_dist_to_boundary = ranges::accumulate(nearby_vals | ranges::views::transform([](auto& tuple){ return tuple.second; }), 0);
+
+            if (n == 0)
+            {
+                varying_offsets.push_back(xy_distance);
+            }
+            else
+            {
+                auto dist_to_boundary = cumulative_dist_to_boundary / n;
+                auto wall_angle = -std::atan(static_cast<double>(layer_thickness) / static_cast<double>(dist_to_boundary)) + M_PI / 2.0f;
+
+                coord_t xy_distance_varying = std::lerp(xy_distance, xy_distance_natural, wall_angle / overhang_angle);
+                spdlog::info("xy_distance_varying: {}", xy_distance_varying);
+                varying_offsets.push_back(xy_distance_varying);
+            }
+        }
+    }
+
+    Polygons varying_xy_disallowed_areas = layer_current.offset(varying_offsets);
+    Polygons minimum_xy_disallowed_areas = layer_current.offset(xy_distance_overhang);
+    return varying_xy_disallowed_areas.unionPolygons(minimum_xy_disallowed_areas);
+}
+
 /*
  * Algorithm:
  * From top layer to bottom layer:
@@ -879,38 +990,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                                            // we also want to use the min XY distance when the support is resting on a sloped surface so we calculate the area of the
                                            // layer below that protrudes beyond the current layer's area and combine it with the current layer's overhang disallowed area
 
-                                           Polygons larger_area_below; // the areas in the layer below that protrude beyond the area of the current layer
-                                           if (layer_idx > 1)
-                                           {
-                                               // shrink a little so that areas that only protrude very slightly are ignored
-                                               larger_area_below = mesh.layers[layer_idx - 1].getOutlines().difference(mesh.layers[layer_idx].getOutlines()).offset(-layer_thickness / 10);
-
-                                               if (! larger_area_below.empty())
-                                               {
-                                                   // if the layer below protrudes sufficiently such that a normal support at xy_distance could be placed there,
-                                                   // we don't want to use the min XY distance in that area and so we remove the wide area from larger_area_below
-
-                                                   // assume that a minimal support structure would be one line spaced at xy_distance from the model (verified by experiment)
-
-                                                   const coord_t limit_distance = xy_distance + support_line_width;
-
-                                                   // area_beyond_limit is the portion of the layer below's outline that lies further away from the current layer's outline than limit_distance
-                                                   Polygons area_beyond_limit = mesh.layers[layer_idx - 1].getOutlines().difference(mesh.layers[layer_idx].getOutlines().offset(limit_distance));
-
-                                                   if (!area_beyond_limit.empty())
-                                                   {
-                                                       // expand area_beyond_limit so that the inner hole fills in all the way back to the current layer's outline
-                                                       // and use that to remove the regions in larger_area_below that should not use min XY because the regions are
-                                                       // wide enough for a normal support to be placed there
-                                                       larger_area_below = larger_area_below.difference(area_beyond_limit.offset(limit_distance + 10));
-                                                   }
-                                               }
-                                           }
-
-                                           // Compute the areas that are too close to the model.
-                                           Polygons xy_overhang_disallowed = mesh.overhang_areas[layer_idx].offset(z_distance_top * tan_angle);
-                                           Polygons xy_non_overhang_disallowed = outlines.difference(mesh.overhang_areas[layer_idx].unionPolygons(larger_area_below).offset(xy_distance)).offset(xy_distance);
-                                           xy_disallowed_per_layer[layer_idx] = xy_overhang_disallowed.unionPolygons(xy_non_overhang_disallowed.unionPolygons(outlines.offset(xy_distance_overhang)));
+                                           xy_disallowed_per_layer[layer_idx] = generateXYDisallowedArea(mesh, infill_settings, layer_idx);
                                        }
                                    }
                                    if (is_support_mesh_place_holder || ! use_xy_distance_overhang)

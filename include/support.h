@@ -292,6 +292,9 @@ private:
      * 
      */
     static void cleanup(SliceDataStorage& storage);
+
+
+    static Polygons generateXYDisallowedArea(const SliceMeshStorage& storage, const Settings& infill_settings, const LayerIndex layer_idx);
 };
 
 
