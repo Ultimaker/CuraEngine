@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef SUPPORT_H
 #define SUPPORT_H
@@ -259,7 +259,7 @@ private:
      * \param settings The settings to use for towers.
      * \param supportLayer_this The support areas in the layer for which we are
      * creating towers/struts
-     * \param tower_roofs The parts of roofs which need to expand downward until
+     * \param towerRoofs The parts of roofs which need to expand downward until
      * they have the required diameter
      * \param overhang_points stores overhang_points of each layer
      * \param layer_idx The index of the layer at which to handle towers
@@ -267,14 +267,13 @@ private:
      */
     static void handleTowers(
         const Settings& settings,
-        const Polygons& xy_disallowed_area,
         Polygons& supportLayer_this,
-        std::vector<Polygons>& tower_roofs,
+        std::vector<Polygons>& towerRoofs,
         std::vector<std::vector<Polygons>>& overhang_points,
         LayerIndex layer_idx,
         size_t layer_count
     );
-    
+
     /*!
      * \brief Adds struts (towers against a wall) to the current layer.
      * \param settings The settings to use to create the wall struts.
@@ -286,10 +285,10 @@ private:
     /*!
      * Clean up the SupportInfillParts.
      * Remove parts which have nothing to be printed.
-     * 
+     *
      * Remove parts which are too small for the first wall.
      * For parts without walls: remove if combined into upper layers.
-     * 
+     *
      */
     static void cleanup(SliceDataStorage& storage);
 };
