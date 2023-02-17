@@ -1061,12 +1061,6 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
         // Move up from model, handle stair-stepping.
         moveUpFromModel(storage, stair_removal, sloped_areas_per_layer[layer_idx], layer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, bottom_stair_step_width);
 
-        // Perform close operation to remove areas from support area that are unprintable
-        layer_this = layer_this.offset(-half_min_feature_width).offset(half_min_feature_width);
-
-        // remove areas smaller than the minimum support area
-        layer_this.removeSmallAreas(minimum_support_area);
-
         support_areas[layer_idx] = layer_this;
         Progress::messageProgress(Progress::Stage::SUPPORT, layer_count * (mesh_idx + 1) - layer_idx, layer_count * storage.meshes.size());
     }
@@ -1083,6 +1077,12 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
         {
             support_layer = support_layer.difference(xy_disallowed_area);
         }
+
+        // Perform close operation to remove areas from support area that are unprintable
+        support_layer = support_layer.offset(-half_min_feature_width).offset(half_min_feature_width);
+
+        // remove areas smaller than the minimum support area
+        support_layer.removeSmallAreas(minimum_support_area);
     }
 
     // do stuff for when support on buildplate only
