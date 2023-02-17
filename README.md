@@ -31,7 +31,6 @@
 <br>
 
 [![Button Install]][Install]   
-[![Button Dependencies]][Dependencies]   
 [![Button Internals]][Internals]
 
 <br>
@@ -50,7 +49,6 @@ applications and integrate it into your own app.
 <!----------------------------------------------------------------------------->
 
 [Contributors]: https://github.com/Ultimaker/CuraEngine/graphs/contributors
-[Dependencies]: https://github.com/Ultimaker/CuraEngine/wiki/Dependencies
 [PullRequests]: https://github.com/Ultimaker/CuraEngine/pulls
 [Internals]: https://github.com/Ultimaker/CuraEngine/wiki/Internals
 [Install]: https://github.com/Ultimaker/CuraEngine/wiki/Building-CuraEngine-From-Source
@@ -78,7 +76,6 @@ applications and integrate it into your own app.
 
 <!---------------------------------[ Buttons ]--------------------------------->
 
-[Button Dependencies]: https://img.shields.io/badge/Dependencies-26aae2?style=for-the-badge&logoColor=white&logo=BookStack
 [Button Internals]: https://img.shields.io/badge/Internals-00979D?style=for-the-badge&logoColor=white&logo=CodeReview
 [Button Install]: https://img.shields.io/badge/Installation-e23345?style=for-the-badge&logoColor=white&logo=DocuSign
 
