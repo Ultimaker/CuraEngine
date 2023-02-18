@@ -4,7 +4,10 @@
 #include <algorithm> // remove_if
 #include <stdio.h>
 
+#include <scripta/logger.h>
 #include <spdlog/spdlog.h>
+#include <range/v3/to_container.hpp>
+#include <range/v3/view/enumerate.hpp>
 
 #include "Application.h"
 #include "Slice.h"
@@ -790,7 +793,7 @@ Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_c
     TimeKeeper slice_timer;
 
     layers = buildLayersWithHeight(slice_layer_count, slicing_tolerance, initial_layer_thickness, thickness, use_variable_layer_heights, adaptive_layers);
-
+    scripta::setAll(layers | ranges::views::transform([]( const auto& layer ) { return static_cast<double>( layer.z ); }) | ranges::views::enumerate | ranges::to<scripta::layer_map_t> );
 
     std::vector<std::pair<int32_t, int32_t>> zbbox = buildZHeightsForFaces(*mesh);
 
@@ -799,6 +802,7 @@ Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_c
     spdlog::info("Slice of mesh took {:3} seconds", slice_timer.restart());
 
     makePolygons(*i_mesh, slicing_tolerance, layers);
+    scripta::log("sliced_polygons", layers, scripta::SectionType::NA);
     spdlog::info("Make polygons took {:3} seconds", slice_timer.restart());
 }
 
