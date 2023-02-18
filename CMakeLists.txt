@@ -188,6 +188,7 @@ find_package(Boost REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
+find_package(scripta REQUIRED)
 
 if (ENABLE_TESTING)
     find_package(GTest REQUIRED)
@@ -202,6 +203,7 @@ target_link_libraries(_CuraEngine
         rapidjson
         stb::stb
         boost::boost
+        scripta::scripta
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
 
 if (NOT WIN32)
