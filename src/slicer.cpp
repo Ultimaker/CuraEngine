@@ -4,10 +4,11 @@
 #include <algorithm> // remove_if
 #include <stdio.h>
 
-#include <scripta/logger.h>
-#include <spdlog/spdlog.h>
 #include <range/v3/to_container.hpp>
 #include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/transform.hpp>
+#include <scripta/logger.h>
+#include <spdlog/spdlog.h>
 
 #include "Application.h"
 #include "Slice.h"

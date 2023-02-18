@@ -1,4 +1,4 @@
-#  Copyright (c) 2022 Ultimaker B.V.
+#  Copyright (c) 2023 UltiMaker
 #  CuraEngine is released under the terms of the AGPLv3 or higher
 
 from os import path
@@ -59,8 +59,6 @@ class CuraEngineConan(ConanFile):
     def configure(self):
         self.options["boost"].header_only = True
         self.options["clipper"].shared = True
-        self.options["fmt"].shared = True
-        self.options["spdlog"].shared = True
         if self.options.enable_arcus:
             self.options["arcus"].shared = True
             self.options["protobuf"].shared = True
