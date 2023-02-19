@@ -387,11 +387,16 @@ Polygons Polygons::offset(const std::vector<int>& offset_dists) const
             auto offset_dist = offset_dists[i];
 
             auto vec_dir = prev_p - p;
-            auto offset_p1 = turn90CCW(normal(vec_dir, prev_dist));
-            auto offset_p2 = turn90CCW(normal(vec_dir, offset_dist));
 
-            ret_poly_line.push_back(prev_p + offset_p1);
-            ret_poly_line.push_back(p + offset_p2);
+            constexpr coord_t min_vec_len = 10;
+            if (vSize2(vec_dir) > min_vec_len * min_vec_len)
+            {
+                auto offset_p1 = turn90CCW(normal(vec_dir, prev_dist));
+                auto offset_p2 = turn90CCW(normal(vec_dir, offset_dist));
+
+                ret_poly_line.push_back(prev_p + offset_p1);
+                ret_poly_line.push_back(p + offset_p2);
+            }
 
             prev_p = p;
             prev_dist = offset_dist;
