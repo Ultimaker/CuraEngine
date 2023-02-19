@@ -406,7 +406,7 @@ Polygons Polygons::offset(const std::vector<int>& offset_dists) const
         ret.add(ret_poly_line);
     }
 
-    ClipperLib::SimplifyPolygons(ret.paths, ClipperLib::PolyFillType::pftNonZero);
+    ClipperLib::SimplifyPolygons(ret.paths, ClipperLib::PolyFillType::pftPositive);
 
     return ret;
 }
