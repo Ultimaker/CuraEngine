@@ -1272,7 +1272,7 @@ public:
      * below \p min_circumference_size and their area smaller then \p min_area_size.
      * However, holes that are contained within outlines whose circumference is below the threshold are removed though.
      */
-    void removeSmallAreaCircumference(const double min_area_size, const coord_t min_circumference_size, const bool remove_holes = false);
+    [[maybe_unused]] void removeSmallAreaCircumference(const double min_area_size, const coord_t min_circumference_size, const bool remove_holes = false);
 
     /*!
      * Removes overlapping consecutive line segments which don't delimit a

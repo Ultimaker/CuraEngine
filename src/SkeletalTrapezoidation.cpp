@@ -1405,7 +1405,7 @@ void SkeletalTrapezoidation::generateSegments()
               [this](edge_t* a, edge_t* b)
               {
                   if (a->to->data.distance_to_boundary == b->to->data.distance_to_boundary)
-                  { // Ordering between two 'upward' edges of the same distance is important when one of the edges is flat and connected to the other
+                  { // PathOrdering between two 'upward' edges of the same distance is important when one of the edges is flat and connected to the other
                       if (a->from->data.distance_to_boundary == a->to->data.distance_to_boundary && b->from->data.distance_to_boundary == b->to->data.distance_to_boundary)
                       {
                           coord_t max = std::numeric_limits<coord_t>::max();
@@ -1423,7 +1423,7 @@ void SkeletalTrapezoidation::generateSegments()
                       }
                       else
                       {
-                          // Ordering is not important
+                          // PathOrdering is not important
                       }
                   }
                   return a->to->data.distance_to_boundary > b->to->data.distance_to_boundary;
