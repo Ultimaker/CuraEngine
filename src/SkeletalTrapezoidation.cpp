@@ -9,6 +9,7 @@
 #include <stack>
 #include <unordered_set>
 
+#include <scripta/logger.h>
 #include <spdlog/spdlog.h>
 
 #include "settings/types/Ratio.h"
@@ -522,6 +523,8 @@ void SkeletalTrapezoidation::generateToolpaths(std::vector<VariableWidthLines>& 
     generateExtraRibs();
 
     generateSegments();
+
+    scripta::log("ST_graph", graph, layer_idx, section_type);
 }
 
 void SkeletalTrapezoidation::updateIsCentral()
