@@ -1513,7 +1513,6 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
 void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMeshStorage& mesh)
 {
     const ExtruderTrain& infill_extruder = mesh.settings.get<ExtruderTrain&>("support_infill_extruder_nr");
-    const coord_t offset = -infill_extruder.settings.get<coord_t>("support_line_width") / 2;
     const coord_t max_tower_supported_diameter = mesh.settings.get<coord_t>("support_tower_maximum_supported_diameter");
     const coord_t max_tower_supported_area = max_tower_supported_diameter * max_tower_supported_diameter;
 
@@ -1522,26 +1521,30 @@ void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMes
     for (size_t layer_idx = 1; layer_idx < storage.print_layer_count; layer_idx++)
     {
         const SliceLayer& layer = mesh.layers[layer_idx];
+        const SliceLayer& layer_below = mesh.layers[layer_idx - 1];
+
         for (const SliceLayerPart& part : layer.parts)
         {
-            if (part.outline.outerPolygon().area() < max_tower_supported_area)
+            if (part.outline.outerPolygon().area() >= max_tower_supported_area)
             {
-                const SliceLayer& layer_below = mesh.layers[layer_idx - 1];
-                if (! layer_below.getOutlines().intersection(part.outline).empty())
-                {
-                    continue;
-                }
+                // area is too big for support towers, should be supported by normal overhang detection
+                continue;
+            }
 
-                const Polygons overhang = part.outline.offset(offset).difference(storage.support.supportLayers[layer_idx].anti_overhang);
-                if (! overhang.empty())
-                {
-                    mesh.overhang_points[layer_idx].push_back(overhang);
-                }
+            auto has_support_below = ! layer_below.getOutlines().intersection(part.outline).empty();
+            if (has_support_below)
+            {
+                continue;
+            }
+
+            const Polygons overhang = part.outline.difference(storage.support.supportLayers[layer_idx].anti_overhang);
+            if (! overhang.empty())
+            {
+                mesh.overhang_points[layer_idx].push_back(overhang);
             }
         }
     }
 }
-
 
 void AreaSupport::handleTowers(const Settings& settings, const Polygons& xy_disallowed_area, Polygons& supportLayer_this, std::vector<Polygons>& tower_roofs, std::vector<std::vector<Polygons>>& overhang_points, LayerIndex layer_idx, size_t layer_count)
 {
@@ -1554,17 +1557,16 @@ void AreaSupport::handleTowers(const Settings& settings, const Polygons& xy_disa
     // handle new tower rooftops
     if (overhang_points_here.size() > 0)
     {
-        { // make sure we have the lowest point (make polys empty if they have small parts below)
-            if (layer_overhang_point < static_cast<LayerIndex>(layer_count) && ! overhang_points[layer_overhang_point - 1].empty())
+        // make sure we have the lowest point (make polys empty if they have small parts below)
+        if (layer_overhang_point < static_cast<LayerIndex>(layer_count) && ! overhang_points[layer_overhang_point - 1].empty())
+        {
+            const coord_t max_tower_supported_diameter = settings.get<coord_t>("support_tower_maximum_supported_diameter");
+            std::vector<Polygons>& overhang_points_below = overhang_points[layer_overhang_point - 1];
+            for (Polygons& poly_here : overhang_points_here)
             {
-                const coord_t max_tower_supported_diameter = settings.get<coord_t>("support_tower_maximum_supported_diameter");
-                std::vector<Polygons>& overhang_points_below = overhang_points[layer_overhang_point - 1];
-                for (Polygons& poly_here : overhang_points_here)
+                for (const Polygons& poly_below : overhang_points_below)
                 {
-                    for (const Polygons& poly_below : overhang_points_below)
-                    {
-                        poly_here = poly_here.difference(poly_below.offset(max_tower_supported_diameter * 2));
-                    }
+                    poly_here = poly_here.difference(poly_below.offset(max_tower_supported_diameter * 2));
                 }
             }
         }
