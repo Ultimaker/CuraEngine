@@ -792,6 +792,7 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
 Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& storage, const Settings& infill_settings, const LayerIndex layer_idx)
 {
     const auto& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Simplify simplify { mesh_group_settings };
     const auto layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
     const auto support_distance_top = static_cast<double>(mesh_group_settings.get<coord_t>("support_top_distance"));
     const auto support_distance_bot = static_cast<double>(mesh_group_settings.get<coord_t>("support_bottom_distance"));
@@ -802,7 +803,9 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
     constexpr coord_t close_dist = snap_radius + 5; // needs to be larger than the snap radius!
     constexpr coord_t search_radius = 0;
 
-    auto layer_current = storage.layers[layer_idx].getOutlines().offset(-close_dist).offset(close_dist).smooth(close_dist);
+    auto layer_current = simplify.polygon(storage.layers[layer_idx].getOutlines()
+                                              .offset(-close_dist)
+                                              .offset(close_dist));
 
     // sparse grid for storing the offset distances at each point. For each point there can be multiple offset
     // values as multiple may be calculated when multiple layers are used for z-smoothing of the offsets.
@@ -827,10 +830,9 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
     const LayerIndex layer_idx_below { std::max(layer_idx - layer_index_offset, LayerIndex { 0 }) };
     if (layer_idx_below != layer_idx)
     {
-        auto layer_below = storage.layers[layer_idx_below].getOutlines()
-                               .offset(-close_dist)
-                               .offset(close_dist)
-                               .smooth(close_dist);
+        auto layer_below = simplify.polygon(storage.layers[layer_idx_below].getOutlines()
+                                                .offset(-close_dist)
+                                                .offset(close_dist));
 
         z_distances_layer_deltas.emplace_back(
             support_distance_top,
@@ -848,10 +850,9 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
     const LayerIndex layer_idx_above { std::min(layer_idx + layer_index_offset, LayerIndex(static_cast<int>(storage.layers.size()) - 1)) };
     if (layer_idx_above != layer_idx)
     {
-        auto layer_above = storage.layers[layer_idx_below].getOutlines()
-                               .offset(-close_dist)
-                               .offset(close_dist)
-                               .smooth(close_dist);
+        auto layer_above = simplify.polygon(storage.layers[layer_idx_below].getOutlines()
+                                                .offset(-close_dist)
+                                                .offset(close_dist));
 
         z_distances_layer_deltas.emplace_back(
             support_distance_bot,
