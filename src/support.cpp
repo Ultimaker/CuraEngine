@@ -793,8 +793,8 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
 {
     const auto& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const auto layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
-    const auto support_distance_top = mesh_group_settings.get<coord_t>("support_top_distance");
-    const auto support_distance_bot = mesh_group_settings.get<coord_t>("support_bottom_distance");
+    const auto support_distance_top = static_cast<double>(mesh_group_settings.get<coord_t>("support_top_distance"));
+        const auto support_distance_bot = static_cast<double>(mesh_group_settings.get<coord_t>("support_bottom_distance"));
     const auto overhang_angle = mesh_group_settings.get<AngleRadians>("support_angle");
     const auto xy_distance = static_cast<double>(mesh_group_settings.get<coord_t>("support_xy_distance"));
 
@@ -833,13 +833,13 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
                                .smooth(close_dist);
 
         z_distances_layer_deltas.emplace_back(
-            static_cast<double>(support_distance_top),
+            support_distance_top,
             static_cast<double>(layer_index_offset * layer_thickness),
             layer_current.difference(layer_below)
         );
 
         z_distances_layer_deltas.emplace_back(
-            static_cast<double>(support_distance_bot),
+            support_distance_bot,
             static_cast<double>(layer_index_offset * layer_thickness),
             layer_below.difference(layer_current)
         );
@@ -854,7 +854,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
                                .smooth(close_dist);
 
         z_distances_layer_deltas.emplace_back(
-            static_cast<double>(support_distance_bot),
+            support_distance_bot,
             static_cast<double>(layer_index_offset * layer_thickness),
             layer_current.difference(layer_above)
         );
