@@ -1444,6 +1444,8 @@ public:
             }
         }
     }
+
+    Polygons offset(const std::vector<int>& offset_dists) const;
 };
 
 /*!
