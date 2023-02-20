@@ -928,8 +928,8 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
             auto slope = dist_to_boundary / delta_z;
 
             auto nearby_vals = slope_at_point.getNearbyVals(p0, search_radius);
-            auto n = ranges::accumulate(nearby_vals | views::get( &point_pair_t::first ), 0.L);
-            auto cumulative_slope = ranges::accumulate(nearby_vals | views::get( &point_pair_t::second ), 0.L);
+            auto n = ranges::accumulate(nearby_vals | views::get( &point_pair_t::first ), 0);
+            auto cumulative_slope = ranges::accumulate(nearby_vals | views::get( &point_pair_t::second ), 0.);
 
             n += 1;
             cumulative_slope += slope;
@@ -943,14 +943,14 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
             for (const auto& point: poly)
             {
                 auto nearby_vals = slope_at_point.getNearbyVals(point, search_radius);
-                auto n = ranges::accumulate(nearby_vals | views::get( &point_pair_t::first ), 0.L);
-                auto cumulative_slope = ranges::accumulate(nearby_vals | views::get( &point_pair_t::second ), 0.L);
+                auto n = ranges::accumulate(nearby_vals | views::get( &point_pair_t::first ), 0);
+                auto cumulative_slope = ranges::accumulate(nearby_vals | views::get( &point_pair_t::second ), 0.);
 
                 if (n != 0)
                 {
-                    auto slope = cumulative_slope / n;
+                    auto slope = cumulative_slope / static_cast<double>(n);
                     auto wall_angle = std::atan(slope);
-                    auto ratio = std::min(wall_angle / overhang_angle, 1.L);
+                    auto ratio = std::min(wall_angle / overhang_angle, 1.);
 
                     auto xy_distance_varying = std::lerp(xy_distance, xy_distance_natural, ratio);
 
@@ -958,8 +958,8 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
 
                     // update and insert cumulative varying xy distance in one go
                     offset_dist_at_point.insert(point, {
-                                                       ranges::accumulate(nearby_vals_offset_dist | views::get( &point_pair_t::first ), 0.L) + 1.L,
-                                                       ranges::accumulate(nearby_vals_offset_dist | views::get( &point_pair_t::second ), 0.L) + xy_distance_varying
+                                                       ranges::accumulate(nearby_vals_offset_dist | views::get( &point_pair_t::first ), 0) + 1,
+                                                       ranges::accumulate(nearby_vals_offset_dist | views::get( &point_pair_t::second ), 0.) + xy_distance_varying
                                                    });
                 }
             }
@@ -973,8 +973,8 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
         {
             auto nearby_vals = offset_dist_at_point.getNearbyVals(point, search_radius);
 
-            auto n = ranges::accumulate(nearby_vals | views::get( &point_pair_t::first ), 0.L);
-            auto cumulative_offset_dist = ranges::accumulate(nearby_vals | views::get( &point_pair_t::second ), 0.L);
+            auto n = ranges::accumulate(nearby_vals | views::get( &point_pair_t::first ), 0);
+            auto cumulative_offset_dist = ranges::accumulate(nearby_vals | views::get( &point_pair_t::second ), 0.);
 
             double offset_dist {};
             if (n == 0)
