@@ -1217,22 +1217,22 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
         {
             for (PolygonsPart poly : layer_this.splitIntoParts())
             {
-                const int64_t part_area = poly.area();
+                auto polygon_part = poly.difference(xy_disallowed_per_layer[layer_idx])
+                                        .offset(-half_min_feature_width)
+                                        .offset(half_min_feature_width);
+
+                const int64_t part_area = polygon_part.area();
                 if (part_area > 0 && part_area < max_tower_supported_diameter * max_tower_supported_diameter)
                 {
-                    constexpr size_t tower_top_layer_count = 6; // number of layers after which to conclude that a tiny support area needs a tower
-                    if (layer_idx < layer_count - tower_top_layer_count && layer_idx >= tower_top_layer_count + bottom_empty_layer_count)
-                    {
-                        const Polygons& overhang_area_above = mesh.full_overhang_areas[layer_idx + layer_z_distance_top];
-                        const bool has_model_above = ! overhang_area_above.intersection(poly).empty();
-                        const bool is_inside_disallowed_area = ! poly.intersection(xy_disallowed_per_layer[layer_idx]).empty();
-                        if (has_model_above && ! is_inside_disallowed_area)
-                        {
-                            Polygons tiny_tower_here;
-                            tiny_tower_here.add(poly);
-                            tower_roofs.emplace_back(tiny_tower_here);
-                        }
-                    }
+                    continue;
+                }
+
+                constexpr size_t tower_top_layer_count = 6; // number of layers after which to conclude that a tiny support area needs a tower
+                if (layer_idx < layer_count - tower_top_layer_count && layer_idx >= tower_top_layer_count + bottom_empty_layer_count)
+                {
+                    Polygons tiny_tower_here;
+                    tiny_tower_here.add(polygon_part);
+                    tower_roofs.emplace_back(tiny_tower_here);
                 }
             }
         }
