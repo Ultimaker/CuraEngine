@@ -822,9 +822,9 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
     //    here either the slope or overhang area is stored
     std::vector<std::tuple<double, double, Polygons>> z_distances_layer_deltas;
 
-    constexpr LayerIndex layer_index_offset = 1;
+    constexpr LayerIndex layer_index_offset { 1 };
 
-    const LayerIndex layer_idx_below = std::max(layer_idx - layer_index_offset, static_cast<LayerIndex>(0));
+    const LayerIndex layer_idx_below { std::max(layer_idx - layer_index_offset, LayerIndex { 0 } };
     if (layer_idx_below != layer_idx)
     {
         auto layer_below = storage.layers[layer_idx_below].getOutlines()
