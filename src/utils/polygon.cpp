@@ -371,6 +371,7 @@ Polygons Polygons::offset(int distance, ClipperLib::JoinType join_type, double m
 
 Polygons Polygons::offset(const std::vector<int>& offset_dists) const
 {
+    // we need as many offset-dists as points
     assert(this->pointCount() == offset_dists.size());
 
     Polygons ret;
