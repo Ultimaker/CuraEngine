@@ -1224,7 +1224,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                                         .offset(half_min_feature_width);
 
                 const int64_t part_area = polygon_part.area();
-                if (part_area > 0 && part_area < max_tower_supported_diameter * max_tower_supported_diameter)
+                if (part_area == 0 || part_area > max_tower_supported_diameter * max_tower_supported_diameter)
                 {
                     continue;
                 }
