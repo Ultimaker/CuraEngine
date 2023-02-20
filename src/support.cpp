@@ -795,7 +795,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
     const auto support_distance_top = mesh_group_settings.get<coord_t>("support_top_distance");
     const auto support_distance_bot = mesh_group_settings.get<coord_t>("support_bottom_distance");
     const auto overhang_angle = mesh_group_settings.get<AngleRadians>("support_angle");
-    const auto xy_distance = mesh_group_settings.get<coord_t>("support_xy_distance");
+    const auto xy_distance = static_cast<double>(mesh_group_settings.get<coord_t>("support_xy_distance"));
 
     constexpr coord_t snap_radius = 10;
     constexpr coord_t close_dist = 15; // needs to be larger than the snap radius!
@@ -829,17 +829,17 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
                                .offset(close_dist)
                                .smooth(close_dist);
 
-        z_distances_layer_deltas.push_back({
+        z_distances_layer_deltas.emplace_back(
             static_cast<double>(support_distance_top),
             static_cast<double>(layer_index_offset * layer_thickness),
-            layer_current.difference(layer_below),
-        });
+            layer_current.difference(layer_below)
+        );
 
-        z_distances_layer_deltas.push_back({
+        z_distances_layer_deltas.emplace_back(
             static_cast<double>(support_distance_bot),
             static_cast<double>(layer_index_offset * layer_thickness),
-            layer_below.difference(layer_current),
-        });
+            layer_below.difference(layer_current)
+        );
     }
 
     const LayerIndex layer_idx_above = std::min(layer_idx + layer_index_offset, static_cast<LayerIndex>(storage.layers.size() - 1));
@@ -850,17 +850,17 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
                                .offset(close_dist)
                                .smooth(close_dist);
 
-        z_distances_layer_deltas.push_back({
+        z_distances_layer_deltas.emplace_back(
             static_cast<double>(support_distance_bot),
             static_cast<double>(layer_index_offset * layer_thickness),
-            layer_current.difference(layer_above),
-        });
+            layer_current.difference(layer_above)
+        );
 
-        z_distances_layer_deltas.push_back({
+        z_distances_layer_deltas.emplace_back(
             static_cast<double>(support_distance_top),
             static_cast<double>(layer_index_offset * layer_thickness),
-            layer_above.difference(layer_current),
-        });
+            layer_above.difference(layer_current)
+        );
     }
 
     int i = 0;
@@ -894,7 +894,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
         boost::polygon::voronoi_diagram<double> vonoroi_diagram;
         boost::polygon::construct_voronoi(segments.begin(), segments.end(), &vonoroi_diagram);
 
-        for (auto& edge: vonoroi_diagram.edges())
+        for (const auto& edge: vonoroi_diagram.edges())
         {
             if (edge.is_infinite())
             {
@@ -946,18 +946,17 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
                 {
                     auto slope = cumulative_slope / n;
                     auto wall_angle = std::atan(slope);
-
-                    Ratio ratio = std::min(wall_angle / overhang_angle, 1.0);
+                    auto ratio = std::min(wall_angle / overhang_angle, 1.0);
 
                     coord_t xy_distance_varying = std::lerp(xy_distance, xy_distance_natural, ratio);
 
-                    auto nearby_vals = offset_dist_at_point.getNearbyVals(p, search_radius);
+                    auto nearby_vals_offset_dist = offset_dist_at_point.getNearbyVals(p, search_radius);
 
                     // update and insert cumulative varying xy distance in one go
                     offset_dist_at_point.insert(p, {
-                       ranges::accumulate(nearby_vals | ranges::views::transform([](auto& tuple){ return tuple.first; }), 0) + 1,
-                       ranges::accumulate(nearby_vals | ranges::views::transform([](auto& tuple){ return tuple.second; }), 0.0) + xy_distance_varying
-                   });
+                                                       ranges::accumulate(nearby_vals_offset_dist | ranges::views::transform([](auto& tuple){ return tuple.first; }), 0) + 1,
+                                                       ranges::accumulate(nearby_vals_offset_dist | ranges::views::transform([](auto& tuple){ return tuple.second; }), 0.0) + xy_distance_varying
+                                                   });
                 }
             }
         }
@@ -973,7 +972,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
             auto n = ranges::accumulate(nearby_vals | ranges::views::transform([](auto& tuple){ return tuple.first; }), 0);
             auto cumulative_offset_dist = ranges::accumulate(nearby_vals | ranges::views::transform([](auto& tuple){ return tuple.second; }), 0.0);
 
-            coord_t offset_dist;
+            double offset_dist {};
             if (n == 0)
             {
                 // if there are no offset dists generated for a vertex $p$ this must mean that vertex $p$ was not
@@ -984,7 +983,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
             }
             else
             {
-                auto avg_offset_dist = cumulative_offset_dist / n;
+                auto avg_offset_dist = cumulative_offset_dist / static_cast<double>(n);
                 offset_dist = avg_offset_dist;
             }
 
