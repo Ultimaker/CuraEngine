@@ -39,7 +39,7 @@ namespace cura::views
  */
 constexpr auto get(auto&& proj)
 {
-    return ranges::make_view_closure(ranges::views::transform([proj](auto&& item) { return decltype(std::invoke(proj, item)) { std::invoke(proj, std::forward<decltype(item)>(item)) }; }));
+    return ranges::make_view_closure(ranges::views::transform([proj](auto&& item) { return std::invoke(proj, std::forward<decltype(item)>(item)); }));
 }
 } // namespace cura::views
 
