@@ -35,6 +35,7 @@
 #include "SkeletalTrapezoidation.h"
 #include "utils/VoronoiUtils.h"
 #include "BoostInterface.hpp"
+#include "utils/views/get.h"
 
 namespace cura
 {
@@ -808,7 +809,9 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
     // The average of all offset dists is taken for the used varying offset. To account for this the commutative
     // offset, and the number of offsets $n$ are stored simultaneously. The final offset used is then commutative
     // equal to commutative_offset / n.
-    SparsePointGridInclusive<std::pair<size_t, double>> offset_dist_at_point(snap_radius);
+    using point_pair_t = std::pair<size_t, double>;
+    using grid_t = SparsePointGridInclusive<point_pair_t>;
+    grid_t offset_dist_at_point(snap_radius);
 
     // Collection of the various areas we used to calculate the areas for. This is a combination
     //  - the support distance (this is the support top distance for overhang areas, and support
@@ -911,7 +914,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
                 continue;
             }
 
-            auto dist_to_center_edge = cura::vSize(p0 - p1);
+            auto dist_to_center_edge = static_cast<double>(cura::vSize(p0 - p1));
 
             if (dist_to_center_edge < snap_radius)
             {
@@ -920,12 +923,12 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
 
             // p0 to p1 is the distance to the center between the two polygons; two times
             // this distance is (approximately) the distance between the boundaries
-            auto dist_to_boundary = 2 * dist_to_center_edge;
+            auto dist_to_boundary = 2. * dist_to_center_edge;
             auto slope = dist_to_boundary / delta_z;
 
             auto nearby_vals = slope_at_point.getNearbyVals(p0, search_radius);
-            auto n = ranges::accumulate(nearby_vals | ranges::views::transform([](auto& tuple){ return tuple.first; }), 0);
-            auto cumulative_slope = ranges::accumulate(nearby_vals | ranges::views::transform([](auto& tuple){ return tuple.second; }), 0.0);
+            auto n = ranges::accumulate(nearby_vals | views::get( &point_pair_t::first ), 0.);
+            auto cumulative_slope = ranges::accumulate(nearby_vals | views::get( &point_pair_t::second ), 0.);
 
             n += 1;
             cumulative_slope += slope;
@@ -939,8 +942,8 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
             for (const auto& p: poly)
             {
                 auto nearby_vals = slope_at_point.getNearbyVals(p, search_radius);
-                auto n = ranges::accumulate(nearby_vals | ranges::views::transform([](auto& tuple){ return tuple.first; }), 0);
-                auto cumulative_slope = ranges::accumulate(nearby_vals | ranges::views::transform([](auto& tuple){ return tuple.second; }), 0.0);
+                auto n = ranges::accumulate(nearby_vals | views::get( &point_pair_t::first ), 0.);
+                auto cumulative_slope = ranges::accumulate(nearby_vals | views::get( &point_pair_t::second ), 0.);
 
                 if (n != 0)
                 {
@@ -954,8 +957,8 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
 
                     // update and insert cumulative varying xy distance in one go
                     offset_dist_at_point.insert(p, {
-                                                       ranges::accumulate(nearby_vals_offset_dist | ranges::views::transform([](auto& tuple){ return tuple.first; }), 0) + 1,
-                                                       ranges::accumulate(nearby_vals_offset_dist | ranges::views::transform([](auto& tuple){ return tuple.second; }), 0.0) + xy_distance_varying
+                                                       ranges::accumulate(nearby_vals_offset_dist | views::get( &point_pair_t::first ), 0.) + 1.,
+                                                       ranges::accumulate(nearby_vals_offset_dist | views::get( &point_pair_t::second ), 0.) + xy_distance_varying
                                                    });
                 }
             }
@@ -969,8 +972,8 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
         {
             auto nearby_vals = offset_dist_at_point.getNearbyVals(p, search_radius);
 
-            auto n = ranges::accumulate(nearby_vals | ranges::views::transform([](auto& tuple){ return tuple.first; }), 0);
-            auto cumulative_offset_dist = ranges::accumulate(nearby_vals | ranges::views::transform([](auto& tuple){ return tuple.second; }), 0.0);
+            auto n = ranges::accumulate(nearby_vals | views::get( &point_pair_t::first ), 0.);
+            auto cumulative_offset_dist = ranges::accumulate(nearby_vals | views::get( &point_pair_t::second ), 0.);
 
             double offset_dist {};
             if (n == 0)
