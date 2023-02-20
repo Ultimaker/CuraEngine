@@ -822,34 +822,46 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
     constexpr LayerIndex layer_index_offset = 1;
 
     const LayerIndex layer_idx_below = std::max(layer_idx - layer_index_offset, static_cast<LayerIndex>(0));
-    auto layer_below = storage.layers[layer_idx_below].getOutlines().offset(-close_dist).offset(close_dist).smooth(close_dist);
+    if (layer_idx_below != layer_idx)
+    {
+        auto layer_below = storage.layers[layer_idx_below].getOutlines()
+                               .offset(-close_dist)
+                               .offset(close_dist)
+                               .smooth(close_dist);
+
+        z_distances_layer_deltas.push_back({
+            static_cast<double>(support_distance_top),
+            static_cast<double>(layer_index_offset * layer_thickness),
+            layer_current.difference(layer_below),
+        });
+
+        z_distances_layer_deltas.push_back({
+            static_cast<double>(support_distance_bot),
+            static_cast<double>(layer_index_offset * layer_thickness),
+            layer_below.difference(layer_current),
+        });
+    }
 
     const LayerIndex layer_idx_above = std::min(layer_idx + layer_index_offset, static_cast<LayerIndex>(storage.layers.size() - 1));
-    auto layer_above = storage.layers[layer_idx_below].getOutlines().offset(-close_dist).offset(close_dist).smooth(close_dist);
+    if (layer_idx_above != layer_idx)
+    {
+        auto layer_above = storage.layers[layer_idx_below].getOutlines()
+                               .offset(-close_dist)
+                               .offset(close_dist)
+                               .smooth(close_dist);
 
-    z_distances_layer_deltas.push_back({
-        static_cast<double>(support_distance_top),
-        static_cast<double>(layer_index_offset * layer_thickness),
-        layer_current.difference(layer_below),
-    });
+        z_distances_layer_deltas.push_back({
+            static_cast<double>(support_distance_bot),
+            static_cast<double>(layer_index_offset * layer_thickness),
+            layer_current.difference(layer_above),
+        });
 
-    z_distances_layer_deltas.push_back({
-        static_cast<double>(support_distance_bot),
-        static_cast<double>(layer_index_offset * layer_thickness),
-        layer_below.difference(layer_current),
-    });
-
-    z_distances_layer_deltas.push_back({
-        static_cast<double>(support_distance_bot),
-        static_cast<double>(layer_index_offset * layer_thickness),
-        layer_current.difference(layer_above),
-    });
-
-    z_distances_layer_deltas.push_back({
-        static_cast<double>(support_distance_top),
-        static_cast<double>(layer_index_offset * layer_thickness),
-        layer_below.difference(layer_above),
-    });
+        z_distances_layer_deltas.push_back({
+            static_cast<double>(support_distance_top),
+            static_cast<double>(layer_index_offset * layer_thickness),
+            layer_above.difference(layer_current),
+        });
+    }
 
     int i = 0;
     for (auto& [support_distance, delta_z, layer_delta_] : z_distances_layer_deltas)
