@@ -1276,7 +1276,12 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
     constexpr bool no_support = false;
     constexpr bool no_prime_tower = false;
     Polygons outlines_below = storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower);
-    constexpr int layers_above = 3; // this is now a random value that seems to work fine. Do we need to expose this in the front end?
+
+    // To avoids generating support for textures on vertical surfaces, a moving average
+    // is taken over smooth_height. The smooth_height is currently an educated guess
+    // that we might want to expose to the frontend in the future.
+    constexpr double smooth_height = 0.4; //mm
+    const int layers_above = std::round(smooth_height / mesh.settings.get<double>("layer_height"));
     Polygons outlines_above;
     if (layer_idx + layers_above < mesh.layers.size())
     {
