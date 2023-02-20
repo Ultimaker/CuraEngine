@@ -1272,17 +1272,19 @@ void AreaSupport::moveUpFromModel(const SliceDataStorage& storage,
  */
 std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const unsigned int layer_idx)
 {
-    Polygons supportLayer_supportee = mesh.layers[layer_idx].getOutlines();
+    Polygons outlines = mesh.layers[layer_idx].getOutlines();
     constexpr bool no_support = false;
     constexpr bool no_prime_tower = false;
-    Polygons supportLayer_supporter = storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower);
+    Polygons outlines_below = storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower);
+    constexpr int layers_above = 3; // this is now a random value that seems to work fine. Do we need to expose this in the front end?
+    Polygons outlines_above = layer_idx + layers_above < mesh.layers.size() ? storage.getLayerOutlines(layer_idx + layers_above, no_support, no_prime_tower) : Polygons();
 
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const AngleRadians support_angle = mesh.settings.get<AngleRadians>("support_angle");
     const double tan_angle = tan(support_angle) - 0.01; // The X/Y component of the support angle. 0.01 to make 90 degrees work too.
     const coord_t max_dist_from_lower_layer = tan_angle * layer_height; // Maximum horizontal distance that can be bridged.
-    Polygons supportLayer_supported = supportLayer_supporter.offset(max_dist_from_lower_layer);
-    Polygons basic_overhang = supportLayer_supportee.difference(supportLayer_supported);
+
+    Polygons basic_overhang = outlines.difference(outlines_below.offset(max_dist_from_lower_layer)).intersection(outlines_above.offset(-max_dist_from_lower_layer * layers_above));
 
     const SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
     if (!support_layer.anti_overhang.empty())
@@ -1294,15 +1296,8 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
         basic_overhang = basic_overhang.difference(merged_polygons);
     }
 
-    //     Polygons support_extension = basic_overhang.offset(max_dist_from_lower_layer);
-    //     support_extension = support_extension.intersection(supportLayer_supported);
-    //     support_extension = support_extension.intersection(supportLayer_supportee);
-    //
-    //     Polygons overhang =  basic_overhang.unionPolygons(support_extension);
-    //         presumably the computation above is slower than the one below
-
-    Polygons overhang_extented = basic_overhang.offset(max_dist_from_lower_layer + MM2INT(0.1)); // +0.1mm for easier joining with support from layer above
-    Polygons full_overhang = overhang_extented.intersection(supportLayer_supportee);
+    Polygons overhang_extended = basic_overhang.offset(max_dist_from_lower_layer + MM2INT(0.1)); // +0.1mm for easier joining with support from layer above
+    Polygons full_overhang = overhang_extended.intersection(outlines);
 
     return std::make_pair(basic_overhang, full_overhang);
 }
