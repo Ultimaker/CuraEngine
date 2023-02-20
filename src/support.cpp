@@ -799,7 +799,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
     const auto xy_distance = static_cast<double>(mesh_group_settings.get<coord_t>("support_xy_distance"));
 
     constexpr coord_t snap_radius = 10;
-    constexpr coord_t close_dist = 15; // needs to be larger than the snap radius!
+    constexpr coord_t close_dist = snap_radius + 5; // needs to be larger than the snap radius!
     constexpr coord_t search_radius = 0;
 
     auto layer_current = storage.layers[layer_idx].getOutlines().offset(-close_dist).offset(close_dist).smooth(close_dist);
