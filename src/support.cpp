@@ -1470,15 +1470,28 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
     constexpr bool no_support = false;
     constexpr bool no_prime_tower = false;
     Polygons outlines_below = storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower);
-    constexpr int layers_above = 3; // this is now a random value that seems to work fine. Do we need to expose this in the front end?
-    Polygons outlines_above = layer_idx + layers_above < mesh.layers.size() ? storage.getLayerOutlines(layer_idx + layers_above, no_support, no_prime_tower) : Polygons();
+
+    // To avoids generating support for textures on vertical surfaces, a moving average
+    // is taken over smooth_height. The smooth_height is currently an educated guess
+    // that we might want to expose to the frontend in the future.
+    constexpr double smooth_height = 0.4; //mm
+    const int layers_above = std::round(smooth_height / mesh.settings.get<double>("layer_height"));
+    Polygons outlines_above;
+    if (layer_idx + layers_above < mesh.layers.size())
+    {
+        outlines_above = storage.getLayerOutlines(layer_idx + layers_above, no_support, no_prime_tower);
+    }
 
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const AngleRadians support_angle = mesh.settings.get<AngleRadians>("support_angle");
     const double tan_angle = tan(support_angle) - 0.01; // The X/Y component of the support angle. 0.01 to make 90 degrees work too.
     const coord_t max_dist_from_lower_layer = tan_angle * layer_height; // Maximum horizontal distance that can be bridged.
 
-    Polygons basic_overhang = outlines.difference(outlines_below.offset(max_dist_from_lower_layer)).intersection(outlines_above.offset(-max_dist_from_lower_layer * layers_above));
+    Polygons basic_overhang = outlines
+        // overhang areas protruding less then `max_dist_from_lower_layer` don't need support
+        .difference(outlines_below.offset(max_dist_from_lower_layer))
+        // limit intersection to the offsetted outlines above; this way a overhang has to exist for _at least_ `layers_above` number of layers before support is generated
+        .intersection(outlines_above.offset(-max_dist_from_lower_layer * layers_above));
 
     const SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
     if (!support_layer.anti_overhang.empty())
