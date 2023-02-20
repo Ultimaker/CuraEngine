@@ -1595,7 +1595,7 @@ void AreaSupport::handleTowers(const Settings& settings, const Polygons& xy_disa
             // Rather than offsetting the tower with tower_roof_expansion_distance we do this step wise to achieve two things
             // - prevent support from folding around the model
             // - provide method to early out the offsetting procedure when the desired area is reached
-            const coord_t offset_per_step = support_line_width / 2;
+            const coord_t offset_per_step = std::max(support_line_width / 2, tower_roof_expansion_distance);
             for (coord_t offset_cumulative = 0; offset_cumulative <= tower_roof_expansion_distance; offset_cumulative += offset_per_step)
             {
                 tower_roof = tower_roof.offset(offset_per_step, ClipperLib::jtRound);
