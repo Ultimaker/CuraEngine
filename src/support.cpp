@@ -1470,7 +1470,7 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
     const Polygons outlines = mesh.layers[layer_idx].getOutlines();
     constexpr bool no_support = false;
     constexpr bool no_prime_tower = false;
-    const Polygons outlines_below = storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower)
+    const Polygons outlines_below = storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower);
 
     // To avoids generating support for textures on vertical surfaces, a moving average
     // is taken over smooth_height. The smooth_height is currently an educated guess
