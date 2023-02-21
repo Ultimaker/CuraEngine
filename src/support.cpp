@@ -798,6 +798,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
     const auto support_distance_bot = static_cast<double>(mesh_group_settings.get<coord_t>("support_bottom_distance"));
     const auto overhang_angle = mesh_group_settings.get<AngleRadians>("support_angle");
     const auto xy_distance = static_cast<double>(mesh_group_settings.get<coord_t>("support_xy_distance"));
+    const auto xy_distance_overhang = infill_settings.get<coord_t>("support_xy_distance_overhang");
 
     constexpr coord_t snap_radius = 10;
     constexpr coord_t close_dist = snap_radius + 5; // needs to be larger than the snap radius!
@@ -994,7 +995,15 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
         }
     }
 
-    Polygons varying_xy_disallowed_areas = layer_current.offset(varying_offsets);
+    const auto smooth_dist = xy_distance / 2.0;
+    Polygons varying_xy_disallowed_areas = layer_current
+                                               // offset using the varying offset distances we calculated previously
+                                               .offset(varying_offsets)
+                                               // close operation to smooth the x/y disallowed area boundary. With varying xy distances we see some jumps in the boundary.
+                                               // As the x/y disallowed areas "cut in" to support the xy-disallowed area may propagate through the support area. If the
+                                               // x/y disallowed area is not smoothed boost has trouble generating a voronoi diagram.
+                                               .offset(smooth_dist).offset(-smooth_dist);
+
     return varying_xy_disallowed_areas;
 }
 
