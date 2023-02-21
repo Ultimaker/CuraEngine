@@ -14,7 +14,6 @@
 #include <range/v3/view/slice.hpp>
 #include <range/v3/view/zip.hpp>
 #include <spdlog/spdlog.h>
-#include <range/v3/view/transform.hpp>
 
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
