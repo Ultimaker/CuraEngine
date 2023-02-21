@@ -9,6 +9,7 @@
 #include <range/v3/view/join.hpp>
 #include <range/v3/view/zip.hpp>
 #include <range/v3/range/primitives.hpp>
+#include <range/v3/view/filter.hpp>
 
 #include "utils/linearAlg2D.h" // pointLiesOnTheRightOfLine
 #include "utils/Simplify.h"
@@ -376,7 +377,7 @@ Polygons Polygons::offset(const std::vector<int>& offset_dists) const
 
     Polygons ret;
     int i = 0;
-    for (auto& poly_line : this->paths)
+    for (auto& poly_line : this->paths | ranges::views::filter([](const auto& path){ return ! path.empty(); }))
     {
         std::vector<ClipperLib::IntPoint> ret_poly_line;
 
