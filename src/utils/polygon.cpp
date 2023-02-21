@@ -6,13 +6,11 @@
 #include <numeric>
 #include <unordered_set>
 
-#include <range/v3/view/join.hpp>
 #include <range/v3/view/zip.hpp>
 #include <range/v3/range/primitives.hpp>
 #include <range/v3/view/filter.hpp>
 
 #include "utils/linearAlg2D.h" // pointLiesOnTheRightOfLine
-#include "utils/Simplify.h"
 
 #include "utils/ListPolyIt.h"
 
