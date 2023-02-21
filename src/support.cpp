@@ -814,7 +814,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
     // equal to commutative_offset / n.
     using point_pair_t = std::pair<size_t, double>;
     using grid_t = SparsePointGridInclusive<point_pair_t>;
-    grid_t offset_dist_at_point(snap_radius);
+    grid_t offset_dist_at_point { snap_radius };
 
     // Collection of the various areas we used to calculate the areas for. This is a combination
     //  - the support distance (this is the support top distance for overhang areas, and support
@@ -881,7 +881,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
         }
 
         // grid for storing the "slope" (wall overhang area at that specific point in the polygon)
-        cura::SparsePointGridInclusive<std::pair<size_t, double>> slope_at_point(snap_radius);
+        grid_t slope_at_point { snap_radius };
 
         // construct a voronoi diagram. The slope is calculated based
         // on the edge length from the boundary to the center edge(s)
@@ -965,7 +965,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
         }
     }
 
-    std::vector<int> varying_offsets;
+    std::vector<coord_t> varying_offsets;
     for (const auto& poly: layer_current)
     {
         for (const auto& point : poly)
@@ -990,7 +990,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
                 offset_dist = avg_offset_dist;
             }
 
-            varying_offsets.push_back(static_cast<int>(offset_dist));
+            varying_offsets.push_back(static_cast<coord_t>(offset_dist));
         }
     }
 
@@ -1218,7 +1218,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
         {
             for (PolygonsPart poly : layer_this.splitIntoParts())
             {
-                auto polygon_part = poly.difference(xy_disallowed_per_layer[layer_idx])
+                const auto polygon_part = poly.difference(xy_disallowed_per_layer[layer_idx])
                                         .offset(-half_min_feature_width)
                                         .offset(half_min_feature_width);
 
@@ -1467,16 +1467,16 @@ void AreaSupport::moveUpFromModel(const SliceDataStorage& storage,
  */
 std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const unsigned int layer_idx)
 {
-    Polygons outlines = mesh.layers[layer_idx].getOutlines();
+    const Polygons outlines = mesh.layers[layer_idx].getOutlines();
     constexpr bool no_support = false;
     constexpr bool no_prime_tower = false;
-    Polygons outlines_below = storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower);
+    const Polygons outlines_below = storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower)
 
     // To avoids generating support for textures on vertical surfaces, a moving average
     // is taken over smooth_height. The smooth_height is currently an educated guess
     // that we might want to expose to the frontend in the future.
     constexpr double smooth_height = 0.4; //mm
-    const int layers_above = std::round(smooth_height / mesh.settings.get<double>("layer_height"));
+    const auto layers_above = static_cast<LayerIndex>(std::round(smooth_height / mesh.settings.get<double>("layer_height")));
     Polygons outlines_above;
     if (layer_idx + layers_above < mesh.layers.size())
     {
@@ -1561,7 +1561,7 @@ void AreaSupport::handleTowers(const Settings& settings, const Polygons& xy_disa
         // make sure we have the lowest point (make polys empty if they have small parts below)
         if (layer_overhang_point < static_cast<LayerIndex>(layer_count) && ! overhang_points[layer_overhang_point - 1].empty())
         {
-            const coord_t max_tower_supported_diameter = settings.get<coord_t>("support_tower_maximum_supported_diameter");
+            const auto max_tower_supported_diameter = settings.get<coord_t>("support_tower_maximum_supported_diameter");
             std::vector<Polygons>& overhang_points_below = overhang_points[layer_overhang_point - 1];
             for (Polygons& poly_here : overhang_points_here)
             {
