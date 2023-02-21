@@ -1478,10 +1478,11 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
     constexpr double smooth_height = 0.4; //mm
     const auto layers_above = static_cast<LayerIndex>(std::round(smooth_height / mesh.settings.get<double>("layer_height")));
     Polygons outlines_above;
-    if (layer_idx + layers_above < mesh.layers.size())
+    for (int i = 0; layer_idx + i < mesh.layers.size() && i <= layers_above; ++i)
     {
-        outlines_above = storage.getLayerOutlines(layer_idx + layers_above, no_support, no_prime_tower);
+        outlines_above.add(storage.getLayerOutlines(layer_idx + i, no_support, no_prime_tower));
     }
+    outlines_above = outlines_above.unionPolygons();
 
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const AngleRadians support_angle = mesh.settings.get<AngleRadians>("support_angle");
