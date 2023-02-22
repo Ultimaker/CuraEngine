@@ -261,15 +261,29 @@ void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outl
     bool should_bottom_be_clipped = bottom_skin_expand_distance > 0;
     bool should_top_be_clipped = top_skin_expand_distance > 0;
 
+    // Set miter limit for morphological open in order to fill in
+    // "narrow point" features of polygons due to offsetting artifacts.
+    //
+    //                    --  <- cap due to miter limit
+    //         offset    /  \    offset
+    //    /\  =======>  /    \  =========>   __  <- same cap from previous
+    //   /  \ outwards /      \  inwards    /  \    offset-miter artifact
+    //
+    // By setting the miter limit to a very high value the outward
+    // offsetted polygon is longer "capped". Usually a downside of
+    // setting the miter limit this high is that for arbitrary small angles
+    // the offsetted polygon becomes arbitrary large. This is not an issue
+    // as the final polygon is limited (intersected) with the original polygon.
+    constexpr double MITER_LIMIT = 10000000.0;
     // Remove thin pieces of support for Skin Removal Width.
     if(bottom_skin_preshrink > 0 || (min_width == 0 && bottom_skin_expand_distance != 0))
     {
-        downskin = downskin.offset(-bottom_skin_preshrink / 2, ClipperLib::jtRound).offset(bottom_skin_preshrink / 2, ClipperLib::jtRound);
+        downskin = downskin.offset(-bottom_skin_preshrink / 2, ClipperLib::jtMiter, MITER_LIMIT).offset(bottom_skin_preshrink / 2, ClipperLib::jtMiter, MITER_LIMIT).intersection(downskin);
         should_bottom_be_clipped = true;  // Rounding errors can lead to propagation of errors. This could mean that skin goes beyond the original outline
     }
     if(top_skin_preshrink > 0 || (min_width == 0 && top_skin_expand_distance != 0))
     {
-        upskin = upskin.offset(-top_skin_preshrink / 2, ClipperLib::jtRound).offset(top_skin_preshrink / 2, ClipperLib::jtRound);
+        upskin = upskin.offset(-top_skin_preshrink / 2, ClipperLib::jtMiter, MITER_LIMIT).offset(top_skin_preshrink / 2, ClipperLib::jtMiter, MITER_LIMIT);
         should_top_be_clipped = true;  // Rounding errors can lead to propagation of errors. This could mean that skin goes beyond the original outline
     }
 

@@ -704,8 +704,8 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     // combine infill
     SkinInfillAreaComputation::combineInfillLayers(mesh);
 
-    // fuzzy skin
-    if (mesh.settings.get<bool>("magic_fuzzy_skin_enabled"))
+    // Fuzzy skin. Disabled when using interlocking structures, the internal interlocking walls become fuzzy.
+    if (mesh.settings.get<bool>("magic_fuzzy_skin_enabled") && !mesh.settings.get<bool>("interlocking_enable"))
     {
         processFuzzyWalls(mesh);
     }

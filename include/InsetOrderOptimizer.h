@@ -18,7 +18,7 @@ class LayerPlan;
 class InsetOrderOptimizer
 {
 public:
-    using value_type = std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>>;
+    using value_type = std::unordered_multimap<const ExtrusionLine*, const ExtrusionLine*>;
 
     /*!
      * Constructor for inset ordering optimizer.
