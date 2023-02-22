@@ -1082,10 +1082,6 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
 
     for (const size_t& extruder_nr : extruder_order)
     {
-        if (include_helper_parts && (extruder_nr == support_infill_extruder_nr || extruder_nr == support_roof_extruder_nr || extruder_nr == support_bottom_extruder_nr))
-        {
-            addSupportToGCode(storage, gcode_layer, extruder_nr);
-        }
         // Everytime you start with a new extruder you want to add a prime tower, unless:
         //  - prime tower is disabled (setExtruder_addPrime takes care of this)
         //  - this is the first (and not the only!) extruder in this layer. Since the previous
@@ -1097,6 +1093,10 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         if (extruder_nr != extruder_order.front() || extruder_order.size() == 1)
         {
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+        }
+        if (include_helper_parts && (extruder_nr == support_infill_extruder_nr || extruder_nr == support_roof_extruder_nr || extruder_nr == support_bottom_extruder_nr))
+        {
+            addSupportToGCode(storage, gcode_layer, extruder_nr);
         }
         if (layer_nr >= 0)
         {
