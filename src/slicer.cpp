@@ -1005,11 +1005,12 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
     const coord_t xy_offset = mesh.settings.get<coord_t>("xy_offset");
     const coord_t xy_offset_0 = mesh.settings.get<coord_t>("xy_offset_layer_0");
     const coord_t xy_offset_hole = mesh.settings.get<coord_t>("hole_xy_offset");
+    const coord_t hole_offset_max_diameter = mesh.settings.get<coord_t>("hole_xy_offset_max_diameter");
     cura::parallel_for<size_t>
     (
         0,
         layers.size(),
-        [&layers, layer_apply_initial_xy_offset, xy_offset, xy_offset_0, xy_offset_hole](size_t layer_nr)
+        [&layers, layer_apply_initial_xy_offset, xy_offset, xy_offset_0, xy_offset_hole, hole_offset_max_diameter](size_t layer_nr)
         {
             const coord_t xy_offset_local = (layer_nr <= layer_apply_initial_xy_offset) ? xy_offset_0 : xy_offset;
             if (xy_offset_local != 0)
@@ -1032,7 +1033,23 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
                         }
                         else
                         {
-                            holes.add(poly.offset(xy_offset_hole));
+                            if (hole_offset_max_diameter > 0)
+                            {
+                                // only apply offset to small holes
+                                const coord_t hole_size = poly.polygonLength();
+                                if (hole_size < hole_offset_max_diameter * 3.1415)
+                                {
+                                    holes.add(poly.offset(xy_offset_hole * (1 - hole_size / (hole_offset_max_diameter * 3.1415))));
+                                }
+                                else
+                                {
+                                    holes.add(poly);
+                                }
+                            }
+                            else
+                            {
+                                holes.add(poly.offset(xy_offset_hole));
+                            }
                         }
                     }
                 }
