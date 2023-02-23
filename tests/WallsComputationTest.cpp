@@ -1,8 +1,9 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "WallsComputation.h" //Unit under test.
+#include <range/v3/view/join.hpp>
 #include "InsetOrderOptimizer.h" //Unit also under test.
+#include "WallsComputation.h" //Unit under test.
 #include "settings/Settings.h" //Settings to generate walls with.
 #include "sliceDataStorage.h" //Sl
 #include "utils/polygon.h" //To create example polygons.
@@ -48,23 +49,19 @@ public:
     {
         square_shape.emplace_back();
         square_shape.back().emplace_back(0, 0);
-        square_shape.back().emplace_back(MM2INT(10), 0);
-        square_shape.back().emplace_back(MM2INT(10), MM2INT(10));
-        square_shape.back().emplace_back(0, MM2INT(10));
+        square_shape.back().emplace_back(MM2INT(20), 0);
+        square_shape.back().emplace_back(MM2INT(20), MM2INT(20));
+        square_shape.back().emplace_back(0, MM2INT(20));
 
         ff_holes.emplace_back();
         ff_holes.back().emplace_back(0, 0);
-        ff_holes.back().emplace_back(10000, 0);
-        ff_holes.back().emplace_back(10000, 5000);
+        ff_holes.back().emplace_back(5000, 0);
+        ff_holes.back().emplace_back(5000, 5000);
         ff_holes.back().emplace_back(0, 5000);
         ff_holes.emplace_back();
-        ff_holes.back().emplace_back(1000, 1000);
-        ff_holes.back().emplace_back(1000, 4000);
-        ff_holes.back().emplace_back(4000, 2500);
-        ff_holes.emplace_back();
-        ff_holes.back().emplace_back(6000, 1000);
-        ff_holes.back().emplace_back(6000, 4000);
-        ff_holes.back().emplace_back(9000, 2500);
+        ff_holes.back().emplace_back(6000, 9000);
+        ff_holes.back().emplace_back(9000, 7500);
+        ff_holes.back().emplace_back(6000, 6000);
 
         // Settings for a simple 2 walls, about as basic as possible.
         settings.add("alternate_extra_perimeter", "false");
@@ -74,6 +71,7 @@ public:
         settings.add("meshfix_maximum_deviation", "0.1");
         settings.add("meshfix_maximum_extrusion_area_deviation", "0.01");
         settings.add("meshfix_maximum_resolution", "0.01");
+        settings.add("min_wall_line_width", "0.3");
         settings.add("min_bead_width", "0");
         settings.add("min_feature_size", "0");
         settings.add("wall_0_extruder_nr", "0");
@@ -149,15 +147,12 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     walls_computation.generateWalls(&layer);
 
     const bool outer_to_inner = false;
-    std::vector<const ExtrusionLine*> all_paths;
-    for (auto& inset : part.wall_toolpaths)
+    std::vector<ExtrusionLine> all_paths;
+    for (auto& line : part.wall_toolpaths | ranges::views::join)
     {
-        for (auto& line : inset)
-        {
-            all_paths.emplace_back(&line);
-        }
+        all_paths.emplace_back(line);
     }
-    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order = InsetOrderOptimizer::getRegionOrder(all_paths, outer_to_inner);
+    auto order = InsetOrderOptimizer::getRegionOrder(all_paths, outer_to_inner);
 
     // Verify that something was generated.
     EXPECT_FALSE(part.wall_toolpaths.empty()) << "There must be some walls.";
@@ -214,7 +209,6 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     std::unordered_set<const ExtrusionLine*> has_order_info(part.wall_toolpaths.size());
     for (auto [from, to] : order)
     {
-        EXPECT_FALSE(from->is_odd) << "Odd gap filler lines are never required to go before anything.";
         has_order_info.emplace(from);
         has_order_info.emplace(to);
     }

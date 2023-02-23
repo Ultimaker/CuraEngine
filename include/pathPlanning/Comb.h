@@ -198,7 +198,9 @@ public:
      * alternated with travel paths.
      * 
      * \warning Changes the order of polygons in \ref Comb::comb_boundary_inside
-     * \param train The extruder train to calculate the comb path for.
+     * \param perform_z_hops Whether to Z hop when retracted.
+     * \param perform_z_hops_only_when_collides Whether to Z hop only over printed parts.
+     * \param train Extruder train, for settings and extruder-nr. NOTE: USe for travel settings and 'extruder-nr' only, don't use for z-hop/retraction/wipe settings, as that should also be settable per mesh!
      * \param startPoint Where to start moving from.
      * \param endPoint Where to move to.
      * \param[out] combPoints The points along the combing path, excluding the
@@ -211,7 +213,19 @@ public:
      * being introduced due to the unretraction.
      * \return Whether combing has succeeded; otherwise a retraction is needed.
      */
-    bool calc(const ExtruderTrain& train, Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside, coord_t max_comb_distance_ignored, bool &unretract_before_last_travel_move);
+    bool calc
+    (
+        bool perform_z_hops,
+        bool perform_z_hops_only_when_collides,
+        const ExtruderTrain& train,
+        Point startPoint,
+        Point endPoint,
+        CombPaths& combPaths,
+        bool startInside,
+        bool endInside,
+        coord_t max_comb_distance_ignored,
+        bool &unretract_before_last_travel_move
+    );
 };
 
 }//namespace cura

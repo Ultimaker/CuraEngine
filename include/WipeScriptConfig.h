@@ -31,6 +31,16 @@ struct WipeScriptConfig
     bool clean_between_layers; // whether to include nozzle wipe g-code between layers
 };
 
+struct RetractionAndWipeConfig
+{
+    WipeScriptConfig wipe_config;
+
+    RetractionConfig retraction_config;
+    coord_t retraction_hop_after_extruder_switch;
+    double switch_extruder_extra_prime_amount;
+    RetractionConfig extruder_switch_retraction_config;
+};
+
 }//namespace cura
 
 #endif // WIPE_SCRIPT_CONFIG_H

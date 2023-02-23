@@ -1,4 +1,4 @@
-//Copyright (c) 2022 Ultimaker B.V.
+//Copyright (c) 2023 UltiMaker
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "layerPart.h"
@@ -108,6 +108,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
         }
     }
 }
+
 void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
 {
     const auto total_layers = slicer->layers.size();
