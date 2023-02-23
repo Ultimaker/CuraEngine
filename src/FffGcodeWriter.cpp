@@ -1027,12 +1027,9 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
             break;
         }
 
-        if (layer_nr == 0)
+        if (layer_nr < 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT)
         {
-            if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT)
-            {
-                include_helper_parts = false;
-            }
+            include_helper_parts = false;
         }
     }
 

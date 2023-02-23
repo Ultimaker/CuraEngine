@@ -83,7 +83,7 @@ coord_t Raft::getTotalThickness()
         + surface_train.settings.get<size_t>("raft_surface_layers") * surface_train.settings.get<coord_t>("raft_surface_thickness");
 }
 
-coord_t Raft::getZdiffBetweenRaftAndLayer1()
+coord_t Raft::getZdiffBetweenRaftAndLayer0()
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
@@ -92,18 +92,13 @@ coord_t Raft::getZdiffBetweenRaftAndLayer1()
         return 0;
     }
     const coord_t airgap = std::max(coord_t(0), train.settings.get<coord_t>("raft_airgap"));
-    const coord_t layer_0_overlap = mesh_group_settings.get<coord_t>("layer_0_z_overlap");
-
-    const coord_t layer_height_0 = mesh_group_settings.get<coord_t>("layer_height_0");
-
-    const coord_t z_diff_raft_to_bottom_of_layer_1 = std::max(coord_t(0), airgap + layer_height_0 - layer_0_overlap);
-    return z_diff_raft_to_bottom_of_layer_1;
+    return airgap;
 }
 
 size_t Raft::getFillerLayerCount()
 {
     const coord_t normal_layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height");
-    return round_divide(getZdiffBetweenRaftAndLayer1(), normal_layer_height);
+    return round_divide(getZdiffBetweenRaftAndLayer0(), normal_layer_height);
 }
 
 coord_t Raft::getFillerLayerHeight()
@@ -114,7 +109,7 @@ coord_t Raft::getFillerLayerHeight()
         const coord_t normal_layer_height = mesh_group_settings.get<coord_t>("layer_height");
         return normal_layer_height;
     }
-    return round_divide(getZdiffBetweenRaftAndLayer1(), getFillerLayerCount());
+    return round_divide(getZdiffBetweenRaftAndLayer0(), getFillerLayerCount());
 }
 
 
