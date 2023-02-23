@@ -40,6 +40,7 @@ set(engine_SRCS # Except main.cpp.
         src/gcodeExport.cpp
         src/GCodePathConfig.cpp
         src/infill.cpp
+        src/InterlockingGenerator.cpp
         src/InsetOrderOptimizer.cpp
         src/layerPart.cpp
         src/LayerPlan.cpp
@@ -137,6 +138,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ThreadPool.cpp
         src/utils/ToolpathVisualizer.cpp
         src/utils/VoronoiUtils.cpp
+        src/utils/VoxelUtils.cpp
         )
 
 add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})
@@ -226,3 +228,7 @@ if (ENABLE_TESTING)
     enable_testing()
     add_subdirectory(tests)
 endif ()
+
+if (ENABLE_BENCHMARKS)
+    add_subdirectory(benchmark)
+endif()

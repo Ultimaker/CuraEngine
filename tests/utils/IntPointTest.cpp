@@ -22,5 +22,12 @@ TEST(IntPointTest, TestRotationMatrix)
 
     ASSERT_EQ(rotated_in_place, rotated_in_place_2) << "Matrix composition with translate and rotate failed.";
 }
+
+TEST(IntPointTest, TestSize)
+{
+    ASSERT_EQ(sizeof(Point::X), sizeof(coord_t));
+    ASSERT_LE(sizeof(coord_t), sizeof(int64_t));
+}
+
 } // namespace cura
 // NOLINTEND(*-magic-numbers)

@@ -1027,12 +1027,9 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
             break;
         }
 
-        if (layer_nr == 0)
+        if (layer_nr < 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT)
         {
-            if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT)
-            {
-                include_helper_parts = false;
-            }
+            include_helper_parts = false;
         }
     }
 
@@ -1250,7 +1247,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     const Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     bool inner_to_outer = global_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM && // for skirt outer to inner is faster
                             train.settings.get<coord_t>("brim_gap") < line_w; // for a large brim gap it's not so bad for the overextrudate to propagate inward.
-    std::unordered_set<std::pair<ConstPolygonPointer, ConstPolygonPointer>> order_requirements;
+    std::unordered_multimap<ConstPolygonPointer, ConstPolygonPointer> order_requirements;
     for (const std::pair<SquareGrid::GridPoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<BrimLineReference>>& p : grid)
     {
         const BrimLineReference& here = p.second.val;
@@ -1268,11 +1265,11 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
             }
             if ((nearby.inset_idx < here.inset_idx) == inner_to_outer)
             {
-                order_requirements.emplace(std::make_pair(nearby.poly, here.poly));
+                order_requirements.insert({nearby.poly, here.poly });
             }
             else
             {
-                order_requirements.emplace(std::make_pair(here.poly, nearby.poly));
+                order_requirements.insert({ here.poly, nearby.poly });
             }
         }
     }
@@ -1525,7 +1522,7 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
         part_order_optimizer.addPolygon(&part);
     }
     part_order_optimizer.optimize();
-    for (const PathOrderPath<const SliceLayerPart*>& path : part_order_optimizer.paths)
+    for (const PathOrdering<const SliceLayerPart*>& path : part_order_optimizer.paths)
     {
         addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *path.vertices, gcode_layer);
     }
@@ -2392,7 +2389,7 @@ bool FffGcodeWriter::processSkin(const SliceDataStorage& storage, LayerPlan& gco
     }
     part_order_optimizer.optimize();
 
-    for (const PathOrderPath<const SkinPart*>& path : part_order_optimizer.paths)
+    for (const PathOrdering<const SkinPart*>& path : part_order_optimizer.paths)
     {
         const SkinPart& skin_part = *path.vertices;
 
@@ -2474,8 +2471,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage,
     // generate skin_polygons and skin_lines
     const GCodePathConfig* skin_config = &mesh_config.skin_config;
     Ratio skin_density = 1.0;
-    const coord_t skin_overlap = mesh.settings.get<coord_t>("skin_overlap_mm");
-    coord_t extra_skin_overlap = 0;
+    const coord_t skin_overlap = 0;  // Skin overlap offset is applied in skin.cpp more overlap might be beneficial for curved bridges, but makes it worse in general.
     const bool bridge_settings_enabled = mesh.settings.get<bool>("bridge_settings_enabled");
     const bool bridge_enable_more_layers = bridge_settings_enabled && mesh.settings.get<bool>("bridge_enable_more_layers");
     const Ratio support_threshold = bridge_settings_enabled ? mesh.settings.get<Ratio>("bridge_skin_support_threshold") : 0.0_r;
@@ -2541,7 +2537,6 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage,
             if (bridge_settings_enabled)
             {
                 skin_config = config;
-                extra_skin_overlap = std::max(skin_overlap, (coord_t)(mesh_config.insetX_config.getLineWidth() / 2)) - skin_overlap; // Skin overlap offset is applied in skin.cpp only extra overlap is applied here
                 skin_density = density;
             }
             return true;
@@ -2608,7 +2603,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage,
         }
     }
     const bool monotonic = mesh.settings.get<bool>("skin_monotonic");
-    processSkinPrintFeature(storage, gcode_layer, mesh, mesh_config, extruder_nr, skin_part.skin_fill, *skin_config, pattern, skin_angle, extra_skin_overlap, skin_density, monotonic, added_something, fan_speed);
+    processSkinPrintFeature(storage, gcode_layer, mesh, mesh_config, extruder_nr, skin_part.skin_fill, *skin_config, pattern, skin_angle, skin_overlap, skin_density, monotonic, added_something, fan_speed);
 }
 
 void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage,
@@ -2882,15 +2877,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     }
     island_order_optimizer.optimize();
 
-    // Helper to determine the appropriate support area
-    const auto get_support_area = [](const Polygons& area, const int layer_nr, const EFillMethod pattern, const coord_t line_width, const coord_t brim_line_count)
-    {
-        if (layer_nr == 0 && pattern == EFillMethod::CONCENTRIC)
-        {
-            return area.offset(static_cast<int>(line_width * brim_line_count / 1000));
-        }
-        return area;
-    };
     const auto support_brim_line_count = infill_extruder.settings.get<coord_t>("support_brim_line_count");
     const auto support_connect_zigzags = infill_extruder.settings.get<bool>("support_connect_zigzags");
     const auto support_structure = infill_extruder.settings.get<ESupportStructure>("support_structure");
@@ -2902,7 +2888,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     bool need_travel_to_end_of_last_spiral = true;
 
     // Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
-    for (const PathOrderPath<const SupportInfillPart*>& path : island_order_optimizer.paths)
+    for (const PathOrdering<const SupportInfillPart*>& path : island_order_optimizer.paths)
     {
         const SupportInfillPart& part = *path.vertices;
 
@@ -2951,7 +2937,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     support_line_distance_here /= 2;
                 }
 
-                const Polygons& area = get_support_area(part.infill_area_per_combine_per_density[density_idx][combine_idx], gcode_layer.getLayerNr(), support_pattern, support_line_width, support_brim_line_count);
+                const Polygons& area = part.infill_area_per_combine_per_density[density_idx][combine_idx];
 
                 constexpr size_t wall_count = 0; // Walls are generated somewhere else, so their layers aren't vertically combined.
                 constexpr bool skip_stitching = false;
@@ -3048,7 +3034,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
             // If we're printing with a support wall, that support wall generates gap filling as well.
             // If not, the pattern may still generate gap filling (if it's connected infill or zigzag). We still want to print those.
-            if (wall_line_count == 0 && ! wall_toolpaths_here.empty())
+            if (wall_line_count == 0 || ! wall_toolpaths_here.empty())
             {
                 const GCodePathConfig& config = gcode_layer.configs_storage.support_infill_config[0];
                 constexpr bool retract_before_outer_wall = false;
@@ -3092,7 +3078,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     constexpr coord_t support_roof_overlap = 0; // the roofs should never be expanded outwards
     constexpr size_t infill_multiplier = 1;
     constexpr coord_t extra_infill_shift = 0;
-    constexpr size_t wall_line_count = 0;
+    const auto wall_line_count = roof_extruder.settings.get<size_t>("support_roof_wall_count");
     const Point infill_origin;
     constexpr bool skip_stitching = false;
     constexpr bool fill_gaps = true;
@@ -3199,11 +3185,12 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
         fill_angle = storage.support.support_bottom_angles.at(index);
     }
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
-    const bool connect_polygons = true; // less retractions and less moves only make the bottoms easier to print
+    constexpr bool connect_polygons = false; // Keep the same as roof, also does make a bit less sense when support infill is < 100% or support walls are set to > 0.
     constexpr coord_t support_bottom_overlap = 0; // the bottoms should never be expanded outwards
     constexpr size_t infill_multiplier = 1;
     constexpr coord_t extra_infill_shift = 0;
-    constexpr size_t wall_line_count = 0;
+    const auto wall_line_count = bottom_extruder.settings.get<size_t>("support_bottom_wall_count");
+
     const Point infill_origin;
     constexpr bool skip_stitching = false;
     constexpr bool fill_gaps = true;

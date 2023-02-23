@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <spdlog/spdlog.h>
@@ -64,7 +64,6 @@ SkirtBrim::SkirtBrim(SliceDataStorage& storage) :
     }
 }
 
-
 std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Polygons>& starting_outlines)
 {
     std::vector<Offset> all_brim_offsets;
@@ -107,6 +106,14 @@ std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Pol
         }
     }
 
+    std::sort(all_brim_offsets.begin(), all_brim_offsets.end(), OffsetSorter);
+    return all_brim_offsets;
+}
+
+std::vector<SkirtBrim::Offset> SkirtBrim::generatePrimeTowerBrimForSkirtAdhesionOffsetPlan()
+{
+    std::vector<Offset> prime_brim_offsets;
+
     const Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const bool prime_tower_brim_enable = global_settings.get<bool>("prime_tower_brim_enable");
     if (adhesion_type == EPlatformAdhesion::SKIRT && prime_tower_brim_enable && storage.primeTower.enabled)
@@ -119,25 +126,19 @@ std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Pol
         {
             const bool is_last = line_idx == line_count - 1;
             coord_t offset = gap + line_widths[extruder_nr] / 2 + line_widths[extruder_nr] * line_idx;
-            all_brim_offsets.emplace_back(&storage.primeTower.outer_poly, external_polys_only[extruder_nr], offset, offset, line_idx, extruder_nr, is_last);
+            prime_brim_offsets.emplace_back(&storage.primeTower.outer_poly, external_polys_only[extruder_nr], offset, offset, line_idx, extruder_nr, is_last);
         }
     }
 
-    std::sort(all_brim_offsets.begin(), all_brim_offsets.end(), OffsetSorter);
-
-    return all_brim_offsets;
+    std::sort(prime_brim_offsets.begin(), prime_brim_offsets.end(), OffsetSorter);
+    return prime_brim_offsets;
 }
 
 void SkirtBrim::generate()
 {
     std::vector<Polygons> starting_outlines(extruder_count);
     std::vector<Offset> all_brim_offsets = generateBrimOffsetPlan(starting_outlines);
-    
-    coord_t max_offset = 0;
-    for (const Offset& offset : all_brim_offsets)
-    {
-        max_offset = std::max(max_offset, offset.offset_value);
-    }
+    std::vector<Offset> prime_brim_offsets_for_skirt = generatePrimeTowerBrimForSkirtAdhesionOffsetPlan();
     
     constexpr LayerIndex layer_nr = 0;
     const bool include_support = true;
@@ -158,6 +159,22 @@ void SkirtBrim::generate()
             // so that the brim lines don't overlap with the holes by half the line width
             allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(getInternalHoleExclusionArea(covered_area, extruder_nr));
         }
+    }
+
+    // Note that the brim generated here for the prime-tower is _only_ when the rest if the model uses skirt.
+    // If everything uses brim to begin with, _including_ the prime-tower, it's not generated here, but along the rest.
+    if (! prime_brim_offsets_for_skirt.empty())
+    {
+        // Note that his ignores the returned lengths: Less 'correct' in a sense, will be predictable for the user.
+        generatePrimaryBrim(prime_brim_offsets_for_skirt, covered_area, allowed_areas_per_extruder);
+    }
+
+    // Apply 'approximate convex hull' if the adhesion is skirt _after_ any skirt but also prime-tower-brim adhesion.
+    // Otherwise, the now expanded convex hull covered areas will mess with that brim. Fortunately this does not mess
+    // with the other area calculation above, since they are either itself a simple/convex shape or relevant for brim.
+    if (adhesion_type == EPlatformAdhesion::SKIRT)
+    {
+        covered_area = covered_area.approxConvexHull();
     }
 
     std::vector<coord_t> total_length = generatePrimaryBrim(all_brim_offsets, covered_area, allowed_areas_per_extruder);

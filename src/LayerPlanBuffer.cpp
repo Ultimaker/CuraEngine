@@ -507,15 +507,18 @@ void LayerPlanBuffer::insertTempCommands()
         else
         {
             assert(extruder_plan.estimates.getMaterial() == 0.0 && "No extrusion time should mean no material usage!");
-            if (extruder_settings.get<bool>("material_flow_dependent_temperature")) // Average flow is only used with flow dependent temperature.
-            {
-                spdlog::warn("Empty extruder plans detected! Temperature control might suffer.");
-            }
             avg_flow = 0.0;
         }
 
-        const Temperature print_temp = preheat_config.getTemp(extruder, avg_flow, extruder_plan.is_initial_layer);
-        const Temperature initial_print_temp = extruder_settings.get<Temperature>("material_initial_print_temperature");
+        Temperature print_temp = preheat_config.getTemp(extruder, avg_flow, extruder_plan.is_initial_layer);
+        Temperature initial_print_temp = extruder_settings.get<Temperature>("material_initial_print_temperature");
+
+        if (extruder_plan.temperatureFactor > 0) // force lower printing temperatures due to minimum layer time
+        {
+            print_temp = print_temp * (1 - extruder_plan.temperatureFactor) + extruder_plan.temperatureFactor * extruder_settings.get<Temperature>("cool_min_temperature");
+            initial_print_temp = std::min(initial_print_temp, print_temp);
+        }
+
         if (initial_print_temp == 0.0 // user doesn't want to use initial print temp feature
             || extruder_settings.get<bool>("machine_extruders_share_heater") // ignore initial print temps when extruders share a heater
             || ! extruder_used_in_meshgroup[extruder] // prime blob uses print temp rather than initial print temp

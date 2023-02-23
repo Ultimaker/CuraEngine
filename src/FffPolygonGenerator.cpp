@@ -16,6 +16,7 @@
 #include "ExtruderTrain.h"
 #include "FffPolygonGenerator.h"
 #include "infill.h"
+#include "InterlockingGenerator.h"
 #include "layerPart.h"
 #include "MeshGroup.h"
 #include "Mold.h"
@@ -124,10 +125,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     if (use_variable_layer_heights)
     {
         // Calculate adaptive layer heights
-        const coord_t variable_layer_height_max_variation = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation");
-        const coord_t variable_layer_height_variation_step = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation_step");
-        const coord_t adaptive_threshold = mesh_group_settings.get<coord_t>("adaptive_layer_height_threshold");
-        adaptive_layer_heights = new AdaptiveLayerHeights(layer_thickness, variable_layer_height_max_variation, variable_layer_height_variation_step, adaptive_threshold);
+        const auto variable_layer_height_max_variation = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation");
+        const auto variable_layer_height_variation_step = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation_step");
+        const auto adaptive_threshold = mesh_group_settings.get<coord_t>("adaptive_layer_height_threshold");
+        adaptive_layer_heights = new AdaptiveLayerHeights(layer_thickness, variable_layer_height_max_variation,
+                                                          variable_layer_height_variation_step, adaptive_threshold,
+                                                          meshgroup);
 
         // Get the amount of layers
         slice_layer_count = adaptive_layer_heights->getLayerCount();
@@ -243,6 +246,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     }
 
     generateMultipleVolumesOverlap(slicerList);
+
+
+    if (Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("interlocking_enable"))
+    {
+        InterlockingGenerator::generateInterlockingStructure(slicerList);
+    }
 
     storage.print_layer_count = 0;
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
@@ -370,24 +379,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
 
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    if (isEmptyLayer(storage, 0) && ! isEmptyLayer(storage, 1))
-    {
-        // the first layer is empty, the second is not empty, so remove the empty first layer as support isn't going to be generated under it.
-        // Do this irrespective of the value of remove_empty_first_layers as that setting is hidden when support is enabled and so cannot be relied upon
-
-        removeEmptyFirstLayers(storage, storage.print_layer_count); // changes storage.print_layer_count!
-    }
-
-    spdlog::info("Layer count: {}", storage.print_layer_count);
-
-    // layerparts2HTML(storage, "output/output.html");
-
-    Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);
-
-    AreaSupport::generateOverhangAreas(storage);
-    AreaSupport::generateSupportAreas(storage);
-    TreeSupport tree_support_generator(storage);
-    tree_support_generator.generateSupportAreas(storage);
 
     // we need to remove empty layers after we have processed the insets
     // processInsets might throw away parts if they have no wall at all (cause it doesn't fit)
@@ -403,6 +394,13 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         spdlog::warn("Stopping process because there are no non-empty layers.");
         return;
     }
+
+    Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);
+
+    AreaSupport::generateOverhangAreas(storage);
+    AreaSupport::generateSupportAreas(storage);
+    TreeSupport tree_support_generator(storage);
+    tree_support_generator.generateSupportAreas(storage);
 
     computePrintHeightStatistics(storage);
 
@@ -695,8 +693,8 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     // combine infill
     SkinInfillAreaComputation::combineInfillLayers(mesh);
 
-    // fuzzy skin
-    if (mesh.settings.get<bool>("magic_fuzzy_skin_enabled"))
+    // Fuzzy skin. Disabled when using interlocking structures, the internal interlocking walls become fuzzy.
+    if (mesh.settings.get<bool>("magic_fuzzy_skin_enabled") && !mesh.settings.get<bool>("interlocking_enable"))
     {
         processFuzzyWalls(mesh);
     }
@@ -1012,7 +1010,10 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     }
 
     SkirtBrim skirt_brim(storage);
-    skirt_brim.generate();
+    if (adhesion_type != EPlatformAdhesion::NONE)
+    {
+        skirt_brim.generate();
+    }
 
     if (mesh_group_settings.get<bool>("support_brim_enable"))
     {
