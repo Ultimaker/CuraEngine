@@ -22,12 +22,9 @@ public:
 
     /*!
      * \brief Get the height difference between the raft and the bottom of
-     * layer 1.
-     * 
-     * This is used for the filler layers because they don't use the
-     * layer_0_z_overlap.
+     * layer 0.
      */
-    static coord_t getZdiffBetweenRaftAndLayer1();
+    static coord_t getZdiffBetweenRaftAndLayer0();
 
     /*!
      * \brief Get the amount of layers to fill the airgap and initial layer with
