@@ -76,6 +76,16 @@ public:
      */
     const Polygons& getCollisionHolefree(coord_t radius, LayerIndex layer_idx, bool min_xy_dist = false);
 
+
+    /*!
+     * \brief Provides the area where there is model/build-plate below (vs support blocker)
+     *
+     * The result is a 2D area that represents where if support were to be placed in and just dropped down it would not rest on support blocker.
+     * \param layer_idx The layer of interest
+     * \return Polygons object
+     */
+    const Polygons& getAccumulatedPlaceable0(LayerIndex layer_idx);
+
     /*!
      * \brief Provides the areas that have to be avoided by the tree's branches
      * in order to reach the build plate.
@@ -154,6 +164,7 @@ private:
      */
     Polygons extractOutlineFromMesh(const SliceMeshStorage& mesh, LayerIndex layer_idx) const;
 
+
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer.
      *
@@ -173,6 +184,35 @@ private:
     void calculateCollision(RadiusLayerPair key)
     {
         calculateCollision(std::deque<RadiusLayerPair>{ RadiusLayerPair(key) });
+    }
+
+    /*!
+     * \brief Calculates where there is model/build-plate below (vs support blocker).
+     *
+     * The result is a 2D area that represents where if support were to be placed in and just dropped down it would not rest on support blocker. Result is saved in the cache.
+     * \param max_layer The layer up to which the area will be calculated.
+     */
+    void calculateAccumulatedPlaceable0(const LayerIndex max_layer);
+
+    /*!
+     * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer and not rest on support blocker.
+     *
+     * The result is a 2D area that would cause nodes of radius \p radius to
+     * collide with the model and not rest on support blocker. Result is saved in the cache.
+     * \param keys RadiusLayerPairs of all requested areas. Every radius will be calculated up to the provided layer.
+     */
+    void calculateCollisionAvoidance(const std::deque<RadiusLayerPair>& keys);
+
+    /*!
+     * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer and not rest on support blocker.
+     *
+     * The result is a 2D area that would cause nodes of radius \p radius to
+     * collide with the model and not rest on support blocker. Result is saved in the cache.
+     * \param key RadiusLayerPairs the requested areas. The radius will be calculated up to the provided layer.
+     */
+    void calculateCollisionAvoidance(RadiusLayerPair key)
+    {
+        calculateCollisionAvoidance(std::deque<RadiusLayerPair>{ RadiusLayerPair(key) });
     }
 
     /*!
@@ -320,6 +360,11 @@ private:
     bool precalculated = false;
 
     /*!
+     * \brief Whether the precalculate was called and finished, meaning every required value should be cached.
+     */
+    bool precalculationFinished = false;
+
+    /*!
      * \brief The index to access the outline corresponding with the currently processing mesh
      */
     size_t current_outline_idx;
@@ -333,6 +378,11 @@ private:
      * \brief The difference between the minimum required clearance between the model and the tree branches and the regular one.
      */
     coord_t current_min_xy_dist_delta;
+
+    /*!
+     * \brief The top most layer where there is no anti_overhang on any layer below
+     */
+    LayerIndex max_layer_idx_without_blocker;
 
     /*!
      * \brief Does at least one mesh allow support to rest on a model.
@@ -366,6 +416,11 @@ private:
      * machine
      */
     Polygons machine_border_;
+
+    /*!
+     * \brief Polygons representing the printable area of the machine
+     */
+    Polygons machine_area_;
 
     /*!
      * \brief Storage for layer outlines and the corresponding settings of the meshes grouped by meshes with identical setting.
@@ -406,6 +461,12 @@ private:
 
     mutable std::unordered_map<RadiusLayerPair, Polygons> collision_cache_holefree_;
     std::unique_ptr<std::mutex> critical_collision_cache_holefree_ = std::make_unique<std::mutex>();
+
+    mutable std::unordered_map<LayerIndex, Polygons> accumulated_placeables_cache_radius_0_;
+    std::unique_ptr<std::mutex> critical_accumulated_placeables_cache_radius_0_ = std::make_unique<std::mutex>();
+
+    mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_collision_;
+    std::unique_ptr<std::mutex> critical_avoidance_cache_collision_ = std::make_unique<std::mutex>();
 
     mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_;
     std::unique_ptr<std::mutex> critical_avoidance_cache_ = std::make_unique<std::mutex>();

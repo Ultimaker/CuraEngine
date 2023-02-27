@@ -39,8 +39,6 @@ constexpr auto SUPPORT_TREE_EXPONENTIAL_FACTOR = 1.5;
 constexpr size_t SUPPORT_TREE_PRE_EXPONENTIAL_STEPS = 1;
 constexpr coord_t SUPPORT_TREE_COLLISION_RESOLUTION = 500; // Only has an effect if SUPPORT_TREE_USE_EXPONENTIAL_COLLISION_RESOLUTION is false
 
-constexpr coord_t SUPPORT_TREE_MAX_DEVIATION = 0;
-
 using PropertyAreasUnordered = std::unordered_map<TreeSupportElement, Polygons>;
 using PropertyAreas = std::map<TreeSupportElement, Polygons>;
 
@@ -209,7 +207,8 @@ private:
      * \param collision[in] The area representing obstacles.
      * \param last_step_offset_without_check[in] The most it is allowed to offset in one step.
      * \param min_amount_offset[in] How many steps have to be done at least. As this uses round offset this increases the amount of vertices, which may be required if Polygons get very small.
-     *     Required as arcTolerance is not exposed in offset, which should result with a similar result.
+     *     Required as arcTolerance is not exposed in offset, which should result with a similar result, benefit may be eliminated by simplifying.
+     * \param simplify[in] Should the offset operation also simplify the Polygon. Improves performance.
      * \return The resulting Polygons object.
      */
     [[nodiscard]] Polygons safeOffsetInc
@@ -219,7 +218,8 @@ private:
         const Polygons& collision,
         coord_t safe_step_size,
         coord_t last_step_offset_without_check,
-        size_t min_amount_offset
+        size_t min_amount_offset,
+        bool simplify
     ) const;
 
     /*!

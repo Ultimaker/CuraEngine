@@ -24,7 +24,8 @@ enum class AvoidanceType
 {
     SLOW,
     FAST_SAFE,
-    FAST
+    FAST,
+    COLLISION
 };
 
 }//end namespace

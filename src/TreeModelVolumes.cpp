@@ -31,7 +31,8 @@ TreeModelVolumes::TreeModelVolumes
     max_move_slow_{ std::max(max_move_slow - 2, coord_t(0)) },  // -2 to avoid rounding errors
     progress_multiplier{ progress_multiplier },
     progress_offset{ progress_offset },
-    machine_border_{ calculateMachineBorderCollision(storage.getMachineBorder()) }
+    machine_border_{ calculateMachineBorderCollision(storage.getMachineBorder())},
+    machine_area_ { storage.getMachineBorder()}
 {
     anti_overhang_ = std::vector<Polygons>(storage.support.supportLayers.size(), Polygons());
     std::unordered_map<size_t, size_t> mesh_to_layeroutline_idx;
@@ -72,8 +73,6 @@ TreeModelVolumes::TreeModelVolumes
     }
 
     // Figure out the rest of the setting(-like variable)s relevant to the class a whole.
-
-    min_maximum_deviation = std::min(coord_t(SUPPORT_TREE_MAX_DEVIATION), min_maximum_deviation);
     current_outline_idx = mesh_to_layeroutline_idx[current_mesh_idx];
     const TreeSupportSettings config(layer_outlines_[current_outline_idx].first);
 
@@ -158,6 +157,13 @@ TreeModelVolumes::TreeModelVolumes
         }
     );
 
+    for (max_layer_idx_without_blocker =0; max_layer_idx_without_blocker +1<anti_overhang_.size(); max_layer_idx_without_blocker++){
+        if(!anti_overhang_[max_layer_idx_without_blocker +1].empty())
+        {
+            break;
+        }
+    }
+
     // Cache some handy settings in the object itself.
     radius_0 = config.getRadius(0);
     support_rest_preference = config.support_rest_preference;
@@ -170,7 +176,7 @@ void TreeModelVolumes::precalculate(coord_t max_layer)
     precalculated = true;
 
     // Get the config corresponding to one mesh that is in the current group. Which one has to be irrelevant.
-    // Not the prettiest way to do this, but it ensures some calculations that may be a bit more complex like inital layer diameter are only done in once.
+    // Not the prettiest way to do this, but it ensures some calculations that may be a bit more complex like initial layer diameter are only done in once.
     const TreeSupportSettings config(layer_outlines_[current_outline_idx].first);
 
     // Calculate which radius each layer in the tip may have.
@@ -256,6 +262,16 @@ void TreeModelVolumes::precalculate(coord_t max_layer)
     calculateCollisionHolefree(relevant_hole_collision_radiis);
 
     const auto t_coll = std::chrono::high_resolution_clock::now();
+    auto t_acc = std::chrono::high_resolution_clock::now();
+
+
+    if (max_layer_idx_without_blocker <max_layer && support_rests_on_model)
+    {
+
+        calculateAccumulatedPlaceable0(max_layer);
+        t_acc = std::chrono::high_resolution_clock::now();
+
+    }
 
     // ### Calculate the relevant avoidances in parallel as far as possible
     {
@@ -284,11 +300,27 @@ void TreeModelVolumes::precalculate(coord_t max_layer)
         }
         // FIXME: When nowait (parellel-for) is implemented, ensure here the following is calculated: calculateWallRestrictions.
     }
-    const auto t_end = std::chrono::high_resolution_clock::now();
-    const auto dur_col = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_coll - t_start).count();
-    const auto dur_avo = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_coll).count();
+    const auto t_avo = std::chrono::high_resolution_clock::now();
 
-    spdlog::info("Pre-calculating collision took {} ms. Pre-calculating avoidance took {} ms.", dur_col, dur_avo);
+    auto t_colAvo = std::chrono::high_resolution_clock::now();
+    if (max_layer_idx_without_blocker <max_layer && support_rests_on_model)
+    {
+        // FIXME: When nowait (parellel-for) is implemented, ensure here the following is calculated: calculateAccumulatedPlaceable0.
+        calculateCollisionAvoidance(relevant_avoidance_radiis);
+        t_colAvo = std::chrono::high_resolution_clock::now();
+
+    }
+
+    precalculationFinished=true;
+    const auto dur_col = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_coll - t_start).count();
+    const auto dur_acc = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_acc-t_coll).count();
+    const auto dur_avo = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_avo - t_acc).count();
+    const auto dur_col_avo = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_colAvo - t_avo).count();
+
+
+    spdlog::info("Pre-calculating collision took {} ms. Pre-calculating avoidance took {} ms. Pre-calculating accumulated Placeables with radius 0 took {} ms. Pre-calculating collision-avoidance took {} ms. ", dur_col, dur_avo, dur_acc, dur_col_avo);
+
+
 }
 
 const Polygons& TreeModelVolumes::getCollision(coord_t radius, LayerIndex layer_idx, bool min_xy_dist)
@@ -353,6 +385,19 @@ const Polygons& TreeModelVolumes::getCollisionHolefree(coord_t radius, LayerInde
     return getCollisionHolefree(orig_radius, layer_idx, min_xy_dist);
 }
 
+const Polygons& TreeModelVolumes::getAccumulatedPlaceable0(LayerIndex layer_idx)
+{
+    {
+        std::lock_guard<std::mutex> critical_section_support_max_layer_nr(*critical_accumulated_placeables_cache_radius_0_);
+        if (accumulated_placeables_cache_radius_0_.count(layer_idx))
+        {
+            return accumulated_placeables_cache_radius_0_[layer_idx];
+        }
+    }
+    calculateAccumulatedPlaceable0(layer_idx);
+    return getAccumulatedPlaceable0(layer_idx);
+}
+
 const Polygons& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_idx, AvoidanceType type, bool to_model, bool min_xy_dist)
 {
     if (layer_idx == 0) // What on the layer directly above buildplate do i have to avoid to reach the buildplate ...
@@ -390,6 +435,17 @@ const Polygons& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_
         cache_ptr = to_model ? &avoidance_cache_hole_to_model_ : &avoidance_cache_hole_;
         mutex_ptr = to_model ? critical_avoidance_cache_holefree_to_model_.get() : critical_avoidance_cache_holefree_.get();
         break;
+    case AvoidanceType::COLLISION:
+        if (layer_idx <= max_layer_idx_without_blocker)
+        {
+            return getCollision(radius, layer_idx, true);
+        }
+        else
+        {
+            cache_ptr = &avoidance_cache_collision_;
+            mutex_ptr = critical_avoidance_cache_collision_.get();
+        }
+        break;
     default:
         spdlog::error("Invalid Avoidance Request");
         break;
@@ -405,9 +461,13 @@ const Polygons& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_
     }
     if (precalculated)
     {
-        spdlog::warn("Had to calculate Avoidance (to model-bool: {}) at radius {} and layer {}, but precalculate was called. Performance may suffer!", to_model, key.first, key.second);
+        spdlog::warn("Had to calculate Avoidance (to model-bool: {}) at radius {} and layer {} and type {}, but precalculate was called. Performance may suffer!", to_model, key.first, key.second,coord_t(type));
     }
-    if (to_model)
+    if(type == AvoidanceType::COLLISION)
+    {
+        calculateCollisionAvoidance(key);
+    }
+    else if (to_model)
     {
         calculateAvoidanceToModel(key);
     }
@@ -475,7 +535,7 @@ const Polygons& TreeModelVolumes::getWallRestriction(coord_t radius, LayerIndex 
     }
     if (precalculated)
     {
-        spdlog::warn("Had to calculate Wall restricions at radius {} and layer {}, but precalculate was called. Performance may suffer!", key.first, key.second);
+        spdlog::warn("Had to calculate Wall restrictions at radius {} and layer {}, but precalculate was called. Performance may suffer!", key.first, key.second);
     }
 
     calculateWallRestrictions(key);
@@ -540,7 +600,6 @@ LayerIndex TreeModelVolumes::getMaxCalculatedLayer(coord_t radius, const std::un
     return max_layer;
 }
 
-
 void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& keys)
 {
     cura::parallel_for<size_t>
@@ -600,12 +659,13 @@ void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& key
                     {
                         data[key].add(data[RadiusLayerPair(radius, layer_idx - layer_offset)]);
                     }
-                    if (support_rests_on_this_model && radius == 0 && layer_idx < coord_t(1 + keys[i].second))
+                    //Placeable areas also have to be calculated when a collision has to be calculated if called outside of precalculate to prevent an infinite loop when they are invalidly requested...
+                    if ((support_rests_on_this_model||precalculationFinished||!precalculated) && radius == 0 && layer_idx < coord_t(1 + keys[i].second))
                     {
                         data[key] = data[key].unionPolygons();
                         Polygons above = data[RadiusLayerPair(radius, layer_idx + 1)];
                         above = above.unionPolygons(max_anti_overhang_layer >= layer_idx + 1 ? anti_overhang_[layer_idx] : Polygons());
-                        // Empty polygons on condition: Just to be sure the area is correctly unioned as otherwise difference may behave unexpectedly.
+                       // Empty polygons on condition: Just to be sure the area is correctly unioned as otherwise difference may behave unexpectedly.
 
                         Polygons placeable = data[key].unionPolygons().difference(above);
                         data_placeable[RadiusLayerPair(radius, layer_idx + 1)] = data_placeable[RadiusLayerPair(radius, layer_idx + 1)].unionPolygons(placeable);
@@ -693,6 +753,7 @@ void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& key
         }
     );
 }
+
 void TreeModelVolumes::calculateCollisionHolefree(const std::deque<RadiusLayerPair>& keys)
 {
     LayerIndex max_layer = 0;
@@ -726,6 +787,105 @@ void TreeModelVolumes::calculateCollisionHolefree(const std::deque<RadiusLayerPa
         }
     );
 }
+
+void TreeModelVolumes::calculateAccumulatedPlaceable0(const LayerIndex max_layer)
+{
+    LayerIndex start_layer = -1;
+
+    // the placeable on model areas do not exist on layer 0, as there can not be model below it. As such it may be possible that layer 1 is available, but layer 0 does not exist.
+    {
+        std::lock_guard<std::mutex> critical_section(*critical_accumulated_placeables_cache_radius_0_);
+        while (accumulated_placeables_cache_radius_0_.count(start_layer + 1))
+        {
+            start_layer++;
+        }
+        start_layer = std::max(start_layer.value + 1, 1);
+    }
+    if (start_layer > max_layer)
+    {
+        spdlog::debug("Requested calculation for value already calculated ?");
+        return;
+    }
+    Polygons accumulated_placeable_0 = start_layer == 1 ? machine_area_ : getAccumulatedPlaceable0(start_layer - 1).offset(FUDGE_LENGTH + (current_min_xy_dist + current_min_xy_dist_delta));
+    // ^^^ The calculation here is done on the areas that are increased by xy_distance, but the result is saved without xy_distance,
+    // so here it "restores" the previous state to continue calculating from about where it ended.
+    // It would be better to ensure placeable areas of radius 0 do not include the xy distance, and removing the code compensating for it here and in calculatePlaceables.
+    std::vector<std::pair<LayerIndex, Polygons>> data(max_layer + 1, std::pair<LayerIndex, Polygons>(-1, Polygons()));
+
+    for (LayerIndex layer = start_layer; layer <= max_layer; layer++)
+    {
+        accumulated_placeable_0 = accumulated_placeable_0.unionPolygons(getPlaceableAreas(0, layer).offset(FUDGE_LENGTH)).difference(anti_overhang_[layer]);
+        std::lock_guard<std::mutex> critical_section(*critical_accumulated_placeables_cache_radius_0_);
+        accumulated_placeable_0 = simplifier.polygon(accumulated_placeable_0);
+        data[layer] = std::pair(layer, accumulated_placeable_0);
+    }
+    cura::parallel_for<size_t>
+       (
+           std::max(start_layer-1,LayerIndex(1)),
+           data.size(),
+           [&](const coord_t layer_idx)
+           {
+            data[layer_idx].second = data[layer_idx].second.offset(-(current_min_xy_dist+current_min_xy_dist_delta));
+           });
+    {
+        std::lock_guard<std::mutex> critical_section(* critical_accumulated_placeables_cache_radius_0_);
+        accumulated_placeables_cache_radius_0_.insert(data.begin(), data.end());
+    }
+}
+
+
+
+void TreeModelVolumes::calculateCollisionAvoidance(const std::deque<RadiusLayerPair>& keys)
+{
+    cura::parallel_for<size_t>
+        (
+            0,
+            keys.size(),
+            [&, keys](const size_t key_idx)
+            {
+
+        const coord_t radius = keys[key_idx].first;
+        const LayerIndex max_required_layer = keys[key_idx].second;
+        const coord_t max_step_move = std::max(1.9 * radius, current_min_xy_dist * 1.9);
+        LayerIndex start_layer = 0;
+        {
+            std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_collision_);
+            start_layer = 1 + std::max(getMaxCalculatedLayer(radius, avoidance_cache_collision_), max_layer_idx_without_blocker);
+        }
+
+        if(start_layer>max_required_layer)
+        {
+            return;
+        }
+
+        std::vector<std::pair<RadiusLayerPair, Polygons>> data(max_required_layer + 1, std::pair<RadiusLayerPair, Polygons>(RadiusLayerPair(radius, -1), Polygons()));
+        RadiusLayerPair key(radius, 0);
+
+        Polygons latest_avoidance = getAvoidance(radius,start_layer-1,AvoidanceType::COLLISION,true,true);
+        for (const LayerIndex layer : ranges::views::iota(static_cast<size_t>(start_layer), max_required_layer + 1UL))
+        {
+            key.second = layer;
+            Polygons col = getCollision(radius, layer, true);
+            latest_avoidance = safeOffset(latest_avoidance, -max_move_, ClipperLib::jtRound, -max_step_move, col);
+
+            Polygons placeable0RadiusCompensated = getAccumulatedPlaceable0(layer).offset(-std::max(radius,increase_until_radius), ClipperLib::jtRound);
+            latest_avoidance = latest_avoidance.difference(placeable0RadiusCompensated).unionPolygons(getCollision(radius,layer,true));
+
+            Polygons next_latest_avoidance = simplifier.polygon(latest_avoidance);
+            latest_avoidance = next_latest_avoidance.unionPolygons(latest_avoidance);
+            // ^^^ Ensure the simplification only causes the avoidance to become larger.
+            // If the deviation of the simplification causes the avoidance to become smaller than it should be it can cause issues, if it is larger the worst case is that the xy distance is effectively increased by deviation.
+            // If there would be an option to ensure the resulting polygon only gets larger by simplifying, it should improve performance further.
+            data[layer] = std::pair<RadiusLayerPair, Polygons>(key, latest_avoidance);
+        }
+
+        {
+            std::lock_guard<std::mutex> critical_section(* critical_avoidance_cache_collision_);
+            avoidance_cache_collision_.insert(data.begin(), data.end());
+        }
+            });
+}
+
 
 // Ensures offsets are only done in sizes with a max step size per offset while adding the collision offset after each step, this ensures that areas cannot glitch through walls defined by the collision when offsetting to fast.
 Polygons TreeModelVolumes::safeOffset(const Polygons& me, coord_t distance, ClipperLib::JoinType jt, coord_t max_safe_step_distance, const Polygons& collision) const
@@ -804,7 +964,11 @@ void TreeModelVolumes::calculateAvoidance(const std::deque<RadiusLayerPair>& key
                 }
 
                 latest_avoidance = safeOffset(latest_avoidance, -offset_speed, ClipperLib::jtRound, -max_step_move, col);
-                latest_avoidance = simplifier.polygon(latest_avoidance);
+                Polygons next_latest_avoidance = simplifier.polygon(latest_avoidance);
+                latest_avoidance = next_latest_avoidance.unionPolygons(latest_avoidance);
+                // ^^^ Ensure the simplification only causes the avoidance to become larger.
+                // If the deviation of the simplification causes the avoidance to become smaller than it should be it can cause issues, if it is larger the worst case is that the xy distance is effectively increased by deviation.
+                // If there would be an option to ensure the resulting polygon only gets larger by simplifying, it should improve performance further.
                 data[layer] = std::pair<RadiusLayerPair, Polygons>(key, latest_avoidance);
             }
 
@@ -862,7 +1026,7 @@ void TreeModelVolumes::calculatePlaceables(const std::deque<RadiusLayerPair>& ke
                 key.second = layer;
                 Polygons placeable = getPlaceableAreas(0, layer);
                 placeable = simplifier.polygon(placeable); // it is faster to do this here in each thread than once in calculateCollision.
-                placeable = placeable.offset(-(radius + (current_min_xy_dist + current_min_xy_dist_delta))).unionPolygons(); // todo comment
+                placeable = placeable.offset(-(radius + (current_min_xy_dist + current_min_xy_dist_delta))).unionPolygons();
                 data[layer] = std::pair<RadiusLayerPair, Polygons>(key, placeable);
             }
 
@@ -946,7 +1110,11 @@ void TreeModelVolumes::calculateAvoidanceToModel(const std::deque<RadiusLayerPai
                 }
 
                 latest_avoidance = safeOffset(latest_avoidance, -offset_speed, ClipperLib::jtRound, -max_step_move, col).difference(getPlaceableAreas(radius, layer));
-                latest_avoidance = simplifier.polygon(latest_avoidance);
+                Polygons next_latest_avoidance = simplifier.polygon(latest_avoidance);
+                latest_avoidance = next_latest_avoidance.unionPolygons(latest_avoidance);
+                // ^^^ Ensure the simplification only causes the avoidance to become larger.
+                // If the deviation of the simplification causes the avoidance to become smaller than it should be it can cause issues, if it is larger the worst case is that the xy distance is effectively increased by deviation.
+                // If there would be an option to ensure the resulting polygon only gets larger by simplifying, it should improve performance further.
                 data[layer] = std::pair<RadiusLayerPair, Polygons>(key, latest_avoidance);
             }
 
@@ -1104,4 +1272,4 @@ Polygons TreeModelVolumes::calculateMachineBorderCollision(const Polygons&& mach
     return machine_volume_border;
 }
 
-}
+} // namespace cura
