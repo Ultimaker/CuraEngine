@@ -1198,7 +1198,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                 model_outline = model_outline.offset(offset_per_step);
                 horizontal_expansion = horizontal_expansion.difference(model_outline);
             }
-            layer_this.unionPolygons(horizontal_expansion);
+            layer_this = layer_this.unionPolygons(horizontal_expansion);
         }
 
         if (use_towers && ! is_support_mesh_place_holder)
