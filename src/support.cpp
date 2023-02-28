@@ -1479,30 +1479,30 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
     const Polygons outlines = mesh.layers[layer_idx].getOutlines();
     constexpr bool no_support = false;
     constexpr bool no_prime_tower = false;
-    const Polygons outlines_below = storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower);
 
-    // To avoids generating support for textures on vertical surfaces, a moving average
-    // is taken over smooth_height. The smooth_height is currently an educated guess
-    // that we might want to expose to the frontend in the future.
     constexpr double smooth_height = 0.4; //mm
-    const auto layers_above = static_cast<LayerIndex>(std::round(smooth_height / mesh.settings.get<double>("layer_height")));
-    Polygons outlines_above;
-    for (int i = 0; layer_idx + i < mesh.layers.size() && i <= layers_above; ++i)
-    {
-        outlines_above.add(storage.getLayerOutlines(layer_idx + i, no_support, no_prime_tower));
-    }
-    outlines_above = outlines_above.unionPolygons();
+    const auto layers_below = static_cast<LayerIndex>(std::round(smooth_height / mesh.settings.get<double>("layer_height")));
 
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const AngleRadians support_angle = mesh.settings.get<AngleRadians>("support_angle");
     const double tan_angle = tan(support_angle) - 0.01; // The X/Y component of the support angle. 0.01 to make 90 degrees work too.
+    // overhang areas protruding less then `max_dist_from_lower_layer` don't need support
     const coord_t max_dist_from_lower_layer = tan_angle * layer_height; // Maximum horizontal distance that can be bridged.
 
+    // To avoids generating support for textures on vertical surfaces, a moving average
+    // is taken over smooth_height. The smooth_height is currently an educated guess
+    // that we might want to expose to the frontend in the future.
+    Polygons outlines_below = storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower)
+                                                         .offset(max_dist_from_lower_layer);
+    for (int layer_idx_offset = 2; layer_idx - layer_idx_offset >= 0 && layer_idx_offset <= layers_below; layer_idx_offset ++)
+    {
+        auto outlines_below_ = storage.getLayerOutlines(layer_idx - layer_idx_offset, no_support, no_prime_tower)
+                                   .offset(max_dist_from_lower_layer * layer_idx_offset);
+        outlines_below = outlines_below.unionPolygons(outlines_below_);
+    }
+
     Polygons basic_overhang = outlines
-        // overhang areas protruding less then `max_dist_from_lower_layer` don't need support
-        .difference(outlines_below.offset(max_dist_from_lower_layer))
-        // limit intersection to the offsetted outlines above; this way a overhang has to exist for _at least_ `layers_above` number of layers before support is generated
-        .intersection(outlines_above.offset(-max_dist_from_lower_layer * layers_above));
+        .difference(outlines_below);
 
     const SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
     if (!support_layer.anti_overhang.empty())
@@ -1514,7 +1514,7 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
         basic_overhang = basic_overhang.difference(merged_polygons);
     }
 
-    Polygons overhang_extended = basic_overhang.offset(max_dist_from_lower_layer + MM2INT(0.1)); // +0.1mm for easier joining with support from layer above
+    Polygons overhang_extended = basic_overhang.offset(max_dist_from_lower_layer * layers_below + MM2INT(0.1)); // +0.1mm for easier joining with support from layer above
     Polygons full_overhang = overhang_extended.intersection(outlines);
 
     return std::make_pair(basic_overhang, full_overhang);
