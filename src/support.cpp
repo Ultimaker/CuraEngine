@@ -519,7 +519,7 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
                 adhesion_size = std::max(adhesion_size, coord_t(
                     skirt_brim_extruder.settings.get<coord_t>(adhesion_width_str)
                     + skirt_brim_extruder.settings.get<coord_t>("skirt_brim_line_width")
-                    * (skirt_brim_extruder.settings.get<coord_t>(adhesion_line_count_str) - 1) // - 1 because the line is also included in extra_skirt_line_width
+                    * (skirt_brim_extruder.settings.get<size_t>(adhesion_line_count_str) - 1) // - 1 because the line is also included in extra_skirt_line_width
                     * skirt_brim_extruder.settings.get<Ratio>("initial_layer_line_width_factor")
                     + extra_skirt_line_width));
                 }
