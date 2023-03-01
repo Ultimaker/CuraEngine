@@ -1492,16 +1492,19 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
     // To avoids generating support for textures on vertical surfaces, a moving average
     // is taken over smooth_height. The smooth_height is currently an educated guess
     // that we might want to expose to the frontend in the future.
-    Polygons outlines_below = storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower)
-                                                         .offset(max_dist_from_lower_layer);
+    Polygons outlines_below =
+        storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower)
+        .offset(max_dist_from_lower_layer);
     for (int layer_idx_offset = 2; layer_idx - layer_idx_offset >= 0 && layer_idx_offset <= layers_below; layer_idx_offset ++)
     {
-        auto outlines_below_ = storage.getLayerOutlines(layer_idx - layer_idx_offset, no_support, no_prime_tower)
-                                   .offset(max_dist_from_lower_layer * layer_idx_offset);
+        auto outlines_below_ =
+            storage.getLayerOutlines(layer_idx - layer_idx_offset, no_support, no_prime_tower)
+            .offset(max_dist_from_lower_layer * layer_idx_offset);
         outlines_below = outlines_below.unionPolygons(outlines_below_);
     }
 
-    Polygons basic_overhang = outlines
+    Polygons basic_overhang =
+        outlines
         .difference(outlines_below);
 
     const SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
@@ -1514,7 +1517,10 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
         basic_overhang = basic_overhang.difference(merged_polygons);
     }
 
-    Polygons overhang_extended = basic_overhang.offset(max_dist_from_lower_layer * layers_below + MM2INT(0.1)); // +0.1mm for easier joining with support from layer above
+    Polygons overhang_extended =
+        basic_overhang
+        // +0.1mm for easier joining with support from layer above
+        .offset(max_dist_from_lower_layer * layers_below + MM2INT(0.1));
     Polygons full_overhang = overhang_extended.intersection(outlines);
 
     return std::make_pair(basic_overhang, full_overhang);
