@@ -73,6 +73,7 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
     prepared_outline.removeDegenerateVerts();
     prepared_outline = prepared_outline.unionPolygons();
+    prepared_outline = Simplify(settings).polygon(prepared_outline);
 
     if (prepared_outline.area() <= 0)
     {
