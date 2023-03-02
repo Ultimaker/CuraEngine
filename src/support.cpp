@@ -1618,7 +1618,7 @@ void AreaSupport::handleTowers(const Settings& settings, const Polygons& xy_disa
     {
         supportLayer_this = supportLayer_this.unionPolygons(tower_roof);
 
-        if (tower_roof[0].area() < tower_diameter * tower_diameter)
+        if (tower_roof.area() < tower_diameter * tower_diameter)
         {
             constexpr bool no_support = false;
             constexpr bool no_prime_tower = false;
@@ -1641,7 +1641,7 @@ void AreaSupport::handleTowers(const Settings& settings, const Polygons& xy_disa
                     // could indefinitely stay within the towers list
                     break;
                 }
-                if (tower_roof[0].area() >= tower_diameter * tower_diameter)
+                if (tower_roof.area() >= tower_diameter * tower_diameter)
                 {
                     // the desired size of the roof tower is reached, add the support tower to the
                     // current layer and clear the support tower itself
