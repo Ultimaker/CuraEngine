@@ -1190,7 +1190,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
             const coord_t offset_per_step = support_line_width / 2;
 
             // perform a small offset we don't enlarge small features of the support
-            Polygons horizontal_expansion = layer_this.offset(-half_min_feature_width).offset(half_min_feature_width);
+            Polygons horizontal_expansion = layer_this;
             for (coord_t offset_cumulative = 0; offset_cumulative <= extension_offset; offset_cumulative += offset_per_step)
             {
                 horizontal_expansion = horizontal_expansion.offset(offset_per_step);
