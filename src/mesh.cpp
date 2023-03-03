@@ -107,7 +107,7 @@ bool Mesh::isPrinted() const
 
 bool Mesh::canInterlock() const
 {
-    return settings.get<bool>("infill_mesh") || settings.get<bool>("anti_overhang_mesh");
+    return ! settings.get<bool>("infill_mesh") && ! settings.get<bool>("anti_overhang_mesh");
 }
 
 int Mesh::findIndexOfVertex(const Point3& v)
