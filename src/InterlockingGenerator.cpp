@@ -5,8 +5,6 @@
 
 #include <algorithm> // max
 
-#include <spdlog/spdlog.h>
-
 #include "Application.h"
 #include "Slice.h"
 #include "slicer.h"
