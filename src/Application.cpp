@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "Application.h"
@@ -28,12 +28,15 @@ namespace cura
 
 Application::Application()
 {
-    auto dup_filter = std::make_shared<spdlog::sinks::dup_filter_sink_st>(std::chrono::seconds(5));
-    spdlog::default_logger()->sinks().push_back(dup_filter);
-    auto env_val = spdlog::details::os::getenv("CURAENGINE_LOG_LEVEL");
-    if (! env_val.empty())
+    auto dup_sink = std::make_shared<spdlog::sinks::dup_filter_sink_mt>(std::chrono::seconds{ 10 });
+    auto base_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+    dup_sink->add_sink(base_sink);
+
+    spdlog::default_logger()->sinks() = std::vector<std::shared_ptr<spdlog::sinks::sink>>{ dup_sink }; // replace default_logger sinks with the duplicating filtering sink to avoid spamming
+
+    if (auto spdlog_val = spdlog::details::os::getenv("CURAENGINE_LOG_LEVEL"); ! spdlog_val.empty())
     {
-        spdlog::cfg::helpers::load_levels(env_val);
+        spdlog::cfg::helpers::load_levels(spdlog_val);
     }
 }
 

@@ -507,10 +507,6 @@ void LayerPlanBuffer::insertTempCommands()
         else
         {
             assert(extruder_plan.estimates.getMaterial() == 0.0 && "No extrusion time should mean no material usage!");
-            if (extruder_settings.get<bool>("material_flow_dependent_temperature")) // Average flow is only used with flow dependent temperature.
-            {
-                spdlog::warn("Empty extruder plans detected! Temperature control might suffer.");
-            }
             avg_flow = 0.0;
         }
 
