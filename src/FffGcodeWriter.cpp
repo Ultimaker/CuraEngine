@@ -1027,12 +1027,9 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
             break;
         }
 
-        if (layer_nr == 0)
+        if (layer_nr < 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT)
         {
-            if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT)
-            {
-                include_helper_parts = false;
-            }
+            include_helper_parts = false;
         }
     }
 
@@ -2018,14 +2015,17 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(Polygons& infill_below_skin, Pol
         const size_t skin_layer_nr = gcode_layer.getLayerNr() + i;
         if (skin_layer_nr < mesh.layers.size())
         {
-            for (const SliceLayerPart& part : mesh.layers[skin_layer_nr].parts)
+            for (const SliceLayerPart& part_i : mesh.layers[skin_layer_nr].parts)
             {
-                for (const SkinPart& skin_part : part.skin_parts)
+                for (const SkinPart& skin_part : part_i.skin_parts)
                 {
+                    // Limit considered areas to the ones that should have infill underneath at the current layer.
+                    const Polygons relevant_outline = skin_part.outline.intersection(part.getOwnInfillArea());
+
                     if (! skin_above_combined.empty())
                     {
                         // does this skin part overlap with any of the skin parts on the layers above?
-                        const Polygons overlap = skin_above_combined.intersection(skin_part.outline);
+                        const Polygons overlap = skin_above_combined.intersection(relevant_outline);
                         if (! overlap.empty())
                         {
                             // yes, it overlaps, need to leave a gap between this skin part and the others
@@ -2048,7 +2048,7 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(Polygons& infill_below_skin, Pol
                                 // subtract the expanded overlap region from the regions accumulated from higher layers
                                 skin_above_combined = skin_above_combined.difference(overlap_expanded);
                                 // subtract the expanded overlap region from this skin part and add the remainder to the overlap region
-                                skin_above_combined.add(skin_part.outline.difference(overlap_expanded));
+                                skin_above_combined.add(relevant_outline.difference(overlap_expanded));
                                 // and add the overlap area as well
                                 skin_above_combined.add(overlap);
                             }
@@ -2069,18 +2069,18 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(Polygons& infill_below_skin, Pol
                                 //
                                 //     ------- -------------------------------------
 
-                                skin_above_combined = skin_above_combined.difference(skin_part.outline.offset(tiny_infill_offset));
-                                skin_above_combined.add(skin_part.outline);
+                                skin_above_combined = skin_above_combined.difference(relevant_outline.offset(tiny_infill_offset));
+                                skin_above_combined.add(relevant_outline);
                             }
                         }
                         else // no overlap
                         {
-                            skin_above_combined.add(skin_part.outline);
+                            skin_above_combined.add(relevant_outline);
                         }
                     }
                     else // this is the first skin region we have looked at
                     {
-                        skin_above_combined.add(skin_part.outline);
+                        skin_above_combined.add(relevant_outline);
                     }
                 }
             }

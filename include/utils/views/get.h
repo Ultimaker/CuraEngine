@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_VIEWS_GET_H
@@ -39,7 +39,7 @@ namespace cura::views
  */
 constexpr auto get(auto&& proj)
 {
-    return ranges::make_view_closure(ranges::views::transform([proj](auto item) { return decltype(std::invoke(proj, item)) { std::invoke(proj, item) }; }));
+    return ranges::make_view_closure(ranges::views::transform([proj](auto&& item) { return std::invoke(proj, std::forward<decltype(item)>(item)); }));
 }
 } // namespace cura::views
 

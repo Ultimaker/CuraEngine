@@ -86,7 +86,7 @@ std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Pol
 
     for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
-        if (!extruder_is_used[extruder_nr] || (skirt_brim_extruder_nr >= 0 && extruder_nr != skirt_brim_extruder_nr))
+        if (!extruder_is_used[extruder_nr] || (skirt_brim_extruder_nr >= 0 && extruder_nr != skirt_brim_extruder_nr) || starting_outlines[extruder_nr].empty())
         {
             continue; // only include offsets for brim extruder
         }
@@ -141,7 +141,7 @@ void SkirtBrim::generate()
     std::vector<Offset> prime_brim_offsets_for_skirt = generatePrimeTowerBrimForSkirtAdhesionOffsetPlan();
     
     constexpr LayerIndex layer_nr = 0;
-    const bool include_support = true;
+    constexpr bool include_support = true;
     Polygons covered_area = storage.getLayerOutlines(layer_nr, include_support, /*include_prime_tower*/ true, /*external_polys_only*/ false);
 
     std::vector<Polygons> allowed_areas_per_extruder(extruder_count);
@@ -468,7 +468,7 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
     constexpr coord_t smallest_line_length = 200;
     constexpr coord_t largest_error_of_removed_point = 50;
     first_layer_outline = Simplify(smallest_line_length, largest_error_of_removed_point, 0).polygon(first_layer_outline);
-    if (first_layer_outline.size() == 0)
+    if (first_layer_outline.empty())
     {
         spdlog::error("Couldn't generate skirt / brim! No polygons on first layer.");
     }
