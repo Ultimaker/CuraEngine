@@ -86,6 +86,7 @@ class CuraEngineConan(ConanFile):
         self.requires("spdlog/1.10.0")
         self.requires("fmt/9.0.0")
         self.requires("range-v3/0.12.0")
+        self.requires("scripta/0.1.0@ultimaker/testing")
 
     def generate(self):
         deps = CMakeDeps(self)
