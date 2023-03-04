@@ -1,4 +1,4 @@
-#  Copyright (c) 2023 UltiMaker.
+#  Copyright (c) 2023 UltiMaker
 #  CuraEngine is released under the terms of the AGPLv3 or higher
 
 from os import path
@@ -10,7 +10,7 @@ from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
 from conan.tools.scm import Version
 
-required_conan_version = ">=1.55.0"
+required_conan_version = ">=1.56.0"
 
 
 class CuraEngineConan(ConanFile):
@@ -20,7 +20,6 @@ class CuraEngineConan(ConanFile):
     url = "https://github.com/Ultimaker/CuraEngine"
     description = "Powerful, fast and robust engine for converting 3D models into g-code instructions for 3D printers. It is part of the larger open source project Cura."
     topics = ("cura", "protobuf", "gcode", "c++", "curaengine", "libarcus", "gcode-generation", "3D-printing")
-    build_policy = "missing"
     exports = "LICENSE*"
     settings = "os", "compiler", "build_type", "arch"
 
@@ -124,6 +123,6 @@ class CuraEngineConan(ConanFile):
     def package_info(self):
         ext = ".exe" if self.settings.os == "Windows" else ""
         if self.in_local_cache:
-            self.conf_info.define("user.curaengine:curaengine", path.join(self.package_folder, "bin", f"CuraEngine{ext}"))
+            self.conf_info.define_path("user.curaengine:curaengine", path.join(self.package_folder, "bin", f"CuraEngine{ext}"))
         else:
-            self.conf_info.define("user.curaengine:curaengine", path.join(self.build_folder, f"CuraEngine{ext}"))
+            self.conf_info.define_path("user.curaengine:curaengine", path.join(self.build_folder, f"CuraEngine{ext}"))
