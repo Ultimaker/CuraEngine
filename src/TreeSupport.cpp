@@ -816,7 +816,6 @@ void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector
                 mesh.overhang_areas[layer_idx + z_distance_delta].offset(support_outset).difference(overhang_regular.offset(mesh_config.support_line_width * 0.5)).intersection(relevant_forbidden);
                 // Offset ensures that areas that could be supported by a part of a support line, are not considered unsupported overhang
             coord_t extra_total_offset_acc = 0;
-
             // Offset the area to compensate for large tip radiis. Offset happens in multiple steps to ensure the tip is as close to the original overhang as possible.
             while (extra_total_offset_acc + mesh_config.support_line_width / 8 < extra_outset) //+mesh_config.support_line_width / 80  to avoid calculating very small (useless) offsets because of rounding errors.
             {
@@ -836,44 +835,49 @@ void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector
             //   (while adding them an infinite amount of layers down would technically be closer the setting description, it would not produce reasonable results. )
             if (xy_overrides)
             {
-                std::vector<LineInformation> overhang_lines;
-                Polygons polylines = ensureMaximumDistancePolyline(generateLines(remaining_overhang, false, layer_idx), mesh_config.min_radius, 1);
-                // ^^^ Support_line_width to form a line here as otherwise most will be unsupported.
-                // Technically this violates branch distance, but not only is this the only reasonable choice,
-                //   but it ensures consistent behavior as some infill patterns generate each line segment as its own polyline part causing a similar line forming behavior.
-                // Also it is assumed that the area that is valid a layer below is to small for support roof.
-                if (polylines.pointCount() <= 3)
-                {
-                    // Add the outer wall to ensure it is correct supported instead.
-                    polylines = ensureMaximumDistancePolyline(toPolylines(remaining_overhang), connect_length, 3);
-                }
 
-                for (auto line : polylines)
+                for (Polygons& remaining_overhang_part:remaining_overhang.splitIntoParts(false))
                 {
-                    LineInformation res_line;
-                    for (Point p : line)
+
+                    std::vector<LineInformation> overhang_lines;
+                    Polygons polylines = ensureMaximumDistancePolyline(generateLines(remaining_overhang_part, false, layer_idx), mesh_config.min_radius, 1);
+                    // ^^^ Support_line_width to form a line here as otherwise most will be unsupported.
+                    // Technically this violates branch distance, but not only is this the only reasonable choice,
+                    //   but it ensures consistent behavior as some infill patterns generate each line segment as its own polyline part causing a similar line forming behavior.
+                    // Also it is assumed that the area that is valid a layer below is to small for support roof.
+                    if (polylines.pointCount() <= 3)
                     {
-                        res_line.emplace_back(p, LineStatus::INVALID);
+                        // Add the outer wall to ensure it is correct supported instead.
+                        polylines = ensureMaximumDistancePolyline(toPolylines(remaining_overhang_part), connect_length, 3);
                     }
-                    overhang_lines.emplace_back(res_line);
-                }
 
-                for (size_t lag_ctr = 1; lag_ctr <= max_overhang_insert_lag && !overhang_lines.empty() && layer_idx - coord_t(lag_ctr) >= 1; lag_ctr++)
-                {
-                    // get least restricted avoidance for layer_idx-lag_ctr
-                    Polygons relevant_forbidden_below =
-                            volumes_.getAvoidance(mesh_config.getRadius(0), layer_idx - lag_ctr, (only_gracious||!mesh_config.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION, mesh_config.support_rests_on_model, ! xy_overrides);
-                    // It is not required to offset the forbidden area here as the points won't change:
-                    // If points here are not inside the forbidden area neither will they be later when placing these points, as these are the same points.
-                    std::function<bool(std::pair<Point, LineStatus>)> evaluatePoint =
-                        [&](std::pair<Point, LineStatus> p) { return relevant_forbidden_below.inside(p.first, true); };
+                    for (auto line : polylines)
+                    {
+                        LineInformation res_line;
+                        for (Point p : line)
+                        {
+                            res_line.emplace_back(p, LineStatus::INVALID);
+                        }
+                        overhang_lines.emplace_back(res_line);
+                    }
 
-                    std::pair<std::vector<TreeSupport::LineInformation>, std::vector<TreeSupport::LineInformation>> split = splitLines(overhang_lines, evaluatePoint); // Keep all lines that are invalid.
-                    overhang_lines = split.first;
-                    std::vector<LineInformation> fresh_valid_points = convertLinesToInternal(convertInternalToLines(split.second), layer_idx - lag_ctr);
-                    // ^^^ Set all now valid lines to their correct LineStatus. Easiest way is to just discard Avoidance information for each point and evaluate them again.
+                    for (size_t lag_ctr = 1; lag_ctr <= max_overhang_insert_lag && !overhang_lines.empty() && layer_idx - coord_t(lag_ctr) >= 1; lag_ctr++)
+                    {
+                        // get least restricted avoidance for layer_idx-lag_ctr
+                        Polygons relevant_forbidden_below =
+                                volumes_.getAvoidance(mesh_config.getRadius(0), layer_idx - lag_ctr, (only_gracious||!mesh_config.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION, mesh_config.support_rests_on_model, ! xy_overrides);
+                        // It is not required to offset the forbidden area here as the points won't change:
+                        // If points here are not inside the forbidden area neither will they be later when placing these points, as these are the same points.
+                        std::function<bool(std::pair<Point, LineStatus>)> evaluatePoint =
+                            [&](std::pair<Point, LineStatus> p) { return relevant_forbidden_below.inside(p.first, true); };
 
-                    addLinesAsInfluenceAreas(fresh_valid_points, (force_tip_to_roof && lag_ctr <= support_roof_layers) ? support_roof_layers : 0, layer_idx - lag_ctr, false, roof_enabled ? support_roof_layers : 0);
+                        std::pair<std::vector<TreeSupport::LineInformation>, std::vector<TreeSupport::LineInformation>> split = splitLines(overhang_lines, evaluatePoint); // Keep all lines that are invalid.
+                        overhang_lines = split.first;
+                        std::vector<LineInformation> fresh_valid_points = convertLinesToInternal(convertInternalToLines(split.second), layer_idx - lag_ctr);
+                        // ^^^ Set all now valid lines to their correct LineStatus. Easiest way is to just discard Avoidance information for each point and evaluate them again.
+
+                        addLinesAsInfluenceAreas(fresh_valid_points, (force_tip_to_roof && lag_ctr <= support_roof_layers) ? support_roof_layers : 0, layer_idx - lag_ctr, false, roof_enabled ? support_roof_layers : 0);
+                    }
                 }
             }
 
