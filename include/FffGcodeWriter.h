@@ -264,8 +264,9 @@ private:
      * \param gcodeLayer The initial planning of the g-code of the layer.
      * \param extruder_nr The extruder train for which to process the skirt or
      * brim.
+     * \param layer_nr The index of the layer to write the gcode of.
      */
-    void processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcodeLayer, unsigned int extruder_nr) const;
+    void processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcodeLayer, unsigned int extruder_nr, LayerIndex layer_nr) const;
 
     /*!
      * Adds the ooze shield to the layer plan \p gcodeLayer.
