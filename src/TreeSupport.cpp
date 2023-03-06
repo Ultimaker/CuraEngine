@@ -1584,7 +1584,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea
             };
         coord_t ceil_radius_before = volumes_.ceilRadius(radius, settings.use_min_distance);
 
-
+        // If the Collision Radius is smaller than the actual radius, check if it can catch up without violating the avoidance.
         if (config.getCollisionRadius(current_elem) < config.increase_radius_until_radius && config.getCollisionRadius(current_elem) < config.getRadius(current_elem))
         {
             coord_t target_radius = std::min(config.getRadius(current_elem), config.increase_radius_until_radius);
@@ -1605,6 +1605,31 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea
                 resulting_eff_dtt++;
             }
             current_elem.effective_radius_height = resulting_eff_dtt;
+
+            // If catchup is not possible, it is likely that there is a hole below. Assuming the branches are in some kind of bowl, the branches should still stay away from the wall of the bowl if possible.
+            if (config.getCollisionRadius(current_elem) < config.increase_radius_until_radius && config.getCollisionRadius(current_elem) < config.getRadius(current_elem))
+            {
+                Polygons new_to_bp_data;
+                Polygons new_to_model_data;
+
+                if (current_elem.to_buildplate)
+                {
+                    new_to_bp_data = to_bp_data.difference(volumes_.getCollision(config.getRadius(current_elem), layer_idx - 1, current_elem.use_min_xy_dist));
+                    if (new_to_bp_data.area() > EPSILON)
+                    {
+                        to_bp_data = new_to_bp_data;
+                    }
+                }
+                if (config.support_rests_on_model && (!current_elem.to_buildplate || mergelayer))
+                {
+                    to_model_data = to_model_data.difference(volumes_.getCollision(config.getRadius(current_elem), layer_idx - 1, current_elem.use_min_xy_dist));
+                    if (to_model_data.area() > EPSILON)
+                    {
+                        to_bp_data = to_model_data;
+                    }
+                }
+            }
+
         }
         radius = config.getCollisionRadius(current_elem);
 
@@ -1862,7 +1887,8 @@ void TreeSupport::increaseAreas
 
             insertSetting(AreaIncreaseSettings(AvoidanceType::FAST, fast_speed, !increase_radius, !no_error, elem.use_min_xy_dist, move), true); //simplifying is very important for performance, but before an error is compensated by moving faster it makes sense to check to see if the simplifying has caused issues
 
-            // The getAccumulatedPlaceable0 intersection is just a quick and dirty check to see that at least a part of the branch would correctly rest on the model. Proper way would be to offset getAccumulatedPlaceable0 by -radius first, but the small benefit to maybe detect an error, that should not be happening anyway is not worth the performance impact in the expected case when a branch rests on the model.
+            // The getAccumulatedPlaceable0 intersection is just a quick and dirty check to see that at least a part of the branch would correctly rest on the model.
+            // Proper way would be to offset getAccumulatedPlaceable0 by -radius first, but the small benefit to maybe detect an error, that should not be happening anyway is not worth the performance impact in the expected case when a branch rests on the model.
             if (elem.to_buildplate || (elem.to_model_gracious && (parent->area->intersection(volumes_.getPlaceableAreas(radius, layer_idx)).empty())) || (!elem.to_model_gracious && (parent->area->intersection(volumes_.getAccumulatedPlaceable0(layer_idx)).empty())) ) // Error case.
             {
                 // It is normal that we won't be able to find a new area at some point in time if we won't be able to reach layer 0 aka have to connect with the model.
