@@ -1037,7 +1037,7 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
                         }
                     }
 
-                    layers[layer_nr].polygons = layers[layer_nr].polygons.unionPolygons(outline.difference(holes));
+                    layers[layer_nr].polygons.add(outline.difference(holes.unionPolygons()));
                 }
             }
         }
