@@ -3280,10 +3280,10 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
 
     if (extruder_changed)
     {
-        const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
-
         if (extruder_prime_layer_nr[extruder_nr] == gcode_layer.getLayerNr())
         {
+            const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
+
             // We always prime an extruder, but whether it will be a prime blob/poop depends on if prime blob is enabled.
             // This is decided in GCodeExport::writePrimeTrain().
             if (train.settings.get<bool>("prime_blob_enable")) // Don't travel to the prime-blob position if not enabled though.
