@@ -57,11 +57,13 @@ ExtruderPlan::ExtruderPlan
 
 void ExtruderPlan::handleInserts(const int64_t& path_idx, GCodeExport& gcode, const double& cumulative_path_time)
 {
+    // TODO CURA-9540:
+    gcode.writeComment("ccumulative_path_time: " + std::to_string(cumulative_path_time));
     while (! inserts.empty() && path_idx >= inserts.front().path_idx && inserts.front().time_after_path_start < cumulative_path_time)
     { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
         if (cumulative_path_time < 10000)
         {
-            gcode.writeComment("cumulative_path_time: " + std::to_string(cumulative_path_time) + ", time_after_path_start: " + std::to_string(inserts.front().time_after_path_start) + ", total_time: " + std::to_string(inserts.front().total_time));
+            gcode.writeComment("cumulative_path_time: " + std::to_string(cumulative_path_time) + ", path_idx: " + std::to_string(path_idx) + ", time_after_path_start: " + std::to_string(inserts.front().time_after_path_start) + ", total_time: " + std::to_string(inserts.front().total_time));
         }
         inserts.front().write(gcode);
         inserts.pop_front();
@@ -1822,6 +1824,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         gcode.writeFanCommand(extruder_plan.getFanSpeed());
         std::vector<GCodePath>& paths = extruder_plan.paths;
 
+        // TODO CURA9540: This should also be sorted on time_after_path_starts
         extruder_plan.inserts.sort([](const NozzleTempInsert& a, const NozzleTempInsert& b) -> bool { return a.path_idx < b.path_idx; });
 
         const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
