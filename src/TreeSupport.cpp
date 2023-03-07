@@ -1622,10 +1622,10 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea
                 }
                 if (config.support_rests_on_model && (!current_elem.to_buildplate || mergelayer))
                 {
-                    to_model_data = to_model_data.difference(volumes_.getCollision(config.getRadius(current_elem), layer_idx - 1, current_elem.use_min_xy_dist));
-                    if (to_model_data.area() > EPSILON)
+                    new_to_model_data = to_model_data.difference(volumes_.getCollision(config.getRadius(current_elem), layer_idx - 1, current_elem.use_min_xy_dist));
+                    if (new_to_model_data.area() > EPSILON)
                     {
-                        to_bp_data = to_model_data;
+                        to_model_data = new_to_model_data;
                     }
                 }
             }
