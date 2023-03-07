@@ -135,19 +135,17 @@ void LayerPlanBuffer::processFanSpeedLayerTime()
 }
 
 
-void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, const Duration time_after_extruder_plan_start, const size_t extruder_nr, const Temperature temp)
+void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, const Duration time_before_extruder_plan_end, const size_t extruder_nr, const Temperature temp)
 {
     Duration acc_time = 0.0;
     for (unsigned int path_idx = extruder_plan_before.paths.size() - 1; int(path_idx) != -1; path_idx--)
     {
         GCodePath& path = extruder_plan_before.paths[path_idx];
-        const Duration time_this_path = path.estimates.getTotalTime();
-        acc_time += time_this_path;
-        if (acc_time > time_after_extruder_plan_start)
+        acc_time += path.estimates.getTotalTime();
+        if (acc_time >= time_before_extruder_plan_end)
         {
-            const Duration time_before_path_end = acc_time - time_after_extruder_plan_start;
             bool wait = false;
-            extruder_plan_before.insertCommand(path_idx, extruder_nr, temp, wait, time_this_path - time_before_path_end);
+            extruder_plan_before.insertCommand(path_idx, extruder_nr, temp, wait, acc_time - time_before_extruder_plan_end);
             return;
         }
     }
