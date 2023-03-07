@@ -4,6 +4,8 @@
 #ifndef LAYER_PLAN_H
 #define LAYER_PLAN_H
 
+#include <functional>
+#include <limits>
 #include <optional>
 #include <vector>
 #ifdef BUILD_TESTS
@@ -50,7 +52,7 @@ class ExtruderPlan
 #endif
 protected:
     std::vector<GCodePath> paths; //!< The paths planned for this extruder
-    std::list<NozzleTempInsert> inserts; //!< The nozzle temperature command inserts, to be inserted in between paths
+    std::list<NozzleTempInsert> inserts; //!< The nozzle temperature command inserts, to be inserted in between segments
 
     double heated_pre_travel_time; //!< The time at the start of this ExtruderPlan during which the head travels and has a temperature of initial_print_temperature
 
@@ -107,8 +109,9 @@ public:
      * 
      * \param path_idx The index into ExtruderPlan::paths which is currently being consider for temperature command insertion
      * \param gcode The gcode exporter to which to write the temperature command.
+     * \param cumulative_path_time The time spend on this path up to this point.
      */
-    void handleInserts(unsigned int& path_idx, GCodeExport& gcode);
+    void handleInserts(const int64_t& path_idx, GCodeExport& gcode, const double& cumulative_path_time = std::numeric_limits<double>::infinity());
 
     /*!
      * Insert all remaining temp inserts into gcode, to be called at the end of an extruder plan
@@ -178,6 +181,16 @@ protected:
      * 
      */
     void forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrusionTime);
+
+    /*!
+     * @return The time needed for (un)retract the path
+     */
+    double getRetractTime(const GCodePath& path);
+
+    /*!
+     * @return distance between p0 and p1 as well as the time spend on the segment
+     */
+    std::pair<double, double> getPointToPointTime(const Point& p0, const Point& p1, const GCodePath& path);
 
     /*!
      * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates.
@@ -750,7 +763,7 @@ public:
      * \param layer_thickness The height of the current layer.
      * \return Whether any GCode has been written for the path.
      */
-    bool writePathWithCoasting(GCodeExport& gcode, const size_t extruder_plan_idx, const size_t path_idx, const coord_t layer_thickness);
+    bool writePathWithCoasting(GCodeExport& gcode, const size_t extruder_plan_idx, const size_t path_idx, const coord_t layer_thickness, const std::function<void(const double, const int64_t)> insertTempOnTime);
 
     /*!
      * Applying speed corrections for minimal layer times and determine the fanSpeed. 
