@@ -1245,8 +1245,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     }
 
     const Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    bool inner_to_outer = global_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM && // for skirt outer to inner is faster
-                            train.settings.get<coord_t>("brim_gap") < line_w; // for a large brim gap it's not so bad for the overextrudate to propagate inward.
+    const bool is_brim = global_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM;
     std::unordered_multimap<ConstPolygonPointer, ConstPolygonPointer> order_requirements;
     for (const std::pair<SquareGrid::GridPoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<BrimLineReference>>& p : grid)
     {
@@ -1263,7 +1262,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
             {
                 continue; // not directly adjacent
             }
-            if ((nearby.inset_idx < here.inset_idx) == inner_to_outer)
+            if ((nearby.inset_idx > here.inset_idx) != ((nearby.inset_idx < 2 || here.inset_idx < 2) && is_brim ))
             {
                 order_requirements.insert({nearby.poly, here.poly });
             }
