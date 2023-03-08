@@ -1,4 +1,4 @@
-//Copyright (c) 2022 Ultimaker B.V.
+//Copyright (c) 2023 UltiMaker
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "layerPart.h"
@@ -58,32 +58,11 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
     {
         result = layer->polygons.splitIntoParts(union_layers || union_all_remove_holes);
     }
-    const coord_t hole_offset = settings.get<coord_t>("hole_xy_offset");
+
     for(auto & part : result)
     {
         storageLayer.parts.emplace_back();
-        if (hole_offset != 0)
-        {
-            // holes are to be expanded or shrunk
-            Polygons outline;
-            Polygons holes;
-            for (const PolygonRef poly : part)
-            {
-                if (poly.orientation())
-                {
-                    outline.add(poly);
-                }
-                else
-                {
-                    holes.add(poly.offset(hole_offset));
-                }
-            }
-            storageLayer.parts.back().outline.add(outline.difference(holes.unionPolygons()));
-        }
-        else
-        {
-            storageLayer.parts.back().outline = part;
-        }
+        storageLayer.parts.back().outline = part;
         storageLayer.parts.back().boundaryBox.calculate(storageLayer.parts.back().outline);
         if (storageLayer.parts.back().outline.empty())
         {
@@ -91,6 +70,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
         }
     }
 }
+
 void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
 {
     const auto total_layers = slicer->layers.size();

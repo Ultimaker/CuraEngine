@@ -1,4 +1,4 @@
-//Copyright (c) 2022 Ultimaker B.V.
+//Copyright (c) 2023 UltiMaker
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "InterlockingGenerator.h"
@@ -11,11 +11,16 @@
 #include "utils/polygonUtils.h"
 #include "utils/VoxelUtils.h"
 
-namespace cura 
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/iota.hpp>
+#include <range/v3/view/view.hpp>
+#include <range/v3/view/zip.hpp>
+
+namespace cura
 {
-    
+
 // TODO: optimization: only go up to the min layer count + a couple of layers instead of max_layer_count
-  
+
 void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& volumes)
 {
     Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
@@ -32,6 +37,11 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
         {
             Slicer& mesh_b = *volumes[mesh_b_idx];
             size_t extruder_nr_b = mesh_b.mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr;
+
+            if (! mesh_a.mesh->canInterlock() || ! mesh_b.mesh->canInterlock())
+            {
+                continue;
+            }
 
             if (extruder_nr_a == extruder_nr_b || !mesh_a.mesh->getAABB().expand(ignored_gap).hit(mesh_b.mesh->getAABB()))
             {
@@ -52,14 +62,87 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
             const Point3 cell_size(cell_width, cell_width, 2 * beam_layer_count);
 
             InterlockingGenerator gen(mesh_a, mesh_b, beam_width_a, beam_width_b, rotation, cell_size, beam_layer_count, interface_dilation, air_dilation, air_filtering);
-
             gen.generateInterlockingStructure();
         }
-        
     }
 }
 
-void InterlockingGenerator::generateInterlockingStructure()
+std::pair<Polygons, Polygons> InterlockingGenerator::growBorderAreasPerpendicular(const Polygons& a, const Polygons& b, const coord_t& detect) const
+{
+    const coord_t min_line = std::min(mesh_a.mesh->settings.get<coord_t>("min_wall_line_width"), mesh_b.mesh->settings.get<coord_t>("min_wall_line_width"));
+
+    const Polygons total_shrunk = a.offset(min_line).unionPolygons(b.offset(min_line)).offset(2 * -min_line);
+
+    Polygons from_border_a = a.difference(total_shrunk);
+    Polygons from_border_b = b.difference(total_shrunk);
+
+    Polygons temp_a, temp_b;
+    for (auto _ : ranges::views::iota(0, (detect / min_line) + 2))
+    {
+        temp_a = from_border_a.offset(min_line);
+        temp_b = from_border_b.offset(min_line);
+        from_border_a = temp_a.difference(temp_b);
+        from_border_b = temp_b.difference(temp_a);
+    }
+
+    return { from_border_a, from_border_b};
+}
+
+void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>& has_all_meshes) const
+{
+    Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const coord_t boundary_avoidance = global_settings.get<int>("interlocking_boundary_avoidance");
+
+    const coord_t number_of_beams_detect = boundary_avoidance;
+    const coord_t number_of_beams_expand = boundary_avoidance - 1;
+    constexpr coord_t rounding_errors = 5;
+
+    const coord_t max_beam_width = std::max(beam_width_a, beam_width_b);
+    const coord_t detect = (max_beam_width * number_of_beams_detect) + rounding_errors;
+    const coord_t expand = (max_beam_width * number_of_beams_expand) + rounding_errors;
+    const coord_t close_gaps = std::min(mesh_a.mesh->settings.get<coord_t>("line_width"), mesh_b.mesh->settings.get<coord_t>("line_width")) / 4;
+
+    // Make an inclusionary polygon, to only actually handle thin areas near actual microstructures (so not in skin for example).
+    std::vector<Polygons> near_interlock_per_layer;
+    near_interlock_per_layer.assign(std::min(mesh_a.layers.size(), mesh_b.layers.size()), Polygons());
+    for (const auto& cell : has_all_meshes)
+    {
+        const Point3 bottom_corner = vu.toLowerCorner(cell);
+        for (int layer_nr = bottom_corner.z; layer_nr < bottom_corner.z + cell_size.z && layer_nr < near_interlock_per_layer.size(); ++layer_nr)
+        {
+            near_interlock_per_layer[layer_nr].add(vu.toPolygon(cell));
+        }
+    }
+    for (auto& near_interlock : near_interlock_per_layer)
+    {
+        near_interlock = near_interlock.offset(rounding_errors).offset(-rounding_errors).unionPolygons().offset(detect);
+        near_interlock.applyMatrix(rotation.inverse());
+    }
+
+    // Only alter layers when they are present in both meshes, zip should take care if that.
+    for (auto [layer_nr, layer] : ranges::views::zip(mesh_a.layers, mesh_b.layers) | ranges::views::enumerate)
+    {
+        Polygons& polys_a = std::get<0>(layer).polygons;
+        Polygons& polys_b = std::get<1>(layer).polygons;
+
+        const auto [from_border_a, from_border_b] = growBorderAreasPerpendicular(polys_a, polys_b, detect);
+
+        // Get the areas of each mesh that are _not_ thin (large), by performing a morphological open.
+        const Polygons large_a{ polys_a.offset(-detect).offset(detect) };
+        const Polygons large_b{ polys_b.offset(-detect).offset(detect) };
+
+        // Derive the area that the thin areas need to expand into (so the added areas to the thin strips) from the information we already have.
+        const Polygons thin_expansion_a{ large_b.intersection(polys_a.difference(large_a).offset(expand)).intersection(near_interlock_per_layer[layer_nr]).intersection(from_border_a).offset(rounding_errors) };
+        const Polygons thin_expansion_b{ large_a.intersection(polys_b.difference(large_b).offset(expand)).intersection(near_interlock_per_layer[layer_nr]).intersection(from_border_b).offset(rounding_errors) };
+
+        // Expanded thin areas of the opposing polygon should 'eat into' the larger areas of the polygon,
+        // and conversely, add the expansions to their own thin areas.
+        polys_a = polys_a.unionPolygons(thin_expansion_a).difference(thin_expansion_b).offset(close_gaps).offset(-close_gaps);
+        polys_b = polys_b.unionPolygons(thin_expansion_b).difference(thin_expansion_a).offset(close_gaps).offset(-close_gaps);
+    }
+}
+
+void InterlockingGenerator::generateInterlockingStructure() const
 {
     std::vector<std::unordered_set<GridPoint3>> voxels_per_mesh = getShellVoxels(interface_dilation);
 
@@ -78,6 +161,8 @@ void InterlockingGenerator::generateInterlockingStructure()
         {
             has_all_meshes.erase(p);
         }
+
+        handleThinAreas(has_all_meshes);
     }
 
     applyMicrostructureToOutlines(has_all_meshes, layer_regions);
@@ -93,7 +178,6 @@ std::vector<std::unordered_set<GridPoint3>> InterlockingGenerator::getShellVoxel
         Slicer* mesh = (mesh_idx == 0)? &mesh_a : &mesh_b;
         std::unordered_set<GridPoint3>& mesh_voxels = voxels_per_mesh[mesh_idx];
         
-        
         std::vector<Polygons> rotated_polygons_per_layer(mesh->layers.size());
         for (size_t layer_nr = 0; layer_nr < mesh->layers.size(); layer_nr++)
         {
@@ -104,7 +188,7 @@ std::vector<std::unordered_set<GridPoint3>> InterlockingGenerator::getShellVoxel
         
         addBoundaryCells(rotated_polygons_per_layer, kernel, mesh_voxels);
     }
-    
+
     return voxels_per_mesh;
 }
 
@@ -190,8 +274,14 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
     const size_t max_layer_count = std::max(mesh_a.layers.size(), mesh_b.layers.size());
 
     std::vector<Polygons> structure_per_layer[2]; // for each mesh the structure on each layer
-    structure_per_layer[0].resize((max_layer_count + 1) / beam_layer_count);
-    structure_per_layer[1].resize((max_layer_count + 1) / beam_layer_count);
+
+    // Every `beam_layer_count` number of layers are combined to an interlocking beam layer
+    // to store these we need ceil(max_layer_count / beam_layer_count) of these layers
+    // the formula is rewritten as (max_layer_count + beam_layer_count - 1) / beam_layer_count, so it works for integer division
+    size_t num_interlocking_layers = (max_layer_count + beam_layer_count - 1) / beam_layer_count;
+    structure_per_layer[0].resize(num_interlocking_layers);
+    structure_per_layer[1].resize(num_interlocking_layers);
+
     // Only compute cell structure for half the layers, because since our beams are two layers high, every odd layer of the structure will be the same as the layer below.
     for (const GridPoint3& grid_loc : cells)
     {
@@ -226,25 +316,16 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
             {
                 break;
             }
-            const Polygons* areas_here = &structure_per_layer[mesh_idx][layer_nr / beam_layer_count];
-            Polygons area_here_limited_to_outline;
-            if ( ! air_filtering
-                || air_dilation.kernel_size.x < interface_dilation.kernel_size.x // prevent voxels floating in mid air
-                || air_dilation.kernel_size.y < interface_dilation.kernel_size.y
-                || air_dilation.kernel_size.z < interface_dilation.kernel_size.z
-            )
-            {
-                area_here_limited_to_outline = *areas_here;
-                Polygons layer_outlines = layer_regions[layer_nr];
-                layer_outlines.applyMatrix(unapply_rotation);
-                area_here_limited_to_outline = area_here_limited_to_outline.intersection(layer_outlines); // Prevent structure from protruding out of the models
-                areas_here = &area_here_limited_to_outline;
-            }
+
+            Polygons layer_outlines = layer_regions[layer_nr];
+            layer_outlines.applyMatrix(unapply_rotation);
+
+            const Polygons areas_here = structure_per_layer[mesh_idx][layer_nr / beam_layer_count].intersection(layer_outlines);
             const Polygons& areas_other = structure_per_layer[ ! mesh_idx][layer_nr / beam_layer_count];
 
             SlicerLayer& layer = mesh->layers[layer_nr];
             layer.polygons = layer.polygons.difference(areas_other) // reduce layer areas inward with beams from other mesh
-                                            .unionPolygons(*areas_here); // extend layer areas outward with newly added beams
+                                            .unionPolygons(areas_here); // extend layer areas outward with newly added beams
         }
     }
 }

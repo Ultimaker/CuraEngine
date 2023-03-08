@@ -1,44 +1,44 @@
-//Copyright (c) 2022 Ultimaker B.V.
+//Copyright (c) 2023 UltiMaker
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "PathOrderPath.h" //The definitions we're implementing here.
-#include "sliceDataStorage.h" //For SliceLayerPart.
+#include "PathOrdering.h" //The definitions we're implementing here.
 #include "WallToolPaths.h"
+#include "sliceDataStorage.h" //For SliceLayerPart.
 
 namespace cura
 {
 
     template<>
-    ConstPolygonRef PathOrderPath<ConstPolygonPointer>::getVertexData()
+    ConstPolygonRef PathOrdering<ConstPolygonPointer>::getVertexData()
     {
         return *vertices;
     }
 
     template<>
-    ConstPolygonRef PathOrderPath<PolygonPointer>::getVertexData()
+    ConstPolygonRef PathOrdering<PolygonPointer>::getVertexData()
     {
         return *vertices;
     }
 
     template<>
-    ConstPolygonRef PathOrderPath<const SkinPart*>::getVertexData()
+    ConstPolygonRef PathOrdering<const SkinPart*>::getVertexData()
     {
         return vertices->outline.outerPolygon();
     }
 
     template<>
-    ConstPolygonRef PathOrderPath<const SliceLayerPart*>::getVertexData()
+    ConstPolygonRef PathOrdering<const SliceLayerPart*>::getVertexData()
     {
         return vertices->outline.outerPolygon();
     }
 
     template<>
-    ConstPolygonRef PathOrderPath<const SupportInfillPart*>::getVertexData()
+    ConstPolygonRef PathOrdering<const SupportInfillPart*>::getVertexData()
     {
         return vertices->outline.outerPolygon();
     }
     template<>
-    ConstPolygonRef PathOrderPath<const ExtrusionLine*>::getVertexData()
+    ConstPolygonRef PathOrdering<const ExtrusionLine*>::getVertexData()
     {
         if ( ! cached_vertices)
         {

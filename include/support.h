@@ -267,6 +267,7 @@ private:
      */
     static void handleTowers(
         const Settings& settings,
+        const Polygons& xy_disallowed_area,
         Polygons& supportLayer_this,
         std::vector<Polygons>& tower_roofs,
         std::vector<std::vector<Polygons>>& overhang_points,
@@ -291,6 +292,17 @@ private:
      * 
      */
     static void cleanup(SliceDataStorage& storage);
+
+
+    /*!
+     * generates varying xy disallowed areas for \param layer_idx where the offset distance is dependent on the wall angle
+     *
+     * \param storage Data storage containing the input layer data and
+     * \param settings The settings to use to calculate the offsets
+     * \param layer_idx The layer for which the disallowed areas are to be calcualted
+     *
+     */
+    static Polygons generateVaryingXYDisallowedArea(const SliceMeshStorage& storage, const Settings& infill_settings, const LayerIndex layer_idx);
 };
 
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <optional>
@@ -8,6 +8,7 @@
 
 #include "utils/VoronoiUtils.h"
 #include "utils/linearAlg2D.h"
+#include "utils/macros.h"
 
 namespace cura
 {
@@ -169,7 +170,7 @@ std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segmen
     assert(! (add_marking_start && add_marking_end) || add_apex);
     if (add_marking_start && add_marking_end && ! add_apex)
     {
-        spdlog::warn("Failing to discretize parabola! Must add an apex or one of the endpoints.");
+        RUN_ONCE(spdlog::warn("Failing to discretize parabola! Must add an apex or one of the endpoints."));
     }
 
     const coord_t step_count = static_cast<coord_t>(static_cast<float>(std::abs(ex - sx)) / approximate_step_size + 0.5);
