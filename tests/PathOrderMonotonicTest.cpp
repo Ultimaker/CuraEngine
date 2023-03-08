@@ -27,22 +27,22 @@ class PathOrderMonotonicTest : public testing::TestWithParam<std::tuple<std::str
 {
 };
 
-inline Point startVertex(const PathOrderPath<ConstPolygonPointer>& path)
+inline Point startVertex(const PathOrdering<ConstPolygonPointer>& path)
 {
     return (*path.vertices)[path.start_vertex];
 }
 
-inline Point endVertex(const PathOrderPath<ConstPolygonPointer>& path)
+inline Point endVertex(const PathOrdering<ConstPolygonPointer>& path)
 {
     return (*path.vertices)[path.vertices->size() - (1 + path.start_vertex)];
 }
 
-coord_t projectPathAlongAxis(const PathOrderPath<ConstPolygonPointer>& path, const Point& vector)
+coord_t projectPathAlongAxis(const PathOrdering<ConstPolygonPointer>& path, const Point& vector)
 {
     return dot(startVertex(path), vector);
 }
 
-coord_t projectEndAlongAxis(const PathOrderPath<ConstPolygonPointer>& path, const Point& vector)
+coord_t projectEndAlongAxis(const PathOrdering<ConstPolygonPointer>& path, const Point& vector)
 {
     return dot(endVertex(path), vector);
 }
@@ -88,7 +88,7 @@ bool getInfillLines(const std::string& filename, const AngleRadians& angle, Poly
 }
 
 #ifdef TEST_PATHS_SVG_OUTPUT
-void writeDebugSVG(const std::string& original_filename, const AngleRadians& angle, const Point& monotonic_vec, const std::vector<std::vector<PathOrderPath<ConstPolygonPointer>>>& sections)
+void writeDebugSVG(const std::string& original_filename, const AngleRadians& angle, const Point& monotonic_vec, const std::vector<std::vector<PathOrdering<ConstPolygonPointer>>>& sections)
 {
     constexpr int buff_size = 1024;
     char buff[buff_size];
@@ -149,7 +149,7 @@ TEST_P(PathOrderMonotonicTest, SectionsTest)
     object_under_test.optimize();
 
     // Collect sections:
-    std::vector<std::vector<PathOrderPath<ConstPolygonPointer>>> sections;
+    std::vector<std::vector<PathOrdering<ConstPolygonPointer>>> sections;
     sections.emplace_back();
     coord_t last_path_mono_projection = projectPathAlongAxis(object_under_test.paths.front(), monotonic_axis);
     for (const auto& path : object_under_test.paths)

@@ -58,7 +58,7 @@ protected:
     /*!
      * Generate an interlocking structure between two meshes
      */
-    void generateInterlockingStructure();
+    void generateInterlockingStructure() const;
 
     /*!
      * Private class for storing some variables used in the computation of the interlocking structure between two meshes.
@@ -86,6 +86,22 @@ protected:
     , air_dilation(air_dilation)
     , air_filtering(air_filtering)
     {}
+
+    /*! Given two polygons, return the parts that border on air, and grow 'perpendicular' up to 'detect' distance.
+     *
+     * \param a The first polygon.
+     * \param b The second polygon.
+     * \param detec The expand distance. (Not equal to offset, but a series of small offsets and differences).
+     * \return A pair of polygons that repressent the 'borders' of a and b, but expanded 'perpendicularly'.
+     */
+    std::pair<Polygons, Polygons> growBorderAreasPerpendicular(const Polygons& a, const Polygons& b, const coord_t& detect) const;
+
+    /*! Special handling for thin strips of material.
+     *
+     * Expand the meshes into each other where they need it, namely when a thin strip of material needs to be attached.
+     * \param has_all_meshes Only do this special handling if there's actually microstructure nearby that needs to be adhered to.
+     */
+    void handleThinAreas(const std::unordered_set<GridPoint3>& has_all_meshes) const;
 
     /*!
      * Compute the voxels overlapping with the shell of both models.

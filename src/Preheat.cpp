@@ -45,7 +45,7 @@ Temperature Preheat::getTemp(const size_t extruder, const Ratio& flow, const boo
     {
         return extruder_settings.get<Temperature>("material_print_temperature_layer_0");
     }
-    return extruder_settings.get<FlowTempGraph>("material_flow_temp_graph").getTemp(flow, extruder_settings.get<Temperature>("material_print_temperature"), extruder_settings.get<bool>("material_flow_dependent_temperature"));
+    return extruder_settings.get<Temperature>("material_print_temperature");
 }
 
 Preheat::WarmUpResult Preheat::getWarmUpPointAfterCoolDown(double time_window, unsigned int extruder, double temp_start, double temp_mid, double temp_end, bool during_printing)
