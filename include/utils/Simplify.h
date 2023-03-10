@@ -199,12 +199,6 @@ protected:
             }
         }
 
-        // make sure for closed polygons that the polygon ends at the start point
-        if (is_closed && filtered.front() != filtered.back())
-        {
-            appendVertex(filtered, filtered.front());
-        }
-
         return filtered;
     }
 
