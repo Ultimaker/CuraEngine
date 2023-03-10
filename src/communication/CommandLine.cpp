@@ -450,6 +450,55 @@ int CommandLine::loadJSON(const rapidjson::Document& document, const std::unorde
     return 0;
 }
 
+bool jsonValue2Str(const rapidjson::Value& value, std::string& value_string)
+{
+    if (value.IsString())
+    {
+        value_string = value.GetString();
+    }
+    else if (value.IsTrue())
+    {
+        value_string = "true";
+    }
+    else if (value.IsFalse())
+    {
+        value_string = "false";
+    }
+    else if (value.IsNumber())
+    {
+        value_string = std::to_string(value.GetDouble());
+    }
+    else if (value.IsArray())
+    {
+        if (value.Empty())
+        {
+            value_string = "[]";
+            return true;
+        }
+        std::string temp;
+        jsonValue2Str(value[0], temp);
+        value_string =
+            std::string("[") +
+            std::accumulate
+            (
+                std::next(value.Begin()),
+                value.End(),
+                temp,
+                [&temp](std::string converted, const rapidjson::Value& next)
+                {
+                    jsonValue2Str(next, temp);
+                    return std::move(converted) + "," + temp;
+                }
+            ) +
+            std::string("]");
+    }
+    else
+    {
+        return false;
+    }
+    return true;
+}
+
 void CommandLine::loadJSONSettings(const rapidjson::Value& element, Settings& settings)
 {
     for (rapidjson::Value::ConstMemberIterator setting = element.MemberBegin(); setting != element.MemberEnd(); setting++)
@@ -467,40 +516,26 @@ void CommandLine::loadJSONSettings(const rapidjson::Value& element, Settings& se
         {
             loadJSONSettings(setting_object["children"], settings);
         }
-        else // Only process leaf settings. We don't process categories or settings that have sub-settings.
+
+        if (! (setting_object.HasMember("default_value") || setting_object.HasMember("value")))
         {
-            if (! setting_object.HasMember("default_value"))
+            if (! setting_object.HasMember("children"))
             {
-                spdlog::warn("JSON setting {} has no default_value!", name);
-                continue;
+                // Setting has no child-settings, so must be leaf, but also holds no (default) value?!
+                spdlog::warn("JSON setting {} has no [default_]value!", name);
             }
-            const rapidjson::Value& default_value = setting_object["default_value"];
-            std::string value_string;
-            if (default_value.IsString())
-            {
-                value_string = default_value.GetString();
-            }
-            else if (default_value.IsTrue())
-            {
-                value_string = "true";
-            }
-            else if (default_value.IsFalse())
-            {
-                value_string = "false";
-            }
-            else if (default_value.IsNumber())
-            {
-                std::ostringstream ss;
-                ss << default_value.GetDouble();
-                value_string = ss.str();
-            }
-            else
-            {
-                spdlog::warn("Unrecognized data type in JSON setting {}", name);
-                continue;
-            }
-            settings.add(name, value_string);
+            continue;
         }
+
+        const rapidjson::Value& json_value = setting_object.HasMember("value") ? setting_object["value"] : setting_object["default_value"];
+
+        std::string value_string;
+        if (! jsonValue2Str(json_value, value_string))
+        {
+            spdlog::warn("Unrecognized data type in JSON setting {}", name);
+            continue;
+        }
+        settings.add(name, value_string);
     }
 }
 
