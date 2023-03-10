@@ -50,7 +50,8 @@ on:
         branches:
             - main
             - 'CURA-*'
-            - '[1-9]+.[0-9]+'
+            - '[1-9].[0-9]*'
+            - '[1-9].[0-9][0-9]*'
         tags:
             - '[1-9]+.[0-9]+.[0-9]*'
             - '[1-9]+.[0-9]+.[0-9]'
@@ -68,7 +69,7 @@ jobs:
             recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
             recipe_id_latest: ${{ needs.conan-recipe-version.outputs.recipe_id_latest }}
             runs_on: 'ubuntu-20.04'
-            python_version: '3.10.x'
+            python_version: '3.11.x'
             conan_logging_level: 'info'
         secrets: inherit
 
@@ -78,11 +79,11 @@ jobs:
 
         uses: ultimaker/cura/.github/workflows/conan-package-create.yml@main
         with:
-            project_name: curaengine
-            build_id: 3
+            project_name: ${{ needs.conan-recipe-version.outputs.project_name }}
             recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
+            build_id: 3
             runs_on: 'macos-11'
-            python_version: '3.10.x'
+            python_version: '3.11.x'
             conan_logging_level: 'info'
         secrets: inherit
 
@@ -92,11 +93,11 @@ jobs:
 
         uses: ultimaker/cura/.github/workflows/conan-package-create.yml@main
         with:
-            project_name: curaengine
-            build_id: 4
+            project_name: ${{ needs.conan-recipe-version.outputs.project_name }}
             recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
+            build_id: 4
             runs_on: 'windows-2022'
-            python_version: '3.10.x'
+            python_version: '3.11.x'
             conan_config_branch: ''
             conan_logging_level: 'info'
         secrets: inherit
@@ -107,11 +108,11 @@ jobs:
 
         uses: ultimaker/cura/.github/workflows/conan-package-create.yml@main
         with:
-            project_name: curaengine
-            build_id: 2
+            project_name: ${{ needs.conan-recipe-version.outputs.project_name }}
             recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
+            build_id: 1
             runs_on: 'ubuntu-20.04'
-            python_version: '3.10.x'
+            python_version: '3.11.x'
             conan_logging_level: 'info'
         secrets: inherit
 
@@ -121,11 +122,11 @@ jobs:
 
         uses: ultimaker/cura/.github/workflows/conan-package-create.yml@main
         with:
-            project_name: curaengine
-            build_id: 1
+            project_name: ${{ needs.conan-recipe-version.outputs.project_name }}
             recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
+            build_id: 2
             runs_on: 'ubuntu-22.04'
-            python_version: '3.10.x'
+            python_version: '3.11.x'
             conan_logging_level: 'info'
         secrets: inherit
 

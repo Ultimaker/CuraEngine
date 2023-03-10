@@ -37,9 +37,12 @@ GCodePathConfig::GCodePathConfig(const PrintFeatureType& type, const coord_t lin
 void GCodePathConfig::smoothSpeed(GCodePathConfig::SpeedDerivatives first_layer_config, const LayerIndex& layer_nr, const LayerIndex& max_speed_layer_nr) 
 {
     double max_speed_layer = max_speed_layer_nr;
-    speed_derivatives.speed = (speed_derivatives.speed * layer_nr) / max_speed_layer + (first_layer_config.speed * (max_speed_layer - layer_nr) / max_speed_layer);
-    speed_derivatives.acceleration = (speed_derivatives.acceleration * layer_nr) / max_speed_layer + (first_layer_config.acceleration * (max_speed_layer - layer_nr) / max_speed_layer);
-    speed_derivatives.jerk = (speed_derivatives.jerk * layer_nr) / max_speed_layer + (first_layer_config.jerk * (max_speed_layer - layer_nr) / max_speed_layer);
+    double first_layer_speed = std::min(speed_derivatives.speed, first_layer_config.speed);
+    double first_layer_acceleration = std::min(speed_derivatives.acceleration, first_layer_config.acceleration);
+    double first_layer_jerk = std::min(speed_derivatives.jerk, first_layer_config.jerk);
+    speed_derivatives.speed = (speed_derivatives.speed * layer_nr) / max_speed_layer + (first_layer_speed * (max_speed_layer - layer_nr) / max_speed_layer);
+    speed_derivatives.acceleration = (speed_derivatives.acceleration * layer_nr) / max_speed_layer + (first_layer_acceleration * (max_speed_layer - layer_nr) / max_speed_layer);
+    speed_derivatives.jerk = (speed_derivatives.jerk * layer_nr) / max_speed_layer + (first_layer_jerk * (max_speed_layer - layer_nr) / max_speed_layer);
 }
 
 double GCodePathConfig::getExtrusionMM3perMM() const

@@ -9,7 +9,7 @@
 #include <unordered_map> //To track monotonic sequences.
 
 #include "PathOrder.h"
-#include "PathOrderPath.h"
+#include "PathOrdering.h"
 
 namespace cura
 {
@@ -41,7 +41,7 @@ template<typename PathType>
 class PathOrderMonotonic : public PathOrder<PathType>
 {
 public:
-    using Path = PathOrderPath<PathType>;
+    using Path = PathOrdering<PathType>;
     using PathOrder<PathType>::coincident_point_distance;
 
     PathOrderMonotonic(const AngleRadians monotonic_direction, const coord_t max_adjacent_distance, const Point start_point)

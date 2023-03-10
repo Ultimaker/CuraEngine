@@ -86,12 +86,12 @@ public:
      * Offset the whole mesh (all vertices and the bounding box).
      * \param offset The offset byu which to offset the whole mesh.
      */
-    void offset(Point3 offset)
+    void translate(Point3 offset)
     {
         if (offset == Point3(0,0,0)) { return; }
         for(MeshVertex& v : vertices)
             v.p += offset;
-        aabb.offset(offset);
+        aabb.translate(offset);
     }
 
     /*!
@@ -106,6 +106,15 @@ public:
      * \return True if it's a mesh that gets printed.
      */
     bool isPrinted() const;
+
+    /*!
+     * Certain mesh types can interlock with each other. The interlock property provides
+     * if this mesh can be used for interlocking with other meshes (for example support
+     * blockers should not have an interlocking interface).
+     *
+     * \return True if an interface of the mesh could be interlocking with another mesh
+     */
+    bool canInterlock() const;
 private:
     mutable bool has_disconnected_faces; //!< Whether it has been logged that this mesh contains disconnected faces
     mutable bool has_overlapping_faces; //!< Whether it has been logged that this mesh contains overlapping faces
