@@ -205,7 +205,7 @@ void WallToolPaths::simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths
         {
             line = line.is_closed ? simplifier.polygon(line) : simplifier.polyline(line);
 
-            if (line.is_closed && line.front() != line.back())
+            if (line.is_closed && line.size() >= 2 && line.front() != line.back())
             {
                 line.emplace_back(line.front());
             }
