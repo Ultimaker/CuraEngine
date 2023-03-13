@@ -99,8 +99,8 @@ bool LinePolygonsCrossings::generateCombingPath(CombPath& combPath, int64_t max_
     if (shorterThen(endPoint - startPoint, max_comb_distance_ignored) || !lineSegmentCollidesWithBoundary())
     {
         //We're not crossing any boundaries. So skip the comb generation.
-        combPath.push_back(startPoint); 
-        combPath.push_back(endPoint);
+        combPath.add(startPoint);
+        combPath.add(endPoint);
         return true;
     }
 
@@ -136,7 +136,7 @@ void LinePolygonsCrossings::generateBasicCombingPath(CombPath& combPath)
             }
         }
     }
-    combPath.push_back(endPoint);
+    combPath.add(endPoint);
 }
 
 void LinePolygonsCrossings::generateBasicCombingPath(const Crossing& min, const Crossing& max, CombPath& combPath)
@@ -144,7 +144,7 @@ void LinePolygonsCrossings::generateBasicCombingPath(const Crossing& min, const 
     // minimise the path length by measuring the length of both paths around the polygon so we can determine the shorter path
 
     ConstPolygonRef poly = boundary[min.poly_idx];
-    combPath.push_back(transformation_matrix.unapply(Point(min.x - std::abs(dist_to_move_boundary_point_outside), transformed_startPoint.Y)));
+    combPath.add(transformation_matrix.unapply(Point(min.x - std::abs(dist_to_move_boundary_point_outside), transformed_startPoint.Y)));
 
     // follow the path in the same direction as the winding order of the boundary polygon
     std::vector<Point> fwd_points;
@@ -196,14 +196,14 @@ void LinePolygonsCrossings::generateBasicCombingPath(const Crossing& min, const 
     // use the points from the shortest path
     for (auto& p : (fwd_len < rev_len) ? fwd_points : rev_points)
     {
-        combPath.push_back(p);
+        combPath.add(p);
     }
-    combPath.push_back(last);
+    combPath.add(last);
 }
 
 bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimized_comb_path) 
 {
-    optimized_comb_path.push_back(startPoint);
+    optimized_comb_path.add(startPoint);
     for(unsigned int point_idx = 1; point_idx<comb_path.size(); point_idx++)
     {
         if(comb_path[point_idx] == comb_path[point_idx - 1]) //Two points are the same. Skip the second.
@@ -231,7 +231,7 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
                     break;
                 }
             }
-            optimized_comb_path.push_back(comb_path[point_idx - 1]);
+            optimized_comb_path.add(comb_path[point_idx - 1]);
 
             if (point_idx == 1)
             {
@@ -315,7 +315,7 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
         }
     }
 
-    optimized_comb_path.push_back(comb_path.back());
+    optimized_comb_path.add(comb_path.back());
     return true;
 }
 

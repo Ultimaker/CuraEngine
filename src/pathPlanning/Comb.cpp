@@ -225,8 +225,8 @@ bool Comb::calc
         comb_paths.throughAir = true;
         if ( vSize(start_crossing.in_or_mid - end_crossing.in_or_mid) < vSize(start_crossing.in_or_mid - start_crossing.out) + vSize(end_crossing.in_or_mid - end_crossing.out) )
         { // via outside is moving more over the in-between zone
-            comb_paths.back().push_back(start_crossing.in_or_mid);
-            comb_paths.back().push_back(end_crossing.in_or_mid);
+            comb_paths.back().add(start_crossing.in_or_mid);
+            comb_paths.back().add(end_crossing.in_or_mid);
         }
         else
         {
@@ -246,8 +246,8 @@ bool Comb::calc
                 comb_paths.emplace_back();
                 comb_paths.throughAir = true;
                 comb_paths.back().cross_boundary = true;
-                comb_paths.back().push_back(start_crossing.in_or_mid);
-                comb_paths.back().push_back(end_crossing.in_or_mid);
+                comb_paths.back().add(start_crossing.in_or_mid);
+                comb_paths.back().add(end_crossing.in_or_mid);
 
                 if (fail_on_unavoidable_obstacles)
                 {
@@ -261,8 +261,8 @@ bool Comb::calc
         comb_paths.emplace_back();
         comb_paths.throughAir = true;
         comb_paths.back().cross_boundary = true; // note: we don't actually know whether this is cross boundary, but it might very well be
-        comb_paths.back().push_back(start_crossing.in_or_mid);
-        comb_paths.back().push_back(end_crossing.in_or_mid);
+        comb_paths.back().add(start_crossing.in_or_mid);
+        comb_paths.back().add(end_crossing.in_or_mid);
     }
     if (skip_avoid_other_parts_path)
     {
@@ -317,7 +317,7 @@ void Comb::moveCombPathInside(Polygons& boundary_inside, Polygons& boundary_insi
     {
         return;
     }
-    comb_path_output.push_back(comb_path_input[0]);
+    comb_path_output.add(comb_path_input[0]);
     for(unsigned int point_idx = 1; point_idx<comb_path_input.size()-1; point_idx++)
     {
         Point new_point = Point(comb_path_input[point_idx]);
@@ -325,16 +325,16 @@ void Comb::moveCombPathInside(Polygons& boundary_inside, Polygons& boundary_insi
 
         if (boundary_inside_optimal.inside(new_point))
         {
-            comb_path_output.push_back(new_point);
+            comb_path_output.add(new_point);
         }
         else
         {
-            comb_path_output.push_back(comb_path_input[point_idx]);
+            comb_path_output.add(comb_path_input[point_idx]);
         }
     }
     if (comb_path_input.size() > 1)
     {
-        comb_path_output.push_back(comb_path_input[comb_path_input.size() - 1]);
+        comb_path_output.add(comb_path_input[comb_path_input.size() - 1]);
     }
 
 }

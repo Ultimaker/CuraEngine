@@ -5,11 +5,12 @@
 #define PATH_PLANNING_COMB_PATH_H
 
 #include "../utils/IntPoint.h"
+#include "../utils/polygon.h"
 
 namespace cura
 {
 
-class CombPath : public  std::vector<Point> //!< A single path either inside or outise the parts
+class CombPath : public  Polygon //!< A single path either inside or outside the parts
 {
 public:
     bool cross_boundary = false; //!< Whether the path crosses a boundary.
