@@ -1021,23 +1021,24 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
                 auto parts = layers[layer_nr].polygons.splitIntoParts();
                 layers[layer_nr].polygons.clear();
 
-                Polygons holes;
                 for (auto& part : parts)
                 {
+                    Polygons holes;
+                    Polygons outline;
                     for (const PolygonRef poly : part)
                     {
                         if (poly.orientation())
                         {
-                            layers[layer_nr].polygons.add(poly);
+                            outline.add(poly);
                         }
                         else
                         {
                             holes.add(poly.offset(xy_offset_hole));
                         }
                     }
-                }
 
-                layers[layer_nr].polygons = layers[layer_nr].polygons.difference(holes.unionPolygons());
+                    layers[layer_nr].polygons.add(outline.difference(holes.unionPolygons()));
+                }
             }
         }
     );
