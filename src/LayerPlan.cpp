@@ -6,6 +6,7 @@
 #include <numeric>
 #include <optional>
 
+#include <range/v3/algorithm/max_element.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To communicate layer view data.
@@ -1704,13 +1705,9 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
 void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
 {
     // the minimum layer time behaviour is only applied to the last extruder.
-    size_t max_extruder_nr = 0;
-    for (unsigned int extr_plan_idx = 0; extr_plan_idx < extruder_plans.size(); extr_plan_idx++)
-    {
-        max_extruder_nr = std::max(extruder_plans[extr_plan_idx].extruder_nr, max_extruder_nr);
-    }
     // determine the time spend on the other extruder plans in this layer.
     double time_other_extr_plans = 0;
+    const size_t last_extruder_nr = ranges::max_element(extruder_plans, [](const ExtruderPlan& a, const ExtruderPlan& b) { return a.extruder_nr < b.extruder_nr; })->extruder_nr;
     for (unsigned int extr_plan_idx = 0; extr_plan_idx < extruder_plans.size(); extr_plan_idx++)
     {
         if (extr_plan_idx != max_extruder_nr)
