@@ -460,23 +460,18 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
 
             const coord_t maximum_travel_resolution = mesh_or_extruder_settings.get<coord_t>("meshfix_maximum_travel_resolution");
             coord_t distance = 0;
-            Point last_point((last_planned_position) ? *last_planned_position : Point(0, 0));
             for (CombPath& combPath : combPaths)
             { // add all comb paths (don't do anything special for paths which are moving through air)
                 if (combPath.empty())
                 {
                     continue;
                 }
-                for (Point& comb_point : combPath)
-                {
-                    if (path->points.empty() || vSize2(path->points.back() - comb_point) > maximum_travel_resolution * maximum_travel_resolution)
-                    {
-                        path->points.push_back(comb_point);
-                        distance += vSize(last_point - comb_point);
-                        last_point = comb_point;
-                    }
-                }
-                distance += vSize(last_point - p);
+                Polygon simplified = Simplify(maximum_travel_resolution, maximum_travel_resolution, 0).polygon(combPath);
+
+                //TODO: this does not work
+                //combPath = simplified;
+
+                distance += combPath.polylineLength();
                 const coord_t retract_threshold = mesh_or_extruder_settings.get<coord_t>("retraction_combing_max_distance");
                 path->retract = retract || (retract_threshold > 0 && distance > retract_threshold && retraction_enable);
                 // don't perform a z-hop
