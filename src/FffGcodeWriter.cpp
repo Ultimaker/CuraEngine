@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <algorithm>
@@ -1245,7 +1245,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     }
 
     const Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    bool inner_to_outer = global_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM && // for skirt outer to inner is faster
+    bool inner_to_outer = global_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::BRIM && // for skirt outer to inner is faster
                             train.settings.get<coord_t>("brim_gap") < line_w; // for a large brim gap it's not so bad for the overextrudate to propagate inward.
     std::unordered_multimap<ConstPolygonPointer, ConstPolygonPointer> order_requirements;
     for (const std::pair<SquareGrid::GridPoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<BrimLineReference>>& p : grid)
