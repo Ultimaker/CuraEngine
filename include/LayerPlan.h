@@ -126,8 +126,10 @@ public:
      * 
      * \param force_minimal_layer_time Whether we should apply speed changes and perhaps a head lift in order to meet the minimal layer time
      * \param starting_position The position the head was before starting this extruder plan
+     * \param time_other_extr_plans The time spent on the other extruder plans in this layer
+     * \param estimates The time and material estimates calculated by the computeNaiveTimeEstimates
      */
-    void processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time, Point starting_position, double time_other_extr_plans);
+    void processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time, Point starting_position, double time_other_extr_plans, TimeMaterialEstimates estimates);
 
     /*!
      * Get the fan speed computed for this extruder plan

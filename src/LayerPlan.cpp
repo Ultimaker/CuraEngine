@@ -1636,9 +1636,8 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
     return estimates;
 }
 
-void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time, Point starting_position, double time_other_extr_plans)
+void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time, Point starting_position, double time_other_extr_plans, TimeMaterialEstimates estimates)
 {
-    TimeMaterialEstimates estimates = computeNaiveTimeEstimates(starting_position);
     if (force_minimal_layer_time)
     {
         forceMinimalLayerTime(fan_speed_layer_time_settings.cool_min_layer_time, fan_speed_layer_time_settings.cool_min_speed, estimates.getTravelTime(), estimates.getExtrudeTime(), time_other_extr_plans);
@@ -1705,27 +1704,36 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
 void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
 {
     // the minimum layer time behaviour is only applied to the last extruder.
-    // determine the time spend on the other extruder plans in this layer.
-    double time_other_extr_plans = 0;
     const size_t last_extruder_nr = ranges::max_element(extruder_plans, [](const ExtruderPlan& a, const ExtruderPlan& b) { return a.extruder_nr < b.extruder_nr; })->extruder_nr;
+    Point starting_position_last_extruder;
+    unsigned int last_extruder_idx;
+    double other_extr_plan_time = 0.0;
+
+    // calculate the time estimates ones. If you call the function twice you get the wrong answer
     for (unsigned int extr_plan_idx = 0; extr_plan_idx < extruder_plans.size(); extr_plan_idx++)
     {
-        if (extr_plan_idx != max_extruder_nr)
         {
-            time_other_extr_plans += extruder_plans[extr_plan_idx].computeNaiveTimeEstimates(starting_position).getTotalTime();
+            ExtruderPlan& extruder_plan = extruder_plans[extr_plan_idx];
+            extruder_plan.computeNaiveTimeEstimates(starting_position);
+            if (extruder_plan.extruder_nr == last_extruder_nr)
+            {
+                starting_position_last_extruder = starting_position;
+                last_extruder_idx = extr_plan_idx;
+            }
+            else
+            {
+                other_extr_plan_time += extruder_plan.estimates.getTotalTime();
+            }
+            if (! extruder_plan.paths.empty() && ! extruder_plan.paths.back().points.empty())
+            {
+                starting_position = extruder_plan.paths.back().points.back();
+            }
         }
     }
+
     // apply minimum layer time behaviour
-    for (unsigned int extr_plan_idx = 0; extr_plan_idx < extruder_plans.size(); extr_plan_idx++)
-    {
-        ExtruderPlan& extruder_plan = extruder_plans[extr_plan_idx];
-        bool force_minimal_layer_time = extruder_plan.extruder_nr == max_extruder_nr;
-        extruder_plan.processFanSpeedAndMinimalLayerTime(force_minimal_layer_time, starting_position, time_other_extr_plans);
-        if (! extruder_plan.paths.empty() && ! extruder_plan.paths.back().points.empty())
-        {
-            starting_position = extruder_plan.paths.back().points.back();
-        }
-    }
+    ExtruderPlan& last_extruder_plan = extruder_plans[last_extruder_idx];
+    last_extruder_plan.processFanSpeedAndMinimalLayerTime(true, starting_position_last_extruder, other_extr_plan_time, last_extruder_plan.estimates);
 }
 
 
