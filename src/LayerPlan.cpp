@@ -1658,7 +1658,6 @@ void ExtruderPlan::processFanSpeedForMinimalLayerTime(Point starting_position, d
 
     */
     // interpolate fan speed (for cool_fan_full_layer and for cool_min_layer_time_fan_speed_max)
-    fan_speed = fan_speed_layer_time_settings.cool_fan_speed_min;
     double totalLayerTime = estimates.getTotalTime() + time_other_extr_plans;
     if (totalLayerTime < fan_speed_layer_time_settings.cool_min_layer_time)
     {
@@ -1666,12 +1665,13 @@ void ExtruderPlan::processFanSpeedForMinimalLayerTime(Point starting_position, d
     }
     else if (fan_speed_layer_time_settings.cool_min_layer_time >= fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max)
     {
-        fan_speed = fan_speed_layer_time_settings.cool_fan_speed_min;
+        // ignore gradual increase of fan speed
+        return;
     }
     else if (totalLayerTime < fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max)
     {
         // when forceMinimalLayerTime didn't change the extrusionSpeedFactor, we adjust the fan speed
-        double fan_speed_diff = fan_speed_layer_time_settings.cool_fan_speed_max - fan_speed_layer_time_settings.cool_fan_speed_min;
+        double fan_speed_diff = fan_speed_layer_time_settings.cool_fan_speed_max - fan_speed;
         double layer_time_diff = fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max - fan_speed_layer_time_settings.cool_min_layer_time;
         double fraction_of_slope = (totalLayerTime - fan_speed_layer_time_settings.cool_min_layer_time) / layer_time_diff;
         fan_speed = fan_speed_layer_time_settings.cool_fan_speed_max - fan_speed_diff * fraction_of_slope;
