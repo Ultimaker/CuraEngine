@@ -182,7 +182,7 @@ protected:
      * Force the minimal layer time to hold by slowing down and lifting the head if required.
      *
      */
-    void forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrusionTime, double time_other_extr_plans);
+    void forceMinimalLayerTime(double time_other_extr_plans);
 
     /*!
      * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates.
