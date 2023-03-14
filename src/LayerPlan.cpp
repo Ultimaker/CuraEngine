@@ -1636,13 +1636,8 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
     return estimates;
 }
 
-void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time, Point starting_position, double time_other_extr_plans, TimeMaterialEstimates estimates)
+void ExtruderPlan::processFanSpeedForMinimalLayerTime(Point starting_position, double time_other_extr_plans)
 {
-    if (force_minimal_layer_time)
-    {
-        forceMinimalLayerTime(fan_speed_layer_time_settings.cool_min_layer_time, fan_speed_layer_time_settings.cool_min_speed, estimates.getTravelTime(), estimates.getExtrudeTime(), time_other_extr_plans);
-    }
-
     /*
                    min layer time
                    :
@@ -1659,8 +1654,8 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
     */
     // interpolate fan speed (for cool_fan_full_layer and for cool_min_layer_time_fan_speed_max)
     fan_speed = fan_speed_layer_time_settings.cool_fan_speed_min;
-    double totalLayerTime = estimates.unretracted_travel_time + estimates.extrude_time;
-    if (force_minimal_layer_time && totalLayerTime < fan_speed_layer_time_settings.cool_min_layer_time)
+    double totalLayerTime = estimates.getTotalTime() + time_other_extr_plans;
+    if (totalLayerTime < fan_speed_layer_time_settings.cool_min_layer_time)
     {
         fan_speed = fan_speed_layer_time_settings.cool_fan_speed_max;
     }
@@ -1668,7 +1663,7 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
     {
         fan_speed = fan_speed_layer_time_settings.cool_fan_speed_min;
     }
-    else if (force_minimal_layer_time && totalLayerTime < fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max)
+    else if (totalLayerTime < fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max)
     {
         // when forceMinimalLayerTime didn't change the extrusionSpeedFactor, we adjust the fan speed
         double fan_speed_diff = fan_speed_layer_time_settings.cool_fan_speed_max - fan_speed_layer_time_settings.cool_fan_speed_min;
@@ -1676,6 +1671,10 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
         double fraction_of_slope = (totalLayerTime - fan_speed_layer_time_settings.cool_min_layer_time) / layer_time_diff;
         fan_speed = fan_speed_layer_time_settings.cool_fan_speed_max - fan_speed_diff * fraction_of_slope;
     }
+}
+
+void ExtruderPlan::processFanSpeedForFirstLayers()
+{
     /*
     Supposing no influence of minimal layer time;
     i.e. layer time > min layer time fan speed min:
@@ -1692,6 +1691,7 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
                      layer nr >
 
     */
+    fan_speed = fan_speed_layer_time_settings.cool_fan_speed_min;
     if (layer_nr < fan_speed_layer_time_settings.cool_fan_full_layer && fan_speed_layer_time_settings.cool_fan_full_layer > 0 // don't apply initial layer fan speed speedup if disabled.
         && ! is_raft_layer // don't apply initial layer fan speed speedup to raft, but to model layers
     )
@@ -1709,11 +1709,12 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
     unsigned int last_extruder_idx;
     double other_extr_plan_time = 0.0;
 
-    // calculate the time estimates ones. If you call the function twice you get the wrong answer
     for (unsigned int extr_plan_idx = 0; extr_plan_idx < extruder_plans.size(); extr_plan_idx++)
     {
         {
             ExtruderPlan& extruder_plan = extruder_plans[extr_plan_idx];
+
+            // Precalculate the time estimates. Don't call this function twice, since it is works cumulative.
             extruder_plan.computeNaiveTimeEstimates(starting_position);
             if (extruder_plan.extruder_nr == last_extruder_nr)
             {
@@ -1724,6 +1725,10 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
             {
                 other_extr_plan_time += extruder_plan.estimates.getTotalTime();
             }
+
+            // Modify fan speeds for the first layer(s)
+            extruder_plan.processFanSpeedForFirstLayers();
+
             if (! extruder_plan.paths.empty() && ! extruder_plan.paths.back().points.empty())
             {
                 starting_position = extruder_plan.paths.back().points.back();
@@ -1733,7 +1738,8 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
 
     // apply minimum layer time behaviour
     ExtruderPlan& last_extruder_plan = extruder_plans[last_extruder_idx];
-    last_extruder_plan.processFanSpeedAndMinimalLayerTime(true, starting_position_last_extruder, other_extr_plan_time, last_extruder_plan.estimates);
+    last_extruder_plan.forceMinimalLayerTime(other_extr_plan_time);
+    last_extruder_plan.processFanSpeedForMinimalLayerTime(starting_position_last_extruder, other_extr_plan_time);
 }
 
 
