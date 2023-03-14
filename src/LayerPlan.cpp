@@ -1481,9 +1481,8 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
     }
 }
 
-void ExtruderPlan::forceMinimalLayerTime(double time_other_extr_plans)
+void ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_plans)
 {
-    const double minTime = fan_speed_layer_time_settings.cool_min_layer_time;
     const double minimalSpeed = fan_speed_layer_time_settings.cool_min_speed;
     const double travelTime = estimates.getTravelTime();
     const double extrudeTime = estimates.getExtrudeTime();
@@ -1641,7 +1640,7 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
     return estimates;
 }
 
-void ExtruderPlan::processFanSpeedForMinimalLayerTime(Point starting_position, double time_other_extr_plans)
+void ExtruderPlan::processFanSpeedForMinimalLayerTime(Point starting_position, Duration minTime, double time_other_extr_plans)
 {
     /*
                    min layer time
@@ -1659,11 +1658,11 @@ void ExtruderPlan::processFanSpeedForMinimalLayerTime(Point starting_position, d
     */
     // interpolate fan speed (for cool_fan_full_layer and for cool_min_layer_time_fan_speed_max)
     double totalLayerTime = estimates.getTotalTime() + time_other_extr_plans;
-    if (totalLayerTime < fan_speed_layer_time_settings.cool_min_layer_time)
+    if (totalLayerTime < minTime)
     {
         fan_speed = fan_speed_layer_time_settings.cool_fan_speed_max;
     }
-    else if (fan_speed_layer_time_settings.cool_min_layer_time >= fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max)
+    else if (minTime >= fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max)
     {
         // ignore gradual increase of fan speed
         return;
@@ -1672,8 +1671,8 @@ void ExtruderPlan::processFanSpeedForMinimalLayerTime(Point starting_position, d
     {
         // when forceMinimalLayerTime didn't change the extrusionSpeedFactor, we adjust the fan speed
         double fan_speed_diff = fan_speed_layer_time_settings.cool_fan_speed_max - fan_speed;
-        double layer_time_diff = fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max - fan_speed_layer_time_settings.cool_min_layer_time;
-        double fraction_of_slope = (totalLayerTime - fan_speed_layer_time_settings.cool_min_layer_time) / layer_time_diff;
+        double layer_time_diff = fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max - minTime;
+        double fraction_of_slope = (totalLayerTime - minTime) / layer_time_diff;
         fan_speed = fan_speed_layer_time_settings.cool_fan_speed_max - fan_speed_diff * fraction_of_slope;
     }
 }
@@ -1713,6 +1712,7 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
     Point starting_position_last_extruder;
     unsigned int last_extruder_idx;
     double other_extr_plan_time = 0.0;
+    Duration maximum_cool_min_layer_time;
 
     for (unsigned int extr_plan_idx = 0; extr_plan_idx < extruder_plans.size(); extr_plan_idx++)
     {
@@ -1730,6 +1730,7 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
             {
                 other_extr_plan_time += extruder_plan.estimates.getTotalTime();
             }
+            maximum_cool_min_layer_time = std::max(maximum_cool_min_layer_time, extruder_plan.fan_speed_layer_time_settings.cool_min_layer_time);
 
             // Modify fan speeds for the first layer(s)
             extruder_plan.processFanSpeedForFirstLayers();
@@ -1743,8 +1744,8 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
 
     // apply minimum layer time behaviour
     ExtruderPlan& last_extruder_plan = extruder_plans[last_extruder_idx];
-    last_extruder_plan.forceMinimalLayerTime(other_extr_plan_time);
-    last_extruder_plan.processFanSpeedForMinimalLayerTime(starting_position_last_extruder, other_extr_plan_time);
+    last_extruder_plan.forceMinimalLayerTime(maximum_cool_min_layer_time, other_extr_plan_time);
+    last_extruder_plan.processFanSpeedForMinimalLayerTime(starting_position_last_extruder, maximum_cool_min_layer_time, other_extr_plan_time);
 }
 
 
