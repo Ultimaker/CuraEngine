@@ -1483,10 +1483,10 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
 
 void ExtruderPlan::forceMinimalLayerTime(double time_other_extr_plans)
 {
-    double minTime = fan_speed_layer_time_settings.cool_min_layer_time;
-    double minimalSpeed = fan_speed_layer_time_settings.cool_min_speed;
-    double travelTime = estimates.getTravelTime();
-    double extrudeTime = estimates.getExtrudeTime();
+    const double minTime = fan_speed_layer_time_settings.cool_min_layer_time;
+    const double minimalSpeed = fan_speed_layer_time_settings.cool_min_speed;
+    const double travelTime = estimates.getTravelTime();
+    const double extrudeTime = estimates.getExtrudeTime();
 
     const double totalTime = travelTime + extrudeTime + time_other_extr_plans;
     constexpr double epsilon = 0.01;
