@@ -1821,6 +1821,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
 
         bool update_extrusion_offset = true;
+        const double max_mm3_per_sec = extruder.settings.get<double>("material_max_mm3_per_sec");
 
         for (unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
         {
@@ -1936,6 +1937,13 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             // for some movements such as prime tower purge, the speed may get changed by this factor
             speed *= path.speed_factor;
 
+            //Extrusion flow rate limiting
+            const double mm3_per_sec = path.getExtrusionMM3perMM() * speed;
+            if (max_mm3_per_sec > 0 && mm3_per_sec > max_mm3_per_sec)
+            {
+                speed *= max_mm3_per_sec / mm3_per_sec;
+            }
+
             //This seems to be the best location to place this, but still not ideal.
             if (path.mesh != current_mesh)
             {
@@ -1985,7 +1993,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 { // normal path to gcode algorithm
                     for (unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                     {
-                        const double extrude_speed = speed * path.speed_back_pressure_factor;
+                        double extrude_speed = speed * path.speed_back_pressure_factor;
                         communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), extrude_speed);
                         gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
                     }
@@ -2020,7 +2028,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         p0 = p1;
                         gcode.setZ(std::round(z + layer_thickness * length / totalLength));
 
-                        const double extrude_speed = speed * path.speed_back_pressure_factor;
+                        double extrude_speed = speed * path.speed_back_pressure_factor;
                         communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), extrude_speed);
                         gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
                     }
@@ -2112,7 +2120,14 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
 
     coord_t coasting_min_dist_considered = MM2INT(0.1); // hardcoded setting for when to not perform coasting
 
-    const double extrude_speed = path.config->getSpeed() * path.speed_factor * path.speed_back_pressure_factor;
+    double extrude_speed = path.config->getSpeed() * path.speed_factor * path.speed_back_pressure_factor;
+
+    const double max_mm3_per_sec = extruder.settings.get<double>("material_max_mm3_per_sec"); //flow rate limiting
+    const double mm3_per_sec = path.getExtrusionMM3perMM() * extrude_speed;
+    if (max_mm3_per_sec > 0 && mm3_per_sec > max_mm3_per_sec)
+    {
+        extrude_speed *= max_mm3_per_sec / mm3_per_sec;
+    }
 
     const coord_t coasting_dist = MM2INT(MM2_2INT(coasting_volume) / layer_thickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
     const double coasting_min_volume = extruder.settings.get<double>("coasting_min_volume");
