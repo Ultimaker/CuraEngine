@@ -32,6 +32,7 @@ constexpr auto TREE_PROGRESS_GENERATE_BRANCH_AREAS = TREE_PROGRESS_DRAW_AREAS / 
 constexpr auto TREE_PROGRESS_SMOOTH_BRANCH_AREAS = TREE_PROGRESS_DRAW_AREAS / 3;
 constexpr auto TREE_PROGRESS_FINALIZE_BRANCH_AREAS = TREE_PROGRESS_DRAW_AREAS / 3;
 
+constexpr auto SUPPORT_TREE_MINIMUM_ROOF_AREA_HARD_LIMIT = false;
 constexpr auto SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL = false;
 constexpr auto SUPPORT_TREE_AVOID_SUPPORT_BLOCKER = true;
 constexpr coord_t SUPPORT_TREE_EXPONENTIAL_THRESHOLD = 1000;
@@ -66,17 +67,7 @@ public:
 
 
 private:
-    enum class LineStatus
-    {
-        INVALID,
-        TO_MODEL,
-        TO_MODEL_GRACIOUS,
-        TO_MODEL_GRACIOUS_SAFE,
-        TO_BP,
-        TO_BP_SAFE
-    };
 
-    using LineInformation = std::vector<std::pair<Point, TreeSupport::LineStatus>>;
 
     /*!
      * \brief Precalculates all avoidances, that could be required.
@@ -86,108 +77,6 @@ private:
      */
     void precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes);
 
-    /*!
-     * \brief Converts a Polygons object representing a line into the internal format.
-     *
-     * \param polylines[in] The Polyline that will be converted.
-     * \param layer_idx[in] The current layer.
-     * \return All lines of the \p polylines object, with information for each point regarding in which avoidance it is currently valid in.
-     */
-    std::vector<LineInformation> convertLinesToInternal(Polygons polylines, LayerIndex layer_idx);
-
-    /*!
-     * \brief Converts lines in internal format into a Polygons object representing these lines.
-     *
-     * \param lines[in] The lines that will be converted.
-     * \return All lines of the \p lines object as a Polygons object.
-     */
-    Polygons convertInternalToLines(std::vector<TreeSupport::LineInformation> lines);
-
-    /*!
-     * \brief Returns a function, evaluating if a point has to be added now. Required for a splitLines call in generateInitialAreas.
-     *
-     * \param current_layer[in] The layer on which the point lies
-     * \return A function that can be called to evaluate a point.
-     */
-    std::function<bool(std::pair<Point, TreeSupport::LineStatus>)> getEvaluatePointForNextLayerFunction(size_t current_layer);
-
-    /*!
-     * \brief Evaluates which points of some lines are not valid one layer below and which are. Assumes all points are valid on the current layer. Validity is evaluated using supplied lambda.
-     *
-     * \param lines[in] The lines that have to be evaluated.
-     * \param evaluatePoint[in] The function used to evaluate the points.
-     * \return A pair with which points are still valid in the first slot and which are not in the second slot.
-     */
-    std::pair<std::vector<LineInformation>, std::vector<LineInformation>> splitLines
-    (
-        std::vector<LineInformation> lines,
-        std::function<bool(std::pair<Point, TreeSupport::LineStatus>)> evaluatePoint
-    ); // assumes all Points on the current line are valid
-
-    /*!
-     * \brief Ensures that every line segment is about distance in length. The resulting lines may differ from the original but all points are on the original
-     *
-     * \param input[in] The lines on which evenly spaced points should be placed.
-     * \param distance[in] The distance the points should be from each other.
-     * \param min_points[in] The amount of points that have to be placed. If not enough can be placed the distance will be reduced to place this many points.
-     * \return A Polygons object containing the evenly spaced points. Does not represent an area, more a collection of points on lines.
-     */
-    Polygons ensureMaximumDistancePolyline(const Polygons& input, coord_t distance, size_t min_points) const;
-
-    /*!
-     * \brief Adds the implicit line from the last vertex of a Polygon to the first one.
-     *
-     * \param poly[in] The Polygons object, of which its lines should be extended.
-     * \return A Polygons object with implicit line from the last vertex of a Polygon to the first one added.
-     */
-    Polygons toPolylines(const Polygons& poly) const;
-
-    /*!
-     * \brief Converts toolpaths to a Polygons object
-     *
-     * \param toolpaths[in] The toolpaths.
-     * \return A Polygons object.
-     */
-    Polygons toPolylines(const std::vector<VariableWidthLines> toolpaths) const;
-
-    /*!
-     * \brief Returns Polylines representing the (infill) lines that will result in slicing the given area
-     *
-     * \param area[in] The area that has to be filled with infill.
-     * \param roof[in] Whether the roofing or regular support settings should be used.
-     * \param layer_idx[in] The current layer index.
-     * \param support_infill_distance[in] The distance that should be between the infill lines.
-     * \param cross_fill_provider[in] A SierpinskiFillProvider required for cross infill.
-     *
-     * \return A Polygons object that represents the resulting infill lines.
-     */
-    Polygons generateSupportInfillLines
-    (
-        const Polygons& area,
-        bool roof,
-        LayerIndex layer_idx,
-        coord_t support_infill_distance,
-        SierpinskiFillProvider* cross_fill_provider = nullptr,
-        bool include_walls = false
-    );
-
-    /*!
-     * \brief Unions two Polygons. Ensures that if the input is non empty that the output also will be non empty.
-     * \param first[in] The first Polygon.
-     * \param second[in] The second Polygon.
-     * \return The union of both Polygons
-     */
-    [[nodiscard]] Polygons safeUnion(const Polygons first, const Polygons second = Polygons()) const;
-
-    /*!
-     * \brief Creates a valid CrossInfillProvider
-     * Based on AreaSupport::precomputeCrossInfillTree, but calculates for each mesh separately
-     * \param mesh[in] The mesh that is currently processed.
-     * \param line_distance[in] The distance between the infill lines of the resulting infill
-     * \param line_width[in] What is the width of a line used in the infill.
-     * \return A valid CrossInfillProvider. Has to be freed manually to avoid a memory leak.
-     */
-    SierpinskiFillProvider* generateCrossFillProvider(const SliceMeshStorage& mesh, coord_t line_distance, coord_t line_width);
 
     /*!
      * \brief Creates the initial influence areas (that can later be propagated down) by placing them below the overhang.
@@ -200,27 +89,6 @@ private:
      */
     void generateInitialAreas(const SliceMeshStorage& mesh, std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage);
 
-    /*!
-     * \brief Offsets (increases the area of) a polygons object in multiple steps to ensure that it does not lag through over a given obstacle.
-     * \param me[in] Polygons object that has to be offset.
-     * \param distance[in] The distance by which me should be offset. Expects values >=0.
-     * \param collision[in] The area representing obstacles.
-     * \param last_step_offset_without_check[in] The most it is allowed to offset in one step.
-     * \param min_amount_offset[in] How many steps have to be done at least. As this uses round offset this increases the amount of vertices, which may be required if Polygons get very small.
-     *     Required as arcTolerance is not exposed in offset, which should result with a similar result, benefit may be eliminated by simplifying.
-     * \param simplify[in] Should the offset operation also simplify the Polygon. Improves performance.
-     * \return The resulting Polygons object.
-     */
-    [[nodiscard]] Polygons safeOffsetInc
-    (
-        const Polygons& me,
-        coord_t distance,
-        const Polygons& collision,
-        coord_t safe_step_size,
-        coord_t last_step_offset_without_check,
-        size_t min_amount_offset,
-        bool simplify
-    ) const;
 
     /*!
      * \brief Merges Influence Areas if possible.
@@ -431,6 +299,9 @@ private:
      */
     std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> grouped_meshes;
 
+    std::vector<Polygons> additional_required_support_area; //todo doku
+
+
     /*!
      * \brief Generator for model collision, avoidance and internal guide volumes.
      *
@@ -453,6 +324,7 @@ private:
      * Required for the progress bar the behave as expected when areas have to be calculated multiple times
      */
     double progress_offset = 0;
+
 };
 
 

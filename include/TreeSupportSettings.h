@@ -57,6 +57,7 @@ struct TreeSupportSettings
         support_line_distance(mesh_group_settings.get<coord_t>("support_line_distance")),
         support_bottom_offset(mesh_group_settings.get<coord_t>("support_bottom_offset")),
         support_wall_count(mesh_group_settings.get<int>("support_wall_count")),
+        support_roof_wall_count(mesh_group_settings.get<int>("support_roof_wall_count")),
         zig_zaggify_support(mesh_group_settings.get<bool>("zig_zaggify_support")),
         maximum_deviation(mesh_group_settings.get<coord_t>("meshfix_maximum_deviation")),
         maximum_resolution(mesh_group_settings.get<coord_t>("meshfix_maximum_resolution")),
@@ -299,6 +300,11 @@ public:
     int support_wall_count;
 
     /*!
+     * \brief Amount of walls the support roof area will have.
+     */
+    int support_roof_wall_count;
+
+    /*!
      * \brief Whether support infill lines will be connected. Only required to calculate infill patterns.
      */
     bool zig_zaggify_support;
@@ -485,7 +491,7 @@ public:
      * \param layer_idx[in] The layer.
      * \return The radius every element should aim to achieve.
      */
-    [[nodiscard]] inline coord_t getActualZ(LayerIndex layer_idx)
+    [[nodiscard]] inline coord_t getActualZ(LayerIndex layer_idx) const
     {
         return layer_idx < coord_t(known_z.size()) ? known_z[layer_idx] : (layer_idx - known_z.size()) * layer_height + known_z.size() ? known_z.back() : 0;
     }
