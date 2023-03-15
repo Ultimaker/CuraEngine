@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <algorithm>
@@ -800,15 +800,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             raftLines.clear();
         }
 
-        // When we use raft, we need to make sure that all used extruders for this print will get primed on the first raft layer,
-        // and then switch back to the original extruder.
-        std::vector<size_t> extruder_order = getUsedExtrudersOnLayerExcludingStartingExtruder(storage, base_extruder_nr, layer_nr);
-        for (const size_t to_be_primed_extruder_nr : extruder_order)
-        {
-            setExtruder_addPrime(storage, gcode_layer, to_be_primed_extruder_nr);
-            current_extruder_nr = to_be_primed_extruder_nr;
-        }
-
         layer_plan_buffer.handle(gcode_layer, gcode);
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
@@ -838,7 +829,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, interface_layer_height, current_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_interface, comb_offset, interface_line_width, interface_avoid_distance);
         gcode_layer.setIsInside(true);
 
-        setExtruder_addPrime(storage, gcode_layer, interface_extruder_nr);
         current_extruder_nr = interface_extruder_nr;
 
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, interface_layer_height);
@@ -929,7 +919,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         gcode_layer.setIsInside(true);
 
         // make sure that we are using the correct extruder to print raft
-        setExtruder_addPrime(storage, gcode_layer, surface_extruder_nr);
         current_extruder_nr = surface_extruder_nr;
 
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, surface_layer_height);
@@ -1069,18 +1058,17 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
     const coord_t first_outer_wall_line_width = scene.extruders[extruder_order.front()].settings.get<coord_t>("wall_line_width_0");
     LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_thickness, extruder_order.front(), fan_speed_layer_time_settings_per_extruder, comb_offset_from_outlines, first_outer_wall_line_width, avoid_distance);
 
-    if (include_helper_parts && layer_nr == 0)
-    { // process the skirt or the brim of the starting extruder.
+    if (include_helper_parts)
+    {
+        // process the skirt or the brim of the starting extruder.
         int extruder_nr = gcode_layer.getExtruder();
         if (storage.skirt_brim[extruder_nr].size() > 0)
         {
-            processSkirtBrim(storage, gcode_layer, extruder_nr);
+            processSkirtBrim(storage, gcode_layer, extruder_nr, layer_nr);
         }
-    }
-    if (include_helper_parts)
-    { // handle shield(s) first in a layer so that chances are higher that the other nozzle is wiped (for the ooze shield)
-        processOozeShield(storage, gcode_layer);
 
+        // handle shield(s) first in a layer so that chances are higher that the other nozzle is wiped (for the ooze shield)
+        processOozeShield(storage, gcode_layer);
         processDraftShield(storage, gcode_layer);
     }
 
@@ -1090,11 +1078,22 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
 
     for (const size_t& extruder_nr : extruder_order)
     {
+        // Everytime you start with a new extruder you want to add a prime tower, unless:
+        //  - prime tower is disabled (setExtruder_addPrime takes care of this)
+        //  - this is the first (and not the only!) extruder in this layer. Since the previous
+        //    layer always ends with this extruder. If the first extruder is the only extruder,
+        //    the prime tower needs to be added anyways, in order to support the prime tower if
+        //    later in the print a prime tower is needed.
+        //  - prime tower is already printed this layer (only applicable for more than 2 extruders).
+        //    The setExtruder_addPrime takes care of this.
+        if (extruder_nr != extruder_order.front() || extruder_order.size() == 1)
+        {
+            setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+        }
         if (include_helper_parts && (extruder_nr == support_infill_extruder_nr || extruder_nr == support_roof_extruder_nr || extruder_nr == support_bottom_extruder_nr))
         {
             addSupportToGCode(storage, gcode_layer, extruder_nr);
         }
-
         if (layer_nr >= 0)
         {
             const std::vector<size_t>& mesh_order = mesh_order_per_extruder[extruder_nr];
@@ -1114,18 +1113,12 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
                 }
             }
         }
-        // ensure we print the prime tower with this extruder, because the next layer begins with this extruder!
-        // If this is not performed, the next layer might get two extruder switches...
-        setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-    }
-
-    if (include_helper_parts)
-    { // add prime tower if it hasn't already been added
-        const size_t prev_extruder = gcode_layer.getExtruder(); // most likely the same extruder as we are extruding with now
-
-        if (gcode_layer.getLayerNr() != 0 || storage.primeTower.extruder_order[0] == prev_extruder)
+        // Always print a prime tower before switching extruder. Unless:
+        //  - The prime tower is already printed this layer (setExtruder_addPrime takes care of this).
+        //  - this is the last extruder of the layer, since the next layer will start with the same extruder.
+        if (extruder_nr != extruder_order.back())
         {
-            addPrimeTower(storage, gcode_layer, prev_extruder);
+            setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         }
     }
 
@@ -1158,8 +1151,16 @@ bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataSto
     return need_prime_blob;
 }
 
-void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, unsigned int extruder_nr) const
+void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, unsigned int extruder_nr, LayerIndex layer_nr) const
 {
+    const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
+    const int skirt_height = train.settings.get<int>("skirt_height");
+    const bool is_skirt = train.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::SKIRT;
+    // only create a multilayer SkirtBrim for a skirt for the height of skirt_height
+    if (layer_nr != 0 && (layer_nr >= skirt_height || !is_skirt))
+    {
+        return;
+    }
     if (gcode_layer.getSkirtBrimIsPlanned(extruder_nr))
     {
         return;
@@ -1173,7 +1174,6 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     }
 
     // Start brim close to the prime location
-    const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
     Point start_close_to;
     if (train.settings.get<bool>("prime_blob_enable"))
     {
@@ -1245,7 +1245,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     }
 
     const Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    bool inner_to_outer = global_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM && // for skirt outer to inner is faster
+    bool inner_to_outer = global_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::BRIM && // for skirt outer to inner is faster
                             train.settings.get<coord_t>("brim_gap") < line_w; // for a large brim gap it's not so bad for the overextrudate to propagate inward.
     std::unordered_multimap<ConstPolygonPointer, ConstPolygonPointer> order_requirements;
     for (const std::pair<SquareGrid::GridPoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<BrimLineReference>>& p : grid)
@@ -1280,9 +1280,14 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     const Ratio flow_ratio = 1.0;
     const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
     const bool reverse_print_direction = false;
+
+    // For layer_nr != 0 add only the innermost brim line (which is only the case if skirt_height > 1)
+    Polygons inner_brim_line;
+    inner_brim_line.add(all_brim_lines[0]);
+
     gcode_layer.addLinesByOptimizer
     (
-        all_brim_lines,
+        layer_nr == 0 ? all_brim_lines : inner_brim_line,
         gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
         SpaceFillType::PolyLines,
         enable_travel_optimization,
@@ -1462,8 +1467,6 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
     {
         return;
     }
-
-    setExtruder_addPrime(storage, gcode_layer, mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr);
 
     const SliceLayer* layer = &mesh.layers[gcode_layer.getLayerNr()];
 
@@ -1671,7 +1674,6 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
         if (! infill_lines.empty() || ! infill_polygons.empty())
         {
             added_something = true;
-            setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
 
             if (! infill_polygons.empty())
@@ -1928,7 +1930,6 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage,
     if (! infill_lines.empty() || ! infill_polygons.empty() || walls_generated)
     {
         added_something = true;
-        setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         gcode_layer.setIsInside(true); // going to print stuff inside print object
         std::optional<Point> near_start_location;
         if (mesh.settings.get<bool>("infill_randomize_start_location"))
@@ -2166,7 +2167,6 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
         if (spiralize && gcode_layer.getLayerNr() == static_cast<LayerIndex>(initial_bottom_layers) && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
         { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
             added_something = true;
-            setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
             // start this first wall at the same vertex the spiral starts
             const ConstPolygonRef spiral_inset = part.spiral_wall[0];
@@ -2295,7 +2295,6 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
     if (spiralize && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr && ! part.spiral_wall.empty())
     {
         added_something = true;
-        setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         gcode_layer.setIsInside(true); // going to print stuff inside print object
 
         // Only spiralize the first part in the mesh, any other parts will be printed using the normal, non-spiralize codepath.
@@ -2669,7 +2668,6 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage,
     if (! skin_polygons.empty() || ! skin_lines.empty() || ! skin_paths.empty())
     {
         added_something = true;
-        setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         gcode_layer.setIsInside(true); // going to print stuff inside print object
         if (! skin_paths.empty())
         {
@@ -2987,7 +2985,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 }
             }
 
-            setExtruder_addPrime(storage, gcode_layer, extruder_nr); // only switch extruder if we're sure we're going to switch
             gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
 
             const bool alternate_inset_direction = infill_extruder.settings.get<bool>("material_alternate_walls");
@@ -3135,7 +3132,6 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     {
         return false; // We didn't create any support roof.
     }
-    setExtruder_addPrime(storage, gcode_layer, roof_extruder_nr);
     gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
     if (gcode_layer.getLayerNr() == 0)
     {
@@ -3232,7 +3228,6 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     {
         return false;
     }
-    setExtruder_addPrime(storage, gcode_layer, bottom_extruder_nr);
     gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
     if (! bottom_polygons.empty())
     {
@@ -3260,11 +3255,6 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
     const size_t outermost_prime_tower_extruder = storage.primeTower.extruder_order[0];
 
     const size_t previous_extruder = gcode_layer.getExtruder();
-    if (previous_extruder == extruder_nr && ! (gcode_layer.getLayerNr() > -static_cast<LayerIndex>(Raft::getFillerLayerCount()) && extruder_nr == outermost_prime_tower_extruder)
-        && ! (gcode_layer.getLayerNr() == -static_cast<LayerIndex>(Raft::getFillerLayerCount()))) // No unnecessary switches, unless switching to extruder for the outer shell of the prime tower.
-    {
-        return;
-    }
     const bool extruder_changed = gcode_layer.setExtruder(extruder_nr);
 
     if (extruder_changed)
@@ -3289,19 +3279,13 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
             }
         }
 
-        if (gcode_layer.getLayerNr() == 0 && ! gcode_layer.getSkirtBrimIsPlanned(extruder_nr))
+        if (! gcode_layer.getSkirtBrimIsPlanned(extruder_nr))
         {
-            processSkirtBrim(storage, gcode_layer, extruder_nr);
+            processSkirtBrim(storage, gcode_layer, extruder_nr, gcode_layer.getLayerNr());
         }
     }
 
-
-    // When the first layer of the prime tower is printed with one material only, do not prime another material on the
-    // first layer again.
-    if ((((gcode_layer.getLayerNr() > 0) && extruder_changed) || ((gcode_layer.getLayerNr() == 0) && storage.primeTower.multiple_extruders_on_first_layer)) || (extruder_nr == outermost_prime_tower_extruder))
-    {
-        addPrimeTower(storage, gcode_layer, previous_extruder);
-    }
+    addPrimeTower(storage, gcode_layer, previous_extruder);
 }
 
 void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t prev_extruder) const
