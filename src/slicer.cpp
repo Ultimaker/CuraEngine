@@ -1032,17 +1032,18 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
                     Polygons outline;
                     for (ConstPolygonRef poly : part)
                     {
-                        const auto area = std::abs(poly.area());
-                        if (!poly.orientation())
+                        const auto area = poly.area();
+                        const auto abs_area = std::abs(area);
+                        const auto is_hole = area < 0;
+                        if (is_hole)
                         {
                             if (hole_offset_max_diameter == 0)
                             {
                                 holes.add(poly.offset(xy_offset_hole, ClipperLib::JoinType::jtRound));
-
                             }
-                            else if (area < max_hole_area)
+                            else if (abs_area < max_hole_area)
                             {
-                                const auto distance = static_cast<int>(std::lerp(xy_offset_hole, 0, area / max_hole_area));
+                                const auto distance = static_cast<int>(std::lerp(xy_offset_hole, 0, abs_area / max_hole_area));
                                 holes.add(poly.offset(distance, ClipperLib::JoinType::jtRound));
                             }
                             else
