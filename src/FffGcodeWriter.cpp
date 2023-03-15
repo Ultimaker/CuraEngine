@@ -1058,18 +1058,17 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
     const coord_t first_outer_wall_line_width = scene.extruders[extruder_order.front()].settings.get<coord_t>("wall_line_width_0");
     LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_thickness, extruder_order.front(), fan_speed_layer_time_settings_per_extruder, comb_offset_from_outlines, first_outer_wall_line_width, avoid_distance);
 
-    if (include_helper_parts && layer_nr == 0)
-    { // process the skirt or the brim of the starting extruder.
+    if (include_helper_parts)
+    {
+        // process the skirt or the brim of the starting extruder.
         int extruder_nr = gcode_layer.getExtruder();
         if (storage.skirt_brim[extruder_nr].size() > 0)
         {
-            processSkirtBrim(storage, gcode_layer, extruder_nr);
+            processSkirtBrim(storage, gcode_layer, extruder_nr, layer_nr);
         }
-    }
-    if (include_helper_parts)
-    { // handle shield(s) first in a layer so that chances are higher that the other nozzle is wiped (for the ooze shield)
-        processOozeShield(storage, gcode_layer);
 
+        // handle shield(s) first in a layer so that chances are higher that the other nozzle is wiped (for the ooze shield)
+        processOozeShield(storage, gcode_layer);
         processDraftShield(storage, gcode_layer);
     }
 
@@ -1152,8 +1151,16 @@ bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataSto
     return need_prime_blob;
 }
 
-void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, unsigned int extruder_nr) const
+void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, unsigned int extruder_nr, LayerIndex layer_nr) const
 {
+    const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
+    const int skirt_height = train.settings.get<int>("skirt_height");
+    const bool is_skirt = train.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::SKIRT;
+    // only create a multilayer SkirtBrim for a skirt for the height of skirt_height
+    if (layer_nr != 0 && (layer_nr >= skirt_height || !is_skirt))
+    {
+        return;
+    }
     if (gcode_layer.getSkirtBrimIsPlanned(extruder_nr))
     {
         return;
@@ -1167,7 +1174,6 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     }
 
     // Start brim close to the prime location
-    const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
     Point start_close_to;
     if (train.settings.get<bool>("prime_blob_enable"))
     {
@@ -1274,9 +1280,14 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     const Ratio flow_ratio = 1.0;
     const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
     const bool reverse_print_direction = false;
+
+    // For layer_nr != 0 add only the innermost brim line (which is only the case if skirt_height > 1)
+    Polygons inner_brim_line;
+    inner_brim_line.add(all_brim_lines[0]);
+
     gcode_layer.addLinesByOptimizer
     (
-        all_brim_lines,
+        layer_nr == 0 ? all_brim_lines : inner_brim_line,
         gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
         SpaceFillType::PolyLines,
         enable_travel_optimization,
@@ -3268,9 +3279,9 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
             }
         }
 
-        if (gcode_layer.getLayerNr() == 0 && ! gcode_layer.getSkirtBrimIsPlanned(extruder_nr))
+        if (! gcode_layer.getSkirtBrimIsPlanned(extruder_nr))
         {
-            processSkirtBrim(storage, gcode_layer, extruder_nr);
+            processSkirtBrim(storage, gcode_layer, extruder_nr, gcode_layer.getLayerNr());
         }
     }
 
