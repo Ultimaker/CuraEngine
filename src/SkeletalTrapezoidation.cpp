@@ -1606,7 +1606,7 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
     // TODO: don't use toolpath locations past the middle!
     // TODO: stretch bead widths and locations of the higher bead count beading to fit in the left over space
     coord_t next_inset_idx;
-    for (next_inset_idx = left.toolpath_locations.size() - 1; next_inset_idx >= 0; next_inset_idx--)
+    for (next_inset_idx = coord_t(left.toolpath_locations.size()) - 1; next_inset_idx >= 0; next_inset_idx--)
     {
         if (switching_radius > left.toolpath_locations[next_inset_idx])
         {
