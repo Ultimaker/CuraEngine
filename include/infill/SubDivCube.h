@@ -1,17 +1,17 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef INFILL_SUBDIVCUBE_H
 #define INFILL_SUBDIVCUBE_H
 
-#include "../settings/types/Ratio.h"
-#include "../utils/IntPoint.h"
-#include "../utils/Point3.h"
+#include "settings/types/Ratio.h"
+#include "utils/IntPoint.h"
+#include "utils/Point3.h"
+#include "settings/types/LayerIndex.h"
 
 namespace cura
 {
 
-struct LayerIndex;
 class Polygons;
 class SliceMeshStorage;
 

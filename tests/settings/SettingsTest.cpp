@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "settings/Settings.h" //The class under test.
 #include "Application.h" //To test extruder train settings.
@@ -94,18 +94,6 @@ TEST_F(SettingsTest, AddSettingExtruderTrain)
     settings.add("extruder_nr", "1");
     settings.add("test_setting", "-1"); //-1 should let it fall back to the current extruder_nr.
     EXPECT_EQ(&current_slice->scene.extruders[1], &settings.get<ExtruderTrain&>("test_setting")) << "If the extruder is negative, it uses the extruder_nr setting.";
-}
-
-TEST_F(SettingsTest, AddSettingLayerIndex)
-{
-    settings.add("test_setting", "4");
-    EXPECT_EQ(LayerIndex(3), settings.get<LayerIndex>("test_setting")) << "LayerIndex settings start counting from 0, so subtract one.";
-}
-
-TEST_F(SettingsTest, AddSettingLayerIndexNegative)
-{
-    settings.add("test_setting", "-10");
-    EXPECT_EQ(LayerIndex(-11), settings.get<LayerIndex>("test_setting")) << "LayerIndex settings still subtract 1 even in negative layers.";
 }
 
 TEST_F(SettingsTest, AddSettingCoordT)

@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <cctype>
@@ -130,11 +130,6 @@ template<> std::vector<ExtruderTrain*> Settings::get<std::vector<ExtruderTrain*>
     return ret;
 }
 
-template<>
-LayerIndex Settings::get<LayerIndex>(const std::string& key) const
-{
-    return std::atoi(get<std::string>(key).c_str()) - 1; // For the user we display layer numbers starting from 1, but we start counting from 0. Still it may be negative for Raft layers.
-}
 
 template<>
 coord_t Settings::get<coord_t>(const std::string& key) const

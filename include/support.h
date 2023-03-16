@@ -1,13 +1,14 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef SUPPORT_H
 #define SUPPORT_H
 
+#include "settings/types/LayerIndex.h"
+
 namespace cura
 {
 
-struct LayerIndex;
 class Settings;
 class SliceDataStorage;
 class SliceMeshStorage;

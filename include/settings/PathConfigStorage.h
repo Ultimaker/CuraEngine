@@ -1,19 +1,19 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef SETTINGS_PATH_CONFIGS_H
 #define SETTINGS_PATH_CONFIGS_H
 
 #include <vector>
 
-#include "../GCodePathConfig.h"
-#include "../utils/Coord_t.h"
+#include "GCodePathConfig.h"
+#include "utils/Coord_t.h"
+#include "settings/types/LayerIndex.h"
 
 namespace cura
 {
 
 class ExtruderTrain;
-struct LayerIndex;
 class SliceDataStorage;
 class SliceMeshStorage;
 

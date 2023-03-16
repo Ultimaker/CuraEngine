@@ -1,5 +1,5 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <cmath> // std::ceil
 
@@ -175,7 +175,7 @@ void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, 
     {
         return; // don't subtract anything form the downskin
     }
-    LayerIndex bottom_check_start_layer_idx = std::max(LayerIndex(0), layer_nr - bottom_layer_count);
+    LayerIndex bottom_check_start_layer_idx = std::max(0UL, layer_nr - bottom_layer_count);
     Polygons not_air = getOutlineOnLayer(part, bottom_check_start_layer_idx);
     if (!no_small_gaps_heuristic)
     {

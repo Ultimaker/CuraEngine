@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "LayerPlan.h" //The code under test.
 #include "Application.h" //To provide settings for the layer plan.
@@ -184,7 +184,7 @@ public:
         fan_settings.cool_fan_speed_min = settings->get<Ratio>("cool_fan_speed_min");
         fan_settings.cool_fan_speed_max = settings->get<Ratio>("cool_fan_speed_max");
         fan_settings.cool_min_speed = settings->get<Velocity>("cool_min_speed");
-        fan_settings.cool_fan_full_layer = settings->get<LayerIndex>("cool_fan_full_layer");
+        fan_settings.cool_fan_full_layer = settings->get<int>("cool_fan_full_layer") - 1;
         fan_speed_layer_time_settings.push_back(fan_settings);
 
         // Set the retraction settings (also copied by LayerPlan).

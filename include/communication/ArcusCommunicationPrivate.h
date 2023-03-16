@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef ARCUSCOMMUNICATIONPRIVATE_H
 #define ARCUSCOMMUNICATIONPRIVATE_H
@@ -9,11 +9,10 @@
 
 #include "ArcusCommunication.h" //We're adding a subclass to this.
 #include "SliceDataStruct.h"
+#include "settings/types/LayerIndex.h"
 
 namespace cura
 {
-
-struct LayerIndex;
 
 class ArcusCommunication::Private
 {

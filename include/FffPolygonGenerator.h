@@ -1,15 +1,15 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef FFF_POLYGON_GENERATOR_H
 #define FFF_POLYGON_GENERATOR_H
 
 #include "utils/NoCopy.h"
+#include "settings/types/LayerIndex.h"
 
 namespace cura
 {
 
-struct LayerIndex;
 class MeshGroup;
 class ProgressStageEstimator;
 class SliceDataStorage;

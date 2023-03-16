@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef GCODEEXPORT_H
 #define GCODEEXPORT_H
@@ -11,19 +11,19 @@
 #include <sstream> // for stream.str()
 #include <stdio.h>
 
-#include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
 #include "timeEstimate.h"
 #include "settings/EnumSettings.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
 #include "settings/types/Temperature.h" //Bed temperature.
 #include "settings/types/Velocity.h"
+#include "settings/types/LayerIndex.h"
+#include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
 #include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
 
 namespace cura
 {
 
-struct LayerIndex;
 class RetractionConfig;
 struct WipeScriptConfig;
 
