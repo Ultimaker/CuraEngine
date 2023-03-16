@@ -659,20 +659,21 @@ void TreeSupportTipGenerator::removeUselessAddedPoints(std::vector<std::set<Tree
                 {
                     std::vector<TreeSupportElement *> to_be_removed;
                     Polygons roof_on_layer_above = storage.support.supportLayers[layer_idx+1].support_roof.unionPolygons(layer_idx+1 < storage.support.supportLayers.size() ? additional_support_areas[layer_idx+1]:Polygons());
+                    Polygons roof_on_layer = storage.support.supportLayers[layer_idx].support_roof.unionPolygons(layer_idx < storage.support.supportLayers.size() ? additional_support_areas[layer_idx]:Polygons());
 
                     for (TreeSupportElement* elem : move_bounds[layer_idx])
                     {
-                        if (storage.support.supportLayers[layer_idx].support_roof.inside(elem->result_on_layer)) // remove branches that start inside of support interface
+                        if (roof_on_layer.inside(elem->result_on_layer)) // remove branches that start inside of support interface
                         {
                             to_be_removed.emplace_back(elem);
                         }
-                        else if(elem->supports_roof && layer_idx+1 <storage.support.supportLayers.size())
+                        else if(elem->supports_roof)
                         {
                             Point from = elem->result_on_layer;
-                            PolygonUtils::moveInside(storage.support.supportLayers[layer_idx+1].support_roof,from);
+                            PolygonUtils::moveInside(roof_on_layer_above,from);
                             // Remove branches should have interface above them, but dont. Should never happen
-                            if (storage.support.supportLayers[layer_idx+1].support_roof.empty()  ||
-                                (!storage.support.supportLayers[layer_idx+1].support_roof.inside(elem->result_on_layer) && vSize2(from-elem->result_on_layer)>config.getRadius(0)*config.getRadius(0) + FUDGE_LENGTH))
+                            if (roof_on_layer_above.empty()  ||
+                                (!roof_on_layer_above.inside(elem->result_on_layer) && vSize2(from-elem->result_on_layer)>config.getRadius(0)*config.getRadius(0) + FUDGE_LENGTH))
                             {
                                 to_be_removed.emplace_back(elem);
                                 spdlog::warn("Removing already placed tip that should have roof above it?");
