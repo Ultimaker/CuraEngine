@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef LAYER_PLAN_H
 #define LAYER_PLAN_H
@@ -91,17 +91,10 @@ public:
      */
     ExtruderPlan(const size_t extruder, const LayerIndex layer_nr, const bool is_initial_layer, const bool is_raft_layer, const coord_t layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config);
 
-    /*!
-     * Add a new Insert, constructed with the given arguments
-     * 
-     * \see NozzleTempInsert
-     * 
-     * \param contructor_args The arguments for the constructor of an insert 
-     */
-    template<typename... Args>
-    void insertCommand(Args&&... contructor_args)
+
+    void insertCommand(auto&& insert)
     {
-        inserts.emplace_back(contructor_args...);
+        inserts.emplace_back(std::forward<decltype(insert)>(insert));
     }
 
     /*!
@@ -111,7 +104,7 @@ public:
      * \param gcode The gcode exporter to which to write the temperature command.
      * \param cumulative_path_time The time spend on this path up to this point.
      */
-    void handleInserts(const int64_t& path_idx, GCodeExport& gcode, const double& cumulative_path_time = std::numeric_limits<double>::infinity());
+    void handleInserts(const size_t path_idx, GCodeExport& gcode, const double& cumulative_path_time = std::numeric_limits<double>::infinity());
 
     /*!
      * Insert all remaining temp inserts into gcode, to be called at the end of an extruder plan
