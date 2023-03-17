@@ -69,7 +69,6 @@ void ExtruderPlan::handleAllRemainingInserts(GCodeExport& gcode)
     while (! inserts.empty())
     { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
         NozzleTempInsert& insert = inserts.front();
-        assert(insert.path_idx == paths.size());
         insert.write(gcode);
         inserts.pop_front();
     }
