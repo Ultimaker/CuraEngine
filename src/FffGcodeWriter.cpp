@@ -1258,18 +1258,33 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
             {
                 continue;
             }
-            if ((nearby.inset_idx > here.inset_idx + 1) || (here.inset_idx > nearby.inset_idx + 1))
+
+            const BrimLineReference& lower_inset = here.inset_idx < nearby.inset_idx ? here : nearby;
+            const BrimLineReference& higher_inset = here.inset_idx < nearby.inset_idx ? nearby : here;
+
+            // apply "smart brim ordering" by swapping innermost and second innermost brim lines.
+            // The "order requirements" tree should look like: n -> n-1 -> ... -> 3 -> 2 -> 0 -> 1
+            if (lower_inset.inset_idx == 0 && higher_inset.inset_idx == 1)
             {
-                continue; // not directly adjacent
+                order_requirements.insert({ lower_inset.poly, higher_inset.poly });
             }
-            if ((nearby.inset_idx > here.inset_idx) != ((nearby.inset_idx < 2 || here.inset_idx < 2) && is_brim ))
+            else if (lower_inset.inset_idx == 0 && higher_inset.inset_idx == 2)
             {
-                order_requirements.insert({nearby.poly, here.poly });
+                order_requirements.insert({ higher_inset.poly, lower_inset.poly });
             }
-            else
+            else if (lower_inset.inset_idx == 1 && higher_inset.inset_idx == 2)
             {
-                order_requirements.insert({ here.poly, nearby.poly });
+                // not directly adjacent
+                continue;
             }
+
+            if (higher_inset.inset_idx > lower_inset.inset_idx + 1)
+            {
+                // not directly adjacent
+                continue;
+            }
+
+            order_requirements.insert({ higher_inset.poly, lower_inset.poly });
         }
     }
     assert(all_brim_lines.size() == total_line_count); // Otherwise pointers would have gotten invalidated
