@@ -4,6 +4,7 @@
 #ifndef PATH_PLANNING_NOZZLE_TEMP_INSERT_H
 #define PATH_PLANNING_NOZZLE_TEMP_INSERT_H
 
+#include <compare>
 #include <cstddef>
 
 namespace cura
