@@ -135,11 +135,10 @@ void PrimeTower::generatePaths_denseInfill()
                 break;
             }
         }
-        cumulative_inset += wall_nr * line_width;
 
-        if (multiple_extruders_on_first_layer)
+        //Only the most inside extruder needs to fill the inside of the prime tower
+        if (extruder_nr != extruder_order.back())
         {
-            //With a raft there is no difference for the first layer (of the prime tower)
             pattern_per_extruder_layer0 = pattern_per_extruder;
         }
         else
@@ -151,13 +150,14 @@ void PrimeTower::generatePaths_denseInfill()
             // Generate a concentric infill pattern in the form insets for the prime tower's first layer instead of using
             // the infill pattern because the infill pattern tries to connect polygons in different insets which causes the
             // first layer of the prime tower to not stick well.
-            Polygons inset = outer_poly.offset(-line_width_layer0 / 2);
+            Polygons inset = outer_poly.offset(-cumulative_inset - line_width_layer0 / 2);
             while (!inset.empty())
             {
                 pattern_layer0.polygons.add(inset);
                 inset = inset.offset(-line_width_layer0);
             }
         }
+        cumulative_inset += wall_nr * line_width;
     }
 }
 
