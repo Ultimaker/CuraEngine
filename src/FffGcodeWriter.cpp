@@ -1245,6 +1245,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     }
 
     const Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const bool smart_brim_ordering = global_settings.get<bool>("smart_brim_ordering");
     std::unordered_multimap<ConstPolygonPointer, ConstPolygonPointer> order_requirements;
     for (const std::pair<SquareGrid::GridPoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<BrimLineReference>>& p : grid)
     {
@@ -1261,20 +1262,23 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
             const BrimLineReference& lower_inset = here.inset_idx < nearby.inset_idx ? here : nearby;
             const BrimLineReference& higher_inset = here.inset_idx < nearby.inset_idx ? nearby : here;
 
-            // apply "smart brim ordering" by swapping innermost and second innermost brim lines.
-            // The "order requirements" tree should look like: n -> n-1 -> ... -> 3 -> 2 -> 0 -> 1
-            if (lower_inset.inset_idx == 0 && higher_inset.inset_idx == 1)
+            if (smart_brim_ordering)
             {
-                order_requirements.insert({ lower_inset.poly, higher_inset.poly });
-            }
-            else if (lower_inset.inset_idx == 0 && higher_inset.inset_idx == 2)
-            {
-                order_requirements.insert({ higher_inset.poly, lower_inset.poly });
-            }
-            else if (lower_inset.inset_idx == 1 && higher_inset.inset_idx == 2)
-            {
-                // not directly adjacent
-                continue;
+                // apply "smart brim ordering" by swapping innermost and second innermost brim lines
+                // The "order requirements" tree should look like: n -> n-1 -> ... -> 3 -> 2 -> 0 -> 1
+                if (lower_inset.inset_idx == 0 && higher_inset.inset_idx == 1)
+                {
+                    order_requirements.insert({ lower_inset.poly, higher_inset.poly });
+                }
+                else if (lower_inset.inset_idx == 0 && higher_inset.inset_idx == 2)
+                {
+                    order_requirements.insert({ higher_inset.poly, lower_inset.poly });
+                }
+                else if (lower_inset.inset_idx == 1 && higher_inset.inset_idx == 2)
+                {
+                    // not directly adjacent
+                    continue;
+                }
             }
 
             if (higher_inset.inset_idx > lower_inset.inset_idx + 1)
