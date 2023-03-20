@@ -1245,8 +1245,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     }
 
     const Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    bool inner_to_outer = global_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::BRIM && // for skirt outer to inner is faster
-                            train.settings.get<coord_t>("brim_gap") < line_w; // for a large brim gap it's not so bad for the overextrudate to propagate inward.
+    const auto smart_brim_ordering = global_settings.get<bool>("brim_smart_ordering");
     std::unordered_multimap<ConstPolygonPointer, ConstPolygonPointer> order_requirements;
     for (const std::pair<SquareGrid::GridPoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<BrimLineReference>>& p : grid)
     {
@@ -1259,18 +1258,36 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
             {
                 continue;
             }
-            if ((nearby.inset_idx > here.inset_idx + 1) || (here.inset_idx > nearby.inset_idx + 1))
+
+            const BrimLineReference& lower_inset = here.inset_idx < nearby.inset_idx ? here : nearby;
+            const BrimLineReference& higher_inset = here.inset_idx < nearby.inset_idx ? nearby : here;
+
+            if (smart_brim_ordering)
             {
-                continue; // not directly adjacent
+                // apply "smart brim ordering" by swapping innermost and second innermost brim lines
+                // The "order requirements" tree should look like: n -> n-1 -> ... -> 3 -> 2 -> 0 -> 1
+                if (lower_inset.inset_idx == 0 && higher_inset.inset_idx == 1)
+                {
+                    order_requirements.emplace(lower_inset.poly, higher_inset.poly);
+                }
+                else if (lower_inset.inset_idx == 0 && higher_inset.inset_idx == 2)
+                {
+                    order_requirements.emplace(higher_inset.poly, lower_inset.poly);
+                }
+                else if (lower_inset.inset_idx == 1 && higher_inset.inset_idx == 2)
+                {
+                    // not directly adjacent
+                    continue;
+                }
             }
-            if ((nearby.inset_idx < here.inset_idx) == inner_to_outer)
+
+            if (higher_inset.inset_idx > lower_inset.inset_idx + 1)
             {
-                order_requirements.insert({nearby.poly, here.poly });
+                // not directly adjacent
+                continue;
             }
-            else
-            {
-                order_requirements.insert({ here.poly, nearby.poly });
-            }
+
+            order_requirements.emplace(higher_inset.poly, lower_inset.poly);
         }
     }
     assert(all_brim_lines.size() == total_line_count); // Otherwise pointers would have gotten invalidated

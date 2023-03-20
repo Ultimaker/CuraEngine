@@ -1041,12 +1041,12 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
                         {
                             if (hole_offset_max_diameter == 0)
                             {
-                                holes.add(poly.offset(xy_offset_hole, ClipperLib::JoinType::jtRound));
+                                holes.add(poly.offset(xy_offset_hole));
                             }
                             else if (abs_area < max_hole_area)
                             {
                                 const auto distance = static_cast<int>(std::lerp(xy_offset_hole, 0, abs_area / max_hole_area));
-                                holes.add(poly.offset(distance, ClipperLib::JoinType::jtRound));
+                                holes.add(poly.offset(distance));
                             }
                             else
                             {
