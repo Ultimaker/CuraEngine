@@ -1268,11 +1268,11 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
                 // The "order requirements" tree should look like: n -> n-1 -> ... -> 3 -> 2 -> 0 -> 1
                 if (lower_inset.inset_idx == 0 && higher_inset.inset_idx == 1)
                 {
-                    order_requirements.insert({ lower_inset.poly, higher_inset.poly });
+                    order_requirements.emplace(lower_inset.poly, higher_inset.poly);
                 }
                 else if (lower_inset.inset_idx == 0 && higher_inset.inset_idx == 2)
                 {
-                    order_requirements.insert({ higher_inset.poly, lower_inset.poly });
+                    order_requirements.emplace(higher_inset.poly, lower_inset.poly);
                 }
                 else if (lower_inset.inset_idx == 1 && higher_inset.inset_idx == 2)
                 {
@@ -1287,7 +1287,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
                 continue;
             }
 
-            order_requirements.insert({ higher_inset.poly, lower_inset.poly });
+            order_requirements.emplace(higher_inset.poly, lower_inset.poly);
         }
     }
     assert(all_brim_lines.size() == total_line_count); // Otherwise pointers would have gotten invalidated
