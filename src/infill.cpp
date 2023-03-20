@@ -91,32 +91,36 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
         // Split the infill region in a narrow region and the normal region.
         Polygons small_infill = inner_contour;
         inner_contour = inner_contour.offset(-small_area_width / 2).offset(small_area_width / 2);
-        small_infill = small_infill.intersection(small_infill.difference(inner_contour));
+        small_infill = small_infill.difference(inner_contour);
         small_infill = Simplify(max_resolution, max_deviation, 0).polygon(small_infill);
 
         // Small corners of a bigger area should not be considered narrow and are therefore added to the bigger area again.
-        for (PolygonsPart& small_infill_part : small_infill.splitIntoParts())
+        auto small_infill_parts = small_infill.splitIntoParts();
+        small_infill.clear();
+        for (const auto& small_infill_part : small_infill_parts)
         {
-            if (small_infill_part.offset(-infill_line_width / 2).offset(infill_line_width / 2).area() < infill_line_width * infill_line_width * 10)
+            if (
+                small_infill_part.offset(-infill_line_width / 2).offset(infill_line_width / 2).area() < infill_line_width * infill_line_width * 10
+                && ! inner_contour.intersection(small_infill_part.offset(infill_line_width / 4)).empty()
+            )
             {
-                if (! inner_contour.intersection(small_infill_part.offset(infill_line_width / 4)).empty())
-                {
-                    small_infill = small_infill.difference(small_infill_part);
-                    inner_contour = inner_contour.unionPolygons(small_infill_part);
-                }
+                inner_contour.add(small_infill_part);
+            }
+            else
+            {
+                // the part must still be printed, so re-add it
+                small_infill.add(small_infill_part);
             }
         }
+        inner_contour.unionPolygons();
 
         // Fill narrow area with walls.
-        const size_t narrow_wall_count = std::round(small_area_width / infill_line_width) + 1;
+        const size_t narrow_wall_count = small_area_width / infill_line_width + 1;
         WallToolPaths wall_toolpaths(small_infill, infill_line_width, narrow_wall_count, 0, settings);
         std::vector<VariableWidthLines> small_infill_paths = wall_toolpaths.getToolPaths();
-        if (! small_infill_paths.empty())
+        for (const auto& small_infill_path : small_infill_paths)
         {
-            for (const auto& small_infill_path : small_infill_paths)
-            {
-                toolpaths.push_back(small_infill_path);
-            }
+            toolpaths.emplace_back(small_infill_path);
         }
     }
 
