@@ -10,6 +10,7 @@
 #include <boost/uuid/random_generator.hpp> //For generating a UUID.
 #include <boost/uuid/uuid_io.hpp> //For generating a UUID.
 #include <spdlog/spdlog.h>
+#include <range/v3/view/zip.hpp>
 
 #include "Application.h"
 #include "ExtruderTrain.h"
@@ -1067,7 +1068,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
     if (include_helper_parts)
     {
         // process the skirt or the brim of the starting extruder.
-        int extruder_nr = gcode_layer.getExtruder();
+        auto extruder_nr = gcode_layer.getExtruder();
         if (storage.skirt_brim[extruder_nr].size() > 0)
         {
             processSkirtBrim(storage, gcode_layer, extruder_nr, layer_nr);
@@ -1173,7 +1174,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     }
     gcode_layer.setSkirtBrimIsPlanned(extruder_nr);
     
-    const std::vector<SkirtBrimLine>& original_skirt_brim = storage.skirt_brim[extruder_nr];
+    const auto& original_skirt_brim = storage.skirt_brim[extruder_nr];
     if (original_skirt_brim.size() == 0)
     {
         return;
@@ -1183,8 +1184,8 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     Point start_close_to;
     if (train.settings.get<bool>("prime_blob_enable"))
     {
-        const bool prime_pos_is_abs = train.settings.get<bool>("extruder_prime_pos_abs");
-        const Point prime_pos(train.settings.get<coord_t>("extruder_prime_pos_x"), train.settings.get<coord_t>("extruder_prime_pos_y"));
+        const auto prime_pos_is_abs = train.settings.get<bool>("extruder_prime_pos_abs");
+        const auto prime_pos = Point(train.settings.get<coord_t>("extruder_prime_pos_x"), train.settings.get<coord_t>("extruder_prime_pos_y"));
         start_close_to = prime_pos_is_abs ? prime_pos : gcode_layer.getLastPlannedPositionOrStartingPosition() + prime_pos;
     }
     else
@@ -1227,10 +1228,12 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
 
     for (size_t inset_idx = 0; inset_idx < storage.skirt_brim[extruder_nr].size(); inset_idx++)
     {
-        const SkirtBrimLine& offset = storage.skirt_brim[extruder_nr][inset_idx];
-        for (bool closed : { false, true })
+        const auto& offset = storage.skirt_brim[extruder_nr][inset_idx];
+        const auto closed_polygons_open_polylines = { offset.closed_polygons, offset.open_polylines };
+        const auto closed_open = { true, false };
+        for (const auto [polygon, closed] : ranges::views::zip(closed_polygons_open_polylines, closed_open))
         {
-            for (ConstPolygonRef line : closed? offset.closed_polygons : offset.open_polylines)
+            for (ConstPolygonRef line : polygon)
             {
                 if (line.size() <= 1)
                 {
