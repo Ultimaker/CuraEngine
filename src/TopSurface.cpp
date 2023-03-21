@@ -64,6 +64,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     const Ratio ironing_flow = mesh.settings.get<Ratio>("ironing_flow");
     const bool enforce_monotonic_order = mesh.settings.get<bool>("ironing_monotonic");
     constexpr size_t wall_line_count = 0;
+    const coord_t small_area_width = mesh.settings.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
     const Point infill_origin = Point();
     const bool skip_line_stitching = enforce_monotonic_order;
 
@@ -85,7 +86,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     }
     Polygons ironed_areas = areas.offset(ironing_inset);
 
-    Infill infill_generator(pattern, zig_zaggify_infill, connect_polygons, ironed_areas, line_width, line_spacing, infill_overlap, infill_multiplier, direction, layer.z - 10, shift, max_resolution, max_deviation, wall_line_count, infill_origin, skip_line_stitching);
+    Infill infill_generator(pattern, zig_zaggify_infill, connect_polygons, ironed_areas, line_width, line_spacing, infill_overlap, infill_multiplier, direction, layer.z - 10, shift, max_resolution, max_deviation, wall_line_count, small_area_width, infill_origin, skip_line_stitching);
     std::vector<VariableWidthLines> ironing_paths;
     Polygons ironing_polygons;
     Polygons ironing_lines;
