@@ -39,6 +39,7 @@ class Infill
     coord_t max_resolution; //!< Min feature size of the output
     coord_t max_deviation; //!< Max deviation fro the original poly when enforcing max_resolution
     size_t wall_line_count; //!< Number of walls to generate at the boundary of the infill region, spaced \ref infill_line_width apart
+    coord_t small_area_width; //!< Maximum width of a small infill region to be filled with walls
     const Point infill_origin; //!< origin of the infill pattern
     bool skip_line_stitching; //!< Whether to bypass the line stitching normally performed for polyline type infills
     bool fill_gaps; //!< Whether to fill gaps in strips of infill that would be too thin to fit the infill lines. If disabled, those areas are left empty.
@@ -65,6 +66,7 @@ public:
         , coord_t max_resolution
         , coord_t max_deviation
         , size_t wall_line_count = 0
+        , coord_t small_area_width = 0
         , const Point& infill_origin = Point()
         , bool skip_line_stitching = false
         , bool fill_gaps = true
@@ -88,6 +90,7 @@ public:
     , max_resolution(max_resolution)
     , max_deviation(max_deviation)
     , wall_line_count(wall_line_count)
+    , small_area_width(small_area_width)
     , infill_origin(infill_origin)
     , skip_line_stitching(skip_line_stitching)
     , fill_gaps(fill_gaps)
