@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <spdlog/spdlog.h>
@@ -135,25 +135,30 @@ void LayerPlanBuffer::processFanSpeedLayerTime()
 }
 
 
-void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, const Duration time_after_extruder_plan_start, const size_t extruder_nr, const Temperature temp)
+void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, const Duration time_before_extruder_plan_end, const size_t extruder_nr, const Temperature temp)
 {
     Duration acc_time = 0.0;
     for (unsigned int path_idx = extruder_plan_before.paths.size() - 1; int(path_idx) != -1; path_idx--)
     {
         GCodePath& path = extruder_plan_before.paths[path_idx];
-        const Duration time_this_path = path.estimates.getTotalTime();
-        acc_time += time_this_path;
-        if (acc_time > time_after_extruder_plan_start)
+        acc_time += path.estimates.getTotalTime();
+        if (acc_time >= time_before_extruder_plan_end)
         {
-            const Duration time_before_path_end = acc_time - time_after_extruder_plan_start;
-            bool wait = false;
-            extruder_plan_before.insertCommand(path_idx, extruder_nr, temp, wait, time_this_path - time_before_path_end);
+            constexpr bool wait = false;
+            extruder_plan_before.insertCommand(NozzleTempInsert{ .path_idx = path_idx,
+                                                                 .extruder = extruder_nr,
+                                                                 .temperature = temp,
+                                                                 .wait = wait,
+                                                                 .time_after_path_start = acc_time - time_before_extruder_plan_end });
             return;
         }
     }
-    bool wait = false;
+    constexpr bool wait = false;
     constexpr size_t path_idx = 0;
-    extruder_plan_before.insertCommand(path_idx, extruder_nr, temp, wait); // insert at start of extruder plan if time_after_extruder_plan_start > extruder_plan.time
+    extruder_plan_before.insertCommand(NozzleTempInsert{ .path_idx = path_idx,
+                                                         .extruder = extruder_nr,
+                                                         .temperature = temp,
+                                                         .wait = wait }); // insert at start of extruder plan if time_after_extruder_plan_start > extruder_plan.time
 }
 
 Preheat::WarmUpResult LayerPlanBuffer::computeStandbyTempPlan(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
@@ -228,7 +233,10 @@ void LayerPlanBuffer::handleStandbyTemp(std::vector<ExtruderPlan*>& extruder_pla
     spdlog::warn("Couldn't find previous extruder plan so as to set the standby temperature. Inserting temp command in earliest available layer.");
     ExtruderPlan& earliest_extruder_plan = *extruder_plans[0];
     constexpr bool wait = false;
-    earliest_extruder_plan.insertCommand(0, extruder, standby_temp, wait);
+    earliest_extruder_plan.insertCommand(NozzleTempInsert{ .path_idx = 0,
+                                                           .extruder = extruder,
+                                                           .temperature = standby_temp,
+                                                           .wait = wait });
 }
 
 void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
@@ -273,7 +281,10 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPl
     // time_before_extruder_plan_to_insert falls before all plans in the buffer
     bool wait = false;
     unsigned int path_idx = 0;
-    extruder_plans[0]->insertCommand(path_idx, extruder, initial_print_temp, wait); // insert preheat command at verfy beginning of buffer
+    extruder_plans[0]->insertCommand(NozzleTempInsert { .path_idx = path_idx,
+                                                       .extruder = extruder,
+                                                       .temperature = initial_print_temp,
+                                                       .wait = wait }); // insert preheat command at verfy beginning of buffer
 }
 
 void LayerPlanBuffer::insertTempCommands(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
@@ -339,7 +350,10 @@ void LayerPlanBuffer::insertPrintTempCommand(ExtruderPlan& extruder_plan)
             }
         }
         bool wait = false;
-        extruder_plan.insertCommand(path_idx, extruder, print_temp, wait);
+        extruder_plan.insertCommand(NozzleTempInsert{ .path_idx = path_idx,
+                                                      .extruder = extruder,
+                                                      .temperature = print_temp,
+                                                      .wait = wait });
     }
     extruder_plan.heated_pre_travel_time = heated_pre_travel_time;
 }
@@ -467,7 +481,11 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
         }
         bool wait = false;
         double time_after_path_start = extrusion_time_seen - cool_down_time;
-        precool_extruder_plan->insertCommand(path_idx, extruder, final_print_temp, wait, time_after_path_start);
+        precool_extruder_plan->insertCommand(NozzleTempInsert { .path_idx = path_idx,
+                                                                .extruder = extruder,
+                                                                .temperature = final_print_temp,
+                                                                .wait = wait,
+                                                                .time_after_path_start = time_after_path_start });
     }
 }
 
