@@ -97,6 +97,7 @@ public:
         constexpr coord_t outline_offset = 0;
         const int support_shift = roof ? 0 : support_infill_distance / 2;
         const size_t wall_line_count = include_walls ? (!roof ? config.support_wall_count : config.support_roof_wall_count):0;
+        constexpr coord_t narrow_area_width = 0;
         const Point infill_origin;
         constexpr Polygons* perimeter_gaps = nullptr;
         constexpr bool use_endpieces = true;
@@ -127,6 +128,7 @@ public:
                 config.maximum_resolution,
                 config.maximum_deviation,
                 wall_line_count,
+                narrow_area_width,
                 infill_origin,
                 perimeter_gaps,
                 connected_zigzags,
