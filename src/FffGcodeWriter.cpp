@@ -3094,7 +3094,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     constexpr size_t infill_multiplier = 1;
     constexpr coord_t extra_infill_shift = 0;
     const auto wall_line_count = roof_extruder.settings.get<size_t>("support_roof_wall_count");
-    const coord_t small_area_width = roof_extruder.settings.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
+    const coord_t small_area_width = roof_extruder.settings.get<coord_t>("small_skin_width"); // Apply small skin width also to the support interface.
     const Point infill_origin;
     constexpr bool skip_stitching = false;
     constexpr bool fill_gaps = true;
@@ -3207,7 +3207,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     constexpr size_t infill_multiplier = 1;
     constexpr coord_t extra_infill_shift = 0;
     const auto wall_line_count = bottom_extruder.settings.get<size_t>("support_bottom_wall_count");
-    const coord_t small_area_width = bottom_extruder.settings.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
+    const coord_t small_area_width = bottom_extruder.settings.get<coord_t>("small_skin_width"); // Apply small skin width also to the support interface.
 
     const Point infill_origin;
     constexpr bool skip_stitching = false;
