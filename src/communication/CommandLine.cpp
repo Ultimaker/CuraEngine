@@ -129,6 +129,9 @@ void CommandLine::sliceNext()
     slice.scene.extruders.emplace_back(0, &slice.scene.settings); // Always have one extruder.
     ExtruderTrain* last_extruder = &slice.scene.extruders[0];
 
+    bool force_read_parent = false;
+    bool force_read_nondefault = false;
+
     for (size_t argument_index = 2; argument_index < arguments.size(); argument_index++)
     {
         std::string argument = arguments[argument_index];
@@ -154,6 +157,22 @@ void CommandLine::sliceNext()
                         spdlog::error("Unknown exception!");
                         exit(1);
                     }
+                }
+                else if (argument.find("--force-read-parent") == 0 || argument.find("--force_read_parent") == 0)
+                {
+                    spdlog::info("From this point on, force the parser to read values of non-leaf settings, instead of skipping over them as is proper.");
+                    force_read_parent = true;
+                }
+                else if (argument.find("--force-read-nondefault") == 0 || argument.find("--force_read_nondefault") == 0)
+                {
+                    spdlog::info("From this point on, if 'default_value' is not available, force the parser to read 'value' (instead of dropping it) to fill the used setting-values.");
+                    force_read_nondefault = true;
+                }
+                else if (argument.find("--end-force-read") == 0 || argument.find("--end_force_read") == 0)
+                {
+                    spdlog::info("From this point on, reset all force-XXX values to false (don't 'force read ___' anymore).");
+                    force_read_parent = false;
+                    force_read_nondefault = false;
                 }
                 else
                 {
@@ -190,7 +209,7 @@ void CommandLine::sliceNext()
                         exit(1);
                     }
                     argument = arguments[argument_index];
-                    if (loadJSON(argument, *last_settings))
+                    if (loadJSON(argument, *last_settings, force_read_parent, force_read_nondefault))
                     {
                         spdlog::error("Failed to load JSON file: {}", argument);
                         exit(1);
@@ -337,7 +356,7 @@ void CommandLine::sliceNext()
     FffProcessor::getInstance()->finalize();
 }
 
-int CommandLine::loadJSON(const std::string& json_filename, Settings& settings)
+int CommandLine::loadJSON(const std::string& json_filename, Settings& settings, bool force_read_parent, bool force_read_nondefault)
 {
     FILE* file = fopen(json_filename.c_str(), "rb");
     if (! file)
@@ -359,9 +378,9 @@ int CommandLine::loadJSON(const std::string& json_filename, Settings& settings)
 
     std::unordered_set<std::string> search_directories = defaultSearchDirectories(); // For finding the inheriting JSON files.
     std::string directory = std::filesystem::path(json_filename).parent_path().string();
-    search_directories.emplace(directory);
+    search_directories.insert(directory);
 
-    return loadJSON(json_document, search_directories, settings);
+    return loadJSON(json_document, search_directories, settings, force_read_parent, force_read_nondefault);
 }
 
 std::unordered_set<std::string> CommandLine::defaultSearchDirectories()
@@ -381,15 +400,21 @@ std::unordered_set<std::string> CommandLine::defaultSearchDirectories()
         char* path = strtok(paths, delims);
         while (path != nullptr)
         {
-            result.emplace(path);
-            path = strtok(nullptr, ";:,"); // Continue searching in last call to strtok.
+            result.insert(path);
+            path = strtok(nullptr, delims); // Continue searching in last call to strtok.
         }
     }
-
     return result;
 }
 
-int CommandLine::loadJSON(const rapidjson::Document& document, const std::unordered_set<std::string>& search_directories, Settings& settings)
+int CommandLine::loadJSON
+(
+    const rapidjson::Document& document,
+    const std::unordered_set<std::string>& search_directories,
+    Settings& settings,
+    bool force_read_parent,
+    bool force_read_nondefault
+)
 {
     // Inheritance from other JSON documents.
     if (document.HasMember("inherits") && document["inherits"].IsString())
@@ -400,7 +425,7 @@ int CommandLine::loadJSON(const rapidjson::Document& document, const std::unorde
             spdlog::error("Inherited JSON file: {} not found.", document["inherits"].GetString());
             return 1;
         }
-        int error_code = loadJSON(parent_file, settings); // Head-recursively load the settings file that we inherit from.
+        int error_code = loadJSON(parent_file, settings, force_read_parent, force_read_nondefault); // Head-recursively load the settings file that we inherit from.
         if (error_code)
         {
             return error_code;
@@ -434,23 +459,72 @@ int CommandLine::loadJSON(const rapidjson::Document& document, const std::unorde
                 }
                 const std::string extruder_definition_id(extruder_id.GetString());
                 const std::string extruder_file = findDefinitionFile(extruder_definition_id, search_directories);
-                loadJSON(extruder_file, scene.extruders[extruder_nr].settings);
+                loadJSON(extruder_file, scene.extruders[extruder_nr].settings, force_read_parent, force_read_nondefault);
             }
         }
     }
 
     if (document.HasMember("settings") && document["settings"].IsObject())
     {
-        loadJSONSettings(document["settings"], settings);
+        loadJSONSettings(document["settings"], settings, force_read_parent, force_read_nondefault);
     }
     if (document.HasMember("overrides") && document["overrides"].IsObject())
     {
-        loadJSONSettings(document["overrides"], settings);
+        loadJSONSettings(document["overrides"], settings, force_read_parent, force_read_nondefault);
     }
     return 0;
 }
 
-void CommandLine::loadJSONSettings(const rapidjson::Value& element, Settings& settings)
+bool jsonValue2Str(const rapidjson::Value& value, std::string& value_string)
+{
+    if (value.IsString())
+    {
+        value_string = value.GetString();
+    }
+    else if (value.IsTrue())
+    {
+        value_string = "true";
+    }
+    else if (value.IsFalse())
+    {
+        value_string = "false";
+    }
+    else if (value.IsNumber())
+    {
+        value_string = std::to_string(value.GetDouble());
+    }
+    else if (value.IsArray())
+    {
+        if (value.Empty())
+        {
+            value_string = "[]";
+            return true;
+        }
+        std::string temp;
+        jsonValue2Str(value[0], temp);
+        value_string =
+            std::string("[") +
+            std::accumulate
+            (
+                std::next(value.Begin()),
+                value.End(),
+                temp,
+                [&temp](std::string converted, const rapidjson::Value& next)
+                {
+                    jsonValue2Str(next, temp);
+                    return std::move(converted) + "," + temp;
+                }
+            ) +
+            std::string("]");
+    }
+    else
+    {
+        return false;
+    }
+    return true;
+}
+
+void CommandLine::loadJSONSettings(const rapidjson::Value& element, Settings& settings, bool force_read_parent, bool force_read_nondefault)
 {
     for (rapidjson::Value::ConstMemberIterator setting = element.MemberBegin(); setting != element.MemberEnd(); setting++)
     {
@@ -465,42 +539,33 @@ void CommandLine::loadJSONSettings(const rapidjson::Value& element, Settings& se
 
         if (setting_object.HasMember("children"))
         {
-            loadJSONSettings(setting_object["children"], settings);
+            loadJSONSettings(setting_object["children"], settings, force_read_parent, force_read_nondefault);
+            if (! force_read_parent)
+            {
+                continue;
+            }
         }
-        else // Only process leaf settings. We don't process categories or settings that have sub-settings.
+
+        if (! (setting_object.HasMember("default_value") || (force_read_nondefault && setting_object.HasMember("value") && ! settings.has(name))))
         {
-            if (! setting_object.HasMember("default_value"))
+            if (! setting_object.HasMember("children"))
             {
-                spdlog::warn("JSON setting {} has no default_value!", name);
-                continue;
+                // Setting has no child-settings, so must be leaf, but also holds no (default) value?!
+                spdlog::warn("JSON setting {} has no [default_]value!", name);
             }
-            const rapidjson::Value& default_value = setting_object["default_value"];
-            std::string value_string;
-            if (default_value.IsString())
-            {
-                value_string = default_value.GetString();
-            }
-            else if (default_value.IsTrue())
-            {
-                value_string = "true";
-            }
-            else if (default_value.IsFalse())
-            {
-                value_string = "false";
-            }
-            else if (default_value.IsNumber())
-            {
-                std::ostringstream ss;
-                ss << default_value.GetDouble();
-                value_string = ss.str();
-            }
-            else
-            {
-                spdlog::warn("Unrecognized data type in JSON setting {}", name);
-                continue;
-            }
-            settings.add(name, value_string);
+            continue;
         }
+
+        // At this point in the code, it's known that the setting either has a default value _or_ force_read_nondefault _and_ has-member 'value' is true.
+        const rapidjson::Value& json_value = setting_object.HasMember("default_value") ? setting_object["default_value"] : setting_object["value"];
+
+        std::string value_string;
+        if (! jsonValue2Str(json_value, value_string))
+        {
+            spdlog::warn("Unrecognized data type in JSON setting {}", name);
+            continue;
+        }
+        settings.add(name, value_string);
     }
 }
 
