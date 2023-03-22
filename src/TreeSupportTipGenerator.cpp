@@ -714,7 +714,7 @@ void TreeSupportTipGenerator::generateTips(SliceDataStorage& storage,const Slice
             mesh.overhang_areas.size() - z_distance_delta,
             [&](const LayerIndex layer_idx)
             {
-                if (mesh.overhang_areas[layer_idx + z_distance_delta].empty())
+                if (mesh.overhang_areas[layer_idx + z_distance_delta].empty() && (layer_idx+1 >= support_roof_drawn.size() || support_roof_drawn[layer_idx+1].empty()))
                 {
                     return; // This is a continue if imagined in a loop context.
                 }
