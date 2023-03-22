@@ -446,7 +446,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
             // Now, because the avoidance/collision was subtracted above, the overhang parts that are of xy distance were removed, so to merge areas that should have been one offset by xy_min_distance and then undo it.
             // In a perfect world the offset here would be of a mode that makes sure that area.offset(config.xy_min_distance).unionPolygons().offset(-config.xy_min_distance) = area if there is only one polygon in said area.
             // I have not encountered issues with using the default mitered here. Could be that i just have not encountered an issue with it yet though.
-            potential_support_roofs[layer_idx]=potential_support_roofs[layer_idx].unionPolygons().offset(config.xy_min_distance).unionPolygons().offset(-config.xy_min_distance);
+            potential_support_roofs[layer_idx]=potential_support_roofs[layer_idx].unionPolygons().offset(config.xy_min_distance).unionPolygons().offset(-config.xy_min_distance).unionPolygons(potential_support_roofs[layer_idx]);
 
         }
     );
@@ -663,7 +663,7 @@ void TreeSupportTipGenerator::removeUselessAddedPoints(std::vector<std::set<Tree
 
                     for (TreeSupportElement* elem : move_bounds[layer_idx])
                     {
-                        if (roof_on_layer.inside(elem->result_on_layer)) // remove branches that start inside of support interface
+                        if (roof_on_layer.inside(elem->result_on_layer)) // Remove branches that start inside of support interface
                         {
                             to_be_removed.emplace_back(elem);
                         }
@@ -671,13 +671,12 @@ void TreeSupportTipGenerator::removeUselessAddedPoints(std::vector<std::set<Tree
                         {
                             Point from = elem->result_on_layer;
                             PolygonUtils::moveInside(roof_on_layer_above,from);
-                            // Remove branches should have interface above them, but dont. Should never happen
+                            // Remove branches should have interface above them, but dont. Should never happen.
                             if (roof_on_layer_above.empty()  ||
-                                (!roof_on_layer_above.inside(elem->result_on_layer) && vSize2(from-elem->result_on_layer)>config.getRadius(0)*config.getRadius(0) + FUDGE_LENGTH))
+                                (!roof_on_layer_above.inside(elem->result_on_layer) && vSize2(from-elem->result_on_layer)>config.getRadius(0)*config.getRadius(0) + FUDGE_LENGTH * FUDGE_LENGTH))
                             {
                                 to_be_removed.emplace_back(elem);
                                 spdlog::warn("Removing already placed tip that should have roof above it?");
-
                             }
                         }
                     }
@@ -723,7 +722,7 @@ void TreeSupportTipGenerator::generateTips(SliceDataStorage& storage,const Slice
                 Polygons relevant_forbidden =
                     volumes_.getAvoidance(config.getRadius(0), layer_idx, (only_gracious || !config.support_rests_on_model)? AvoidanceType::FAST : AvoidanceType::COLLISION , config.support_rests_on_model, ! xy_overrides);
                 // ^^^ Take the least restrictive avoidance possible
-                relevant_forbidden = relevant_forbidden.offset(EPSILON); // Prevent rounding errors down the line, points placed directly on the line of the forbidden area may not be added otherwise.
+                relevant_forbidden = relevant_forbidden.offset(EPSILON).unionPolygons(); // Prevent rounding errors down the line, points placed directly on the line of the forbidden area may not be added otherwise.
 
                 std::function<Polygons(const Polygons&, bool, LayerIndex)> generateLines =
                     [&](const Polygons& area, bool roof, LayerIndex layer_idx)
@@ -741,12 +740,12 @@ void TreeSupportTipGenerator::generateTips(SliceDataStorage& storage,const Slice
                 Polygons core_overhang=mesh.overhang_areas[layer_idx + z_distance_delta];
 
 
-                Polygons overhang_roofs;
                 if (support_roof_layers && layer_idx+1 < support_roof_drawn.size())
                 {
                     core_overhang = core_overhang.difference(support_roof_drawn[layer_idx]);
                     for (Polygons roof_part : support_roof_drawn[layer_idx+1].difference(support_roof_drawn[layer_idx]).splitIntoParts(true)) //If there is a roof, the roof will be one layer above the tips.
                     {
+                        //^^^Technically one should also subtract the avoidance of radius 0 (similarly how calculated in calculateRoofArea), as there can be some rounding errors introduced since then. But this does not fully prevent some rounding errors either way, so just handle the error later.
                         overhang_processing.emplace_back(roof_part, true);
                     }
                 }
@@ -846,7 +845,6 @@ void TreeSupportTipGenerator::generateTips(SliceDataStorage& storage,const Slice
                     Polygons overhang_outset = overhang_pair.first;
                     const size_t min_support_points = std::max(coord_t(1), std::min(coord_t(EPSILON), overhang_outset.polygonLength() / connect_length));
                     std::vector<LineInformation> overhang_lines;
-                    Polygons last_overhang = overhang_outset;
 
                     // The tip positions are determined here.
                     Polygons polylines =
@@ -880,10 +878,27 @@ void TreeSupportTipGenerator::generateTips(SliceDataStorage& storage,const Slice
 
                     if (roof_allowed_for_this_part) //Some roof may only be supported by a part of a tip
                     {
-                        polylines = TreeSupportUtils::movePointsOutside(polylines,relevant_forbidden,config.getRadius(0)+FUDGE_LENGTH);
+                        polylines = TreeSupportUtils::movePointsOutside(polylines,relevant_forbidden,config.getRadius(0)+FUDGE_LENGTH/2);
                     }
 
                     overhang_lines = convertLinesToInternal(polylines, layer_idx );
+
+                    if(overhang_lines.empty()) //some error handling and logging
+                    {
+                        Polygons enlarged_overhang_outset = overhang_outset.offset(config.getRadius(0)+FUDGE_LENGTH/2,ClipperLib::jtRound).difference(relevant_forbidden);
+                        polylines = ensureMaximumDistancePolyline(TreeSupportUtils::toPolylines(enlarged_overhang_outset), connect_length, min_support_points);
+                        overhang_lines = convertLinesToInternal(polylines, layer_idx );
+
+                        if(!overhang_lines.empty())
+                        {
+                            spdlog::debug("Compensated for overhang area that had no valid tips. Now has a tip.");
+                        }
+                        else
+                        {
+                            spdlog::warn("Overhang area has no valid tips! Was roof: {} On Layer: {}", roof_allowed_for_this_part,layer_idx);
+                        }
+
+                    }
 
                     size_t dont_move_for_layers = support_roof_layers ? (force_tip_to_roof ? support_roof_layers : (roof_allowed_for_this_part?0:support_roof_layers)):0;
                     addLinesAsInfluenceAreas(move_bounds, overhang_lines, force_tip_to_roof ? support_roof_layers : 0, layer_idx, roof_allowed_for_this_part, dont_move_for_layers);

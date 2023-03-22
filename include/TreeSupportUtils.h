@@ -72,7 +72,7 @@ public:
 
 
     /*!
-     * \brief Returns Polylines representing the (infill) lines that will result in slicing the given area todo idea remove redundancy by combining with code where it later is actually calculated ?
+     * \brief Returns Polylines representing the (infill) lines that will result in slicing the given area
      *
      * \param area[in] The area that has to be filled with infill.
      * \param config[in] The settings for generating the patterns.
@@ -259,7 +259,7 @@ public:
      *
      * \param polylines[in] The polyline object from which the lines are moved.
      * \param area[in] The area the points are moved out of.
-     * \param max_allowed_distance[in] The maximum disntance a point may be moved. If not possible the point will not be in the result.
+     * \param max_allowed_distance[in] The maximum distance a point may be moved. If not possible the point will be moved as far as possible in the direction of the outside of the provided area.
      * \return A Polyline object containing the moved points.
      */
     [[nodiscard]]static Polygons movePointsOutside(const Polygons& polylines, const Polygons& area, coord_t max_allowed_distance)
@@ -275,9 +275,15 @@ public:
                 if (area.inside(p))
                 {
                     Point next_outside = p;
-                    PolygonUtils::moveOutside(area,next_outside,EPSILON);
+                    PolygonUtils::moveOutside(area,next_outside);
                     if (vSize2(p-next_outside)<max_allowed_distance*max_allowed_distance)
                     {
+                        next_line.add(next_outside);
+                    }
+                    else // move point as far as allowed.
+                    {
+                        double max_partial_move_proportion = double(max_allowed_distance)/double(vSize(p-next_outside));
+                        next_outside = p + (next_outside-p)*max_partial_move_proportion;
                         next_line.add(next_outside);
                     }
                 }
