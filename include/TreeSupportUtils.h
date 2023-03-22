@@ -204,7 +204,7 @@ public:
             return (do_final_difference ? ret.difference(collision) : ret).unionPolygons();
         }
 
-        coord_t step_size = safe_step_size;
+        coord_t step_size = std::max(FUDGE_LENGTH, safe_step_size);
         size_t steps = distance > last_step_offset_without_check ? (distance - last_step_offset_without_check) / step_size : 0;
         if (distance - steps * step_size > last_step_offset_without_check)
         {

@@ -890,6 +890,7 @@ void TreeModelVolumes::calculateCollisionAvoidance(const std::deque<RadiusLayerP
 // Ensures offsets are only done in sizes with a max step size per offset while adding the collision offset after each step, this ensures that areas cannot glitch through walls defined by the collision when offsetting to fast.
 Polygons TreeModelVolumes::safeOffset(const Polygons& me, coord_t distance, ClipperLib::JoinType jt, coord_t max_safe_step_distance, const Polygons& collision) const
 {
+    max_safe_step_distance = std::max(FUDGE_LENGTH, max_safe_step_distance);
     const size_t steps = std::abs(distance / max_safe_step_distance);
     assert(distance * max_safe_step_distance >= 0);
     Polygons ret = me;
