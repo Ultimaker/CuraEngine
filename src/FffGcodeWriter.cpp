@@ -1275,10 +1275,12 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
                 if (lower_inset.inset_idx == 0 && higher_inset.inset_idx == 1)
                 {
                     order_requirements.emplace(lower_inset.poly, higher_inset.poly);
+                    continue;
                 }
                 else if (lower_inset.inset_idx == 0 && higher_inset.inset_idx == 2)
                 {
                     order_requirements.emplace(higher_inset.poly, lower_inset.poly);
+                    continue;
                 }
                 else if (lower_inset.inset_idx == 1 && higher_inset.inset_idx == 2)
                 {
