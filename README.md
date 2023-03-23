@@ -46,6 +46,9 @@ applications and integrate it into your own app.
 
 <br>
 
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/Ultimaker/CuraEngine/badge)](https://api.securityscorecards.dev/projects/github.com/Ultimaker/CuraEngine)
+
+<br>
 
 <!----------------------------------------------------------------------------->
 
