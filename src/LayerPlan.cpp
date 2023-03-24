@@ -1941,7 +1941,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             {
                 current_mesh = path.mesh;
                 std::stringstream ss;
-                ss << "MESH:" << (current_mesh ? current_mesh->mesh_name : "NOMESH");
+                ss << "MESH:" << (current_mesh ? current_mesh->mesh_name : "NONMESH");
                 gcode.writeComment(ss.str());
             }
             if (path.config->isTravelPath())
