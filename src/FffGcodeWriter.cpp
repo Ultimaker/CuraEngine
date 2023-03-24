@@ -10,6 +10,7 @@
 #include <boost/uuid/random_generator.hpp> //For generating a UUID.
 #include <boost/uuid/uuid_io.hpp> //For generating a UUID.
 #include <spdlog/spdlog.h>
+#include <range/v3/view/zip.hpp>
 
 #include "Application.h"
 #include "ExtruderTrain.h"
@@ -742,6 +743,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr coord_t wipe_dist = 0;
 
         const size_t wall_line_count = base_settings.get<size_t>("raft_base_wall_count");
+        const coord_t small_area_width = 0; // A raft never has a small region due to the large horizontal expansion.
         const coord_t line_spacing = base_settings.get<coord_t>("raft_base_line_spacing");
         const Point& infill_origin = Point();
         constexpr bool skip_stitching = false;
@@ -776,6 +778,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                                max_resolution,
                                max_deviation,
                                wall_line_count,
+                               small_area_width,
                                infill_origin,
                                skip_stitching,
                                fill_gaps,
@@ -849,6 +852,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr bool connect_polygons = true; // why not?
 
         constexpr int wall_line_count = 0;
+        const coord_t small_area_width = 0; // A raft never has a small region due to the large horizontal expansion.
         const Point infill_origin = Point();
         constexpr bool skip_stitching = false;
         constexpr bool connected_zigzags = false;
@@ -873,6 +877,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                                interface_max_resolution,
                                interface_max_deviation,
                                wall_line_count,
+                               small_area_width,
                                infill_origin,
                                skip_stitching,
                                fill_gaps,
@@ -938,6 +943,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr bool zig_zaggify_infill = true;
 
         constexpr size_t wall_line_count = 0;
+        const coord_t small_area_width = 0; // A raft never has a small region due to the large horizontal expansion.
         const Point& infill_origin = Point();
         constexpr bool skip_stitching = false;
         constexpr bool connected_zigzags = false;
@@ -963,6 +969,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                                surface_max_resolution,
                                surface_max_deviation,
                                wall_line_count,
+                               small_area_width,
                                infill_origin,
                                skip_stitching,
                                fill_gaps,
@@ -1061,7 +1068,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
     if (include_helper_parts)
     {
         // process the skirt or the brim of the starting extruder.
-        int extruder_nr = gcode_layer.getExtruder();
+        auto extruder_nr = gcode_layer.getExtruder();
         if (storage.skirt_brim[extruder_nr].size() > 0)
         {
             processSkirtBrim(storage, gcode_layer, extruder_nr, layer_nr);
@@ -1167,7 +1174,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     }
     gcode_layer.setSkirtBrimIsPlanned(extruder_nr);
     
-    const std::vector<SkirtBrimLine>& original_skirt_brim = storage.skirt_brim[extruder_nr];
+    const auto& original_skirt_brim = storage.skirt_brim[extruder_nr];
     if (original_skirt_brim.size() == 0)
     {
         return;
@@ -1177,8 +1184,8 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     Point start_close_to;
     if (train.settings.get<bool>("prime_blob_enable"))
     {
-        const bool prime_pos_is_abs = train.settings.get<bool>("extruder_prime_pos_abs");
-        const Point prime_pos(train.settings.get<coord_t>("extruder_prime_pos_x"), train.settings.get<coord_t>("extruder_prime_pos_y"));
+        const auto prime_pos_is_abs = train.settings.get<bool>("extruder_prime_pos_abs");
+        const auto prime_pos = Point(train.settings.get<coord_t>("extruder_prime_pos_x"), train.settings.get<coord_t>("extruder_prime_pos_y"));
         start_close_to = prime_pos_is_abs ? prime_pos : gcode_layer.getLastPlannedPositionOrStartingPosition() + prime_pos;
     }
     else
@@ -1221,10 +1228,12 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
 
     for (size_t inset_idx = 0; inset_idx < storage.skirt_brim[extruder_nr].size(); inset_idx++)
     {
-        const SkirtBrimLine& offset = storage.skirt_brim[extruder_nr][inset_idx];
-        for (bool closed : { false, true })
+        const auto& offset = storage.skirt_brim[extruder_nr][inset_idx];
+        const auto closed_polygons_open_polylines = { offset.closed_polygons, offset.open_polylines };
+        const auto closed_open = { true, false };
+        for (const auto [polygon, closed] : ranges::views::zip(closed_polygons_open_polylines, closed_open))
         {
-            for (ConstPolygonRef line : closed? offset.closed_polygons : offset.open_polylines)
+            for (ConstPolygonRef line : polygon)
             {
                 if (line.size() <= 1)
                 {
@@ -1651,6 +1660,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
             }
 
             constexpr size_t wall_line_count = 0; // wall toolpaths are when gradual infill areas are determined
+            const coord_t small_area_width = mesh.settings.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
             constexpr coord_t infill_overlap = 0; // Overlap is handled when the wall toolpaths are generated
             constexpr bool skip_stitching = false;
             constexpr bool connected_zigzags = false;
@@ -1678,6 +1688,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
                                max_resolution,
                                max_deviation,
                                wall_line_count,
+                               small_area_width,
                                infill_origin,
                                skip_stitching,
                                fill_gaps,
@@ -1853,6 +1864,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage,
             // infill region with skin above has to have at least one infill wall line
             const size_t min_skin_below_wall_count = wall_line_count > 0 ? wall_line_count : 1;
             const size_t skin_below_wall_count = density_idx == last_idx ? min_skin_below_wall_count : 0;
+            const coord_t small_area_width = mesh.settings.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
             wall_tool_paths.emplace_back(std::vector<VariableWidthLines>());
             const coord_t overlap = infill_overlap - (density_idx == last_idx ? 0 : wall_line_count * infill_line_width);
             Infill infill_comp(pattern,
@@ -1869,6 +1881,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage,
                                max_resolution,
                                max_deviation,
                                skin_below_wall_count,
+                               small_area_width,
                                infill_origin,
                                skip_stitching,
                                fill_gaps,
@@ -1905,6 +1918,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage,
         in_outline.removeSmallAreas(minimum_small_area);
 
         constexpr size_t wall_line_count_here = 0; // Wall toolpaths were generated in generateGradualInfill for the sparsest density, denser parts don't have walls by default
+        const coord_t small_area_width = mesh.settings.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
         constexpr coord_t overlap = 0; // overlap is already applied for the sparsest density in the generateGradualInfill
 
         wall_tool_paths.emplace_back();
@@ -1922,6 +1936,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage,
                            max_resolution,
                            max_deviation,
                            wall_line_count_here,
+                           small_area_width,
                            infill_origin,
                            skip_stitching,
                            fill_gaps,
@@ -2644,6 +2659,7 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage,
     constexpr int infill_multiplier = 1;
     constexpr int extra_infill_shift = 0;
     const size_t wall_line_count = mesh.settings.get<size_t>("skin_outline_count");
+    const coord_t small_area_width = mesh.settings.get<coord_t>("small_skin_width");
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     const bool connect_polygons = mesh.settings.get<bool>("connect_skin_polygons");
     coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
@@ -2671,6 +2687,7 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage,
                        max_resolution,
                        max_deviation,
                        wall_line_count,
+                       small_area_width,
                        infill_origin,
                        skip_line_stitching,
                        fill_gaps,
@@ -2954,6 +2971,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 const Polygons& area = part.infill_area_per_combine_per_density[density_idx][combine_idx];
 
                 constexpr size_t wall_count = 0; // Walls are generated somewhere else, so their layers aren't vertically combined.
+                const coord_t small_area_width = mesh_group_settings.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
                 constexpr bool skip_stitching = false;
                 const bool fill_gaps = density_idx == 0; // Only fill gaps for one of the densities.
                 Infill infill_comp(support_pattern,
@@ -2970,6 +2988,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                                    max_resolution,
                                    max_deviation,
                                    wall_count,
+                                   small_area_width,
                                    infill_origin,
                                    skip_stitching,
                                    fill_gaps,
@@ -3092,6 +3111,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     constexpr size_t infill_multiplier = 1;
     constexpr coord_t extra_infill_shift = 0;
     const auto wall_line_count = roof_extruder.settings.get<size_t>("support_roof_wall_count");
+    const coord_t small_area_width = roof_extruder.settings.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
     const Point infill_origin;
     constexpr bool skip_stitching = false;
     constexpr bool fill_gaps = true;
@@ -3133,6 +3153,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
                             max_resolution,
                             max_deviation,
                             wall_line_count,
+                            small_area_width,
                             infill_origin,
                             skip_stitching,
                             fill_gaps,
@@ -3202,6 +3223,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     constexpr size_t infill_multiplier = 1;
     constexpr coord_t extra_infill_shift = 0;
     const auto wall_line_count = bottom_extruder.settings.get<size_t>("support_bottom_wall_count");
+    const coord_t small_area_width = bottom_extruder.settings.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
 
     const Point infill_origin;
     constexpr bool skip_stitching = false;
@@ -3229,6 +3251,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
                               max_resolution,
                               max_deviation,
                               wall_line_count,
+                              small_area_width,
                               infill_origin,
                               skip_stitching,
                               fill_gaps,
