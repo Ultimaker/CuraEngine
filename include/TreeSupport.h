@@ -1,5 +1,5 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef TREESUPPORT_H
 #define TREESUPPORT_H
@@ -136,7 +136,6 @@ private:
      * \brief Generator for model collision, avoidance and internal guide volumes
      *
      * Lazily computes volumes as needed.
-     *  \warning This class is NOT currently thread-safe and should not be accessed in OpenMP blocks
      */
     TreeModelVolumes volumes_;
 
