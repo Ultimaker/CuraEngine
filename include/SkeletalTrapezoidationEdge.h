@@ -46,7 +46,7 @@ public:
         {}
     };
 
-    enum class EdgeType
+    enum class EdgeType : int
     {
         NORMAL = 0, // from voronoi diagram
         EXTRA_VD = 1, // introduced to voronoi diagram in order to make the gMAT
@@ -115,9 +115,9 @@ public:
         return extrusion_junctions.lock();
     }
 
-private:
     Central is_central; //! whether the edge is significant; whether the source segments have a sharp angle; -1 is unknown
 
+private:
     std::weak_ptr<std::list<TransitionMiddle>> transitions;
     std::weak_ptr<std::list<TransitionEnd>> transition_ends;
     std::weak_ptr<LineJunctions> extrusion_junctions;

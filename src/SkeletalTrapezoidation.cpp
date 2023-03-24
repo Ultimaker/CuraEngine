@@ -524,7 +524,13 @@ void SkeletalTrapezoidation::generateToolpaths(std::vector<VariableWidthLines>& 
 
     generateSegments();
 
-    scripta::log("ST_graph", graph, layer_idx, section_type);
+    scripta::log("ST_graph", graph, layer_idx, section_type,
+                 scripta::CellVDI{"is_central", [](const auto& edge){ return static_cast<int>(edge.data.is_central); } },
+                 scripta::CellVDI{"type", [](const auto& edge){ return static_cast<int>(edge.data.type); } },
+                 scripta::PointVDI{"distance_to_boundary", [](const auto& node){ return node->data.distance_to_boundary; } },
+                 scripta::PointVDI{"bead_count", [](const auto& node){ return node->data.bead_count; } },
+                 scripta::PointVDI{"transition_ratio", [](const auto& node){ return node->data.transition_ratio; } }
+    );
 }
 
 void SkeletalTrapezoidation::updateIsCentral()
