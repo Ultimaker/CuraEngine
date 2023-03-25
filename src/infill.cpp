@@ -5,6 +5,7 @@
 #include <functional>
 #include <unordered_set>
 
+#include <scripta/logger.h>
 #include <spdlog/spdlog.h>
 
 #include "WallToolPaths.h"
@@ -51,6 +52,7 @@ namespace cura
 Polygons Infill::generateWallToolPaths(std::vector<VariableWidthLines>& toolpaths, Polygons& outer_contour, const size_t wall_line_count, const coord_t line_width, const coord_t infill_overlap, const Settings& settings, int layer_idx, SectionType section_type)
 {
     outer_contour = outer_contour.offset(infill_overlap);
+    scripta::log("infill_outer_contour", outer_contour, section_type, layer_idx, scripta::CellVDI{ "infill_overlap", infill_overlap });
 
     Polygons inner_contour;
     if (wall_line_count > 0)
@@ -83,6 +85,7 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
     }
 
     inner_contour = generateWallToolPaths(toolpaths, outer_contour, wall_line_count, infill_line_width, infill_overlap, settings, layer_idx, section_type);
+    scripta::log("infill_inner_contour_0", inner_contour, section_type, layer_idx);
 
     // It does not make sense to print a pattern in a small region. So the infill region
     // is split into a small region that will be filled with walls and the normal region
@@ -120,11 +123,18 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
         const size_t narrow_wall_count = small_area_width / infill_line_width + 1;
         WallToolPaths wall_toolpaths(small_infill, infill_line_width, narrow_wall_count, 0, settings, layer_idx, section_type);
         std::vector<VariableWidthLines> small_infill_paths = wall_toolpaths.getToolPaths();
+        scripta::log("infill_small_infill_paths_0", small_infill_paths, section_type, layer_idx,
+                     scripta::CellVDI{"is_closed", &ExtrusionLine::is_closed },
+                     scripta::CellVDI{"is_odd", &ExtrusionLine::is_odd },
+                     scripta::CellVDI{"inset_idx", &ExtrusionLine::inset_idx },
+                     scripta::PointVDI{"width", &ExtrusionJunction::w },
+                     scripta::PointVDI{"perimeter_index", &ExtrusionJunction::perimeter_index });
         for (const auto& small_infill_path : small_infill_paths)
         {
             toolpaths.emplace_back(small_infill_path);
         }
     }
+    scripta::log("infill_inner_contour_1", inner_contour, section_type, layer_idx);
 
     // apply an extra offset in case the pattern prints along the sides of the area.
     if (pattern == EFillMethod::ZIG_ZAG // Zig-zag prints the zags along the walls.
@@ -137,6 +147,7 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
         inner_contour = inner_contour.offset(-infill_line_width / 2);
         inner_contour = Simplify(max_resolution, max_deviation, 0).polygon(inner_contour);
     }
+    scripta::log("infill_inner_contour_2", inner_contour, section_type, layer_idx);
 
     if (infill_multiplier > 1)
     {
@@ -164,6 +175,14 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
         result_polygons.add(generated_result_polygons);
         result_lines.add(generated_result_lines);
     }
+    scripta::log("infill_result_polygons_0", result_polygons, section_type, layer_idx);
+    scripta::log("infill_result_lines_0", result_lines, section_type, layer_idx);
+    scripta::log("infill_toolpaths_0", toolpaths, section_type, layer_idx,
+                 scripta::CellVDI{"is_closed", &ExtrusionLine::is_closed },
+                 scripta::CellVDI{"is_odd", &ExtrusionLine::is_odd },
+                 scripta::CellVDI{"inset_idx", &ExtrusionLine::inset_idx },
+                 scripta::PointVDI{"width", &ExtrusionJunction::w },
+                 scripta::PointVDI{"perimeter_index", &ExtrusionJunction::perimeter_index });
     if (connect_polygons)
     {
         // remove too small polygons
@@ -179,6 +198,14 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
         connector.connect(connected_polygons, connected_paths);
         result_polygons = connected_polygons;
         toolpaths = connected_paths;
+        scripta::log("infill_result_polygons_1", result_polygons, section_type, layer_idx);
+        scripta::log("infill_result_lines_1", result_lines, section_type, layer_idx);
+        scripta::log("infill_toolpaths_1", toolpaths, section_type, layer_idx,
+                     scripta::CellVDI{"is_closed", &ExtrusionLine::is_closed },
+                     scripta::CellVDI{"is_odd", &ExtrusionLine::is_odd },
+                     scripta::CellVDI{"inset_idx", &ExtrusionLine::inset_idx },
+                     scripta::PointVDI{"width", &ExtrusionJunction::w },
+                     scripta::PointVDI{"perimeter_index", &ExtrusionJunction::perimeter_index });
     }
 }
 
