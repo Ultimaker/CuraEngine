@@ -112,7 +112,7 @@ BENCHMARK_DEFINE_F(InfillTest, Infill_generate_connect)(benchmark::State& st)
         std::vector<VariableWidthLines> result_paths;
         Polygons result_polygons;
         Polygons result_lines;
-        infill.generate(result_paths, result_polygons, result_lines, settings, 0, nullptr, nullptr);
+        infill.generate(result_paths, result_polygons, result_lines, settings, 0, SectionType::INFILL, nullptr, nullptr);
     }
 }
 
