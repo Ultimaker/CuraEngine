@@ -4,6 +4,8 @@
 #include <algorithm> //For std::partition_copy and std::min_element.
 #include <unordered_set>
 
+#include <scripta/logger.h>
+
 #include "WallToolPaths.h"
 
 #include "SkeletalTrapezoidation.h"
@@ -129,22 +131,58 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
         section_type
     );
     wall_maker.generateToolpaths(toolpaths);
+    scripta::log("toolpaths_0", toolpaths, section_type, layer_idx,
+                 scripta::CellVDI{"is_closed", &ExtrusionLine::is_closed },
+                 scripta::CellVDI{"is_odd", &ExtrusionLine::is_odd },
+                 scripta::CellVDI{"inset_idx", &ExtrusionLine::inset_idx },
+                 scripta::PointVDI{"width", &ExtrusionJunction::w },
+                 scripta::PointVDI{"perimeter_index", &ExtrusionJunction::perimeter_index });
 
     stitchToolPaths(toolpaths, settings);
+    scripta::log("toolpaths_1", toolpaths, section_type, layer_idx,
+                 scripta::CellVDI{"is_closed", &ExtrusionLine::is_closed },
+                 scripta::CellVDI{"is_odd", &ExtrusionLine::is_odd },
+                 scripta::CellVDI{"inset_idx", &ExtrusionLine::inset_idx },
+                 scripta::PointVDI{"width", &ExtrusionJunction::w },
+                 scripta::PointVDI{"perimeter_index", &ExtrusionJunction::perimeter_index });
     
     removeSmallLines(toolpaths);
+    scripta::log("toolpaths_2", toolpaths, section_type, layer_idx,
+                 scripta::CellVDI{"is_closed", &ExtrusionLine::is_closed },
+                 scripta::CellVDI{"is_odd", &ExtrusionLine::is_odd },
+                 scripta::CellVDI{"inset_idx", &ExtrusionLine::inset_idx },
+                 scripta::PointVDI{"width", &ExtrusionJunction::w },
+                 scripta::PointVDI{"perimeter_index", &ExtrusionJunction::perimeter_index });
 
     simplifyToolPaths(toolpaths, settings);
+    scripta::log("toolpaths_3", toolpaths, section_type, layer_idx,
+                 scripta::CellVDI{"is_closed", &ExtrusionLine::is_closed },
+                 scripta::CellVDI{"is_odd", &ExtrusionLine::is_odd },
+                 scripta::CellVDI{"inset_idx", &ExtrusionLine::inset_idx },
+                 scripta::PointVDI{"width", &ExtrusionJunction::w },
+                 scripta::PointVDI{"perimeter_index", &ExtrusionJunction::perimeter_index });
 
     separateOutInnerContour();
 
     removeEmptyToolPaths(toolpaths);
+    scripta::log("toolpaths_4", toolpaths, section_type, layer_idx,
+                 scripta::CellVDI{"is_closed", &ExtrusionLine::is_closed },
+                 scripta::CellVDI{"is_odd", &ExtrusionLine::is_odd },
+                 scripta::CellVDI{"inset_idx", &ExtrusionLine::inset_idx },
+                 scripta::PointVDI{"width", &ExtrusionJunction::w },
+                 scripta::PointVDI{"perimeter_index", &ExtrusionJunction::perimeter_index });
     assert(std::is_sorted(toolpaths.cbegin(), toolpaths.cend(),
                           [](const VariableWidthLines& l, const VariableWidthLines& r)
                           {
                               return l.front().inset_idx < r.front().inset_idx;
                           }) && "WallToolPaths should be sorted from the outer 0th to inner_walls");
     toolpaths_generated = true;
+    scripta::log("toolpaths_5", toolpaths, section_type, layer_idx,
+                 scripta::CellVDI{"is_closed", &ExtrusionLine::is_closed },
+                 scripta::CellVDI{"is_odd", &ExtrusionLine::is_odd },
+                 scripta::CellVDI{"inset_idx", &ExtrusionLine::inset_idx },
+                 scripta::PointVDI{"width", &ExtrusionJunction::w },
+                 scripta::PointVDI{"perimeter_index", &ExtrusionJunction::perimeter_index });
     return toolpaths;
 }
 
