@@ -87,6 +87,8 @@ private:
         double last_e_value_after_wipe; //!< The current material amount extruded since last wipe
 
         unsigned fan_number; // nozzle print cooling fan number
+        Point nozzle_offset;  //!< Cache of setting machine_nozzle_offset_[xy]
+        bool machine_firmware_retract;  //!< Cache of setting machine_firmware_retract
 
         std::deque<double> extruded_volume_at_previous_n_retractions; // in mm^3
 

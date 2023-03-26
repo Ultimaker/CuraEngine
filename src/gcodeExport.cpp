@@ -87,6 +87,18 @@ void GCodeExport::preSetup(const size_t start_extruder)
 
         extruder_attr[extruder_nr].last_retraction_prime_speed = train.settings.get<Velocity>("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
         extruder_attr[extruder_nr].fan_number = train.settings.get<size_t>("machine_extruder_cooling_fan_number");
+
+        // Cache some settings that we use frequently.
+        const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
+        if (use_extruder_offset_to_offset_coords)
+        {
+            extruder_attr[extruder_nr].nozzle_offset = Point(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
+        }
+        else
+        {
+            extruder_attr[extruder_nr].nozzle_offset = Point(0, 0);
+        }
+        extruder_attr[extruder_nr].machine_firmware_retract = extruder_settings.get<bool>("machine_firmware_retract");
     }
 
     machine_name = mesh_group->settings.get<std::string>("machine_name");
@@ -294,17 +306,8 @@ bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
 
 Point GCodeExport::getGcodePos(const coord_t x, const coord_t y, const int extruder_train) const
 {
-    if (use_extruder_offset_to_offset_coords)
-    {
-        const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder_train].settings;
-        return Point(x - extruder_settings.get<coord_t>("machine_nozzle_offset_x"), y - extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
-    }
-    else
-    {
-        return Point(x, y);
-    }
+    return Point(x, y) - extruder_attr[extruder_train].nozzle_offset;
 }
-
 
 void GCodeExport::setFlavor(EGCodeFlavor flavor)
 {
@@ -383,8 +386,7 @@ void GCodeExport::setFilamentDiameter(const size_t extruder, const coord_t diame
 double GCodeExport::getCurrentExtrudedVolume() const
 {
     double extrusion_amount = current_e_value;
-    const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[current_extruder].settings;
-    if (! extruder_settings.get<bool>("machine_firmware_retract"))
+    if (! extruder_attr[current_extruder].machine_firmware_retract)
     { // no E values are changed to perform a retraction
         extrusion_amount -= extruder_attr[current_extruder].retraction_e_amount_at_e_start; // subtract the increment in E which was used for the first unretraction instead of extrusion
         extrusion_amount += extruder_attr[current_extruder].retraction_e_amount_current; // add the decrement in E which the filament is behind on extrusion due to the last retraction
@@ -832,8 +834,7 @@ void GCodeExport::writeUnretractionAndPrime()
     current_e_value += prime_volume_e;
     if (extruder_attr[current_extruder].retraction_e_amount_current)
     {
-        const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[current_extruder].settings;
-        if (extruder_settings.get<bool>("machine_firmware_retract"))
+        if (extruder_attr[current_extruder].machine_firmware_retract)
         { // note that BFB is handled differently
             *output_stream << "G11" << new_line;
             // Assume default UM2 retraction settings.
@@ -926,8 +927,7 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         }
     }
 
-    const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[current_extruder].settings;
-    if (extruder_settings.get<bool>("machine_firmware_retract"))
+    if (extruder_attr[current_extruder].machine_firmware_retract)
     {
         if (extruder_switch && extr_attr.retraction_e_amount_current)
         {
