@@ -1993,7 +1993,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 { // normal path to gcode algorithm
                     for (unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                     {
-                        double extrude_speed = speed * path.speed_back_pressure_factor;
+                        const double extrude_speed = speed * path.speed_back_pressure_factor;
                         communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), extrude_speed);
                         gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
                     }
