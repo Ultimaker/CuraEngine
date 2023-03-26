@@ -1937,7 +1937,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             // for some movements such as prime tower purge, the speed may get changed by this factor
             speed *= path.speed_factor;
 
-            //Extrusion flow rate limiting
+            // Extrusion flow rate limiting
             const double mm3_per_sec = path.getExtrusionMM3perMM() * speed;
             if (max_mm3_per_sec > 0 && mm3_per_sec > max_mm3_per_sec)
             {
