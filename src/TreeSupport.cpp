@@ -1971,7 +1971,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
             // (Check if) We either come from nowhere at the final layer or we had invalid parents 2. should never happen but just to be sure:
             if
             (
-                (layer_idx > 0 && ((!inverse_tree_order.count(elem) && elem->target_height == layer_idx) ||
+                (layer_idx > 0 && ((!inverse_tree_order.count(elem) && elem->target_height == layer_idx && config.min_dtt_to_model > 0 && !elem->to_buildplate) ||
                 (inverse_tree_order.count(elem) && inverse_tree_order[elem]->result_on_layer == Point(-1, -1))))
             )
             {
