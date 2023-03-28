@@ -1,4 +1,4 @@
-//  Copyright (c) 2022 Ultimaker B.V.
+//  Copyright (c) 2023 UltiMaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef GCODE_WRITER_H
@@ -35,7 +35,6 @@ class TimeKeeper;
  */
 class FffGcodeWriter : public NoCopy
 {
-    friend class Scene; // cause WireFrame2Gcode uses the member [gcode] (TODO)
     friend class FffProcessor; //Because FffProcessor exposes finalize (TODO)
 private:
     coord_t max_object_height; //!< The maximal height of all previously sliced meshgroups, used to avoid collision when moving to the next meshgroup to print.
