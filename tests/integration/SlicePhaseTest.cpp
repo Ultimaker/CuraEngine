@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "Application.h" // To set up a slice with settings.
 #include "Slice.h" // To set up a scene to slice.
@@ -44,6 +44,7 @@ class SlicePhaseTest : public testing::Test
         scene.settings.add("xy_offset", "0");
         scene.settings.add("xy_offset_layer_0", "0");
         scene.settings.add("hole_xy_offset", "0");
+        scene.settings.add("hole_xy_offset_max_diameter", "0");
         scene.settings.add("support_mesh", "false");
         scene.settings.add("anti_overhang_mesh", "false");
         scene.settings.add("cutting_mesh", "false");

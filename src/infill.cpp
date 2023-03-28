@@ -82,9 +82,49 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
 
     inner_contour = generateWallToolPaths(toolpaths, outer_contour, wall_line_count, infill_line_width, infill_overlap, settings);
 
-    // Apply a half-line-width offset if the pattern prints partly alongside the walls, to get an area that we can simply print the centreline alongside the edge.
-    // The lines along the edge must lie next to the border, not on it.
-    // This makes those algorithms a lot simpler.
+    // It does not make sense to print a pattern in a small region. So the infill region
+    // is split into a small region that will be filled with walls and the normal region
+    // that will be filled with the pattern. This split of regions is not needed if the
+    // infill pattern is concentric or if the small_area_width is zero.
+    if (pattern != EFillMethod::CONCENTRIC && small_area_width > 0)
+    {
+        // Split the infill region in a narrow region and the normal region.
+        Polygons small_infill = inner_contour;
+        inner_contour = inner_contour.offset(-small_area_width / 2).offset(small_area_width / 2);
+        small_infill = small_infill.difference(inner_contour);
+        small_infill = Simplify(max_resolution, max_deviation, 0).polygon(small_infill);
+
+        // Small corners of a bigger area should not be considered narrow and are therefore added to the bigger area again.
+        auto small_infill_parts = small_infill.splitIntoParts();
+        small_infill.clear();
+        for (const auto& small_infill_part : small_infill_parts)
+        {
+            if (
+                small_infill_part.offset(-infill_line_width / 2).offset(infill_line_width / 2).area() < infill_line_width * infill_line_width * 10
+                && ! inner_contour.intersection(small_infill_part.offset(infill_line_width / 4)).empty()
+            )
+            {
+                inner_contour.add(small_infill_part);
+            }
+            else
+            {
+                // the part must still be printed, so re-add it
+                small_infill.add(small_infill_part);
+            }
+        }
+        inner_contour.unionPolygons();
+
+        // Fill narrow area with walls.
+        const size_t narrow_wall_count = small_area_width / infill_line_width + 1;
+        WallToolPaths wall_toolpaths(small_infill, infill_line_width, narrow_wall_count, 0, settings);
+        std::vector<VariableWidthLines> small_infill_paths = wall_toolpaths.getToolPaths();
+        for (const auto& small_infill_path : small_infill_paths)
+        {
+            toolpaths.emplace_back(small_infill_path);
+        }
+    }
+
+    // apply an extra offset in case the pattern prints along the sides of the area.
     if (pattern == EFillMethod::ZIG_ZAG // Zig-zag prints the zags along the walls.
         || (zig_zaggify
             && (pattern == EFillMethod::LINES // Zig-zaggified infill patterns print their zags along the walls.
@@ -92,49 +132,9 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
                 || pattern == EFillMethod::GYROID || pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D))
         || infill_multiplier % 2 == 0) // Multiplied infill prints loops of infill, partly along the walls, if even. For odd multipliers >1 it gets offset by the multiply algorithm itself.
     {
-        // Get gaps beforehand (that are caused when the 1/2 line width inset is done after this):
-        // (Note that we give it a _full_ line width here, because unlike the old situation this can produce walls that are actually smaller than that.)
-        constexpr coord_t gap_wall_count = 1; // Only need one wall here, less even, in a sense.
-        constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
-        WallToolPaths wall_toolpaths(inner_contour, infill_line_width, gap_wall_count, wall_0_inset, settings);
-        std::vector<VariableWidthLines> gap_fill_paths = wall_toolpaths.getToolPaths();
-
-        // Add the gap filling to the toolpaths and make the new inner contour 'aware' of the gap infill:
-        // (Can't use getContours here, because only _some_ of the lines Arachne has generated are needed.)
-        Polygons gap_filled_areas;
-        for (const auto& var_width_line : gap_fill_paths)
-        {
-            VariableWidthLines thin_walls_only;
-            for (const auto& extrusion : var_width_line)
-            {
-                if (extrusion.is_odd && extrusion.inset_idx == 0)
-                {
-                    Polygon path;
-                    for (const auto& junction : extrusion.junctions)
-                    {
-                        path.add(junction.p);
-                    }
-                    if (path.polygonLength() >= infill_line_width * 4) // Don't fill gaps that are very small (with paths less than 2 line widths long, 4 back and forth).
-                    {
-                        gap_filled_areas.add(path);
-                        if (fill_gaps)
-                        {
-                            thin_walls_only.push_back(extrusion);
-                        }
-                    }
-                }
-            }
-            if (! thin_walls_only.empty())
-            {
-                toolpaths.push_back(thin_walls_only);
-            }
-        }
-        gap_filled_areas = gap_filled_areas.offsetPolyLine(infill_line_width / 2).unionPolygons();
-
-        // Now do the actual inset, to make place for the extra 'zig-zagify' lines:
-        inner_contour = inner_contour.difference(gap_filled_areas).offset(-infill_line_width / 2);
+        inner_contour = inner_contour.offset(-infill_line_width / 2);
+        inner_contour = Simplify(max_resolution, max_deviation, 0).polygon(inner_contour);
     }
-    inner_contour = Simplify(max_resolution, max_deviation, 0).polygon(inner_contour);
 
     if (infill_multiplier > 1)
     {

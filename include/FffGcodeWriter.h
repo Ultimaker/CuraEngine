@@ -1,4 +1,4 @@
-//  Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef GCODE_WRITER_H
@@ -35,7 +35,6 @@ class TimeKeeper;
  */
 class FffGcodeWriter : public NoCopy
 {
-    friend class Scene; // cause WireFrame2Gcode uses the member [gcode] (TODO)
     friend class FffProcessor; //Because FffProcessor exposes finalize (TODO)
 private:
     coord_t max_object_height; //!< The maximal height of all previously sliced meshgroups, used to avoid collision when moving to the next meshgroup to print.
@@ -264,8 +263,9 @@ private:
      * \param gcodeLayer The initial planning of the g-code of the layer.
      * \param extruder_nr The extruder train for which to process the skirt or
      * brim.
+     * \param layer_nr The index of the layer to write the gcode of.
      */
-    void processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcodeLayer, unsigned int extruder_nr) const;
+    void processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcodeLayer, unsigned int extruder_nr, LayerIndex layer_nr) const;
 
     /*!
      * Adds the ooze shield to the layer plan \p gcodeLayer.

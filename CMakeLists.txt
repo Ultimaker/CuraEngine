@@ -68,8 +68,6 @@ set(engine_SRCS # Except main.cpp.
         src/TreeModelVolumes.cpp
         src/TreeSupport.cpp
         src/WallsComputation.cpp
-        src/Weaver.cpp
-        src/Wireframe2gcode.cpp
         src/WallToolPaths.cpp
 
         src/BeadingStrategy/BeadingStrategy.cpp
