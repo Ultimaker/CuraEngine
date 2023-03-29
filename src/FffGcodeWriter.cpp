@@ -1622,23 +1622,29 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
     {
         return false;
     }
-    const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
-    const size_t max_infill_steps = mesh.settings.get<bool>("gradual_infill") ? mesh.settings.get<size_t>("gradual_infill_steps") : 0;
+    const auto infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
     if (infill_line_distance <= 0)
     {
         return false;
     }
-    coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
-    coord_t max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
-    AngleDegrees infill_angle = 45; // Original default. This will get updated to an element from mesh->infill_angles.
-    if (! mesh.infill_angles.empty())
+    const auto max_infill_steps = mesh.settings.get<size_t>("gradual_infill_steps");
+    constexpr auto getInfillAngle = [](const SliceMeshStorage& mesh, const LayerPlan& gcode_layer) -> AngleDegrees
     {
-        const size_t combined_infill_layers = std::max(uint64_t(1), round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<coord_t>("layer_height"), coord_t(1))));
-        infill_angle = mesh.infill_angles.at((gcode_layer.getLayerNr() / combined_infill_layers) % mesh.infill_angles.size());
-    }
+        AngleDegrees infill_angle { 45. }; // Original default. This will get updated to an element from mesh->infill_angles.
+        if (! mesh.infill_angles.empty())
+        {
+            const auto combined_infill_layers = std::max(1UL, round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<coord_t>("layer_height"), 1LL)));
+            infill_angle = mesh.infill_angles.at((gcode_layer.getLayerNr() / combined_infill_layers) % mesh.infill_angles.size());
+        }
+        return infill_angle;
+    };
+    const AngleDegrees infill_angle = getInfillAngle(mesh, gcode_layer);
+
     const Point3 mesh_middle = mesh.bounding_box.getMiddle();
     const Point infill_origin(mesh_middle.x + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y + mesh.settings.get<coord_t>("infill_offset_y"));
 
+    const auto max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
+    const auto max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
     // Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
     bool added_something = false;
     for (unsigned int combine_idx = 1; combine_idx < part.infill_area_per_combine_per_density[0].size(); combine_idx++)
