@@ -94,11 +94,11 @@ public:
         const bool connect_polygons = false;
         constexpr coord_t support_roof_overlap = 0;
         constexpr size_t infill_multiplier = 1;
-        constexpr coord_t outline_offset = 0;
         const int support_shift = roof ? 0 : support_infill_distance / 2;
         const size_t wall_line_count = include_walls ? (!roof ? config.support_wall_count : config.support_roof_wall_count):0;
         const Point infill_origin;
-        constexpr Polygons* perimeter_gaps = nullptr;
+        constexpr bool skip_stitching = false;
+        constexpr bool fill_gaps = true;
         constexpr bool use_endpieces = true;
         const bool connected_zigzags = roof ? false : config.connect_zigzags;
         const bool skip_some_zags = roof ? false : config.skip_some_zags;
@@ -128,7 +128,8 @@ public:
                 config.maximum_deviation,
                 wall_line_count,
                 infill_origin,
-                perimeter_gaps,
+                skip_stitching,
+                fill_gaps,
                 connected_zigzags,
                 use_endpieces,
                 skip_some_zags,
