@@ -59,16 +59,27 @@ public:
         {
             for (ExtrusionLine line : lines)
             {
+                if (line.size() == 0)
+                {
+                    continue;
+                }
                 Polygon result_line;
                 for (ExtrusionJunction junction : line)
                 {
                     result_line.add(junction.p);
                 }
+
+                if (line.is_closed)
+                {
+                    result_line.add(line[0].p);
+                }
+
                 result.add(result_line);
             }
         }
         return result;
     }
+
 
 
     /*!
