@@ -140,12 +140,11 @@ void PrimeTower::generatePaths_denseInfill(std::vector<coord_t> &cumulative_inse
             Polygons polygons = outer_poly.offset(-cumulative_inset - wall_nr * line_width - line_width / 2);
             pattern.polygons.add(polygons);
             current_volume += polygons.polygonLength() * line_width * layer_height * flow;
-
-            //Don't continue. We won't ever reach the required volume because it doesn't fit.
-            assert(!polygons.empty() && "Prime tower is not large enough to generate the required volume");
+            if(polygons.empty()) //Don't continue. We won't ever reach the required volume because it doesn't fit.
+            {
+                break;
+            }
         }
-        cumulative_inset += wall_nr * line_width;
-        cumulative_insets.push_back(cumulative_inset);
 
         //Only the most inside extruder needs to fill the inside of the prime tower
         if (extruder_nr != extruder_order.back() || method != PrimeTowerMethod::DEFAULT)
@@ -169,6 +168,7 @@ void PrimeTower::generatePaths_denseInfill(std::vector<coord_t> &cumulative_inse
             }
         }
         cumulative_inset += wall_nr * line_width;
+        cumulative_insets.push_back(cumulative_inset);
     }
 }
 
