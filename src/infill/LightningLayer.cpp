@@ -1,16 +1,16 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "LightningLayer.h" //The class we're implementing.
+#include "infill/LightningLayer.h" //The class we're implementing.
 
 #include <iterator> // advance
 
-#include "LightningDistanceField.h"
-#include "LightningTreeNode.h"
-#include "../sliceDataStorage.h"
-#include "../utils/linearAlg2D.h"
-#include "../utils/SVG.h"
-#include "../utils/SparsePointGridInclusive.h"
+#include "infill/LightningDistanceField.h"
+#include "infill/LightningTreeNode.h"
+#include "sliceDataStorage.h"
+#include "utils/linearAlg2D.h"
+#include "utils/SVG.h"
+#include "utils/SparsePointGridInclusive.h"
 
 using namespace cura;
 
@@ -260,16 +260,9 @@ Polygons LightningLayer::convertToLines(const Polygons& limit_to_outline, const 
 
     for (const auto& tree : tree_roots)
     {
-        // If even the furthest location in the tree is inside the polygon, the entire tree must be inside of the polygon.
-        // (Don't take the root as that may be on the edge and cause rounding errors to register as 'outside'.)
-        constexpr coord_t epsilon = 5;
-        Point should_be_inside = tree->getLocation();
-        PolygonUtils::moveInside(limit_to_outline, should_be_inside, epsilon, epsilon * epsilon);
-        if (limit_to_outline.inside(should_be_inside))
-        {
-            tree->convertToPolylines(result_lines, line_width);
-        }
+        tree->convertToPolylines(result_lines, line_width);
     }
+    result_lines = limit_to_outline.intersectionPolyLines(result_lines);
 
     return result_lines;
 }

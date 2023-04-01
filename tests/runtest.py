@@ -9,17 +9,15 @@
 # * Single random value
 # * All settings random
 
-import ast #For safe function evaluation.
-import math #For evaluating setting inheritance functions.
-import sys
-import subprocess
-import os
-import time
-import stat
 import argparse
-import random
+import ast  # For safe function evaluation.
 import json
+import os
+import random
+import subprocess
+import sys
 import threading
+import time
 from xml.etree import ElementTree
 
 
@@ -28,6 +26,7 @@ from xml.etree import ElementTree
 def extruderValueWrapper(_locals):
     def extruderValue(extruder_nr, parameter):
         return eval(parameter, globals(), _locals)
+
     return extruderValue
 
 
@@ -36,6 +35,7 @@ def extruderValueWrapper(_locals):
 def extruderValuesWrapper(_locals):
     def extruderValues(parameter):
         return [eval(parameter, globals(), _locals)]
+
     return extruderValues
 
 
@@ -44,6 +44,7 @@ def extruderValuesWrapper(_locals):
 def resolveOrValueWrapper(_locals):
     def resolveOrValue(parameter):
         return eval(parameter, globals(), _locals)
+
     return resolveOrValue
 
 
@@ -54,7 +55,7 @@ class TestSuite:
         self._name = name
         self._successes = []
         self._failures = []
-    
+
     ## Add a successful test result to the test suite.
     def success(self, class_name, test_name):
         self._successes.append((class_name, test_name))
@@ -81,7 +82,7 @@ class TestSuite:
 class TestResults:
     def __init__(self):
         self._testsuites = []
-    
+
     ## Create a new test suite with the name.
     def addTestSuite(self, name):
         suite = TestSuite(name)
@@ -99,7 +100,10 @@ class TestResults:
         xml = ElementTree.Element("testsuites")
         xml.text = "\n"
         for testsuite in self._testsuites:
-            testsuite_xml = ElementTree.SubElement(xml, "testsuite", {"name": testsuite._name, "errors": "0", "tests": str(testsuite.getTestCount()), "failures": str(testsuite.getFailureCount()), "time": "0", "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime())})
+            testsuite_xml = ElementTree.SubElement(xml, "testsuite",
+                                                   {"name": testsuite._name, "errors": "0", "tests": str(testsuite.getTestCount()),
+                                                    "failures": str(testsuite.getFailureCount()), "time": "0",
+                                                    "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime())})
             testsuite_xml.text = "\n"
             testsuite_xml.tail = "\n"
             for class_name, test_name in testsuite._successes:
@@ -129,7 +133,7 @@ class Setting:
     #   \param locals The local variables for eventual function evaluation.
     def __init__(self, key, data, locals):
         self._key = key
-        if "value" in data: #Evaluate "value" if we can, otherwise just take default_value.
+        if "value" in data:  # Evaluate "value" if we can, otherwise just take default_value.
             self._default = self._evaluateFunction(data.get("value", "0"), locals)
         else:
             self._default = data.get("default_value", 0)
@@ -177,7 +181,7 @@ class Setting:
                 # If the type is boolean, string or enum, the warning values make no sense anyway, so don't test them.
             if self._max_value_warning is not None:
                 ret.append(self._max_value_warning)
-            
+
             if self._type == "int":
                 for n in range(0, len(ret)):
                     ret[n] = int(ret[n])
@@ -187,7 +191,7 @@ class Setting:
         if self._type == "str":
             return [self._default]
         if self._type == "extruder":
-            return [self._default] # TODO: also allow for other values below machine_extruder_count
+            return [self._default]  # TODO: also allow for other values below machine_extruder_count
         if self._type == "polygon":
             return [self._default]
         if self._type == "polygons":
@@ -229,7 +233,7 @@ class Setting:
     #   by the setting names.
     #   \return The evaluated value of the setting, or None if \p code was None.
     def _evaluateFunction(self, code, locals):
-        if not code: #The input was None. This setting value doesn't exist in the JSON.
+        if not code:  # The input was None. This setting value doesn't exist in the JSON.
             return None
 
         try:
@@ -247,30 +251,31 @@ class Setting:
 
         return eval(compiled, globals(), locals)
 
+
 class EngineTest:
     def __init__(self, json_filename, engine_filename, models):
         self._json_filename = json_filename
         self._json = json.load(open(json_filename, "r"))
         self._locals = {}
-        self._addAllLocals() #Fills the _locals dictionary.
+        self._addAllLocals()  # Fills the _locals dictionary.
         self._addLocalsFunctions()  # Add mock functions used in fdmprinter
         self._engine = engine_filename
         self._models = models
         self._settings = {}
         self._test_results = TestResults()
-        
+
         self._flattenAllSettings()
 
     def _flattenAllSettings(self):
-        for key, data in self._json["settings"].items(): # top level settings are categories
-            self._flattenSettings(data["children"]) # actual settings are children of top level category-settings
-    
+        for key, data in self._json["settings"].items():  # top level settings are categories
+            self._flattenSettings(data["children"])  # actual settings are children of top level category-settings
+
     def _flattenSettings(self, settings):
-            for key, setting in settings.items():
-                if not ("type" in setting and setting["type"] == "category"):
-                    self._settings[key] = Setting(key, setting, self._locals)
-                if "children" in setting:
-                    self._flattenSettings(setting["children"])
+        for key, setting in settings.items():
+            if not ("type" in setting and setting["type"] == "category"):
+                self._settings[key] = Setting(key, setting, self._locals)
+            if "children" in setting:
+                self._flattenSettings(setting["children"])
 
     def testDefaults(self):
         suite = self._test_results.addTestSuite("Defaults")
@@ -283,7 +288,7 @@ class EngineTest:
             for value in setting.getSettingValues():
                 self._runTest(suite, key, {key: value})
         return suite.getFailureCount()
-    
+
     def testSingleRandom(self):
         suite = self._test_results.addTestSuite("SingleRandom")
         for key, setting in self._settings.items():
@@ -308,7 +313,7 @@ class EngineTest:
         return suite.getFailureCount()
 
     def _runTest(self, suite, class_name, settings):
-        test_name = ', '.join("{!s}={!r}".format(key, val) for (key,val) in settings.items())
+        test_name = ', '.join("{!s}={!r}".format(key, val) for (key, val) in settings.items())
         for model in self._models:
             this_test_name = '%s.%s' % (os.path.basename(model), test_name)
             cmd = [self._engine, "slice", "-j", self._json_filename, "-o", "/dev/null"]
@@ -334,10 +339,10 @@ class EngineTest:
         if p.wait() != 0:
             return "Execution failed: %s" % (' '.join(cmd))
         return None
-    
+
     def _abortProcess(self, p):
         for i in range(0, 60):
-            time.sleep(1) #Check every 1000ms if we need to abort the thread.
+            time.sleep(1)  # Check every 1000ms if we need to abort the thread.
             if p.aborting:
                 break
         if p.poll() is None:
@@ -351,8 +356,8 @@ class EngineTest:
     #
     #   The results are stored in self._locals, keyed by the setting name.
     def _addAllLocals(self):
-        for key, data in self._json["settings"].items(): # top level categories
-            self._addLocals(data["children"]) # the actual settings in each category
+        for key, data in self._json["settings"].items():  # top level categories
+            self._addLocals(data["children"])  # the actual settings in each category
 
     def _addLocalsFunctions(self):
         extruderValue = extruderValueWrapper(self._locals)
@@ -371,10 +376,10 @@ class EngineTest:
     #   \param settings The JSON node of which to add the default values.
     def _addLocals(self, settings):
         for key, setting in settings.items():
-            if not ("type" in setting and setting["type"] == "category"): # skip category-settings
+            if not ("type" in setting and setting["type"] == "category"):  # skip category-settings
                 self._locals[key] = setting["default_value"]
             if "children" in setting:
-                self._addLocals(setting["children"]) #Recursively go down the tree.
+                self._addLocals(setting["children"])  # Recursively go down the tree.
 
 
 def main(engine, model_path):
@@ -383,10 +388,11 @@ def main(engine, model_path):
     for filename in filenames:
         print("Slicing: %s (%d/%d)" % (filename, filenames.index(filename), len(filenames)))
         t = time.time()
-        p = subprocess.Popen([engine, "-vv", os.path.join(model_path, filename)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen([engine, "-vv", os.path.join(model_path, filename)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
         if p.wait() != 0:
-            print ("Engine failed to report success on test object: %s" % (filename))
+            print("Engine failed to report success on test object: %s" % (filename))
             print(stderr.decode("utf-8", "replace").split("\n")[-5:])
             sys.exit(1)
         else:

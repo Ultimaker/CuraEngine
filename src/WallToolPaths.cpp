@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <algorithm> //For std::partition_copy and std::min_element.
 #include <unordered_set>
@@ -11,6 +11,7 @@
 #include "utils/polygonUtils.h"
 #include "ExtruderTrain.h"
 #include "utils/PolylineStitcher.h"
+#include "utils/Simplify.h"
 
 namespace cura
 {
@@ -49,23 +50,30 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0
 
 const std::vector<VariableWidthLines>& WallToolPaths::generate()
 {
-    const coord_t smallest_segment = settings.get<coord_t>("meshfix_maximum_resolution");
     const coord_t allowed_distance = settings.get<coord_t>("meshfix_maximum_deviation");
+
+    // Sometimes small slivers of polygons mess up the prepared_outline. By performing an open-close operation
+    // with half the minimum printable feature size or minimum line width, these slivers are removed, while still
+    // keeping enough information to not degrade the print quality;
+    // These features can't be printed anyhow. See PR CuraEngine#1811 for some screenshots
+    const coord_t open_close_distance = settings.get<bool>("fill_outline_gaps") ? settings.get<coord_t>("min_feature_size") / 2 - 5 : settings.get<coord_t>("min_wall_line_width") / 2 - 5;
     const coord_t epsilon_offset = (allowed_distance / 2) - 1;
     const AngleRadians transitioning_angle = settings.get<AngleRadians>("wall_transition_angle");
     constexpr coord_t discretization_step_size = MM2INT(0.8);
 
     // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self intersections allowed:
     // TODO: Open question: Does this indeed fix all (or all-but-one-in-a-million) cases for manifold but otherwise possibly complex polygons?
-    Polygons prepared_outline = outline.offset(-epsilon_offset).offset(epsilon_offset * 2).offset(-epsilon_offset);
-    prepared_outline.simplify(smallest_segment, allowed_distance);
+    Polygons prepared_outline = outline.offset(-open_close_distance).offset(open_close_distance * 2).offset(-open_close_distance);
+    prepared_outline.removeSmallAreas(small_area_length * small_area_length, false);
+    prepared_outline = Simplify(settings).polygon(prepared_outline);
     PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
     prepared_outline.removeDegenerateVerts();
     prepared_outline.removeColinearEdges(AngleRadians(0.005));
     // Removing collinear edges may introduce self intersections, so we need to fix them again
     PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
     prepared_outline.removeDegenerateVerts();
-    prepared_outline.removeSmallAreas(small_area_length * small_area_length, false);
+    prepared_outline = prepared_outline.unionPolygons();
+    prepared_outline = Simplify(settings).polygon(prepared_outline);
 
     if (prepared_outline.area() <= 0)
     {
@@ -74,8 +82,17 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     }
 
     const coord_t wall_transition_length = settings.get<coord_t>("wall_transition_length");
-    const Ratio wall_split_middle_threshold = settings.get<Ratio>("wall_split_middle_threshold");  // For an uneven nr. of lines: When to split the middle wall into two.
-    const Ratio wall_add_middle_threshold = settings.get<Ratio>("wall_add_middle_threshold");      // For an even nr. of lines: When to add a new middle in between the innermost two walls.
+
+    // When to split the middle wall into two:
+    const double min_even_wall_line_width = settings.get<double>("min_even_wall_line_width");
+    const double wall_line_width_0 = settings.get<double>("wall_line_width_0");
+    const Ratio wall_split_middle_threshold = std::max(1.0, std::min(99.0, 100.0 * (2.0 * min_even_wall_line_width - wall_line_width_0) / wall_line_width_0)) / 100.0;
+
+    // When to add a new middle in between the innermost two walls:
+    const double min_odd_wall_line_width = settings.get<double>("min_odd_wall_line_width");
+    const double wall_line_width_x = settings.get<double>("wall_line_width_x");
+    const Ratio wall_add_middle_threshold = std::max(1.0, std::min(99.0, 100.0 * min_odd_wall_line_width / wall_line_width_x)) / 100.0;
+
     const int wall_distribution_count = settings.get<int>("wall_distribution_count");
     const size_t max_bead_count = (inset_count < std::numeric_limits<coord_t>::max() / 2) ? 2 * inset_count : std::numeric_limits<coord_t>::max();
     const auto beading_strat = BeadingStrategyFactory::makeStrategy
@@ -111,9 +128,9 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     
     removeSmallLines(toolpaths);
 
-    separateOutInnerContour();
-    
     simplifyToolPaths(toolpaths, settings);
+
+    separateOutInnerContour();
 
     removeEmptyToolPaths(toolpaths);
     assert(std::is_sorted(toolpaths.cbegin(), toolpaths.cend(),
@@ -181,14 +198,12 @@ void WallToolPaths::removeSmallLines(std::vector<VariableWidthLines>& toolpaths)
 
 void WallToolPaths::simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths, const Settings& settings)
 {
-    for (size_t toolpaths_idx = 0; toolpaths_idx < toolpaths.size(); ++toolpaths_idx)
+    const Simplify simplifier(settings);
+    for(size_t toolpaths_idx = 0; toolpaths_idx < toolpaths.size(); ++toolpaths_idx)
     {
-        const coord_t maximum_resolution = settings.get<coord_t>("meshfix_maximum_resolution");
-        const coord_t maximum_deviation = settings.get<coord_t>("meshfix_maximum_deviation");
-        const coord_t maximum_extrusion_area_deviation = settings.get<int>("meshfix_maximum_extrusion_area_deviation"); // unit: μm²
-        for (auto& line : toolpaths[toolpaths_idx])
+        for(ExtrusionLine& line : toolpaths[toolpaths_idx])
         {
-            line.simplify(maximum_resolution * maximum_resolution, maximum_deviation * maximum_deviation, maximum_extrusion_area_deviation);
+            line = line.is_closed ? simplifier.polygon(line) : simplifier.polyline(line);
         }
     }
 }

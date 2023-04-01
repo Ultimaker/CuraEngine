@@ -1,20 +1,19 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "ExtruderTrain.h"
-#include "sliceDataStorage.h"
 #include "WallsComputation.h"
-#include "settings/types/Ratio.h"
-#include "WallToolPaths.h"
-#include "utils/polygonUtils.h"
 #include "Application.h"
+#include "ExtruderTrain.h"
 #include "Slice.h"
+#include "WallToolPaths.h"
+#include "settings/types/Ratio.h"
+#include "sliceDataStorage.h"
+#include "utils/Simplify.h" // We're simplifying the spiralized insets.
 
-namespace cura {
+namespace cura
+{
 
-WallsComputation::WallsComputation(const Settings& settings, const LayerIndex layer_nr)
-: settings(settings)
-, layer_nr(layer_nr)
+WallsComputation::WallsComputation(const Settings& settings, const LayerIndex layer_nr) : settings(settings), layer_nr(layer_nr)
 {
 }
 
@@ -60,9 +59,9 @@ void WallsComputation::generateWalls(SliceLayerPart* part)
                 settings.get<bool>("support_enable") && !settings.get<bool>("fill_outline_gaps");
 
         generateSpiralInsets(part, line_width_0, wall_0_inset, recompute_outline_based_on_outer_wall);
-        if (layer_nr <= static_cast<LayerIndex>(settings.get<size_t>("bottom_layers")))
+        if (layer_nr <= static_cast<LayerIndex>(settings.get<size_t>("initial_bottom_layers")))
         {
-            WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, wall_count, settings);
+            WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, wall_count, wall_0_inset, settings);
             part->wall_toolpaths = wall_tool_paths.getToolPaths();
             part->inner_area = wall_tool_paths.getInnerContour();
         }
@@ -114,9 +113,7 @@ void WallsComputation::generateSpiralInsets(SliceLayerPart *part, coord_t line_w
 
     //Optimize the wall. This prevents buffer underruns in the printer firmware, and reduces processing time in CuraEngine.
     const ExtruderTrain& train_wall = settings.get<ExtruderTrain&>("wall_0_extruder_nr");
-    const coord_t maximum_resolution = train_wall.settings.get<coord_t>("meshfix_maximum_resolution");
-    const coord_t maximum_deviation = train_wall.settings.get<coord_t>("meshfix_maximum_deviation");
-    part->spiral_wall.simplify(maximum_resolution, maximum_deviation);
+    part->spiral_wall = Simplify(train_wall.settings).polygon(part->spiral_wall);
     part->spiral_wall.removeDegenerateVerts();
     if (recompute_outline_based_on_outer_wall)
     {

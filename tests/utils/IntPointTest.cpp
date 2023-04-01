@@ -1,13 +1,12 @@
-//Copyright (c) 2017 Tim Kuipers
-//Copyright (c) 2019 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "utils/IntPoint.h"
 #include <gtest/gtest.h>
-#include <../src/utils/IntPoint.h>
 
+// NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
-
 TEST(IntPointTest, TestRotationMatrix)
 {
     PointMatrix rot2d(90);
@@ -24,4 +23,11 @@ TEST(IntPointTest, TestRotationMatrix)
     ASSERT_EQ(rotated_in_place, rotated_in_place_2) << "Matrix composition with translate and rotate failed.";
 }
 
+TEST(IntPointTest, TestSize)
+{
+    ASSERT_EQ(sizeof(Point::X), sizeof(coord_t));
+    ASSERT_LE(sizeof(coord_t), sizeof(int64_t));
 }
+
+} // namespace cura
+// NOLINTEND(*-magic-numbers)

@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <limits>
 
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "gcodeExport.h"
@@ -15,13 +17,12 @@
 #include "Scene.h"
 #include "Slice.h"
 #include "sliceDataStorage.h"
-#include "utils/logoutput.h"
 
 #define CIRCLE_RESOLUTION 32 //The number of vertices in each circle.
 #define ARC_RESOLUTION 4 //The number of segments in each arc of a wheel
 
 
-namespace cura 
+namespace cura
 {
 
 PrimeTower::PrimeTower()
@@ -50,6 +51,7 @@ PrimeTower::PrimeTower()
     enabled = method != PrimeTowerMethod::NONE
            && scene.current_mesh_group->settings.get<coord_t>("prime_tower_min_volume") > 10
            && scene.current_mesh_group->settings.get<coord_t>("prime_tower_size") > 10;
+    would_have_actual_tower = enabled;  // Assume so for now.
 
     extruder_count = scene.extruders.size();
     extruder_order.resize(extruder_count);
@@ -68,34 +70,38 @@ PrimeTower::PrimeTower()
     #warning TBD take care of actual extruder order for optimized tower !
 }
 
+void PrimeTower::checkUsed(const SliceDataStorage& storage)
+{
+    std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
+    size_t used_extruder_count = 0;
+    for (bool is_used : extruder_is_used)
+    {
+        used_extruder_count += is_used;
+    }
+    if (used_extruder_count <= 1)
+    {
+        enabled = false;
+    }
+}
+
 void PrimeTower::generateGroundpoly()
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const coord_t tower_size = mesh_group_settings.get<coord_t>("prime_tower_size");
-    
-    const Settings& brim_extruder_settings = mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr").settings;
-    const bool has_raft = (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT);
-    const bool has_prime_brim = mesh_group_settings.get<bool>("prime_tower_brim_enable");
-    const coord_t offset = (has_raft || ! has_prime_brim) ? 0 :
-        brim_extruder_settings.get<size_t>("brim_line_count") *
-        brim_extruder_settings.get<coord_t>("skirt_brim_line_width") *
-        brim_extruder_settings.get<Ratio>("initial_layer_line_width_factor");
 
-    const coord_t x = mesh_group_settings.get<coord_t>("prime_tower_position_x") - offset;
-    const coord_t y = mesh_group_settings.get<coord_t>("prime_tower_position_y") - offset;
+    const coord_t x = mesh_group_settings.get<coord_t>("prime_tower_position_x");
+    const coord_t y = mesh_group_settings.get<coord_t>("prime_tower_position_y");
     const coord_t tower_radius = tower_size / 2;
     outer_poly.add(PolygonUtils::makeCircle(Point(x - tower_radius, y + tower_radius), tower_radius, TAU / CIRCLE_RESOLUTION));
     middle = Point(x - tower_size / 2, y + tower_size / 2);
 
     post_wipe_point = Point(x - tower_size / 2, y + tower_size / 2);
-
-    outer_poly_first_layer = outer_poly.offset(offset);
 }
 
 void PrimeTower::generatePaths(const SliceDataStorage& storage)
 {
-    enabled &= storage.max_print_height_second_to_last_extruder >= 0; //Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
-    if (enabled)
+    would_have_actual_tower = storage.max_print_height_second_to_last_extruder >= 0; //Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
+    if (would_have_actual_tower && enabled)
     {
         generateGroundpoly();
 
@@ -141,9 +147,9 @@ void PrimeTower::generatePaths_denseInfill(std::vector<coord_t> &cumulative_inse
         cumulative_inset += wall_nr * line_width;
         cumulative_insets.push_back(cumulative_inset);
 
-        if (multiple_extruders_on_first_layer || method != PrimeTowerMethod::DEFAULT)
+        //Only the most inside extruder needs to fill the inside of the prime tower
+        if (extruder_nr != extruder_order.back() || method != PrimeTowerMethod::DEFAULT)
         {
-            //With a raft there is no difference for the first layer (of the prime tower)
             pattern_per_extruder_layer0 = pattern_per_extruder;
         }
         else
@@ -155,13 +161,14 @@ void PrimeTower::generatePaths_denseInfill(std::vector<coord_t> &cumulative_inse
             // Generate a concentric infill pattern in the form insets for the prime tower's first layer instead of using
             // the infill pattern because the infill pattern tries to connect polygons in different insets which causes the
             // first layer of the prime tower to not stick well.
-            Polygons inset = outer_poly.offset(-line_width_layer0 / 2);
+            Polygons inset = outer_poly.offset(-cumulative_inset - line_width_layer0 / 2);
             while (!inset.empty())
             {
                 pattern_layer0.polygons.add(inset);
                 inset = inset.offset(-line_width_layer0);
             }
         }
+        cumulative_inset += wall_nr * line_width;
     }
 }
 
@@ -269,19 +276,19 @@ void PrimeTower::generateStartLocations()
 
 void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const std::vector<bool> &required_extruder_prime, const size_t prev_extruder, const size_t new_extruder) const
 {
-    if (!enabled)
+    if (! (enabled && would_have_actual_tower))
     {
         return;
     }
     #warning remove this
-    logAlways("add to gcode %d %d %d\n", static_cast<int>(gcode_layer.getLayerNr()), prev_extruder, new_extruder);
+    spdlog::debug("add to gcode {} {} {}\n", static_cast<int>(gcode_layer.getLayerNr()), prev_extruder, new_extruder);
     if (gcode_layer.getPrimeTowerIsPlanned(new_extruder))
     { // don't print the prime tower if it has been printed already with this extruder.
         return;
     }
 
     const LayerIndex layer_nr = gcode_layer.getLayerNr();
-    if (layer_nr > storage.max_print_height_second_to_last_extruder + 1)
+    if (layer_nr < 0 || layer_nr > storage.max_print_height_second_to_last_extruder + 1)
     {
         return;
     }
@@ -434,12 +441,12 @@ void PrimeTower::addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::v
             }
             else
             {
-                logWarning("Sparse pattern not found for extruder %d, skipping\n", current_extruder);
+                spdlog::warn("Sparse pattern not found for extruder {}, skipping\n", current_extruder);
             }
         }
         else
         {
-            logWarning("Sparse pattern not found for group %d, skipping\n", mask);
+            spdlog::warn("Sparse pattern not found for group {}, skipping\n", mask);
         }
     }
 }

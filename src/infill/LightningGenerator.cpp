@@ -1,14 +1,14 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "LightningGenerator.h"
-#include "LightningLayer.h"
-#include "LightningTreeNode.h"
+#include "infill/LightningGenerator.h"
+#include "infill/LightningLayer.h"
+#include "infill/LightningTreeNode.h"
 
-#include "../ExtruderTrain.h"
-#include "../sliceDataStorage.h"
-#include "../utils/linearAlg2D.h"
-#include "../utils/SparsePointGridInclusive.h"
+#include "ExtruderTrain.h"
+#include "sliceDataStorage.h"
+#include "utils/linearAlg2D.h"
+#include "utils/SparsePointGridInclusive.h"
 
 /* Possible future tasks/optimizations,etc.:
  * - Improve connecting heuristic to favor connecting to shorter trees

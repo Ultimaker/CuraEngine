@@ -1,5 +1,6 @@
-//Copyright (c) 2019 Ultimaker B.V.
-#include "ToolpathVisualizer.h"
+//Copyright (c) 2022 Ultimaker B.V.
+
+#include "utils/ToolpathVisualizer.h"
 
 #include <sstream>
 

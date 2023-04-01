@@ -1,26 +1,24 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include <range/v3/view/join.hpp>
+#include "InsetOrderOptimizer.h" //Unit also under test.
+#include "WallsComputation.h" //Unit under test.
+#include "settings/Settings.h" //Settings to generate walls with.
+#include "sliceDataStorage.h" //Sl
+#include "utils/polygon.h" //To create example polygons.
 #include <gtest/gtest.h>
 #include <unordered_set>
 
-#include "../src/settings/Settings.h" //Settings to generate walls with.
-#include "../src/utils/polygon.h" //To create example polygons.
-#include "../src/sliceDataStorage.h" //Sl
-#include "../src/WallsComputation.h" //Unit under test.
-#include "../src/InsetOrderOptimizer.h" //Unit also under test.
-
-#define WALLS_COMPUTATION_TEST_SVG_OUTPUT
 #ifdef WALLS_COMPUTATION_TEST_SVG_OUTPUT
-#include "../src/utils/polygon.h"
+#include "utils/SVG.h"
+#include "utils/polygon.h"
 #include <cstdlib>
-#include "../src/utils/SVG.h"
-#endif //WALLS_COMPUTATION_TEST_SVG_OUTPUT
+#endif // WALLS_COMPUTATION_TEST_SVG_OUTPUT
 
-
+// NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
-
 /*!
  * Fixture that provides a basis for testing wall computation.
  */
@@ -47,30 +45,25 @@ public:
      */
     Polygons ff_holes;
 
-    WallsComputationTest()
-    : walls_computation(settings, LayerIndex(100))
+    WallsComputationTest() : walls_computation(settings, LayerIndex(100))
     {
         square_shape.emplace_back();
         square_shape.back().emplace_back(0, 0);
-        square_shape.back().emplace_back(MM2INT(10), 0);
-        square_shape.back().emplace_back(MM2INT(10), MM2INT(10));
-        square_shape.back().emplace_back(0, MM2INT(10));
+        square_shape.back().emplace_back(MM2INT(20), 0);
+        square_shape.back().emplace_back(MM2INT(20), MM2INT(20));
+        square_shape.back().emplace_back(0, MM2INT(20));
 
         ff_holes.emplace_back();
         ff_holes.back().emplace_back(0, 0);
-        ff_holes.back().emplace_back(10000, 0);
-        ff_holes.back().emplace_back(10000, 5000);
+        ff_holes.back().emplace_back(5000, 0);
+        ff_holes.back().emplace_back(5000, 5000);
         ff_holes.back().emplace_back(0, 5000);
         ff_holes.emplace_back();
-        ff_holes.back().emplace_back(1000, 1000);
-        ff_holes.back().emplace_back(1000, 4000);
-        ff_holes.back().emplace_back(4000, 2500);
-        ff_holes.emplace_back();
-        ff_holes.back().emplace_back(6000, 1000);
-        ff_holes.back().emplace_back(6000, 4000);
-        ff_holes.back().emplace_back(9000, 2500);
-        
-        //Settings for a simple 2 walls, about as basic as possible.
+        ff_holes.back().emplace_back(6000, 9000);
+        ff_holes.back().emplace_back(9000, 7500);
+        ff_holes.back().emplace_back(6000, 6000);
+
+        // Settings for a simple 2 walls, about as basic as possible.
         settings.add("alternate_extra_perimeter", "false");
         settings.add("fill_outline_gaps", "false");
         settings.add("initial_layer_line_width_factor", "100");
@@ -78,6 +71,7 @@ public:
         settings.add("meshfix_maximum_deviation", "0.1");
         settings.add("meshfix_maximum_extrusion_area_deviation", "0.01");
         settings.add("meshfix_maximum_resolution", "0.01");
+        settings.add("min_wall_line_width", "0.3");
         settings.add("min_bead_width", "0");
         settings.add("min_feature_size", "0");
         settings.add("wall_0_extruder_nr", "0");
@@ -85,16 +79,15 @@ public:
         settings.add("wall_line_count", "2");
         settings.add("wall_line_width_0", "0.4");
         settings.add("wall_line_width_x", "0.4");
+        settings.add("min_even_wall_line_width", "0.34");
+        settings.add("min_odd_wall_line_width", "0.34");
         settings.add("wall_transition_angle", "10");
         settings.add("wall_transition_filter_distance", "1");
         settings.add("wall_transition_filter_deviation", ".2");
         settings.add("wall_transition_length", "1");
-        settings.add("wall_split_middle_threshold", "50");
-        settings.add("wall_add_middle_threshold", "50");
         settings.add("wall_x_extruder_nr", "0");
         settings.add("wall_distribution_count", "2");
     }
-
 };
 
 /*!
@@ -107,10 +100,10 @@ TEST_F(WallsComputationTest, GenerateWallsForLayerSinglePart)
     SliceLayerPart& part = layer.parts.back();
     part.outline.add(square_shape);
 
-    //Run the test.
+    // Run the test.
     walls_computation.generateWalls(&layer);
 
-    //Verify that something was generated.
+    // Verify that something was generated.
     EXPECT_FALSE(part.wall_toolpaths.empty()) << "There must be some walls.";
     EXPECT_GT(part.print_outline.area(), 0) << "The print outline must encompass the outer wall, so it must be more than 0.";
     EXPECT_LE(part.print_outline.area(), square_shape.area()) << "The print outline must stay within the bounds of the original part.";
@@ -129,10 +122,10 @@ TEST_F(WallsComputationTest, GenerateWallsZeroWalls)
     SliceLayerPart& part = layer.parts.back();
     part.outline.add(square_shape);
 
-    //Run the test.
+    // Run the test.
     walls_computation.generateWalls(&layer);
 
-    //Verify that there is still an inner area, outline and parts.
+    // Verify that there is still an inner area, outline and parts.
     EXPECT_EQ(part.inner_area.area(), square_shape.area()) << "There are no walls, so the inner area (for infill/skin) needs to be the entire part.";
     EXPECT_EQ(part.print_outline.area(), square_shape.area()) << "There are no walls, so the print outline encompasses the inner area exactly.";
     EXPECT_EQ(part.outline.area(), square_shape.area()) << "The outline is not modified.";
@@ -150,17 +143,18 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     SliceLayerPart& part = layer.parts.back();
     part.outline.add(ff_holes);
 
-    //Run the test.
+    // Run the test.
     walls_computation.generateWalls(&layer);
-    
-    const bool outer_to_inner = false;
-    std::vector<const ExtrusionLine*> all_paths;
-    for (auto& inset : part.wall_toolpaths)
-        for (auto& line : inset)
-            all_paths.emplace_back(&line);
-    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order = InsetOrderOptimizer::getRegionOrder(all_paths, outer_to_inner);
 
-    //Verify that something was generated.
+    const bool outer_to_inner = false;
+    std::vector<ExtrusionLine> all_paths;
+    for (auto& line : part.wall_toolpaths | ranges::views::join)
+    {
+        all_paths.emplace_back(line);
+    }
+    auto order = InsetOrderOptimizer::getRegionOrder(all_paths, outer_to_inner);
+
+    // Verify that something was generated.
     EXPECT_FALSE(part.wall_toolpaths.empty()) << "There must be some walls.";
     EXPECT_GT(part.print_outline.area(), 0) << "The print outline must encompass the outer wall, so it must be more than 0.";
     EXPECT_LE(part.print_outline.area(), ff_holes.area()) << "The print outline must stay within the bounds of the original part.";
@@ -188,7 +182,7 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
         svg.nextLayer();
         for (auto [first, second] : order)
         {
-            if ( ! second->is_odd)
+            if (! second->is_odd)
                 svg.writeArrow(first->front().p, (++second->begin())->p, SVG::Color::BLUE);
         }
         svg.nextLayer();
@@ -202,20 +196,24 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
 
     size_t n_paths = 0;
     for (auto& lines : part.wall_toolpaths)
+    {
         for (auto& line : lines)
-            if ( ! line.empty())
-                n_paths ++;
-
+        {
+            if (! line.empty())
+            {
+                n_paths++;
+            }
+        }
+    }
     EXPECT_GT(order.size(), 0) << "There should be ordered pairs!";
     std::unordered_set<const ExtrusionLine*> has_order_info(part.wall_toolpaths.size());
     for (auto [from, to] : order)
     {
-        EXPECT_FALSE(from->is_odd) << "Odd gap filler lines are never required to go before anything.";
         has_order_info.emplace(from);
         has_order_info.emplace(to);
     }
     EXPECT_EQ(has_order_info.size(), n_paths) << "Every path should have order information.";
-    
 }
 
-}
+} // namespace cura
+// NOLINTEND(*-magic-numbers)

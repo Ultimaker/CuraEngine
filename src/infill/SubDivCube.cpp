@@ -1,14 +1,14 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "SubDivCube.h"
+#include "infill/SubDivCube.h"
 
 #include <functional>
 
-#include "../sliceDataStorage.h"
-#include "../settings/types/Angle.h" //For the infill angle.
-#include "../utils/math.h"
-#include "../utils/polygonUtils.h"
+#include "sliceDataStorage.h"
+#include "settings/types/Angle.h" //For the infill angle.
+#include "utils/math.h"
+#include "utils/polygonUtils.h"
 
 #define ONE_OVER_SQRT_2 0.7071067811865475244008443621048490392848359376884740 //1 / sqrt(2)
 #define ONE_OVER_SQRT_3 0.577350269189625764509148780501957455647601751270126876018 //1 / sqrt(3)

@@ -1,15 +1,17 @@
-//Copyright (c) 2019 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "FffProcessor.h"
+#include "MockSocket.h" //To mock out the communication with the front-end.
+#include "communication/ArcusCommunicationPrivate.h" //To access the private fields of this communication class.
+#include "settings/types/LayerIndex.h"
+#include "utils/Coord_t.h"
+#include "utils/polygon.h" //Create test shapes to send over the socket.
 #include <google/protobuf/message.h>
 #include <gtest/gtest.h>
+#include <memory>
 
-#include "MockSocket.h" //To mock out the communication with the front-end.
-#include "../src/FffProcessor.h"
-#include "../src/communication/ArcusCommunicationPrivate.h" //To access the private fields of this communication class.
-#include "../src/settings/types/LayerIndex.h"
-#include "../src/utils/polygon.h" //Create test shapes to send over the socket.
-
+// NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
 
@@ -21,7 +23,6 @@ class ArcusCommunicationTest : public testing::Test
 {
 public:
     std::string ip;
-    uint16_t port;
     MockSocket* socket;
     ArcusCommunication* ac;
 
@@ -34,10 +35,9 @@ public:
 
     Polygons test_shapes; // all above polygons
 
-    void SetUp()
+    void SetUp() override
     {
         ip = "0.0.0.0";
-        port = 12345;
         socket = new MockSocket();
         ac = new ArcusCommunication();
         ac->setSocketMock(socket);
@@ -62,7 +62,7 @@ public:
 
         for (double a = 0; a < 1.0; a += .05)
         {
-            test_circle.add(Point(2050, 2050) + Point(std::cos(a * 2 * M_PI)*500, std::sin(a * 2 * M_PI)*500));
+            test_circle.add(Point(2050, 2050) + Point(std::cos(a * 2 * M_PI) * 500, std::sin(a * 2 * M_PI) * 500));
         }
         test_shapes.add(test_circle);
 
@@ -78,7 +78,7 @@ public:
         test_shapes.add(test_convex_shape);
     }
 
-    void TearDown()
+    void TearDown() override
     {
         delete ac;
         ac = nullptr;
@@ -87,16 +87,17 @@ public:
 
 TEST_F(ArcusCommunicationTest, FlushGCodeTest)
 {
-    //Before there is g-code, no messages should be sent if we were to flush.
+    // Before there is g-code, no messages should be sent if we were to flush.
     ac->flushGCode();
     ASSERT_TRUE(socket->sent_messages.empty());
 
-    //Input some 'g-code' to flush.
+    // Input some 'g-code' to flush.
+    // Multi-line to see flushing behaviour.
     const std::string test_gcode = "This Fibonacci joke is as bad as the last two you heard combined.\n"
-                                   "It's pretty cool how the Chinese made a language entirely out of tattoos."; //Multi-line to see flushing behaviour.
+                                   "It's pretty cool how the Chinese made a language entirely out of tattoos.";
     ac->private_data->gcode_output_stream.write(test_gcode.c_str(), test_gcode.size());
 
-    //Call the function we're testing. This time it should give us a message.
+    // Call the function we're testing. This time it should give us a message.
     ac->flushGCode();
 
     ASSERT_EQ(size_t(1), socket->sent_messages.size());
@@ -124,7 +125,7 @@ TEST_F(ArcusCommunicationTest, SendGCodePrefix)
     ac->flushGCode();
     EXPECT_GT(socket->sent_messages.size(), 0);
     bool found_prefix = false;
-    for (auto message : socket->sent_messages)
+    for (const auto& message : socket->sent_messages)
     {
         if (message->DebugString().find(prefix) != std::string::npos)
         {
@@ -155,11 +156,11 @@ TEST_F(ArcusCommunicationTest, SendLayerComplete)
 
 TEST_F(ArcusCommunicationTest, SendProgress)
 {
-    ac->private_data->object_count = 2; //If there are two objects, all progress should get halved.
+    ac->private_data->object_count = 2; // If there are two objects, all progress should get halved.
 
     ac->sendProgress(10);
     ASSERT_EQ(size_t(1), socket->sent_messages.size());
-    proto::Progress* message = dynamic_cast<proto::Progress*>(socket->sent_messages.back().get());
+    auto* message = dynamic_cast<proto::Progress*>(socket->sent_messages.back().get());
     EXPECT_EQ(float(5), message->amount());
 
     ac->sendProgress(50);
@@ -168,4 +169,5 @@ TEST_F(ArcusCommunicationTest, SendProgress)
     EXPECT_EQ(float(25), message->amount());
 }
 
-}
+} // namespace cura
+// NOLINTEND(*-magic-numbers)

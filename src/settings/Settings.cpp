@@ -1,53 +1,56 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <cctype>
 #include <fstream>
-#include <stdio.h>
-#include <sstream> // ostringstream
 #include <regex> // regex parsing for temp flow graph
+#include <sstream> // ostringstream
+#include <stdio.h>
 #include <string> //Parsing strings (stod, stoul).
 
-#include "EnumSettings.h"
-#include "FlowTempGraph.h"
-#include "Settings.h"
-#include "types/Angle.h"
-#include "types/Duration.h" //For duration and time settings.
-#include "types/LayerIndex.h" //For layer index settings.
-#include "types/Ratio.h" //For ratio settings and percentages.
-#include "types/Temperature.h" //For temperature settings.
-#include "types/Velocity.h" //For velocity settings.
-#include "../Application.h" //To get the extruders.
-#include "../ExtruderTrain.h"
-#include "../Slice.h"
-#include "../utils/FMatrix4x3.h"
-#include "../utils/logoutput.h"
-#include "../utils/string.h" //For Escaped.
-#include "../BeadingStrategy/BeadingStrategyFactory.h"
+#include <spdlog/spdlog.h>
+
+#include "Application.h" //To get the extruders.
+#include "BeadingStrategy/BeadingStrategyFactory.h"
+#include "ExtruderTrain.h"
+#include "Slice.h"
+#include "settings/EnumSettings.h"
+#include "settings/FlowTempGraph.h"
+#include "settings/Settings.h"
+#include "settings/types/Angle.h"
+#include "settings/types/Duration.h" //For duration and time settings.
+#include "settings/types/LayerIndex.h" //For layer index settings.
+#include "settings/types/Ratio.h" //For ratio settings and percentages.
+#include "settings/types/Temperature.h" //For temperature settings.
+#include "settings/types/Velocity.h" //For velocity settings.
+#include "utils/FMatrix4x3.h"
+#include "utils/string.h" //For Escaped.
+#include "utils/polygon.h"
 
 namespace cura
 {
 
 Settings::Settings()
 {
-    parent = nullptr; //Needs to be properly initialised because we check against this if the parent is not set.
+    parent = nullptr; // Needs to be properly initialised because we check against this if the parent is not set.
 }
 
 void Settings::add(const std::string& key, const std::string value)
 {
-    if (settings.find(key) != settings.end()) //Already exists.
+    if (settings.find(key) != settings.end()) // Already exists.
     {
         settings[key] = value;
     }
-    else //New setting.
+    else // New setting.
     {
         settings.emplace(key, value);
     }
 }
 
-template<> std::string Settings::get<std::string>(const std::string& key) const
+template<>
+std::string Settings::get<std::string>(const std::string& key) const
 {
-    //If this settings base has a setting value for it, look that up.
+    // If this settings base has a setting value for it, look that up.
     if (settings.find(key) != settings.end())
     {
         return settings.at(key);
@@ -64,26 +67,30 @@ template<> std::string Settings::get<std::string>(const std::string& key) const
         return parent->get<std::string>(key);
     }
 
-    logError("Trying to retrieve setting with no value given: '%s'\n", key.c_str());
+    spdlog::error("Trying to retrieve setting with no value given: {}", key);
     std::exit(2);
 }
 
-template<> double Settings::get<double>(const std::string& key) const
+template<>
+double Settings::get<double>(const std::string& key) const
 {
     return atof(get<std::string>(key).c_str());
 }
 
-template<> size_t Settings::get<size_t>(const std::string& key) const
+template<>
+size_t Settings::get<size_t>(const std::string& key) const
 {
     return std::stoul(get<std::string>(key).c_str());
 }
 
-template<> int Settings::get<int>(const std::string& key) const
+template<>
+int Settings::get<int>(const std::string& key) const
 {
     return atoi(get<std::string>(key).c_str());
 }
 
-template<> bool Settings::get<bool>(const std::string& key) const
+template<>
+bool Settings::get<bool>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
     if (value == "on" || value == "yes" || value == "true" || value == "True")
@@ -94,7 +101,8 @@ template<> bool Settings::get<bool>(const std::string& key) const
     return num != 0;
 }
 
-template<> ExtruderTrain& Settings::get<ExtruderTrain&>(const std::string& key) const
+template<>
+ExtruderTrain& Settings::get<ExtruderTrain&>(const std::string& key) const
 {
     int extruder_nr = std::atoi(get<std::string>(key).c_str());
     if (extruder_nr < 0)
@@ -104,67 +112,95 @@ template<> ExtruderTrain& Settings::get<ExtruderTrain&>(const std::string& key) 
     return Application::getInstance().current_slice->scene.extruders[extruder_nr];
 }
 
-template<> LayerIndex Settings::get<LayerIndex>(const std::string& key) const
+template<> std::vector<ExtruderTrain*> Settings::get<std::vector<ExtruderTrain*>>(const std::string& key) const
 {
-    return std::atoi(get<std::string>(key).c_str()) - 1; //For the user we display layer numbers starting from 1, but we start counting from 0. Still it may be negative for Raft layers.
+    int extruder_nr = std::atoi(get<std::string>(key).c_str());
+    std::vector<ExtruderTrain*> ret;
+    if (extruder_nr < 0)
+    {
+        for (ExtruderTrain& train : Application::getInstance().current_slice->scene.extruders)
+        {
+            ret.emplace_back(&train);
+        }
+    }
+    else
+    {
+        ret.emplace_back(&Application::getInstance().current_slice->scene.extruders[extruder_nr]);
+    }
+    return ret;
 }
 
-template<> coord_t Settings::get<coord_t>(const std::string& key) const
+template<>
+LayerIndex Settings::get<LayerIndex>(const std::string& key) const
 {
-    return MM2INT(get<double>(key)); //The settings are all in millimetres, but we need to interpret them as microns.
+    return std::atoi(get<std::string>(key).c_str()) - 1; // For the user we display layer numbers starting from 1, but we start counting from 0. Still it may be negative for Raft layers.
 }
 
-template<> AngleRadians Settings::get<AngleRadians>(const std::string& key) const
+template<>
+coord_t Settings::get<coord_t>(const std::string& key) const
 {
-    return get<double>(key) * M_PI / 180; //The settings are all in degrees, but we need to interpret them as radians.
+    return MM2INT(get<double>(key)); // The settings are all in millimetres, but we need to interpret them as microns.
 }
 
-template<> AngleDegrees Settings::get<AngleDegrees>(const std::string& key) const
+template<>
+AngleRadians Settings::get<AngleRadians>(const std::string& key) const
+{
+    return get<double>(key) * M_PI / 180; // The settings are all in degrees, but we need to interpret them as radians.
+}
+
+template<>
+AngleDegrees Settings::get<AngleDegrees>(const std::string& key) const
 {
     return get<double>(key);
 }
 
-template<> Temperature Settings::get<Temperature>(const std::string& key) const
+template<>
+Temperature Settings::get<Temperature>(const std::string& key) const
 {
     return get<double>(key);
 }
 
-template<> Velocity Settings::get<Velocity>(const std::string& key) const
+template<>
+Velocity Settings::get<Velocity>(const std::string& key) const
 {
     return get<double>(key);
 }
 
-template<> Ratio Settings::get<Ratio>(const std::string& key) const
+template<>
+Ratio Settings::get<Ratio>(const std::string& key) const
 {
-    return get<double>(key) / 100.0; //The settings are all in percentages, but we need to interpret them as radians.
+    return get<double>(key) / 100.0; // The settings are all in percentages, but we need to interpret them as radians.
 }
 
-template<> Duration Settings::get<Duration>(const std::string& key) const
+template<>
+Duration Settings::get<Duration>(const std::string& key) const
 {
     return get<double>(key);
 }
 
-template<> DraftShieldHeightLimitation Settings::get<DraftShieldHeightLimitation>(const std::string& key) const
+template<>
+DraftShieldHeightLimitation Settings::get<DraftShieldHeightLimitation>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
     if (value == "limited")
     {
         return DraftShieldHeightLimitation::LIMITED;
     }
-    else //if (value == "full") or default.
+    else // if (value == "full") or default.
     {
         return DraftShieldHeightLimitation::FULL;
     }
 }
 
-template<> FlowTempGraph Settings::get<FlowTempGraph>(const std::string& key) const
+template<>
+FlowTempGraph Settings::get<FlowTempGraph>(const std::string& key) const
 {
     std::string value_string = get<std::string>(key);
 
     FlowTempGraph result;
     if (value_string.empty())
     {
-        return result; //Empty at this point.
+        return result; // Empty at this point.
     }
     /* Match with:
      * - the last opening bracket '['
@@ -175,14 +211,14 @@ template<> FlowTempGraph Settings::get<FlowTempGraph>(const std::string& key) co
      */
     std::regex regex("(\\[([^,\\[]*),([^,\\]]*)\\])");
 
-    //Default constructor = end-of-sequence:
+    // Default constructor = end-of-sequence:
     std::regex_token_iterator<std::string::iterator> rend;
 
-    const int submatches[] = {1, 2, 3}; //Match whole pair, first number and second number of a pair.
+    const int submatches[] = { 1, 2, 3 }; // Match whole pair, first number and second number of a pair.
     std::regex_token_iterator<std::string::iterator> match_iter(value_string.begin(), value_string.end(), regex, submatches);
     while (match_iter != rend)
     {
-        match_iter++; //Match the whole pair.
+        match_iter++; // Match the whole pair.
         if (match_iter == rend)
         {
             break;
@@ -197,39 +233,102 @@ template<> FlowTempGraph Settings::get<FlowTempGraph>(const std::string& key) co
         }
         catch (const std::invalid_argument& e)
         {
-            logError("Couldn't read 2D graph element [%s,%s] in setting '%s'. Ignored.\n", first_substring.c_str(), second_substring.c_str(), key.c_str());
+            spdlog::error("Couldn't read 2D graph element [{},{}] in setting {}. Ignored.", first_substring, second_substring, key);
         }
     }
 
     return result;
 }
 
-template<> FMatrix4x3 Settings::get<FMatrix4x3>(const std::string& key) const
+template<> Polygons Settings::get<Polygons>(const std::string& key) const
+{
+    std::string value_string = get<std::string>(key);
+
+    Polygons result;
+    if (value_string.empty())
+    {
+        return result; //Empty at this point.
+    }
+    /* We're looking to match one or more floating point values separated by
+     * commas and surrounded by square brackets. Note that because the QML
+     * RegExpValidator only stops unrecognised characters being input and
+     * doesn't actually barf if the trailing ']' is missing, we are lenient here
+     * and make that bracket optional.
+     */
+    std::regex polygons_regex(R"(\[(.*)\]?)");
+    std::smatch polygons_match;
+    if (std::regex_search(value_string, polygons_match, polygons_regex) && polygons_match.size() > 1)
+    {
+        std::string polygons_string = polygons_match.str(1);
+        
+        std::regex polygon_regex(R"(\[((\[[^\[\]]*\]\s*,?\s*)*)\]\s*,?)"); // matches with a list of lists (a list of 2D vertices)
+        std::smatch polygon_match;
+        
+        std::regex_token_iterator<std::string::iterator> rend; //Default constructor gets the end-of-sequence iterator.
+        std::regex_token_iterator<std::string::iterator> polygon_match_iter(polygons_string.begin(), polygons_string.end(), polygon_regex, 0);
+        while (polygon_match_iter != rend)
+        {
+            std::string polygon_str = *polygon_match_iter++;
+            
+            result.emplace_back();
+            PolygonRef poly = result.back();
+
+            std::regex point2D_regex(R"(\[([^,\[]*),([^,\]]*)\])"); // matches to a list of exactly two things
+
+            const int submatches[] = {1, 2}; // Match first number and second number of a pair.
+            std::regex_token_iterator<std::string::iterator> match_iter(polygon_str.begin(), polygon_str.end(), point2D_regex, submatches);
+            while (match_iter != rend)
+            {
+                std::string first_substring = *match_iter++;
+                std::string second_substring = *match_iter++;
+                try
+                {
+                    double first = std::stod(first_substring);
+                    double second = std::stod(second_substring);
+                    poly.emplace_back(MM2INT(first), MM2INT(second));
+                }
+                catch (const std::invalid_argument& e)
+                {
+                    spdlog::error("Couldn't read 2D graph element [{},{}] in setting '{}'. Ignored.\n", first_substring.c_str(), second_substring.c_str(), key.c_str());
+                }
+                if (match_iter == rend)
+                {
+                    break;
+                }
+            }
+        }
+    }
+    return result;
+}
+
+template<>
+FMatrix4x3 Settings::get<FMatrix4x3>(const std::string& key) const
 {
     const std::string value_string = get<std::string>(key);
 
     FMatrix4x3 result;
     if (value_string.empty())
     {
-        return result; //Standard matrix ([[1,0,0], [0,1,0], [0,0,1]]).
+        return result; // Standard matrix ([[1,0,0], [0,1,0], [0,0,1]]).
     }
 
-    std::string num("([^,\\] ]*)"); //Match with anything but the next ',' ']' or space and capture the match.
-    std::ostringstream row; //Match with "[num,num,num]" and ignore whitespace.
+    std::string num("([^,\\] ]*)"); // Match with anything but the next ',' ']' or space and capture the match.
+    std::ostringstream row; // Match with "[num,num,num]" and ignore whitespace.
     row << "\\s*\\[\\s*" << num << "\\s*,\\s*" << num << "\\s*,\\s*" << num << "\\s*\\]\\s*";
-    std::ostringstream matrix; //Match with "[row,row,row]" and ignore whitespace.
+    std::ostringstream matrix; // Match with "[row,row,row]" and ignore whitespace.
     matrix << "\\s*\\[\\s*" << row.str() << "\\s*,\\s*" << row.str() << "\\s*,\\s*" << row.str() << "\\]\\s*";
 
     std::regex point_matrix_regex(matrix.str());
-    std::cmatch sub_matches; //Same as std::match_results<const char*> cm;
+    std::cmatch sub_matches; // Same as std::match_results<const char*> cm;
     std::regex_match(value_string.c_str(), sub_matches, point_matrix_regex);
-    if (sub_matches.size() != 10) //One match for the whole string, nine for the cells.
+    if (sub_matches.size() != 10) // One match for the whole string, nine for the cells.
     {
-        logWarning("Mesh transformation matrix could not be parsed!\n\tFormat should be [[f,f,f], [f,f,f], [f,f,f]] allowing whitespace anywhere in between.\n\tWhile what was given was \"%s\".\n", value_string.c_str());
-        return result; //Standard matrix ([[1,0,0], [0,1,0], [0,0,1]]).
+        spdlog::warn("Mesh transformation matrix could not be parsed!");
+        spdlog::debug("Format should be [[f,f,f], [f,f,f], [f,f,f]] allowing whitespace anywhere in between. While what was given was {}", value_string);
+        return result; // Standard matrix ([[1,0,0], [0,1,0], [0,0,1]]).
     }
 
-    size_t sub_match_index = 1; //Skip the first because the first submatch is the whole string.
+    size_t sub_match_index = 1; // Skip the first because the first submatch is the whole string.
     for (size_t x = 0; x < 3; x++)
     {
         for (size_t y = 0; y < 3; y++)
@@ -243,10 +342,11 @@ template<> FMatrix4x3 Settings::get<FMatrix4x3>(const std::string& key) const
     return result;
 }
 
-template<> EGCodeFlavor Settings::get<EGCodeFlavor>(const std::string& key) const
+template<>
+EGCodeFlavor Settings::get<EGCodeFlavor>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    //I wish that switch statements worked for std::string...
+    // I wish that switch statements worked for std::string...
     if (value == "Griffin")
     {
         return EGCodeFlavor::GRIFFIN;
@@ -279,11 +379,12 @@ template<> EGCodeFlavor Settings::get<EGCodeFlavor>(const std::string& key) cons
     {
         return EGCodeFlavor::REPRAP;
     }
-    //Default:
+    // Default:
     return EGCodeFlavor::MARLIN;
 }
 
-template<> EFillMethod Settings::get<EFillMethod>(const std::string& key) const
+template<>
+EFillMethod Settings::get<EFillMethod>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
     if (value == "lines")
@@ -342,13 +443,14 @@ template<> EFillMethod Settings::get<EFillMethod>(const std::string& key) const
     {
         return EFillMethod::LIGHTNING;
     }
-    else //Default.
+    else // Default.
     {
         return EFillMethod::NONE;
     }
 }
 
-template<> EPlatformAdhesion Settings::get<EPlatformAdhesion>(const std::string& key) const
+template<>
+EPlatformAdhesion Settings::get<EPlatformAdhesion>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
     if (value == "brim")
@@ -363,13 +465,14 @@ template<> EPlatformAdhesion Settings::get<EPlatformAdhesion>(const std::string&
     {
         return EPlatformAdhesion::NONE;
     }
-    else //Default.
+    else // Default.
     {
         return EPlatformAdhesion::SKIRT;
     }
 }
 
-template<> ESupportType Settings::get<ESupportType>(const std::string& key) const
+template<>
+ESupportType Settings::get<ESupportType>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
     if (value == "everywhere")
@@ -380,13 +483,14 @@ template<> ESupportType Settings::get<ESupportType>(const std::string& key) cons
     {
         return ESupportType::PLATFORM_ONLY;
     }
-    else //Default.
+    else // Default.
     {
         return ESupportType::NONE;
     }
 }
 
-template<> ESupportStructure Settings::get<ESupportStructure>(const std::string& key) const
+template<>
+ESupportStructure Settings::get<ESupportStructure>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
     if (value == "normal")
@@ -397,21 +501,22 @@ template<> ESupportStructure Settings::get<ESupportStructure>(const std::string&
     {
         return ESupportStructure::TREE;
     }
-    else //Default.
+    else // Default.
     {
         return ESupportStructure::NORMAL;
     }
 }
 
 
-template<> EZSeamType Settings::get<EZSeamType>(const std::string& key) const
+template<>
+EZSeamType Settings::get<EZSeamType>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
     if (value == "random")
     {
         return EZSeamType::RANDOM;
     }
-    else if (value == "back") //It's called 'back' internally because originally this was intended to allow the user to put the seam in the back of the object where it's less visible.
+    else if (value == "back") // It's called 'back' internally because originally this was intended to allow the user to put the seam in the back of the object where it's less visible.
     {
         return EZSeamType::USER_SPECIFIED;
     }
@@ -419,13 +524,14 @@ template<> EZSeamType Settings::get<EZSeamType>(const std::string& key) const
     {
         return EZSeamType::SHARPEST_CORNER;
     }
-    else //Default.
+    else // Default.
     {
         return EZSeamType::SHORTEST;
     }
 }
 
-template<> EZSeamCornerPrefType Settings::get<EZSeamCornerPrefType>(const std::string& key) const
+template<>
+EZSeamCornerPrefType Settings::get<EZSeamCornerPrefType>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
     if (value == "z_seam_corner_inner")
@@ -444,13 +550,14 @@ template<> EZSeamCornerPrefType Settings::get<EZSeamCornerPrefType>(const std::s
     {
         return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED;
     }
-    else //Default.
+    else // Default.
     {
         return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE;
     }
 }
 
-template<> ESurfaceMode Settings::get<ESurfaceMode>(const std::string& key) const
+template<>
+ESurfaceMode Settings::get<ESurfaceMode>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
     if (value == "surface")
@@ -461,37 +568,40 @@ template<> ESurfaceMode Settings::get<ESurfaceMode>(const std::string& key) cons
     {
         return ESurfaceMode::BOTH;
     }
-    else //Default.
+    else // Default.
     {
         return ESurfaceMode::NORMAL;
     }
 }
 
-template<> FillPerimeterGapMode Settings::get<FillPerimeterGapMode>(const std::string& key) const
+template<>
+FillPerimeterGapMode Settings::get<FillPerimeterGapMode>(const std::string& key) const
 {
     if (get<std::string>(key) == "everywhere")
     {
         return FillPerimeterGapMode::EVERYWHERE;
     }
-    else //Default.
+    else // Default.
     {
         return FillPerimeterGapMode::NOWHERE;
     }
 }
 
-template<> BuildPlateShape Settings::get<BuildPlateShape>(const std::string& key) const
+template<>
+BuildPlateShape Settings::get<BuildPlateShape>(const std::string& key) const
 {
     if (get<std::string>(key) == "elliptic")
     {
         return BuildPlateShape::ELLIPTIC;
     }
-    else //Default.
+    else // Default.
     {
         return BuildPlateShape::RECTANGULAR;
     }
 }
 
-template<> CombingMode Settings::get<CombingMode>(const std::string& key) const
+template<>
+CombingMode Settings::get<CombingMode>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
     if (value == "off")
@@ -510,25 +620,27 @@ template<> CombingMode Settings::get<CombingMode>(const std::string& key) const
     {
         return CombingMode::INFILL;
     }
-    else //Default.
+    else // Default.
     {
         return CombingMode::ALL;
     }
 }
 
-template<> SupportDistPriority Settings::get<SupportDistPriority>(const std::string& key) const
+template<>
+SupportDistPriority Settings::get<SupportDistPriority>(const std::string& key) const
 {
     if (get<std::string>(key) == "z_overrides_xy")
     {
         return SupportDistPriority::Z_OVERRIDES_XY;
     }
-    else //Default.
+    else // Default.
     {
         return SupportDistPriority::XY_OVERRIDES_Z;
     }
 }
 
-template<> SlicingTolerance Settings::get<SlicingTolerance>(const std::string& key) const
+template<>
+SlicingTolerance Settings::get<SlicingTolerance>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
     if (value == "inclusive")
@@ -539,26 +651,28 @@ template<> SlicingTolerance Settings::get<SlicingTolerance>(const std::string& k
     {
         return SlicingTolerance::EXCLUSIVE;
     }
-    else //Default.
+    else // Default.
     {
         return SlicingTolerance::MIDDLE;
     }
 }
 
-template<> InsetDirection Settings::get<InsetDirection>(const std::string& key) const
+template<>
+InsetDirection Settings::get<InsetDirection>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    if(value == "outside_in")
+    if (value == "outside_in")
     {
         return InsetDirection::OUTSIDE_IN;
     }
-    else //Default.
+    else // Default.
     {
         return InsetDirection::INSIDE_OUT;
     }
 }
 
-template<> PrimeTowerMethod Settings::get<PrimeTowerMethod>(const std::string& key) const
+template<>
+PrimeTowerMethod Settings::get<PrimeTowerMethod>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
     if(value == "default")
@@ -579,7 +693,8 @@ template<> PrimeTowerMethod Settings::get<PrimeTowerMethod>(const std::string& k
     }
 }
 
-template<> std::vector<double> Settings::get<std::vector<double>>(const std::string& key) const
+template<>
+std::vector<double> Settings::get<std::vector<double>>(const std::string& key) const
 {
     const std::string& value_string = get<std::string>(key);
 
@@ -601,7 +716,7 @@ template<> std::vector<double> Settings::get<std::vector<double>>(const std::str
     {
         std::string elements = list_contents_match.str(1);
         std::regex element_regex(R"(\s*([+-]?[0-9]*\.?[0-9]+)\s*,?)");
-        std::regex_token_iterator<std::string::iterator> rend; //Default constructor gets the end-of-sequence iterator.
+        std::regex_token_iterator<std::string::iterator> rend; // Default constructor gets the end-of-sequence iterator.
 
         std::regex_token_iterator<std::string::iterator> match_iter(elements.begin(), elements.end(), element_regex, 0);
         while (match_iter != rend)
@@ -613,29 +728,31 @@ template<> std::vector<double> Settings::get<std::vector<double>>(const std::str
             }
             catch (const std::invalid_argument& e)
             {
-                logError("Couldn't read floating point value (%s) in setting '%s'. Ignored.\n", value.c_str(), key.c_str());
+                spdlog::error("Couldn't read floating point value ({}) in setting {}. Ignored.", value, key);
             }
         }
     }
     return result;
 }
 
-template<> std::vector<int> Settings::get<std::vector<int>>(const std::string& key) const
+template<>
+std::vector<int> Settings::get<std::vector<int>>(const std::string& key) const
 {
     std::vector<double> values_doubles = get<std::vector<double>>(key);
     std::vector<int> values_ints;
     values_ints.reserve(values_doubles.size());
     for (double value : values_doubles)
     {
-        values_ints.push_back(std::round(value)); //Round to nearest integer.
+        values_ints.push_back(std::round(value)); // Round to nearest integer.
     }
     return values_ints;
 }
 
-template<> std::vector<AngleDegrees> Settings::get<std::vector<AngleDegrees>>(const std::string& key) const
+template<>
+std::vector<AngleDegrees> Settings::get<std::vector<AngleDegrees>>(const std::string& key) const
 {
     std::vector<double> values_doubles = get<std::vector<double>>(key);
-    return std::vector<AngleDegrees>(values_doubles.begin(), values_doubles.end()); //Cast them to AngleDegrees.
+    return std::vector<AngleDegrees>(values_doubles.begin(), values_doubles.end()); // Cast them to AngleDegrees.
 }
 
 const std::string Settings::getAllSettingsString() const
@@ -644,7 +761,7 @@ const std::string Settings::getAllSettingsString() const
     for (const std::pair<std::string, std::string> pair : settings)
     {
         char buffer[4096];
-        snprintf(buffer, 4096, " -s %s=\"%s\"", pair.first.c_str(), Escaped{pair.second.c_str()}.str);
+        snprintf(buffer, 4096, " -s %s=\"%s\"", pair.first.c_str(), Escaped{ pair.second.c_str() }.str);
         sstream << buffer;
     }
     return sstream.str();
@@ -672,10 +789,9 @@ std::string Settings::getWithoutLimiting(const std::string& key) const
     }
     else
     {
-        logError("Trying to retrieve setting with no value given: '%s'\n", key.c_str());
+        spdlog::error("Trying to retrieve setting with no value given: {}", key);
         std::exit(2);
     }
 }
 
-}//namespace cura
-
+} // namespace cura
