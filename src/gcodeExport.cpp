@@ -226,6 +226,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         break;
     default:
         prefix << ";FLAVOR:" << flavorToString(flavor) << new_line;
+        prefix << ";TARGET_MACHINE.NAME:" << transliterate(machine_name) << new_line;
         prefix << ";TIME:" << ((print_time) ? static_cast<int>(*print_time) : 6666) << new_line;
         if (flavor == EGCodeFlavor::ULTIGCODE)
         {

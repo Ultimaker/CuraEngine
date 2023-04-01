@@ -330,7 +330,7 @@ TEST_F(GCodeExportTest, HeaderUltiGCode)
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
     EXPECT_EQ(result,
-              ";FLAVOR:UltiGCode\n;TIME:1337\n;MATERIAL:100\n;MATERIAL2:200\n;NOZZLE_DIAMETER:0.4\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;"
+              ";FLAVOR:UltiGCode\n;TARGET_MACHINE.NAME:Your favourite 3D printer\n;TIME:1337\n;MATERIAL:100\n;MATERIAL2:200\n;NOZZLE_DIAMETER:0.4\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;"
               "MAXY:1\n;MAXZ:1\n");
 }
 
@@ -349,7 +349,7 @@ TEST_F(GCodeExportTest, HeaderRepRap)
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
     EXPECT_EQ(result,
-              ";FLAVOR:RepRap\n;TIME:1337\n;Filament used: 0.02m, 0.05m\n;Layer height: "
+              ";FLAVOR:RepRap\n;TARGET_MACHINE.NAME:Your favourite 3D printer\n;TIME:1337\n;Filament used: 0.02m, 0.05m\n;Layer height: "
               "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n");
 }
 
@@ -368,7 +368,7 @@ TEST_F(GCodeExportTest, HeaderMarlin)
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
     EXPECT_EQ(result,
-              ";FLAVOR:Marlin\n;TIME:1337\n;Filament used: 0.02m, 0.05m\n;Layer height: "
+              ";FLAVOR:Marlin\n;TARGET_MACHINE.NAME:Your favourite 3D printer\n;TIME:1337\n;Filament used: 0.02m, 0.05m\n;Layer height: "
               "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n");
 }
 
@@ -385,7 +385,7 @@ TEST_F(GCodeExportTest, HeaderMarlinVolumetric)
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
     EXPECT_EQ(result,
-              ";FLAVOR:Marlin(Volumetric)\n;TIME:1337\n;Filament used: 100mm3, 200mm3\n;Layer height: "
+              ";FLAVOR:Marlin(Volumetric)\n;TARGET_MACHINE.NAME:Your favourite 3D printer\n;TIME:1337\n;Filament used: 100mm3, 200mm3\n;Layer height: "
               "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n");
 }
 
