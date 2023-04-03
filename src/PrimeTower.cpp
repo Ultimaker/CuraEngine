@@ -322,6 +322,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
             break;
 
         case PrimeTowerMethod::OPTIMIZED:
+        case PrimeTowerMethod::OPTIMIZED_CONSISTENT:
             if(required_extruder_prime[new_extruder])
             {
                 // Extruder really needs to be prime
