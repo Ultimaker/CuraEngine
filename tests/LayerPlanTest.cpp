@@ -6,8 +6,8 @@
 #include "RetractionConfig.h" //To provide retraction settings.
 #include "Slice.h" //To provide settings for the layer plan.
 #include "pathPlanning/Comb.h" //To create a combing path around the layer plan.
-#include "sliceDataStorage.h" //To provide slice data as input for the planning stage.
 #include "pathPlanning/NozzleTempInsert.h" //To provide nozzle temperature commands.
+#include "sliceDataStorage.h" //To provide slice data as input for the planning stage.
 #include "utils/Coord_t.h"
 #include <gtest/gtest.h>
 
@@ -119,7 +119,7 @@ public:
         settings->add("machine_width", "1000");
         settings->add("material_flow_layer_0", "100");
         settings->add("meshfix_maximum_travel_resolution", "0");
-        settings->add("prime_tower_enable", "true");
+        settings->add("prime_tower_mode", "default");
         settings->add("prime_tower_flow", "108");
         settings->add("prime_tower_line_width", "0.48");
         settings->add("prime_tower_min_volume", "10");
@@ -385,14 +385,13 @@ public:
         layer_plan.comb_boundary_preferred = slice_data; // We don't care about the combing accuracy itself, so just use the same for both.
         if (parameters.combing != "off")
         {
-            layer_plan.comb = new Comb(
-                *storage,
-                100, // layer_nr
-                layer_plan.comb_boundary_minimum,
-                layer_plan.comb_boundary_preferred,
-                20, // comb_boundary_offset
-                5000, // travel_avoid_distance
-                10 // comb_move_inside_distance
+            layer_plan.comb = new Comb(*storage,
+                                       100, // layer_nr
+                                       layer_plan.comb_boundary_minimum,
+                                       layer_plan.comb_boundary_preferred,
+                                       20, // comb_boundary_offset
+                                       5000, // travel_avoid_distance
+                                       10 // comb_move_inside_distance
             );
         }
         else
@@ -553,13 +552,10 @@ TEST_P(AddTravelTest, NoUnretractBeforeLastTravelMoveIfNoPriorRetraction)
 
 TEST(NozzleTempInsertTest, SortNozzleTempInsterts)
 {
-    std::vector<NozzleTempInsert> nozzle_temp_inserts {
-        { .path_idx = 1, .extruder = 1, .temperature = 100., .wait = true },
-        { .path_idx = 2, .extruder = 1, .temperature = 110., .wait = false, .time_after_path_start = 2. },
-        { .path_idx = 1, .extruder = 1, .temperature = 120., .wait = true },
-        { .path_idx = 5, .extruder = 1, .temperature = 130., .wait = false, .time_after_path_start = 1. },
-        { .path_idx = 5, .extruder = 1, .temperature = 140., .wait = true },
-        { .path_idx = 2, .extruder = 1, .temperature = 150., .wait = false, .time_after_path_start = 1. },
+    std::vector<NozzleTempInsert> nozzle_temp_inserts{
+        { .path_idx = 1, .extruder = 1, .temperature = 100., .wait = true }, { .path_idx = 2, .extruder = 1, .temperature = 110., .wait = false, .time_after_path_start = 2. },
+        { .path_idx = 1, .extruder = 1, .temperature = 120., .wait = true }, { .path_idx = 5, .extruder = 1, .temperature = 130., .wait = false, .time_after_path_start = 1. },
+        { .path_idx = 5, .extruder = 1, .temperature = 140., .wait = true }, { .path_idx = 2, .extruder = 1, .temperature = 150., .wait = false, .time_after_path_start = 1. },
     };
     std::sort(nozzle_temp_inserts.begin(), nozzle_temp_inserts.end());
     EXPECT_EQ(nozzle_temp_inserts[0].temperature, 100.);
