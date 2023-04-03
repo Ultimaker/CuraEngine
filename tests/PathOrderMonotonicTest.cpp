@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "PathOrderMonotonic.h"
 #include "ReadTestPolygons.h"
@@ -82,7 +82,7 @@ bool getInfillLines(const std::string& filename, const AngleRadians& angle, Poly
         Settings infill_settings;
         std::vector<VariableWidthLines> result_paths;
         Polygons dummy_polys;
-        infill_comp.generate(result_paths, dummy_polys, output, infill_settings, nullptr, nullptr);
+        infill_comp.generate(result_paths, dummy_polys, output, infill_settings, 1, SectionType::INFILL, nullptr, nullptr);
     }
     return true;
 }

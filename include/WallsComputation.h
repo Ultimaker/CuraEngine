@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef WALLS_COMPUTATION_H
 #define WALLS_COMPUTATION_H
@@ -7,6 +7,7 @@
 #include "settings/Settings.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
+#include "utils/section_type.h"
 
 namespace cura
 {
@@ -36,7 +37,7 @@ public:
      *
      * \param layer The layer for which to generate the walls and inner area.
      */ 
-    void generateWalls(SliceLayer* layer);
+    void generateWalls(SliceLayer* layer, SectionType section);
 
 private:
     /*!
@@ -56,7 +57,7 @@ private:
      *
      * \param part The part for which to generate the insets.
      */
-    void generateWalls(SliceLayerPart* part);
+    void generateWalls(SliceLayerPart* part, SectionType section);
 
     /*!
      * Generates the outer inset / perimeter used in spiralize mode for a single layer part. The spiral inset is

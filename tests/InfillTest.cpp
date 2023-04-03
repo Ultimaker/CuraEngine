@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "infill.h"
 #include "ReadTestPolygons.h"
@@ -167,7 +167,7 @@ InfillTestParameters generateInfillToTest(const InfillParameters& params, const 
     std::vector<VariableWidthLines> result_paths;
     Polygons result_polygons;
     Polygons result_lines;
-    infill.generate(result_paths, result_polygons, result_lines, infill_settings, nullptr, nullptr);
+    infill.generate(result_paths, result_polygons, result_lines, infill_settings, 1, SectionType::INFILL, nullptr, nullptr);
 
     InfillTestParameters result = InfillTestParameters(params, test_polygon_id, outline_polygons, result_lines, result_polygons);
     return result;

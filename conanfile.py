@@ -25,14 +25,12 @@ class CuraEngineConan(ConanFile):
 
     options = {
         "enable_arcus": [True, False],
-        "enable_openmp": [True, False],
         "enable_testing": [True, False],
         "enable_benchmarks": [True, False],
         "enable_extensive_warnings": [True, False]
     }
     default_options = {
         "enable_arcus": True,
-        "enable_openmp": True,
         "enable_testing": False,
         "enable_benchmarks": False,
         "enable_extensive_warnings": False,
@@ -48,15 +46,10 @@ class CuraEngineConan(ConanFile):
         copy(self, "*", path.join(self.recipe_folder, "include"), path.join(self.export_sources_folder, "include"))
         copy(self, "*", path.join(self.recipe_folder, "benchmark"), path.join(self.export_sources_folder, "benchmark"))
         copy(self, "*", path.join(self.recipe_folder, "tests"), path.join(self.export_sources_folder, "tests"))
-    def config_options(self):
-        if self.settings.os == "Macos":
-            del self.options.enable_openmp
 
     def configure(self):
         self.options["boost"].header_only = True
         self.options["clipper"].shared = True
-        self.options["fmt"].shared = True
-        self.options["spdlog"].shared = True
         if self.options.enable_arcus:
             self.options["arcus"].shared = True
             self.options["protobuf"].shared = True
@@ -88,6 +81,7 @@ class CuraEngineConan(ConanFile):
         self.requires("spdlog/1.10.0")
         self.requires("fmt/9.0.0")
         self.requires("range-v3/0.12.0")
+        self.requires("scripta/0.1.0@ultimaker/testing")
 
     def generate(self):
         deps = CMakeDeps(self)
@@ -99,8 +93,6 @@ class CuraEngineConan(ConanFile):
         tc.variables["ENABLE_TESTING"] = self.options.enable_testing
         tc.variables["ENABLE_BENCHMARKS"] = self.options.enable_benchmarks
         tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
-        if self.settings.os != "Macos":
-            tc.variables["ENABLE_OPENMP"] = self.options.enable_openmp
         tc.generate()
 
     def layout(self):

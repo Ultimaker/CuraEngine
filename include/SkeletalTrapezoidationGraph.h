@@ -1,14 +1,14 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef SKELETAL_TRAPEZOIDATION_GRAPH_H
 #define SKELETAL_TRAPEZOIDATION_GRAPH_H
 
 #include <optional>
 
-#include "utils/HalfEdgeGraph.h"
 #include "SkeletalTrapezoidationEdge.h"
 #include "SkeletalTrapezoidationJoint.h"
+#include "utils/HalfEdgeGraph.h"
 
 namespace cura
 {

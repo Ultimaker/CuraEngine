@@ -13,10 +13,6 @@ option(EXTENSIVE_WARNINGS "Build with all warnings" ON)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 
-if (NOT APPLE)
-    option(ENABLE_OPENMP "Use OpenMP for parallel code" ON)
-endif ()
-
 # Create Protobuf files if Arcus is used
 if (ENABLE_ARCUS)
     message(STATUS "Building with Arcus")
@@ -170,11 +166,6 @@ if (${EXTENSIVE_WARNINGS})
     set_project_warnings(_CuraEngine)
 endif ()
 
-if (ENABLE_OPENMP)
-    find_package(OpenMP REQUIRED)
-    target_link_libraries(_CuraEngine PUBLIC OpenMP::OpenMP_CXX)
-endif ()
-
 if (ENABLE_ARCUS)
     target_link_libraries(_CuraEngine PRIVATE arcus::arcus protobuf::libprotobuf)
 endif ()
@@ -186,6 +177,7 @@ find_package(Boost REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
+find_package(scripta REQUIRED)
 
 if (ENABLE_TESTING)
     find_package(GTest REQUIRED)
@@ -200,6 +192,7 @@ target_link_libraries(_CuraEngine
         rapidjson
         stb::stb
         boost::boost
+        scripta::scripta
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
 
 if (NOT WIN32)
