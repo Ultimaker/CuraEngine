@@ -927,7 +927,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
     {
         storage.oozeShield[layer_nr].removeSmallAreas(largest_printed_area);
     }
-    if (mesh_group_settings.get<bool>("prime_tower_enable"))
+    if (mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode") != PrimeTowerMethod::NONE)
     {
         coord_t max_line_width = 0;
         { // compute max_line_width
@@ -979,7 +979,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
         maximum_deviation = std::min(maximum_deviation, extruder.settings.get<coord_t>("meshfix_maximum_deviation"));
     }
     storage.draft_protection_shield = Simplify(maximum_resolution, maximum_deviation, 0).polygon(storage.draft_protection_shield);
-    if (mesh_group_settings.get<bool>("prime_tower_enable"))
+    if (mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode") != PrimeTowerMethod::NONE)
     {
         coord_t max_line_width = 0;
         { // compute max_line_width
