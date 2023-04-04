@@ -1092,8 +1092,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         }
     }
 
-    const Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    const auto smart_brim_ordering = global_settings.get<bool>("brim_smart_ordering");
+    const auto smart_brim_ordering = train.settings.get<bool>("brim_smart_ordering");
     std::unordered_multimap<ConstPolygonPointer, ConstPolygonPointer> order_requirements;
     for (const std::pair<SquareGrid::GridPoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<BrimLineReference>>& p : grid)
     {
@@ -1117,10 +1116,12 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
                 if (lower_inset.inset_idx == 0 && higher_inset.inset_idx == 1)
                 {
                     order_requirements.emplace(lower_inset.poly, higher_inset.poly);
+                    continue;
                 }
                 else if (lower_inset.inset_idx == 0 && higher_inset.inset_idx == 2)
                 {
                     order_requirements.emplace(higher_inset.poly, lower_inset.poly);
+                    continue;
                 }
                 else if (lower_inset.inset_idx == 1 && higher_inset.inset_idx == 2)
                 {
