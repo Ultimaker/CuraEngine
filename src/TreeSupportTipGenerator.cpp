@@ -349,7 +349,7 @@ void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, st
                 Polygons model_outline = volumes_.getCollision(0, layer_idx, ! xy_overrides).offset(-config.xy_min_distance, ClipperLib::jtRound);
 
                 Polygons overhang_regular =
-                    TreeSupportUtils::safeOffsetInc(mesh.overhang_areas[layer_idx + z_distance_delta], roof ? roof_outset : support_outset, relevant_forbidden, config.min_radius * 1.75 + config.xy_min_distance, 0, 1, &config.simplifier);
+                    TreeSupportUtils::safeOffsetInc(mesh.overhang_areas[layer_idx + z_distance_delta], roof ? roof_outset : support_outset, relevant_forbidden, config.min_radius * 1.75 + config.xy_min_distance, 0, 1, config.support_line_distance / 2, &config.simplifier);
                 Polygons remaining_overhang =
                     mesh.overhang_areas[layer_idx + z_distance_delta].offset(roof ? roof_outset : support_outset).difference(overhang_regular).intersection(relevant_forbidden).difference(model_outline);
                 for (size_t lag_ctr = 1; lag_ctr <= max_overhang_insert_lag && layer_idx - coord_t(lag_ctr) >= 1 && !remaining_overhang.empty(); lag_ctr++)
@@ -409,7 +409,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
 
                 // todo Since arachnea the assumption that an area smaller then line_width is not printed is no longer true all such safeOffset should have config.support_line_width replaced with another setting. It should still work in most cases, but it should be possible to create a situation where a overhang outset lags though a wall.
                 // I will take a look at this later.
-                Polygons full_overhang_area  =  TreeSupportUtils::safeOffsetInc(mesh.full_overhang_areas[layer_idx + z_distance_delta].unionPolygons(dropped_overhangs[layer_idx]),roof_outset,forbidden_here, config.support_line_width, 0, 1, &config.simplifier);
+                Polygons full_overhang_area  =  TreeSupportUtils::safeOffsetInc(mesh.full_overhang_areas[layer_idx + z_distance_delta].unionPolygons(dropped_overhangs[layer_idx]),roof_outset,forbidden_here, config.support_line_width, 0, 1, config.support_line_distance / 2, &config.simplifier);
 
                 for (LayerIndex dtt_roof = 0; dtt_roof < support_roof_layers && layer_idx - dtt_roof >= 1; dtt_roof++)
                 {
@@ -751,7 +751,7 @@ void TreeSupportTipGenerator::generateTips(SliceDataStorage& storage,const Slice
                 }
 
                 Polygons overhang_regular =
-                    TreeSupportUtils::safeOffsetInc(core_overhang, support_outset, relevant_forbidden, config.min_radius * 1.75 + config.xy_min_distance, 0, 1, &config.simplifier);
+                    TreeSupportUtils::safeOffsetInc(core_overhang, support_outset, relevant_forbidden, config.min_radius * 1.75 + config.xy_min_distance, 0, 1, config.support_line_distance / 2, &config.simplifier);
                 Polygons remaining_overhang =
                     core_overhang.offset(support_outset).difference(overhang_regular.offset(config.support_line_width * 0.5)).intersection(relevant_forbidden);
 
@@ -767,9 +767,9 @@ void TreeSupportTipGenerator::generateTips(SliceDataStorage& storage,const Slice
                                                                                                              std::min(config.support_line_width / 8, extra_outset - extra_total_offset_acc) :
                                                                                                              std::min(circle_length_to_half_linewidth_change, extra_outset - extra_total_offset_acc);
                     extra_total_offset_acc += offset_current_step;
-                    Polygons overhang_offset = TreeSupportUtils::safeOffsetInc(overhang_regular, 1.5 * extra_total_offset_acc, volumes_.getCollision(0, layer_idx, true), config.xy_min_distance + config.support_line_width, 0, 1, &config.simplifier);
+                    Polygons overhang_offset = TreeSupportUtils::safeOffsetInc(overhang_regular, 1.5 * extra_total_offset_acc, volumes_.getCollision(0, layer_idx, true), config.xy_min_distance + config.support_line_width, 0, 1, config.support_line_distance / 2, &config.simplifier);
                     remaining_overhang = remaining_overhang.difference(overhang_offset.unionPolygons(support_roof_drawn[layer_idx].offset(1.5 * extra_total_offset_acc))).unionPolygons(); //overhang_offset is combined with roof, as all area that has a roof, is already supported by said roof.
-                    Polygons next_overhang = TreeSupportUtils::safeOffsetInc(remaining_overhang, extra_total_offset_acc, volumes_.getCollision(0, layer_idx, true), config.xy_min_distance + config.support_line_width, 0, 1, &config.simplifier);
+                    Polygons next_overhang = TreeSupportUtils::safeOffsetInc(remaining_overhang, extra_total_offset_acc, volumes_.getCollision(0, layer_idx, true), config.xy_min_distance + config.support_line_width, 0, 1, config.support_line_distance / 2, &config.simplifier);
                     overhang_regular = overhang_regular.unionPolygons(next_overhang.difference(relevant_forbidden));
                 }
 

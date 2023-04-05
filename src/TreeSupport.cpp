@@ -379,6 +379,7 @@ void TreeSupport::mergeHelper
                         2 * (config.xy_distance + smaller_collision_radius - EPSILON), // Epsilon avoids possible rounding errors
                         0,
                         0,
+                        config.support_line_distance / 2,
                         &config.simplifier
                     );
                 Polygons intersect = small_rad_increased_by_big_minus_small.intersection(bigger_rad.second);
@@ -434,6 +435,7 @@ void TreeSupport::mergeHelper
                                     2 * (config.xy_distance + smaller_collision_radius - EPSILON),
                                     0,
                                     0,
+                                    config.support_line_distance / 2,
                                     &config.simplifier
                                 );
                             return small_rad_increased_by_big_minus_small_infl.intersection(infl_big); // If the one with the bigger radius with the lower radius removed overlaps we can merge.
@@ -663,6 +665,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea
                     safe_movement_distance,
                     safe_movement_distance + radius,
                     1,
+                    config.support_line_distance / 2,
                     nullptr
                 );
         }
@@ -1070,6 +1073,7 @@ void TreeSupport::increaseAreas
                                 wall_restriction,
                                 safe_movement_distance, offset_independent_faster ? safe_movement_distance + radius : 0,
                                 2, // Offsetting in 2 steps makes our offsetted area rounder preventing (rounding) errors created by to pointy areas.
+                                config.support_line_distance / 2,
                                 &config.simplifier
                                 ).unionPolygons();
                         // At this point one can see that the Polygons class was never made for precision in the single digit micron range.
@@ -1087,13 +1091,14 @@ void TreeSupport::increaseAreas
                                     wall_restriction,
                                     safe_movement_distance, offset_independent_faster ? safe_movement_distance + radius : 0,
                                     1,
+                                    config.support_line_distance / 2,
                                     &config.simplifier
                                 ).unionPolygons();
                         }
                         else
                         {
                             const coord_t delta_slow_fast = config.maximum_move_distance - (config.maximum_move_distance_slow + extra_slow_speed);
-                            offset_fast = TreeSupportUtils::safeOffsetInc(offset_slow, delta_slow_fast, wall_restriction, safe_movement_distance, safe_movement_distance + radius, offset_independent_faster ? 2 : 1, &config.simplifier).unionPolygons();
+                            offset_fast = TreeSupportUtils::safeOffsetInc(offset_slow, delta_slow_fast, wall_restriction, safe_movement_distance, safe_movement_distance + radius, offset_independent_faster ? 2 : 1, config.support_line_distance / 2, &config.simplifier).unionPolygons();
                         }
                     }
                 }
