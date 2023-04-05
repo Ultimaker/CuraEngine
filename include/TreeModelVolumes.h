@@ -30,6 +30,7 @@ public:
         const SliceDataStorage& storage,
         coord_t max_move,
         coord_t max_move_slow,
+        coord_t min_offset_per_step,
         size_t current_mesh_idx,
         double progress_multiplier,
         double progress_offset,
@@ -353,6 +354,12 @@ private:
      * move in consecutive layers if it does not have to avoid the model
      */
     coord_t max_move_slow_;
+
+    /*!
+     * \brief For use in 'safeOffset' functions. How many steps at a minimum, to do the offset in.
+     * Too high may produce artifacts, too low will take forever.
+     */
+    coord_t min_offset_per_step_;
 
     /*!
      * \brief Whether the precalculate was called, meaning every required value should be cached.

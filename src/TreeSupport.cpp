@@ -136,7 +136,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         config = processing.first; // This struct is used to easy retrieve setting. No other function except those in TreeModelVolumes and generateInitialAreas have knowledge of the existence of multiple meshes being processed.
         progress_multiplier = 1.0 / double(grouped_meshes.size());
         progress_offset = counter == 0 ? 0 : TREE_PROGRESS_TOTAL * (double(counter) * progress_multiplier);
-        volumes_ = TreeModelVolumes(storage, config.maximum_move_distance, config.maximum_move_distance_slow, processing.second.front(), progress_multiplier, progress_offset, exclude);
+        volumes_ = TreeModelVolumes(storage, config.maximum_move_distance, config.maximum_move_distance_slow, config.support_line_width / 2, processing.second.front(), progress_multiplier, progress_offset, exclude);
 
         // ### Precalculate avoidances, collision etc.
         precalculate(storage, processing.second);

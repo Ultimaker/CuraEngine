@@ -22,6 +22,7 @@ TreeModelVolumes::TreeModelVolumes
     const SliceDataStorage& storage,
     const coord_t max_move,
     const coord_t max_move_slow,
+    const coord_t min_offset_per_step,
     size_t current_mesh_idx,
     double progress_multiplier,
     double progress_offset,
@@ -29,6 +30,7 @@ TreeModelVolumes::TreeModelVolumes
 ) :
     max_move_{ std::max(max_move - 2, coord_t(0)) },  // -2 to avoid rounding errors
     max_move_slow_{ std::max(max_move_slow - 2, coord_t(0)) },  // -2 to avoid rounding errors
+    min_offset_per_step_{ min_offset_per_step },
     progress_multiplier{ progress_multiplier },
     progress_offset{ progress_offset },
     machine_border_{ calculateMachineBorderCollision(storage.getMachineBorder())},
@@ -890,8 +892,7 @@ void TreeModelVolumes::calculateCollisionAvoidance(const std::deque<RadiusLayerP
 // Ensures offsets are only done in sizes with a max step size per offset while adding the collision offset after each step, this ensures that areas cannot glitch through walls defined by the collision when offsetting to fast.
 Polygons TreeModelVolumes::safeOffset(const Polygons& me, coord_t distance, ClipperLib::JoinType jt, coord_t max_safe_step_distance, const Polygons& collision) const
 {
-    max_safe_step_distance = std::max(FUDGE_LENGTH, max_safe_step_distance);
-    const size_t steps = std::abs(distance / max_safe_step_distance);
+    const size_t steps = std::abs(distance / std::max(min_offset_per_step_, std::abs(max_safe_step_distance)));
     assert(distance * max_safe_step_distance >= 0);
     Polygons ret = me;
 
