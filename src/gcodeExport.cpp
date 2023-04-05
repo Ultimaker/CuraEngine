@@ -26,7 +26,7 @@ namespace cura
 std::string transliterate(const std::string& text)
 {
     // For now, just replace all non-ascii characters with '?'.
-    // This function can be expaned if we need more complex transliteration.
+    // This function can be expanded if we need more complex transliteration.
     std::ostringstream stream;
     for (const char& c : text)
     {
@@ -576,6 +576,12 @@ void GCodeExport::writeLine(const char* line)
     *output_stream << line << new_line;
 }
 
+void GCodeExport::resetExtrusionMode()
+{
+    const bool set_relative_extrusion_mode = getFlavor() == EGCodeFlavor::REPRAP;
+    writeExtrusionMode(set_relative_extrusion_mode);
+}
+
 void GCodeExport::writeExtrusionMode(bool set_relative_extrusion_mode)
 {
     if (set_relative_extrusion_mode)
@@ -602,6 +608,180 @@ void GCodeExport::resetExtrusionValue()
     }
     current_e_value = 0.0;
     extruder_attr[current_extruder].retraction_e_amount_at_e_start = extruder_attr[current_extruder].retraction_e_amount_current;
+}
+
+bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, const size_t start_extruder_nr)
+{
+    bool should_prime_extruder = true;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+
+    if (Application::getInstance().communication->isSequential()) // If we must output the g-code sequentially, we must already place the g-code header here even if we don't know the exact time/material usages yet.
+    {
+        std::string prefix = getFileHeader(storage.getExtrudersUsed());
+        writeCode(prefix.c_str());
+    }
+
+    writeComment("Generated with Cura_SteamEngine " CURA_ENGINE_VERSION);
+
+    if (getFlavor() == EGCodeFlavor::GRIFFIN)
+    {
+        std::ostringstream tmp;
+        tmp << "T" << start_extruder_nr;
+        writeLine(tmp.str().c_str());
+    }
+    else
+    {
+        processInitialLayerTemperature(storage, start_extruder_nr);
+    }
+
+    writeExtrusionMode(false); // ensure absolute extrusion mode is set before the start gcode
+    writeCode(mesh_group_settings.get<std::string>("machine_start_gcode").c_str());
+
+    // in case of shared nozzle assume that the machine-start gcode reset the extruders as per machine description
+    if (Application::getInstance().current_slice->scene.settings.get<bool>("machine_extruders_share_nozzle"))
+    {
+        for (const ExtruderTrain& train : Application::getInstance().current_slice->scene.extruders)
+        {
+            resetExtruderToPrimed(train.extruder_nr, train.settings.get<double>("machine_extruders_shared_nozzle_initial_retraction"));
+        }
+    }
+
+    if (mesh_group_settings.get<bool>("machine_heated_build_volume"))
+    {
+        writeBuildVolumeTemperatureCommand(mesh_group_settings.get<Temperature>("build_volume_temperature"));
+    }
+
+    Application::getInstance().communication->sendCurrentPosition(getPositionXY());
+    startExtruder(start_extruder_nr);
+
+    if (getFlavor() == EGCodeFlavor::BFB)
+    {
+        writeComment("enable auto-retraction");
+        std::ostringstream tmp;
+        tmp << "M227 S" << (mesh_group_settings.get<coord_t>("retraction_amount") * 2560 / 1000) << " P" << (mesh_group_settings.get<coord_t>("retraction_amount") * 2560 / 1000);
+        writeLine(tmp.str().c_str());
+    }
+    else if (getFlavor() == EGCodeFlavor::GRIFFIN)
+    { // initialize extruder trains
+        ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[start_extruder_nr];
+        processInitialLayerTemperature(storage, start_extruder_nr);
+        writePrimeTrain(train.settings.get<Velocity>("speed_travel"));
+        should_prime_extruder = false;
+        const RetractionConfig& retraction_config = storage.retraction_wipe_config_per_extruder[start_extruder_nr].retraction_config;
+        writeRetraction(retraction_config);
+    }
+
+    if (mesh_group_settings.get<bool>("relative_extrusion"))
+    {
+        writeExtrusionMode(true);
+    }
+    if (getFlavor() != EGCodeFlavor::GRIFFIN)
+    {
+        if (mesh_group_settings.get<bool>("retraction_enable"))
+        {
+            // ensure extruder is zeroed
+            resetExtrusionValue();
+
+            // retract before first travel move
+            writeRetraction(storage.retraction_wipe_config_per_extruder[start_extruder_nr].retraction_config);
+        }
+    }
+
+    setExtruderFanNumber(start_extruder_nr);
+
+    return should_prime_extruder;
+}
+
+void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage, const size_t start_extruder_nr)
+{
+    Scene& scene = Application::getInstance().current_slice->scene;
+    const size_t num_extruders = scene.extruders.size();
+
+    if (getFlavor() == EGCodeFlavor::GRIFFIN)
+    {
+        ExtruderTrain& train = scene.extruders[start_extruder_nr];
+        constexpr bool wait = true;
+        const Temperature print_temp_0 = train.settings.get<Temperature>("material_print_temperature_layer_0");
+        const Temperature print_temp_here = (print_temp_0 != 0) ? print_temp_0 : train.settings.get<Temperature>("material_print_temperature");
+        writeTemperatureCommand(start_extruder_nr, print_temp_here, wait);
+    }
+    else if (getFlavor() != EGCodeFlavor::ULTIGCODE)
+    {
+        if (num_extruders > 1 || getFlavor() == EGCodeFlavor::REPRAP)
+        {
+            std::ostringstream tmp;
+            tmp << "T" << start_extruder_nr;
+            writeLine(tmp.str().c_str());
+        }
+
+        if (scene.current_mesh_group->settings.get<bool>("material_bed_temp_prepend") && scene.current_mesh_group->settings.get<bool>("machine_heated_bed"))
+        {
+            const Temperature bed_temp = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
+            if (scene.current_mesh_group == scene.mesh_groups.begin() // Always write bed temperature for first mesh group.
+                || bed_temp != (scene.current_mesh_group - 1)->settings.get<Temperature>("material_bed_temperature")) // Don't write bed temperature if identical to temperature of previous group.
+            {
+                if (bed_temp != 0)
+                {
+                    writeBedTemperatureCommand(bed_temp, scene.current_mesh_group->settings.get<bool>("material_bed_temp_wait"));
+                }
+            }
+        }
+
+        if (scene.current_mesh_group->settings.get<bool>("material_print_temp_prepend"))
+        {
+            for (unsigned extruder_nr = 0; extruder_nr < num_extruders; extruder_nr++)
+            {
+                if (storage.getExtrudersUsed()[extruder_nr])
+                {
+                    const ExtruderTrain& train = scene.extruders[extruder_nr];
+                    Temperature extruder_temp;
+                    if (extruder_nr == start_extruder_nr)
+                    {
+                        const Temperature print_temp_0 = train.settings.get<Temperature>("material_print_temperature_layer_0");
+                        extruder_temp = (print_temp_0 != 0) ? print_temp_0 : train.settings.get<Temperature>("material_print_temperature");
+                    }
+                    else
+                    {
+                        extruder_temp = train.settings.get<Temperature>("material_standby_temperature");
+                    }
+                    writeTemperatureCommand(extruder_nr, extruder_temp);
+                }
+            }
+            if (scene.current_mesh_group->settings.get<bool>("material_print_temp_wait"))
+            {
+                for (unsigned extruder_nr = 0; extruder_nr < num_extruders; extruder_nr++)
+                {
+                    if (storage.getExtrudersUsed()[extruder_nr])
+                    {
+                        const ExtruderTrain& train = scene.extruders[extruder_nr];
+                        Temperature extruder_temp;
+                        if (extruder_nr == start_extruder_nr)
+                        {
+                            const Temperature print_temp_0 = train.settings.get<Temperature>("material_print_temperature_layer_0");
+                            extruder_temp = (print_temp_0 != 0) ? print_temp_0 : train.settings.get<Temperature>("material_print_temperature");
+                        }
+                        else
+                        {
+                            extruder_temp = train.settings.get<Temperature>("material_standby_temperature");
+                        }
+                        writeTemperatureCommand(extruder_nr, extruder_temp, true);
+                    }
+                }
+            }
+        }
+    }
+}
+
+bool GCodeExport::needPrimeBlob() const
+{
+    switch (getFlavor())
+    {
+    case EGCodeFlavor::GRIFFIN:
+        return true;
+    default:
+        // TODO: change this once priming for other firmware types is implemented
+        return false;
+    }
 }
 
 void GCodeExport::writeDelay(const Duration& time_amount)
