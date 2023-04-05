@@ -152,7 +152,7 @@ public:
 
         Polygons areas;
         Polygons lines;
-        roof_computation.generate(toolpaths, areas, lines, config.settings, cross_fill_provider);
+        roof_computation.generate(toolpaths, areas, lines, config.settings, layer_idx, SectionType::SUPPORT, cross_fill_provider);
         lines.add(toPolylines(areas));
         lines.add(toPolylines(toolpaths));
         return lines;

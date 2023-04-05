@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_POLYGON_H
@@ -711,8 +711,9 @@ namespace cura {
 
 class Polygon : public PolygonRef
 {
-    ClipperLib::Path poly;
 public:
+    ClipperLib::Path poly;
+
     Polygon()
     : PolygonRef(poly)
     {
@@ -762,9 +763,9 @@ class Polygons
     friend class PolygonRef;
     friend class ConstPolygonRef;
     friend class PolygonUtils;
-protected:
-    ClipperLib::Paths paths;
 public:
+    ClipperLib::Paths paths;
+
     unsigned int size() const
     {
         return paths.size();

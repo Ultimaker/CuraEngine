@@ -4,6 +4,8 @@
 #include <algorithm> //For std::partition_copy and std::min_element.
 #include <unordered_set>
 
+#include <scripta/logger.h>
+
 #include "WallToolPaths.h"
 
 #include "SkeletalTrapezoidation.h"
@@ -17,7 +19,7 @@ namespace cura
 {
 
 WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead_width, const size_t inset_count, const coord_t wall_0_inset,
-                             const Settings& settings)
+                             const Settings& settings, const int layer_idx, SectionType section_type)
     : outline(outline)
     , bead_width_0(nominal_bead_width)
     , bead_width_x(nominal_bead_width)
@@ -29,11 +31,13 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead
     , small_area_length(INT2MM(static_cast<double>(nominal_bead_width) / 2))
     , toolpaths_generated(false)
     , settings(settings)
+    , layer_idx(layer_idx)
+    , section_type(section_type)
 {
 }
 
 WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0, const coord_t bead_width_x,
-                             const size_t inset_count, const coord_t wall_0_inset, const Settings& settings)
+                             const size_t inset_count, const coord_t wall_0_inset, const Settings& settings, const int layer_idx, SectionType section_type )
     : outline(outline)
     , bead_width_0(bead_width_0)
     , bead_width_x(bead_width_x)
@@ -45,6 +49,8 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0
     , small_area_length(INT2MM(static_cast<double>(bead_width_0) / 2))
     , toolpaths_generated(false)
     , settings(settings)
+    , layer_idx(layer_idx)
+    , section_type( section_type )
 {
 }
 
@@ -120,25 +126,63 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
         discretization_step_size,
         transition_filter_dist,
         allowed_filter_deviation,
-        wall_transition_length
+        wall_transition_length,
+        layer_idx,
+        section_type
     );
     wall_maker.generateToolpaths(toolpaths);
+    scripta::log("toolpaths_0", toolpaths, section_type, layer_idx,
+                 scripta::CellVDI{"is_closed", &ExtrusionLine::is_closed },
+                 scripta::CellVDI{"is_odd", &ExtrusionLine::is_odd },
+                 scripta::CellVDI{"inset_idx", &ExtrusionLine::inset_idx },
+                 scripta::PointVDI{"width", &ExtrusionJunction::w },
+                 scripta::PointVDI{"perimeter_index", &ExtrusionJunction::perimeter_index });
 
     stitchToolPaths(toolpaths, settings);
+    scripta::log("toolpaths_1", toolpaths, section_type, layer_idx,
+                 scripta::CellVDI{"is_closed", &ExtrusionLine::is_closed },
+                 scripta::CellVDI{"is_odd", &ExtrusionLine::is_odd },
+                 scripta::CellVDI{"inset_idx", &ExtrusionLine::inset_idx },
+                 scripta::PointVDI{"width", &ExtrusionJunction::w },
+                 scripta::PointVDI{"perimeter_index", &ExtrusionJunction::perimeter_index });
     
     removeSmallLines(toolpaths);
+    scripta::log("toolpaths_2", toolpaths, section_type, layer_idx,
+                 scripta::CellVDI{"is_closed", &ExtrusionLine::is_closed },
+                 scripta::CellVDI{"is_odd", &ExtrusionLine::is_odd },
+                 scripta::CellVDI{"inset_idx", &ExtrusionLine::inset_idx },
+                 scripta::PointVDI{"width", &ExtrusionJunction::w },
+                 scripta::PointVDI{"perimeter_index", &ExtrusionJunction::perimeter_index });
 
     simplifyToolPaths(toolpaths, settings);
+    scripta::log("toolpaths_3", toolpaths, section_type, layer_idx,
+                 scripta::CellVDI{"is_closed", &ExtrusionLine::is_closed },
+                 scripta::CellVDI{"is_odd", &ExtrusionLine::is_odd },
+                 scripta::CellVDI{"inset_idx", &ExtrusionLine::inset_idx },
+                 scripta::PointVDI{"width", &ExtrusionJunction::w },
+                 scripta::PointVDI{"perimeter_index", &ExtrusionJunction::perimeter_index });
 
     separateOutInnerContour();
 
     removeEmptyToolPaths(toolpaths);
+    scripta::log("toolpaths_4", toolpaths, section_type, layer_idx,
+                 scripta::CellVDI{"is_closed", &ExtrusionLine::is_closed },
+                 scripta::CellVDI{"is_odd", &ExtrusionLine::is_odd },
+                 scripta::CellVDI{"inset_idx", &ExtrusionLine::inset_idx },
+                 scripta::PointVDI{"width", &ExtrusionJunction::w },
+                 scripta::PointVDI{"perimeter_index", &ExtrusionJunction::perimeter_index });
     assert(std::is_sorted(toolpaths.cbegin(), toolpaths.cend(),
                           [](const VariableWidthLines& l, const VariableWidthLines& r)
                           {
                               return l.front().inset_idx < r.front().inset_idx;
                           }) && "WallToolPaths should be sorted from the outer 0th to inner_walls");
     toolpaths_generated = true;
+    scripta::log("toolpaths_5", toolpaths, section_type, layer_idx,
+                 scripta::CellVDI{"is_closed", &ExtrusionLine::is_closed },
+                 scripta::CellVDI{"is_odd", &ExtrusionLine::is_odd },
+                 scripta::CellVDI{"inset_idx", &ExtrusionLine::inset_idx },
+                 scripta::PointVDI{"width", &ExtrusionJunction::w },
+                 scripta::PointVDI{"perimeter_index", &ExtrusionJunction::perimeter_index });
     return toolpaths;
 }
 
@@ -199,11 +243,16 @@ void WallToolPaths::removeSmallLines(std::vector<VariableWidthLines>& toolpaths)
 void WallToolPaths::simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths, const Settings& settings)
 {
     const Simplify simplifier(settings);
-    for(size_t toolpaths_idx = 0; toolpaths_idx < toolpaths.size(); ++toolpaths_idx)
+    for (auto& toolpath : toolpaths)
     {
-        for(ExtrusionLine& line : toolpaths[toolpaths_idx])
+        for (auto& line : toolpath)
         {
             line = line.is_closed ? simplifier.polygon(line) : simplifier.polyline(line);
+
+            if (line.is_closed && line.size() >= 2 && line.front() != line.back())
+            {
+                line.emplace_back(line.front());
+            }
         }
     }
 }
