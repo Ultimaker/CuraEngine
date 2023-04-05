@@ -1,15 +1,16 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <array>
-#include <list>
-#include <sstream>
-#include <unordered_set>
-
 #include "infill.h"
 #include "utils/SparsePointGridInclusive.h"
 #include "utils/linearAlg2D.h"
 #include "utils/polygonUtils.h"
+
+#include <array>
+#include <list>
+#include <sstream>
+#include <unordered_set>
+#include <range/v3/view/enumerate.hpp>
 
 #ifdef DEBUG
 #include "utils/AABB.h"
@@ -1484,6 +1485,21 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Polygons& thiss)
     }
 
     ClipperLib::SimplifyPolygons(thiss.paths);
+}
+
+Polygons PolygonUtils::unionManySmall(const Polygons& p)
+{
+    if (p.paths.size() < 8)
+    {
+        return p.unionPolygons();
+    }
+
+    Polygons a, b;
+    for (const auto& [i,path] : p.paths | ranges::views::enumerate)
+    {
+        ((i % 2 == 0) ? a : b).paths.push_back(path);
+    }
+    return unionManySmall(a).unionPolygons(unionManySmall(b));
 }
 
 } // namespace cura

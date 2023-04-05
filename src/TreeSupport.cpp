@@ -1867,7 +1867,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
         {
-            support_layer_storage[layer_idx] = config.simplifier.polygon(support_layer_storage[layer_idx].unionPolygons().smooth(FUDGE_LENGTH)).getOutsidePolygons();
+            support_layer_storage[layer_idx] = config.simplifier.polygon(PolygonUtils::unionManySmall(support_layer_storage[layer_idx]).smooth(FUDGE_LENGTH)).getOutsidePolygons();
             // ^^^ Most of the time in this function is this union call. It can take a relatively long time when a lot of areas are to be unioned.
             //     Also simplify a bit, to ensure the output does not contain outrageous amounts of vertices. Should not be necessary, just a precaution.
 
