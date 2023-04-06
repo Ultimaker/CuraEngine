@@ -136,7 +136,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         config = processing.first; // This struct is used to easy retrieve setting. No other function except those in TreeModelVolumes and generateInitialAreas have knowledge of the existence of multiple meshes being processed.
         progress_multiplier = 1.0 / double(grouped_meshes.size());
         progress_offset = counter == 0 ? 0 : TREE_PROGRESS_TOTAL * (double(counter) * progress_multiplier);
-        volumes_ = TreeModelVolumes(storage, config.maximum_move_distance, config.maximum_move_distance_slow, processing.second.front(), progress_multiplier, progress_offset, exclude);
+        volumes_ = TreeModelVolumes(storage, config.maximum_move_distance, config.maximum_move_distance_slow, config.support_line_width / 2, processing.second.front(), progress_multiplier, progress_offset, exclude);
 
         // ### Precalculate avoidances, collision etc.
         precalculate(storage, processing.second);
@@ -379,6 +379,7 @@ void TreeSupport::mergeHelper
                         2 * (config.xy_distance + smaller_collision_radius - EPSILON), // Epsilon avoids possible rounding errors
                         0,
                         0,
+                        config.support_line_distance / 2,
                         &config.simplifier
                     );
                 Polygons intersect = small_rad_increased_by_big_minus_small.intersection(bigger_rad.second);
@@ -434,6 +435,7 @@ void TreeSupport::mergeHelper
                                     2 * (config.xy_distance + smaller_collision_radius - EPSILON),
                                     0,
                                     0,
+                                    config.support_line_distance / 2,
                                     &config.simplifier
                                 );
                             return small_rad_increased_by_big_minus_small_infl.intersection(infl_big); // If the one with the bigger radius with the lower radius removed overlaps we can merge.
@@ -663,6 +665,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea
                     safe_movement_distance,
                     safe_movement_distance + radius,
                     1,
+                    config.support_line_distance / 2,
                     nullptr
                 );
         }
@@ -1070,6 +1073,7 @@ void TreeSupport::increaseAreas
                                 wall_restriction,
                                 safe_movement_distance, offset_independent_faster ? safe_movement_distance + radius : 0,
                                 2, // Offsetting in 2 steps makes our offsetted area rounder preventing (rounding) errors created by to pointy areas.
+                                config.support_line_distance / 2,
                                 &config.simplifier
                                 ).unionPolygons();
                         // At this point one can see that the Polygons class was never made for precision in the single digit micron range.
@@ -1087,13 +1091,14 @@ void TreeSupport::increaseAreas
                                     wall_restriction,
                                     safe_movement_distance, offset_independent_faster ? safe_movement_distance + radius : 0,
                                     1,
+                                    config.support_line_distance / 2,
                                     &config.simplifier
                                 ).unionPolygons();
                         }
                         else
                         {
                             const coord_t delta_slow_fast = config.maximum_move_distance - (config.maximum_move_distance_slow + extra_slow_speed);
-                            offset_fast = TreeSupportUtils::safeOffsetInc(offset_slow, delta_slow_fast, wall_restriction, safe_movement_distance, safe_movement_distance + radius, offset_independent_faster ? 2 : 1, &config.simplifier).unionPolygons();
+                            offset_fast = TreeSupportUtils::safeOffsetInc(offset_slow, delta_slow_fast, wall_restriction, safe_movement_distance, safe_movement_distance + radius, offset_independent_faster ? 2 : 1, config.support_line_distance / 2, &config.simplifier).unionPolygons();
                         }
                     }
                 }
@@ -1862,7 +1867,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
         {
-            support_layer_storage[layer_idx] = config.simplifier.polygon(support_layer_storage[layer_idx].unionPolygons().smooth(FUDGE_LENGTH)).getOutsidePolygons();
+            support_layer_storage[layer_idx] = config.simplifier.polygon(PolygonUtils::unionManySmall(support_layer_storage[layer_idx]).smooth(FUDGE_LENGTH)).getOutsidePolygons();
             // ^^^ Most of the time in this function is this union call. It can take a relatively long time when a lot of areas are to be unioned.
             //     Also simplify a bit, to ensure the output does not contain outrageous amounts of vertices. Should not be necessary, just a precaution.
 

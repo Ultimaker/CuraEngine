@@ -199,10 +199,21 @@ public:
      * \param last_step_offset_without_check[in] The most it is allowed to offset in one step.
      * \param min_amount_offset[in] How many steps have to be done at least. As this uses round offset this increases the amount of vertices, which may be required if Polygons get very small.
      *     Required as arcTolerance is not exposed in offset, which should result with a similar result, benefit may be eliminated by simplifying.
+     * \param min_offset_per_step Don't get below this amount of offset per step taken. Fine-tune tradeoff between speed and accuracy.
      * \param simplifier[in] Pointer to Simplify object if the offset operation also simplify the Polygon. Improves performance.
      * \return The resulting Polygons object.
      */
-    [[nodiscard]] static Polygons safeOffsetInc(const Polygons& me, coord_t distance, const Polygons& collision, coord_t safe_step_size, coord_t last_step_offset_without_check, size_t min_amount_offset, Simplify* simplifier)
+    [[nodiscard]] static Polygons safeOffsetInc
+    (
+        const Polygons& me,
+        coord_t distance,
+        const Polygons& collision,
+        coord_t safe_step_size,
+        coord_t last_step_offset_without_check,
+        size_t min_amount_offset,
+        coord_t min_offset_per_step,
+        Simplify* simplifier
+    )
     {
         bool do_final_difference = last_step_offset_without_check == 0;
         Polygons ret = safeUnion(me); // Ensure sane input.
@@ -216,7 +227,7 @@ public:
             return (do_final_difference ? ret.difference(collision) : ret).unionPolygons();
         }
 
-        coord_t step_size = std::max(FUDGE_LENGTH, safe_step_size);
+        coord_t step_size = std::max(min_offset_per_step, safe_step_size);
         size_t steps = distance > last_step_offset_without_check ? (distance - last_step_offset_without_check) / step_size : 0;
         if (distance - steps * step_size > last_step_offset_without_check)
         {
@@ -267,7 +278,6 @@ public:
         return ret.unionPolygons();
     }
 
-
     /*!
      * \brief Moves the points of a Polyline outside of a given area, it the distance is smaller than max_allowed_distance
      *
@@ -310,13 +320,10 @@ public:
             {
                 result.add(next_line);
             }
-
         }
 
         return result;
     }
-
-
 };
 
 } //namespace cura

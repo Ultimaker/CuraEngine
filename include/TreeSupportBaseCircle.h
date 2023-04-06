@@ -36,7 +36,7 @@ public:
                 return base_circle;
             }
 
-            constexpr auto support_tree_circle_resolution = 25; // The number of vertices in each circle.
+            constexpr auto support_tree_circle_resolution = 12; // The number of vertices in each circle.
             Polygon circle;
             for (const uint64_t i : ranges::views::iota(0, support_tree_circle_resolution))
             {
