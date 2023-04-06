@@ -13,10 +13,13 @@
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/slice.hpp>
 #include <range/v3/view/zip.hpp>
+#include <scripta/logger.h>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get settings.
+#include "BoostInterface.hpp"
 #include "ExtruderTrain.h"
+#include "SkeletalTrapezoidation.h"
 #include "Slice.h"
 #include "infill.h"
 #include "infill/ImageBasedDensityProvider.h"
@@ -31,10 +34,8 @@
 #include "support.h"
 #include "utils/Simplify.h"
 #include "utils/ThreadPool.h"
-#include "utils/math.h"
-#include "SkeletalTrapezoidation.h"
 #include "utils/VoronoiUtils.h"
-#include "BoostInterface.hpp"
+#include "utils/math.h"
 #include "utils/views/get.h"
 
 namespace cura
@@ -221,7 +222,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
                 continue;
             }
             // NOTE: This both generates the walls _and_ returns the _actual_ infill area (the one _without_ walls) for use in the rest of the method.
-            const Polygons infill_area = Infill::generateWallToolPaths(support_infill_part.wall_toolpaths, original_area, wall_count, wall_width, 0, infill_extruder.settings);
+            const Polygons infill_area = Infill::generateWallToolPaths(support_infill_part.wall_toolpaths, original_area, wall_count, wall_width, 0, infill_extruder.settings, layer_nr, SectionType::SUPPORT);
             const AABB& this_part_boundary_box = support_infill_part.outline_boundary_box;
 
             // calculate density areas for this island
@@ -786,6 +787,8 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
                                    std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx);
                                    mesh.overhang_areas[layer_idx] = basic_and_full_overhang.first; // Store the results.
                                    mesh.full_overhang_areas[layer_idx] = basic_and_full_overhang.second;
+                                   scripta::log("support_basic_overhang_area", basic_and_full_overhang.first, SectionType::SUPPORT, layer_idx);
+                                   scripta::log("support_full_overhang_area", basic_and_full_overhang.second, SectionType::SUPPORT, layer_idx);
                                });
 }
 
@@ -1003,7 +1006,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
                                                // As the x/y disallowed areas "cut in" to support the xy-disallowed area may propagate through the support area. If the
                                                // x/y disallowed area is not smoothed boost has trouble generating a voronoi diagram.
                                                .offset(smooth_dist).offset(-smooth_dist);
-
+    scripta::log("support_varying_xy_disallowed_areas", varying_xy_disallowed_areas, SectionType::SUPPORT, layer_idx);
     return varying_xy_disallowed_areas;
 }
 
@@ -1095,6 +1098,8 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                                            .offset(-10)
                                            .offset(10 + sloped_area_detection_width);
                                    // The sloped areas are now ready to be post-processed.
+                                   scripta::log("support_sloped_areas", sloped_areas_per_layer[layer_idx], SectionType::SUPPORT, layer_idx,
+                                                scripta::CellVDI{"sloped_area_detection_width", sloped_area_detection_width });
 
                                    if (! is_support_mesh_place_holder)
                                    { // don't compute overhang for support meshes
@@ -1106,6 +1111,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                                            Polygons minimum_xy_disallowed_areas = xy_disallowed_per_layer[layer_idx].offset(xy_distance_overhang);
                                            Polygons varying_xy_disallowed_areas = generateVaryingXYDisallowedArea(mesh, infill_settings, layer_idx);
                                            xy_disallowed_per_layer[layer_idx] = minimum_xy_disallowed_areas.unionPolygons(varying_xy_disallowed_areas);
+                                           scripta::log("support_xy_disallowed_areas", xy_disallowed_per_layer[layer_idx], SectionType::SUPPORT, layer_idx);
                                        }
                                    }
                                    if (is_support_mesh_place_holder || ! use_xy_distance_overhang)
@@ -1557,6 +1563,7 @@ void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMes
             const Polygons overhang = part.outline.difference(storage.support.supportLayers[layer_idx].anti_overhang);
             if (! overhang.empty())
             {
+                scripta::log("support_overhangs", overhang, SectionType::SUPPORT, layer_idx);
                 mesh.overhang_points[layer_idx].push_back(overhang);
             }
         }
@@ -1734,6 +1741,7 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
         Polygons bottoms;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, bottom_line_width, bottom_outline_offset, minimum_bottom_area, bottoms);
         support_layers[layer_idx].support_bottom.add(bottoms);
+        scripta::log("support_interface_bottoms", bottoms, SectionType::SUPPORT, layer_idx);
     }
 }
 
@@ -1767,6 +1775,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         Polygons roofs;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roof_outline_offset, minimum_roof_area, roofs);
         support_layers[layer_idx].support_roof.add(roofs);
+        scripta::log("support_interface_roofs", roofs, SectionType::SUPPORT, layer_idx);
     }
 
     // Remove support in between the support roof and the model. Subtracts the roof polygons from the support polygons on the layers above it.

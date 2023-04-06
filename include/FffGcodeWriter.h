@@ -1,4 +1,4 @@
-//  Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef GCODE_WRITER_H
@@ -35,7 +35,6 @@ class TimeKeeper;
  */
 class FffGcodeWriter : public NoCopy
 {
-    friend class Scene; // cause WireFrame2Gcode uses the member [gcode] (TODO)
     friend class FffProcessor; //Because FffProcessor exposes finalize (TODO)
 private:
     coord_t max_object_height; //!< The maximal height of all previously sliced meshgroups, used to avoid collision when moving to the next meshgroup to print.
@@ -190,24 +189,6 @@ private:
      * \param storage The storage for which to determine the support infill angles.
      */
     void setSupportAngles(SliceDataStorage& storage);
-
-    /*!
-    * Set temperatures for the initial layer. Called by 'processStartingCode' and whenever a new object is started at layer 0.
-    *
-    * \param[in] storage where the slice data is stored.
-    * \param[in] start_extruder_nr The extruder with which to start the print.
-    */
-    void processInitialLayerTemperature(const SliceDataStorage& storage, const size_t start_extruder_nr);
-
-    /*!
-     * Set temperatures and perform initial priming.
-     * 
-     * Write a stub header if CuraEngine is in command line tool mode. (Cause writing the header afterwards would entail moving all gcode down.)
-     * 
-     * \param[in] storage where the slice data is stored.
-     * \param[in] start_extruder_nr The extruder with which to start the print.
-     */
-    void processStartingCode(const SliceDataStorage& storage, const size_t start_extruder_nr);
 
     /*!
      * Move up and over the already printed meshgroups to print the next meshgroup.

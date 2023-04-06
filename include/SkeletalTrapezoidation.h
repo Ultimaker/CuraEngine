@@ -1,5 +1,5 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef SKELETAL_TRAPEZOIDATION_H
 #define SKELETAL_TRAPEZOIDATION_H
@@ -15,6 +15,7 @@
 #include "utils/PolygonsSegmentIndex.h"
 #include "utils/ExtrusionJunction.h"
 #include "utils/ExtrusionLine.h"
+#include "utils/section_type.h"
 #include "settings/types/Ratio.h"
 #include "SkeletalTrapezoidationEdge.h"
 #include "SkeletalTrapezoidationJoint.h"
@@ -65,6 +66,8 @@ class SkeletalTrapezoidation
     coord_t beading_propagation_transition_dist; //!< When there are different beadings propagated from below and from above, use this transitioning distance
     static constexpr coord_t central_filter_dist = 20; //!< Filter areas marked as 'central' smaller than this
     static constexpr coord_t snap_dist = 20; //!< Generic arithmatic inaccuracy. Only used to determine whether a transition really needs to insert an extra edge.
+    int layer_idx { };
+    SectionType section_type;
 
     /*!
      * The strategy to use to fill a certain shape with lines.
@@ -98,11 +101,14 @@ public:
      */
     SkeletalTrapezoidation(const Polygons& polys, 
                            const BeadingStrategy& beading_strategy,
-                           AngleRadians transitioning_angle
-    , coord_t discretization_step_size
-    , coord_t transition_filter_dist
-    , coord_t allowed_filter_deviation
-    , coord_t beading_propagation_transition_dist);
+                           AngleRadians transitioning_angle,
+                           coord_t discretization_step_size,
+                           coord_t transition_filter_dist,
+                           coord_t allowed_filter_deviation,
+                           coord_t beading_propagation_transition_dist,
+                           int layer_idx,
+                           SectionType section_type
+                           );
 
     /*!
      * A skeletal graph through the polygons that we need to fill with beads.

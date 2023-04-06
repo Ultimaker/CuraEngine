@@ -1,5 +1,5 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef TREEMODELVOLUMES_H
 #define TREEMODELVOLUMES_H
@@ -21,6 +21,14 @@ namespace cura
 constexpr coord_t EPSILON = 5;
 constexpr coord_t FUDGE_LENGTH = 50;
 
+class SliceDataStorage;
+class LayerIndex;
+class Settings;
+
+/*!
+ * \brief Lazily generates tree guidance volumes.
+ *
+ */
 class TreeModelVolumes
 {
 public:

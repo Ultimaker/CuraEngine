@@ -19,6 +19,7 @@
 #include "settings/types/Velocity.h"
 #include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
+#include "sliceDataStorage.h"
 
 namespace cura
 {
@@ -299,6 +300,8 @@ public:
      */
     void writeExtrusionMode(bool set_relative_extrusion_mode);
 
+    void resetExtrusionMode();
+
     /*!
      * Write a comment saying what (estimated) time has passed up to this point
      * 
@@ -367,6 +370,31 @@ public:
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
     void writeExtrusion(const Point3& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false);
+
+    /*!
+     * Initialize the extruder trains.
+     *
+     * \param[in] storage where the slice data is stored.
+     * \param[in] start_extruder_nr The extruder with which to start the print.
+     */
+    bool initializeExtruderTrains(const SliceDataStorage& storage, const size_t start_extruder_nr);
+
+    /*!
+    * Set temperatures for the initial layer. Called by 'processStartingCode' and whenever a new object is started at layer 0.
+    *
+    * \param[in] storage where the slice data is stored.
+    * \param[in] start_extruder_nr The extruder with which to start the print.
+     */
+    void processInitialLayerTemperature(const SliceDataStorage& storage, const size_t start_extruder_nr);
+
+    /*!
+     * Certain gcode flavors require a prime blob to be printed before the first layer.
+     *
+     * \param storage where the settings are stored
+     * \return whether a prime blob is required
+     */
+    bool needPrimeBlob() const;
+
 private:
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
