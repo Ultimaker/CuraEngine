@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "infill.h"
@@ -1495,12 +1495,12 @@ Polygons PolygonUtils::unionManySmall(const Polygons& p)
     }
 
     Polygons a, b;
-    ranges::partition_copy(
-        p.paths | ranges::views::enumerate, 
-        ranges::back_inserter(a), 
-        ranges::back_inserter(b), 
-        [] (auto& [i, _]) { return i % 2 == 0; }
-    );
+    a.paths.reserve(p.paths.size() / 2);
+    b.paths.reserve(a.paths.size() + 1);
+    for (const auto& [i, path] : p.paths | ranges::view::enumerate)
+    {
+        (i % 2 == 0 ? b : a).paths.push_back(path);
+    }
     return unionManySmall(a).unionPolygons(unionManySmall(b));
 }
 
