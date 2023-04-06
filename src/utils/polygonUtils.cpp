@@ -1495,10 +1495,12 @@ Polygons PolygonUtils::unionManySmall(const Polygons& p)
     }
 
     Polygons a, b;
-    for (const auto& [i,path] : p.paths | ranges::views::enumerate)
-    {
-        ((i % 2 == 0) ? a : b).paths.push_back(path);
-    }
+    ranges::partition_copy(
+        p.paths | ranges::views::enumerate, 
+        ranges::back_inserter(a), 
+        ranges::back_inserter(b), 
+        [] (auto& [i, _]) { return i % 2 == 0; }
+    );
     return unionManySmall(a).unionPolygons(unionManySmall(b));
 }
 
