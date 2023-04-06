@@ -3,10 +3,13 @@
 
 #include "infill.h"
 #include "ReadTestPolygons.h"
+#include "slicer.h"
 #include "utils/Coord_t.h"
-#include <filesystem>
 #include <gtest/gtest.h>
+#include <filesystem>
 #include <utility>
+
+#include <scripta/logger.h>
 
 // #define TEST_INFILL_SVG_OUTPUT
 #ifdef TEST_INFILL_SVG_OUTPUT
@@ -144,6 +147,9 @@ void writeTestcaseSVG(const InfillTestParameters& params)
 
 InfillTestParameters generateInfillToTest(const InfillParameters& params, const size_t& test_polygon_id, const Polygons& outline_polygons)
 {
+    auto layers = std::vector<SlicerLayer>(200, SlicerLayer{});
+    scripta::setAll(layers);
+
     const EFillMethod pattern = params.pattern;
     const bool zig_zagify = params.zig_zagify;
     const bool connect_polygons = params.connect_polygons;

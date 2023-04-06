@@ -1,14 +1,17 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <range/v3/view/join.hpp>
-#include "InsetOrderOptimizer.h" //Unit also under test.
 #include "WallsComputation.h" //Unit under test.
+#include "InsetOrderOptimizer.h" //Unit also under test.
 #include "settings/Settings.h" //Settings to generate walls with.
 #include "sliceDataStorage.h" //Sl
+#include "slicer.h"
 #include "utils/polygon.h" //To create example polygons.
 #include <gtest/gtest.h>
+#include <range/v3/view/join.hpp>
 #include <unordered_set>
+
+#include <scripta/logger.h>
 
 #ifdef WALLS_COMPUTATION_TEST_SVG_OUTPUT
 #include "utils/SVG.h"
@@ -95,6 +98,8 @@ public:
  */
 TEST_F(WallsComputationTest, GenerateWallsForLayerSinglePart)
 {
+    auto layers = std::vector<SlicerLayer>(200, SlicerLayer{});
+    scripta::setAll(layers);
     SliceLayer layer;
     layer.parts.emplace_back();
     SliceLayerPart& part = layer.parts.back();
