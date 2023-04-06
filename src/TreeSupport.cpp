@@ -1,5 +1,5 @@
-// Copyright (c) 2019 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "TreeSupport.h"
 #include "Application.h" //To get settings.
@@ -15,6 +15,7 @@
 #include "utils/algorithm.h"
 #include "utils/math.h" //For round_up_divide and PI.
 #include "utils/polygonUtils.h" //For moveInside.
+#include "utils/section_type.h"
 
 #include <chrono>
 #include <fstream>
@@ -27,6 +28,8 @@
 #include <stdio.h>
 #include <string>
 #include <thread>
+
+#include <scripta/logger.h>
 
 namespace cura
 {
@@ -131,6 +134,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                     exlude_at_layer.add(part.outline);
                 }
                 exclude[layer_idx] = exlude_at_layer.unionPolygons();
+                scripta::log("tree_support_exclude", exclude[layer_idx], SectionType::SUPPORT, layer_idx);
             }
         );
         config = processing.first; // This struct is used to easy retrieve setting. No other function except those in TreeModelVolumes and generateInitialAreas have knowledge of the existence of multiple meshes being processed.
@@ -188,7 +192,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 delete elem;
             }
         }
-    }
+    }exclude
 
     storage.support.generated = true;
 }
