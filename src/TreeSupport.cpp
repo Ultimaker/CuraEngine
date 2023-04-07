@@ -2079,6 +2079,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
         {
             support_layer_storage[layer_idx].add(additional_required_support_area[layer_idx]);
         }
+        scripta::log("tree_support_layer_storage", support_layer_storage[layer_idx], SectionType::SUPPORT, layer_idx);
     }
 
     finalizeInterfaceAndSupportAreas(support_layer_storage, support_roof_storage, storage);
