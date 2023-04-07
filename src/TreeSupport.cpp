@@ -192,7 +192,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 delete elem;
             }
         }
-    }exclude
+    }
 
     storage.support.generated = true;
 }
