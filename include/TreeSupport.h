@@ -276,6 +276,9 @@ private:
         const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order
     );
 
+    void filterFloatingLines(std::vector<Polygons>& support_layer_storage);
+
+
     /*!
      * \brief Generates Support Floor, ensures Support Roof can not cut of branches, and saves the branches as support to storage
      *

@@ -1858,6 +1858,199 @@ void TreeSupport::dropNonGraciousAreas
     );
 }
 
+void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_storage)
+{
+    const auto t_start = std::chrono::high_resolution_clock::now();
+
+    const coord_t closing_dist=config.support_line_width*config.support_wall_count;
+    const coord_t open_close_distance = config.settings.get<bool>("fill_outline_gaps") ? config.settings.get<coord_t>("min_feature_size") / 2 - 5 : config.settings.get<coord_t>("min_wall_line_width") / 2 - 5;
+    const double small_area_length = INT2MM(static_cast<double>(config.support_line_width) / 2);
+
+    std::function<void(Polygons&)> reversePolygon = [&](Polygons& poly)
+    {
+        for (size_t idx = 0; idx < poly.size(); idx++)
+        {
+            poly[idx].reverse();
+        }
+    };
+
+
+    std::vector<Polygons> support_holes(support_layer_storage.size(),Polygons());
+    //Extract all holes as polygon objects
+    cura::parallel_for<coord_t>
+        (
+            0,
+            support_layer_storage.size(),
+            [&](const LayerIndex layer_idx)
+            {
+
+
+                support_layer_storage[layer_idx] = config.simplifier.polygon(PolygonUtils::unionManySmall(support_layer_storage[layer_idx].smooth(FUDGE_LENGTH))).offset(-open_close_distance).offset(open_close_distance * 2).offset(-open_close_distance);
+                support_layer_storage[layer_idx].removeSmallAreas(small_area_length * small_area_length, false);
+
+                std::vector<Polygons> parts = support_layer_storage[layer_idx].sortByNesting();
+
+                if (parts.size() <= 1)
+                {
+                    return;
+                }
+
+                Polygons holes_original;
+                for (size_t idx = 1; idx < parts.size(); idx++)
+                {
+                    Polygons area = parts[idx];
+                    reversePolygon(area);
+                    holes_original.add(area);
+                }
+                support_holes[layer_idx] = holes_original;
+            }
+        );
+    const auto t_union = std::chrono::high_resolution_clock::now();
+
+
+    std::vector<std::vector<Polygons>> holeparts(support_layer_storage.size());
+    //Split all holes into parts
+    cura::parallel_for<coord_t>
+        (
+            0,
+            support_layer_storage.size(),
+            [&](const LayerIndex layer_idx)
+            {
+                for (Polygons hole:support_holes[layer_idx].splitIntoParts())
+                {
+                    holeparts[layer_idx].emplace_back(hole);
+                }
+            }
+        );
+    std::vector<std::map<size_t,std::vector<size_t>>> hole_rest_map (holeparts.size());
+    std::vector<std::set<size_t>> holes_resting_outside (holeparts.size());
+
+    //Figure out which hole rests on which other hole
+    cura::parallel_for<coord_t>
+        (
+            1,
+            support_layer_storage.size(),
+            [&](const LayerIndex layer_idx)
+            {
+                if (holeparts[layer_idx].empty())
+                {
+                    return;
+                }
+
+                Polygons outer_walls =
+                    TreeSupportUtils::toPolylines(support_layer_storage[layer_idx - 1].getOutsidePolygons()).tubeShape(closing_dist,0).unionPolygons(volumes_.getCollision(0, layer_idx - 1, true).offset(-(config.support_line_width+config.xy_min_distance)));
+
+
+                for (size_t idx = 0; idx < holeparts[layer_idx].size(); idx++)
+                {
+                    if (!holeparts[layer_idx][idx].intersection(outer_walls).empty())
+                    {
+                        holes_resting_outside[layer_idx].emplace(idx);
+                    }
+                    else
+                    {
+                        for (size_t idx2 = 0; idx2 < holeparts[layer_idx - 1].size(); idx2++) // todo check if there is a better way to find out which polygons inside a polygons are intersected with, so that instead for each part one, only one intersection has to be done
+                        {
+                            if (! holeparts[layer_idx][idx].intersection(holeparts[layer_idx - 1][idx2]).empty() ) // todo should technically be outline: Check if this is fine either way as it would save an offset
+                            {
+                                hole_rest_map[layer_idx][idx].emplace_back(idx2);
+                            }
+                        }
+                    }
+                }
+            }
+        );
+
+    const auto t_hole_rest_ordering = std::chrono::high_resolution_clock::now();
+
+    std::unordered_set<size_t> removed_holes_by_idx;
+    std::vector<Polygons> valid_holes(support_holes.size(), Polygons());
+
+    //Check which holes have to be removed as they do not rest on anything. Only keep holes that have to be removed
+    for (LayerIndex layer_idx = 1; layer_idx < support_holes.size(); layer_idx++)
+    {
+        std::unordered_set<size_t> next_removed_holes_by_idx;
+
+        for (size_t idx = 0; idx < holeparts[layer_idx].size(); idx++)
+        {
+            bool found = false;
+            if (holes_resting_outside[layer_idx].contains(idx))
+            {
+                found = true;
+            }
+            else
+            {
+                if(hole_rest_map[layer_idx].contains(idx)){
+                    for (size_t resting_idx : hole_rest_map[layer_idx][idx])
+                    {
+                        if (! removed_holes_by_idx.contains(resting_idx))
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (! found)
+            {
+                next_removed_holes_by_idx.emplace(idx);
+            }
+            else
+            {
+                valid_holes[layer_idx].add(holeparts[layer_idx][idx]);
+                holeparts[layer_idx][idx] = Polygons(); // all remaining holes will have to be removed later, so removing the hole means it is confirmed valid!
+            }
+        }
+        removed_holes_by_idx = next_removed_holes_by_idx;
+    }
+    const auto t_hole_removal_tagging = std::chrono::high_resolution_clock::now();
+
+    //Check if holes are so close to each other that two lines will be printed directly next to each other, which is assumed stable (as otherwise the simulated support pattern will not work correctly) and remove all remaining, invalid holes
+    cura::parallel_for<coord_t>
+        (
+            1,
+            support_layer_storage.size(),
+            [&](const LayerIndex layer_idx)
+            {
+                if (holeparts[layer_idx].empty())
+                {
+                    return;
+                }
+                Polygons offset_valids;
+
+                for (Polygons hole : holeparts[layer_idx])
+                {
+                    if (! hole.empty())
+                    {
+                        if (offset_valids.empty())
+                        {
+                            // todo What is better, having the top support pattern potentially broken (as holes that are required to form lines are removed) or having lines that technically are in the air?
+                            offset_valids = valid_holes[layer_idx].offset(closing_dist*2).unionPolygons();
+                        }
+
+                        if (offset_valids.intersection(hole).empty())
+                        {
+
+                            reversePolygon(hole);
+                            support_layer_storage[layer_idx] = support_layer_storage[layer_idx].unionPolygons(hole);
+
+                        }
+                    }
+                }
+            }
+        );
+
+    const auto t_end = std::chrono::high_resolution_clock::now();
+
+    const auto dur_union = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_union - t_start).count();
+    const auto dur_hole_rest_ordering = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_hole_rest_ordering - t_union).count();
+    const auto dur_hole_removal_tagging = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_hole_removal_tagging - t_hole_rest_ordering).count();
+
+    const auto dur_hole_removal = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_hole_removal_tagging).count();
+    spdlog::info("Time to union areas: {} ms Time to evaluate which hole rest on which other hole: {} ms Time to see which holes are not resting on anything valid: {} ms remove all holes that are invalid and not close enough to a valid hole: {} ms", dur_union,dur_hole_rest_ordering,dur_hole_removal_tagging, dur_hole_removal);
+
+}
+
 void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& support_layer_storage, std::vector<Polygons>& support_roof_storage, SliceDataStorage& storage)
 {
     InterfacePreference interface_pref = config.interface_preference; // InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE;
@@ -1871,7 +2064,6 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
         {
-            support_layer_storage[layer_idx] = config.simplifier.polygon(PolygonUtils::unionManySmall(support_layer_storage[layer_idx]).smooth(FUDGE_LENGTH)).getOutsidePolygons();
             // ^^^ Most of the time in this function is this union call. It can take a relatively long time when a lot of areas are to be unioned.
             //     Also simplify a bit, to ensure the output does not contain outrageous amounts of vertices. Should not be necessary, just a precaution.
 
@@ -2082,14 +2274,18 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
         scripta::log("tree_support_layer_storage", support_layer_storage[layer_idx], SectionType::SUPPORT, layer_idx);
     }
 
+    filterFloatingLines(support_layer_storage);
+    const auto t_filter = std::chrono::high_resolution_clock::now();
+
     finalizeInterfaceAndSupportAreas(support_layer_storage, support_roof_storage, storage);
     const auto t_end = std::chrono::high_resolution_clock::now();
 
     const auto dur_gen_tips = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_generate - t_start).count();
     const auto dur_smooth = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_smooth - t_generate).count();
     const auto dur_drop = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_drop - t_smooth).count();
-    const auto dur_finalize = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_drop).count();
-    spdlog::info("Time used for drawing subfuctions: generateBranchAreas: {} ms smoothBranchAreas: {} ms dropNonGraciousAreas: {} ms finalizeInterfaceAndSupportAreas {} ms", dur_gen_tips, dur_smooth, dur_drop, dur_finalize);
+    const auto dur_filter = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_filter - t_drop).count();
+    const auto dur_finalize = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_filter).count();
+    spdlog::info("Time used for drawing subfuctions: generateBranchAreas: {} ms smoothBranchAreas: {} ms dropNonGraciousAreas: {} ms filterFloatingLines: {} ms finalizeInterfaceAndSupportAreas {} ms", dur_gen_tips, dur_smooth, dur_drop, dur_filter, dur_finalize);
 }
 
 } // namespace cura
