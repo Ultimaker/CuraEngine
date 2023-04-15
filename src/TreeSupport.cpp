@@ -1858,12 +1858,13 @@ void TreeSupport::dropNonGraciousAreas
     );
 }
 
+
 void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_storage)
 {
     const auto t_start = std::chrono::high_resolution_clock::now();
 
     const coord_t closing_dist=config.support_line_width*config.support_wall_count;
-    const coord_t open_close_distance = config.settings.get<bool>("fill_outline_gaps") ? config.settings.get<coord_t>("min_feature_size") / 2 - 5 : config.settings.get<coord_t>("min_wall_line_width") / 2 - 5;
+    const coord_t open_close_distance = config.fill_outline_gaps ? config.min_feature_size/ 2 - 5 : config.min_wall_line_width/ 2 - 5; // based on calculation in WallToolPath
     const double small_area_length = INT2MM(static_cast<double>(config.support_line_width) / 2);
 
     std::function<void(Polygons&)> reversePolygon = [&](Polygons& poly)
@@ -1896,7 +1897,7 @@ void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_stora
                 }
 
                 Polygons holes_original;
-                for (size_t idx = 1; idx < parts.size(); idx++)
+                for (const size_t idx : ranges::views::iota(1UL, parts.size()))
                 {
                     Polygons area = parts[idx];
                     reversePolygon(area);
@@ -1905,8 +1906,8 @@ void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_stora
                 support_holes[layer_idx] = holes_original;
             }
         );
-    const auto t_union = std::chrono::high_resolution_clock::now();
 
+    const auto t_union = std::chrono::high_resolution_clock::now();
 
     std::vector<std::vector<Polygons>> holeparts(support_layer_storage.size());
     //Split all holes into parts
@@ -1925,6 +1926,7 @@ void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_stora
     std::vector<std::map<size_t,std::vector<size_t>>> hole_rest_map (holeparts.size());
     std::vector<std::set<size_t>> holes_resting_outside (holeparts.size());
 
+
     //Figure out which hole rests on which other hole
     cura::parallel_for<coord_t>
         (
@@ -1938,20 +1940,29 @@ void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_stora
                 }
 
                 Polygons outer_walls =
-                    TreeSupportUtils::toPolylines(support_layer_storage[layer_idx - 1].getOutsidePolygons()).tubeShape(closing_dist,0).unionPolygons(volumes_.getCollision(0, layer_idx - 1, true).offset(-(config.support_line_width+config.xy_min_distance)));
+                    TreeSupportUtils::toPolylines(support_layer_storage[layer_idx - 1].getOutsidePolygons()).tubeShape(closing_dist,0);//.unionPolygons(volumes_.getCollision(0, layer_idx - 1, true).offset(-(config.support_line_width+config.xy_min_distance)));
 
+                Polygons holes_below;
 
-                for (size_t idx = 0; idx < holeparts[layer_idx].size(); idx++)
+                for (auto poly: holeparts[layer_idx - 1])
                 {
-                    if (!holeparts[layer_idx][idx].intersection(outer_walls).empty())
+                    holes_below.add(poly);
+                }
+
+                for (auto [idx, hole] : holeparts[layer_idx] | ranges::views::enumerate)
+                {
+                    AABB hole_aabb = AABB(hole);
+                    hole_aabb.expand(EPSILON);
+                    if (!hole.intersection(PolygonUtils::clipPolygonWithAABB(outer_walls,hole_aabb)).empty())
                     {
                         holes_resting_outside[layer_idx].emplace(idx);
                     }
                     else
                     {
-                        for (size_t idx2 = 0; idx2 < holeparts[layer_idx - 1].size(); idx2++) // todo check if there is a better way to find out which polygons inside a polygons are intersected with, so that instead for each part one, only one intersection has to be done
+                        for (auto [idx2, hole2] : holeparts[layer_idx - 1] | ranges::views::enumerate)
                         {
-                            if (! holeparts[layer_idx][idx].intersection(holeparts[layer_idx - 1][idx2]).empty() ) // todo should technically be outline: Check if this is fine either way as it would save an offset
+
+                            if (AABB(hole).hit(AABB(hole2)) && ! hole.intersection(hole2).empty() ) // todo should technically be outline: Check if this is fine either way as it would save an offset
                             {
                                 hole_rest_map[layer_idx][idx].emplace_back(idx2);
                             }
@@ -1965,13 +1976,12 @@ void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_stora
 
     std::unordered_set<size_t> removed_holes_by_idx;
     std::vector<Polygons> valid_holes(support_holes.size(), Polygons());
-
     //Check which holes have to be removed as they do not rest on anything. Only keep holes that have to be removed
-    for (LayerIndex layer_idx = 1; layer_idx < support_holes.size(); layer_idx++)
+    for (const size_t layer_idx : ranges::views::iota(1UL, support_holes.size()))
     {
         std::unordered_set<size_t> next_removed_holes_by_idx;
 
-        for (size_t idx = 0; idx < holeparts[layer_idx].size(); idx++)
+        for (auto [idx, hole] : holeparts[layer_idx] | ranges::views::enumerate)
         {
             bool found = false;
             if (holes_resting_outside[layer_idx].contains(idx))
@@ -1997,7 +2007,7 @@ void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_stora
             }
             else
             {
-                valid_holes[layer_idx].add(holeparts[layer_idx][idx]);
+                valid_holes[layer_idx].add(hole);
                 holeparts[layer_idx][idx] = Polygons(); // all remaining holes will have to be removed later, so removing the hole means it is confirmed valid!
             }
         }
@@ -2016,27 +2026,10 @@ void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_stora
                 {
                     return;
                 }
-                Polygons offset_valids;
 
-                for (Polygons hole : holeparts[layer_idx])
-                {
-                    if (! hole.empty())
-                    {
-                        if (offset_valids.empty())
-                        {
-                            // todo What is better, having the top support pattern potentially broken (as holes that are required to form lines are removed) or having lines that technically are in the air?
-                            offset_valids = valid_holes[layer_idx].offset(closing_dist*2).unionPolygons();
-                        }
-
-                        if (offset_valids.intersection(hole).empty())
-                        {
-
-                            reversePolygon(hole);
-                            support_layer_storage[layer_idx] = support_layer_storage[layer_idx].unionPolygons(hole);
-
-                        }
-                    }
-                }
+                support_layer_storage[layer_idx] = support_layer_storage[layer_idx].getOutsidePolygons();
+                reversePolygon(valid_holes[layer_idx]);
+                support_layer_storage[layer_idx].add(valid_holes[layer_idx]);
             }
         );
 
@@ -2047,7 +2040,7 @@ void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_stora
     const auto dur_hole_removal_tagging = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_hole_removal_tagging - t_hole_rest_ordering).count();
 
     const auto dur_hole_removal = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_hole_removal_tagging).count();
-    spdlog::info("Time to union areas: {} ms Time to evaluate which hole rest on which other hole: {} ms Time to see which holes are not resting on anything valid: {} ms remove all holes that are invalid and not close enough to a valid hole: {} ms", dur_union,dur_hole_rest_ordering,dur_hole_removal_tagging, dur_hole_removal);
+    spdlog::debug("Time to union areas: {} ms Time to evaluate which hole rest on which other hole: {} ms Time to see which holes are not resting on anything valid: {} ms remove all holes that are invalid and not close enough to a valid hole: {} ms", dur_union,dur_hole_rest_ordering,dur_hole_removal_tagging, dur_hole_removal);
 
 }
 

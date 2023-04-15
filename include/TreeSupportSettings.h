@@ -67,6 +67,8 @@ struct TreeSupportSettings
         connect_zigzags(mesh_group_settings.get<bool>("support_connect_zigzags")),
         settings(mesh_group_settings),
         min_feature_size(mesh_group_settings.get<coord_t>("min_feature_size")),
+        min_wall_line_width(settings.get<coord_t>("min_wall_line_width")),
+        fill_outline_gaps(settings.get<bool>("fill_outline_gaps")),
         simplifier(Simplify(mesh_group_settings))
     {
         layer_start_bp_radius = (bp_radius - branch_radius) / (branch_radius * diameter_scale_bp_radius);
@@ -110,8 +112,12 @@ struct TreeSupportSettings
             }
         };
 
-        getInterfaceAngles(support_infill_angles, support_pattern);
-        getInterfaceAngles(support_roof_angles, roof_pattern);
+        if(support_infill_angles.empty())
+        {
+            support_infill_angles.push_back(0);
+        }
+
+        getInterfaceAngles(support_roof_angles, roof_pattern); //todo remove lambda
         const std::unordered_map<std::string, InterfacePreference> interface_map =
             {
                 { "support_area_overwrite_interface_area", InterfacePreference::SUPPORT_AREA_OVERWRITES_INTERFACE },
@@ -355,6 +361,16 @@ public:
     coord_t min_feature_size;
 
     /*!
+     * \brief Minimum thickness a wall can have.
+     */
+    coord_t min_wall_line_width;
+
+    /*!
+     * \brief If areas of min_feature_size are enlarged to min_wall_line_width
+     */
+    bool fill_outline_gaps;
+
+    /*!
      * \brief Simplifier to simplify polygons.
      */
     Simplify simplifier = Simplify(0, 0, 0);
@@ -403,6 +419,8 @@ public:
             min_feature_size == other.min_feature_size && // interface_preference should be identical to ensure the tree will correctly interact with the roof.
             support_rest_preference == other.support_rest_preference &&
             max_radius == other.max_radius &&
+            min_wall_line_width == other.min_wall_line_width &&
+            fill_outline_gaps == other.fill_outline_gaps &&
             // The infill class now wants the settings object and reads a lot of settings, and as the infill class is used to calculate support roof lines for interface-preference. Not all of these may be required to be identical, but as I am not sure, better safe than sorry
             (
                 interface_preference == InterfacePreference::INTERFACE_AREA_OVERWRITES_SUPPORT ||
