@@ -1465,22 +1465,29 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
     {
         return false;
     }
-    const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
+    const auto infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
     if (infill_line_distance <= 0)
     {
         return false;
     }
-    coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
-    coord_t max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
-    AngleDegrees infill_angle = 45; // Original default. This will get updated to an element from mesh->infill_angles.
-    if (! mesh.infill_angles.empty())
+    const auto max_infill_steps = mesh.settings.get<size_t>("gradual_infill_steps");
+    constexpr auto getInfillAngle = [](const SliceMeshStorage& mesh, const LayerPlan& gcode_layer) -> AngleDegrees
     {
-        const size_t combined_infill_layers = std::max(uint64_t(1), round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<coord_t>("layer_height"), coord_t(1))));
-        infill_angle = mesh.infill_angles.at((gcode_layer.getLayerNr() / combined_infill_layers) % mesh.infill_angles.size());
-    }
+        AngleDegrees infill_angle { 45. }; // Original default. This will get updated to an element from mesh->infill_angles.
+        if (! mesh.infill_angles.empty())
+        {
+            const auto combined_infill_layers = std::max(1UL, round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<coord_t>("layer_height"), 1LL)));
+            infill_angle = mesh.infill_angles.at((gcode_layer.getLayerNr() / combined_infill_layers) % mesh.infill_angles.size());
+        }
+        return infill_angle;
+    };
+    const AngleDegrees infill_angle = getInfillAngle(mesh, gcode_layer);
+
     const Point3 mesh_middle = mesh.bounding_box.getMiddle();
     const Point infill_origin(mesh_middle.x + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y + mesh.settings.get<coord_t>("infill_offset_y"));
 
+    const auto max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
+    const auto max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
     // Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
     bool added_something = false;
     for (unsigned int combine_idx = 1; combine_idx < part.infill_area_per_combine_per_density[0].size(); combine_idx++)
@@ -1495,8 +1502,8 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
         std::vector<VariableWidthLines> infill_paths = part.infill_wall_toolpaths;
         for (size_t density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
         { // combine different density infill areas (for gradual infill)
-            size_t density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
-            coord_t infill_line_distance_here = infill_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
+            const int density_factor = density_idx + 1 - max_infill_steps;
+            coord_t infill_line_distance_here = infill_line_distance * pow(2, density_factor); // the highest density infill combines with the next to create a grid with density_factor 1
             coord_t infill_shift = infill_line_distance_here / 2;
             if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || infill_pattern == EFillMethod::CROSS || infill_pattern == EFillMethod::CROSS_3D)
             {
@@ -1609,6 +1616,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage,
     const auto infill_multiplier = mesh.settings.get<size_t>("infill_multiplier");
     const auto wall_line_count = mesh.settings.get<size_t>("infill_wall_line_count");
     const size_t last_idx = part.infill_area_per_combine_per_density.size() - 1;
+    const size_t max_infill_steps = mesh.settings.get<bool>("gradual_infill") ? mesh.settings.get<size_t>("gradual_infill_steps") : 0;
     const auto max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
     const auto max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
     AngleDegrees infill_angle = 45; // Original default. This will get updated to an element from mesh->infill_angles.
@@ -1656,8 +1664,9 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage,
         Polygons infill_polygons_here;
 
         // the highest density infill combines with the next to create a grid with density_factor 1
-        int infill_line_distance_here = infill_line_distance << (density_idx + 1);
-        int infill_shift = infill_line_distance_here / 2;
+        const int density_factor = density_idx + 1 - max_infill_steps;
+        coord_t infill_line_distance_here = infill_line_distance * pow(2, density_factor);
+        coord_t infill_shift = infill_line_distance_here / 2;
 
         /* infill shift explanation: [>]=shift ["]=line_dist
 
@@ -2696,6 +2705,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     const ExtruderTrain& infill_extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
 
     coord_t default_support_line_distance = infill_extruder.settings.get<coord_t>("support_line_distance");
+    const size_t max_infill_steps = infill_extruder.settings.get<bool>("gradual_support_infill") ? infill_extruder.settings.get<size_t>("gradual_support_infill_steps") : 0;
 
     // To improve adhesion for the "support initial layer" the first layer might have different properties
     if (gcode_layer.getLayerNr() == 0)
@@ -2804,9 +2814,9 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     continue;
                 }
 
-                const unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
-                int support_line_distance_here = default_support_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
-                const int support_shift = support_line_distance_here / 2;
+                const int density_factor = density_idx + 1 - max_infill_steps;
+                coord_t support_line_distance_here = default_support_line_distance * pow(2, density_factor); // the highest density infill combines with the next to create a grid with density_factor 1
+                coord_t support_shift = support_line_distance_here / 2;
                 if (density_idx == max_density_idx || support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D)
                 {
                     support_line_distance_here /= 2;
