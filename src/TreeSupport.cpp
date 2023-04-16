@@ -92,6 +92,9 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
     {
         mesh.first.setActualZ(known_z);
     }
+
+    placed_support_lines_support_areas = std::vector<Polygons>(storage.support.supportLayers.size(),Polygons());
+
 }
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
@@ -235,10 +238,8 @@ void TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size
 
 void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage)
 {
-
-    TreeSupportTipGenerator tip_gen(storage,mesh,volumes_);
-    tip_gen.generateTips(storage,mesh,move_bounds,additional_required_support_area);
-
+    TreeSupportTipGenerator tip_gen(storage, mesh, volumes_);
+    tip_gen.generateTips(storage, mesh, move_bounds, additional_required_support_area, placed_support_lines_support_areas);
 }
 
 void TreeSupport::mergeHelper
@@ -1605,6 +1606,13 @@ void TreeSupport::generateBranchAreas(std::vector<std::pair<LayerIndex, TreeSupp
                         movement_directions.emplace_back(movement, std::max(config.getRadius(parent), config.support_line_width));
                         parent_uses_min |= parent->use_min_xy_dist;
                     }
+
+                    for (Point target: elem->additional_ovalization_targets)
+                    {
+                        Point movement = (target - elem->result_on_layer);
+                        movement_directions.emplace_back(movement, std::max(radius, config.support_line_width));
+                    }
+
                 }
 
                 coord_t max_speed_sqd = 0;
@@ -2033,6 +2041,8 @@ void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_stora
             }
         );
 
+
+
     const auto t_end = std::chrono::high_resolution_clock::now();
 
     const auto dur_union = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_union - t_start).count();
@@ -2057,8 +2067,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
         {
-            // ^^^ Most of the time in this function is this union call. It can take a relatively long time when a lot of areas are to be unioned.
-            //     Also simplify a bit, to ensure the output does not contain outrageous amounts of vertices. Should not be necessary, just a precaution.
+            support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(placed_support_lines_support_areas[layer_idx]);
 
             // Subtract support lines of the branches from the roof
             storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.unionPolygons(support_roof_storage[layer_idx]);

@@ -117,7 +117,7 @@ struct TreeSupportSettings
             support_infill_angles.push_back(0);
         }
 
-        getInterfaceAngles(support_roof_angles, roof_pattern); //todo remove lambda
+        getInterfaceAngles(support_roof_angles, roof_pattern);
         const std::unordered_map<std::string, InterfacePreference> interface_map =
             {
                 { "support_area_overwrite_interface_area", InterfacePreference::SUPPORT_AREA_OVERWRITES_INTERFACE },

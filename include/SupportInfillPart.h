@@ -33,7 +33,9 @@ public:
                                                                               //   for infill_areas[x][n], x means the density level and n means the thickness
     std::vector<VariableWidthLines> wall_toolpaths; //!< Any walls go here, not in the areas, where they could be combined vertically (don't combine walls). Binned by inset_idx.
 
-    SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, int inset_count_to_generate = 0);
+    coord_t custom_line_distance;
+
+    SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, int inset_count_to_generate = 0, coord_t custom_line_distance = 0 );
 
     const Polygons& getInfillArea() const;
 };

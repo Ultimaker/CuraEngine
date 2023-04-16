@@ -91,7 +91,7 @@ public:
      * \param layer_idx[in] The current layer index.
      * \param support_infill_distance[in] The distance that should be between the infill lines.
      * \param cross_fill_provider[in] A SierpinskiFillProvider required for cross infill.
-     *
+     * \param include_walls[in] If the result should also contain walls, or only the infill.
      * \return A Polygons object that represents the resulting infill lines.
      */
     [[nodiscard]] static Polygons generateSupportInfillLines(const Polygons& area,const TreeSupportSettings& config, bool roof, LayerIndex layer_idx, coord_t support_infill_distance, SierpinskiFillProvider* cross_fill_provider, bool include_walls)
@@ -324,6 +324,24 @@ public:
 
         return result;
     }
+
+    [[nodiscard]]static VariableWidthLines polyLineToVWL(const Polygons& polylines, coord_t line_width)
+    {
+        VariableWidthLines result;
+        for (auto path: polylines)
+        {
+            ExtrusionLine vwl_line(1,true);
+
+            for(Point p: path)
+            {
+                vwl_line.emplace_back(p,line_width,1);
+            }
+            result.emplace_back(vwl_line);
+        }
+        return result;
+    }
+
+
 };
 
 } //namespace cura
