@@ -66,11 +66,11 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceDataStorage& storage
     config.setActualZ(known_z);
 
 
-    size_t dtt_when_tips_can_merge = 1;
+    coord_t dtt_when_tips_can_merge = 1;
 
     if(config.branch_radius * config.diameter_angle_scale_factor < 2 * config.maximum_move_distance_slow)
     {
-        while(2 * config.maximum_move_distance_slow * dtt_when_tips_can_merge < config.getRadius(dtt_when_tips_can_merge))
+        while((2 * config.maximum_move_distance_slow * dtt_when_tips_can_merge - config.support_line_width)  < config.getRadius(dtt_when_tips_can_merge))
         {
             dtt_when_tips_can_merge++;
         }
@@ -79,8 +79,7 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceDataStorage& storage
     {
         dtt_when_tips_can_merge = config.tip_layers; // arbitrary default for when there is no guarantee that the while loop above will terminate
     }
-    support_supporting_branch_distance = 2 * config.getRadius(dtt_when_tips_can_merge) + FUDGE_LENGTH;
-
+    support_supporting_branch_distance = 2 * config.getRadius(dtt_when_tips_can_merge) + config.support_line_width + FUDGE_LENGTH;
 }
 
 
@@ -673,12 +672,12 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(std::vector<std::set<Tree
     for (LineInformation line : lines)
     {
         // If a line consists of enough tips, the assumption is that it is not a single tip, but part of a simulated support pattern.
-        // Ovalisation should be disabled for these to improve the quality of the lines when tip_diameter=line_width
-        const bool disable_ovalization = !connect_points && config.min_radius < 3 * config.support_line_width && roof_tip_layers == 0 && dtt_roof_tip == 0 && line.size() > EPSILON;
+        // Ovalisation should be disabled if they may be placed close to each other to prevent tip-areas merging. If the tips has to turn into roof, the area is most likely not large enough for this to cause issues.
+        const bool disable_ovalization =  !connect_points && config.min_radius < 3 * config.support_line_width && roof_tip_layers == 0 && dtt_roof_tip == 0;
         for (auto [idx, point_data] : line | ranges::views::enumerate)
         {
             std::vector<Point> additional_ovalization_targets;
-            if (connect_points && config.getRadius(1) < 1.5 * config.support_line_width) // If the radius is to large then the ovalization would cause the area to float in the air.
+            if (connect_points) // If the radius is to large then the ovalization would cause the area to float in the air.
             {
                 if (idx != 0)
                 {
@@ -788,7 +787,12 @@ void TreeSupportTipGenerator::generateTips(SliceDataStorage& storage,const Slice
                 std::function<Polygons(const Polygons&, bool, LayerIndex)> generateLines =
                     [&](const Polygons& area, bool roof, LayerIndex layer_idx)
                 {
-                    return TreeSupportUtils::generateSupportInfillLines(area, config, roof && !use_fake_roof, layer_idx, roof ? support_roof_line_distance : support_tree_branch_distance, cross_fill_provider, roof && !use_fake_roof);
+
+                    coord_t upper_line_distance = support_supporting_branch_distance;
+                    coord_t line_distance = std::max(roof ? support_roof_line_distance : support_tree_branch_distance, upper_line_distance );
+
+
+                    return TreeSupportUtils::generateSupportInfillLines(area, config, roof && !use_fake_roof, layer_idx, line_distance , cross_fill_provider, roof && !use_fake_roof, line_distance == upper_line_distance);
                 };
 
 

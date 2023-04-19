@@ -1970,7 +1970,7 @@ void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_stora
                         for (auto [idx2, hole2] : holeparts[layer_idx - 1] | ranges::views::enumerate)
                         {
 
-                            if (AABB(hole).hit(AABB(hole2)) && ! hole.intersection(hole2).empty() ) // todo should technically be outline: Check if this is fine either way as it would save an offset
+                            if (hole_aabb.hit(AABB(hole2)) && ! hole.intersection(hole2).empty() ) // TODO should technically be outline: Check if this is fine either way as it would save an offset
                             {
                                 hole_rest_map[layer_idx][idx].emplace_back(idx2);
                             }
