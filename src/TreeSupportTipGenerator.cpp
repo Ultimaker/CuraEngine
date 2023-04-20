@@ -46,10 +46,18 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceDataStorage& storage
 
     const double support_overhang_angle = mesh.settings.get<AngleRadians>("support_angle");
     const coord_t max_overhang_speed = (support_overhang_angle < TAU / 4) ? (coord_t)(tan(support_overhang_angle) * config.layer_height) : std::numeric_limits<coord_t>::max();
-    max_overhang_insert_lag = std::max((size_t)round_up_divide(config.xy_distance, max_overhang_speed / 2), 2 * config.z_distance_top_layers);
-    // ^^^ Cap for how much layer below the overhang a new support point may be added, as other than with regular support every new inserted point may cause extra material and time cost.
-    //     Could also be an user setting or differently calculated. Idea is that if an overhang does not turn valid in double the amount of layers a slope of support angle would take to travel xy_distance, nothing reasonable will come from it.
-    //     The 2*z_distance_delta is only a catch for when the support angle is very high.
+
+    if (max_overhang_speed == 0)
+    {
+        max_overhang_insert_lag = std::numeric_limits<coord_t>::max();
+    }
+    else
+    {
+        max_overhang_insert_lag = std::max((size_t)round_up_divide(config.xy_distance, max_overhang_speed / 2), 2 * config.z_distance_top_layers);
+        // ^^^ Cap for how much layer below the overhang a new support point may be added, as other than with regular support every new inserted point may cause extra material and time cost.
+        //     Could also be an user setting or differently calculated. Idea is that if an overhang does not turn valid in double the amount of layers a slope of support angle would take to travel xy_distance, nothing reasonable will come from it.
+        //     The 2*z_distance_delta is only a catch for when the support angle is very high.
+    }
 
     cross_fill_provider = generateCrossFillProvider(mesh, support_tree_branch_distance, config.support_line_width);
 
