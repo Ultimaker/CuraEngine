@@ -91,15 +91,16 @@ public:
      * \param layer_idx[in] The current layer index.
      * \param support_infill_distance[in] The distance that should be between the infill lines.
      * \param cross_fill_provider[in] A SierpinskiFillProvider required for cross infill.
-     *
+     * \param include_walls[in] If the result should also contain walls, or only the infill.
+     * todo doku
      * \return A Polygons object that represents the resulting infill lines.
      */
-    [[nodiscard]] static Polygons generateSupportInfillLines(const Polygons& area,const TreeSupportSettings& config, bool roof, LayerIndex layer_idx, coord_t support_infill_distance, SierpinskiFillProvider* cross_fill_provider, bool include_walls)
+    [[nodiscard]] static Polygons generateSupportInfillLines(const Polygons& area,const TreeSupportSettings& config, bool roof, LayerIndex layer_idx, coord_t support_infill_distance, SierpinskiFillProvider* cross_fill_provider, bool include_walls, bool generate_support_supporting = false)
     {
         Polygons gaps;
         // As we effectivly use lines to place our supportPoints we may use the Infill class for it, while not made for it, it works perfectly.
 
-        const EFillMethod pattern = roof ? config.roof_pattern : config.support_pattern;
+        const EFillMethod pattern = generate_support_supporting ? EFillMethod::GRID : roof ? config.roof_pattern : config.support_pattern;
 
         const bool zig_zaggify_infill = roof ? pattern == EFillMethod::ZIG_ZAG : config.zig_zaggify_support;
         const bool connect_polygons = false;
@@ -324,6 +325,24 @@ public:
 
         return result;
     }
+
+    [[nodiscard]]static VariableWidthLines polyLineToVWL(const Polygons& polylines, coord_t line_width)
+    {
+        VariableWidthLines result;
+        for (auto path: polylines)
+        {
+            ExtrusionLine vwl_line(1,true);
+
+            for(Point p: path)
+            {
+                vwl_line.emplace_back(p,line_width,1);
+            }
+            result.emplace_back(vwl_line);
+        }
+        return result;
+    }
+
+
 };
 
 } //namespace cura

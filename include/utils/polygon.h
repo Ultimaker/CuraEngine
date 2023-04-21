@@ -987,6 +987,7 @@ public:
         return ret;
     }
 
+
     /*!
      * Intersect polylines with this area Polygons object.
      * 

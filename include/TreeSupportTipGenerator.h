@@ -43,7 +43,7 @@ public:
 
      * \return All lines of the \p polylines object, with information for each point regarding in which avoidance it is currently valid in.
      */
-    void generateTips(SliceDataStorage& storage,const SliceMeshStorage& mesh ,std::vector<std::set<TreeSupportElement*>>& move_bounds, std::vector<Polygons>& additional_support_areas);
+    void generateTips(SliceDataStorage& storage,const SliceMeshStorage& mesh ,std::vector<std::set<TreeSupportElement*>>& move_bounds, std::vector<Polygons>& additional_support_areas, std::vector<Polygons>& placed_support_lines_support_areas);
 
 private:
 
@@ -103,9 +103,10 @@ private:
      * \param input[in] The lines on which evenly spaced points should be placed.
      * \param distance[in] The distance the points should be from each other.
      * \param min_points[in] The amount of points that have to be placed. If not enough can be placed the distance will be reduced to place this many points.
+     * \param enforce_distance[in] If points should not be added if they are closer than distance to other points.
      * \return A Polygons object containing the evenly spaced points. Does not represent an area, more a collection of points on lines.
      */
-    Polygons ensureMaximumDistancePolyline(const Polygons& input, coord_t distance, size_t min_points) const;
+    Polygons ensureMaximumDistancePolyline(const Polygons& input, coord_t distance, size_t min_points, bool enforce_distance) const;
 
     /*!
      * \brief Creates a valid CrossInfillProvider
@@ -142,7 +143,7 @@ private:
      * \param roof[in] Whether the tip supports a roof.
      * \param skip_ovalisation[in] Whether the tip may be ovalized when drawn later.
      */
-    void addPointAsInfluenceArea(std::vector<std::set<TreeSupportElement *>>& move_bounds, std::pair<Point, LineStatus> p, size_t dtt, LayerIndex insert_layer, size_t dont_move_until, bool roof, bool skip_ovalisation);
+    void addPointAsInfluenceArea(std::vector<std::set<TreeSupportElement *>>& move_bounds, std::pair<Point, LineStatus> p, size_t dtt, LayerIndex insert_layer, size_t dont_move_until, bool roof, bool skip_ovalisation, std::vector<Point> additional_ovalization_targets = std::vector<Point>());
 
 
     /*!
@@ -154,7 +155,7 @@ private:
      * \param supports_roof[in] Whether the tip supports a roof.
      * \param dont_move_until[in] Until which dtt the branch should not move if possible.
      */
-    void addLinesAsInfluenceAreas(std::vector<std::set<TreeSupportElement *>>& move_bounds, std::vector<TreeSupportTipGenerator::LineInformation> lines, size_t roof_tip_layers, LayerIndex insert_layer_idx, bool supports_roof, size_t dont_move_until);
+    void addLinesAsInfluenceAreas(std::vector<std::set<TreeSupportElement *>>& move_bounds, std::vector<TreeSupportTipGenerator::LineInformation> lines, size_t roof_tip_layers, LayerIndex insert_layer_idx, bool supports_roof, size_t dont_move_until, bool connect_points);
 
     /*!
      * \brief Remove tips that should not have been added in the first place.
@@ -164,9 +165,14 @@ private:
      */
     void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement *>>& move_bounds,SliceDataStorage& storage, std::vector<Polygons>& additional_support_areas);
 
+
+    /*!
+     * \brief If large areas should be supported by a roof out of regular support lines.
+     */
+    bool use_fake_roof;
+
     /*!
      * \brief Generator for model collision, avoidance and internal guide volumes.
-     *
      */
     TreeModelVolumes& volumes_;
 
@@ -175,10 +181,6 @@ private:
      */
     TreeSupportSettings config;
 
-    /*!
-     * \brief Distance between support roof lines. Is required for generating roof patterns.
-     */
-    const coord_t support_roof_line_distance;
 
     /*!
      * \brief Minimum area an overhang has to have to become a roof.
@@ -204,6 +206,12 @@ private:
      * \brief Distance between tips, if the tips support an overhang.
      */
     const coord_t support_tree_branch_distance;
+
+    /*!
+     * \brief Distance between support roof lines. Is required for generating roof patterns.
+     */
+    const coord_t support_roof_line_distance;
+
 
     /*!
      * \brief Amount of offset to each overhang for support with regular branches (as opposed to roof).
@@ -260,6 +268,10 @@ private:
      */
     const bool force_minimum_roof_area = SUPPORT_TREE_MINIMUM_ROOF_AREA_HARD_LIMIT;
 
+    /*!
+     * \brief Distance between branches when the branches support a support pattern
+     */
+    coord_t support_supporting_branch_distance;
 
     /*!
      * \brief Required to generate cross infill patterns
@@ -280,6 +292,8 @@ private:
      * \brief Areas that will be saved as support roof, originating from tips being replaced with roof areas.
      */
     std::vector<Polygons> roof_tips_drawn;
+
+
 
 
     std::mutex critical_move_bounds;
