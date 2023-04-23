@@ -80,3 +80,6 @@ build/*
 crash-*
 leak-*
 oom-*
+
+# Clangd files
+.clangd
