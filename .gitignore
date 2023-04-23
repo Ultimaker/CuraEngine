@@ -75,3 +75,8 @@ conanbuildinfo.txt
 conaninfo.txt
 graph_info.json
 build/*
+
+# Fuzzing artifacts
+crash-*
+leak-*
+oom-*
