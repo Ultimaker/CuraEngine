@@ -103,8 +103,8 @@ endforeach ()
 #   on clang/msvc and isn't supported with GCC. If you need to use these fuzzers
 #   with a GCC based project you should consider looking into the LIB_FUZZING_ENGINE
 #   env variable defined in `test/fuzz/CMakeLists.txt`.
-set(CMAKE_REQUIRED_LINK_OPTIONS "-fsanitize=fuzzer,address")
-set(CMAKE_REQUIRED_FLAGS "-fsanitize=fuzzer-no-link,address")
+set(CMAKE_REQUIRED_LINK_OPTIONS "-fsanitize=fuzzer")
+set(CMAKE_REQUIRED_FLAGS "-fsanitize=fuzzer-no-link")
 check_cxx_source_compiles([[
 #include <cstdint>
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, std::size_t Size) {
@@ -118,8 +118,8 @@ cmake_dependent_option(
 )
 
 if (WITH_TEST_FUZZ)
-    message(VERBOSE "Building fuzz tests enabled")
+    message(STATUS "Building fuzz tests enabled")
     add_subdirectory(fuzz)
 else ()
-    message(VERBOSE "Building fuzz tests disabled")
+    message(STATUS "Building fuzz tests disabled")
 endif ()
