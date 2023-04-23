@@ -3,6 +3,8 @@
 
 message(STATUS "Building tests...")
 include(GoogleTest)
+include(CheckCXXCompilerFlag)
+include(CMakeDependentOption)
 
 set(TESTS_SRC_BASE
         ClipperTest
@@ -46,7 +48,11 @@ if (ENABLE_ARCUS)
     list(APPEND TESTS_SRC_ARCUS
             ArcusCommunicationTest
             ArcusCommunicationPrivateTest)
-    list(APPEND TESTS_HELPERS_SRC arcus/MockSocket.cpp)
+    list(APPEND TESTS_HELPERS_SRC
+        arcus/MockSocket.cpp
+        arcus/MockSocket.h
+        arcus/MockCommunication.h
+        )
 endif ()
 
 add_library(test_helpers ${TESTS_HELPERS_SRC})
@@ -87,3 +93,33 @@ foreach (test ${TESTS_SRC_UTILS})
     add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
     target_link_libraries(${test} PRIVATE _CuraEngine test_helpers GTest::gtest GTest::gmock clipper::clipper)
 endforeach ()
+
+
+# Ensure that basic sanitizer flags are supported before adding fuzzers;
+# - Address sanitizer is often used in conjunction with fuzzing as it will detect
+#   common high severity bugs. This sanitizer is used as a "default" for fuzzing
+#   when the sanitizer isn't otherwise specified.
+# - Fuzzer sanitizer will link against libfuzzer and is currently only supported
+#   on clang/msvc and isn't supported with GCC. If you need to use these fuzzers
+#   with a GCC based project you should consider looking into the LIB_FUZZING_ENGINE
+#   env variable defined in `test/fuzz/CMakeLists.txt`.
+set(CMAKE_REQUIRED_LINK_OPTIONS "-fsanitize=fuzzer,address")
+set(CMAKE_REQUIRED_FLAGS "-fsanitize=fuzzer-no-link,address")
+check_cxx_source_compiles([[
+#include <cstdint>
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, std::size_t Size) {
+  return 0;
+}
+]] HAS_FUZZ_FLAGS)
+
+cmake_dependent_option(
+    WITH_TEST_FUZZ "Build fuzz tests" ON
+    HAS_FUZZ_FLAGS OFF
+)
+
+if (WITH_TEST_FUZZ)
+    message(VERBOSE "Building fuzz tests enabled")
+    add_subdirectory(fuzz)
+else ()
+    message(VERBOSE "Building fuzz tests disabled")
+endif ()
