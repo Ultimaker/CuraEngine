@@ -6,3 +6,12 @@ cmake --preset release -DWITH_TEST_FUZZ=ON
 cmake --build --preset release -j$(nproc)
 
 cp build/Release/tests/fuzz/Fuzz* $OUT
+
+mkdir -p $OUT/lib
+# Move all dynamic deps into output directory.
+find ~/.conan/data -name '*.so*' -exec cp {} $OUT/lib/ \;
+
+# Rewrite dynamic linker paths to point to output directory
+for fuzzer in $OUT/Fuzz*; do
+    chrpath -r '$ORIGIN/lib' $fuzzer
+done
