@@ -610,6 +610,15 @@ public:
 
     static Polygons unionManySmall(const Polygons& p);
 
+
+    /*!
+     * Intersects a polygon with an AABB.
+     * \param src The polygon that has to be intersected with an AABB
+     * \param aabb The AABB with which the polygon that has to be intersected with
+     * \return A new Polygon that is said intersection
+     */
+    static Polygons clipPolygonWithAABB(const Polygons& src, const AABB& aabb);
+
 private:
     /*!
      * Helper function for PolygonUtils::moveInside2: moves a point \p from which was moved onto \p closest_polygon_point towards inside/outside when it's not already inside/outside by enough distance.

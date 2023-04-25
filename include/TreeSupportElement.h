@@ -375,6 +375,11 @@ struct TreeSupportElement
      */
     Polygons influence_area_limit_area;
 
+    /*!
+     * \brief Additional locations that the tip should reach
+     */
+    std::vector<Point> additional_ovalization_targets;
+
 
     bool operator==(const TreeSupportElement& other) const
     {

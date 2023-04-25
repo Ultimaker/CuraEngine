@@ -32,6 +32,8 @@ constexpr auto TREE_PROGRESS_GENERATE_BRANCH_AREAS = TREE_PROGRESS_DRAW_AREAS / 
 constexpr auto TREE_PROGRESS_SMOOTH_BRANCH_AREAS = TREE_PROGRESS_DRAW_AREAS / 3;
 constexpr auto TREE_PROGRESS_FINALIZE_BRANCH_AREAS = TREE_PROGRESS_DRAW_AREAS / 3;
 
+constexpr auto SUPPORT_TREE_MINIMUM_FAKE_ROOF_AREA = 100;
+constexpr auto SUPPORT_TREE_MINIMUM_FAKE_ROOF_LAYERS = 1;
 constexpr auto SUPPORT_TREE_MINIMUM_ROOF_AREA_HARD_LIMIT = false;
 constexpr auto SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL = false;
 constexpr auto SUPPORT_TREE_AVOID_SUPPORT_BLOCKER = true;
@@ -276,6 +278,9 @@ private:
         const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order
     );
 
+
+    void filterFloatingLines(std::vector<Polygons>& support_layer_storage);
+
     /*!
      * \brief Generates Support Floor, ensures Support Roof can not cut of branches, and saves the branches as support to storage
      *
@@ -295,12 +300,18 @@ private:
 
     /*!
      * \brief Settings with the indexes of meshes that use these settings.
-     *
      */
     std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> grouped_meshes;
 
-    std::vector<Polygons> additional_required_support_area; //todo doku
+    /*!
+     * \brief Areas that should have been support roof, but where the roof settings would not allow any lines to be generated.
+     */
+    std::vector<Polygons> additional_required_support_area;
 
+    /*!
+     * \brief A representation of already placed lines. Required for subtracting from new support areas.
+     */
+    std::vector<Polygons> placed_support_lines_support_areas;
 
     /*!
      * \brief Generator for model collision, avoidance and internal guide volumes.

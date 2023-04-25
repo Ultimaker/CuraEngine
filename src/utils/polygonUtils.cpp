@@ -1504,4 +1504,70 @@ Polygons PolygonUtils::unionManySmall(const Polygons& p)
     return unionManySmall(a).unionPolygons(unionManySmall(b));
 }
 
+Polygons PolygonUtils::clipPolygonWithAABB(const Polygons& src, const AABB& aabb)
+{
+    Polygons out;
+    out.reserve(src.size());
+    for (const auto path : src)
+    {
+        Polygon poly;
+
+        const size_t cnt = path.size();
+        if (cnt < 3)
+        {
+            return Polygons();
+        }
+
+        enum class Side
+        {
+            Left = 1,
+            Right = 2,
+            Top = 4,
+            Bottom = 8
+        };
+
+        auto sides = [aabb](const Point& p) { return int(p.X < aabb.min.X) * int(Side::Left) + int(p.X > aabb.max.X) * int(Side::Right) + int(p.Y < aabb.min.Y) * int(Side::Bottom) + int(p.Y > aabb.max.Y) * int(Side::Top); };
+
+        int sides_prev = sides(path.back());
+        int sides_this = sides(path.front());
+        const size_t last = cnt - 1;
+
+        for (size_t i = 0; i < last; ++i)
+        {
+            int sides_next = sides(path[i + 1]);
+            if ( // This point is inside. Take it.
+                sides_this == 0 ||
+                // Either this point is outside and previous or next is inside, or
+                // the edge possibly cuts corner of the bounding box.
+                (sides_prev & sides_this & sides_next) == 0)
+            {
+                poly.add(path[i]);
+                sides_prev = sides_this;
+            }
+            else
+            {
+                // All the three points (this, prev, next) are outside at the same side.
+                // Ignore this point.
+            }
+            sides_this = sides_next;
+        }
+
+        // Never produce just a single point output polygon.
+        if (! poly.empty())
+        {
+            int sides_next = sides(poly.front());
+            if (sides_this == 0 || // The last point is inside. Take it.
+                (sides_prev & sides_this & sides_next) == 0) // Either this point is outside and previous or next is inside, or the edge possibly cuts corner of the bounding box.
+
+                poly.add(path.back());
+        }
+
+        if (! poly.empty())
+        {
+            out.add(poly);
+        }
+    }
+    return out;
+}
+
 } // namespace cura
