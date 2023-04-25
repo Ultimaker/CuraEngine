@@ -8,11 +8,12 @@
 
 namespace cura::plugins
 {
-
-template<size_t N>
-struct VersionRangeLiteral
+namespace details
 {
-    constexpr VersionRangeLiteral(const char (&str)[N])
+template<size_t N>
+struct CharRangeLiteral
+{
+    constexpr CharRangeLiteral(const char (&str)[N])
     {
         std::copy_n(str, N, value);
     }
@@ -20,22 +21,20 @@ struct VersionRangeLiteral
     char value[N];
 };
 
+} // namespace details
 
-template<VersionRangeLiteral VersionRange>
+template<details::CharRangeLiteral VersionRange, details::CharRangeLiteral PluginHash>
 struct Validator
 {
     semver::version version{ "1.0.0" };
+    std::string_view plugin_hash{  };
     bool include_prerelease{ false };
     semver::range::detail::range version_range{ VersionRange.value };
 
     constexpr operator bool() const noexcept
     {
-        return version_range.satisfies(version, include_prerelease);
-    }
-
-    constexpr bool operator()(const semver::version& actual_version) const noexcept
-    {
-        return version_range.satisfies(actual_version, include_prerelease);
+        // TODO: Add proper security checking
+        return version_range.satisfies(version, include_prerelease) && plugin_hash == PluginHash.value;
     }
 };
 

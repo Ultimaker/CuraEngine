@@ -6,12 +6,18 @@ package cura.plugins.proto;
 // TODO: Add progress reporting
 // TODO: Add priority queueing (if multiple plugins are hooked up to the slot)
 
-message Version_args {
- string version_range = 1;
+enum SlotID {
+  SIMPLIFY = 0;
+  POSTPROCESS = 1;
 }
 
-message Version_ret {
-  string version = 1;
+message Plugin_args {
+  SlotID id = 1;
+}
+
+message Plugin_ret {
+  string plugin_hash = 1;
+  string version = 2;
 }
 
 message Point_2d {

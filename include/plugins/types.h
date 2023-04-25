@@ -4,37 +4,84 @@
 #ifndef CURAENGINE_INCLUDE_PLUGINS_TYPES_H
 #define CURAENGINE_INCLUDE_PLUGINS_TYPES_H
 
-#include "plugins/pluginproxy.h"
+#include <memory>
+
+#include <range/v3/view/subrange.hpp>
+
+#include "utils/IntPoint.h"
 #include "utils/polygon.h"
 
 #include "plugin.pb.h"
 
-#include <variant>
-
 namespace cura::plugins
 {
-namespace defaults
+namespace details
 {
-constexpr auto simplify = [](const Polygons& polygons, const size_t max_deviation, const size_t max_angle) -> Polygons { return polygons; };
-constexpr auto postprocess = [](const std::string& gcode_word) -> std::string { return gcode_word; };
-
-} // namespace defaults
-
-// Register the plugin types
-// TODO: Try to determine the projections from the instantiation of the PluginProxy.
-// TODO: Add custom converters for proto calls to CuraEngine types.
-using simplify_plugin = PluginProxy<">=1.0.0 <2.0.0 || >3.2.1", plugins::proto::Simplify_args, plugins::proto::Simplify_ret, decltype(defaults::simplify)>;
-using postproces_plugin = PluginProxy<">=1.0.0 <2.0.0 || >3.2.1", plugins::proto::Postprocess_args, plugins::proto::Postprocess_ret, decltype(defaults::postprocess)>;
-
-using plugin_t = std::variant<simplify_plugin, postproces_plugin>;
-
-// Register the slots here.
-enum class Slot
+template<class Send, class Receive>
+struct converter_base
 {
-    SIMPLIFY,
-    POSTPROCESS
+    using send_t = Send;
+    using receive_t = Receive;
 };
 
+template<class Send, class Receive>
+struct simplify_converter_fn : public converter_base<Send, Receive>
+{
+    Polygons operator()(const Receive& args) const noexcept
+    {
+        Polygons poly{};
+        for (const auto& paths : args.polygons().paths() )
+        {
+            Polygon p{};
+            for (const auto& point : paths.path() )
+            {
+                p.add(Point { point.y(), point.y() });
+            }
+            poly.add(p);
+        }
+        return poly;
+    }
+
+    auto operator()(const Polygons& polygons, const size_t max_deviation, const size_t max_angle) const noexcept
+    {
+        Send args{};
+        args.set_max_deviation(max_deviation);
+        args.set_max_angle(max_angle);
+        for (const auto& polygon : polygons.paths )
+        {
+            auto poly = args.polygons();
+            for (const auto& path : polygons.paths)
+            {
+                auto* p = poly.add_paths();
+                for (const auto& point : path )
+                {
+                    auto* pt = p->add_path();
+                    pt->set_x(point.X);
+                    pt->set_y(point.Y);
+                }
+            }
+        }
+        return std::make_shared<Send>(args);
+    }
+};
+
+template<class Send, class Receive>
+struct postprocess_converter_fn : public converter_base<Send, Receive>
+{
+    std::string operator()(const Receive& args) const noexcept
+    {
+        return args.gcode();
+    }
+
+    auto operator()(const std::string& gcode) const noexcept
+    {
+        Send args{};
+        args.set_gcode(gcode);
+        return std::make_shared<Send>(args);
+    }
+};
+
+} // namespace details
 
 
 } // namespace cura::plugins

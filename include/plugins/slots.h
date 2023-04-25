@@ -6,16 +6,26 @@
 
 #include <memory>
 #include <unordered_map>
+#include <variant>
 
+#include "plugins/pluginproxy.h"
+#include "plugins/validator.h"
 #include "plugins/types.h"
 
 namespace cura::plugins
 {
 
+using simplify_plugin = PluginProxy<SlotID::SIMPLIFY, Validator<">=1.0.0 <2.0.0 || >3.2.1", "">, details::simplify_converter_fn<proto::Simplify_args, proto::Simplify_ret>>;
+using postprocess_plugin = PluginProxy<SlotID::POSTPROCESS, Validator<">=1.0.0 <2.0.0 || >3.2.1", "">, details::postprocess_converter_fn<proto::Postprocess_args, proto::Postprocess_ret>>;
+
+
+using plugins_t = std::variant<simplify_plugin, postprocess_plugin>;
+
+
 class Slots
 {
     constexpr Slots() noexcept = default;
-    std::unordered_map<Slot, std::shared_ptr<plugin_t>> slots_{};
+    std::unordered_map<SlotID, plugins_t> slots_{};
 
 public:
     Slots(const Slots&) = delete;
@@ -27,15 +37,20 @@ public:
         return instance;
     }
 
-    /*! \brief Register a plugin to a slot
-     *
-     * \param slot The slot to register the plugin to
-     * \param plugin The plugin to register
-     */
-    void registerSlot(Slot slot, std::shared_ptr<plugin_t> plugin) noexcept
-    {
-        slots_.insert_or_assign(slot, std::move(plugin));
-    }
+
+
+//    template<class Slot>
+//    constexpr void registerSlot(Slot&& slot)
+//    {
+//        slots_.emplace(slot.slot_id, std::forward<Slot>(slot));
+//    }
+//
+//
+//    simplify_slot getSlot()
+//    {
+//        return std::get<simplify_slot>(slots_.at(SlotID::SIMPLIFY));
+//    }
+
 };
 
 
