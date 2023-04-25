@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifdef ARCUS
@@ -316,7 +316,7 @@ void ArcusCommunication::connect(const std::string& ip, const uint16_t port)
         std::this_thread::sleep_for(std::chrono::milliseconds(private_data->millisecUntilNextTry)); // Wait until we're connected. Check every XXXms.
         socket_state = private_data->socket->getState();
     }
-    if (socket_state != Arcus::SocketState::Connected)
+    if (socket_state == Arcus::SocketState::Connected)
     {
         spdlog::info("Connected to {}:{}", ip, port);
     }

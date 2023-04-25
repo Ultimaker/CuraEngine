@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package cura.plugins.proto;
+
+// TODO: Add error propagation
+// TODO: Add progress reporting
+// TODO: Add priority queueing (if multiple plugins are hooked up to the slot)
+
+message Version_args {
+ string version_range = 1;
+}
+
+message Version_ret {
+  string version = 1;
+}
+
+message Point_2d {
+  sint64 x = 1;
+  sint64 y = 2;
+}
+
+message Polygon {
+  repeated Point_2d path = 1;
+}
+
+message Polygons {
+  repeated Polygon paths = 1;
+}
+
+message Simplify_args {
+  Polygons polygons = 1;
+  uint64 max_deviation = 2;
+  uint64 max_angle = 3;
+}
+
+message Simplify_ret {
+  Polygons polygons = 1;
+}
+
+message Postprocess_args {
+  string gcode_word = 1;
+}
+
+message Postprocess_ret {
+  string gcode_word = 1;
+}

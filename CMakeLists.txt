@@ -19,7 +19,8 @@ if (ENABLE_ARCUS)
 
     find_package(arcus REQUIRED)
     find_package(protobuf REQUIRED)
-    protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
+    protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto plugin.proto)
+    protobuf_generate_cpp(plugin_PB_SRCS plugin_PB_HEADERS plugin.proto)
 endif ()
 
 ### Compiling CuraEngine ###
@@ -133,7 +134,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ToolpathVisualizer.cpp
         src/utils/VoronoiUtils.cpp
         src/utils/VoxelUtils.cpp
-        )
+        include/plugins/validator.h)
 
 add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})
 use_threads(_CuraEngine)
@@ -178,6 +179,7 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
+find_package(neargye-semver REQUIRED)
 
 if (ENABLE_TESTING)
     find_package(GTest REQUIRED)
@@ -193,6 +195,7 @@ target_link_libraries(_CuraEngine
         stb::stb
         boost::boost
         scripta::scripta
+        neargye-semver::neargye-semver
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
 
 if (NOT WIN32)

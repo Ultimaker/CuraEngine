@@ -64,7 +64,7 @@ class CuraEngineConan(ConanFile):
     def build_requirements(self):
         self.test_requires("standardprojectsettings/[>=0.1.0]@ultimaker/stable")
         if self.options.enable_arcus:
-            self.test_requires("protobuf/3.21.4")
+            self.test_requires("protobuf/3.21.9")
         if self.options.enable_testing:
             self.test_requires("gtest/1.12.1")
         if self.options.enable_benchmarks:
@@ -72,6 +72,7 @@ class CuraEngineConan(ConanFile):
 
     def requirements(self):
         if self.options.enable_arcus:
+            self.requires("protobuf/3.21.9")
             self.requires("arcus/5.2.2")
             self.requires("zlib/1.2.12")
         self.requires("clipper/6.4.2")
@@ -82,6 +83,7 @@ class CuraEngineConan(ConanFile):
         self.requires("fmt/9.0.0")
         self.requires("range-v3/0.12.0")
         self.requires("scripta/0.1.0@ultimaker/testing")
+        self.requires("neargye-semver/0.3.0")
 
     def generate(self):
         deps = CMakeDeps(self)

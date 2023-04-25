@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef APPLICATION_H
 #define APPLICATION_H
@@ -134,6 +134,8 @@ private:
      * This destroys the Communication instance along with it.
      */
     ~Application();
+
+    void registerPlugins();
 };
 
 } //Cura namespace.

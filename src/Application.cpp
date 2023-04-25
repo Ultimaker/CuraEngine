@@ -23,6 +23,8 @@
 #include "utils/ThreadPool.h"
 #include "utils/string.h" //For stringcasecompare.
 
+#include "plugins/slots.h"
+
 namespace cura
 {
 
@@ -186,6 +188,8 @@ void Application::run(const size_t argc, char** argv)
         exit(1);
     }
 
+    registerPlugins();
+
 #ifdef ARCUS
     if (stringcasecompare(argv[1], "connect") == 0)
     {
@@ -245,6 +249,12 @@ void Application::startThreadPool(int nworkers)
     }
     delete thread_pool;
     thread_pool = new ThreadPool(nthreads);
+}
+
+void Application::registerPlugins()
+{
+//    plugins::Slots::instance().register("simplify", "[>=0.1.0]");
+//    plugins::Slots::instance().register("postprocess", "[>=0.1.0]");
 }
 
 } // namespace cura
