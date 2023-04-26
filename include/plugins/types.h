@@ -14,6 +14,21 @@
 
 namespace cura::plugins
 {
+namespace details
+{
+template<size_t N>
+struct CharRangeLiteral
+{
+    constexpr CharRangeLiteral(const char (&str)[N])
+    {
+        std::copy_n(str, N, value);
+    }
+
+    char value[N];
+};
+
+} // namespace details
+
 namespace converters
 {
 template<class Send, class Receive>

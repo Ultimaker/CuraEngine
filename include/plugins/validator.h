@@ -4,24 +4,13 @@
 #ifndef CURAENGINE_INCLUDE_PLUGINS_VALIDATOR_H
 #define CURAENGINE_INCLUDE_PLUGINS_VALIDATOR_H
 
+#include "plugins/types.h"
+
 #include <semver.hpp>
 
 namespace cura::plugins
 {
-namespace details
-{
-template<size_t N>
-struct CharRangeLiteral
-{
-    constexpr CharRangeLiteral(const char (&str)[N])
-    {
-        std::copy_n(str, N, value);
-    }
 
-    char value[N];
-};
-
-} // namespace details
 
 template<details::CharRangeLiteral VersionRange, details::CharRangeLiteral PluginHash>
 struct Validator
