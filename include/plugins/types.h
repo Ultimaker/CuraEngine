@@ -5,8 +5,7 @@
 #define CURAENGINE_INCLUDE_PLUGINS_TYPES_H
 
 #include <memory>
-
-#include <range/v3/view/subrange.hpp>
+#include <tuple>
 
 #include "utils/IntPoint.h"
 #include "utils/polygon.h"
@@ -15,13 +14,25 @@
 
 namespace cura::plugins
 {
-namespace details
+namespace converters
 {
 template<class Send, class Receive>
 struct converter_base
 {
     using send_t = Send;
     using receive_t = Receive;
+
+    auto operator()(const SlotID slot_id)
+    {
+        proto::Plugin_args args{};
+        args.set_id(slot_id);
+        return std::make_shared<plugins::proto::Plugin_args>(args);
+    }
+
+    std::tuple<std::string, std::string> operator()(const proto::Plugin_ret& args)
+    {
+        return { args.version(), args.plugin_hash() };
+    }
 };
 
 template<class Send, class Receive>
@@ -30,12 +41,12 @@ struct simplify_converter_fn : public converter_base<Send, Receive>
     Polygons operator()(const Receive& args) const noexcept
     {
         Polygons poly{};
-        for (const auto& paths : args.polygons().paths() )
+        for (const auto& paths : args.polygons().paths())
         {
             Polygon p{};
-            for (const auto& point : paths.path() )
+            for (const auto& point : paths.path())
             {
-                p.add(Point { point.y(), point.y() });
+                p.add(Point{ point.y(), point.y() });
             }
             poly.add(p);
         }
@@ -47,13 +58,13 @@ struct simplify_converter_fn : public converter_base<Send, Receive>
         Send args{};
         args.set_max_deviation(max_deviation);
         args.set_max_angle(max_angle);
-        for (const auto& polygon : polygons.paths )
+        for (const auto& polygon : polygons.paths)
         {
             auto poly = args.polygons();
             for (const auto& path : polygons.paths)
             {
                 auto* p = poly.add_paths();
-                for (const auto& point : path )
+                for (const auto& point : path)
                 {
                     auto* pt = p->add_path();
                     pt->set_x(point.X);
@@ -81,7 +92,7 @@ struct postprocess_converter_fn : public converter_base<Send, Receive>
     }
 };
 
-} // namespace details
+} // namespace converters
 
 
 } // namespace cura::plugins

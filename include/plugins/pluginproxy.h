@@ -23,11 +23,14 @@ using SlotID = proto::SlotID;
 
 namespace detail
 {
-template<class Plugin>
+template<class Validator, class Receive>
 class PluginListener : public Arcus::SocketListener
 {
 public:
-    PluginListener(std::shared_ptr<Plugin> plugin) noexcept : plugin_{ plugin }
+    using validator_t = Validator;
+    using receive_t = Receive;
+
+    PluginListener(std::shared_ptr<validator_t> validator) noexcept : validator_{ validator_ }
     {
     }
 
@@ -40,11 +43,11 @@ public:
         if (message->GetTypeName() == "cura.plugins.proto.Plugin_ret")
         {
             auto* plugin_ret = dynamic_cast<plugins::proto::Plugin_ret*>(message.get());
-            plugin_->validator->version = semver::from_string( plugin_ret->version());
-            plugin_->validator->plugin_hash = plugin_ret->plugin_hash();
-            spdlog::info("Plugin version: {}", plugin_->validator->version.to_string());
+            validator_->version = semver::from_string(plugin_ret->version());
+            validator_->plugin_hash = plugin_ret->plugin_hash();
+            spdlog::info("Plugin version: {}", validator_->version.to_string());
         }
-        else if (message->GetTypeName() == Plugin::receive_t::default_instance().GetTypeName())
+        else if (message->GetTypeName() == receive_t::default_instance().GetTypeName())
         {
             // unblock plugin
         }
@@ -53,7 +56,7 @@ public:
     void error(const Arcus::Error& error) override{};
 
 private:
-    std::shared_ptr<Plugin> plugin_{};
+    std::shared_ptr<validator_t> validator_{};
 };
 
 } // namespace detail
@@ -62,23 +65,28 @@ template<SlotID Slot, class Validator, class Converter>
 class PluginProxy
 {
 public:
+    // type aliases for easy use
     using receive_t = Converter::receive_t;
     using send_t = Converter::send_t;
     using validator_t = Validator;
+    using converter_t = Converter;
     using plugin_t = PluginProxy<Slot, Validator, Converter>;
+    using listener_t = detail::PluginListener<validator_t, receive_t>;
+
     static constexpr SlotID slot_id{ Slot };
 
-    std::unique_ptr<Arcus::Socket> socket_{};
-    validator_t validator{};
-    std::unique_ptr<detail::PluginListener<plugin_t>> listener_{};
-    Converter converter{ };
+    std::shared_ptr<validator_t> validator{};
+    converter_t converter{};
 
-    PluginProxy(const std::string& ip, int port) noexcept
-        : socket_{ std::make_unique<Arcus::Socket>() }
-        , listener_{ std::make_unique<detail::PluginListener>(std::make_shared<plugin_t>(this)) }
+private:
+    std::unique_ptr<Arcus::Socket> socket_{};
+    std::shared_ptr<listener_t> listener_{};
+
+public:
+    PluginProxy(const std::string& ip, int port) : socket_{ std::make_unique<Arcus::Socket>() }, listener_{ std::make_shared<detail::PluginListener>(validator) }
     {
         // Add the listener
-        socket_->addListener(listener_.get());
+        socket_->addListener(listener_);
 
         // Register all receiving message types
         socket_->registerMessageType(&plugins::proto::Plugin_ret::default_instance());
@@ -93,10 +101,7 @@ public:
             // TODO: Add timeout??? Is this blocking even necessary?
         }
 
-        // TODO: Use Plugin Message instead of Version_args
-        auto plugin_args = std::make_shared<plugins::proto::Plugin_args>();
-        plugin_args->set_id(slot_id);
-        socket_->sendMessage(plugin_args);
+        socket_->sendMessage(converter(slot_id));
         // No need to wait for the response, since the listener will set the version
     }
 
@@ -109,7 +114,7 @@ public:
             // TODO: Convert return message to actual return value
             return 1; // FIXME: This is not correct
         }
-        return 1;  // FIXME: handle plugin not connected
+        return 1; // FIXME: handle plugin not connected
     }
 };
 

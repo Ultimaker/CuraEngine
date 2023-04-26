@@ -27,7 +27,7 @@ template<details::CharRangeLiteral VersionRange, details::CharRangeLiteral Plugi
 struct Validator
 {
     semver::version version{ "1.0.0" };
-    std::string_view plugin_hash{  };
+    std::string_view plugin_hash{};
     bool include_prerelease{ false };
     semver::range::detail::range version_range{ VersionRange.value };
 
