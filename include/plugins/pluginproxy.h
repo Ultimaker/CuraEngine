@@ -13,22 +13,23 @@
 #include <semver.hpp>
 #include <spdlog/spdlog.h>
 
+#include "plugins/types.h"
 #include "plugins/validator.h"
 
 #include "plugin.pb.h"
 
 namespace cura::plugins
 {
-using SlotID = proto::SlotID;
 
 namespace detail
 {
-template<class Validator, class Receive>
+template<class Validator, class Receive, class Converter>
 class PluginListener : public Arcus::SocketListener
 {
 public:
     using validator_t = Validator;
     using receive_t = Receive;
+    using converter_t = Converter;
 
     PluginListener(std::shared_ptr<validator_t> validator) noexcept : validator_{ validator_ }
     {
@@ -42,9 +43,9 @@ public:
 
         if (message->GetTypeName() == "cura.plugins.proto.Plugin_ret")
         {
-            auto* plugin_ret = dynamic_cast<plugins::proto::Plugin_ret*>(message.get());
-            validator_->version = semver::from_string(plugin_ret->version());
-            validator_->plugin_hash = plugin_ret->plugin_hash();
+            auto [version, plugin_hash] = converter_(*message);
+            validator_->version = semver::from_string(version);
+            validator_->plugin_hash = plugin_hash;
             spdlog::info("Plugin version: {}", validator_->version.to_string());
         }
         else if (message->GetTypeName() == receive_t::default_instance().GetTypeName())
@@ -57,6 +58,7 @@ public:
 
 private:
     std::shared_ptr<validator_t> validator_{};
+    converter_t converter_{};
 };
 
 } // namespace detail
@@ -71,16 +73,16 @@ public:
     using validator_t = Validator;
     using converter_t = Converter;
     using plugin_t = PluginProxy<Slot, Validator, Converter>;
-    using listener_t = detail::PluginListener<validator_t, receive_t>;
+    using listener_t = detail::PluginListener<validator_t, receive_t, converter_t>;
 
     static constexpr SlotID slot_id{ Slot };
 
     std::shared_ptr<validator_t> validator{};
-    converter_t converter{};
 
 private:
     std::unique_ptr<Arcus::Socket> socket_{};
     std::shared_ptr<listener_t> listener_{};
+    converter_t converter_{};
 
 public:
     PluginProxy(const std::string& ip, int port) : socket_{ std::make_unique<Arcus::Socket>() }, listener_{ std::make_shared<detail::PluginListener>(validator) }
@@ -101,7 +103,7 @@ public:
             // TODO: Add timeout??? Is this blocking even necessary?
         }
 
-        socket_->sendMessage(converter(slot_id));
+        socket_->sendMessage(converter_(slot_id));
         // No need to wait for the response, since the listener will set the version
     }
 
@@ -109,7 +111,7 @@ public:
     {
         if (validator && socket_->getState() == Arcus::SocketState::Connected)
         {
-            socket_->sendMessage(converter(std::forward<decltype(args)>(args)...));
+            socket_->sendMessage(converter_(std::forward<decltype(args)>(args)...));
             // TODO: Block until message is received
             // TODO: Convert return message to actual return value
             return 1; // FIXME: This is not correct

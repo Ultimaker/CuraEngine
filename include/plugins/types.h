@@ -14,6 +14,8 @@
 
 namespace cura::plugins
 {
+using SlotID = proto::SlotID;
+
 namespace details
 {
 template<size_t N>
