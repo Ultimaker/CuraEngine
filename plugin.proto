@@ -2,24 +2,32 @@ syntax = "proto3";
 
 package cura.plugins.proto;
 
+// TODO: Move proto defintions to a separate repo
 // TODO: Add error propagation
 // TODO: Add progress reporting
 // TODO: Add priority queueing (if multiple plugins are hooked up to the slot)
 
+
+// These are the different slots that plugins can hook into
 enum SlotID {
   SIMPLIFY = 0;
   POSTPROCESS = 1;
 }
 
+// ---------------------------------------------------------------------
+// This is the message which is sent to the plugin to request identification
 message Plugin_args {
   SlotID id = 1;
 }
 
+// This is the message which is sent back to CuraEngine to identify and validate the plugin
 message Plugin_ret {
   string plugin_hash = 1;
   string version = 2;
 }
 
+// ---------------------------------------------------------------------
+// Some basic types that are used in the messages below
 message Point_2d {
   sint64 x = 1;
   sint64 y = 2;
@@ -33,20 +41,26 @@ message Polygons {
   repeated Polygon paths = 1;
 }
 
+// ---------------------------------------------------------------------
+// The SIMPLIFY slot request message
 message Simplify_args {
   Polygons polygons = 1;
   uint64 max_deviation = 2;
   uint64 max_angle = 3;
 }
 
+// The SIMPLIFY slot response message
 message Simplify_ret {
   Polygons polygons = 1;
 }
 
+// ---------------------------------------------------------------------
+// The POSTPROCESS slot request message
 message Postprocess_args {
   string gcode_word = 1;
 }
 
+// The POSTPROCESS slot response message
 message Postprocess_ret {
   string gcode_word = 1;
 }
