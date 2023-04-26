@@ -118,19 +118,25 @@ public:
     void handleAllRemainingInserts(GCodeExport& gcode);
 
     /*!
-     * Applying speed corrections for minimal layer times and determine the fanSpeed. 
+     * Applying fan speed changes for minimal layer times.
      * 
-     * \param force_minimal_layer_time Whether we should apply speed changes and perhaps a head lift in order to meet the minimal layer time
      * \param starting_position The position the head was before starting this extruder plan
+     * \param minTime Maximum minimum layer time for all extruders in this layer
+     * \param time_other_extr_plans The time spent on the other extruder plans in this layer
      */
-    void processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time, Point starting_position);
+    void processFanSpeedForMinimalLayerTime(Point starting_position, Duration maximum_cool_min_layer_time, double time_other_extr_plans);
+
+    /*!
+     * Applying fan speed changes for the first layers.
+     */
+    void processFanSpeedForFirstLayers();
 
     /*!
      * Get the fan speed computed for this extruder plan
-     * 
-     * \warning assumes ExtruderPlan::processFanSpeedAndMinimalLayerTime has already been called
-     * 
-     * \return The fan speed computed in processFanSpeedAndMinimalLayerTime
+     *
+     * \warning assumes ExtruderPlan::processFanSpeedForMinimalLayerTime has already been called
+     *
+     * \return The fan speed computed in processFanSpeedForMinimalLayerTime
      */
     double getFanSpeed();
 
@@ -164,16 +170,18 @@ protected:
 
     /*!
      * Set the fan speed to be used while printing this extruder plan
-     * 
+     *
      * \param fan_speed The speed for the fan
      */
     void setFanSpeed(double fan_speed);
 
     /*!
      * Force the minimal layer time to hold by slowing down and lifting the head if required.
-     * 
+     *
+     * \param maximum_cool_min_layer_time Maximum minimum layer time for all extruders in this layer
+     * \param time_other_extr_plans Time spend on other extruders in this layer
      */
-    void forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrusionTime);
+    void forceMinimalLayerTime(double maximum_cool_min_layer_time, double time_other_extr_plans);
 
     /*!
      * @return The time needed for (un)retract the path
