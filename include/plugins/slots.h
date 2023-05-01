@@ -37,6 +37,10 @@ public:
         return instance;
     }
 
+    void registerPlugin(auto&& plugin)
+    {
+        slots_.emplace(plugin.slot_id, std::forward<decltype(plugin)>(plugin));
+    }
 
 
 //    template<class Slot>

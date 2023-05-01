@@ -23,15 +23,28 @@ namespace cura::plugins
 
 namespace detail
 {
-template<class Validator, class Receive, class Converter>
+template<class Validator, class Converter>
 class PluginListener : public Arcus::SocketListener
 {
 public:
     using validator_t = Validator;
-    using receive_t = Receive;
+    using receive_t = Converter::receive_t;
     using converter_t = Converter;
 
-    PluginListener(std::shared_ptr<validator_t> validator) noexcept : validator_{ validator_ }
+    bool msgReceived() noexcept
+    {
+        bool msg_received = msg_received_;
+        msg_received_ = false;
+        return msg_received;
+    }
+
+private:
+    std::shared_ptr<validator_t> validator_{};
+    converter_t converter_{};
+    bool msg_received_{ false };
+
+public:
+    explicit PluginListener(std::shared_ptr<validator_t> validator) noexcept : validator_{ validator_ }
     {
     }
 
@@ -39,31 +52,29 @@ public:
 
     void messageReceived() override
     {
-        auto message = getSocket()->takeNextMessage();
-
-        if (message->GetTypeName() == "cura.plugins.proto.Plugin_ret")
-        {
-            auto [version, plugin_hash] = converter_(*message);
-            validator_->version = semver::from_string(version);
-            validator_->plugin_hash = plugin_hash;
-            spdlog::info("Plugin version: {}", validator_->version.to_string());
-        }
-        else if (message->GetTypeName() == receive_t::default_instance().GetTypeName())
-        {
-            // unblock plugin
-        }
+//        auto message = getSocket()->takeNextMessage();
+//
+//        if (message->GetTypeName() == "cura.plugins.proto.Plugin_ret")
+//        {
+//            auto* msg = dynamic_cast<proto::Plugin_ret*>(message.get());
+//            cura::plugins::proto::Plugin_ret mm {};
+//            auto x = converter_(mm);
+////            validator_->version = semver::from_string(version);
+////            validator_->plugin_hash = plugin_hash;
+//            spdlog::info("Plugin version: {}", validator_->version.to_string());
+//        }
+//        else if (message->GetTypeName() == receive_t::default_instance().GetTypeName())
+//        {
+//            // unblock plugin
+//        }
     };
 
     void error(const Arcus::Error& error) override{};
-
-private:
-    std::shared_ptr<validator_t> validator_{};
-    converter_t converter_{};
 };
 
 } // namespace detail
 
-template<SlotID Slot, class Validator, class Converter>
+template<plugins::SlotID Slot, class Validator, class Converter>
 class PluginProxy
 {
 public:
@@ -72,20 +83,19 @@ public:
     using send_t = Converter::send_t;
     using validator_t = Validator;
     using converter_t = Converter;
-    using plugin_t = PluginProxy<Slot, Validator, Converter>;
-    using listener_t = detail::PluginListener<validator_t, receive_t, converter_t>;
+    using listener_t = detail::PluginListener<validator_t, converter_t>;
 
-    static constexpr SlotID slot_id{ Slot };
+    plugins::SlotID slot_id{ Slot };
 
-    std::shared_ptr<validator_t> validator{};
+    std::shared_ptr<validator_t> validator;
 
 private:
-    std::unique_ptr<Arcus::Socket> socket_{};
-    std::shared_ptr<listener_t> listener_{};
+    std::unique_ptr<Arcus::Socket> socket_;
+    listener_t* listener_; // FIXME: in Arcus use smart_ptr for listeners otherwise we need to add a deconstructor in this class and that forces us to define the big 6
     converter_t converter_{};
 
 public:
-    PluginProxy(const std::string& ip, int port) : socket_{ std::make_unique<Arcus::Socket>() }, listener_{ std::make_shared<detail::PluginListener>(validator) }
+    PluginProxy(const std::string& ip, int port) : validator{ std::make_shared<validator_t>() }, socket_{ std::make_unique<Arcus::Socket>() }, listener_{ new listener_t(validator) }
     {
         // Add the listener
         socket_->addListener(listener_);
@@ -103,7 +113,27 @@ public:
             // TODO: Add timeout??? Is this blocking even necessary?
         }
 
-        socket_->sendMessage(converter_(slot_id));
+        converters::simplify_converter_fn<send_t, receive_t > convvvvv{};
+
+        SlotID slotId { SlotID::SIMPLIFY };
+        auto x = convvvvv(slotId);
+
+        proto::Plugin_args args{};
+        args.set_id(slot_id);
+
+        socket_->sendMessage(std::make_shared<proto::Plugin_args>(args));
+        if (listener_->msgReceived())
+        {
+            auto message = socket_->takeNextMessage();
+            if (message->GetTypeName() == "cura.plugins.proto.Plugin_ret")
+            {
+                auto* msg = dynamic_cast<proto::Plugin_ret*>(message.get());
+                validator->version = semver::from_string(msg->version());
+                validator->plugin_hash = msg->plugin_hash();
+                spdlog::info("Plugin version: {}", validator->version.to_string());
+            }
+        }
+        //
         // No need to wait for the response, since the listener will set the version
     }
 

@@ -253,6 +253,8 @@ void Application::startThreadPool(int nworkers)
 
 void Application::registerPlugins()
 {
+    auto simplifyPlugin = plugins::simplify_plugin { "127.0.0.1", 50010 };
+//    plugins::Slots::instance().addPlugin(plugins::simplify_plugin{"127.0.0.1", 50010});
 //    plugins::Slots::instance().register("simplify", "[>=0.1.0]");
 //    plugins::Slots::instance().register("postprocess", "[>=0.1.0]");
 }

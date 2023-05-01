@@ -4,6 +4,7 @@
 #ifndef CURAENGINE_INCLUDE_PLUGINS_TYPES_H
 #define CURAENGINE_INCLUDE_PLUGINS_TYPES_H
 
+#include <Arcus/Types.h>
 #include <memory>
 #include <tuple>
 
@@ -33,29 +34,37 @@ struct CharRangeLiteral
 
 namespace converters
 {
-template<class Send, class Receive>
-struct converter_base
+template<class T>
+class converter_base
 {
-    using send_t = Send;
-    using receive_t = Receive;
-
-    auto operator()(const SlotID slot_id)
+    friend T;
+public:
+    auto operator()(auto& arg, auto&&... args)
     {
-        proto::Plugin_args args{};
-        args.set_id(slot_id);
-        return std::make_shared<plugins::proto::Plugin_args>(args);
-    }
-
-    std::tuple<std::string, std::string> operator()(const proto::Plugin_ret& args)
-    {
-        return { args.version(), args.plugin_hash() };
+        if constexpr (std::is_same_v<decltype(arg), cura::plugins::proto::SlotID&>)
+        {
+            proto::Plugin_args msg{};
+            msg.set_id(arg);
+            return std::make_shared<proto::Plugin_args>(msg);
+        }
+        else if constexpr (std::is_same_v<decltype(arg), proto::Plugin_ret>)
+        {
+            return std::tuple<std::string, std::string>{ arg.version(), arg.plugin_hash() };
+        }
+        return 1;
+        //return static_cast<T&>(*this).make(arg, std::forward<decltype(args)>(args)...);
     }
 };
 
 template<class Send, class Receive>
-struct simplify_converter_fn : public converter_base<Send, Receive>
+class simplify_converter_fn : public converter_base<simplify_converter_fn<Send, Receive>>
 {
-    Polygons operator()(const Receive& args) const noexcept
+public:
+    using receive_t = Receive;
+    using send_t = Send;
+
+private:
+    Polygons make(const Receive& args)
     {
         Polygons poly{};
         for (const auto& paths : args.polygons().paths())
@@ -70,7 +79,7 @@ struct simplify_converter_fn : public converter_base<Send, Receive>
         return poly;
     }
 
-    auto operator()(const Polygons& polygons, const size_t max_deviation, const size_t max_angle) const noexcept
+    std::shared_ptr<Send> make(const Polygons& polygons, const size_t max_deviation, const size_t max_angle)
     {
         Send args{};
         args.set_max_deviation(max_deviation);
@@ -94,14 +103,18 @@ struct simplify_converter_fn : public converter_base<Send, Receive>
 };
 
 template<class Send, class Receive>
-struct postprocess_converter_fn : public converter_base<Send, Receive>
+class postprocess_converter_fn : public converter_base<postprocess_converter_fn<Send, Receive>>
 {
-    std::string operator()(const Receive& args) const noexcept
+public:
+    using receive_t = Receive;
+    using send_t = Send;
+
+    std::string make(const Receive& args)
     {
         return args.gcode();
     }
 
-    auto operator()(const std::string& gcode) const noexcept
+    std::shared_ptr<Send> make(const std::string& gcode)
     {
         Send args{};
         args.set_gcode(gcode);
