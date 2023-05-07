@@ -981,10 +981,11 @@ void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, st
                 // Technically this also makes support blocker smaller, which is wrong as they do not have a xy_distance, but it should be good enough.
                 Polygons model_outline = volumes_.getCollision(0, layer_idx, ! xy_overrides).offset(-config.xy_min_distance, ClipperLib::jtRound);
 
-                Polygons overhang_regular =
-                    TreeSupportUtils::safeOffsetInc(mesh.overhang_areas[layer_idx + z_distance_delta], roof ? roof_outset : support_outset, relevant_forbidden, config.min_radius * 1.75 + config.xy_min_distance, 0, 1, config.support_line_distance / 2, &config.simplifier);
+                //Use full_overhang to ensure dropped overhang will overlap with overhang further down. not leaving a small hole between model and roof where support could creep into.
+                Polygons overhang_full =
+                    TreeSupportUtils::safeOffsetInc(mesh.full_overhang_areas[layer_idx + z_distance_delta], roof ? roof_outset : support_outset, relevant_forbidden, config.min_radius * 1.75 + config.xy_min_distance, 0, 1, config.support_line_distance / 2, &config.simplifier);
                 Polygons remaining_overhang =
-                    mesh.overhang_areas[layer_idx + z_distance_delta].offset(roof ? roof_outset : support_outset).difference(overhang_regular).intersection(relevant_forbidden).difference(model_outline);
+                    mesh.full_overhang_areas[layer_idx + z_distance_delta].offset(roof ? roof_outset : support_outset).difference(overhang_full).intersection(relevant_forbidden).difference(model_outline);
                 for (size_t lag_ctr = 1; lag_ctr <= max_overhang_insert_lag && layer_idx - coord_t(lag_ctr) >= 1 && !remaining_overhang.empty(); lag_ctr++)
                 {
                     {
@@ -1008,9 +1009,6 @@ void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, st
                 result[layer_idx]=result[layer_idx].unionPolygons();
             }
         );
-
-
-
 }
 
 void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& mesh)
