@@ -2345,7 +2345,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
 
             for (PolygonsPart part : support_skin_storage[layer_idx].splitIntoParts(true)) // Convert every part into a PolygonsPart for the support.
             {
-                storage.support.supportLayers[layer_idx].support_infill_parts.emplace_back(part, config.support_line_width, config.support_wall_count,config.support_line_width*1.5,EFillMethod::LINES);
+                storage.support.supportLayers[layer_idx].support_infill_parts.emplace_back(part, config.support_line_width, config.support_wall_count, config.support_skin_line_distance, EFillMethod::LINES);
             }
 
             {
