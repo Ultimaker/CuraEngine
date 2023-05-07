@@ -50,6 +50,7 @@ public:
     TreeModelVolumes(const TreeModelVolumes&) = delete;
     TreeModelVolumes& operator=(const TreeModelVolumes&) = delete;
 
+
     /*!
      * \brief Precalculate avoidances and collisions up to this layer.
      *
@@ -57,7 +58,7 @@ public:
      * Not calling this will cause the class to lazily calculate avoidances and collisions as needed, which will be a lot slower on systems with more then one or two cores!
      *
      */
-    void precalculate(coord_t max_layer);
+    void precalculate(LayerIndex max_layer);
 
     /*!
      * \brief Provides the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer.
@@ -131,6 +132,7 @@ public:
      */
     const Polygons& getWallRestriction(coord_t radius, LayerIndex layer_idx, bool min_xy_dist);
 
+
     /*!
      * \brief Round \p radius upwards to either a multiple of radius_sample_resolution_ or a exponentially increasing value
      *
@@ -150,6 +152,22 @@ public:
      * \return The maximum radius, resulting in the same rounding.
      */
     coord_t getRadiusNextCeil(coord_t radius, bool min_xy_dist) const;
+
+    /*!
+     * \brief Provide hints which areas should be avoided in the future.
+     * \param area The area that should be avoided in the future.
+     * \param layer_idx The layer said area is on.
+     */
+    void addAreaToAntiPreferred(const Polygons area, LayerIndex layer_idx);
+
+    /*!
+     * \brief Get areas that were additionally set to be avoided
+     * \param layer_idx The layer said area is on.
+     * \returns The area that should be avoided
+     */
+    const Polygons& getAntiPreferredAreas(LayerIndex layer_idx);
+
+
 
 
 private:
@@ -311,6 +329,17 @@ private:
     }
 
     /*!
+     * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model with radius 0 from the smallest actual avoidance.
+     * This is done as a real 0 radius avoidance would not be able to be printed. These 0 radius avoidances are used for calculating roof and cradle.
+     *
+     * The result is a 2D area that would cause nodes of radius 0 to
+     * collide with the model in a not wanted way. Result is saved in the cache.
+     * \param max_layer The result will be calculated up to the this layer.
+     */
+    void calculateFake0Avoidances(const LayerIndex max_layer);
+
+
+    /*!
      * \brief Creates the areas that can not be passed when expanding an area downwards. As such these areas are an somewhat abstract representation of a wall (as in a printed object).
      *
      * These areas are at least xy_min_dist wide. When calculating it is always assumed that every wall is printed on top of another (as in has an overlap with the wall a layer below). Result is saved in the corresponding cache.
@@ -463,6 +492,16 @@ private:
     RestPreference support_rest_preference;
 
     /*!
+     * \brief How tall the cradle will at most be.
+     */
+    size_t max_cradle_layers = 0;
+
+    /*!
+     * \brief Largest DTT a cradle supporting tip may have.
+     */
+    size_t max_cradle_dtt = 0;
+
+    /*!
      * \brief Caches for the collision, avoidance and areas on the model where support can be placed safely
      * at given radius and layer indices.
      *
@@ -516,6 +555,9 @@ private:
     // A different cache for min_xy_dist as the maximal safe distance an influence area can be increased(guaranteed overlap of two walls in consecutive layer) is much smaller when min_xy_dist is used. This causes the area of the wall restriction to be thinner and as such just using the min_xy_dist wall restriction would be slower.
     mutable std::unordered_map<RadiusLayerPair, Polygons> wall_restrictions_cache_min_;
     std::unique_ptr<std::mutex> critical_wall_restrictions_cache_min_ = std::make_unique<std::mutex>();
+
+    mutable std::unordered_map<RadiusLayerPair, Polygons> anti_preferred_;
+    std::unique_ptr<std::mutex> critical_anti_preferred_ = std::make_unique<std::mutex>();
 
     std::unique_ptr<std::mutex> critical_progress = std::make_unique<std::mutex>();
 

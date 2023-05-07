@@ -87,7 +87,7 @@ struct TreeSupportElement
         target_position(target_position),
         next_position(target_position),
         next_height(target_height),
-        effective_radius_height(distance_to_top),
+        effective_radius_height(0),
         to_buildplate(to_buildplate),
         distance_to_top(distance_to_top),
         area(nullptr),

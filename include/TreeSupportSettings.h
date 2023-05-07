@@ -29,7 +29,7 @@ struct TreeSupportSettings
         layer_height(mesh_group_settings.get<coord_t>("layer_height")),
         branch_radius(mesh_group_settings.get<coord_t>("support_tree_branch_diameter") / 2),
         min_radius(mesh_group_settings.get<coord_t>("support_tree_tip_diameter") / 2), // The actual radius is 50 microns larger as the resulting branches will be increased by 50 microns to avoid rounding errors effectively increasing the xydistance
-        max_radius(mesh_group_settings.get<coord_t>("support_tree_max_diameter")/2),
+        max_radius(mesh_group_settings.get<coord_t>("support_tree_max_diameter") / 2),
         maximum_move_distance((angle < TAU / 4) ? (coord_t)(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max()),
         maximum_move_distance_slow((angle_slow < TAU / 4) ? (coord_t)(tan(angle_slow) * layer_height) : std::numeric_limits<coord_t>::max()),
         support_bottom_layers(mesh_group_settings.get<bool>("support_bottom_enable") ? round_divide(mesh_group_settings.get<coord_t>("support_bottom_height"), layer_height) : 0),
@@ -69,6 +69,8 @@ struct TreeSupportSettings
         min_feature_size(mesh_group_settings.get<coord_t>("min_feature_size")),
         min_wall_line_width(settings.get<coord_t>("min_wall_line_width")),
         fill_outline_gaps(settings.get<bool>("fill_outline_gaps")),
+        support_skin_layers(settings.get<coord_t>("support_tree_support_skin_height")/layer_height),
+        support_skin_line_distance(settings.get<coord_t>("support_tree_support_skin_line_distance")),
         simplifier(Simplify(mesh_group_settings))
     {
         layer_start_bp_radius = (bp_radius - branch_radius) / (branch_radius * diameter_scale_bp_radius);
@@ -371,6 +373,16 @@ public:
     bool fill_outline_gaps;
 
     /*!
+     * \brief How many high density layers should be below roof and cradle.
+     */
+    size_t support_skin_layers;
+
+    /*!
+     * \brief Distance between lines of the high density line pattern.
+     */
+    coord_t support_skin_line_distance;
+
+    /*!
      * \brief Simplifier to simplify polygons.
      */
     Simplify simplifier = Simplify(0, 0, 0);
@@ -421,6 +433,8 @@ public:
             max_radius == other.max_radius &&
             min_wall_line_width == other.min_wall_line_width &&
             fill_outline_gaps == other.fill_outline_gaps &&
+            support_skin_layers == other.support_skin_layers &&
+            support_skin_line_distance == other.support_skin_line_distance &&
             // The infill class now wants the settings object and reads a lot of settings, and as the infill class is used to calculate support roof lines for interface-preference. Not all of these may be required to be identical, but as I am not sure, better safe than sorry
             (
                 interface_preference == InterfacePreference::INTERFACE_AREA_OVERWRITES_SUPPORT ||

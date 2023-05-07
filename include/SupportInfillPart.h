@@ -6,6 +6,7 @@
 
 #include <vector>
 
+#include "settings/EnumSettings.h"
 #include "utils/AABB.h"
 #include "utils/ExtrusionLine.h"
 #include "utils/polygon.h"
@@ -34,8 +35,9 @@ public:
     std::vector<VariableWidthLines> wall_toolpaths; //!< Any walls go here, not in the areas, where they could be combined vertically (don't combine walls). Binned by inset_idx.
 
     coord_t custom_line_distance;
+    EFillMethod custom_line_pattern;
 
-    SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, int inset_count_to_generate = 0, coord_t custom_line_distance = 0 );
+    SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, int inset_count_to_generate = 0, coord_t custom_line_distance = 0, EFillMethod custom_line_pattern = EFillMethod::NONE );
 
     const Polygons& getInfillArea() const;
 };

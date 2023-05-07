@@ -66,17 +66,20 @@ TreeModelVolumes::TreeModelVolumes
         }
     }
 
+    // Figure out the rest of the setting(-like variable)s relevant to the class a whole.
+    current_outline_idx = mesh_to_layeroutline_idx[current_mesh_idx];
+    const TreeSupportSettings config(layer_outlines_[current_outline_idx].first);
+
     for (const auto data_pair : layer_outlines_)
     {
         support_rests_on_model |= data_pair.first.get<ESupportType>("support_type") == ESupportType::EVERYWHERE;
         min_maximum_deviation = std::min(min_maximum_deviation, data_pair.first.get<coord_t>("meshfix_maximum_deviation"));
         min_maximum_resolution = std::min(min_maximum_resolution, data_pair.first.get<coord_t>("meshfix_maximum_resolution"));
         min_maximum_area_deviation = std::min(min_maximum_area_deviation, data_pair.first.get<coord_t>("meshfix_maximum_extrusion_area_deviation"));
+        max_cradle_layers = std::max(coord_t(max_cradle_layers), data_pair.first.get<coord_t>("support_tree_cradle_height") / config.layer_height);
+        max_cradle_dtt = std::max(max_cradle_dtt, size_t(config.tip_layers * data_pair.first.get<double>("support_tree_cradle_base_tip_percentage") / 100.0));
     }
 
-    // Figure out the rest of the setting(-like variable)s relevant to the class a whole.
-    current_outline_idx = mesh_to_layeroutline_idx[current_mesh_idx];
-    const TreeSupportSettings config(layer_outlines_[current_outline_idx].first);
 
     if (config.support_overrides == SupportDistPriority::Z_OVERRIDES_XY)
     {
@@ -172,10 +175,11 @@ TreeModelVolumes::TreeModelVolumes
     simplifier = Simplify(min_maximum_resolution, min_maximum_deviation, min_maximum_area_deviation);
 }
 
-void TreeModelVolumes::precalculate(coord_t max_layer)
+void TreeModelVolumes::precalculate(LayerIndex max_layer)
 {
     const auto t_start = std::chrono::high_resolution_clock::now();
     precalculated = true;
+    max_layer = std::min(max_layer + max_cradle_layers, LayerIndex(layer_outlines_[current_outline_idx].second.size() - 1));
 
     // Get the config corresponding to one mesh that is in the current group. Which one has to be irrelevant.
     // Not the prettiest way to do this, but it ensures some calculations that may be a bit more complex like initial layer diameter are only done in once.
@@ -214,15 +218,15 @@ void TreeModelVolumes::precalculate(coord_t max_layer)
         const coord_t max_initial_layer_diameter_radius = ceilRadius(config.recommendedMinRadius(current_layer) + current_min_xy_dist_delta);
         if (! radius_until_layer.count(max_regular_radius))
         {
-            radius_until_layer[max_regular_radius] = current_layer;
+            radius_until_layer[max_regular_radius] = std::min(current_layer + max_cradle_dtt, max_layer);
         }
         if (! radius_until_layer.count(max_min_radius))
         {
-            radius_until_layer[max_min_radius] = current_layer;
+            radius_until_layer[max_min_radius] = std::min(current_layer + max_cradle_dtt, max_layer);
         }
-        if (! radius_until_layer.count(max_initial_layer_diameter_radius))
+        if (max_initial_layer_diameter_radius > max_min_radius &&  ! radius_until_layer.count(max_initial_layer_diameter_radius))
         {
-            radius_until_layer[max_initial_layer_diameter_radius] = current_layer;
+            radius_until_layer[max_initial_layer_diameter_radius] = std::min(current_layer + max_cradle_dtt, max_layer);
         }
     }
 
@@ -312,6 +316,8 @@ void TreeModelVolumes::precalculate(coord_t max_layer)
         t_colAvo = std::chrono::high_resolution_clock::now();
 
     }
+
+    calculateFake0Avoidances(max_layer);
 
     precalculationFinished=true;
     const auto dur_col = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_coll - t_start).count();
@@ -465,7 +471,12 @@ const Polygons& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_
     {
         spdlog::warn("Had to calculate Avoidance (to model-bool: {}) at radius {} and layer {} and type {}, but precalculate was called. Performance may suffer!", to_model, key.first, key.second,coord_t(type));
     }
-    if(type == AvoidanceType::COLLISION)
+
+    if(orig_radius == 0)
+    {
+        calculateFake0Avoidances(layer_idx);
+    }
+    else if(type == AvoidanceType::COLLISION)
     {
         calculateCollisionAvoidance(key);
     }
@@ -543,6 +554,26 @@ const Polygons& TreeModelVolumes::getWallRestriction(coord_t radius, LayerIndex 
     calculateWallRestrictions(key);
     return getWallRestriction(orig_radius, layer_idx, min_xy_dist); // Retrieve failed and correct result was calculated. Now it has to be retrieved.
 }
+
+
+
+void TreeModelVolumes::addAreaToAntiPreferred(const Polygons area, LayerIndex layer_idx)
+{
+    RadiusLayerPair key(0,layer_idx);
+    std::lock_guard<std::mutex> critical_section(*critical_anti_preferred_);
+    anti_preferred_[key] = anti_preferred_[key].unionPolygons(area);
+}
+
+const Polygons& TreeModelVolumes::getAntiPreferredAreas(LayerIndex layer_idx)
+{
+    RadiusLayerPair key(0,layer_idx);
+    std::lock_guard<std::mutex> critical_section(*critical_anti_preferred_);
+    return anti_preferred_[key];
+
+}
+
+
+
 
 coord_t TreeModelVolumes::ceilRadius(coord_t radius, bool min_xy_dist) const
 {
@@ -1137,6 +1168,70 @@ void TreeModelVolumes::calculateAvoidanceToModel(const std::deque<RadiusLayerPai
         }
     );
 }
+
+void TreeModelVolumes::calculateFake0Avoidances(const LayerIndex max_layer)
+{
+    LayerIndex start_layer;
+    {
+        std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_);
+        start_layer = 1 + getMaxCalculatedLayer(0, avoidance_cache_);
+    }
+
+    const coord_t radius_offset = -radius_0;
+    cura::parallel_for<size_t>
+    (
+        start_layer,
+        max_layer+1,
+        [&](const LayerIndex layer_idx)
+        {
+            RadiusLayerPair key = RadiusLayerPair (0,layer_idx);
+            if(!precalculated || support_rest_preference == RestPreference::BUILDPLATE)
+            {
+                Polygons smaller_avoidance_slow = getAvoidance(1,layer_idx,AvoidanceType::SLOW,false,true).offset(radius_offset,ClipperLib::jtRound);
+                Polygons smaller_avoidance_fast = getAvoidance(1,layer_idx,AvoidanceType::FAST,false,true).offset(radius_offset,ClipperLib::jtRound);
+                Polygons smaller_avoidance_fast_safe = getAvoidance(1,layer_idx,AvoidanceType::FAST_SAFE,false,true).offset(radius_offset,ClipperLib::jtRound);
+                {
+                    std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_slow_ );
+                    avoidance_cache_slow_[key] = smaller_avoidance_slow;
+                }
+                {
+                    std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_ );
+                    avoidance_cache_[key] = smaller_avoidance_fast;
+                }
+                {
+                    std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_holefree_ );
+                    avoidance_cache_hole_[key] = smaller_avoidance_fast_safe;
+                }
+            }
+
+            if(!precalculated || support_rests_on_model)
+            {
+                Polygons smaller_avoidance_to_model_slow = getAvoidance(1,layer_idx,AvoidanceType::SLOW,true,true).offset(radius_offset,ClipperLib::jtRound);
+                Polygons smaller_avoidance_to_model_fast = getAvoidance(1,layer_idx,AvoidanceType::FAST,true,true).offset(radius_offset,ClipperLib::jtRound);
+                Polygons smaller_avoidance_to_model_fast_safe = getAvoidance(1,layer_idx,AvoidanceType::FAST_SAFE,true,true).offset(radius_offset,ClipperLib::jtRound);
+                
+                {
+                    std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_to_model_slow_ );
+                    avoidance_cache_to_model_slow_[key] = smaller_avoidance_to_model_slow;
+                }
+                {
+                    std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_to_model_ );
+                    avoidance_cache_to_model_[key] = smaller_avoidance_to_model_fast;
+                }
+                {
+                    std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_holefree_to_model_ );
+                    avoidance_cache_hole_to_model_[key] = smaller_avoidance_to_model_fast_safe;
+                }
+            }
+            if (layer_idx > max_layer_idx_without_blocker)
+            {
+                Polygons smaller_avoidance_collision = getAvoidance(1,layer_idx,AvoidanceType::COLLISION,true,true).offset(radius_offset,ClipperLib::jtRound);
+                std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_collision_ );
+                avoidance_cache_collision_[key] = smaller_avoidance_collision;
+            }
+        });
+}
+
 
 void TreeModelVolumes::calculateWallRestrictions(const std::deque<RadiusLayerPair>& keys)
 {

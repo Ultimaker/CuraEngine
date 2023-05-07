@@ -2813,7 +2813,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 const coord_t small_area_width = mesh_group_settings.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
                 constexpr bool skip_stitching = false;
                 const bool fill_gaps = density_idx == 0; // Only fill gaps for one of the densities.
-                Infill infill_comp(support_pattern,
+                Infill infill_comp(part.custom_line_pattern == EFillMethod::NONE ? support_pattern : part.custom_line_pattern,
                                    zig_zaggify_infill,
                                    connect_polygons,
                                    area,

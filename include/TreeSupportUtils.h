@@ -92,17 +92,18 @@ public:
      * \param support_infill_distance[in] The distance that should be between the infill lines.
      * \param cross_fill_provider[in] A SierpinskiFillProvider required for cross infill.
      * \param include_walls[in] If the result should also contain walls, or only the infill.
-     * todo doku
+     * \param special_pattern[in] Use a different pattern. None means the default pattern as in config will be used.
+     * \param disable_connect[in] If the connecting of Infill lines has to be disabled.
      * \return A Polygons object that represents the resulting infill lines.
      */
-    [[nodiscard]] static Polygons generateSupportInfillLines(const Polygons& area,const TreeSupportSettings& config, bool roof, LayerIndex layer_idx, coord_t support_infill_distance, SierpinskiFillProvider* cross_fill_provider, bool include_walls, bool generate_support_supporting = false)
+    [[nodiscard]] static Polygons generateSupportInfillLines(const Polygons& area,const TreeSupportSettings& config, bool roof, LayerIndex layer_idx, coord_t support_infill_distance, SierpinskiFillProvider* cross_fill_provider, bool include_walls, EFillMethod special_pattern = EFillMethod::NONE, bool disable_connect = false)
     {
         Polygons gaps;
-        // As we effectivly use lines to place our supportPoints we may use the Infill class for it, while not made for it, it works perfectly.
+        // As we effectively use lines to place our supportPoints we may use the Infill class for it, while not made for it, it works perfectly.
 
-        const EFillMethod pattern = generate_support_supporting ? EFillMethod::GRID : roof ? config.roof_pattern : config.support_pattern;
+        const EFillMethod pattern = (special_pattern != EFillMethod::NONE) ? special_pattern : roof ? config.roof_pattern : config.support_pattern;
 
-        const bool zig_zaggify_infill = roof ? pattern == EFillMethod::ZIG_ZAG : config.zig_zaggify_support;
+        const bool zig_zaggify_infill =!disable_connect && (roof ? pattern == EFillMethod::ZIG_ZAG : config.zig_zaggify_support);
         const bool connect_polygons = false;
         constexpr coord_t support_roof_overlap = 0;
         constexpr size_t infill_multiplier = 1;

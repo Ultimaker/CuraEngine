@@ -40,10 +40,11 @@ public:
      * \param mesh[in] The mesh that is currently processed. Contains the overhangs.
      * \param move_bounds[out] The storage for the tips.
      * \param additional_support_areas[out] Areas that should have been roofs, but are now support, as they would not generate any lines as roof. Should already be initialised.
-
+     * \param placed_support_lines_support_areas[out] Support-lines that were already placed represented as the area the lines will take when printed.
+     * \param support_free_areas[out] Areas where no support (including roof) of any kind is to be drawn.
      * \return All lines of the \p polylines object, with information for each point regarding in which avoidance it is currently valid in.
      */
-    void generateTips(SliceDataStorage& storage,const SliceMeshStorage& mesh ,std::vector<std::set<TreeSupportElement*>>& move_bounds, std::vector<Polygons>& additional_support_areas, std::vector<Polygons>& placed_support_lines_support_areas);
+    void generateTips(SliceDataStorage& storage,const SliceMeshStorage& mesh ,std::vector<std::set<TreeSupportElement*>>& move_bounds, std::vector<Polygons>& additional_support_areas, std::vector<Polygons>& placed_support_lines_support_areas, std::vector<Polygons>& support_free_areas);
 
 private:
 
@@ -55,6 +56,16 @@ private:
         TO_MODEL_GRACIOUS_SAFE,
         TO_BP,
         TO_BP_SAFE
+    };
+
+    struct UnsupportedAreaInformation
+    {
+        UnsupportedAreaInformation(const Polygons area, size_t index, size_t height) : area{ area }, index{ index }, height{ height }
+        {
+        }
+        const Polygons area;
+        size_t index;
+        size_t height;
     };
 
     using LineInformation = std::vector<std::pair<Point, TreeSupportTipGenerator::LineStatus>>;
@@ -118,6 +129,35 @@ private:
      */
     SierpinskiFillProvider* generateCrossFillProvider(const SliceMeshStorage& mesh, coord_t line_distance, coord_t line_width) const;
 
+    /*!
+     * \brief Provides areas that do not have a connection to the buildplate or a certain height.
+     * \param layer_idx The layer said area is on.
+     * \param idx_of_area_below The index of the area below. Only areas that rest on this area will be returned
+     * \return A vector containing the areas, how many layers of material they have below them and the idx of each area usable to get the next one layer above.
+     */
+    std::vector<UnsupportedAreaInformation> getUnsupportedArea(LayerIndex layer_idx, size_t idx_of_area_below);
+    
+    /*!
+     * \brief Provides areas that do not have a connection to the buildplate or any other non support material below it.
+     * \param layer_idx The layer said area is on.
+     * \return A vector containing the areas, how many layers of material they have below them (always 0) and the idx of each area usable to get the next one layer above.
+     */
+    std::vector<UnsupportedAreaInformation> getFullyUnsupportedArea(LayerIndex layer_idx);
+    
+    /*!
+     * \brief Calculates which parts of the model to not connect with the buildplate and how many layers of material is below them (height).
+     * Results are stored in a cache.
+     * Only area up to the required maximum height are stored.
+     * \param mesh[in] The mesh that is currently processed.
+     */
+    void calculateFloatingParts(const SliceMeshStorage& mesh);
+
+    /*!
+     * \brief Generate a cradle to stabilize pointy overhang
+     * \param mesh[in] The mesh that is currently processed.
+     * \param support_free_areas[out] Areas where no support may be.
+     */
+    void generateCradle(const SliceMeshStorage& mesh, std::vector<Polygons>& support_free_areas);
 
     /*!
      * \brief Drops overhang areas further down until they are valid (at most max_overhang_insert_lag layers)
@@ -142,8 +182,9 @@ private:
      * \param dont_move_until[in] Until which dtt the branch should not move if possible.
      * \param roof[in] Whether the tip supports a roof.
      * \param skip_ovalisation[in] Whether the tip may be ovalized when drawn later.
+     * \param additional_ovalization_targets[in] Additional targets the ovalization should reach.
      */
-    void addPointAsInfluenceArea(std::vector<std::set<TreeSupportElement *>>& move_bounds, std::pair<Point, LineStatus> p, size_t dtt, LayerIndex insert_layer, size_t dont_move_until, bool roof, bool skip_ovalisation, std::vector<Point> additional_ovalization_targets = std::vector<Point>());
+    void addPointAsInfluenceArea(std::vector<std::set<TreeSupportElement *>>& move_bounds, std::pair<Point, TreeSupportTipGenerator::LineStatus> p, size_t dtt, LayerIndex insert_layer, size_t dont_move_until, bool roof, bool cradle, bool skip_ovalisation, std::vector<Point> additional_ovalization_targets = std::vector<Point>());
 
 
     /*!
@@ -154,8 +195,9 @@ private:
      * \param insert_layer_idx[in] The layer the tip will be on.
      * \param supports_roof[in] Whether the tip supports a roof.
      * \param dont_move_until[in] Until which dtt the branch should not move if possible.
+     * \param connect_points [in] If the points of said line should be connected by ovalization.
      */
-    void addLinesAsInfluenceAreas(std::vector<std::set<TreeSupportElement *>>& move_bounds, std::vector<TreeSupportTipGenerator::LineInformation> lines, size_t roof_tip_layers, LayerIndex insert_layer_idx, bool supports_roof, size_t dont_move_until, bool connect_points);
+    void addLinesAsInfluenceAreas(std::vector<std::set<TreeSupportElement *>>& move_bounds, std::vector<TreeSupportTipGenerator::LineInformation> lines, size_t roof_tip_layers, LayerIndex insert_layer_idx, bool supports_roof, bool supports_cradle, size_t dont_move_until, bool connect_points);
 
     /*!
      * \brief Remove tips that should not have been added in the first place.
@@ -164,7 +206,6 @@ private:
      * \param additional_support_areas[in] Areas that should have been roofs, but are now support, as they would not generate any lines as roof.
      */
     void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement *>>& move_bounds,SliceDataStorage& storage, std::vector<Polygons>& additional_support_areas);
-
 
     /*!
      * \brief If large areas should be supported by a roof out of regular support lines.
@@ -294,10 +335,83 @@ private:
     std::vector<Polygons> roof_tips_drawn;
 
 
+    /*!
+     * \brief Areas that will become cradle.
+     */
+    std::vector<Polygons> cradle_areas;
+
+    /*!
+     * \brief Overhang of a cradle that will need support. May be on the same layer as the cradle.
+     */
+    std::vector<Polygons> cradle_overhang;
+    /*!
+     * \brief Areas below the first layer of a cradle.
+     */
+    std::vector<Polygons> cradle_base_areas;
+
+    /*!
+     * \brief Amount of layers of the cradle to support pointy overhangs.
+     */
+    size_t cradle_layers;
+
+    /*!
+     * \brief Minimum amount of layers of the cradle to support pointy overhangs.
+     */
+    size_t minimum_cradle_layers; // Minimal height of the cradle
+
+    /*!
+     * \brief Amount of lines used for the cradle.
+     */
+    size_t cradle_lines;
+
+    /*!
+     * \brief Length of lines used for the cradle.
+     */
+    coord_t cradle_length;
+
+    /*!
+     * \brief Width of lines used for the cradle.
+     */
+    coord_t cradle_line_width;
+
+    /*!
+     * \brief If cradle lines should be drawn as roof.
+     */
+    bool cradle_lines_roof;
+
+    /*!
+     * \brief If the cradle base should be drawn as roof.
+     */
+    bool cradle_base_roof;
+
+    /*!
+     * \brief If the cradle base should contain all cradle lines (if true) or only the pointy overhang (if false).
+     */
+    bool large_cradle_base;
 
 
+    /*!
+     * \brief Maximum area of an overhang to still receive a cradle. Unit is square-microns!
+     */
+    double cradle_area_threshold;
+
+    /*!
+     * \brief Distance to top of tips that support either the pointy overhang or the cradle lines at the bottom-most layer.
+     */
+    size_t cradle_tip_dtt;
+
+    /*!
+     * \brief If the cradle lines should also be supported by larger tips.
+     */
+    bool large_cradle_line_tips;
+
+
+    std::mutex critical_cradle;
     std::mutex critical_move_bounds;
     std::mutex critical_roof_tips;
+    mutable std::vector<std::vector<UnsupportedAreaInformation>> floating_parts_cache_;
+    mutable std::vector<std::vector<std::vector<size_t>>> floating_parts_map_;
+    std::unique_ptr<std::mutex> critical_floating_parts_cache_ = std::make_unique<std::mutex>();
 
 
 
