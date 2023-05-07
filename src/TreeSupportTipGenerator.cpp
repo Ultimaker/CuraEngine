@@ -388,7 +388,7 @@ void TreeSupportTipGenerator::calculateFloatingParts(const SliceMeshStorage& mes
             max_layer = layer_idx;
         }
     }
-    max_layer = std::max(max_layer + cradle_layers, LayerIndex(mesh.overhang_areas.size() - 1));
+    max_layer = std::min(max_layer + cradle_layers, LayerIndex(mesh.overhang_areas.size() - 1));
 
     LayerIndex start_layer = 1;
     floating_parts_cache_.resize(max_layer+1);
@@ -896,7 +896,7 @@ void TreeSupportTipGenerator::generateCradle(const SliceMeshStorage& mesh, std::
                                 Polygons unsupported_cradle_parts = cradle.difference(cradle_areas_calc[idx - 1].offset(config.maximum_move_distance));
 
                                 Polygons closed = cradle.unionPolygons(cradle.offset(closing_dist + 2 * config.branch_radius, ClipperLib::jtRound).unionPolygons().offset(-closing_dist, ClipperLib::jtRound));
-                                volumes_.addAreaToAntiPreferred(closed, layer_idx - idx);
+                                volumes_.addAreaToAntiPreferred(closed, layer_idx + idx);
 
                                 {
                                     std::lock_guard<std::mutex> critical_section_cradle(critical_support_free_areas_and_cradle_areas);
@@ -1078,8 +1078,8 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
             // Now, because the avoidance/collision was subtracted above, the overhang parts that are of xy distance were removed, so to merge areas that should have been one offset by xy_min_distance and then undo it.
             // In a perfect world the offset here would be of a mode that makes sure that area.offset(config.xy_min_distance).unionPolygons().offset(-config.xy_min_distance) = area if there is only one polygon in said area.
             // I have not encountered issues with using the default mitered here. Could be that i just have not encountered an issue with it yet though.
-            potential_support_roofs[layer_idx]=potential_support_roofs[layer_idx].unionPolygons().offset(config.xy_min_distance).unionPolygons().offset(-config.xy_min_distance).unionPolygons(potential_support_roofs[layer_idx]);
 
+            potential_support_roofs[layer_idx] = potential_support_roofs[layer_idx].unionPolygons().offset(config.xy_min_distance).unionPolygons().offset(-config.xy_min_distance).unionPolygons(potential_support_roofs[layer_idx]);
         }
     );
 
