@@ -1222,12 +1222,12 @@ void TreeModelVolumes::calculateFake0Avoidances(const LayerIndex max_layer)
                     std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_holefree_to_model_ );
                     avoidance_cache_hole_to_model_[key] = smaller_avoidance_to_model_fast_safe;
                 }
-            }
-            if (layer_idx > max_layer_idx_without_blocker)
-            {
-                Polygons smaller_avoidance_collision = getAvoidance(1,layer_idx,AvoidanceType::COLLISION,true,true).offset(radius_offset,ClipperLib::jtRound);
-                std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_collision_ );
-                avoidance_cache_collision_[key] = smaller_avoidance_collision;
+                if (layer_idx > max_layer_idx_without_blocker)
+                {
+                    Polygons smaller_avoidance_collision = getAvoidance(1,layer_idx,AvoidanceType::COLLISION,true,true).offset(radius_offset,ClipperLib::jtRound);
+                    std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_collision_ );
+                    avoidance_cache_collision_[key] = smaller_avoidance_collision;
+                }
             }
         });
 }
