@@ -427,80 +427,72 @@ Polygons ConstPolygonRef::offset(int distance, ClipperLib::JoinType join_type, d
     return ret;
 }
 
-void PolygonRef::removeColinearEdges(const AngleRadians max_deviation_angle)
+void PolygonRef::removeCollinearPoints(const AngleRadians max_deviation_angle)
 {
-    // TODO: Can be made more efficient (for example, use pointer-types for process-/skip-indices, so we can swap them without copy).
+    auto is_collinear = [max_deviation_angle](const Point& p1, const Point& p2, const Point& p3) {
+        auto angle = LinearAlg2D::getAngleLeft(p1, p2, p3);
 
-    size_t num_removed_in_iteration = 0;
-    do
-    {
-        num_removed_in_iteration = 0;
-
-        std::vector<bool> process_indices(path->size(), true);
-
-        bool go = true;
-        while (go)
+        if (angle >= M_PI)
         {
-            go = false;
+            angle -= M_PI;
+        }
 
-            const auto& rpath = *path;
-            const size_t pathlen = rpath.size();
-            if (pathlen <= 3)
+        return angle < max_deviation_angle || angle > M_PI - max_deviation_angle;
+    };
+
+    if (path->size() < 3) {
+        if (is_collinear((*path)[0], (*path)[1], (*path)[2])) {
+            path->clear();
+        }
+        return;
+    }
+
+    ClipperLib::Path new_path;
+
+    new_path.push_back((*path)[0]);
+    new_path.push_back((*path)[1]);
+
+    for (int i = 2; i < path->size(); i++) {
+        while (new_path.size() >= 2) {
+            auto prev = new_path[new_path.size() - 2];
+            auto pt = new_path[new_path.size() - 1];
+            auto next = (*path)[i];
+
+            if (is_collinear(prev, pt, next))
             {
-                return;
+                new_path.pop_back();
             }
-
-            std::vector<bool> skip_indices(path->size(), false);
-
-            ClipperLib::Path new_path;
-            for (size_t point_idx = 0; point_idx < pathlen; ++point_idx)
+            else
             {
-                // Don't iterate directly over process-indices, but do it this way, because there are points _in_ process-indices that should nonetheless be skipped:
-                if (! process_indices[point_idx])
-                {
-                    new_path.push_back(rpath[point_idx]);
-                    continue;
-                }
-
-                // Should skip the last point for this iteration if the old first was removed (which can be seen from the fact that the new first was skipped):
-                if (point_idx == (pathlen - 1) && skip_indices[0])
-                {
-                    skip_indices[new_path.size()] = true;
-                    go = true;
-                    new_path.push_back(rpath[point_idx]);
-                    break;
-                }
-
-                const Point& prev = rpath[(point_idx - 1 + pathlen) % pathlen];
-                const Point& pt = rpath[point_idx];
-                const Point& next = rpath[(point_idx + 1) % pathlen];
-
-                float angle = LinearAlg2D::getAngleLeft(prev, pt, next);  // [0 : 2 * pi]
-                if (angle >= M_PI) {angle -= M_PI;}  // map [pi : 2 * pi] to [0 : pi]
-
-                // Check if the angle is within limits for the point to 'make sense', given the maximum deviation.
-                // If the angle indicates near-parallel segments ignore the point 'pt'
-                if (angle > max_deviation_angle && angle < M_PI - max_deviation_angle)
-                {
-                    new_path.push_back(pt);
-                }
-                else if (point_idx != (pathlen - 1))
-                {
-                    // Skip the next point, since the current one was removed:
-                    skip_indices[new_path.size()] = true;
-                    go = true;
-                    new_path.push_back(next);
-                    ++point_idx;
-                }
+                break;
             }
-            *path = new_path;
-            num_removed_in_iteration += pathlen - path->size();
+        }
+        new_path.push_back((*path)[i]);
+    }
 
-            process_indices.clear();
-            process_indices.insert(process_indices.end(), skip_indices.begin(), skip_indices.end());
+    {
+        auto prev = new_path[new_path.size() - 1];
+        auto pt = new_path[0];
+        auto next = new_path[1];
+
+        if (is_collinear(prev, pt, next))
+        {
+            new_path.erase(new_path.begin());
         }
     }
-    while (num_removed_in_iteration > 0);
+
+    {
+        auto prev = new_path[new_path.size() - 2];
+        auto pt = new_path[new_path.size() - 1];
+        auto next = new_path[0];
+
+        if (is_collinear(prev, pt, next))
+        {
+            new_path.pop_back();
+        }
+    }
+
+    *path = new_path;
 }
 
 void PolygonRef::applyMatrix(const PointMatrix& matrix)

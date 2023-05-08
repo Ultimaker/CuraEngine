@@ -545,7 +545,7 @@ public:
         }
     }
 
-    void removeColinearEdges(const AngleRadians max_deviation_angle);
+    void removeCollinearPoints(const AngleRadians max_deviation_angle);
 
     /*!
      * Removes consecutive line segments with same orientation and changes this polygon.
@@ -1145,12 +1145,12 @@ public:
 
     Polygons smooth2(int remove_length, int min_area) const; //!< removes points connected to small lines
 
-    void removeColinearEdges(const AngleRadians max_deviation_angle = AngleRadians(0.0005))
+    void removeCollinearPoints(const AngleRadians max_deviation_angle = AngleRadians(0.0005))
     {
         Polygons& thiss = *this;
         for (size_t p = 0; p < size(); p++)
         {
-            thiss[p].removeColinearEdges(max_deviation_angle);
+            thiss[p].removeCollinearPoints(max_deviation_angle);
             if (thiss[p].size() < 3)
             {
                 remove(p);
