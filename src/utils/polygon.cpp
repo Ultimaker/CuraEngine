@@ -441,22 +441,22 @@ void PolygonRef::removeCollinearPoints(const AngleRadians max_deviation_angle)
     };
 
     if (path->size() < 3) {
-        if (is_collinear((*path)[0], (*path)[1], (*path)[2])) {
-            path->clear();
-        }
+        return;
+    }
+    else if (path->size() == 3 && is_collinear((*path)[0], (*path)[1], (*path)[2]))
+    {
+        // if the polygon is a triangle and collinear, remove all points
+        path->clear();
         return;
     }
 
     ClipperLib::Path new_path;
 
-    new_path.push_back((*path)[0]);
-    new_path.push_back((*path)[1]);
-
-    for (int i = 2; i < path->size(); i++) {
+    for (int i = 0; i < path->size(); i++) {
+        auto next = (*path)[i];
         while (new_path.size() >= 2) {
             auto prev = new_path[new_path.size() - 2];
             auto pt = new_path[new_path.size() - 1];
-            auto next = (*path)[i];
 
             if (is_collinear(prev, pt, next))
             {
@@ -470,6 +470,7 @@ void PolygonRef::removeCollinearPoints(const AngleRadians max_deviation_angle)
         new_path.push_back((*path)[i]);
     }
 
+    while (new_path.size() >= 3)
     {
         auto prev = new_path[new_path.size() - 1];
         auto pt = new_path[0];
@@ -479,8 +480,13 @@ void PolygonRef::removeCollinearPoints(const AngleRadians max_deviation_angle)
         {
             new_path.erase(new_path.begin());
         }
+        else
+        {
+            break;
+        }
     }
 
+    while (new_path.size() >= 3)
     {
         auto prev = new_path[new_path.size() - 2];
         auto pt = new_path[new_path.size() - 1];
@@ -489,6 +495,10 @@ void PolygonRef::removeCollinearPoints(const AngleRadians max_deviation_angle)
         if (is_collinear(prev, pt, next))
         {
             new_path.pop_back();
+        }
+        else
+        {
+            break;
         }
     }
 
