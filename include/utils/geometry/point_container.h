@@ -32,29 +32,50 @@ requires concepts::point<typename Container<P>::value_type> struct point_contain
     inline static constexpr direction winding = Direction;
 };
 
-template<concepts::point P, template<class> class Container>
+template<concepts::point P = Point, template<class> class Container = std::vector>
 struct polyline : public point_container<P, false, direction::NA, Container>
 {
+    constexpr polyline() noexcept = default;
+    constexpr explicit polyline(std::initializer_list<P> points) noexcept : point_container<P, false, direction::NA, Container>(points)
+    {
+    }
 };
 
 template<concepts::point P, direction Direction, template<class> class Container>
 struct polygon : public point_container<P, true, Direction, Container>
 {
+    constexpr polygon() noexcept = default;
+    constexpr polygon(std::initializer_list<P> points) noexcept : point_container<P, true, Direction, Container>(points)
+    {
+    }
 };
 
-template<concepts::point P, template<class> class Container>
+template<concepts::point P = Point, template<class> class Container = std::vector>
 struct polygon_outer : public point_container<P, true, direction::CW, Container>
 {
+    constexpr polygon_outer() noexcept = default;
+    constexpr explicit polygon_outer(std::initializer_list<P> points) noexcept : point_container<P, true, direction::CW, Container>(points)
+    {
+    }
 };
 
-template<concepts::point P, template<class> class Container>
+template<concepts::point P = Point, template<class> class Container = std::vector>
 struct polygon_inner : public point_container<P, true, direction::CCW, Container>
 {
+    constexpr polygon_inner() noexcept = default;
+    constexpr explicit polygon_inner(std::initializer_list<P> points) noexcept : point_container<P, true, direction::CCW, Container>(points)
+    {
+    }
 };
 
-template<concepts::point P, template<class> class Container>
+template<concepts::point P = Point, template<class> class Container = std::vector>
 requires concepts::point<typename Container<P>::value_type> struct polygons : public Container<polygon<P, direction::NA, Container>*>
 {
+    constexpr polygons() noexcept = default;
+    constexpr explicit polygons(std::initializer_list<polygon<P, direction::NA, Container>*> polygons) noexcept : Container<polygon<P, direction::NA, Container>*>(polygons)
+    {
+    }
+
     constexpr auto outer() noexcept
     {
         return polygon_outer{ this->front() };
@@ -65,19 +86,6 @@ requires concepts::point<typename Container<P>::value_type> struct polygons : pu
         return ranges::views::drop(this->base(), 1) | ranges::views::transform([](auto& p) { return polygon_inner{ p }; });
     }
 };
-
-// CTAD for point_container
-template<concepts::point P>
-polyline(std::initializer_list<P>) -> polyline<P, std::vector>;
-
-template<concepts::point P>
-polygon(std::initializer_list<P>) -> polygon<P, direction::CW, std::vector>;
-
-template<concepts::point P>
-polygon_outer(std::initializer_list<P>) -> polygon_outer<P, std::vector>;
-
-template<concepts::point P>
-polygon_inner(std::initializer_list<P>) -> polygon_inner<P, std::vector>;
 
 } // namespace cura::geometry
 

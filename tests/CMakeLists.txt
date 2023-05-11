@@ -37,6 +37,7 @@ set(TESTS_SRC_UTILS
         SparseGridTest
         StringTest
         UnionFindTest
+        ViewTest
         )
 
 set(TESTS_HELPERS_SRC ReadTestPolygons.cpp)

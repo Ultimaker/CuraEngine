@@ -75,9 +75,9 @@ class ConstPolygonRef
     friend class Polygon;
     friend class PolygonRef;
     friend class ConstPolygonPointer;
-protected:
-    ClipperLib::Path* path;
 public:
+    ClipperLib::Path* path;
+
     ConstPolygonRef(const ClipperLib::Path& polygon)
     : path(const_cast<ClipperLib::Path*>(&polygon))
     {}

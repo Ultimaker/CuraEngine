@@ -94,10 +94,10 @@ template<class T>
 concept point_ranged = point<T> && ! point2d_named<T> && ! point3d_named<T>;
 
 template<class T>
-concept polyline = ranges::range<T> && point<typename T::value_type> && is_closed<T>::value;
+concept polyline = ranges::range<T> && point<typename T::value_type> && !is_closed<T>::value;
 
 template<class T>
-concept polygon = ranges::range<T> && point<typename T::value_type> && ! is_closed<T>::value;
+concept polygon = ranges::range<T> && point<typename T::value_type> && is_closed<T>::value;
 
 template<class T>
 concept polygons = ranges::range<T> && polygon<typename T::value_type>;
