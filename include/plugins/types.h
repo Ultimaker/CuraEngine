@@ -51,7 +51,7 @@ public:
         {
             return std::tuple<std::string, std::string>{ arg.version(), arg.plugin_hash() };
         }
-        return 1;
+        return std::make_shared<proto::Plugin_args>();
         //return static_cast<T&>(*this).make(arg, std::forward<decltype(args)>(args)...);
     }
 };
