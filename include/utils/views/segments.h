@@ -4,7 +4,9 @@
 #ifndef UTILS_VIEWS_SEGMENTS_H
 #define UTILS_VIEWS_SEGMENTS_H
 
+#include <iterator>
 #include <range/v3/range/concepts.hpp>
+#include <range/v3/utility/common_tuple.hpp>
 #include <range/v3/view/concat.hpp>
 #include <range/v3/view/cycle.hpp>
 #include <range/v3/view/single.hpp>
@@ -17,85 +19,143 @@
 namespace cura::views
 {
 
-// TODO: this view should loop over the lines of a polyline or polygon, not the points.
-//   It should return a tuple of two points, not a single point.
-//   If it is a polygon, the last point should be connected to the first point.
-
 template<ranges::input_range Rng>
 requires concepts::poly_range<Rng> class segment_view : public ranges::view_interface<segment_view<Rng>>
 {
 private:
     Rng base_{};
-    mutable ranges::iterator_t<Rng> begin_{ std::begin(base_) };
-    mutable ranges::iterator_t<Rng> end_{ std::end(base_) };
+    ranges::iterator_t<Rng> it_{ std::begin(base_) };
+    ranges::iterator_t<Rng> it_next_{ std::next(std::begin(base_)) };
+
+    class iterator
+    {
+    private:
+        using base_iterator_t = ranges::iterator_t<Rng>;
+
+    public:
+        // FIXME: These should be private
+        base_iterator_t it_;
+        base_iterator_t it_next_;
+
+        using value_type = ranges::range_value_t<Rng>;
+        using difference_type = ranges::range_difference_t<Rng>;
+        using reference = ranges::common_pair<value_type&, value_type&>;
+        using pointer = ranges::common_pair<value_type*, value_type*>;
+        using iterator_category = std::input_iterator_tag;
+
+        iterator(base_iterator_t it, base_iterator_t it_next) : it_(it), it_next_(it_next)
+        {
+        }
+
+        reference operator*() const
+        {
+            return { *it_, *it_next_ };
+        }
+
+        iterator& operator++()
+        {
+            ++it_;
+            ++it_next_;
+            return *this;
+        }
+
+        bool operator==(const iterator& other) const
+        {
+            return it_ == other.it_ && it_next_ == other.it_next_;
+        }
+
+        bool operator!=(const iterator& other) const
+        {
+            return ! (*this == other);
+        }
+    };
+
+    class sentinel
+    {
+    private:
+        using base_sentinel_t = ranges::sentinel_t<Rng>;
+        base_sentinel_t end_;
+
+    public:
+        sentinel(base_sentinel_t end) : end_(end)
+        {
+        }
+
+        friend bool operator!=(const iterator& it, const sentinel& s)
+        {
+            return it.it_next_ != s.end_;
+        }
+    };
+
+    bool equal(ranges::default_sentinel_t) const
+    {
+        return it_next_ == std::end(base_);
+    }
+
+    constexpr auto read() const
+    {
+        return ranges::make_common_pair(*it_, *it_next_);
+    }
+
+    void next()
+    {
+        std::next(it_);
+        std::next(it_next_);
+    }
+
+    void prev()
+    {
+        std::prev(it_);
+        std::prev(it_next_);
+    }
 
 public:
     constexpr segment_view() noexcept = default;
-    constexpr explicit segment_view(Rng base) noexcept : base_(std::move(base)), begin_(std::begin(base_)), end_(std::end(base_))
+    constexpr explicit segment_view(Rng rng) noexcept : base_{ std::move(rng) }
     {
     }
 
-    constexpr Rng base() const&
+    constexpr auto begin()
     {
-        return base_;
-    }
-
-    constexpr Rng base() &&
-    {
-        return std::move(base_);
+        return iterator{ std::begin(base_), std::next(std::begin(base_)) };
     }
 
     constexpr auto begin() const
     {
-        if constexpr (is_closed_v<decltype(base_)>)
-        {
-            return base_ | ranges::views::cycle | ranges::views::sliding(2) | ranges::views::take(std::distance(begin_, end_) + 1) | ranges::views::transform([](auto tup) { return std::make_tuple(tup.front(), tup.back()); });
-        }
-        else
-        {
-            return base_ | ranges::views::sliding(2) | ranges::views::transform([](auto tup) { return std::make_tuple(tup.front(), tup.back()); });
-        }
+        return iterator{ std::begin(base_), std::next(std::begin(base_)) };
+    }
+
+    constexpr auto end()
+    {
+        return sentinel{ std::end(base_) };
     }
 
     constexpr auto end() const
     {
-        if constexpr (is_closed_v<decltype(base_)>)
-        {
-            return std::next(std::begin(base_));
-        }
-        else
-        {
-            return std::end(base_);
-        }
+        return sentinel{ std::end(base_) };
     }
 
     constexpr auto size() requires ranges::sized_range<Rng>
     {
-        if constexpr (is_closed_v<decltype(base_)>)
+        if constexpr (is_closed_v<Rng>)
         {
-            return std::distance(begin_, end_) + 1;
+            return std::distance(std::begin(base_), std::end(base_)) + 1;
         }
-        else
-        {
-            return std::distance(begin_, end_);
-        }
+        return std::distance(std::begin(base_), std::end(base_));
     }
 
     constexpr auto size() const requires ranges::sized_range<const Rng>
     {
-        if constexpr (is_closed_v<decltype(base_)>)
+        if constexpr (is_closed_v<Rng>)
         {
-            return std::distance(begin_, end_) + 1;
+            return std::distance(std::begin(base_), std::end(base_)) + 1;
         }
-        else
-        {
-            return std::distance(begin_, end_);
-        }
+        return std::distance(std::begin(base_), std::end(base_));
     }
 };
 
 template<class Rng>
-segment_view(Rng&& base) -> segment_view<ranges::views::all_t<Rng>>;
+segment_view(Rng base) -> segment_view<ranges::views::all_t<Rng>>;
 
 namespace details
 {

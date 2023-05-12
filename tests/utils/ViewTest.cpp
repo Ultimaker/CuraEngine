@@ -46,24 +46,25 @@ TEST(ViewTest, SegmentsViewPolyline)
     auto polyline_view = polyline | views::segments;
     ASSERT_EQ(polyline_view.size(), 3);
 
-    for (auto p : polyline_view)
+    for (auto [p1, p2] : polyline_view)
     {
-        ASSERT_EQ(p.X, p.Y);
+        ASSERT_EQ(p1.X, p1.Y);
     }
 }
 
 TEST(ViewTest, SegmentsViewPolygon)
 {
-    auto polygon = geometry::polyline({ { 0, 0 }, { 1, 1 }, { 2, 2 } });
-    static_assert(concepts::polyline<decltype(polygon)>);
+    auto polygon = geometry::polygon_outer({ { 0, 0 }, { 1, 1 }, { 2, 2 } });
+    static_assert(concepts::polygon<decltype(polygon)>);
     ASSERT_EQ(polygon.size(), 3);
 
     auto polygon_view = polygon | views::segments;
     ASSERT_EQ(polygon_view.size(), 4);
 
-    for (auto p : polygon_view)
+    for (auto [p1, p2] : polygon_view)
     {
-        ASSERT_EQ(p[0].X, p[0].Y);
+        std::is_same_v<Point, decltype(p1)>;
+        ASSERT_EQ(p1.X, p1.Y);
     }
 }
 
