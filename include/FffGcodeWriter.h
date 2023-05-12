@@ -83,7 +83,8 @@ private:
                                                                                        //!< and fan speeds. Configured for each extruder.
 
     std::string slice_uuid; //!< The UUID of the current slice.
-  public:
+
+public:
     /*
      * \brief Construct a g-code writer.
      *
@@ -142,13 +143,6 @@ private:
      * retrieving all settings from the global/per-meshgroup settings.
      */
     void setConfigFanSpeedLayerTime();
-
-    /*!
-     * Create and set the SliceDataStorage::coasting_config for each extruder.
-     * 
-     * \param[out] storage The data storage to which to save the configuration
-     */
-    void setConfigCoasting(SliceDataStorage& storage);
 
     /*!
      * Set the retraction and wipe config globally, per extruder and per mesh.
@@ -227,13 +221,6 @@ private:
      * \return whether any extruder need to be primed separately just before they are used
      */
     bool getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, const size_t extruder_nr) const;
-
-    /*!
-     * Plan priming of all used extruders which haven't been primed yet
-     * \param[in] storage where the slice data is stored.
-     * \param layer_plan The initial planning of the g-code of the layer.
-     */
-    void ensureAllExtrudersArePrimed(const SliceDataStorage& storage, LayerPlan& layer_plan) const;
 
     /*!
      * Add the skirt or the brim to the layer plan \p gcodeLayer if it hasn't already been added yet.
@@ -584,7 +571,6 @@ private:
      */
     bool addSupportBottomsToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer) const;
 
-public:
     /*!
      * Change to a new extruder, and add the prime tower instructions if the new extruder is different from the last.
      * 
@@ -596,7 +582,6 @@ public:
      */
     void setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t extruder_nr) const;
 
-private:
     /*!
      * Add the prime tower gcode for the current layer.
      * \param[in] storage where the slice data is stored.
