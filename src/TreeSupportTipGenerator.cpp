@@ -54,9 +54,9 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceDataStorage& storage
     cradle_lines(mesh.settings.get<size_t>("support_tree_cradle_line_count")),
     cradle_length(mesh.settings.get<coord_t>("support_tree_cradle_length")),
     cradle_line_width(mesh.settings.get<coord_t>("support_tree_cradle_line_width")),
-    cradle_lines_roof(mesh.settings.get<std::string>("support_tree_roof_cradle") != "none"),
-    cradle_base_roof(mesh.settings.get<std::string>("support_tree_roof_cradle") == "cradle_and_base" || mesh.settings.get<std::string>("support_tree_roof_cradle") == "large_cradle_and_base"),
-    large_cradle_base(mesh.settings.get<std::string>("support_tree_roof_cradle") == "large_cradle_and_base"),
+    cradle_lines_roof(!use_fake_roof && mesh.settings.get<std::string>("support_tree_roof_cradle") != "none"),
+    cradle_base_roof(!use_fake_roof && mesh.settings.get<std::string>("support_tree_roof_cradle") == "cradle_and_base" || mesh.settings.get<std::string>("support_tree_roof_cradle") == "large_cradle_and_base"),
+    large_cradle_base(!use_fake_roof && mesh.settings.get<std::string>("support_tree_roof_cradle") == "large_cradle_and_base"),
     cradle_area_threshold(1000 * 1000 * mesh.settings.get<double>("support_tree_maximum_pointy_area")),
     cradle_tip_dtt(config.tip_layers *  mesh.settings.get<double>("support_tree_cradle_base_tip_percentage") / 100.0),
     large_cradle_line_tips(mesh.settings.get<bool>("support_tree_large_cradle_line_tips"))
