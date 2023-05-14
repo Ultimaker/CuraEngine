@@ -12,6 +12,18 @@
 
 namespace cura
 {
+namespace concepts
+{
+
+template<class T>
+concept closable = requires(T t)
+{
+    t.is_closed;
+};
+
+} // namespace concepts
+
+
 enum class direction
 {
     NA,
@@ -37,14 +49,23 @@ struct is_counterclockwise
 template<typename T>
 constexpr bool is_counterclockwise_v = is_counterclockwise<T>::value;
 
-template<typename T>
-struct is_closed
+template<concepts::closable T>
+struct is_closed_container
 {
-    static const bool value = T::is_closed;
+    static constexpr bool value = T::is_closed == true;
 };
 
-template<typename T>
-constexpr bool is_closed_v = is_closed<T>::value;
+template<concepts::closable T>
+inline constexpr bool is_closed_container_v = is_closed_container<T>::value;
+
+template<concepts::closable T>
+struct is_open_container
+{
+    static constexpr bool value = T::is_closed == false;
+};
+
+template<concepts::closable T>
+inline constexpr bool is_open_container_v = is_open_container<T>::value;
 
 namespace concepts
 {
@@ -94,10 +115,10 @@ template<class T>
 concept point_ranged = point<T> && ! point2d_named<T> && ! point3d_named<T>;
 
 template<class T>
-concept polyline = ranges::range<T> && point<typename T::value_type> && !is_closed<T>::value;
+concept polyline = ranges::range<T> && is_open_container_v<T> && point<typename T::value_type> ;
 
 template<class T>
-concept polygon = ranges::range<T> && point<typename T::value_type> && is_closed<T>::value;
+concept polygon = ranges::range<T> && is_closed_container_v<T> && point<typename T::value_type> ;
 
 template<class T>
 concept polygons = ranges::range<T> && polygon<typename T::value_type>;
