@@ -2,6 +2,8 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <gtest/gtest.h>
+#include <range/v3/view/zip.hpp>
+#include <spdlog/spdlog.h>
 
 #include "utils/concepts/geometry.h"
 #include "utils/geometry/point_container.h"
@@ -13,7 +15,7 @@ namespace cura
 TEST(ViewTest, Polyline)
 {
     auto polyline = geometry::polyline{ { 0, 0 }, { 1, 1 }, { 2, 2 } };
-    static_assert(! is_closed<decltype(polyline)>::value);
+    static_assert(is_open_container_v<decltype(polyline)>);
 
     ASSERT_EQ(polyline.size(), 3);
 
@@ -26,8 +28,7 @@ TEST(ViewTest, Polyline)
 TEST(ViewTest, Polygon)
 {
     auto polygon = geometry::polygon_outer{ { 0, 0 }, { 1, 1 }, { 2, 2 } };
-    static_assert(is_closed<decltype(polygon)>::value);
-    static_assert(is_clockwise<decltype(polygon)>::value);
+    static_assert(is_closed_container_v<decltype(polygon)>);
 
     ASSERT_EQ(polygon.size(), 3);
 
@@ -40,31 +41,35 @@ TEST(ViewTest, Polygon)
 TEST(ViewTest, SegmentsViewPolyline)
 {
     auto polyline = geometry::polyline{ { 0, 0 }, { 1, 1 }, { 2, 2 } };
-    static_assert(concepts::polyline<decltype(polyline)>);
-    ASSERT_EQ(polyline.size(), 3);
 
     auto polyline_view = polyline | views::segments;
-    ASSERT_EQ(polyline_view.size(), 3);
+    auto expected = std::vector<std::pair<Point, Point>>{
+        { { 0, 0 }, { 1, 1 } },
+        { { 1, 1 }, { 2, 2 } }
+    };
 
-    for (auto [p1, p2] : polyline_view)
+    for (const auto& [val, exp] : ranges::views::zip(polyline_view, expected))
     {
-        ASSERT_EQ(p1.X, p1.Y);
+        ASSERT_EQ(val.first, exp.first);
+        ASSERT_EQ(val.second, exp.second);
     }
 }
 
 TEST(ViewTest, SegmentsViewPolygon)
 {
     auto polygon = geometry::polygon_outer({ { 0, 0 }, { 1, 1 }, { 2, 2 } });
-    static_assert(concepts::polygon<decltype(polygon)>);
-    ASSERT_EQ(polygon.size(), 3);
 
     auto polygon_view = polygon | views::segments;
-    ASSERT_EQ(polygon_view.size(), 4);
+    auto expected = std::vector<std::pair<Point, Point>>{
+        { { 0, 0 }, { 1, 1 } },
+        { { 1, 1 }, { 2, 2 } },
+        { { 2, 2 }, { 0, 0 } }
+    };
 
-    for (auto [p1, p2] : polygon_view)
+    for (const auto& [val, exp] : ranges::views::zip(polygon_view, expected))
     {
-        std::is_same_v<Point, decltype(p1)>;
-        ASSERT_EQ(p1.X, p1.Y);
+        ASSERT_EQ(val.first, exp.first);
+        ASSERT_EQ(val.second, exp.second);
     }
 }
 
