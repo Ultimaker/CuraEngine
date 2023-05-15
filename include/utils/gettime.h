@@ -5,6 +5,7 @@
 #define GETTIME_H
 
 #ifdef _WIN32
+    #define WIN32_LEAN_AND_MEAN 1
     #include <windows.h>
 #else
     #ifdef USE_CPU_TIME
