@@ -23,13 +23,12 @@ namespace cura::plugins
 
 namespace detail
 {
-template<class Validator, class Converter>
+template<class Validator, class Receiver>
 class PluginListener : public Arcus::SocketListener
 {
 public:
     using validator_t = Validator;
-    using receive_t = Converter::receive_t;
-    using converter_t = Converter;
+    using receive_t = Receiver;
 
     bool msgReceived() noexcept
     {
@@ -40,7 +39,7 @@ public:
 
 private:
     std::shared_ptr<validator_t> validator_{};
-    converter_t converter_{};
+    receive_t receiver_{};
     bool msg_received_{ false };
 
 public:
@@ -74,28 +73,31 @@ public:
 
 } // namespace detail
 
-template<plugins::SlotID Slot, class Validator, class Converter>
-class PluginProxy
+template<plugins::SlotID Slot, class Validator, class Receiver, class Sender>
+class SlotProxy
 {
 public:
     // type aliases for easy use
-    using receive_t = Converter::receive_t;
-    using send_t = Converter::send_t;
+    using receive_t = Receiver;
+    using send_t = Sender;
     using validator_t = Validator;
-    using converter_t = Converter;
-    using listener_t = detail::PluginListener<validator_t, converter_t>;
+    using listener_t = detail::PluginListener<validator_t, receive_t>;
 
     static inline constexpr plugins::SlotID slot_id{ Slot };
 
-    std::shared_ptr<validator_t> validator;
+    //std::shared_ptr<validator_t> validator;
 
 private:
     std::unique_ptr<Arcus::Socket> socket_;
     listener_t* listener_; // FIXME: in Arcus use smart_ptr for listeners otherwise we need to add a deconstructor in this class and that forces us to define the big 6
-    converter_t converter_{};
+    receiver_t receiver_{};
+    sender_t sender_{};
 
 public:
-    PluginProxy(const std::string& ip, int port) : validator{ std::make_shared<validator_t>() }, socket_{ std::make_unique<Arcus::Socket>() }, listener_{ new listener_t(validator) }
+    SlotProxy(const std::string& ip, int port) :
+        validator{ std::make_shared<validator_t>() },
+        socket_{ std::make_unique<Arcus::Socket>() },
+        listener_{ new listener_t(validator) }
     {
         // Add the listener
         socket_->addListener(listener_);

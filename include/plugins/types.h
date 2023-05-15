@@ -34,6 +34,36 @@ struct CharRangeLiteral
 
 namespace converters
 {
+
+template<class T>
+class ReceiveConverterBase
+{
+    friend T;
+public:
+    auto operator()(const proto::Plugin_ret& message)
+    {
+        return std::tuple<std::string, std::string>{ arg.version(), arg.plugin_hash() };
+    }
+};
+
+template<class T>
+class SendConverterBase
+{
+    friend T
+public:
+    auto operator()(const cura::plugins::proto::SlotID& slot_id, auto&&... args)
+    {
+        proto::Plugin_args msg{};
+        msg.set_id(arg);
+        return std::make_shared<proto::Plugin_args>(msg);
+    }
+};
+
+//class SimplifyReceiveConverter : ReceiveConverterBase<>
+//{
+//
+//};
+
 template<class T>
 class converter_base
 {
