@@ -16,6 +16,7 @@ option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 
 # Generate the plugin types
 find_package(protobuf REQUIRED)
+find_package(asio-grpc REQUIRED)
 asio_grpc_protobuf_generate(
         GENERATE_GRPC GENERATE_MOCK_CODE
         OUT_VAR "ASIO_GRPC_PLUGIN_PROTO_SOURCES"
