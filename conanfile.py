@@ -50,7 +50,8 @@ class CuraEngineConan(ConanFile):
     def configure(self):
         self.options["boost"].header_only = True
         self.options["clipper"].shared = True
-        self.options["protobuf"].shared = True
+
+        self.options["protobuf"].shared = False
         self.options["grpc"].csharp_plugin = False
         self.options["grpc"].node_plugin = False
         self.options["grpc"].objective_c_plugin = False
@@ -69,6 +70,7 @@ class CuraEngineConan(ConanFile):
 
     def build_requirements(self):
         self.test_requires("standardprojectsettings/[>=0.1.0]@ultimaker/stable")
+        self.tool_requires("protobuf/3.21.9")
         if self.options.enable_testing:
             self.test_requires("gtest/1.12.1")
         if self.options.enable_benchmarks:
@@ -76,7 +78,7 @@ class CuraEngineConan(ConanFile):
 
     def requirements(self):
         if self.options.enable_arcus:
-            self.requires("arcus/5.2.2")
+            self.requires("arcus/(latest)@ultimaker/cura_10475")
         self.requires("clipper/6.4.2")
         self.requires("boost/1.79.0")
         self.requires("rapidjson/1.1.0")

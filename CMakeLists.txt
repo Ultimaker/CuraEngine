@@ -17,6 +17,7 @@ option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 # Generate the plugin types
 find_package(protobuf REQUIRED)
 find_package(asio-grpc REQUIRED)
+
 asio_grpc_protobuf_generate(
         GENERATE_GRPC GENERATE_MOCK_CODE
         OUT_VAR "ASIO_GRPC_PLUGIN_PROTO_SOURCES"
@@ -24,7 +25,6 @@ asio_grpc_protobuf_generate(
         IMPORT_DIRS "${CMAKE_CURRENT_LIST_DIR}"
         PROTOS "${CMAKE_CURRENT_LIST_DIR}/plugin.proto"
 )
-
 
 if (ENABLE_ARCUS)
     message(STATUS "Building with Arcus")
@@ -180,7 +180,7 @@ if (${EXTENSIVE_WARNINGS})
 endif ()
 
 if (ENABLE_ARCUS)
-    target_link_libraries(_CuraEngine PRIVATE arcus::arcus protobuf::libprotobuf)
+    target_link_libraries(_CuraEngine PUBLIC arcus::arcus )
 endif ()
 
 find_package(clipper REQUIRED)
@@ -209,6 +209,7 @@ target_link_libraries(_CuraEngine
         scripta::scripta
         neargye-semver::neargye-semver
         asio-grpc::asio-grpc
+        protobuf::libprotobuf
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
 
 if (NOT WIN32)
