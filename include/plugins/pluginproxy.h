@@ -85,7 +85,7 @@ public:
     using converter_t = Converter;
     using listener_t = detail::PluginListener<validator_t, converter_t>;
 
-    plugins::SlotID slot_id{ Slot };
+    static inline constexpr plugins::SlotID slot_id{ Slot };
 
     std::shared_ptr<validator_t> validator;
 
