@@ -16,9 +16,6 @@
 namespace cura::plugins
 {
 using SlotID = proto::SlotID;
-using MessageIn = proto::PluginResponse;
-using MessageOut = proto::PluginRequest;
-using MessageOutPtr = std::shared_ptr<MessageOut>;
 
 namespace details
 {
@@ -38,41 +35,43 @@ struct CharRangeLiteral
 namespace converters
 {
 
-template<typename C, typename R>
-concept ReceiveCallable = requires(C callable, MessageIn message)
+template<typename C, typename M, typename R>
+concept ReceiveCallable = requires(C callable, M message)
 {
     { callable(message) } -> std::same_as<R>;
+    std::is_base_of_v<google::protobuf::Message, M>;
 };
 
-template<typename C, typename... S>
+template<typename C, typename M, typename... S>
 concept SendCallable = requires(C callable, S... args)
 {
-    { callable(args...) } -> std::same_as<MessageOutPtr>;
+    { callable(args...) } -> std::same_as<std::shared_ptr<M>>;
+    std::is_base_of_v<google::protobuf::Message, M>;
 };
 
 const auto receive_slot_id
 {
-    [](const MessageIn& message)
+    [](const proto::PluginResponse& message)
     {
         return std::tuple<std::string, std::string>{ message.version(), message.plugin_hash() };
     }
 };
-static_assert(ReceiveCallable<decltype(receive_slot_id), std::tuple<std::string, std::string>>);
+static_assert(ReceiveCallable<decltype(receive_slot_id), proto::PluginResponse, std::tuple<std::string, std::string>>);
 
 const auto send_slot_id
 {
     [](const cura::plugins::proto::SlotID& slot_id)
     {
-        MessageOut message{};
+        proto::PluginRequest message{};
         message.set_id(slot_id);
-        return std::make_shared<proto::Plugin_args>(message);
+        return std::make_shared<proto::PluginRequest>(message);
     }
 };
-static_assert(SendCallable<decltype(send_slot_id), cura::plugins::proto::SlotID>);
+static_assert(SendCallable<decltype(send_slot_id), proto::PluginRequest, cura::plugins::proto::SlotID>);
 
 const auto receive_simplify
 {
-    [](const MessageIn& message)
+    [](const proto::SimplifyResponse& message)
     {
         Polygons poly{};
         for (const auto& paths : message.polygons().paths())
@@ -87,13 +86,13 @@ const auto receive_simplify
         return poly;
     }
 };
-static_assert(ReceiveCallable<decltype(receive_simplify), Polygons>);
+static_assert(ReceiveCallable<decltype(receive_simplify), proto::SimplifyResponse, Polygons>);
 
 const auto send_simplify
 {
     [](const Polygons& polygons, const size_t max_deviation, const size_t max_angle)
     {
-        MessageOut message{};
+        proto::SimplifyRequest message{};
         message.set_max_deviation(max_deviation);
         message.set_max_angle(max_angle);
         for (const auto& polygon : polygons.paths)
@@ -110,30 +109,30 @@ const auto send_simplify
                 }
             }
         }
-        return std::make_shared<MessageOut>(message);
+        return std::make_shared<proto::SimplifyRequest>(message);
     }
 };
-static_assert(SendCallable<decltype(send_simplify), Polygons, size_t, size_t>);
+static_assert(SendCallable<decltype(send_simplify), proto::SimplifyRequest, Polygons, size_t, size_t>);
 
 const auto receive_postprocess
 {
-    [](const MessageIn& message)
+    [](const proto::PostprocessResponse& message)
     {
-        return message.gcode();
+        return message.gcode_word();
     }
 };
-static_assert(ReceiveCallable<decltype(receive_postprocess), std::string>);
+static_assert(ReceiveCallable<decltype(receive_postprocess), proto::PostprocessResponse, std::string>);
 
 const auto send_postprocess
 {
     [](const std::string& gcode)
     {
-        MessageOut message{};
-        message.set_gcode(gcode);
-        return std::make_shared<MessageOut>(message);
+        proto::PostprocessRequest message{};
+        message.set_gcode_word(gcode);
+        return std::make_shared<proto::PostprocessRequest>(message);
     }
 };
-static_assert(SendCallable<decltype(send_postprocess), std::string>);
+static_assert(SendCallable<decltype(send_postprocess), proto::PostprocessRequest, std::string>);
 
 } // namespace converters
 

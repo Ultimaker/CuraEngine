@@ -25,7 +25,7 @@
 namespace cura::plugins
 {
 
-template<plugins::SlotID Slot, class Validator, class Receiver, class Sender>
+template<plugins::SlotID Slot, class Validator, converters::ReceiveCallable Receiver, converters::SendCallable Sender>
 class SlotProxy
 {
 public:
