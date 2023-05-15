@@ -40,12 +40,13 @@ private:
     //    receiver_t receiver_{};
     //    sender_t sender_{};
 
+    proto::Plugin::Stub plugin_stub_;
+    grpc::Status status_;
+
 public:
-    SlotProxy(const std::string& ip, int port)
+    SlotProxy(const std::string& ip, int port) : plugin_stub_(grpc::CreateChannel(ip + ":" + std::to_string(port), grpc::InsecureChannelCredentials()))
     {
-        grpc::Status status;
-        proto::Plugin::Stub plugin_stub(grpc::CreateChannel(ip + ":" + std::to_string(port), grpc::InsecureChannelCredentials()));
-        agrpc::GrpcContext grpc_context;
+        agrpc::GrpcContext grpc_context;  // TODO: figure out how the reuse the grpc_context, it is recommended to use 1 per thread. Maybe move this to the lot registry??
 
         boost::asio::co_spawn(
             grpc_context,
@@ -56,7 +57,7 @@ public:
                 proto::PluginRequest request{};
                 request.set_id(slot_id);
                 proto::PluginResponse response{};
-                status = co_await RPC::request(grpc_context, plugin_stub, client_context, request, response, boost::asio::use_awaitable);
+                status_ = co_await RPC::request(grpc_context, plugin_stub_, client_context, request, response, boost::asio::use_awaitable);
                 spdlog::info("Received response from plugin: {}", response.DebugString());
             },
             boost::asio::detached);
