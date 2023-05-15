@@ -16,12 +16,16 @@ enum SlotID {
 
 // ---------------------------------------------------------------------
 // This is the message which is sent to the plugin to request identification
-message Plugin_args {
+service Plugin {
+  rpc Identify(PluginRequest) returns (PluginResponse) {}
+}
+
+message PluginRequest {
   SlotID id = 1;
 }
 
 // This is the message which is sent back to CuraEngine to identify and validate the plugin
-message Plugin_ret {
+message PluginResponse {
   string plugin_hash = 1;
   string version = 2;
 }
@@ -43,24 +47,34 @@ message Polygons {
 
 // ---------------------------------------------------------------------
 // The SIMPLIFY slot request message
-message Simplify_args {
+
+service Simplify {
+  rpc Simplify(SimplifyRequest) returns (SimplifyResponse) {}
+}
+
+message SimplifyRequest {
   Polygons polygons = 1;
   uint64 max_deviation = 2;
   uint64 max_angle = 3;
 }
 
 // The SIMPLIFY slot response message
-message Simplify_ret {
+message SimplifyResponse {
   Polygons polygons = 1;
 }
 
 // ---------------------------------------------------------------------
 // The POSTPROCESS slot request message
-message Postprocess_args {
+
+service Postprocess {
+  rpc Postprocess(PostprocessRequest) returns (PostprocessResponse) {}
+}
+
+message PostprocessRequest {
   string gcode_word = 1;
 }
 
 // The POSTPROCESS slot response message
-message Postprocess_ret {
+message PostprocessResponse {
   string gcode_word = 1;
 }

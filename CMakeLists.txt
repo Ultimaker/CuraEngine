@@ -13,14 +13,22 @@ option(EXTENSIVE_WARNINGS "Build with all warnings" ON)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 
-# Create Protobuf files if Arcus is used
+
+# Generate the plugin types
+find_package(protobuf REQUIRED)
+asio_grpc_protobuf_generate(
+        GENERATE_GRPC GENERATE_MOCK_CODE
+        OUT_VAR "ASIO_GRPC_PLUGIN_PROTO_SOURCES"
+        OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated"
+        IMPORT_DIRS "${CMAKE_CURRENT_LIST_DIR}"
+        PROTOS "${CMAKE_CURRENT_LIST_DIR}/plugin.proto"
+)
+
+
 if (ENABLE_ARCUS)
     message(STATUS "Building with Arcus")
-
     find_package(arcus REQUIRED)
-    find_package(protobuf REQUIRED)
-    protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto plugin.proto)
-    protobuf_generate_cpp(plugin_PB_SRCS plugin_PB_HEADERS plugin.proto)
+    protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 endif ()
 
 ### Compiling CuraEngine ###
@@ -137,7 +145,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/VoxelUtils.cpp
         )
 
-add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})
+add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS} ${ASIO_GRPC_PLUGIN_PROTO_SOURCES})
 use_threads(_CuraEngine)
 
 target_include_directories(_CuraEngine
@@ -146,7 +154,9 @@ target_include_directories(_CuraEngine
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}> # Include Cura.pb.h
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated> # Include generated plugin types
         )
+
 target_compile_definitions(_CuraEngine
         PUBLIC
         $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
@@ -197,6 +207,7 @@ target_link_libraries(_CuraEngine
         boost::boost
         scripta::scripta
         neargye-semver::neargye-semver
+        asio-grpc::asio-grpc
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
 
 if (NOT WIN32)
@@ -226,4 +237,4 @@ endif ()
 
 if (ENABLE_BENCHMARKS)
     add_subdirectory(benchmark)
-endif()
+endif ()

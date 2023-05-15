@@ -50,9 +50,15 @@ class CuraEngineConan(ConanFile):
     def configure(self):
         self.options["boost"].header_only = True
         self.options["clipper"].shared = True
+        self.options["protobuf"].shared = True
+        self.options["grpc"].csharp_plugin = False
+        self.options["grpc"].node_plugin = False
+        self.options["grpc"].objective_c_plugin = False
+        self.options["grpc"].php_plugin = False
+        self.options["grpc"].python_plugin = False
+        self.options["grpc"].ruby_plugin = False
         if self.options.enable_arcus:
             self.options["arcus"].shared = True
-            self.options["protobuf"].shared = True
 
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
@@ -63,8 +69,7 @@ class CuraEngineConan(ConanFile):
 
     def build_requirements(self):
         self.test_requires("standardprojectsettings/[>=0.1.0]@ultimaker/stable")
-        if self.options.enable_arcus:
-            self.test_requires("protobuf/3.21.9")
+        self.test_requires("protobuf/3.21.9")
         if self.options.enable_testing:
             self.test_requires("gtest/1.12.1")
         if self.options.enable_benchmarks:
@@ -72,9 +77,7 @@ class CuraEngineConan(ConanFile):
 
     def requirements(self):
         if self.options.enable_arcus:
-            self.requires("protobuf/3.21.9")
             self.requires("arcus/5.2.2")
-            self.requires("zlib/1.2.12")
         self.requires("clipper/6.4.2")
         self.requires("boost/1.79.0")
         self.requires("rapidjson/1.1.0")
@@ -84,6 +87,10 @@ class CuraEngineConan(ConanFile):
         self.requires("range-v3/0.12.0")
         self.requires("scripta/0.1.0@ultimaker/testing")
         self.requires("neargye-semver/0.3.0")
+        self.requires("protobuf/3.21.9")
+        self.requires("zlib/1.2.12")
+        self.requires("openssl/1.1.1l")
+        self.requires("asio-grpc/2.4.0")
 
     def generate(self):
         deps = CMakeDeps(self)
