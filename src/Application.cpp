@@ -147,7 +147,7 @@ void Application::printLicense() const
 {
     fmt::print("\n");
     fmt::print("Cura_SteamEngine version {}\n", CURA_ENGINE_VERSION);
-    fmt::print("Copyright (C) 2022 Ultimaker\n");
+    fmt::print("Copyright (C) 2023 Ultimaker\n");
     fmt::print("\n");
     fmt::print("This program is free software: you can redistribute it and/or modify\n");
     fmt::print("it under the terms of the GNU Affero General Public License as published by\n");
