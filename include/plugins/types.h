@@ -16,6 +16,9 @@
 namespace cura::plugins
 {
 using SlotID = proto::SlotID;
+using MessageIn = proto::PluginResponse;
+using MessageOut = proto::PluginRequest;
+using MessageOutPtr = std::shared_ptr<MessageOut>;
 
 namespace details
 {
@@ -35,63 +38,44 @@ struct CharRangeLiteral
 namespace converters
 {
 
-template<class T>
-struct ReceiveConverterBase
+template<typename C, typename R>
+concept ReceiveCallable = requires(C callable, MessageIn message)
 {
-    auto operator()(const proto::PluginResponse& message)
+    { callable(message) } -> std::same_as<R>;
+};
+
+template<typename C, typename... S>
+concept SendCallable = requires(C callable, S... args)
+{
+    { callable(args...) } -> std::same_as<MessageOutPtr>;
+};
+
+const auto receive_slot_id
+{
+    [](const MessageIn& message)
     {
         return std::tuple<std::string, std::string>{ message.version(), message.plugin_hash() };
     }
 };
+static_assert(ReceiveCallable<decltype(receive_slot_id), std::tuple<std::string, std::string>>);
 
-template<class T>
-struct SendConverterBase
+const auto send_slot_id
 {
-    auto operator()(const cura::plugins::proto::SlotID& slot_id, auto&&... args)
+    [](const cura::plugins::proto::SlotID& slot_id)
     {
-        proto::PluginRequest msg{};
-        msg.set_id(slot_id);
-        return std::make_shared<proto::PluginRequest>(msg);
+        MessageOut message{};
+        message.set_id(slot_id);
+        return std::make_shared<proto::Plugin_args>(message);
     }
 };
+static_assert(SendCallable<decltype(send_slot_id), cura::plugins::proto::SlotID>);
 
-//class SimplifyReceiveConverter : ReceiveConverterBase<>
-//{
-//
-//};
-
-template<class T>
-class converter_base
+const auto receive_simplify
 {
-    auto operator()(auto& arg, auto&&... args)
-    {
-        if constexpr (std::is_same_v<decltype(arg), cura::plugins::proto::SlotID&>)
-        {
-            proto::PluginRequest msg{};
-            msg.set_id(arg);
-            return std::make_shared<proto::PluginRequest>(msg);
-        }
-        else if constexpr (std::is_same_v<decltype(arg), proto::PluginRequest>)
-        {
-            return std::tuple<std::string, std::string>{ arg.version(), arg.plugin_hash() };
-        }
-        return std::make_shared<proto::PluginRequest>();
-        //return static_cast<T&>(*this).make(arg, std::forward<decltype(args)>(args)...);
-    }
-};
-
-template<class Send, class Receive>
-class simplify_converter_fn : public converter_base<simplify_converter_fn<Send, Receive>>
-{
-public:
-    using receive_t = Receive;
-    using send_t = Send;
-
-private:
-    Polygons make(const Receive& args)
+    [](const MessageIn& message)
     {
         Polygons poly{};
-        for (const auto& paths : args.polygons().paths())
+        for (const auto& paths : message.polygons().paths())
         {
             Polygon p{};
             for (const auto& point : paths.path())
@@ -102,15 +86,19 @@ private:
         }
         return poly;
     }
+};
+static_assert(ReceiveCallable<decltype(receive_simplify), Polygons>);
 
-    std::shared_ptr<Send> make(const Polygons& polygons, const size_t max_deviation, const size_t max_angle)
+const auto send_simplify
+{
+    [](const Polygons& polygons, const size_t max_deviation, const size_t max_angle)
     {
-        Send args{};
-        args.set_max_deviation(max_deviation);
-        args.set_max_angle(max_angle);
+        MessageOut message{};
+        message.set_max_deviation(max_deviation);
+        message.set_max_angle(max_angle);
         for (const auto& polygon : polygons.paths)
         {
-            auto poly = args.polygons();
+            auto poly = message.polygons();
             for (const auto& path : polygons.paths)
             {
                 auto* p = poly.add_paths();
@@ -122,34 +110,33 @@ private:
                 }
             }
         }
-        return std::make_shared<Send>(args);
+        return std::make_shared<MessageOut>(message);
     }
 };
+static_assert(SendCallable<decltype(send_simplify), Polygons, size_t, size_t>);
 
-template<class Send, class Receive>
-class postprocess_converter_fn : public converter_base<postprocess_converter_fn<Send, Receive>>
+const auto receive_postprocess
 {
-public:
-    using receive_t = Receive;
-    using send_t = Send;
-
-    std::string make(const Receive& args)
+    [](const MessageIn& message)
     {
-        return args.gcode();
-    }
-
-    std::shared_ptr<Send> make(const std::string& gcode)
-    {
-        Send args{};
-        args.set_gcode(gcode);
-        return std::make_shared<Send>(args);
+        return message.gcode();
     }
 };
+static_assert(ReceiveCallable<decltype(receive_postprocess), std::string>);
+
+const auto send_postprocess
+{
+    [](const std::string& gcode)
+    {
+        MessageOut message{};
+        message.set_gcode(gcode);
+        return std::make_shared<MessageOut>(message);
+    }
+};
+static_assert(SendCallable<decltype(send_postprocess), std::string>);
 
 } // namespace converters
 
-
 } // namespace cura::plugins
-
 
 #endif // CURAENGINE_INCLUDE_PLUGINS_TYPES_H
