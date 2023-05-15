@@ -254,8 +254,8 @@ void Application::startThreadPool(int nworkers)
 void Application::registerPlugins()
 {
     // TODO: remove this
-    plugins::Slots::instance().set<plugins::simplify_plugin>({ "127.0.0.1", 50010 });
-    auto x = plugins::Slots::instance().get<plugins::simplify_plugin>();
+    plugins::Slots::instance().set<plugins::simplify_slot>({ "127.0.0.1", 50010 });
+    auto x = plugins::Slots::instance().get<plugins::simplify_slot>();
     auto y = x();
 }
 

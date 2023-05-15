@@ -9,6 +9,8 @@
 #include <unordered_map>
 #include <variant>
 
+#include "plugin.grpc.pb.h"
+#include "plugin.pb.h"
 #include "plugins/slotproxy.h"
 #include "plugins/types.h"
 #include "plugins/validator.h"
@@ -16,8 +18,8 @@
 namespace cura::plugins
 {
 
-using simplify_slot = SlotProxy<SlotID::SIMPLIFY, Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">, converters::simplify_converter_fn<proto::Simplify_args, proto::Simplify_ret>>;
-using postprocess_slot = SlotProxy<SlotID::POSTPROCESS, Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">, converters::postprocess_converter_fn<proto::Postprocess_args, proto::Postprocess_ret>>;
+using simplify_slot = SlotProxy<SlotID::SIMPLIFY, Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">, converters::ReceiveConverterBase<proto::SimplifyRequest>, converters::SendConverterBase<proto::SimplifyResponse>>;
+using postprocess_slot = SlotProxy<SlotID::POSTPROCESS, Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">, converters::ReceiveConverterBase<proto::PostprocessRequest>, converters::SendConverterBase<proto::PostprocessResponse>>;
 
 using slots_t = std::variant<simplify_slot, postprocess_slot>;
 

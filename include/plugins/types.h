@@ -36,26 +36,22 @@ namespace converters
 {
 
 template<class T>
-class ReceiveConverterBase
+struct ReceiveConverterBase
 {
-    friend T;
-public:
-    auto operator()(const proto::Plugin_ret& message)
+    auto operator()(const proto::PluginResponse& message)
     {
-        return std::tuple<std::string, std::string>{ arg.version(), arg.plugin_hash() };
+        return std::tuple<std::string, std::string>{ message.version(), message.plugin_hash() };
     }
 };
 
 template<class T>
-class SendConverterBase
+struct SendConverterBase
 {
-    friend T
-public:
     auto operator()(const cura::plugins::proto::SlotID& slot_id, auto&&... args)
     {
-        proto::Plugin_args msg{};
-        msg.set_id(arg);
-        return std::make_shared<proto::Plugin_args>(msg);
+        proto::PluginRequest msg{};
+        msg.set_id(slot_id);
+        return std::make_shared<proto::PluginRequest>(msg);
     }
 };
 
@@ -67,21 +63,19 @@ public:
 template<class T>
 class converter_base
 {
-    friend T;
-public:
     auto operator()(auto& arg, auto&&... args)
     {
         if constexpr (std::is_same_v<decltype(arg), cura::plugins::proto::SlotID&>)
         {
-            proto::Plugin_args msg{};
+            proto::PluginRequest msg{};
             msg.set_id(arg);
-            return std::make_shared<proto::Plugin_args>(msg);
+            return std::make_shared<proto::PluginRequest>(msg);
         }
-        else if constexpr (std::is_same_v<decltype(arg), proto::Plugin_ret>)
+        else if constexpr (std::is_same_v<decltype(arg), proto::PluginRequest>)
         {
             return std::tuple<std::string, std::string>{ arg.version(), arg.plugin_hash() };
         }
-        return std::make_shared<proto::Plugin_args>();
+        return std::make_shared<proto::PluginRequest>();
         //return static_cast<T&>(*this).make(arg, std::forward<decltype(args)>(args)...);
     }
 };
