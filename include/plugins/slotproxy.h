@@ -1,8 +1,8 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef CURAENGINE_INCLUDE_PLUGINS_PLUGINPROXY_H
-#define CURAENGINE_INCLUDE_PLUGINS_PLUGINPROXY_H
+#ifndef CURAENGINE_INCLUDE_PLUGINS_SLOTPROXY_H
+#define CURAENGINE_INCLUDE_PLUGINS_SLOTPROXY_H
 
 #include <functional>
 #include <memory>
@@ -155,4 +155,4 @@ public:
 } // namespace cura::plugins
 
 
-#endif // CURAENGINE_INCLUDE_PLUGINS_PLUGINPROXY_H
+#endif // CURAENGINE_INCLUDE_PLUGINS_SLOTPROXY_H

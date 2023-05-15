@@ -9,23 +9,23 @@
 #include <unordered_map>
 #include <variant>
 
-#include "plugins/pluginproxy.h"
+#include "plugins/slotproxy.h"
 #include "plugins/types.h"
 #include "plugins/validator.h"
 
 namespace cura::plugins
 {
 
-using simplify_plugin = PluginProxy<SlotID::SIMPLIFY, Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">, converters::simplify_converter_fn<proto::Simplify_args, proto::Simplify_ret>>;
-using postprocess_plugin = PluginProxy<SlotID::POSTPROCESS, Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">, converters::postprocess_converter_fn<proto::Postprocess_args, proto::Postprocess_ret>>;
+using simplify_slot = SlotProxy<SlotID::SIMPLIFY, Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">, converters::simplify_converter_fn<proto::Simplify_args, proto::Simplify_ret>>;
+using postprocess_slot = SlotProxy<SlotID::POSTPROCESS, Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">, converters::postprocess_converter_fn<proto::Postprocess_args, proto::Postprocess_ret>>;
 
-using plugins_t = std::variant<simplify_plugin, postprocess_plugin>;
+using slots_t = std::variant<simplify_slot, postprocess_slot>;
 
 
 class Slots
 {
     constexpr Slots() noexcept = default;
-    std::unordered_map<SlotID, plugins_t> slots_{};
+    std::unordered_map<SlotID, slots_t> slots_{};
 
 public:
     Slots(const Slots&) = delete;

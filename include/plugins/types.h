@@ -11,7 +11,7 @@
 #include "utils/IntPoint.h"
 #include "utils/polygon.h"
 
-#include "plugin.pb.h"
+#include "plugin.grpc.pb.h"
 
 namespace cura::plugins
 {
