@@ -58,6 +58,7 @@ class CuraEngineConan(ConanFile):
         self.options["grpc"].php_plugin = False
         self.options["grpc"].python_plugin = False
         self.options["grpc"].ruby_plugin = False
+        self.options["asio-grpc"].local_allocator = "recycling_allocator"
         if self.options.enable_arcus:
             self.options["arcus"].shared = True
 
@@ -80,7 +81,7 @@ class CuraEngineConan(ConanFile):
         if self.options.enable_arcus:
             self.requires("arcus/(latest)@ultimaker/cura_10475")
         self.requires("clipper/6.4.2")
-        self.requires("boost/1.79.0")
+        self.requires("boost/1.81.0")
         self.requires("rapidjson/1.1.0")
         self.requires("stb/20200203")
         self.requires("spdlog/1.10.0")
