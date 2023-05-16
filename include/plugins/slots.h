@@ -9,12 +9,13 @@
 #include <unordered_map>
 #include <variant>
 
-#include "plugin.grpc.pb.h"
-#include "plugin.pb.h"
 #include "plugins/slotproxy.h"
 #include "plugins/types.h"
 #include "plugins/validator.h"
 #include "plugins/converters.h"
+
+#include "plugin.grpc.pb.h"
+#include "plugin.pb.h"
 
 namespace cura::plugins
 {
@@ -22,11 +23,13 @@ namespace cura::plugins
 using simplify_slot = SlotProxy<SlotID::SIMPLIFY,
                                 Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">,
                                 proto::Simplify::Stub,
+                                agrpc::RPC<&proto::Simplify::Stub::PrepareAsyncSimplify>,
                                 simplify_request,
                                 simplify_response>;
 using postprocess_slot = SlotProxy<SlotID::POSTPROCESS,
                                    Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">,
                                    proto::Postprocess::Stub,
+                                   agrpc::RPC<&proto::Postprocess::Stub::PrepareAsyncPostprocess>,
                                    postprocess_request,
                                    postprocess_response>;
 

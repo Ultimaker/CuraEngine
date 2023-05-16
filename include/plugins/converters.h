@@ -16,11 +16,11 @@ struct plugin_request
 {
     using value_type = proto::PluginRequest;
 
-    auto operator()(const cura::plugins::proto::SlotID& slot_id) const
+    value_type operator()(const cura::plugins::proto::SlotID& slot_id) const
     {
         value_type message{};
         message.set_id(slot_id);
-        return std::make_shared<value_type>(message);
+        return message;
     }
 };
 
