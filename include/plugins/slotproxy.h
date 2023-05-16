@@ -81,7 +81,7 @@ public:
             [&]() -> boost::asio::awaitable<void>
             {
                 grpc::ClientContext client_context{};
-                request_process_t request {};// { request_converter_(std::forward<decltype(args)>(args)...) };
+                request_process_t request { request_converter_(std::forward<decltype(args)>(args)...) };
                 response_process_t response{};
                 status_ = co_await Prepare::request(grpc_context, process_stub_, client_context, request, response, boost::asio::use_awaitable);
                 spdlog::info("Received response from plugin: {}", response.DebugString());
