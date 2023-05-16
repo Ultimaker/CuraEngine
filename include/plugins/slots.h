@@ -22,13 +22,13 @@ namespace cura::plugins
 using simplify_slot = SlotProxy<SlotID::SIMPLIFY,
                                 Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">,
                                 proto::Simplify::Stub,
-                                simplify_request_t,
-                                simplify_response_t>;
+                                simplify_request,
+                                simplify_response>;
 using postprocess_slot = SlotProxy<SlotID::POSTPROCESS,
                                    Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">,
                                    proto::Postprocess::Stub,
-                                   postprocess_request_t,
-                                   postprocess_response_t>;
+                                   postprocess_request,
+                                   postprocess_response>;
 
 using slots_t = std::variant<simplify_slot, postprocess_slot>;
 
