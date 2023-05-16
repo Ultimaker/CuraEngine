@@ -18,8 +18,8 @@
 namespace cura::plugins
 {
 
-using simplify_slot = SlotProxy<SlotID::SIMPLIFY, Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">, converters::receive_simplify, converters::send_simplify>;
-using postprocess_slot = SlotProxy<SlotID::POSTPROCESS, Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">, converters::receive_postprocess, converters::send_postprocess>;
+using simplify_slot = SlotProxy<SlotID::SIMPLIFY, Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">, proto::Simplify::Stub, converters::receive_simplify, converters::send_simplify>;
+using postprocess_slot = SlotProxy<SlotID::POSTPROCESS, Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">, proto::Postprocess::Stub, converters::receive_postprocess, converters::send_postprocess>;
 
 using slots_t = std::variant<simplify_slot, postprocess_slot>;
 

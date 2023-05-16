@@ -14,6 +14,7 @@
 #include <boost/asio/detached.hpp>
 #include <grpcpp/client_context.h>
 #include <grpcpp/create_channel.h>
+#include <grpcpp/channel.h>
 #include <range/v3/utility/semiregular_box.hpp>
 #include <spdlog/spdlog.h>
 
@@ -25,7 +26,7 @@
 namespace cura::plugins
 {
 
-template<plugins::SlotID Slot, class Validator, converters::ReceiveCallable Receiver, converters::SendCallable Sender>
+template<plugins::SlotID Slot, class Validator, class Stub, converters::ReceiveCallable Receiver, converters::SendCallable Sender>
 class SlotProxy
 {
 public:
@@ -33,18 +34,17 @@ public:
     using receive_t = Receiver;
     using send_t = Sender;
     using validator_t = Validator;
+    using stub_t = Stub;
 
     static inline constexpr plugins::SlotID slot_id{ Slot };
 
 private:
-    //    receiver_t receiver_{};
-    //    sender_t sender_{};
-
     proto::Plugin::Stub plugin_stub_;
+    stub_t process_stub_;
     grpc::Status status_;
 
 public:
-    SlotProxy(const std::string& ip, int port) : plugin_stub_(grpc::CreateChannel(ip + ":" + std::to_string(port), grpc::InsecureChannelCredentials()))
+    SlotProxy(std::shared_ptr<grpc::Channel> channel) : plugin_stub_(channel), process_stub_(channel)
     {
         agrpc::GrpcContext grpc_context;  // TODO: figure out how the reuse the grpc_context, it is recommended to use 1 per thread. Maybe move this to the lot registry??
 

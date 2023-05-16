@@ -254,7 +254,7 @@ void Application::startThreadPool(int nworkers)
 void Application::registerPlugins()
 {
     // TODO: remove this
-    plugins::Slots::instance().set<plugins::simplify_slot>({ "127.0.0.1", 50010 });
+    plugins::Slots::instance().set<plugins::simplify_slot>(grpc::CreateChannel(fmt::format("{}:{}", "localhost", 5555), grpc::InsecureChannelCredentials()));
     auto x = plugins::Slots::instance().get<plugins::simplify_slot>();
     auto y = x();
 }
