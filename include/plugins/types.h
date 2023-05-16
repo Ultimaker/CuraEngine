@@ -36,7 +36,7 @@ struct CharRangeLiteral
 namespace converters
 {
 
-const auto receive_slot_id
+constexpr auto receive_slot_id
 {
     [](const proto::PluginResponse& message)
     {
@@ -45,7 +45,7 @@ const auto receive_slot_id
 };
 static_assert(receive_callable<decltype(receive_slot_id), proto::PluginResponse, std::tuple<std::string, std::string>>);
 
-const auto send_slot_id
+constexpr auto send_slot_id
 {
     [](const cura::plugins::proto::SlotID& slot_id)
     {
@@ -56,7 +56,7 @@ const auto send_slot_id
 };
 static_assert(send_callable<decltype(send_slot_id), proto::PluginRequest, cura::plugins::proto::SlotID>);
 
-const auto receive_simplify
+constexpr auto receive_simplify
 {
     [](const proto::SimplifyResponse& message)
     {
@@ -75,7 +75,7 @@ const auto receive_simplify
 };
 static_assert(receive_callable<decltype(receive_simplify), proto::SimplifyResponse, Polygons>);
 
-const auto send_simplify
+constexpr auto send_simplify
 {
     [](const Polygons& polygons, const size_t max_deviation, const size_t max_angle)
     {
@@ -101,7 +101,7 @@ const auto send_simplify
 };
 static_assert(send_callable<decltype(send_simplify), proto::SimplifyRequest, Polygons, size_t, size_t>);
 
-const auto receive_postprocess
+constexpr auto receive_postprocess
 {
     [](const proto::PostprocessResponse& message)
     {
@@ -110,7 +110,7 @@ const auto receive_postprocess
 };
 static_assert(receive_callable<decltype(receive_postprocess), proto::PostprocessResponse, std::string>);
 
-const auto send_postprocess
+constexpr auto send_postprocess
 {
     [](const std::string& gcode)
     {
