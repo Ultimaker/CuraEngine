@@ -12,9 +12,9 @@
 #include <agrpc/asio_grpc.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
+#include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
 #include <grpcpp/create_channel.h>
-#include <grpcpp/channel.h>
 #include <range/v3/utility/semiregular_box.hpp>
 #include <spdlog/spdlog.h>
 
@@ -26,7 +26,7 @@
 namespace cura::plugins
 {
 
-template<plugins::SlotID Slot, class Validator, class Stub, converters::ReceiveCallable Receiver, converters::SendCallable Sender>
+template<plugins::SlotID Slot, class Validator, class Stub, class Receiver, class Sender>
 class SlotProxy
 {
 public:
@@ -39,6 +39,9 @@ public:
     static inline constexpr plugins::SlotID slot_id{ Slot };
 
 private:
+    receive_t receive_conv_ {};
+    send_t send_conv_{};
+    validator_t valid_{};
     proto::Plugin::Stub plugin_stub_;
     stub_t process_stub_;
     grpc::Status status_;

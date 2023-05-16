@@ -9,6 +9,7 @@
 #include <tuple>
 
 #include "utils/IntPoint.h"
+#include "utils/concepts/generic.h"
 #include "utils/polygon.h"
 
 #include "plugin.grpc.pb.h"
@@ -35,20 +36,6 @@ struct CharRangeLiteral
 namespace converters
 {
 
-template<typename C, typename M, typename R>
-concept ReceiveCallable = requires(C callable, M message)
-{
-    { callable(message) } -> std::same_as<R>;
-    std::is_base_of_v<google::protobuf::Message, M>;
-};
-
-template<typename C, typename M, typename... S>
-concept SendCallable = requires(C callable, S... args)
-{
-    { callable(args...) } -> std::same_as<std::shared_ptr<M>>;
-    std::is_base_of_v<google::protobuf::Message, M>;
-};
-
 const auto receive_slot_id
 {
     [](const proto::PluginResponse& message)
@@ -56,7 +43,7 @@ const auto receive_slot_id
         return std::tuple<std::string, std::string>{ message.version(), message.plugin_hash() };
     }
 };
-static_assert(ReceiveCallable<decltype(receive_slot_id), proto::PluginResponse, std::tuple<std::string, std::string>>);
+static_assert(receive_callable<decltype(receive_slot_id), proto::PluginResponse, std::tuple<std::string, std::string>>);
 
 const auto send_slot_id
 {
@@ -67,7 +54,7 @@ const auto send_slot_id
         return std::make_shared<proto::PluginRequest>(message);
     }
 };
-static_assert(SendCallable<decltype(send_slot_id), proto::PluginRequest, cura::plugins::proto::SlotID>);
+static_assert(send_callable<decltype(send_slot_id), proto::PluginRequest, cura::plugins::proto::SlotID>);
 
 const auto receive_simplify
 {
@@ -86,7 +73,7 @@ const auto receive_simplify
         return poly;
     }
 };
-static_assert(ReceiveCallable<decltype(receive_simplify), proto::SimplifyResponse, Polygons>);
+static_assert(receive_callable<decltype(receive_simplify), proto::SimplifyResponse, Polygons>);
 
 const auto send_simplify
 {
@@ -112,7 +99,7 @@ const auto send_simplify
         return std::make_shared<proto::SimplifyRequest>(message);
     }
 };
-static_assert(SendCallable<decltype(send_simplify), proto::SimplifyRequest, Polygons, size_t, size_t>);
+static_assert(send_callable<decltype(send_simplify), proto::SimplifyRequest, Polygons, size_t, size_t>);
 
 const auto receive_postprocess
 {
@@ -121,7 +108,7 @@ const auto receive_postprocess
         return message.gcode_word();
     }
 };
-static_assert(ReceiveCallable<decltype(receive_postprocess), proto::PostprocessResponse, std::string>);
+static_assert(receive_callable<decltype(receive_postprocess), proto::PostprocessResponse, std::string>);
 
 const auto send_postprocess
 {
@@ -132,7 +119,7 @@ const auto send_postprocess
         return std::make_shared<proto::PostprocessRequest>(message);
     }
 };
-static_assert(SendCallable<decltype(send_postprocess), proto::PostprocessRequest, std::string>);
+static_assert(send_callable<decltype(send_postprocess), proto::PostprocessRequest, std::string>);
 
 } // namespace converters
 
