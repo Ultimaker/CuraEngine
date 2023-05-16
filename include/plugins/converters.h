@@ -16,11 +16,11 @@ struct plugin_request
 {
     using value_type = proto::PluginRequest;
 
-    auto operator()(const cura::plugins::proto::SlotID& slot_id) const
+    value_type operator()(const cura::plugins::proto::SlotID& slot_id) const
     {
         value_type message{};
         message.set_id(slot_id);
-        return std::make_shared<value_type>(message);
+        return message;
     }
 };
 
@@ -38,7 +38,7 @@ struct simplify_request
 {
     using value_type = proto::SimplifyRequest;
 
-    auto operator()(const Polygons& polygons, const size_t max_deviation, const size_t max_angle) const
+    value_type operator()(const Polygons& polygons, const size_t max_deviation, const size_t max_angle) const
     {
         value_type message{};
         message.set_max_deviation(max_deviation);
@@ -57,7 +57,7 @@ struct simplify_request
                 }
             }
         }
-        return std::make_shared<value_type>(message);
+        return message;
     }
 };
 
@@ -85,11 +85,11 @@ struct postprocess_request
 {
     using value_type = proto::PostprocessRequest;
 
-    auto operator()(const std::string& gcode) const
+    value_type operator()(const std::string& gcode) const
     {
         value_type message{};
         message.set_gcode_word(gcode);
-        return std::make_shared<value_type>(message);
+        return message;
     }
 };
 
