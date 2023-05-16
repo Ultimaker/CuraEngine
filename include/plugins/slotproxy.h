@@ -18,29 +18,34 @@
 #include <range/v3/utility/semiregular_box.hpp>
 #include <spdlog/spdlog.h>
 
-#include "plugin.grpc.pb.h"
-#include "plugin.pb.h"
 #include "plugins/types.h"
 #include "plugins/validator.h"
+#include "plugins/converters.h"
+
+#include "plugin.grpc.pb.h"
 
 namespace cura::plugins
 {
 
-template<plugins::SlotID Slot, class Validator, class Stub, class Receiver, class Sender>
+template<plugins::SlotID Slot, class Validator, class Stub, class Request, class Response>
 class SlotProxy
 {
 public:
     // type aliases for easy use
-    using receive_t = Receiver;
-    using send_t = Sender;
+    using request_plugin_t = typename plugin_request_t::value_type;
+    using response_plugin_t = typename plugin_response_t::value_type;
+    using request_converter_t = Request;
+    using request_process_t = typename Request::value_type;
+    using response_converter_t = Response;
+    using response_process_t = typename Response::value_type;
     using validator_t = Validator;
     using stub_t = Stub;
 
     static inline constexpr plugins::SlotID slot_id{ Slot };
 
 private:
-    receive_t receive_conv_ {};
-    send_t send_conv_{};
+    request_converter_t request_converter_{};
+    response_converter_t response_converter_{};
     validator_t valid_{};
     proto::Plugin::Stub plugin_stub_;
     stub_t process_stub_;
@@ -49,7 +54,7 @@ private:
 public:
     SlotProxy(std::shared_ptr<grpc::Channel> channel) : plugin_stub_(channel), process_stub_(channel)
     {
-        agrpc::GrpcContext grpc_context;  // TODO: figure out how the reuse the grpc_context, it is recommended to use 1 per thread. Maybe move this to the lot registry??
+        agrpc::GrpcContext grpc_context; // TODO: figure out how the reuse the grpc_context, it is recommended to use 1 per thread. Maybe move this to the lot registry??
 
         boost::asio::co_spawn(
             grpc_context,
@@ -57,9 +62,9 @@ public:
             {
                 using RPC = agrpc::RPC<&proto::Plugin::Stub::PrepareAsyncIdentify>;
                 grpc::ClientContext client_context{};
-                proto::PluginRequest request{};
+                request_plugin_t request{};
                 request.set_id(slot_id);
-                proto::PluginResponse response{};
+                response_plugin_t response{};
                 status_ = co_await RPC::request(grpc_context, plugin_stub_, client_context, request, response, boost::asio::use_awaitable);
                 spdlog::info("Received response from plugin: {}", response.DebugString());
             },

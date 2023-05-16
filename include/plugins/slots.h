@@ -14,6 +14,7 @@
 #include "plugins/slotproxy.h"
 #include "plugins/types.h"
 #include "plugins/validator.h"
+#include "plugins/converters.h"
 
 namespace cura::plugins
 {
@@ -21,13 +22,13 @@ namespace cura::plugins
 using simplify_slot = SlotProxy<SlotID::SIMPLIFY,
                                 Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">,
                                 proto::Simplify::Stub,
-                                decltype(converters::receive_simplify),
-                                decltype(converters::send_simplify)>;
+                                simplify_request_t,
+                                simplify_response_t>;
 using postprocess_slot = SlotProxy<SlotID::POSTPROCESS,
                                    Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">,
                                    proto::Postprocess::Stub,
-                                   decltype(converters::receive_postprocess),
-                                   decltype(converters::send_postprocess)>;
+                                   postprocess_request_t,
+                                   postprocess_response_t>;
 
 using slots_t = std::variant<simplify_slot, postprocess_slot>;
 
