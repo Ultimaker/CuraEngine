@@ -73,7 +73,7 @@ struct simplify_response
             Polygon p{};
             for (const auto& point : paths.path())
             {
-                p.add(Point{ point.y(), point.y() });
+                p.add(Point{ point.x(), point.y() });
             }
             poly.add(p);
         }
