@@ -1230,7 +1230,7 @@ public:
      * \param outer_offset Offset relative to the original shape-outline towards the outside of the shape. Comparable to normal offset.
      * \return The resulting polygons.
      */
-    Polygons tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
+    Polygons tubeShape(const coord_t inner_offset, const coord_t outer_offset, const ClipperLib::JoinType jt = ClipperLib::jtMiter) const;
 
 private:
     /*!

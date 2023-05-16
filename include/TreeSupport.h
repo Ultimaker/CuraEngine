@@ -319,7 +319,7 @@ private:
     std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> grouped_meshes;
 
     /*!
-     * \brief Areas that should have been support roof, but where the roof settings would not allow any lines to be generated.
+     * \brief Areas that should have been support roof, but where the roof settings would not allow any lines to be generated. Can also be other placed lines, e.g. Cradles
      */
     std::vector<Polygons> additional_required_support_area;
 
@@ -327,6 +327,12 @@ private:
      * \brief A representation of already placed lines. Required for subtracting from new support areas.
      */
     std::vector<Polygons> placed_support_lines_support_areas;
+
+    /*!
+     * \brief Areas that use a higher density pattern of regular support to support the model (fake_roof).
+     *  placed_support_lines_support_areas contains the lines placed inside of placed_fake_roof_areas.
+     */
+    std::vector<Polygons> placed_fake_roof_areas;
 
     /*!
      * \brief Areas where no support may be. Areas will be subtracted from support areas.

@@ -44,7 +44,7 @@ public:
      * \param support_free_areas[out] Areas where no support (including roof) of any kind is to be drawn.
      * \return All lines of the \p polylines object, with information for each point regarding in which avoidance it is currently valid in.
      */
-    void generateTips(SliceDataStorage& storage,const SliceMeshStorage& mesh ,std::vector<std::set<TreeSupportElement*>>& move_bounds, std::vector<Polygons>& additional_support_areas, std::vector<Polygons>& placed_support_lines_support_areas, std::vector<Polygons>& support_free_areas);
+    void generateTips(SliceDataStorage& storage,const SliceMeshStorage& mesh ,std::vector<std::set<TreeSupportElement*>>& move_bounds, std::vector<Polygons>& additional_support_areas, std::vector<Polygons>& placed_support_lines_support_areas, std::vector<Polygons>& placed_fake_roof_areas, std::vector<Polygons>& support_free_areas);
 
 private:
 

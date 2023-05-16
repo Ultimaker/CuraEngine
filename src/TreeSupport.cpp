@@ -94,6 +94,7 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
     }
 
     placed_support_lines_support_areas = std::vector<Polygons>(storage.support.supportLayers.size(),Polygons());
+    placed_fake_roof_areas = std::vector<Polygons>(storage.support.supportLayers.size(),Polygons());
     support_free_areas = std::vector<Polygons>(storage.support.supportLayers.size(), Polygons());
 
 
@@ -240,7 +241,7 @@ void TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size
 void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage)
 {
     TreeSupportTipGenerator tip_gen(storage, mesh, volumes_);
-    tip_gen.generateTips(storage, mesh, move_bounds, additional_required_support_area, placed_support_lines_support_areas, support_free_areas);
+    tip_gen.generateTips(storage, mesh, move_bounds, additional_required_support_area, placed_support_lines_support_areas, placed_fake_roof_areas , support_free_areas);
 }
 
 void TreeSupport::mergeHelper
@@ -1470,7 +1471,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement*>>& 
     else // can not add graceful => just place it here and hope for the best
     {
         Point best = first_elem->next_position;
-        Polygons valid_place_area = first_elem->area->difference(volumes_.getAvoidance(config.getCollisionRadius(first_elem), layer_idx, AvoidanceType::COLLISION, first_elem->use_min_xy_dist));
+        Polygons valid_place_area = first_elem->area->difference(volumes_.getAvoidance(config.getCollisionRadius(*first_elem), layer_idx, AvoidanceType::COLLISION, first_elem->use_min_xy_dist));
 
         if (!valid_place_area.inside(best, true))
         {
@@ -1481,13 +1482,13 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement*>>& 
             else
             {
                 bool found_partial_placement;
-                for (coord_t radius_offset : { -config.getCollisionRadius(first_elem), -config.getCollisionRadius(first_elem) / 2, coord_t(0) }) // Interestingly the first radius is working most of the time, even though it seems like it shouldn't.
+                for (coord_t radius_offset : { -config.getCollisionRadius(*first_elem), -config.getCollisionRadius(*first_elem) / 2, coord_t(0) }) // Interestingly the first radius is working most of the time, even though it seems like it shouldn't.
                 {
                     valid_place_area = first_elem->area->intersection(volumes_.getAccumulatedPlaceable0(layer_idx).offset(radius_offset));
                     if (!valid_place_area.empty())
                     {
                         PolygonUtils::moveInside(valid_place_area, best);
-                        spdlog::warn("Not able to place branch fully on non support blocker at layer {} using offset {} for radius {}", layer_idx, radius_offset, config.getCollisionRadius(first_elem));
+                        spdlog::warn("Not able to place branch fully on non support blocker at layer {} using offset {} for radius {}", layer_idx, radius_offset, config.getCollisionRadius(*first_elem));
                         found_partial_placement = true;
                         break;
                     }
@@ -1635,7 +1636,7 @@ void TreeSupport::generateBranchAreas(std::vector<std::pair<LayerIndex, TreeSupp
                     for (TreeSupportElement* parent : elem->parents)
                     {
                         Point movement = (parent->result_on_layer - elem->result_on_layer);
-                        movement_directions.emplace_back(movement, std::max(config.getRadius(parent), config.support_line_width));
+                        movement_directions.emplace_back(movement, std::max(config.getRadius(*parent), config.support_line_width));
                         parent_uses_min |= parent->use_min_xy_dist;
                     }
 
@@ -1916,6 +1917,7 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                 support_layer_storage[layer_idx] = config.simplifier.polygon(PolygonUtils::unionManySmall(support_layer_storage[layer_idx].smooth(FUDGE_LENGTH))).offset(-open_close_distance).offset(open_close_distance * 2).offset(-open_close_distance);
                 support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(placed_support_lines_support_areas[layer_idx]);
                 support_layer_storage[layer_idx].removeSmallAreas(small_area_length * small_area_length, false);
+                placed_fake_roof_areas[layer_idx] = placed_fake_roof_areas[layer_idx].unionPolygons();
 
                 //If areas are overwriting others in can will influence where support skin will be generated. So the differences have to be calculated here.
                 if (!storage.support.supportLayers[layer_idx].support_roof.empty())
@@ -1946,14 +1948,45 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
 
     const auto t_union = std::chrono::high_resolution_clock::now();
 
+
+    if(config.support_skin_layers)
+    {
+
     cura::parallel_for<coord_t>
         (
             0,
             support_layer_storage.size(),
             [&](const LayerIndex layer_idx)
             {
-                Polygons may_need_skin_area_topmost = storage.support.supportLayers.size() > layer_idx + 1 ? storage.support.supportLayers[layer_idx + 1].support_roof : Polygons();
-                may_need_skin_area_topmost = may_need_skin_area_topmost.difference(storage.support.supportLayers[layer_idx].support_roof);
+
+                if(support_layer_storage[layer_idx].empty())
+                {
+                    return;
+                }
+
+                const coord_t roof_stable_range_after_contact = config.support_roof_line_width * config.support_roof_wall_count;
+                Polygons support_shell_capable_of_supporting_roof = support_layer_storage[layer_idx]
+                                                           .getOutsidePolygons()
+                                                           .tubeShape(config.support_line_width * config.support_wall_count + roof_stable_range_after_contact, roof_stable_range_after_contact, ClipperLib::JoinType::jtRound)
+                                                           .unionPolygons()
+                                                           .offset(-config.support_line_width/4).offset(config.support_line_width/4); // Getting rid of small rounding errors. If an area thinner than 1/2 line-width said it needs skin, it is lying.
+                Polygons needs_supporting;
+                if(storage.support.supportLayers.size() > layer_idx + 1)
+                {
+                    needs_supporting.add(storage.support.supportLayers[layer_idx + 1].support_roof.difference(support_shell_capable_of_supporting_roof));
+                    needs_supporting.add(placed_fake_roof_areas[layer_idx + 1].difference(support_shell_capable_of_supporting_roof));
+                    needs_supporting.add(additional_required_support_area[layer_idx + 1]); // E.g. cradle
+
+                    needs_supporting = needs_supporting.unionPolygons();
+                }
+
+                Polygons already_supports;
+                already_supports.add(storage.support.supportLayers[layer_idx].support_roof); // roof
+                already_supports.add(additional_required_support_area[layer_idx]); // E.g. cradle
+                already_supports.add(placed_fake_roof_areas[layer_idx]);
+                already_supports = already_supports.unionPolygons();
+
+                Polygons may_need_skin_area_topmost = needs_supporting.difference(already_supports);
 
                 for (std::pair<TreeSupportElement*, Polygons> data_pair : layer_tree_polygons[layer_idx])
                 {
@@ -1968,47 +2001,46 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                     }
 
                     bool element_viable_for_skin = has_parent_roof;
-                    element_viable_for_skin |= data_pair.first->parents.empty() && (data_pair.first->supports_roof || (config.getRadius(data_pair.first) > 4 * config.support_line_width * config.support_wall_count));
+                    element_viable_for_skin |= data_pair.first->parents.empty() && (config.getRadius(*data_pair.first) >= config.support_tree_skin_for_large_tips_radius_threshold);
 
-                    if (config.support_skin_layers > 0 && element_viable_for_skin)
+                    if (element_viable_for_skin)
                     {
                         may_need_skin_area_topmost.add(data_pair.second);
                     }
                 }
-
                 may_need_skin_area_topmost = may_need_skin_area_topmost.unionPolygons();
 
                 Polygons may_need_skin_area = may_need_skin_area_topmost;
 
                 for (LayerIndex support_skin_ctr = 0; support_skin_ctr < std::min(LayerIndex(config.support_skin_layers), layer_idx); support_skin_ctr++)
                 {
+
                     Polygons next_skin;
-                    Polygons layer;
+                    Polygons support_on_layer;
 
                     Polygons remaining_regular_areas;
 
                     {
                         std::lock_guard<std::mutex> critical_section_cradle(critical_support_layer_storage);
-                        layer = support_layer_storage[layer_idx - support_skin_ctr];
+                        support_on_layer = support_layer_storage[layer_idx - support_skin_ctr];
                     }
 
                     if (support_skin_ctr > 0)
                     {
-                        may_need_skin_area_topmost = may_need_skin_area_topmost.intersection(layer);
+                        may_need_skin_area_topmost = may_need_skin_area_topmost.intersection(support_on_layer);
                     }
 
-
-                    for (Polygons part : layer.splitIntoParts())
+                    for (Polygons part : support_on_layer.splitIntoParts())
                     {
                         Polygons part_outline = part.getOutsidePolygons();
-                        if (! part_outline.offset(-(config.support_line_width * config.support_wall_count)).intersection(may_need_skin_area).empty())
+                        if (! PolygonUtils::clipPolygonWithAABB(may_need_skin_area,AABB(part_outline)).empty())
                         {
                             // Use line infill to scan which area the line infill has to occupy to reach the outer outline of a branch.
-                            Polygons lines = TreeSupportUtils::generateSupportInfillLines(part_outline, config, false, layer_idx - support_skin_ctr, config.support_skin_line_distance, nullptr, false, EFillMethod::LINES, true);
+                            Polygons scan_lines = TreeSupportUtils::generateSupportInfillLines(part_outline, config, false, layer_idx - support_skin_ctr, config.support_skin_line_distance, nullptr, false, EFillMethod::LINES, true);
 
                             Polygons intersecting_lines;
 
-                            for (auto line : lines)
+                            for (auto line : scan_lines)
                             {
                                 if (PolygonUtils::polygonCollidesWithLineSegment(may_need_skin_area, line.front(), line.back()) && PolygonUtils::polygonCollidesWithLineSegment(may_need_skin_area_topmost, line.front(), line.back()))
                                 {
@@ -2017,12 +2049,27 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                             }
 
                             Polygons partial_skin_area = intersecting_lines.offsetPolyLine(config.support_skin_line_distance).unionPolygons().intersection(part_outline);
+
+                            // If a some scan lines had contact with two parts of part_outline, but the second part is outside of may_need_skin_area it could cause a separate skin area, that then cuts a branch in half that could have been completely normal.
+                            // This area that does not need to be skin will be filtered out here.
+                            {
+                                Polygons filtered_partial_skin_area;
+                                for(auto p_skin:partial_skin_area.splitIntoParts())
+                                {
+                                    if(!PolygonUtils::clipPolygonWithAABB(may_need_skin_area,AABB(p_skin)).intersection(p_skin).empty())
+                                    {
+                                        filtered_partial_skin_area.add(p_skin);
+                                    }
+                                }
+                                partial_skin_area = filtered_partial_skin_area;
+                            }
+
                             double part_area = part.area();
                             part = part.difference(partial_skin_area);
                             Polygons remaining_part;
                             for (auto sub_part : part.splitIntoParts())
                             {
-                                if (sub_part.area() < part_area / 5)
+                                if (sub_part.area() < part_area / 5 && sub_part.area() * 2 < M_PI * pow(config.branch_radius,2)) // Prevent small slivers of a branch to generate as skin. The heuristic to detect if a part is too small or thin could maybe be improved.
                                 {
                                     partial_skin_area = partial_skin_area.unionPolygons(sub_part);
                                 }
@@ -2041,12 +2088,10 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                         remaining_regular_areas.add(part);
                     }
                     may_need_skin_area = next_skin.unionPolygons();
-                    std::lock_guard<std::mutex> critical_section_cradle(critical_support_layer_storage);
-                    // This intersection is to prevent a race condition where areas of another layer are stored after the changes here are stored.
-                    support_layer_storage[layer_idx - support_skin_ctr] = support_layer_storage[layer_idx - support_skin_ctr].intersection(remaining_regular_areas);
                 }
             }
         );
+    }
 
     cura::parallel_for<coord_t>
     (
@@ -2055,7 +2100,7 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
         [&](const LayerIndex layer_idx)
         {
             support_skin_storage[layer_idx] = support_skin_storage[layer_idx].unionPolygons();
-            support_layer_storage[layer_idx] = support_layer_storage[layer_idx].unionPolygons();
+                support_layer_storage[layer_idx] = support_layer_storage[layer_idx].unionPolygons().difference(support_skin_storage[layer_idx]);
         }
     );
 }

@@ -1235,8 +1235,8 @@ void TreeSupportTipGenerator::addPointAsInfluenceArea(std::vector<std::set<TreeS
                     support_tree_limit_branch_reach,
                     support_tree_branch_reach_limit
                 );
-            elem->area = new Polygons(area);
 
+            elem->area = new Polygons(area);
             for (Point p : additional_ovalization_targets)
             {
                 elem->additional_ovalization_targets.emplace_back(p);
@@ -1400,7 +1400,7 @@ void TreeSupportTipGenerator::removeUselessAddedPoints(std::vector<std::set<Tree
 }
 
 
-void TreeSupportTipGenerator::generateTips(SliceDataStorage& storage,const SliceMeshStorage& mesh, std::vector<std::set<TreeSupportElement*>>& move_bounds, std::vector<Polygons>& additional_support_areas, std::vector<Polygons>& placed_support_lines_support_areas, std::vector<Polygons>& support_free_areas)
+void TreeSupportTipGenerator::generateTips(SliceDataStorage& storage,const SliceMeshStorage& mesh, std::vector<std::set<TreeSupportElement*>>& move_bounds, std::vector<Polygons>& additional_support_areas, std::vector<Polygons>& placed_support_lines_support_areas, std::vector<Polygons>& placed_fake_roof_areas, std::vector<Polygons>& support_free_areas)
 {
     std::vector<std::set<TreeSupportElement*>> new_tips(move_bounds.size());
 
@@ -1690,7 +1690,8 @@ void TreeSupportTipGenerator::generateTips(SliceDataStorage& storage,const Slice
                     {
                         storage.support.supportLayers[layer_idx].support_infill_parts.emplace_back(part, config.support_line_width, 0, support_roof_line_distance);
                     }
-                    placed_support_lines_support_areas[layer_idx].add(
+                    placed_fake_roof_areas[layer_idx].add(support_roof_drawn[layer_idx]);
+                    placed_support_lines_support_areas[layer_idx].add( // todo Only save the area and add to storage at the end to enable correct handling of Support Interface Priority of fake roofs.
                         TreeSupportUtils::generateSupportInfillLines(support_roof_drawn[layer_idx], config, false, layer_idx, support_roof_line_distance, cross_fill_provider, false).offsetPolyLine(config.support_line_width / 2));
                 }
                 else

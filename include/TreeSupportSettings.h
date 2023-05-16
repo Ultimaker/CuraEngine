@@ -71,6 +71,7 @@ struct TreeSupportSettings
         fill_outline_gaps(settings.get<bool>("fill_outline_gaps")),
         support_skin_layers(settings.get<coord_t>("support_tree_support_skin_height")/layer_height),
         support_skin_line_distance(settings.get<coord_t>("support_tree_support_skin_line_distance")),
+        support_tree_skin_for_large_tips_radius_threshold(settings.get<coord_t>("support_tree_skin_for_large_tips_threshold") / 2),
         simplifier(Simplify(mesh_group_settings))
     {
         layer_start_bp_radius = (bp_radius - branch_radius) / (branch_radius * diameter_scale_bp_radius);
@@ -383,6 +384,11 @@ public:
     coord_t support_skin_line_distance;
 
     /*!
+     * \brief Tips with a radius of at least this should have skin.
+     */
+    coord_t support_tree_skin_for_large_tips_radius_threshold;
+
+    /*!
      * \brief Simplifier to simplify polygons.
      */
     Simplify simplifier = Simplify(0, 0, 0);
@@ -435,6 +441,7 @@ public:
             fill_outline_gaps == other.fill_outline_gaps &&
             support_skin_layers == other.support_skin_layers &&
             support_skin_line_distance == other.support_skin_line_distance &&
+            support_tree_skin_for_large_tips_radius_threshold == other.support_tree_skin_for_large_tips_radius_threshold &&
             // The infill class now wants the settings object and reads a lot of settings, and as the infill class is used to calculate support roof lines for interface-preference. Not all of these may be required to be identical, but as I am not sure, better safe than sorry
             (
                 interface_preference == InterfacePreference::INTERFACE_AREA_OVERWRITES_SUPPORT ||

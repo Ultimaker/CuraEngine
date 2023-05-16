@@ -1507,9 +1507,9 @@ void Polygons::sortByNesting_processPolyTreeNode(ClipperLib::PolyNode* node, con
     }
 }
 
-Polygons Polygons::tubeShape(const coord_t inner_offset, const coord_t outer_offset) const
+Polygons Polygons::tubeShape(const coord_t inner_offset, const coord_t outer_offset, const ClipperLib::JoinType jt) const
 {
-    return this->offset(outer_offset).difference(this->offset(-inner_offset));
+    return this->offset(outer_offset, jt).difference(this->offset(-inner_offset, jt));
 }
 
 unsigned int PartsView::getPartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx) const

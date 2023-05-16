@@ -141,7 +141,7 @@ struct TreeSupportElement
     /*!
      * \brief Create a new Element for one layer below the element of the pointer supplied.
      */
-    TreeSupportElement(TreeSupportElement* element_above) :
+    explicit TreeSupportElement(TreeSupportElement* element_above) :
         target_height(element_above->target_height),
         target_position(element_above->target_position),
         next_position(element_above->next_position),
