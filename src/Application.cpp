@@ -257,6 +257,7 @@ void Application::registerPlugins()
     plugins::Slots::instance().set<plugins::simplify_slot>(grpc::CreateChannel(fmt::format("{}:{}", "localhost", 50010), grpc::InsecureChannelCredentials()));
     auto simplify_plugin = plugins::Slots::instance().get<plugins::simplify_slot>();
     Polygons poly{};
+    poly.paths = {{0,1}, {2,3}, {4,5}};
     auto x = simplify_plugin(poly, 100, 100);
     spdlog::info("simplified poly received");
 }

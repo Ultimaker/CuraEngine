@@ -7,9 +7,9 @@
 #include <functional>
 #include <memory>
 
-#include <boost/asio/awaitable.hpp>
-#include <agrpc/grpc_context.hpp>
 #include <agrpc/asio_grpc.hpp>
+#include <agrpc/grpc_context.hpp>
+#include <boost/asio/awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <grpcpp/channel.h>
@@ -32,24 +32,31 @@ class SlotProxy
 {
 public:
     // type aliases for easy use
+    using value_type = typename Response::native_value_type;
+
     using request_plugin_t = typename plugin_request::value_type;
     using response_plugin_t = typename plugin_response::value_type;
-    using request_converter_t = Request;
+
     using request_process_t = typename Request::value_type;
-    using response_converter_t = Response;
     using response_process_t = typename Response::value_type;
+
+    using request_converter_t = Request;
+    using response_converter_t = Response;
+
     using validator_t = Validator;
-    using stub_t = Stub;
+    using process_stub_t = Stub;
 
     static inline constexpr plugins::SlotID slot_id{ Slot };
 
 private:
+    validator_t valid_{};
     request_converter_t request_converter_{};
     response_converter_t response_converter_{};
-    validator_t valid_{};
-    proto::Plugin::Stub plugin_stub_;
-    stub_t process_stub_;
+
     grpc::Status status_;
+
+    proto::Plugin::Stub plugin_stub_;
+    process_stub_t process_stub_;
 
 public:
     SlotProxy(std::shared_ptr<grpc::Channel> channel) : plugin_stub_(channel), process_stub_(channel)
@@ -67,7 +74,7 @@ public:
                 response_plugin_t response{};
                 status_ = co_await RPC::request(grpc_context, plugin_stub_, client_context, request, response, boost::asio::use_awaitable);
                 plugin_response plugin_response_conv{};
-                auto [version, _] = plugin_response_conv( response );
+                auto [version, _] = plugin_response_conv(response);
                 spdlog::debug("Received response from plugin: {}", response.DebugString());
                 valid_ = Validator{ version };
                 spdlog::info("Plugin: {} validated: {}", slot_id, static_cast<bool>(valid_));
@@ -76,8 +83,9 @@ public:
         grpc_context.run();
     }
 
-    auto operator()(auto&&... args)
+    value_type operator()(auto&&... args)
     {
+        value_type ret_value {};
         if (valid_)
         {
             agrpc::GrpcContext grpc_context; // TODO: figure out how the reuse the grpc_context, it is recommended to use 1 per thread. Maybe move this to the lot registry??
@@ -91,11 +99,12 @@ public:
                     response_process_t response{};
                     status_ = co_await Prepare::request(grpc_context, process_stub_, client_context, request, response, boost::asio::use_awaitable);
                     spdlog::info("Received response from plugin: {}", response.DebugString());
+                    ret_value = response_converter_(response);
                 },
                 boost::asio::detached);
             grpc_context.run();
         }
-        return 1; // FIXME: handle plugin not connected
+        return ret_value; // FIXME: handle plugin not connected
     }
 };
 
