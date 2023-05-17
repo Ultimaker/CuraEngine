@@ -108,7 +108,7 @@ class CuraEngineConan(ConanFile):
         tc.variables["ENABLE_BENCHMARKS"] = self.options.enable_benchmarks
         tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
         cpp_info = self.dependencies["curaengine_grpc_definitions"].cpp_info
-        tc.variables["GRPC_PROTOS"] = ";".join([str(p) for p in Path(cpp_info.resdirs[0]).glob("*.proto")])
+        tc.variables["GRPC_PROTOS"] = ";".join([str(p).replace("\\","/") for p in Path(cpp_info.resdirs[0]).glob("*.proto")])
 
         tc.generate()
 
