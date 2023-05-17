@@ -21,7 +21,7 @@ namespace cura::plugins
 {
 
 using simplify_slot = SlotProxy<SlotID::SIMPLIFY,
-                                Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">,
+                                Validator<"<=0.0.1", "qwerty-azerty-temp-hash">,
                                 proto::Simplify::Stub,
                                 agrpc::RPC<&proto::Simplify::Stub::PrepareAsyncSimplify>,
                                 simplify_request,

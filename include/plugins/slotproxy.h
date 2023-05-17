@@ -62,11 +62,15 @@ public:
             {
                 using RPC = agrpc::RPC<&proto::Plugin::Stub::PrepareAsyncIdentify>;
                 grpc::ClientContext client_context{};
-                request_plugin_t request{};
-                request.set_id(slot_id);
+                plugin_request plugin_request_conv{};
+                request_plugin_t request{ plugin_request_conv(slot_id) };
                 response_plugin_t response{};
                 status_ = co_await RPC::request(grpc_context, plugin_stub_, client_context, request, response, boost::asio::use_awaitable);
-                spdlog::info("Received response from plugin: {}", response.DebugString());
+                plugin_response plugin_response_conv{};
+                auto [version, _] = plugin_response_conv( response );
+                spdlog::debug("Received response from plugin: {}", response.DebugString());
+                valid_ = Validator{ version };
+                spdlog::info("Plugin: {} validated: {}", slot_id, static_cast<bool>(valid_));
             },
             boost::asio::detached);
         grpc_context.run();
@@ -74,21 +78,23 @@ public:
 
     auto operator()(auto&&... args)
     {
-        agrpc::GrpcContext grpc_context; // TODO: figure out how the reuse the grpc_context, it is recommended to use 1 per thread. Maybe move this to the lot registry??
+        if (valid_)
+        {
+            agrpc::GrpcContext grpc_context; // TODO: figure out how the reuse the grpc_context, it is recommended to use 1 per thread. Maybe move this to the lot registry??
 
-        boost::asio::co_spawn(
-            grpc_context,
-            [&]() -> boost::asio::awaitable<void>
-            {
-                grpc::ClientContext client_context{};
-                request_process_t request { request_converter_(std::forward<decltype(args)>(args)...) };
-                response_process_t response{};
-                status_ = co_await Prepare::request(grpc_context, process_stub_, client_context, request, response, boost::asio::use_awaitable);
-                spdlog::info("Received response from plugin: {}", response.DebugString());
-            },
-            boost::asio::detached);
-        grpc_context.run();
-
+            boost::asio::co_spawn(
+                grpc_context,
+                [&]() -> boost::asio::awaitable<void>
+                {
+                    grpc::ClientContext client_context{};
+                    request_process_t request{ request_converter_(std::forward<decltype(args)>(args)...) };
+                    response_process_t response{};
+                    status_ = co_await Prepare::request(grpc_context, process_stub_, client_context, request, response, boost::asio::use_awaitable);
+                    spdlog::info("Received response from plugin: {}", response.DebugString());
+                },
+                boost::asio::detached);
+            grpc_context.run();
+        }
         return 1; // FIXME: handle plugin not connected
     }
 };

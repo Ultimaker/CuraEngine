@@ -1,8 +1,8 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef CURAENGINE_INCLUDE_PLUGINS_VALIDATOR_H
-#define CURAENGINE_INCLUDE_PLUGINS_VALIDATOR_H
+#ifndef PLUGINS_VALIDATOR_H
+#define PLUGINS_VALIDATOR_H
 
 #include "plugins/types.h"
 
@@ -11,22 +11,27 @@
 namespace cura::plugins
 {
 
-
+// TODO: Implement hash and other checks
 template<details::CharRangeLiteral VersionRange, details::CharRangeLiteral PluginHash>
-struct Validator
+class Validator
 {
-    semver::version version{ "1.0.0" };
-    std::string_view plugin_hash{};
-    bool include_prerelease{ false };
-    semver::range::detail::range version_range{ VersionRange.value };
+public:
+    constexpr Validator() noexcept = default;
+    constexpr explicit Validator(std::string_view version) : version_{ version }, valid_{ version_range_.satisfies(version_, include_prerelease_) } {};
 
     constexpr operator bool() const noexcept
     {
-        // TODO: Add proper security checking
-        return version_range.satisfies(version, include_prerelease) && plugin_hash == PluginHash.value;
+        return valid_;
     }
+
+private:
+    semver::version version_{ "1.0.0" };
+    std::string_view plugin_hash_{};
+    bool include_prerelease_{ false };
+    semver::range::detail::range version_range_{ VersionRange.value };
+    bool valid_{ false };
 };
 
 } // namespace cura::plugins
 
-#endif // CURAENGINE_INCLUDE_PLUGINS_VALIDATOR_H
+#endif // PLUGINS_VALIDATOR_H

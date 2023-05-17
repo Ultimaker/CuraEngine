@@ -254,10 +254,11 @@ void Application::startThreadPool(int nworkers)
 void Application::registerPlugins()
 {
     // TODO: remove this
-    plugins::Slots::instance().set<plugins::simplify_slot>(grpc::CreateChannel(fmt::format("{}:{}", "localhost", 5555), grpc::InsecureChannelCredentials()));
-    auto x = plugins::Slots::instance().get<plugins::simplify_slot>();
-    Polygons poly;
-    auto y = x(poly, 100, 100);
+    plugins::Slots::instance().set<plugins::simplify_slot>(grpc::CreateChannel(fmt::format("{}:{}", "localhost", 50010), grpc::InsecureChannelCredentials()));
+    auto simplify_plugin = plugins::Slots::instance().get<plugins::simplify_slot>();
+    Polygons poly{};
+    auto x = simplify_plugin(poly, 100, 100);
+    spdlog::info("simplified poly received");
 }
 
 } // namespace cura
