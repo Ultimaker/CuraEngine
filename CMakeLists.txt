@@ -17,6 +17,7 @@ option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 # Generate the plugin types
 find_package(protobuf REQUIRED)
 find_package(asio-grpc REQUIRED)
+find_package(grpc REQUIRED)
 
 asio_grpc_protobuf_generate(
         GENERATE_GRPC GENERATE_MOCK_CODE
@@ -209,6 +210,7 @@ target_link_libraries(_CuraEngine
         scripta::scripta
         neargye-semver::neargye-semver
         asio-grpc::asio-grpc
+        grpc::grpc
         protobuf::libprotobuf
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
 

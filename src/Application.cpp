@@ -3,6 +3,9 @@
 
 #include "Application.h"
 
+// TODO: Make this (enterprise) happen from build-system.
+#define ENTERPRISE_BUILD 1
+
 #include <chrono>
 #include <memory>
 #include <string>
@@ -25,8 +28,22 @@
 
 #include "plugins/slots.h"
 
+#ifdef ENTERPRISE_BUILD
+#include "../secrets/private.pem.h"
+#endif
+
 namespace cura
 {
+
+//TODO: Get these from the command-line and/or frontend.
+struct PluginSetupConfiguration
+{
+public:
+    std::string host = "localhost";
+    uint64_t port = 50010UL;
+
+    uint64_t shibolet = 56785678UL; // Assume both us and the plugin have been given this on start-up, in a scenario that needs more security.
+} PLUGIN_CONFIG;
 
 Application::Application()
 {
@@ -188,7 +205,7 @@ void Application::run(const size_t argc, char** argv)
         exit(1);
     }
 
-    registerPlugins();
+    registerPlugins(PLUGIN_CONFIG);
 
 #ifdef ARCUS
     if (stringcasecompare(argv[1], "connect") == 0)
@@ -251,10 +268,25 @@ void Application::startThreadPool(int nworkers)
     thread_pool = new ThreadPool(nthreads);
 }
 
-void Application::registerPlugins()
+// TODO: Where to put this in the structure, does this belong to 'Application'?
+auto createChannel(const PluginSetupConfiguration& plugins_config)
+{
+#ifdef ENTERPRISE_BUILD
+    auto creds_config = grpc::SslCredentialsOptions();
+    creds_config.pem_cert_chain = "./plugins.crt"; // TODO: Release this next to the engine. (It's ok, the private one can still be inside.)
+    creds_config.pem_private_key = secrets::private_key;
+    auto channel_creds = grpc::SslCredentials(creds_config);
+#else // NOT ENTERPRISE_BUILD
+    // TODO: Do we want security to be on always?
+    auto channel_creds = grpc::InsecureChannelCredentials();
+#endif
+    return grpc::CreateChannel(fmt::format("{}:{}", plugins_config.host, plugins_config.port), channel_creds);
+}
+
+void Application::registerPlugins(const PluginSetupConfiguration& plugins_config)
 {
     // TODO: remove this
-    plugins::Slots::instance().set<plugins::simplify_slot>(grpc::CreateChannel(fmt::format("{}:{}", "localhost", 50010), grpc::InsecureChannelCredentials()));
+    plugins::Slots::instance().set<plugins::simplify_slot>(createChannel(plugins_config));
     auto simplify_plugin = plugins::Slots::instance().get<plugins::simplify_slot>();
     Polygons poly{};
     auto x = simplify_plugin(poly, 100, 100);
