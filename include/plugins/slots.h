@@ -8,26 +8,19 @@
 #include <unordered_map>
 #include <variant>
 
-#include <range/v3/range/primitives.hpp>
-#include <range/v3/utility/semiregular.hpp>
-
 #include "plugins/converters.h"
 #include "plugins/slotproxy.h"
 #include "plugins/types.h"
 #include "plugins/validator.h"
 
 #include "plugin.grpc.pb.h"
-#include "simplify.grpc.pb.h"
 #include "postprocess.grpc.pb.h"
+#include "simplify.grpc.pb.h"
 
 #include "utils/Simplify.h" // TODO: remove need for including implementation headers
 
 namespace cura::plugins
 {
-//namespace details
-//{
-//constexpr auto process_default = [](auto&& args...){ return std::forward<decltype(args)>(args); };
-//}
 
 template<auto Default>
 using simplify_slot = SlotProxy<SlotID::SIMPLIFY,
@@ -50,7 +43,7 @@ using postprocess_slot = SlotProxy<SlotID::POSTPROCESS,
 template<class Simplify, class Postprocess>
 class Slots
 {
-    using slots_t = std::variant<Simplify, Postprocess>;//, Postprocess>;
+    using slots_t = std::variant<Simplify, Postprocess>; //, Postprocess>;
 
     constexpr Slots() noexcept = default;
     std::unordered_map<SlotID, slots_t> slots_{};
