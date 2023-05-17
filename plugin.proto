@@ -10,9 +10,8 @@ package cura.plugins.proto;
 
 // These are the different slots that plugins can hook into
 enum SlotID {
-  UNKNOWN = 0;
-  SIMPLIFY = 1;
-  POSTPROCESS = 2;
+  SIMPLIFY = 0;
+  POSTPROCESS = 1;
 }
 
 // ---------------------------------------------------------------------
@@ -55,8 +54,9 @@ service Simplify {
 
 message SimplifyRequest {
   Polygons polygons = 1;
-  uint64 max_deviation = 2;
-  uint64 max_angle = 3;
+  uint64 max_resolution = 2;
+  uint64 max_deviation = 3;
+  uint64 max_area_deviation = 4;
 }
 
 // The SIMPLIFY slot response message

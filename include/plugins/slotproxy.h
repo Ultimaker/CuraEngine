@@ -30,7 +30,7 @@ namespace cura::plugins
 {
 
 template<plugins::SlotID Slot, class Validator, class Stub, class Prepare, class Request, class Response>
-class SlotProxy
+class PluginProxy
 {
 public:
     // type aliases for easy use
@@ -61,7 +61,7 @@ private:
     process_stub_t process_stub_;
 
 public:
-    SlotProxy(std::shared_ptr<grpc::Channel> channel) : plugin_stub_(channel), process_stub_(channel)
+    PluginProxy(std::shared_ptr<grpc::Channel> channel) : plugin_stub_(channel), process_stub_(channel)
     {
         agrpc::GrpcContext grpc_context; // TODO: figure out how the reuse the grpc_context, it is recommended to use 1 per thread. Maybe move this to the lot registry??
 
@@ -126,6 +126,27 @@ public:
             throw std::runtime_error(fmt::format("Communication with plugin '{}' failed, due: {}", slot_id, status_.error_message()));
         }
         return ret_value; // FIXME: handle plugin not connected
+    }
+};
+
+template<plugins::SlotID Slot, class Validator, class Stub, class Prepare, class Request, class Response, auto Default>
+class SlotProxy
+{
+    std::optional<PluginProxy<Slot, Validator, Stub, Prepare, Request, Response>> plugin_{ std::nullopt };
+
+public:
+    static inline constexpr plugins::SlotID slot_id{ Slot };
+
+    constexpr SlotProxy() noexcept = default;
+    SlotProxy(std::shared_ptr<grpc::Channel> channel) : plugin_{ std::move(channel) } {};
+
+    auto operator()(auto&&... args)
+    {
+        if (plugin_.has_value())
+        {
+            return std::invoke(plugin_.value(), std::forward<decltype(args)>(args)...);
+        }
+        return std::invoke(Default, std::forward<decltype(args)>(args)...);
     }
 };
 

@@ -251,14 +251,44 @@ void Application::startThreadPool(int nworkers)
     thread_pool = new ThreadPool(nthreads);
 }
 
+
+
+
 void Application::registerPlugins()
 {
     // TODO: remove this
-    plugins::Slots::instance().set<plugins::simplify_slot>(grpc::CreateChannel(fmt::format("{}:{}", "localhost", 50010), grpc::InsecureChannelCredentials()));
-    auto simplify_plugin = plugins::Slots::instance().get<plugins::simplify_slot>();
+
+    auto host = "localhost";
+    auto port = 50010;
+
+    constexpr auto simplify_default = [](const Polygons& polygons, const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation)
+    {
+        const Simplify simplify{ max_resolution, max_deviation, max_area_deviation };
+        return simplify.polygon(polygons);
+    };
+    using simplify_t = plugins::simplify_slot<simplify_default>;
+
+    constexpr auto postprocess_default = [](std::string word){ return word; };
+    using postprocess_t = plugins::postprocess_slot<postprocess_default>;
+
+    using slot_registry = plugins::Slots<simplify_t, postprocess_t>;
+
+    if (true) // determine wat to register depending if front-end starts a plugin
+    {
+        slot_registry::instance().set(simplify_t{ grpc::CreateChannel(fmt::format("{}:{}", host, port), grpc::InsecureChannelCredentials())});
+    }
+    else
+    {
+        slot_registry::instance().set(simplify_t{});
+    }
+    slot_registry::instance().set(postprocess_t{});
+
+    auto simplify_plugin = slot_registry::instance().get<plugins::SlotID::SIMPLIFY>();
     Polygons poly{};
-    poly.paths = {{0,1}, {2,3}, {4,5}};
-    auto x = simplify_plugin(poly, 100, 100);
+    Polygon p{};
+    p.poly = {{0,1}, {2,3}, {4,5}};
+    poly.add(p);
+    auto x = simplify_plugin(poly, 100, 200, 300);
     spdlog::info("simplified poly received");
 }
 

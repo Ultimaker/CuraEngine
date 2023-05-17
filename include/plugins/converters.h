@@ -17,7 +17,7 @@ struct plugin_request
     using value_type = proto::PluginRequest;
     using native_value_type = cura::plugins::SlotID;
 
-    value_type operator()(const native_value_type & slot_id) const
+    value_type operator()(const native_value_type& slot_id) const
     {
         value_type message{};
         message.set_id(slot_id);
@@ -32,7 +32,7 @@ struct plugin_response
 
     native_value_type operator()(const value_type& message) const
     {
-        return std::make_pair( message.version(), message.plugin_hash() );
+        return std::make_pair(message.version(), message.plugin_hash());
     }
 };
 
@@ -41,17 +41,19 @@ struct simplify_request
     using value_type = proto::SimplifyRequest;
     using native_value_type = Polygons;
 
-    value_type operator()(const native_value_type& polygons, const size_t max_deviation, const size_t max_angle) const
+    value_type operator()(const native_value_type& polygons, const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation) const
     {
         value_type message{};
-        message.set_max_deviation(max_deviation);
-        message.set_max_angle(max_angle);
+        message.set_max_resolution(max_resolution);
+        message.set_max_deviation(max_resolution);
+        message.set_max_area_deviation(max_resolution);
         for (const auto& polygon : polygons.paths)
         {
-            auto poly = message.polygons();
+            auto* poly = message.mutable_polygons();
             for (const auto& path : polygons.paths)
             {
-                auto* p = poly.add_paths();
+                auto p = poly->add_paths();
+
                 for (const auto& point : path)
                 {
                     auto* pt = p->add_path();
