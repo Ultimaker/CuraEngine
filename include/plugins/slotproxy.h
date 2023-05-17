@@ -1,105 +1,46 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef CURAENGINE_INCLUDE_PLUGINS_SLOTPROXY_H
-#define CURAENGINE_INCLUDE_PLUGINS_SLOTPROXY_H
+#ifndef PLUGINS_SLOTPROXY_H
+#define PLUGINS_SLOTPROXY_H
 
+#include <concepts>
 #include <functional>
 #include <memory>
+#include <optional>
 
-#include <boost/asio/awaitable.hpp>
-#include <agrpc/grpc_context.hpp>
-#include <agrpc/asio_grpc.hpp>
-#include <boost/asio/co_spawn.hpp>
-#include <boost/asio/detached.hpp>
 #include <grpcpp/channel.h>
-#include <grpcpp/client_context.h>
-#include <grpcpp/create_channel.h>
-#include <range/v3/utility/semiregular_box.hpp>
-#include <spdlog/spdlog.h>
 
 #include "plugins/converters.h"
+#include "plugins/pluginproxy.h"
 #include "plugins/types.h"
 #include "plugins/validator.h"
-
-#include "plugin.grpc.pb.h"
 
 namespace cura::plugins
 {
 
-template<plugins::SlotID Slot, class Validator, class Stub, class Prepare, class Request, class Response>
+template<plugins::SlotID Slot, std::convertible_to<bool> Validator, class Stub, class Prepare, grpc_convertable Request, grpc_convertable Response, auto Default>
 class SlotProxy
 {
-public:
-    // type aliases for easy use
-    using request_plugin_t = typename plugin_request::value_type;
-    using response_plugin_t = typename plugin_response::value_type;
-    using request_converter_t = Request;
-    using request_process_t = typename Request::value_type;
-    using response_converter_t = Response;
-    using response_process_t = typename Response::value_type;
-    using validator_t = Validator;
-    using stub_t = Stub;
+    std::optional<PluginProxy<Slot, Validator, Stub, Prepare, Request, Response>> plugin_{ std::nullopt };
 
+public:
     static inline constexpr plugins::SlotID slot_id{ Slot };
 
-private:
-    request_converter_t request_converter_{};
-    response_converter_t response_converter_{};
-    validator_t valid_{};
-    proto::Plugin::Stub plugin_stub_;
-    stub_t process_stub_;
-    grpc::Status status_;
-
-public:
-    SlotProxy(std::shared_ptr<grpc::Channel> channel) : plugin_stub_(channel), process_stub_(channel)
-    {
-        agrpc::GrpcContext grpc_context; // TODO: figure out how the reuse the grpc_context, it is recommended to use 1 per thread. Maybe move this to the lot registry??
-
-        boost::asio::co_spawn(
-            grpc_context,
-            [&]() -> boost::asio::awaitable<void>
-            {
-                using RPC = agrpc::RPC<&proto::Plugin::Stub::PrepareAsyncIdentify>;
-                grpc::ClientContext client_context{};
-                plugin_request plugin_request_conv{};
-                request_plugin_t request{ plugin_request_conv(slot_id) };
-                response_plugin_t response{};
-                status_ = co_await RPC::request(grpc_context, plugin_stub_, client_context, request, response, boost::asio::use_awaitable);
-                plugin_response plugin_response_conv{};
-                auto [version, _] = plugin_response_conv( response );
-                spdlog::debug("Received response from plugin: {}", response.DebugString());
-                valid_ = Validator{ version };
-                spdlog::info("Plugin: {} validated: {}", slot_id, static_cast<bool>(valid_));
-            },
-            boost::asio::detached);
-        grpc_context.run();
-    }
+    constexpr SlotProxy() noexcept = default;
+    SlotProxy(std::shared_ptr<grpc::Channel> channel) : plugin_{ std::move(channel) } {};
 
     auto operator()(auto&&... args)
     {
-        if (valid_)
+        if (plugin_.has_value())
         {
-            agrpc::GrpcContext grpc_context; // TODO: figure out how the reuse the grpc_context, it is recommended to use 1 per thread. Maybe move this to the lot registry??
-
-            boost::asio::co_spawn(
-                grpc_context,
-                [&]() -> boost::asio::awaitable<void>
-                {
-                    grpc::ClientContext client_context{};
-                    request_process_t request{ request_converter_(std::forward<decltype(args)>(args)...) };
-                    response_process_t response{};
-                    status_ = co_await Prepare::request(grpc_context, process_stub_, client_context, request, response, boost::asio::use_awaitable);
-                    spdlog::info("Received response from plugin: {}", response.DebugString());
-                },
-                boost::asio::detached);
-            grpc_context.run();
+            return std::invoke(plugin_.value(), std::forward<decltype(args)>(args)...);
         }
-        return 1; // FIXME: handle plugin not connected
+        return std::invoke(Default, std::forward<decltype(args)>(args)...);
     }
 };
 
 } // namespace cura::plugins
 
 
-#endif // CURAENGINE_INCLUDE_PLUGINS_SLOTPROXY_H
+#endif // PLUGINS_SLOTPROXY_H

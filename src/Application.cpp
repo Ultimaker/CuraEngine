@@ -12,6 +12,7 @@
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <grpcpp/create_channel.h>
 #include <spdlog/sinks/dup_filter_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
@@ -286,10 +287,35 @@ auto createChannel(const PluginSetupConfiguration& plugins_config)
 void Application::registerPlugins(const PluginSetupConfiguration& plugins_config)
 {
     // TODO: remove this
-    plugins::Slots::instance().set<plugins::simplify_slot>(createChannel(plugins_config));
-    auto simplify_plugin = plugins::Slots::instance().get<plugins::simplify_slot>();
+
+    constexpr auto simplify_default = [](const Polygons& polygons, const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation)
+    {
+        const Simplify simplify{ max_resolution, max_deviation, max_area_deviation };
+        return simplify.polygon(polygons);
+    };
+    using simplify_t = plugins::simplify_slot<simplify_default>;
+
+    constexpr auto postprocess_default = [](std::string word){ return word; };
+    using postprocess_t = plugins::postprocess_slot<postprocess_default>;
+
+    using slot_registry = plugins::Slots<simplify_t, postprocess_t>;
+
+    if (true) // determine wat to register depending if front-end starts a plugin
+    {
+        slot_registry::instance().set(simplify_t{createChannel(plugins_config)});
+    }
+    else
+    {
+        slot_registry::instance().set(simplify_t{});
+    }
+    slot_registry::instance().set(postprocess_t{});
+
+    auto simplify_plugin = slot_registry::instance().get<plugins::SlotID::SIMPLIFY>();
     Polygons poly{};
-    auto x = simplify_plugin(poly, 100, 100);
+    Polygon p{};
+    p.poly = {{0,1}, {2,3}, {4,5}};
+    poly.add(p);
+    auto x = simplify_plugin(poly, 100, 200, 300);
     spdlog::info("simplified poly received");
 }
 

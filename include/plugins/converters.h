@@ -6,8 +6,10 @@
 
 #include <memory>
 
-#include "plugin.grpc.pb.h"
 #include "plugins/types.h"
+
+#include "postprocess.grpc.pb.h"
+#include "simplify.grpc.pb.h"
 
 namespace cura::plugins
 {
@@ -15,8 +17,9 @@ namespace cura::plugins
 struct plugin_request
 {
     using value_type = proto::PluginRequest;
+    using native_value_type = cura::plugins::SlotID;
 
-    value_type operator()(const cura::plugins::proto::SlotID& slot_id) const
+    value_type operator()(const native_value_type& slot_id) const
     {
         value_type message{};
         message.set_id(slot_id);
@@ -27,28 +30,32 @@ struct plugin_request
 struct plugin_response
 {
     using value_type = proto::PluginResponse;
+    using native_value_type = std::pair<std::string, std::string>;
 
-    auto operator()(const value_type& message) const
+    native_value_type operator()(const value_type& message) const
     {
-        return std::make_pair( message.version(), message.plugin_hash() );
+        return std::make_pair(message.version(), message.plugin_hash());
     }
 };
 
 struct simplify_request
 {
     using value_type = proto::SimplifyRequest;
+    using native_value_type = Polygons;
 
-    value_type operator()(const Polygons& polygons, const size_t max_deviation, const size_t max_angle) const
+    value_type operator()(const native_value_type& polygons, const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation) const
     {
         value_type message{};
-        message.set_max_deviation(max_deviation);
-        message.set_max_angle(max_angle);
+        message.set_max_resolution(max_resolution);
+        message.set_max_deviation(max_resolution);
+        message.set_max_area_deviation(max_resolution);
         for (const auto& polygon : polygons.paths)
         {
-            auto poly = message.polygons();
+            auto* poly = message.mutable_polygons();
             for (const auto& path : polygons.paths)
             {
-                auto* p = poly.add_paths();
+                auto p = poly->add_paths();
+
                 for (const auto& point : path)
                 {
                     auto* pt = p->add_path();
@@ -64,10 +71,11 @@ struct simplify_request
 struct simplify_response
 {
     using value_type = proto::SimplifyResponse;
+    using native_value_type = Polygons;
 
-    auto operator()(const value_type& message) const
+    native_value_type operator()(const value_type& message) const
     {
-        Polygons poly{};
+        native_value_type poly{};
         for (const auto& paths : message.polygons().paths())
         {
             Polygon p{};
@@ -84,8 +92,9 @@ struct simplify_response
 struct postprocess_request
 {
     using value_type = proto::PostprocessRequest;
+    using native_value_type = std::string;
 
-    value_type operator()(const std::string& gcode) const
+    value_type operator()(const native_value_type& gcode) const
     {
         value_type message{};
         message.set_gcode_word(gcode);
@@ -96,8 +105,9 @@ struct postprocess_request
 struct postprocess_response
 {
     using value_type = proto::PostprocessResponse;
+    using native_value_type = std::string;
 
-    auto operator()(const value_type& message) const
+    native_value_type operator()(const value_type& message) const
     {
         return message.gcode_word();
     }

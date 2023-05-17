@@ -2,6 +2,7 @@
 #  CuraEngine is released under the terms of the AGPLv3 or higher
 
 from os import path
+from pathlib import Path
 
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
@@ -94,6 +95,7 @@ class CuraEngineConan(ConanFile):
         self.requires("openssl/1.1.1l")
         self.requires("asio-grpc/2.4.0")
         self.requires("grpc/1.50.1")
+        self.requires("curaengine_grpc_definitions/(latest)@ultimaker/testing")
 
     def generate(self):
         deps = CMakeDeps(self)
@@ -105,6 +107,9 @@ class CuraEngineConan(ConanFile):
         tc.variables["ENABLE_TESTING"] = self.options.enable_testing
         tc.variables["ENABLE_BENCHMARKS"] = self.options.enable_benchmarks
         tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
+        cpp_info = self.dependencies["curaengine_grpc_definitions"].cpp_info
+        tc.variables["GRPC_PROTOS"] = ";".join([str(p) for p in Path(cpp_info.resdirs[0]).glob("*.proto")])
+
         tc.generate()
 
     def layout(self):
