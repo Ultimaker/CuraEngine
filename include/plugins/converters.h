@@ -6,8 +6,9 @@
 
 #include <memory>
 
-#include "plugin.grpc.pb.h"
 #include "plugins/types.h"
+#include "simplify.grpc.pb.h"
+#include "postprocess.grpc.pb.h"
 
 namespace cura::plugins
 {

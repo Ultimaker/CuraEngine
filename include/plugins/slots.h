@@ -17,7 +17,8 @@
 #include "plugins/validator.h"
 
 #include "plugin.grpc.pb.h"
-#include "plugin.pb.h"
+#include "simplify.grpc.pb.h"
+#include "postprocess.grpc.pb.h"
 
 #include "utils/Simplify.h" // TODO: remove need for including implementation headers
 
