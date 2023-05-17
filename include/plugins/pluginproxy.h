@@ -19,6 +19,19 @@
 namespace cura::plugins
 {
 
+/**
+ * @brief A class template representing a proxy for a plugin.
+ *
+ * The PluginProxy class template facilitates communication with plugins by providing
+ * an interface for sending requests and receiving responses. It uses gRPC for communication.
+ *
+ * @tparam Slot The plugin slot ID.
+ * @tparam Validator The type used for validating the plugin.
+ * @tparam Stub The process stub type.
+ * @tparam Prepare The prepare type.
+ * @tparam Request The gRPC convertible request type.
+ * @tparam Response The gRPC convertible response type.
+ */
 template<plugins::SlotID Slot, std::convertible_to<bool> Validator, class Stub, class Prepare, grpc_convertable Request, grpc_convertable Response>
 class PluginProxy
 {
@@ -41,16 +54,28 @@ public:
     static inline constexpr plugins::SlotID slot_id{ Slot };
 
 private:
-    validator_t valid_{};
-    request_converter_t request_converter_{};
-    response_converter_t response_converter_{};
+    validator_t valid_;                       ///< The validator object for plugin validation.
+    request_converter_t request_converter_;   ///< The request converter object.
+    response_converter_t response_converter_; ///< The response converter object.
 
-    grpc::Status status_;
+    grpc::Status status_;                     ///< The gRPC status object.
 
-    proto::Plugin::Stub plugin_stub_;
-    process_stub_t process_stub_;
+    proto::Plugin::Stub plugin_stub_;         ///< The gRPC stub for plugin communication.
+    process_stub_t process_stub_;             ///< The gRPC stub for process communication.
+
 
 public:
+    /**
+     * @brief Constructs a PluginProxy object.
+     *
+     * This constructor initializes the PluginProxy object by establishing communication
+     * channels with the plugin identified by the given slot ID. It performs plugin validation
+     * and checks for communication errors.
+     *
+     * @param channel A shared pointer to the gRPC channel for communication with the plugin.
+     *
+     * @throws std::runtime_error if the plugin fails validation or communication errors occur.
+     */
     PluginProxy(std::shared_ptr<grpc::Channel> channel) : plugin_stub_(channel), process_stub_(channel)
     {
         agrpc::GrpcContext grpc_context; // TODO: figure out how the reuse the grpc_context, it is recommended to use 1 per thread. Maybe move this to the lot registry??
@@ -85,6 +110,19 @@ public:
         }
     }
 
+    /**
+     * @brief Executes the plugin operation.
+     *
+     * This operator allows the PluginProxy object to be invoked as a callable, which sends
+     * a request to the plugin and waits for the response. The response is converted using
+     * the response_converter_ object, and the converted value is returned.
+     *
+     * @tparam Args The argument types for the plugin request.
+     * @param args The arguments for the plugin request.
+     * @return The converted response value.
+     *
+     * @throws std::runtime_error if communication with the plugin fails.
+     */
     value_type operator()(auto&&... args)
     {
         value_type ret_value{};
