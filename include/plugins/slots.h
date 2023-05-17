@@ -58,13 +58,12 @@ using postprocess_slot = SlotProxy<SlotID::POSTPROCESS,
  * The `Slots` class provides functionality to manage plugin slots. It allows registering and retrieving plugins
  * for specific slots.
  *
- * @tparam Simplify The Simplify slot type.
- * @tparam Postprocess The Postprocess slot type.
+ * @tparams SlotTypes The different slot types.
  */
-template<class Simplify, class Postprocess>  // TODO: use variadic template args
+template<class... SlotTypes>
 class Slots
 {
-    using slots_t = std::variant<Simplify, Postprocess>; ///< The variant representing available slots.
+    using slots_t = std::variant<SlotTypes...>; ///< The variant representing available slots.
     std::unordered_map<SlotID, slots_t> slots_{}; ///< The map storing registered slots.
 
     constexpr Slots() noexcept = default;

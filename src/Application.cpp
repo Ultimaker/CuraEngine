@@ -25,6 +25,7 @@
 #include "utils/string.h" //For stringcasecompare.
 
 #include "plugins/slots.h"
+#include "utils/Simplify.h" // TODO: remove when we're properly setting the plugins in the process
 
 namespace cura
 {
