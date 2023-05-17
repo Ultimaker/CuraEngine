@@ -15,21 +15,32 @@ namespace cura::plugins
 template<details::CharRangeLiteral VersionRange, details::CharRangeLiteral PluginHash>
 class Validator
 {
+    semver::range::detail::range semver_range_{ VersionRange.value };
+    semver::version version_{ "1.0.0" };
+    std::string_view plugin_hash_{};
+    bool include_prerelease_{ false };
+    bool valid_{ false };
+
 public:
     constexpr Validator() noexcept = default;
-    constexpr explicit Validator(std::string_view version) : version_{ version }, valid_{ version_range_.satisfies(version_, include_prerelease_) } {};
+    constexpr explicit Validator(std::string_view version) : version_{ version }, valid_{ valid_version() } {};
 
     constexpr operator bool() const noexcept
     {
         return valid_;
     }
 
-private:
-    semver::version version_{ "1.0.0" };
-    std::string_view plugin_hash_{};
-    bool include_prerelease_{ false };
-    semver::range::detail::range version_range_{ VersionRange.value };
-    bool valid_{ false };
+    [[nodiscard]] constexpr bool valid_version() const
+    {
+        return semver_range_.satisfies(version_, include_prerelease_);
+    }
+
+    std::string getVersion() const
+    {
+        return version_.to_string();
+    }
+
+    static inline constexpr std::string_view version_range{ VersionRange.value };
 };
 
 } // namespace cura::plugins
