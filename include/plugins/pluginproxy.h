@@ -19,7 +19,7 @@
 namespace cura::plugins
 {
 
-template<plugins::SlotID Slot, std::convertible_to<bool> Validator, class Stub, class Prepare, class Request, class Response>
+template<plugins::SlotID Slot, std::convertible_to<bool> Validator, class Stub, class Prepare, grpc_convertable Request, grpc_convertable Response>
 class PluginProxy
 {
 public:

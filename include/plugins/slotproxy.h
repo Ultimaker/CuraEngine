@@ -4,6 +4,7 @@
 #ifndef PLUGINS_SLOTPROXY_H
 #define PLUGINS_SLOTPROXY_H
 
+#include <concepts>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -18,7 +19,7 @@
 namespace cura::plugins
 {
 
-template<plugins::SlotID Slot, class Validator, class Stub, class Prepare, class Request, class Response, auto Default>
+template<plugins::SlotID Slot, std::convertible_to<bool> Validator, class Stub, class Prepare, grpc_convertable Request, grpc_convertable Response, auto Default>
 class SlotProxy
 {
     std::optional<PluginProxy<Slot, Validator, Stub, Prepare, Request, Response>> plugin_{ std::nullopt };

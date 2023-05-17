@@ -1,8 +1,8 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef CURAENGINE_GENERIC_H
-#define CURAENGINE_GENERIC_H
+#ifndef UTILS_CONCEPTS_GENERIC_H
+#define UTILS_CONCEPTS_GENERIC_H
 
 #include <concepts>
 #include <functional>
@@ -17,19 +17,14 @@ concept hashable = requires(T value)
     { std::hash<T>{}(value) } -> std::convertible_to<std::size_t>;
 };
 
-template<typename C, typename M, typename R>
-concept receive_callable = requires(C callable, M message)
+template<typename T>
+concept grpc_convertable = requires(T value)
 {
-    { callable(message) } -> std::same_as<R>;
-    std::is_base_of_v<google::protobuf::Message, M>;
+    requires std::semiregular<T>;
+    requires std::semiregular<typename T::value_type>;
+    requires std::semiregular<typename T::native_value_type>;
 };
 
-template<typename C, typename M, typename... S>
-concept send_callable = requires(C callable, S... args)
-{
-    { callable(args...) } -> std::same_as<std::shared_ptr<M>>;
-    std::is_base_of_v<google::protobuf::Message, M>;
-};
 } // namespace cura
 
-#endif // CURAENGINE_GENERIC_H
+#endif // UTILS_CONCEPTS_GENERIC_H
