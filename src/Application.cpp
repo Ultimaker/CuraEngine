@@ -30,7 +30,8 @@
 #include "plugins/slots.h"
 
 #ifdef ENTERPRISE_BUILD
-#include "../secrets/private.pem.h"
+#include "../secrets/plugins.crt.h"
+#include "../secrets/plugins.key.h"
 #endif
 
 namespace cura
@@ -274,7 +275,8 @@ auto createChannel(const PluginSetupConfiguration& plugins_config)
 {
 #ifdef ENTERPRISE_BUILD
     auto creds_config = grpc::SslCredentialsOptions();
-    creds_config.pem_cert_chain = "./plugins.crt"; // TODO: Release this next to the engine. (It's ok, the private one can still be inside.)
+    creds_config.pem_root_certs = secrets::certificate;
+    creds_config.pem_cert_chain = secrets::certificate;
     creds_config.pem_private_key = secrets::private_key;
     auto channel_creds = grpc::SslCredentials(creds_config);
 #else // NOT ENTERPRISE_BUILD
