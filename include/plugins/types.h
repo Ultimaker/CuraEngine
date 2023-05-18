@@ -4,9 +4,10 @@
 #ifndef PLUGINS_TYPES_H
 #define PLUGINS_TYPES_H
 
-#include <Arcus/Types.h>
 #include <memory>
 #include <tuple>
+
+#include <fmt/format.h>
 
 #include "utils/IntPoint.h"
 #include "utils/concepts/generic.h"
