@@ -1,8 +1,8 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef CURAENGINE_INCLUDE_PLUGINS_TYPES_H
-#define CURAENGINE_INCLUDE_PLUGINS_TYPES_H
+#ifndef PLUGINS_TYPES_H
+#define PLUGINS_TYPES_H
 
 #include <Arcus/Types.h>
 #include <memory>
@@ -35,4 +35,40 @@ struct CharRangeLiteral
 
 } // namespace cura::plugins
 
-#endif // CURAENGINE_INCLUDE_PLUGINS_TYPES_H
+
+// Custom formatter for humanreadable slot_id's
+template<>
+struct fmt::formatter<cura::plugins::SlotID>
+{
+    // The formatting function
+    template<typename FormatContext>
+    auto format(cura::plugins::SlotID slot_id, FormatContext& ctx)
+    {
+        std::string slot_name;
+
+        switch (slot_id)
+        {
+        case cura::plugins::SlotID::SIMPLIFY:
+            slot_name = "Simplify";
+            break;
+        case cura::plugins::SlotID::POSTPROCESS:
+            slot_name = "Postprocess";
+            break;
+        default:
+            slot_name = "Unknown";
+            break;
+        }
+
+        return fmt::format_to(ctx.out(), "{}", slot_name);
+    }
+
+    // The parsing function
+    template<typename ParseContext>
+    auto parse(ParseContext& ctx)
+    {
+        // Not implemented for simplicity in this example
+        return ctx.begin();
+    }
+};
+
+#endif // PLUGINS_TYPES_H
