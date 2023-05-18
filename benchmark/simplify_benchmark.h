@@ -70,7 +70,15 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_localplugin)(benchmark::St
 {
     auto host = "localhost";
     auto port = 50010;
-    plugins::slot_registry::instance().set(plugins::simplify_t{ grpc::CreateChannel(fmt::format("{}:{}", host, port), grpc::InsecureChannelCredentials())});
+
+    try
+    {
+        plugins::slot_registry::instance().set(plugins::simplify_t{ grpc::CreateChannel(fmt::format("{}:{}", host, port), grpc::InsecureChannelCredentials())});
+    }
+    catch (std::runtime_error e)
+    {
+        st.SkipWithError(e.what());
+    }
     auto simplify = plugins::slot_registry::instance().get<plugins::SlotID::SIMPLIFY>();
     for (auto _ : st)
     {

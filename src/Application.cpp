@@ -260,7 +260,7 @@ void Application::registerPlugins()
     auto host = "localhost";
     auto port = 50010;
 
-    if (true) // determine wat to register depending if front-end starts a plugin
+    if (false) // determine wat to register depending if front-end starts a plugin
     {
         plugins::slot_registry::instance().set(plugins::simplify_t{ grpc::CreateChannel(fmt::format("{}:{}", host, port), grpc::InsecureChannelCredentials())});
     }
