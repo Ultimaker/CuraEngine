@@ -25,7 +25,6 @@
 #include "utils/string.h" //For stringcasecompare.
 
 #include "plugins/slots.h"
-#include "utils/Simplify.h" // TODO: remove when we're properly setting the plugins in the process
 
 namespace cura
 {
@@ -258,32 +257,19 @@ void Application::startThreadPool(int nworkers)
 
 void Application::registerPlugins()
 {
-    // TODO: remove this
-
+    using plugins::slot_registry;
     auto host = "localhost";
     auto port = 50010;
 
-    constexpr auto simplify_default = [](const Polygons& polygons, const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation)
-    {
-        const Simplify simplify{ max_resolution, max_deviation, max_area_deviation };
-        return simplify.polygon(polygons);
-    };
-    using simplify_t = plugins::simplify_slot<simplify_default>;
-
-    constexpr auto postprocess_default = [](std::string word){ return word; };
-    using postprocess_t = plugins::postprocess_slot<postprocess_default>;
-
-    using slot_registry = plugins::Slots<simplify_t, postprocess_t>;
-
     if (true) // determine wat to register depending if front-end starts a plugin
     {
-        slot_registry::instance().set(simplify_t{ grpc::CreateChannel(fmt::format("{}:{}", host, port), grpc::InsecureChannelCredentials())});
+        slot_registry::instance().set(plugins::simplify_t{ grpc::CreateChannel(fmt::format("{}:{}", host, port), grpc::InsecureChannelCredentials())});
     }
     else
     {
-        slot_registry::instance().set(simplify_t{});
+        slot_registry::instance().set(plugins::simplify_t{});
     }
-    slot_registry::instance().set(postprocess_t{});
+    slot_registry::instance().set(plugins::postprocess_t{});
 
     auto simplify_plugin = slot_registry::instance().get<plugins::SlotID::SIMPLIFY>();
     Polygons poly{};

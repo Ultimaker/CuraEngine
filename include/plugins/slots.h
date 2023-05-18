@@ -12,6 +12,7 @@
 #include "plugins/slotproxy.h"
 #include "plugins/types.h"
 #include "plugins/validator.h"
+#include "utils/Simplify.h"  // TODO: Remove once the simplify slot has been removed
 
 #include "plugin.grpc.pb.h"
 #include "postprocess.grpc.pb.h"
@@ -19,6 +20,15 @@
 
 namespace cura::plugins
 {
+namespace details
+{
+constexpr auto default_process = [](auto&& arg, auto&&...) { return std::forward<decltype(arg)>(arg); };
+
+constexpr auto simplify_default = [](const Polygons& polygons, const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation)
+{
+    const Simplify simplify{ max_resolution, max_deviation, max_area_deviation };
+    return simplify.polygon(polygons);
+};
 
 /**
  * @brief Alias for the Simplify slot.
@@ -27,7 +37,7 @@ namespace cura::plugins
  *
  * @tparam Default The default behavior when no plugin is registered.
  */
-template<auto Default>
+template<auto Default = default_process>
 using simplify_slot = SlotProxy<SlotID::SIMPLIFY,
                                 Validator<"<=0.0.1", "qwerty-azerty-temp-hash">,
                                 proto::Simplify::Stub,
@@ -43,7 +53,7 @@ using simplify_slot = SlotProxy<SlotID::SIMPLIFY,
  *
  * @tparam Default The default behavior when no plugin is registered.
  */
-template<auto Default>
+template<auto Default = default_process>
 using postprocess_slot = SlotProxy<SlotID::POSTPROCESS,
                                    Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">,
                                    proto::Postprocess::Stub,
@@ -51,6 +61,8 @@ using postprocess_slot = SlotProxy<SlotID::POSTPROCESS,
                                    postprocess_request,
                                    postprocess_response,
                                    Default>;
+
+} // namespace details
 
 /**
  * @brief Class for managing plugin slots.
@@ -104,6 +116,13 @@ public:
         return std::get<SlotID>(slots_.at(SlotID));
     }
 };
+
+using simplify_t = details::simplify_slot<details::simplify_default>;
+using postprocess_t = details::postprocess_slot<>;
+
+// The Template arguments should be ordered in the same ordering as the SlotID enum
+using slot_registry = plugins::Slots<simplify_t, postprocess_t>;
+
 } // namespace cura::plugins
 
 #endif // PLUGINS_SLOTS_H
