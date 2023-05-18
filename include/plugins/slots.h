@@ -8,11 +8,14 @@
 #include <unordered_map>
 #include <variant>
 
+#include <boost/serialization/singleton.hpp>
+
 #include "plugins/converters.h"
 #include "plugins/slotproxy.h"
 #include "plugins/types.h"
 #include "plugins/validator.h"
 #include "utils/Simplify.h"  // TODO: Remove once the simplify slot has been removed
+#include "utils/NoCopy.h"
 
 #include "plugin.grpc.pb.h"
 #include "postprocess.grpc.pb.h"
@@ -22,12 +25,18 @@ namespace cura::plugins
 {
 namespace details
 {
-constexpr auto default_process = [](auto&& arg, auto&&...) { return std::forward<decltype(arg)>(arg); };
-
-constexpr auto simplify_default = [](const Polygons& polygons, const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation)
+struct default_process
 {
-    const Simplify simplify{ max_resolution, max_deviation, max_area_deviation };
-    return simplify.polygon(polygons);
+    constexpr auto operator()(auto&& arg, auto&&...){ return std::forward<decltype(arg)>(arg); };
+};
+
+struct simplify_default
+{
+    auto operator()(auto&& arg, auto&&... args)
+    {
+        const Simplify simplify{ std::forward<decltype(args)>(args)... };
+        return simplify.polygon(std::forward<decltype(arg)>(arg));
+    }
 };
 
 /**
@@ -37,7 +46,7 @@ constexpr auto simplify_default = [](const Polygons& polygons, const coord_t max
  *
  * @tparam Default The default behavior when no plugin is registered.
  */
-template<auto Default = default_process>
+template<class Default = default_process>
 using simplify_slot = SlotProxy<SlotID::SIMPLIFY,
                                 Validator<"<=0.0.1", "qwerty-azerty-temp-hash">,
                                 proto::Simplify::Stub,
@@ -53,7 +62,7 @@ using simplify_slot = SlotProxy<SlotID::SIMPLIFY,
  *
  * @tparam Default The default behavior when no plugin is registered.
  */
-template<auto Default = default_process>
+template<class Default = default_process>
 using postprocess_slot = SlotProxy<SlotID::POSTPROCESS,
                                    Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">,
                                    proto::Postprocess::Stub,

@@ -257,27 +257,20 @@ void Application::startThreadPool(int nworkers)
 
 void Application::registerPlugins()
 {
-    using plugins::slot_registry;
     auto host = "localhost";
     auto port = 50010;
 
     if (true) // determine wat to register depending if front-end starts a plugin
     {
-        slot_registry::instance().set(plugins::simplify_t{ grpc::CreateChannel(fmt::format("{}:{}", host, port), grpc::InsecureChannelCredentials())});
+        plugins::slot_registry::instance().set(plugins::simplify_t{ grpc::CreateChannel(fmt::format("{}:{}", host, port), grpc::InsecureChannelCredentials())});
     }
     else
     {
-        slot_registry::instance().set(plugins::simplify_t{});
+        plugins::slot_registry::instance().set(plugins::simplify_t{});
     }
-    slot_registry::instance().set(plugins::postprocess_t{});
+    plugins::slot_registry::instance().set(plugins::postprocess_t{});
 
-    auto simplify_plugin = slot_registry::instance().get<plugins::SlotID::SIMPLIFY>();
-    Polygons poly{};
-    Polygon p{};
-    p.poly = {{0,1}, {2,3}, {4,5}};
-    poly.add(p);
-    auto x = simplify_plugin(poly, 100, 200, 300);
-    spdlog::info("simplified poly received");
+
 }
 
 } // namespace cura
