@@ -134,8 +134,6 @@ private:
      * This destroys the Communication instance along with it.
      */
     ~Application();
-
-    void registerPlugins();
 };
 
 } //Cura namespace.

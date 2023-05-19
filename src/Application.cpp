@@ -186,8 +186,6 @@ void Application::run(const size_t argc, char** argv)
         exit(1);
     }
 
-    registerPlugins();
-
 #ifdef ARCUS
     if (stringcasecompare(argv[1], "connect") == 0)
     {
@@ -247,27 +245,6 @@ void Application::startThreadPool(int nworkers)
     }
     delete thread_pool;
     thread_pool = new ThreadPool(nthreads);
-}
-
-
-
-
-void Application::registerPlugins()
-{
-//    auto host = "localhost";
-//    auto port = 50010;
-//
-//    if (false) // determine wat to register depending if front-end starts a plugin
-//    {
-//        plugins::slot_registry::instance().set(plugins::simplify_t{ grpc::CreateChannel(fmt::format("{}:{}", host, port), grpc::InsecureChannelCredentials())});
-//    }
-//    else
-//    {
-//        plugins::slot_registry::instance().set(plugins::simplify_t{});
-//    }
-//    plugins::slot_registry::instance().set(plugins::postprocess_t{});
-
-
 }
 
 } // namespace cura
