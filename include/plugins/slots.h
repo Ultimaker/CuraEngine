@@ -110,7 +110,12 @@ public:
      */
     constexpr void set(auto&& plugin)
     {
-        slots_.emplace(plugin.slot_id, std::forward<decltype(plugin)>(plugin));
+        using plugin_t = decltype(plugin);
+#ifdef PLUGINS
+        slots_.emplace(plugin.slot_id, std::forward<plugin_t>(plugin));
+#else
+        slots_.emplace(plugin.slot_id, std::forward<plugin_t>(plugin_t{}));  // Allways create a default (not connected) plugin
+#endif
     }
 
     /**
