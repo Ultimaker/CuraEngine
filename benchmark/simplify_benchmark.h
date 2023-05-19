@@ -73,7 +73,7 @@ BENCHMARK_REGISTER_F(SimplifyTestFixture, simplify_slot_noplugin);
 BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_localplugin)(benchmark::State& st)
 {
     auto host = "localhost";
-    auto port = 50010;
+    auto port = 33700;
 
     try
     {
