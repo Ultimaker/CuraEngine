@@ -8,6 +8,7 @@
 #include "utils/FMatrix4x3.h" // To load STL files.
 #include "utils/polygon.h" // Creating polygons to compare to sliced layers.
 #include "utils/polygonUtils.h" // Comparing similarity of polygons.
+#include "plugins/slots.h"
 #include <filesystem>
 #include <gtest/gtest.h>
 
@@ -26,6 +27,9 @@ class SlicePhaseTest : public testing::Test
     {
         // Start the thread pool
         Application::getInstance().startThreadPool();
+        plugins::slot_registry::instance().set(plugins::simplify_t{});
+        plugins::slot_registry::instance().set(plugins::postprocess_t{});
+
         // Set up a scene so that we may request settings.
         Application::getInstance().current_slice = new Slice(1);
 
