@@ -5,6 +5,7 @@
 #define PLUGINS_CONVERTERS_H
 
 #include <memory>
+#include <range/v3/view/drop.hpp>
 
 #include "plugins/types.h"
 
@@ -88,19 +89,25 @@ struct simplify_request
         message.set_max_resolution(max_resolution);
         message.set_max_deviation(max_resolution);
         message.set_max_area_deviation(max_resolution);
-        for (const auto& polygon : polygons.paths)
-        {
-            auto* poly = message.mutable_polygons();
-            for (const auto& path : polygons.paths)
-            {
-                auto p = poly->add_paths();
 
-                for (const auto& point : path)
-                {
-                    auto* pt = p->add_path();
-                    pt->set_x(point.X);
-                    pt->set_y(point.Y);
-                }
+        auto* msg_polygons = message.mutable_polygons();
+        auto* msg_polygon = msg_polygons->add_polygons();
+        auto* msg_outline_path = msg_polygon->mutable_outline()->add_path();
+
+        for (const auto& point : polygons.front())
+        {
+            msg_outline_path->set_x(point.X);
+            msg_outline_path->set_y(point.Y);
+        }
+
+        auto* msg_holes = msg_polygon->mutable_holes();
+        for (const auto& polygon : polygons.paths  | ranges::views::drop(1))
+        {
+            auto* msg_path = msg_holes->Add()->add_path();
+            for (const auto& point : polygon)
+            {
+                msg_path->set_x(point.X);
+                msg_path->set_y(point.Y);
             }
         }
         return message;
@@ -127,14 +134,24 @@ struct simplify_response
     native_value_type operator()(const value_type& message) const
     {
         native_value_type poly{};
-        for (const auto& paths : message.polygons().paths())
+        for (const auto& paths : message.polygons().polygons())
         {
-            Polygon p{};
-            for (const auto& point : paths.path())
+            Polygon o{};
+            for (const auto& point : paths.outline().path())
             {
-                p.add(Point{ point.x(), point.y() });
+                o.add(Point{ point.x(), point.y() });
             }
-            poly.add(p);
+            poly.add(o);
+
+            for (const auto& hole : paths.holes())
+            {
+                Polygon h{};
+                for (const auto& point : hole.path())
+                {
+                    h.add(Point{ point.x(), point.y() });
+                }
+                poly.add(h);
+            }
         }
         return poly;
     }
