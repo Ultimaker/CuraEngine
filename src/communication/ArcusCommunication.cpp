@@ -7,6 +7,8 @@
 #include <thread> //To sleep while waiting for the connection.
 #include <unordered_map> //To map settings to their extruder numbers for limit_to_extruder.
 
+#include <grpcpp/create_channel.h>
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get and set the current slice command.
@@ -21,6 +23,8 @@
 #include "settings/types/LayerIndex.h" //To point to layers.
 #include "settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
 #include "utils/polygon.h"
+
+#include "plugins/slots.h"
 
 namespace cura
 {
@@ -503,6 +507,38 @@ void ArcusCommunication::sliceNext()
         return;
     }
     spdlog::debug("Received a Slice message.");
+
+    // TODO: Use typemap
+    constexpr auto create_channel = [&](auto&&... args){ return grpc::CreateChannel(fmt::format("{}:{}", std::forward<decltype(args)>(args)...), grpc::InsecureChannelCredentials()); };
+    for (const auto& plugin : slice_message->engine_plugins())
+    {
+        if (plugin.has_address() && plugin.has_port())
+        {
+            switch (plugin.id())
+            {
+            case cura::proto::SlotID::SIMPLIFY:
+                plugins::slot_registry::instance().set(plugins::simplify_t{ create_channel(plugin.address(), plugin.port()) });
+                break;
+            case cura::proto::SlotID::POSTPROCESS:
+                plugins::slot_registry::instance().set(plugins::postprocess_t{ create_channel(plugin.address(), plugin.port()) });
+                break;
+            default: break;
+            }
+        }
+        else
+        {
+            switch (plugin.id())
+            {
+            case cura::proto::SlotID::SIMPLIFY:
+                plugins::slot_registry::instance().set(plugins::simplify_t{ });
+                break;
+            case cura::proto::SlotID::POSTPROCESS:
+                plugins::slot_registry::instance().set(plugins::postprocess_t{  });
+                break;
+            default: break;
+            }
+        }
+    }
 
     Slice slice(slice_message->object_lists().size());
     Application::getInstance().current_slice = &slice;

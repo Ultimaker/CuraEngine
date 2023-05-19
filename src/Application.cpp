@@ -9,7 +9,6 @@
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <grpcpp/create_channel.h>
 #include <spdlog/sinks/dup_filter_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
@@ -23,8 +22,6 @@
 #include "progress/Progress.h"
 #include "utils/ThreadPool.h"
 #include "utils/string.h" //For stringcasecompare.
-
-#include "plugins/slots.h"
 
 namespace cura
 {
@@ -257,18 +254,18 @@ void Application::startThreadPool(int nworkers)
 
 void Application::registerPlugins()
 {
-    auto host = "localhost";
-    auto port = 50010;
-
-    if (false) // determine wat to register depending if front-end starts a plugin
-    {
-        plugins::slot_registry::instance().set(plugins::simplify_t{ grpc::CreateChannel(fmt::format("{}:{}", host, port), grpc::InsecureChannelCredentials())});
-    }
-    else
-    {
-        plugins::slot_registry::instance().set(plugins::simplify_t{});
-    }
-    plugins::slot_registry::instance().set(plugins::postprocess_t{});
+//    auto host = "localhost";
+//    auto port = 50010;
+//
+//    if (false) // determine wat to register depending if front-end starts a plugin
+//    {
+//        plugins::slot_registry::instance().set(plugins::simplify_t{ grpc::CreateChannel(fmt::format("{}:{}", host, port), grpc::InsecureChannelCredentials())});
+//    }
+//    else
+//    {
+//        plugins::slot_registry::instance().set(plugins::simplify_t{});
+//    }
+//    plugins::slot_registry::instance().set(plugins::postprocess_t{});
 
 
 }
