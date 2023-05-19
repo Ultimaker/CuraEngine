@@ -22,7 +22,9 @@ public:
     const std::vector<std::string> POLYGON_FILENAMES = {
         std::filesystem::path(__FILE__).parent_path().append("tests/resources/polygon_concave.txt").string(),  std::filesystem::path(__FILE__).parent_path().append("tests/resources/polygon_concave_hole.txt").string(),
         std::filesystem::path(__FILE__).parent_path().append("tests/resources/polygon_square.txt").string(),   std::filesystem::path(__FILE__).parent_path().append("tests/resources/polygon_square_hole.txt").string(),
-        std::filesystem::path(__FILE__).parent_path().append("tests/resources/polygon_triangle.txt").string(), std::filesystem::path(__FILE__).parent_path().append("tests/resources/polygon_two_squares.txt").string()
+        std::filesystem::path(__FILE__).parent_path().append("tests/resources/polygon_triangle.txt").string(), std::filesystem::path(__FILE__).parent_path().append("tests/resources/polygon_two_squares.txt").string(),
+        std::filesystem::path(__FILE__).parent_path().append("tests/resources/slice_polygon_1.txt").string(), std::filesystem::path(__FILE__).parent_path().append("tests/resources/slice_polygon_2.txt").string(),
+        std::filesystem::path(__FILE__).parent_path().append("tests/resources/slice_polygon_3.txt").string(), std::filesystem::path(__FILE__).parent_path().append("tests/resources/slice_polygon_4.txt").string()
     };
 
     std::vector<Polygons> shapes;
@@ -42,9 +44,10 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_local)(benchmark::State& st)
     Simplify simplify(MM2INT(0.25), MM2INT(0.025), 50000);
     for (auto _ : st)
     {
+        Polygons simplified;
         for (const auto& polys : shapes)
         {
-            auto simplified = simplify.polygon(polys);
+            benchmark::DoNotOptimize(simplified = simplify.polygon(polys));
         }
     }
 }
@@ -57,9 +60,10 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_noplugin)(benchmark::State
 	auto simplify = plugins::slot_registry::instance().get<plugins::SlotID::SIMPLIFY>();
 	for (auto _ : st)
 	{
+        Polygons simplified;
 		for (const auto& polys : shapes)
 		{
-			auto simplified = simplify(polys, MM2INT(0.25), MM2INT(0.025), 50000);
+			benchmark::DoNotOptimize(simplified = simplify(polys, MM2INT(0.25), MM2INT(0.025), 50000));
 		}
 	}
 }
@@ -82,9 +86,10 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_localplugin)(benchmark::St
     auto simplify = plugins::slot_registry::instance().get<plugins::SlotID::SIMPLIFY>();
     for (auto _ : st)
     {
+        Polygons simplified;
         for (const auto& polys : shapes)
         {
-            auto simplified = simplify(polys, MM2INT(0.25), MM2INT(0.025), 50000);
+            benchmark::DoNotOptimize(simplified = simplify(polys, MM2INT(0.25), MM2INT(0.025), 50000));
         }
     }
 }
