@@ -5,6 +5,7 @@
 #define PLUGINS_CONVERTERS_H
 
 #include <memory>
+#include <range/v3/range/operations.hpp>
 #include <range/v3/view/drop.hpp>
 
 #include "plugins/types.h"
@@ -90,12 +91,18 @@ struct simplify_request
         message.set_max_deviation(max_resolution);
         message.set_max_area_deviation(max_resolution);
 
+        if (polygons.empty())
+        {
+            return message;
+        }
+
         auto* msg_polygons = message.mutable_polygons();
         auto* msg_polygon = msg_polygons->add_polygons();
-        auto* msg_outline_path = msg_polygon->mutable_outline()->add_path();
+        auto* msg_outline = msg_polygon->mutable_outline();
 
-        for (const auto& point : polygons.front())
+        for (const auto& point : ranges::front(polygons.paths))
         {
+            auto* msg_outline_path = msg_outline->add_path();
             msg_outline_path->set_x(point.X);
             msg_outline_path->set_y(point.Y);
         }
@@ -103,9 +110,10 @@ struct simplify_request
         auto* msg_holes = msg_polygon->mutable_holes();
         for (const auto& polygon : polygons.paths  | ranges::views::drop(1))
         {
-            auto* msg_path = msg_holes->Add()->add_path();
+            auto* msg_hole = msg_holes->Add();
             for (const auto& point : polygon)
             {
+                auto* msg_path = msg_hole->add_path();
                 msg_path->set_x(point.X);
                 msg_path->set_y(point.Y);
             }

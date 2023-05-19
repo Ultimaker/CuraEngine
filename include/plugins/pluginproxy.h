@@ -136,9 +136,11 @@ public:
                 {
                     grpc::ClientContext client_context{};
                     request_process_t request{ request_converter_(std::forward<decltype(args)>(args)...) };
+//                    spdlog::debug("Request: {}", request.DebugString());
                     response_process_t response{};
                     status_ = co_await Prepare::request(grpc_context, process_stub_, client_context, request, response, boost::asio::use_awaitable);
                     ret_value = response_converter_(response);
+//                    spdlog::debug("Response: {}", response.DebugString());
                 },
                 boost::asio::detached);
             grpc_context.run();
