@@ -48,7 +48,8 @@ struct simplify_default
  */
 template<class Default = default_process>
 using simplify_slot = SlotProxy<SlotID::SIMPLIFY,
-                                Validator<"<=0.0.1", "qwerty-azerty-temp-hash">,
+                                "<=0.0.1",
+                                Validator,
                                 proto::Simplify::Stub,
                                 agrpc::RPC<&proto::Simplify::Stub::PrepareAsyncSimplify>,
                                 simplify_request,
@@ -64,7 +65,8 @@ using simplify_slot = SlotProxy<SlotID::SIMPLIFY,
  */
 template<class Default = default_process>
 using postprocess_slot = SlotProxy<SlotID::POSTPROCESS,
-                                   Validator<">=1.0.0 <2.0.0 || >3.2.1", "qwerty-azerty-temp-hash">,
+                                   ">=1.0.0 <2.0.0 || >3.2.1",
+                                   Validator,
                                    proto::Postprocess::Stub,
                                    agrpc::RPC<&proto::Postprocess::Stub::PrepareAsyncPostprocess>,
                                    postprocess_request,

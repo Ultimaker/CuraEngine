@@ -20,12 +20,11 @@ namespace cura::plugins
  * @tparam VersionRange The version range specified as a character range literal.
  * @tparam PluginHash The plugin hash specified as a character range literal.
  */
-template<details::CharRangeLiteral VersionRange, details::CharRangeLiteral PluginHash>
+template<details::CharRangeLiteral VersionRange>
 class Validator
 {
     semver::range::detail::range semver_range_{ VersionRange.value }; ///< The semver range object.
     semver::version version_{ "1.0.0" }; ///< The version to validate.
-    std::string_view plugin_hash_{}; ///< The plugin hash to validate. TODO: implement and use
     bool include_prerelease_{ false }; ///< Flag indicating whether to include prerelease versions.
     bool valid_{ false }; ///< Flag indicating the validity of the version.
 

@@ -32,15 +32,17 @@ namespace cura::plugins
  * @tparam Request The gRPC convertible request type.
  * @tparam Response The gRPC convertible response type.
  */
-template<plugins::SlotID Slot, std::convertible_to<bool> Validator, class Stub, class Prepare, grpc_convertable Request, grpc_convertable Response>
+template<plugins::SlotID Slot, details::CharRangeLiteral SlotVersionRng, class Validator, class Stub, class Prepare, class Request, grpc_convertable Response>
 class PluginProxy
 {
 public:
     // type aliases for easy use
     using value_type = typename Response::native_value_type;
 
-    using request_plugin_t = typename plugin_request::value_type;
-    using response_plugin_t = typename plugin_response::value_type;
+    using validator_t = Validator;
+
+    using request_plugin_t = typename proto::PluginRequest;
+    using response_plugin_t = typename proto::PluginResponse;
 
     using request_process_t = typename Request::value_type;
     using response_process_t = typename Response::value_type;
@@ -48,20 +50,17 @@ public:
     using request_converter_t = Request;
     using response_converter_t = Response;
 
-    using validator_t = Validator;
-    using process_stub_t = Stub;
+    using stub_t = Stub;
 
     static inline constexpr plugins::SlotID slot_id{ Slot };
 
 private:
-    validator_t valid_;                       ///< The validator object for plugin validation.
-    request_converter_t request_converter_;   ///< The request converter object.
+    validator_t valid_; ///< The validator object for plugin validation.
+    request_converter_t request_converter_; ///< The request converter object.
     response_converter_t response_converter_; ///< The response converter object.
 
-    grpc::Status status_;                     ///< The gRPC status object.
-
-    proto::Plugin::Stub plugin_stub_;         ///< The gRPC stub for plugin communication.
-    process_stub_t process_stub_;             ///< The gRPC stub for process communication.
+    grpc::Status status_; ///< The gRPC status object.
+    stub_t stub_; ///< The gRPC stub for communication.
 
 
 public:
@@ -76,7 +75,7 @@ public:
      *
      * @throws std::runtime_error if the plugin fails validation or communication errors occur.
      */
-    PluginProxy(std::shared_ptr<grpc::Channel> channel) : plugin_stub_(channel), process_stub_(channel)
+    PluginProxy(std::shared_ptr<grpc::Channel> channel) : stub_(channel)
     {
         agrpc::GrpcContext grpc_context; // TODO: figure out how the reuse the grpc_context, it is recommended to use 1 per thread. Maybe move this to the lot registry??
 
@@ -84,17 +83,17 @@ public:
             grpc_context,
             [&]() -> boost::asio::awaitable<void>
             {
-                using RPC = agrpc::RPC<&proto::Plugin::Stub::PrepareAsyncIdentify>;
+                using RPC = agrpc::RPC<&stub_t::PrepareAsyncIdentify>;
                 grpc::ClientContext client_context{};
-                plugin_request plugin_request_conv{};
+                plugin_request<SlotVersionRng> plugin_request_conv{};
                 request_plugin_t request{ plugin_request_conv(slot_id) };
                 response_plugin_t response{};
-                status_ = co_await RPC::request(grpc_context, plugin_stub_, client_context, request, response, boost::asio::use_awaitable);
+                status_ = co_await RPC::request(grpc_context, stub_, client_context, request, response, boost::asio::use_awaitable);
                 plugin_response plugin_response_conv{};
-                auto [version, _] = plugin_response_conv(response);
+                const auto& [slot_id, plugin_name, slot_version, plugin_version] = plugin_response_conv(response);
                 spdlog::debug("Received response from plugin '{}': {}", slot_id, response.DebugString());
-                valid_ = Validator{ version };
-                spdlog::info("Plugin: {} validated: {}", slot_id, static_cast<bool>(valid_));
+                valid_ = Validator{ slot_version };
+                spdlog::info("Slot: '{}' with plugin: '{}' version: '{}' is validated: {}", slot_id, plugin_name, plugin_version, static_cast<bool>(valid_));
             },
             boost::asio::detached);
         grpc_context.run();
@@ -136,11 +135,11 @@ public:
                 {
                     grpc::ClientContext client_context{};
                     request_process_t request{ request_converter_(std::forward<decltype(args)>(args)...) };
-//                    spdlog::debug("Request: {}", request.DebugString());
+                    //                    spdlog::debug("Request: {}", request.DebugString());
                     response_process_t response{};
-                    status_ = co_await Prepare::request(grpc_context, process_stub_, client_context, request, response, boost::asio::use_awaitable);
+                    status_ = co_await Prepare::request(grpc_context, stub_, client_context, request, response, boost::asio::use_awaitable);
                     ret_value = response_converter_(response);
-//                    spdlog::debug("Response: {}", response.DebugString());
+                    //                    spdlog::debug("Response: {}", response.DebugString());
                 },
                 boost::asio::detached);
             grpc_context.run();

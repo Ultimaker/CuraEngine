@@ -4,7 +4,9 @@
 #ifndef PLUGINS_CONVERTERS_H
 #define PLUGINS_CONVERTERS_H
 
-#include <memory>
+#include <string>
+#include <tuple>
+
 #include <range/v3/range/operations.hpp>
 #include <range/v3/view/drop.hpp>
 
@@ -22,10 +24,12 @@ namespace cura::plugins
  * The `plugin_request` struct provides a conversion function that converts a native slot ID
  * to a `proto::PluginRequest` message.
  */
+template<details::CharRangeLiteral SlotVersionRng>
 struct plugin_request
 {
-    using value_type = proto::PluginRequest;  ///< The protobuf message type.
+    using value_type = proto::PluginRequest; ///< The protobuf message type.
     using native_value_type = cura::plugins::SlotID; ///< The native value type.
+    const std::string slot_version_range{ SlotVersionRng.value };
 
     /**
      * @brief Converts a native slot ID to a `proto::PluginRequest` message.
@@ -36,7 +40,8 @@ struct plugin_request
     value_type operator()(const native_value_type& slot_id) const
     {
         value_type message{};
-        message.set_id(slot_id);
+        message.set_slot_version_range(slot_version_range);
+        message.set_slot_id(slot_id);
         return message;
     }
 };
@@ -50,7 +55,7 @@ struct plugin_request
 struct plugin_response
 {
     using value_type = proto::PluginResponse; ///< The protobuf message type.
-    using native_value_type = std::pair<std::string, std::string>; ///< The native value type.
+    using native_value_type = std::tuple<SlotID, std::string, std::string, std::string>; ///< The native value type.
 
     /**
      * @brief Converts a `proto::PluginResponse` message to a native value type.
@@ -60,7 +65,7 @@ struct plugin_response
      */
     native_value_type operator()(const value_type& message) const
     {
-        return std::make_pair(message.version(), message.plugin_hash());
+        return { message.slot_id(), message.plugin_name(), message.slot_version(), message.plugin_version() };
     }
 };
 
@@ -70,10 +75,12 @@ struct plugin_response
  * The `simplify_request` struct provides a conversion function that converts native data for
  * simplification (polygons and simplification parameters) to a `proto::SimplifyRequest` message.
  */
+template<details::CharRangeLiteral SlotVersionRng>
 struct simplify_request
 {
-    using value_type = proto::SimplifyRequest;  ///< The protobuf message type.
+    using value_type = proto::SimplifyRequest; ///< The protobuf message type.
     using native_value_type = Polygons; ///< The native value type.
+    const std::string slot_version_range{ SlotVersionRng.value };
 
     /**
      * @brief Converts native data for simplification to a `proto::SimplifyRequest` message.
@@ -87,10 +94,7 @@ struct simplify_request
     value_type operator()(const native_value_type& polygons, const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation) const
     {
         value_type message{};
-        message.set_max_resolution(max_resolution);
-        message.set_max_deviation(max_resolution);
-        message.set_max_area_deviation(max_resolution);
-
+        message.set_slot_version_range(slot_version_range);
         if (polygons.empty())
         {
             return message;
@@ -108,7 +112,7 @@ struct simplify_request
         }
 
         auto* msg_holes = msg_polygon->mutable_holes();
-        for (const auto& polygon : polygons.paths  | ranges::views::drop(1))
+        for (const auto& polygon : polygons.paths | ranges::views::drop(1))
         {
             auto* msg_hole = msg_holes->Add();
             for (const auto& point : polygon)
@@ -118,6 +122,10 @@ struct simplify_request
                 msg_path->set_y(point.Y);
             }
         }
+
+        message.set_max_resolution(max_resolution);
+        message.set_max_deviation(max_resolution);
+        message.set_max_area_deviation(max_resolution);
         return message;
     }
 };
@@ -171,10 +179,12 @@ struct simplify_response
  * The `postprocess_request` struct provides a conversion function that converts a native G-code string
  * to a `proto::PostprocessRequest` message.
  */
+template<details::CharRangeLiteral SlotVersionRng>
 struct postprocess_request
 {
     using value_type = proto::PostprocessRequest; ///< The protobuf message type.
     using native_value_type = std::string; ///< The native value type.
+    const std::string slot_version_range{ SlotVersionRng.value };
 
     /**
      * @brief Converts a native G-code string to a `proto::PostprocessRequest` message.
@@ -185,6 +195,7 @@ struct postprocess_request
     value_type operator()(const native_value_type& gcode) const
     {
         value_type message{};
+        message.set_slot_version_range(slot_version_range);
         message.set_gcode_word(gcode);
         return message;
     }
