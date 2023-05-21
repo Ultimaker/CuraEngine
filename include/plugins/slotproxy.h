@@ -4,6 +4,7 @@
 #ifndef PLUGINS_SLOTPROXY_H
 #define PLUGINS_SLOTPROXY_H
 
+#include <boost/asio/use_awaitable.hpp>
 #include <concepts>
 #include <functional>
 #include <memory>
@@ -48,7 +49,7 @@ public:
      *
      * Constructs a SlotProxy object without initializing the plugin.
      */
-    constexpr SlotProxy() noexcept = default;
+    SlotProxy() noexcept = default;
 
     /**
      * @brief Constructs a SlotProxy object with a plugin.
@@ -58,6 +59,12 @@ public:
      * @param channel A shared pointer to the gRPC channel for communication with the plugin.
      */
     SlotProxy(std::shared_ptr<grpc::Channel> channel) : plugin_{ std::move(channel) } {};
+
+    constexpr SlotProxy(const SlotProxy&) noexcept = default;
+    constexpr SlotProxy(SlotProxy&&) noexcept = default;
+    constexpr SlotProxy& operator=(const SlotProxy&) noexcept = default;
+    constexpr SlotProxy& operator=(SlotProxy&&) noexcept = default;
+    ~SlotProxy() = default;
 
     /**
      * @brief Executes the plugin operation.
@@ -70,11 +77,19 @@ public:
      * @param args The arguments for the plugin request.
      * @return The result of the plugin request or the default behavior.
      */
-    auto operator()(auto&&... args)
+    auto operator()(auto&&... args) -> std::invoke_result_t<Default, decltype(args)...>
     {
         if (plugin_.has_value())
         {
-            return std::invoke(plugin_.value(), std::forward<decltype(args)>(args)...);
+            try
+            {
+                return std::invoke(plugin_.value(), std::forward<decltype(args)>(args)...);
+            }
+            catch (const std::exception& e)
+            {
+                spdlog::error("Plugin error: {}", e.what());
+                exit(1);
+            }
         }
         return std::invoke(default_process, std::forward<decltype(args)>(args)...);
     }
