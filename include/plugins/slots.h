@@ -4,6 +4,7 @@
 #ifndef PLUGINS_SLOTS_H
 #define PLUGINS_SLOTS_H
 
+#include <exception>
 #include <memory>
 #include <unordered_map>
 #include <variant>
@@ -14,8 +15,9 @@
 #include "plugins/slotproxy.h"
 #include "plugins/types.h"
 #include "plugins/validator.h"
-#include "utils/Simplify.h"  // TODO: Remove once the simplify slot has been removed
+#include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
+#include "utils/Simplify.h" // TODO: Remove once the simplify slot has been removed
 
 #include "plugin.grpc.pb.h"
 #include "postprocess.grpc.pb.h"
@@ -27,7 +29,10 @@ namespace details
 {
 struct default_process
 {
-    constexpr auto operator()(auto&& arg, auto&&...){ return std::forward<decltype(arg)>(arg); };
+    constexpr auto operator()(auto&& arg, auto&&...)
+    {
+        return std::forward<decltype(arg)>(arg);
+    };
 };
 
 struct simplify_default
@@ -47,14 +52,7 @@ struct simplify_default
  * @tparam Default The default behavior when no plugin is registered.
  */
 template<class Default = default_process>
-using simplify_slot = SlotProxy<SlotID::SIMPLIFY,
-                                "<=0.0.1",
-                                Validator,
-                                proto::Simplify::Stub,
-                                agrpc::RPC<&proto::Simplify::Stub::PrepareAsyncSimplify>,
-                                simplify_request,
-                                simplify_response,
-                                Default>;
+using simplify_slot = SlotProxy<SlotID::SIMPLIFY, "<=0.0.1", Validator, proto::Simplify::Stub, agrpc::RPC<&proto::Simplify::Stub::PrepareAsyncSimplify>, simplify_request, simplify_response, Default>;
 
 /**
  * @brief Alias for the Postprocess slot.
@@ -64,80 +62,93 @@ using simplify_slot = SlotProxy<SlotID::SIMPLIFY,
  * @tparam Default The default behavior when no plugin is registered.
  */
 template<class Default = default_process>
-using postprocess_slot = SlotProxy<SlotID::POSTPROCESS,
-                                   ">=1.0.0 <2.0.0 || >3.2.1",
-                                   Validator,
-                                   proto::Postprocess::Stub,
-                                   agrpc::RPC<&proto::Postprocess::Stub::PrepareAsyncPostprocess>,
-                                   postprocess_request,
-                                   postprocess_response,
-                                   Default>;
+using postprocess_slot = SlotProxy<SlotID::POSTPROCESS, ">=1.0.0 <2.0.0 || >3.2.1", Validator, proto::Postprocess::Stub, agrpc::RPC<&proto::Postprocess::Stub::PrepareAsyncPostprocess>, postprocess_request, postprocess_response, Default>;
 
-} // namespace details
-
-/**
- * @brief Class for managing plugin slots.
- *
- * The `Slots` class provides functionality to manage plugin slots. It allows registering and retrieving plugins
- * for specific slots.
- *
- * @tparams SlotTypes The different slot types.
- */
-template<class... SlotTypes>
-class Slots
+template<typename... Types>
+struct Typelist
 {
-    using slots_t = std::variant<SlotTypes...>; ///< The variant representing available slots.
-    std::unordered_map<SlotID, slots_t> slots_{}; ///< The map storing registered slots.
+};
 
-    constexpr Slots() noexcept = default;
+template<typename TList, template<typename> class Unit>
+class Registry;
+
+template<template<typename> class Unit>
+class Registry<Typelist<>, Unit>
+{
+};
+
+template<typename T, typename... Types, template<typename> class Unit>
+class Registry<Typelist<T, Types...>, Unit> : public Registry<Typelist<Types...>, Unit>
+{
 public:
-    Slots(const Slots&) = delete;
-    Slots(Slots&&) = delete;
+    using ValueType = T;
+    using Base = Registry<Typelist<Types...>, Unit>;
 
-    /**
-     * @brief Returns the instance of the Slots class.
-     *
-     * @return The instance of the Slots class.
-     */
-    static Slots& instance() noexcept
+    template<typename Tp>
+    Tp& get()
     {
-        static Slots instance{};
+        return get_type<Tp>().value;
+    }
+
+    template<typename Tp>
+    auto call(auto&&... args)
+    {
+        auto holder = get_type<Tp>();
+        return std::invoke(holder.value, std::forward<decltype(args)>(args)...);
+    }
+
+private:
+    template<typename Tp>
+    Unit<Tp>& get_type()
+    {
+        return get_helper<Tp>(std::is_same<Tp, ValueType>{});
+    }
+
+    template<typename Tp>
+    Unit<Tp>& get_helper(std::true_type)
+    {
+        return value_;
+    }
+
+    template<typename Tp>
+    Unit<Tp>& get_helper(std::false_type)
+    {
+        return Base::template get_type<Tp>();
+    }
+
+    Unit<ValueType> value_;
+};
+
+template<typename TList, template<typename> class Unit>
+class SingletonRegistry
+{
+public:
+    static Registry<TList, Unit>& instance()
+    {
+        static Registry<TList, Unit> instance;
         return instance;
     }
 
-    /**
-     * @brief Registers a plugin for the specified slot.
-     *
-     * @param plugin The plugin to register.
-     */
-    constexpr void set(auto&& plugin)
+private:
+    SingletonRegistry()
     {
-        using plugin_t = decltype(plugin);
-#ifdef PLUGINS
-        slots_.emplace(plugin.slot_id, std::forward<plugin_t>(plugin));
-#else
-        slots_.emplace(plugin.slot_id, std::forward<plugin_t>(plugin_t{}));  // Allways create a default (not connected) plugin
-#endif
-    }
-
-    /**
-     * @brief Retrieves the plugin for the specified slot.
-     *
-     * @tparam SlotID The ID of the slot.
-     * @return The plugin for the specified slot.
-     */
-    template<plugins::SlotID SlotID>
-    constexpr auto get() const
-    {
-        return std::get<SlotID>(slots_.at(SlotID));
     }
 };
+
+template<typename T>
+struct Holder
+{
+    T value;
+    //    agrpc::GrpcContext context;
+};
+
+} // namespace details
 
 using simplify_t = details::simplify_slot<details::simplify_default>;
 using postprocess_t = details::postprocess_slot<>;
 
-// The Template arguments should be ordered in the same ordering as the SlotID enum
-using slot_registry = plugins::Slots<simplify_t, postprocess_t>;
+using SlotTypes = details::Typelist<simplify_t, postprocess_t>;
+using slot_registry = details::SingletonRegistry<SlotTypes, details::Holder>;
 
 } // namespace cura::plugins
 
