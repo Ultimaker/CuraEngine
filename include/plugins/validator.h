@@ -4,9 +4,10 @@
 #ifndef PLUGINS_VALIDATOR_H
 #define PLUGINS_VALIDATOR_H
 
-#include "plugins/types.h"
-
+#include <fmt/format.h>
 #include <semver.hpp>
+
+#include "plugins/types.h"
 
 namespace cura::plugins
 {
@@ -25,8 +26,9 @@ class Validator
 {
     semver::range::detail::range semver_range_{ VersionRange.value }; ///< The semver range object.
     semver::version version_{ "1.0.0" }; ///< The version to validate.
-    bool include_prerelease_{ false }; ///< Flag indicating whether to include prerelease versions.
+    bool include_prerelease_{ true }; ///< Flag indicating whether to include prerelease versions.
     bool valid_{ false }; ///< Flag indicating the validity of the version.
+    std::string what_{};
 
 public:
     /**
@@ -39,7 +41,20 @@ public:
      *
      * @param version The version to validate.
      */
-    constexpr explicit Validator(std::string_view version) : version_{ version }, valid_{ valid_version() } {};
+    constexpr explicit Validator(std::string_view version) noexcept
+    {
+        auto semver_version = semver::from_string_noexcept(version);
+        if (semver_version.has_value())
+        {
+            version_ = semver_version.value();
+            valid_ = valid_version();
+        }
+        else
+        {
+            valid_ = false;
+            what_ = fmt::format("Received invalid formatted version {} from plugin, expected version according to semver.", version);
+        }
+    };
 
     /**
      * @brief Conversion operator to bool.
@@ -51,30 +66,26 @@ public:
         return valid_;
     }
 
+    constexpr std::string_view what() const noexcept
+    {
+        return what_;
+    }
+
+
     /**
      * @brief Checks if the version is valid according to the specified version range.
      *
      * @return True if the version is valid, false otherwise.
      */
-    [[nodiscard]] constexpr bool valid_version() const
+    [[nodiscard]] constexpr bool valid_version() noexcept
     {
-        return semver_range_.satisfies(version_, include_prerelease_);
+        auto valid_version{ semver_range_.satisfies(version_, include_prerelease_) };
+        if (! valid_version)
+        {
+            what_ = fmt::format("CuraEngine requires a 'slot version' within the range of '{}', while the plugin reports to have version: '{}'", VersionRange.value, version_.to_string());
+        }
+        return valid_version;
     }
-
-    /**
-     * @brief Returns the version string.
-     *
-     * @return The version string.
-     */
-    std::string getVersion() const
-    {
-        return version_.to_string();
-    }
-
-    /**
-     * @brief The version range specified as a string view.
-     */
-    static inline constexpr std::string_view version_range{ VersionRange.value };
 };
 
 } // namespace cura::plugins
