@@ -7,8 +7,8 @@
 #include <thread> //To sleep while waiting for the connection.
 #include <unordered_map> //To map settings to their extruder numbers for limit_to_extruder.
 
-#include <grpcpp/create_channel.h>
 #include <fmt/format.h>
+#include <grpcpp/create_channel.h>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get and set the current slice command.
@@ -517,23 +517,10 @@ void ArcusCommunication::sliceNext()
             switch (plugin.id())
             {
             case cura::proto::SlotID::SIMPLIFY:
-                plugins::slot_registry::instance().set(plugins::simplify_t{ create_channel(plugin.address(), plugin.port()) });
+                //slots::instance().connect<plugins::simplify_t>( create_channel(plugin.address(), plugin.port()) );
                 break;
             case cura::proto::SlotID::POSTPROCESS:
-                plugins::slot_registry::instance().set(plugins::postprocess_t{ create_channel(plugin.address(), plugin.port()) });
-                break;
-            default: break;
-            }
-        }
-        else
-        {
-            switch (plugin.id())
-            {
-            case cura::proto::SlotID::SIMPLIFY:
-                plugins::slot_registry::instance().set(plugins::simplify_t{ });
-                break;
-            case cura::proto::SlotID::POSTPROCESS:
-                plugins::slot_registry::instance().set(plugins::postprocess_t{  });
+                //slots::instance().connect<plugins::postprocess_t>( create_channel(plugin.address(), plugin.port()) );
                 break;
             default: break;
             }

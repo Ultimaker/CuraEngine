@@ -774,8 +774,15 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
 
     // Finally optimize all the polygons. Every point removed saves time in the long run.
 //    polygons = Simplify(mesh->settings).polygon(polygons);
-    auto simplify = plugins::slot_registry::instance().get<plugins::SlotID::SIMPLIFY>();
-    polygons = simplify(polygons, mesh->settings.get<coord_t>("meshfix_maximum_resolution"), mesh->settings.get<coord_t>("meshfix_maximum_deviation"), mesh->settings.get<size_t>("meshfix_maximum_extrusion_area_deviation"));
+    // TODO: Clean up
+    auto x = slots::instance().invoke<plugins::simplify_t>(polygons, mesh->settings.get<coord_t>("meshfix_maximum_resolution"), mesh->settings.get<coord_t>("meshfix_maximum_deviation"), static_cast<coord_t>(mesh->settings.get<size_t>("meshfix_maximum_extrusion_area_deviation")));
+//    auto y = x();
+//    auto z = plugins::slot_registry::instance().call<plugins::simplify_t>(polygons, mesh->settings.get<coord_t>("meshfix_maximum_resolution"), mesh->settings.get<coord_t>("meshfix_maximum_deviation"), static_cast<coord_t>(mesh->settings.get<size_t>("meshfix_maximum_extrusion_area_deviation")));
+
+
+    //(polygons, mesh->settings.get<coord_t>("meshfix_maxconnectimum_resolution"), mesh->settings.get<coord_t>("meshfix_maximum_deviation"), mesh->settings.get<size_t>("meshfix_maximum_extrusion_area_deviation"));
+//    auto simplify = plugins::slot_registry::instance().get<plugins::simplify_t>();
+//    polygons = simplify(polygons, mesh->settings.get<coord_t>("meshfix_maximum_resolution"), mesh->settings.get<coord_t>("meshfix_maximum_deviation"), mesh->settings.get<size_t>("meshfix_maximum_extrusion_area_deviation"));
 
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 

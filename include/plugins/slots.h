@@ -6,24 +6,21 @@
 
 #include <exception>
 #include <memory>
-#include <unordered_map>
-#include <variant>
-
-#include <boost/serialization/singleton.hpp>
 
 #include "plugins/converters.h"
 #include "plugins/slotproxy.h"
 #include "plugins/types.h"
 #include "plugins/validator.h"
 #include "utils/IntPoint.h"
-#include "utils/NoCopy.h"
 #include "utils/Simplify.h" // TODO: Remove once the simplify slot has been removed
 
 #include "plugin.grpc.pb.h"
 #include "postprocess.grpc.pb.h"
 #include "simplify.grpc.pb.h"
 
-namespace cura::plugins
+namespace cura
+{
+namespace plugins
 {
 namespace details
 {
@@ -91,10 +88,10 @@ public:
     }
 
     template<typename Tp>
-    auto call(auto&&... args)
+    auto invoke(auto&&... args)
     {
         auto holder = get_type<Tp>();
-        return std::invoke(holder.value, std::forward<decltype(args)>(args)...);
+        return std::invoke(holder.proxy, std::forward<decltype(args)>(args)...);
     }
 
 private:
@@ -138,7 +135,7 @@ private:
 template<typename T>
 struct Holder
 {
-    T value;
+    T proxy;
     //    agrpc::GrpcContext context;
 };
 
@@ -148,7 +145,8 @@ using simplify_t = details::simplify_slot<details::simplify_default>;
 using postprocess_t = details::postprocess_slot<>;
 
 using SlotTypes = details::Typelist<simplify_t, postprocess_t>;
-using slot_registry = details::SingletonRegistry<SlotTypes, details::Holder>;
+} // namespace plugins
+using slots = plugins::details::SingletonRegistry<plugins::SlotTypes, plugins::details::Holder>;
 
 } // namespace cura::plugins
 
