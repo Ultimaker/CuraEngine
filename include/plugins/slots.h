@@ -80,6 +80,7 @@ class Registry<Typelist<T, Types...>, Unit> : public Registry<Typelist<Types...>
 public:
     using ValueType = T;
     using Base = Registry<Typelist<Types...>, Unit>;
+    friend Base;
 
     template<typename Tp>
     constexpr Tp& get()
@@ -99,7 +100,7 @@ public:
         get_type<Tp>().proxy = Tp { std::forward<Tp>( std::move(plugin) ) };
     }
 
-private:
+protected:
     template<typename Tp>
     constexpr Unit<Tp>& get_type()
     {
