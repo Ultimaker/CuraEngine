@@ -22,7 +22,7 @@ find_package(asio-grpc REQUIRED)
 asio_grpc_protobuf_generate(PROTOS "${GRPC_PROTOS}"
         OUT_VAR "ASIO_GRPC_PLUGIN_PROTO_SOURCES"
         OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated"
-        GENERATE_GRPC GENERATE_MOCK_CODE GENERATE_DESCRIPTORS)
+        GENERATE_GRPC GENERATE_MOCK_CODE)
 
 if (ENABLE_ARCUS)
     message(STATUS "Building with Arcus")
