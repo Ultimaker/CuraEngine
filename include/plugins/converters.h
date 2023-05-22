@@ -13,61 +13,63 @@
 #include "plugins/types.h"
 
 #include "postprocess.grpc.pb.h"
+#include "postprocess.pb.h"
 #include "simplify.grpc.pb.h"
+#include "simplify.pb.h"
 
 namespace cura::plugins
 {
-
-/**
- * @brief A converter struct for plugin requests.
- *
- * The `plugin_request` struct provides a conversion function that converts a native slot ID
- * to a `proto::PluginRequest` message.
- */
-template<details::CharRangeLiteral SlotVersionRng>
-struct plugin_request
-{
-    using value_type = proto::PluginRequest; ///< The protobuf message type.
-    using native_value_type = cura::plugins::SlotID; ///< The native value type.
-    const std::string slot_version_range{ SlotVersionRng.value };
-
-    /**
-     * @brief Converts a native slot ID to a `proto::PluginRequest` message.
-     *
-     * @param slot_id The native slot ID.
-     * @return The converted `proto::PluginRequest` message.
-     */
-    value_type operator()(const native_value_type& slot_id) const
-    {
-        value_type message{};
-        message.set_slot_version_range(slot_version_range);
-        message.set_slot_id(slot_id);
-        return message;
-    }
-};
-
-/**
- * @brief A converter struct for plugin responses.
- *
- * The `plugin_response` struct provides a conversion function that converts a `proto::PluginResponse`
- * message to a native value type.
- */
-struct plugin_response
-{
-    using value_type = proto::PluginResponse; ///< The protobuf message type.
-    using native_value_type = std::tuple<SlotID, std::string, std::string, std::string>; ///< The native value type.
-
-    /**
-     * @brief Converts a `proto::PluginResponse` message to a native value type.
-     *
-     * @param message The `proto::PluginResponse` message.
-     * @return The converted native value.
-     */
-    native_value_type operator()(const value_type& message) const
-    {
-        return { message.slot_id(), message.plugin_name(), message.slot_version(), message.plugin_version() };
-    }
-};
+//
+///**
+// * @brief A converter struct for plugin requests.
+// *
+// * The `plugin_request` struct provides a conversion function that converts a native slot ID
+// * to a `proto::PluginRequest` message.
+// */
+//template<details::CharRangeLiteral SlotVersionRng>
+//struct plugin_request
+//{
+//    using value_type = proto::PluginRequest; ///< The protobuf message type.
+//    using native_value_type = cura::plugins::SlotID; ///< The native value type.
+//    const std::string slot_version_range{ SlotVersionRng.value };
+//
+//    /**
+//     * @brief Converts a native slot ID to a `proto::PluginRequest` message.
+//     *
+//     * @param slot_id The native slot ID.
+//     * @return The converted `proto::PluginRequest` message.
+//     */
+//    value_type operator()(const native_value_type& slot_id) const
+//    {
+//        value_type message{};
+//        message.set_slot_version_range(slot_version_range);
+//        message.set_slot_id(slot_id);
+//        return message;
+//    }
+//};
+//
+///**
+// * @brief A converter struct for plugin responses.
+// *
+// * The `plugin_response` struct provides a conversion function that converts a `proto::PluginResponse`
+// * message to a native value type.
+// */
+//struct plugin_response
+//{
+//    using value_type = proto::PluginResponse; ///< The protobuf message type.
+//    using native_value_type = std::tuple<SlotID, std::string, std::string, std::string>; ///< The native value type.
+//
+//    /**
+//     * @brief Converts a `proto::PluginResponse` message to a native value type.
+//     *
+//     * @param message The `proto::PluginResponse` message.
+//     * @return The converted native value.
+//     */
+//    native_value_type operator()(const value_type& message) const
+//    {
+//        return { message.slot_id(), message.plugin_name(), message.slot_version(), message.plugin_version() };
+//    }
+//};
 
 /**
  * @brief A converter struct for simplify requests.
@@ -78,7 +80,7 @@ struct plugin_response
 template<details::CharRangeLiteral SlotVersionRng>
 struct simplify_request
 {
-    using value_type = proto::SimplifyRequest; ///< The protobuf message type.
+    using value_type = plugins::v1::SimplifyServiceModifyRequest; ///< The protobuf message type.
     using native_value_type = Polygons; ///< The native value type.
     const std::string slot_version_range{ SlotVersionRng.value };
 
@@ -94,7 +96,6 @@ struct simplify_request
     value_type operator()(const native_value_type& polygons, const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation) const
     {
         value_type message{};
-        message.set_slot_version_range(slot_version_range);
         if (polygons.empty())
         {
             return message;
@@ -138,7 +139,7 @@ struct simplify_request
  */
 struct simplify_response
 {
-    using value_type = proto::SimplifyResponse; ///< The protobuf message type.
+    using value_type = plugins::v1::SimplifyServiceModifyResponse; ///< The protobuf message type.
     using native_value_type = Polygons; ///< The native value type.
 
     /**
@@ -182,7 +183,7 @@ struct simplify_response
 template<details::CharRangeLiteral SlotVersionRng>
 struct postprocess_request
 {
-    using value_type = proto::PostprocessRequest; ///< The protobuf message type.
+    using value_type = plugins::v1::PostprocessServiceModifyRequest; ///< The protobuf message type.
     using native_value_type = std::string; ///< The native value type.
     const std::string slot_version_range{ SlotVersionRng.value };
 
@@ -195,7 +196,6 @@ struct postprocess_request
     value_type operator()(const native_value_type& gcode) const
     {
         value_type message{};
-        message.set_slot_version_range(slot_version_range);
         message.set_gcode_word(gcode);
         return message;
     }
@@ -203,7 +203,7 @@ struct postprocess_request
 
 struct postprocess_response
 {
-    using value_type = proto::PostprocessResponse;
+    using value_type = plugins::v1::PostprocessServiceModifyResponse;
     using native_value_type = std::string;
 
     native_value_type operator()(const value_type& message) const

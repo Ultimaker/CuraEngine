@@ -14,18 +14,15 @@ option(ENABLE_PLUGINS "Build with all warnings" ON)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 #set(GRPC_PROTOS "List of all gRPC definitions (see: https://github.com/Ultimaker/curaengine_grpc_definitions)")
-message(STATUS ${GRPC_PROTOS})
 
 # Generate the plugin types
 find_package(protobuf REQUIRED)
 find_package(asio-grpc REQUIRED)
 
-asio_grpc_protobuf_generate(
-        GENERATE_GRPC GENERATE_MOCK_CODE
+asio_grpc_protobuf_generate(PROTOS "${GRPC_PROTOS}"
         OUT_VAR "ASIO_GRPC_PLUGIN_PROTO_SOURCES"
         OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated"
-        PROTOS "${GRPC_PROTOS}"
-)
+        GENERATE_GRPC GENERATE_MOCK_CODE GENERATE_DESCRIPTORS)
 
 if (ENABLE_ARCUS)
     message(STATUS "Building with Arcus")

@@ -13,11 +13,11 @@
 #include "utils/concepts/generic.h"
 #include "utils/polygon.h"
 
-#include "plugin.grpc.pb.h"
+#include "slot_id.pb.h"
 
 namespace cura::plugins
 {
-using SlotID = proto::SlotID;
+using SlotID = plugins::v1::SlotID;
 
 namespace details
 {

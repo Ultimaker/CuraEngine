@@ -114,7 +114,7 @@ class CuraEngineConan(ConanFile):
         tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
         tc.variables["ENABLE_PLUGINS"] = self.options.enable_plugins
         cpp_info = self.dependencies["curaengine_grpc_definitions"].cpp_info
-        tc.variables["GRPC_PROTOS"] = ";".join([str(p) for p in Path(cpp_info.resdirs[0]).glob("*.proto")])
+        tc.variables["GRPC_PROTOS"] = ";".join([str(p).replace("\\", "/") for p in Path(cpp_info.resdirs[0]).glob("*.proto")])
 
         tc.generate()
 

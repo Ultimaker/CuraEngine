@@ -17,8 +17,6 @@
 
 #include "plugins/exception.h"
 
-#include "plugin.grpc.pb.h"
-
 namespace cura::plugins
 {
 
@@ -43,9 +41,6 @@ public:
     using value_type = typename Response::native_value_type;
 
     using validator_t = Validator;
-
-    using request_plugin_t = typename proto::PluginRequest;
-    using response_plugin_t = typename proto::PluginResponse;
 
     using request_process_t = typename Request::value_type;
     using response_process_t = typename Response::value_type;
@@ -173,7 +168,7 @@ private:
             {
                 throw std::runtime_error(fmt::format("Plugin for slot {} is not ready", slot_id));
             }
-            co_await handshake(grpc_context, timeout);
+            //co_await handshake(grpc_context, timeout);
             if (! valid_)
             {
                 throw exceptions::ValidatorException(valid_, plugin_name_, plugin_version_, plugin_peer_);
@@ -181,27 +176,27 @@ private:
         }
     }
 
-    boost::asio::awaitable<void> handshake(agrpc::GrpcContext& grpc_context, const std::chrono::seconds& timeout = std::chrono::seconds(5))
-    {
-        const auto deadline = std::chrono::system_clock::now() + timeout; // TODO use deadline
-        using RPC = agrpc::RPC<&stub_t::PrepareAsyncIdentify>;
-        grpc::ClientContext client_context{};
-        plugin_request<SlotVersionRng> plugin_request_conv{};
-        request_plugin_t request{ plugin_request_conv(slot_id) };
-        response_plugin_t response{};
-        auto status = co_await RPC::request(grpc_context, stub_, client_context, request, response, boost::asio::use_awaitable);
-        if (! status.ok())
-        {
-            throw std::runtime_error(fmt::format("Slot {} with plugin {} '{}' at {} had a communication failure: {}", slot_id, plugin_name_, plugin_version_, plugin_name_, status_.error_message()));
-        }
-        spdlog::debug("Plugin responded with: {}", response.DebugString());
-        plugin_response plugin_response_conv{};
-        const auto& [rsp_slot_id, rsp_plugin_name, rsp_slot_version, rsp_plugin_version] = plugin_response_conv(response);
-        plugin_name_ = rsp_plugin_name;
-        plugin_version_ = rsp_plugin_version;
-        plugin_peer_ = client_context.peer();
-        valid_ = Validator{ rsp_slot_version };
-    }
+//    boost::asio::awaitable<void> handshake(agrpc::GrpcContext& grpc_context, const std::chrono::seconds& timeout = std::chrono::seconds(5))
+//    {
+//        const auto deadline = std::chrono::system_clock::now() + timeout; // TODO use deadline
+//        using RPC = agrpc::RPC<&stub_t::PrepareAsyncIdentify>;
+//        grpc::ClientContext client_context{};
+//        plugin_request<SlotVersionRng> plugin_request_conv{};
+//        request_plugin_t request{ plugin_request_conv(slot_id) };
+//        response_plugin_t response{};
+//        auto status = co_await RPC::request(grpc_context, stub_, client_context, request, response, boost::asio::use_awaitable);
+//        if (! status.ok())
+//        {
+//            throw std::runtime_error(fmt::format("Slot {} with plugin {} '{}' at {} had a communication failure: {}", slot_id, plugin_name_, plugin_version_, plugin_name_, status_.error_message()));
+//        }
+//        spdlog::debug("Plugin responded with: {}", response.DebugString());
+//        plugin_response plugin_response_conv{};
+//        const auto& [rsp_slot_id, rsp_plugin_name, rsp_slot_version, rsp_plugin_version] = plugin_response_conv(response);
+//        plugin_name_ = rsp_plugin_name;
+//        plugin_version_ = rsp_plugin_version;
+//        plugin_peer_ = client_context.peer();
+//        valid_ = Validator{ rsp_slot_version };
+//    }
 };
 } // namespace cura::plugins
 

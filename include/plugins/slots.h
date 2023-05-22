@@ -14,7 +14,6 @@
 #include "utils/IntPoint.h"
 #include "utils/Simplify.h" // TODO: Remove once the simplify slot has been removed
 
-#include "plugin.grpc.pb.h"
 #include "postprocess.grpc.pb.h"
 #include "simplify.grpc.pb.h"
 
@@ -49,7 +48,7 @@ struct simplify_default
  * @tparam Default The default behavior when no plugin is registered.
  */
 template<class Default = default_process>
-using simplify_slot = SlotProxy<SlotID::SIMPLIFY, "<=1.0.0", Validator, proto::Simplify::Stub, agrpc::RPC<&proto::Simplify::Stub::PrepareAsyncSimplify>, simplify_request, simplify_response, Default>;
+using simplify_slot = SlotProxy<SlotID::SIMPLIFY, "<=1.0.0", Validator, plugins::v1::SimplifyService::Stub, agrpc::RPC<&plugins::v1::SimplifyService::Stub::PrepareAsyncModify>, simplify_request, simplify_response, Default>;
 
 /**
  * @brief Alias for the Postprocess slot.
@@ -59,7 +58,7 @@ using simplify_slot = SlotProxy<SlotID::SIMPLIFY, "<=1.0.0", Validator, proto::S
  * @tparam Default The default behavior when no plugin is registered.
  */
 template<class Default = default_process>
-using postprocess_slot = SlotProxy<SlotID::POSTPROCESS, "<=1.0.0", Validator, proto::Postprocess::Stub, agrpc::RPC<&proto::Postprocess::Stub::PrepareAsyncPostprocess>, postprocess_request, postprocess_response, Default>;
+using postprocess_slot = SlotProxy<SlotID::POSTPROCESS, "<=1.0.0", Validator, plugins::v1::SimplifyService::Stub, agrpc::RPC<&plugins::v1::PostprocessService::Stub::PrepareAsyncModify>, postprocess_request, postprocess_response, Default>;
 
 template<typename... Types>
 struct Typelist
