@@ -77,19 +77,18 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_localplugin)(benchmark::St
 
     try
     {
-        plugins::slot_registry::instance().set(plugins::simplify_t{ grpc::CreateChannel(fmt::format("{}:{}", host, port), grpc::InsecureChannelCredentials())});
+        slots::instance().connect<plugins::simplify_t>( grpc::CreateChannel(fmt::format("{}:{}", host, port), grpc::InsecureChannelCredentials())));
     }
     catch (std::runtime_error e)
     {
         st.SkipWithError(e.what());
     }
-    auto simplify = plugins::slot_registry::instance().get<plugins::SlotID::SIMPLIFY>();
     for (auto _ : st)
     {
         Polygons simplified;
         for (const auto& polys : shapes)
         {
-            benchmark::DoNotOptimize(simplified = simplify(polys, MM2INT(0.25), MM2INT(0.025), 50000));
+            benchmark::DoNotOptimize(simplified = slots::instance().invoke<plugins::simplify_t>(polys, MM2INT(0.25), MM2INT(0.025), 50000));
         }
     }
 }
