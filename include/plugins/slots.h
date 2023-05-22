@@ -49,7 +49,7 @@ struct simplify_default
  * @tparam Default The default behavior when no plugin is registered.
  */
 template<class Default = default_process>
-using simplify_slot = SlotProxy<SlotID::SIMPLIFY, "<=0.0.1", Validator, proto::Simplify::Stub, agrpc::RPC<&proto::Simplify::Stub::PrepareAsyncSimplify>, simplify_request, simplify_response, Default>;
+using simplify_slot = SlotProxy<SlotID::SIMPLIFY, "<=1.0.0", Validator, proto::Simplify::Stub, agrpc::RPC<&proto::Simplify::Stub::PrepareAsyncSimplify>, simplify_request, simplify_response, Default>;
 
 /**
  * @brief Alias for the Postprocess slot.
@@ -59,7 +59,7 @@ using simplify_slot = SlotProxy<SlotID::SIMPLIFY, "<=0.0.1", Validator, proto::S
  * @tparam Default The default behavior when no plugin is registered.
  */
 template<class Default = default_process>
-using postprocess_slot = SlotProxy<SlotID::POSTPROCESS, ">=1.0.0 <2.0.0 || >3.2.1", Validator, proto::Postprocess::Stub, agrpc::RPC<&proto::Postprocess::Stub::PrepareAsyncPostprocess>, postprocess_request, postprocess_response, Default>;
+using postprocess_slot = SlotProxy<SlotID::POSTPROCESS, "<=1.0.0", Validator, proto::Postprocess::Stub, agrpc::RPC<&proto::Postprocess::Stub::PrepareAsyncPostprocess>, postprocess_request, postprocess_response, Default>;
 
 template<typename... Types>
 struct Typelist
@@ -82,33 +82,38 @@ public:
     using Base = Registry<Typelist<Types...>, Unit>;
 
     template<typename Tp>
-    Tp& get()
+    constexpr Tp& get()
     {
-        return get_type<Tp>().value;
+        return get_type<Tp>().proxy;
     }
 
     template<typename Tp>
-    auto invoke(auto&&... args)
+    constexpr auto invoke(auto&&... args)
     {
-        auto holder = get_type<Tp>();
-        return std::invoke(holder.proxy, std::forward<decltype(args)>(args)...);
+        return std::invoke(get<Tp>(), std::forward<decltype(args)>(args)...);
+    }
+
+    template<typename Tp>
+    void connect(auto&& plugin)
+    {
+        get_type<Tp>().proxy = Tp { std::forward<Tp>( std::move(plugin) ) };
     }
 
 private:
     template<typename Tp>
-    Unit<Tp>& get_type()
+    constexpr Unit<Tp>& get_type()
     {
         return get_helper<Tp>(std::is_same<Tp, ValueType>{});
     }
 
     template<typename Tp>
-    Unit<Tp>& get_helper(std::true_type)
+    constexpr Unit<Tp>& get_helper(std::true_type)
     {
         return value_;
     }
 
     template<typename Tp>
-    Unit<Tp>& get_helper(std::false_type)
+    constexpr Unit<Tp>& get_helper(std::false_type)
     {
         return Base::template get_type<Tp>();
     }
@@ -127,16 +132,13 @@ public:
     }
 
 private:
-    SingletonRegistry()
-    {
-    }
+    constexpr SingletonRegistry() = default;
 };
 
 template<typename T>
 struct Holder
 {
     T proxy;
-    //    agrpc::GrpcContext context;
 };
 
 } // namespace details
@@ -148,6 +150,6 @@ using SlotTypes = details::Typelist<simplify_t, postprocess_t>;
 } // namespace plugins
 using slots = plugins::details::SingletonRegistry<plugins::SlotTypes, plugins::details::Holder>;
 
-} // namespace cura::plugins
+} // namespace cura
 
 #endif // PLUGINS_SLOTS_H

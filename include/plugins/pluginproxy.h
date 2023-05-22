@@ -10,6 +10,7 @@
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/use_awaitable.hpp>
+#include <range/v3/utility/semiregular_box.hpp>
 #include <chrono>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
@@ -62,11 +63,10 @@ private:
     response_converter_t response_converter_{}; ///< The response converter object.
 
     grpc::Status status_; ///< The gRPC status object.
-    stub_t stub_; ///< The gRPC stub for communication.
+    ranges::semiregular_box<stub_t> stub_; ///< The gRPC stub for communication.
     std::string plugin_name_{}; ///< The name of the plugin.
     std::string plugin_version_{}; ///< The version of the plugin.
     std::string plugin_peer_{}; ///< The peer of the plugin.
-    bool plugin_ready_{ false }; ///< Whether the plugin is ready for communication.
 
 public:
     /**
@@ -82,7 +82,7 @@ public:
      */
     constexpr PluginProxy() = default;
 
-    PluginProxy(std::shared_ptr<grpc::Channel> channel) : stub_(channel)
+    explicit PluginProxy(std::shared_ptr<grpc::Channel> channel) : stub_(channel)
     {
         // Give the plugin some time to start up and initiate handshake
         agrpc::GrpcContext grpc_context;
@@ -91,9 +91,34 @@ public:
     }
 
     constexpr PluginProxy(const PluginProxy&) = default;
-    constexpr PluginProxy(PluginProxy&&) = default;
-    constexpr PluginProxy& operator=(const PluginProxy&) = default;
-    constexpr PluginProxy& operator=(PluginProxy&&) = default;
+    constexpr PluginProxy(PluginProxy&&)  noexcept = default;
+    constexpr PluginProxy& operator=(const PluginProxy& other)
+    {
+        if (this != &other)
+        {
+            valid_ = other.valid_;
+            status_ = other.status_;
+            stub_ = other.stub_;
+            plugin_name_ = other.plugin_name_;
+            plugin_version_ = other.plugin_version_;
+            plugin_peer_ = other.plugin_peer_;
+        }
+        return *this;
+    }
+
+    constexpr PluginProxy& operator=(PluginProxy&& other)
+    {
+        if (this != &other)
+        {
+            valid_ = std::move(other.valid_);
+            status_ = std::move(other.status_);
+            stub_ = std::move(other.stub_); // FIXME: the stub should be moved
+            plugin_name_ = std::move(other.plugin_name_);
+            plugin_version_ = std::move(other.plugin_version_);
+            plugin_peer_ = std::move(other.plugin_peer_);
+        }
+        return *this;
+    }
     ~PluginProxy() = default;
 
     /**
@@ -153,7 +178,6 @@ private:
             {
                 throw exceptions::ValidatorException(valid_, plugin_name_, plugin_version_, plugin_peer_);
             }
-            plugin_ready_ = true;
         }
     }
 

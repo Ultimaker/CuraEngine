@@ -39,7 +39,8 @@ template<plugins::SlotID Slot, details::CharRangeLiteral SlotVersionRng, templat
 class SlotProxy
 {
     Default default_process{};
-    std::optional<PluginProxy<Slot, SlotVersionRng, Validator<SlotVersionRng>, Stub, Prepare, Request<SlotVersionRng>, Response>> plugin_{ std::nullopt };
+    using value_type = PluginProxy<Slot, SlotVersionRng, Validator<SlotVersionRng>, Stub, Prepare, Request<SlotVersionRng>, Response>;
+    std::optional<value_type> plugin_{ std::nullopt };
 
 public:
     static inline constexpr plugins::SlotID slot_id{ Slot };
@@ -60,12 +61,6 @@ public:
      */
     SlotProxy(std::shared_ptr<grpc::Channel> channel) : plugin_{ std::move(channel) } {};
 
-    constexpr SlotProxy(const SlotProxy&) noexcept = default;
-    constexpr SlotProxy(SlotProxy&&) noexcept = default;
-    constexpr SlotProxy& operator=(const SlotProxy&) noexcept = default;
-    constexpr SlotProxy& operator=(SlotProxy&&) noexcept = default;
-    ~SlotProxy() = default;
-
     /**
      * @brief Executes the plugin operation.
      *
@@ -81,15 +76,7 @@ public:
     {
         if (plugin_.has_value())
         {
-            try
-            {
-                return std::invoke(plugin_.value(), std::forward<decltype(args)>(args)...);
-            }
-            catch (const std::exception& e)
-            {
-                spdlog::error("Plugin error: {}", e.what());
-                exit(1);
-            }
+            return std::invoke(plugin_.value(), std::forward<decltype(args)>(args)...);
         }
         return std::invoke(default_process, std::forward<decltype(args)>(args)...);
     }
