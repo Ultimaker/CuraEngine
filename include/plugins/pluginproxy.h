@@ -123,7 +123,7 @@ public:
 
         boost::asio::co_spawn(
             grpc_context,
-            [&]() -> boost::asio::awaitable<void>
+            [this, &status, &grpc_context, &ret_value, &args...]() -> boost::asio::awaitable<void>
             {
                 using RPC = agrpc::RPC<&stub_t::PrepareAsyncModify>;
                 grpc::ClientContext client_context{};
@@ -146,7 +146,7 @@ public:
                 if (! plugin_info_.has_value())
                 {
                     plugin_info_ = plugin_metadata{ client_context };
-                    valid_ = validator_type{ plugin_info_->slot_version };
+                    valid_ = validator_type{ slot_info_, plugin_info_.value() };
                 }
             },
             boost::asio::detached);
