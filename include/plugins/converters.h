@@ -12,17 +12,17 @@
 
 #include "plugins/types.h"
 
-#include "postprocess.grpc.pb.h"
-#include "postprocess.pb.h"
-#include "simplify.grpc.pb.h"
-#include "simplify.pb.h"
+#include "cura/plugins/slots/postprocess/v1/postprocess.grpc.pb.h"
+#include "cura/plugins/slots/postprocess/v1/postprocess.pb.h"
+#include "cura/plugins/slots/simplify/v1/simplify.grpc.pb.h"
+#include "cura/plugins/slots/simplify/v1/simplify.pb.h"
 
 namespace cura::plugins
 {
 
 struct simplify_request
 {
-    using value_type = plugins::v1::SimplifyServiceModifyRequest; ///< The protobuf message type.
+    using value_type = slots::simplify::v1::SimplifyServiceModifyRequest; ///< The protobuf message type.
     using native_value_type = Polygons; ///< The native value type.
 
     /**
@@ -80,7 +80,7 @@ struct simplify_request
  */
 struct simplify_response
 {
-    using value_type = plugins::v1::SimplifyServiceModifyResponse; ///< The protobuf message type.
+    using value_type = slots::simplify::v1::SimplifyServiceModifyResponse; ///< The protobuf message type.
     using native_value_type = Polygons; ///< The native value type.
 
     /**
@@ -118,7 +118,7 @@ struct simplify_response
 
 struct postprocess_request
 {
-    using value_type = plugins::v1::PostprocessServiceModifyRequest; ///< The protobuf message type.
+    using value_type = slots::postprocess::v1::PostprocessServiceModifyRequest; ///< The protobuf message type.
     using native_value_type = std::string; ///< The native value type.
 
     /**
@@ -137,7 +137,7 @@ struct postprocess_request
 
 struct postprocess_response
 {
-    using value_type = plugins::v1::PostprocessServiceModifyResponse;
+    using value_type = slots::postprocess::v1::PostprocessServiceModifyResponse;
     using native_value_type = std::string;
 
     native_value_type operator()(const value_type& message) const

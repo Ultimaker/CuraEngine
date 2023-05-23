@@ -14,12 +14,10 @@
 #include "utils/concepts/generic.h"
 #include "utils/polygon.h"
 
-#include "slot_id.pb.h"
+#include "cura/plugins/v1/slot_id.pb.h"
 
 namespace cura::plugins
 {
-using SlotID = plugins::v1::SlotID;
-
 namespace details
 {
 template<size_t N>
