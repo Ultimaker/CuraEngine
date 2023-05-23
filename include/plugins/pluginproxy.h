@@ -156,9 +156,9 @@ public:
         {
             if (plugin_info_.has_value())
             {
-                throw std::runtime_error(fmt::format("Slot {} with plugin {} '{}' at {} had a communication failure: {}", slot_info_.slot_id, plugin_info_->name, plugin_info_->version, plugin_info_->peer, status.error_message()));
+                throw exceptions::RemoteException(slot_info_, plugin_info_.value(), status.error_message());
             }
-            throw std::runtime_error(fmt::format("Slot {} had a communication failure: {}", slot_info_.slot_id, status.error_message()));
+            throw exceptions::RemoteException(slot_info_, status.error_message());
         }
 
         if (! valid_ )

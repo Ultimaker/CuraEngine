@@ -8,6 +8,7 @@
 
 #include <fmt/format.h>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include "plugins/metadata.h"
@@ -25,6 +26,24 @@ public:
 
     ValidatorException(const auto& validator, const slot_metadata& slot_info, const plugin_metadata& plugin_info) noexcept
         : msg_(fmt::format("Failed to validate plugin {} '{}' at {} for slot '{}'", plugin_info.name, plugin_info.version, plugin_info.peer, slot_info.slot_id))
+    {
+    }
+
+    virtual const char* what() const noexcept override
+    {
+        return msg_.c_str();
+    }
+};
+
+class RemoteException : public std::exception
+{
+    std::string msg_;
+
+public:
+    RemoteException(const slot_metadata& slot_info, std::string_view error_msg) noexcept : msg_(fmt::format("Remote exception on Slot '{}': {}", slot_info.slot_id, error_msg)){};
+
+    RemoteException(const slot_metadata& slot_info, const plugin_metadata& plugin_info, std::string_view error_msg) noexcept
+        : msg_(fmt::format("Remote exception for plugin {} '{}' at {} for slot '{}': {}", plugin_info.name, plugin_info.version, plugin_info.peer, slot_info.slot_id, error_msg))
     {
     }
 
