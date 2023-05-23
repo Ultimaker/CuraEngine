@@ -78,6 +78,29 @@ public:
      */
     constexpr PluginProxy() = default;
     explicit PluginProxy(std::shared_ptr<grpc::Channel> channel) : stub_(channel){};
+    constexpr PluginProxy(const PluginProxy&) = default;
+    constexpr PluginProxy(PluginProxy&&) noexcept = default;
+    constexpr PluginProxy& operator=(const PluginProxy& other)
+    {
+        if (this != &other)
+        {
+            valid_ = other.valid_;
+            stub_ = other.stub_;
+            plugin_info_ = other.plugin_info_;
+        }
+        return *this;
+    }
+    constexpr PluginProxy& operator=(PluginProxy&& other)
+    {
+        if (this != &other)
+        {
+            valid_ = std::move(other.valid_);
+            stub_ = std::move(other.stub_);
+            plugin_info_ = std::move(other.plugin_info_);
+        }
+        return *this;
+    }
+    ~PluginProxy() = default;
 
     /**
      * @brief Executes the plugin operation.
