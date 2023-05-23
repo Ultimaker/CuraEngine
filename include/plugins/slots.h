@@ -49,7 +49,7 @@ struct simplify_default
  * @tparam Default The default behavior when no plugin is registered.
  */
 template<class Default = default_process>
-using slot_simplify_ = SlotProxy<v1::SlotID::SIMPLIFY, "<=1.0.0", slots::simplify::v1::SimplifyService::Stub, Validator, simplify_request, simplify_response, Default>;
+using slot_simplify_ = SlotProxy<v0::SlotID::SIMPLIFY, "<=1.0.0", slots::simplify::v0::SimplifyService::Stub, Validator, simplify_request, simplify_response, Default>;
 
 /**
  * @brief Alias for the Postprocess slot.
@@ -59,7 +59,7 @@ using slot_simplify_ = SlotProxy<v1::SlotID::SIMPLIFY, "<=1.0.0", slots::simplif
  * @tparam Default The default behavior when no plugin is registered.
  */
 template<class Default = default_process>
-using slot_postprocess_ = SlotProxy<v1::SlotID::POSTPROCESS, "<=1.0.0", slots::postprocess::v1::PostprocessService::Stub, Validator, postprocess_request, postprocess_response, Default>;
+using slot_postprocess_ = SlotProxy<v0::SlotID::POSTPROCESS, "<=1.0.0", slots::postprocess::v0::PostprocessService::Stub, Validator, postprocess_request, postprocess_response, Default>;
 
 template<typename... Types>
 struct Typelist

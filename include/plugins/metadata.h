@@ -55,7 +55,7 @@ struct plugin_metadata
 
 struct slot_metadata
 {
-    plugins::v1::SlotID slot_id;
+    plugins::v0::SlotID slot_id;
     std::string_view version_range;
 };
 
