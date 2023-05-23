@@ -38,7 +38,7 @@ namespace cura::plugins
  * @tparam Request The gRPC convertible request type.
  * @tparam Response The gRPC convertible response type.
  */
-template<details::CharRangeLiteral RPC_ID, details::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, grpc_convertable RequestTp, grpc_convertable ResponseTp>
+template<plugins::v1::SlotID SlotID, details::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, grpc_convertable RequestTp, grpc_convertable ResponseTp>
 class PluginProxy
 {
 public:
@@ -61,7 +61,7 @@ private:
 
     ranges::semiregular_box<stub_t> stub_; ///< The gRPC stub for communication.
 
-    constexpr static slot_metadata slot_info_{ .rpc_id = RPC_ID.value, .version_range = SlotVersionRng.value };
+    constexpr static slot_metadata slot_info_{ .slot_id = SlotID, .version_range = SlotVersionRng.value };
     std::optional<plugin_metadata> plugin_info_{ std::nullopt }; ///< The plugin info object.
 
 public:
@@ -132,7 +132,7 @@ public:
                 client_context.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(500)); // TODO: don't use magic number and make it realistic
 
                 // Metadata
-                client_context.AddMetadata("cura-slot-service-name", slot_info_.rpc_id.data());
+                client_context.AddMetadata("cura-slot-service-name", fmt::format("{}", slot_info_.slot_id));
                 client_context.AddMetadata("cura-slot-version-range", slot_info_.version_range.data());
 
                 // Construct request
@@ -162,18 +162,18 @@ public:
         {
             if (plugin_info_.has_value())
             {
-                throw std::runtime_error(fmt::format("Slot {} with plugin {} '{}' at {} had a communication failure: {}", slot_info_.rpc_id, plugin_info_->name, plugin_info_->version, plugin_info_->peer, status.error_message()));
+                throw std::runtime_error(fmt::format("Slot {} with plugin {} '{}' at {} had a communication failure: {}", slot_info_.slot_id, plugin_info_->name, plugin_info_->version, plugin_info_->peer, status.error_message()));
             }
-            throw std::runtime_error(fmt::format("Slot {} had a communication failure: {}", slot_info_.rpc_id, status.error_message()));
+            throw std::runtime_error(fmt::format("Slot {} had a communication failure: {}", slot_info_.slot_id, status.error_message()));
         }
 
         if (! valid_ )
         {
             if (plugin_info_.has_value())
             {
-                throw std::runtime_error(fmt::format("Slot {} with plugin {} '{}' at {} failed validation: {}", slot_info_.rpc_id, plugin_info_->name, plugin_info_->version, plugin_info_->peer, valid_.what()));
+                throw exceptions::ValidatorException(valid_, slot_info_, plugin_info_.value());
             }
-            throw std::runtime_error(fmt::format("Slot {} failed validation: {}", slot_info_.rpc_id, valid_.what()));
+            throw exceptions::ValidatorException(valid_, slot_info_);
         }
 
         return ret_value;  // TODO: check if ret_value is always filled or if we need a solution like: https://stackoverflow.com/questions/67908591/how-to-convert-boostasioawaitable-to-stdfuture

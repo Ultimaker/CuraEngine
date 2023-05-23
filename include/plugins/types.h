@@ -50,10 +50,10 @@ struct fmt::formatter<cura::plugins::SlotID>
         switch (slot_id)
         {
         case cura::plugins::SlotID::SIMPLIFY:
-            slot_name = "Simplify";
+            slot_name = "SimplifyService";
             break;
         case cura::plugins::SlotID::POSTPROCESS:
-            slot_name = "Postprocess";
+            slot_name = "PostprocessService";
             break;
         default:
             slot_name = "Unknown";
