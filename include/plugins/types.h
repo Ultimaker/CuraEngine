@@ -8,6 +8,7 @@
 #include <tuple>
 
 #include <fmt/format.h>
+#include <grpcpp/support/string_ref.h>
 
 #include "utils/IntPoint.h"
 #include "utils/concepts/generic.h"
@@ -37,11 +38,12 @@ struct CharRangeLiteral
 } // namespace cura::plugins
 
 
+namespace fmt
+{
 // Custom formatter for humanreadable slot_id's
 template<>
-struct fmt::formatter<cura::plugins::SlotID>
+struct formatter<cura::plugins::SlotID>
 {
-    // The formatting function
     template<typename FormatContext>
     auto format(cura::plugins::SlotID slot_id, FormatContext& ctx)
     {
@@ -63,13 +65,27 @@ struct fmt::formatter<cura::plugins::SlotID>
         return fmt::format_to(ctx.out(), "{}", slot_name);
     }
 
-    // The parsing function
     template<typename ParseContext>
     auto parse(ParseContext& ctx)
     {
-        // Not implemented for simplicity in this example
         return ctx.begin();
     }
 };
 
+template<>
+struct formatter<grpc::string_ref>
+{
+    constexpr auto parse(format_parse_context& ctx)
+    {
+        return ctx.end();
+    }
+
+    template<typename FormatContext>
+    auto format(const grpc::string_ref& str, FormatContext& ctx)
+    {
+        return format_to(ctx.out(), "{}", std::string_view{ str.data(), str.size() });
+    }
+};
+
+} // namespace fmt
 #endif // PLUGINS_TYPES_H

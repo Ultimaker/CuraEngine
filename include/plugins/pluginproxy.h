@@ -145,13 +145,7 @@ public:
 
                 if (! plugin_info_.has_value())
                 {
-                    const auto& metadata_rsp = client_context.GetServerInitialMetadata();
-                    plugin_info_ = plugin_metadata{
-                        .name = metadata_rsp.find("cura-plugin-name")->second.data(),
-                        .version = metadata_rsp.find("cura-plugin-version")->second.data(),
-                        .peer = client_context.peer(),
-                        .slot_version = metadata_rsp.find("cura-slot-version")->second.data(),
-                    };
+                    plugin_info_ = plugin_metadata{ client_context };
                     valid_ = validator_type{ plugin_info_->slot_version };
                 }
             },
