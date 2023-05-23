@@ -57,7 +57,7 @@ public:
      *
      * @param channel A shared pointer to the gRPC channel for communication with the plugin.
      */
-    SlotProxy(std::shared_ptr<grpc::Channel> channel) : plugin_{ std::move(channel) } {};
+    explicit SlotProxy(std::shared_ptr<grpc::Channel> channel) : plugin_{ std::move(channel) } {};
 
     /**
      * @brief Executes the plugin operation.
