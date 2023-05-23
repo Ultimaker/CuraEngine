@@ -517,10 +517,10 @@ void ArcusCommunication::sliceNext()
             switch (plugin.id())
             {
             case cura::proto::SlotID::SIMPLIFY:
-                slots::instance().connect<plugins::simplify_t>( create_channel(plugin.address(), plugin.port()) );
+                slots::instance().connect<plugins::slot_simplify>( create_channel(plugin.address(), plugin.port()) );
                 break;
             case cura::proto::SlotID::POSTPROCESS:
-                slots::instance().connect<plugins::postprocess_t>( create_channel(plugin.address(), plugin.port()) );
+                slots::instance().connect<plugins::slot_postprocess>( create_channel(plugin.address(), plugin.port()) );
                 break;
             default: break;
             }

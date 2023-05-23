@@ -48,7 +48,7 @@ struct simplify_default
  * @tparam Default The default behavior when no plugin is registered.
  */
 template<class Default = default_process>
-using simplify_slot = SlotProxy<SlotID::SIMPLIFY, "<=1.0.0", Validator, plugins::v1::SimplifyService::Stub, agrpc::RPC<&plugins::v1::SimplifyService::Stub::PrepareAsyncModify>, simplify_request, simplify_response, Default>;
+using slot_simplify_ = SlotProxy<"SimplifyService", "<=1.0.0", plugins::v1::SimplifyService::Stub, Validator, simplify_request, simplify_response, Default>;
 
 /**
  * @brief Alias for the Postprocess slot.
@@ -58,7 +58,7 @@ using simplify_slot = SlotProxy<SlotID::SIMPLIFY, "<=1.0.0", Validator, plugins:
  * @tparam Default The default behavior when no plugin is registered.
  */
 template<class Default = default_process>
-using postprocess_slot = SlotProxy<SlotID::POSTPROCESS, "<=1.0.0", Validator, plugins::v1::SimplifyService::Stub, agrpc::RPC<&plugins::v1::PostprocessService::Stub::PrepareAsyncModify>, postprocess_request, postprocess_response, Default>;
+using slot_postprocess_ = SlotProxy<"PostprocessService", "<=1.0.0", plugins::v1::PostprocessService::Stub, Validator, postprocess_request, postprocess_response, Default>;
 
 template<typename... Types>
 struct Typelist
@@ -96,7 +96,7 @@ public:
     template<typename Tp>
     void connect(auto&& plugin)
     {
-        get_type<Tp>().proxy = Tp { std::forward<Tp>( std::move(plugin) ) };
+        get_type<Tp>().proxy = Tp{ std::forward<Tp>(std::move(plugin)) };
     }
 
 protected:
@@ -143,10 +143,10 @@ struct Holder
 
 } // namespace details
 
-using simplify_t = details::simplify_slot<details::simplify_default>;
-using postprocess_t = details::postprocess_slot<>;
+using slot_simplify = details::slot_simplify_<details::simplify_default>;
+using slot_postprocess = details::slot_postprocess_<>;
 
-using SlotTypes = details::Typelist<simplify_t, postprocess_t>;
+using SlotTypes = details::Typelist<slot_simplify, slot_postprocess>;
 } // namespace plugins
 using slots = plugins::details::SingletonRegistry<plugins::SlotTypes, plugins::details::Holder>;
 
