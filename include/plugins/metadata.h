@@ -16,10 +16,10 @@ namespace cura::plugins
 {
 struct plugin_metadata
 {
-    std::string_view name;
-    std::string_view version;
-    std::string_view peer;
-    std::string_view slot_version;
+    std::string name;  // cura-plugin-name (optional)
+    std::string version;  // cura-plugin-version (optional)
+    std::string peer;
+    std::string slot_version;  // cura-slot-version (required)
 
     explicit plugin_metadata(const grpc::ClientContext& client_context)
     {
@@ -55,7 +55,7 @@ struct plugin_metadata
 
 struct slot_metadata
 {
-    plugins::v1::SlotID slot_id;
+    plugins::v0::SlotID slot_id;
     std::string_view version_range;
 };
 

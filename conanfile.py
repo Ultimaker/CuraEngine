@@ -100,7 +100,7 @@ class CuraEngineConan(ConanFile):
         self.requires("zlib/1.2.12")
         self.requires("openssl/1.1.1l")
         self.requires("asio-grpc/2.4.0")
-        self.requires("curaengine_grpc_definitions/(latest)@ultimaker/arcus_replacement")
+        self.requires("curaengine_grpc_definitions/(latest)@ultimaker/testing")
 
     def generate(self):
         deps = CMakeDeps(self)
@@ -114,7 +114,8 @@ class CuraEngineConan(ConanFile):
         tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
         tc.variables["ENABLE_PLUGINS"] = self.options.enable_plugins
         cpp_info = self.dependencies["curaengine_grpc_definitions"].cpp_info
-        tc.variables["GRPC_PROTOS"] = ";".join([str(p).replace("\\", "/") for p in Path(cpp_info.resdirs[0]).glob("*.proto")])
+        tc.variables["GRPC_IMPORT_DIRS"] = cpp_info.resdirs[0]
+        tc.variables["GRPC_PROTOS"] = ";".join([str(p).replace("\\", "/") for p in Path(cpp_info.resdirs[0]).rglob("*.proto")])
 
         tc.generate()
 

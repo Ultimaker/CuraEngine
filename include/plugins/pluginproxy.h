@@ -19,7 +19,7 @@
 #include "plugins/exception.h"
 #include "plugins/metadata.h"
 
-#include "slot_id.pb.h"
+#include "cura/plugins/v0/slot_id.pb.h"
 #include "utils/concepts/generic.h"
 
 namespace cura::plugins
@@ -38,7 +38,7 @@ namespace cura::plugins
  * @tparam Request The gRPC convertible request type.
  * @tparam Response The gRPC convertible response type.
  */
-template<plugins::v1::SlotID SlotID, details::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, grpc_convertable RequestTp, grpc_convertable ResponseTp>
+template<plugins::v0::SlotID SlotID, details::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, grpc_convertable RequestTp, grpc_convertable ResponseTp>
 class PluginProxy
 {
 public:
@@ -147,6 +147,10 @@ public:
                 {
                     plugin_info_ = plugin_metadata{ client_context };
                     valid_ = validator_type{ slot_info_, plugin_info_.value() };
+                    if (valid_)
+                    {
+                        spdlog::info("Using plugin: '{}-{}' running at [{}] for slot {}", plugin_info_->name, plugin_info_->version, plugin_info_->peer, slot_info_.slot_id);
+                    }
                 }
             },
             boost::asio::detached);
@@ -156,9 +160,9 @@ public:
         {
             if (plugin_info_.has_value())
             {
-                throw std::runtime_error(fmt::format("Slot {} with plugin {} '{}' at {} had a communication failure: {}", slot_info_.slot_id, plugin_info_->name, plugin_info_->version, plugin_info_->peer, status.error_message()));
+                throw exceptions::RemoteException(slot_info_, plugin_info_.value(), status.error_message());
             }
-            throw std::runtime_error(fmt::format("Slot {} had a communication failure: {}", slot_info_.slot_id, status.error_message()));
+            throw exceptions::RemoteException(slot_info_, status.error_message());
         }
 
         if (! valid_ )
@@ -170,7 +174,7 @@ public:
             throw exceptions::ValidatorException(valid_, slot_info_);
         }
 
-        return ret_value;  // TODO: check if ret_value is always filled or if we need a solution like: https://stackoverflow.com/questions/67908591/how-to-convert-boostasioawaitable-to-stdfuture
+        return ret_value;
     }
 };
 } // namespace cura::plugins

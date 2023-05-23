@@ -20,7 +20,7 @@ find_package(protobuf REQUIRED)
 find_package(asio-grpc REQUIRED)
 find_package(grpc REQUIRED)
 
-asio_grpc_protobuf_generate(PROTOS "${GRPC_PROTOS}"
+asio_grpc_protobuf_generate(PROTOS "${GRPC_PROTOS}" IMPORT_DIRS ${GRPC_IMPORT_DIRS}
         OUT_VAR "ASIO_GRPC_PLUGIN_PROTO_SOURCES"
         OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated"
         GENERATE_GRPC GENERATE_MOCK_CODE)

@@ -14,12 +14,10 @@
 #include "utils/concepts/generic.h"
 #include "utils/polygon.h"
 
-#include "slot_id.pb.h"
+#include "cura/plugins/v0/slot_id.pb.h"
 
 namespace cura::plugins
 {
-using SlotID = plugins::v1::SlotID;
-
 namespace details
 {
 template<size_t N>
@@ -42,19 +40,19 @@ namespace fmt
 {
 // Custom formatter for humanreadable slot_id's
 template<>
-struct formatter<cura::plugins::SlotID>
+struct formatter<cura::plugins::v0::SlotID>
 {
     template<typename FormatContext>
-    auto format(cura::plugins::SlotID slot_id, FormatContext& ctx)
+    auto format(cura::plugins::v0::SlotID slot_id, FormatContext& ctx)
     {
         std::string slot_name;
 
         switch (slot_id)
         {
-        case cura::plugins::SlotID::SIMPLIFY:
+        case cura::plugins::v0::SlotID::SIMPLIFY:
             slot_name = "SimplifyService";
             break;
-        case cura::plugins::SlotID::POSTPROCESS:
+        case cura::plugins::v0::SlotID::POSTPROCESS:
             slot_name = "PostprocessService";
             break;
         default:
