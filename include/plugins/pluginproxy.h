@@ -123,7 +123,7 @@ public:
 
         boost::asio::co_spawn(
             grpc_context,
-            [&]() -> boost::asio::awaitable<void>
+            [this, &status, &grpc_context, &ret_value, &args...]() -> boost::asio::awaitable<void>
             {
                 using RPC = agrpc::RPC<&stub_t::PrepareAsyncModify>;
                 grpc::ClientContext client_context{};
@@ -145,14 +145,8 @@ public:
 
                 if (! plugin_info_.has_value())
                 {
-                    const auto& metadata_rsp = client_context.GetServerInitialMetadata();
-                    plugin_info_ = plugin_metadata{
-                        .name = metadata_rsp.find("cura-plugin-name")->second.data(),
-                        .version = metadata_rsp.find("cura-plugin-version")->second.data(),
-                        .peer = client_context.peer(),
-                        .slot_version = metadata_rsp.find("cura-slot-version")->second.data(),
-                    };
-                    valid_ = validator_type{ plugin_info_->slot_version };
+                    plugin_info_ = plugin_metadata{ client_context };
+                    valid_ = validator_type{ slot_info_, plugin_info_.value() };
                 }
             },
             boost::asio::detached);

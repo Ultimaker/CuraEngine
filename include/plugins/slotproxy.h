@@ -35,11 +35,11 @@ namespace cura::plugins
  * @tparam Response The gRPC convertible response type.
  * @tparam Default The default behavior when no plugin is available.
  */
-template<plugins::v1::SlotID SlotID, details::CharRangeLiteral SlotVersionRng, class Stub, template<details::CharRangeLiteral> class ValidatorTp, class RequestTp, class ResponseTp, class Default>
+template<plugins::v1::SlotID SlotID, details::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, class RequestTp, class ResponseTp, class Default>
 class SlotProxy
 {
     Default default_process{};
-    using value_type = PluginProxy<SlotID, SlotVersionRng, Stub, Validator<SlotVersionRng>, RequestTp, ResponseTp>;
+    using value_type = PluginProxy<SlotID, SlotVersionRng, Stub, ValidatorTp, RequestTp, ResponseTp>;
     std::optional<value_type> plugin_{ std::nullopt };
 
 public:
