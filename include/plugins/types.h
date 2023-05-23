@@ -40,19 +40,19 @@ namespace fmt
 {
 // Custom formatter for humanreadable slot_id's
 template<>
-struct formatter<cura::plugins::SlotID>
+struct formatter<cura::plugins::v1::SlotID>
 {
     template<typename FormatContext>
-    auto format(cura::plugins::SlotID slot_id, FormatContext& ctx)
+    auto format(cura::plugins::v1::SlotID slot_id, FormatContext& ctx)
     {
         std::string slot_name;
 
         switch (slot_id)
         {
-        case cura::plugins::SlotID::SIMPLIFY:
+        case cura::plugins::v1::SlotID::SIMPLIFY:
             slot_name = "SimplifyService";
             break;
-        case cura::plugins::SlotID::POSTPROCESS:
+        case cura::plugins::v1::SlotID::POSTPROCESS:
             slot_name = "PostprocessService";
             break;
         default:
