@@ -70,7 +70,7 @@ public:
      * @param args The arguments for the plugin request.
      * @return The result of the plugin request or the default behavior.
      */
-    auto operator()(auto&&... args) -> std::invoke_result_t<Default, decltype(args)...>
+    auto operator()(auto&&... args)
     {
         if (plugin_.has_value())
         {
