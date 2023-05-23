@@ -14,7 +14,6 @@
 #include <boost/asio/use_awaitable.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/coroutine.hpp>
-#include <boost/asio/spawn.hpp>
 #include <chrono>
 #include <fmt/format.h>
 #include <grpcpp/generic/generic_stub.h>
@@ -59,7 +58,6 @@ public:
     using rsp_converter_type = ResponseTp;
 
     using stub_t = Stub;
-//    using stub_t = grpc::GenericStub;
 
 private:
     validator_type valid_{}; ///< The validator object for plugin validation.
@@ -109,8 +107,6 @@ public:
     }
     ~PluginProxy() = default;
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "cppcoreguidelines-avoid-capture-default-when-capturing-this"
     /**
      * @brief Executes the plugin operation.
      *
@@ -186,23 +182,6 @@ public:
         }
 
         return ret_value;  // TODO: check if ret_value is always filled or if we need a solution like: https://stackoverflow.com/questions/67908591/how-to-convert-boostasioawaitable-to-stdfuture
-    }
-#pragma clang diagnostic pop
-
-private:
-    template<class Message>
-    auto serialize(const Message& message)
-    {
-        grpc::ByteBuffer buffer;
-        bool own_buffer;
-        grpc::GenericSerialize<grpc::ProtoBufferWriter, Message>(message, &buffer, &own_buffer);
-        return buffer;
-    }
-
-    template<class Message>
-    bool deserialize(grpc::ByteBuffer& buffer, Message& message)
-    {
-        return grpc::GenericDeserialize<grpc::ProtoBufferReader, Message>(&buffer, &message).ok();
     }
 };
 } // namespace cura::plugins
