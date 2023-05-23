@@ -14,9 +14,9 @@
 #include "utils/IntPoint.h"
 #include "utils/Simplify.h" // TODO: Remove once the simplify slot has been removed
 
-#include "cura/plugins/slots/postprocess/v1/postprocess.grpc.pb.h"
-#include "cura/plugins/slots/simplify/v1/simplify.grpc.pb.h"
-#include "cura/plugins/v1/slot_id.pb.h"
+#include "cura/plugins/slots/postprocess/v0/postprocess.grpc.pb.h"
+#include "cura/plugins/slots/simplify/v0/simplify.grpc.pb.h"
+#include "cura/plugins/v0/slot_id.pb.h"
 
 namespace cura
 {

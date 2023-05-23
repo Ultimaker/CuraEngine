@@ -19,7 +19,7 @@
 #include "plugins/exception.h"
 #include "plugins/metadata.h"
 
-#include "cura/plugins/v1/slot_id.pb.h"
+#include "cura/plugins/v0/slot_id.pb.h"
 #include "utils/concepts/generic.h"
 
 namespace cura::plugins

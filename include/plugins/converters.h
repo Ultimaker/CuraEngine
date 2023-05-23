@@ -12,10 +12,10 @@
 
 #include "plugins/types.h"
 
-#include "cura/plugins/slots/postprocess/v1/postprocess.grpc.pb.h"
-#include "cura/plugins/slots/postprocess/v1/postprocess.pb.h"
-#include "cura/plugins/slots/simplify/v1/simplify.grpc.pb.h"
-#include "cura/plugins/slots/simplify/v1/simplify.pb.h"
+#include "cura/plugins/slots/postprocess/v0/postprocess.grpc.pb.h"
+#include "cura/plugins/slots/postprocess/v0/postprocess.pb.h"
+#include "cura/plugins/slots/simplify/v0/simplify.grpc.pb.h"
+#include "cura/plugins/slots/simplify/v0/simplify.pb.h"
 
 namespace cura::plugins
 {

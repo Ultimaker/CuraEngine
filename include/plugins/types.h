@@ -14,7 +14,7 @@
 #include "utils/concepts/generic.h"
 #include "utils/polygon.h"
 
-#include "cura/plugins/v1/slot_id.pb.h"
+#include "cura/plugins/v0/slot_id.pb.h"
 
 namespace cura::plugins
 {
