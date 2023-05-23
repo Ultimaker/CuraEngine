@@ -10,12 +10,17 @@
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/use_awaitable.hpp>
-#include <range/v3/utility/semiregular_box.hpp>
 #include <chrono>
 #include <fmt/format.h>
+#include <range/v3/utility/semiregular_box.hpp>
 #include <spdlog/spdlog.h>
+#include <string>
 
 #include "plugins/exception.h"
+#include "plugins/metadata.h"
+
+#include "slot_id.pb.h"
+#include "utils/concepts/generic.h"
 
 namespace cura::plugins
 {
@@ -33,35 +38,31 @@ namespace cura::plugins
  * @tparam Request The gRPC convertible request type.
  * @tparam Response The gRPC convertible response type.
  */
-template<plugins::SlotID Slot, details::CharRangeLiteral SlotVersionRng, class Validator, class Stub, class Prepare, class Request, grpc_convertable Response>
+template<plugins::v1::SlotID SlotID, details::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, grpc_convertable RequestTp, grpc_convertable ResponseTp>
 class PluginProxy
 {
 public:
     // type aliases for easy use
-    using value_type = typename Response::native_value_type;
+    using value_type = typename ResponseTp::native_value_type;
+    using validator_type = ValidatorTp;
 
-    using validator_t = Validator;
+    using req_msg_type = typename RequestTp::value_type;
+    using rsp_msg_type = typename ResponseTp::value_type;
 
-    using request_process_t = typename Request::value_type;
-    using response_process_t = typename Response::value_type;
-
-    using request_converter_t = Request;
-    using response_converter_t = Response;
+    using req_converter_type = RequestTp;
+    using rsp_converter_type = ResponseTp;
 
     using stub_t = Stub;
 
-    static inline constexpr plugins::SlotID slot_id{ Slot };
-
 private:
-    validator_t valid_{}; ///< The validator object for plugin validation.
-    request_converter_t request_converter_{}; ///< The request converter object.
-    response_converter_t response_converter_{}; ///< The response converter object.
+    validator_type valid_{}; ///< The validator object for plugin validation.
+    req_converter_type req_{}; ///< The request converter object.
+    rsp_converter_type rsp_{}; ///< The response converter object.
 
-    grpc::Status status_; ///< The gRPC status object.
     ranges::semiregular_box<stub_t> stub_; ///< The gRPC stub for communication.
-    std::string plugin_name_{}; ///< The name of the plugin.
-    std::string plugin_version_{}; ///< The version of the plugin.
-    std::string plugin_peer_{}; ///< The peer of the plugin.
+
+    constexpr static slot_metadata slot_info_{ .slot_id = SlotID, .version_range = SlotVersionRng.value };
+    std::optional<plugin_metadata> plugin_info_{ std::nullopt }; ///< The plugin info object.
 
 public:
     /**
@@ -76,41 +77,26 @@ public:
      * @throws std::runtime_error if the plugin fails validation or communication errors occur.
      */
     constexpr PluginProxy() = default;
-
-    explicit PluginProxy(std::shared_ptr<grpc::Channel> channel) : stub_(channel)
-    {
-        // Give the plugin some time to start up and initiate handshake
-        agrpc::GrpcContext grpc_context;
-        boost::asio::co_spawn(grpc_context, wait_for_plugin_ready(grpc_context, channel), boost::asio::detached);
-        grpc_context.run();
-    }
-
+    explicit PluginProxy(std::shared_ptr<grpc::Channel> channel) : stub_(channel){};
     constexpr PluginProxy(const PluginProxy&) = default;
-    constexpr PluginProxy(PluginProxy&&)  noexcept = default;
+    constexpr PluginProxy(PluginProxy&&) noexcept = default;
     constexpr PluginProxy& operator=(const PluginProxy& other)
     {
         if (this != &other)
         {
             valid_ = other.valid_;
-            status_ = other.status_;
             stub_ = other.stub_;
-            plugin_name_ = other.plugin_name_;
-            plugin_version_ = other.plugin_version_;
-            plugin_peer_ = other.plugin_peer_;
+            plugin_info_ = other.plugin_info_;
         }
         return *this;
     }
-
     constexpr PluginProxy& operator=(PluginProxy&& other)
     {
         if (this != &other)
         {
             valid_ = std::move(other.valid_);
-            status_ = std::move(other.status_);
-            stub_ = std::move(other.stub_); // FIXME: the stub should be moved
-            plugin_name_ = std::move(other.plugin_name_);
-            plugin_version_ = std::move(other.plugin_version_);
-            plugin_peer_ = std::move(other.plugin_peer_);
+            stub_ = std::move(other.stub_);
+            plugin_info_ = std::move(other.plugin_info_);
         }
         return *this;
     }
@@ -133,70 +119,65 @@ public:
     {
         agrpc::GrpcContext grpc_context;
         value_type ret_value{};
+        grpc::Status status;
+
         boost::asio::co_spawn(
             grpc_context,
             [&]() -> boost::asio::awaitable<void>
             {
-                const auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(10); // TODO use deadline
+                using RPC = agrpc::RPC<&stub_t::PrepareAsyncModify>;
                 grpc::ClientContext client_context{};
-                request_process_t request{ request_converter_(std::forward<decltype(args)>(args)...) };
-                response_process_t response{};
-                status_ = co_await Prepare::request(grpc_context, stub_, client_context, request, response, boost::asio::use_awaitable);
-                ret_value = response_converter_(response);
+
+                // Set time-out
+                client_context.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(500)); // TODO: don't use magic number and make it realistic
+
+                // Metadata
+                client_context.AddMetadata("cura-slot-service-name", fmt::format("{}", slot_info_.slot_id));
+                client_context.AddMetadata("cura-slot-version-range", slot_info_.version_range.data());
+
+                // Construct request
+                auto request{ req_(std::forward<decltype(args)>(args)...) };
+
+                // Make unary request
+                rsp_msg_type response;
+                status = co_await RPC::request(grpc_context, stub_, client_context, request, response, boost::asio::use_awaitable);
+                ret_value = rsp_(response);
+
+                if (! plugin_info_.has_value())
+                {
+                    const auto& metadata_rsp = client_context.GetServerInitialMetadata();
+                    plugin_info_ = plugin_metadata{
+                        .name = metadata_rsp.find("cura-plugin-name")->second.data(),
+                        .version = metadata_rsp.find("cura-plugin-version")->second.data(),
+                        .peer = client_context.peer(),
+                        .slot_version = metadata_rsp.find("cura-slot-version")->second.data(),
+                    };
+                    valid_ = validator_type{ plugin_info_->slot_version };
+                }
             },
             boost::asio::detached);
         grpc_context.run();
 
-        if (! status_.ok())
+        if (! status.ok())  // TODO: handle different kind of status codes
         {
-            throw std::runtime_error(fmt::format("Slot {} with plugin {} '{}' at {} had a communication failure: {}", slot_id, plugin_name_, plugin_version_, plugin_name_, status_.error_message()));
+            if (plugin_info_.has_value())
+            {
+                throw std::runtime_error(fmt::format("Slot {} with plugin {} '{}' at {} had a communication failure: {}", slot_info_.slot_id, plugin_info_->name, plugin_info_->version, plugin_info_->peer, status.error_message()));
+            }
+            throw std::runtime_error(fmt::format("Slot {} had a communication failure: {}", slot_info_.slot_id, status.error_message()));
         }
-        return ret_value;
-    }
 
-private:
-    boost::asio::awaitable<void> wait_for_plugin_ready(agrpc::GrpcContext& grpc_context, std::shared_ptr<grpc::Channel> channel, const std::chrono::seconds& timeout = std::chrono::seconds(5))
-    {
-        const auto deadline = std::chrono::system_clock::now() + timeout;
-
-        const auto state = channel->GetState(true);
-        bool has_state_changed = co_await agrpc::notify_on_state_change(grpc_context, *channel, state, deadline);
-        if (has_state_changed)
+        if (! valid_ )
         {
-            auto plugin_connection_state = channel->GetState(true);
-            if (plugin_connection_state != grpc_connectivity_state::GRPC_CHANNEL_READY && plugin_connection_state != grpc_connectivity_state::GRPC_CHANNEL_CONNECTING)
+            if (plugin_info_.has_value())
             {
-                throw std::runtime_error(fmt::format("Plugin for slot {} is not ready", slot_id));
+                throw exceptions::ValidatorException(valid_, slot_info_, plugin_info_.value());
             }
-            //co_await handshake(grpc_context, timeout);
-            if (! valid_)
-            {
-                throw exceptions::ValidatorException(valid_, plugin_name_, plugin_version_, plugin_peer_);
-            }
+            throw exceptions::ValidatorException(valid_, slot_info_);
         }
-    }
 
-//    boost::asio::awaitable<void> handshake(agrpc::GrpcContext& grpc_context, const std::chrono::seconds& timeout = std::chrono::seconds(5))
-//    {
-//        const auto deadline = std::chrono::system_clock::now() + timeout; // TODO use deadline
-//        using RPC = agrpc::RPC<&stub_t::PrepareAsyncIdentify>;
-//        grpc::ClientContext client_context{};
-//        plugin_request<SlotVersionRng> plugin_request_conv{};
-//        request_plugin_t request{ plugin_request_conv(slot_id) };
-//        response_plugin_t response{};
-//        auto status = co_await RPC::request(grpc_context, stub_, client_context, request, response, boost::asio::use_awaitable);
-//        if (! status.ok())
-//        {
-//            throw std::runtime_error(fmt::format("Slot {} with plugin {} '{}' at {} had a communication failure: {}", slot_id, plugin_name_, plugin_version_, plugin_name_, status_.error_message()));
-//        }
-//        spdlog::debug("Plugin responded with: {}", response.DebugString());
-//        plugin_response plugin_response_conv{};
-//        const auto& [rsp_slot_id, rsp_plugin_name, rsp_slot_version, rsp_plugin_version] = plugin_response_conv(response);
-//        plugin_name_ = rsp_plugin_name;
-//        plugin_version_ = rsp_plugin_version;
-//        plugin_peer_ = client_context.peer();
-//        valid_ = Validator{ rsp_slot_version };
-//    }
+        return ret_value;  // TODO: check if ret_value is always filled or if we need a solution like: https://stackoverflow.com/questions/67908591/how-to-convert-boostasioawaitable-to-stdfuture
+    }
 };
 } // namespace cura::plugins
 

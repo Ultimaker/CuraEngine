@@ -10,6 +10,7 @@
 #include <string>
 #include <utility>
 
+#include "plugins/metadata.h"
 #include "plugins/types.h"
 
 namespace cura::plugins::exceptions
@@ -20,8 +21,10 @@ class ValidatorException : public std::exception
     std::string msg_;
 
 public:
-    ValidatorException(auto validator, std::string plugin_name, const std::string& plugin_version, const std::string& plugin_target) noexcept
-        : msg_(fmt::format("Plugin {} '{}' at {} failed validation: {}", plugin_name, plugin_version, plugin_target, validator.what()))
+    ValidatorException(const auto& validator, const slot_metadata& slot_info) noexcept : msg_(fmt::format("Failed to validation plugin on Slot '{}': {}", slot_info.slot_id, validator.what())){};
+
+    ValidatorException(const auto& validator, const slot_metadata& slot_info, const plugin_metadata& plugin_info) noexcept
+        : msg_(fmt::format("Failed to validate plugin {} '{}' at {} for slot '{}': {}", plugin_info.name, plugin_info.version, plugin_info.peer, slot_info.slot_id, validator.what()))
     {
     }
 
