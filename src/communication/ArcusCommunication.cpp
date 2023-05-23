@@ -24,6 +24,7 @@
 #include "settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
 #include "utils/polygon.h"
 
+#include "plugins/channel.h"
 #include "plugins/slots.h"
 
 namespace cura
@@ -509,7 +510,6 @@ void ArcusCommunication::sliceNext()
     spdlog::debug("Received a Slice message.");
 
     // TODO: Use typemap
-    constexpr auto create_channel = [&](auto&&... args){ return grpc::CreateChannel(fmt::format("{}:{}", std::forward<decltype(args)>(args)...), grpc::InsecureChannelCredentials()); };
     for (const auto& plugin : slice_message->engine_plugins())
     {
         if (plugin.has_address() && plugin.has_port())
@@ -517,10 +517,10 @@ void ArcusCommunication::sliceNext()
             switch (plugin.id())
             {
             case cura::proto::SlotID::SIMPLIFY:
-                slots::instance().connect<plugins::slot_simplify>( create_channel(plugin.address(), plugin.port()) );
+                slots::instance().connect<plugins::slot_simplify>(plugins::createChannel({ plugin.address(), plugin.port() }));
                 break;
             case cura::proto::SlotID::POSTPROCESS:
-                slots::instance().connect<plugins::slot_postprocess>( create_channel(plugin.address(), plugin.port()) );
+                slots::instance().connect<plugins::slot_postprocess>(plugins::createChannel({ plugin.address(), plugin.port() }));
                 break;
             default: break;
             }

@@ -3,9 +3,6 @@
 
 #include "Application.h"
 
-// TODO: Make this (enterprise) happen from build-system.
-#define ENTERPRISE_BUILD 1
-
 #include <chrono>
 #include <memory>
 #include <string>
@@ -28,23 +25,8 @@
 
 #include "plugins/slots.h"
 
-#ifdef ENTERPRISE_BUILD
-#include "../secrets/plugins.crt.h"
-#include "../secrets/plugins.key.h"
-#endif
-
 namespace cura
 {
-
-//TODO: Get these from the command-line and/or frontend.
-struct PluginSetupConfiguration
-{
-public:
-    std::string host = "localhost";
-    uint64_t port = 50010UL;
-
-    uint64_t shibolet = 56785678UL; // Assume both us and the plugin have been given this on start-up, in a scenario that needs more security.
-} PLUGIN_CONFIG;
 
 Application::Application()
 {
@@ -206,8 +188,6 @@ void Application::run(const size_t argc, char** argv)
         exit(1);
     }
 
-    registerPlugins(PLUGIN_CONFIG);
-
 #ifdef ARCUS
     if (stringcasecompare(argv[1], "connect") == 0)
     {
@@ -267,57 +247,6 @@ void Application::startThreadPool(int nworkers)
     }
     delete thread_pool;
     thread_pool = new ThreadPool(nthreads);
-}
-
-// TODO: Where to put this in the structure, does this belong to 'Application'?
-auto createChannel(const PluginSetupConfiguration& plugins_config)
-{
-#ifdef ENTERPRISE_BUILD
-    auto creds_config = grpc::SslCredentialsOptions();
-    creds_config.pem_root_certs = secrets::certificate;
-    creds_config.pem_cert_chain = secrets::certificate;
-    creds_config.pem_private_key = secrets::private_key;
-    auto channel_creds = grpc::SslCredentials(creds_config);
-#else // NOT ENTERPRISE_BUILD
-    // TODO: Do we want security to be on always?
-    auto channel_creds = grpc::InsecureChannelCredentials();
-#endif
-    return grpc::CreateChannel(fmt::format("{}:{}", plugins_config.host, plugins_config.port), channel_creds);
-}
-
-void Application::registerPlugins(const PluginSetupConfiguration& plugins_config)
-{
-    // TODO: remove this
-
-    constexpr auto simplify_default = [](const Polygons& polygons, const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation)
-    {
-        const Simplify simplify{ max_resolution, max_deviation, max_area_deviation };
-        return simplify.polygon(polygons);
-    };
-    using simplify_t = plugins::simplify_slot<simplify_default>;
-
-    constexpr auto postprocess_default = [](std::string word){ return word; };
-    using postprocess_t = plugins::postprocess_slot<postprocess_default>;
-
-    using slot_registry = plugins::Slots<simplify_t, postprocess_t>;
-
-    if (true) // determine wat to register depending if front-end starts a plugin
-    {
-        slot_registry::instance().set(simplify_t{createChannel(plugins_config)});
-    }
-    else
-    {
-        slot_registry::instance().set(simplify_t{});
-    }
-    slot_registry::instance().set(postprocess_t{});
-
-    auto simplify_plugin = slot_registry::instance().get<plugins::SlotID::SIMPLIFY>();
-    Polygons poly{};
-    Polygon p{};
-    p.poly = {{0,1}, {2,3}, {4,5}};
-    poly.add(p);
-    auto x = simplify_plugin(poly, 100, 200, 300);
-    spdlog::info("simplified poly received");
 }
 
 } // namespace cura
