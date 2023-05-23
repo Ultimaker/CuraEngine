@@ -4,96 +4,195 @@
 #ifndef PLUGINS_CONVERTERS_H
 #define PLUGINS_CONVERTERS_H
 
-#include <memory>
+#include <string>
+#include <tuple>
+
+#include <range/v3/range/operations.hpp>
+#include <range/v3/view/drop.hpp>
 
 #include "plugins/types.h"
 
 #include "postprocess.grpc.pb.h"
+#include "postprocess.pb.h"
 #include "simplify.grpc.pb.h"
+#include "simplify.pb.h"
 
 namespace cura::plugins
 {
+//
+///**
+// * @brief A converter struct for plugin requests.
+// *
+// * The `plugin_request` struct provides a conversion function that converts a native slot ID
+// * to a `proto::PluginRequest` message.
+// */
+//template<details::CharRangeLiteral SlotVersionRng>
+//struct plugin_request
+//{
+//    using value_type = proto::PluginRequest; ///< The protobuf message type.
+//    using native_value_type = cura::plugins::SlotID; ///< The native value type.
+//    const std::string slot_version_range{ SlotVersionRng.value };
+//
+//    /**
+//     * @brief Converts a native slot ID to a `proto::PluginRequest` message.
+//     *
+//     * @param slot_id The native slot ID.
+//     * @return The converted `proto::PluginRequest` message.
+//     */
+//    value_type operator()(const native_value_type& slot_id) const
+//    {
+//        value_type message{};
+//        message.set_slot_version_range(slot_version_range);
+//        message.set_slot_id(slot_id);
+//        return message;
+//    }
+//};
+//
+///**
+// * @brief A converter struct for plugin responses.
+// *
+// * The `plugin_response` struct provides a conversion function that converts a `proto::PluginResponse`
+// * message to a native value type.
+// */
+//struct plugin_response
+//{
+//    using value_type = proto::PluginResponse; ///< The protobuf message type.
+//    using native_value_type = std::tuple<SlotID, std::string, std::string, std::string>; ///< The native value type.
+//
+//    /**
+//     * @brief Converts a `proto::PluginResponse` message to a native value type.
+//     *
+//     * @param message The `proto::PluginResponse` message.
+//     * @return The converted native value.
+//     */
+//    native_value_type operator()(const value_type& message) const
+//    {
+//        return { message.slot_id(), message.plugin_name(), message.slot_version(), message.plugin_version() };
+//    }
+//};
 
-struct plugin_request
-{
-    using value_type = proto::PluginRequest;
-    using native_value_type = cura::plugins::SlotID;
-
-    value_type operator()(const native_value_type& slot_id) const
-    {
-        value_type message{};
-        message.set_id(slot_id);
-        return message;
-    }
-};
-
-struct plugin_response
-{
-    using value_type = proto::PluginResponse;
-    using native_value_type = std::pair<std::string, std::string>;
-
-    native_value_type operator()(const value_type& message) const
-    {
-        return std::make_pair(message.version(), message.plugin_hash());
-    }
-};
-
+/**
+ * @brief A converter struct for simplify requests.
+ *
+ * The `simplify_request` struct provides a conversion function that converts native data for
+ * simplification (polygons and simplification parameters) to a `proto::SimplifyRequest` message.
+ */
+template<details::CharRangeLiteral SlotVersionRng>
 struct simplify_request
 {
-    using value_type = proto::SimplifyRequest;
-    using native_value_type = Polygons;
+    using value_type = plugins::v1::SimplifyServiceModifyRequest; ///< The protobuf message type.
+    using native_value_type = Polygons; ///< The native value type.
+    const std::string slot_version_range{ SlotVersionRng.value };
 
+    /**
+     * @brief Converts native data for simplification to a `proto::SimplifyRequest` message.
+     *
+     * @param polygons The polygons to be simplified.
+     * @param max_resolution The maximum resolution for the simplified polygons.
+     * @param max_deviation The maximum deviation for the simplified polygons.
+     * @param max_area_deviation The maximum area deviation for the simplified polygons.
+     * @return The converted `proto::SimplifyRequest` message.
+     */
     value_type operator()(const native_value_type& polygons, const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation) const
     {
         value_type message{};
+        if (polygons.empty())
+        {
+            return message;
+        }
+
+        auto* msg_polygons = message.mutable_polygons();
+        auto* msg_polygon = msg_polygons->add_polygons();
+        auto* msg_outline = msg_polygon->mutable_outline();
+
+        for (const auto& point : ranges::front(polygons.paths))
+        {
+            auto* msg_outline_path = msg_outline->add_path();
+            msg_outline_path->set_x(point.X);
+            msg_outline_path->set_y(point.Y);
+        }
+
+        auto* msg_holes = msg_polygon->mutable_holes();
+        for (const auto& polygon : polygons.paths | ranges::views::drop(1))
+        {
+            auto* msg_hole = msg_holes->Add();
+            for (const auto& point : polygon)
+            {
+                auto* msg_path = msg_hole->add_path();
+                msg_path->set_x(point.X);
+                msg_path->set_y(point.Y);
+            }
+        }
+
         message.set_max_resolution(max_resolution);
         message.set_max_deviation(max_resolution);
         message.set_max_area_deviation(max_resolution);
-        for (const auto& polygon : polygons.paths)
-        {
-            auto* poly = message.mutable_polygons();
-            for (const auto& path : polygons.paths)
-            {
-                auto p = poly->add_paths();
-
-                for (const auto& point : path)
-                {
-                    auto* pt = p->add_path();
-                    pt->set_x(point.X);
-                    pt->set_y(point.Y);
-                }
-            }
-        }
         return message;
     }
 };
 
+/**
+ * @brief A converter struct for simplify responses.
+ *
+ * The `simplify_response` struct provides a conversion function that converts a `proto::SimplifyResponse`
+ * message to a native value type.
+ */
 struct simplify_response
 {
-    using value_type = proto::SimplifyResponse;
-    using native_value_type = Polygons;
+    using value_type = plugins::v1::SimplifyServiceModifyResponse; ///< The protobuf message type.
+    using native_value_type = Polygons; ///< The native value type.
 
+    /**
+     * @brief Converts a `proto::SimplifyResponse` message to a native value type.
+     *
+     * @param message The `proto::SimplifyResponse` message.
+     * @return The converted native value.
+     */
     native_value_type operator()(const value_type& message) const
     {
         native_value_type poly{};
-        for (const auto& paths : message.polygons().paths())
+        for (const auto& paths : message.polygons().polygons())
         {
-            Polygon p{};
-            for (const auto& point : paths.path())
+            Polygon o{};
+            for (const auto& point : paths.outline().path())
             {
-                p.add(Point{ point.x(), point.y() });
+                o.add(Point{ point.x(), point.y() });
             }
-            poly.add(p);
+            poly.add(o);
+
+            for (const auto& hole : paths.holes())
+            {
+                Polygon h{};
+                for (const auto& point : hole.path())
+                {
+                    h.add(Point{ point.x(), point.y() });
+                }
+                poly.add(h);
+            }
         }
         return poly;
     }
 };
 
+/**
+ * @brief A converter struct for postprocess requests.
+ *
+ * The `postprocess_request` struct provides a conversion function that converts a native G-code string
+ * to a `proto::PostprocessRequest` message.
+ */
+template<details::CharRangeLiteral SlotVersionRng>
 struct postprocess_request
 {
-    using value_type = proto::PostprocessRequest;
-    using native_value_type = std::string;
+    using value_type = plugins::v1::PostprocessServiceModifyRequest; ///< The protobuf message type.
+    using native_value_type = std::string; ///< The native value type.
+    const std::string slot_version_range{ SlotVersionRng.value };
 
+    /**
+     * @brief Converts a native G-code string to a `proto::PostprocessRequest` message.
+     *
+     * @param gcode The native G-code string.
+     * @return The converted `proto::PostprocessRequest` message.
+     */
     value_type operator()(const native_value_type& gcode) const
     {
         value_type message{};
@@ -104,7 +203,7 @@ struct postprocess_request
 
 struct postprocess_response
 {
-    using value_type = proto::PostprocessResponse;
+    using value_type = plugins::v1::PostprocessServiceModifyResponse;
     using native_value_type = std::string;
 
     native_value_type operator()(const value_type& message) const

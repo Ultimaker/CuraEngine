@@ -12,7 +12,6 @@
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <grpcpp/create_channel.h>
 #include <spdlog/sinks/dup_filter_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
