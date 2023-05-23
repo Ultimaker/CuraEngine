@@ -147,6 +147,10 @@ public:
                 {
                     plugin_info_ = plugin_metadata{ client_context };
                     valid_ = validator_type{ slot_info_, plugin_info_.value() };
+                    if (valid_)
+                    {
+                        spdlog::info("Using plugin: '{}-{}' running at [{}] for slot {}", plugin_info_->name, plugin_info_->version, plugin_info_->peer, slot_info_.slot_id);
+                    }
                 }
             },
             boost::asio::detached);
@@ -170,7 +174,7 @@ public:
             throw exceptions::ValidatorException(valid_, slot_info_);
         }
 
-        return ret_value;  // TODO: check if ret_value is always filled or if we need a solution like: https://stackoverflow.com/questions/67908591/how-to-convert-boostasioawaitable-to-stdfuture
+        return ret_value;
     }
 };
 } // namespace cura::plugins

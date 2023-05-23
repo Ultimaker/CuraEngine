@@ -6,6 +6,7 @@
 
 #include <fmt/format.h>
 #include <semver.hpp>
+#include <spdlog/spdlog.h>
 
 #include "plugins/metadata.h"
 #include "plugins/types.h"
@@ -33,10 +34,7 @@ public:
     {
         auto slot_range = semver::range::detail::range(slot_info.version_range);
         auto slot_version = semver::from_string(plugin_info.slot_version);
-        if (slot_range.satisfies(slot_version, include_prerelease_))
-        {
-            valid_ = true;
-        }
+        valid_ = slot_range.satisfies(slot_version, include_prerelease_);
     };
 
     /**
