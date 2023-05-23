@@ -6,17 +6,12 @@
 
 #include <agrpc/asio_grpc.hpp>
 #include <agrpc/grpc_context.hpp>
-#include <agrpc/high_level_client.hpp>
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
-#include <boost/asio/spawn.hpp>
 #include <boost/asio/use_awaitable.hpp>
-#include <boost/asio/compose.hpp>
-#include <boost/asio/coroutine.hpp>
 #include <chrono>
 #include <fmt/format.h>
-#include <grpcpp/generic/generic_stub.h>
 #include <range/v3/utility/semiregular_box.hpp>
 #include <spdlog/spdlog.h>
 #include <string>
