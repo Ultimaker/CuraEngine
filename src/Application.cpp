@@ -23,6 +23,8 @@
 #include "utils/ThreadPool.h"
 #include "utils/string.h" //For stringcasecompare.
 
+#include "plugins/slots.h"
+
 namespace cura
 {
 

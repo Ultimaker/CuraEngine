@@ -14,6 +14,8 @@ class Communication;
 class Slice;
 class ThreadPool;
 
+struct PluginSetupConfiguration;
+
 /*!
  * A singleton class that serves as the starting point for all slicing.
  *
@@ -134,6 +136,8 @@ private:
      * This destroys the Communication instance along with it.
      */
     ~Application();
+
+    void registerPlugins(const PluginSetupConfiguration& plugins_config);
 };
 
 } //Cura namespace.

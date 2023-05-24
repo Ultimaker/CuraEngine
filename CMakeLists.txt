@@ -18,6 +18,7 @@ option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 # Generate the plugin types
 find_package(protobuf REQUIRED)
 find_package(asio-grpc REQUIRED)
+find_package(grpc REQUIRED)
 
 asio_grpc_protobuf_generate(PROTOS "${GRPC_PROTOS}" IMPORT_DIRS ${GRPC_IMPORT_DIRS}
         OUT_VAR "ASIO_GRPC_PLUGIN_PROTO_SOURCES"
@@ -117,6 +118,7 @@ set(engine_SRCS # Except main.cpp.
 
         src/utils/AABB.cpp
         src/utils/AABB3D.cpp
+        src/utils/channel.cpp
         src/utils/Date.cpp
         src/utils/ExtrusionJunction.cpp
         src/utils/ExtrusionLine.cpp

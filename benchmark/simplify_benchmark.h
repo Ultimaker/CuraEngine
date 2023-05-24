@@ -11,7 +11,10 @@
 #include <grpcpp/create_channel.h>
 
 #include "../tests/ReadTestPolygons.h"
+
+#include "utils/channel.h"
 #include "utils/Simplify.h"
+
 #include "plugins/slots.h"
 
 namespace cura
@@ -61,7 +64,7 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_noplugin)(benchmark::State
         Polygons simplified;
 		for (const auto& polys : shapes)
 		{
-			benchmark::DoNotOptimize(simplified = slots::instance().invoke<plugins::simplify_t>(polys, MM2INT(0.25), MM2INT(0.025), 50000));
+			benchmark::DoNotOptimize(simplified = slots::instance().invoke<plugins::slot_simplify>(polys, MM2INT(0.25), MM2INT(0.025), 50000));
 		}
 	}
 }
@@ -71,11 +74,11 @@ BENCHMARK_REGISTER_F(SimplifyTestFixture, simplify_slot_noplugin);
 BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_localplugin)(benchmark::State& st)
 {
     auto host = "localhost";
-    auto port = 33700;
+    auto port = 33700UL;
 
     try
     {
-        slots::instance().connect<plugins::simplify_t>( grpc::CreateChannel(fmt::format("{}:{}", host, port), grpc::InsecureChannelCredentials()));
+        slots::instance().connect<plugins::slot_simplify>(utils::createChannel({host, port}));
     }
     catch (std::runtime_error e)
     {
@@ -86,7 +89,7 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_localplugin)(benchmark::St
         Polygons simplified;
         for (const auto& polys : shapes)
         {
-            benchmark::DoNotOptimize(simplified = slots::instance().invoke<plugins::simplify_t>(polys, MM2INT(0.25), MM2INT(0.025), 50000));
+            benchmark::DoNotOptimize(simplified = slots::instance().invoke<plugins::slot_simplify>(polys, MM2INT(0.25), MM2INT(0.025), 50000));
         }
     }
 }
