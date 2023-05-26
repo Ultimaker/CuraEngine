@@ -126,6 +126,16 @@ concept polygons = ranges::range<T> && polygon<typename T::value_type>;
 template<class T>
 concept poly_range = polygon<T> || polyline<T>;
 
+template<class T>
+concept segment = requires(T segment)
+{
+    { std::get<0>(segment) } -> point;
+    { std::get<1>(segment) } -> point;
+};
+
+template<class T>
+concept segment_container = ranges::range<T> && segment<typename T::value_type>;
+
 } // namespace concepts
 
 } // namespace cura

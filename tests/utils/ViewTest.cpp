@@ -78,7 +78,7 @@ TEST(ViewTest, SudividePolygon)
 {
     auto polygon = geometry::polygon_outer({ { 0, 0 }, { 200, 0 }, { 0, 200 } });
 
-    auto polygon_view = polygon | views::segments | views::subdivide;
+    auto polygon_view = polygon | views::segments | views::subdivide(views::subdivide_functions::getMidStops);
     auto expected = std::vector<std::pair<Point, Point>>{
         { {   0,   0 }, { 100,   0 } },
         { { 100,   0 }, { 200,   0 } },
