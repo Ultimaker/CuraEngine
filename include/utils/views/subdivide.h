@@ -5,8 +5,7 @@
 #define UTILS_VIEWS_SUBDIVIDE_H
 
 #include <range/v3/view/join.hpp>
-#include <range/v3/functional/bind_back.hpp>
-#include <range/v3/view/view.hpp>
+#include <range/v3/range/conversion.hpp>
 
 #include "utils/concepts/geometry.h"
 
@@ -21,21 +20,25 @@ namespace cura::views
             /* requires concepts::segment_container<std::remove_cvref_t<Rng>>&& std::floating_point<typename Container::value_type> */
             auto operator()(Rng&& rng) const
             {
-                using stops_t = coord_t; // decltype(std::function{StaticFunctor::stops})::result_type;
+                using stops_t = decltype(std::function{StaticFunctor::stops})::result_type::value_type;
                 return
                     rng |
                     ranges::view::transform
                     (
                         [](const auto& segment)
                         {
-                            const auto pa = std::get<0>(segment);
-                            const auto pb = std::get<1>(segment);
+                            const auto& pa = std::get<0>(segment);
+                            const auto& pb = std::get<1>(segment);
                             const auto stops_ = StaticFunctor::stops(vSize(pb - pa));
-                            return
+                            const auto points =
                                 stops_ |
-                                ranges::view::transform([&pa, &pb](const stops_t& c) { return pa * (1.0 - c) + pb * c; }) |
+                                ranges::view::transform([&pa, &pb](const stops_t& c){ return pa * (1.0 - c) + pb * c; }) |
+                                ranges::to<std::vector>();
+
+                            return
+                                points |
                                 ranges::views::sliding(2) |
-                                ranges::views::transform([](auto&& t) { return ranges::make_common_pair(t[0], t[1]); });
+                                ranges::views::transform([](auto&& t){ return ranges::make_common_pair(t[0], t[1]); });
                         }
                     ) |
                     ranges::view::join;
