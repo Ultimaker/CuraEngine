@@ -6,18 +6,13 @@
 
 #include <concepts>
 
-#include <boost/geometry.hpp>
-#include <boost/geometry/geometries/linestring.hpp>
-#include <boost/geometry/geometries/point_xy.hpp>
+#include <boost/geometry/algorithms/simplify.hpp>
 #include <range/v3/range/concepts.hpp>
 #include <range/v3/range/operations.hpp>
-#include <range/v3/range_concepts.hpp>
-#include <range/v3/view/all.hpp>
-#include <range/v3/view/view.hpp>
+#include <type_traits>
 
-#include "utils/Coord_t.h"
 #include "utils/concepts/geometry.h"
-
+#include "utils/geometry/boost_tags.h"
 
 namespace cura::views
 {
@@ -25,10 +20,13 @@ namespace details
 {
 struct simplify_base_fn
 {
-    template<concepts::is_closed_point_container Rng>
-    constexpr auto operator()(Rng&& rng, const std::integral auto max_deviation) const
+    template<ranges::viewable_range Rng>
+    auto operator()(Rng&& rng, const std::integral auto max_deviation) const
     {
-        return rng | ranges::views::all;
+        using point_t = std::remove_cvref_t<decltype(*ranges::begin(rng))>;
+        boost::geometry::model::linestring<point_t, std::vector> simplified;
+        boost::geometry::simplify(rng, simplified, max_deviation);
+        return simplified | ranges::views::all;
     }
 };
 
@@ -36,7 +34,7 @@ struct simplify_fn : simplify_base_fn
 {
     using simplify_base_fn::operator();
 
-    constexpr auto operator()(const std::integral auto max_deviation) const
+    auto operator()(const std::integral auto max_deviation) const
     {
         return ranges::make_view_closure(ranges::bind_back(simplify_base_fn{}, max_deviation));
     }

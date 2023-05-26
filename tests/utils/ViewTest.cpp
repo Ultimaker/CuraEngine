@@ -8,6 +8,7 @@
 #include "utils/concepts/geometry.h"
 #include "utils/geometry/point_container.h"
 #include "utils/views/segments.h"
+#include "utils/views/simplify.h"
 
 namespace cura
 {
@@ -15,7 +16,7 @@ namespace cura
 TEST(ViewTest, Polyline)
 {
     auto polyline = geometry::polyline{ { 0, 0 }, { 1, 1 }, { 2, 2 } };
-    static_assert(is_open_container_v<decltype(polyline)>);
+    static_assert(concepts::is_open_point_container<decltype(polyline)>);
 
     ASSERT_EQ(polyline.size(), 3);
 
@@ -28,7 +29,7 @@ TEST(ViewTest, Polyline)
 TEST(ViewTest, Polygon)
 {
     auto polygon = geometry::polygon_outer{ { 0, 0 }, { 1, 1 }, { 2, 2 } };
-    static_assert(is_closed_container_v<decltype(polygon)>);
+    static_assert(concepts::is_closed_point_container<decltype(polygon)>);
 
     ASSERT_EQ(polygon.size(), 3);
 
@@ -71,6 +72,12 @@ TEST(ViewTest, SegmentsViewPolygon)
         ASSERT_EQ(val.first, exp.first);
         ASSERT_EQ(val.second, exp.second);
     }
+}
+
+TEST(ViewTest, SimplifyViewPolygon)
+{
+    auto polygon = geometry::polygon_outer({ { 0, 0 }, { 1, 1 }, { 2, 2 } });
+    auto polygon_view = polygon | views::simplify(500) | ranges::views::all;
 }
 
 } // namespace cura

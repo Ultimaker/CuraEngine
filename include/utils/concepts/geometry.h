@@ -28,6 +28,24 @@ concept closable = requires(T t)
     requires std::convertible_to<decltype(t.is_closed), bool>;
 };
 
+template<concepts::closable T>
+struct is_closed_container
+{
+    static constexpr bool value = T::is_closed == true;
+};
+
+template<concepts::closable T>
+inline constexpr bool is_closed_container_v = is_closed_container<T>::value;
+
+template<concepts::closable T>
+struct is_open_container
+{
+    static constexpr bool value = T::is_closed == false;
+};
+
+template<concepts::closable T>
+inline constexpr bool is_open_container_v = is_open_container<T>::value;
+
 template<class T>
 concept is_closed_point_container = closable<T> && requires(T t)
 {
