@@ -29,14 +29,10 @@ namespace cura::views
                         {
                             const auto& pa = std::get<0>(segment);
                             const auto& pb = std::get<1>(segment);
-                            const auto stops_ = StaticFunctor::stops(vSize(pb - pa));
-                            const auto points =
-                                stops_ |
-                                ranges::view::transform([&pa, &pb](const stops_t& c){ return pa * (1.0 - c) + pb * c; }) |
-                                ranges::to<std::vector>();
-
+                            const auto slots_ = StaticFunctor::stops(vSize(pb - pa));
                             return
-                                points |
+                                slots_ |
+                                ranges::view::transform([&pa, &pb](const stops_t& c){ return pa * (1.0 - c) + pb * c; }) |
                                 ranges::views::sliding(2) |
                                 ranges::views::transform([](auto&& t){ return ranges::make_common_pair(t[0], t[1]); }) |
                                 ranges::to<std::vector>();
