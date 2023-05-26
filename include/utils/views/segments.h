@@ -40,5 +40,4 @@ RANGES_INLINE_VARIABLE(details::segment_view_fn, segments);
 
 } // namespace cura::views
 
-
 #endif // UTILS_VIEWS_SEGMENTS_H

@@ -17,7 +17,6 @@
 namespace cura::geometry
 {
 
-
 /*! The base clase of all point based container types
  *
  * @tparam P

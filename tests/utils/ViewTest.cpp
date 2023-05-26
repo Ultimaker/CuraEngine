@@ -8,6 +8,7 @@
 #include "utils/concepts/geometry.h"
 #include "utils/geometry/point_container.h"
 #include "utils/views/segments.h"
+#include "utils/views/subdivide.h"
 
 namespace cura
 {
@@ -64,6 +65,26 @@ TEST(ViewTest, SegmentsViewPolygon)
         { { 0, 0 }, { 1, 1 } },
         { { 1, 1 }, { 2, 2 } },
         { { 2, 2 }, { 0, 0 } }
+    };
+
+    for (const auto& [val, exp] : ranges::views::zip(polygon_view, expected))
+    {
+        ASSERT_EQ(val.first, exp.first);
+        ASSERT_EQ(val.second, exp.second);
+    }
+}
+
+TEST(ViewTest, SudividePolygon)
+{
+    auto polygon = geometry::polygon_outer({ { 0, 0 }, { 200, 0 }, { 0, 200 } });
+
+    auto polygon_view = polygon | views::segments | views::subdivide;
+    auto expected = std::vector<std::pair<Point, Point>>{
+        { {   0,   0 }, { 100,   0 } },
+        { { 100,   0 }, { 200,   0 } },
+        { { 200,   0 }, { 100, 100 } },
+        { { 100, 100 }, {   0, 200 } },
+        { {   0, 200 }, {   0, 100 } }
     };
 
     for (const auto& [val, exp] : ranges::views::zip(polygon_view, expected))
