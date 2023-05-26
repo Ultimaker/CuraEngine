@@ -30,6 +30,7 @@ class CuraEngineConan(ConanFile):
         "enable_benchmarks": [True, False],
         "enable_extensive_warnings": [True, False],
         "enable_plugins": [True, False],
+        "enable_remote_plugins": [True, False],
     }
     default_options = {
         "enable_arcus": True,
@@ -37,6 +38,7 @@ class CuraEngineConan(ConanFile):
         "enable_benchmarks": False,
         "enable_extensive_warnings": False,
         "enable_plugins": True,
+        "enable_remote_plugins": False,
     }
 
     def set_version(self):
@@ -53,6 +55,10 @@ class CuraEngineConan(ConanFile):
         copy(self, "*", path.join(self.recipe_folder, "include"), path.join(self.export_sources_folder, "include"))
         copy(self, "*", path.join(self.recipe_folder, "benchmark"), path.join(self.export_sources_folder, "benchmark"))
         copy(self, "*", path.join(self.recipe_folder, "tests"), path.join(self.export_sources_folder, "tests"))
+
+    def config_options(self):
+        if not self.options.enable_plugins:
+            del self.options.enable_remote_plugins
 
     def configure(self):
         self.options["boost"].header_only = True
@@ -112,7 +118,11 @@ class CuraEngineConan(ConanFile):
         tc.variables["ENABLE_TESTING"] = self.options.enable_testing
         tc.variables["ENABLE_BENCHMARKS"] = self.options.enable_benchmarks
         tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
-        tc.variables["ENABLE_PLUGINS"] = self.options.enable_plugins
+        if self.options.enable_plugins:
+            tc.variables["ENABLE_PLUGINS"] = True
+            tc.variables["ENABLE_REMOTE_PLUGINS"] = self.options.enable_remote_plugins
+        else:
+            tc.variables["ENABLE_PLUGINS"] = self.options.enable_plugins
         cpp_info = self.dependencies["curaengine_grpc_definitions"].cpp_info
         tc.variables["GRPC_IMPORT_DIRS"] = cpp_info.resdirs[0].replace("\\", "/")
         tc.variables["GRPC_PROTOS"] = ";".join([str(p).replace("\\", "/") for p in Path(cpp_info.resdirs[0]).rglob("*.proto")])

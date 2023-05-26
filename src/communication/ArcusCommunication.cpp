@@ -508,7 +508,7 @@ void ArcusCommunication::sliceNext()
     }
     spdlog::debug("Received a Slice message.");
 
-    // TODO: Use typemap
+#ifdef ENABLE_PLUGINS
     for (const auto& plugin : slice_message->engine_plugins())
     {
         if (plugin.has_address() && plugin.has_port())
@@ -525,6 +525,7 @@ void ArcusCommunication::sliceNext()
             }
         }
     }
+#endif // ENABLE_PLUGINS
 
     Slice slice(slice_message->object_lists().size());
     Application::getInstance().current_slice = &slice;

@@ -1,3 +1,6 @@
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
+
 #ifndef CHANNEL_H
 #define CHANNEL_H
 
@@ -5,8 +8,8 @@
 #include <memory>
 #include <string>
 
-#ifndef BUILD_ALLOW_REMOTE_CHANNELS
-#define BUILD_ALLOW_REMOTE_CHANNELS true
+#ifndef ENABLE_REMOTE_PLUGINS
+#define ENABLE_REMOTE_PLUGINS false
 #endif
 
 namespace cura::utils

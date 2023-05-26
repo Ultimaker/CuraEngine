@@ -1,3 +1,6 @@
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
+
 #include "utils/channel.h"
 
 #include <fmt/format.h>
@@ -9,7 +12,7 @@ namespace cura::utils
 {
     namespace details
     {
-        constexpr bool ALLOW_REMOTE_CHANNELS = (BUILD_ALLOW_REMOTE_CHANNELS);
+        inline constexpr static bool ALLOW_REMOTE_CHANNELS = ENABLE_REMOTE_PLUGINS;
     } // namespace details
 
     std::shared_ptr<grpc::Channel> createChannel(const ChannelSetupConfiguration& config)
@@ -22,7 +25,7 @@ namespace cura::utils
                     spdlog::info("Create local channel on port {}.", config.port);
                     return grpc::InsecureChannelCredentials();
                 }
-                else if (details::ALLOW_REMOTE_CHANNELS)
+                if (details::ALLOW_REMOTE_CHANNELS)
                 {
                     spdlog::info("Create local channel on port {}.", config.port);
                     auto creds_config = grpc::SslCredentialsOptions();
@@ -30,7 +33,7 @@ namespace cura::utils
                     return grpc::SslCredentials(creds_config);
                 }
                 // Create empty credentials, so it'll make a dummy channel where all operations fail.
-                // This is consitent with creating a channel with the wrong credentials as it where.
+                // This is consistent with creating a channel with the wrong credentials as it where.
                 spdlog::warn("Remote plugins where disabled, will not connect to {}:{}.", config.host, config.port);
                 return std::shared_ptr<grpc::ChannelCredentials>();
             };
