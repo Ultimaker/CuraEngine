@@ -38,7 +38,8 @@ namespace cura::views
                             return
                                 points |
                                 ranges::views::sliding(2) |
-                                ranges::views::transform([](auto&& t){ return ranges::make_common_pair(t[0], t[1]); });
+                                ranges::views::transform([](auto&& t){ return ranges::make_common_pair(t[0], t[1]); }) |
+                                ranges::to<std::vector>();
                         }
                     ) |
                     ranges::view::join;
@@ -58,7 +59,7 @@ namespace cura::views
         {
             static std::vector<double> stops(const coord_t& _)
             {
-                return { 0.0, 0.5 };
+                return { 0.0, 0.5, 1.0 };
             }
         };
     }
