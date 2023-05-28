@@ -54,7 +54,7 @@ struct closed_path : public point_container<P, true, Direction, false, Container
     {
     }
 
-    explicit closed_path(const Polygon& polygon) : point_container<P, true, Direction, false, Container>(polygon.poly)
+    constexpr closed_path(const Polygon& polygon) noexcept : point_container<P, true, Direction, false, Container>(polygon.poly)
     {
         // TODO: Remove once we finally get rid of Polygon
     }
@@ -70,7 +70,7 @@ struct closed_path : public point_container<P, true, Direction, false, Container
 
 template<utils::point P = Point, template<class> class Container = std::vector>
 closed_path(std::initializer_list<P>) -> closed_path<P, winding::NA, Container>;
-closed_path(Polygon) -> closed_path<Point, winding::NA, std::vector>;  // TODO: Remove once we finally get rid of Polygon
+closed_path(Polygon) -> closed_path<Point, winding::NA, std::vector>; // TODO: Remove once we finally get rid of Polygon
 
 template<utils::point P, winding Direction, template<class> class Container>
 struct filled_path : public closed_path<P, Direction, Container>
@@ -83,7 +83,7 @@ struct filled_path : public closed_path<P, Direction, Container>
 
 template<utils::point P = Point, template<class> class Container = std::vector>
 filled_path(std::initializer_list<P>) -> filled_path<P, winding::NA, Container>;
-filled_path(Polygon) -> filled_path<Point, winding::NA, std::vector>;  // TODO: Remove once we finally get rid of Polygon
+filled_path(Polygon) -> filled_path<Point, winding::NA, std::vector>; // TODO: Remove once we finally get rid of Polygon
 
 template<utils::point P = Point, template<class> class Container = std::vector>
 struct filled_path_outer : public filled_path<P, winding::CW, Container>
@@ -96,7 +96,8 @@ struct filled_path_outer : public filled_path<P, winding::CW, Container>
 
 template<utils::point P = Point, template<class> class Container = std::vector>
 filled_path_outer(std::initializer_list<P>) -> filled_path_outer<P, Container>;
-filled_path_outer(Polygon) -> filled_path_outer<Point, std::vector>;  // TODO: Remove once we finally get rid of Polygon
+filled_path_outer(std::vector<Point>) -> filled_path_outer<Point, std::vector>; // TODO: Remove once we finally get rid of Polygon
+filled_path_outer(Polygon) -> filled_path_outer<Point, std::vector>; // TODO: Remove once we finally get rid of Polygon
 
 template<utils::point P = Point, template<class> class Container = std::vector>
 struct filled_path_inner : public filled_path<P, winding::CCW, Container>
@@ -109,53 +110,26 @@ struct filled_path_inner : public filled_path<P, winding::CCW, Container>
 
 template<utils::point P = Point, template<class> class Container = std::vector>
 filled_path_inner(std::initializer_list<P>) -> filled_path_inner<P, Container>;
-filled_path_inner(Polygon) -> filled_path_inner<Point, std::vector>;  // TODO: Remove once we finally get rid of Polygon
+filled_path_inner(std::vector<Point>) -> filled_path_inner<Point, std::vector>; // TODO: Remove once we finally get rid of Polygon
+filled_path_inner(Polygon) -> filled_path_inner<Point, std::vector>; // TODO: Remove once we finally get rid of Polygon
 
-template<utils::point P = Point, template<class> class Container = std::vector>
-struct polygon
+template<utils::point P, template<class> class Container>
+struct ranged_paths : public Container<point_container<P, false, winding::NA, false, Container>>
 {
-    filled_path_outer<P, Container> outer;
-    Container<filled_path_inner<P, Container>> inners;
-
-    constexpr polygon() noexcept = default;
-
-    polygon(const std::vector<std::vector<Point>>& poly) : outer(filled_path_outer<P, Container>(ranges::front(poly)))
+    constexpr ranged_paths() noexcept = default;
+    constexpr ranged_paths(std::initializer_list<point_container<P, false, winding::NA, false, Container>> paths) noexcept : Container<point_container<P, false, winding::NA, false, Container>>(paths)
     {
-        // TODO: remove once we finally get rid of Polygon
-        auto holes = ranges::views::drop(poly, 1);
-        inners = Container<filled_path_inner<P, Container>>(ranges::begin(holes), ranges::end(holes));
     }
 
-    explicit operator Polygons() const
+    constexpr ranged_paths(const Polygons& polygons) noexcept
     {
-        // TODO: Remove once we finally get rid of Polygons
-        Polygons result;
-        result.reserve(1 + inners.size());
-        result.emplace_back(static_cast<Polygon>(outer));
-        for (const auto& inner : inners)
+        for (const auto& polygon : polygons)
         {
-            result.emplace_back(static_cast<Polygon>(inner));
+            this->emplace_back(polygon);
         }
-        return result;
     }
 };
-
-template<utils::point P = Point, template<class> class Container = std::vector>
-struct polygons : public Container<polygon<P, Container>>
-{
-    constexpr polygons() noexcept = default;
-    constexpr polygons(std::initializer_list<polygon<P, Container>> polygons) noexcept : Container<polygon<P, Container>>(polygons)
-    {
-    }
-};
-
-template<utils::point P = Point, template<class> class Container = std::vector>
-struct polytree
-{
-    Container<polygon<P, Container>> polygons;
-    Container<closed_path<P, winding::NA, Container>> closed_paths;
-    Container<open_path<P, Container>> open_paths;
-};
+ranged_paths(Polygons) -> ranged_paths<Point, std::vector>; // TODO: Remove once we finally get rid of Polygon
 
 } // namespace cura::geometry
 

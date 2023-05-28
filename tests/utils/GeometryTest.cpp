@@ -66,17 +66,25 @@ TEST(GeometryTest, closed_path_from_polygon)
     }
 }
 
-TEST(GeometryTest, polygon_from_closed_path)
+TEST(GeometryTest, ranged_paths_from_Polygons)
 {
-    auto closed_path = geometry::closed_path{ { 0, 0 }, { 1, 1 }, { 2, 2 } };
-    auto polygon = static_cast<Polygon>(closed_path);
+    Polygon polygon_inner;
+    polygon_inner.emplace_back(10, 10);
+    polygon_inner.emplace_back(90, 10);
+    polygon_inner.emplace_back(90, 90);
+    polygon_inner.emplace_back(10, 90);
 
-    auto expected = std::vector<Point>{ { 0, 0 }, { 1, 1 }, { 2, 2 } };
+    Polygon polygon_outer;
+    polygon_outer.emplace_back(0, 0);
+    polygon_outer.emplace_back(100, 0);
+    polygon_outer.emplace_back(100, 100);
+    polygon_outer.emplace_back(0, 100);
 
-    for (const auto& [val, exp] : ranges::views::zip(polygon.poly, expected))
-    {
-        ASSERT_EQ(val, exp);
-    }
+    Polygons polygons;
+    polygons.emplace_back(polygon_inner);
+    polygons.emplace_back(polygon_outer);
+
+    auto polygon = geometry::ranged_paths{ polygons };
 }
 
 } // namespace cura
