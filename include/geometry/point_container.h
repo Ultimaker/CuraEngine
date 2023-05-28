@@ -43,6 +43,9 @@ struct open_path : public point_container<P, false, winding::NA, false, Containe
     }
 };
 
+template<utils::point P = Point, template<class> class Container = std::vector>
+open_path(std::initializer_list<P>) -> open_path<P, Container>;
+
 template<utils::point P, winding Direction, template<class> class Container>
 struct closed_path : public point_container<P, true, Direction, false, Container>
 {
@@ -67,9 +70,7 @@ struct closed_path : public point_container<P, true, Direction, false, Container
 
 template<utils::point P = Point, template<class> class Container = std::vector>
 closed_path(std::initializer_list<P>) -> closed_path<P, winding::NA, Container>;
-
-template<utils::point P = Point, template<class> class Container = std::vector>
-closed_path(Polygon) -> closed_path<Point, winding::NA, Container>;
+closed_path(Polygon) -> closed_path<Point, winding::NA, std::vector>;  // TODO: Remove once we finally get rid of Polygon
 
 template<utils::point P, winding Direction, template<class> class Container>
 struct filled_path : public closed_path<P, Direction, Container>
@@ -82,6 +83,7 @@ struct filled_path : public closed_path<P, Direction, Container>
 
 template<utils::point P = Point, template<class> class Container = std::vector>
 filled_path(std::initializer_list<P>) -> filled_path<P, winding::NA, Container>;
+filled_path(Polygon) -> filled_path<Point, winding::NA, std::vector>;  // TODO: Remove once we finally get rid of Polygon
 
 template<utils::point P = Point, template<class> class Container = std::vector>
 struct filled_path_outer : public filled_path<P, winding::CW, Container>
@@ -90,12 +92,11 @@ struct filled_path_outer : public filled_path<P, winding::CW, Container>
     constexpr filled_path_outer(std::initializer_list<P> points) noexcept : filled_path<P, winding::CW, Container>(points)
     {
     }
-
-    filled_path_outer(const std::vector<Point>& poly) : point_container<P, true, winding::CW, false, Container>(poly)
-    {
-        // TODO: Remove once we finally get rid of Polygon
-    }
 };
+
+template<utils::point P = Point, template<class> class Container = std::vector>
+filled_path_outer(std::initializer_list<P>) -> filled_path_outer<P, Container>;
+filled_path_outer(Polygon) -> filled_path_outer<Point, std::vector>;  // TODO: Remove once we finally get rid of Polygon
 
 template<utils::point P = Point, template<class> class Container = std::vector>
 struct filled_path_inner : public filled_path<P, winding::CCW, Container>
@@ -104,12 +105,11 @@ struct filled_path_inner : public filled_path<P, winding::CCW, Container>
     constexpr filled_path_inner(std::initializer_list<P> points) noexcept : filled_path<P, winding::CCW, Container>(points)
     {
     }
-
-    filled_path_inner(const std::vector<Point>& poly) : point_container<P, true, winding::CCW, false, Container>(poly)
-    {
-        // TODO: Remove once we finally get rid of Polygon
-    }
 };
+
+template<utils::point P = Point, template<class> class Container = std::vector>
+filled_path_inner(std::initializer_list<P>) -> filled_path_inner<P, Container>;
+filled_path_inner(Polygon) -> filled_path_inner<Point, std::vector>;  // TODO: Remove once we finally get rid of Polygon
 
 template<utils::point P = Point, template<class> class Container = std::vector>
 struct polygon
