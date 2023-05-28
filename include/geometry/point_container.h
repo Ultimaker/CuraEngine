@@ -51,7 +51,7 @@ struct closed_path : public point_container<P, true, Direction, false, Container
     {
     }
 
-    closed_path(const std::vector<Point>& poly) : point_container<P, true, Direction, false, Container>(poly)
+    explicit closed_path(const Polygon& polygon) : point_container<P, true, Direction, false, Container>(polygon.poly)
     {
         // TODO: Remove once we finally get rid of Polygon
     }
@@ -67,6 +67,9 @@ struct closed_path : public point_container<P, true, Direction, false, Container
 
 template<utils::point P = Point, template<class> class Container = std::vector>
 closed_path(std::initializer_list<P>) -> closed_path<P, winding::NA, Container>;
+
+template<utils::point P = Point, template<class> class Container = std::vector>
+closed_path(Polygon) -> closed_path<Point, winding::NA, Container>;
 
 template<utils::point P, winding Direction, template<class> class Container>
 struct filled_path : public closed_path<P, Direction, Container>
