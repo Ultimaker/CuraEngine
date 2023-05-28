@@ -5,43 +5,17 @@
 #include <range/v3/view/zip.hpp>
 #include <spdlog/spdlog.h>
 
-#include "utils/concepts/geometry.h"
-#include "utils/geometry/point_container.h"
+#include "utils/types/geometry.h"
 #include "utils/views/segments.h"
 #include "utils/views/simplify.h"
+#include "geometry/point_container.h"
 
 namespace cura
 {
 
-TEST(ViewTest, Polyline)
-{
-    auto polyline = geometry::polyline{ { 0, 0 }, { 1, 1 }, { 2, 2 } };
-    static_assert(concepts::is_open_point_container<decltype(polyline)>);
-
-    ASSERT_EQ(polyline.size(), 3);
-
-    for (auto p : polyline)
-    {
-        ASSERT_EQ(p.X, p.Y);
-    }
-}
-
-TEST(ViewTest, Polygon)
-{
-    auto polygon = geometry::polygon_outer{ { 0, 0 }, { 1, 1 }, { 2, 2 } };
-    static_assert(concepts::is_closed_point_container<decltype(polygon)>);
-
-    ASSERT_EQ(polygon.size(), 3);
-
-    for (auto p : polygon)
-    {
-        ASSERT_EQ(p.X, p.Y);
-    }
-}
-
 TEST(ViewTest, SegmentsViewPolyline)
 {
-    auto polyline = geometry::polyline{ { 0, 0 }, { 1, 1 }, { 2, 2 } };
+    auto polyline = geometry::open_path{ { 0, 0 }, { 1, 1 }, { 2, 2 } };
 
     auto polyline_view = polyline | views::segments;
     auto expected = std::vector<std::pair<Point, Point>>{
@@ -58,7 +32,7 @@ TEST(ViewTest, SegmentsViewPolyline)
 
 TEST(ViewTest, SegmentsViewPolygon)
 {
-    auto polygon = geometry::polygon_outer({ { 0, 0 }, { 1, 1 }, { 2, 2 } });
+    auto polygon = geometry::closed_path({ { 0, 0 }, { 1, 1 }, { 2, 2 } });
 
     auto polygon_view = polygon | views::segments;
     auto expected = std::vector<std::pair<Point, Point>>{
@@ -76,7 +50,7 @@ TEST(ViewTest, SegmentsViewPolygon)
 
 TEST(ViewTest, SimplifyViewPolygon)
 {
-    auto polygon = geometry::polygon_outer({ { 0, 0 }, { 1, 1 }, { 2, 2 } });
+    auto polygon = geometry::closed_path({ { 0, 0 }, { 1, 1 }, { 2, 2 } });
     auto polygon_view = polygon | views::simplify(500) | ranges::views::all;
 }
 

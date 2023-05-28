@@ -38,6 +38,7 @@ set(TESTS_SRC_UTILS
         StringTest
         UnionFindTest
         ViewTest
+        GeometryTest
         )
 
 set(TESTS_HELPERS_SRC ReadTestPolygons.cpp)

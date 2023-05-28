@@ -10,16 +10,9 @@
 
 #include <range/v3/range/concepts.hpp>
 
-namespace cura
-{
-enum class direction
-{
-    NA,
-    CW,
-    CCW
-};
+#include "geometry/winding.h"
 
-namespace concepts
+namespace cura::utils
 {
 
 template<class T>
@@ -28,52 +21,17 @@ concept closable = requires(T t)
     requires std::convertible_to<decltype(t.is_closed), bool>;
 };
 
-template<concepts::closable T>
-struct is_closed_container
-{
-    static constexpr bool value = T::is_closed == true;
-};
-
-template<concepts::closable T>
-inline constexpr bool is_closed_container_v = is_closed_container<T>::value;
-
-template<concepts::closable T>
-struct is_open_container
-{
-    static constexpr bool value = T::is_closed == false;
-};
-
-template<concepts::closable T>
-inline constexpr bool is_open_container_v = is_open_container<T>::value;
-
 template<class T>
-concept is_closed_point_container = closable<T> && requires(T t)
+concept fillable = requires(T t)
 {
-    t.is_closed == true;
+    requires std::convertible_to<decltype(t.is_filled), bool>;
 };
 
-template<class T>
-concept is_open_point_container = closable<T> && requires(T t)
-{
-    t.is_closed == false;
-};
 
 template<class T>
 concept directional = requires(T t)
 {
-    requires std::is_same_v<decltype(t.winding), direction>;
-};
-
-template<class T>
-concept is_clockwise_point_container = directional<T> && requires(T t)
-{
-    t.winding == direction::CW;
-};
-
-template<class T>
-concept is_counterclockwise_point_container = directional<T> && requires(T t)
-{
-    t.winding == direction::CCW;
+    requires std::convertible_to<decltype(t.direction), geometry::winding>;
 };
 
 template<class T>
@@ -122,18 +80,18 @@ template<class T>
 concept point_ranged = point<T> && ! point2d_named<T> && ! point3d_named<T>;
 
 template<class T>
-concept polyline = ranges::range<T> && is_open_point_container<T> && point<typename T::value_type>;
+concept open_path = ranges::range<T> && closable<T> && point<typename T::value_type> && !T::is_closed;
 
 template<class T>
-concept polygon = ranges::range<T> && is_closed_point_container<T> && point<typename T::value_type>;
+concept closed_path = ranges::range<T> && closable<T> && point<typename T::value_type> && T::is_closed;
 
 template<class T>
-concept polygons = ranges::range<T> && polygon<typename T::value_type>;
+concept filled_path = closed_path<T> && fillable<T> && T::is_filled;
 
 template<class T>
-concept poly_range = polygon<T> || polyline<T>;
+concept ranged_path = ranges::range<T> && (filled_path<typename T::value_type> || open_path<typename T::value_type> || closed_path<typename T::value_type>);
 
-} // namespace concepts
-} // namespace cura
+
+} // namespace cura::utils
 
 #endif // UTILS_CONCEPTS_GEOMETRY_H

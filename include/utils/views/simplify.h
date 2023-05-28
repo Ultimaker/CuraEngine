@@ -11,8 +11,8 @@
 #include <range/v3/range/operations.hpp>
 #include <type_traits>
 
-#include "utils/concepts/geometry.h"
-#include "utils/geometry/boost_tags.h"
+#include "utils/types/geometry.h"
+#include "utils/types/boost_tags.h"
 
 namespace cura::views
 {

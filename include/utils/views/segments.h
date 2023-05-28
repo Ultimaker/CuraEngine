@@ -7,8 +7,9 @@
 #include <range/v3/view/concat.hpp>
 #include <range/v3/view/single.hpp>
 #include <range/v3/view/sliding.hpp>
+#include <range/v3/view/transform.hpp>
 
-#include "utils/concepts/geometry.h"
+#include "utils/types/geometry.h"
 
 namespace cura::views
 {
@@ -17,13 +18,13 @@ namespace details
 struct segment_view_fn
 {
     template<ranges::viewable_range Rng>
-    requires concepts::is_closed_container_v<std::remove_cvref_t<Rng>> constexpr auto operator()(Rng&& rng) const
+    requires utils::closed_path<std::remove_cvref_t<Rng>> constexpr auto operator()(Rng&& rng) const
     {
         return ranges::views::concat(rng, ranges::views::single(rng.front())) | ranges::views::sliding(2) | ranges::views::transform([](auto&& t) { return ranges::make_common_pair(t[0], t[1]); });
     }
 
     template<ranges::viewable_range Rng>
-    requires concepts::is_open_container_v<std::remove_cvref_t<Rng>> constexpr auto operator()(Rng&& rng) const
+    requires utils::open_path<std::remove_cvref_t<Rng>> constexpr auto operator()(Rng&& rng) const
     {
         return ranges::views::sliding(rng, 2) | ranges::views::transform([](auto&& t) { return ranges::make_common_pair(t[0], t[1]); });
     }

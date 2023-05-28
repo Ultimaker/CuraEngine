@@ -7,7 +7,7 @@
 #include <concepts>
 #include <type_traits>
 
-#include "utils/concepts/generic.h"
+#include "utils/types/generic.h"
 
 namespace cura
 {
