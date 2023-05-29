@@ -1,8 +1,8 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef UTILS_CONCEPTS_GEOMETRY_H
-#define UTILS_CONCEPTS_GEOMETRY_H
+#ifndef UTILS_TYPES_GEOMETRY_H
+#define UTILS_TYPES_GEOMETRY_H
 
 #include <concepts>
 #include <string>
@@ -91,7 +91,16 @@ concept filled_path = closed_path<T> && fillable<T> && T::is_filled;
 template<class T>
 concept ranged_path = ranges::range<T> && (filled_path<typename T::value_type> || open_path<typename T::value_type> || closed_path<typename T::value_type>);
 
+template<class T>
+concept segment = requires(T segment)
+{
+    { std::get<0>(segment) } -> point;
+    { std::get<1>(segment) } -> point;
+};
+
+template<class T>
+concept segment_container = ranges::range<T> && segment<typename T::value_type>;
 
 } // namespace cura::utils
 
-#endif // UTILS_CONCEPTS_GEOMETRY_H
+#endif // UTILS_TYPES_GEOMETRY_H

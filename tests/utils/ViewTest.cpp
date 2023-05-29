@@ -2,12 +2,14 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <gtest/gtest.h>
+#include <range/v3/range/conversion.hpp>
 #include <range/v3/view/zip.hpp>
 #include <spdlog/spdlog.h>
 
 #include "utils/types/geometry.h"
 #include "utils/views/segments.h"
 #include "utils/views/simplify.h"
+#include "utils/views/subdivide.h"
 #include "geometry/point_container.h"
 
 namespace cura
@@ -42,6 +44,28 @@ TEST(ViewTest, SegmentsViewPolygon)
     };
 
     for (const auto& [val, exp] : ranges::views::zip(polygon_view, expected))
+    {
+        ASSERT_EQ(val.first, exp.first);
+        ASSERT_EQ(val.second, exp.second);
+    }
+}
+
+TEST(ViewTest, SudividePolygon)
+{
+    auto polygon = geometry::polygon_outer({ { 0, 0 }, { 200, 0 }, { 0, 200 } });
+
+    auto polygon_res = polygon | views::segments | views::subdivide<views::subdivide_stops::Mid> | ranges::to<std::vector>;
+    auto expected = std::vector<std::pair<Point, Point>>{
+        { {   0,   0 }, { 100,   0 } },
+        { { 100,   0 }, { 200,   0 } },
+        { { 200,   0 }, { 100, 100 } },
+        { { 100, 100 }, {   0, 200 } },
+        { {   0, 200 }, {   0, 100 } },
+        { {   0, 100 }, {   0,   0 } }
+    };
+
+    ASSERT_EQ(polygon_res.size(), expected.size());
+    for (const auto& [val, exp] : ranges::views::zip(polygon_res, expected))
     {
         ASSERT_EQ(val.first, exp.first);
         ASSERT_EQ(val.second, exp.second);
