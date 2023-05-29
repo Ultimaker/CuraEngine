@@ -81,10 +81,24 @@ TEST(GeometryTest, ranged_paths_from_Polygons)
     polygon_outer.emplace_back(0, 100);
 
     Polygons polygons;
-    polygons.emplace_back(polygon_inner);
     polygons.emplace_back(polygon_outer);
+    polygons.emplace_back(polygon_inner);
 
     auto polygon = geometry::ranged_paths{ polygons };
+
+    auto expected = std::vector<std::vector<std::pair<Point, Point>>>{
+        { { 0, 0 }, { 100, 0 }, { 100, 100 }, { 0, 100 }, { 0, 0 } },
+        { { 10, 10 }, { 90, 10 }, { 90, 90 }, { 10, 90 }, { 10, 10 } }
+    };
+
+    for (const auto& [path, exp_path] : ranges::views::zip(polygon, expected))
+    {
+        for (const auto& [val, exp] : ranges::views::zip(path, exp_path))
+        {
+            ASSERT_EQ(val.X, exp.first);
+            ASSERT_EQ(val.Y, exp.second);
+        }
+    }
 }
 
 } // namespace cura
