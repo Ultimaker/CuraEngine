@@ -34,8 +34,7 @@ namespace cura::views
                                 slots_ |
                                 ranges::view::transform([&pa, &pb](const stops_t& c){ return pa * (1.0 - c) + pb * c; }) |
                                 ranges::views::sliding(2) |
-                                ranges::views::transform([](auto&& t){ return ranges::make_common_pair(t[0], t[1]); }) |
-                                ranges::to<std::vector>();
+                                ranges::views::transform([](auto&& t){ return ranges::make_common_pair(t[0], t[1]); });
                         }
                     ) |
                     ranges::view::join;
