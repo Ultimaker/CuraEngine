@@ -7,7 +7,7 @@
 #include <range/v3/view/join.hpp>
 #include <range/v3/range/conversion.hpp>
 
-#include "utils/concepts/geometry.h"
+#include "utils/types/geometry.h"
 
 namespace cura::views
 {

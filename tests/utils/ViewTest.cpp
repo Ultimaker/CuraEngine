@@ -52,7 +52,7 @@ TEST(ViewTest, SegmentsViewPolygon)
 
 TEST(ViewTest, SudividePolygon)
 {
-    auto polygon = geometry::polygon_outer({ { 0, 0 }, { 200, 0 }, { 0, 200 } });
+    auto polygon = geometry::closed_path({ { 0, 0 }, { 200, 0 }, { 0, 200 } });
 
     auto polygon_res = polygon | views::segments | views::subdivide<views::subdivide_stops::Mid> | ranges::to<std::vector>;
     auto expected = std::vector<std::pair<Point, Point>>{
