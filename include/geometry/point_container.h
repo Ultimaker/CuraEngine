@@ -117,8 +117,12 @@ template<utils::point P, template<class> class Container>
 struct ranged_paths : public Container<point_container<P, false, winding::NA, false, Container>>
 {
     constexpr ranged_paths() noexcept = default;
-    constexpr ranged_paths(std::initializer_list<point_container<P, false, winding::NA, false, Container>> paths) noexcept : Container<point_container<P, false, winding::NA, false, Container>>(paths)
+    constexpr ranged_paths(std::initializer_list<point_container<P, false, winding::NA, false, Container>> paths) noexcept
     {
+        for (const auto& path : paths)
+        {
+            this->emplace_back(path);
+        }
     }
 
     constexpr ranged_paths(const Polygons& polygons) noexcept
@@ -129,6 +133,9 @@ struct ranged_paths : public Container<point_container<P, false, winding::NA, fa
         }
     }
 };
+
+template<utils::point P = Point, template<class> class Container = std::vector>
+ranged_paths(std::initializer_list<point_container<P, false, winding::NA, false, Container>>) -> ranged_paths<Point, Container>;
 ranged_paths(Polygons) -> ranged_paths<Point, std::vector>; // TODO: Remove once we finally get rid of Polygon
 
 } // namespace cura::geometry

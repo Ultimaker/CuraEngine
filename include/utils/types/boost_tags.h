@@ -48,12 +48,17 @@ struct access<ClipperLib::IntPoint, Index>
     {
         return Index == 0 ? p.X : p.Y;
     }
+
     static inline void set(Point& p, CoordinateType const& value)
     {
         if (Index == 0)
+        {
             p.X = value;
+        }
         else
+        {
             p.Y = value;
+        }
     }
 };
 
@@ -84,25 +89,25 @@ struct tag<cura::geometry::open_path<ClipperLib::IntPoint, std::vector>>
 template<>
 struct tag<cura::geometry::closed_path<ClipperLib::IntPoint, cura::geometry::winding::NA, std::vector>>
 {
-    using type = linestring_tag;
+    using type = ring_tag;
 };
 
 template<>
 struct tag<cura::geometry::filled_path<ClipperLib::IntPoint, cura::geometry::winding::NA, std::vector>>
 {
-    using type = linestring_tag;
+    using type = ring_tag;
 };
 
 template<>
 struct tag<cura::geometry::filled_path_outer<ClipperLib::IntPoint, std::vector>>
 {
-    using type = linestring_tag;
+    using type = ring_tag;
 };
 
 template<>
 struct tag<cura::geometry::filled_path_inner<ClipperLib::IntPoint, std::vector>>
 {
-    using type = linestring_tag;
+    using type = ring_tag;
 };
 } // namespace boost::geometry::traits
 

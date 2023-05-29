@@ -50,8 +50,27 @@ TEST(ViewTest, SegmentsViewPolygon)
 
 TEST(ViewTest, SimplifyViewPolygon)
 {
-    auto polygon = geometry::closed_path({ { 0, 0 }, { 1, 1 }, { 2, 2 } });
-    auto polygon_view = polygon | views::simplify(500) | ranges::views::all;
+    auto polygon = geometry::closed_path{ { 0, 100 }, { 0, 0 }, { 10, 5 }, { 100, 0 }, { 100, 100 }};
+    auto polygon_view = polygon | views::simplify(5) | ranges::views::all;
+    for (const auto& pt : polygon_view)
+    {
+        spdlog::info("{},{}", pt.X, pt.Y);
+    }
+}
+
+TEST(ViewTest, simplified_paths)
+{
+    auto polygon = std::vector{ geometry::closed_path{ { 0, 0 }, { 100, 0 }, { 100, 100 }, { 0, 100 }, { 0, 0 } }, { { 10, 10 }, { 90, 10 }, { 90, 90 }, { 10, 90 }, { 10, 10 } } };
+    auto simplified = polygon | views::simplify(1) | ranges::views::all;
+
+    for (const auto& path : simplified)
+    {
+        for (const auto& pt : path)
+        {
+            spdlog::info("{},{}", pt.X, pt.Y);
+        }
+    }
+
 }
 
 } // namespace cura
