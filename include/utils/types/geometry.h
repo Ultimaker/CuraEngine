@@ -97,12 +97,20 @@ concept ranged_path = ranges::range<T> && (filled_path<typename T::value_type> |
 template<class T>
 concept segment = requires(T segment)
 {
-    { std::get<0>(segment) } -> point;
-    { std::get<1>(segment) } -> point;
+    requires point<decltype(segment.first)>;
+    requires point<decltype(segment.second)>;
 };
 
 template<class T>
-concept segment_container = ranges::range<T> && segment<typename T::value_type>;
+concept segment_range =
+    ranges::range<T> &&
+    requires(T segment_range)
+    {
+        requires segment<decltype(ranges::front(segment_range))>;
+    };
+
+template<class T>
+concept segment_range_range = ranges::range<T> && segment_range<typename T::value_type>;
 
 } // namespace cura::utils
 

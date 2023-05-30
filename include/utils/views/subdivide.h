@@ -23,8 +23,7 @@ namespace cura::views
             subdivide_view_fn() = delete;
             subdivide_view_fn(const coord_t& min_length) : min_length_(min_length) {}
 
-            template<ranges::viewable_range Rng>
-            /* requires concepts::segment_container<std::remove_cvref_t<Rng>>&& std::floating_point<typename Container::value_type> */
+            template<ranges::viewable_range Rng> requires utils::segment_range<std::remove_cvref_t<Rng>>
             auto operator()(Rng&& rng) const
             {
                 using stops_t = decltype(std::function{StaticFunctor::stops})::result_type::value_type;
@@ -47,6 +46,12 @@ namespace cura::views
                         }
                     ) |
                     ranges::view::join;
+            }
+
+            template<ranges::viewable_range Rng> requires utils::segment_range_range<std::remove_cvref_t<Rng>>
+            auto operator()(Rng&& rng) const
+            {
+                return rng | ranges::views::transform([this](auto&& sub_rng) { return this(std::forward<decltype(sub_rng)>(sub_rng), this->min_length); }) | ranges::views::all;
             }
         };
 
