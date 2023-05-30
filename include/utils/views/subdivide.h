@@ -16,20 +16,28 @@ namespace cura::views
         template<typename StaticFunctor>
         struct subdivide_view_fn
         {
+        private:
+            coord_t min_length_;
+
+        public:
+            subdivide_view_fn() = delete;
+            subdivide_view_fn(const coord_t& min_length) : min_length_(min_length) {}
+
             template<ranges::viewable_range Rng>
             /* requires concepts::segment_container<std::remove_cvref_t<Rng>>&& std::floating_point<typename Container::value_type> */
             auto operator()(Rng&& rng) const
             {
                 using stops_t = decltype(std::function{StaticFunctor::stops})::result_type::value_type;
+                const auto& min_length = min_length_;
                 return
                     rng |
                     ranges::view::transform
                     (
-                        [](const auto& segment)
+                        [min_length](const auto& segment)
                         {
                             const auto& pa = std::get<0>(segment);
                             const auto& pb = std::get<1>(segment);
-                            const auto slots_ = StaticFunctor::stops(vSize(pb - pa));
+                            const auto slots_ = StaticFunctor::stops(vSize(pb - pa), min_length);
                             return
                                 slots_ |
                                 ranges::view::transform([&pa, &pb](const stops_t& c){ return pa * (1.0 - c) + pb * c; }) |
@@ -53,7 +61,15 @@ namespace cura::views
     {
         struct Mid
         {
-            static std::vector<double> stops(const coord_t& _)
+            static std::vector<double> stops(const coord_t& _, const coord_t& __)
+            {
+                return { 0.0, 0.5, 1.0 };
+            }
+        };
+
+        struct X
+        {
+            static std::vector<double> stops(const coord_t& len, const coord_t& min_len)
             {
                 return { 0.0, 0.5, 1.0 };
             }
@@ -61,7 +77,10 @@ namespace cura::views
     }
 
     template<typename StaticFunctor>
-    RANGES_INLINE_VARIABLE(details::subdivide_view_fn<StaticFunctor>, subdivide);
+    auto subdivide(const coord_t& min_length)
+    {
+        return details::subdivide_view_fn<StaticFunctor>(min_length);
+    }
 
 } // namespace cura::views
 

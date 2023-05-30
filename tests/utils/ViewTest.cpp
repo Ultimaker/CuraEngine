@@ -49,7 +49,7 @@ TEST(ViewTest, SudividePolygon)
 {
     auto polygon = geometry::closed_path({ { 0, 0 }, { 200, 0 }, { 0, 200 } });
 
-    auto polygon_res = polygon | views::segments | views::subdivide<views::subdivide_stops::Mid> | ranges::to<std::vector>;
+    auto polygon_res = polygon | views::segments | views::subdivide<views::subdivide_stops::Mid>(0) | ranges::to<std::vector>;
     auto expected = std::vector<std::pair<Point, Point>>{ { { 0, 0 }, { 100, 0 } }, { { 100, 0 }, { 200, 0 } }, { { 200, 0 }, { 100, 100 } }, { { 100, 100 }, { 0, 200 } }, { { 0, 200 }, { 0, 100 } }, { { 0, 100 }, { 0, 0 } } };
 
     ASSERT_EQ(polygon_res.size(), expected.size());
