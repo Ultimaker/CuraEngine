@@ -27,6 +27,7 @@
 #include "utils/views/segments.h"
 #include "utils/views/simplify.h"
 #include "utils/views/subdivide.h"
+#include "utils/views/path.h"
 
 namespace cura
 {
@@ -784,24 +785,9 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
 //        polygons = Simplify(mesh->settings).polygon(polygons);
     auto simplified =
         polygons.paths |
-        //ranges::views::all |
-        //ranges::views::transform
-        //(
-        //    [&mesh](const auto& subrange)
-        //    {
-        //        return
-        //            subrange |
-        //            views::segments |
-        //            ranges::views::transform
-        //            (
-        //                [](const auto& segment)
-        //                {
-        //                    return segment.first;
-        //                }
-        //            ); //|
-        //            //views::subdivide<views::subdivide_stops::Simplify0>(mesh->settings.get<coord_t>("meshfix_minimum_resolution"));
-        //    }
-        //) |
+        views::segments |
+//        views::subdivide<views::subdivide_stops::Simplify0>(mesh->settings.get<coord_t>("meshfix_minimum_resolution")) |
+        views::path |
         views::simplify(mesh->settings.get<coord_t>("meshfix_maximum_deviation"));
     polygons.paths = simplified | ranges::to_vector;
 

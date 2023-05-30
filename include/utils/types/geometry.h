@@ -9,6 +9,7 @@
 #include <type_traits>
 
 #include <range/v3/range/concepts.hpp>
+#include <range/v3/range/operations.hpp>
 
 #include "geometry/winding.h"
 
@@ -97,8 +98,8 @@ concept ranged_path = ranges::range<T> && (filled_path<typename T::value_type> |
 template<class T>
 concept segment = requires(T segment)
 {
-    requires point<decltype(segment.first)>;
-    requires point<decltype(segment.second)>;
+    requires point<decltype(std::get<0>(segment))>;
+    requires point<decltype(std::get<1>(segment))>;
 };
 
 template<class T>
@@ -109,8 +110,11 @@ concept segment_range =
         requires segment<decltype(ranges::front(segment_range))>;
     };
 
-//template<class T>
-//concept segment_range_range = ranges::range<T> && segment_range<typename T::value_type>;
+template<class T>
+concept segment_range_range = ranges::range<T> && requires(T rng)
+{
+    requires segment_range<decltype(ranges::front(rng))>;
+};
 
 } // namespace cura::utils
 
