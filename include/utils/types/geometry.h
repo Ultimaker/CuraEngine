@@ -109,8 +109,8 @@ concept segment_range =
         requires segment<decltype(ranges::front(segment_range))>;
     };
 
-template<class T>
-concept segment_range_range = ranges::range<T> && segment_range<typename T::value_type>;
+//template<class T>
+//concept segment_range_range = ranges::range<T> && segment_range<typename T::value_type>;
 
 } // namespace cura::utils
 

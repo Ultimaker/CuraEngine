@@ -48,6 +48,7 @@ TEST(ViewTest, SegmentsViewPolygon)
 TEST(ViewTest, SudividePolygon)
 {
     auto polygon =
+        std::vector
         {
             geometry::closed_path({ { 0, 0 }, { 200, 0 }, { 0, 200 } }),
             geometry::closed_path({ { 0, 0 }, { 200, 0 }, { 0, 200 } }),
@@ -64,7 +65,7 @@ TEST(ViewTest, SudividePolygon)
     ASSERT_EQ(polygon_res.size(), expected.size());
     for (const auto& [val_, exp_] : ranges::views::zip(polygon_res, expected))
     {
-        ASSERT_EQ(val_.size(), exp_.size());
+        ASSERT_EQ(ranges::distance(val_), ranges::distance(exp_));
         for (const auto& [val, exp] : ranges::views::zip(val_, exp_))
         {
             ASSERT_EQ(val.first, exp.first);
