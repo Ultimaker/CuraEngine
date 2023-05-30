@@ -31,7 +31,7 @@ namespace details
 struct simplify_base_fn
 {
     template<ranges::viewable_range Rng>
-    requires utils::closed_path<std::remove_cvref_t<Rng>> || utils::open_path<std::remove_cvref_t<Rng>> || utils::filled_path<std::remove_cvref_t<Rng>>
+    requires utils::closed_path<std::remove_cvref_t<Rng>> || utils::open_path<std::remove_cvref_t<Rng>> || utils::filled_path<std::remove_cvref_t<Rng>> || utils::clipper_path<std::remove_cvref_t<Rng>>
     constexpr auto operator()(Rng&& rng, const std::integral auto max_deviation) const
     {
         return ranges::views::single(impl_(std::forward<Rng>(rng), max_deviation)) | ranges::views::join;
