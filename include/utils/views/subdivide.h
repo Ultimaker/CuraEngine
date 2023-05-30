@@ -76,11 +76,11 @@ namespace cura::views
         {
             static std::vector<double> stops(const coord_t& len, const coord_t& min_len)
             {
-                if (len <= min_len)
+                if (len <= 2 * min_len)
                 {
                     return { 0.0, 1.0 };
                 }
-                else if (len <= 2 * min_len)
+                else if (len <= 3 * min_len)
                 {
                     return { 0.0, 0.5, 1.0 };
                 }
