@@ -44,12 +44,12 @@ struct access<ClipperLib::IntPoint, Index>
     static_assert(Index < 2, "Out of range");
     using Point = ClipperLib::IntPoint;
     using CoordinateType = typename coordinate_type<Point>::type;
-    static inline CoordinateType get(Point const& p)
+    constexpr static inline CoordinateType get(Point const& p) noexcept
     {
         return Index == 0 ? p.X : p.Y;
     }
 
-    static inline void set(Point& p, CoordinateType const& value)
+    constexpr static inline void set(Point& p, CoordinateType const& value) noexcept
     {
         if (Index == 0)
         {
@@ -109,6 +109,13 @@ struct tag<cura::geometry::filled_path_inner<ClipperLib::IntPoint, std::vector>>
 {
     using type = ring_tag;
 };
+
+template<>
+struct tag<std::vector<ClipperLib::IntPoint>>
+{
+    using type = ring_tag;
+};
+
 } // namespace boost::geometry::traits
 
 #endif // UTILS_GEOMETRY_BOOST_TAGS_H
