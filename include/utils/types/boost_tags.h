@@ -9,6 +9,7 @@
 #include <boost/geometry/core/tags.hpp>
 #include <boost/geometry/geometry.hpp>
 #include <boost/geometry/strategies/cartesian.hpp>
+#include <polyclipping/clipper.hpp>
 
 #include "geometry/point_container.h"
 #include "geometry/winding.h"
@@ -119,6 +120,24 @@ struct closure<cura::geometry::closed_path<ClipperLib::IntPoint, cura::geometry:
 
 template<>
 struct tag<cura::geometry::closed_path<ClipperLib::IntPoint, cura::geometry::winding::CCW, std::vector>>
+{
+    using type = ring_tag;
+};
+
+template<>
+struct point_order<ClipperLib::Path>
+{
+    static const order_selector value = counterclockwise;
+};
+
+template<>
+struct closure<ClipperLib::Path>
+{
+    static const closure_selector value = open; // TODO: closed?, but when it is closed the order of the points changes
+};
+
+template<>
+struct tag<ClipperLib::Path>
 {
     using type = ring_tag;
 };

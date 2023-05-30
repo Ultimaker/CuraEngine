@@ -80,6 +80,9 @@ template<class T>
 concept point_ranged = point<T> && ! point2d_named<T> && ! point3d_named<T>;
 
 template<class T>
+concept clipper_path = ranges::range<T> && point<typename T::value_type>;
+
+template<class T>
 concept open_path = ranges::range<T> && closable<T> && point<typename T::value_type> && !T::is_closed;
 
 template<class T>
@@ -89,7 +92,7 @@ template<class T>
 concept filled_path = closed_path<T> && fillable<T> && T::is_filled;
 
 template<class T>
-concept ranged_path = ranges::range<T> && (filled_path<typename T::value_type> || open_path<typename T::value_type> || closed_path<typename T::value_type>);
+concept ranged_path = ranges::range<T> && (filled_path<typename T::value_type> || open_path<typename T::value_type> || closed_path<typename T::value_type> || clipper_path<typename T::value_type>);
 
 template<class T>
 concept segment = requires(T segment)
