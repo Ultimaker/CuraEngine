@@ -3,14 +3,16 @@
 
 #include <gtest/gtest.h>
 #include <range/v3/range/conversion.hpp>
+#include <range/v3/view/cache1.hpp>
 #include <range/v3/view/zip.hpp>
 #include <spdlog/spdlog.h>
+#include <vector>
 
+#include "geometry/point_container.h"
 #include "utils/types/geometry.h"
 #include "utils/views/segments.h"
 #include "utils/views/simplify.h"
 #include "utils/views/subdivide.h"
-#include "geometry/point_container.h"
 
 namespace cura
 {
@@ -75,8 +77,20 @@ TEST(ViewTest, SudividePolygon)
 TEST(ViewTest, SimplifyViewPolygon)
 {
     auto polygon = geometry::closed_path{ { 0, 100 }, { 0, 0 }, { 10, 5 }, { 100, 0 }, { 100, 100 }};
-    auto polygon_view = polygon | views::simplify(5) | ranges::views::all;
+    auto polygon_view = polygon | views::simplify(5);// | ranges::views::all;
     for (const auto& pt : polygon_view)
+    {
+        spdlog::info("{},{}", pt.X, pt.Y);
+    }
+}
+
+TEST(ViewTest, SimplifyVector)
+{
+    auto polygon = std::vector{ Point{ 0, 100 }, { 0, 0 }, { 10, 5 }, { 100, 0 }, { 100, 100 }};
+
+    std::vector<Point> simplified;
+    boost::geometry::simplify(polygon, simplified, 5);
+    for (const auto& pt : simplified)
     {
         spdlog::info("{},{}", pt.X, pt.Y);
     }
@@ -94,7 +108,6 @@ TEST(ViewTest, simplified_paths)
             spdlog::info("{},{}", pt.X, pt.Y);
         }
     }
-
 }
 
 } // namespace cura
