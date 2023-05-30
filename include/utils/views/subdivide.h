@@ -67,11 +67,20 @@ namespace cura::views
             }
         };
 
-        struct X
+        struct Simplify0
         {
             static std::vector<double> stops(const coord_t& len, const coord_t& min_len)
             {
-                return { 0.0, 0.5, 1.0 };
+                if (len <= min_len)
+                {
+                    return { 0.0, 1.0 };
+                }
+                else if (len <= 2 * min_len)
+                {
+                    return { 0.0, 0.5, 1.0 };
+                }
+                const auto stop1 = static_cast<double>(len) / min_len;
+                return { 0.0, stop1, 1.0 - stop1, 1.0};
             }
         };
     }
