@@ -11,6 +11,7 @@
 #include <boost/geometry/strategies/cartesian.hpp>
 
 #include "geometry/point_container.h"
+#include "geometry/winding.h"
 #include "utils/types/geometry.h"
 
 namespace boost::geometry::traits
@@ -62,28 +63,40 @@ struct access<ClipperLib::IntPoint, Index>
     }
 };
 
-template<cura::utils::point P, bool IsClosed, cura::geometry::winding Direction, bool IsFilled, template<class> class Container>
-struct tag<cura::geometry::point_container<P, IsClosed, Direction, IsFilled, Container>>
-{
-    using type = linestring_tag;
-};
-
-template<cura::utils::point P, bool IsClosed, cura::geometry::winding Direction, bool IsFilled, template<class> class Container>
-struct point_order<cura::geometry::point_container<P, IsClosed, Direction, IsFilled, Container>>
-{
-    static const order_selector value = Direction == cura::geometry::winding::CW ? clockwise : counterclockwise;
-};
-
-template<cura::utils::point P, bool IsClosed, cura::geometry::winding Direction, bool IsFilled, template<class> class Container>
-struct closure<cura::geometry::point_container<P, IsClosed, Direction, IsFilled, Container>>
-{
-    static const closure_selector value = IsClosed ? closed : open;
-};
-
 template<>
 struct tag<cura::geometry::open_path<ClipperLib::IntPoint, std::vector>>
 {
     using type = linestring_tag;
+};
+
+template<>
+struct point_order<cura::geometry::closed_path<ClipperLib::IntPoint, cura::geometry::winding::CW, std::vector>>
+{
+    static const order_selector value = clockwise;
+};
+
+template<>
+struct closure<cura::geometry::closed_path<ClipperLib::IntPoint, cura::geometry::winding::CW, std::vector>>
+{
+    static const closure_selector value = open; // TODO: closed?, but when it is closed the order of the points changes
+};
+
+template<>
+struct tag<cura::geometry::closed_path<ClipperLib::IntPoint, cura::geometry::winding::CW, std::vector>>
+{
+    using type = ring_tag;
+};
+
+template<>
+struct point_order<cura::geometry::closed_path<ClipperLib::IntPoint, cura::geometry::winding::NA, std::vector>>
+{
+    static const order_selector value = clockwise;
+};
+
+template<>
+struct closure<cura::geometry::closed_path<ClipperLib::IntPoint, cura::geometry::winding::NA, std::vector>>
+{
+    static const closure_selector value = open; // TODO: closed?, but when it is closed the order of the points changes
 };
 
 template<>
@@ -93,25 +106,19 @@ struct tag<cura::geometry::closed_path<ClipperLib::IntPoint, cura::geometry::win
 };
 
 template<>
-struct tag<cura::geometry::filled_path<ClipperLib::IntPoint, cura::geometry::winding::NA, std::vector>>
+struct point_order<cura::geometry::closed_path<ClipperLib::IntPoint, cura::geometry::winding::CCW, std::vector>>
 {
-    using type = ring_tag;
+    static const order_selector value = counterclockwise;
 };
 
 template<>
-struct tag<cura::geometry::filled_path_outer<ClipperLib::IntPoint, std::vector>>
+struct closure<cura::geometry::closed_path<ClipperLib::IntPoint, cura::geometry::winding::CCW, std::vector>>
 {
-    using type = ring_tag;
+    static const closure_selector value = open; // TODO: closed?, but when it is closed the order of the points changes
 };
 
 template<>
-struct tag<cura::geometry::filled_path_inner<ClipperLib::IntPoint, std::vector>>
-{
-    using type = ring_tag;
-};
-
-template<>
-struct tag<std::vector<ClipperLib::IntPoint>>
+struct tag<cura::geometry::closed_path<ClipperLib::IntPoint, cura::geometry::winding::CCW, std::vector>>
 {
     using type = ring_tag;
 };
