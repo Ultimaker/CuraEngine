@@ -48,8 +48,7 @@ namespace cura::views
                     ranges::view::join;
             }
 
-            template<ranges::viewable_range Rng>
-            requires utils::segment_range_range<std::remove_cvref_t<Rng>>
+            template<ranges::viewable_range Rng> requires utils::segment_range_range<std::remove_cvref_t<Rng>>
             auto operator()(Rng&& rng) const
             {
                 return rng | ranges::views::transform([this](auto&& sub_rng) { return operator()(std::forward<decltype(sub_rng)>(sub_rng)); }) | ranges::views::all;

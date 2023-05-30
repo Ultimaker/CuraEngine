@@ -10,6 +10,7 @@
 
 #include "geometry/point_container.h"
 #include "utils/types/geometry.h"
+#include "utils/views/path.h"
 #include "utils/views/segments.h"
 #include "utils/views/simplify.h"
 #include "utils/views/subdivide.h"
@@ -45,8 +46,65 @@ TEST(ViewTest, SegmentsViewPolygon)
     }
 }
 
+TEST(ViewTest, PathTest)
+{
+    // Simple range:
+    auto as_segments1 = std::vector<std::pair<Point, Point>>{ { { 0, 0 }, { 1, 1 } }, { { 1, 1 }, { 2, 2 } }, { { 2, 2 }, { 0, 0 } } };
+
+    auto as_path1 = as_segments1 | views::path | ranges::to_vector;
+    auto expected1 = geometry::closed_path({ { 0, 0 }, { 1, 1 }, { 2, 2 } });
+
+    ASSERT_EQ(as_path1.size(), expected1.size());
+    for (const auto& [val, exp] : ranges::views::zip(as_path1, expected1))
+    {
+        ASSERT_EQ(val, exp);
+    }
+
+    // Range of ranges:
+    auto as_segments =
+        std::vector<std::vector<std::pair<Point, Point>>>
+        {
+            { { { 0, 0 }, { 1, 1 } }, { { 1, 1 }, { 2, 2 } }, { { 2, 2 }, { 0, 0 } } },
+            { { { 0, 0 }, { 1, 1 } }, { { 1, 1 }, { 2, 2 } }, { { 2, 2 }, { 0, 0 } } }
+        };
+
+    auto as_path = as_segments | views::path | ranges::to_vector;
+    auto expected =
+        std::vector
+        {
+            geometry::closed_path({ { 0, 0 }, { 1, 1 }, { 2, 2 } }),
+            geometry::closed_path({ { 0, 0 }, { 1, 1 }, { 2, 2 } })
+        };
+
+    ASSERT_EQ(as_path.size(), expected.size());
+    for (const auto& [val_, exp_] : ranges::views::zip(as_path, expected))
+    {
+        ASSERT_EQ(ranges::distance(val_), ranges::distance(exp_));
+        for (const auto& [val, exp] : ranges::views::zip(val_, exp_))
+        {
+            ASSERT_EQ(val, exp);
+        }
+    }
+}
+
 TEST(ViewTest, SudividePolygon)
 {
+    // Simple range:
+    auto polygon1 = geometry::closed_path({ { 0, 0 }, { 200, 0 }, { 0, 200 } });
+
+    auto polygon_res1 = polygon1 | views::segments | views::subdivide<views::subdivide_stops::Mid>(0) | ranges::to<std::vector>;
+    auto expected1 =
+        std::vector<std::pair<Point, Point>>
+        { { { 0, 0 }, { 100, 0 } }, { { 100, 0 }, { 200, 0 } }, { { 200, 0 }, { 100, 100 } }, { { 100, 100 }, { 0, 200 } }, { { 0, 200 }, { 0, 100 } }, { { 0, 100 }, { 0, 0 } } };
+
+    ASSERT_EQ(polygon_res1.size(), expected1.size());
+    for (const auto& [val, exp] : ranges::views::zip(polygon_res1, expected1))
+    {
+        ASSERT_EQ(val.first, exp.first);
+        ASSERT_EQ(val.second, exp.second);
+    }
+
+    // Range of ranges:
     auto polygon =
         std::vector
         {

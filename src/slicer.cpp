@@ -782,15 +782,16 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     polygons.erase(it, polygons.end());
 
     // Finally optimize all the polygons. Every point removed saves time in the long run.
-//        polygons = Simplify(mesh->settings).polygon(polygons);
-    auto simplified =
-        polygons.paths |
-        views::segments |
-//        views::subdivide<views::subdivide_stops::Simplify0>(mesh->settings.get<coord_t>("meshfix_minimum_resolution")) |
-        views::path |
-        views::simplify(mesh->settings.get<coord_t>("meshfix_maximum_deviation"));
-    polygons.paths = simplified | ranges::to_vector;
-
+    {
+        const auto subdivided =
+            polygons.paths |
+            views::segments |
+            views::subdivide<views::subdivide_stops::Simplify0>(mesh->settings.get<coord_t>("meshfix_maximum_resolution")) |
+            ranges::to<std::vector<std::vector<std::pair<Point, Point>>>>;
+        const auto reconverted = subdivided | views::path | ranges::to<std::vector<std::vector<Point>>>;
+        const auto simplified = reconverted | views::simplify(mesh->settings.get<coord_t>("meshfix_maximum_deviation"));
+        polygons.paths = simplified | ranges::to_vector;
+    }
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 
     // Clean up polylines for Surface Mode printing
