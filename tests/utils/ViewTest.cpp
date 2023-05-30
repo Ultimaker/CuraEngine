@@ -22,10 +22,7 @@ TEST(ViewTest, SegmentsViewPolyline)
     auto polyline = geometry::open_path{ { 0, 0 }, { 1, 1 }, { 2, 2 } };
 
     auto polyline_view = polyline | views::segments;
-    auto expected = std::vector<std::pair<Point, Point>>{
-        { { 0, 0 }, { 1, 1 } },
-        { { 1, 1 }, { 2, 2 } }
-    };
+    auto expected = std::vector<std::pair<Point, Point>>{ { { 0, 0 }, { 1, 1 } }, { { 1, 1 }, { 2, 2 } } };
 
     for (const auto& [val, exp] : ranges::views::zip(polyline_view, expected))
     {
@@ -39,11 +36,7 @@ TEST(ViewTest, SegmentsViewPolygon)
     auto polygon = geometry::closed_path({ { 0, 0 }, { 1, 1 }, { 2, 2 } });
 
     auto polygon_view = polygon | views::segments;
-    auto expected = std::vector<std::pair<Point, Point>>{
-        { { 0, 0 }, { 1, 1 } },
-        { { 1, 1 }, { 2, 2 } },
-        { { 2, 2 }, { 0, 0 } }
-    };
+    auto expected = std::vector<std::pair<Point, Point>>{ { { 0, 0 }, { 1, 1 } }, { { 1, 1 }, { 2, 2 } }, { { 2, 2 }, { 0, 0 } } };
 
     for (const auto& [val, exp] : ranges::views::zip(polygon_view, expected))
     {
@@ -57,14 +50,7 @@ TEST(ViewTest, SudividePolygon)
     auto polygon = geometry::closed_path({ { 0, 0 }, { 200, 0 }, { 0, 200 } });
 
     auto polygon_res = polygon | views::segments | views::subdivide<views::subdivide_stops::Mid> | ranges::to<std::vector>;
-    auto expected = std::vector<std::pair<Point, Point>>{
-        { {   0,   0 }, { 100,   0 } },
-        { { 100,   0 }, { 200,   0 } },
-        { { 200,   0 }, { 100, 100 } },
-        { { 100, 100 }, {   0, 200 } },
-        { {   0, 200 }, {   0, 100 } },
-        { {   0, 100 }, {   0,   0 } }
-    };
+    auto expected = std::vector<std::pair<Point, Point>>{ { { 0, 0 }, { 100, 0 } }, { { 100, 0 }, { 200, 0 } }, { { 200, 0 }, { 100, 100 } }, { { 100, 100 }, { 0, 200 } }, { { 0, 200 }, { 0, 100 } }, { { 0, 100 }, { 0, 0 } } };
 
     ASSERT_EQ(polygon_res.size(), expected.size());
     for (const auto& [val, exp] : ranges::views::zip(polygon_res, expected))
@@ -76,36 +62,40 @@ TEST(ViewTest, SudividePolygon)
 
 TEST(ViewTest, SimplifyViewPolygon)
 {
-    auto polygon = geometry::closed_path{ { 0, 100 }, { 0, 0 }, { 10, 5 }, { 100, 0 }, { 100, 100 }};
-    auto polygon_view = polygon | views::simplify(5);// | ranges::views::all;
-    for (const auto& pt : polygon_view)
+    auto polygon = geometry::closed_path{ { 0, 0 }, { 10, 5 }, { 100, 0 }, { 100, 100 }, { 0, 100 } };
+    auto polygon_view = polygon | views::simplify(5) | ranges::views::all;
+    auto expected = std::vector<Point>{ { 100, 100 }, { 0, 100 }, { 0, 0 }, { 100, 0 } };
+
+    for (const auto& pt : ranges::views::zip(polygon_view, expected))
     {
-        spdlog::info("{},{}", pt.X, pt.Y);
+        ASSERT_EQ(pt.first, pt.second);
     }
 }
 
-TEST(ViewTest, SimplifyVector)
+TEST(ViewTest, SimplifyViewPolyline)
 {
-    auto polygon = std::vector{ Point{ 0, 100 }, { 0, 0 }, { 10, 5 }, { 100, 0 }, { 100, 100 }};
+    auto polyline = geometry::open_path{ { 0, 0 }, { 10, 5 }, { 100, 0 }, { 100, 100 }, { 0, 100 } };
+    auto polyline_view = polyline | views::simplify(5) | ranges::views::all;
+    auto expected = std::vector<Point>{ { 0, 0 }, { 100, 0 }, { 100, 100 }, { 0, 100 } };
 
-    std::vector<Point> simplified;
-    boost::geometry::simplify(polygon, simplified, 5);
-    for (const auto& pt : simplified)
+    for (const auto& pt : ranges::views::zip(polyline_view, expected))
     {
-        spdlog::info("{},{}", pt.X, pt.Y);
+        ASSERT_EQ(pt.first, pt.second);
     }
 }
 
 TEST(ViewTest, simplified_paths)
 {
-    auto polygon = std::vector{ geometry::closed_path{ { 0, 0 }, { 100, 0 }, { 100, 100 }, { 0, 100 }, { 0, 0 } }, { { 10, 10 }, { 90, 10 }, { 90, 90 }, { 10, 90 }, { 10, 10 } } };
-    auto simplified = polygon | views::simplify(1) | ranges::views::all;
+    auto polygon = std::vector{ geometry::closed_path{ { 0, 0 }, { 10, 5 }, { 100, 0 }, { 100, 100 }, { 0, 100 }, { 0, 0 } }, { { 10, 10 }, { 90, 10 }, { 90, 90 }, { 10, 90 }, { 10, 10 } } };
+    auto simplified = polygon | views::simplify(5) | ranges::views::all;
 
-    for (const auto& path : simplified)
+    auto expected = std::vector{ geometry::closed_path{ { 100, 100 }, { 0, 100 }, { 0, 0 }, { 100, 0 } }, { { 90, 90 }, { 10, 90 }, { 10, 10 }, { 90, 10 } } };
+
+    for (const auto& [path, exp_path] : ranges::views::zip(simplified, expected))
     {
-        for (const auto& pt : path)
+        for (const auto& pt : ranges::views::zip(path, exp_path))
         {
-            spdlog::info("{},{}", pt.X, pt.Y);
+            ASSERT_EQ(pt.first, pt.second);
         }
     }
 }
