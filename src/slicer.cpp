@@ -23,7 +23,9 @@
 #include "utils/gettime.h"
 #include "utils/section_type.h"
 #include "geometry/point_container.h"
+#include "utils/views/segments.h"
 #include "utils/views/simplify.h"
+#include "utils/views/subdivide.h"
 
 namespace cura
 {
@@ -779,8 +781,8 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
 
     // Finally optimize all the polygons. Every point removed saves time in the long run.
 //        polygons = Simplify(mesh->settings).polygon(polygons);
-    auto simplified = polygons.paths | views::simplify(mesh->settings.get<coord_t>("meshfix_maximum_deviation"));
-    polygons.paths = simplified | ranges::to_vector;
+    auto x = polygons.paths | views::segments;
+    polygons.paths = polygons.paths | views::simplify(mesh->settings.get<coord_t>("meshfix_maximum_deviation")) | ranges::to_vector;
 
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 
