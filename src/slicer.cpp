@@ -3,10 +3,13 @@
 
 #include <algorithm> // remove_if
 #include <numbers>
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/transform.hpp>
 #include <stdio.h>
 
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
+#include <utility>
 
 #include "Application.h"
 #include "Slice.h"
@@ -19,6 +22,8 @@
 #include "utils/ThreadPool.h"
 #include "utils/gettime.h"
 #include "utils/section_type.h"
+#include "geometry/point_container.h"
+#include "utils/views/simplify.h"
 
 namespace cura
 {
@@ -407,7 +412,8 @@ void SlicerLayer::joinPolylines(PolygonRef& polyline_0, PolygonRef& polyline_1, 
     polyline_1.clear();
 }
 
-SlicerLayer::TerminusTrackingMap::TerminusTrackingMap(Terminus::Index end_idx) : m_terminus_old_to_cur_map(end_idx)
+SlicerLayer::TerminusTrackingMap::TerminusTrackingMap(Terminus::Index end_idx)
+    : m_terminus_old_to_cur_map(end_idx)
 {
     // Initialize map to everything points to itself since nothing has moved yet.
     for (size_t idx = 0U; idx != end_idx; ++idx)
@@ -767,11 +773,14 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
 
     // Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.
     const coord_t snap_distance = std::max(mesh->settings.get<coord_t>("minimum_polygon_circumference"), static_cast<coord_t>(1));
-    auto it = std::remove_if(polygons.begin(), polygons.end(), [snap_distance](PolygonRef poly) { return poly.shorterThan(snap_distance); });
+    auto it = std::remove_if(polygons.begin(), polygons.end(), [snap_distance](PolygonRef poly)
+                             { return poly.shorterThan(snap_distance); });
     polygons.erase(it, polygons.end());
 
     // Finally optimize all the polygons. Every point removed saves time in the long run.
-    polygons = Simplify(mesh->settings).polygon(polygons);
+//        polygons = Simplify(mesh->settings).polygon(polygons);
+    auto simplified = polygons.paths | views::simplify(mesh->settings.get<coord_t>("meshfix_maximum_deviation"));
+    polygons.paths = simplified | ranges::to_vector;
 
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 
