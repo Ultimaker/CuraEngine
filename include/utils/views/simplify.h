@@ -31,20 +31,22 @@ namespace details
 struct simplify_base_fn
 {
     template<ranges::viewable_range Rng>
-    requires utils::closed_path<std::remove_cvref_t<Rng>> || utils::open_path<std::remove_cvref_t<Rng>> || utils::filled_path<std::remove_cvref_t<Rng>> constexpr auto operator()(Rng&& rng, const std::integral auto max_deviation) const
+    requires utils::closed_path<std::remove_cvref_t<Rng>> || utils::open_path<std::remove_cvref_t<Rng>> || utils::filled_path<std::remove_cvref_t<Rng>>
+    constexpr auto operator()(Rng&& rng, const std::integral auto max_deviation) const
     {
-        return impl_(std::forward<Rng>(rng), max_deviation);
+        return ranges::views::single(impl_(std::forward<Rng>(rng), max_deviation)) | ranges::views::join;
     }
 
     template<ranges::viewable_range Rng>
-    requires utils::ranged_path<std::remove_cvref_t<Rng>> constexpr auto operator()(Rng&& rng, const std::integral auto max_deviation) const
+    requires utils::ranged_path<std::remove_cvref_t<Rng>>
+    constexpr auto operator()(Rng&& rng, const std::integral auto max_deviation) const
     {
         return rng | ranges::views::transform([this, max_deviation](auto&& sub_rng) { return impl_(std::forward<decltype(sub_rng)>(sub_rng), max_deviation); }) | ranges::views::all;
     }
 
 private:
     template<ranges::viewable_range Rng>
-    requires utils::closed_path<std::remove_cvref_t<Rng>> || utils::open_path<std::remove_cvref_t<Rng>> || utils::filled_path<std::remove_cvref_t<Rng>> constexpr auto impl_(Rng&& rng, const std::integral auto max_deviation) const
+    constexpr auto impl_(Rng&& rng, const std::integral auto max_deviation) const
     {
         using rng_t = std::remove_cvref_t<Rng>;
         rng_t simplified;
