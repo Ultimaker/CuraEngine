@@ -3,6 +3,7 @@
 
 #include <algorithm> // remove_if
 #include <numbers>
+#include <range/v3/all.hpp> // REMOVE?
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/transform.hpp>
 #include <stdio.h>
@@ -781,8 +782,28 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
 
     // Finally optimize all the polygons. Every point removed saves time in the long run.
 //        polygons = Simplify(mesh->settings).polygon(polygons);
-    auto x = polygons.paths | views::segments;
-    polygons.paths = polygons.paths | views::simplify(mesh->settings.get<coord_t>("meshfix_maximum_deviation")) | ranges::to_vector;
+    auto simplified =
+        polygons.paths |
+        //ranges::views::all |
+        //ranges::views::transform
+        //(
+        //    [&mesh](const auto& subrange)
+        //    {
+        //        return
+        //            subrange |
+        //            views::segments |
+        //            ranges::views::transform
+        //            (
+        //                [](const auto& segment)
+        //                {
+        //                    return segment.first;
+        //                }
+        //            ); //|
+        //            //views::subdivide<views::subdivide_stops::Simplify0>(mesh->settings.get<coord_t>("meshfix_minimum_resolution"));
+        //    }
+        //) |
+        views::simplify(mesh->settings.get<coord_t>("meshfix_maximum_deviation"));
+    polygons.paths = simplified | ranges::to_vector;
 
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 

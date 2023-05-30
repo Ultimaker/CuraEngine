@@ -47,16 +47,29 @@ TEST(ViewTest, SegmentsViewPolygon)
 
 TEST(ViewTest, SudividePolygon)
 {
-    auto polygon = geometry::closed_path({ { 0, 0 }, { 200, 0 }, { 0, 200 } });
+    auto polygon =
+        {
+            geometry::closed_path({ { 0, 0 }, { 200, 0 }, { 0, 200 } }),
+            geometry::closed_path({ { 0, 0 }, { 200, 0 }, { 0, 200 } }),
+        };
 
     auto polygon_res = polygon | views::segments | views::subdivide<views::subdivide_stops::Mid>(0) | ranges::to<std::vector>;
-    auto expected = std::vector<std::pair<Point, Point>>{ { { 0, 0 }, { 100, 0 } }, { { 100, 0 }, { 200, 0 } }, { { 200, 0 }, { 100, 100 } }, { { 100, 100 }, { 0, 200 } }, { { 0, 200 }, { 0, 100 } }, { { 0, 100 }, { 0, 0 } } };
+    auto expected =
+        std::vector<std::vector<std::pair<Point, Point>>>
+        {
+            { { { 0, 0 }, { 100, 0 } }, { { 100, 0 }, { 200, 0 } }, { { 200, 0 }, { 100, 100 } }, { { 100, 100 }, { 0, 200 } }, { { 0, 200 }, { 0, 100 } }, { { 0, 100 }, { 0, 0 } } },
+            { { { 0, 0 }, { 100, 0 } }, { { 100, 0 }, { 200, 0 } }, { { 200, 0 }, { 100, 100 } }, { { 100, 100 }, { 0, 200 } }, { { 0, 200 }, { 0, 100 } }, { { 0, 100 }, { 0, 0 } } }
+        };
 
     ASSERT_EQ(polygon_res.size(), expected.size());
-    for (const auto& [val, exp] : ranges::views::zip(polygon_res, expected))
+    for (const auto& [val_, exp_] : ranges::views::zip(polygon_res, expected))
     {
-        ASSERT_EQ(val.first, exp.first);
-        ASSERT_EQ(val.second, exp.second);
+        ASSERT_EQ(val_.size(), exp_.size());
+        for (const auto& [val, exp] : ranges::views::zip(val_, exp_))
+        {
+            ASSERT_EQ(val.first, exp.first);
+            ASSERT_EQ(val.second, exp.second);
+        }
     }
 }
 
