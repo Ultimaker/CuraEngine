@@ -9,6 +9,9 @@
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "utils/Simplify.h" // We're simplifying the spiralized insets.
+#include <iostream>
+#include <fstream>
+#include <fmt/format.h>
 
 namespace cura
 {
@@ -83,6 +86,37 @@ void WallsComputation::generateWalls(SliceLayerPart* part, SectionType section_t
  */
 void WallsComputation::generateWalls(SliceLayer* layer, SectionType section)
 {
+    // TODO
+    // remove this block before merging PR!
+    {
+        std::ofstream SettingsFile("settings.txt");
+        SettingsFile.clear();
+        settings.write(SettingsFile);
+        SettingsFile.close();
+
+        std::ofstream PolygonFile("slice_polygon.txt");
+        PolygonFile.clear();
+        bool first_poly = true;
+        for (const auto& part : layer->parts)
+        {
+            if (!first_poly) PolygonFile << "&\n";
+            first_poly = false;
+
+            bool first_poly = true;
+            for (const auto& poly : part.outline)
+            {
+                if (!first_poly) PolygonFile << "x\n";
+                first_poly = false;
+
+                for (const Point& p : poly)
+                {
+                    PolygonFile << fmt::format("v {} {}\n", p.X, p.Y);
+                }
+            }
+        }
+        PolygonFile.close();
+    }
+
     for(SliceLayerPart& part : layer->parts)
     {
         generateWalls(&part, section);

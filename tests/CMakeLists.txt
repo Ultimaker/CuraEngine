@@ -14,6 +14,7 @@ set(TESTS_SRC_BASE
         PathOrderMonotonicTest
         TimeEstimateCalculatorTest
         WallsComputationTest
+        VoronoiCrashTest
         )
 
 set(TESTS_SRC_INTEGRATION
@@ -39,7 +40,7 @@ set(TESTS_SRC_UTILS
         UnionFindTest
         )
 
-set(TESTS_HELPERS_SRC ReadTestPolygons.cpp)
+set(TESTS_HELPERS_SRC ReadTestSettings.cpp ReadTestPolygons.cpp)
 
 set(TESTS_SRC_ARCUS)
 if (ENABLE_ARCUS)

@@ -755,6 +755,25 @@ void Settings::setParent(Settings* new_parent)
     parent = new_parent;
 }
 
+void Settings::write(std::ostream& out) const
+{
+    if (parent)
+    {
+        parent->write(out);
+    }
+
+    for (const auto& pair : settings)
+    {
+        auto key = pair.first;
+        auto value = pair.second;
+        if (key.empty() || value.empty() || value.find(" ") != std::string::npos || key.find(" ") != std::string::npos)
+        {
+            continue;
+        }
+        out << key << " " << value << std::endl;
+    }
+}
+
 std::string Settings::getWithoutLimiting(const std::string& key) const
 {
     if (settings.find(key) != settings.end())

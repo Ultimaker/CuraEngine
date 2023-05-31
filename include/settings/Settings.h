@@ -95,6 +95,13 @@ public:
      */
     void setParent(Settings* new_parent);
 
+    /*
+     * \brief Write the settings to a stream.
+     *
+     * \param out The stream to write to.
+     */
+    void write(std::ostream& out) const;
+
 private:
     /*!
      * Optionally, a parent setting container to ask for the value of a setting
