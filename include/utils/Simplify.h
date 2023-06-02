@@ -221,18 +221,16 @@ protected:
         }
 
         //Now remove the marked vertices in one sweep.
-        AABB aabb;
         Polygonal filtered = createEmpty(polygon);
         for(size_t i = 0; i < result.size(); ++i)
         {
             if(!to_delete[i])
             {
                 appendVertex(filtered, result[i]);
-                aabb.include(getPosition(result[i]));
             }
         }
 
-        if (detectSmall(filtered, min_size) || aabb.area() < min_resolution * min_resolution)
+        if (detectSmall(filtered, min_size))
         {
             return createEmpty(filtered);
         }
