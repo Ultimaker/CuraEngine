@@ -4,6 +4,7 @@
 #ifndef UTILS_SIMPLIFY_H
 #define UTILS_SIMPLIFY_H
 
+#include "AABB.h"
 #include "polygon.h"
 #include "ExtrusionLine.h"
 #include "linearAlg2D.h" //To calculate line deviations and intersecting lines.
@@ -133,6 +134,27 @@ protected:
      */
     constexpr static coord_t min_resolution = 5; //5 units, regardless of how big those are, to allow for rounding errors.
 
+    template<typename Polygonal>
+    bool detectSmall(const Polygonal& polygon, const coord_t& min_size) const
+    {
+        if (polygon.size() < min_size) //For polygon, 2 or fewer vertices is degenerate. Delete it. For polyline, 1 vertex is degenerate.
+        {
+            return true;
+        }
+        if (polygon.size() == min_size)
+        {
+            const auto a = getPosition(polygon[0]);
+            const auto b = getPosition(polygon[1]);
+            const auto c = getPosition(polygon[polygon.size() - 1]);
+            if (std::max(std::max(vSize2(b - a), vSize2(c - a)), vSize2(c - b)) < min_resolution * min_resolution)
+            {
+                // ... unless they are degenetate.
+                return true;
+            }
+        }
+        return false;
+    }
+
     /*!
      * The main simplification algorithm starts here.
      * \tparam Polygonal A polygonal object, which is a list of vertices.
@@ -144,7 +166,7 @@ protected:
     Polygonal simplify(const Polygonal& polygon, const bool is_closed) const
     {
         const size_t min_size = is_closed ? 3 : 2;
-        if(polygon.size() < min_size) //For polygon, 2 or fewer vertices is degenerate. Delete it. For polyline, 1 vertex is degenerate.
+        if (detectSmall(polygon, min_size))
         {
             return createEmpty(polygon);
         }
@@ -161,8 +183,7 @@ protected:
         std::priority_queue<std::pair<size_t, coord_t>, std::vector<std::pair<size_t, coord_t>>, decltype(comparator)> by_importance(comparator);
 
         Polygonal result = polygon; //Make a copy so that we can also shift vertices.
-        size_t current_removed = 0;
-        do
+        for (int64_t current_removed = -1; (polygon.size() - current_removed) > min_size && current_removed != 0;)
         {
             current_removed = 0;
 
@@ -197,18 +218,24 @@ protected:
                     current_removed += remove(result, to_delete, vertex.first, vertex_importance, is_closed) ? 1 : 0;
                 }
             }
-        } while ((polygon.size() - current_removed) > min_size && current_removed > 0);
+        }
 
         //Now remove the marked vertices in one sweep.
+        AABB aabb;
         Polygonal filtered = createEmpty(polygon);
         for(size_t i = 0; i < result.size(); ++i)
         {
             if(!to_delete[i])
             {
                 appendVertex(filtered, result[i]);
+                aabb.include(getPosition(result[i]));
             }
         }
 
+        if (detectSmall(filtered, min_size) || aabb.area() < min_resolution * min_resolution)
+        {
+            return createEmpty(filtered);
+        }
         return filtered;
     }
 
