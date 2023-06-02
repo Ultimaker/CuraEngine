@@ -766,11 +766,18 @@ void Settings::write(std::ostream& out) const
     {
         auto key = pair.first;
         auto value = pair.second;
-        if (key.empty() || value.empty() || value.find(" ") != std::string::npos || key.find(" ") != std::string::npos)
+        if (value.empty())
         {
             continue;
         }
-        out << key << " " << value << std::endl;
+        if (value.find("\n") != std::string::npos)
+        {
+            // since new line also denote a new setting entry it's annoying to parse
+            // the settings file if a value contains a new line; as a workaround we
+            // don't include the value in the settings file if it contains a new line
+            continue;
+        }
+        out << key << "=" << value << std::endl;
     }
 }
 

@@ -24,7 +24,7 @@ bool readTestSettings(const std::string& filename, Settings& settings)
         char key[100];
         char value[100];
 
-        int read = std::fscanf(handle, "%s %s", key, value);
+        int read = std::fscanf(handle, "%[a-zA-Z0-9_]=%[][a-zA-Z0-9_-.,:()/; ]\n", key, value);
 
         if (read == EOF)
         {
