@@ -5,9 +5,6 @@
 #include <cstdint>
 #include <gtest/gtest.h>
 
-#include "utils/SVG.h"
-#include "utils/Simplify.h"
-
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {

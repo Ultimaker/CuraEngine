@@ -4,7 +4,6 @@
 #ifndef UTILS_SIMPLIFY_H
 #define UTILS_SIMPLIFY_H
 
-#include "AABB.h"
 #include "polygon.h"
 #include "ExtrusionLine.h"
 #include "linearAlg2D.h" //To calculate line deviations and intersecting lines.
