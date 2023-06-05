@@ -294,6 +294,7 @@ protected:
      * \param vertex The index of the vertex to remove.
      * \param deviation2 The previously found deviation for this vertex.
      * \param is_closed Whether we're working on a closed polygon or an open
+     \return Whether something is actually removed
      * polyline.
      */
     template<typename Polygonal>
