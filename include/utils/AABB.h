@@ -73,6 +73,16 @@ public:
     bool hit(const AABB& other) const;
 
     /*!
+     * Check whether this aabb overlaps with another.
+     *
+     * In the boundary case true is returned.
+     *
+     * \param other the aabb to check for overlaps with
+     * \return Whether the two aabbs overlap
+     */
+    coord_t distanceSquared(const Point& p) const;
+
+    /*!
      * \brief Includes the specified point in the bounding box.
      * 
      * The bounding box is expanded if the point is not within the bounding box.

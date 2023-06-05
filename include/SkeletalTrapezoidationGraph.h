@@ -9,6 +9,7 @@
 #include "SkeletalTrapezoidationEdge.h"
 #include "SkeletalTrapezoidationJoint.h"
 #include "utils/HalfEdgeGraph.h"
+#include "utils/PolygonsSegmentIndex.h"
 
 namespace cura
 {
@@ -71,6 +72,8 @@ class SkeletalTrapezoidationGraph: public HalfEdgeGraph<SkeletalTrapezoidationJo
     using node_t = STHalfEdgeNode;
 public:
 
+    std::vector<PolygonsSegmentIndex> segments;
+
     /*!
      * If an edge is too small, collapse it and its twin and fix the surrounding edges to ensure a consistent graph.
      * 
@@ -83,7 +86,7 @@ public:
      */
     void collapseSmallEdges(coord_t snap_dist = 5);
 
-    void makeRib(edge_t*& prev_edge, Point start_source_point, Point end_source_point, bool is_next_to_start_or_end);
+    void makeRib(edge_t*& prev_edge, Point start_source_point, Point end_source_point);
 
     /*!
      * Insert a node into the graph and connect it to the input polygon using ribs
@@ -91,6 +94,8 @@ public:
      * \return the last edge which replaced [edge], which points to the same [to] node
      */
     edge_t* insertNode(edge_t* edge, Point mid, coord_t mide_node_bead_count);
+
+    void drawGraph() const;
 
     /*!
      * Return the first and last edge of the edges replacing \p edge pointing to the same node

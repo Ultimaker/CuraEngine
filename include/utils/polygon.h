@@ -547,6 +547,8 @@ public:
 
     void removeCollinearPoints(const AngleRadians max_deviation_angle);
 
+    void removeSmallEdges(const unsigned int max_dist);
+
     /*!
      * Removes consecutive line segments with same orientation and changes this polygon.
      *
@@ -1151,6 +1153,20 @@ public:
         for (size_t p = 0; p < size(); p++)
         {
             thiss[p].removeCollinearPoints(max_deviation_angle);
+            if (thiss[p].size() < 3)
+            {
+                remove(p);
+                p--;
+            }
+        }
+    }
+
+    void removeSmallEdges(const unsigned int max_dist = 10)
+    {
+        Polygons& thiss = *this;
+        for (size_t p = 0; p < size(); p++)
+        {
+            thiss[p].removeSmallEdges(max_dist);
             if (thiss[p].size() < 3)
             {
                 remove(p);

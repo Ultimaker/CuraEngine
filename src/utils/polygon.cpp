@@ -427,6 +427,58 @@ Polygons ConstPolygonRef::offset(int distance, ClipperLib::JoinType join_type, d
     return ret;
 }
 
+void PolygonRef::removeSmallEdges(const unsigned int min_dist)
+{
+    auto is_small = [min_dist](const Point& p1, const Point& p2) {
+        return vSize2(p1 - p2) <= min_dist * min_dist;
+    };
+
+    int first_large_edge = 0;
+    while (is_small((*path).back(), (*path)[first_large_edge]))
+    {
+        first_large_edge++;
+    }
+
+    ClipperLib::Path new_path;
+    new_path.push_back((*path)[first_large_edge]);
+
+    for (int i = first_large_edge + 1; i < path->size(); i++) {
+        auto new_point = (*path)[i];
+        if (is_small(new_path.back(), new_point))
+        {
+            /*
+             *             c---------d                    i-----------d
+             *   small -> /                               |
+             *           b                                |
+             *           |                becomes         |
+             *           |                                |
+             *           |                                |
+             *           a                                a
+             */
+
+            auto a = new_path.size() >= 2 ? new_path[new_path.size() - 2] : path->back();
+            auto b = new_path.back();
+            auto c = new_point;
+            auto d = (*path)[(i + 1) % path->size()];
+
+            Point intersection;
+            const bool did_intersect = LinearAlg2D::lineLineIntersection(a, b, c, d, intersection);
+
+            if (did_intersect)
+            {
+//                new_path.back() = intersection;
+            }
+        }
+        else
+        {
+            new_path.push_back(new_point);
+        }
+    }
+
+    *path = new_path;
+}
+
+
 void PolygonRef::removeCollinearPoints(const AngleRadians max_deviation_angle)
 {
     auto is_collinear = [max_deviation_angle](const Point& p1, const Point& p2, const Point& p3) {
@@ -450,56 +502,33 @@ void PolygonRef::removeCollinearPoints(const AngleRadians max_deviation_angle)
         return;
     }
 
+    // find the first non-collinear point
+    int first_non_collinear = 0;
+    while (first_non_collinear + 2 < path->size() && is_collinear((*path)[path->size() - 1], (*path)[first_non_collinear], (*path)[first_non_collinear + 1]))
+    {
+        first_non_collinear ++;
+    }
+
     ClipperLib::Path new_path;
 
-    for (int i = 0; i < path->size(); i++) {
-        auto next = (*path)[i];
-        while (new_path.size() >= 2) {
-            auto prev = new_path[new_path.size() - 2];
-            auto pt = new_path[new_path.size() - 1];
+    // add the first two points, we know that they are not collinear
+    new_path.push_back((*path)[path->size() - 1]);
+    new_path.push_back((*path)[first_non_collinear]);
 
-            if (is_collinear(prev, pt, next))
-            {
-                new_path.pop_back();
-            }
-            else
-            {
-                break;
-            }
-        }
-        new_path.push_back((*path)[i]);
-    }
-
-    while (new_path.size() >= 3)
-    {
-        auto prev = new_path[new_path.size() - 1];
-        auto pt = new_path[0];
-        auto next = new_path[1];
-
-        if (is_collinear(prev, pt, next))
-        {
-            new_path.erase(new_path.begin());
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    while (new_path.size() >= 3)
-    {
-        auto prev = new_path[new_path.size() - 2];
-        auto pt = new_path[new_path.size() - 1];
-        auto next = new_path[0];
-
-        if (is_collinear(prev, pt, next))
-        {
+    // add all non-collinear points, skip the last point, because it is already added
+    for (int i = first_non_collinear + 1; i < path->size() - 1; i++) {
+        auto new_point = (*path)[i];
+        // while the new point is collinear with the last two points, remove the last point
+        while (new_path.size() >= 3 && is_collinear(new_path[new_path.size() - 2], new_path[new_path.size() - 1], new_point)) {
             new_path.pop_back();
         }
-        else
-        {
-            break;
-        }
+        new_path.push_back(new_point);
+    }
+
+    // remove collinear points at the end
+    while (new_path.size() >= 3 && is_collinear(new_path[new_path.size() - 2], new_path[new_path.size() - 1], new_path[0]))
+    {
+        new_path.pop_back();
     }
 
     *path = new_path;

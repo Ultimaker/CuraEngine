@@ -147,6 +147,59 @@ void AABB::expand(int dist)
     max.Y += dist;
 }
 
+coord_t AABB::distanceSquared(const cura::Point& p) const
+{
+    const Point lt = min;
+    const Point rt = Point(max.X, min.Y);
+    const Point rb = max;
+    const Point lb = Point(min.X, max.Y);
+
+    if (contains(p))
+    {
+        return 0;
+    }
+    else if (p.X < lt.X && p.Y < lt.Y)
+    {
+        return vSize2(p - lt);
+    }
+    else if (p.X > rt.X && p.Y < rt.Y)
+    {
+        return vSize2(p - rt);
+    }
+    else if (p.X > rb.X && p.Y > rb.Y)
+    {
+        return vSize2(p - rb);
+    }
+    else if (p.X < lb.X && p.Y > lb.Y)
+    {
+        return vSize2(p - lb);
+    }
+    else if (p.X < min.X)
+    {
+        const auto dist = min.X - p.X;
+        return dist * dist;
+    }
+    else if (p.X > max.X)
+    {
+        const auto dist = p.X - max.X;
+        return dist * dist;
+    }
+    else if (p.Y < min.Y)
+    {
+        const auto dist = min.Y - p.Y;
+        return dist * dist;
+    }
+    else if (p.Y > max.Y)
+    {
+        const auto dist = p.Y - max.Y;
+        return dist * dist;
+    }
+    else
+    {
+        assert(false && "Not a possible state");
+    }
+}
+
 Polygon AABB::toPolygon() const
 {
     Polygon ret;

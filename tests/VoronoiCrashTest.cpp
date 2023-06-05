@@ -70,6 +70,8 @@ const std::vector<std::string> polygon_filenames = {
     std::filesystem::path(__FILE__).parent_path().append("voronoi_crash_resources/slice_polygon_006.txt").string(),
     std::filesystem::path(__FILE__).parent_path().append("voronoi_crash_resources/slice_polygon_007.txt").string(),
     std::filesystem::path(__FILE__).parent_path().append("voronoi_crash_resources/slice_polygon_008.txt").string(),
+    std::filesystem::path(__FILE__).parent_path().append("voronoi_crash_resources/slice_polygon_009.txt").string(),
+//    std::filesystem::path(__FILE__).parent_path().append("voronoi_crash_resources/slice_polygon_010.txt").string(),
 };
 
 const std::vector<std::string> setting_filenames = {
@@ -81,6 +83,8 @@ const std::vector<std::string> setting_filenames = {
     std::filesystem::path(__FILE__).parent_path().append("voronoi_crash_resources/settings_006.txt").string(),
     std::filesystem::path(__FILE__).parent_path().append("voronoi_crash_resources/settings_007.txt").string(),
     std::filesystem::path(__FILE__).parent_path().append("voronoi_crash_resources/settings_008.txt").string(),
+    std::filesystem::path(__FILE__).parent_path().append("voronoi_crash_resources/settings_009.txt").string(),
+    std::filesystem::path(__FILE__).parent_path().append("voronoi_crash_resources/settings_010.txt").string(),
 };
 
 INSTANTIATE_TEST_SUITE_P(TestCrashingPolygons, VoronoiCrashTest, testing::Combine(testing::ValuesIn(polygon_filenames), testing::ValuesIn(setting_filenames)));

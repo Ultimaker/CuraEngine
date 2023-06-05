@@ -159,6 +159,12 @@ protected:
      */
     void constructFromPolygons(const Polygons& polys);
 
+    bool validate() const;
+
+
+    void filterCells(vd_t& voronoi_diagram, std::vector<Point>& points, std::vector<Segment>& segments);
+
+
     /*!
      * mapping each voronoi VD edge to the corresponding halfedge HE edge
      * In case the result segment is discretized, we map the VD edge to the *last* HE edge

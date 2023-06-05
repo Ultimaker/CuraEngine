@@ -5,6 +5,7 @@
 #include <unordered_set>
 
 #include <scripta/logger.h>
+#include <spdlog/spdlog.h>
 
 #include "WallToolPaths.h"
 
@@ -13,6 +14,8 @@
 #include "utils/polygonUtils.h"
 #include "ExtruderTrain.h"
 #include "utils/PolylineStitcher.h"
+#include "utils/BoundedAreaHierarchy.h"
+
 #include "utils/Simplify.h"
 
 namespace cura
@@ -56,27 +59,47 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0
 
 const std::vector<VariableWidthLines>& WallToolPaths::generate()
 {
+    spdlog::info("WallToolPaths::generate()");
     // Sometimes small slivers of polygons mess up the prepared_outline. By performing an open-close operation
     // with half the minimum printable feature size or minimum line width, these slivers are removed, while still
     // keeping enough information to not degrade the print quality;
     // These features can't be printed anyhow. See PR CuraEngine#1811 for some screenshots
     const coord_t close_distance = settings.get<bool>("fill_outline_gaps") ? settings.get<coord_t>("min_feature_size") / 2 - 3 : settings.get<coord_t>("min_wall_line_width") / 2 - 3;
-    const coord_t open_distance = 300;
+    const coord_t open_distance = close_distance;
     const AngleRadians transitioning_angle = settings.get<AngleRadians>("wall_transition_angle");
     constexpr coord_t discretization_step_size = MM2INT(0.8);
+
+    {
+        AABB aabb;
+        aabb.include(outline);
+        aabb.expand(1000);
+        SVG svg("output.svg", aabb);
+        svg.writePolygons(outline);
+    }
 
     // Simplify outline for boost::voronoi consumption. Absolutely no
     // - self intersections,
     // - near-self intersections or
     // - collinear points
     // allowed:
-    Polygons prepared_outline = outline
-                                    .offset(open_distance)
-                                    .offset(-open_distance - close_distance, ClipperLib::jtRound)
-                                    .offset(close_distance, ClipperLib::jtRound);
-    prepared_outline = Simplify(settings).polygon(prepared_outline);
-    prepared_outline.removeSmallAreas(small_area_length * small_area_length, false);
-    prepared_outline.removeCollinearPoints(AngleRadians(0.005));
+    cura::Polygons prepared_outline = outline.offset(open_distance);
+
+//    cura::Polygons prepared_outline = outline
+//                                          .offset(-close_distance)
+//                                          .offset(open_distance + close_distance)
+//                                          .offset(-open_distance);
+//    prepared_outline.removeSmallAreas(small_area_length * small_area_length, false);
+//    prepared_outline.removeSmallEdges(10);
+//    prepared_outline.removeCollinearPoints(cura::AngleRadians(0.01));
+
+    {
+        AABB aabb;
+        aabb.include(prepared_outline);
+        aabb.expand(1000);
+        SVG svg("output2.svg", aabb);
+        svg.writePolygons(prepared_outline);
+    }
+
 
     if (prepared_outline.area() <= 0)
     {
@@ -311,7 +334,7 @@ void WallToolPaths::separateOutInnerContour()
             {
                 for (const ExtrusionJunction& j : line)
                 {
-                    assert(j.w == 0);
+//                    assert(j.w == 0);
                 }
             }
 #endif // DEBUG

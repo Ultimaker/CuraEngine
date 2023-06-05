@@ -282,6 +282,12 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
 
             nodes.erase(node_locator[quad_mid->to]);
 
+            if (!quad_mid->prev || !quad_mid->prev->next || !quad_mid->next || !quad_mid->next->prev || !quad_mid->twin || !quad_mid->twin->prev || !quad_mid->twin->next || !quad_mid->twin->next->prev || !quad_mid->twin->prev->next)
+            {
+                spdlog::warn("Missing edge in quad collapse.");
+                drawGraph();
+            }
+
             quad_mid->prev->next = quad_mid->next;
             quad_mid->next->prev = quad_mid->prev;
             quad_mid->twin->next->prev = quad_mid->twin->prev;
@@ -328,12 +334,49 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
     }
 }
 
-void SkeletalTrapezoidationGraph::makeRib(edge_t*& prev_edge, Point start_source_point, Point end_source_point, bool is_next_to_start_or_end)
+void SkeletalTrapezoidationGraph::drawGraph() const
+{
+    AABB aabb;
+    for (auto& edge : edges)
+    {
+        aabb.include(edge.from->p);
+        aabb.include(edge.to->p);
+    }
+    aabb.expand(1000);
+
+    SVG svg("filename.svg", aabb, 0.1);
+
+    spdlog::info("svg scale: {}", svg.getScale());
+
+    for (auto& segment : segments)
+    {
+        svg.writeLine(segment.from(), segment.to(), SVG::Color::BLACK, 0.2);
+    }
+
+    for (auto& edge : edges)
+    {
+//        spdlog::info("edge.from->p ({}, {}), edge.to->p ({}, {})", edge.from->p.X, edge.from->p.Y, edge.to->p.X, edge.to->p.Y);
+        if (!edge.twin) {
+            spdlog::info("WRONG edge.from->p ({}, {}), edge.to->p ({}, {})", edge.from->p.X, edge.from->p.Y, edge.to->p.X, edge.to->p.Y);
+            svg.writeLine(edge.from->p, edge.to->p, SVG::Color::RED, 0.2);
+            svg.writePoint(edge.from->p, false, 100.0, SVG::Color::BLUE);
+            svg.writePoint(edge.to->p, false, 100.0, SVG::Color::BLUE);
+        }
+    }
+
+    for (const auto& edge : edges)
+    {
+        auto missing_prop = ! edge.twin || ! edge.prev || ! edge.next;
+        svg.writeLine(edge.from->p, edge.to->p, missing_prop ? SVG::Color::RED : SVG::Color::GREEN, 0.2);
+    }
+}
+
+void SkeletalTrapezoidationGraph::makeRib(edge_t*& prev_edge, Point start_source_point, Point end_source_point)
 {
     Point p = LinearAlg2D::getClosestOnLine(prev_edge->to->p, start_source_point, end_source_point);
     coord_t dist = vSize(prev_edge->to->p - p);
     prev_edge->to->data.distance_to_boundary = dist;
-    assert(dist >= 0);
+//    assert(dist >= 0);
 
     nodes.emplace_front(SkeletalTrapezoidationJoint(), p);
     node_t* node = &nodes.front();

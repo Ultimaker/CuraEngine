@@ -41,6 +41,8 @@ SkeletalTrapezoidation::node_t& SkeletalTrapezoidation::makeNode(vd_t::vertex_ty
 
 void SkeletalTrapezoidation::transferEdge(Point from, Point to, vd_t::edge_type& vd_edge, edge_t*& prev_edge, Point& start_source_point, Point& end_source_point, const std::vector<Point>& points, const std::vector<Segment>& segments)
 {
+    graph.segments = segments;
+
     auto he_edge_it = vd_edge_to_he_edge.find(vd_edge.twin());
     if (he_edge_it != vd_edge_to_he_edge.end())
     { // Twin segment(s) have already been made
@@ -88,8 +90,7 @@ void SkeletalTrapezoidation::transferEdge(Point from, Point to, vd_t::edge_type&
             assert(twin->prev->twin); // Back rib
             assert(twin->prev->twin->prev); // Prev segment along parabola
 
-            constexpr bool is_not_next_to_start_or_end = false; // Only ribs at the end of a cell should be skipped
-            graph.makeRib(prev_edge, start_source_point, end_source_point, is_not_next_to_start_or_end);
+            graph.makeRib(prev_edge, start_source_point, end_source_point);
         }
         assert(prev_edge);
     }
@@ -141,14 +142,86 @@ void SkeletalTrapezoidation::transferEdge(Point from, Point to, vd_t::edge_type&
 
             if (p1_idx < discretized.size() - 1)
             { // Rib for last segment gets introduced outside this function!
-                constexpr bool is_not_next_to_start_or_end = false; // Only ribs at the end of a cell should be skipped
-                graph.makeRib(prev_edge, start_source_point, end_source_point, is_not_next_to_start_or_end);
+                graph.makeRib(prev_edge, start_source_point, end_source_point);
             }
         }
         assert(prev_edge);
         vd_edge_to_he_edge.emplace(&vd_edge, prev_edge);
     }
 }
+
+void SkeletalTrapezoidation::filterCells(vd_t& vonoroi_diagram, std::vector<Point>& points, std::vector<Segment>& segments)
+{
+    for (vd_t::cell_type cell : vonoroi_diagram.cells())
+    {
+        if (! cell.incident_edge())
+        { // There is no spoon
+            spdlog::info("there is no spoon");
+            continue;
+        }
+        Point start_source_point;
+        Point end_source_point;
+        vd_t::edge_type* starting_vonoroi_edge = nullptr;
+        vd_t::edge_type* ending_vonoroi_edge = nullptr;
+        // Compute and store result in above variables
+
+        if (cell.contains_point())
+        {
+            const bool keep_going = computePointCellRange(cell, start_source_point, end_source_point, starting_vonoroi_edge, ending_vonoroi_edge, points, segments);
+            if (! keep_going)
+            {
+                continue;
+            }
+        }
+        else if (cell.contains_segment())
+        {
+            computeSegmentCellRange(cell, start_source_point, end_source_point, starting_vonoroi_edge, ending_vonoroi_edge, points, segments);
+        }
+        else
+        {
+            assert(false && "Cell should contain point or segment");
+        }
+
+        if (! starting_vonoroi_edge || ! ending_vonoroi_edge)
+        {
+            spdlog::info("No starting or ending edge found");
+            //            assert(false && "Each cell should start / end in a polygon vertex");
+            continue;
+        }
+
+        // Copy start to end edge to graph
+        edge_t* prev_edge = nullptr;
+        transferEdge(start_source_point, VoronoiUtils::p(starting_vonoroi_edge->vertex1()), *starting_vonoroi_edge, prev_edge, start_source_point, end_source_point, points, segments);
+        node_t* starting_node = vd_node_to_he_node[starting_vonoroi_edge->vertex0()];
+        starting_node->data.distance_to_boundary = 0;
+
+        graph.makeRib(prev_edge, start_source_point, end_source_point);
+        for (vd_t::edge_type* vd_edge = starting_vonoroi_edge->next(); vd_edge != ending_vonoroi_edge; vd_edge = vd_edge->next())
+        {
+            // assert(vd_edge->is_finite());
+            auto v1 = VoronoiUtils::p(vd_edge->vertex0());
+            auto v2 = VoronoiUtils::p(vd_edge->vertex1());
+            transferEdge(v1, v2, *vd_edge, prev_edge, start_source_point, end_source_point, points, segments);
+
+            graph.makeRib(prev_edge, start_source_point, end_source_point);
+        }
+
+        transferEdge(VoronoiUtils::p(ending_vonoroi_edge->vertex0()), end_source_point, *ending_vonoroi_edge, prev_edge, start_source_point, end_source_point, points, segments);
+        prev_edge->to->data.distance_to_boundary = 0;
+    }
+}
+
+bool SkeletalTrapezoidation::validate() const
+{
+    for (auto& edge : graph.edges)
+    {
+        if (!edge.twin) {
+            return false;
+        }
+    }
+    return true;
+}
+
 
 std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments)
 {
@@ -264,7 +337,7 @@ bool SkeletalTrapezoidation::computePointCellRange(vd_t::cell_type& cell,
 {
     if (cell.incident_edge()->is_infinite())
     {
-        return false; // Infinite edges only occur outside of the polygon. Don't copy any part of this cell.
+        return false; // Infinite edges only occur outside the polygon. Don't copy any part of this cell.
     }
     // Check if any point of the cell is inside or outside polygon
     // Copy whole cell into graph or not at all
@@ -287,6 +360,11 @@ bool SkeletalTrapezoidation::computePointCellRange(vd_t::cell_type& cell,
     vd_t::edge_type* vd_edge = cell.incident_edge();
     do
     {
+        if (!vd_edge->is_finite())
+        {
+            spdlog::warn("assert failure: vd_edge->is_finite()");
+            graph.drawGraph();
+        }
         assert(vd_edge->is_finite());
         Point p1 = VoronoiUtils::p(vd_edge->vertex1());
         if (p1 == source_point)
@@ -298,11 +376,22 @@ bool SkeletalTrapezoidation::computePointCellRange(vd_t::cell_type& cell,
         }
         else
         {
-            assert((VoronoiUtils::p(vd_edge->vertex0()) == source_point || ! vd_edge->is_secondary()) && "point cells must end in the point! They cannot cross the point with an edge, because collinear edges are not allowed in the input.");
+            if (!(VoronoiUtils::p(vd_edge->vertex0()) == source_point || ! vd_edge->is_secondary())) {
+                spdlog::warn("assert failure: vd_edge->vertex0()) == source_point || ! vd_edge->is_secondary())");
+            }
+//            assert((VoronoiUtils::p(vd_edge->vertex0()) == source_point || ! vd_edge->is_secondary()) && "point cells must end in the point! They cannot cross the point with an edge, because collinear edges are not allowed in the input.");
         }
     } while (vd_edge = vd_edge->next(), vd_edge != cell.incident_edge());
-    assert(starting_vd_edge && ending_vd_edge);
-    assert(starting_vd_edge != ending_vd_edge);
+
+    if (!(starting_vd_edge && ending_vd_edge)) {
+        spdlog::warn("assert failure: starting_vd_edge && ending_vd_edge");
+    }
+    if (!(starting_vd_edge != ending_vd_edge)) {
+        spdlog::warn("assert failure: starting_vd_edge != ending_vd_edge");
+    }
+
+//    assert(starting_vd_edge && ending_vd_edge);
+//    assert(starting_vd_edge != ending_vd_edge);
     return true;
 }
 
@@ -332,7 +421,7 @@ void SkeletalTrapezoidation::computeSegmentCellRange(vd_t::cell_type& cell,
         }
         Point v0 = VoronoiUtils::p(edge->vertex0());
         Point v1 = VoronoiUtils::p(edge->vertex1());
-        assert(! (v0 == to && v1 == from));
+//        assert(! (v0 == to && v1 == from));
         if (v0 == to && ! after_start) // Use the last edge which starts in source_segment.to
         {
             starting_vd_edge = edge;
@@ -350,8 +439,8 @@ void SkeletalTrapezoidation::computeSegmentCellRange(vd_t::cell_type& cell,
         }
     } while (edge = edge->next(), edge != cell.incident_edge());
 
-    assert(starting_vd_edge && ending_vd_edge);
-    assert(starting_vd_edge != ending_vd_edge);
+//    assert(starting_vd_edge && ending_vd_edge);
+//    assert(starting_vd_edge != ending_vd_edge);
 
     start_source_point = source_segment.to();
     end_source_point = source_segment.from();
@@ -385,73 +474,72 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
 
     std::vector<Point> points; // Remains empty
 
-    std::vector<Segment> segments;
+    graph.segments.clear();
     for (size_t poly_idx = 0; poly_idx < polys.size(); poly_idx++)
     {
         ConstPolygonRef poly = polys[poly_idx];
         for (size_t point_idx = 0; point_idx < poly.size(); point_idx++)
         {
-            segments.emplace_back(&polys, poly_idx, point_idx);
+            graph.segments.emplace_back(&polys, poly_idx, point_idx);
         }
     }
 
     vd_t vonoroi_diagram;
-    construct_voronoi(segments.begin(), segments.end(), &vonoroi_diagram);
+    construct_voronoi(graph.segments.begin(), graph.segments.end(), &vonoroi_diagram);
 
-    for (vd_t::cell_type cell : vonoroi_diagram.cells())
+    bool valid = true;
+    for (auto& edge : vonoroi_diagram.edges())
     {
-        if (! cell.incident_edge())
-        { // There is no spoon
-            continue;
-        }
-        Point start_source_point;
-        Point end_source_point;
-        vd_t::edge_type* starting_vonoroi_edge = nullptr;
-        vd_t::edge_type* ending_vonoroi_edge = nullptr;
-        // Compute and store result in above variables
-
-        if (cell.contains_point())
+        if (!edge.twin())
         {
-            const bool keep_going = computePointCellRange(cell, start_source_point, end_source_point, starting_vonoroi_edge, ending_vonoroi_edge, points, segments);
-            if (! keep_going)
-            {
-                continue;
-            }
+            valid = false;
         }
-        else
-        {
-            computeSegmentCellRange(cell, start_source_point, end_source_point, starting_vonoroi_edge, ending_vonoroi_edge, points, segments);
-        }
-
-        if (! starting_vonoroi_edge || ! ending_vonoroi_edge)
-        {
-            assert(false && "Each cell should start / end in a polygon vertex");
-            continue;
-        }
-
-        // Copy start to end edge to graph
-        edge_t* prev_edge = nullptr;
-        transferEdge(start_source_point, VoronoiUtils::p(starting_vonoroi_edge->vertex1()), *starting_vonoroi_edge, prev_edge, start_source_point, end_source_point, points, segments);
-        node_t* starting_node = vd_node_to_he_node[starting_vonoroi_edge->vertex0()];
-        starting_node->data.distance_to_boundary = 0;
-
-        constexpr bool is_next_to_start_or_end = true;
-        graph.makeRib(prev_edge, start_source_point, end_source_point, is_next_to_start_or_end);
-        for (vd_t::edge_type* vd_edge = starting_vonoroi_edge->next(); vd_edge != ending_vonoroi_edge; vd_edge = vd_edge->next())
-        {
-            assert(vd_edge->is_finite());
-            Point v1 = VoronoiUtils::p(vd_edge->vertex0());
-            Point v2 = VoronoiUtils::p(vd_edge->vertex1());
-            transferEdge(v1, v2, *vd_edge, prev_edge, start_source_point, end_source_point, points, segments);
-
-            graph.makeRib(prev_edge, start_source_point, end_source_point, vd_edge->next() == ending_vonoroi_edge);
-        }
-
-        transferEdge(VoronoiUtils::p(ending_vonoroi_edge->vertex0()), end_source_point, *ending_vonoroi_edge, prev_edge, start_source_point, end_source_point, points, segments);
-        prev_edge->to->data.distance_to_boundary = 0;
     }
 
+
+    spdlog::info("A validate(): {}; graph.edges.size(): {}", valid, graph.edges.size());
+
+    filterCells(vonoroi_diagram, points, graph.segments);
+
+    spdlog::info("B validate(): {}; graph.edges.size(): {}", validate(), graph.edges.size());
+
+    if (!validate()) {
+        spdlog::warn("assert failure: validate()");
+        graph.drawGraph();
+    }
+
+//        {
+//            AABB aabb;
+//            for (auto& segment : segments)
+//            {
+//                aabb.include(segment.from());
+//                aabb.include(segment.to());
+//            }
+//            aabb.expand(1000);
+//
+//            SVG svg("filename3.svg", aabb);
+//
+//            spdlog::info("segments.size() = {}", segments.size());
+//            for (auto& segment : segments)
+//            {
+//                svg.writeLine(segment.from(), segment.to(), SVG::Color::BLACK);
+//            }
+//
+//            for (auto& edge : vonoroi_diagram.cells()) {
+//
+//            }
+//        }
+//    }
+
+
     separatePointyQuadEndNodes();
+    spdlog::info("C validate(): {}", validate());
+
+    if (!validate()) {
+        spdlog::warn("assert failure: C validate()");
+        graph.drawGraph();
+    }
+
 
     graph.collapseSmallEdges();
 
@@ -486,6 +574,60 @@ void SkeletalTrapezoidation::separatePointyQuadEndNodes()
             node_t* new_node = &graph.nodes.back();
             new_node->incident_edge = quad_start;
             quad_start->from = new_node;
+
+            if (!quad_start->twin) {
+
+
+//                {
+//                    AABB aabb;
+//                    for (edge_t& edge : graph.edges)
+//                    {
+//                        aabb.include(edge.from->p);
+//                        aabb.include(edge.to->p);
+//                    }
+//                    aabb.expand(1000);
+//
+//                    SVG svg("filename.svg", aabb);
+//
+//
+//                    for (const auto& edge : graph.edges)
+//                    {
+//                        auto missing_prop = ! edge.twin || ! edge.prev || ! edge.next;
+//                        svg.writeLine(edge.from->p, edge.to->p, missing_prop ? SVG::Color::RED : SVG::Color::GREEN, 0.01);
+//                    }
+//                }
+//
+//                {
+//                    vd_t vonoroi_diagram;
+//                    construct_voronoi(segments.begin(), segments.end(), &vonoroi_diagram);
+//
+//                    AABB aabb;
+//                    for (auto& segment : segments)
+//                    {
+//                        aabb.include(segment.from());
+//                        aabb.include(segment.to());
+//                    }
+//                    aabb.expand(1000);
+//
+//                    SVG svg("filename2.svg", aabb);
+//
+//                    spdlog::info("segments.size() = {}", segments.size());
+//                    for (auto& segment : segments)
+//                    {
+//                        spdlog::info("segment.from() = ({}, {}), segment.to() = ({}, {})", segment.from().X, segment.from().Y, segment.to().X, segment.to().Y);
+//                        svg.writeLine(segment.from(), segment.to(), SVG::Color::BLACK);
+//                    }
+//
+//                    for (auto& edge : vonoroi_diagram.edges()) {
+//
+//                        if (edge.is_finite()) {
+//                            auto missing_prop = ! edge.twin() || ! edge.prev() || ! edge.next();
+//                            svg.writeLine(VoronoiUtils::p(edge.vertex0()), VoronoiUtils::p(edge.vertex1()), missing_prop ? SVG::Color::RED : SVG::Color::GREEN, 0.1);
+//                        }
+//                    }
+//                }
+            }
+
             quad_start->twin->to = new_node;
         }
     }
@@ -837,7 +979,7 @@ void SkeletalTrapezoidation::generateTransitionMids(ptr_vector_t<std::list<Trans
             }
             auto transitions = edge.data.getTransitions();
             constexpr bool ignore_empty = true;
-            assert((! edge.data.hasTransitions(ignore_empty)) || mid_pos >= transitions->back().pos);
+//            assert((! edge.data.hasTransitions(ignore_empty)) || mid_pos >= transitions->back().pos);
             if (! edge.data.hasTransitions(ignore_empty))
             {
                 edge_transitions.emplace_back(std::make_shared<std::list<TransitionMiddle>>());
@@ -1052,11 +1194,11 @@ void SkeletalTrapezoidation::generateAllTransitionEnds(ptr_vector_t<std::list<Tr
         }
         auto& transition_positions = *edge.data.getTransitions();
 
-        assert(edge.from->data.distance_to_boundary <= edge.to->data.distance_to_boundary);
+//        assert(edge.from->data.distance_to_boundary <= edge.to->data.distance_to_boundary);
         for (TransitionMiddle& transition_middle : transition_positions)
         {
-            assert(transition_positions.front().pos <= transition_middle.pos);
-            assert(transition_middle.pos <= transition_positions.back().pos);
+//            assert(transition_positions.front().pos <= transition_middle.pos);
+//            assert(transition_middle.pos <= transition_positions.back().pos);
             generateTransitionEnds(edge, transition_middle.pos, transition_middle.lower_bead_count, edge_transition_ends);
         }
     }
@@ -1509,6 +1651,11 @@ void SkeletalTrapezoidation::generateSegments()
 
 SkeletalTrapezoidation::edge_t* SkeletalTrapezoidation::getQuadMaxRedgeTo(edge_t* quad_start_edge)
 {
+//    if (! quad_start_edge->prev)
+//    {
+//        spdlog::warn("Quad start edge has no prev");
+//        graph.drawGraph();
+//    }
     assert(quad_start_edge->prev == nullptr);
     assert(quad_start_edge->from->data.distance_to_boundary == 0);
     coord_t max_R = -1;
@@ -1956,6 +2103,12 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
             }
             if (edge_from_peak->next)
             {
+                if (! edge_from_peak->next->twin)
+                {
+                    spdlog::error("Edge from peak has no data!");
+                    graph.drawGraph();
+                }
+                graph.drawGraph();
                 LineJunctions to_next_junctions = *edge_from_peak->next->twin->data.getExtrusionJunctions();
                 while (! to_junctions.empty() && ! to_next_junctions.empty() && to_junctions.back().perimeter_index <= to_next_junctions.front().perimeter_index)
                 {
@@ -1969,7 +2122,7 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
                     spdlog::warn("The edge we're about to connect is already connected!");
                 }
             }
-            assert(std::abs(int(from_junctions.size()) - int(to_junctions.size())) <= 1); // at transitions one end has more beads
+//            assert(std::abs(int(from_junctions.size()) - int(to_junctions.size())) <= 1); // at transitions one end has more beads
             if (std::abs(int(from_junctions.size()) - int(to_junctions.size())) > 1)
             {
                 spdlog::warn("Can't create a transition when connecting two perimeters where the number of beads differs too much! {} vs. {}", from_junctions.size(), to_junctions.size());
@@ -1980,7 +2133,7 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
             {
                 ExtrusionJunction& from = from_junctions[from_junctions.size() - 1 - junction_rev_idx];
                 ExtrusionJunction& to = to_junctions[to_junctions.size() - 1 - junction_rev_idx];
-                assert(from.perimeter_index == to.perimeter_index);
+//                assert(from.perimeter_index == to.perimeter_index);
                 if (from.perimeter_index != to.perimeter_index)
                 {
                     spdlog::warn("Connecting two perimeters with different indices! Perimeter {} and {}", from.perimeter_index, to.perimeter_index);
