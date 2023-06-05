@@ -199,7 +199,7 @@ protected:
 
             //Iteratively remove the least important point until a threshold.
             coord_t vertex_importance = 0;
-            while ((polygon.size() - current_removed) > min_size && ! by_importance.empty())
+            while (! by_importance.empty() && (polygon.size() - current_removed) > min_size)
             {
                 std::pair<size_t, coord_t> vertex = by_importance.top();
                 by_importance.pop();
