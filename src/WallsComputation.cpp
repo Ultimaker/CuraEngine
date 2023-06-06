@@ -72,7 +72,8 @@ void WallsComputation::generateWalls(SliceLayerPart* part, SectionType section_t
         part->wall_toolpaths = wall_tool_paths.getToolPaths();
         part->inner_area = wall_tool_paths.getInnerContour();
     }
-    part->print_outline = Simplify(settings).polygon(part->outline);
+    part->outline = PolygonsPart(Simplify(settings).polygon(part->outline));
+    part->print_outline = part->outline;
 }
 
 /*
