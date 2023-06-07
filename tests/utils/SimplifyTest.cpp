@@ -231,7 +231,7 @@ TEST_F(SimplifyTest, LimitedError)
         increasing_zigzag.add(Point(0, increasing_zigzag.size() * y_step));
     }
 
-    size_t limit_vertex = 2 * simplifier.max_deviation / amplitude_step + 2; // 2 vertices per zag. Deviation/step zags. Add 2 since deviation equal to max is allowed.
+    size_t limit_vertex = 2 * simplifier.max_deviation / amplitude_step + 3; // 2 vertices per zag. Deviation/step zags. Add 3 since deviation equal to max +- epsilon is allowed.
 
     Polygon simplified = simplifier.polyline(increasing_zigzag);
 
@@ -397,7 +397,7 @@ TEST_F(SimplifyTest, ToDegenerate)
     segment.add(Point(4, 0)); // Less than 5 micron long, so vertices would always be removed.
 
     segment = simplifier.polyline(segment);
-    EXPECT_EQ(segment.size(), 2) << "The segment did not get simplified because that would reduce its vertices to less than 2, making it degenerate.";
+    EXPECT_EQ(segment.size(), 0) << "The segment got removed entirely, because simplification would reduce its vertices to less than 2, making it degenerate.";
 }
 
 } // namespace cura
