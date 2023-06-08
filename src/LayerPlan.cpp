@@ -661,7 +661,7 @@ void LayerPlan::addWallLine(const Point& p0,
                             Ratio speed_factor,
                             double distance_to_bridge_start)
 {
-    const coord_t min_line_len = 5; // we ignore lines less than 5um long
+    const coord_t min_line_len = settings.get<coord_t>("meshfix_maximum_resolution") / 2; // Shouldn't cut up stuff (too much) below the required simplify resolution.
     const double acceleration_segment_len = MM2INT(1); // accelerate using segments of this length
     const double acceleration_factor = 0.75; // must be < 1, the larger the value, the slower the acceleration
     const bool spiralize = false;
