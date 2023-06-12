@@ -1096,7 +1096,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         }
     }
 
-    const auto smart_brim_ordering = train.settings.get<bool>("brim_smart_ordering");
+    const auto smart_brim_ordering = train.settings.get<bool>("brim_smart_ordering") && train.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM;
     std::unordered_multimap<ConstPolygonPointer, ConstPolygonPointer> order_requirements;
     for (const std::pair<SquareGrid::GridPoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<BrimLineReference>>& p : grid)
     {
