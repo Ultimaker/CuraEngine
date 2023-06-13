@@ -6,6 +6,7 @@
 
 #include <string>
 #include <tuple>
+#include <unordered_map>
 
 #include <range/v3/range/operations.hpp>
 #include <range/v3/view/drop.hpp>
@@ -16,9 +17,51 @@
 #include "cura/plugins/slots/postprocess/v0/postprocess.pb.h"
 #include "cura/plugins/slots/simplify/v0/simplify.grpc.pb.h"
 #include "cura/plugins/slots/simplify/v0/simplify.pb.h"
+#include "cura/plugins/v0/broadcast_slots.pb.h"
 
 namespace cura::plugins
 {
+
+
+struct empty
+{
+    using value_type = google::protobuf::Empty; ///< The protobuf message type.
+    using native_value_type = std::nullptr_t; ///< The native value type.
+
+    value_type operator()() const
+    {
+        return {};
+    }
+
+    constexpr native_value_type operator()(const value_type&) const
+    {
+        return nullptr;
+    }
+};
+
+struct broadcast_settings_request
+{
+    using value_type = v0::BroadcastServiceSettingsRequest; ///< The protobuf message type.
+    using native_value_type = std::unordered_map<std::string, std::string>; ///< The native value type.
+
+    /**
+     * @brief Converts native data for broadcasting to a `proto::BroadcastServiceSettingsRequest` message.
+     *
+     * @param key The key of the setting to be broadcasted.
+     * @param value The value of the setting to be broadcasted.
+     * @return The converted `proto::BroadcastServiceSettingsRequest` message.
+     */
+    value_type operator()(const native_value_type& native_value) const
+    {
+        value_type message{};
+        auto* settings = message.mutable_settings();
+        for (const auto& [key, value] : native_value)
+        {
+            settings->emplace(key, value);
+        }
+        return message;
+    }
+};
 
 struct simplify_request
 {
