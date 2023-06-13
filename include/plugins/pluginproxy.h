@@ -18,6 +18,7 @@
 
 #include "plugins/exception.h"
 #include "plugins/metadata.h"
+#include "plugins/converters.h"
 
 #include "cura/plugins/v0/slot_id.pb.h"
 #include "utils/concepts/generic.h"
@@ -175,6 +176,48 @@ public:
         }
 
         return ret_value;
+    }
+
+    void broadcast(auto&&... args)
+    {
+        agrpc::GrpcContext grpc_context;
+        grpc::Status status;
+
+        boost::asio::co_spawn(
+            grpc_context,
+            [this, &status, &grpc_context, &args...]() -> boost::asio::awaitable<void>
+            {
+                using RPC = agrpc::RPC<&stub_t::PrepareAsyncBroadcastSettings>;
+                grpc::ClientContext client_context{};
+
+                // Set time-out
+                client_context.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(500)); // TODO: don't use magic number and make it realistic
+
+                // Metadata
+                client_context.AddMetadata("cura-slot-service-name", fmt::format("{}", slot_info_.slot_id));
+                client_context.AddMetadata("cura-slot-version-range", slot_info_.version_range.data());
+
+                // Construct request
+                broadcast_settings_request req;
+                auto request{ req(std::forward<decltype(args)>(args)...) };
+
+                // Make unary request
+                empty resp;
+                auto response = resp();
+                status = co_await RPC::request(grpc_context, stub_, client_context, request, response, boost::asio::use_awaitable);
+            },
+            boost::asio::detached);
+        grpc_context.run();
+
+        if (! status.ok())  // TODO: handle different kind of status codes
+        {
+            if (plugin_info_.has_value())
+            {
+                throw exceptions::RemoteException(slot_info_, plugin_info_.value(), status.error_message());
+            }
+            throw exceptions::RemoteException(slot_info_, status.error_message());
+        }
+
     }
 };
 } // namespace cura::plugins
