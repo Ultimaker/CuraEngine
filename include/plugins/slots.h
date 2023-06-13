@@ -100,6 +100,12 @@ public:
         get_type<Tp>().proxy = Tp{ std::forward<Tp>(std::move(plugin)) };
     }
 
+    void broadcast(auto&&... args)
+    {
+        value_.proxy.broadcast(std::forward<decltype(args)>(args)...);
+        Base::value_.proxy.broadcast(std::forward<decltype(args)>(args)...);
+    }
+
 protected:
     template<typename Tp>
     constexpr Unit<Tp>& get_type()
