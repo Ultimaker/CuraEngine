@@ -532,6 +532,10 @@ void ArcusCommunication::sliceNext()
 
     private_data->readGlobalSettingsMessage(slice_message->global_settings());
     private_data->readExtruderSettingsMessage(slice_message->extruders());
+
+    // Broadcast the settings to the plugins
+    slots::instance().broadcast(slice.scene.settings.settings);
+
     const size_t extruder_count = slice.scene.extruders.size();
 
     // For each setting, register what extruder it should be obtained from (if this is limited to an extruder).
