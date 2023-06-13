@@ -105,14 +105,15 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     size_t total_layers = 0;
     for (SliceMeshStorage& mesh : storage.meshes)
     {
-        if (mesh.isPrinted()) // No need to process higher layers if the non-printed meshes are higher than the normal meshes.
-        {
-            size_t mesh_layer_num = mesh.layers.size();
-            for (; mesh_layer_num > 0 && mesh.layers[mesh_layer_num - 1].getOutlines().empty(); --mesh_layer_num);
-            // No body, calculation of _actual_ number of layers in loop.
+        size_t mesh_layer_num = mesh.layers.size();
 
-            total_layers = std::max(total_layers, mesh_layer_num);
+        // calculation of _actual_ number of layers in loop.
+        while (mesh.layers[mesh_layer_num - 1].getOutlines().empty())
+        {
+            mesh_layer_num --;
         }
+
+        total_layers = std::max(total_layers, mesh_layer_num);
 
         setInfillAndSkinAngles(mesh);
     }
