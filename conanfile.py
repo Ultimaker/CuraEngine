@@ -43,7 +43,7 @@ class CuraEngineConan(ConanFile):
 
     def set_version(self):
         if not self.version:
-            self.version = "5.4.0-alpha.1"
+            self.version = "5.5.0-alpha.1"
 
     def export_sources(self):
         copy(self, "CMakeLists.txt", self.recipe_folder, self.export_sources_folder)
@@ -106,7 +106,7 @@ class CuraEngineConan(ConanFile):
         self.requires("zlib/1.2.12")
         self.requires("openssl/1.1.1l")
         self.requires("asio-grpc/2.4.0")
-        self.requires("curaengine_grpc_definitions/(latest)@ultimaker/testing")
+        self.requires("curaengine_grpc_definitions/(latest)@ultimaker/cura_10618")
 
     def generate(self):
         deps = CMakeDeps(self)
