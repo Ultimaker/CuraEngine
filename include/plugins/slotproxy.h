@@ -78,6 +78,14 @@ public:
         }
         return std::invoke(default_process, std::forward<decltype(args)>(args)...);
     }
+
+    void broadcast(auto&&...args)
+    {
+        if (plugin_.has_value())
+        {
+            plugin_.value().broadcast(std::forward<decltype(args)>(args)...);
+        }
+    }
 };
 
 } // namespace cura::plugins
