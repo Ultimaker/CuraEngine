@@ -44,6 +44,7 @@ class PluginProxy
 {
 public:
     // type aliases for easy use
+    using pluginproxy_t = PluginProxy<SlotID, SlotVersionRng, Stub, ValidatorTp, RequestTp, ResponseTp>;
     using value_type = typename ResponseTp::native_value_type;
     using validator_type = ValidatorTp;
 
@@ -64,6 +65,16 @@ private:
 
     constexpr static slot_metadata slot_info_{ .slot_id = SlotID, .version_range = SlotVersionRng.value };
     std::optional<plugin_metadata> plugin_info_{ std::nullopt }; ///< The plugin info object.
+
+    void prep_client_context(grpc::ClientContext& client_context, std::chrono::milliseconds timeout = std::chrono::milliseconds(500))
+    {
+        // Set time-out
+        client_context.set_deadline(std::chrono::system_clock::now() + timeout);
+
+        // Metadata
+        client_context.AddMetadata("cura-slot-service-name", fmt::format("{}", slot_info_.slot_id));
+        client_context.AddMetadata("cura-slot-version-range", slot_info_.version_range.data());
+    }
 
 public:
     /**
@@ -128,13 +139,7 @@ public:
             {
                 using RPC = agrpc::RPC<&stub_t::PrepareAsyncModify>;
                 grpc::ClientContext client_context{};
-
-                // Set time-out
-                client_context.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(500)); // TODO: don't use magic number and make it realistic
-
-                // Metadata
-                client_context.AddMetadata("cura-slot-service-name", fmt::format("{}", slot_info_.slot_id));
-                client_context.AddMetadata("cura-slot-version-range", slot_info_.version_range.data());
+                prep_client_context(client_context);
 
                 // Construct request
                 auto request{ req_(std::forward<decltype(args)>(args)...) };
@@ -189,13 +194,7 @@ public:
             {
                 using RPC = agrpc::RPC<&stub_t::PrepareAsyncBroadcastSettings>;
                 grpc::ClientContext client_context{};
-
-                // Set time-out
-                client_context.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(500)); // TODO: don't use magic number and make it realistic
-
-                // Metadata
-                client_context.AddMetadata("cura-slot-service-name", fmt::format("{}", slot_info_.slot_id));
-                client_context.AddMetadata("cura-slot-version-range", slot_info_.version_range.data());
+                prep_client_context(client_context);
 
                 // Construct request
                 broadcast_settings_request req;
