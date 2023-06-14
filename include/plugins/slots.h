@@ -95,15 +95,16 @@ public:
     }
 
     template<typename Tp>
-    void connect(auto&& plugin)
+    void connect(auto&& channel, auto& subscriptions)
     {
-        get_type<Tp>().proxy = Tp{ std::forward<Tp>(std::move(plugin)) };
+        get_type<Tp>().proxy.set_plugin(channel, subscriptions);
     }
 
+    template<details::CharRangeLiteral BroadcastChannel>
     void broadcast(auto&&... args)
     {
-        value_.proxy.broadcast(std::forward<decltype(args)>(args)...);
-        Base::value_.proxy.broadcast(std::forward<decltype(args)>(args)...);
+        value_.proxy.template broadcast<BroadcastChannel>(std::forward<decltype(args)>(args)...);
+        Base::value_.proxy.template broadcast<BroadcastChannel>(std::forward<decltype(args)>(args)...);
     }
 
 protected:

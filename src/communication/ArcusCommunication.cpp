@@ -6,9 +6,13 @@
 #include <Arcus/Socket.h> //The socket to communicate to.
 #include <thread> //To sleep while waiting for the connection.
 #include <unordered_map> //To map settings to their extruder numbers for limit_to_extruder.
+#include <set>
+#include <string_view>
 
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
+#include <range/v3/view/transform.hpp>
+#include <range/v3/to_container.hpp>
 
 #include "Application.h" //To get and set the current slice command.
 #include "ExtruderTrain.h"
@@ -513,13 +517,14 @@ void ArcusCommunication::sliceNext()
     {
         if (plugin.has_address() && plugin.has_port())
         {
+            auto subscriptions = plugin.subscriptions() | ranges::views::transform([](const auto& subscription) { return std::string_view{ subscription.subscription() }; }) | ranges::to<std::set<std::string_view>>();
             switch (plugin.id())
             {
             case cura::proto::SlotID::SIMPLIFY:
-                slots::instance().connect<plugins::slot_simplify>(utils::createChannel({ plugin.address(), plugin.port() }));
+                slots::instance().connect<plugins::slot_simplify>(utils::createChannel({ plugin.address(), plugin.port() }), subscriptions);
                 break;
             case cura::proto::SlotID::POSTPROCESS:
-                slots::instance().connect<plugins::slot_postprocess>(utils::createChannel({ plugin.address(), plugin.port() }));
+                slots::instance().connect<plugins::slot_postprocess>(utils::createChannel({ plugin.address(), plugin.port() }), subscriptions);
                 break;
             default: break;
             }
@@ -534,7 +539,7 @@ void ArcusCommunication::sliceNext()
     private_data->readExtruderSettingsMessage(slice_message->extruders());
 
     // Broadcast the settings to the plugins
-    slots::instance().broadcast(slice.scene.settings.settings);
+    slots::instance().broadcast<"settings">(slice.scene.settings.settings);
 
     const size_t extruder_count = slice.scene.extruders.size();
 

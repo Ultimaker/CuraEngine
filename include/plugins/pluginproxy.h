@@ -4,24 +4,29 @@
 #ifndef PLUGINS_PLUGINPROXY_H
 #define PLUGINS_PLUGINPROXY_H
 
+#include <chrono>
+#include <string>
+#include <set>
+
 #include <agrpc/asio_grpc.hpp>
 #include <agrpc/grpc_context.hpp>
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/use_awaitable.hpp>
-#include <chrono>
 #include <fmt/format.h>
 #include <range/v3/utility/semiregular_box.hpp>
 #include <spdlog/spdlog.h>
-#include <string>
 
 #include "plugins/exception.h"
 #include "plugins/metadata.h"
 #include "plugins/converters.h"
+#include "plugins/types.h"
 
 #include "cura/plugins/v0/slot_id.pb.h"
 #include "utils/concepts/generic.h"
+
+#include "cura/plugins/slots/simplify/v0/simplify.grpc.pb.h"
 
 namespace cura::plugins
 {
@@ -62,6 +67,7 @@ private:
     rsp_converter_type rsp_{}; ///< The response converter object.
 
     ranges::semiregular_box<stub_t> stub_; ///< The gRPC stub for communication.
+    std::set<std::string_view> subscriptions_; ///< The broadcast subscriptions for the plugin.
 
     constexpr static slot_metadata slot_info_{ .slot_id = SlotID, .version_range = SlotVersionRng.value };
     std::optional<plugin_metadata> plugin_info_{ std::nullopt }; ///< The plugin info object.
@@ -89,7 +95,7 @@ public:
      * @throws std::runtime_error if the plugin fails validation or communication errors occur.
      */
     constexpr PluginProxy() = default;
-    explicit PluginProxy(std::shared_ptr<grpc::Channel> channel) : stub_(channel){};
+    PluginProxy(std::shared_ptr<grpc::Channel>& channel, auto& subscriptions) : stub_(std::move(channel)), subscriptions_(std::move(subscriptions)){};
     constexpr PluginProxy(const PluginProxy&) = default;
     constexpr PluginProxy(PluginProxy&&) noexcept = default;
     constexpr PluginProxy& operator=(const PluginProxy& other)
@@ -98,6 +104,7 @@ public:
         {
             valid_ = other.valid_;
             stub_ = other.stub_;
+            subscriptions_ = other.subscriptions_;
             plugin_info_ = other.plugin_info_;
         }
         return *this;
@@ -108,6 +115,7 @@ public:
         {
             valid_ = std::move(other.valid_);
             stub_ = std::move(other.stub_);
+            subscriptions_ = std::move(other.subscriptions_);
             plugin_info_ = std::move(other.plugin_info_);
         }
         return *this;
@@ -183,8 +191,13 @@ public:
         return ret_value;
     }
 
+    template<details::CharRangeLiteral BroadcastChannel>
     void broadcast(auto&&... args)
     {
+        if (! subscriptions_.contains(BroadcastChannel.value))
+        {
+            return;
+        }
         agrpc::GrpcContext grpc_context;
         boost::asio::co_spawn(
             grpc_context,

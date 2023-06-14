@@ -50,14 +50,10 @@ public:
      */
     SlotProxy() noexcept = default;
 
-    /**
-     * @brief Constructs a SlotProxy object with a plugin.
-     *
-     * Constructs a SlotProxy object and initializes the plugin using the provided gRPC channel.
-     *
-     * @param channel A shared pointer to the gRPC channel for communication with the plugin.
-     */
-    SlotProxy(std::shared_ptr<grpc::Channel> channel) : plugin_{ std::move(channel) } {};
+    void set_plugin(auto& channel, auto& subscriptions)
+    {
+        plugin_ = value_type{ channel, subscriptions };
+    }
 
     /**
      * @brief Executes the plugin operation.
@@ -79,11 +75,12 @@ public:
         return std::invoke(default_process, std::forward<decltype(args)>(args)...);
     }
 
+    template<details::CharRangeLiteral BroadcastChannel>
     void broadcast(auto&&...args)
     {
         if (plugin_.has_value())
         {
-            plugin_.value().broadcast(std::forward<decltype(args)>(args)...);
+            plugin_.value().template broadcast<BroadcastChannel>(std::forward<decltype(args)>(args)...);
         }
     }
 };
