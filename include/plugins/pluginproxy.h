@@ -186,11 +186,9 @@ public:
     void broadcast(auto&&... args)
     {
         agrpc::GrpcContext grpc_context;
-        grpc::Status status;
-
         boost::asio::co_spawn(
             grpc_context,
-            [this, &status, &grpc_context, &args...]() -> boost::asio::awaitable<void>
+            [this, &grpc_context, &args...]() -> boost::asio::awaitable<void>
             {
                 using RPC = agrpc::RPC<&stub_t::PrepareAsyncBroadcastSettings>;
                 grpc::ClientContext client_context{};
@@ -203,20 +201,10 @@ public:
                 // Make unary request
                 empty resp;
                 auto response = resp();
-                status = co_await RPC::request(grpc_context, stub_, client_context, request, response, boost::asio::use_awaitable);
+                co_await RPC::request(grpc_context, stub_, client_context, request, response, boost::asio::use_awaitable);
             },
             boost::asio::detached);
         grpc_context.run();
-
-        if (! status.ok())  // TODO: handle different kind of status codes
-        {
-            if (plugin_info_.has_value())
-            {
-                throw exceptions::RemoteException(slot_info_, plugin_info_.value(), status.error_message());
-            }
-            throw exceptions::RemoteException(slot_info_, status.error_message());
-        }
-
     }
 };
 } // namespace cura::plugins
