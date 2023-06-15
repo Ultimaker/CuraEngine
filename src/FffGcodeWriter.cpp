@@ -110,7 +110,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         // calculation of _actual_ number of layers in loop.
         while (mesh.layers[mesh_layer_num - 1].getOutlines().empty())
         {
-            mesh_layer_num --;
+            mesh_layer_num--;
         }
 
         total_layers = std::max(total_layers, mesh_layer_num);
