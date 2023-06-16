@@ -19,6 +19,8 @@
 #include "cura/plugins/slots/simplify/v0/simplify.pb.h"
 #include "cura/plugins/v0/broadcast_slots.pb.h"
 
+#include "Cura.pb.h"
+
 namespace cura::plugins
 {
 
@@ -42,7 +44,7 @@ struct empty
 struct broadcast_settings_request
 {
     using value_type = v0::BroadcastServiceSettingsRequest; ///< The protobuf message type.
-    using native_value_type = std::unordered_map<std::string, std::string>; ///< The native value type.
+    using native_value_type = cura::proto::Slice; ///< The native value type.
 
     /**
      * @brief Converts native data for broadcasting to a `proto::BroadcastServiceSettingsRequest` message.
@@ -51,13 +53,39 @@ struct broadcast_settings_request
      * @param value The value of the setting to be broadcasted.
      * @return The converted `proto::BroadcastServiceSettingsRequest` message.
      */
-    value_type operator()(const native_value_type& native_value) const
+    value_type operator()(const native_value_type& slice_message) const
     {
         value_type message{};
-        auto* settings = message.mutable_settings();
-        for (const auto& [key, value] : native_value)
+        auto* global_settings = message.mutable_global_settings()->mutable_settings();
+        for (const auto& setting : slice_message.global_settings().settings())
         {
-            settings->emplace(key, value);
+            global_settings->emplace(setting.name(), setting.value());
+        }
+
+        auto* extruders_settings = message.mutable_extruder_settings();
+        for (const auto& extruder : slice_message.extruders())
+        {
+            auto* settings = extruders_settings->Add()->mutable_settings();
+            for (const auto& setting : extruder.settings().settings())
+            {
+                settings->emplace(setting.name(), setting.value());
+            }
+        }
+
+        auto* object_settings = message.mutable_object_settings();
+        for (const auto& object : slice_message.object_lists())
+        {
+            auto* settings = object_settings->Add()->mutable_settings();
+            for (const auto& setting : object.settings())
+            {
+                settings->emplace(setting.name(), setting.value());
+            }
+        }
+
+        auto* limit_to_extruder = message.mutable_limit_to_extruder();
+        for (const auto& setting_extruder : slice_message.limit_to_extruder())
+        {
+            limit_to_extruder->emplace(setting_extruder.name(), setting_extruder.extruder());
         }
         return message;
     }

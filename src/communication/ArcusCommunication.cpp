@@ -539,7 +539,7 @@ void ArcusCommunication::sliceNext()
     private_data->readExtruderSettingsMessage(slice_message->extruders());
 
     // Broadcast the settings to the plugins
-    slots::instance().broadcast<"settings">(slice.scene.settings.settings);
+    slots::instance().broadcast<"settings">(*slice_message);
 
     const size_t extruder_count = slice.scene.extruders.size();
 
