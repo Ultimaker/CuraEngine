@@ -95,17 +95,17 @@ public:
      */
     void setParent(Settings* new_parent);
 
-    /*!
-     * \brief A dictionary to map the setting keys to the actual setting values.
-     */
-    std::unordered_map<std::string, std::string> settings;
-
 private:
     /*!
      * Optionally, a parent setting container to ask for the value of a setting
      * if this container has no value for it.
      */
     Settings* parent;
+
+    /*!
+     * \brief A dictionary to map the setting keys to the actual setting values.
+     */
+    std::unordered_map<std::string, std::string> settings;
 
     /*!
      * \brief Get the value of a setting, but without looking at the limiting to
