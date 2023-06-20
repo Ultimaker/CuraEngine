@@ -33,7 +33,7 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceDataStorage& storage
     connect_length((config.support_line_width * 100 / mesh.settings.get<double>("support_tree_top_rate")) + std::max(2 * config.min_radius - 1.0 * config.support_line_width, 0.0)),
     support_tree_branch_distance((config.support_pattern == EFillMethod::TRIANGLES ? 3 : (config.support_pattern == EFillMethod::GRID ? 2 : 1)) * connect_length),
     support_roof_line_distance( use_fake_roof ? (config.support_pattern == EFillMethod::TRIANGLES ? 3 : (config.support_pattern == EFillMethod::GRID ? 2 : 1)) * (config.support_line_width * 100 / mesh.settings.get<double>("support_tree_top_rate")) : mesh.settings.get<coord_t>("support_roof_line_distance")), //todo propper
-    support_outset(mesh.settings.get<coord_t>("support_offset")),
+    support_outset(0), // Since we disable support offset when tree support is enabled we use an offset of 0 rather than the setting value mesh.settings.get<coord_t>("support_offset")
     roof_outset(use_fake_roof ? support_outset: mesh.settings.get<coord_t>("support_roof_offset")),
     force_tip_to_roof((config.min_radius * config.min_radius * M_PI > minimum_roof_area * (1000 * 1000)) && support_roof_layers && !use_fake_roof),
     support_tree_limit_branch_reach(mesh.settings.get<bool>("support_tree_limit_branch_reach")),
