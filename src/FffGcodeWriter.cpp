@@ -108,7 +108,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         size_t mesh_layer_num = mesh.layers.size();
 
         // calculation of _actual_ number of layers in loop.
-        while (mesh.layers[mesh_layer_num - 1].getOutlines().empty())
+        while (mesh_layer_num > 0 && mesh.layers[mesh_layer_num - 1].getOutlines().empty())
         {
             mesh_layer_num--;
         }
