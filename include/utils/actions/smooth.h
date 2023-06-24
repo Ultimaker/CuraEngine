@@ -5,6 +5,7 @@
 #define UTILS_VIEWS_SMOOTH_H
 
 #include <vector>
+#include <numbers>
 
 #include <range/v3/action/action.hpp>
 #include <range/v3/action/erase.hpp>
@@ -17,20 +18,21 @@
 #include <range/v3/view.hpp>
 #include <range/v3/view/sliding.hpp>
 #include <range/v3/view/transform.hpp>
+#include <spdlog/spdlog.h>
 
 namespace cura::actions
 {
 
 struct smooth_fn
 {
-    constexpr auto operator()(const std::integral auto max_resolution,  const std::integral auto smooth_distance, const std::integral auto allowed_angle_deviation) const
+    constexpr auto operator()(const std::integral auto max_resolution,  const std::integral auto smooth_distance, const std::floating_point auto fluid_angle) const
     {
-        return ranges::make_action_closure(ranges::bind_back(smooth_fn{}, max_resolution, smooth_distance, allowed_angle_deviation));
+        return ranges::make_action_closure(ranges::bind_back(smooth_fn{}, max_resolution, smooth_distance, fluid_angle));
     }
 
     template<class Rng>
     requires ranges::forward_range<Rng>&& ranges::sized_range<Rng>&& ranges::erasable_range<Rng, ranges::iterator_t<Rng>, ranges::sentinel_t<Rng>> constexpr auto
-    operator()(Rng&& rng, const std::integral auto max_resolution, const std::integral auto smooth_distance,  const std::integral auto allowed_angle_deviation) const
+    operator()(Rng&& rng, const std::integral auto max_resolution, const std::integral auto smooth_distance,  const std::floating_point auto fluid_angle) const
     {
         const auto size = ranges::distance(rng) - 1; // For closed Path, if open then subtract 0
         if (size < 3)
@@ -43,7 +45,6 @@ struct smooth_fn
 
         const auto max_distance_squared = max_resolution * max_resolution;
         const auto shift_smooth_distance = smooth_distance * 2;
-        const auto allowed_angle_deviation_squared = allowed_angle_deviation * allowed_angle_deviation;
 
         // Create a range of pointers to the points in the path, using the sliding view doesn't work because of the changing size of the path, which happens
         // when points are filtered out.
@@ -65,7 +66,7 @@ struct smooth_fn
             auto* p3 = std::next(p0, 3);
 
             const auto distance_squared = std::abs(dotProduct(p1, p2));
-            if (distance_squared < max_distance_squared && withinDeviation(p0, p1, p2, p3, allowed_angle_deviation_squared))
+            if (distance_squared < max_distance_squared && ! withinDeviation(p0, p1, p2, p3, fluid_angle))
             {
                 const auto p0p1_distance = std::hypot(p1->X - p0->X, p1->Y - p0->Y);
                 const bool shift_p1 = p0p1_distance > shift_smooth_distance;
@@ -110,36 +111,28 @@ private:
 
     template<class Vector>
     requires std::integral<decltype(Vector::X)>&& std::integral<decltype(Vector::Y)>
-    constexpr auto vectorMagnitudeSquared(Vector* vec) const
-    {
-        return dotProduct(vec, vec);
-    }
-
-    template<class Vector>
-    requires std::integral<decltype(Vector::X)>&& std::integral<decltype(Vector::Y)>
-    constexpr auto angleBetweenVectorsSquared(Vector* vec0, Vector* vec1) const -> decltype(dotProduct(vec0, vec1))
+    constexpr auto angleBetweenVectors(Vector* vec0, Vector* vec1) const -> decltype(dotProduct(vec0, vec1))
     {
         auto dot = dotProduct(vec0, vec1);
-        auto vec0_mag = vectorMagnitudeSquared(vec0);
-        auto vec1_mag = vectorMagnitudeSquared(vec1);
-        if (vec0_mag == 0 || vec1_mag == 0 || dot == 0)
+        auto vec0_mag = std::hypot(vec0->X, vec0->Y);
+        auto vec1_mag = std::hypot(vec1->X, vec1->Y);
+        if (vec0_mag == 0 || vec1_mag == 0)
         {
-            return 0;
+            return 90.0;
         }
-        auto dot_squared = dot * dot;
-        auto vec_mag = vectorMagnitudeSquared(vec0) * vectorMagnitudeSquared(vec1);
-        return dot_squared / vec_mag;
+        auto cos_angle = dot / (vec0_mag * vec1_mag);
+        auto angle_rad = std::acos(cos_angle);
+        return angle_rad * 180.0 / std::numbers::pi;
     }
 
     template<class Vector>
     requires std::integral<decltype(Vector::X)>&& std::integral<decltype(Vector::Y)>
-    constexpr auto withinDeviation(Vector* p0, Vector* p1, Vector* p2, Vector* p3, const std::integral auto deviation_squared) const
+    constexpr auto withinDeviation(Vector* p0, Vector* p1, Vector* p2, Vector* p3, const std::floating_point auto deviation) const
     {
         Vector ab{ p1->X - p0->X, p1->Y - p0->Y };
         Vector bc{ p2->X - p1->X, p2->Y - p1->Y };
         Vector cd{ p3->X - p2->X, p3->Y - p2->Y };
-
-        return std::abs(angleBetweenVectorsSquared(&ab, &bc) - angleBetweenVectorsSquared(&ab, &cd)) < deviation_squared;
+        return std::abs(angleBetweenVectors(&ab, &bc) - angleBetweenVectors(&ab, &cd)) < deviation;
     }
 };
 

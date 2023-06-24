@@ -775,7 +775,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     polygons = Simplify(mesh->settings).polygon(polygons);
     for (auto& poly : polygons)
     {
-        auto smoother = cura::actions::smooth(mesh->settings.get<coord_t>("meshfix_maximum_resolution"), static_cast<coord_t>(mesh->settings.get<coord_t>("meshfix_maximum_resolution") / 4), mesh->settings.get<coord_t>("wall_transition_angle"));
+        auto smoother = cura::actions::smooth(mesh->settings.get<coord_t>("meshfix_maximum_resolution"), static_cast<coord_t>(mesh->settings.get<coord_t>("meshfix_maximum_resolution") / 4), mesh->settings.get<double>("wall_transition_angle"));
         poly = smoother(poly);
     }
 
