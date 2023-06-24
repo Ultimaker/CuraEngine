@@ -34,6 +34,10 @@ struct smooth_fn
     requires ranges::forward_range<Rng>&& ranges::sized_range<Rng>&& ranges::erasable_range<Rng, ranges::iterator_t<Rng>, ranges::sentinel_t<Rng>> constexpr auto
     operator()(Rng&& rng, const std::integral auto max_resolution, const std::integral auto smooth_distance,  const std::floating_point auto fluid_angle) const
     {
+        if (smooth_distance == 0)
+		{
+			return static_cast<Rng&&>(rng);
+		}
         const auto size = ranges::distance(rng) - 1; // For closed Path, if open then subtract 0
         if (size < 3)
         {
@@ -68,15 +72,15 @@ struct smooth_fn
             const auto distance_squared = std::abs(dotProduct(p1, p2));
             if (distance_squared < max_distance_squared && ! withinDeviation(p0, p1, p2, p3, fluid_angle))
             {
+
                 const auto p0p1_distance = std::hypot(p1->X - p0->X, p1->Y - p0->Y);
                 const bool shift_p1 = p0p1_distance > shift_smooth_distance;
                 if (shift_p1)
                 {
                     // shift p1 towards p0 with the smooth distance
-                    // TODO: optimize later by not using angles
-                    const auto p0p1_angle = std::atan2(p1->Y - p0->Y, p1->X - p0->X);
-                    p1->X = p1->X - smooth_distance * std::cos(p0p1_angle);
-                    p1->Y = p1->Y - smooth_distance * std::sin(p0p1_angle);
+                    const auto shift_distance = p0p1_distance * smooth_distance;
+                    p1->X -= (p1->X - p0->X) / shift_distance;
+                    p1->Y -= (p1->Y - p0->Y) / shift_distance;
                 }
                 else if (size - to_remove.size() > 2) // Only remove if there are more than 2 points left for open-paths, or 3 for closed
                 {
@@ -87,9 +91,9 @@ struct smooth_fn
                 if (shift_p2)
                 {
                     // shift p2 towards p3 with the smooth distance
-                    const auto p2p3_angle = std::atan2(p3->Y - p2->Y, p3->X - p2->X);
-                    p2->X = p2->X + smooth_distance * std::cos(p2p3_angle);
-                    p2->Y = p2->Y + smooth_distance * std::sin(p2p3_angle);
+                    auto shift_distance = p2p3_distance * smooth_distance;
+                    p2->X += (p3->X - p2->X) / shift_distance;
+                    p2->Y += (p3->Y - p2->Y) / shift_distance;
                 }
                 else if (size - to_remove.size() > 2) // Only remove if there are more than 2 points left for open-paths, or 3 for closed
                 {
@@ -127,12 +131,12 @@ private:
 
     template<class Vector>
     requires std::integral<decltype(Vector::X)>&& std::integral<decltype(Vector::Y)>
-    constexpr auto withinDeviation(Vector* p0, Vector* p1, Vector* p2, Vector* p3, const std::floating_point auto deviation) const
+    constexpr auto withinDeviation(Vector* p0, Vector* p1, Vector* p2, Vector* p3, const std::floating_point auto fluid_angle) const
     {
         Vector ab{ p1->X - p0->X, p1->Y - p0->Y };
         Vector bc{ p2->X - p1->X, p2->Y - p1->Y };
         Vector cd{ p3->X - p2->X, p3->Y - p2->Y };
-        return std::abs(angleBetweenVectors(&ab, &bc) - angleBetweenVectors(&ab, &cd)) < deviation;
+        return std::abs(angleBetweenVectors(&ab, &bc) - angleBetweenVectors(&ab, &cd)) < fluid_angle;
     }
 };
 
