@@ -7,7 +7,7 @@
 #include <concepts>
 #include <functional>
 
-namespace cura
+namespace cura::utils
 {
 template<typename T>
 concept hashable = requires(T value)
