@@ -4,8 +4,8 @@
 #ifndef UTILS_VIEWS_SMOOTH_H
 #define UTILS_VIEWS_SMOOTH_H
 
-#include <vector>
 #include <numbers>
+#include <vector>
 
 #include <range/v3/action/action.hpp>
 #include <range/v3/action/erase.hpp>
@@ -20,6 +20,9 @@
 #include <range/v3/view/transform.hpp>
 #include <spdlog/spdlog.h>
 
+#include "utils/types/get.h"
+#include "utils/types/geometry.h"
+
 namespace cura::actions
 {
 
@@ -31,8 +34,8 @@ struct smooth_fn
     }
 
     template<class Rng>
-    requires ranges::forward_range<Rng>&& ranges::sized_range<Rng>&& ranges::erasable_range<Rng, ranges::iterator_t<Rng>, ranges::sentinel_t<Rng>> constexpr auto
-    operator()(Rng&& rng, const std::integral auto max_resolution, const std::integral auto smooth_distance,  const std::floating_point auto fluid_angle) const
+    requires ranges::forward_range<Rng> && ranges::sized_range<Rng> && ranges::erasable_range<Rng, ranges::iterator_t<Rng>, ranges::sentinel_t<Rng>> && utils::point2d<ranges::range_value_t<Rng>>
+    constexpr auto operator()(Rng&& rng, const std::integral auto max_resolution, const std::integral auto smooth_distance,  const std::floating_point auto fluid_angle) const
     {
         if (smooth_distance == 0)
 		{
@@ -73,27 +76,31 @@ struct smooth_fn
             if (distance_squared < max_distance_squared && ! withinDeviation(p0, p1, p2, p3, fluid_angle))
             {
 
-                const auto p0p1_distance = std::hypot(p1->X - p0->X, p1->Y - p0->Y);
+                const auto p0p1_distance = std::hypot(std::get<"X">(*p1) - std::get<"X">(*p0), std::get<"Y">(*p1) - std::get<"Y">(*p0));
                 const bool shift_p1 = p0p1_distance > shift_smooth_distance;
                 if (shift_p1)
                 {
                     // shift p1 towards p0 with the smooth distance
                     const auto shift_distance = p0p1_distance * smooth_distance;
-                    p1->X -= (p1->X - p0->X) / shift_distance;
-                    p1->Y -= (p1->Y - p0->Y) / shift_distance;
+                    const auto shift_distance_x  = (std::get<"X">(*p1) - std::get<"X">(*p0)) / shift_distance;
+                    const auto shift_distance_y  = (std::get<"Y">(*p1) - std::get<"Y">(*p0)) / shift_distance;
+                    p1->X -= shift_distance_x;
+                    p1->Y -= shift_distance_y;
                 }
                 else if (size - to_remove.size() > 2) // Only remove if there are more than 2 points left for open-paths, or 3 for closed
                 {
                     to_remove.insert(p1);
                 }
-                const auto p2p3_distance = std::hypot(p3->X - p2->X, p3->Y - p2->Y);
+                const auto p2p3_distance = std::hypot(std::get<"X">(*p3) - std::get<"X">(*p2), std::get<"Y">(*p3) - std::get<"Y">(*p2));
                 const bool shift_p2 = p2p3_distance > shift_smooth_distance;
                 if (shift_p2)
                 {
                     // shift p2 towards p3 with the smooth distance
-                    auto shift_distance = p2p3_distance * smooth_distance;
-                    p2->X += (p3->X - p2->X) / shift_distance;
-                    p2->Y += (p3->Y - p2->Y) / shift_distance;
+                    const auto shift_distance = p2p3_distance * smooth_distance;
+                    const auto shift_distance_x  = (std::get<"X">(*p3) - std::get<"X">(*p2)) / shift_distance;
+                    const auto shift_distance_y  = (std::get<"Y">(*p3) - std::get<"Y">(*p2)) / shift_distance;
+                    p2->X += shift_distance_x;
+                    p2->Y += shift_distance_y;
                 }
                 else if (size - to_remove.size() > 2) // Only remove if there are more than 2 points left for open-paths, or 3 for closed
                 {
@@ -106,20 +113,18 @@ struct smooth_fn
     }
 
 private:
-    template<class Vector>
-    requires std::integral<decltype(Vector::X)>&& std::integral<decltype(Vector::Y)>
+    template<utils::point2d Vector>
     constexpr auto dotProduct(Vector* p0, Vector* p1) const
     {
-        return p0->X * p1->X + p0->Y * p1->Y;
+        return std::get<"X">(*p0) * std::get<"X">(*p1) + std::get<"Y">(*p0) * std::get<"Y">(*p1);
     }
 
-    template<class Vector>
-    requires std::integral<decltype(Vector::X)>&& std::integral<decltype(Vector::Y)>
+    template<utils::point2d Vector>
     constexpr auto angleBetweenVectors(Vector* vec0, Vector* vec1) const -> decltype(dotProduct(vec0, vec1))
     {
         auto dot = dotProduct(vec0, vec1);
-        auto vec0_mag = std::hypot(vec0->X, vec0->Y);
-        auto vec1_mag = std::hypot(vec1->X, vec1->Y);
+        auto vec0_mag = std::hypot(std::get<"X">(*vec0), std::get<"Y">(*vec0));
+        auto vec1_mag = std::hypot(std::get<"X">(*vec1), std::get<"Y">(*vec1));
         if (vec0_mag == 0 || vec1_mag == 0)
         {
             return 90.0;
@@ -129,13 +134,12 @@ private:
         return angle_rad * 180.0 / std::numbers::pi;
     }
 
-    template<class Vector>
-    requires std::integral<decltype(Vector::X)>&& std::integral<decltype(Vector::Y)>
+    template<utils::point2d Vector>
     constexpr auto withinDeviation(Vector* p0, Vector* p1, Vector* p2, Vector* p3, const std::floating_point auto fluid_angle) const
     {
-        Vector ab{ p1->X - p0->X, p1->Y - p0->Y };
-        Vector bc{ p2->X - p1->X, p2->Y - p1->Y };
-        Vector cd{ p3->X - p2->X, p3->Y - p2->Y };
+        Vector ab{ std::get<"X">(*p1) - std::get<"X">(*p0), std::get<"Y">(*p1) - std::get<"Y">(*p0) };
+        Vector bc{ std::get<"X">(*p2) - std::get<"X">(*p1), std::get<"Y">(*p2) - std::get<"Y">(*p1) };
+        Vector cd{ std::get<"X">(*p3) - std::get<"X">(*p2), std::get<"Y">(*p3) - std::get<"Y">(*p2) };
         return std::abs(angleBetweenVectors(&ab, &bc) - angleBetweenVectors(&ab, &cd)) < fluid_angle;
     }
 };
