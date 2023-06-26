@@ -82,9 +82,9 @@ struct smooth_fn
                 if (shift_p1)
                 {
                     // shift p1 towards p0 with the smooth distance
-                    const auto shift_distance = p0p1_distance * smooth_distance;
-                    const auto shift_distance_x = (std::get<"X">(*p1) - std::get<"X">(*p0)) / shift_distance;
-                    const auto shift_distance_y = (std::get<"Y">(*p1) - std::get<"Y">(*p0)) / shift_distance;
+                    const auto shift_distance = smooth_distance / p0p1_distance;
+                    const auto shift_distance_x = (std::get<"X">(*p1) - std::get<"X">(*p0)) * shift_distance;
+                    const auto shift_distance_y = (std::get<"Y">(*p1) - std::get<"Y">(*p0)) * shift_distance;
                     if constexpr (utils::junctions<Rng>)
                     {
                         p1->p.X -= shift_distance_x;
@@ -106,9 +106,9 @@ struct smooth_fn
                 if (shift_p2)
                 {
                     // shift p2 towards p3 with the smooth distance
-                    const auto shift_distance = p2p3_distance * smooth_distance;
-                    const auto shift_distance_x = (std::get<"X">(*p3) - std::get<"X">(*p2)) / shift_distance;
-                    const auto shift_distance_y = (std::get<"Y">(*p3) - std::get<"Y">(*p2)) / shift_distance;
+                    const auto shift_distance = smooth_distance / p2p3_distance ;
+                    const auto shift_distance_x = (std::get<"X">(*p3) - std::get<"X">(*p2)) * shift_distance;
+                    const auto shift_distance_y = (std::get<"Y">(*p3) - std::get<"Y">(*p2)) * shift_distance;
                     if constexpr (utils::junctions<Rng>)
                     {
                         p2->p.X += shift_distance_x;
