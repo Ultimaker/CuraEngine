@@ -4,8 +4,9 @@
 #ifndef UTILS_TYPES_GET_H
 #define UTILS_TYPES_GET_H
 
-#include <utils/types/char_range_literal.h>
-#include <utils/types/geometry.h>
+#include "utils/types/arachne.h"
+#include "utils/types/char_range_literal.h"
+#include "utils/types/geometry.h"
 
 namespace std
 {
@@ -61,6 +62,18 @@ constexpr auto& get(cura::utils::point3d auto& point) noexcept
         return std::get<1>(point);
     }
     return std::get<2>(point);
+}
+
+template<size_t N>
+constexpr auto& get(cura::utils::junction auto& junction) noexcept
+{
+    return get<N>(junction.p);
+}
+
+template<cura::utils::CharRangeLiteral C>
+constexpr auto& get(cura::utils::junction auto& junction) noexcept
+{
+    return get<C>(junction.p);
 }
 
 } // namespace std
