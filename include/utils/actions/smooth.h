@@ -10,6 +10,7 @@
 #include <range/v3/action/action.hpp>
 #include <range/v3/action/erase.hpp>
 #include <range/v3/action/remove_if.hpp>
+#include <range/v3/action/transform.hpp>
 #include <range/v3/algorithm/transform.hpp>
 #include <range/v3/functional/bind_back.hpp>
 #include <range/v3/iterator/concepts.hpp>
@@ -35,8 +36,9 @@ struct smooth_fn
     }
 
     template<class Rng>
-    requires ranges::forward_range<Rng> && ranges::sized_range<Rng> && ranges::erasable_range<Rng, ranges::iterator_t<Rng>, ranges::sentinel_t<Rng>> && (utils::point2d<ranges::range_value_t<Rng>> || utils::junctions<Rng>)
-    constexpr auto operator()(Rng&& rng, const std::integral auto max_resolution, const std::integral auto smooth_distance, const std::floating_point auto fluid_angle) const
+    requires ranges::forward_range<Rng> && ranges::sized_range<Rng>
+//    requires ranges::forward_range<Rng> && ranges::sized_range<Rng> && ranges::erasable_range<Rng, ranges::iterator_t<Rng>, ranges::sentinel_t<Rng>> && (utils::point2d<ranges::range_value_t<Rng>> || utils::junctions<Rng>)
+    auto operator()(Rng&& rng, const std::integral auto max_resolution, const std::integral auto smooth_distance, const std::floating_point auto fluid_angle) const
     {
         if (smooth_distance == 0)
         {
@@ -51,27 +53,29 @@ struct smooth_fn
         using point_type = std::remove_cvref_t<decltype(*ranges::begin(rng))>;
         std::set<point_type*> to_remove;
 
-        const auto max_distance_squared = max_resolution * max_resolution;
-        const auto shift_smooth_distance = smooth_distance * 2;
-
         // Create a range of pointers to the points in the path, using the sliding view doesn't work because of the changing size of the path, which happens
         // when points are filtered out.
-        auto windows = ranges::views::concat(rng, rng | ranges::views::take(2)) | ranges::views::addressof | ranges::views::filter([&](auto point) { return ! to_remove.contains(point); });
+        auto windows = rng | ranges::views::cycle
+                     | ranges::views::addressof
+                     | ranges::views::filter([&to_remove](auto point) { return ! to_remove.contains(point); });
 
         // Smooth the path, by moving over three segments at a time. If the middle segment is shorter than the max resolution, then we try to shifting those points outwards.
         // The previous and next segment should have a remaining length of at least the smooth distance, otherwise the point is not shifted, but deleted.
         // TODO: Maybe smooth out depending on the angle between the segments?
         // TODO: Maybe create a sharp corner instead of a smooth one, based on minimizing the area to be added or removed?
-        for (auto* p0 : windows)
+        const auto max_distance_squared = max_resolution * max_resolution;
+        const auto shift_smooth_distance = smooth_distance * 2;
+
+        for (auto windows_it = ranges::begin(windows); windows_it != ranges::end(windows); ++windows_it)
         {
-            if (std::next(p0, 2) == &ranges::front(rng))
+            if (*std::next(windows_it, 3) == ranges::front(windows))
             {
                 break;
             }
-
-            auto* p1 = std::next(p0);
-            auto* p2 = std::next(p0, 2);
-            auto* p3 = std::next(p0, 3);
+            auto p0 = *windows_it;
+            auto p1 = *std::next(windows_it, 1);
+            auto p2 = *std::next(windows_it, 2);
+            auto p3 = *std::next(windows_it, 3);
 
             const auto distance_squared = std::abs(dotProduct(p1, p2));
             if (distance_squared < max_distance_squared && ! withinDeviation(p0, p1, p2, p3, fluid_angle))
@@ -127,7 +131,7 @@ struct smooth_fn
             }
         }
 
-        return static_cast<Rng&&>(ranges::actions::remove_if(rng, [&](auto& point) { return to_remove.contains(&point); }));
+        return static_cast<Rng&&>(ranges::actions::remove_if(rng, [&to_remove](auto point){ return to_remove.contains(&point); }));
     }
 
 private:
