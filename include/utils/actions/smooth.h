@@ -5,21 +5,15 @@
 #define UTILS_VIEWS_SMOOTH_H
 
 #include <numbers>
-#include <vector>
+#include <set>
 
-#include <range/v3/action/action.hpp>
-#include <range/v3/action/erase.hpp>
 #include <range/v3/action/remove_if.hpp>
-#include <range/v3/action/transform.hpp>
-#include <range/v3/algorithm/transform.hpp>
-#include <range/v3/functional/bind_back.hpp>
-#include <range/v3/iterator/concepts.hpp>
+#include <range/v3/view/filter.hpp>
+#include <range/v3/view/addressof.hpp>
+#include <range/v3/view/cycle.hpp>
 #include <range/v3/range_fwd.hpp>
-#include <range/v3/utility/concepts.hpp>
-#include <range/v3/view.hpp>
-#include <range/v3/view/sliding.hpp>
-#include <range/v3/view/transform.hpp>
-#include <spdlog/spdlog.h>
+#include <range/v3/iterator/concepts.hpp>
+#include <range/v3/functional/bind_back.hpp>
 
 #include "utils/types/arachne.h"
 #include "utils/types/geometry.h"
@@ -36,8 +30,7 @@ struct smooth_fn
     }
 
     template<class Rng>
-    requires ranges::forward_range<Rng> && ranges::sized_range<Rng>
-//    requires ranges::forward_range<Rng> && ranges::sized_range<Rng> && ranges::erasable_range<Rng, ranges::iterator_t<Rng>, ranges::sentinel_t<Rng>> && (utils::point2d<ranges::range_value_t<Rng>> || utils::junctions<Rng>)
+    requires ranges::forward_range<Rng> && ranges::sized_range<Rng> && ranges::erasable_range<Rng, ranges::iterator_t<Rng>, ranges::sentinel_t<Rng>> && (utils::point2d<ranges::range_value_t<Rng>> || utils::junctions<Rng>)
     auto operator()(Rng&& rng, const std::integral auto max_resolution, const std::integral auto smooth_distance, const std::floating_point auto fluid_angle) const
     {
         if (smooth_distance == 0)
@@ -55,7 +48,8 @@ struct smooth_fn
 
         // Create a range of pointers to the points in the path, using the sliding view doesn't work because of the changing size of the path, which happens
         // when points are filtered out.
-        auto windows = rng | ranges::views::cycle
+        auto windows = rng
+                     | ranges::views::cycle
                      | ranges::views::addressof
                      | ranges::views::filter([&to_remove](auto point) { return ! to_remove.contains(point); });
 
@@ -82,23 +76,9 @@ struct smooth_fn
             {
                 const auto p0p1_distance = std::hypot(std::get<"X">(*p1) - std::get<"X">(*p0), std::get<"Y">(*p1) - std::get<"Y">(*p0));
                 const bool shift_p1 = p0p1_distance > shift_smooth_distance;
-                spdlog::debug("p0p1_distance: {}, shift_p1: {}", p0p1_distance, shift_p1);
                 if (shift_p1)
                 {
-                    // shift p1 towards p0 with the smooth distance
-                    const auto shift_distance = smooth_distance / p0p1_distance;
-                    const auto shift_distance_x = (std::get<"X">(*p1) - std::get<"X">(*p0)) * shift_distance;
-                    const auto shift_distance_y = (std::get<"Y">(*p1) - std::get<"Y">(*p0)) * shift_distance;
-                    if constexpr (utils::junctions<Rng>)
-                    {
-                        p1->p.X -= shift_distance_x;
-                        p1->p.Y -= shift_distance_y;
-                    }
-                    else
-                    {
-                        p1->X -= shift_distance_x;
-                        p1->Y -= shift_distance_y;
-                    }
+                    shiftPointTowards(p1, p0, p0p1_distance, smooth_distance);
                 }
                 else if (size - to_remove.size() > 2) // Only remove if there are more than 2 points left for open-paths, or 3 for closed
                 {
@@ -106,23 +86,9 @@ struct smooth_fn
                 }
                 const auto p2p3_distance = std::hypot(std::get<"X">(*p3) - std::get<"X">(*p2), std::get<"Y">(*p3) - std::get<"Y">(*p2));
                 const bool shift_p2 = p2p3_distance > shift_smooth_distance;
-                spdlog::debug("p2p3_distance: {}, shift_p2: {}", p2p3_distance, shift_p2);
                 if (shift_p2)
                 {
-                    // shift p2 towards p3 with the smooth distance
-                    const auto shift_distance = smooth_distance / p2p3_distance ;
-                    const auto shift_distance_x = (std::get<"X">(*p3) - std::get<"X">(*p2)) * shift_distance;
-                    const auto shift_distance_y = (std::get<"Y">(*p3) - std::get<"Y">(*p2)) * shift_distance;
-                    if constexpr (utils::junctions<Rng>)
-                    {
-                        p2->p.X += shift_distance_x;
-                        p2->p.Y += shift_distance_y;
-                    }
-                    else
-                    {
-                        p2->X += shift_distance_x;
-                        p2->Y += shift_distance_y;
-                    }
+                    shiftPointTowards(p2, p3, p2p3_distance, smooth_distance);
                 }
                 else if (size - to_remove.size() > 2) // Only remove if there are more than 2 points left for open-paths, or 3 for closed
                 {
@@ -135,26 +101,47 @@ struct smooth_fn
     }
 
 private:
+    template<class Point>
+    requires utils::point2d<Point> || utils::junction<Point>
+    constexpr void shiftPointTowards(Point* point, Point* target, const std::floating_point auto p0p1_distance, const std::integral auto smooth_distance) const noexcept {
+        using coord_type = std::remove_cvref_t<decltype(std::get<"X">(*point))>;
+        const auto shift_distance = smooth_distance / p0p1_distance;
+        const auto shift_distance_x = static_cast<coord_type>((std::get<"X">(*target) - std::get<"X">(*point)) * shift_distance);
+        const auto shift_distance_y = static_cast<coord_type>((std::get<"Y">(*target) - std::get<"Y">(*point)) * shift_distance);
+        if constexpr (utils::point2d<Point>)
+        {
+            point->X -= shift_distance_x;
+            point->Y -= shift_distance_y;
+        }
+        else
+        {
+            point->p.X -= shift_distance_x;
+            point->p.Y -= shift_distance_y;
+        }
+    }
+
     template<class Vector>
     requires utils::point2d<Vector> || utils::junction<Vector>
-    constexpr auto dotProduct(Vector* p0, Vector* p1) const
+    constexpr auto dotProduct(Vector* point_0, Vector* point_1) const noexcept
     {
-        return std::get<"X">(*p0) * std::get<"X">(*p1) + std::get<"Y">(*p0) * std::get<"Y">(*p1);
+        return std::get<"X">(*point_0) * std::get<"X">(*point_1) + std::get<"Y">(*point_0) * std::get<"Y">(*point_1);
     }
 
     template<utils::point2d Vector>
     constexpr auto angleBetweenVectors(Vector* vec0, Vector* vec1) const -> decltype(dotProduct(vec0, vec1))
     {
-        auto dot = dotProduct(vec0, vec1);
-        auto vec0_mag = std::hypot(std::get<"X">(*vec0), std::get<"Y">(*vec0));
-        auto vec1_mag = std::hypot(std::get<"X">(*vec1), std::get<"Y">(*vec1));
+        const auto dot = dotProduct(vec0, vec1);
+        const auto vec0_mag = std::hypot(std::get<"X">(*vec0), std::get<"Y">(*vec0));
+        const auto vec1_mag = std::hypot(std::get<"X">(*vec1), std::get<"Y">(*vec1));
         if (vec0_mag == 0 || vec1_mag == 0)
         {
-            return 90.0;
+            constexpr auto perpendicular_angle = 90.0;
+            return perpendicular_angle;
         }
-        auto cos_angle = dot / (vec0_mag * vec1_mag);
-        auto angle_rad = std::acos(cos_angle);
-        return angle_rad * 180.0 / std::numbers::pi;
+        const auto cos_angle = dot / (vec0_mag * vec1_mag);
+        const auto angle_rad = std::acos(cos_angle);
+        constexpr auto rad_to_degree_factor = 180.0 / std::numbers::pi;
+        return angle_rad * rad_to_degree_factor;
     }
 
     template<class Vector>
