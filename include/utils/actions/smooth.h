@@ -17,6 +17,7 @@
 #include <range/v3/view/cycle.hpp>
 #include <range/v3/view/filter.hpp>
 
+#include "utils/types/generic.h"
 #include "utils/types/arachne.h"
 #include "utils/types/geometry.h"
 #include "utils/types/get.h"
