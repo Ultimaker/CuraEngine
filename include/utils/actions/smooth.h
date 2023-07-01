@@ -11,14 +11,15 @@
 #include <range/v3/action/remove_if.hpp>
 #include <range/v3/functional/bind_back.hpp>
 #include <range/v3/iterator/concepts.hpp>
+#include <range/v3/iterator/operations.hpp>
 #include <range/v3/range_fwd.hpp>
 #include <range/v3/view/addressof.hpp>
 #include <range/v3/view/concat.hpp>
 #include <range/v3/view/cycle.hpp>
 #include <range/v3/view/filter.hpp>
 
-#include "utils/types/generic.h"
 #include "utils/types/arachne.h"
+#include "utils/types/generic.h"
 #include "utils/types/geometry.h"
 #include "utils/types/get.h"
 
@@ -55,7 +56,7 @@ struct smooth_fn
         {
             auto A = *windows_it;
             auto B = *std::next(windows_it, 1);
-            if (B == ranges::front(windows) || B == ranges::back(windows))
+            if (B == ranges::front(windows) || B == ranges::back(windows) || ranges::distance(windows_it, ranges::end(windows)) < 3)
             {
                 break;
             }
