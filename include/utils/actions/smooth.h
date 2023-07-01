@@ -13,6 +13,7 @@
 #include <range/v3/iterator/concepts.hpp>
 #include <range/v3/range_fwd.hpp>
 #include <range/v3/view/addressof.hpp>
+#include <range/v3/view/concat.hpp>
 #include <range/v3/view/cycle.hpp>
 #include <range/v3/view/filter.hpp>
 
