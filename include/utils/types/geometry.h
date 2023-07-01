@@ -41,9 +41,10 @@ concept point2d_tuple = requires(T t)
  * @tparam T The type to check
  */
 template<class T>
-concept point2d_ranged = ranges::range<T> && std::integral<typename T::value_type> && requires(T point)
+concept point2d_ranged = ranges::range<T> && requires(T point)
 {
     requires ranges::size(point) == 2;
+    requires std::integral<std::ranges::range_value_t<T>>;
 };
 
 
@@ -85,9 +86,10 @@ concept point3d_tuple = requires(T t)
  * @tparam T The type to check
  */
 template<class T>
-concept point3d_ranged = ranges::range<T> && std::integral<typename T::value_type> && requires(T point)
+concept point3d_ranged = ranges::range<T> && requires(T point)
 {
     requires ranges::size(point) == 3;
+    requires std::integral<std::ranges::range_value_t<T>>;
 };
 
 /*!
