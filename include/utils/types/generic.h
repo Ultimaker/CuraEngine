@@ -18,14 +18,16 @@ concept hashable = requires(T value)
 
 } // namespace cura
 
+#ifdef RETARDED_APPLE_CLANG
 namespace std
 {
-#if (__cplusplus > 201703L) && (!defined(_LIBCPP_VERSION) || (__clang_major__ > 13))
 // https://stackoverflow.com/questions/71818683/stdintegral-not-found-in-clang13-c20-error
-#else
 template<typename _Tp>
 concept integral = std::is_integral_v<_Tp>;
-#endif
+
+template<typename _Tp>
+concept floating_point = is_floating_point_v<_Tp>;
 } // namespace std
+#endif
 
 #endif // CURAENGINE_GENERIC_H
