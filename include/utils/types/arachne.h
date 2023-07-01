@@ -85,7 +85,12 @@ template<class T>
 concept junction = requires(T val)
 {
     requires point2d<decltype(val.p)>;
+#if (__cplusplus > 201703L) && (!defined(_LIBCPP_VERSION) || (__clang_major__ > 13))
+    // https://stackoverflow.com/questions/71818683/stdintegral-not-found-in-clang13-c20-error
     requires std::integral<decltype(val.w)>;
+#else
+    val.w;
+#endif
 };
 
 /*!
