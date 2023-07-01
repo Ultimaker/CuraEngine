@@ -19,7 +19,6 @@
 #include "utils/ThreadPool.h"
 #include "utils/gettime.h"
 #include "utils/section_type.h"
-#include "utils/actions/smooth.h"
 
 namespace cura
 {
@@ -773,12 +772,6 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
 
     // Finally optimize all the polygons. Every point removed saves time in the long run.
     polygons = Simplify(mesh->settings).polygon(polygons);
-    for (auto& poly : polygons)
-    {
-        auto smoother = cura::actions::smooth(mesh->settings.get<coord_t>("meshfix_maximum_resolution"), static_cast<coord_t>(mesh->settings.get<coord_t>("meshfix_maximum_resolution") / 4), mesh->settings.get<double>("wall_transition_angle"));
-        poly = smoother(poly);
-    }
-
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 
     // Clean up polylines for Surface Mode printing

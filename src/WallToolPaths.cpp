@@ -84,6 +84,12 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     prepared_outline = prepared_outline.unionPolygons();
     prepared_outline = Simplify(settings).polygon(prepared_outline);
 
+    auto smoother = actions::smooth(settings.get<coord_t>("meshfix_maximum_resolution"), static_cast<double>(settings.get<AngleRadians>("wall_transition_angle")));
+    for (auto& polygon : prepared_outline)
+    {
+        polygon = smoother(polygon);
+    }
+
     if (prepared_outline.area() <= 0)
     {
         assert(toolpaths.empty());
@@ -256,15 +262,6 @@ void WallToolPaths::simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths
             {
                 line.emplace_back(line.front());
             }
-        }
-    }
-
-    auto smoother = actions::smooth(settings.get<coord_t>("meshfix_maximum_resolution"), static_cast<coord_t>(settings.get<coord_t>("meshfix_maximum_resolution")/4), settings.get<double>("wall_transition_angle"));
-    for (auto& toolpath : toolpaths)
-    {
-        for (auto& line : toolpath  | ranges::views::filter([](const auto& l){ return l.is_closed; }))
-        {
-            line.junctions = smoother(line.junctions);
         }
     }
 }
