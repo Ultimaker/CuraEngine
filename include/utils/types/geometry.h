@@ -32,7 +32,9 @@ template<typename T>
 concept point2d_tuple = requires(T t)
 {
     requires std::is_same_v<T, std::tuple<typename std::tuple_element<0, T>::type, typename std::tuple_element<0, T>::type>>;
-    requires std::is_integral_v<std::tuple_element_t<0, T>>;
+#if (__cplusplus > 201703L) && (!defined(_LIBCPP_VERSION) || (__clang_major__ > 13))
+    requires std::integral<std::tuple_element_t<0, T>>;
+#endif
 };
 
 /*!
@@ -44,7 +46,9 @@ template<class T>
 concept point2d_ranged = ranges::range<T> && requires(T point)
 {
     requires ranges::size(point) == 2;
+#if (__cplusplus > 201703L) && (!defined(_LIBCPP_VERSION) || (__clang_major__ > 13))
     requires std::integral<std::ranges::range_value_t<T>>;
+#endif
 };
 
 
@@ -56,8 +60,13 @@ concept point2d_ranged = ranges::range<T> && requires(T point)
 template<class T>
 concept point2d_named = requires(T point)
 {
-    requires std::is_integral_v<decltype(point.X)>;
-    requires std::is_integral_v<decltype(point.Y)>;
+#if (__cplusplus > 201703L) && (!defined(_LIBCPP_VERSION) || (__clang_major__ > 13))
+    requires std::integral<decltype(point.X)>;
+    requires std::integral<decltype(point.Y)>;
+#else
+    point.X;
+    point.Y;
+#endif
 };
 
 /*!
@@ -77,7 +86,9 @@ template<typename T>
 concept point3d_tuple = requires(T t)
 {
     requires std::is_same_v<T, std::tuple<typename std::tuple_element<0, T>::type, typename std::tuple_element<0, T>::type, typename std::tuple_element<0, T>::type>>;
-    requires std::is_integral_v<std::tuple_element_t<0, T>>;
+#if (__cplusplus > 201703L) && (!defined(_LIBCPP_VERSION) || (__clang_major__ > 13))
+    requires std::integral<std::tuple_element_t<0, T>>;
+#endif
 };
 
 /*!
@@ -89,20 +100,28 @@ template<class T>
 concept point3d_ranged = ranges::range<T> && requires(T point)
 {
     requires ranges::size(point) == 3;
+#if (__cplusplus > 201703L) && (!defined(_LIBCPP_VERSION) || (__clang_major__ > 13))
     requires std::integral<std::ranges::range_value_t<T>>;
+#endif
 };
 
 /*!
  * @concept point3d_named
  * @brief Checks whether T is a 3D point represented as an object with X, Y and Z integral fields
- * @tparam T The type to check
+ * @tparam T The type to check https://stackoverflow.com/questions/71818683/stdintegral-not-found-in-clang13-c20-error
  */
 template<class T>
 concept point3d_named = requires(T point)
 {
-    requires std::is_integral_v<decltype(point.x)>;
-    requires std::is_integral_v<decltype(point.y)>;
-    requires std::is_integral_v<decltype(point.z)>;
+#if (__cplusplus > 201703L) && (!defined(_LIBCPP_VERSION) || (__clang_major__ > 13))
+    requires std::integral<decltype(point.x)>;
+    requires std::integral<decltype(point.y)>;
+    requires std::integral<decltype(point.z)>;
+#else
+    point.x;
+    point.y;
+    point.z;
+#endif
 };
 
 /*!
