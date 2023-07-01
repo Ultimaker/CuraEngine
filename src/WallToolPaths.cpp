@@ -4,19 +4,20 @@
 #include <algorithm> //For std::partition_copy and std::min_element.
 #include <unordered_set>
 
-#include <scripta/logger.h>
+#include <range/v3/range/conversion.hpp>
 #include <range/v3/view/filter.hpp>
+#include <range/v3/view/transform.hpp>
+#include <scripta/logger.h>
 
 #include "WallToolPaths.h"
 
-#include "SkeletalTrapezoidation.h"
-#include "utils/SparsePointGrid.h" //To stitch the inner contour.
-#include "utils/polygonUtils.h"
 #include "ExtruderTrain.h"
+#include "SkeletalTrapezoidation.h"
 #include "utils/PolylineStitcher.h"
 #include "utils/Simplify.h"
 #include "utils/actions/smooth.h"
-
+#include "utils/SparsePointGrid.h" //To stitch the inner contour.
+#include "utils/polygonUtils.h"
 
 namespace cura
 {
@@ -254,15 +255,18 @@ void WallToolPaths::simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths
     const Simplify simplifier(settings);
     for (auto& toolpath : toolpaths)
     {
-        for (auto& line : toolpath)
-        {
-            line = line.is_closed ? simplifier.polygon(line) : simplifier.polyline(line);
+        toolpath = toolpath
+                 | ranges::views::transform([&simplifier](auto& line) {
+                      auto line_ = line.is_closed ? simplifier.polygon(line) : simplifier.polyline(line);
 
-            if (line.is_closed && line.size() >= 2 && line.front() != line.back())
-            {
-                line.emplace_back(line.front());
-            }
-        }
+                      if (line_.is_closed && line_.size() >= 2 && line_.front() != line_.back())
+                      {
+                          line_.emplace_back(line_.front());
+                      }
+                      return line_;
+                 })
+                 | ranges::views::filter([](const auto& line) { return ! line.empty(); })
+                 | ranges::to_vector;
     }
 }
 
