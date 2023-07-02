@@ -18,6 +18,7 @@
 #include <range/v3/view/cycle.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/tail.hpp>
+#include <range/v3/view/take.hpp>
 
 #include "utils/types/arachne.h"
 #include "utils/types/generic.h"
