@@ -86,10 +86,14 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     prepared_outline = prepared_outline.unionPolygons();
     prepared_outline = Simplify(settings).polygon(prepared_outline);
 
-    auto smoother = actions::smooth(settings.get<coord_t>("meshfix_maximum_resolution"), static_cast<double>(settings.get<AngleRadians>("wall_transition_angle")));
-    for (auto& polygon : prepared_outline)
+    if (section_type != SectionType::SUPPORT)
     {
-        polygon = smoother(polygon);
+        // No need to smooth support walls
+        auto smoother = actions::smooth(settings.get<coord_t>("meshfix_maximum_resolution"), static_cast<double>(settings.get<AngleRadians>("wall_transition_angle")));
+        for (auto& polygon : prepared_outline)
+        {
+            polygon = smoother(polygon);
+        }
     }
 
     if (prepared_outline.area() <= 0)
