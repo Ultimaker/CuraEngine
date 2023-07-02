@@ -64,7 +64,7 @@ struct smooth_fn
             auto D = *std::next(windows_it, 3);
 
             const auto [AB_magnitude, BC_magnitude, CD_magnitude] = computeMagnitudes(A, B, C, D);
-            if (! isWithinDeviations(A, B, C, D, fluid_angle, max_resolution, AB_magnitude, BC_magnitude, CD_magnitude))
+            if (! isWithinAllowedDeviations(A, B, C, D, fluid_angle, max_resolution, AB_magnitude, BC_magnitude, CD_magnitude))
             {
                 if (AB_magnitude > max_resolution)
                 {
@@ -143,22 +143,17 @@ private:
 
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
-    constexpr auto isWithinDeviations(Point* A, Point* B, Point* C, Point* D, const std::floating_point auto fluid_angle, const std::integral auto max_resolution,
+    constexpr auto isWithinAllowedDeviations(Point* A, Point* B, Point* C, Point* D, const std::floating_point auto fluid_angle, const std::integral auto max_resolution,
                                           const std::floating_point auto AB_magnitude, const std::floating_point auto BC_magnitude, const std::floating_point auto CD_magnitude) const noexcept
     {
         if (BC_magnitude > max_resolution)
         {
             return true;
         }
-        const double cos_A = cosAngle(A, B, C, AB_magnitude, BC_magnitude);
-        const double cos_B = cosAngle(A, B, D, AB_magnitude, CD_magnitude);
-        // This comparison might be slightly off because the cosine function is not linear, especially for larger angles. The range of the cosine function is from -1 to 1 for the
-        // input range from -pi to pi, so for small angles, the difference in the cosine of the angles can be approximately equal to the difference in the angles
-        // (measured in radians). In order words, the comparison std::abs(cosAngle(A, B, C) - cosAngle(A, B, D)) < std::cos(fluid_angle) is an approximation that is most accurate
-        // for small fluid angles. For fluid angles near or exceeding pi/2 radians (90 degrees), the right-hand side of the inequality can even become negative, making the
-        // condition always false. Since the fluid angle is usually small, this is not a problem in practice.
-        const auto abs_cos_angle = std::abs(cos_A - cos_B);
-        return abs_cos_angle < std::cos(fluid_angle);
+        const double cos_A = std::acos(cosAngle(A, B, C, AB_magnitude, BC_magnitude));
+        const double cos_B = std::acos(cosAngle(A, B, D, AB_magnitude, CD_magnitude));
+        const auto abs_angle = std::abs(cos_A - cos_B);
+        return abs_angle < fluid_angle;
     }
 };
 
