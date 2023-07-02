@@ -17,7 +17,7 @@
 #include <range/v3/view/concat.hpp>
 #include <range/v3/view/cycle.hpp>
 #include <range/v3/view/filter.hpp>
-#include <range/v3/view/tail.hpp>
+#include <range/v3/view/single.hpp>
 #include <range/v3/view/take.hpp>
 
 #include "utils/types/arachne.h"
@@ -52,7 +52,7 @@ struct smooth_fn
         const auto smooth_distance = static_cast<coord_type>(max_resolution / 2); // The distance over which the path is smoothed
 
         auto tmp = rng; // We don't want to shift the points of the ingoing range, therefor we create a temporary copy
-        auto ref_view = ranges::views::concat(tmp | ranges::views::tail, ranges::views::concat(tmp, tmp | ranges::views::take(4))) | ranges::views::addressof;
+        auto ref_view = ranges::views::concat(ranges::views::single(ranges::back(tmp)), ranges::views::concat(tmp, tmp | ranges::views::take(4))) | ranges::views::addressof;
         auto windows = ref_view | ranges::views::filter([&to_remove](auto point) { return ! to_remove.contains(point); });  // Filter out the points that are marked for removal
 
         // Smooth the path, by moving over three segments at a time. If the middle segment is shorter than the max resolution, then we try shifting those points outwards.
