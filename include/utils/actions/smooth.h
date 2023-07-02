@@ -17,6 +17,7 @@
 #include <range/v3/view/concat.hpp>
 #include <range/v3/view/cycle.hpp>
 #include <range/v3/view/filter.hpp>
+#include <range/v3/view/tail.hpp>
 
 #include "utils/types/arachne.h"
 #include "utils/types/generic.h"
@@ -44,39 +45,38 @@ struct smooth_fn
         }
 
         using point_type = std::remove_cvref_t<decltype(*ranges::begin(rng))>;
+        using coord_type = std::remove_cvref_t<decltype(std::get<"X">(*ranges::begin(rng)))>;
         std::set<point_type*> to_remove; // Set of points that are marked for removal
+        const auto allowed_deviation = static_cast<coord_type>(max_resolution * 2 / 3); // The allowed deviation from the original path
+        const auto smooth_distance = static_cast<coord_type>(max_resolution / 2); // The distance over which the path is smoothed
 
         auto tmp = rng; // We don't want to shift the points of the ingoing range, therefor we create a temporary copy
-        auto ref_view = ranges::views::concat(tmp, tmp) | ranges::views::addressof; // Concate twice to make sure we have enough points to shift the window, even after filtering (note: the cylce view doesn't have and end, which makes it harder to determine when to stop)
+        auto ref_view = ranges::views::concat(tmp | ranges::views::tail, ranges::views::concat(tmp, tmp | ranges::views::take(4))) | ranges::views::addressof;
         auto windows = ref_view | ranges::views::filter([&to_remove](auto point) { return ! to_remove.contains(point); });  // Filter out the points that are marked for removal
 
         // Smooth the path, by moving over three segments at a time. If the middle segment is shorter than the max resolution, then we try shifting those points outwards.
         // The previous and next segment should have a remaining length of at least the smooth distance, otherwise the point is not shifted, but deleted.
-        for (auto windows_it = ranges::begin(windows); windows_it != ranges::end(windows); ++windows_it)
+        for (auto windows_it = ranges::begin(windows); ranges::distance(windows_it, ranges::end(windows)) > 2; ++windows_it)
         {
             auto A = *windows_it;
             auto B = *std::next(windows_it, 1);
-            if (B == ranges::front(windows) || B == ranges::back(windows) || ranges::distance(windows_it, ranges::end(windows)) < 3)
-            {
-                break;
-            }
             auto C = *std::next(windows_it, 2);
             auto D = *std::next(windows_it, 3);
 
             const auto [AB_magnitude, BC_magnitude, CD_magnitude] = computeMagnitudes(A, B, C, D);
             if (! isWithinAllowedDeviations(A, B, C, D, fluid_angle, max_resolution, AB_magnitude, BC_magnitude, CD_magnitude))
             {
-                if (AB_magnitude > max_resolution)
+                if (AB_magnitude > allowed_deviation)
                 {
-                    shiftPointTowards(B, A, AB_magnitude, max_resolution / 2);
+                    shiftPointTowards(B, A, AB_magnitude, smooth_distance);
                 }
                 else if (size - to_remove.size() > 2) // Only remove if there are more than 2 points left for open-paths, or 3 for closed
                 {
                     to_remove.insert(B);
                 }
-                if (CD_magnitude > max_resolution)
+                if (CD_magnitude > allowed_deviation)
                 {
-                    shiftPointTowards(C, D, CD_magnitude, max_resolution / 2);
+                    shiftPointTowards(C, D, CD_magnitude, smooth_distance);
                 }
                 else if (size - to_remove.size() > 2) // Only remove if there are more than 2 points left for open-paths, or 3 for closed
                 {
