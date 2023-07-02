@@ -15,8 +15,6 @@
 #include <range/v3/range_fwd.hpp>
 #include <range/v3/view/addressof.hpp>
 #include <range/v3/view/concat.hpp>
-#include <range/v3/view/cycle.hpp>
-#include <range/v3/view/filter.hpp>
 #include <range/v3/view/single.hpp>
 #include <range/v3/view/take.hpp>
 
@@ -45,15 +43,12 @@ struct smooth_fn
             return static_cast<Rng&&>(rng);
         }
 
-        using point_type = std::remove_cvref_t<decltype(*ranges::begin(rng))>;
         using coord_type = std::remove_cvref_t<decltype(std::get<"X">(*ranges::begin(rng)))>;
-        std::set<point_type*> to_remove; // Set of points that are marked for removal
         const auto allowed_deviation = static_cast<coord_type>(max_resolution * 2 / 3); // The allowed deviation from the original path
         const auto smooth_distance = static_cast<coord_type>(max_resolution / 2); // The distance over which the path is smoothed
 
         auto tmp = rng; // We don't want to shift the points of the ingoing range, therefor we create a temporary copy
-        auto ref_view = ranges::views::concat(ranges::views::single(ranges::back(tmp)), ranges::views::concat(tmp, tmp | ranges::views::take(4))) | ranges::views::addressof;
-        auto windows = ref_view | ranges::views::filter([&to_remove](auto point) { return ! to_remove.contains(point); });  // Filter out the points that are marked for removal
+        auto windows = ranges::views::concat(ranges::views::single(ranges::back(tmp)), ranges::views::concat(tmp, tmp | ranges::views::take(4))) | ranges::views::addressof;
 
         // Smooth the path, by moving over three segments at a time. If the middle segment is shorter than the max resolution, then we try shifting those points outwards.
         // The previous and next segment should have a remaining length of at least the smooth distance, otherwise the point is not shifted, but deleted.
@@ -71,22 +66,14 @@ struct smooth_fn
                 {
                     shiftPointTowards(B, A, AB_magnitude, smooth_distance);
                 }
-                else if (size - to_remove.size() > 2) // Only remove if there are more than 2 points left for open-paths, or 3 for closed
-                {
-                    to_remove.insert(B);
-                }
                 if (CD_magnitude > allowed_deviation)
                 {
                     shiftPointTowards(C, D, CD_magnitude, smooth_distance);
                 }
-                else if (size - to_remove.size() > 2) // Only remove if there are more than 2 points left for open-paths, or 3 for closed
-                {
-                    to_remove.insert(C);
-                }
             }
         }
 
-        return static_cast<Rng&&>(ranges::actions::remove_if(tmp, [&to_remove](auto point) { return to_remove.contains(&point); }));
+        return tmp;
     }
 
 private:
@@ -147,7 +134,7 @@ private:
     constexpr auto isWithinAllowedDeviations(Point* A, Point* B, Point* C, Point* D, const std::floating_point auto fluid_angle, const std::integral auto max_resolution,
                                           const std::floating_point auto AB_magnitude, const std::floating_point auto BC_magnitude, const std::floating_point auto CD_magnitude) const noexcept
     {
-        if (BC_magnitude > max_resolution)
+        if (BC_magnitude > max_resolution / 10) // TODO: make dedicated front-end setting for this
         {
             return true;
         }
