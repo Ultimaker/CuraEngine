@@ -18,6 +18,7 @@ concept hashable = requires(T value)
 
 #ifdef OLDER_APPLE_CLANG
 
+// std::integral and std::floating_point are not implemented in older Apple Clang versions < 13
 // https://stackoverflow.com/questions/71818683/stdintegral-not-found-in-clang13-c20-error
 template<typename Tp>
 concept integral =

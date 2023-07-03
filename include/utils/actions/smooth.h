@@ -34,10 +34,10 @@ struct smooth_fn
     }
 
     template<class Rng>
-    requires ranges::forward_range<Rng>&& ranges::sized_range<Rng>&& ranges::erasable_range<Rng, ranges::iterator_t<Rng>, ranges::sentinel_t<Rng>> && (utils::point2d<ranges::range_value_t<Rng>> || utils::junctions<Rng>)
+    requires ranges::forward_range<Rng> && ranges::sized_range<Rng> && ranges::erasable_range<Rng, ranges::iterator_t<Rng>, ranges::sentinel_t<Rng>> && (utils::point2d<ranges::range_value_t<Rng>> || utils::junctions<Rng>)
     constexpr auto operator()(Rng&& rng, const utils::integral auto max_resolution, const utils::floating_point auto fluid_angle) const
     {
-        const auto size = ranges::distance(rng) - 1; // TODO: implement for open paths! The value `-1` is for closed Paths, if open then subtract `0`
+        const auto size = ranges::distance(rng) - 1;
         if (size < 3)
         {
             return static_cast<Rng&&>(rng);
@@ -47,7 +47,7 @@ struct smooth_fn
         const auto allowed_deviation = static_cast<coord_type>(max_resolution * 2 / 3); // The allowed deviation from the original path
         const auto smooth_distance = static_cast<coord_type>(max_resolution / 2); // The distance over which the path is smoothed
 
-        auto tmp = rng; // We don't want to shift the points of the ingoing range, therefor we create a temporary copy
+        auto tmp = rng; // We don't want to shift the points of the in-going range, therefore we create a temporary copy
         auto windows = ranges::views::concat(ranges::views::single(ranges::back(tmp)), ranges::views::concat(tmp, tmp | ranges::views::take(4))) | ranges::views::addressof;
 
         // Smooth the path, by moving over three segments at a time. If the middle segment is shorter than the max resolution, then we try shifting those points outwards.

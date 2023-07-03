@@ -18,10 +18,6 @@
 
 #include "utils/types/generic.h"
 
-/*!
- * @namespace cura::utils
- * @brief Namspace for Cura utils
- */
 namespace cura::utils
 {
 
