@@ -77,15 +77,6 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     scripta::log("prepared_outline_0", prepared_outline, section_type, layer_idx);
     prepared_outline.removeSmallAreas(small_area_length * small_area_length, false);
     prepared_outline = Simplify(settings).polygon(prepared_outline);
-    PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
-    prepared_outline.removeDegenerateVerts();
-    prepared_outline.removeColinearEdges(AngleRadians(0.005));
-    // Removing collinear edges may introduce self intersections, so we need to fix them again
-    PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
-    prepared_outline.removeDegenerateVerts();
-    prepared_outline = prepared_outline.unionPolygons();
-    prepared_outline = Simplify(settings).polygon(prepared_outline);
-
     if (section_type != SectionType::SUPPORT)
     {
         // No need to smooth support walls
@@ -95,6 +86,15 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
             polygon = smoother(polygon);
         }
     }
+
+    PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
+    prepared_outline.removeDegenerateVerts();
+    prepared_outline.removeColinearEdges(AngleRadians(0.005));
+    // Removing collinear edges may introduce self intersections, so we need to fix them again
+    PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
+    prepared_outline.removeDegenerateVerts();
+    prepared_outline = prepared_outline.unionPolygons();
+    prepared_outline = Simplify(settings).polygon(prepared_outline);
 
     if (prepared_outline.area() <= 0)
     {
