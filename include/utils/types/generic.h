@@ -16,7 +16,7 @@ concept hashable = requires(T value)
     { std::hash<T>{}(value) } -> concepts::convertible_to<std::size_t>;
 };
 
-#ifdef RETARDED_APPLE_CLANG
+#ifdef OLDER_APPLE_CLANG
 
 // https://stackoverflow.com/questions/71818683/stdintegral-not-found-in-clang13-c20-error
 template<typename Tp>

@@ -150,7 +150,7 @@ target_include_directories(_CuraEngine
 target_compile_definitions(_CuraEngine
         PUBLIC
         $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
-        $<$<BOOL:${RETARDED_APPLE_CLANG}>:RETARDED_APPLE_CLANG>
+        $<$<BOOL:${OLDER_APPLE_CLANG}>:OLDER_APPLE_CLANG>
         CURA_ENGINE_VERSION=\"${CURA_ENGINE_VERSION}\"
         $<$<BOOL:${ENABLE_TESTING}>:BUILD_TESTS>
         PRIVATE
