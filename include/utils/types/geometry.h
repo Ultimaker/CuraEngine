@@ -46,7 +46,7 @@ template<class T>
 concept point2d_ranged = ranges::range<T> && requires(T point)
 {
     requires ranges::size(point) == 2;
-    requires std::integral<std::ranges::range_value_t<T>>;
+    requires std::integral<ranges::range_value_t<T>>;
 };
 
 
@@ -91,7 +91,7 @@ template<class T>
 concept point3d_ranged = ranges::range<T> && requires(T point)
 {
     requires ranges::size(point) == 3;
-    requires std::integral<std::ranges::range_value_t<T>>;
+    requires std::integral<ranges::range_value_t<T>>;
 
 };
 
