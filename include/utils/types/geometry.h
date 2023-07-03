@@ -34,7 +34,7 @@ template<typename T>
 concept point2d_tuple = requires(T t)
 {
     requires std::is_same_v<T, std::tuple<typename std::tuple_element<0, T>::type, typename std::tuple_element<0, T>::type>>;
-    requires std::integral<std::tuple_element_t<0, T>>;
+    requires utils::integral<std::tuple_element_t<0, T>>;
 };
 
 /*!
@@ -46,7 +46,7 @@ template<class T>
 concept point2d_ranged = ranges::range<T> && requires(T point)
 {
     requires ranges::size(point) == 2;
-    requires std::integral<ranges::range_value_t<T>>;
+    requires utils::integral<ranges::range_value_t<T>>;
 };
 
 
@@ -58,8 +58,8 @@ concept point2d_ranged = ranges::range<T> && requires(T point)
 template<class T>
 concept point2d_named = requires(T point)
 {
-    requires std::integral<decltype(point.X)>;
-    requires std::integral<decltype(point.Y)>;
+    requires utils::integral<decltype(point.X)>;
+    requires utils::integral<decltype(point.Y)>;
 };
 
 /*!
@@ -79,7 +79,7 @@ template<typename T>
 concept point3d_tuple = requires(T t)
 {
     requires std::is_same_v<T, std::tuple<typename std::tuple_element<0, T>::type, typename std::tuple_element<0, T>::type, typename std::tuple_element<0, T>::type>>;
-    requires std::integral<std::tuple_element_t<0, T>>;
+    requires utils::integral<std::tuple_element_t<0, T>>;
 };
 
 /*!
@@ -91,7 +91,7 @@ template<class T>
 concept point3d_ranged = ranges::range<T> && requires(T point)
 {
     requires ranges::size(point) == 3;
-    requires std::integral<ranges::range_value_t<T>>;
+    requires utils::integral<ranges::range_value_t<T>>;
 
 };
 
@@ -103,9 +103,9 @@ concept point3d_ranged = ranges::range<T> && requires(T point)
 template<class T>
 concept point3d_named = requires(T point)
 {
-    requires std::integral<decltype(point.x)>;
-    requires std::integral<decltype(point.y)>;
-    requires std::integral<decltype(point.z)>;
+    requires utils::integral<decltype(point.x)>;
+    requires utils::integral<decltype(point.y)>;
+    requires utils::integral<decltype(point.z)>;
 };
 
 /*!

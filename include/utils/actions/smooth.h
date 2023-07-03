@@ -28,14 +28,14 @@ namespace cura::actions
 
 struct smooth_fn
 {
-    constexpr auto operator()(const std::integral auto max_resolution, const std::floating_point auto fluid_angle) const
+    constexpr auto operator()(const utils::integral auto max_resolution, const utils::floating_point auto fluid_angle) const
     {
         return ranges::make_action_closure(ranges::bind_back(smooth_fn{}, max_resolution, fluid_angle));
     }
 
     template<class Rng>
     requires ranges::forward_range<Rng>&& ranges::sized_range<Rng>&& ranges::erasable_range<Rng, ranges::iterator_t<Rng>, ranges::sentinel_t<Rng>> && (utils::point2d<ranges::range_value_t<Rng>> || utils::junctions<Rng>)
-    constexpr auto operator()(Rng&& rng, const std::integral auto max_resolution, const std::floating_point auto fluid_angle) const
+    constexpr auto operator()(Rng&& rng, const utils::integral auto max_resolution, const utils::floating_point auto fluid_angle) const
     {
         const auto size = ranges::distance(rng) - 1; // TODO: implement for open paths! The value `-1` is for closed Paths, if open then subtract `0`
         if (size < 3)
@@ -90,7 +90,7 @@ private:
 
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
-    constexpr auto cosAngle(Point* A, Point* B, Point* C, const std::floating_point auto AB_magnitude, const std::floating_point auto BC_magnitude) const noexcept
+    constexpr auto cosAngle(Point* A, Point* B, Point* C, const utils::floating_point auto AB_magnitude, const utils::floating_point auto BC_magnitude) const noexcept
     {
         if (AB_magnitude == 0.0 || BC_magnitude == 0.0)
         {
@@ -105,7 +105,7 @@ private:
 
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
-    constexpr void shiftPointTowards(Point* point, Point* target, const std::floating_point auto p0p1_distance, const std::integral auto smooth_distance) const noexcept
+    constexpr void shiftPointTowards(Point* point, Point* target, const utils::floating_point auto p0p1_distance, const utils::integral auto smooth_distance) const noexcept
     {
         using coord_type = std::remove_cvref_t<decltype(std::get<"X">(*point))>;
         const auto shift_distance = smooth_distance / p0p1_distance;
@@ -131,8 +131,8 @@ private:
 
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
-    constexpr auto isWithinAllowedDeviations(Point* A, Point* B, Point* C, Point* D, const std::floating_point auto fluid_angle, const std::integral auto max_resolution,
-                                          const std::floating_point auto AB_magnitude, const std::floating_point auto BC_magnitude, const std::floating_point auto CD_magnitude) const noexcept
+    constexpr auto isWithinAllowedDeviations(Point* A, Point* B, Point* C, Point* D, const utils::floating_point auto fluid_angle, const utils::integral auto max_resolution,
+                                          const utils::floating_point auto AB_magnitude, const utils::floating_point auto BC_magnitude, const utils::floating_point auto CD_magnitude) const noexcept
     {
         if (BC_magnitude > max_resolution / 10) // TODO: make dedicated front-end setting for this
         {

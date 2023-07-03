@@ -16,11 +16,8 @@ concept hashable = requires(T value)
     { std::hash<T>{}(value) } -> concepts::convertible_to<std::size_t>;
 };
 
-} // namespace cura
-
 #ifdef RETARDED_APPLE_CLANG
-namespace std
-{
+
 // https://stackoverflow.com/questions/71818683/stdintegral-not-found-in-clang13-c20-error
 template<typename Tp>
 concept integral =
@@ -46,7 +43,14 @@ concept floating_point =
     std::is_same_v<Tp, float> ||
     std::is_same_v<Tp, double> ||
     std::is_same_v<Tp, long double>;
-} // namespace std
+#else
+template<typename Tp>
+concept integral = std::integral<Tp>;
+
+template<typename Tp>
+concept floating_point = std::floating_point<Tp>;
 #endif
+
+} // namespace cura::utils
 
 #endif // CURAENGINE_GENERIC_H

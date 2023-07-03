@@ -10,8 +10,8 @@
 
 #include <range/v3/range/concepts.hpp>
 
-#include "utils/types/geometry.h"
 #include "utils/types/generic.h"
+#include "utils/types/geometry.h"
 
 namespace cura::utils
 {
@@ -86,7 +86,7 @@ template<class T>
 concept junction = requires(T val)
 {
     requires point2d<decltype(val.p)>;
-    requires std::integral<decltype(val.w)>;
+    requires utils::integral<decltype(val.w)>;
 };
 
 /*!
