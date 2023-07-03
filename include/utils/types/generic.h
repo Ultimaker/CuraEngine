@@ -22,11 +22,30 @@ concept hashable = requires(T value)
 namespace std
 {
 // https://stackoverflow.com/questions/71818683/stdintegral-not-found-in-clang13-c20-error
-template<typename _Tp>
-concept integral = std::is_integral_v<_Tp>;
+template<typename Tp>
+concept integral =
+    std::is_same_v<Tp, bool> ||
+    std::is_same_v<Tp, char> ||
+    std::is_same_v<Tp, signed char> ||
+    std::is_same_v<Tp, unsigned char> ||
+    std::is_same_v<Tp, wchar_t> ||
+    std::is_same_v<Tp, char8_t> ||
+    std::is_same_v<Tp, char16_t> ||
+    std::is_same_v<Tp, char32_t> ||
+    std::is_same_v<Tp, short> ||
+    std::is_same_v<Tp, unsigned short> ||
+    std::is_same_v<Tp, int> ||
+    std::is_same_v<Tp, unsigned int> ||
+    std::is_same_v<Tp, long> ||
+    std::is_same_v<Tp, unsigned long> ||
+    std::is_same_v<Tp, long long> ||
+    std::is_same_v<Tp, unsigned long long>;
 
-template<typename _Tp>
-concept floating_point = is_floating_point_v<_Tp>;
+template<typename Tp>
+concept floating_point =
+    std::is_same_v<Tp, float> ||
+    std::is_same_v<Tp, double> ||
+    std::is_same_v<Tp, long double>;
 } // namespace std
 #endif
 
