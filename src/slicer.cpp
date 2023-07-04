@@ -772,7 +772,6 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
 
     // Finally optimize all the polygons. Every point removed saves time in the long run.
     polygons = Simplify(mesh->settings).polygon(polygons);
-
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 
     // Clean up polylines for Surface Mode printing
