@@ -76,21 +76,6 @@ struct smooth_fn
         return tmp;
     }
 
-    template<class Point>
-    requires utils::point2d<Point> || utils::junction<Point>
-    constexpr auto isWithinAllowedDeviations(Point* A, Point* B, Point* C, Point* D, const utils::floating_point auto fluid_angle, const utils::integral auto max_resolution,
-                                          const utils::floating_point auto AB_magnitude, const utils::floating_point auto BC_magnitude, const utils::floating_point auto CD_magnitude) const noexcept
-    {
-        if (BC_magnitude > max_resolution / 10) // TODO: make dedicated front-end setting for this
-        {
-            return true;
-        }
-        const double cos_A = std::acos(cosAngle(A, B, C, AB_magnitude, BC_magnitude));
-        const double cos_B = std::acos(cosAngle(A, B, D, AB_magnitude, CD_magnitude));
-        const auto abs_angle = std::abs(cos_A - cos_B);
-        return abs_angle < fluid_angle;
-    }
-
 private:
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
@@ -142,6 +127,21 @@ private:
         requires utils::point2d<Vector> || utils::junction<Vector> constexpr auto dotProduct(Vector* point_0, Vector* point_1) const noexcept
     {
         return std::get<"X">(*point_0) * std::get<"X">(*point_1) + std::get<"Y">(*point_0) * std::get<"Y">(*point_1);
+    }
+
+    template<class Point>
+    requires utils::point2d<Point> || utils::junction<Point>
+    constexpr auto isWithinAllowedDeviations(Point* A, Point* B, Point* C, Point* D, const utils::floating_point auto fluid_angle, const utils::integral auto max_resolution,
+                                          const utils::floating_point auto AB_magnitude, const utils::floating_point auto BC_magnitude, const utils::floating_point auto CD_magnitude) const noexcept
+    {
+        if (BC_magnitude > max_resolution / 10) // TODO: make dedicated front-end setting for this
+        {
+            return true;
+        }
+        const double cos_A = std::acos(cosAngle(A, B, C, AB_magnitude, BC_magnitude));
+        const double cos_B = std::acos(cosAngle(A, B, D, AB_magnitude, CD_magnitude));
+        const auto abs_angle = std::abs(cos_A - cos_B);
+        return abs_angle < fluid_angle;
     }
 };
 
