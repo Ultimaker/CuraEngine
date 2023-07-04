@@ -93,6 +93,7 @@ class CuraEngineConan(ConanFile):
         tc.variables["ENABLE_TESTING"] = self.options.enable_testing
         tc.variables["ENABLE_BENCHMARKS"] = self.options.enable_benchmarks
         tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
+        tc.variables["OLDER_APPLE_CLANG"] = self.settings.compiler == "apple-clang" and Version(self.settings.compiler.version) < "14"
         tc.generate()
 
     def layout(self):

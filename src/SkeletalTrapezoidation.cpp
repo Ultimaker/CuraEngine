@@ -12,8 +12,8 @@
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
 
-#include "settings/types/Ratio.h"
 #include "BoostInterface.hpp"
+#include "settings/types/Ratio.h"
 #include "utils/VoronoiUtils.h"
 #include "utils/linearAlg2D.h"
 #include "utils/macros.h"
@@ -375,6 +375,7 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys,
     , layer_idx(layer_idx)
     , section_type(section_type)
 {
+    scripta::log("skeletal_trapezoidation_0", polys, section_type, layer_idx);
     constructFromPolygons(polys);
 }
 

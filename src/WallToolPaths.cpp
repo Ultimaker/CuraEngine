@@ -4,6 +4,9 @@
 #include <algorithm> //For std::partition_copy and std::min_element.
 #include <unordered_set>
 
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/filter.hpp>
+#include <range/v3/view/transform.hpp>
 #include <scripta/logger.h>
 
 #include "WallToolPaths.h"
@@ -12,11 +15,9 @@
 #include "SkeletalTrapezoidation.h"
 #include "utils/PolylineStitcher.h"
 #include "utils/Simplify.h"
+#include "utils/actions/smooth.h"
 #include "utils/SparsePointGrid.h" //To stitch the inner contour.
 #include "utils/polygonUtils.h"
-#include <range/v3/range/conversion.hpp>
-#include <range/v3/view/filter.hpp>
-#include <range/v3/view/transform.hpp>
 
 namespace cura
 {
@@ -73,8 +74,19 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self intersections allowed:
     // TODO: Open question: Does this indeed fix all (or all-but-one-in-a-million) cases for manifold but otherwise possibly complex polygons?
     Polygons prepared_outline = outline.offset(-open_close_distance).offset(open_close_distance * 2).offset(-open_close_distance);
+    scripta::log("prepared_outline_0", prepared_outline, section_type, layer_idx);
     prepared_outline.removeSmallAreas(small_area_length * small_area_length, false);
     prepared_outline = Simplify(settings).polygon(prepared_outline);
+    if (section_type != SectionType::SUPPORT)
+    {
+        // No need to smooth support walls
+        auto smoother = actions::smooth(settings.get<coord_t>("meshfix_maximum_resolution"), static_cast<double>(settings.get<AngleRadians>("wall_transition_angle")));
+        for (auto& polygon : prepared_outline)
+        {
+            polygon = smoother(polygon);
+        }
+    }
+
     PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
     prepared_outline.removeDegenerateVerts();
     prepared_outline.removeColinearEdges(AngleRadians(0.005));
