@@ -12,7 +12,7 @@ option(ENABLE_TESTING "Build with unit tests" OFF)
 option(EXTENSIVE_WARNINGS "Build with all warnings" ON)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
-option(RETARDED_APPLE_CLANG "Apple Clang <= 13 used" OFF)
+option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
 
 # Create Protobuf files if Arcus is used
 if (ENABLE_ARCUS)
