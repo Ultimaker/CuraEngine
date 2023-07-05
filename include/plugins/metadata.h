@@ -57,6 +57,7 @@ struct slot_metadata
 {
     plugins::v0::SlotID slot_id;
     std::string_view version_range;
+    std::string_view engine_uuid;
 };
 
 } // namespace cura::plugins

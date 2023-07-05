@@ -4,6 +4,8 @@
 #ifndef PLUGINS_PLUGINPROXY_H
 #define PLUGINS_PLUGINPROXY_H
 
+#include <thread>
+
 #include <agrpc/asio_grpc.hpp>
 #include <agrpc/grpc_context.hpp>
 #include <boost/asio/awaitable.hpp>
@@ -16,11 +18,13 @@
 #include <spdlog/spdlog.h>
 #include <string>
 
+#include "Application.h"
+#include "utils/format/thread_id.h"
 #include "plugins/exception.h"
 #include "plugins/metadata.h"
+#include "utils/types/generic.h"
 
 #include "cura/plugins/v0/slot_id.pb.h"
-#include "utils/types/generic.h"
 
 namespace cura::plugins
 {
@@ -61,7 +65,7 @@ private:
 
     ranges::semiregular_box<stub_t> stub_; ///< The gRPC stub for communication.
 
-    constexpr static slot_metadata slot_info_{ .slot_id = SlotID, .version_range = SlotVersionRng.value };
+    slot_metadata slot_info_{ .slot_id = SlotID, .version_range = SlotVersionRng.value, .engine_uuid = Application::getInstance().instance_uuid };
     std::optional<plugin_metadata> plugin_info_{ std::nullopt }; ///< The plugin info object.
 
 public:
@@ -134,6 +138,8 @@ public:
                 // Metadata
                 client_context.AddMetadata("cura-slot-service-name", fmt::format("{}", slot_info_.slot_id));
                 client_context.AddMetadata("cura-slot-version-range", slot_info_.version_range.data());
+                client_context.AddMetadata("cura-engine-uuid", slot_info_.engine_uuid.data());
+                client_context.AddMetadata("cura-thread-id", fmt::format("{}", std::this_thread::get_id()));
 
                 // Construct request
                 auto request{ req_(std::forward<decltype(args)>(args)...) };

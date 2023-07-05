@@ -92,7 +92,7 @@ public:
      */
     void startThreadPool(int nworkers=0);
 
-    std::string_view instance_uuid;
+    std::string instance_uuid;
 
 protected:
 #ifdef ARCUS
