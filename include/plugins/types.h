@@ -11,7 +11,7 @@
 #include <grpcpp/support/string_ref.h>
 
 #include "utils/IntPoint.h"
-#include "utils/concepts/generic.h"
+#include "utils/types/generic.h"
 #include "utils/polygon.h"
 
 #include "cura/plugins/v0/slot_id.pb.h"
