@@ -386,7 +386,18 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
         constexpr bool include_support = true;
         const bool skirt_around_prime_tower_brim = storage.primeTower.enabled && global_settings.get<bool>("prime_tower_brim_enable");
         const bool include_prime_tower = ! skirt_around_prime_tower_brim; // include manually otherwise
-        first_layer_outline = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_only, extruder_nr);
+
+        const int skirt_height = global_settings.get<int>("skirt_height");
+        first_layer_outline = Polygons();
+        for (int i_layer = layer_nr; i_layer <= skirt_height; ++i_layer)
+        {
+            first_layer_outline =
+                first_layer_outline.unionPolygons
+                (
+                    storage.getLayerOutlines(i_layer, include_support, include_prime_tower, external_only, extruder_nr)
+                );
+        }
+
         if (skirt_around_prime_tower_brim)
         {
             const int prime_tower_brim_extruder_nr = storage.primeTower.extruder_order[0];
