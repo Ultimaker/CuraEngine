@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1688560373780,
+  "lastUpdate": 1688578343061,
   "repoUrl": "https://github.com/Ultimaker/CuraEngine",
   "entries": {
     "C++ Benchmark": [
@@ -82730,6 +82730,118 @@ window.BENCHMARK_DATA = {
             "value": 0.01702475430222217,
             "unit": "ms/iter",
             "extra": "iterations: 40851\ncpu: 0.017024205037820313 ms\nthreads: 1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "Jelle Spijker",
+            "username": "jellespijker",
+            "email": "jelle.spijker@ultimaker.com"
+          },
+          "committer": {
+            "name": "Jelle Spijker",
+            "username": "jellespijker",
+            "email": "jelle.spijker@ultimaker.com"
+          },
+          "id": "b03d2a3b2370c5b30b41a339fa780211cbdb8462",
+          "message": "Rename confusing CMake option\n\nRemoved \"RETARDED_APPLE_CLANG\" option and replaced it with\n\"OLDER_APPLE_CLANG\". This change was made to give a clear understanding\nof the option's function, which is to check if the Apple Clang version\nused is 13 or older.",
+          "timestamp": "2023-07-05T06:58:09Z",
+          "url": "https://github.com/Ultimaker/CuraEngine/commit/b03d2a3b2370c5b30b41a339fa780211cbdb8462"
+        },
+        "date": 1688578332115,
+        "tool": "googlecpp",
+        "benches": [
+          {
+            "name": "InfillTest/Infill_generate_connect/1/400",
+            "value": 0.5242690239999774,
+            "unit": "ms/iter",
+            "extra": "iterations: 1000\ncpu: 0.5221145 ms\nthreads: 1"
+          },
+          {
+            "name": "InfillTest/Infill_generate_connect/0/400",
+            "value": 4.84575845857984,
+            "unit": "ms/iter",
+            "extra": "iterations: 338\ncpu: 4.837457100591716 ms\nthreads: 1"
+          },
+          {
+            "name": "InfillTest/Infill_generate_connect/1/800",
+            "value": 49.73007224138091,
+            "unit": "ms/iter",
+            "extra": "iterations: 29\ncpu: 49.71739310344827 ms\nthreads: 1"
+          },
+          {
+            "name": "InfillTest/Infill_generate_connect/0/800",
+            "value": 210.4167532856991,
+            "unit": "ms/iter",
+            "extra": "iterations: 7\ncpu: 210.39755714285707 ms\nthreads: 1"
+          },
+          {
+            "name": "InfillTest/Infill_generate_connect/1/1200",
+            "value": 706.7573654999819,
+            "unit": "ms/iter",
+            "extra": "iterations: 2\ncpu: 706.6847000000002 ms\nthreads: 1"
+          },
+          {
+            "name": "InfillTest/Infill_generate_connect/0/1200",
+            "value": 1265.7845429999952,
+            "unit": "ms/iter",
+            "extra": "iterations: 1\ncpu: 1265.498599999999 ms\nthreads: 1"
+          },
+          {
+            "name": "WallTestFixture/generateWalls/3",
+            "value": 9.778128687500498,
+            "unit": "ms/iter",
+            "extra": "iterations: 112\ncpu: 9.77657767857143 ms\nthreads: 1"
+          },
+          {
+            "name": "WallTestFixture/generateWalls/15",
+            "value": 38.54393177272703,
+            "unit": "ms/iter",
+            "extra": "iterations: 22\ncpu: 38.53841818181819 ms\nthreads: 1"
+          },
+          {
+            "name": "WallTestFixture/generateWalls/9999",
+            "value": 92.48175374999335,
+            "unit": "ms/iter",
+            "extra": "iterations: 8\ncpu: 92.46442499999996 ms\nthreads: 1"
+          },
+          {
+            "name": "WallTestFixture/InsetOrderOptimizer_getRegionOrder/3",
+            "value": 0.05765563987676108,
+            "unit": "ms/iter",
+            "extra": "iterations: 11360\ncpu: 0.057651338028169026 ms\nthreads: 1"
+          },
+          {
+            "name": "WallTestFixture/InsetOrderOptimizer_getRegionOrder/15",
+            "value": 1.253020887298705,
+            "unit": "ms/iter",
+            "extra": "iterations: 559\ncpu: 1.2529180679785343 ms\nthreads: 1"
+          },
+          {
+            "name": "WallTestFixture/InsetOrderOptimizer_getRegionOrder/9999",
+            "value": 8.030013813953605,
+            "unit": "ms/iter",
+            "extra": "iterations: 86\ncpu: 8.028805813953504 ms\nthreads: 1"
+          },
+          {
+            "name": "WallTestFixture/InsetOrderOptimizer_getInsetOrder/3",
+            "value": 0.0016358110701563365,
+            "unit": "ms/iter",
+            "extra": "iterations: 419976\ncpu: 0.0016355853667828647 ms\nthreads: 1"
+          },
+          {
+            "name": "WallTestFixture/InsetOrderOptimizer_getInsetOrder/15",
+            "value": 0.010103810646749567,
+            "unit": "ms/iter",
+            "extra": "iterations: 71496\ncpu: 0.010101042016336574 ms\nthreads: 1"
+          },
+          {
+            "name": "WallTestFixture/InsetOrderOptimizer_getInsetOrder/9999",
+            "value": 0.028415378714695946,
+            "unit": "ms/iter",
+            "extra": "iterations: 24430\ncpu: 0.028411923864101588 ms\nthreads: 1"
           }
         ]
       }
