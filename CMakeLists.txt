@@ -21,6 +21,7 @@ option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 find_package(protobuf REQUIRED)
 find_package(asio-grpc REQUIRED)
 find_package(gRPC REQUIRED)
+option(RETARDED_APPLE_CLANG "Apple Clang <= 13 used" OFF)
 
 MESSAGE(STATUS "Compiling with plugins support: ${ENABLE_PLUGINS}")
 if (${ENABLE_PLUGINS})
@@ -170,6 +171,7 @@ target_compile_definitions(_CuraEngine
         $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
         $<$<BOOL:${ENABLE_PLUGINS}>:ENABLE_PLUGINS>
         $<$<AND:$<BOOL:${ENABLE_PLUGINS}>,$<BOOL:${ENABLE_REMOTE_PLUGINS}>>:ENABLE_REMOTE_PLUGINS>
+        $<$<BOOL:${OLDER_APPLE_CLANG}>:OLDER_APPLE_CLANG>
         CURA_ENGINE_VERSION=\"${CURA_ENGINE_VERSION}\"
         $<$<BOOL:${ENABLE_TESTING}>:BUILD_TESTS>
         PRIVATE

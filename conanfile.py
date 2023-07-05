@@ -6,7 +6,7 @@ from pathlib import Path
 
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
-from conan.tools.files import copy
+from conan.tools.files import copy, mkdir
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
 from conan.tools.scm import Version
@@ -43,7 +43,7 @@ class CuraEngineConan(ConanFile):
 
     def set_version(self):
         if not self.version:
-            self.version = "5.4.0-alpha.1"
+            self.version = "5.5.0-alpha.1"
 
     def export_sources(self):
         copy(self, "CMakeLists.txt", self.recipe_folder, self.export_sources_folder)
@@ -118,6 +118,7 @@ class CuraEngineConan(ConanFile):
         tc.variables["ENABLE_TESTING"] = self.options.enable_testing
         tc.variables["ENABLE_BENCHMARKS"] = self.options.enable_benchmarks
         tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
+        tc.variables["OLDER_APPLE_CLANG"] = self.settings.compiler == "apple-clang" and Version(self.settings.compiler.version) < "14"
         if self.options.enable_plugins:
             tc.variables["ENABLE_PLUGINS"] = True
             tc.variables["ENABLE_REMOTE_PLUGINS"] = self.options.enable_remote_plugins
@@ -128,6 +129,23 @@ class CuraEngineConan(ConanFile):
         tc.variables["GRPC_PROTOS"] = ";".join([str(p).replace("\\", "/") for p in Path(cpp_info.resdirs[0]).rglob("*.proto")])
 
         tc.generate()
+
+        for dep in self.dependencies.values():
+            if len(dep.cpp_info.libdirs) > 0:
+                copy(self, "*.dylib", dep.cpp_info.libdirs[0], self.build_folder)
+                copy(self, "*.dll", dep.cpp_info.libdirs[0], self.build_folder)
+            if len(dep.cpp_info.bindirs) > 0:
+                copy(self, "*.dll", dep.cpp_info.bindirs[0], self.build_folder)
+            if self.options.enable_testing:
+                test_path = path.join(self.build_folder,  "tests")
+                if not path.exists(test_path):
+                    mkdir(self, test_path)
+                if len(dep.cpp_info.libdirs) > 0:
+                    copy(self, "*.dylib", dep.cpp_info.libdirs[0], path.join(self.build_folder,  "tests"))
+                    copy(self, "*.dll", dep.cpp_info.libdirs[0], path.join(self.build_folder,  "tests"))
+                if len(dep.cpp_info.bindirs) > 0:
+                    copy(self, "*.dll", dep.cpp_info.bindirs[0], path.join(self.build_folder,  "tests"))
+
 
     def layout(self):
         cmake_layout(self)
