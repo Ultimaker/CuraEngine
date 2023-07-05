@@ -14,6 +14,7 @@ option(ENABLE_PLUGINS "Build with plugins" ON)
 option(ENABLE_REMOTE_PLUGINS "Build with all warnings" OFF)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
+option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
 #set(GRPC_PROTOS "List of all protobuf definitions (see: https://github.com/Ultimaker/curaengine_grpc_definitions)")
 #set(GRPC_IMPORT_DIRS "List of all protobuf dirs definitions (see: https://github.com/Ultimaker/curaengine_grpc_definitions)")
 
