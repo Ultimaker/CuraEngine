@@ -10,7 +10,8 @@ Checks: >
   -altera-struct-pack-align,
   -android-*,
   -misc-non-private-member-variables-in-classes,
-  -fuchsia-overloaded-operator
+  -fuchsia-overloaded-operator,
+  -cppcoreguidelines-avoid-capturing-lambda-coroutines
 WarningsAsErrors: '-*'
 HeaderFilterRegex: ''
 FormatStyle: none
