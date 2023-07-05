@@ -8,12 +8,23 @@
 #include <functional>
 #include <type_traits>
 
+#include <google/protobuf/message.h>
+#include <range/v3/range_concepts.hpp>
+
 namespace cura::utils
 {
 template<typename T>
 concept hashable = requires(T value)
 {
     { std::hash<T>{}(value) } -> concepts::convertible_to<std::size_t>;
+};
+
+template<typename T>
+concept grpc_convertable = requires(T value)
+{
+    requires ranges::semiregular<T>;
+    requires ranges::semiregular<typename T::value_type>;
+    requires ranges::semiregular<typename T::native_value_type>;
 };
 
 #ifdef OLDER_APPLE_CLANG

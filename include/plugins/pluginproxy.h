@@ -20,7 +20,7 @@
 #include "plugins/metadata.h"
 
 #include "cura/plugins/v0/slot_id.pb.h"
-#include "utils/concepts/generic.h"
+#include "utils/types/generic.h"
 
 namespace cura::plugins
 {
@@ -38,7 +38,7 @@ namespace cura::plugins
  * @tparam Request The gRPC convertible request type.
  * @tparam Response The gRPC convertible response type.
  */
-template<plugins::v0::SlotID SlotID, details::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, grpc_convertable RequestTp, grpc_convertable ResponseTp>
+template<plugins::v0::SlotID SlotID, details::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, utils::grpc_convertable RequestTp, utils::grpc_convertable ResponseTp>
 class PluginProxy
 {
 public:
