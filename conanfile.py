@@ -106,7 +106,7 @@ class CuraEngineConan(ConanFile):
         self.requires("zlib/1.2.12")
         self.requires("openssl/1.1.1l")
         self.requires("asio-grpc/2.4.0")
-        self.requires("curaengine_grpc_definitions/(latest)@ultimaker/testing")
+        self.requires("curaengine_grpc_definitions/latest@ultimaker/cura_10714")
 
     def generate(self):
         deps = CMakeDeps(self)
