@@ -22,7 +22,7 @@ namespace cura::plugins
 
 struct simplify_request
 {
-    using value_type = slots::simplify::v0::SimplifyServiceModifyRequest; ///< The protobuf message type.
+    using value_type = slots::simplify::v0::CallRequest; ///< The protobuf message type.
     using native_value_type = Polygons; ///< The native value type.
 
     /**
@@ -80,7 +80,7 @@ struct simplify_request
  */
 struct simplify_response
 {
-    using value_type = slots::simplify::v0::SimplifyServiceModifyResponse; ///< The protobuf message type.
+    using value_type = slots::simplify::v0::CallResponse; ///< The protobuf message type.
     using native_value_type = Polygons; ///< The native value type.
 
     /**
@@ -118,7 +118,7 @@ struct simplify_response
 
 struct postprocess_request
 {
-    using value_type = slots::postprocess::v0::PostprocessServiceModifyRequest; ///< The protobuf message type.
+    using value_type = slots::postprocess::v0::CallRequest; ///< The protobuf message type.
     using native_value_type = std::string; ///< The native value type.
 
     /**
@@ -137,7 +137,7 @@ struct postprocess_request
 
 struct postprocess_response
 {
-    using value_type = slots::postprocess::v0::PostprocessServiceModifyResponse;
+    using value_type = slots::postprocess::v0::CallResponse;
     using native_value_type = std::string;
 
     native_value_type operator()(const value_type& message) const

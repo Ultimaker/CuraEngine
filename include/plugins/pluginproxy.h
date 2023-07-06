@@ -19,9 +19,9 @@
 #include <string>
 
 #include "Application.h"
-#include "utils/format/thread_id.h"
 #include "plugins/exception.h"
 #include "plugins/metadata.h"
+#include "utils/format/thread_id.h"
 #include "utils/types/generic.h"
 
 #include "cura/plugins/v0/slot_id.pb.h"
@@ -129,17 +129,9 @@ public:
             grpc_context,
             [this, &status, &grpc_context, &ret_value, &args...]() -> boost::asio::awaitable<void>
             {
-                using RPC = agrpc::RPC<&stub_t::PrepareAsyncModify>;
+                using RPC = agrpc::RPC<&stub_t::PrepareAsyncCall>;
                 grpc::ClientContext client_context{};
-
-                // Set time-out
-                client_context.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(500)); // TODO: don't use magic number and make it realistic
-
-                // Metadata
-                client_context.AddMetadata("cura-slot-service-name", fmt::format("{}", slot_info_.slot_id));
-                client_context.AddMetadata("cura-slot-version-range", slot_info_.version_range.data());
-                client_context.AddMetadata("cura-engine-uuid", slot_info_.engine_uuid.data());
-                client_context.AddMetadata("cura-thread-id", fmt::format("{}", std::this_thread::get_id()));
+                prep_client_context(client_context);
 
                 // Construct request
                 auto request{ req_(std::forward<decltype(args)>(args)...) };
@@ -162,7 +154,7 @@ public:
             boost::asio::detached);
         grpc_context.run();
 
-        if (! status.ok())  // TODO: handle different kind of status codes
+        if (! status.ok()) // TODO: handle different kind of status codes
         {
             if (plugin_info_.has_value())
             {
@@ -171,7 +163,7 @@ public:
             throw exceptions::RemoteException(slot_info_, status.error_message());
         }
 
-        if (! valid_ )
+        if (! valid_)
         {
             if (plugin_info_.has_value())
             {
@@ -182,6 +174,17 @@ public:
 
         return ret_value;
     }
+
+    void prep_client_context(grpc::ClientContext& client_context, std::chrono::milliseconds timeout = std::chrono::milliseconds(500))
+    {
+        // Set time-out
+        client_context.set_deadline(std::chrono::system_clock::now() + timeout);
+
+        // Metadata
+        client_context.AddMetadata("cura-engine-uuid", slot_info_.engine_uuid.data());
+        client_context.AddMetadata("cura-thread-id", fmt::format("{}", std::this_thread::get_id()));
+    }
+
 };
 } // namespace cura::plugins
 
