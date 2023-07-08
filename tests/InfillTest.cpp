@@ -57,7 +57,7 @@ public:
         , connect_polygons(connect_polygons)
         , line_distance(line_distance)
     {
-        name = fmt::format("InfillParameters_{d}_{d}_{d}_{d}", static_cast<int>(pattern), zig_zagify, connect_polygons, line_distance);
+        name = fmt::format("InfillParameters_{:d}_{:d}_{:d}_{:d}", static_cast<int>(pattern), zig_zagify, connect_polygons, line_distance);
     }
 };
 
@@ -89,7 +89,7 @@ public:
         , result_lines(std::move(result_lines))
         , result_polygons(std::move(result_polygons))
     {
-        name = fmt::format("InfillTestParameters_P{d}_Z{d}_C{d}_L{d}__{d}", static_cast<int>(params.pattern), params.zig_zagify, params.connect_polygons, params.line_distance, test_polygon_id);
+        name = fmt::format("InfillTestParameters_P{:d}_Z{:d}_C{:d}_L{:d}__{:d}", static_cast<int>(params.pattern), params.zig_zagify, params.connect_polygons, params.line_distance, test_polygon_id);
     }
 
     friend std::ostream& operator<<(std::ostream& os, const InfillTestParameters& params)
