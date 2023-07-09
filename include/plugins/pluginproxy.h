@@ -205,6 +205,17 @@ private:
         co_return;
     }
 
+    /**
+     * @brief Executes the modifyCall operation with the plugin.
+     *
+     * Sends a request to the plugin and saves the response.
+     *
+     * @param grpc_context - The gRPC context to use for the call
+     * @param status - Status of the gRPC call which gets updated in this method
+     * @param ret_value - Reference to the value in which response to be stored
+     * @param args - Request arguments
+     * @return A boost::asio::awaitable<void> indicating completion of the operation
+     */
     boost::asio::awaitable<void> modifyCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, value_type& ret_value, auto&&... args)
     {
         using RPC = agrpc::RPC<&stub_t::PrepareAsyncCall>;
