@@ -59,17 +59,6 @@ public:
 
     using stub_t = Stub;
 
-private:
-    validator_type valid_{}; ///< The validator object for plugin validation.
-    req_converter_type req_{}; ///< The request converter object.
-    rsp_converter_type rsp_{}; ///< The response converter object.
-
-    ranges::semiregular_box<stub_t> stub_; ///< The gRPC stub for communication.
-
-    slot_metadata slot_info_{ .slot_id = SlotID, .version_range = SlotVersionRng.value, .engine_uuid = Application::getInstance().instance_uuid };
-    std::optional<plugin_metadata> plugin_info_{ std::nullopt }; ///< The plugin info object.
-
-public:
     /**
      * @brief Constructs a PluginProxy object.
      *
@@ -174,6 +163,15 @@ public:
     }
 
 private:
+    validator_type valid_{}; ///< The validator object for plugin validation.
+    req_converter_type req_{}; ///< The request converter object.
+    rsp_converter_type rsp_{}; ///< The response converter object.
+
+    ranges::semiregular_box<stub_t> stub_; ///< The gRPC stub for communication.
+
+    slot_metadata slot_info_{ .slot_id = SlotID, .version_range = SlotVersionRng.value, .engine_uuid = Application::getInstance().instance_uuid };
+    std::optional<plugin_metadata> plugin_info_{ std::nullopt }; ///< The plugin info object.
+
     boost::asio::awaitable<void> handshakeCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, slots::handshake::v0::HandshakeService::Stub& handshake_stub)
     {
         using RPC = agrpc::RPC<&slots::handshake::v0::HandshakeService::Stub::PrepareAsyncCall>;
