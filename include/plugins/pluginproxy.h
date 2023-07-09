@@ -31,17 +31,17 @@ namespace cura::plugins
 {
 
 /**
- * @brief A class template representing a proxy for a plugin.
+ * @brief A plugin proxy class template.
  *
- * The PluginProxy class template facilitates communication with plugins by providing
- * an interface for sending requests and receiving responses. It uses gRPC for communication.
+ * Template arguments are:
+ * SlotID - plugin slot ID
+ * SlotVersionRng - plugin version range
+ * Stub - process stub type
+ * ValidatorTp - validator type
+ * RequestTp - gRPC convertible request type,
+ * ResponseTp - gRPC convertible response type.
  *
- * @tparam Slot The plugin slot ID.
- * @tparam Validator The type used for validating the plugin.
- * @tparam Stub The process stub type.
- * @tparam Prepare The prepare type.
- * @tparam Request The gRPC convertible request type.
- * @tparam Response The gRPC convertible response type.
+ * Class provides methods for validating the plugin, making requests and processing responses.
  */
 template<plugins::v0::SlotID SlotID, details::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, utils::grpc_convertable RequestTp, utils::grpc_convertable ResponseTp>
 class PluginProxy
@@ -129,15 +129,14 @@ public:
     ~PluginProxy() = default;
 
     /**
-     * @brief Executes the plugin operation.
+     * @brief Executes to plugin Modify operation.
      *
-     * This operator allows the PluginProxy object to be invoked as a callable, which sends
-     * a request to the plugin and waits for the response. The response is converted using
-     * the response_converter_ object, and the converted value is returned.
+     * As part of this operation, a request is sent to the plugin
+     * and the returned response is processed.
      *
-     * @tparam Args The argument types for the plugin request.
-     * @param args The arguments for the plugin request.
-     * @return The converted response value.
+     * @tparam Args -  argument types for the plugin request
+     * @param args - arguments for the plugin request
+     * @return The converted response value from plugin.
      *
      * @throws std::runtime_error if communication with the plugin fails.
      */
@@ -164,14 +163,25 @@ public:
 
 private:
     validator_type valid_{}; ///< The validator object for plugin validation.
-    req_converter_type req_{}; ///< The request converter object.
-    rsp_converter_type rsp_{}; ///< The response converter object.
+    req_converter_type req_{}; ///< The Modify request converter object.
+    rsp_converter_type rsp_{}; ///< The Modify response converter object.
 
-    ranges::semiregular_box<stub_t> stub_; ///< The gRPC stub for communication.
+    ranges::semiregular_box<stub_t> stub_; ///< The gRPC Modify stub for communication.
 
-    slot_metadata slot_info_{ .slot_id = SlotID, .version_range = SlotVersionRng.value, .engine_uuid = Application::getInstance().instance_uuid };
-    std::optional<plugin_metadata> plugin_info_{ std::nullopt }; ///< The plugin info object.
+    slot_metadata slot_info_{ .slot_id = SlotID, .version_range = SlotVersionRng.value, .engine_uuid = Application::getInstance().instance_uuid }; ///< Holds information about the plugin slot.
+    std::optional<plugin_metadata> plugin_info_{ std::nullopt }; ///< Optional object that holds the plugin metadata, set after handshake
 
+    /**
+     * @brief Executes the modifyCall operation with the plugin.
+     *
+     * Sends a request to the plugin and saves the response.
+     *
+     * @param grpc_context - The gRPC context to use for the call
+     * @param status - Status of the gRPC call which gets updated in this method
+     * @param ret_value - Reference to the value in which response to be stored
+     * @param args - Request arguments
+     * @return A boost::asio::awaitable<void> indicating completion of the operation
+     */
     boost::asio::awaitable<void> handshakeCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, slots::handshake::v0::HandshakeService::Stub& handshake_stub)
     {
         using RPC = agrpc::RPC<&slots::handshake::v0::HandshakeService::Stub::PrepareAsyncCall>;
@@ -211,6 +221,14 @@ private:
         co_return;
     }
 
+    /**
+     * @brief Prepares client_context for the remote call.
+     *
+     * Sets timeout for the call and adds metadata to context.
+     *
+     * @param client_context - Client context to prepare
+     * @param timeout - Call timeout duration (optional, default = 500ms)
+     */
     void prep_client_context(grpc::ClientContext& client_context, std::chrono::milliseconds timeout = std::chrono::milliseconds(500))
     {
         // Set time-out
