@@ -91,29 +91,7 @@ public:
         slots::handshake::v0::HandshakeService::Stub handshake_stub(channel);
 
         boost::asio::co_spawn(
-            grpc_context,
-            [this, &status, &grpc_context, &handshake_stub]() -> boost::asio::awaitable<void>
-            {
-                using RPC = agrpc::RPC<&slots::handshake::v0::HandshakeService::Stub::PrepareAsyncCall>;
-                grpc::ClientContext client_context{};
-                prep_client_context(client_context);
-
-                // Construct request
-                handshake_request handshake_req;
-                handshake_request::value_type request{ handshake_req(slot_info_) };
-
-                // Make unary request
-                handshake_response::value_type response;
-                status = co_await RPC::request(grpc_context, handshake_stub, client_context, request, response, boost::asio::use_awaitable);
-                handshake_response handshake_rsp;
-                plugin_info_ = handshake_rsp(response, client_context.peer());
-                valid_ = validator_type{ slot_info_, plugin_info_.value() };
-                if (valid_)
-                {
-                    spdlog::info("Using plugin: '{}-{}' running at [{}] for slot {}", plugin_info_->plugin_name, plugin_info_->plugin_version, plugin_info_->peer, slot_info_.slot_id);
-                }
-            },
-            boost::asio::detached);
+            grpc_context, [this, &grpc_context, &status, &handshake_stub]() { return this->handshakeCall(grpc_context, status, handshake_stub); }, boost::asio::detached);
         grpc_context.run();
 
         if (! status.ok()) // TODO: handle different kind of status codes
@@ -181,22 +159,7 @@ public:
         grpc::Status status;
 
         boost::asio::co_spawn(
-            grpc_context,
-            [this, &status, &grpc_context, &ret_value, &args...]() -> boost::asio::awaitable<void>
-            {
-                using RPC = agrpc::RPC<&stub_t::PrepareAsyncCall>;
-                grpc::ClientContext client_context{};
-                prep_client_context(client_context);
-
-                // Construct request
-                auto request{ req_(std::forward<decltype(args)>(args)...) };
-
-                // Make unary request
-                rsp_msg_type response;
-                status = co_await RPC::request(grpc_context, stub_, client_context, request, response, boost::asio::use_awaitable);
-                ret_value = rsp_(response);
-            },
-            boost::asio::detached);
+            grpc_context, [this, &grpc_context, &status, &ret_value, &args...]() { return this->modifyCall(grpc_context, status, ret_value, std::forward<decltype(args)>(args)...); }, boost::asio::detached);
         grpc_context.run();
 
         if (! status.ok()) // TODO: handle different kind of status codes
@@ -208,6 +171,46 @@ public:
             throw exceptions::RemoteException(slot_info_, status.error_message());
         }
         return ret_value;
+    }
+
+private:
+    boost::asio::awaitable<void> handshakeCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, slots::handshake::v0::HandshakeService::Stub& handshake_stub)
+    {
+        using RPC = agrpc::RPC<&slots::handshake::v0::HandshakeService::Stub::PrepareAsyncCall>;
+        grpc::ClientContext client_context{};
+        prep_client_context(client_context);
+
+        // Construct request
+        handshake_request handshake_req;
+        handshake_request::value_type request{ handshake_req(slot_info_) };
+
+        // Make unary request
+        handshake_response::value_type response;
+        status = co_await RPC::request(grpc_context, handshake_stub, client_context, request, response, boost::asio::use_awaitable);
+        handshake_response handshake_rsp;
+        plugin_info_ = handshake_rsp(response, client_context.peer());
+        valid_ = validator_type{ slot_info_, plugin_info_.value() };
+        if (valid_)
+        {
+            spdlog::info("Using plugin: '{}-{}' running at [{}] for slot {}", plugin_info_->plugin_name, plugin_info_->plugin_version, plugin_info_->peer, slot_info_.slot_id);
+        }
+        co_return;
+    }
+
+    boost::asio::awaitable<void> modifyCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, value_type& ret_value, auto&&... args)
+    {
+        using RPC = agrpc::RPC<&stub_t::PrepareAsyncCall>;
+        grpc::ClientContext client_context{};
+        prep_client_context(client_context);
+
+        // Construct request
+        auto request{ req_(std::forward<decltype(args)>(args)...) };
+
+        // Make unary request
+        rsp_msg_type response;
+        status = co_await RPC::request(grpc_context, stub_, client_context, request, response, boost::asio::use_awaitable);
+        ret_value = rsp_(response);
+        co_return;
     }
 
     void prep_client_context(grpc::ClientContext& client_context, std::chrono::milliseconds timeout = std::chrono::milliseconds(500))
