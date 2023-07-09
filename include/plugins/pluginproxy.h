@@ -24,6 +24,7 @@
 #include "utils/format/thread_id.h"
 #include "utils/types/generic.h"
 
+#include "cura/plugins/slots/handshake/v0/handshake.pb.h"
 #include "cura/plugins/v0/slot_id.pb.h"
 
 namespace cura::plugins
@@ -81,7 +82,59 @@ public:
      * @throws std::runtime_error if the plugin fails validation or communication errors occur.
      */
     constexpr PluginProxy() = default;
-    explicit PluginProxy(std::shared_ptr<grpc::Channel> channel) : stub_(channel){};
+
+    explicit PluginProxy(std::shared_ptr<grpc::Channel> channel) : stub_(channel)
+    {
+        // Connect to the plugin and exchange a handshake
+        agrpc::GrpcContext grpc_context;
+        grpc::Status status;
+        slots::handshake::v0::HandshakeService::Stub handshake_stub(channel);
+
+        boost::asio::co_spawn(
+            grpc_context,
+            [this, &status, &grpc_context, &handshake_stub]() -> boost::asio::awaitable<void>
+            {
+                using RPC = agrpc::RPC<&slots::handshake::v0::HandshakeService::Stub::PrepareAsyncCall>;
+                grpc::ClientContext client_context{};
+                prep_client_context(client_context);
+
+                // Construct request
+                handshake_request handshake_req;
+                handshake_request::value_type request{ handshake_req(slot_info_) };
+
+                // Make unary request
+                handshake_response::value_type response;
+                status = co_await RPC::request(grpc_context, handshake_stub, client_context, request, response, boost::asio::use_awaitable);
+                handshake_response handshake_rsp;
+                plugin_info_ = handshake_rsp(response, client_context.peer());
+                valid_ = validator_type{ slot_info_, plugin_info_.value() };
+                if (valid_)
+                {
+                    spdlog::info("Using plugin: '{}-{}' running at [{}] for slot {}", plugin_info_->plugin_name, plugin_info_->plugin_version, plugin_info_->peer, slot_info_.slot_id);
+                }
+            },
+            boost::asio::detached);
+        grpc_context.run();
+
+        if (! status.ok()) // TODO: handle different kind of status codes
+        {
+            if (plugin_info_.has_value())
+            {
+                throw exceptions::RemoteException(slot_info_, plugin_info_.value(), status.error_message());
+            }
+            throw exceptions::RemoteException(slot_info_, status.error_message());
+        }
+
+        if (! valid_)
+        {
+            if (plugin_info_.has_value())
+            {
+                throw exceptions::ValidatorException(valid_, slot_info_, plugin_info_.value());
+            }
+            throw exceptions::ValidatorException(valid_, slot_info_);
+        }
+    };
+
     constexpr PluginProxy(const PluginProxy&) = default;
     constexpr PluginProxy(PluginProxy&&) noexcept = default;
     constexpr PluginProxy& operator=(const PluginProxy& other)
@@ -91,6 +144,7 @@ public:
             valid_ = other.valid_;
             stub_ = other.stub_;
             plugin_info_ = other.plugin_info_;
+            slot_info_ = other.slot_info_;
         }
         return *this;
     }
@@ -101,6 +155,7 @@ public:
             valid_ = std::move(other.valid_);
             stub_ = std::move(other.stub_);
             plugin_info_ = std::move(other.plugin_info_);
+            slot_info_ = std::move(other.slot_info_);
         }
         return *this;
     }
@@ -140,16 +195,6 @@ public:
                 rsp_msg_type response;
                 status = co_await RPC::request(grpc_context, stub_, client_context, request, response, boost::asio::use_awaitable);
                 ret_value = rsp_(response);
-
-                if (! plugin_info_.has_value())
-                {
-                    plugin_info_ = plugin_metadata{ client_context };
-                    valid_ = validator_type{ slot_info_, plugin_info_.value() };
-                    if (valid_)
-                    {
-                        spdlog::info("Using plugin: '{}-{}' running at [{}] for slot {}", plugin_info_->name, plugin_info_->version, plugin_info_->peer, slot_info_.slot_id);
-                    }
-                }
             },
             boost::asio::detached);
         grpc_context.run();
@@ -162,16 +207,6 @@ public:
             }
             throw exceptions::RemoteException(slot_info_, status.error_message());
         }
-
-        if (! valid_)
-        {
-            if (plugin_info_.has_value())
-            {
-                throw exceptions::ValidatorException(valid_, slot_info_, plugin_info_.value());
-            }
-            throw exceptions::ValidatorException(valid_, slot_info_);
-        }
-
         return ret_value;
     }
 
@@ -184,7 +219,6 @@ public:
         client_context.AddMetadata("cura-engine-uuid", slot_info_.engine_uuid.data());
         client_context.AddMetadata("cura-thread-id", fmt::format("{}", std::this_thread::get_id()));
     }
-
 };
 } // namespace cura::plugins
 
