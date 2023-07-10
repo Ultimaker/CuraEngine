@@ -57,7 +57,7 @@ public:
     using req_converter_type = RequestTp;
     using rsp_converter_type = ResponseTp;
 
-    using stub_t = Stub;
+    using modify_stub_t = Stub;
 
     /**
      * @brief Constructs a PluginProxy object.
@@ -72,7 +72,7 @@ public:
      */
     constexpr PluginProxy() = default;
 
-    explicit PluginProxy(std::shared_ptr<grpc::Channel> channel) : stub_(channel)
+    explicit PluginProxy(std::shared_ptr<grpc::Channel> channel) : modify_stub_(channel)
     {
         // Connect to the plugin and exchange a handshake
         agrpc::GrpcContext grpc_context;
@@ -109,7 +109,7 @@ public:
         if (this != &other)
         {
             valid_ = other.valid_;
-            stub_ = other.stub_;
+            modify_stub_ = other.modify_stub_;
             plugin_info_ = other.plugin_info_;
             slot_info_ = other.slot_info_;
         }
@@ -120,7 +120,7 @@ public:
         if (this != &other)
         {
             valid_ = std::move(other.valid_);
-            stub_ = std::move(other.stub_);
+            modify_stub_ = std::move(other.modify_stub_);
             plugin_info_ = std::move(other.plugin_info_);
             slot_info_ = std::move(other.slot_info_);
         }
@@ -166,7 +166,7 @@ private:
     req_converter_type req_{}; ///< The Modify request converter object.
     rsp_converter_type rsp_{}; ///< The Modify response converter object.
 
-    ranges::semiregular_box<stub_t> stub_; ///< The gRPC Modify stub for communication.
+    ranges::semiregular_box<modify_stub_t> modify_stub_; ///< The gRPC Modify stub for communication.
 
     slot_metadata slot_info_{ .slot_id = SlotID, .version_range = SlotVersionRng.value, .engine_uuid = Application::getInstance().instance_uuid }; ///< Holds information about the plugin slot.
     std::optional<plugin_metadata> plugin_info_{ std::nullopt }; ///< Optional object that holds the plugin metadata, set after handshake
@@ -218,7 +218,7 @@ private:
      */
     boost::asio::awaitable<void> modifyCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, value_type& ret_value, auto&&... args)
     {
-        using RPC = agrpc::RPC<&stub_t::PrepareAsyncCall>;
+        using RPC = agrpc::RPC<&modify_stub_t::PrepareAsyncCall>;
         grpc::ClientContext client_context{};
         prep_client_context(client_context);
 
@@ -227,7 +227,7 @@ private:
 
         // Make unary request
         rsp_msg_type response;
-        status = co_await RPC::request(grpc_context, stub_, client_context, request, response, boost::asio::use_awaitable);
+        status = co_await RPC::request(grpc_context, modify_stub_, client_context, request, response, boost::asio::use_awaitable);
         ret_value = rsp_(response);
         co_return;
     }
