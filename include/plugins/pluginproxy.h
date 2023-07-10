@@ -4,6 +4,8 @@
 #ifndef PLUGINS_PLUGINPROXY_H
 #define PLUGINS_PLUGINPROXY_H
 
+#include <chrono>
+#include <string>
 #include <thread>
 
 #include <agrpc/asio_grpc.hpp>
@@ -12,16 +14,15 @@
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/use_awaitable.hpp>
-#include <chrono>
 #include <fmt/format.h>
 #include <range/v3/utility/semiregular_box.hpp>
 #include <spdlog/spdlog.h>
-#include <string>
 
 #include "Application.h"
 #include "plugins/exception.h"
 #include "plugins/metadata.h"
 #include "utils/format/thread_id.h"
+#include "utils/types/char_range_literal.h"
 #include "utils/types/generic.h"
 
 #include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
@@ -165,6 +166,11 @@ public:
             throw exceptions::RemoteException(slot_info_, status.error_message());
         }
         return ret_value;
+    }
+
+    template<details::CharRangeLiteral BroadcastChannel>
+    void broadcast(auto&&... args)
+    {
     }
 
 private:

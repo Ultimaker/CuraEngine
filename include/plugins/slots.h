@@ -100,6 +100,13 @@ public:
         get_type<Tp>().proxy = Tp{ std::forward<Tp>(std::move(plugin)) };
     }
 
+    template<details::CharRangeLiteral BroadcastChannel>
+    void broadcast(auto&&... args)
+    {
+        value_.proxy.template broadcast<BroadcastChannel>(std::forward<decltype(args)>(args)...);
+        Base::value_.proxy.template broadcast<BroadcastChannel>(std::forward<decltype(args)>(args)...);
+    }
+
 protected:
     template<typename Tp>
     constexpr Unit<Tp>& get_type()

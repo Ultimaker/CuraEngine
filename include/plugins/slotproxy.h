@@ -4,14 +4,15 @@
 #ifndef PLUGINS_SLOTPROXY_H
 #define PLUGINS_SLOTPROXY_H
 
-#include <boost/asio/use_awaitable.hpp>
 #include <concepts>
 #include <functional>
 #include <memory>
 #include <optional>
 
+#include <boost/asio/use_awaitable.hpp>
 #include <grpcpp/channel.h>
 
+#include "utils/types/char_range_literal.h"
 #include "plugins/converters.h"
 #include "plugins/pluginproxy.h"
 #include "plugins/types.h"
@@ -77,6 +78,15 @@ public:
             return std::invoke(plugin_.value(), std::forward<decltype(args)>(args)...);
         }
         return std::invoke(default_process, std::forward<decltype(args)>(args)...);
+    }
+
+    template<details::CharRangeLiteral BroadcastChannel>
+    void broadcast(auto&&...args)
+    {
+        if (plugin_.has_value())
+        {
+            plugin_.value().template broadcast<BroadcastChannel>(std::forward<decltype(args)>(args)...);
+        }
     }
 };
 
