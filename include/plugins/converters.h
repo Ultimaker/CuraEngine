@@ -7,12 +7,15 @@
 #include <string>
 #include <tuple>
 
+#include <google/protobuf/empty.pb.h>
 #include <range/v3/range/operations.hpp>
 #include <range/v3/view/drop.hpp>
 
 #include "plugins/metadata.h"
 #include "plugins/types.h"
 
+#include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
+#include "cura/plugins/slots/broadcast/v0/broadcast.pb.h"
 #include "cura/plugins/slots/handshake/v0/handshake.grpc.pb.h"
 #include "cura/plugins/slots/handshake/v0/handshake.pb.h"
 #include "cura/plugins/slots/postprocess/v0/postprocess.grpc.pb.h"
@@ -20,8 +23,78 @@
 #include "cura/plugins/slots/simplify/v0/simplify.grpc.pb.h"
 #include "cura/plugins/slots/simplify/v0/simplify.pb.h"
 
+#include "Cura.pb.h"
+
 namespace cura::plugins
 {
+
+
+struct empty
+{
+    using value_type = google::protobuf::Empty; ///< The protobuf message type.
+    using native_value_type = std::nullptr_t; ///< The native value type.
+
+    value_type operator()() const
+    {
+        return {};
+    }
+
+    constexpr native_value_type operator()(const value_type&) const
+    {
+        return nullptr;
+    }
+};
+
+struct broadcast_settings_request
+{
+    using value_type = slots::broadcast::v0::BroadcastServiceSettingsRequest; ///< The protobuf message type.
+    using native_value_type = cura::proto::Slice; ///< The native value type.
+
+    /**
+     * @brief Converts native data for broadcasting to a `proto::BroadcastServiceSettingsRequest` message.
+     *
+     * @param key The key of the setting to be broadcasted.
+     * @param value The value of the setting to be broadcasted.
+     * @return The converted `proto::BroadcastServiceSettingsRequest` message.
+     */
+    value_type operator()(const native_value_type& slice_message) const
+    {
+        value_type message{};
+        auto* global_settings = message.mutable_global_settings()->mutable_settings();
+        for (const auto& setting : slice_message.global_settings().settings())
+        {
+            global_settings->emplace(setting.name(), setting.value());
+        }
+
+        auto* extruders_settings = message.mutable_extruder_settings();
+        for (const auto& extruder : slice_message.extruders())
+        {
+            auto* settings = extruders_settings->Add()->mutable_settings();
+            for (const auto& setting : extruder.settings().settings())
+            {
+                settings->emplace(setting.name(), setting.value());
+            }
+        }
+
+        auto* object_settings = message.mutable_object_settings();
+        for (const auto& object : slice_message.object_lists())
+        {
+            auto* settings = object_settings->Add()->mutable_settings();
+            for (const auto& setting : object.settings())
+            {
+                settings->emplace(setting.name(), setting.value());
+            }
+        }
+
+        auto* limit_to_extruder = message.mutable_limit_to_extruder();
+        for (const auto& setting_extruder : slice_message.limit_to_extruder())
+        {
+            limit_to_extruder->emplace(setting_extruder.name(), setting_extruder.extruder());
+        }
+        return message;
+    }
+};
+
 
 struct handshake_request
 {
