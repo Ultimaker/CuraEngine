@@ -15,6 +15,7 @@
 #include <boost/asio/detached.hpp>
 #include <boost/asio/use_awaitable.hpp>
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <range/v3/utility/semiregular_box.hpp>
 #include <spdlog/spdlog.h>
 
@@ -234,6 +235,10 @@ private:
         if (valid_)
         {
             spdlog::info("Using plugin: '{}-{}' running at [{}] for slot {}", plugin_info_->plugin_name, plugin_info_->plugin_version, plugin_info_->peer, slot_info_.slot_id);
+            if (! plugin_info_->broadcast_subscriptions.empty())
+            {
+                spdlog::info("Subscriping plugin '{}' to the following broadcasts {}", plugin_info_->plugin_name, plugin_info_->broadcast_subscriptions);
+            }
         }
         co_return;
     }
