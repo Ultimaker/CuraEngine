@@ -24,6 +24,9 @@
 #include "utils/format/thread_id.h"
 #include "utils/types/generic.h"
 
+#include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
+#include "cura/plugins/slots/broadcast/v0/broadcast.pb.h"
+#include "cura/plugins/slots/handshake/v0/handshake.grpc.pb.h"
 #include "cura/plugins/slots/handshake/v0/handshake.pb.h"
 #include "cura/plugins/v0/slot_id.pb.h"
 
@@ -58,6 +61,7 @@ public:
     using rsp_converter_type = ResponseTp;
 
     using modify_stub_t = Stub;
+    using broadcast_stub_t = slots::broadcast::v0::BroadcastService::Stub;
 
     /**
      * @brief Constructs a PluginProxy object.
@@ -72,7 +76,7 @@ public:
      */
     constexpr PluginProxy() = default;
 
-    explicit PluginProxy(std::shared_ptr<grpc::Channel> channel) : modify_stub_(channel)
+    explicit PluginProxy(std::shared_ptr<grpc::Channel> channel) : modify_stub_(channel), broadcast_stub_(channel)
     {
         // Connect to the plugin and exchange a handshake
         agrpc::GrpcContext grpc_context;
@@ -110,6 +114,7 @@ public:
         {
             valid_ = other.valid_;
             modify_stub_ = other.modify_stub_;
+            broadcast_stub_ = other.broadcast_stub_;
             plugin_info_ = other.plugin_info_;
             slot_info_ = other.slot_info_;
         }
@@ -121,6 +126,7 @@ public:
         {
             valid_ = std::move(other.valid_);
             modify_stub_ = std::move(other.modify_stub_);
+            broadcast_stub_ = std::move(other.broadcast_stub_);
             plugin_info_ = std::move(other.plugin_info_);
             slot_info_ = std::move(other.slot_info_);
         }
@@ -167,6 +173,7 @@ private:
     rsp_converter_type rsp_{}; ///< The Modify response converter object.
 
     ranges::semiregular_box<modify_stub_t> modify_stub_; ///< The gRPC Modify stub for communication.
+    ranges::semiregular_box<broadcast_stub_t> broadcast_stub_; ///< The gRPC Broadcast stub for communication.
 
     slot_metadata slot_info_{ .slot_id = SlotID, .version_range = SlotVersionRng.value, .engine_uuid = Application::getInstance().instance_uuid }; ///< Holds information about the plugin slot.
     std::optional<plugin_metadata> plugin_info_{ std::nullopt }; ///< Optional object that holds the plugin metadata, set after handshake
