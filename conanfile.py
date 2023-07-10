@@ -92,7 +92,7 @@ class CuraEngineConan(ConanFile):
 
     def requirements(self):
         if self.options.enable_arcus:
-            self.requires("arcus/(latest)@ultimaker/cura_10475")  # TODO: point to `testing` once the CURA-10475 from libArcus is main
+            self.requires("arcus/(latest)@ultimaker/cura_10618")  # TODO: point to `testing` once the CURA-10475 from libArcus is main
         self.requires("clipper/6.4.2")
         self.requires("boost/1.81.0")
         self.requires("rapidjson/1.1.0")
