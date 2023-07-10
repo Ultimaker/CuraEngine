@@ -12,11 +12,11 @@
 #include <boost/asio/use_awaitable.hpp>
 #include <grpcpp/channel.h>
 
-#include "utils/types/char_range_literal.h"
 #include "plugins/converters.h"
 #include "plugins/pluginproxy.h"
 #include "plugins/types.h"
 #include "plugins/validator.h"
+#include "utils/types/char_range_literal.h"
 
 namespace cura::plugins
 {

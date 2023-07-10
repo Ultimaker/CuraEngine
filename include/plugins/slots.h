@@ -13,6 +13,7 @@
 #include "plugins/validator.h"
 #include "utils/IntPoint.h"
 #include "utils/Simplify.h" // TODO: Remove once the simplify slot has been removed
+#include "utils/types/char_range_literal.h"
 
 #include "cura/plugins/slots/postprocess/v0/postprocess.grpc.pb.h"
 #include "cura/plugins/slots/simplify/v0/simplify.grpc.pb.h"

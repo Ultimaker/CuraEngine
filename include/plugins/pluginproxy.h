@@ -19,6 +19,7 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h"
+#include "plugins/broadcasts.h"
 #include "plugins/exception.h"
 #include "plugins/metadata.h"
 #include "utils/format/thread_id.h"
@@ -171,6 +172,25 @@ public:
     template<details::CharRangeLiteral BroadcastChannel>
     void broadcast(auto&&... args)
     {
+        if (! plugin_info_->broadcast_subscriptions.contains(BroadcastChannel.value))
+        {
+            return;
+        }
+        agrpc::GrpcContext grpc_context;
+        grpc::Status status;
+
+        boost::asio::co_spawn(
+            grpc_context, [this, &grpc_context, &status, &args...]() { return this->broadcastCall<BroadcastChannel>(grpc_context, status, std::forward<decltype(args)>(args)...); }, boost::asio::detached);
+        grpc_context.run();
+
+        if (! status.ok()) // TODO: handle different kind of status codes
+        {
+            if (plugin_info_.has_value())
+            {
+                throw exceptions::RemoteException(slot_info_, plugin_info_.value(), status.error_message());
+            }
+            throw exceptions::RemoteException(slot_info_, status.error_message());
+        }
     }
 
 private:
@@ -242,6 +262,19 @@ private:
         rsp_msg_type response;
         status = co_await RPC::request(grpc_context, modify_stub_, client_context, request, response, boost::asio::use_awaitable);
         ret_value = rsp_(response);
+        co_return;
+    }
+
+    template<details::CharRangeLiteral BroadcastChannel>
+    boost::asio::awaitable<void> broadcastCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, auto&&... args)
+    {
+        grpc::ClientContext client_context{};
+        prep_client_context(client_context);
+
+        auto broadcaster { details::broadcast_factory<broadcast_stub_t, BroadcastChannel.value>() };
+        auto request = details::broadcast_message_factory<BroadcastChannel.value>(std::forward<decltype(args)>(args)...);
+        auto response = google::protobuf::Empty{};
+        status = co_await broadcaster.request(grpc_context, broadcast_stub_, client_context, request, response, boost::asio::use_awaitable);
         co_return;
     }
 
