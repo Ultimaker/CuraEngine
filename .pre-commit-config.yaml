@@ -1,0 +1,9 @@
+# Due to the need to push changes from clang-format & clang-tidy, will run in actions too.
+repos:
+  - repo: https://github.com/cpp-linter/cpp-linter-hooks
+    rev: v0.2.1
+    hooks:
+      - id: clang-format
+        args: [--style=file]  # to load .clang-format
+      - id: clang-tidy
+        args: [--checks=.clang-tidy] # path/to/.clang-tidy

@@ -1,0 +1,61 @@
+---
+name: apply-lint
+
+on:
+  workflow_dispatch:
+
+  push:
+    paths:
+      - '**.cpp'
+      - '**.h'
+      - '**.yml'
+    branches:
+      - main
+    tags:
+      - '![1-9].[0-9]+*'
+
+  pull_request:
+    paths:
+      - '**.cpp'
+      - '**.h'
+      - '**.yml'
+    branches:
+      - main
+    tags:
+      - '![1-9].[0-9]+*'
+
+jobs:
+  cpp-linter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: pre-commit/action@v3.0.0
+        continue-on-error: true
+
+      - name: Commit changes
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: python
+        run: |
+            from subprocess import run
+            def rrun(cmd, throw_on_error=True):
+                res = run([x.replace('~', ' ') for x in cmd.split(" ")], capture_output=True, text=True)
+                if throw_on_error and res.returncode != 0:
+                    err = f"failed to run '{cmd.replace('~', ' ')}' because '{res.stderr if res.stderr else res.stdout}'"
+                    print(err)
+                    raise Exception(err)
+                return res.stdout
+            status = rrun('git status --short')
+            if len(status) == 0:
+                exit(0)
+            rrun('git config user.name "linter-bot"')
+            rrun('git config user.email "support@ultimaker.com"')
+            rrun('git add ./src/*', False)
+            rrun('git add ./include/*', False)
+            rrun('git add ./tests/*', False)
+            prev_author = rrun('git show --format=%aN~<%aE>').split('\n')[0]
+            commit_message = f"Apply changes from automatic linting.\n\nCo-authored-by: {prev_author}".replace(' ', '~')
+            rrun(f'git commit -m {commit_message}')
+            rrun('git push')
