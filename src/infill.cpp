@@ -539,14 +539,14 @@ void Infill::generateLineInfill(Polygons& result, int line_distance, const doubl
     shift += getShiftOffsetFromInfillOriginAndRotation(infill_rotation);
     PointMatrix rotation_matrix(infill_rotation);
     NoZigZagConnectorProcessor lines_processor(rotation_matrix, result);
-    bool connected_zigzags = false;
+    bool connected_zigzags = false;  // it should trigger on this
     generateLinearBasedInfill(result, line_distance, rotation_matrix, lines_processor, connected_zigzags, shift);
 }
 
 
 void Infill::generateZigZagInfill(Polygons& result, const coord_t line_distance, const double& infill_rotation)
 {
-    const coord_t shift = getShiftOffsetFromInfillOriginAndRotation(infill_rotation);
+    const coord_t shift = getShiftOffsetFromInfillOriginAndRotation(infill_rotation); // and here
 
     PointMatrix rotation_matrix(infill_rotation);
     ZigzagConnectorProcessor zigzag_processor(rotation_matrix, result, use_endpieces, connected_zigzags, skip_some_zags, zag_skip_count);
