@@ -630,9 +630,9 @@ void Infill::generateLinearBasedInfill(Polygons& result, const int line_distance
         }
     };
     std::vector<std::vector<Crossing>> crossings_per_scanline; // For each scanline, a list of crossings.
-    
+
     const int min_scanline_index = computeScanSegmentIdx(boundary__.min.X - shift, line_distance) + 2;
-    
+
     const int max_scanline_index = computeScanSegmentIdx(boundary__.max.X - shift, line_distance) + 1;
     crossings_per_scanline.resize(max_scanline_index - min_scanline_index);
     if (connect_lines)
