@@ -1,1 +1,2 @@
 pyyaml
+conan==1.56.0
