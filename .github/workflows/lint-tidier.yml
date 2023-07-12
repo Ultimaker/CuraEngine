@@ -37,6 +37,44 @@ jobs:
         if: env.GIT_DIFF && !env.MATCHED_FILES
         run: pip install -r .github/workflows/requirements-linter.txt
 
+      # NOTE: Due to what are probably github issues, we have to remove the cache and reconfigure before the rest.
+      #       This is maybe because grub caches the disk it uses last time, which is recreated each time.
+      - name: Install Linux system requirements
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          sudo rm /var/cache/debconf/config.dat
+          sudo dpkg --configure -a
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          sudo apt update
+          sudo apt upgrade
+          sudo apt install build-essential checkinstall libegl-dev zlib1g-dev libssl-dev ninja-build autoconf libx11-dev libx11-xcb-dev libfontenc-dev libice-dev libsm-dev libxau-dev libxaw7-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxdmcp-dev libxext-dev libxfixes-dev libxi-dev libxinerama-dev libxkbfile-dev libxmu-dev libxmuu-dev libxpm-dev libxrandr-dev libxrender-dev libxres-dev libxss-dev libxt-dev libxtst-dev libxv-dev libxvmc-dev libxxf86vm-dev xtrans-dev libxcb-render0-dev libxcb-render-util0-dev libxcb-xkb-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev libxcb-shape0-dev libxcb-sync-dev libxcb-xfixes0-dev libxcb-xinerama0-dev xkb-data libxcb-dri3-dev uuid-dev libxcb-util-dev libxkbcommon-x11-dev pkg-config -y
+
+      - name: Install GCC-12 on ubuntu-22.04
+        run: |
+          sudo apt install g++-12 gcc-12 -y
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 12
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 12
+
+      - name: Get Conan configuration
+        run: |
+          conan profile new default --detect
+          conan config install https://github.com/Ultimaker/conan-config.git
+
+      - name: Install dependencies
+        run: conan install . ${{ needs.conan-recipe-version.outputs.recipe_id_full }} -o enable_testing=True -s build_type=Release --build=missing --update -g GitHubActionsRunEnv -g GitHubActionsBuildEnv
+
+      - name: Set Environment variables from Conan install (bash)
+        if: ${{ runner.os != 'Windows' }}
+        run: |
+          . ./activate_github_actions_runenv.sh
+          . ./activate_github_actions_buildenv.sh
+        working-directory: build/generators
+
+      - name: Build CuraEngine and tests
+        run: |
+          cmake --preset release
+          cmake --build --preset release
+
       - name: Create results directory
         run: mkdir linter-result
 
@@ -44,7 +82,7 @@ jobs:
         if: env.GIT_DIFF && !env.MATCHED_FILES
         continue-on-error: true
         run: |
-          clang-tidy --config-file=.clang-tidy ${{ env.GIT_DIFF_FILTERED }} --export-fixes=linter-result/fixes.yml
+          clang-tidy -p ./build/Release/ --config-file=.clang-tidy ${{ env.GIT_DIFF_FILTERED }} --export-fixes=linter-result/fixes.yml
 
       - name: Save PR metadata
         run: |
