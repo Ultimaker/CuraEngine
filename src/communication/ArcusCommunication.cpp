@@ -515,13 +515,15 @@ void ArcusCommunication::sliceNext()
         {
             switch (plugin.id())
             {
-            case cura::proto::SlotID::SIMPLIFY:
+            case cura::proto::SlotID::SIMPLIFY_MODIFY:
                 slots::instance().connect<plugins::slot_simplify>(utils::createChannel({ plugin.address(), plugin.port() }));
                 break;
-            case cura::proto::SlotID::POSTPROCESS:
+            case cura::proto::SlotID::POSTPROCESS_MODIFY:
                 slots::instance().connect<plugins::slot_postprocess>(utils::createChannel({ plugin.address(), plugin.port() }));
                 break;
-            default: break;
+            default:
+                spdlog::error("Not yet implemented: {}", plugin.id());
+                break;
             }
         }
     }
