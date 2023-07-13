@@ -2355,7 +2355,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
             }
 
             // Subtract support floors from the support area and add them to the support floor instead.
-            if (config.support_bottom_layers > 0 && ! (support_layer_storage[layer_idx].empty() && ! support_skin_storage[layer_idx].empty() ))
+            if (config.support_bottom_layers > 0 && ! (support_layer_storage[layer_idx].empty() || support_skin_storage[layer_idx].empty()))
             {
                 Polygons floor_layer = storage.support.supportLayers[layer_idx].support_bottom;
                 Polygons layer_outset = support_layer_storage[layer_idx].unionPolygons(support_skin_storage[layer_idx]).offset(config.support_bottom_offset).difference(volumes_.getCollision(0, layer_idx, false));
