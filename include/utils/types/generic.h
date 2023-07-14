@@ -36,7 +36,7 @@ class is_broadcast_channel
     {
         constexpr std::string_view t1{ T1.value };
         constexpr std::string_view t2{ T2.value };
-        return t1 == t2;
+        return t1.compare(t2) == 0;
     }
 
 public:
