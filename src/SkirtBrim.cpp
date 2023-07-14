@@ -378,6 +378,7 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
     {
         reference_extruder_nr = extruder_nr;
     }
+    Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[reference_extruder_nr].settings;
     const int primary_line_count = line_count[reference_extruder_nr];
     const bool external_only = adhesion_type == EPlatformAdhesion::SKIRT || external_polys_only[reference_extruder_nr]; // Whether to include holes or not. Skirt doesn't have any holes.
     const LayerIndex layer_nr = 0;
@@ -387,7 +388,7 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
         const bool skirt_around_prime_tower_brim = storage.primeTower.enabled && global_settings.get<bool>("prime_tower_brim_enable");
         const bool include_prime_tower = ! skirt_around_prime_tower_brim; // include manually otherwise
 
-        const int skirt_height = global_settings.get<int>("skirt_height");
+        const int skirt_height = extruder_settings.get<int>("skirt_height");
         first_layer_outline = Polygons();
         for (int i_layer = layer_nr; i_layer <= skirt_height; ++i_layer)
         {

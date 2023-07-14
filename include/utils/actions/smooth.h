@@ -38,7 +38,7 @@ struct smooth_fn
     constexpr auto operator()(Rng&& rng, const utils::integral auto max_resolution, const utils::floating_point auto fluid_angle) const
     {
         const auto size = ranges::distance(rng) - 1;
-        if (size < 3)
+        if (size < 4)
         {
             return static_cast<Rng&&>(rng);
         }

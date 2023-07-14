@@ -131,8 +131,8 @@ bool Comb::calc
     unsigned int end_inside_poly_min = NO_INDEX;
     const bool end_inside_min = moveInside(boundary_inside_minimum, _end_inside, inside_loc_to_line_minimum.get(), end_point, end_inside_poly_min);
 
-    unsigned int start_part_boundary_poly_idx_min;
-    unsigned int end_part_boundary_poly_idx_min;
+    unsigned int start_part_boundary_poly_idx_min  { };
+    unsigned int end_part_boundary_poly_idx_min  { };
     unsigned int start_part_idx_min =   (start_inside_poly_min == NO_INDEX)?    NO_INDEX : partsView_inside_minimum.getPartContaining(start_inside_poly_min, &start_part_boundary_poly_idx_min);
     unsigned int end_part_idx_min =     (end_inside_poly_min == NO_INDEX)?      NO_INDEX : partsView_inside_minimum.getPartContaining(end_inside_poly_min, &end_part_boundary_poly_idx_min);
 
