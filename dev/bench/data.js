@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1689355722490,
+  "lastUpdate": 1689402641828,
   "repoUrl": "https://github.com/Ultimaker/CuraEngine",
   "entries": {
     "C++ Benchmark": [
@@ -85980,6 +85980,118 @@ window.BENCHMARK_DATA = {
             "value": 0.022614151457743373,
             "unit": "ms/iter",
             "extra": "iterations: 31144\ncpu: 0.022612124325712853 ms\nthreads: 1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "Casper Lamboo",
+            "username": "casperlamboo",
+            "email": "c.lamboo@ultimaker.com"
+          },
+          "committer": {
+            "name": "GitHub",
+            "username": "web-flow",
+            "email": "noreply@github.com"
+          },
+          "id": "ef46801bffb289cdcc3ec58b6dfff78b2889644d",
+          "message": "Merge pull request #1896 from Ultimaker/CURA-10728_skirt_height_intersect_fix\n\n[CURA-10728] Take skirt-height into account for skirt-outline(s).",
+          "timestamp": "2023-07-06T11:02:36Z",
+          "url": "https://github.com/Ultimaker/CuraEngine/commit/ef46801bffb289cdcc3ec58b6dfff78b2889644d"
+        },
+        "date": 1689402632289,
+        "tool": "googlecpp",
+        "benches": [
+          {
+            "name": "InfillTest/Infill_generate_connect/1/400",
+            "value": 0.5340483980295476,
+            "unit": "ms/iter",
+            "extra": "iterations: 2030\ncpu: 0.5027701477832512 ms\nthreads: 1"
+          },
+          {
+            "name": "InfillTest/Infill_generate_connect/0/400",
+            "value": 8.15033679207948,
+            "unit": "ms/iter",
+            "extra": "iterations: 202\ncpu: 8.149776732673269 ms\nthreads: 1"
+          },
+          {
+            "name": "InfillTest/Infill_generate_connect/1/800",
+            "value": 68.25897800000007,
+            "unit": "ms/iter",
+            "extra": "iterations: 20\ncpu: 68.25325500000001 ms\nthreads: 1"
+          },
+          {
+            "name": "InfillTest/Infill_generate_connect/0/800",
+            "value": 229.23596440000438,
+            "unit": "ms/iter",
+            "extra": "iterations: 5\ncpu: 229.22674 ms\nthreads: 1"
+          },
+          {
+            "name": "InfillTest/Infill_generate_connect/1/1200",
+            "value": 666.081657999996,
+            "unit": "ms/iter",
+            "extra": "iterations: 2\ncpu: 665.9692500000003 ms\nthreads: 1"
+          },
+          {
+            "name": "InfillTest/Infill_generate_connect/0/1200",
+            "value": 1082.2944390000657,
+            "unit": "ms/iter",
+            "extra": "iterations: 1\ncpu: 1082.2363 ms\nthreads: 1"
+          },
+          {
+            "name": "WallTestFixture/generateWalls/3",
+            "value": 7.039924009999368,
+            "unit": "ms/iter",
+            "extra": "iterations: 100\ncpu: 7.039621999999995 ms\nthreads: 1"
+          },
+          {
+            "name": "WallTestFixture/generateWalls/15",
+            "value": 26.571981781248866,
+            "unit": "ms/iter",
+            "extra": "iterations: 32\ncpu: 26.569984375000022 ms\nthreads: 1"
+          },
+          {
+            "name": "WallTestFixture/generateWalls/9999",
+            "value": 62.19518115384604,
+            "unit": "ms/iter",
+            "extra": "iterations: 13\ncpu: 62.19466153846161 ms\nthreads: 1"
+          },
+          {
+            "name": "WallTestFixture/InsetOrderOptimizer_getRegionOrder/3",
+            "value": 0.036786681335765785,
+            "unit": "ms/iter",
+            "extra": "iterations: 18656\ncpu: 0.036785291595197306 ms\nthreads: 1"
+          },
+          {
+            "name": "WallTestFixture/InsetOrderOptimizer_getRegionOrder/15",
+            "value": 0.8476101866501843,
+            "unit": "ms/iter",
+            "extra": "iterations: 809\ncpu: 0.8475976514215083 ms\nthreads: 1"
+          },
+          {
+            "name": "WallTestFixture/InsetOrderOptimizer_getRegionOrder/9999",
+            "value": 5.418409999999942,
+            "unit": "ms/iter",
+            "extra": "iterations: 130\ncpu: 5.417878461538463 ms\nthreads: 1"
+          },
+          {
+            "name": "WallTestFixture/InsetOrderOptimizer_getInsetOrder/3",
+            "value": 0.0010139639532529793,
+            "unit": "ms/iter",
+            "extra": "iterations: 706527\ncpu: 0.001013946105385924 ms\nthreads: 1"
+          },
+          {
+            "name": "WallTestFixture/InsetOrderOptimizer_getInsetOrder/15",
+            "value": 0.005769602451911876,
+            "unit": "ms/iter",
+            "extra": "iterations: 119417\ncpu: 0.005769326812765361 ms\nthreads: 1"
+          },
+          {
+            "name": "WallTestFixture/InsetOrderOptimizer_getInsetOrder/9999",
+            "value": 0.017247801390655876,
+            "unit": "ms/iter",
+            "extra": "iterations: 40844\ncpu: 0.017246863676427346 ms\nthreads: 1"
           }
         ]
       }
