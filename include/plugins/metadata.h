@@ -18,11 +18,11 @@ namespace cura::plugins
 
 struct plugin_metadata
 {
-    std::string_view slot_version;
-    std::string_view plugin_name;
-    std::string_view plugin_version;
-    std::string_view peer;
-    std::set<std::string_view> broadcast_subscriptions;
+    std::string slot_version;
+    std::string plugin_name;
+    std::string plugin_version;
+    std::string peer;
+    std::set<std::string> broadcast_subscriptions;
 };
 
 struct slot_metadata

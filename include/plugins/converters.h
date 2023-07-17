@@ -134,8 +134,8 @@ struct handshake_response
         return { .slot_version = message.slot_version(),
                  .plugin_name = message.plugin_name(),
                  .plugin_version = message.plugin_version(),
-                 .peer = peer,
-                 .broadcast_subscriptions = std::set<std::string_view>(message.broadcast_subscriptions().begin(), message.broadcast_subscriptions().end()) };
+                 .peer = std::string{ peer },
+                 .broadcast_subscriptions = std::set<std::string>(message.broadcast_subscriptions().begin(), message.broadcast_subscriptions().end()) };
     }
 };
 
