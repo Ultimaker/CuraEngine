@@ -4,9 +4,12 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#include "utils/NoCopy.h"
-#include <cstddef> //For size_t.
+#include <cstddef>
 #include <cassert>
+#include <string>
+
+#include "utils/NoCopy.h"
+
 
 namespace cura
 {
@@ -88,6 +91,8 @@ public:
      * \param nworkers The number of workers (including the main thread) that are ran.
      */
     void startThreadPool(int nworkers=0);
+
+    std::string instance_uuid;
 
 protected:
 #ifdef ARCUS
