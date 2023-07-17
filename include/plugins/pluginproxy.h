@@ -49,7 +49,7 @@ namespace cura::plugins
  *
  * Class provides methods for validating the plugin, making requests and processing responses.
  */
-template<plugins::v0::SlotID SlotID, details::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, utils::grpc_convertable RequestTp, utils::grpc_convertable ResponseTp>
+template<plugins::v0::SlotID SlotID, utils::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, utils::grpc_convertable RequestTp, utils::grpc_convertable ResponseTp>
 class PluginProxy
 {
 public:
@@ -170,7 +170,7 @@ public:
         return ret_value;
     }
 
-    template<details::CharRangeLiteral BroadcastChannel>
+    template<utils::CharRangeLiteral BroadcastChannel>
     void broadcast(auto&&... args)
     {
         if (! plugin_info_->broadcast_subscriptions.contains(BroadcastChannel.value))
@@ -270,14 +270,14 @@ private:
         co_return;
     }
 
-    template<details::CharRangeLiteral BroadcastChannel>
+    template<utils::CharRangeLiteral BroadcastChannel>
     boost::asio::awaitable<void> broadcastCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, auto&&... args)
     {
         grpc::ClientContext client_context{};
         prep_client_context(client_context);
 
-        auto broadcaster { details::broadcast_factory<broadcast_stub_t, BroadcastChannel.value>() };
-        auto request = details::broadcast_message_factory<BroadcastChannel.value>(std::forward<decltype(args)>(args)...);
+        auto broadcaster { details::broadcast_factory<broadcast_stub_t, BroadcastChannel>() };
+        auto request = details::broadcast_message_factory<BroadcastChannel>(std::forward<decltype(args)>(args)...);
         auto response = google::protobuf::Empty{};
         status = co_await broadcaster.request(grpc_context, broadcast_stub_, client_context, request, response, boost::asio::use_awaitable);
         co_return;

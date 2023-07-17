@@ -50,7 +50,7 @@ struct simplify_default
  * @tparam Default The default behavior when no plugin is registered.
  */
 template<class Default = default_process>
-using slot_simplify_ = SlotProxy<v0::SlotID::SIMPLIFY, "<=1.0.0", slots::simplify::v0::SimplifyModifyService::Stub, Validator, simplify_request, simplify_response, Default>;
+using slot_simplify_ = SlotProxy<v0::SlotID::SIMPLIFY_MODIFY, "<=1.0.0", slots::simplify::v0::SimplifyModifyService::Stub, Validator, simplify_request, simplify_response, Default>;
 
 /**
  * @brief Alias for the Postprocess slot.
@@ -60,7 +60,7 @@ using slot_simplify_ = SlotProxy<v0::SlotID::SIMPLIFY, "<=1.0.0", slots::simplif
  * @tparam Default The default behavior when no plugin is registered.
  */
 template<class Default = default_process>
-using slot_postprocess_ = SlotProxy<v0::SlotID::POSTPROCESS, "<=1.0.0", slots::postprocess::v0::PostprocessModifyService::Stub, Validator, postprocess_request, postprocess_response, Default>;
+using slot_postprocess_ = SlotProxy<v0::SlotID::POSTPROCESS_MODIFY, "<=1.0.0", slots::postprocess::v0::PostprocessModifyService::Stub, Validator, postprocess_request, postprocess_response, Default>;
 
 template<typename... Types>
 struct Typelist
@@ -101,7 +101,7 @@ public:
         get_type<Tp>().proxy = Tp{ std::forward<Tp>(std::move(plugin)) };
     }
 
-    template<details::CharRangeLiteral BroadcastChannel>
+    template<utils::CharRangeLiteral BroadcastChannel>
     void broadcast(auto&&... args)
     {
         value_.proxy.template broadcast<BroadcastChannel>(std::forward<decltype(args)>(args)...);
