@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 #include <filesystem>
 #include <utility>
+#include <fmt/format.h>
 
 #include <scripta/logger.h>
 
@@ -20,16 +21,6 @@
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
-template<typename... Ts>
-std::string makeName(const std::string& format_string, Ts... args)
-{
-    // FIXME: once we use spdlog, we can use fmt::format instead, see CURA-8258
-    constexpr int buff_size = 1024;
-    char buff[buff_size];
-    std::snprintf(buff, buff_size, format_string.c_str(), args...);
-    return std::string(buff);
-}
-
 coord_t getPatternMultiplier(const EFillMethod& pattern)
 {
     switch (pattern)
@@ -66,8 +57,7 @@ public:
         , connect_polygons(connect_polygons)
         , line_distance(line_distance)
     {
-        // FIXME: Once we are using spdlog as logger, we'll also use fmt::format() here, see CURA-8258.
-        name = makeName("InfillParameters_%d_%d_%d_%lld", static_cast<int>(pattern), static_cast<int>(zig_zagify), static_cast<int>(connect_polygons), line_distance);
+        name = fmt::format("InfillParameters_{:d}_{:d}_{:d}_{:d}", static_cast<int>(pattern), zig_zagify, connect_polygons, line_distance);
     }
 };
 
@@ -99,8 +89,7 @@ public:
         , result_lines(std::move(result_lines))
         , result_polygons(std::move(result_polygons))
     {
-        // FIXME: Once we are using spdlog as logger, we'll also use fmt::format() here, see CURA-8258.
-        name = makeName("InfillTestParameters_P%d_Z%d_C%d_L%lld__%lld", static_cast<int>(params.pattern), static_cast<int>(params.zig_zagify), static_cast<int>(params.connect_polygons), params.line_distance, test_polygon_id);
+        name = fmt::format("InfillTestParameters_P{:d}_Z{:d}_C{:d}_L{:d}__{:d}", static_cast<int>(params.pattern), params.zig_zagify, params.connect_polygons, params.line_distance, test_polygon_id);
     }
 
     friend std::ostream& operator<<(std::ostream& os, const InfillTestParameters& params)
