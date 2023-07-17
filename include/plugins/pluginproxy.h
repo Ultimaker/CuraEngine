@@ -4,6 +4,8 @@
 #ifndef PLUGINS_PLUGINPROXY_H
 #define PLUGINS_PLUGINPROXY_H
 
+#include <chrono>
+#include <string>
 #include <thread>
 
 #include <agrpc/asio_grpc.hpp>
@@ -12,18 +14,22 @@
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/use_awaitable.hpp>
-#include <chrono>
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <range/v3/utility/semiregular_box.hpp>
 #include <spdlog/spdlog.h>
-#include <string>
 
 #include "Application.h"
+#include "plugins/broadcasts.h"
 #include "plugins/exception.h"
 #include "plugins/metadata.h"
 #include "utils/format/thread_id.h"
+#include "utils/types/char_range_literal.h"
 #include "utils/types/generic.h"
 
+#include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
+#include "cura/plugins/slots/broadcast/v0/broadcast.pb.h"
+#include "cura/plugins/slots/handshake/v0/handshake.grpc.pb.h"
 #include "cura/plugins/slots/handshake/v0/handshake.pb.h"
 #include "cura/plugins/v0/slot_id.pb.h"
 
@@ -43,7 +49,7 @@ namespace cura::plugins
  *
  * Class provides methods for validating the plugin, making requests and processing responses.
  */
-template<plugins::v0::SlotID SlotID, details::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, utils::grpc_convertable RequestTp, utils::grpc_convertable ResponseTp>
+template<plugins::v0::SlotID SlotID, utils::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, utils::grpc_convertable RequestTp, utils::grpc_convertable ResponseTp>
 class PluginProxy
 {
 public:
@@ -57,7 +63,8 @@ public:
     using req_converter_type = RequestTp;
     using rsp_converter_type = ResponseTp;
 
-    using stub_t = Stub;
+    using modify_stub_t = Stub;
+    using broadcast_stub_t = slots::broadcast::v0::BroadcastService::Stub;
 
     /**
      * @brief Constructs a PluginProxy object.
@@ -72,15 +79,42 @@ public:
      */
     constexpr PluginProxy() = default;
 
-    explicit PluginProxy(std::shared_ptr<grpc::Channel> channel) : stub_(channel)
+    explicit PluginProxy(std::shared_ptr<grpc::Channel> channel) : modify_stub_(channel), broadcast_stub_(channel)
     {
         // Connect to the plugin and exchange a handshake
         agrpc::GrpcContext grpc_context;
         grpc::Status status;
         slots::handshake::v0::HandshakeService::Stub handshake_stub(channel);
+        plugin_metadata plugin_info;
 
         boost::asio::co_spawn(
-            grpc_context, [this, &grpc_context, &status, &handshake_stub]() { return this->handshakeCall(grpc_context, status, handshake_stub); }, boost::asio::detached);
+            grpc_context,
+            [this, &grpc_context, &status, &plugin_info, &handshake_stub]() -> boost::asio::awaitable<void>
+            {
+                using RPC = agrpc::RPC<&slots::handshake::v0::HandshakeService::Stub::PrepareAsyncCall>;
+                grpc::ClientContext client_context{};
+                prep_client_context(client_context);
+
+                // Construct request
+                handshake_request handshake_req;
+                handshake_request::value_type request{ handshake_req(slot_info_) };
+
+                // Make unary request
+                handshake_response::value_type response;
+                status = co_await RPC::request(grpc_context, handshake_stub, client_context, request, response, boost::asio::use_awaitable);
+                handshake_response handshake_rsp;
+                plugin_info = handshake_rsp(response, client_context.peer());
+                valid_ = validator_type{ slot_info_, plugin_info_.value() };
+                if (valid_)
+                {
+                    spdlog::info("Using plugin: '{}-{}' running at [{}] for slot {}", plugin_info.plugin_name, plugin_info.plugin_version, plugin_info.peer, slot_info_.slot_id);
+                    if (! plugin_info.broadcast_subscriptions.empty())
+                    {
+                        spdlog::info("Subscribing plugin '{}' to the following broadcasts {}", plugin_info.plugin_name, plugin_info.broadcast_subscriptions);
+                    }
+                }
+            },
+            boost::asio::detached);
         grpc_context.run();
 
         if (! status.ok()) // TODO: handle different kind of status codes
@@ -91,14 +125,9 @@ public:
             }
             throw exceptions::RemoteException(slot_info_, status.error_message());
         }
-
-        if (! valid_)
+        if (! plugin_info.plugin_name.empty() && ! plugin_info.slot_version.empty())
         {
-            if (plugin_info_.has_value())
-            {
-                throw exceptions::ValidatorException(valid_, slot_info_, plugin_info_.value());
-            }
-            throw exceptions::ValidatorException(valid_, slot_info_);
+            plugin_info_ = plugin_info;
         }
     };
 
@@ -109,7 +138,8 @@ public:
         if (this != &other)
         {
             valid_ = other.valid_;
-            stub_ = other.stub_;
+            modify_stub_ = other.modify_stub_;
+            broadcast_stub_ = other.broadcast_stub_;
             plugin_info_ = other.plugin_info_;
             slot_info_ = other.slot_info_;
         }
@@ -120,7 +150,8 @@ public:
         if (this != &other)
         {
             valid_ = std::move(other.valid_);
-            stub_ = std::move(other.stub_);
+            modify_stub_ = std::move(other.modify_stub_);
+            broadcast_stub_ = std::move(other.broadcast_stub_);
             plugin_info_ = std::move(other.plugin_info_);
             slot_info_ = std::move(other.slot_info_);
         }
@@ -161,12 +192,37 @@ public:
         return ret_value;
     }
 
+    template<utils::CharRangeLiteral BroadcastChannel>
+    void broadcast(auto&&... args)
+    {
+        if (! plugin_info_->broadcast_subscriptions.contains(BroadcastChannel.value))
+        {
+            return;
+        }
+        agrpc::GrpcContext grpc_context;
+        grpc::Status status;
+
+        boost::asio::co_spawn(
+            grpc_context, [this, &grpc_context, &status, &args...]() { return this->broadcastCall<BroadcastChannel>(grpc_context, status, std::forward<decltype(args)>(args)...); }, boost::asio::detached);
+        grpc_context.run();
+
+        if (! status.ok()) // TODO: handle different kind of status codes
+        {
+            if (plugin_info_.has_value())
+            {
+                throw exceptions::RemoteException(slot_info_, plugin_info_.value(), status.error_message());
+            }
+            throw exceptions::RemoteException(slot_info_, status.error_message());
+        }
+    }
+
 private:
     validator_type valid_{}; ///< The validator object for plugin validation.
     req_converter_type req_{}; ///< The Modify request converter object.
     rsp_converter_type rsp_{}; ///< The Modify response converter object.
 
-    ranges::semiregular_box<stub_t> stub_; ///< The gRPC Modify stub for communication.
+    ranges::semiregular_box<modify_stub_t> modify_stub_; ///< The gRPC Modify stub for communication.
+    ranges::semiregular_box<broadcast_stub_t> broadcast_stub_; ///< The gRPC Broadcast stub for communication.
 
     slot_metadata slot_info_{ .slot_id = SlotID, .version_range = SlotVersionRng.value, .engine_uuid = Application::getInstance().instance_uuid }; ///< Holds information about the plugin slot.
     std::optional<plugin_metadata> plugin_info_{ std::nullopt }; ///< Optional object that holds the plugin metadata, set after handshake
@@ -182,43 +238,9 @@ private:
      * @param args - Request arguments
      * @return A boost::asio::awaitable<void> indicating completion of the operation
      */
-    boost::asio::awaitable<void> handshakeCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, slots::handshake::v0::HandshakeService::Stub& handshake_stub)
-    {
-        using RPC = agrpc::RPC<&slots::handshake::v0::HandshakeService::Stub::PrepareAsyncCall>;
-        grpc::ClientContext client_context{};
-        prep_client_context(client_context);
-
-        // Construct request
-        handshake_request handshake_req;
-        handshake_request::value_type request{ handshake_req(slot_info_) };
-
-        // Make unary request
-        handshake_response::value_type response;
-        status = co_await RPC::request(grpc_context, handshake_stub, client_context, request, response, boost::asio::use_awaitable);
-        handshake_response handshake_rsp;
-        plugin_info_ = handshake_rsp(response, client_context.peer());
-        valid_ = validator_type{ slot_info_, plugin_info_.value() };
-        if (valid_)
-        {
-            spdlog::info("Using plugin: '{}-{}' running at [{}] for slot {}", plugin_info_->plugin_name, plugin_info_->plugin_version, plugin_info_->peer, slot_info_.slot_id);
-        }
-        co_return;
-    }
-
-    /**
-     * @brief Executes the modifyCall operation with the plugin.
-     *
-     * Sends a request to the plugin and saves the response.
-     *
-     * @param grpc_context - The gRPC context to use for the call
-     * @param status - Status of the gRPC call which gets updated in this method
-     * @param ret_value - Reference to the value in which response to be stored
-     * @param args - Request arguments
-     * @return A boost::asio::awaitable<void> indicating completion of the operation
-     */
     boost::asio::awaitable<void> modifyCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, value_type& ret_value, auto&&... args)
     {
-        using RPC = agrpc::RPC<&stub_t::PrepareAsyncCall>;
+        using RPC = agrpc::RPC<&modify_stub_t::PrepareAsyncCall>;
         grpc::ClientContext client_context{};
         prep_client_context(client_context);
 
@@ -227,8 +249,21 @@ private:
 
         // Make unary request
         rsp_msg_type response;
-        status = co_await RPC::request(grpc_context, stub_, client_context, request, response, boost::asio::use_awaitable);
+        status = co_await RPC::request(grpc_context, modify_stub_, client_context, request, response, boost::asio::use_awaitable);
         ret_value = rsp_(response);
+        co_return;
+    }
+
+    template<utils::CharRangeLiteral BroadcastChannel>
+    boost::asio::awaitable<void> broadcastCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, auto&&... args)
+    {
+        grpc::ClientContext client_context{};
+        prep_client_context(client_context);
+
+        auto broadcaster{ details::broadcast_factory<broadcast_stub_t, BroadcastChannel>() };
+        auto request = details::broadcast_message_factory<BroadcastChannel>(std::forward<decltype(args)>(args)...);
+        auto response = google::protobuf::Empty{};
+        status = co_await broadcaster.request(grpc_context, broadcast_stub_, client_context, request, response, boost::asio::use_awaitable);
         co_return;
     }
 

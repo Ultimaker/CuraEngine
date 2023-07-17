@@ -4,18 +4,19 @@
 #ifndef PLUGINS_SLOTPROXY_H
 #define PLUGINS_SLOTPROXY_H
 
-#include <boost/asio/use_awaitable.hpp>
 #include <concepts>
 #include <functional>
 #include <memory>
 #include <optional>
 
+#include <boost/asio/use_awaitable.hpp>
 #include <grpcpp/channel.h>
 
 #include "plugins/converters.h"
 #include "plugins/pluginproxy.h"
 #include "plugins/types.h"
 #include "plugins/validator.h"
+#include "utils/types/char_range_literal.h"
 
 namespace cura::plugins
 {
@@ -35,7 +36,7 @@ namespace cura::plugins
  * @tparam Response The gRPC convertible response type.
  * @tparam Default The default behavior when no plugin is available.
  */
-template<plugins::v0::SlotID SlotID, details::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, class RequestTp, class ResponseTp, class Default>
+template<plugins::v0::SlotID SlotID, utils::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, class RequestTp, class ResponseTp, class Default>
 class SlotProxy
 {
     Default default_process{};
@@ -77,6 +78,15 @@ public:
             return std::invoke(plugin_.value(), std::forward<decltype(args)>(args)...);
         }
         return std::invoke(default_process, std::forward<decltype(args)>(args)...);
+    }
+
+    template<utils::CharRangeLiteral BroadcastChannel>
+    void broadcast(auto&&...args)
+    {
+        if (plugin_.has_value())
+        {
+            plugin_.value().template broadcast<BroadcastChannel>(std::forward<decltype(args)>(args)...);
+        }
     }
 };
 

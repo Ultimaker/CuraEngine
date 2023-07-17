@@ -11,30 +11,9 @@
 #include <grpcpp/support/string_ref.h>
 
 #include "utils/IntPoint.h"
-#include "utils/types/generic.h"
 #include "utils/polygon.h"
 
 #include "cura/plugins/v0/slot_id.pb.h"
-
-namespace cura::plugins
-{
-namespace details
-{
-template<size_t N>
-struct CharRangeLiteral
-{
-    constexpr CharRangeLiteral(const char (&str)[N])
-    {
-        std::copy_n(str, N, value);
-    }
-
-    char value[N];
-};
-
-} // namespace details
-
-} // namespace cura::plugins
-
 
 namespace fmt
 {
@@ -49,10 +28,10 @@ struct formatter<cura::plugins::v0::SlotID>
 
         switch (slot_id)
         {
-        case cura::plugins::v0::SlotID::SIMPLIFY:
+        case cura::plugins::v0::SlotID::SIMPLIFY_MODIFY:
             slot_name = "SimplifyService";
             break;
-        case cura::plugins::v0::SlotID::POSTPROCESS:
+        case cura::plugins::v0::SlotID::POSTPROCESS_MODIFY:
             slot_name = "PostprocessService";
             break;
         default:
