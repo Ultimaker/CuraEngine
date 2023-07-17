@@ -4,6 +4,7 @@
 #ifndef CURAENGINE_INCLUDE_PLUGINS_METADATA_H
 #define CURAENGINE_INCLUDE_PLUGINS_METADATA_H
 
+#include <grpcpp/client_context.h>
 #include <map>
 #include <string>
 
@@ -14,43 +15,14 @@
 
 namespace cura::plugins
 {
+
 struct plugin_metadata
 {
-    std::string name;  // cura-plugin-name (optional)
-    std::string version;  // cura-plugin-version (optional)
-    std::string peer;
-    std::string slot_version;  // cura-slot-version (required)
-
-    explicit plugin_metadata(const grpc::ClientContext& client_context)
-    {
-        const auto& metadata = client_context.GetServerInitialMetadata();
-        if (auto it = metadata.find("cura-slot-version"); it != metadata.end())
-        {
-            slot_version = std::string{ it->second.data(), it->second.size() };
-        }
-        else
-        {
-            spdlog::error("'cura-slot-version' RPC metadata not set");
-            throw std::runtime_error("'cura-slot-version' RPC metadata not set");
-        }
-        if (auto it = metadata.find("cura-plugin-name"); it != metadata.end())
-        {
-            name = std::string{ it->second.data(), it->second.size() };
-        }
-        else
-        {
-            spdlog::warn("'cura-plugin-name' RPC metadata not set");
-        }
-        if (auto it = metadata.find("cura-plugin-version"); it != metadata.end())
-        {
-            version = std::string{ it->second.data(), it->second.size() };
-        }
-        else
-        {
-            spdlog::warn("'cura-plugin-version' RPC metadata not set");
-        }
-        peer = client_context.peer();
-    }
+    std::string_view slot_version;
+    std::string_view plugin_name;
+    std::string_view plugin_version;
+    std::string_view peer;
+    std::set<std::string_view> broadcast_subscriptions;
 };
 
 struct slot_metadata

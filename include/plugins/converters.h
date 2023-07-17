@@ -10,8 +10,11 @@
 #include <range/v3/range/operations.hpp>
 #include <range/v3/view/drop.hpp>
 
+#include "plugins/metadata.h"
 #include "plugins/types.h"
 
+#include "cura/plugins/slots/handshake/v0/handshake.grpc.pb.h"
+#include "cura/plugins/slots/handshake/v0/handshake.pb.h"
 #include "cura/plugins/slots/postprocess/v0/postprocess.grpc.pb.h"
 #include "cura/plugins/slots/postprocess/v0/postprocess.pb.h"
 #include "cura/plugins/slots/simplify/v0/simplify.grpc.pb.h"
@@ -20,9 +23,53 @@
 namespace cura::plugins
 {
 
+struct handshake_request
+{
+    using value_type = slots::handshake::v0::CallRequest; ///< The protobuf message type.
+    using native_value_type = slot_metadata; ///< The native value type.
+
+    /**
+     * @brief Converts native data for handshake to a `proto::HandshakeRequest` message.
+     *
+     * @param service_name The name of the service.
+     * @param version_range The version range of the service.
+     * @return The converted `proto::HandshakeRequest` message.
+     */
+
+    value_type operator()(const native_value_type& slot_info) const
+    {
+        value_type message{};
+        message.set_slot_id(slot_info.slot_id);
+        message.set_version_range(slot_info.version_range.data());
+        return message;
+    }
+};
+
+struct handshake_response
+{
+    using value_type = slots::handshake::v0::CallResponse; ///< The protobuf message type.
+    using native_value_type = plugin_metadata; ///< The native value type.
+
+    /**
+     * @brief Converts a `proto::HandshakeResponse` message to native data.
+     *
+     * @param message The `proto::HandshakeResponse` message.
+     * @return The native data.
+     */
+    native_value_type operator()(const value_type& message, std::string_view peer) const
+    {
+        return { .slot_version = message.slot_version(),
+                 .plugin_name = message.plugin_name(),
+                 .plugin_version = message.plugin_version(),
+                 .peer = peer,
+                 .broadcast_subscriptions = std::set<std::string_view>(message.broadcast_subscriptions().begin(), message.broadcast_subscriptions().end()) };
+    }
+};
+
+
 struct simplify_request
 {
-    using value_type = slots::simplify::v0::SimplifyServiceModifyRequest; ///< The protobuf message type.
+    using value_type = slots::simplify::v0::CallRequest; ///< The protobuf message type.
     using native_value_type = Polygons; ///< The native value type.
 
     /**
@@ -80,7 +127,7 @@ struct simplify_request
  */
 struct simplify_response
 {
-    using value_type = slots::simplify::v0::SimplifyServiceModifyResponse; ///< The protobuf message type.
+    using value_type = slots::simplify::v0::CallResponse; ///< The protobuf message type.
     using native_value_type = Polygons; ///< The native value type.
 
     /**
@@ -118,7 +165,7 @@ struct simplify_response
 
 struct postprocess_request
 {
-    using value_type = slots::postprocess::v0::PostprocessServiceModifyRequest; ///< The protobuf message type.
+    using value_type = slots::postprocess::v0::CallRequest; ///< The protobuf message type.
     using native_value_type = std::string; ///< The native value type.
 
     /**
@@ -137,7 +184,7 @@ struct postprocess_request
 
 struct postprocess_response
 {
-    using value_type = slots::postprocess::v0::PostprocessServiceModifyResponse;
+    using value_type = slots::postprocess::v0::CallResponse;
     using native_value_type = std::string;
 
     native_value_type operator()(const value_type& message) const
