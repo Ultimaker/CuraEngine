@@ -339,7 +339,7 @@ void ArcusCommunication::beginGCode()
 
 void ArcusCommunication::flushGCode()
 {
-    const std::string& message_str = private_data->gcode_output_stream.str();
+    const std::string& message_str = slots::instance().invoke<plugins::slot_postprocess >(private_data->gcode_output_stream.str());
     if (message_str.size() == 0)
     {
         return;
