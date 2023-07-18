@@ -221,7 +221,10 @@ std::vector<coord_t> SkirtBrim::generatePrimaryBrim(std::vector<Offset>& all_bri
         }
         SkirtBrimLine& output_location = storage.skirt_brim[offset.extruder_nr][offset.inset_idx];
         coord_t added_length = generateOffset(offset, covered_area, allowed_areas_per_extruder, output_location);
-        if (! added_length)
+
+        const Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+        const bool support_brim_enable = global_settings.get<bool>("support_brim_enable");
+        if (! added_length && !support_brim_enable)
         { // no more place for more brim. Trying to satisfy minimum length constraint with generateSecondarySkirtBrim
             break;
         }
