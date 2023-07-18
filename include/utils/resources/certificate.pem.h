@@ -1,9 +1,11 @@
 #ifndef CERTIFICATE_H
 #define CERTIFICATE_H
 
+// FIXME: Move out of the source code even though this is the public key
+
 #include <string_view>
 
-namespace resources
+namespace cura::utils::resources
 {
 	constexpr std::string_view certificate =
 R"#(-----BEGIN CERTIFICATE-----
@@ -42,7 +44,7 @@ c3dQRszg9OTAyUwNKQEAuZ9II/cCpLyE+GbnqRdkErHgO7kiKQ==
 -----END CERTIFICATE-----
 )#";
 
-} // namespace resources
+} // namespace cura::utils::resources
 
 #endif  //CERTIFICATE_H
 
