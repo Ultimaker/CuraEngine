@@ -372,7 +372,7 @@ void ArcusCommunication::sendCurrentPosition(const Point& position)
 void ArcusCommunication::sendGCodePrefix(const std::string& prefix) const
 {
     std::shared_ptr<proto::GCodePrefix> message = std::make_shared<proto::GCodePrefix>();
-    message->set_data(prefix);
+    message->set_data(slots::instance().invoke<plugins::slot_postprocess >(prefix));
     private_data->socket->sendMessage(message);
 }
 
