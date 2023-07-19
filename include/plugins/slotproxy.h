@@ -80,12 +80,12 @@ public:
         return std::invoke(default_process, std::forward<decltype(args)>(args)...);
     }
 
-    template<utils::CharRangeLiteral BroadcastChannel>
+    template<v0::SlotID S>
     void broadcast(auto&&...args)
     {
         if (plugin_.has_value())
         {
-            plugin_.value().template broadcast<BroadcastChannel>(std::forward<decltype(args)>(args)...);
+            plugin_.value().template broadcast<S>(std::forward<decltype(args)>(args)...);
         }
     }
 };
