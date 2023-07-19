@@ -1505,7 +1505,7 @@ void SkeletalTrapezoidation::generateSegments()
 
     connectJunctions(edge_junctions);
 
-    generateLocalMaximaSingleBeads();
+//    generateLocalMaximaSingleBeads();
 }
 
 SkeletalTrapezoidation::edge_t* SkeletalTrapezoidation::getQuadMaxRedgeTo(edge_t* quad_start_edge)
