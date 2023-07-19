@@ -42,7 +42,7 @@ SkirtBrim::SkirtBrim(SliceDataStorage& storage) :
         // NOTE: the line count will only be satisfied for the first extruder used.
         skirt_brim_extruder_nr = first_used_extruder_nr;
     }
-    
+
     line_widths.resize(extruder_count);
     skirt_brim_minimal_length.resize(extruder_count);
     external_polys_only.resize(extruder_count);
@@ -139,7 +139,7 @@ void SkirtBrim::generate()
     std::vector<Polygons> starting_outlines(extruder_count);
     std::vector<Offset> all_brim_offsets = generateBrimOffsetPlan(starting_outlines);
     std::vector<Offset> prime_brim_offsets_for_skirt = generatePrimeTowerBrimForSkirtAdhesionOffsetPlan();
-    
+
     constexpr LayerIndex layer_nr = 0;
     constexpr bool include_support = true;
     Polygons covered_area = storage.getLayerOutlines(layer_nr, include_support, /*include_prime_tower*/ true, /*external_polys_only*/ false);
@@ -192,7 +192,7 @@ void SkirtBrim::generate()
 
     // Secondary brim of all other materials which don;t meet minimum length constriant yet
     generateSecondarySkirtBrim(covered_area, allowed_areas_per_extruder, total_length);
-    
+
     // simplify paths to prevent buffer unnerruns in firmware
     const Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const coord_t maximum_resolution = global_settings.get<coord_t>("meshfix_maximum_resolution");
@@ -222,33 +222,31 @@ std::vector<coord_t> SkirtBrim::generatePrimaryBrim(std::vector<Offset>& all_bri
         SkirtBrimLine& output_location = storage.skirt_brim[offset.extruder_nr][offset.inset_idx];
         coord_t added_length = generateOffset(offset, covered_area, allowed_areas_per_extruder, output_location);
 
-        const Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-        const bool support_brim_enable = global_settings.get<bool>("support_brim_enable");
-        if (! added_length && !support_brim_enable)
+        if (! added_length)
         { // no more place for more brim. Trying to satisfy minimum length constraint with generateSecondarySkirtBrim
-            break;
+            continue;
         }
         total_length[offset.extruder_nr] += added_length;
-        
+
         if
-        (
-            offset.is_last &&
-            total_length[offset.extruder_nr] < skirt_brim_minimal_length[offset.extruder_nr] && // This was the last offset of this extruder, but the brim lines don't meet minimal length yet
-            total_length[offset.extruder_nr] > 0u // No lines got added; we have no extrusion lines to build on
-        )
+            (
+                offset.is_last &&
+                total_length[offset.extruder_nr] < skirt_brim_minimal_length[offset.extruder_nr] && // This was the last offset of this extruder, but the brim lines don't meet minimal length yet
+                total_length[offset.extruder_nr] > 0u // No lines got added; we have no extrusion lines to build on
+            )
         {
             offset.is_last = false;
             constexpr bool is_last = true;
             all_brim_offsets.emplace_back
-            (
-                offset.inset_idx,
-                external_polys_only[offset.extruder_nr],
-                line_widths[offset.extruder_nr],
-                offset.total_offset + line_widths[offset.extruder_nr],
-                offset.inset_idx + 1,
-                offset.extruder_nr,
-                is_last
-            );
+                (
+                    offset.inset_idx,
+                    external_polys_only[offset.extruder_nr],
+                    line_widths[offset.extruder_nr],
+                    offset.total_offset + line_widths[offset.extruder_nr],
+                    offset.inset_idx + 1,
+                    offset.extruder_nr,
+                    is_last
+                );
             std::sort(all_brim_offsets.begin() + offset_idx + 1, all_brim_offsets.end(), OffsetSorter); // reorder remaining offsets
         }
     }
@@ -319,7 +317,7 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Polygons& covered_area, 
 
             Polygons local_brim;
             auto closed_polygons_brim = storage.skirt_brim[offset.extruder_nr][reference_idx].closed_polygons
-                                             .offset(offset_dist, ClipperLib::jtRound);
+                                            .offsetPolyLine(offset_dist, ClipperLib::jtRound, true);
             local_brim.add(closed_polygons_brim);
 
             auto open_polylines_brim = storage.skirt_brim[offset.extruder_nr][reference_idx].open_polylines
@@ -341,7 +339,7 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Polygons& covered_area, 
 
         const coord_t max_stitch_distance = line_widths[offset.extruder_nr];
         PolylineStitcher<Polygons, Polygon, Point>::stitch(brim_lines, result.open_polylines, result.closed_polygons, max_stitch_distance);
-        
+
         // clean up too small lines
         for (size_t line_idx = 0; line_idx < result.open_polylines.size(); )
         {
@@ -356,7 +354,7 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Polygons& covered_area, 
             }
         }
     }
-    
+
     { // update allowed_areas_per_extruder
         for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
         {
@@ -478,11 +476,11 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
             first_layer_outline.add(support_layer.support_roof);
         }
         if
-        (
-            storage.primeTower.enabled &&
-            global_settings.get<bool>("prime_tower_brim_enable") &&
-            (extruder_nr == -1 || int(storage.primeTower.extruder_order[0]) == extruder_nr)
-        )
+            (
+                storage.primeTower.enabled &&
+                global_settings.get<bool>("prime_tower_brim_enable") &&
+                (extruder_nr == -1 || int(storage.primeTower.extruder_order[0]) == extruder_nr)
+            )
         {
             first_layer_outline.add(storage.primeTower.outer_poly); // don't remove parts of the prime tower, but make a brim for it
         }
@@ -591,7 +589,7 @@ void SkirtBrim::generateSecondarySkirtBrim(Polygons& covered_area, std::vector<P
             }
             constexpr bool external_only = false; // The reference outline may contain both outlines and hole polygons.
             Offset extra_offset(ref_polys_or_idx, external_only, offset_from_reference, bogus_total_offset, storage.skirt_brim[extruder_nr].size(), extruder_nr, is_last);
-            
+
             storage.skirt_brim[extruder_nr].emplace_back();
             SkirtBrimLine& output_location = storage.skirt_brim[extruder_nr].back();
             coord_t added_length = generateOffset(extra_offset, covered_area, allowed_areas_per_extruder, output_location);
@@ -603,7 +601,7 @@ void SkirtBrim::generateSecondarySkirtBrim(Polygons& covered_area, std::vector<P
             }
 
             total_length[extra_offset.extruder_nr] += added_length;
-            
+
             first = false;
         }
     }

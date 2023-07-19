@@ -1040,11 +1040,23 @@ public:
 
     Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
-    Polygons offsetPolyLine(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter) const
+    Polygons offsetPolyLine(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, bool inputPolyIsClosed = false) const
     {
         Polygons ret;
         double miterLimit = 1.2;
-        ClipperLib::EndType end_type = (joinType == ClipperLib::jtMiter)? ClipperLib::etOpenSquare : ClipperLib::etOpenRound;
+        ClipperLib::EndType end_type;
+        if (inputPolyIsClosed)
+        {
+             end_type = ClipperLib::etClosedLine;
+        }
+        else if (joinType == ClipperLib::jtMiter)
+        {
+             end_type = ClipperLib::etOpenSquare;
+        }
+        else
+        {
+             end_type = ClipperLib::etOpenRound;
+        }
         ClipperLib::ClipperOffset clipper(miterLimit, 10.0);
         clipper.AddPaths(paths, joinType, end_type);
         clipper.MiterLimit = miterLimit;
