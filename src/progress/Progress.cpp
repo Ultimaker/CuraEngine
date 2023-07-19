@@ -1,46 +1,38 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <cassert>
-
-#include <spdlog/spdlog.h>
+#include "progress/Progress.h"
 
 #include "Application.h" //To get the communication channel to send progress through.
 #include "communication/Communication.h" //To send progress through the communication channel.
-#include "progress/Progress.h"
 #include "utils/gettime.h"
+
+#include <spdlog/spdlog.h>
+
+#include <cassert>
 
 namespace cura
 {
 
 double Progress::times[] = {
-    0.0,    // START   = 0, 
-    5.269,  // SLICING = 1, 
-    1.533,  // PARTS   = 2, 
+    0.0, // START   = 0,
+    5.269, // SLICING = 1,
+    1.533, // PARTS   = 2,
     71.811, // INSET_SKIN = 3
-    51.009, // SUPPORT = 4, 
-    154.62, // EXPORT  = 5, 
-    0.1     // FINISH  = 6
+    51.009, // SUPPORT = 4,
+    154.62, // EXPORT  = 5,
+    0.1 // FINISH  = 6
 };
-std::string Progress::names [] = 
-{
-    "start",
-    "slice",
-    "layerparts",
-    "inset+skin",
-    "support",
-    "export",
-    "process"
-};
+std::string Progress::names[] = { "start", "slice", "layerparts", "inset+skin", "support", "export", "process" };
 
-double Progress::accumulated_times [N_PROGRESS_STAGES] = {-1};
+double Progress::accumulated_times[N_PROGRESS_STAGES] = { -1 };
 double Progress::total_timing = -1;
 
 float Progress::calcOverallProgress(Stage stage, float stage_progress)
 {
     assert(stage_progress <= 1.0);
     assert(stage_progress >= 0.0);
-    return ( accumulated_times[(int)stage] + stage_progress * times[(int)stage] ) / total_timing;
+    return (accumulated_times[(int)stage] + stage_progress * times[(int)stage]) / total_timing;
 }
 
 
@@ -75,7 +67,7 @@ void Progress::messageProgressStage(Progress::Stage stage, TimeKeeper* time_keep
         {
             time_keeper->restart();
         }
-        
+
         if ((int)stage < (int)Stage::FINISH)
         {
             spdlog::info("Starting {}...", names[(int)stage]);
@@ -83,4 +75,4 @@ void Progress::messageProgressStage(Progress::Stage stage, TimeKeeper* time_keep
     }
 }
 
-}// namespace cura
+} // namespace cura

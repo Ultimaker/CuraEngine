@@ -1,14 +1,14 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "infill/LightningGenerator.h"
-#include "infill/LightningLayer.h"
-#include "infill/LightningTreeNode.h"
 
 #include "ExtruderTrain.h"
+#include "infill/LightningLayer.h"
+#include "infill/LightningTreeNode.h"
 #include "sliceDataStorage.h"
-#include "utils/linearAlg2D.h"
 #include "utils/SparsePointGridInclusive.h"
+#include "utils/linearAlg2D.h"
 
 /* Possible future tasks/optimizations,etc.:
  * - Improve connecting heuristic to favor connecting to shorter trees
@@ -29,7 +29,8 @@ using namespace cura;
 LightningGenerator::LightningGenerator(const SliceMeshStorage& mesh)
 {
     const auto infill_extruder = mesh.settings.get<ExtruderTrain&>("infill_extruder_nr");
-    const auto layer_thickness = infill_extruder.settings.get<coord_t>("layer_height");  // Note: There's not going to be a layer below the first one, so the 'initial layer height' doesn't have to be taken into account.
+    const auto layer_thickness = infill_extruder.settings.get<coord_t>(
+        "layer_height"); // Note: There's not going to be a layer below the first one, so the 'initial layer height' doesn't have to be taken into account.
 
     supporting_radius = std::max(infill_extruder.settings.get<coord_t>("infill_line_distance"), infill_extruder.settings.get<coord_t>("infill_line_width")) / 2;
     wall_supporting_radius = layer_thickness * std::tan(infill_extruder.settings.get<AngleRadians>("lightning_infill_overhang_angle"));
@@ -45,10 +46,10 @@ void LightningGenerator::generateInitialInternalOverhangs(const SliceMeshStorage
     overhang_per_layer.resize(mesh.layers.size());
     const auto infill_wall_line_count = static_cast<coord_t>(mesh.settings.get<size_t>("infill_wall_line_count"));
     const auto infill_line_width = mesh.settings.get<coord_t>("infill_line_width");
-    const coord_t infill_wall_offset = - infill_wall_line_count *  infill_line_width;
+    const coord_t infill_wall_offset = -infill_wall_line_count * infill_line_width;
 
     Polygons infill_area_above;
-    //Iterate from top to bottom, to subtract the overhang areas above from the overhang areas on the layer below, to get only overhang in the top layer where it is overhanging.
+    // Iterate from top to bottom, to subtract the overhang areas above from the overhang areas on the layer below, to get only overhang in the top layer where it is overhanging.
     for (int layer_nr = mesh.layers.size() - 1; layer_nr >= 0; layer_nr--)
     {
         const SliceLayer& current_layer = mesh.layers[layer_nr];
@@ -58,7 +59,7 @@ void LightningGenerator::generateInitialInternalOverhangs(const SliceMeshStorage
             infill_area_here.add(part.getOwnInfillArea().offset(infill_wall_offset));
         }
 
-        //Remove the part of the infill area that is already supported by the walls.
+        // Remove the part of the infill area that is already supported by the walls.
         Polygons overhang = infill_area_here.offset(-wall_supporting_radius).difference(infill_area_above);
 
         overhang_per_layer[layer_nr] = overhang;
@@ -77,7 +78,7 @@ void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
     lightning_layers.resize(mesh.layers.size());
     const auto infill_wall_line_count = static_cast<coord_t>(mesh.settings.get<size_t>("infill_wall_line_count"));
     const auto infill_line_width = mesh.settings.get<coord_t>("infill_line_width");
-    const coord_t infill_wall_offset = - infill_wall_line_count *  infill_line_width;
+    const coord_t infill_wall_offset = -infill_wall_line_count * infill_line_width;
 
     std::vector<Polygons> infill_outlines;
     infill_outlines.insert(infill_outlines.end(), mesh.layers.size(), Polygons());

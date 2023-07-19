@@ -1,5 +1,5 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 
 #ifndef UTILS_EXTRUSION_LINE_H
@@ -68,18 +68,20 @@ struct ExtrusionLine
     ExtrusionLine(const size_t inset_idx, const bool is_odd);
 
     ExtrusionLine()
-    : inset_idx(-1)
-    , is_odd(true)
-    , is_closed(false)
-    {}
+        : inset_idx(-1)
+        , is_odd(true)
+        , is_closed(false)
+    {
+    }
 
     ExtrusionLine(const ExtrusionLine& other)
-    : inset_idx(other.inset_idx)
-    , is_odd(other.is_odd)
-    , is_closed(other.is_closed)
-    , junctions(other.junctions)
-    {}
-    
+        : inset_idx(other.inset_idx)
+        , is_odd(other.is_odd)
+        , is_closed(other.is_closed)
+        , junctions(other.junctions)
+    {
+    }
+
     ExtrusionLine& operator=(ExtrusionLine&& other)
     {
         junctions = std::move(other.junctions);
@@ -98,7 +100,7 @@ struct ExtrusionLine
         return *this;
     }
 
-    
+
     std::vector<ExtrusionJunction>::const_iterator begin() const
     {
         return junctions.begin();
@@ -129,12 +131,12 @@ struct ExtrusionLine
         return junctions.back();
     }
 
-    const ExtrusionJunction& operator[] (unsigned int index) const
+    const ExtrusionJunction& operator[](unsigned int index) const
     {
         return junctions[index];
     }
 
-    ExtrusionJunction& operator[] (unsigned int index)
+    ExtrusionJunction& operator[](unsigned int index)
     {
         return junctions[index];
     }
@@ -159,7 +161,7 @@ struct ExtrusionLine
         return junctions.back();
     }
 
-    template <typename... Args>
+    template<typename... Args>
     void emplace_back(Args&&... args)
     {
         junctions.emplace_back(args...);
@@ -175,7 +177,7 @@ struct ExtrusionLine
         junctions.insert(junctions.begin() + index, p);
     }
 
-    template <class iterator>
+    template<class iterator>
     std::vector<ExtrusionJunction>::iterator insert(std::vector<ExtrusionJunction>::const_iterator pos, iterator first, iterator last)
     {
         return junctions.insert(pos, first, last);
@@ -190,25 +192,28 @@ struct ExtrusionLine
     {
         std::reverse(junctions.begin(), junctions.end());
     }
-    
+
     /*!
      * Sum the total length of this path.
      */
     coord_t getLength() const;
-    coord_t polylineLength() const { return getLength(); }
+    coord_t polylineLength() const
+    {
+        return getLength();
+    }
 
     /*!
      * Put all junction locations into a polygon object.
-     * 
+     *
      * When this path is not closed the returned Polygon should be handled as a polyline, rather than a polygon.
      */
     Polygon toPolygon() const
     {
         Polygon ret;
-        
+
         for (const ExtrusionJunction& j : junctions)
             ret.add(j.p);
-        
+
         return ret;
     }
 

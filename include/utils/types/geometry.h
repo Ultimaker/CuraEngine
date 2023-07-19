@@ -8,15 +8,15 @@
 #ifndef UTILS_TYPES_GEOMETRY_H
 #define UTILS_TYPES_GEOMETRY_H
 
-#include <concepts>
-#include <string>
-#include <tuple>
-#include <type_traits>
+#include "utils/types/generic.h"
 
 #include <range/v3/range/concepts.hpp>
 #include <range/v3/range/operations.hpp>
 
-#include "utils/types/generic.h"
+#include <concepts>
+#include <string>
+#include <tuple>
+#include <type_traits>
 
 namespace cura::utils
 {
@@ -29,7 +29,8 @@ namespace cura::utils
 template<typename T>
 concept point2d_tuple = requires(T t)
 {
-    requires std::is_same_v<T, std::tuple<typename std::tuple_element<0, T>::type, typename std::tuple_element<0, T>::type>>;
+    requires std::is_same_v < T, std::tuple < typename std::tuple_element<0, T>::type,
+    typename std::tuple_element<0, T>::type >> ;
     requires utils::integral<std::tuple_element_t<0, T>>;
 };
 
@@ -41,7 +42,8 @@ concept point2d_tuple = requires(T t)
 template<class T>
 concept point2d_ranged = ranges::range<T> && requires(T point)
 {
-    requires ranges::size(point) == 2;
+    requires ranges::size(point)
+    == 2;
     requires utils::integral<ranges::range_value_t<T>>;
 };
 
@@ -74,7 +76,8 @@ concept point2d = point2d_named<T> || point2d_ranged<T> || point2d_tuple<T>;
 template<typename T>
 concept point3d_tuple = requires(T t)
 {
-    requires std::is_same_v<T, std::tuple<typename std::tuple_element<0, T>::type, typename std::tuple_element<0, T>::type, typename std::tuple_element<0, T>::type>>;
+    requires std::is_same_v < T, std::tuple < typename std::tuple_element<0, T>::type,
+    typename std::tuple_element<0, T>::type, typename std::tuple_element<0, T>::type >> ;
     requires utils::integral<std::tuple_element_t<0, T>>;
 };
 
@@ -86,9 +89,9 @@ concept point3d_tuple = requires(T t)
 template<class T>
 concept point3d_ranged = ranges::range<T> && requires(T point)
 {
-    requires ranges::size(point) == 3;
+    requires ranges::size(point)
+    == 3;
     requires utils::integral<ranges::range_value_t<T>>;
-
 };
 
 /*!

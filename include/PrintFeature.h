@@ -1,10 +1,13 @@
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
+
 #ifndef PRINT_FEATURE
 #define PRINT_FEATURE
 
 namespace cura
 {
 
-enum class PrintFeatureType: unsigned char
+enum class PrintFeatureType : unsigned char
 {
     NoneType = 0, // used to mark unspecified jumps in polygons. libArcus depends on it
     OuterWall = 1,
@@ -22,8 +25,6 @@ enum class PrintFeatureType: unsigned char
                               // use this symbol to get the total number of types, which can
                               // be used to create an array or so
 };
-
-
 
 
 } // namespace cura

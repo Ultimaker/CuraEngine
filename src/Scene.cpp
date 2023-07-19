@@ -1,19 +1,22 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <spdlog/spdlog.h>
+#include "Scene.h"
 
 #include "Application.h"
 #include "FffProcessor.h" //To start a slice.
-#include "Scene.h"
 #include "communication/Communication.h" //To flush g-code and layer view when we're done.
 #include "progress/Progress.h"
 #include "sliceDataStorage.h"
 
+#include <spdlog/spdlog.h>
+
 namespace cura
 {
 
-Scene::Scene(const size_t num_mesh_groups) : mesh_groups(num_mesh_groups), current_mesh_group(mesh_groups.begin())
+Scene::Scene(const size_t num_mesh_groups)
+    : mesh_groups(num_mesh_groups)
+    , current_mesh_group(mesh_groups.begin())
 {
     for (MeshGroup& mesh_group : mesh_groups)
     {

@@ -1,16 +1,16 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_POLYGONS_POINT_INDEX_H
 #define UTILS_POLYGONS_POINT_INDEX_H
 
-#include <vector>
-
 #include "IntPoint.h"
 #include "polygon.h"
 
+#include <vector>
 
-namespace cura 
+
+namespace cura
 {
 
 /*!
@@ -37,9 +37,9 @@ public:
      * initialisation useful.
      */
     PathsPointIndex()
-    : polygons(nullptr)
-    , poly_idx(0)
-    , point_idx(0)
+        : polygons(nullptr)
+        , poly_idx(0)
+        , point_idx(0)
     {
     }
 
@@ -50,9 +50,9 @@ public:
      * \param point_idx The index of the vertex in the sub-polygon.
      */
     PathsPointIndex(const Paths* polygons, unsigned int poly_idx, unsigned int point_idx)
-    : polygons(polygons)
-    , poly_idx(poly_idx)
-    , point_idx(point_idx)
+        : polygons(polygons)
+        , poly_idx(poly_idx)
+        , point_idx(point_idx)
     {
     }
 
@@ -63,7 +63,7 @@ public:
 
     Point p() const
     {
-        if (!polygons)
+        if (! polygons)
         {
             return Point(0, 0);
         }
@@ -86,7 +86,7 @@ public:
 
     /*!
      * Test whether two iterators refer to the same polygon in the same polygon list.
-     * 
+     *
      * \param other The PolygonsPointIndex to test for equality
      * \return Wether the right argument refers to the same polygon in the same ListPolygon as the left argument.
      */
@@ -96,7 +96,7 @@ public:
     }
     bool operator!=(const PathsPointIndex& other) const
     {
-        return !(*this == other);
+        return ! (*this == other);
     }
     bool operator<(const PathsPointIndex& other) const
     {
@@ -110,30 +110,30 @@ public:
         return *this;
     }
     //! move the iterator forward (and wrap around at the end)
-    PathsPointIndex& operator++() 
-    { 
+    PathsPointIndex& operator++()
+    {
         point_idx = (point_idx + 1) % (*polygons)[poly_idx].size();
-        return *this; 
+        return *this;
     }
     //! move the iterator backward (and wrap around at the beginning)
-    PathsPointIndex& operator--() 
-    { 
+    PathsPointIndex& operator--()
+    {
         if (point_idx == 0)
         {
             point_idx = (*polygons)[poly_idx].size();
         }
         point_idx--;
-        return *this; 
+        return *this;
     }
     //! move the iterator forward (and wrap around at the end)
-    PathsPointIndex next() const 
+    PathsPointIndex next() const
     {
         PathsPointIndex ret(*this);
         ++ret;
         return ret;
     }
     //! move the iterator backward (and wrap around at the beginning)
-    PathsPointIndex prev() const 
+    PathsPointIndex prev() const
     {
         PathsPointIndex ret(*this);
         --ret;
@@ -160,7 +160,6 @@ struct PolygonsPointIndexSegmentLocator
 };
 
 
-
 /*!
  * Locator of a \ref PolygonsPointIndex
  */
@@ -175,14 +174,14 @@ struct PathsPointIndexLocator
 
 using PolygonsPointIndexLocator = PathsPointIndexLocator<Polygons>;
 
-}//namespace cura
+} // namespace cura
 
 namespace std
 {
 /*!
  * Hash function for \ref PolygonsPointIndex
  */
-template <>
+template<>
 struct hash<cura::PolygonsPointIndex>
 {
     size_t operator()(const cura::PolygonsPointIndex& lpi) const
@@ -190,8 +189,7 @@ struct hash<cura::PolygonsPointIndex>
         return std::hash<cura::Point>()(lpi.p());
     }
 };
-}//namespace std
+} // namespace std
 
 
-
-#endif//UTILS_POLYGONS_POINT_INDEX_H
+#endif // UTILS_POLYGONS_POINT_INDEX_H

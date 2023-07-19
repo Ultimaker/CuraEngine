@@ -1,5 +1,5 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef SPACE_FILL_TYPE
 #define SPACE_FILL_TYPE
@@ -10,7 +10,7 @@ namespace cura
 
 /*!
  * Enum class enumerating the strategies with which an area can be occupied with filament
- * 
+ *
  * The walls/perimeters are Polygons
  * ZigZag infill is PolyLines, and so is following mesh surface mode for non-polygon surfaces
  * Grid, Triangles and lines infill is Lines

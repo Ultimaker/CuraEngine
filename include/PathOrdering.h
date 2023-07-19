@@ -1,13 +1,13 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef PATH_ORDER_PATH_H
 #define PATH_ORDER_PATH_H
 
-#include <optional>
-
 #include "settings/ZSeamConfig.h" //To get the seam settings.
 #include "utils/polygonUtils.h"
+
+#include <optional>
 
 namespace cura
 {
@@ -38,7 +38,8 @@ struct PathOrdering
         , start_vertex(start_vertex)
         , is_closed(is_closed)
         , backwards(backwards)
-    {}
+    {
+    }
 
     /*!
      * The vertex data of the path.
@@ -60,11 +61,11 @@ struct PathOrdering
     size_t start_vertex;
 
     /*!
-        * Whether the path should be closed at the ends or not.
-        *
-        * If this path should be closed, it represents a polygon. If it should
-        * not be closed, it represents a polyline.
-        */
+     * Whether the path should be closed at the ends or not.
+     *
+     * If this path should be closed, it represents a polygon. If it should
+     * not be closed, it represents a polyline.
+     */
     bool is_closed;
 
     /*!
@@ -74,8 +75,8 @@ struct PathOrdering
      * backwards direction, if the last vertex is closer than the first.
      */
     bool backwards;
-    
-    
+
+
     /*!
      * Get vertex data from the custom path type.
      *
@@ -102,6 +103,6 @@ protected:
     std::optional<Polygon> cached_vertices;
 };
 
-}
+} // namespace cura
 
-#endif //PATH_ORDER_PATH_H
+#endif // PATH_ORDER_PATH_H

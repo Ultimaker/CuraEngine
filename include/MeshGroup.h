@@ -1,5 +1,5 @@
-//Copyright (C) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef MESH_GROUP_H
 #define MESH_GROUP_H
@@ -14,7 +14,7 @@ class FMatrix4x3;
 
 /*!
  * A MeshGroup is a collection with 1 or more 3D meshes.
- * 
+ *
  * One MeshGroup is a whole which is printed at once.
  * Generally there is one single MeshGroup, though when using one-at-a-time printing, multiple MeshGroups are processed consecutively.
  */
@@ -43,7 +43,7 @@ public:
 
 /*!
  * Load a Mesh from file and store it in the \p meshgroup.
- * 
+ *
  * \param meshgroup The meshgroup where to store the mesh
  * \param filename The filename of the mesh file
  * \param transformation The transformation applied to all vertices
@@ -52,6 +52,6 @@ public:
  */
 bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix4x3& transformation, Settings& object_parent_settings);
 
-} //namespace cura
+} // namespace cura
 
-#endif //MESH_GROUP_H
+#endif // MESH_GROUP_H

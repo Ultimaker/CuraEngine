@@ -1,15 +1,15 @@
-//  Copyright (c) 2018-2022 Ultimaker B.V.
-//  CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef COMMANDLINE_H
 #define COMMANDLINE_H
+
+#include "Communication.h" //The class we're implementing.
 
 #include <rapidjson/document.h> //Loading JSON documents to get settings from them.
 #include <string> //To store the command line arguments.
 #include <unordered_set>
 #include <vector> //To store the command line arguments.
-
-#include "Communication.h" //The class we're implementing.
 
 namespace cura
 {
@@ -188,14 +188,12 @@ private:
      * \return Error code. If it's 0, the document was successfully loaded. If
      * it's 1, some inheriting file could not be opened.
      */
-    int loadJSON
-    (
+    int loadJSON(
         const rapidjson::Document& document,
         const std::unordered_set<std::string>& search_directories,
         Settings& settings,
         bool force_read_parent = false,
-        bool force_read_nondefault = false
-    );
+        bool force_read_nondefault = false);
 
     /*
      * \brief Load an element containing a list of settings.
@@ -216,6 +214,6 @@ private:
     const std::string findDefinitionFile(const std::string& definition_id, const std::unordered_set<std::string>& search_directories);
 };
 
-} //namespace cura
+} // namespace cura
 
-#endif //COMMANDLINE_H
+#endif // COMMANDLINE_H

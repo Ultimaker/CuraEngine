@@ -4,10 +4,10 @@
 #ifndef UTILS_VIEWS_GET_H
 #define UTILS_VIEWS_GET_H
 
-#include <type_traits>
-
 #include <range/v3/view/transform.hpp>
 #include <range/v3/view/view.hpp>
+
+#include <type_traits>
 
 namespace cura::views
 {
@@ -39,7 +39,11 @@ namespace cura::views
  */
 constexpr auto get(auto&& proj)
 {
-    return ranges::make_view_closure(ranges::views::transform([proj](auto&& item) { return std::invoke(proj, std::forward<decltype(item)>(item)); }));
+    return ranges::make_view_closure(ranges::views::transform(
+        [proj](auto&& item)
+        {
+            return std::invoke(proj, std::forward<decltype(item)>(item));
+        }));
 }
 } // namespace cura::views
 

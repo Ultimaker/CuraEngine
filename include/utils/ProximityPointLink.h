@@ -1,8 +1,10 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef PROXIMITY_POINT_LINK_H
 #define PROXIMITY_POINT_LINK_H
+
+#include "ListPolyIt.h"
 
 #include <functional> // hash function object
 #include <list>
@@ -11,10 +13,8 @@
 #include <utility> // pair
 #include <vector>
 
-#include "ListPolyIt.h"
 
-
-namespace cura 
+namespace cura
 {
 
 /*!
@@ -43,19 +43,19 @@ struct ProximityPointLink
     bool operator==(const ProximityPointLink& other) const;
 };
 
-}//namespace cura
+} // namespace cura
 
 namespace std
 {
-template <>
+template<>
 struct hash<cura::ProximityPointLink>
 {
-    size_t operator()(const cura::ProximityPointLink & pp) const
+    size_t operator()(const cura::ProximityPointLink& pp) const
     { // has to be symmetric wrt a and b!
         return std::hash<cura::Point>()(pp.a.p()) + std::hash<cura::Point>()(pp.b.p());
     }
 };
-}//namespace std
+} // namespace std
 
 
-#endif//PROXIMITY_POINT_LINK_H
+#endif // PROXIMITY_POINT_LINK_H

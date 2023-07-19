@@ -1,8 +1,10 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "utils/AABB.h"
+
 #include "utils/polygon.h"
+
 #include <gtest/gtest.h>
 #include <polyclipping/clipper.hpp>
 

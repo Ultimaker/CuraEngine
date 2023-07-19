@@ -1,14 +1,15 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <spdlog/spdlog.h>
+#include "infill/SierpinskiFillProvider.h"
 
 #include "infill/ImageBasedDensityProvider.h"
-#include "infill/SierpinskiFillProvider.h"
 #include "infill/UniformDensityProvider.h"
 #include "utils/AABB3D.h"
 #include "utils/math.h"
 #include "utils/polygon.h"
+
+#include <spdlog/spdlog.h>
 
 namespace cura
 {

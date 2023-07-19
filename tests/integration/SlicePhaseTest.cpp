@@ -8,6 +8,7 @@
 #include "utils/FMatrix4x3.h" // To load STL files.
 #include "utils/polygon.h" // Creating polygons to compare to sliced layers.
 #include "utils/polygonUtils.h" // Comparing similarity of polygons.
+
 #include <filesystem>
 #include <gtest/gtest.h>
 
@@ -120,7 +121,8 @@ TEST_F(SlicePhaseTest, Cylinder1000)
 
     const FMatrix4x3 transformation;
     // Path to cylinder1000.stl is relative to CMAKE_CURRENT_SOURCE_DIR/tests.
-    ASSERT_TRUE(loadMeshIntoMeshGroup(&mesh_group, std::filesystem::path(__FILE__).parent_path().append("resources/cylinder1000.stl").string().c_str(), transformation, scene.settings));
+    ASSERT_TRUE(
+        loadMeshIntoMeshGroup(&mesh_group, std::filesystem::path(__FILE__).parent_path().append("resources/cylinder1000.stl").string().c_str(), transformation, scene.settings));
     EXPECT_EQ(mesh_group.meshes.size(), 1);
     Mesh& cylinder_mesh = mesh_group.meshes[0];
 

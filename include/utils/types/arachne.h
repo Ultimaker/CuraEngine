@@ -4,14 +4,14 @@
 #ifndef UTILS_TYPES_ARACHNE_H
 #define UTILS_TYPES_ARACHNE_H
 
-#include <concepts>
-#include <string>
-#include <type_traits>
+#include "utils/types/generic.h"
+#include "utils/types/geometry.h"
 
 #include <range/v3/range/concepts.hpp>
 
-#include "utils/types/generic.h"
-#include "utils/types/geometry.h"
+#include <concepts>
+#include <string>
+#include <type_traits>
 
 namespace cura::utils
 {
@@ -34,7 +34,8 @@ concept st_node = requires(T val)
 
 /*!
  * @brief A edge in a skeleton trapezoidal graph, defined as a 2D point with additional stored data.
- * @details This concept is used to check if a type is a edge in a skeleton trapezoidal graph. defined as a pair of nodes with pointers to the next, previous, and twin edges, and additional stored data.
+ * @details This concept is used to check if a type is a edge in a skeleton trapezoidal graph. defined as a pair of nodes with pointers to the next, previous, and twin edges, and
+ * additional stored data.
  * @tparam T Type to check
  */
 template<class T>

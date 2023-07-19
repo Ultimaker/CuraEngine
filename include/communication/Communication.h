@@ -1,5 +1,5 @@
-//  Copyright (c) 2018-2022 Ultimaker B.V.
-//  CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef COMMUNICATION_H
 #define COMMUNICATION_H
@@ -8,7 +8,7 @@
 
 namespace cura
 {
-//Some forward declarations to increase compilation speed.
+// Some forward declarations to increase compilation speed.
 struct LayerIndex;
 struct Velocity;
 enum class PrintFeatureType : unsigned char;
@@ -26,7 +26,9 @@ public:
     /*
      * \brief Close the communication channel.
      */
-    virtual ~Communication() {}
+    virtual ~Communication()
+    {
+    }
 
     /*
      * \brief Test if there are more slices to be queued.
@@ -180,7 +182,6 @@ public:
     virtual void sliceNext() = 0;
 };
 
-} //namespace cura
+} // namespace cura
 
-#endif //COMMUNICATION_H
-
+#endif // COMMUNICATION_H

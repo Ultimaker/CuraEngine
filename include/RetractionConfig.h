@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef RETRACTION_CONFIG_H
 #define RETRACTION_CONFIG_H
@@ -27,6 +27,6 @@ public:
 };
 
 
-}//namespace cura
+} // namespace cura
 
 #endif // RETRACTION_CONFIG_H

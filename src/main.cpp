@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <iostream> //To change the formatting of std::cerr.
@@ -7,9 +7,9 @@
 #include <sys/resource.h> //For setpriority.
 #endif
 
-#include <spdlog/spdlog.h>
-
 #include "Application.h"
+
+#include <spdlog/spdlog.h>
 
 namespace cura
 {

@@ -1,6 +1,5 @@
-//Copyright (c) 2018 Ruben Dulek, Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
-//UnionFind's base structure is released under CC0. See https://github.com/Ghostkeeper/Hattusa
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UNIONFIND_H
 #define UNIONFIND_H
@@ -8,8 +7,8 @@
 #include <assert.h>
 #include <limits> //To get the max size_t as invalid value for the result of find().
 #include <stddef.h> //For size_t.
-#include <vector> //Holds the main data.
 #include <unordered_map> //To map the data type to indices for user's convenience.
+#include <vector> //Holds the main data.
 
 namespace cura
 {
@@ -23,7 +22,7 @@ namespace cura
  *
  * This data structure is not thread-safe.
  */
-template <typename E, class Hash = std::hash<E>>
+template<typename E, class Hash = std::hash<E>>
 class UnionFind
 {
 public:
@@ -44,7 +43,7 @@ public:
     size_t add(const E item)
     {
         items.push_back(item);
-        size_t handle = parent_index.size(); //Guaranteed to be unique because there has never been any item with this index (can't remove from this data structure!)
+        size_t handle = parent_index.size(); // Guaranteed to be unique because there has never been any item with this index (can't remove from this data structure!)
         element_to_position[item] = handle;
         parent_index.push_back(handle);
         rank.push_back(1);
@@ -83,7 +82,7 @@ public:
             return (size_t)-1;
         }
         const size_t parent = parent_index[item_handle];
-        if (parent != item_handle) //This is a root.
+        if (parent != item_handle) // This is a root.
         {
             parent_index[item_handle] = findByHandle(parent);
         }
@@ -101,7 +100,7 @@ public:
         const size_t first_root = findByHandle(first);
         const size_t second_root = findByHandle(second);
 
-        //The tree with the greatest rank becomes the parent. This creates shallower trees.
+        // The tree with the greatest rank becomes the parent. This creates shallower trees.
         if (rank[first_root] < rank[second_root])
         {
             parent_index[first] = second;
@@ -116,7 +115,7 @@ public:
         }
     }
 
-    //Some aliases to allow people to use UnionFind::iterator and UnionFind::const_iterator without knowing that it's actually a vector iterator.
+    // Some aliases to allow people to use UnionFind::iterator and UnionFind::const_iterator without knowing that it's actually a vector iterator.
     using iterator = typename std::vector<E>::iterator;
     using const_iterator = typename std::vector<E>::iterator;
 
@@ -211,6 +210,6 @@ private:
     std::vector<size_t> rank;
 };
 
-}
+} // namespace cura
 
 #endif /* UNIONFIND_H */

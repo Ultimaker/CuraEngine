@@ -1,13 +1,13 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_VIEWS_BOUNDING_BOX_H
 #define UTILS_VIEWS_BOUNDING_BOX_H
 
-#include <type_traits>
-
 #include "utils/AABB.h"
 #include "utils/views/convert.h"
+
+#include <type_traits>
 
 
 namespace cura::views

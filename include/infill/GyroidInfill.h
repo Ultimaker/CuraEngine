@@ -1,5 +1,5 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "../utils/Coord_t.h"
 
@@ -34,10 +34,8 @@ public:
      * pattern.
      */
     static void generateTotalGyroidInfill(Polygons& result_lines, bool zig_zaggify, coord_t line_distance, const Polygons& in_outline, coord_t z);
-    
-private:
 
+private:
 };
 
 } // namespace cura
-

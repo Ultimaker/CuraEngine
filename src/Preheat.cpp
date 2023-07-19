@@ -1,14 +1,15 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <spdlog/spdlog.h>
+#include "Preheat.h"
 
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
-#include "Preheat.h"
 #include "Slice.h"
 #include "settings/FlowTempGraph.h"
 #include "settings/types/Ratio.h"
+
+#include <spdlog/spdlog.h>
 
 namespace cura
 {

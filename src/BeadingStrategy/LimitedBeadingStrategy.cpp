@@ -1,11 +1,11 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "BeadingStrategy/LimitedBeadingStrategy.h"
 
-#include <cassert>
-
 #include <spdlog/spdlog.h>
+
+#include <cassert>
 
 namespace cura
 {
@@ -25,7 +25,10 @@ float LimitedBeadingStrategy::getTransitionAnchorPos(coord_t lower_bead_count) c
     return parent->getTransitionAnchorPos(lower_bead_count);
 }
 
-LimitedBeadingStrategy::LimitedBeadingStrategy(const coord_t max_bead_count, BeadingStrategyPtr parent) : BeadingStrategy(*parent), max_bead_count(max_bead_count), parent(std::move(parent))
+LimitedBeadingStrategy::LimitedBeadingStrategy(const coord_t max_bead_count, BeadingStrategyPtr parent)
+    : BeadingStrategy(*parent)
+    , max_bead_count(max_bead_count)
+    , parent(std::move(parent))
 {
     if (max_bead_count % 2 == 1)
     {

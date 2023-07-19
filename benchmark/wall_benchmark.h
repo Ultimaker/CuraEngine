@@ -4,16 +4,16 @@
 #ifndef CURAENGINE_WALL_BENCHMARK_H
 #define CURAENGINE_WALL_BENCHMARK_H
 
-#include <string>
-
-#include <benchmark/benchmark.h>
-#include <range/v3/view/join.hpp>
-
 #include "InsetOrderOptimizer.h"
 #include "WallsComputation.h"
 #include "settings/Settings.h"
 #include "sliceDataStorage.h"
 #include "utils/polygon.h"
+
+#include <range/v3/view/join.hpp>
+
+#include <benchmark/benchmark.h>
+#include <string>
 
 namespace cura
 {
@@ -101,7 +101,7 @@ BENCHMARK_DEFINE_F(WallTestFixture, InsetOrderOptimizer_getRegionOrder)(benchmar
 {
     walls_computation.generateWalls(&layer, SectionType::WALL);
     std::vector<ExtrusionLine> all_paths;
-    for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join )
+    for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join)
     {
         all_paths.emplace_back(line);
     }
@@ -117,7 +117,7 @@ BENCHMARK_DEFINE_F(WallTestFixture, InsetOrderOptimizer_getInsetOrder)(benchmark
 {
     walls_computation.generateWalls(&layer, SectionType::WALL);
     std::vector<ExtrusionLine> all_paths;
-    for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join )
+    for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join)
     {
         all_paths.emplace_back(line);
     }

@@ -4,10 +4,10 @@
 #ifndef UTILS_CONCEPTS_GRAPH_H
 #define UTILS_CONCEPTS_GRAPH_H
 
+#include "utils/types/generic.h"
+
 #include <concepts>
 #include <type_traits>
-
-#include "utils/types/generic.h"
 
 namespace cura::utils
 {
@@ -23,15 +23,17 @@ concept nodeable = hashable<T>;
  * exist and are of the same type.
  */
 template<class T>
-concept graphable =
-    nodeable<typename T::key_type> && (std::is_same<T, std::unordered_map<typename T::key_type, typename T::mapped_type>>::value || std::is_same<T, std::unordered_multimap<typename T::key_type, typename T::mapped_type>>::value);
+concept graphable = nodeable<typename T::key_type> &&(
+    std::is_same<T, std::unordered_map<typename T::key_type, typename T::mapped_type>>::value
+    || std::is_same<T, std::unordered_multimap<typename T::key_type, typename T::mapped_type>>::value);
 
 /* # setable
  * Describing the basic requirement for a set.
  */
 template<class T>
-concept setable = nodeable<typename T::key_type>
-               && (std::is_same<T, std::vector<typename T::value_type>>::value || std::is_same<T, std::unordered_multiset<typename T::value_type>>::value || std::is_same<T, std::unordered_set<typename T::value_type>>::value);
-} // namespace cura
+concept setable = nodeable<typename T::key_type> &&(
+    std::is_same<T, std::vector<typename T::value_type>>::value || std::is_same<T, std::unordered_multiset<typename T::value_type>>::value
+    || std::is_same<T, std::unordered_set<typename T::value_type>>::value);
+} // namespace cura::utils
 
 #endif // UTILS_CONCEPTS_GRAPH_H

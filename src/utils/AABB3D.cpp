@@ -1,24 +1,24 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "utils/AABB3D.h"
 
-#include <limits>
-
 #include "utils/AABB.h"
+
+#include <limits>
 
 namespace cura
 {
 
-AABB3D::AABB3D() 
-: min(std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max())
-, max(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min())
+AABB3D::AABB3D()
+    : min(std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max())
+    , max(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min())
 {
 }
 
-AABB3D::AABB3D(Point3 min, Point3 max) 
-: min(min)
-, max(max)
+AABB3D::AABB3D(Point3 min, Point3 max)
+    : min(min)
+    , max(max)
 {
 }
 
@@ -35,12 +35,7 @@ AABB AABB3D::flatten() const
 
 bool AABB3D::hit(const AABB3D& other) const
 {
-    if (   max.x < other.min.x
-        || min.x > other.max.x
-        || max.y < other.min.y
-        || min.y > other.max.y
-        || max.z < other.min.z
-        || min.z > other.max.z)
+    if (max.x < other.min.x || min.x > other.max.x || max.y < other.min.y || min.y > other.max.y || max.z < other.min.z || min.z > other.max.z)
     {
         return false;
     }
@@ -54,7 +49,7 @@ AABB3D AABB3D::include(Point3 p)
     min.z = std::min(min.z, p.z);
     max.x = std::max(max.x, p.x);
     max.y = std::max(max.y, p.y);
-    max.z = std::max(max.z, p.z);   
+    max.z = std::max(max.z, p.z);
     return *this;
 }
 
@@ -113,5 +108,4 @@ AABB3D AABB3D::expandXY(coord_t outset)
     return *this;
 }
 
-}//namespace cura
-
+} // namespace cura

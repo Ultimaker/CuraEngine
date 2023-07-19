@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef BEADING_STRATEGY_FACTORY_H
 #define BEADING_STRATEGY_FACTORY_H
@@ -13,8 +13,7 @@ namespace cura
 class BeadingStrategyFactory
 {
 public:
-    static BeadingStrategyPtr makeStrategy
-    (
+    static BeadingStrategyPtr makeStrategy(
         const coord_t preferred_bead_width_outer = MM2INT(0.5),
         const coord_t preferred_bead_width_inner = MM2INT(0.5),
         const coord_t preferred_transition_length = MM2INT(0.4),
@@ -27,8 +26,7 @@ public:
         const coord_t max_bead_count = 0,
         const coord_t outer_wall_offset = 0,
         const int inward_distributed_center_wall_count = 2,
-        const Ratio minimum_variable_line_ratio = 0.5
-    );
+        const Ratio minimum_variable_line_ratio = 0.5);
 };
 
 } // namespace cura

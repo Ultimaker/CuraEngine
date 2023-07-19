@@ -1,18 +1,17 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_LIST_POLY_IT_H
 #define UTILS_LIST_POLY_IT_H
 
-#include <vector>
-#include <list>
-
-
 #include "IntPoint.h"
 #include "polygon.h"
 
+#include <list>
+#include <vector>
 
-namespace cura 
+
+namespace cura
 {
 
 /*!
@@ -24,13 +23,13 @@ public:
     ListPolygon* poly; //!< The polygon
     ListPolygon::iterator it; //!< The iterator into ListPolyIt::poly
     ListPolyIt(const ListPolyIt& other)
-    : poly(other.poly)
-    , it(other.it)
+        : poly(other.poly)
+        , it(other.it)
     {
     }
     ListPolyIt(ListPolygon& poly, ListPolygon::iterator it)
-    : poly(&poly)
-    , it(it)
+        : poly(&poly)
+        , it(it)
     {
     }
     Point& p() const
@@ -39,7 +38,7 @@ public:
     }
     /*!
      * Test whether two iterators refer to the same polygon in the same polygon list.
-     * 
+     *
      * \param other The ListPolyIt to test for equality
      * \return Wether the right argument refers to the same polygon in the same ListPolygon as the left argument.
      */
@@ -49,7 +48,7 @@ public:
     }
     bool operator!=(const ListPolyIt& other) const
     {
-        return !(*this == other);
+        return ! (*this == other);
     }
     ListPolyIt& operator=(const ListPolyIt& other)
     {
@@ -58,28 +57,34 @@ public:
         return *this;
     }
     //! move the iterator forward (and wrap around at the end)
-    ListPolyIt& operator++() 
-    { 
-        ++it; 
-        if (it == poly->end()) { it = poly->begin(); }
-        return *this; 
+    ListPolyIt& operator++()
+    {
+        ++it;
+        if (it == poly->end())
+        {
+            it = poly->begin();
+        }
+        return *this;
     }
     //! move the iterator backward (and wrap around at the beginning)
-    ListPolyIt& operator--() 
-    { 
-        if (it == poly->begin()) { it = poly->end(); }
-        --it; 
-        return *this; 
+    ListPolyIt& operator--()
+    {
+        if (it == poly->begin())
+        {
+            it = poly->end();
+        }
+        --it;
+        return *this;
     }
     //! move the iterator forward (and wrap around at the end)
-    ListPolyIt next() const 
+    ListPolyIt next() const
     {
         ListPolyIt ret(*this);
         ++ret;
         return ret;
     }
     //! move the iterator backward (and wrap around at the beginning)
-    ListPolyIt prev() const 
+    ListPolyIt prev() const
     {
         ListPolyIt ret(*this);
         --ret;
@@ -92,28 +97,28 @@ public:
     }
     /*!
      * Convert Polygons to ListPolygons
-     * 
+     *
      * \param polys The polygons to convert
      * \param result The converted polygons
      */
     static void convertPolygonsToLists(const Polygons& polys, ListPolygons& result);
     /*!
      * Convert Polygons to ListPolygons
-     * 
+     *
      * \param polys The polygons to convert
      * \param result The converted polygons
      */
     static void convertPolygonToList(ConstPolygonRef poly, ListPolygon& result);
     /*!
      * Convert ListPolygons to Polygons
-     * 
+     *
      * \param list_polygons The polygons to convert
      * \param polygons The converted polygons
      */
     static void convertListPolygonsToPolygons(const ListPolygons& list_polygons, Polygons& polygons);
     /*!
      * Convert ListPolygons to Polygons
-     * 
+     *
      * \param list_polygons The polygons to convert
      * \param polygons The converted polygons
      */
@@ -121,7 +126,7 @@ public:
 
     /*!
      * Insert a point into a ListPolygon if it's not a duplicate of the point before or the point after.
-     * 
+     *
      * \param before Iterator to the point before the point to insert
      * \param after Iterator to the point after the point to insert
      * \param to_insert The point to insert into the ListPolygon in between \p before and \p after
@@ -131,14 +136,14 @@ public:
 };
 
 
-}//namespace cura
+} // namespace cura
 
 namespace std
 {
 /*!
  * Hash function for \ref ListPolyIt
  */
-template <>
+template<>
 struct hash<cura::ListPolyIt>
 {
     size_t operator()(const cura::ListPolyIt& lpi) const
@@ -146,8 +151,7 @@ struct hash<cura::ListPolyIt>
         return std::hash<cura::Point>()(lpi.p());
     }
 };
-}//namespace std
+} // namespace std
 
 
-
-#endif//UTILS_LIST_POLY_IT_H
+#endif // UTILS_LIST_POLY_IT_H

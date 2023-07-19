@@ -1,13 +1,14 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef SLICER_H
 #define SLICER_H
 
+#include "settings/EnumSettings.h"
+#include "utils/polygon.h"
+
 #include <queue>
 #include <unordered_map>
-#include "utils/polygon.h"
-#include "settings/EnumSettings.h"
 
 /*
     The Slicer creates layers of polygons from an optimized 3D model.
@@ -34,8 +35,8 @@ public:
 };
 
 class ClosePolygonResult
-{   //The result of trying to find a point on a closed polygon line. This gives back the point index, the polygon index, and the point of the connection.
-    //The line on which the point lays is between pointIdx-1 and pointIdx
+{ // The result of trying to find a point on a closed polygon line. This gives back the point index, the polygon index, and the point of the connection.
+  // The line on which the point lays is between pointIdx-1 and pointIdx
 public:
     int polygonIdx = -1;
     size_t pointIdx = -1;
@@ -151,7 +152,8 @@ private:
 
         /*! Constructor leaving uninitialized. */
         Terminus()
-        {}
+        {
+        }
 
         /*! Constructor from Index representation.
          *
@@ -168,7 +170,7 @@ private:
          */
         Terminus(size_t polyline_idx, bool is_end)
         {
-            m_idx = polyline_idx * 2  + (is_end ? 1 : 0);
+            m_idx = polyline_idx * 2 + (is_end ? 1 : 0);
         }
 
         /*! Gets the polyline index for this Terminus. */
@@ -213,21 +215,21 @@ private:
          */
         static Index endIndexFromPolylineEndIndex(unsigned int polyline_end_idx)
         {
-            return polyline_end_idx*2;
+            return polyline_end_idx * 2;
         }
 
         /*! Tests for equality.
-        *
-        * Two Terminus are equal if they return the same results for
-        * \ref getPolylineIdx() and \ref isEnd().
-        */
-        bool operator==(const Terminus &other)
+         *
+         * Two Terminus are equal if they return the same results for
+         * \ref getPolylineIdx() and \ref isEnd().
+         */
+        bool operator==(const Terminus& other)
         {
             return m_idx == other.m_idx;
         }
 
         /*! Tests for inequality. */
-        bool operator!=(const Terminus &other)
+        bool operator!=(const Terminus& other)
         {
             return m_idx != other.m_idx;
         }
@@ -276,8 +278,7 @@ private:
         bool in_order() const
         {
             // in order if using back of line 0 and front of line 1
-            return terminus_0.isEnd() &&
-                !terminus_1.isEnd();
+            return terminus_0.isEnd() && ! terminus_1.isEnd();
         }
 
         /*! Orders PossibleStitch by goodness.
@@ -285,8 +286,8 @@ private:
          * Better PossibleStitch are > then worse PossibleStitch.
          * priority_queue will give greatest first so greatest
          * must be most desirable stitch
-        */
-        bool operator<(const PossibleStitch &other) const;
+         */
+        bool operator<(const PossibleStitch& other) const;
     };
 
     /*!
@@ -321,7 +322,7 @@ private:
          * \return The current Terminus location or INVALID_TERMINUS
          *     if the old endpoint is no longer an endpoint.
          */
-        Terminus getCurFromOld(const Terminus &old) const
+        Terminus getCurFromOld(const Terminus& old) const
         {
             return m_terminus_old_to_cur_map[old.asIndex()];
         }
@@ -334,7 +335,7 @@ private:
          *     INVALID_TERMINUS if the old Terminus location was
          *     removed (used to form a Polygon).
          */
-        Terminus getOldFromCur(const Terminus &cur) const
+        Terminus getOldFromCur(const Terminus& cur) const
         {
             return m_terminus_cur_to_old_map[cur.asIndex()];
         }
@@ -344,7 +345,7 @@ private:
          * This marks the current Terminus as being removed from the
          * polyline vector.
          */
-        void markRemoved(const Terminus &cur)
+        void markRemoved(const Terminus& cur)
         {
             Terminus old = getOldFromCur(cur);
             m_terminus_old_to_cur_map[old.asIndex()] = Terminus::INVALID_TERMINUS;
@@ -379,10 +380,7 @@ private:
          * \param removed_cur_terms The Terminus locations that will
          *     be removed after the update.
          */
-        void updateMap(size_t num_terms,
-                       const Terminus *cur_terms, const Terminus *next_terms,
-                       size_t num_removed_terms,
-                       const Terminus *removed_cur_terms);
+        void updateMap(size_t num_terms, const Terminus* cur_terms, const Terminus* next_terms, size_t num_removed_terms, const Terminus* removed_cur_terms);
 
     private:
         /*! map from old terminus location to current terminus location */
@@ -398,8 +396,7 @@ private:
      * \param[in] face_idx The index of the face that might have generated a continuation segment.
      * \param[in] start_segment_idx The index of the segment that started this polyline.
      */
-    int tryFaceNextSegmentIdx(const SlicerSegment& segment,
-                              const int face_idx, const size_t start_segment_idx) const;
+    int tryFaceNextSegmentIdx(const SlicerSegment& segment, const int face_idx, const size_t start_segment_idx) const;
 
     /*!
      * Find possible allowed stitches in goodness order.
@@ -418,9 +415,7 @@ private:
      *     the order of a polyline.
      * \return The stitches that are allowed in order from best to worst.
      */
-    std::priority_queue<PossibleStitch> findPossibleStitches(
-        const Polygons& open_polylines, coord_t max_dist, coord_t cell_size,
-        bool allow_reverse) const;
+    std::priority_queue<PossibleStitch> findPossibleStitches(const Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse) const;
 
     /*! Plans the best way to perform a stitch.
      *
@@ -438,9 +433,7 @@ private:
      * \param[in,out] terminus_1 the Terminus on polyline_1 to join at.
      * \param[out] reverse Whether the polylines need to be reversed.
      */
-    void planPolylineStitch(const Polygons& open_polylines,
-                            Terminus& terminus_0, Terminus& terminus_1,
-                            bool reverse[2]) const;
+    void planPolylineStitch(const Polygons& open_polylines, Terminus& terminus_0, Terminus& terminus_1, bool reverse[2]) const;
 
     /*! Joins polyline_1 onto polyline_0.
      *
@@ -458,8 +451,7 @@ private:
      *     polyline_0 and reverse[1] indicates whether to reverse
      *     polyline_1
      */
-    void joinPolylines(PolygonRef& polyline_0, PolygonRef& polyline_1,
-                       const bool reverse[2]) const;
+    void joinPolylines(PolygonRef& polyline_0, PolygonRef& polyline_1, const bool reverse[2]) const;
 
     /*!
      * Connecting polylines that are not closed yet.
@@ -479,9 +471,7 @@ private:
      * \param[in] allow_reverse If true, then this function is allowed
      *     to reverse edge directions to merge polylines.
      */
-    void connectOpenPolylinesImpl(Polygons& open_polylines,
-                                  coord_t max_dist, coord_t cell_size,
-                                  bool allow_reverse);
+    void connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse);
 };
 
 class Slicer
@@ -491,11 +481,10 @@ public:
 
     const Mesh* mesh = nullptr; //!< The sliced mesh
 
-    Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_count, bool use_variable_layer_heights, std::vector<AdaptiveLayer> *adaptive_layers);
+    Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_count, bool use_variable_layer_heights, std::vector<AdaptiveLayer>* adaptive_layers);
 
 
 private:
-
     /*!
      * \brief Linear interpolation between coordinates of a line.
      *
@@ -525,48 +514,46 @@ private:
     static SlicerSegment project2D(const Point3& p0, const Point3& p1, const Point3& p2, const coord_t z);
 
     /*! Creates an array of "z bounding boxes" for each face.
-    * \param[in] mesh The mesh which is analyzed.
-    * \return z heights aka z bounding boxes of the faces.
-    */
-    static std::vector<std::pair<int32_t, int32_t>> buildZHeightsForFaces(const Mesh &mesh);
+     * \param[in] mesh The mesh which is analyzed.
+     * \return z heights aka z bounding boxes of the faces.
+     */
+    static std::vector<std::pair<int32_t, int32_t>> buildZHeightsForFaces(const Mesh& mesh);
 
     /*! Creates the polygons in layers.
-    * \param[in] mesh The mesh which is analyzed.
-    * \param[in] slicing_tolerance The way the slicing tolerance should be applied (MIDDLE/INCLUSIVE/EXCLUSIVE).
-    * \param[in, out] layers The polygon are created here.
-    */
+     * \param[in] mesh The mesh which is analyzed.
+     * \param[in] slicing_tolerance The way the slicing tolerance should be applied (MIDDLE/INCLUSIVE/EXCLUSIVE).
+     * \param[in, out] layers The polygon are created here.
+     */
     static void makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::vector<SlicerLayer>& layers);
 
     /*! Creates a vector of layers and set their z value.
-    * \param[in] mesh The mesh which is analyzed.
-    * \param[in] slice_layer_count The amount of layers which shall be sliced.
-    * \param[in] slicing_tolerance The way the slicing tolerance should be applied (MIDDLE/INCLUSIVE/EXCLUSIVE).
-    * \param[in] initial_layer_thickness Thickness of the first layer.
-    * \param[in] thickness Thickness of the layers (apart the first one).
-    * \param[in] use_variable_layer_heights Shall we use adaptive layer heights.
-    * \param[in] adaptive_layers Adaptive layers (if use_variable_layer_heights).
-    * \return layers with set z values.
-    */
-    static std::vector<SlicerLayer> buildLayersWithHeight(size_t slice_layer_count, SlicingTolerance slicing_tolerance,
-        coord_t initial_layer_thickness, coord_t thickness, bool use_variable_layer_heights,
+     * \param[in] mesh The mesh which is analyzed.
+     * \param[in] slice_layer_count The amount of layers which shall be sliced.
+     * \param[in] slicing_tolerance The way the slicing tolerance should be applied (MIDDLE/INCLUSIVE/EXCLUSIVE).
+     * \param[in] initial_layer_thickness Thickness of the first layer.
+     * \param[in] thickness Thickness of the layers (apart the first one).
+     * \param[in] use_variable_layer_heights Shall we use adaptive layer heights.
+     * \param[in] adaptive_layers Adaptive layers (if use_variable_layer_heights).
+     * \return layers with set z values.
+     */
+    static std::vector<SlicerLayer> buildLayersWithHeight(
+        size_t slice_layer_count,
+        SlicingTolerance slicing_tolerance,
+        coord_t initial_layer_thickness,
+        coord_t thickness,
+        bool use_variable_layer_heights,
         const std::vector<AdaptiveLayer>* adaptive_layers);
 
     /*! Creates the segments and write them into the layers.
-    * \param[in] mesh The mesh which is analyzed.
-    * \param[in] zbboxes The z part of the bounding boxes of the faces of the mesh.
-    * \param[in] slicing_tolderance Slicing tolerance in order to figure out what happens when vertices are exactly on the slicing boundary.
-    * \param[in, out] layers The segments are created here.
-    */
-    static void buildSegments
-    (
-        const Mesh& mesh,
-        const std::vector<std::pair<int32_t, int32_t>> &zbboxes,
-        const SlicingTolerance& slicing_tolerance,
-        std::vector<SlicerLayer>& layers
-    );
-
+     * \param[in] mesh The mesh which is analyzed.
+     * \param[in] zbboxes The z part of the bounding boxes of the faces of the mesh.
+     * \param[in] slicing_tolderance Slicing tolerance in order to figure out what happens when vertices are exactly on the slicing boundary.
+     * \param[in, out] layers The segments are created here.
+     */
+    static void
+        buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t, int32_t>>& zbboxes, const SlicingTolerance& slicing_tolerance, std::vector<SlicerLayer>& layers);
 };
 
-}//namespace cura
+} // namespace cura
 
-#endif//SLICER_H
+#endif // SLICER_H

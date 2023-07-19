@@ -1,10 +1,11 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <spdlog/spdlog.h>
-
 #include "mesh.h"
+
 #include "utils/floatpoint.h"
+
+#include <spdlog/spdlog.h>
 
 namespace cura
 {
@@ -16,14 +17,21 @@ const int vertex_meld_distance = MM2INT(0.03);
  */
 static inline uint32_t pointHash(const Point3& p)
 {
-    return ((p.x + vertex_meld_distance / 2) / vertex_meld_distance) ^ (((p.y + vertex_meld_distance / 2) / vertex_meld_distance) << 10) ^ (((p.z + vertex_meld_distance / 2) / vertex_meld_distance) << 20);
+    return ((p.x + vertex_meld_distance / 2) / vertex_meld_distance) ^ (((p.y + vertex_meld_distance / 2) / vertex_meld_distance) << 10)
+         ^ (((p.z + vertex_meld_distance / 2) / vertex_meld_distance) << 20);
 }
 
-Mesh::Mesh(Settings& parent) : settings(parent), has_disconnected_faces(false), has_overlapping_faces(false)
+Mesh::Mesh(Settings& parent)
+    : settings(parent)
+    , has_disconnected_faces(false)
+    , has_overlapping_faces(false)
 {
 }
 
-Mesh::Mesh() : settings(), has_disconnected_faces(false), has_overlapping_faces(false)
+Mesh::Mesh()
+    : settings()
+    , has_disconnected_faces(false)
+    , has_overlapping_faces(false)
 {
 }
 

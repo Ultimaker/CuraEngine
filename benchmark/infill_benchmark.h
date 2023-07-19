@@ -4,9 +4,9 @@
 #ifndef CURAENGINE_INFILL_BENCHMARK_H
 #define CURAENGINE_INFILL_BENCHMARK_H
 
-#include <benchmark/benchmark.h>
-
 #include "infill.h"
+
+#include <benchmark/benchmark.h>
 
 namespace cura
 {
@@ -93,19 +93,20 @@ public:
 
 BENCHMARK_DEFINE_F(InfillTest, Infill_generate_connect)(benchmark::State& st)
 {
-    Infill infill(pattern,
-                  zig_zagify,
-                  connect_polygons,
-                  outline_polygons,
-                  INFILL_LINE_WIDTH,
-                  line_distance,
-                  INFILL_OVERLAP,
-                  INFILL_MULTIPLIER,
-                  FILL_ANGLE,
-                  Z,
-                  SHIFT,
-                  MAX_RESOLUTION,
-                  MAX_DEVIATION); // There are some optional parameters, but these will do for now (future improvement?).
+    Infill infill(
+        pattern,
+        zig_zagify,
+        connect_polygons,
+        outline_polygons,
+        INFILL_LINE_WIDTH,
+        line_distance,
+        INFILL_OVERLAP,
+        INFILL_MULTIPLIER,
+        FILL_ANGLE,
+        Z,
+        SHIFT,
+        MAX_RESOLUTION,
+        MAX_DEVIATION); // There are some optional parameters, but these will do for now (future improvement?).
 
     for (auto _ : st)
     {
@@ -116,6 +117,6 @@ BENCHMARK_DEFINE_F(InfillTest, Infill_generate_connect)(benchmark::State& st)
     }
 }
 
-BENCHMARK_REGISTER_F(InfillTest, Infill_generate_connect)->ArgsProduct({{true, false}, {400, 800, 1200}})->Unit(benchmark::kMillisecond);
+BENCHMARK_REGISTER_F(InfillTest, Infill_generate_connect)->ArgsProduct({ { true, false }, { 400, 800, 1200 } })->Unit(benchmark::kMillisecond);
 } // namespace cura
 #endif // CURAENGINE_INFILL_BENCHMARK_H

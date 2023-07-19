@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "FffProcessor.h"
 #include "MockSocket.h" //To mock out the communication with the front-end.
@@ -7,6 +7,7 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
 #include "utils/polygon.h" //Create test shapes to send over the socket.
+
 #include <google/protobuf/message.h>
 #include <gtest/gtest.h>
 #include <memory>

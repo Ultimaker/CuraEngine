@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef MOCKCOMMUNICATION_H
 #define MOCKCOMMUNICATION_H
@@ -7,6 +7,7 @@
 #include "communication/Communication.h" //The interface we're implementing.
 #include "utils/Coord_t.h"
 #include "utils/polygon.h" //In the signature of Communication.
+
 #include <gmock/gmock.h>
 
 namespace cura
@@ -22,24 +23,11 @@ public:
     MOCK_CONST_METHOD0(isSequential, bool());
     MOCK_CONST_METHOD1(sendProgress, void(const float& progress));
     MOCK_METHOD3(sendLayerComplete, void(const LayerIndex& layer_nr, const coord_t& z, const coord_t& thickness));
-    MOCK_METHOD5(sendPolygons,
-                 void(const PrintFeatureType& type,
-                      const Polygons& polygons,
-                      const coord_t& line_width,
-                      const coord_t& line_thickness,
-                      const Velocity& velocity));
-    MOCK_METHOD5(sendPolygon,
-                 void(const PrintFeatureType& type,
-                      const ConstPolygonRef& polygon,
-                      const coord_t& line_width,
-                      const coord_t& line_thickness,
-                      const Velocity& velocity));
-    MOCK_METHOD5(sendLineTo,
-                 void(const PrintFeatureType& type,
-                      const Point& to,
-                      const coord_t& line_width,
-                      const coord_t& line_thickness,
-                      const Velocity& velocity));
+    MOCK_METHOD5(sendPolygons, void(const PrintFeatureType& type, const Polygons& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity));
+    MOCK_METHOD5(
+        sendPolygon,
+        void(const PrintFeatureType& type, const ConstPolygonRef& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity));
+    MOCK_METHOD5(sendLineTo, void(const PrintFeatureType& type, const Point& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity));
     MOCK_METHOD1(sendCurrentPosition, void(const Point& position));
     MOCK_METHOD1(setExtruderForSend, void(const ExtruderTrain& extruder));
     MOCK_METHOD1(setLayerForSend, void(const LayerIndex& layer_nr));

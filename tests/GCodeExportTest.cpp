@@ -1,7 +1,8 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "gcodeExport.h" // The unit under test.
+
 #include "Application.h" // To set up a slice with settings.
 #include "RetractionConfig.h" // For extruder switch tests.
 #include "Slice.h" // To set up a slice with settings.
@@ -10,6 +11,7 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
 #include "utils/Date.h" // To check the Griffin header.
+
 #include <gtest/gtest.h>
 
 // NOLINTBEGIN(*-magic-numbers)
@@ -102,12 +104,13 @@ TEST_F(GCodeExportTest, CommentMultiLine)
                        "You can honestly say\n"
                        "You made on that day\n"
                        "A Chilean chinchilla's chin chilly");
-    EXPECT_EQ(std::string(";If you catch a chinchilla in Chile\n"
-                          ";And cut off its beard, willy-nilly\n"
-                          ";You can honestly say\n"
-                          ";You made on that day\n"
-                          ";A Chilean chinchilla's chin chilly\n"),
-              output.str())
+    EXPECT_EQ(
+        std::string(";If you catch a chinchilla in Chile\n"
+                    ";And cut off its beard, willy-nilly\n"
+                    ";You can honestly say\n"
+                    ";You made on that day\n"
+                    ";A Chilean chinchilla's chin chilly\n"),
+        output.str())
         << "Each line must be preceded by a semicolon.";
 }
 
@@ -116,10 +119,11 @@ TEST_F(GCodeExportTest, CommentMultiple)
     gcode.writeComment("Thunderbolt and lightning");
     gcode.writeComment("Very very frightening me");
     gcode.writeComment(" - Galileo (1638)");
-    EXPECT_EQ(std::string(";Thunderbolt and lightning\n"
-                          ";Very very frightening me\n"
-                          "; - Galileo (1638)\n"),
-              output.str())
+    EXPECT_EQ(
+        std::string(";Thunderbolt and lightning\n"
+                    ";Very very frightening me\n"
+                    "; - Galileo (1638)\n"),
+        output.str())
         << "Semicolon before each line, and newline in between.";
 }
 
@@ -329,9 +333,10 @@ TEST_F(GCodeExportTest, HeaderUltiGCode)
 
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
-    EXPECT_EQ(result,
-              ";FLAVOR:UltiGCode\n;TARGET_MACHINE.NAME:Your favourite 3D printer\n;TIME:1337\n;MATERIAL:100\n;MATERIAL2:200\n;NOZZLE_DIAMETER:0.4\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;"
-              "MAXY:1\n;MAXZ:1\n");
+    EXPECT_EQ(
+        result,
+        ";FLAVOR:UltiGCode\n;TARGET_MACHINE.NAME:Your favourite 3D printer\n;TIME:1337\n;MATERIAL:100\n;MATERIAL2:200\n;NOZZLE_DIAMETER:0.4\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;"
+        "MAXY:1\n;MAXZ:1\n");
 }
 
 TEST_F(GCodeExportTest, HeaderRepRap)
@@ -348,9 +353,10 @@ TEST_F(GCodeExportTest, HeaderRepRap)
 
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
-    EXPECT_EQ(result,
-              ";FLAVOR:RepRap\n;TARGET_MACHINE.NAME:Your favourite 3D printer\n;TIME:1337\n;Filament used: 0.02m, 0.05m\n;Layer height: "
-              "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n");
+    EXPECT_EQ(
+        result,
+        ";FLAVOR:RepRap\n;TARGET_MACHINE.NAME:Your favourite 3D printer\n;TIME:1337\n;Filament used: 0.02m, 0.05m\n;Layer height: "
+        "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n");
 }
 
 TEST_F(GCodeExportTest, HeaderMarlin)
@@ -367,9 +373,10 @@ TEST_F(GCodeExportTest, HeaderMarlin)
 
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
-    EXPECT_EQ(result,
-              ";FLAVOR:Marlin\n;TARGET_MACHINE.NAME:Your favourite 3D printer\n;TIME:1337\n;Filament used: 0.02m, 0.05m\n;Layer height: "
-              "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n");
+    EXPECT_EQ(
+        result,
+        ";FLAVOR:Marlin\n;TARGET_MACHINE.NAME:Your favourite 3D printer\n;TIME:1337\n;Filament used: 0.02m, 0.05m\n;Layer height: "
+        "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n");
 }
 
 TEST_F(GCodeExportTest, HeaderMarlinVolumetric)
@@ -384,9 +391,10 @@ TEST_F(GCodeExportTest, HeaderMarlinVolumetric)
 
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
-    EXPECT_EQ(result,
-              ";FLAVOR:Marlin(Volumetric)\n;TARGET_MACHINE.NAME:Your favourite 3D printer\n;TIME:1337\n;Filament used: 100mm3, 200mm3\n;Layer height: "
-              "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n");
+    EXPECT_EQ(
+        result,
+        ";FLAVOR:Marlin(Volumetric)\n;TARGET_MACHINE.NAME:Your favourite 3D printer\n;TIME:1337\n;Filament used: 100mm3, 200mm3\n;Layer height: "
+        "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n");
 }
 
 /*
@@ -406,8 +414,9 @@ TEST_F(GCodeExportTest, EVsMmVolumetric)
                                                             "area of the filament to convert the volume to a length.";
 
     constexpr double mm_input = 33.0;
-    EXPECT_EQ(gcode.mmToE(mm_input), mm_input * filament_area) << "Since the input mm is linear but the E output must be volumetric, we need to multiply by the cross-sectional area to convert "
-                                                                  "length to volume.";
+    EXPECT_EQ(gcode.mmToE(mm_input), mm_input * filament_area)
+        << "Since the input mm is linear but the E output must be volumetric, we need to multiply by the cross-sectional area to convert "
+           "length to volume.";
 
     constexpr double e_input = 100.0;
     EXPECT_EQ(gcode.eToMm3(e_input, 0), e_input) << "Since the E is volumetric and mm3 is also volumetric, the output needs to be the same.";
@@ -432,8 +441,9 @@ TEST_F(GCodeExportTest, EVsMmLinear)
     }
 
     constexpr double mm3_input = 33.0;
-    EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input / filament_area) << "Since the input mm3 is volumetric but the E output must be linear, we need to divide by the cross-sectional area to convert "
-                                                                     "volume to length.";
+    EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input / filament_area)
+        << "Since the input mm3 is volumetric but the E output must be linear, we need to divide by the cross-sectional area to convert "
+           "volume to length.";
 
     constexpr double e_input = 100.0;
     EXPECT_EQ(gcode.eToMm3(e_input, 0), e_input * filament_area) << "Since the input E is linear but the output must be volumetric, we "

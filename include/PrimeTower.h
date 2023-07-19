@@ -1,15 +1,15 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef PRIME_TOWER_H
 #define PRIME_TOWER_H
 
-#include <vector>
-
 #include "utils/polygon.h" // Polygons
 #include "utils/polygonUtils.h"
 
-namespace cura 
+#include <vector>
+
+namespace cura
 {
 
 class SliceDataStorage;
@@ -72,7 +72,7 @@ public:
 
     /*!
      * Generate the prime tower area to be used on each layer
-     * 
+     *
      * Fills \ref PrimeTower::inner_poly and sets \ref PrimeTower::middle
      */
     void generateGroundpoly();
@@ -84,7 +84,7 @@ public:
 
     /*!
      * Add path plans for the prime tower to the \p gcode_layer
-     * 
+     *
      * \param storage where to get settings from; where to get the maximum height of the prime tower from
      * \param[in,out] gcode_layer Where to get the current extruder from; where to store the generated layer paths
      * \param prev_extruder The previous extruder with which paths were planned; from which extruder a switch was made
@@ -101,10 +101,9 @@ public:
     void subtractFromSupport(SliceDataStorage& storage);
 
 private:
-
     /*!
      * \see WipeTower::generatePaths
-     * 
+     *
      * Generate the extrude paths for each extruder on even and odd layers
      * Fill the ground poly with dense infill.
      */
@@ -138,8 +137,6 @@ private:
 };
 
 
-
-
-}//namespace cura
+} // namespace cura
 
 #endif // PRIME_TOWER_H

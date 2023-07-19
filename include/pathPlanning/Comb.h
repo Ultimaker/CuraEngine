@@ -1,17 +1,17 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef PATH_PLANNING_COMB_H
 #define PATH_PLANNING_COMB_H
-
-#include <memory> // shared_ptr
-#include <limits> // To find the maximum for coord_t.
 
 #include "../settings/types/LayerIndex.h" // To store the layer on which we comb.
 #include "../utils/polygon.h"
 #include "../utils/polygonUtils.h"
 
-namespace cura 
+#include <limits> // To find the maximum for coord_t.
+#include <memory> // shared_ptr
+
+namespace cura
 {
 
 class CombPath;
@@ -43,10 +43,11 @@ class SliceDataStorage;
 class Comb
 {
     friend class LinePolygonsCrossings;
+
 private:
     /*!
      * A crossing from the inside boundary to the outside boundary.
-     * 
+     *
      * 'dest' is either the startPoint or the endpoint of a whole combing move.
      */
     class Crossing
@@ -62,26 +63,32 @@ private:
 
         /*!
          * Simple constructor
-         * 
+         *
          * \param dest_point Either the eventual startPoint or the eventual endPoint of this combing move.
          * \param dest_is_inside Whether the startPoint or endPoint is inside the inside boundary.
          * \param dest_part_idx The index into Comb:partsView_inside of the part in which the \p dest_point is.
-         * \param dest_part_boundary_crossing_poly_idx The index in \p boundary_inside of the polygon of the part in which dest_point lies, which will be crossed (often will be the outside polygon).
-         * \param boundary_inside The boundary within which to comb.
+         * \param dest_part_boundary_crossing_poly_idx The index in \p boundary_inside of the polygon of the part in which dest_point lies, which will be crossed (often will be the
+         * outside polygon). \param boundary_inside The boundary within which to comb.
          */
-        Crossing(const Point& dest_point, const bool dest_is_inside, const unsigned int dest_part_idx, const unsigned int dest_part_boundary_crossing_poly_idx, const Polygons& boundary_inside, const LocToLineGrid& inside_loc_to_line);
+        Crossing(
+            const Point& dest_point,
+            const bool dest_is_inside,
+            const unsigned int dest_part_idx,
+            const unsigned int dest_part_boundary_crossing_poly_idx,
+            const Polygons& boundary_inside,
+            const LocToLineGrid& inside_loc_to_line);
 
         /*!
          * Find the not-outside location (Combing::in_or_mid) of the crossing between to the outside boundary
-         * 
-         * \param partsView_inside Structured indices onto Comb::boundary_inside which shows which polygons belong to which part. 
+         *
+         * \param partsView_inside Structured indices onto Comb::boundary_inside which shows which polygons belong to which part.
          * \param close_to[in] Try to get a crossing close to this point
          */
         void findCrossingInOrMid(const PartsView& partsView_inside, const Point close_to);
 
         /*!
          * Find the outside location (Combing::out)
-         * 
+         *
          * \param outside The outside boundary polygons.
          * \param close_to A point to get closer to when there are multiple
          * candidates on the outside boundary which are almost equally close to
@@ -99,9 +106,9 @@ private:
 
         /*!
          * Find the best crossing from some inside polygon to the outside boundary.
-         * 
+         *
          * The detour from \p estimated_start to \p estimated_end is minimized.
-         * 
+         *
          * \param outside The outside boundary polygons
          * \param from From which inside boundary the crossing to the outside starts or ends
          * \param estimated_start The one point to which to stay close when evaluating crossings which cross about the same distance
@@ -109,7 +116,8 @@ private:
          * \param comber[in] The combing calculator which has references to the offsets and boundaries to use in combing.
          * \return A pair of which the first is the crossing point on the inside boundary and the second the crossing point on the outside boundary
          */
-        std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findBestCrossing(const ExtruderTrain& train, const Polygons& outside, ConstPolygonRef from, const Point estimated_start, const Point estimated_end, Comb& comber);
+        std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>>
+            findBestCrossing(const ExtruderTrain& train, const Polygons& outside, ConstPolygonRef from, const Point estimated_start, const Point estimated_end, Comb& comber);
     };
 
 
@@ -118,7 +126,8 @@ private:
 
     const coord_t travel_avoid_distance; //!<
     const coord_t offset_from_outlines; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
-    const coord_t max_moveInside_distance2; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
+    const coord_t
+        max_moveInside_distance2; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
     const coord_t offset_from_inside_to_outside; //!< The sum of the offsets for the inside and outside boundary Comb::offset_from_outlines and Comb::offset_from_outlines_outside
     const coord_t max_crossing_dist2; //!< The maximal distance by which to cross the in_between area between inside and outside
     static const coord_t max_moveOutside_distance2 = std::numeric_limits<coord_t>::max(); //!< Any point which is not inside should be considered outside.
@@ -131,20 +140,23 @@ private:
     const PartsView partsView_inside_optimal; //!< Structured indices onto boundary_inside_optimal which shows which polygons belong to which part.
     std::unique_ptr<LocToLineGrid> inside_loc_to_line_minimum; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
     std::unique_ptr<LocToLineGrid> inside_loc_to_line_optimal; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
-    std::unordered_map<size_t, Polygons> boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
+    std::unordered_map<size_t, Polygons> boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only
+                                                           //!< compute it when we move outside the boundary (so not when there is only a single part in the layer)
     std::unordered_map<size_t, Polygons> model_boundary; //!< The boundary of the model itself
     std::unordered_map<size_t, std::unique_ptr<LocToLineGrid>> outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
-    std::unordered_map<size_t, std::unique_ptr<LocToLineGrid>> model_boundary_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the model boundary
-    coord_t move_inside_distance; //!< When using comb_boundary_inside_minimum for combing it tries to move points inside by this amount after calculating the path to move it from the border a bit.
+    std::unordered_map<size_t, std::unique_ptr<LocToLineGrid>>
+        model_boundary_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the model boundary
+    coord_t move_inside_distance; //!< When using comb_boundary_inside_minimum for combing it tries to move points inside by this amount after calculating the path to move it from
+                                  //!< the border a bit.
 
     /*!
      * Get the SparsePointGridInclusive mapping locations to line segments of the outside boundary. Calculate it when it hasn't been calculated yet.
      */
     LocToLineGrid& getOutsideLocToLine(const ExtruderTrain& train);
 
-     /*!
-      * Get the boundary_outside, which is an offset from the outlines of all meshes in the layer. Calculate it when it hasn't been calculated yet.
-      */
+    /*!
+     * Get the boundary_outside, which is an offset from the outlines of all meshes in the layer. Calculate it when it hasn't been calculated yet.
+     */
     Polygons& getBoundaryOutside(const ExtruderTrain& train);
 
     /*!
@@ -172,10 +184,10 @@ private:
 public:
     /*!
      * Initialises the combing areas for every mesh in the layer (not support).
-     * 
+     *
      * \warning \ref Comb::calc changes the order of polygons in
      * \p Comb::comb_boundary_inside
-     * 
+     *
      * \param storage Where the layer polygon data is stored.
      * \param layer_nr The number of the layer for which to generate the combing
      * areas.
@@ -191,30 +203,30 @@ public:
      * combing it tries to move points inside by this amount after calculating
      * the path to move it from the border a bit.
      */
-    Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t offset_from_outlines, coord_t travel_avoid_distance, coord_t move_inside_distance);
+    Comb(
+        const SliceDataStorage& storage,
+        const LayerIndex layer_nr,
+        const Polygons& comb_boundary_inside_minimum,
+        const Polygons& comb_boundary_inside_optimal,
+        coord_t offset_from_outlines,
+        coord_t travel_avoid_distance,
+        coord_t move_inside_distance);
 
     /*!
      * \brief Calculate the comb paths (if any), one for each polygon combed
      * alternated with travel paths.
-     * 
+     *
      * \warning Changes the order of polygons in \ref Comb::comb_boundary_inside
      * \param perform_z_hops Whether to Z hop when retracted.
      * \param perform_z_hops_only_when_collides Whether to Z hop only over printed parts.
-     * \param train Extruder train, for settings and extruder-nr. NOTE: USe for travel settings and 'extruder-nr' only, don't use for z-hop/retraction/wipe settings, as that should also be settable per mesh!
-     * \param startPoint Where to start moving from.
-     * \param endPoint Where to move to.
-     * \param[out] combPoints The points along the combing path, excluding the
-     * \p startPoint (?) and \p endPoint.
-     * \param startInside Whether we want to start inside the comb boundary.
-     * \param endInside Whether we want to end up inside the comb boundary.
-     * \param unretract_before_last_travel_move Whether we should unretract before the last travel move when travelling
-     * because of combing. If the endpoint of a travel path changes with combing, then it means that an outer wall is
-     * involved, which means that we should then unretract before the last travel move to that wall to avoid any blips
-     * being introduced due to the unretraction.
-     * \return Whether combing has succeeded; otherwise a retraction is needed.
+     * \param train Extruder train, for settings and extruder-nr. NOTE: USe for travel settings and 'extruder-nr' only, don't use for z-hop/retraction/wipe settings, as that should
+     * also be settable per mesh! \param startPoint Where to start moving from. \param endPoint Where to move to. \param[out] combPoints The points along the combing path,
+     * excluding the \p startPoint (?) and \p endPoint. \param startInside Whether we want to start inside the comb boundary. \param endInside Whether we want to end up inside the
+     * comb boundary. \param unretract_before_last_travel_move Whether we should unretract before the last travel move when travelling because of combing. If the endpoint of a
+     * travel path changes with combing, then it means that an outer wall is involved, which means that we should then unretract before the last travel move to that wall to avoid
+     * any blips being introduced due to the unretraction. \return Whether combing has succeeded; otherwise a retraction is needed.
      */
-    bool calc
-    (
+    bool calc(
         bool perform_z_hops,
         bool perform_z_hops_only_when_collides,
         const ExtruderTrain& train,
@@ -224,10 +236,9 @@ public:
         bool startInside,
         bool endInside,
         coord_t max_comb_distance_ignored,
-        bool &unretract_before_last_travel_move
-    );
+        bool& unretract_before_last_travel_move);
 };
 
-}//namespace cura
+} // namespace cura
 
-#endif//PATH_PLANNING_COMB_H
+#endif // PATH_PLANNING_COMB_H

@@ -1,10 +1,11 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "PrintFeature.h" //We get time estimates per print feature.
 #include "settings/Settings.h" //To set firmware settings.
 #include "settings/types/Duration.h"
 #include "timeEstimate.h" //The unit under test.
+
 #include <cmath>
 #include <gtest/gtest.h>
 #include <numeric>
@@ -171,9 +172,10 @@ TEST_F(TimeEstimateCalculatorTest, SingleLineOnlyJerk)
     const double cruise_distance = 1000.0 - decelerate_distance;
 
     const std::vector<Duration> result = calculator.calculate();
-    EXPECT_NEAR(Duration(cruise_distance / 50.0 + t), // 1000mm at 50mm/s, then decelerate for almost one second.
-                result[static_cast<size_t>(PrintFeatureType::Infill)],
-                EPSILON);
+    EXPECT_NEAR(
+        Duration(cruise_distance / 50.0 + t), // 1000mm at 50mm/s, then decelerate for almost one second.
+        result[static_cast<size_t>(PrintFeatureType::Infill)],
+        EPSILON);
 }
 
 TEST_F(TimeEstimateCalculatorTest, DoubleLineOnlyJerk)
@@ -199,9 +201,10 @@ TEST_F(TimeEstimateCalculatorTest, DoubleLineOnlyJerk)
     const double cruise_distance = 2000.0 - decelerate_distance;
 
     const std::vector<Duration> result = calculator.calculate();
-    EXPECT_NEAR(Duration(cruise_distance / 50.0 + t), // 2000mm at 50mm/s, then decelerate for almost one second.
-                result[static_cast<size_t>(PrintFeatureType::Infill)],
-                EPSILON);
+    EXPECT_NEAR(
+        Duration(cruise_distance / 50.0 + t), // 2000mm at 50mm/s, then decelerate for almost one second.
+        result[static_cast<size_t>(PrintFeatureType::Infill)],
+        EPSILON);
 }
 
 TEST_F(TimeEstimateCalculatorTest, SingleLineNoJerk)
@@ -225,9 +228,10 @@ TEST_F(TimeEstimateCalculatorTest, SingleLineNoJerk)
     const double cruise_distance = 1000.0 - accelerate_distance - decelerate_distance;
 
     const std::vector<Duration> result = calculator.calculate();
-    EXPECT_NEAR(Duration(1.0 + cruise_distance / 50.0 + decelerate_t), // Accelerate, cruise, decelerate.
-                result[static_cast<size_t>(PrintFeatureType::Infill)],
-                EPSILON);
+    EXPECT_NEAR(
+        Duration(1.0 + cruise_distance / 50.0 + decelerate_t), // Accelerate, cruise, decelerate.
+        result[static_cast<size_t>(PrintFeatureType::Infill)],
+        EPSILON);
 }
 
 TEST_F(TimeEstimateCalculatorTest, ShortLine)
@@ -239,7 +243,11 @@ TEST_F(TimeEstimateCalculatorTest, ShortLine)
      * Accelerate from 0mm/s up to slightly further than half the line distance.
      * Decelerate from slightly beyond half the line distance down to minimum planner speed.
      */
-    const TimeEstimateCalculator::Position destination(25.0, 0, 0, 0); // 25mm just enough to reach full speed, but it must decelerate to minimum planner speed in that same distance too.
+    const TimeEstimateCalculator::Position destination(
+        25.0,
+        0,
+        0,
+        0); // 25mm just enough to reach full speed, but it must decelerate to minimum planner speed in that same distance too.
     calculator.plan(destination, 50.0, PrintFeatureType::Infill);
 
     // Calculate the intersection point of two position-velocity formulas: One for accelerating and one for decelerating.
@@ -287,9 +295,10 @@ TEST_F(TimeEstimateCalculatorTest, DoubleLineNoJerk)
     const double cruise_distance = 2000.0 - accelerate_distance - decelerate_distance;
 
     const std::vector<Duration> result = calculator.calculate();
-    EXPECT_NEAR(Duration(1.0 + cruise_distance / 50.0 + decelerate_t), // Accelerate, cruise, decelerate.
-                result[static_cast<size_t>(PrintFeatureType::Infill)],
-                EPSILON);
+    EXPECT_NEAR(
+        Duration(1.0 + cruise_distance / 50.0 + decelerate_t), // Accelerate, cruise, decelerate.
+        result[static_cast<size_t>(PrintFeatureType::Infill)],
+        EPSILON);
 }
 
 TEST_F(TimeEstimateCalculatorTest, DiagonalLineNoJerk)
@@ -314,9 +323,10 @@ TEST_F(TimeEstimateCalculatorTest, DiagonalLineNoJerk)
     const double cruise_distance = std::sqrt(2.0) * 1000.0 - accelerate_distance - decelerate_distance; // Thank you Mr. Pythagoras.
 
     const std::vector<Duration> result = calculator.calculate();
-    EXPECT_NEAR(Duration(1.0 + cruise_distance / 50.0 + decelerate_t), // Accelerate, cruise, decelerate.
-                result[static_cast<size_t>(PrintFeatureType::Infill)],
-                EPSILON);
+    EXPECT_NEAR(
+        Duration(1.0 + cruise_distance / 50.0 + decelerate_t), // Accelerate, cruise, decelerate.
+        result[static_cast<size_t>(PrintFeatureType::Infill)],
+        EPSILON);
 }
 
 TEST_F(TimeEstimateCalculatorTest, StraightAngleOnlyJerk)
@@ -348,9 +358,10 @@ TEST_F(TimeEstimateCalculatorTest, StraightAngleOnlyJerk)
     const double second_cruise_time = cruise_distance / 50.0;
 
     const std::vector<Duration> result = calculator.calculate();
-    EXPECT_NEAR(Duration(first_cruise_time + second_cruise_time + t), // First line, second line cruise, and decelerate at the end.
-                result[static_cast<size_t>(PrintFeatureType::Infill)],
-                EPSILON);
+    EXPECT_NEAR(
+        Duration(first_cruise_time + second_cruise_time + t), // First line, second line cruise, and decelerate at the end.
+        result[static_cast<size_t>(PrintFeatureType::Infill)],
+        EPSILON);
 }
 
 TEST_F(TimeEstimateCalculatorTest, StraightAngleNoJerk)
@@ -380,11 +391,15 @@ TEST_F(TimeEstimateCalculatorTest, StraightAngleNoJerk)
     const double first_cruise_distance = 1000.0 - first_accelerate_distance - first_decelerate_distance;
     const double second_accelerate_distance = first_accelerate_distance;
     const double second_decelerate_t = (50.0 - MINIMUM_PLANNER_SPEED) / 50.0;
-    const double second_decelerate_distance = 0.5 * 50.0 * second_decelerate_t * second_decelerate_t + MINIMUM_PLANNER_SPEED * second_decelerate_t; // This time there is an initial speed: The minimum planner speed.
+    const double second_decelerate_distance
+        = 0.5 * 50.0 * second_decelerate_t * second_decelerate_t + MINIMUM_PLANNER_SPEED * second_decelerate_t; // This time there is an initial speed: The minimum planner speed.
     const double second_cruise_distance = 1000.0 - second_accelerate_distance - second_decelerate_distance;
 
     const std::vector<Duration> result = calculator.calculate();
-    EXPECT_NEAR(Duration(1.0 + first_cruise_distance / 50.0 + 1.0 + 1.0 + second_cruise_distance / 50.0 + second_decelerate_t), result[static_cast<size_t>(PrintFeatureType::Infill)], EPSILON);
+    EXPECT_NEAR(
+        Duration(1.0 + first_cruise_distance / 50.0 + 1.0 + 1.0 + second_cruise_distance / 50.0 + second_decelerate_t),
+        result[static_cast<size_t>(PrintFeatureType::Infill)],
+        EPSILON);
 }
 
 TEST_F(TimeEstimateCalculatorTest, StraightAnglePartialJerk)
@@ -427,7 +442,10 @@ TEST_F(TimeEstimateCalculatorTest, StraightAnglePartialJerk)
     const double second_cruise_distance = 1000.0 - second_accelerate_distance - second_decelerate_distance;
 
     const std::vector<Duration> result = calculator.calculate();
-    EXPECT_NEAR(Duration(first_accelerate_t + first_cruise_distance / 50.0 + first_decelerate_t + second_accelerate_t + second_cruise_distance / 50.0 + second_decelerate_t), result[static_cast<size_t>(PrintFeatureType::Infill)], EPSILON);
+    EXPECT_NEAR(
+        Duration(first_accelerate_t + first_cruise_distance / 50.0 + first_decelerate_t + second_accelerate_t + second_cruise_distance / 50.0 + second_decelerate_t),
+        result[static_cast<size_t>(PrintFeatureType::Infill)],
+        EPSILON);
 }
 
 } // namespace cura

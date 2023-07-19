@@ -1,10 +1,12 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "utils/polygon.h" // The class under test.
+
 #include "utils/Coord_t.h"
 #include "utils/SVG.h" // helper functions
 #include "utils/polygonUtils.h" // helper functions
+
 #include <gtest/gtest.h>
 
 // NOLINTBEGIN(*-magic-numbers)
@@ -79,7 +81,18 @@ public:
     }
     void twoPolygonsAreEqual(Polygons& polygon1, Polygons& polygon2) const
     {
-        auto poly_cmp = [](const ClipperLib::Path& a, const ClipperLib::Path& b) { return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end(), [](const Point& p1, const Point& p2) { return p1 < p2; }); };
+        auto poly_cmp = [](const ClipperLib::Path& a, const ClipperLib::Path& b)
+        {
+            return std::lexicographical_compare(
+                a.begin(),
+                a.end(),
+                b.begin(),
+                b.end(),
+                [](const Point& p1, const Point& p2)
+                {
+                    return p1 < p2;
+                });
+        };
         std::sort(polygon1.begin(), polygon1.end(), poly_cmp);
         std::sort(polygon2.begin(), polygon2.end(), poly_cmp);
 

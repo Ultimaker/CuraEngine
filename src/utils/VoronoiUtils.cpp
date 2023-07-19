@@ -1,14 +1,15 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <optional>
-#include <stack>
+#include "utils/VoronoiUtils.h"
+
+#include "utils/linearAlg2D.h"
+#include "utils/macros.h"
 
 #include <spdlog/spdlog.h>
 
-#include "utils/VoronoiUtils.h"
-#include "utils/linearAlg2D.h"
-#include "utils/macros.h"
+#include <optional>
+#include <stack>
 
 namespace cura
 {

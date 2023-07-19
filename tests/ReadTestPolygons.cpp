@@ -1,8 +1,10 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "ReadTestPolygons.h"
+
 #include "utils/Coord_t.h"
+
 #include <cstdio>
 
 // NOTE: See the documentation in the header-file for an explanation of this simple file format.

@@ -1,9 +1,11 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "utils/Simplify.h" // The unit under test.
+
 #include "utils/Coord_t.h"
 #include "utils/polygonUtils.h" // Helper functions for testing deviation.
+
 #include <gtest/gtest.h>
 
 // NOLINTBEGIN(*-magic-numbers)
@@ -32,7 +34,8 @@ public:
     Polygon spiral; // A spiral with gradually increasing segment length.
     Polygon zigzag; // Sawtooth zig-zag pattern.
 
-    SimplifyTest() : simplifier(MAX_RESOLUTION, MAX_DEVIATION, MAX_AREA_DEVIATION)
+    SimplifyTest()
+        : simplifier(MAX_RESOLUTION, MAX_DEVIATION, MAX_AREA_DEVIATION)
     {
     }
 

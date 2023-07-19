@@ -1,11 +1,11 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef LIGHTNING_DISTANCE_FIELD_H
 #define LIGHTNING_DISTANCE_FIELD_H
 
-#include "../utils/polygon.h" //Using outlines to fill and tracking overhang.
 #include "../utils/SquareGrid.h" //Tracking for each location the distance to overhang.
+#include "../utils/polygon.h" //Using outlines to fill and tracking overhang.
 
 namespace cura
 {
@@ -30,7 +30,7 @@ public:
      * layer.
      */
     LightningDistanceField(const coord_t& radius, const Polygons& current_outline, const Polygons& current_overhang);
-    
+
     /*!
      * Gets the next unsupported location to be supported by a new branch.
      * \param p Output variable for the next point to support.
@@ -90,9 +90,10 @@ protected:
     struct UnsupCell
     {
         UnsupCell(SquareGrid::GridPoint loc, coord_t dist_to_boundary)
-        : loc(loc)
-        , dist_to_boundary(dist_to_boundary)
-        {}
+            : loc(loc)
+            , dist_to_boundary(dist_to_boundary)
+        {
+        }
 
         /*!
          * The position of the center of this cell.
@@ -118,6 +119,6 @@ protected:
     std::unordered_map<SquareGrid::GridPoint, std::list<UnsupCell>::iterator> unsupported_points_grid;
 };
 
-}
+} // namespace cura
 
-#endif //LIGHTNING_DISTANCE_FIELD_H
+#endif // LIGHTNING_DISTANCE_FIELD_H

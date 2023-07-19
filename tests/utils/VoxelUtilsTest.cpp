@@ -1,27 +1,27 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <unordered_set>
-
-#include <gtest/gtest.h>
 #include <../src/utils/VoxelUtils.h>
+#include <gtest/gtest.h>
+#include <unordered_set>
 
 // #define TEST_SVG_OUTPUT
 #ifdef TEST_SVG_OUTPUT
-#include "../src/utils/polygon.h"
-#include <cstdlib>
 #include "../src/utils/SVG.h"
-#endif //TEST_SVG_OUTPUT
+#include "../src/utils/polygon.h"
+
+#include <cstdlib>
+#endif // TEST_SVG_OUTPUT
 
 namespace cura
 {
 
-class VoxelUtilsTest: public testing::Test
+class VoxelUtilsTest : public testing::Test
 {
 public:
     std::vector<Polygons> test_polys;
     std::vector<Polygons> test_polylines;
-    
+
     static constexpr coord_t e = 5u; // should be less than half the cell_size
     static constexpr double allowed_area_error = 20.0 * 20.0;
     static constexpr int n_tests = 50;
@@ -55,7 +55,8 @@ public:
             polylines = polys;
             for (PolygonRef poly : polylines)
             {
-                if (poly.empty()) continue;
+                if (poly.empty())
+                    continue;
                 poly.emplace_back(poly.front());
             }
         }
@@ -69,44 +70,66 @@ TEST_F(VoxelUtilsTest, TestWalkLine)
     Point3 cell_size(30, 20, 1);
     VoxelUtils vu(cell_size);
     std::unordered_set<Point3> voxels;
-    vu.walkLine(start, end, [&voxels](GridPoint3 v) { voxels.emplace(v); return true; } );
-    ASSERT_LE(voxels.size(), 4)
-        << "A line ending in the cross-section between 4 voxels can cover 1 to 4 voxels at that end point";
+    vu.walkLine(
+        start,
+        end,
+        [&voxels](GridPoint3 v)
+        {
+            voxels.emplace(v);
+            return true;
+        });
+    ASSERT_LE(voxels.size(), 4) << "A line ending in the cross-section between 4 voxels can cover 1 to 4 voxels at that end point";
 }
 TEST_F(VoxelUtilsTest, TestWalkBasic)
 {
-    
     for (size_t poly_idx = 0; poly_idx < test_polys.size(); poly_idx++)
     {
         Point3 cell_size;
         switch (poly_idx * 5 / test_polys.size())
         {
-            case 0: cell_size = Point3(30, 20, 1); break;
-            case 1: cell_size = Point3(40, 40, 1); break;
-            case 2: cell_size = Point3(25, 40, 1); break;
-            case 3: cell_size = Point3(400, 400, 1); break;
-            default: cell_size = Point3(poly_size, poly_size, 1); break;
+        case 0:
+            cell_size = Point3(30, 20, 1);
+            break;
+        case 1:
+            cell_size = Point3(40, 40, 1);
+            break;
+        case 2:
+            cell_size = Point3(25, 40, 1);
+            break;
+        case 3:
+            cell_size = Point3(400, 400, 1);
+            break;
+        default:
+            cell_size = Point3(poly_size, poly_size, 1);
+            break;
         }
         coord_t max_dist_from_poly = vSize(Point(cell_size.x, cell_size.y)) + e;
 
         VoxelUtils vu(cell_size);
-        
-        
+
+
         const Polygons& polys = test_polys[poly_idx];
         const Polygons& polylines = test_polylines[poly_idx];
-        
-        
+
+
 #ifdef TEST_SVG_OUTPUT
         {
             SVG svg("/tmp/VoxelUtilsTest_before.svg", AABB(polys));
             svg.writePolygons(polys);
         }
 #endif // TEST_SVG_OUTPUT
-        
+
         // test walkPolygons
         std::unordered_set<GridPoint3> voxels;
-        vu.walkPolygons(polys, z, [&voxels](GridPoint3 v){ voxels.emplace(v); return true; } );
-        
+        vu.walkPolygons(
+            polys,
+            z,
+            [&voxels](GridPoint3 v)
+            {
+                voxels.emplace(v);
+                return true;
+            });
+
         Polygons voxel_area;
         for (const GridPoint3& v : voxels)
         {
@@ -144,8 +167,15 @@ TEST_F(VoxelUtilsTest, TestWalkBasic)
 
 
         // test walkAreas
-        vu.walkAreas(polys, z, [&voxels](GridPoint3 v) { voxels.emplace(v); return true; } ); // add area voxels to the boundary voxels, cause otherwise small areas might have missed 
-        
+        vu.walkAreas(
+            polys,
+            z,
+            [&voxels](GridPoint3 v)
+            {
+                voxels.emplace(v);
+                return true;
+            }); // add area voxels to the boundary voxels, cause otherwise small areas might have missed
+
         voxel_area.clear();
         for (const GridPoint3& v : voxels)
         {
@@ -174,10 +204,10 @@ TEST_F(VoxelUtilsTest, TestWalkBasic)
             << "walkAreas should provide voxels covering all areas of the input polygons. Seed: " << poly_idx;
         // check accuracy
         Polygons covered_area = polys.offset(max_dist_from_poly);
-        covered_area = covered_area.unionPolygons(polylines.offsetPolyLine(max_dist_from_poly)); // prevent clipper bug which sometimes discards outside colinear lines as if they are holes.
+        covered_area
+            = covered_area.unionPolygons(polylines.offsetPolyLine(max_dist_from_poly)); // prevent clipper bug which sometimes discards outside colinear lines as if they are holes.
         ASSERT_LE(voxel_area.difference(covered_area).area(), allowed_area_error)
             << "walkAreas should not include voxels which don't overlap with the polygon area. Seed: " << poly_idx;
-
     }
 }
 
@@ -188,11 +218,21 @@ TEST_F(VoxelUtilsTest, TestWalkDilated)
         Point3 cell_size;
         switch (poly_idx * 5 / test_polys.size())
         {
-            case 0: cell_size = Point3(30, 20, 1); break;
-            case 1: cell_size = Point3(40, 40, 1); break;
-            case 2: cell_size = Point3(25, 40, 1); break;
-            case 3: cell_size = Point3(400, 400, 1); break;
-            default: cell_size = Point3(poly_size, poly_size, 1); break;
+        case 0:
+            cell_size = Point3(30, 20, 1);
+            break;
+        case 1:
+            cell_size = Point3(40, 40, 1);
+            break;
+        case 2:
+            cell_size = Point3(25, 40, 1);
+            break;
+        case 3:
+            cell_size = Point3(400, 400, 1);
+            break;
+        default:
+            cell_size = Point3(poly_size, poly_size, 1);
+            break;
         }
         coord_t kernel_s = 1 + (poly_idx % 5);
         GridPoint3 kernel_size(kernel_s, kernel_s, 1);
@@ -202,25 +242,33 @@ TEST_F(VoxelUtilsTest, TestWalkDilated)
         coord_t max_dist_from_poly = vSize(Point(cell_size.x, cell_size.y) + Point(applied_offset.x, applied_offset.y)) + e;
         coord_t min_dist_from_poly = std::min(applied_offset.x, applied_offset.y);
         // divide by 2, because the kernel is centered around the points in the poly
-        // again divided by 2, because 
+        // again divided by 2, because
 
         VoxelUtils vu(cell_size);
-        
+
         const Polygons& polys = test_polys[poly_idx];
         const Polygons& polylines = test_polylines[poly_idx];
-        
-        
+
+
 #ifdef TEST_SVG_OUTPUT
         {
             SVG svg("/tmp/VoxelUtilsTest_before.svg", AABB(polys));
             svg.writePolygons(polys);
         }
 #endif // TEST_SVG_OUTPUT
-        
+
         // test walkPolygons
         std::unordered_set<GridPoint3> voxels;
-        vu.walkDilatedPolygons(polys, z, kernel, [&voxels](GridPoint3 v){ voxels.emplace(v); return true; } );
-        
+        vu.walkDilatedPolygons(
+            polys,
+            z,
+            kernel,
+            [&voxels](GridPoint3 v)
+            {
+                voxels.emplace(v);
+                return true;
+            });
+
         Polygons voxel_area;
         for (const GridPoint3& v : voxels)
         {
@@ -231,14 +279,14 @@ TEST_F(VoxelUtilsTest, TestWalkDilated)
 #ifdef TEST_SVG_OUTPUT
         {
             AABB aabb(polys);
-            aabb.expand(cell_size.vSize()*2);
+            aabb.expand(cell_size.vSize() * 2);
             SVG svg("/tmp/VoxelUtilsTest_walkPolygons.svg", aabb);
             svg.writeAreas(voxel_area, SVG::Color::RED);
             svg.nextLayer();
             svg.writePolygons(polys);
             svg.nextLayer();
             // reference polygon on which the walk is performed
-            const Point3 translation = (Point3(1,1,1) - kernel.kernel_size % 2) * cell_size / 2;
+            const Point3 translation = (Point3(1, 1, 1) - kernel.kernel_size % 2) * cell_size / 2;
             Polygons translated = polys;
             translated.translate(Point(translation.x, translation.y));
             svg.writePolygons(translated, SVG::Color::GREEN);
@@ -252,7 +300,7 @@ TEST_F(VoxelUtilsTest, TestWalkDilated)
 #endif // TEST_SVG_OUTPUT
 
         // check completeness
-        ASSERT_GE(voxel_area.area() + allowed_area_error, voxel_area.unionPolygons(polylines.offsetPolyLine(min_dist_from_poly, ClipperLib::jtRound)).area()) 
+        ASSERT_GE(voxel_area.area() + allowed_area_error, voxel_area.unionPolygons(polylines.offsetPolyLine(min_dist_from_poly, ClipperLib::jtRound)).area())
             << "walkPolygons should provide voxels covering all segments of the input polygons. Seed: " << poly_idx;
         // check accuracy
         ASSERT_LE(voxel_area.difference(polylines.offsetPolyLine(max_dist_from_poly, ClipperLib::jtRound)).area(), allowed_area_error)
@@ -260,8 +308,16 @@ TEST_F(VoxelUtilsTest, TestWalkDilated)
 
 
         // test walkAreas
-        vu.walkDilatedAreas(polys, z, kernel, [&voxels](GridPoint3 v) { voxels.emplace(v); return true; } ); // add area voxels to the boundary voxels, cause otherwise small areas might have missed 
-        
+        vu.walkDilatedAreas(
+            polys,
+            z,
+            kernel,
+            [&voxels](GridPoint3 v)
+            {
+                voxels.emplace(v);
+                return true;
+            }); // add area voxels to the boundary voxels, cause otherwise small areas might have missed
+
         voxel_area.clear();
         for (const GridPoint3& v : voxels)
         {
@@ -293,10 +349,10 @@ TEST_F(VoxelUtilsTest, TestWalkDilated)
             << "walkAreas should provide voxels covering all areas of the input polygons. Seed: " << poly_idx;
         // check accuracy
         Polygons covered_area = polys.offset(max_dist_from_poly, ClipperLib::jtRound);
-        covered_area = covered_area.unionPolygons(polylines.offsetPolyLine(max_dist_from_poly, ClipperLib::jtRound)); // prevent clipper bug which sometimes discards outside colinear lines as if they are holes.
+        covered_area = covered_area.unionPolygons(
+            polylines.offsetPolyLine(max_dist_from_poly, ClipperLib::jtRound)); // prevent clipper bug which sometimes discards outside colinear lines as if they are holes.
         ASSERT_LE(voxel_area.difference(covered_area).area(), allowed_area_error)
             << "walkAreas should not include voxels which don't overlap with the polygon area. Seed: " << poly_idx;
-
     }
 }
 

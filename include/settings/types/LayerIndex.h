@@ -1,5 +1,5 @@
-//Copyright (c) 2019 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef LAYERINDEX_H
 #define LAYERINDEX_H
@@ -20,12 +20,14 @@ struct LayerIndex
     /*
      * \brief Default constructor setting the layer index to 0.
      */
-    constexpr LayerIndex() : value(0) {};
+    constexpr LayerIndex()
+        : value(0){};
 
     /*
      * \brief Casts an integer to a LayerIndex instance.
      */
-    constexpr LayerIndex(int value) : value(value) {};
+    constexpr LayerIndex(int value)
+        : value(value){};
 
     /*
      * \brief Casts the LayerIndex instance to an integer.
@@ -38,66 +40,70 @@ struct LayerIndex
     /*
      * Some operators to add and subtract layer numbers.
      */
-    LayerIndex operator +(const LayerIndex& other) const
+    LayerIndex operator+(const LayerIndex& other) const
     {
         return LayerIndex(value + other.value);
     }
-    template<typename E> LayerIndex operator +(const E& other) const
+    template<typename E>
+    LayerIndex operator+(const E& other) const
     {
         return LayerIndex(value + other);
     }
 
-    LayerIndex operator -(const LayerIndex& other) const
+    LayerIndex operator-(const LayerIndex& other) const
     {
         return LayerIndex(value - other.value);
     }
-    template<typename E> LayerIndex operator -(const E& other) const
+    template<typename E>
+    LayerIndex operator-(const E& other) const
     {
         return LayerIndex(value - other);
     }
 
-    LayerIndex& operator +=(const LayerIndex& other)
+    LayerIndex& operator+=(const LayerIndex& other)
     {
         value += other.value;
         return *this;
     }
-    template<typename E> LayerIndex& operator +=(const E& other)
+    template<typename E>
+    LayerIndex& operator+=(const E& other)
     {
         value += other;
         return *this;
     }
 
-    LayerIndex& operator -=(const LayerIndex& other)
+    LayerIndex& operator-=(const LayerIndex& other)
     {
         value -= other.value;
         return *this;
     }
-    template<typename E> LayerIndex& operator -=(const E& other)
+    template<typename E>
+    LayerIndex& operator-=(const E& other)
     {
         value -= other;
         return *this;
     }
 
-    LayerIndex& operator ++()
+    LayerIndex& operator++()
     {
         value++;
         return *this;
     }
-    LayerIndex operator ++(int) //Postfix.
+    LayerIndex operator++(int) // Postfix.
     {
         LayerIndex original_value(value);
-        operator++(); //Increment myself.
+        operator++(); // Increment myself.
         return original_value;
     }
-    LayerIndex& operator --()
+    LayerIndex& operator--()
     {
         value--;
         return *this;
     }
-    LayerIndex operator --(int) //Postfix.
+    LayerIndex operator--(int) // Postfix.
     {
         LayerIndex original_value(value);
-        operator--(); //Decrement myself.
+        operator--(); // Decrement myself.
         return original_value;
     }
 
@@ -109,18 +115,18 @@ struct LayerIndex
     int value = 0;
 };
 
-}
+} // namespace cura
 
 namespace std
 {
-    template<>
-    struct hash<cura::LayerIndex>
+template<>
+struct hash<cura::LayerIndex>
+{
+    size_t operator()(const cura::LayerIndex& layer_index) const
     {
-        size_t operator()(const cura::LayerIndex& layer_index) const
-        {
-            return hash<int>()(layer_index.value);
-        }
-    };
-}
+        return hash<int>()(layer_index.value);
+    }
+};
+} // namespace std
 
-#endif //LAYERINDEX_H
+#endif // LAYERINDEX_H

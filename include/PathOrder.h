@@ -1,5 +1,5 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef PATHORDER_H
 #define PATHORDER_H
@@ -28,7 +28,6 @@ template<typename PathType>
 class PathOrder
 {
 public:
-
     /*!
      * After reordering, this contains the paths that need to be printed in the
      * correct order.
@@ -108,25 +107,25 @@ protected:
      */
     void detectLoops()
     {
-        for(PathOrdering<PathType>& path : paths)
+        for (PathOrdering<PathType>& path : paths)
         {
-            if(path.is_closed) //Already a polygon. No need to detect loops.
+            if (path.is_closed) // Already a polygon. No need to detect loops.
             {
                 continue;
             }
-            if(path.converted->size() < 3) //Not enough vertices to really be a closed loop.
+            if (path.converted->size() < 3) // Not enough vertices to really be a closed loop.
             {
                 continue;
             }
-            if(vSize2(path.converted->back() - path.converted->front()) < coincident_point_distance * coincident_point_distance)
+            if (vSize2(path.converted->back() - path.converted->front()) < coincident_point_distance * coincident_point_distance)
             {
-                //Endpoints are really close to one another. Consider it a closed loop.
+                // Endpoints are really close to one another. Consider it a closed loop.
                 path.is_closed = true;
             }
         }
     }
 };
 
-}
+} // namespace cura
 
-#endif //PATHORDER_H
+#endif // PATHORDER_H

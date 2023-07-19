@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef TEMPERATURE_H
 #define TEMPERATURE_H
@@ -17,12 +17,14 @@ struct Temperature
     /*
      * \brief Default constructor setting the temperature to 0.
      */
-    Temperature() : value(0.0) {};
+    Temperature()
+        : value(0.0){};
 
     /*
      * \brief Casts a double to a Temperature instance.
      */
-    Temperature(double value_t) : value(value_t) {};
+    Temperature(double value_t)
+        : value(value_t){};
 
     /*
      * \brief Casts the Temperature instance to a double.
@@ -35,20 +37,20 @@ struct Temperature
     /*
      * Some operators to do arithmetic with Temperatures.
      */
-    Temperature operator +(const Temperature& other) const
+    Temperature operator+(const Temperature& other) const
     {
         return Temperature(value + other.value);
     };
-    Temperature operator -(const Temperature& other) const
+    Temperature operator-(const Temperature& other) const
     {
         return Temperature(value - other.value);
     };
-    Temperature& operator +=(const Temperature& other)
+    Temperature& operator+=(const Temperature& other)
     {
         value += other.value;
         return *this;
     }
-    Temperature& operator -=(const Temperature& other)
+    Temperature& operator-=(const Temperature& other)
     {
         value -= other.value;
         return *this;
@@ -60,6 +62,6 @@ struct Temperature
     double value = 0;
 };
 
-}
+} // namespace cura
 
-#endif //TEMPERATURE_H
+#endif // TEMPERATURE_H

@@ -1,23 +1,22 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
-#include <numeric>
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 #include "BeadingStrategy/DistributedBeadingStrategy.h"
+
+#include <numeric>
 
 namespace cura
 {
 
-DistributedBeadingStrategy::DistributedBeadingStrategy
-(
+DistributedBeadingStrategy::DistributedBeadingStrategy(
     const coord_t optimal_width,
     const coord_t default_transition_length,
     const AngleRadians transitioning_angle,
     const Ratio wall_split_middle_threshold,
     const Ratio wall_add_middle_threshold,
-    const int distribution_radius
-) :
-    BeadingStrategy(optimal_width, wall_split_middle_threshold, wall_add_middle_threshold, default_transition_length, transitioning_angle)
+    const int distribution_radius)
+    : BeadingStrategy(optimal_width, wall_split_middle_threshold, wall_add_middle_threshold, default_transition_length, transitioning_angle)
 {
-    if(distribution_radius >= 2)
+    if (distribution_radius >= 2)
     {
         one_over_distribution_radius_squared = 1.0f / (distribution_radius - 1) * 1.0f / (distribution_radius - 1);
     }

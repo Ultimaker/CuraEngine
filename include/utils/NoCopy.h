@@ -1,5 +1,5 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_NO_COPY_H
 #define UTILS_NO_COPY_H
@@ -7,11 +7,13 @@
 /*!
  * Util class to base other objects off which should never be copied.
  * Is needed because C++ has an implicit copy constructor and assign operator when none are defined.
-*/
+ */
 class NoCopy
 {
 protected:
-    NoCopy() {}
+    NoCopy()
+    {
+    }
 
 private:
     /*!
@@ -24,7 +26,7 @@ private:
      * Private assign operator.
      * Cannot be called because it is private.
      */
-    NoCopy& operator =(const NoCopy&);
+    NoCopy& operator=(const NoCopy&);
 };
 
 #endif // UTILS_NO_COPY_H

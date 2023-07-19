@@ -1,17 +1,17 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_SYMMETRIC_PAIR
 #define UTILS_SYMMETRIC_PAIR
 
 #include <utility> // pair
 
-namespace cura 
+namespace cura
 {
 
 /*!
  * A utility class for a pair of which the order between the first and the second doesn't matter.
- * 
+ *
  * \tparam A The type of both elements of the pair.
  */
 template<class A>
@@ -23,7 +23,7 @@ public:
      */
     template<class U>
     SymmetricPair(const SymmetricPair<U>& pr)
-    : std::pair<A, A>(pr)
+        : std::pair<A, A>(pr)
     {
     }
     /*!
@@ -31,14 +31,14 @@ public:
      */
     template<class U>
     SymmetricPair(SymmetricPair<U>&& pr)
-    : std::pair<A, A>(pr)
+        : std::pair<A, A>(pr)
     {
     }
     /*!
      * Forwarding std::pair constructor
      */
     SymmetricPair(const A& first, const A& second)
-    : std::pair<A, A>(first, second)
+        : std::pair<A, A>(first, second)
     {
     }
     /*!
@@ -46,15 +46,15 @@ public:
      */
     template<class U>
     SymmetricPair(U&& first, U&& second)
-    : std::pair<A, A>(first, second)
+        : std::pair<A, A>(first, second)
     {
     }
     /*!
      * Forwarding std::pair constructor
      */
-    template <class... Args1, class... Args2>
+    template<class... Args1, class... Args2>
     SymmetricPair(std::piecewise_construct_t pwc, std::tuple<Args1...> first_args, std::tuple<Args2...> second_args)
-    : std::pair<A, A>(pwc, first_args, second_args)
+        : std::pair<A, A>(pwc, first_args, second_args)
     {
     }
 
@@ -63,11 +63,12 @@ public:
      */
     bool operator==(const SymmetricPair& other) const
     {
-        return (std::pair<A, A>::first == other.first && std::pair<A, A>::second == other.second) || (std::pair<A, A>::first == other.second && std::pair<A, A>::second == other.first);
+        return (std::pair<A, A>::first == other.first && std::pair<A, A>::second == other.second)
+            || (std::pair<A, A>::first == other.second && std::pair<A, A>::second == other.first);
     }
 };
 
-}//namespace cura
+} // namespace cura
 
 namespace std
 {
@@ -83,7 +84,7 @@ struct hash<cura::SymmetricPair<A>>
         return std::hash<A>()(pr.first) + std::hash<A>()(pr.second);
     }
 };
-}//namespace std
+} // namespace std
 
 
 #endif // UTILS_SYMMETRIC_PAIR

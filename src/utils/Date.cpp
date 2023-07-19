@@ -1,36 +1,34 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "utils/Date.h"
 
-#include <sstream>
 #include <cstdio> // sscanf
 #include <cstring> // strstr
 #include <iomanip> // setw, setfill
+#include <sstream>
 
 namespace cura
 {
 
 Date::Date(int year, int month, int day)
-: year(year)
-, month(month)
-, day(day)
+    : year(year)
+    , month(month)
+    , day(day)
 {
 }
 
 std::string Date::toStringDashed()
 {
     std::ostringstream str;
-    str << std::setfill('0') << std::setw(4) << year << "-" 
-        << std::setfill('0') << std::setw(2) << month << "-" 
-        << std::setfill('0') << std::setw(2) << day; 
+    str << std::setfill('0') << std::setw(4) << year << "-" << std::setfill('0') << std::setw(2) << month << "-" << std::setfill('0') << std::setw(2) << day;
     return str.str();
 }
 
 Date::Date()
-: year(-1)
-, month(-1)
-, day(-1)
+    : year(-1)
+    , month(-1)
+    , day(-1)
 {
 }
 

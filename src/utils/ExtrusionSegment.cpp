@@ -1,11 +1,11 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "utils/ExtrusionSegment.h"
 
-#include <spdlog/spdlog.h>
-
 #include "utils/macros.h"
+
+#include <spdlog/spdlog.h>
 
 namespace cura
 {
@@ -74,7 +74,9 @@ Polygons ExtrusionSegment::toPolygons(bool reduced)
 
     // Draw the endcap on the "to" vertex's end.
     {
-        poly.emplace_back(to.p + Point(to.w / 2 * cos(2 * M_PI - alpha + dir), to.w / 2 * sin(2 * M_PI - alpha + dir))); // Also draws the main diagonal from the "from" vertex to the "to" vertex!
+        poly.emplace_back(
+            to.p
+            + Point(to.w / 2 * cos(2 * M_PI - alpha + dir), to.w / 2 * sin(2 * M_PI - alpha + dir))); // Also draws the main diagonal from the "from" vertex to the "to" vertex!
 
         float start_a = 2 * M_PI;
         while (start_a > alpha + dir)

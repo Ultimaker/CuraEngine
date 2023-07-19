@@ -1,25 +1,27 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_ORDER_OPTIMIZER_H
 #define UTILS_ORDER_OPTIMIZER_H
 
-#include <cstdint>
-#include <vector>
-#include <list>
-#include <utility> // pair
 #include "IntPoint.h"
 
-namespace cura {
- 
+#include <cstdint>
+#include <list>
+#include <utility> // pair
+#include <vector>
+
+namespace cura
+{
+
 /*!
  * Order optimization class.
- * 
+ *
  * Utility class for optimizing the path order by minimizing the cyclic distance traveled between several items.
- * 
+ *
  * The path is heuristically optimized in a way such that each node is visited and the salesman which is travelling ends up where he started.
  */
-template <typename T>
+template<typename T>
 class OrderOptimizer
 {
 public:
@@ -38,13 +40,13 @@ public:
     std::list<size_t> optimize(const Point& start_position);
 };
 
-template <typename T>
+template<typename T>
 void OrderOptimizer<T>::addItem(const Point location, const T item)
 {
     items.emplace_back(location, item);
 }
 
-template <typename T>
+template<typename T>
 std::list<size_t> OrderOptimizer<T>::optimize(const Point& start_position)
 {
     // Use the nearest mesh ordering
@@ -62,7 +64,7 @@ std::list<size_t> OrderOptimizer<T>::optimize(const Point& start_position)
     }
     const Point* last_item_position = &start_position;
 
-    while (!item_idx_list.empty())
+    while (! item_idx_list.empty())
     {
         coord_t shortest_distance = POINT_MAX;
         size_t shortest_distance_item_idx = -1;
@@ -89,6 +91,6 @@ std::list<size_t> OrderOptimizer<T>::optimize(const Point& start_position)
 }
 
 
-}//namespace cura
+} // namespace cura
 
-#endif//UTILS_ORDER_OPTIMIZER_H
+#endif // UTILS_ORDER_OPTIMIZER_H

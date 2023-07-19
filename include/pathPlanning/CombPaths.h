@@ -1,5 +1,5 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef PATH_PLANNING_COMB_PATHS_H
 #define PATH_PLANNING_COMB_PATHS_H
@@ -9,12 +9,12 @@
 namespace cura
 {
 
-class CombPaths : public  std::vector<CombPath> //!< A list of paths alternating between inside a part and outside a part
+class CombPaths : public std::vector<CombPath> //!< A list of paths alternating between inside a part and outside a part
 {
 public:
     bool throughAir = false; //!< Whether the path is one which moves through air.
 };
 
-}//namespace cura
+} // namespace cura
 
-#endif//PATH_PLANNING_COMB_PATHS_H
+#endif // PATH_PLANNING_COMB_PATHS_H

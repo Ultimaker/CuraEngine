@@ -1,15 +1,15 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef WIPE_SCRIPT_CONFIG_H
 #define WIPE_SCRIPT_CONFIG_H
 
-#include "utils/Coord_t.h"
 #include "RetractionConfig.h"
 #include "settings/types/Duration.h"
 #include "settings/types/Velocity.h"
+#include "utils/Coord_t.h"
 
-namespace cura 
+namespace cura
 {
 
 struct WipeScriptConfig
@@ -41,6 +41,6 @@ struct RetractionAndWipeConfig
     RetractionConfig extruder_switch_retraction_config;
 };
 
-}//namespace cura
+} // namespace cura
 
 #endif // WIPE_SCRIPT_CONFIG_H

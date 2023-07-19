@@ -1,12 +1,13 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
 #include "utils/NoCopy.h"
-#include <cstddef> //For size_t.
+
 #include <cassert>
+#include <cstddef> //For size_t.
 
 namespace cura
 {
@@ -85,7 +86,7 @@ public:
      *
      * \param nworkers The number of workers (including the main thread) that are ran.
      */
-    void startThreadPool(int nworkers=0);
+    void startThreadPool(int nworkers = 0);
 
 protected:
 #ifdef ARCUS
@@ -95,7 +96,7 @@ protected:
      * \param argv The arguments provided to the application.
      */
     void connect();
-#endif //ARCUS
+#endif // ARCUS
 
     /*!
      * \brief Print the header and license to the stderr channel.
@@ -136,6 +137,6 @@ private:
     ~Application();
 };
 
-} //Cura namespace.
+} // namespace cura
 
-#endif //APPLICATION_H
+#endif // APPLICATION_H

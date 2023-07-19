@@ -4,11 +4,11 @@
 #ifndef UTILS_HALF_EDGE_H
 #define UTILS_HALF_EDGE_H
 
-#include <forward_list>
-#include <optional>
-
 #include "../utils/IntPoint.h"
 #include "Coord_t.h"
+
+#include <forward_list>
+#include <optional>
 
 namespace cura
 {
@@ -18,6 +18,7 @@ class HalfEdge
 {
     using edge_t = derived_edge_t;
     using node_t = derived_node_t;
+
 public:
     edge_data_t data;
     edge_t* twin = nullptr;
@@ -26,15 +27,14 @@ public:
     node_t* from = nullptr;
     node_t* to = nullptr;
     HalfEdge(edge_data_t data)
-    : data(data)
-    {}
+        : data(data)
+    {
+    }
     bool operator==(const edge_t& other)
     {
         return this == &other;
     }
 };
-
-
 
 
 } // namespace cura

@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef RATIO_H
 #define RATIO_H
@@ -18,12 +18,14 @@ public:
     /*
      * \brief Default constructor setting the ratio to 1.
      */
-    constexpr Ratio() : value(1.0) {};
+    constexpr Ratio()
+        : value(1.0){};
 
     /*
      * \brief Casts a double to a Ratio instance.
      */
-    constexpr Ratio(double value) : value(value) {};
+    constexpr Ratio(double value)
+        : value(value){};
 
     /*!
      * Create the Ratio with a numerator and a divisor from arbitrary types
@@ -32,9 +34,9 @@ public:
      * \param numerator the numerator of the ratio
      * \param divisor the divisor of the ratio
      */
-    template <typename E1, typename E2>
+    template<typename E1, typename E2>
     constexpr Ratio(const E1& numerator, const E2& divisor)
-        : value(static_cast<double>(numerator) / static_cast<double>(divisor)) {};
+        : value(static_cast<double>(numerator) / static_cast<double>(divisor)){};
 
     /*
      * \brief Casts the Ratio instance to a double.
@@ -47,53 +49,57 @@ public:
     /*
      * Some Relational operators
      */
-    template <typename E>
+    template<typename E>
     constexpr bool operator==(const E& rhs) const
     {
         return value == static_cast<double>(rhs);
     }
 
-    template <typename E>
+    template<typename E>
     constexpr bool operator!=(const E& rhs) const
     {
-        return !(rhs == *this);
+        return ! (rhs == *this);
     }
 
     /*
      * Some operators for arithmetic on ratios.
      */
-    Ratio operator *(const Ratio& other) const
+    Ratio operator*(const Ratio& other) const
     {
         return Ratio(value * other.value);
     }
-    template<typename E> Ratio operator *(const E& other) const
+    template<typename E>
+    Ratio operator*(const E& other) const
     {
         return Ratio(value * other);
     }
-    Ratio operator /(const Ratio& other) const
+    Ratio operator/(const Ratio& other) const
     {
         return Ratio(value / other.value);
     }
-    template<typename E> Ratio operator /(const E& other) const
+    template<typename E>
+    Ratio operator/(const E& other) const
     {
         return Ratio(value / other);
     }
-    Ratio& operator *=(const Ratio& other)
+    Ratio& operator*=(const Ratio& other)
     {
         value *= other.value;
         return *this;
     }
-    template<typename E> Ratio& operator *=(const E& other)
+    template<typename E>
+    Ratio& operator*=(const E& other)
     {
         value *= other;
         return *this;
     }
-    Ratio& operator /=(const Ratio& other)
+    Ratio& operator/=(const Ratio& other)
     {
         value /= other.value;
         return *this;
     }
-    template<typename E> Ratio& operator /=(const E& other)
+    template<typename E>
+    Ratio& operator/=(const E& other)
     {
         value /= other;
         return *this;
@@ -105,11 +111,11 @@ public:
     double value = 0;
 };
 
-constexpr Ratio operator "" _r(const long double ratio)
+constexpr Ratio operator"" _r(const long double ratio)
 {
     return Ratio(ratio);
 }
 
-}
+} // namespace cura
 
-#endif //RATIO_H
+#endif // RATIO_H

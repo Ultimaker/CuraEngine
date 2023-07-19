@@ -1,12 +1,14 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "communication/ArcusCommunicationPrivate.h" //The class we're testing.
+
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "MockSocket.h"
 #include "Slice.h"
 #include "utils/Coord_t.h"
+
 #include <array>
 #include <cmath>
 #include <filesystem>
@@ -193,7 +195,8 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
 
     // - - Add settings to the mesh:
     std::map<std::string, std::string> mesh_settings = {
-        { "extruder_nr", "0" }, { "center_object", "1" }, { "mesh_position_x", "0" }, { "mesh_position_y", "0" }, { "mesh_position_z", "0" }, { "infill_mesh", "0" }, { "cutting_mesh", "0" }, { "anti_overhang_mesh", "0" },
+        { "extruder_nr", "0" },     { "center_object", "1" }, { "mesh_position_x", "0" }, { "mesh_position_y", "0" },
+        { "mesh_position_z", "0" }, { "infill_mesh", "0" },   { "cutting_mesh", "0" },    { "anti_overhang_mesh", "0" },
     };
     for (std::pair<std::string, std::string> key_value : mesh_settings)
     {

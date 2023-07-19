@@ -1,5 +1,5 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef FAN_SPEED_LAYER_TIME_H
 #define FAN_SPEED_LAYER_TIME_H
@@ -8,7 +8,7 @@
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Velocity.h"
 
-namespace cura 
+namespace cura
 {
 
 /*!
@@ -19,7 +19,7 @@ namespace cura
  * store these settings over and over again for each part, even though the
  * settings may be different for each part on a layer.
  */
-struct FanSpeedLayerTimeSettings 
+struct FanSpeedLayerTimeSettings
 {
 public:
     /*!

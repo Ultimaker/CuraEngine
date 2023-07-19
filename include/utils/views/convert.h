@@ -1,13 +1,13 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_VIEWS_CONVERT_H
 #define UTILS_VIEWS_CONVERT_H
 
-#include <type_traits>
-
 #include <range/v3/view/transform.hpp>
 #include <range/v3/view/view.hpp>
+
+#include <type_traits>
 
 namespace cura::views
 {
@@ -34,7 +34,11 @@ namespace cura::views
 template<typename V>
 constexpr auto convert(auto&& proj)
 {
-    return ranges::make_view_closure(ranges::views::transform([proj](auto item) { return V { std::invoke(proj, item) }; }));
+    return ranges::make_view_closure(ranges::views::transform(
+        [proj](auto item)
+        {
+            return V{ std::invoke(proj, item) };
+        }));
 }
 } // namespace cura::views
 
