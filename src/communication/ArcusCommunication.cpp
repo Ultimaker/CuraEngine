@@ -339,7 +339,7 @@ void ArcusCommunication::beginGCode()
 
 void ArcusCommunication::flushGCode()
 {
-    const std::string& message_str = slots::instance().invoke<plugins::slot_postprocess >(private_data->gcode_output_stream.str());
+    const std::string& message_str = slots::instance().invoke<plugins::v0::SlotID::POSTPROCESS_MODIFY>(private_data->gcode_output_stream.str());
     if (message_str.size() == 0)
     {
         return;
@@ -372,7 +372,7 @@ void ArcusCommunication::sendCurrentPosition(const Point& position)
 void ArcusCommunication::sendGCodePrefix(const std::string& prefix) const
 {
     std::shared_ptr<proto::GCodePrefix> message = std::make_shared<proto::GCodePrefix>();
-    message->set_data(slots::instance().invoke<plugins::slot_postprocess >(prefix));
+    message->set_data(slots::instance().invoke<plugins::v0::SlotID::POSTPROCESS_MODIFY>(prefix));
     private_data->socket->sendMessage(message);
 }
 
@@ -516,10 +516,10 @@ void ArcusCommunication::sliceNext()
             switch (plugin.id())
             {
             case cura::proto::SlotID::SIMPLIFY_MODIFY:
-                slots::instance().connect<plugins::slot_simplify>(utils::createChannel({ plugin.address(), plugin.port() }));
+                slots::instance().connect<plugins::v0::SlotID::SIMPLIFY_MODIFY>(utils::createChannel({ plugin.address(), plugin.port() }));
                 break;
             case cura::proto::SlotID::POSTPROCESS_MODIFY:
-                slots::instance().connect<plugins::slot_postprocess>(utils::createChannel({ plugin.address(), plugin.port() }));
+                slots::instance().connect<plugins::v0::SlotID::POSTPROCESS_MODIFY>(utils::createChannel({ plugin.address(), plugin.port() }));
                 break;
             default:
                 spdlog::error("Not yet implemented: {}", plugin.id());

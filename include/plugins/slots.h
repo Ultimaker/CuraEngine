@@ -62,6 +62,13 @@ using slot_simplify_ = SlotProxy<v0::SlotID::SIMPLIFY_MODIFY, "<=1.0.0", slots::
 template<class Default = default_process>
 using slot_postprocess_ = SlotProxy<v0::SlotID::POSTPROCESS_MODIFY, "<=1.0.0", slots::postprocess::v0::PostprocessModifyService::Stub, Validator, postprocess_request, postprocess_response, Default>;
 
+template<v0::SlotID> class SlotType { public: static auto slot_definition(); };
+//template<> class SlotType<v0::SlotID::BROADCAST_SETTINGS> { public: static ____ slot_definition(); };
+template<> class SlotType<v0::SlotID::SIMPLIFY_MODIFY> { public: static slot_simplify_<simplify_default> slot_definition(); };
+template<> class SlotType<v0::SlotID::POSTPROCESS_MODIFY> { public: static slot_postprocess_<> slot_definition(); };
+//template<> class SlotType<v0::SlotID::INFILL_MODIFY> { public: static ____ slot_definition(); };
+//template<> class SlotType<v0::SlotID::INFILL_GENERATE> { public: static ____ slot_definition(); };
+
 template<typename... Types>
 struct Typelist
 {
@@ -83,21 +90,24 @@ public:
     using Base = Registry<Typelist<Types...>, Unit>;
     friend Base;
 
-    template<typename Tp>
-    constexpr Tp& get()
+    template<v0::SlotID S>
+    constexpr auto& get()
     {
+        using Tp = decltype(SlotType<S>::slot_definition());
         return get_type<Tp>().proxy;
     }
 
-    template<typename Tp>
+    template<v0::SlotID S>
     constexpr auto invoke(auto&&... args)
     {
-        return std::invoke(get<Tp>(), std::forward<decltype(args)>(args)...);
+        using Tp = decltype(SlotType<S>::slot_definition());
+        return std::invoke(get<S>(), std::forward<decltype(args)>(args)...);
     }
 
-    template<typename Tp>
+    template<v0::SlotID S>
     void connect(auto&& plugin)
     {
+        using Tp = decltype(SlotType<S>::slot_definition());
         get_type<Tp>().proxy = Tp{ std::forward<Tp>(std::move(plugin)) };
     }
 
@@ -148,17 +158,18 @@ template<typename T>
 struct Holder
 {
     T proxy;
+    //FIXME?: Consider saving SlotID here and checking for equality on that, instead of the proxy.
 };
 
 } // namespace details
 
-using slot_simplify = details::slot_simplify_<details::simplify_default>;
-using slot_postprocess = details::slot_postprocess_<>;
+using slot_simplify = decltype(details::SlotType<v0::SlotID::SIMPLIFY_MODIFY>::slot_definition());
+using slot_postprocess = decltype(details::SlotType<v0::SlotID::POSTPROCESS_MODIFY>::slot_definition());
 
 using SlotTypes = details::Typelist<slot_simplify, slot_postprocess>;
 } // namespace plugins
-using slots = plugins::details::SingletonRegistry<plugins::SlotTypes, plugins::details::Holder>;
 
+using slots = plugins::details::SingletonRegistry<plugins::SlotTypes, plugins::details::Holder>;
 } // namespace cura
 
 #endif // PLUGINS_SLOTS_H
