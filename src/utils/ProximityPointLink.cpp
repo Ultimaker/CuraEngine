@@ -1,16 +1,12 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "utils/ProximityPointLink.h"
 
-namespace cura 
+namespace cura
 {
 
-ProximityPointLink::ProximityPointLink(const ListPolyIt a, const ListPolyIt b, int dist, const ProximityPointLinkType type)
-: a(a)
-, b(b)
-, dist(dist)
-, type(type)
+ProximityPointLink::ProximityPointLink(const ListPolyIt a, const ListPolyIt b, int dist, const ProximityPointLinkType type) : a(a), b(b), dist(dist), type(type)
 {
 }
 
@@ -25,4 +21,4 @@ void ProximityPointLink::setDist(coord_t distance) const
     thiss.dist = distance;
 }
 
-}//namespace cura 
+} // namespace cura

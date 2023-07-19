@@ -31,28 +31,25 @@ namespace cura
 constexpr int MINIMUM_LINE_LENGTH = 5; // in uM. Generated lines shorter than this may be discarded
 constexpr int MINIMUM_SQUARED_LINE_LENGTH = MINIMUM_LINE_LENGTH * MINIMUM_LINE_LENGTH;
 
-ExtruderPlan::ExtruderPlan
-(
-    const size_t extruder,
-    const LayerIndex layer_nr,
-    const bool is_initial_layer,
-    const bool is_raft_layer,
-    const coord_t layer_thickness,
-    const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings,
-    const RetractionConfig& retraction_config
-) :
-    heated_pre_travel_time(0),
-    required_start_temperature(-1),
-    extruder_nr(extruder),
-    layer_nr(layer_nr),
-    is_initial_layer(is_initial_layer),
-    is_raft_layer(is_raft_layer),
-    layer_thickness(layer_thickness),
-    fan_speed_layer_time_settings(fan_speed_layer_time_settings),
-    retraction_config(retraction_config),
-    extraTime(0.0),
-    temperatureFactor(0.0),
-    slowest_path_speed(0.0)
+ExtruderPlan::ExtruderPlan(const size_t extruder,
+                           const LayerIndex layer_nr,
+                           const bool is_initial_layer,
+                           const bool is_raft_layer,
+                           const coord_t layer_thickness,
+                           const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings,
+                           const RetractionConfig& retraction_config)
+    : heated_pre_travel_time(0)
+    , required_start_temperature(-1)
+    , extruder_nr(extruder)
+    , layer_nr(layer_nr)
+    , is_initial_layer(is_initial_layer)
+    , is_raft_layer(is_raft_layer)
+    , layer_thickness(layer_thickness)
+    , fan_speed_layer_time_settings(fan_speed_layer_time_settings)
+    , retraction_config(retraction_config)
+    , extraTime(0.0)
+    , temperatureFactor(0.0)
+    , slowest_path_speed(0.0)
 {
 }
 
@@ -102,16 +99,8 @@ void ExtruderPlan::applyBackPressureCompensation(const Ratio back_pressure_compe
 GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio flow, const Ratio width_factor, bool spiralize, const Ratio speed_factor)
 {
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
-    if
-    (
-        paths.size() > 0 &&
-        paths.back().config == &config &&
-        ! paths.back().done &&
-        paths.back().flow == flow &&
-        paths.back().width_factor == width_factor &&
-        paths.back().speed_factor == speed_factor &&
-        paths.back().mesh == current_mesh
-    ) // spiralize can only change when a travel path is in between
+    if (paths.size() > 0 && paths.back().config == &config && ! paths.back().done && paths.back().flow == flow && paths.back().width_factor == width_factor && paths.back().speed_factor == speed_factor
+        && paths.back().mesh == current_mesh) // spiralize can only change when a travel path is in between
     {
         return &paths.back();
     }
@@ -133,36 +122,34 @@ void LayerPlan::forceNewPathStart()
         paths[paths.size() - 1].done = true;
 }
 
-LayerPlan::LayerPlan
-(
-    const SliceDataStorage& storage,
-    LayerIndex layer_nr,
-    coord_t z,
-    coord_t layer_thickness,
-    size_t start_extruder,
-    const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder,
-    coord_t comb_boundary_offset,
-    coord_t comb_move_inside_distance,
-    coord_t travel_avoid_distance
-) :
-    configs_storage(storage, layer_nr, layer_thickness),
-    z(z),
-    final_travel_z(z),
-    mode_skip_agressive_merge(false),
-    storage(storage),
-    layer_nr(layer_nr),
-    is_initial_layer(layer_nr == 0 - static_cast<LayerIndex>(Raft::getTotalExtraLayers())),
-    is_raft_layer(layer_nr < 0 - static_cast<LayerIndex>(Raft::getFillerLayerCount())),
-    layer_thickness(layer_thickness),
-    has_prime_tower_planned_per_extruder(Application::getInstance().current_slice->scene.extruders.size(), false),
-    current_mesh(nullptr),
-    last_extruder_previous_layer(start_extruder),
-    last_planned_extruder(&Application::getInstance().current_slice->scene.extruders[start_extruder]),
-    first_travel_destination_is_inside(false), // set properly when addTravel is called for the first time (otherwise not set properly)
-    comb_boundary_minimum(computeCombBoundary(CombBoundary::MINIMUM)),
-    comb_boundary_preferred(computeCombBoundary(CombBoundary::PREFERRED)),
-    comb_move_inside_distance(comb_move_inside_distance),
-    fan_speed_layer_time_settings_per_extruder(fan_speed_layer_time_settings_per_extruder)
+LayerPlan::LayerPlan(const SliceDataStorage& storage,
+                     LayerIndex layer_nr,
+                     coord_t z,
+                     coord_t layer_thickness,
+                     size_t start_extruder,
+                     const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder,
+                     coord_t comb_boundary_offset,
+                     coord_t comb_move_inside_distance,
+                     coord_t travel_avoid_distance)
+    : configs_storage(storage, layer_nr, layer_thickness)
+    , z(z)
+    , final_travel_z(z)
+    , mode_skip_agressive_merge(false)
+    , storage(storage)
+    , layer_nr(layer_nr)
+    , is_initial_layer(layer_nr == 0 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
+    , is_raft_layer(layer_nr < 0 - static_cast<LayerIndex>(Raft::getFillerLayerCount()))
+    , layer_thickness(layer_thickness)
+    , has_prime_tower_planned_per_extruder(Application::getInstance().current_slice->scene.extruders.size(), false)
+    , current_mesh(nullptr)
+    , last_extruder_previous_layer(start_extruder)
+    , last_planned_extruder(&Application::getInstance().current_slice->scene.extruders[start_extruder])
+    , first_travel_destination_is_inside(false)
+    , // set properly when addTravel is called for the first time (otherwise not set properly)
+    comb_boundary_minimum(computeCombBoundary(CombBoundary::MINIMUM))
+    , comb_boundary_preferred(computeCombBoundary(CombBoundary::PREFERRED))
+    , comb_move_inside_distance(comb_move_inside_distance)
+    , fan_speed_layer_time_settings_per_extruder(fan_speed_layer_time_settings_per_extruder)
 {
     size_t current_extruder = start_extruder;
     was_inside = true; // not used, because the first travel move is bogus
@@ -180,7 +167,8 @@ LayerPlan::LayerPlan
         layer_start_pos_per_extruder.emplace_back(extruder.settings.get<coord_t>("layer_start_x"), extruder.settings.get<coord_t>("layer_start_y"));
     }
     extruder_plans.reserve(Application::getInstance().current_slice->scene.extruders.size());
-    extruder_plans.emplace_back(current_extruder, layer_nr, is_initial_layer, is_raft_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder], storage.retraction_wipe_config_per_extruder[current_extruder].retraction_config);
+    extruder_plans.emplace_back(
+        current_extruder, layer_nr, is_initial_layer, is_raft_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder], storage.retraction_wipe_config_per_extruder[current_extruder].retraction_config);
 
     for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
     { // Skirt and brim.
@@ -422,20 +410,7 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
         bool unretract_before_last_travel_move = false; // Decided when calculating the combing
         const bool perform_z_hops = mesh_or_extruder_settings.get<bool>("retraction_hop_enabled");
         const bool perform_z_hops_only_when_collides = mesh_or_extruder_settings.get<bool>("retraction_hop_only_when_collides");
-        combed =
-            comb->calc
-            (
-                perform_z_hops,
-                perform_z_hops_only_when_collides,
-                *extruder,
-                *last_planned_position,
-                p,
-                combPaths,
-                was_inside,
-                is_inside,
-                max_distance_ignored,
-                unretract_before_last_travel_move
-            );
+        combed = comb->calc(perform_z_hops, perform_z_hops_only_when_collides, *extruder, *last_planned_position, p, combPaths, was_inside, is_inside, max_distance_ignored, unretract_before_last_travel_move);
         if (combed)
         {
             bool retract = path->retract || (combPaths.size() > 1 && retraction_enable);
@@ -503,7 +478,7 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
     {
         if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
         { // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
-            assert (extruder != nullptr);
+            assert(extruder != nullptr);
             coord_t innermost_wall_line_width = mesh_or_extruder_settings.get<coord_t>((mesh_or_extruder_settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
             if (layer_nr == 0)
             {
@@ -1503,10 +1478,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
 
         double factor = 0.0;
         double target_speed = 0.0;
-        std::function<double(const GCodePath&)> slow_down_func
-        {
-            [&target_speed](const GCodePath& path) { return std::min(target_speed / (path.config->getSpeed() * path.speed_factor), 1.0); }
-        };
+        std::function<double(const GCodePath&)> slow_down_func{ [&target_speed](const GCodePath& path) { return std::min(target_speed / (path.config->getSpeed() * path.speed_factor), 1.0); } };
 
         if (minExtrudeTime >= total_extrude_time_at_minimum_speed)
         {
@@ -1525,8 +1497,8 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
         {
             // Slowing down to the slowest path speed is not sufficient, need to slow down further to the minimum speed.
             // Linear interpolate between total_extrude_time_at_slowest_speed and total_extrude_time_at_minimum_speed
-            const double factor = (1/total_extrude_time_at_minimum_speed - 1/minExtrudeTime) / (1/total_extrude_time_at_minimum_speed - 1/total_extrude_time_at_slowest_speed);
-            target_speed = minimalSpeed * (1.0-factor) + slowest_path_speed * factor;
+            const double factor = (1 / total_extrude_time_at_minimum_speed - 1 / minExtrudeTime) / (1 / total_extrude_time_at_minimum_speed - 1 / total_extrude_time_at_slowest_speed);
+            target_speed = minimalSpeed * (1.0 - factor) + slowest_path_speed * factor;
             temperatureFactor = 1.0 - factor;
 
             // Update stored naive time estimates
@@ -1536,13 +1508,12 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
         {
             // Slowing down to the slowest_speed is sufficient to respect the minimum layer time.
             // Linear interpolate between extrudeTime and total_extrude_time_at_slowest_speed
-            factor = (1/total_extrude_time_at_slowest_speed - 1/minExtrudeTime) / (1/total_extrude_time_at_slowest_speed - 1/extrudeTime);
-            slow_down_func =
-                [&slowest_path_speed = slowest_path_speed, &factor](const GCodePath& path)
-                {
-                    const double target_speed = slowest_path_speed * (1.0 - factor) + (path.config->getSpeed() * path.speed_factor) * factor;
-                    return std::min(target_speed / (path.config->getSpeed() * path.speed_factor), 1.0);
-                };
+            factor = (1 / total_extrude_time_at_slowest_speed - 1 / minExtrudeTime) / (1 / total_extrude_time_at_slowest_speed - 1 / extrudeTime);
+            slow_down_func = [&slowest_path_speed = slowest_path_speed, &factor](const GCodePath& path)
+            {
+                const double target_speed = slowest_path_speed * (1.0 - factor) + (path.config->getSpeed() * path.speed_factor) * factor;
+                return std::min(target_speed / (path.config->getSpeed() * path.speed_factor), 1.0);
+            };
 
             // Update stored naive time estimates
             estimates.extrude_time = minExtrudeTime;
@@ -1578,16 +1549,7 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
 
     const double min_path_speed = fan_speed_layer_time_settings.cool_min_speed;
     slowest_path_speed =
-        std::accumulate
-        (
-            paths.begin(),
-            paths.end(),
-            std::numeric_limits<double>::max(),
-            [](double value, const GCodePath& path)
-                {
-                    return path.isTravelPath() ? value : std::min(value, path.config->getSpeed().value * path.speed_factor);
-                }
-        );
+        std::accumulate(paths.begin(), paths.end(), std::numeric_limits<double>::max(), [](double value, const GCodePath& path) { return path.isTravelPath() ? value : std::min(value, path.config->getSpeed().value * path.speed_factor); });
 
     bool was_retracted = false; // wrong assumption; won't matter that much. (TODO)
     for (GCodePath& path : paths)
@@ -1793,7 +1755,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     for (size_t extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
         ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
-        const RetractionAndWipeConfig* retraction_config = current_mesh ? &current_mesh->retraction_wipe_config: &storage.retraction_wipe_config_per_extruder[extruder_plan.extruder_nr];
+        const RetractionAndWipeConfig* retraction_config = current_mesh ? &current_mesh->retraction_wipe_config : &storage.retraction_wipe_config_per_extruder[extruder_plan.extruder_nr];
         coord_t z_hop_height = retraction_config->retraction_config.zHop;
 
         if (extruder_nr != extruder_plan.extruder_nr)
@@ -1866,8 +1828,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         bool update_extrusion_offset = true;
 
         double cumulative_path_time = 0.; // Time in seconds.
-        const std::function<void(const double, const int64_t)> insertTempOnTime =
-            [&](const double to_add, const int64_t path_idx)
+        const std::function<void(const double, const int64_t)> insertTempOnTime = [&](const double to_add, const int64_t path_idx)
         {
             cumulative_path_time += to_add;
             extruder_plan.handleInserts(path_idx, gcode, cumulative_path_time);
@@ -1990,7 +1951,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             // for some movements such as prime tower purge, the speed may get changed by this factor
             speed *= path.speed_factor;
 
-            //This seems to be the best location to place this, but still not ideal.
+            // This seems to be the best location to place this, but still not ideal.
             if (path.mesh != current_mesh)
             {
                 current_mesh = path.mesh;
@@ -2102,7 +2063,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         if (extruder.settings.get<bool>("cool_lift_head") && extruder_plan.extraTime > 0.0)
         {
             gcode.writeComment("Small layer, adding delay");
-            const RetractionAndWipeConfig& retraction_config = current_mesh ? current_mesh->retraction_wipe_config: storage.retraction_wipe_config_per_extruder[gcode.getExtruderNr()];
+            const RetractionAndWipeConfig& retraction_config = current_mesh ? current_mesh->retraction_wipe_config : storage.retraction_wipe_config_per_extruder[gcode.getExtruderNr()];
             gcode.writeRetraction(retraction_config.retraction_config);
             if (extruder_plan_idx == extruder_plans.size() - 1 || ! extruder.settings.get<bool>("machine_extruder_end_pos_abs"))
             { // only do the z-hop if it's the last extruder plan; otherwise it's already at the switching bay area

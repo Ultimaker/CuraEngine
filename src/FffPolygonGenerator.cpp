@@ -128,9 +128,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         const auto variable_layer_height_max_variation = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation");
         const auto variable_layer_height_variation_step = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation_step");
         const auto adaptive_threshold = mesh_group_settings.get<coord_t>("adaptive_layer_height_threshold");
-        adaptive_layer_heights = new AdaptiveLayerHeights(layer_thickness, variable_layer_height_max_variation,
-                                                          variable_layer_height_variation_step, adaptive_threshold,
-                                                          meshgroup);
+        adaptive_layer_heights = new AdaptiveLayerHeights(layer_thickness, variable_layer_height_max_variation, variable_layer_height_variation_step, adaptive_threshold, meshgroup);
 
         // Get the amount of layers
         slice_layer_count = adaptive_layer_heights->getLayerCount();
@@ -386,7 +384,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     // only remove empty layers if we haven't generate support, because then support was added underneath the model.
     //   for some materials it's better to print on support than on the build plate.
     const auto has_support = mesh_group_settings.get<bool>("support_enable") || mesh_group_settings.get<bool>("support_mesh");
-    const auto remove_empty_first_layers = mesh_group_settings.get<bool>("remove_empty_first_layers") && !has_support;
+    const auto remove_empty_first_layers = mesh_group_settings.get<bool>("remove_empty_first_layers") && ! has_support;
     if (remove_empty_first_layers)
     {
         removeEmptyFirstLayers(storage, storage.print_layer_count); // changes storage.print_layer_count!
@@ -696,7 +694,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     SkinInfillAreaComputation::combineInfillLayers(mesh);
 
     // Fuzzy skin. Disabled when using interlocking structures, the internal interlocking walls become fuzzy.
-    if (mesh.settings.get<bool>("magic_fuzzy_skin_enabled") && !mesh.settings.get<bool>("interlocking_enable"))
+    if (mesh.settings.get<bool>("magic_fuzzy_skin_enabled") && ! mesh.settings.get<bool>("interlocking_enable"))
     {
         processFuzzyWalls(mesh);
     }
@@ -861,12 +859,12 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
         case EPlatformAdhesion::SKIRT:
         case EPlatformAdhesion::BRIM:
         {
-                const std::vector<ExtruderTrain*> skirt_brim_extruder_trains = mesh_group_settings.get<std::vector<ExtruderTrain*>>("skirt_brim_extruder_nr");
-                for (ExtruderTrain* train : skirt_brim_extruder_trains)
-                {
-                    const size_t skirt_brim_extruder_nr = train->extruder_nr;
-                    max_print_height_per_extruder[skirt_brim_extruder_nr] = std::max(0, max_print_height_per_extruder[skirt_brim_extruder_nr]); // Includes layer 0.
-                }
+            const std::vector<ExtruderTrain*> skirt_brim_extruder_trains = mesh_group_settings.get<std::vector<ExtruderTrain*>>("skirt_brim_extruder_nr");
+            for (ExtruderTrain* train : skirt_brim_extruder_trains)
+            {
+                const size_t skirt_brim_extruder_nr = train->extruder_nr;
+                max_print_height_per_extruder[skirt_brim_extruder_nr] = std::max(0, max_print_height_per_extruder[skirt_brim_extruder_nr]); // Includes layer 0.
+            }
             break;
         }
         case EPlatformAdhesion::RAFT:
@@ -941,7 +939,8 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
             const auto& extruders = Application::getInstance().current_slice->scene.extruders;
             for (int extruder_nr = 0; extruder_nr < int(extruders.size()); extruder_nr++)
             {
-                if ( ! extruder_is_used[extruder_nr]) continue;
+                if (! extruder_is_used[extruder_nr])
+                    continue;
                 max_line_width = std::max(max_line_width, extruders[extruder_nr].settings.get<coord_t>("skirt_brim_line_width"));
             }
         }
@@ -992,7 +991,8 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
             const auto& extruders = Application::getInstance().current_slice->scene.extruders;
             for (int extruder_nr = 0; extruder_nr < int(extruders.size()); extruder_nr++)
             {
-                if ( ! extruder_is_used[extruder_nr]) continue;
+                if (! extruder_is_used[extruder_nr])
+                    continue;
                 max_line_width = std::max(max_line_width, extruders[extruder_nr].settings.get<coord_t>("skirt_brim_line_width"));
             }
         }

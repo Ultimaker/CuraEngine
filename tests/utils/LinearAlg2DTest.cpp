@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "utils/linearAlg2D.h"
 #include <cstdint>
@@ -297,7 +297,9 @@ INSTANTIATE_TEST_SUITE_P(RotateAroundInstantiation,
                                          RotateAroundParameters(Point(-67, 14), Point(50, 50), 12, Point(-57, -9)) // 12 degrees rotation. Actually ends up at [-57, -9.5]!
                                          ));
 
-class Temp {};
+class Temp
+{
+};
 
 TEST(Temp, LineDistTests)
 {
@@ -306,7 +308,7 @@ TEST(Temp, LineDistTests)
     {
         const Point p{ 500000 + (std::rand() % 4000) - 2000, 500000 + (std::rand() % 4000) - 2000 };
 
-        const coord_t d = (std::rand() % 2000) - 1000 /2;
+        const coord_t d = (std::rand() % 2000) - 1000 / 2;
         const double rang = std::rand() / (static_cast<double>(RAND_MAX) / 6.29);
         const Point x{ p.X + static_cast<coord_t>(d * std::cos(rang)), p.Y - static_cast<coord_t>(d * std::sin(rang)) };
 

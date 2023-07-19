@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <cstring> //For strtok and strcopy.
@@ -407,14 +407,7 @@ std::unordered_set<std::string> CommandLine::defaultSearchDirectories()
     return result;
 }
 
-int CommandLine::loadJSON
-(
-    const rapidjson::Document& document,
-    const std::unordered_set<std::string>& search_directories,
-    Settings& settings,
-    bool force_read_parent,
-    bool force_read_nondefault
-)
+int CommandLine::loadJSON(const rapidjson::Document& document, const std::unordered_set<std::string>& search_directories, Settings& settings, bool force_read_parent, bool force_read_nondefault)
 {
     // Inheritance from other JSON documents.
     if (document.HasMember("inherits") && document["inherits"].IsString())
@@ -502,20 +495,16 @@ bool jsonValue2Str(const rapidjson::Value& value, std::string& value_string)
         }
         std::string temp;
         jsonValue2Str(value[0], temp);
-        value_string =
-            std::string("[") +
-            std::accumulate
-            (
-                std::next(value.Begin()),
-                value.End(),
-                temp,
-                [&temp](std::string converted, const rapidjson::Value& next)
-                {
-                    jsonValue2Str(next, temp);
-                    return std::move(converted) + "," + temp;
-                }
-            ) +
-            std::string("]");
+        value_string = std::string("[")
+                     + std::accumulate(std::next(value.Begin()),
+                                       value.End(),
+                                       temp,
+                                       [&temp](std::string converted, const rapidjson::Value& next)
+                                       {
+                                           jsonValue2Str(next, temp);
+                                           return std::move(converted) + "," + temp;
+                                       })
+                     + std::string("]");
     }
     else
     {

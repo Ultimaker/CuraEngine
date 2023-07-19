@@ -5,8 +5,8 @@
 #include "ReadTestPolygons.h"
 #include "slicer.h"
 #include "utils/Coord_t.h"
-#include <gtest/gtest.h>
 #include <filesystem>
+#include <gtest/gtest.h>
 #include <utility>
 
 #include <scripta/logger.h>

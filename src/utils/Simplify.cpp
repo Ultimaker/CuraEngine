@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <limits>
 #include <queue> //Priority queue to prioritise removing unimportant vertices.
@@ -9,22 +9,21 @@
 namespace cura
 {
 
-Simplify::Simplify(const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation)
-    : max_resolution(max_resolution)
-    , max_deviation(max_deviation)
-    , max_area_deviation(max_area_deviation)
-{}
+Simplify::Simplify(const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation) : max_resolution(max_resolution), max_deviation(max_deviation), max_area_deviation(max_area_deviation)
+{
+}
 
 Simplify::Simplify(const Settings& settings)
     : max_resolution(settings.get<coord_t>("meshfix_maximum_resolution"))
     , max_deviation(settings.get<coord_t>("meshfix_maximum_deviation"))
     , max_area_deviation(settings.get<size_t>("meshfix_maximum_extrusion_area_deviation"))
-{}
+{
+}
 
 Polygons Simplify::polygon(const Polygons& polygons) const
 {
     Polygons result;
-    for(size_t i = 0; i < polygons.size(); ++i)
+    for (size_t i = 0; i < polygons.size(); ++i)
     {
         result.addIfNotEmpty(polygon(polygons[i]));
     }
@@ -46,7 +45,7 @@ ExtrusionLine Simplify::polygon(const ExtrusionLine& polygon) const
 Polygons Simplify::polyline(const Polygons& polylines) const
 {
     Polygons result;
-    for(size_t i = 0; i < polylines.size(); ++i)
+    for (size_t i = 0; i < polylines.size(); ++i)
     {
         result.addIfNotEmpty(polyline(polylines[i]));
     }
@@ -68,14 +67,16 @@ ExtrusionLine Simplify::polyline(const ExtrusionLine& polyline) const
 size_t Simplify::nextNotDeleted(size_t index, const std::vector<bool>& to_delete) const
 {
     const size_t size = to_delete.size();
-    for(index = (index + 1) % size; to_delete[index]; index = (index + 1) % size); //Changes the index variable in-place until we found one that is not deleted.
+    for (index = (index + 1) % size; to_delete[index]; index = (index + 1) % size)
+        ; // Changes the index variable in-place until we found one that is not deleted.
     return index;
 }
 
 size_t Simplify::previousNotDeleted(size_t index, const std::vector<bool>& to_delete) const
 {
     const size_t size = to_delete.size();
-    for(index = (index + size - 1) % size; to_delete[index]; index = (index + size - 1) % size); //Changes the index variable in-place until we found one that is not deleted.
+    for (index = (index + size - 1) % size; to_delete[index]; index = (index + size - 1) % size)
+        ; // Changes the index variable in-place until we found one that is not deleted.
     return index;
 }
 
@@ -118,15 +119,15 @@ Point Simplify::createIntersection(const Point& before, const Point intersection
 
 ExtrusionJunction Simplify::createIntersection(const ExtrusionJunction& before, const Point intersection, const ExtrusionJunction& after) const
 {
-    //Average the extrusion width of the line.
-    //More correct would be to see where along the line the intersection occurs with a projection or something.
-    //But these details are so small, and this solution is so much quicker and simpler.
+    // Average the extrusion width of the line.
+    // More correct would be to see where along the line the intersection occurs with a projection or something.
+    // But these details are so small, and this solution is so much quicker and simpler.
     return ExtrusionJunction(intersection, (before.w + after.w) / 2, before.perimeter_index);
 }
 
 coord_t Simplify::getAreaDeviation(const Point& before, const Point& vertex, const Point& after) const
 {
-    return 0; //Fixed-width polygons don't have any deviation.
+    return 0; // Fixed-width polygons don't have any deviation.
 }
 
 coord_t Simplify::getAreaDeviation(const ExtrusionJunction& before, const ExtrusionJunction& vertex, const ExtrusionJunction& after) const
@@ -151,9 +152,9 @@ coord_t Simplify::getAreaDeviation(const ExtrusionJunction& before, const Extrus
     const coord_t ab_length = vSize(vertex - before);
     const coord_t bc_length = vSize(after - vertex);
     const coord_t ac_length = vSize(after - before);
-    if(ab_length == 0 || ac_length == 0 || bc_length == 0)
+    if (ab_length == 0 || ac_length == 0 || bc_length == 0)
     {
-        return 0; //Either of the line segments is zero, so the deviation of one of the line segments doesn't matter (not printed). So effectively there is no deviation.
+        return 0; // Either of the line segments is zero, so the deviation of one of the line segments doesn't matter (not printed). So effectively there is no deviation.
     }
     const coord_t width_diff = std::max(std::abs(vertex.w - before.w), std::abs(after.w - vertex.w));
     if (width_diff > 1)
@@ -172,4 +173,4 @@ coord_t Simplify::getAreaDeviation(const ExtrusionJunction& before, const Extrus
     }
 }
 
-}
+} // namespace cura

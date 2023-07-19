@@ -260,10 +260,7 @@ std::vector<RetractionAndWipeConfig> SliceDataStorage::initializeRetractionAndWi
     return ret;
 }
 
-SliceDataStorage::SliceDataStorage() :
-    print_layer_count(0),
-    retraction_wipe_config_per_extruder(initializeRetractionAndWipeConfigs()),
-    max_print_height_second_to_last_extruder(-1)
+SliceDataStorage::SliceDataStorage() : print_layer_count(0), retraction_wipe_config_per_extruder(initializeRetractionAndWipeConfigs()), max_print_height_second_to_last_extruder(-1)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     Point3 machine_max(mesh_group_settings.get<coord_t>("machine_width"), mesh_group_settings.get<coord_t>("machine_depth"), mesh_group_settings.get<coord_t>("machine_height"));
@@ -311,8 +308,7 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const boo
         {
             for (const SliceMeshStorage& mesh : meshes)
             {
-                if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh")
-                    || (extruder_nr != -1 && extruder_nr != int(mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)))
+                if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh") || (extruder_nr != -1 && extruder_nr != int(mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)))
                 {
                     continue;
                 }
@@ -571,7 +567,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
     for (PolygonRef poly : disallowed_areas)
         for (Point& p : poly)
             p = Point(machine_size.max.x / 2 + p.X, machine_size.max.y / 2 - p.Y); // apparently the frontend stores the disallowed areas in a different coordinate system
-    
+
     std::vector<bool> extruder_is_used = getExtrudersUsed();
 
     constexpr coord_t prime_clearance = MM2INT(6.5);
@@ -582,7 +578,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
             continue;
         }
         Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
-        if (!(extruder_settings.get<bool>("prime_blob_enable") && mesh_group_settings.get<bool>("extruder_prime_pos_abs")))
+        if (! (extruder_settings.get<bool>("prime_blob_enable") && mesh_group_settings.get<bool>("extruder_prime_pos_abs")))
         {
             continue;
         }
@@ -602,7 +598,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
     bool first = true;
     for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
     {
-        if ((checking_extruder_nr != -1 && int(extruder_nr) != checking_extruder_nr) || !extruder_is_used[extruder_nr])
+        if ((checking_extruder_nr != -1 && int(extruder_nr) != checking_extruder_nr) || ! extruder_is_used[extruder_nr])
         {
             continue;
         }
@@ -621,7 +617,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
         }
     }
     disallowed_all_extruders.processEvenOdd(ClipperLib::pftNonZero); // prevent overlapping disallowed areas from XORing
-    
+
     Polygons border_all_extruders = border; // each extruders border areas must be limited to the global border, which is the union of all extruders borders
     if (mesh_group_settings.has("nozzle_offsetting_for_disallowed_areas") && mesh_group_settings.get<bool>("nozzle_offsetting_for_disallowed_areas"))
     {

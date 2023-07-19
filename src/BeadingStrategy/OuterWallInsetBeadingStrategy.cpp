@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "BeadingStrategy/OuterWallInsetBeadingStrategy.h"
 
@@ -7,10 +7,7 @@
 
 namespace cura
 {
-OuterWallInsetBeadingStrategy::OuterWallInsetBeadingStrategy(coord_t outer_wall_offset, BeadingStrategyPtr parent) :
-    BeadingStrategy(*parent),
-    parent(std::move(parent)),
-    outer_wall_offset(outer_wall_offset)
+OuterWallInsetBeadingStrategy::OuterWallInsetBeadingStrategy(coord_t outer_wall_offset, BeadingStrategyPtr parent) : BeadingStrategy(*parent), parent(std::move(parent)), outer_wall_offset(outer_wall_offset)
 {
     name = "OuterWallOfsetBeadingStrategy";
 }

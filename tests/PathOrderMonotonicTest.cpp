@@ -8,8 +8,8 @@
 #include "utils/Coord_t.h"
 #include "utils/math.h"
 #include "utils/polygon.h"
-#include <gtest/gtest.h>
 #include <filesystem>
+#include <gtest/gtest.h>
 #include <polyclipping/clipper.hpp>
 #include <string>
 

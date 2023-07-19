@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <cassert>
 
@@ -8,31 +8,25 @@
 namespace cura
 {
 
-BeadingStrategy::BeadingStrategy
-(
-    coord_t optimal_width,
-    Ratio wall_split_middle_threshold,
-    Ratio wall_add_middle_threshold,
-    coord_t default_transition_length,
-    float transitioning_angle
-) :
-    optimal_width(optimal_width),
-    wall_split_middle_threshold(wall_split_middle_threshold),
-    wall_add_middle_threshold(wall_add_middle_threshold),
-    default_transition_length(default_transition_length),
-    transitioning_angle(transitioning_angle)
+BeadingStrategy::BeadingStrategy(coord_t optimal_width, Ratio wall_split_middle_threshold, Ratio wall_add_middle_threshold, coord_t default_transition_length, float transitioning_angle)
+    : optimal_width(optimal_width)
+    , wall_split_middle_threshold(wall_split_middle_threshold)
+    , wall_add_middle_threshold(wall_add_middle_threshold)
+    , default_transition_length(default_transition_length)
+    , transitioning_angle(transitioning_angle)
 {
     name = "Unknown";
 }
 
-BeadingStrategy::BeadingStrategy(const BeadingStrategy& other) :
-    optimal_width(other.optimal_width),
-    wall_split_middle_threshold(other.wall_split_middle_threshold),
-    wall_add_middle_threshold(other.wall_add_middle_threshold),
-    default_transition_length(other.default_transition_length),
-    transitioning_angle(other.transitioning_angle),
-    name(other.name)
-{}
+BeadingStrategy::BeadingStrategy(const BeadingStrategy& other)
+    : optimal_width(other.optimal_width)
+    , wall_split_middle_threshold(other.wall_split_middle_threshold)
+    , wall_add_middle_threshold(other.wall_add_middle_threshold)
+    , default_transition_length(other.default_transition_length)
+    , transitioning_angle(other.transitioning_angle)
+    , name(other.name)
+{
+}
 
 coord_t BeadingStrategy::getTransitioningLength(coord_t lower_bead_count) const
 {

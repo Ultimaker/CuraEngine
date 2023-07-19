@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "infill/LightningLayer.h" //The class we're implementing.
 
@@ -8,9 +8,9 @@
 #include "infill/LightningDistanceField.h"
 #include "infill/LightningTreeNode.h"
 #include "sliceDataStorage.h"
-#include "utils/linearAlg2D.h"
 #include "utils/SVG.h"
 #include "utils/SparsePointGridInclusive.h"
+#include "utils/linearAlg2D.h"
 
 using namespace cura;
 
@@ -34,25 +34,14 @@ Point GroundingLocation::p() const
 
 void LightningLayer::fillLocator(SparseLightningTreeNodeGrid& tree_node_locator)
 {
-    std::function<void(LightningTreeNodeSPtr)> add_node_to_locator_func =
-        [&tree_node_locator](LightningTreeNodeSPtr node)
-        {
-            tree_node_locator.insert(node->getLocation(), node);
-        };
+    std::function<void(LightningTreeNodeSPtr)> add_node_to_locator_func = [&tree_node_locator](LightningTreeNodeSPtr node) { tree_node_locator.insert(node->getLocation(), node); };
     for (auto& tree : tree_roots)
     {
         tree->visitNodes(add_node_to_locator_func);
     }
 }
 
-void LightningLayer::generateNewTrees
-(
-    const Polygons& current_overhang,
-    const Polygons& current_outlines,
-    const LocToLineGrid& outlines_locator,
-    const coord_t supporting_radius,
-    const coord_t wall_supporting_radius
-)
+void LightningLayer::generateNewTrees(const Polygons& current_overhang, const Polygons& current_outlines, const LocToLineGrid& outlines_locator, const coord_t supporting_radius, const coord_t wall_supporting_radius)
 {
     LightningDistanceField distance_field(supporting_radius, current_outlines, current_overhang);
 
@@ -64,16 +53,7 @@ void LightningLayer::generateNewTrees
     Point unsupported_location;
     while (distance_field.tryGetNextPoint(&unsupported_location))
     {
-        GroundingLocation grounding_loc =
-            getBestGroundingLocation
-            (
-                unsupported_location,
-                current_outlines,
-                outlines_locator,
-                supporting_radius,
-                wall_supporting_radius,
-                tree_node_locator
-            );
+        GroundingLocation grounding_loc = getBestGroundingLocation(unsupported_location, current_outlines, outlines_locator, supporting_radius, wall_supporting_radius, tree_node_locator);
 
         LightningTreeNodeSPtr new_parent;
         LightningTreeNodeSPtr new_child;
@@ -89,16 +69,13 @@ void LightningLayer::generateNewTrees
     }
 }
 
-GroundingLocation LightningLayer::getBestGroundingLocation
-(
-    const Point& unsupported_location,
-    const Polygons& current_outlines,
-    const LocToLineGrid& outline_locator,
-    const coord_t supporting_radius,
-    const coord_t wall_supporting_radius,
-    const SparseLightningTreeNodeGrid& tree_node_locator,
-    const LightningTreeNodeSPtr& exclude_tree
-)
+GroundingLocation LightningLayer::getBestGroundingLocation(const Point& unsupported_location,
+                                                           const Polygons& current_outlines,
+                                                           const LocToLineGrid& outline_locator,
+                                                           const coord_t supporting_radius,
+                                                           const coord_t wall_supporting_radius,
+                                                           const SparseLightningTreeNodeGrid& tree_node_locator,
+                                                           const LightningTreeNodeSPtr& exclude_tree)
 {
     ClosestPolygonPoint cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
     Point node_location = cpp.p();
@@ -114,12 +91,8 @@ GroundingLocation LightningLayer::getBestGroundingLocation
         for (auto& candidate_wptr : candidate_trees)
         {
             auto candidate_sub_tree = candidate_wptr.lock();
-            if
-            (
-                (candidate_sub_tree && candidate_sub_tree != exclude_tree) &&
-                ! (exclude_tree && exclude_tree->hasOffspring(candidate_sub_tree)) &&
-                ! PolygonUtils::polygonCollidesWithLineSegment(unsupported_location, candidate_sub_tree->getLocation(), outline_locator, &dummy)
-            )
+            if ((candidate_sub_tree && candidate_sub_tree != exclude_tree) && ! (exclude_tree && exclude_tree->hasOffspring(candidate_sub_tree))
+                && ! PolygonUtils::polygonCollidesWithLineSegment(unsupported_location, candidate_sub_tree->getLocation(), outline_locator, &dummy))
             {
                 const coord_t candidate_dist = candidate_sub_tree->getWeightedDistance(unsupported_location, supporting_radius);
                 if (candidate_dist < current_dist)
@@ -141,13 +114,7 @@ GroundingLocation LightningLayer::getBestGroundingLocation
     }
 }
 
-bool LightningLayer::attach
-(
-    const Point& unsupported_location,
-    const GroundingLocation& grounding_loc,
-    LightningTreeNodeSPtr& new_child,
-    LightningTreeNodeSPtr& new_root
-)
+bool LightningLayer::attach(const Point& unsupported_location, const GroundingLocation& grounding_loc, LightningTreeNodeSPtr& new_child, LightningTreeNodeSPtr& new_root)
 {
     // Update trees & distance fields.
     if (grounding_loc.boundary_location)
@@ -164,14 +131,11 @@ bool LightningLayer::attach
     }
 }
 
-void LightningLayer::reconnectRoots
-(
-    std::vector<LightningTreeNodeSPtr>& to_be_reconnected_tree_roots,
-    const Polygons& current_outlines,
-    const LocToLineGrid& outline_locator,
-    const coord_t supporting_radius,
-    const coord_t wall_supporting_radius
-)
+void LightningLayer::reconnectRoots(std::vector<LightningTreeNodeSPtr>& to_be_reconnected_tree_roots,
+                                    const Polygons& current_outlines,
+                                    const LocToLineGrid& outline_locator,
+                                    const coord_t supporting_radius,
+                                    const coord_t wall_supporting_radius)
 {
     constexpr coord_t tree_connecting_ignore_offset = 100;
 
@@ -203,17 +167,7 @@ void LightningLayer::reconnectRoots
         }
 
         const coord_t tree_connecting_ignore_width = wall_supporting_radius - tree_connecting_ignore_offset; // Ideally, the boundary size in which the valence rule is ignored would be configurable.
-        GroundingLocation ground =
-            getBestGroundingLocation
-            (
-                root_ptr->getLocation(),
-                current_outlines,
-                outline_locator,
-                supporting_radius,
-                tree_connecting_ignore_width,
-                tree_node_locator,
-                root_ptr
-            );
+        GroundingLocation ground = getBestGroundingLocation(root_ptr->getLocation(), current_outlines, outline_locator, supporting_radius, tree_connecting_ignore_width, tree_node_locator, root_ptr);
         if (ground.boundary_location)
         {
             if (ground.boundary_location.value().p() == root_ptr->getLocation())
@@ -234,8 +188,8 @@ void LightningLayer::reconnectRoots
         {
             assert(ground.tree_node);
             assert(ground.tree_node != root_ptr);
-            assert(!root_ptr->hasOffspring(ground.tree_node));
-            assert(!ground.tree_node->hasOffspring(root_ptr));
+            assert(! root_ptr->hasOffspring(ground.tree_node));
+            assert(! ground.tree_node->hasOffspring(root_ptr));
 
             auto attach_ptr = root_ptr->closestNode(ground.tree_node->getLocation());
             attach_ptr->reroot();

@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "pathPlanning/LinePolygonsCrossings.h"
 
@@ -8,36 +8,34 @@
 #include "sliceDataStorage.h"
 #include "utils/SVG.h"
 
-namespace cura {
+namespace cura
+{
 
-LinePolygonsCrossings::Crossing::Crossing(const size_t poly_idx, const coord_t x, const size_t point_idx)
-: poly_idx(poly_idx)
-, x(x)
-, point_idx(point_idx)
+LinePolygonsCrossings::Crossing::Crossing(const size_t poly_idx, const coord_t x, const size_t point_idx) : poly_idx(poly_idx), x(x), point_idx(point_idx)
 {
 }
 
 bool LinePolygonsCrossings::calcScanlineCrossings(bool fail_on_unavoidable_obstacles)
 {
-    for(unsigned int poly_idx = 0; poly_idx < boundary.size(); poly_idx++)
+    for (unsigned int poly_idx = 0; poly_idx < boundary.size(); poly_idx++)
     {
         ConstPolygonRef poly = boundary[poly_idx];
         Point p0 = transformation_matrix.apply(poly[poly.size() - 1]);
-        for(unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
+        for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
             Point p1 = transformation_matrix.apply(poly[point_idx]);
             if ((p0.Y >= transformed_startPoint.Y && p1.Y <= transformed_startPoint.Y) || (p1.Y >= transformed_startPoint.Y && p0.Y <= transformed_startPoint.Y))
             { // if line segment crosses the line through the transformed start and end point (aka scanline)
-                if (p1.Y == p0.Y) //Line segment is parallel with the scanline. That means that both endpoints lie on the scanline, so they will have intersected with the adjacent line.
+                if (p1.Y == p0.Y) // Line segment is parallel with the scanline. That means that both endpoints lie on the scanline, so they will have intersected with the adjacent line.
                 {
                     p0 = p1;
                     continue;
                 }
                 const coord_t x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y); // intersection point between line segment and the scanline
-                
+
                 if (x >= transformed_startPoint.X && x <= transformed_endPoint.X)
                 {
-                    if (!((p1.Y == transformed_startPoint.Y && p1.Y < p0.Y) || (p0.Y == transformed_startPoint.Y && p0.Y < p1.Y)))
+                    if (! ((p1.Y == transformed_startPoint.Y && p1.Y < p0.Y) || (p0.Y == transformed_startPoint.Y && p0.Y < p1.Y)))
                     { // perform edge case only for line segments on and below the scanline, not for line segments on and above.
                         // \/ will be no crossings and /\ two, but most importantly | will be one crossing.
                         crossings.emplace_back(poly_idx, x, point_idx);
@@ -66,10 +64,10 @@ bool LinePolygonsCrossings::lineSegmentCollidesWithBoundary()
     transformed_startPoint = transformation_matrix.apply(startPoint);
     transformed_endPoint = transformation_matrix.apply(endPoint);
 
-    for(ConstPolygonRef poly : boundary)
+    for (ConstPolygonRef poly : boundary)
     {
         Point p0 = transformation_matrix.apply(poly.back());
-        for(Point p1_ : poly)
+        for (Point p1_ : poly)
         {
             Point p1 = transformation_matrix.apply(p1_);
             // when the boundary just touches the line don't disambiguate between the boundary moving on to actually cross the line
@@ -89,23 +87,23 @@ bool LinePolygonsCrossings::lineSegmentCollidesWithBoundary()
             p0 = p1;
         }
     }
-    
+
     return false;
 }
 
 
 bool LinePolygonsCrossings::generateCombingPath(CombPath& combPath, int64_t max_comb_distance_ignored, bool fail_on_unavoidable_obstacles)
 {
-    if (shorterThen(endPoint - startPoint, max_comb_distance_ignored) || !lineSegmentCollidesWithBoundary())
+    if (shorterThen(endPoint - startPoint, max_comb_distance_ignored) || ! lineSegmentCollidesWithBoundary())
     {
-        //We're not crossing any boundaries. So skip the comb generation.
-        combPath.push_back(startPoint); 
+        // We're not crossing any boundaries. So skip the comb generation.
+        combPath.push_back(startPoint);
         combPath.push_back(endPoint);
         return true;
     }
 
     bool success = calcScanlineCrossings(fail_on_unavoidable_obstacles);
-    if (!success)
+    if (! success)
     {
         return false;
     }
@@ -113,7 +111,7 @@ bool LinePolygonsCrossings::generateCombingPath(CombPath& combPath, int64_t max_
     CombPath basicPath;
     generateBasicCombingPath(basicPath);
     optimizePath(basicPath, combPath);
-//    combPath = basicPath; // uncomment to disable comb path optimization
+    //    combPath = basicPath; // uncomment to disable comb path optimization
     return true;
 }
 
@@ -150,9 +148,7 @@ void LinePolygonsCrossings::generateBasicCombingPath(const Crossing& min, const 
     std::vector<Point> fwd_points;
     Point prev = combPath.back();
     coord_t fwd_len = 0;
-    for (unsigned int point_idx = min.point_idx
-        ; point_idx != max.point_idx
-        ; point_idx = (point_idx < poly.size() - 1) ? (point_idx + 1) : (0))
+    for (unsigned int point_idx = min.point_idx; point_idx != max.point_idx; point_idx = (point_idx < poly.size() - 1) ? (point_idx + 1) : (0))
     {
         const Point p = PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside);
         fwd_points.push_back(p);
@@ -171,11 +167,9 @@ void LinePolygonsCrossings::generateBasicCombingPath(const Crossing& min, const 
     std::vector<Point> rev_points;
     prev = combPath.back();
     coord_t rev_len = 0;
-    unsigned int min_idx = (min.point_idx == 0)? poly.size() - 1 : min.point_idx - 1;
-    unsigned int max_idx = (max.point_idx == 0)? poly.size() - 1 : max.point_idx - 1;
-    for (unsigned int point_idx = min_idx
-        ; point_idx != max_idx
-        ; point_idx = (point_idx > 0) ? (point_idx - 1) : (poly.size() - 1))
+    unsigned int min_idx = (min.point_idx == 0) ? poly.size() - 1 : min.point_idx - 1;
+    unsigned int max_idx = (max.point_idx == 0) ? poly.size() - 1 : max.point_idx - 1;
+    for (unsigned int point_idx = min_idx; point_idx != max_idx; point_idx = (point_idx > 0) ? (point_idx - 1) : (poly.size() - 1))
     {
         const Point p = PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside);
         rev_points.push_back(p);
@@ -201,12 +195,12 @@ void LinePolygonsCrossings::generateBasicCombingPath(const Crossing& min, const 
     combPath.push_back(last);
 }
 
-bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimized_comb_path) 
+bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimized_comb_path)
 {
     optimized_comb_path.push_back(startPoint);
-    for(unsigned int point_idx = 1; point_idx<comb_path.size(); point_idx++)
+    for (unsigned int point_idx = 1; point_idx < comb_path.size(); point_idx++)
     {
-        if(comb_path[point_idx] == comb_path[point_idx - 1]) //Two points are the same. Skip the second.
+        if (comb_path[point_idx] == comb_path[point_idx - 1]) // Two points are the same. Skip the second.
         {
             continue;
         }
@@ -221,7 +215,7 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
             const int max_short_circuit_len = 1 << 3; // test distances of 8, 4, 2, 1
             for (unsigned n = std::min(max_short_circuit_len, (int)optimized_comb_path.size()); n > 0; n >>= 1)
             {
-                if (optimized_comb_path.size() > n && !PolygonUtils::polygonCollidesWithLineSegment(optimized_comb_path[optimized_comb_path.size() - n - 1], comb_path[point_idx - 1], loc_to_line_grid))
+                if (optimized_comb_path.size() > n && ! PolygonUtils::polygonCollidesWithLineSegment(optimized_comb_path[optimized_comb_path.size() - n - 1], comb_path[point_idx - 1], loc_to_line_grid))
                 {
                     // we can remove n points from the path without it clashing with the combing boundary
                     for (unsigned i = 0; i < n; ++i)
@@ -254,7 +248,7 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
                 {
                     // slide p towards the second point in the comb path
                     p = comb_path[1] + (p - comb_path[1]) * frac;
-                    if (!PolygonUtils::polygonCollidesWithLineSegment(startPoint, p, loc_to_line_grid))
+                    if (! PolygonUtils::polygonCollidesWithLineSegment(startPoint, p, loc_to_line_grid))
                     {
                         // using the new corner doesn't cause a conflict
                         optimized_comb_path.back() = p;
@@ -267,10 +261,10 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
                 }
             }
         }
-        else 
+        else
         {
             // : dont add the newest point
-            
+
             // TODO: add the below extra optimization? (+/- 7% extra computation time, +/- 2% faster print for Dual_extrusion_support_generation.stl)
             while (optimized_comb_path.size() > 1)
             {
@@ -278,7 +272,7 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
                 {
                     break;
                 }
-                else 
+                else
                 {
                     optimized_comb_path.pop_back();
                 }
@@ -290,18 +284,19 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
     {
         const unsigned n = optimized_comb_path.size();
         // the penultimate corner may be deleted if the resulting path doesn't conflict with the boundary
-        if (!PolygonUtils::polygonCollidesWithLineSegment(optimized_comb_path[n - 2], comb_path.back(), loc_to_line_grid))
+        if (! PolygonUtils::polygonCollidesWithLineSegment(optimized_comb_path[n - 2], comb_path.back(), loc_to_line_grid))
         {
             optimized_comb_path.pop_back();
         }
-        else {
+        else
+        {
             // that wasn't possible so try and move the penultimate corner without conficting with the boundary
             // in exactly the same way as we did at the start of the path
             for (float frac : { 0.9, 0.9, 0.7, 0.5 })
             {
                 // make a new point between the penultimate corner and the corner before that
                 Point p = optimized_comb_path[n - 2] + (optimized_comb_path[n - 1] - optimized_comb_path[n - 2]) * frac;
-                if (!PolygonUtils::polygonCollidesWithLineSegment(p, comb_path.back(), loc_to_line_grid))
+                if (! PolygonUtils::polygonCollidesWithLineSegment(p, comb_path.back(), loc_to_line_grid))
                 {
                     // using the new corner doesn't cause a conflict
                     optimized_comb_path[n - 1] = p;
@@ -319,4 +314,4 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
     return true;
 }
 
-}//namespace cura
+} // namespace cura

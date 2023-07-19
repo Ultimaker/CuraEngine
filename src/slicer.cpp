@@ -1011,58 +1011,55 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
 
     const auto max_hole_area = std::numbers::pi / 4 * static_cast<double>(hole_offset_max_diameter * hole_offset_max_diameter);
 
-    cura::parallel_for<size_t>
-    (
-        0,
-        layers.size(),
-        [&layers, layer_apply_initial_xy_offset, xy_offset, xy_offset_0, xy_offset_hole, hole_offset_max_diameter, max_hole_area](size_t layer_nr)
-        {
-            const auto xy_offset_local = (layer_nr <= layer_apply_initial_xy_offset) ? xy_offset_0 : xy_offset;
-            if (xy_offset_local != 0)
-            {
-                layers[layer_nr].polygons = layers[layer_nr].polygons.offset(xy_offset_local, ClipperLib::JoinType::jtRound);
-            }
-            if (xy_offset_hole != 0)
-            {
-                const auto parts = layers[layer_nr].polygons.splitIntoParts();
-                layers[layer_nr].polygons.clear();
+    cura::parallel_for<size_t>(0,
+                               layers.size(),
+                               [&layers, layer_apply_initial_xy_offset, xy_offset, xy_offset_0, xy_offset_hole, hole_offset_max_diameter, max_hole_area](size_t layer_nr)
+                               {
+                                   const auto xy_offset_local = (layer_nr <= layer_apply_initial_xy_offset) ? xy_offset_0 : xy_offset;
+                                   if (xy_offset_local != 0)
+                                   {
+                                       layers[layer_nr].polygons = layers[layer_nr].polygons.offset(xy_offset_local, ClipperLib::JoinType::jtRound);
+                                   }
+                                   if (xy_offset_hole != 0)
+                                   {
+                                       const auto parts = layers[layer_nr].polygons.splitIntoParts();
+                                       layers[layer_nr].polygons.clear();
 
-                for (const auto& part : parts)
-                {
-                    Polygons holes;
-                    Polygons outline;
-                    for (ConstPolygonRef poly : part)
-                    {
-                        const auto area = poly.area();
-                        const auto abs_area = std::abs(area);
-                        const auto is_hole = area < 0;
-                        if (is_hole)
-                        {
-                            if (hole_offset_max_diameter == 0)
-                            {
-                                holes.add(poly.offset(xy_offset_hole));
-                            }
-                            else if (abs_area < max_hole_area)
-                            {
-                                const auto distance = static_cast<int>(std::lerp(xy_offset_hole, 0, abs_area / max_hole_area));
-                                holes.add(poly.offset(distance));
-                            }
-                            else
-                            {
-                                holes.add(poly);
-                            }
-                        }
-                        else
-                        {
-                            outline.add(poly);
-                        }
-                    }
+                                       for (const auto& part : parts)
+                                       {
+                                           Polygons holes;
+                                           Polygons outline;
+                                           for (ConstPolygonRef poly : part)
+                                           {
+                                               const auto area = poly.area();
+                                               const auto abs_area = std::abs(area);
+                                               const auto is_hole = area < 0;
+                                               if (is_hole)
+                                               {
+                                                   if (hole_offset_max_diameter == 0)
+                                                   {
+                                                       holes.add(poly.offset(xy_offset_hole));
+                                                   }
+                                                   else if (abs_area < max_hole_area)
+                                                   {
+                                                       const auto distance = static_cast<int>(std::lerp(xy_offset_hole, 0, abs_area / max_hole_area));
+                                                       holes.add(poly.offset(distance));
+                                                   }
+                                                   else
+                                                   {
+                                                       holes.add(poly);
+                                                   }
+                                               }
+                                               else
+                                               {
+                                                   outline.add(poly);
+                                               }
+                                           }
 
-                    layers[layer_nr].polygons.add(outline.difference(holes.unionPolygons()));
-                }
-            }
-        }
-    );
+                                           layers[layer_nr].polygons.add(outline.difference(holes.unionPolygons()));
+                                       }
+                                   }
+                               });
 
     mesh.expandXY(xy_offset);
 }

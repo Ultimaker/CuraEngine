@@ -1,19 +1,19 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "infill/SubDivCube.h"
 
 #include <functional>
 
-#include "sliceDataStorage.h"
 #include "settings/types/Angle.h" //For the infill angle.
+#include "sliceDataStorage.h"
 #include "utils/math.h"
 #include "utils/polygonUtils.h"
 
-#define ONE_OVER_SQRT_2 0.7071067811865475244008443621048490392848359376884740 //1 / sqrt(2)
-#define ONE_OVER_SQRT_3 0.577350269189625764509148780501957455647601751270126876018 //1 / sqrt(3)
-#define ONE_OVER_SQRT_6 0.408248290463863016366214012450981898660991246776111688072 //1 / sqrt(6)
-#define SQRT_TWO_THIRD 0.816496580927726032732428024901963797321982493552223376144 //sqrt(2 / 3)
+#define ONE_OVER_SQRT_2 0.7071067811865475244008443621048490392848359376884740 // 1 / sqrt(2)
+#define ONE_OVER_SQRT_3 0.577350269189625764509148780501957455647601751270126876018 // 1 / sqrt(3)
+#define ONE_OVER_SQRT_6 0.408248290463863016366214012450981898660991246776111688072 // 1 / sqrt(6)
+#define SQRT_TWO_THIRD 0.816496580927726032732428024901963797321982493552223376144 // sqrt(2 / 3)
 
 namespace cura
 {
@@ -40,7 +40,7 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh, const Point& infill_or
 
     // if infill_angles is not empty use the first value, otherwise use 0
     const std::vector<AngleDegrees> infill_angles = mesh.settings.get<std::vector<AngleDegrees>>("infill_angles");
-    const AngleDegrees infill_angle = (!infill_angles.empty()) ? infill_angles[0] : AngleDegrees(0);
+    const AngleDegrees infill_angle = (! infill_angles.empty()) ? infill_angles[0] : AngleDegrees(0);
 
     const coord_t furthest_dist_from_origin = std::sqrt(square(mesh.settings.get<coord_t>("machine_height")) + square(mesh.settings.get<coord_t>("machine_depth") / 2) + square(mesh.settings.get<coord_t>("machine_width") / 2));
     const coord_t max_side_length = furthest_dist_from_origin * 2;
@@ -75,9 +75,15 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh, const Point& infill_or
     //             /  .O.  \                           |                        .
     //            /.~'   '~.\                          O---->X                  .
     //          X """"""""""" Y                                                 .
-    tilt.matrix[0] = -ONE_OVER_SQRT_2;  tilt.matrix[1] = ONE_OVER_SQRT_2; tilt.matrix[2] = 0;
-    tilt.matrix[3] = -ONE_OVER_SQRT_6; tilt.matrix[4] = -ONE_OVER_SQRT_6; tilt.matrix[5] = SQRT_TWO_THIRD ;
-    tilt.matrix[6] = ONE_OVER_SQRT_3;  tilt.matrix[7] = ONE_OVER_SQRT_3;  tilt.matrix[8] = ONE_OVER_SQRT_3;
+    tilt.matrix[0] = -ONE_OVER_SQRT_2;
+    tilt.matrix[1] = ONE_OVER_SQRT_2;
+    tilt.matrix[2] = 0;
+    tilt.matrix[3] = -ONE_OVER_SQRT_6;
+    tilt.matrix[4] = -ONE_OVER_SQRT_6;
+    tilt.matrix[5] = SQRT_TWO_THIRD;
+    tilt.matrix[6] = ONE_OVER_SQRT_3;
+    tilt.matrix[7] = ONE_OVER_SQRT_3;
+    tilt.matrix[8] = ONE_OVER_SQRT_3;
 
     infill_rotation_matrix = PointMatrix(infill_angle);
     Point3Matrix infill_angle_mat(infill_rotation_matrix);
@@ -89,7 +95,7 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh, const Point& infill_or
 
 void SubDivCube::generateSubdivisionLines(const coord_t z, Polygons& result)
 {
-    if (cube_properties_per_recursion_step.empty()) //Infill is set to 0%.
+    if (cube_properties_per_recursion_step.empty()) // Infill is set to 0%.
     {
         return;
     }
@@ -126,7 +132,7 @@ void SubDivCube::generateSubdivisionLines(const coord_t z, Polygons (&directiona
         relative_b.Y = relative_a.Y;
         rotatePointInitial(relative_a);
         rotatePointInitial(relative_b);
-        for (int dir_idx = 0; dir_idx < 3; dir_idx++)//!< draw the line, then rotate 120 degrees.
+        for (int dir_idx = 0; dir_idx < 3; dir_idx++) //!< draw the line, then rotate 120 degrees.
         {
             a.X = center.x + relative_a.X;
             a.Y = center.y + relative_a.Y;
@@ -158,7 +164,7 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, size_t depth)
     {
         return;
     }
-    if (depth >= cube_properties_per_recursion_step.size()) //Depth is out of bounds of what we pre-computed.
+    if (depth >= cube_properties_per_recursion_step.size()) // Depth is out of bounds of what we pre-computed.
     {
         return;
     }
@@ -191,11 +197,11 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, size_t depth)
 bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, coord_t radius)
 {
     coord_t distance2 = 0;
-    coord_t sphere_slice_radius2;//!< squared radius of bounding sphere slice on target layer
+    coord_t sphere_slice_radius2; //!< squared radius of bounding sphere slice on target layer
     bool inside_somewhere = false;
     bool outside_somewhere = false;
     int inside;
-    Ratio part_dist;//what percentage of the radius the target layer is away from the center along the z axis. 0 - 1
+    Ratio part_dist; // what percentage of the radius the target layer is away from the center along the z axis. 0 - 1
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     int bottom_layer = (center.z - radius) / layer_height;
     int top_layer = (center.z + radius) / layer_height;
@@ -259,7 +265,7 @@ void SubDivCube::rotatePointInitial(Point& target)
 
 void SubDivCube::rotatePoint120(Point& target)
 {
-    //constexpr double sqrt_three_fourths = sqrt(3.0 / 4.0); //TODO: Reactivate once MacOS is upgraded to a more modern compiler.
+    // constexpr double sqrt_three_fourths = sqrt(3.0 / 4.0); //TODO: Reactivate once MacOS is upgraded to a more modern compiler.
 #define sqrt_three_fourths 0.86602540378443864676372317
     const coord_t x = -0.5 * target.X - sqrt_three_fourths * target.Y;
     target.Y = -0.5 * target.Y + sqrt_three_fourths * target.X;
@@ -289,4 +295,4 @@ void SubDivCube::addLineAndCombine(Polygons& group, Point from, Point to)
     group.addLine(from, to);
 }
 
-}//namespace cura
+} // namespace cura

@@ -1,40 +1,45 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include "GCodePathConfig.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/IntPoint.h" // INT2MM
-#include "GCodePathConfig.h"
 
-namespace cura 
+namespace cura
 {
 
 GCodePathConfig::GCodePathConfig(const GCodePathConfig& other)
-: type(other.type)
-, speed_derivatives(other.speed_derivatives)
-, line_width(other.line_width)
-, layer_thickness(other.layer_thickness)
-, flow(other.flow)
-, extrusion_mm3_per_mm(other.extrusion_mm3_per_mm)
-, is_bridge_path(other.is_bridge_path)
-, fan_speed(other.fan_speed)
+    : type(other.type)
+    , speed_derivatives(other.speed_derivatives)
+    , line_width(other.line_width)
+    , layer_thickness(other.layer_thickness)
+    , flow(other.flow)
+    , extrusion_mm3_per_mm(other.extrusion_mm3_per_mm)
+    , is_bridge_path(other.is_bridge_path)
+    , fan_speed(other.fan_speed)
 {
 }
 
 
-
-GCodePathConfig::GCodePathConfig(const PrintFeatureType& type, const coord_t line_width, const coord_t layer_height, const Ratio& flow, const GCodePathConfig::SpeedDerivatives speed_derivatives, const bool is_bridge_path, const double fan_speed)
-: type(type)
-, speed_derivatives(speed_derivatives)
-, line_width(line_width)
-, layer_thickness(layer_height)
-, flow(flow)
-, extrusion_mm3_per_mm(calculateExtrusion())
-, is_bridge_path(is_bridge_path)
-, fan_speed(fan_speed)
+GCodePathConfig::GCodePathConfig(const PrintFeatureType& type,
+                                 const coord_t line_width,
+                                 const coord_t layer_height,
+                                 const Ratio& flow,
+                                 const GCodePathConfig::SpeedDerivatives speed_derivatives,
+                                 const bool is_bridge_path,
+                                 const double fan_speed)
+    : type(type)
+    , speed_derivatives(speed_derivatives)
+    , line_width(line_width)
+    , layer_thickness(layer_height)
+    , flow(flow)
+    , extrusion_mm3_per_mm(calculateExtrusion())
+    , is_bridge_path(is_bridge_path)
+    , fan_speed(fan_speed)
 {
 }
 
-void GCodePathConfig::smoothSpeed(GCodePathConfig::SpeedDerivatives first_layer_config, const LayerIndex& layer_nr, const LayerIndex& max_speed_layer_nr) 
+void GCodePathConfig::smoothSpeed(GCodePathConfig::SpeedDerivatives first_layer_config, const LayerIndex& layer_nr, const LayerIndex& max_speed_layer_nr)
 {
     double max_speed_layer = max_speed_layer_nr;
     double first_layer_speed = std::min(speed_derivatives.speed, first_layer_config.speed);
@@ -106,4 +111,4 @@ double GCodePathConfig::calculateExtrusion() const
 }
 
 
-}//namespace cura
+} // namespace cura

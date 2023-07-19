@@ -9,12 +9,12 @@
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <spdlog/cfg/helpers.h>
+#include <spdlog/details/os.h>
+#include <spdlog/details/registry.h>
 #include <spdlog/sinks/dup_filter_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
-#include <spdlog/cfg/helpers.h>
-#include <spdlog/details/registry.h>
-#include <spdlog/details/os.h>
 
 #include "FffProcessor.h"
 #include "communication/ArcusCommunication.h" //To connect via Arcus to the front-end.

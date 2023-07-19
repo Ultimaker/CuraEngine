@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <cctype>
@@ -24,8 +24,8 @@
 #include "settings/types/Temperature.h" //For temperature settings.
 #include "settings/types/Velocity.h" //For velocity settings.
 #include "utils/FMatrix4x3.h"
-#include "utils/string.h" //For Escaped.
 #include "utils/polygon.h"
+#include "utils/string.h" //For Escaped.
 
 namespace cura
 {
@@ -112,7 +112,8 @@ ExtruderTrain& Settings::get<ExtruderTrain&>(const std::string& key) const
     return Application::getInstance().current_slice->scene.extruders[extruder_nr];
 }
 
-template<> std::vector<ExtruderTrain*> Settings::get<std::vector<ExtruderTrain*>>(const std::string& key) const
+template<>
+std::vector<ExtruderTrain*> Settings::get<std::vector<ExtruderTrain*>>(const std::string& key) const
 {
     int extruder_nr = std::atoi(get<std::string>(key).c_str());
     std::vector<ExtruderTrain*> ret;
@@ -240,14 +241,15 @@ FlowTempGraph Settings::get<FlowTempGraph>(const std::string& key) const
     return result;
 }
 
-template<> Polygons Settings::get<Polygons>(const std::string& key) const
+template<>
+Polygons Settings::get<Polygons>(const std::string& key) const
 {
     std::string value_string = get<std::string>(key);
 
     Polygons result;
     if (value_string.empty())
     {
-        return result; //Empty at this point.
+        return result; // Empty at this point.
     }
     /* We're looking to match one or more floating point values separated by
      * commas and surrounded by square brackets. Note that because the QML
@@ -260,22 +262,22 @@ template<> Polygons Settings::get<Polygons>(const std::string& key) const
     if (std::regex_search(value_string, polygons_match, polygons_regex) && polygons_match.size() > 1)
     {
         std::string polygons_string = polygons_match.str(1);
-        
+
         std::regex polygon_regex(R"(\[((\[[^\[\]]*\]\s*,?\s*)*)\]\s*,?)"); // matches with a list of lists (a list of 2D vertices)
         std::smatch polygon_match;
-        
-        std::regex_token_iterator<std::string::iterator> rend; //Default constructor gets the end-of-sequence iterator.
+
+        std::regex_token_iterator<std::string::iterator> rend; // Default constructor gets the end-of-sequence iterator.
         std::regex_token_iterator<std::string::iterator> polygon_match_iter(polygons_string.begin(), polygons_string.end(), polygon_regex, 0);
         while (polygon_match_iter != rend)
         {
             std::string polygon_str = *polygon_match_iter++;
-            
+
             result.emplace_back();
             PolygonRef poly = result.back();
 
             std::regex point2D_regex(R"(\[([^,\[]*),([^,\]]*)\])"); // matches to a list of exactly two things
 
-            const int submatches[] = {1, 2}; // Match first number and second number of a pair.
+            const int submatches[] = { 1, 2 }; // Match first number and second number of a pair.
             std::regex_token_iterator<std::string::iterator> match_iter(polygon_str.begin(), polygon_str.end(), point2D_regex, submatches);
             while (match_iter != rend)
             {

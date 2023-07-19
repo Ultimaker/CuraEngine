@@ -1,20 +1,18 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <algorithm>
 
 #include "utils/ExtrusionLine.h"
-#include "utils/linearAlg2D.h"
 #include "utils/Simplify.h"
+#include "utils/linearAlg2D.h"
 
 namespace cura
 {
 
-ExtrusionLine::ExtrusionLine(const size_t inset_idx, const bool is_odd)
-: inset_idx(inset_idx)
-, is_odd(is_odd)
-, is_closed(false)
-{}
+ExtrusionLine::ExtrusionLine(const size_t inset_idx, const bool is_odd) : inset_idx(inset_idx), is_odd(is_odd), is_closed(false)
+{
+}
 
 coord_t ExtrusionLine::getLength() const
 {
@@ -38,11 +36,7 @@ coord_t ExtrusionLine::getLength() const
 
 coord_t ExtrusionLine::getMinimalWidth() const
 {
-    return std::min_element(junctions.cbegin(), junctions.cend(),
-                            [](const ExtrusionJunction& l, const ExtrusionJunction& r)
-                            {
-                                return l.w < r.w;
-                            })->w;
+    return std::min_element(junctions.cbegin(), junctions.cend(), [](const ExtrusionJunction& l, const ExtrusionJunction& r) { return l.w < r.w; })->w;
 }
 
-}
+} // namespace cura

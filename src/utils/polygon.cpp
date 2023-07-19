@@ -1,14 +1,14 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "utils/polygon.h"
 
 #include <numeric>
 #include <unordered_set>
 
-#include <range/v3/view/zip.hpp>
 #include <range/v3/range/primitives.hpp>
 #include <range/v3/view/filter.hpp>
+#include <range/v3/view/zip.hpp>
 
 #include "utils/linearAlg2D.h" // pointLiesOnTheRightOfLine
 
@@ -375,14 +375,14 @@ Polygons Polygons::offset(const std::vector<coord_t>& offset_dists) const
 
     Polygons ret;
     int i = 0;
-    for (auto& poly_line : this->paths | ranges::views::filter([](const auto& path){ return ! path.empty(); }))
+    for (auto& poly_line : this->paths | ranges::views::filter([](const auto& path) { return ! path.empty(); }))
     {
         std::vector<ClipperLib::IntPoint> ret_poly_line;
 
         auto prev_p = poly_line.back();
         auto prev_dist = offset_dists[i + poly_line.size() - 1];
 
-        for (const auto& p: poly_line)
+        for (const auto& p : poly_line)
         {
             auto offset_dist = offset_dists[i];
 
@@ -400,7 +400,7 @@ Polygons Polygons::offset(const std::vector<coord_t>& offset_dists) const
 
             prev_p = p;
             prev_dist = offset_dist;
-            i ++;
+            i++;
         }
 
         ret.add(ret_poly_line);
@@ -475,8 +475,11 @@ void PolygonRef::removeColinearEdges(const AngleRadians max_deviation_angle)
                 const Point& pt = rpath[point_idx];
                 const Point& next = rpath[(point_idx + 1) % pathlen];
 
-                float angle = LinearAlg2D::getAngleLeft(prev, pt, next);  // [0 : 2 * pi]
-                if (angle >= M_PI) {angle -= M_PI;}  // map [pi : 2 * pi] to [0 : pi]
+                float angle = LinearAlg2D::getAngleLeft(prev, pt, next); // [0 : 2 * pi]
+                if (angle >= M_PI)
+                {
+                    angle -= M_PI;
+                } // map [pi : 2 * pi] to [0 : pi]
 
                 // Check if the angle is within limits for the point to 'make sense', given the maximum deviation.
                 // If the angle indicates near-parallel segments ignore the point 'pt'
@@ -499,8 +502,7 @@ void PolygonRef::removeColinearEdges(const AngleRadians max_deviation_angle)
             process_indices.clear();
             process_indices.insert(process_indices.end(), skip_indices.begin(), skip_indices.end());
         }
-    }
-    while (num_removed_in_iteration > 0);
+    } while (num_removed_in_iteration > 0);
 }
 
 void PolygonRef::applyMatrix(const PointMatrix& matrix)
@@ -680,7 +682,7 @@ void Polygons::removeSmallAreaCircumference(const double min_area_size, const co
         {
             // containing parent outline is removed; hole should be removed as well
         }
-        else if (!remove_holes || (circumference >= min_circumference_size && std::abs(area) >= min_area_size))
+        else if (! remove_holes || (circumference >= min_circumference_size && std::abs(area) >= min_area_size))
         {
             // keep hole-polygon if we do not remove holes, or if its
             // circumference is bigger then the minimum circumference size
@@ -704,7 +706,7 @@ void Polygons::removeDegenerateVertsPolyline()
 void Polygons::_removeDegenerateVerts(const bool for_polyline)
 {
     Polygons& thiss = *this;
-    for(size_t poly_idx = 0; poly_idx < size(); poly_idx++)
+    for (size_t poly_idx = 0; poly_idx < size(); poly_idx++)
     {
         PolygonRef poly = thiss[poly_idx];
         Polygon result;
@@ -716,28 +718,28 @@ void Polygons::_removeDegenerateVerts(const bool for_polyline)
             return dot(last_line, next_line) == -1 * vSize(last_line) * vSize(next_line);
         };
 
-        //With polylines, skip the first and last vertex.
+        // With polylines, skip the first and last vertex.
         const size_t start_vertex = for_polyline ? 1 : 0;
         const size_t end_vertex = for_polyline ? poly.size() - 1 : poly.size();
-        for(size_t i = 0; i < start_vertex; ++i)
+        for (size_t i = 0; i < start_vertex; ++i)
         {
-            result.add(poly[i]); //Add everything before the start vertex.
+            result.add(poly[i]); // Add everything before the start vertex.
         }
 
         bool isChanged = false;
-        for(size_t idx = start_vertex; idx < end_vertex; idx++)
+        for (size_t idx = start_vertex; idx < end_vertex; idx++)
         {
             const Point& last = (result.size() == 0) ? poly.back() : result.back();
-            if(idx + 1 >= poly.size() && result.size() == 0)
+            if (idx + 1 >= poly.size() && result.size() == 0)
             {
                 break;
             }
             const Point& next = (idx + 1 >= poly.size()) ? result[0] : poly[idx + 1];
-            if(isDegenerate(last, poly[idx], next))
+            if (isDegenerate(last, poly[idx], next))
             { // lines are in the opposite direction
                 // don't add vert to the result
                 isChanged = true;
-                while(result.size() > 1 && isDegenerate(result[result.size() - 2], result.back(), next))
+                while (result.size() > 1 && isDegenerate(result[result.size() - 2], result.back(), next))
                 {
                     result.pop_back();
                 }
@@ -748,14 +750,14 @@ void Polygons::_removeDegenerateVerts(const bool for_polyline)
             }
         }
 
-        for(size_t i = end_vertex; i < poly.size(); ++i)
+        for (size_t i = end_vertex; i < poly.size(); ++i)
         {
-            result.add(poly[i]); //Add everything after the end vertex.
+            result.add(poly[i]); // Add everything after the end vertex.
         }
 
-        if(isChanged)
+        if (isChanged)
         {
-            if(for_polyline || result.size() > 2)
+            if (for_polyline || result.size() > 2)
             {
                 *poly = *result;
             }
@@ -853,7 +855,7 @@ bool ConstPolygonRef::smooth_corner_complex(const Point p1, ListPolyIt& p0_it, L
       // handle this separately to avoid rounding problems below in the getPointOnLineWithDist function
       // p0_it and p2_it are already correct
     }
-    else if (!backward_is_blocked && !forward_is_blocked)
+    else if (! backward_is_blocked && ! forward_is_blocked)
     { // introduce two new points
         //  1----b---->2
         //  ^   /
@@ -878,7 +880,7 @@ bool ConstPolygonRef::smooth_corner_complex(const Point p1, ListPolyIt& p0_it, L
         const Point new_p2 = p2_it.p() + (p2_2 - p2_it.p()) * progress;
         p2_it = ListPolyIt::insertPointNonDuplicate(p2_it, p2_2_it, new_p2);
     }
-    else if (!backward_is_blocked)
+    else if (! backward_is_blocked)
     { // forward is blocked, back is open
         //     |
         //  1->b
@@ -911,7 +913,7 @@ bool ConstPolygonRef::smooth_corner_complex(const Point p1, ListPolyIt& p0_it, L
             }
         }
     }
-    else if (!forward_is_blocked)
+    else if (! forward_is_blocked)
     { // backward is blocked, front is open
         //  1----2----b----------->2_2
         //  ^      ,-'
@@ -963,14 +965,14 @@ void ConstPolygonRef::smooth_outward_step(const Point p1, const int64_t shortcut
     const bool backward_has_converged = backward_is_blocked || backward_is_too_far;
     const Point p0 = p0_it.p();
     const Point p2 = p2_it.p();
-    bool walk_forward = !forward_has_converged && (backward_has_converged || (vSize2(p2 - p1) < vSize2(p0 - p1))); // whether to walk along the p1-p2 direction or in the p1-p0 direction
+    bool walk_forward = ! forward_has_converged && (backward_has_converged || (vSize2(p2 - p1) < vSize2(p0 - p1))); // whether to walk along the p1-p2 direction or in the p1-p0 direction
 
     if (walk_forward)
     {
         const ListPolyIt p2_2_it = p2_it.next();
         const Point p2_2 = p2_2_it.p();
         bool p2_is_left = LinearAlg2D::pointIsLeftOfLine(p2, p0, p2_2) >= 0;
-        if (!p2_is_left)
+        if (! p2_is_left)
         {
             forward_is_blocked = true;
             return;
@@ -993,7 +995,7 @@ void ConstPolygonRef::smooth_outward_step(const Point p1, const int64_t shortcut
         const ListPolyIt p0_2_it = p0_it.prev();
         const Point p0_2 = p0_2_it.p();
         bool p0_is_left = LinearAlg2D::pointIsLeftOfLine(p0, p0_2, p2) >= 0;
-        if (!p0_is_left)
+        if (! p0_is_left)
         {
             backward_is_blocked = true;
             return;
@@ -1013,7 +1015,17 @@ void ConstPolygonRef::smooth_outward_step(const Point p1, const int64_t shortcut
     }
 }
 
-void ConstPolygonRef::smooth_corner_simple(const Point p0, const Point p1, const Point p2, const ListPolyIt p0_it, const ListPolyIt p1_it, const ListPolyIt p2_it, const Point v10, const Point v12, const Point v02, const int64_t shortcut_length, float cos_angle)
+void ConstPolygonRef::smooth_corner_simple(const Point p0,
+                                           const Point p1,
+                                           const Point p2,
+                                           const ListPolyIt p0_it,
+                                           const ListPolyIt p1_it,
+                                           const ListPolyIt p2_it,
+                                           const Point v10,
+                                           const Point v12,
+                                           const Point v02,
+                                           const int64_t shortcut_length,
+                                           float cos_angle)
 {
     //  1----b---->2
     //  ^   /
@@ -1207,8 +1219,6 @@ Polygons Polygons::smooth_outward(const AngleDegrees max_angle, int shortcut_len
 }
 
 
-
-
 void ConstPolygonRef::splitPolylineIntoSegments(Polygons& result) const
 {
     Point last = front();
@@ -1268,7 +1278,7 @@ void ConstPolygonRef::smooth(int remove_length, PolygonRef result) const
             return false;
         }
         const bool p1_is_left_of_v02 = dot1 < 0;
-        if (!p1_is_left_of_v02)
+        if (! p1_is_left_of_v02)
         { // removing p1 wouldn't smooth outward
             return false;
         }
@@ -1307,7 +1317,7 @@ void ConstPolygonRef::smooth(int remove_length, PolygonRef result) const
         const int64_t dot1 = dot(v02T, v12);
         const Point v13T = turn90CCW(v13);
         const int64_t dot2 = dot(v13T, v12);
-        bool push_point = force_push || !is_zigzag(v02_size, v12_size, v13_size, dot1, dot2);
+        bool push_point = force_push || ! is_zigzag(v02_size, v12_size, v13_size, dot1, dot2);
         force_push = false;
         if (push_point)
         {
@@ -1432,12 +1442,12 @@ std::vector<PolygonsPart> Polygons::splitIntoParts(bool unionAll) const
 
 void Polygons::splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const
 {
-    for(int n=0; n<node->ChildCount(); n++)
+    for (int n = 0; n < node->ChildCount(); n++)
     {
         ClipperLib::PolyNode* child = node->Childs[n];
         PolygonsPart part;
         part.add(child->Contour);
-        for(int i=0; i<child->ChildCount(); i++)
+        for (int i = 0; i < child->ChildCount(); i++)
         {
             part.add(child->Childs[i]->Contour);
             splitIntoParts_processPolyTreeNode(child->Childs[i], ret);
@@ -1483,11 +1493,17 @@ unsigned int PartsView::getPartContaining(unsigned int poly_idx, unsigned int* b
     for (unsigned int part_idx_now = 0; part_idx_now < partsView.size(); part_idx_now++)
     {
         const std::vector<unsigned int>& partView = partsView[part_idx_now];
-        if (partView.size() == 0) { continue; }
+        if (partView.size() == 0)
+        {
+            continue;
+        }
         std::vector<unsigned int>::const_iterator result = std::find(partView.begin(), partView.end(), poly_idx);
         if (result != partView.end())
         {
-            if (boundary_poly_idx) { *boundary_poly_idx = partView[0]; }
+            if (boundary_poly_idx)
+            {
+                *boundary_poly_idx = partView[0];
+            }
             return part_idx_now;
         }
     }
@@ -1539,14 +1555,14 @@ PartsView Polygons::splitIntoPartsView(bool unionAll)
 
 void Polygons::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Polygons& reordered, ClipperLib::PolyNode* node) const
 {
-    for(int n=0; n<node->ChildCount(); n++)
+    for (int n = 0; n < node->ChildCount(); n++)
     {
         ClipperLib::PolyNode* child = node->Childs[n];
         partsView.emplace_back();
         unsigned int pos = partsView.size() - 1;
         partsView[pos].push_back(reordered.size());
-        reordered.add(child->Contour); //TODO: should this steal the internal representation for speed?
-        for(int i = 0; i < child->ChildCount(); i++)
+        reordered.add(child->Contour); // TODO: should this steal the internal representation for speed?
+        for (int i = 0; i < child->ChildCount(); i++)
         {
             partsView[pos].push_back(reordered.size());
             reordered.add(child->Childs[i]->Contour);
@@ -1577,15 +1593,15 @@ void Polygons::ensureManifold()
     for (Point p : duplicate_locations)
     {
         PolygonRef dot = removal_dots.newPoly();
-        dot.add(p + Point(0,5));
-        dot.add(p + Point(5,0));
-        dot.add(p + Point(0,-5));
-        dot.add(p + Point(-5,0));
+        dot.add(p + Point(0, 5));
+        dot.add(p + Point(5, 0));
+        dot.add(p + Point(0, -5));
+        dot.add(p + Point(-5, 0));
     }
-    if ( ! removal_dots.empty())
+    if (! removal_dots.empty())
     {
         *this = polys.difference(removal_dots);
     }
 }
 
-}//namespace cura
+} // namespace cura
