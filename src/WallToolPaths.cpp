@@ -161,7 +161,7 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
                  scripta::PointVDI{"width", &ExtrusionJunction::w },
                  scripta::PointVDI{"perimeter_index", &ExtrusionJunction::perimeter_index });
     
-    removeSmallLines(toolpaths);
+//    removeSmallLines(toolpaths);
     scripta::log("toolpaths_2", toolpaths, section_type, layer_idx,
                  scripta::CellVDI{"is_closed", &ExtrusionLine::is_closed },
                  scripta::CellVDI{"is_odd", &ExtrusionLine::is_odd },
