@@ -779,7 +779,7 @@ void TreeSupportTipGenerator::generateTips(SliceDataStorage& storage,
                 for (Polygons roof_part : support_roof_drawn[layer_idx + 1].difference(support_roof_drawn[layer_idx]).splitIntoParts(true)) // If there is a roof, the roof will be one layer above the tips.
                 {
                     //^^^Technically one should also subtract the avoidance of radius 0 (similarly how calculated in calculateRoofArea), as there can be some rounding errors introduced since then. But this does not fully prevent some
-                    //rounding errors either way, so just handle the error later.
+                    // rounding errors either way, so just handle the error later.
                     overhang_processing.emplace_back(roof_part, true);
                 }
             }
