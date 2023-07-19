@@ -6,7 +6,7 @@
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
-#include "../resources/certificate.pem.h"
+#include "utils/resources/certificate.pem.h"
 
 namespace cura::utils
 {

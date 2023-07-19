@@ -339,7 +339,7 @@ void ArcusCommunication::beginGCode()
 
 void ArcusCommunication::flushGCode()
 {
-    const std::string& message_str = private_data->gcode_output_stream.str();
+    const std::string& message_str = slots::instance().invoke<plugins::slot_postprocess >(private_data->gcode_output_stream.str());
     if (message_str.size() == 0)
     {
         return;
@@ -372,7 +372,7 @@ void ArcusCommunication::sendCurrentPosition(const Point& position)
 void ArcusCommunication::sendGCodePrefix(const std::string& prefix) const
 {
     std::shared_ptr<proto::GCodePrefix> message = std::make_shared<proto::GCodePrefix>();
-    message->set_data(prefix);
+    message->set_data(slots::instance().invoke<plugins::slot_postprocess >(prefix));
     private_data->socket->sendMessage(message);
 }
 

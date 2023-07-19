@@ -119,10 +119,6 @@ public:
 
         if (! status.ok()) // TODO: handle different kind of status codes
         {
-            if (plugin_info_.has_value())
-            {
-                throw exceptions::RemoteException(slot_info_, plugin_info_.value(), status.error_message());
-            }
             throw exceptions::RemoteException(slot_info_, status.error_message());
         }
         if (! plugin_info.plugin_name.empty() && ! plugin_info.slot_version.empty())
