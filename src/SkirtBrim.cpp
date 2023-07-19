@@ -391,8 +391,13 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
         int skirt_height = 0;
         for (const auto& extruder : Application::getInstance().current_slice->scene.extruders)
         {
-            skirt_height = std::min(std::max(skirt_height, extruder.settings.get<int>("skirt_height")), static_cast<int>(storage.print_layer_count));
+            if (extruder_nr == -1 || extruder_nr == extruder.extruder_nr)
+            {
+                skirt_height = std::max(skirt_height, extruder.settings.get<int>("skirt_height"));
+            }
         }
+        skirt_height = std::min(skirt_height, static_cast<int>(storage.print_layer_count));
+
         for (int i_layer = layer_nr; i_layer < skirt_height; ++i_layer)
         {
             for (const auto& extruder : Application::getInstance().current_slice->scene.extruders)
