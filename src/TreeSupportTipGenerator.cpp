@@ -917,7 +917,7 @@ void TreeSupportTipGenerator::generateTips(
                                               .splitIntoParts(true)) // If there is a roof, the roof will be one layer above the tips.
                 {
                     //^^^Technically one should also subtract the avoidance of radius 0 (similarly how calculated in calculateRoofArea), as there can be some rounding errors
-                    //introduced since then. But this does not fully prevent some rounding errors either way, so just handle the error later.
+                    // introduced since then. But this does not fully prevent some rounding errors either way, so just handle the error later.
                     overhang_processing.emplace_back(roof_part, true);
                 }
             }
