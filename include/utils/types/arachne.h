@@ -4,14 +4,14 @@
 #ifndef UTILS_TYPES_ARACHNE_H
 #define UTILS_TYPES_ARACHNE_H
 
-#include <concepts>
-#include <string>
-#include <type_traits>
+#include "utils/types/generic.h"
+#include "utils/types/geometry.h"
 
 #include <range/v3/range/concepts.hpp>
 
-#include "utils/types/generic.h"
-#include "utils/types/geometry.h"
+#include <concepts>
+#include <string>
+#include <type_traits>
 
 namespace cura::utils
 {
