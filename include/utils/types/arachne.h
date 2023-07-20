@@ -4,17 +4,18 @@
 #ifndef UTILS_TYPES_ARACHNE_H
 #define UTILS_TYPES_ARACHNE_H
 
+#include "utils/types/generic.h"
+#include "utils/types/geometry.h"
+
+#include <range/v3/range/concepts.hpp>
+
 #include <concepts>
 #include <string>
 #include <type_traits>
 
-#include <range/v3/range/concepts.hpp>
-
-#include "utils/types/generic.h"
-#include "utils/types/geometry.h"
-
 namespace cura::utils
 {
+// clang-format off
 template<class T>
 concept st_storable_data = requires(T val)
 {
@@ -139,7 +140,7 @@ concept toolpaths = requires(T tp)
     requires ranges::range<T>;
     requires toolpath<decltype(*ranges::begin(tp))>;
 };
-
+// clang-format on
 } // namespace cura::utils
 
 #endif // UTILS_TYPES_ARACHNE_H

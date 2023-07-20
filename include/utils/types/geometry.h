@@ -8,18 +8,19 @@
 #ifndef UTILS_TYPES_GEOMETRY_H
 #define UTILS_TYPES_GEOMETRY_H
 
+#include "utils/types/generic.h"
+
+#include <range/v3/range/concepts.hpp>
+#include <range/v3/range/operations.hpp>
+
 #include <concepts>
 #include <string>
 #include <tuple>
 #include <type_traits>
 
-#include <range/v3/range/concepts.hpp>
-#include <range/v3/range/operations.hpp>
-
-#include "utils/types/generic.h"
-
 namespace cura::utils
 {
+// clang-format off
 
 /*!
  * @concept point2d_tuple
@@ -150,7 +151,7 @@ concept segment_range = ranges::range<T> && requires(T segment_range)
 {
     requires segment<decltype(ranges::front(segment_range))>;
 };
-
+// clang-format on
 } // namespace cura::utils
 
 #endif // UTILS_TYPES_GEOMETRY_H
