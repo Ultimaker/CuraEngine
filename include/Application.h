@@ -4,11 +4,11 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#include <cstddef>
-#include <cassert>
-#include <string>
-
 #include "utils/NoCopy.h"
+
+#include <cassert>
+#include <cstddef>
+#include <string>
 
 
 namespace cura
@@ -90,7 +90,7 @@ public:
      *
      * \param nworkers The number of workers (including the main thread) that are ran.
      */
-    void startThreadPool(int nworkers=0);
+    void startThreadPool(int nworkers = 0);
 
     std::string instance_uuid;
 
@@ -102,7 +102,7 @@ protected:
      * \param argv The arguments provided to the application.
      */
     void connect();
-#endif //ARCUS
+#endif // ARCUS
 
     /*!
      * \brief Print the header and license to the stderr channel.
@@ -145,6 +145,6 @@ private:
     void registerPlugins(const PluginSetupConfiguration& plugins_config);
 };
 
-} //Cura namespace.
+} // namespace cura
 
-#endif //APPLICATION_H
+#endif // APPLICATION_H

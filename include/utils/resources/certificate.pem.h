@@ -7,8 +7,8 @@
 
 namespace cura::utils::resources
 {
-	constexpr std::string_view certificate =
-R"#(-----BEGIN CERTIFICATE-----
+constexpr std::string_view certificate =
+    R"#(-----BEGIN CERTIFICATE-----
 MIIF8TCCA9mgAwIBAgIUd6fjXFbNBMZOxfBnv4FOokHlOC4wDQYJKoZIhvcNAQEL
 BQAwgYYxCzAJBgNVBAYTAk5MMRMwEQYDVQQIDApHZWxkZXJsYW5kMRUwEwYDVQQH
 DAxHZWxkZXJtYWxzZW4xEjAQBgNVBAoMCVVsdGlNYWtlcjEbMBkGA1UECwwSQ29t
@@ -46,5 +46,4 @@ c3dQRszg9OTAyUwNKQEAuZ9II/cCpLyE+GbnqRdkErHgO7kiKQ==
 
 } // namespace cura::utils::resources
 
-#endif  //CERTIFICATE_H
-
+#endif // CERTIFICATE_H

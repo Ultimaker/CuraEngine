@@ -4,14 +4,14 @@
 #ifndef CURAENGINE_GENERIC_H
 #define CURAENGINE_GENERIC_H
 
-#include <concepts>
-#include <functional>
-#include <type_traits>
+#include "utils/types/char_range_literal.h"
 
-#include <google/protobuf/message.h>
 #include <range/v3/range_concepts.hpp>
 
-#include "utils/types/char_range_literal.h"
+#include <concepts>
+#include <functional>
+#include <google/protobuf/message.h>
+#include <type_traits>
 
 namespace cura::utils
 {

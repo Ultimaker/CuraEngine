@@ -4,19 +4,18 @@
 #ifndef PLUGINS_SLOTPROXY_H
 #define PLUGINS_SLOTPROXY_H
 
-#include <concepts>
-#include <functional>
-#include <memory>
-#include <optional>
-
-#include <boost/asio/use_awaitable.hpp>
-#include <grpcpp/channel.h>
-
 #include "plugins/converters.h"
 #include "plugins/pluginproxy.h"
 #include "plugins/types.h"
 #include "plugins/validator.h"
 #include "utils/types/char_range_literal.h"
+
+#include <boost/asio/use_awaitable.hpp>
+#include <concepts>
+#include <functional>
+#include <grpcpp/channel.h>
+#include <memory>
+#include <optional>
 
 namespace cura::plugins
 {
@@ -58,7 +57,8 @@ public:
      *
      * @param channel A shared pointer to the gRPC channel for communication with the plugin.
      */
-    SlotProxy(std::shared_ptr<grpc::Channel> channel) : plugin_{ std::move(channel) } {};
+    SlotProxy(std::shared_ptr<grpc::Channel> channel)
+        : plugin_{ std::move(channel) } {};
 
     /**
      * @brief Executes the plugin operation.
@@ -81,7 +81,7 @@ public:
     }
 
     template<utils::CharRangeLiteral BroadcastChannel>
-    void broadcast(auto&&...args)
+    void broadcast(auto&&... args)
     {
         if (plugin_.has_value())
         {

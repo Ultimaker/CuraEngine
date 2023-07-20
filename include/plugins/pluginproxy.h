@@ -4,22 +4,12 @@
 #ifndef PLUGINS_PLUGINPROXY_H
 #define PLUGINS_PLUGINPROXY_H
 
-#include <chrono>
-#include <string>
-#include <thread>
-
-#include <agrpc/asio_grpc.hpp>
-#include <agrpc/grpc_context.hpp>
-#include <boost/asio/awaitable.hpp>
-#include <boost/asio/co_spawn.hpp>
-#include <boost/asio/detached.hpp>
-#include <boost/asio/use_awaitable.hpp>
-#include <fmt/format.h>
-#include <fmt/ranges.h>
-#include <range/v3/utility/semiregular_box.hpp>
-#include <spdlog/spdlog.h>
-
 #include "Application.h"
+#include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
+#include "cura/plugins/slots/broadcast/v0/broadcast.pb.h"
+#include "cura/plugins/slots/handshake/v0/handshake.grpc.pb.h"
+#include "cura/plugins/slots/handshake/v0/handshake.pb.h"
+#include "cura/plugins/v0/slot_id.pb.h"
 #include "plugins/broadcasts.h"
 #include "plugins/exception.h"
 #include "plugins/metadata.h"
@@ -27,11 +17,20 @@
 #include "utils/types/char_range_literal.h"
 #include "utils/types/generic.h"
 
-#include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
-#include "cura/plugins/slots/broadcast/v0/broadcast.pb.h"
-#include "cura/plugins/slots/handshake/v0/handshake.grpc.pb.h"
-#include "cura/plugins/slots/handshake/v0/handshake.pb.h"
-#include "cura/plugins/v0/slot_id.pb.h"
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+#include <range/v3/utility/semiregular_box.hpp>
+#include <spdlog/spdlog.h>
+
+#include <agrpc/asio_grpc.hpp>
+#include <agrpc/grpc_context.hpp>
+#include <boost/asio/awaitable.hpp>
+#include <boost/asio/co_spawn.hpp>
+#include <boost/asio/detached.hpp>
+#include <boost/asio/use_awaitable.hpp>
+#include <chrono>
+#include <string>
+#include <thread>
 
 namespace cura::plugins
 {
@@ -79,7 +78,9 @@ public:
      */
     constexpr PluginProxy() = default;
 
-    explicit PluginProxy(std::shared_ptr<grpc::Channel> channel) : modify_stub_(channel), broadcast_stub_(channel)
+    explicit PluginProxy(std::shared_ptr<grpc::Channel> channel)
+        : modify_stub_(channel)
+        , broadcast_stub_(channel)
     {
         // Connect to the plugin and exchange a handshake
         agrpc::GrpcContext grpc_context;
@@ -174,7 +175,12 @@ public:
         grpc::Status status;
 
         boost::asio::co_spawn(
-            grpc_context, [this, &grpc_context, &status, &ret_value, &args...]() { return this->modifyCall(grpc_context, status, ret_value, std::forward<decltype(args)>(args)...); }, boost::asio::detached);
+            grpc_context,
+            [this, &grpc_context, &status, &ret_value, &args...]()
+            {
+                return this->modifyCall(grpc_context, status, ret_value, std::forward<decltype(args)>(args)...);
+            },
+            boost::asio::detached);
         grpc_context.run();
 
         if (! status.ok()) // TODO: handle different kind of status codes
@@ -199,7 +205,12 @@ public:
         grpc::Status status;
 
         boost::asio::co_spawn(
-            grpc_context, [this, &grpc_context, &status, &args...]() { return this->broadcastCall<BroadcastChannel>(grpc_context, status, std::forward<decltype(args)>(args)...); }, boost::asio::detached);
+            grpc_context,
+            [this, &grpc_context, &status, &args...]()
+            {
+                return this->broadcastCall<BroadcastChannel>(grpc_context, status, std::forward<decltype(args)>(args)...);
+            },
+            boost::asio::detached);
         grpc_context.run();
 
         if (! status.ok()) // TODO: handle different kind of status codes
@@ -220,7 +231,9 @@ private:
     ranges::semiregular_box<modify_stub_t> modify_stub_; ///< The gRPC Modify stub for communication.
     ranges::semiregular_box<broadcast_stub_t> broadcast_stub_; ///< The gRPC Broadcast stub for communication.
 
-    slot_metadata slot_info_{ .slot_id = SlotID, .version_range = SlotVersionRng.value, .engine_uuid = Application::getInstance().instance_uuid }; ///< Holds information about the plugin slot.
+    slot_metadata slot_info_{ .slot_id = SlotID,
+                              .version_range = SlotVersionRng.value,
+                              .engine_uuid = Application::getInstance().instance_uuid }; ///< Holds information about the plugin slot.
     std::optional<plugin_metadata> plugin_info_{ std::nullopt }; ///< Optional object that holds the plugin metadata, set after handshake
 
     /**

@@ -12,14 +12,16 @@ namespace cura::plugins::details
 {
 
 template<utils::CharRangeLiteral BroadcastChannel>
-requires utils::is_broadcast_channel_v<BroadcastChannel, "BroadcastSettings"> constexpr auto broadcast_message_factory(auto&&... args)
+requires utils::is_broadcast_channel_v<BroadcastChannel, "BroadcastSettings">
+constexpr auto broadcast_message_factory(auto&&... args)
 {
     return broadcast_settings_request{}(std::forward<decltype(args)>(args)...);
 };
 
 
 template<class Stub, utils::CharRangeLiteral BroadcastChannel>
-requires utils::is_broadcast_channel_v<BroadcastChannel, "BroadcastSettings"> constexpr auto broadcast_factory()
+requires utils::is_broadcast_channel_v<BroadcastChannel, "BroadcastSettings">
+constexpr auto broadcast_factory()
 {
     return agrpc::RPC<&Stub::PrepareAsyncBroadcastSettings>{};
 }
