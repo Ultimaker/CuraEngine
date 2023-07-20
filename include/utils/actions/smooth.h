@@ -4,9 +4,10 @@
 #ifndef UTILS_VIEWS_SMOOTH_H
 #define UTILS_VIEWS_SMOOTH_H
 
-#include <functional>
-#include <numbers>
-#include <set>
+#include "utils/types/arachne.h"
+#include "utils/types/generic.h"
+#include "utils/types/geometry.h"
+#include "utils/types/get.h"
 
 #include <range/v3/action/remove_if.hpp>
 #include <range/v3/functional/bind_back.hpp>
@@ -18,10 +19,9 @@
 #include <range/v3/view/single.hpp>
 #include <range/v3/view/take.hpp>
 
-#include "utils/types/arachne.h"
-#include "utils/types/generic.h"
-#include "utils/types/geometry.h"
-#include "utils/types/get.h"
+#include <functional>
+#include <numbers>
+#include <set>
 
 namespace cura::actions
 {
@@ -34,8 +34,9 @@ struct smooth_fn
     }
 
     template<class Rng>
-    requires ranges::forward_range<Rng> && ranges::sized_range<Rng> && ranges::erasable_range<Rng, ranges::iterator_t<Rng>, ranges::sentinel_t<Rng>> && (utils::point2d<ranges::range_value_t<Rng>> || utils::junctions<Rng>)
-    constexpr auto operator()(Rng&& rng, const utils::integral auto max_resolution, const utils::floating_point auto fluid_angle) const
+    requires ranges::forward_range<Rng> && ranges::sized_range<Rng> && ranges::erasable_range<Rng, ranges::iterator_t<Rng>, ranges::sentinel_t<Rng>> &&(
+        utils::point2d<ranges::range_value_t<Rng>> || utils::junctions<Rng>)constexpr auto
+        operator()(Rng&& rng, const utils::integral auto max_resolution, const utils::floating_point auto fluid_angle) const
     {
         const auto size = ranges::distance(rng) - 1;
         if (size < 4)
@@ -124,15 +125,24 @@ private:
     }
 
     template<class Vector>
-        requires utils::point2d<Vector> || utils::junction<Vector> constexpr auto dotProduct(Vector* point_0, Vector* point_1) const noexcept
+    requires utils::point2d<Vector> || utils::junction<Vector>
+    constexpr auto dotProduct(Vector* point_0, Vector* point_1) const noexcept
     {
         return std::get<"X">(*point_0) * std::get<"X">(*point_1) + std::get<"Y">(*point_0) * std::get<"Y">(*point_1);
     }
 
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
-    constexpr auto isWithinAllowedDeviations(Point* A, Point* B, Point* C, Point* D, const utils::floating_point auto fluid_angle, const utils::integral auto max_resolution,
-                                          const utils::floating_point auto AB_magnitude, const utils::floating_point auto BC_magnitude, const utils::floating_point auto CD_magnitude) const noexcept
+    constexpr auto isWithinAllowedDeviations(
+        Point* A,
+        Point* B,
+        Point* C,
+        Point* D,
+        const utils::floating_point auto fluid_angle,
+        const utils::integral auto max_resolution,
+        const utils::floating_point auto AB_magnitude,
+        const utils::floating_point auto BC_magnitude,
+        const utils::floating_point auto CD_magnitude) const noexcept
     {
         if (BC_magnitude > max_resolution / 10) // TODO: make dedicated front-end setting for this
         {
