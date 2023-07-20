@@ -20,6 +20,7 @@
 
 namespace cura::utils
 {
+// clang-format off
 
 /*!
  * @concept point2d_tuple
@@ -150,7 +151,7 @@ concept segment_range = ranges::range<T> && requires(T segment_range)
 {
     requires segment<decltype(ranges::front(segment_range))>;
 };
-
+// clang-format on
 } // namespace cura::utils
 
 #endif // UTILS_TYPES_GEOMETRY_H

@@ -15,6 +15,7 @@
 
 namespace cura::utils
 {
+// clang-format off
 template<class T>
 concept st_storable_data = requires(T val)
 {
@@ -139,7 +140,7 @@ concept toolpaths = requires(T tp)
     requires ranges::range<T>;
     requires toolpath<decltype(*ranges::begin(tp))>;
 };
-
+// clang-format on
 } // namespace cura::utils
 
 #endif // UTILS_TYPES_ARACHNE_H

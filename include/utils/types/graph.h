@@ -11,6 +11,7 @@
 
 namespace cura::utils
 {
+// clang-format off
 
 /* # nodable
  * Describing the basic requirement for a node in a graph.
@@ -32,6 +33,8 @@ concept graphable =
 template<class T>
 concept setable = nodeable<typename T::key_type>
                && (std::is_same<T, std::vector<typename T::value_type>>::value || std::is_same<T, std::unordered_multiset<typename T::value_type>>::value || std::is_same<T, std::unordered_set<typename T::value_type>>::value);
+
+// clang-format off
 } // namespace cura
 
 #endif // UTILS_CONCEPTS_GRAPH_H
