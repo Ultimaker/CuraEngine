@@ -62,12 +62,15 @@ using slot_simplify_ = SlotProxy<v0::SlotID::SIMPLIFY_MODIFY, "<=1.0.0", slots::
 template<class Default = default_process>
 using slot_postprocess_ = SlotProxy<v0::SlotID::POSTPROCESS_MODIFY, "<=1.0.0", slots::postprocess::v0::PostprocessModifyService::Stub, Validator, postprocess_request, postprocess_response, Default>;
 
+using SLOT_NOT_IMPLEMENTED = std::void_t<>;
+
+// Not defined on purpose, we only need the type: mapping from SlotID to slot-proxy.
 template<v0::SlotID> class SlotType { public: static auto slot_definition(); };
-//template<> class SlotType<v0::SlotID::BROADCAST_SETTINGS> { public: static ____ slot_definition(); };
+template<> class SlotType<v0::SlotID::BROADCAST_SETTINGS> { public: static SLOT_NOT_IMPLEMENTED slot_definition(); };
 template<> class SlotType<v0::SlotID::SIMPLIFY_MODIFY> { public: static slot_simplify_<simplify_default> slot_definition(); };
 template<> class SlotType<v0::SlotID::POSTPROCESS_MODIFY> { public: static slot_postprocess_<> slot_definition(); };
-//template<> class SlotType<v0::SlotID::INFILL_MODIFY> { public: static ____ slot_definition(); };
-//template<> class SlotType<v0::SlotID::INFILL_GENERATE> { public: static ____ slot_definition(); };
+template<> class SlotType<v0::SlotID::INFILL_MODIFY> { public: static SLOT_NOT_IMPLEMENTED slot_definition(); };
+template<> class SlotType<v0::SlotID::INFILL_GENERATE> { public: static SLOT_NOT_IMPLEMENTED slot_definition(); };
 
 template<typename... Types>
 struct Typelist
@@ -167,13 +170,6 @@ using slot_simplify = decltype(details::SlotType<v0::SlotID::SIMPLIFY_MODIFY>::s
 using slot_postprocess = decltype(details::SlotType<v0::SlotID::POSTPROCESS_MODIFY>::slot_definition());
 
 using SlotTypes = details::Typelist<slot_simplify, slot_postprocess>;
-
-template<v0::SlotID> constexpr auto SlotName() noexcept { return utils::CharRangeLiteral("NO_SLOT_ID_SET"); };
-template<> constexpr auto SlotName<v0::SlotID::BROADCAST_SETTINGS>() noexcept { return utils::CharRangeLiteral("BroadcastSettings"); };
-template<> constexpr auto SlotName<v0::SlotID::SIMPLIFY_MODIFY>() noexcept { return utils::CharRangeLiteral("SimplifyModify"); };
-template<> constexpr auto SlotName<v0::SlotID::POSTPROCESS_MODIFY>() noexcept { return utils::CharRangeLiteral("PostprocessModify"); };
-template<> constexpr auto SlotName<v0::SlotID::INFILL_MODIFY>() noexcept { return utils::CharRangeLiteral("InfillModify"); };
-template<> constexpr auto SlotName<v0::SlotID::INFILL_GENERATE>() noexcept { return utils::CharRangeLiteral("InfillGenerate"); };
 
 } // namespace plugins
 
