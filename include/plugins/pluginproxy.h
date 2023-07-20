@@ -23,6 +23,7 @@
 #include "plugins/broadcasts.h"
 #include "plugins/exception.h"
 #include "plugins/metadata.h"
+#include "plugins/slots.h"
 #include "utils/format/thread_id.h"
 #include "utils/types/char_range_literal.h"
 #include "utils/types/generic.h"
