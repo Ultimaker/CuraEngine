@@ -5,7 +5,6 @@
 #define PLUGINS_SLOTS_H
 
 #include <exception>
-#include <cassert>
 #include <memory>
 
 #include "plugins/converters.h"
@@ -169,7 +168,7 @@ using slot_postprocess = decltype(details::SlotType<v0::SlotID::POSTPROCESS_MODI
 
 using SlotTypes = details::Typelist<slot_simplify, slot_postprocess>;
 
-template<v0::SlotID> constexpr auto SlotName() noexcept;
+template<v0::SlotID> constexpr auto SlotName() noexcept { return utils::CharRangeLiteral("NO_SLOT_ID_SET"); };
 template<> constexpr auto SlotName<v0::SlotID::BROADCAST_SETTINGS>() noexcept { return utils::CharRangeLiteral("BroadcastSettings"); };
 template<> constexpr auto SlotName<v0::SlotID::SIMPLIFY_MODIFY>() noexcept { return utils::CharRangeLiteral("SimplifyModify"); };
 template<> constexpr auto SlotName<v0::SlotID::POSTPROCESS_MODIFY>() noexcept { return utils::CharRangeLiteral("PostprocessModify"); };
