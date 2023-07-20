@@ -8,6 +8,8 @@
 #include "utils/types/char_range_literal.h"
 #include "utils/types/generic.h"
 
+#include <agrpc/asio_grpc.hpp>
+
 namespace cura::plugins::details
 {
 
