@@ -10,6 +10,7 @@
 
 namespace cura::utils
 {
+// clang-format off
 template<typename T>
 concept hashable = requires(T value)
 {
@@ -51,7 +52,7 @@ concept integral = std::integral<Tp>;
 template<typename Tp>
 concept floating_point = std::floating_point<Tp>;
 #endif
-
+// clang-format on
 } // namespace cura::utils
 
 #endif // CURAENGINE_GENERIC_H
