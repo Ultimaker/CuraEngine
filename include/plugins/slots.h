@@ -5,6 +5,7 @@
 #define PLUGINS_SLOTS_H
 
 #include <exception>
+#include <cassert>
 #include <memory>
 
 #include "plugins/converters.h"
