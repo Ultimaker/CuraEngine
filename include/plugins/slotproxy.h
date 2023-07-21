@@ -11,6 +11,7 @@
 #include "utils/types/char_range_literal.h"
 
 #include <boost/asio/use_awaitable.hpp>
+
 #include <concepts>
 #include <functional>
 #include <grpcpp/channel.h>

@@ -11,6 +11,8 @@
 #include "utils/ThreadPool.h"
 #include "utils/string.h" //For stringcasecompare.
 
+#include <boost/uuid/random_generator.hpp> //For generating a UUID.
+#include <boost/uuid/uuid_io.hpp> //For generating a UUID.
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <spdlog/cfg/helpers.h>
@@ -20,8 +22,6 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
-#include <boost/uuid/random_generator.hpp> //For generating a UUID.
-#include <boost/uuid/uuid_io.hpp> //For generating a UUID.
 #include <chrono>
 #include <memory>
 #include <string>

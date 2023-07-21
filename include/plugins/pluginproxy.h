@@ -17,17 +17,17 @@
 #include "utils/types/char_range_literal.h"
 #include "utils/types/generic.h"
 
-#include <fmt/format.h>
-#include <fmt/ranges.h>
-#include <range/v3/utility/semiregular_box.hpp>
-#include <spdlog/spdlog.h>
-
 #include <agrpc/asio_grpc.hpp>
 #include <agrpc/grpc_context.hpp>
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/use_awaitable.hpp>
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+#include <range/v3/utility/semiregular_box.hpp>
+#include <spdlog/spdlog.h>
+
 #include <chrono>
 #include <string>
 #include <thread>
