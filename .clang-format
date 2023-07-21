@@ -1,16 +1,18 @@
 AccessModifierOffset: -4
-AlignAfterOpenBracket: Align
+AlignAfterOpenBracket: AlwaysBreak
 AlignConsecutiveAssignments: None
 AlignConsecutiveDeclarations: None
 AlignEscapedNewlines: DontAlign
 AlignOperands: AlignAfterOperator
 AlignTrailingComments: false
 AllowAllParametersOfDeclarationOnNextLine: false
-AllowShortBlocksOnASingleLine: Never
+AllowAllArgumentsOnNextLine: false
+AllowShortBlocksOnASingleLine: Empty
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
+AllowShortLambdasOnASingleLine: Empty
 AlwaysBreakAfterDefinitionReturnType: None
 AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: false
@@ -33,15 +35,15 @@ BraceWrapping:
   SplitEmptyNamespace: true
   SplitEmptyRecord: true
 BreakAfterJavaFieldAnnotations: true
-BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeBinaryOperators: All
 BreakBeforeBraces: Allman
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: BeforeComma
 BreakStringLiterals: true
-ColumnLimit: 240
+ColumnLimit: 180
 CommentPragmas: '^ IWYU pragma:'
 CompactNamespaces: false
-PackConstructorInitializers: CurrentLine
+PackConstructorInitializers: Never
 ConstructorInitializerIndentWidth: 4
 ContinuationIndentWidth: 4
 Cpp11BracedListStyle: false
@@ -54,9 +56,10 @@ ForEachMacros:
   - foreach
   - Q_FOREACH
   - BOOST_FOREACH
+IncludeBlocks: Regroup
 IncludeCategories:
   - Priority: 2
-    Regex: ^"(llvm|llvm-c|clang|clang-c)/
+    Regex: ^<(scripta|spdlog|range|fmt|Arcus|agrpc|grpc|boost)/
   - Priority: 3
     Regex: ^(<|"(gtest|gmock|isl|json)/)
   - Priority: 1
@@ -86,11 +89,14 @@ SpaceBeforeAssignmentOperators: true
 SpaceBeforeParens: ControlStatements
 SpaceInEmptyParentheses: false
 SpacesBeforeTrailingComments: 1
-SpacesInAngles: false
+SpacesInAngles: Never
 SpacesInCStyleCastParentheses: false
 SpacesInContainerLiterals: true
+SpacesInLineCommentPrefix:
+  Minimum: 1
+  Maximum: -1
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
-Standard: c++17
+Standard: c++20
 TabWidth: 4
 UseTab: Never

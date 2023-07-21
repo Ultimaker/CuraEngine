@@ -3,28 +3,28 @@
 
 #ifdef ARCUS
 
-#include <Arcus/Socket.h> //The socket to communicate to.
-#include <thread> //To sleep while waiting for the connection.
-#include <unordered_map> //To map settings to their extruder numbers for limit_to_extruder.
-
-#include <fmt/format.h>
-#include <spdlog/spdlog.h>
+#include "communication/ArcusCommunication.h"
 
 #include "Application.h" //To get and set the current slice command.
 #include "ExtruderTrain.h"
 #include "FffProcessor.h" //To start a slice.
 #include "PrintFeature.h"
 #include "Slice.h" //To process slices.
-#include "communication/ArcusCommunication.h"
 #include "communication/ArcusCommunicationPrivate.h" //Our PIMPL.
 #include "communication/Listener.h" //To listen to the Arcus socket.
 #include "communication/SliceDataStruct.h" //To store sliced layer data.
+#include "plugins/slots.h"
 #include "settings/types/LayerIndex.h" //To point to layers.
 #include "settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
 #include "utils/channel.h"
 #include "utils/polygon.h"
 
-#include "plugins/slots.h"
+#include <Arcus/Socket.h> //The socket to communicate to.
+#include <fmt/format.h>
+#include <spdlog/spdlog.h>
+
+#include <thread> //To sleep while waiting for the connection.
+#include <unordered_map> //To map settings to their extruder numbers for limit_to_extruder.
 
 namespace cura
 {
@@ -51,7 +51,8 @@ class ArcusCommunication::PathCompiler
     std::vector<float> line_widths; //!< Line widths for the line segments stored, the size of this vector is N.
     std::vector<float> line_thicknesses; //!< Line thicknesses for the line segments stored, the size of this vector is N.
     std::vector<float> line_velocities; //!< Line feedrates for the line segments stored, the size of this vector is N.
-    std::vector<float> points; //!< The points used to define the line segments, the size of this vector is D*(N+1) as each line segment is defined from one point to the next. D is the dimensionality of the point.
+    std::vector<float> points; //!< The points used to define the line segments, the size of this vector is D*(N+1) as each line segment is defined from one point to the next. D is
+                               //!< the dimensionality of the point.
 
     Point last_point;
 
@@ -285,7 +286,9 @@ private:
     }
 };
 
-ArcusCommunication::ArcusCommunication() : private_data(new Private), path_compiler(new PathCompiler(*private_data))
+ArcusCommunication::ArcusCommunication()
+    : private_data(new Private)
+    , path_compiler(new PathCompiler(*private_data))
 {
 }
 
@@ -426,7 +429,12 @@ void ArcusCommunication::sendOptimizedLayerData()
     data.slice_data.clear();
 }
 
-void ArcusCommunication::sendPolygon(const PrintFeatureType& type, const ConstPolygonRef& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
+void ArcusCommunication::sendPolygon(
+    const PrintFeatureType& type,
+    const ConstPolygonRef& polygon,
+    const coord_t& line_width,
+    const coord_t& line_thickness,
+    const Velocity& velocity)
 {
     path_compiler->sendPolygon(type, polygon, line_width, line_thickness, velocity);
 }

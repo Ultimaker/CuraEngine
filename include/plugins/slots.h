@@ -4,9 +4,9 @@
 #ifndef PLUGINS_SLOTS_H
 #define PLUGINS_SLOTS_H
 
-#include <exception>
-#include <memory>
-
+#include "cura/plugins/slots/postprocess/v0/postprocess.grpc.pb.h"
+#include "cura/plugins/slots/simplify/v0/simplify.grpc.pb.h"
+#include "cura/plugins/v0/slot_id.pb.h"
 #include "plugins/converters.h"
 #include "plugins/slotproxy.h"
 #include "plugins/types.h"
@@ -15,9 +15,8 @@
 #include "utils/Simplify.h" // TODO: Remove once the simplify slot has been removed
 #include "utils/types/char_range_literal.h"
 
-#include "cura/plugins/slots/postprocess/v0/postprocess.grpc.pb.h"
-#include "cura/plugins/slots/simplify/v0/simplify.grpc.pb.h"
-#include "cura/plugins/v0/slot_id.pb.h"
+#include <exception>
+#include <memory>
 
 namespace cura
 {
@@ -60,7 +59,8 @@ using slot_simplify_ = SlotProxy<v0::SlotID::SIMPLIFY_MODIFY, "<=1.0.0", slots::
  * @tparam Default The default behavior when no plugin is registered.
  */
 template<class Default = default_process>
-using slot_postprocess_ = SlotProxy<v0::SlotID::POSTPROCESS_MODIFY, "<=1.0.0", slots::postprocess::v0::PostprocessModifyService::Stub, Validator, postprocess_request, postprocess_response, Default>;
+using slot_postprocess_
+    = SlotProxy<v0::SlotID::POSTPROCESS_MODIFY, "<=1.0.0", slots::postprocess::v0::PostprocessModifyService::Stub, Validator, postprocess_request, postprocess_response, Default>;
 
 using SLOT_NOT_IMPLEMENTED = std::void_t<>;
 

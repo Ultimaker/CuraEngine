@@ -4,14 +4,13 @@
 #ifndef CURAENGINE_INCLUDE_PLUGINS_METADATA_H
 #define CURAENGINE_INCLUDE_PLUGINS_METADATA_H
 
+#include "plugins/types.h"
+
 #include <grpcpp/client_context.h>
+#include <grpcpp/support/string_ref.h>
 #include <map>
 #include <string>
-
-#include <grpcpp/support/string_ref.h>
 #include <string_view>
-
-#include "plugins/types.h"
 
 namespace cura::plugins
 {

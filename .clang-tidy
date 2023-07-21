@@ -1,4 +1,3 @@
----
 Checks: >
   *,
   -llvmlibc-*,
@@ -11,21 +10,46 @@ Checks: >
   -android-*,
   -misc-non-private-member-variables-in-classes,
   -fuchsia-overloaded-operator,
-  -cppcoreguidelines-avoid-capturing-lambda-coroutines
+  -cppcoreguidelines-avoid-capturing-lambda-coroutines,
+  -llvm-header-guard,
+  -bugprone-easily-swappable-parameters
 WarningsAsErrors: '-*'
 HeaderFilterRegex: ''
 FormatStyle: none
 CheckOptions:
-  - { key: readability-identifier-naming.NamespaceCase,           value: lower_case }
-  - { key: readability-identifier-naming.MacroDefinitionCase,     value: UPPER_CASE }
-  - { key: readability-identifier-naming.ClassCase,               value: CamelCase }
-  - { key: readability-identifier-naming.FunctionCase,            value: camelBack }
-  - { key: readability-identifier-naming.MethodCase,              value: camelBack }
-  - { key: readability-identifier-naming.ParameterCase,           value: lower_case }
-  - { key: readability-identifier-naming.VariableCase,            value: lower_case }
-  - { key: readability-identifier-naming.ClassConstantCase,       value: UPPER_CASE }
-  - { key: readability-identifier-naming.GlobalConstantCase,     value: UPPER_CASE }
-  - { key: readability-identifier-naming.GlobalVariableCase,     value: UPPER_CASE }
-  - { key: readability-identifier-length.IgnoredParameterNames,   value: 'i|j|k|x|y|z|a|b|aa|bb|ip|os' }
-  - { key: readability-identifier-length.IgnoredVariableNames,    value: 'i|j|k|x|y|z|a|b|aa|bb|ip|os' }
-  - { key: readability-identifier-length.IgnoredLoopCounterNames, value: 'i|j|k|x|y|z|a|b|aa|bb|ip' }
+  - key: google-build-namespaces.HeaderFileExtensions
+    value: h
+  - key: readability-function-size.LineThreshold
+    value: 100
+  - key: readability-function-size.BranchThreshold
+    value: 10
+  - key: readability-function-size.ParameterThreshold
+    value: 6
+  - key: readability-function-size.NestingThreshold
+    value: 4
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case
+  - key: readability-identifier-naming.MacroDefinitionCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.FunctionCase
+    value: camelBack
+  - key: readability-identifier-naming.MethodCase
+    value: camelBack
+  - key: readability-identifier-naming.ParameterCase
+    value: lower_case
+  - key: readability-identifier-naming.VariableCase
+    value: lower_case
+  - key: readability-identifier-naming.ClassConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.GlobalConstantCase
+    value: lower_case
+  - key: readability-identifier-naming.GlobalVariableCase
+    value: UPPER_CASE
+  - key: readability-identifier-length.IgnoredParameterNames
+    value: 'p|p0|p1|i|j|k|x|X|y|Y|z|Z|a|A|b|B|c|C|d|D|ab|AB|ba|BA|bc|BC|cb|CB|cd|CD|dc|DC|ad|AD|da|DA|ip|os'
+  - key: readability-identifier-length.IgnoredVariableNames
+    value: '_p|p0|p1|i|j|k|x|X|y|Y|z|Z|a|A|b|B|c|C|d|D|ab|AB|ba|BA|bc|BC|cb|CB|cd|CD|dc|DC|ad|AD|da|DA|ip|os'
+  - key: readability-identifier-length.IgnoredLoopCounterNames
+    value: '_p|p0|p1|i|j|k|x|X|y|Y|z|Z|a|A|b|B|c|C|d|D|ab|AB|ba|BA|bc|BC|cb|CB|cd|CD|dc|DC|ad|AD|da|DA|ip|os'
