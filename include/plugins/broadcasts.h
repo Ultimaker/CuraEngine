@@ -30,14 +30,16 @@ inline constexpr bool is_broadcast_channel_v = is_broadcast_channel<T1, T2>::val
 
 
 template<v0::SlotID BroadcastSlot>
-requires is_broadcast_channel_v<BroadcastSlot, v0::SlotID::BROADCAST_SETTINGS> constexpr auto broadcast_message_factory(auto&&... args)
+requires is_broadcast_channel_v<BroadcastSlot, v0::SlotID::BROADCAST_SETTINGS>
+constexpr auto broadcast_message_factory(auto&&... args)
 {
     return broadcast_settings_request{}(std::forward<decltype(args)>(args)...);
 };
 
 
 template<class Stub, v0::SlotID BroadcastSlot>
-requires is_broadcast_channel_v<BroadcastSlot, v0::SlotID::BROADCAST_SETTINGS> constexpr auto broadcast_factory()
+requires is_broadcast_channel_v<BroadcastSlot, v0::SlotID::BROADCAST_SETTINGS>
+constexpr auto broadcast_factory()
 {
     return agrpc::RPC<&Stub::PrepareAsyncBroadcastSettings>{};
 }

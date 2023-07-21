@@ -69,12 +69,33 @@ struct formatter<grpc::string_ref>
 namespace cura::plugins
 {
 
-template<v0::SlotID> constexpr auto SlotName() noexcept;
-template<> constexpr auto SlotName<v0::SlotID::BROADCAST_SETTINGS>() noexcept { return utils::CharRangeLiteral("BroadcastSettings"); };
-template<> constexpr auto SlotName<v0::SlotID::SIMPLIFY_MODIFY>() noexcept { return utils::CharRangeLiteral("SimplifyModify"); };
-template<> constexpr auto SlotName<v0::SlotID::POSTPROCESS_MODIFY>() noexcept { return utils::CharRangeLiteral("PostprocessModify"); };
-template<> constexpr auto SlotName<v0::SlotID::INFILL_MODIFY>() noexcept { return utils::CharRangeLiteral("InfillModify"); };
-template<> constexpr auto SlotName<v0::SlotID::INFILL_GENERATE>() noexcept { return utils::CharRangeLiteral("InfillGenerate"); };
+template<v0::SlotID>
+constexpr auto SlotName() noexcept;
+template<>
+constexpr auto SlotName<v0::SlotID::BROADCAST_SETTINGS>() noexcept
+{
+    return utils::CharRangeLiteral("BroadcastSettings");
+};
+template<>
+constexpr auto SlotName<v0::SlotID::SIMPLIFY_MODIFY>() noexcept
+{
+    return utils::CharRangeLiteral("SimplifyModify");
+};
+template<>
+constexpr auto SlotName<v0::SlotID::POSTPROCESS_MODIFY>() noexcept
+{
+    return utils::CharRangeLiteral("PostprocessModify");
+};
+template<>
+constexpr auto SlotName<v0::SlotID::INFILL_MODIFY>() noexcept
+{
+    return utils::CharRangeLiteral("InfillModify");
+};
+template<>
+constexpr auto SlotName<v0::SlotID::INFILL_GENERATE>() noexcept
+{
+    return utils::CharRangeLiteral("InfillGenerate");
+};
 
 } // namespace cura::plugins
 

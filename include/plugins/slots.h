@@ -65,12 +65,42 @@ using slot_postprocess_
 using SLOT_NOT_IMPLEMENTED = std::void_t<>;
 
 // Only declared, not defined, on purpose, we only need the type: mapping from SlotID to slot-proxy.
-template<v0::SlotID> class SlotType { public: static auto slot_definition(); };
-template<> class SlotType<v0::SlotID::BROADCAST_SETTINGS> { public: static SLOT_NOT_IMPLEMENTED slot_definition(); };
-template<> class SlotType<v0::SlotID::SIMPLIFY_MODIFY> { public: static slot_simplify_<simplify_default> slot_definition(); };
-template<> class SlotType<v0::SlotID::POSTPROCESS_MODIFY> { public: static slot_postprocess_<> slot_definition(); };
-template<> class SlotType<v0::SlotID::INFILL_MODIFY> { public: static SLOT_NOT_IMPLEMENTED slot_definition(); };
-template<> class SlotType<v0::SlotID::INFILL_GENERATE> { public: static SLOT_NOT_IMPLEMENTED slot_definition(); };
+template<v0::SlotID>
+class SlotType
+{
+public:
+    static auto slot_definition();
+};
+template<>
+class SlotType<v0::SlotID::BROADCAST_SETTINGS>
+{
+public:
+    static SLOT_NOT_IMPLEMENTED slot_definition();
+};
+template<>
+class SlotType<v0::SlotID::SIMPLIFY_MODIFY>
+{
+public:
+    static slot_simplify_<simplify_default> slot_definition();
+};
+template<>
+class SlotType<v0::SlotID::POSTPROCESS_MODIFY>
+{
+public:
+    static slot_postprocess_<> slot_definition();
+};
+template<>
+class SlotType<v0::SlotID::INFILL_MODIFY>
+{
+public:
+    static SLOT_NOT_IMPLEMENTED slot_definition();
+};
+template<>
+class SlotType<v0::SlotID::INFILL_GENERATE>
+{
+public:
+    static SLOT_NOT_IMPLEMENTED slot_definition();
+};
 
 template<typename... Types>
 struct Typelist
@@ -161,7 +191,7 @@ template<typename T>
 struct Holder
 {
     T proxy;
-    //FIXME?: Consider saving SlotID here and checking for equality on that, instead of the proxy.
+    // FIXME?: Consider saving SlotID here and checking for equality on that, instead of the proxy.
 };
 
 } // namespace details
