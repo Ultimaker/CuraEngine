@@ -50,7 +50,7 @@ INLINE Point operator+(const Point& p0, const Point& p1) { return Point(p0.X+p1.
 INLINE Point operator-(const Point& p0, const Point& p1) { return Point(p0.X-p1.X, p0.Y-p1.Y); }
 INLINE Point operator*(const Point& p0, const coord_t i) { return Point(p0.X * i, p0.Y * i); }
 template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type> //Use only for numeric types.
-INLINE Point operator*(const Point& p0, const T i) { return Point(p0.X * i, p0.Y * i); }
+INLINE Point operator*(const Point& p0, const T i) { return Point(std::llrint(p0.X * i), std::llrint(p0.Y * i)); }
 template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type> //Use only for numeric types.
 INLINE Point operator*(const T i, const Point& p0) { return p0 * i; }
 INLINE Point operator/(const Point& p0, const coord_t i) { return Point(p0.X/i, p0.Y/i); }
@@ -278,9 +278,9 @@ public:
 
     Point3 apply(const Point3 p) const
     {
-        return Point3(p.x * matrix[0] + p.y * matrix[1] + p.z * matrix[2]
-                    , p.x * matrix[3] + p.y * matrix[4] + p.z * matrix[5]
-                    , p.x * matrix[6] + p.y * matrix[7] + p.z * matrix[8]);
+        return Point3(std::llrint(p.x * matrix[0] + p.y * matrix[1] + p.z * matrix[2])
+                    , std::llrint(p.x * matrix[3] + p.y * matrix[4] + p.z * matrix[5])
+                    , std::llrint(p.x * matrix[6] + p.y * matrix[7] + p.z * matrix[8]));
     }
 
     /*!
