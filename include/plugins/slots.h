@@ -4,6 +4,7 @@
 #ifndef PLUGINS_SLOTS_H
 #define PLUGINS_SLOTS_H
 
+#include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
 #include "cura/plugins/slots/postprocess/v0/postprocess.grpc.pb.h"
 #include "cura/plugins/slots/simplify/v0/simplify.grpc.pb.h"
 #include "cura/plugins/v0/slot_id.pb.h"
@@ -62,6 +63,10 @@ template<class Default = default_process>
 using slot_postprocess_
     = SlotProxy<v0::SlotID::POSTPROCESS_MODIFY, "<=1.0.0", slots::postprocess::v0::PostprocessModifyService::Stub, Validator, postprocess_request, postprocess_response, Default>;
 
+template<class Default = default_process>
+using slot_settings_broadcast_
+    = SlotProxy<v0::SlotID::SETTINGS_BROADCAST, "<=1.0.0", slots::broadcast::v0::BroadcastService::Stub, Validator, broadcast_settings_request, empty, Default>;
+
 template<typename... Types>
 struct Typelist
 {
@@ -101,11 +106,11 @@ public:
         get_type<Tp>().proxy = Tp{ std::forward<Tp>(std::move(plugin)) };
     }
 
-    template<utils::CharRangeLiteral BroadcastChannel>
+    template<typename Tp>
     void broadcast(auto&&... args)
     {
-        value_.proxy.template broadcast<BroadcastChannel>(std::forward<decltype(args)>(args)...);
-        Base::value_.proxy.template broadcast<BroadcastChannel>(std::forward<decltype(args)>(args)...);
+        value_.proxy.template broadcast<Tp::slot_id>(std::forward<decltype(args)>(args)...);
+        // TODO: traverse the types and broadcast over each slot
     }
 
 protected:
@@ -147,6 +152,7 @@ private:
 template<typename T>
 struct Holder
 {
+    using value_type = T;
     T proxy;
 };
 
@@ -154,8 +160,9 @@ struct Holder
 
 using slot_simplify = details::slot_simplify_<details::simplify_default>;
 using slot_postprocess = details::slot_postprocess_<>;
+using slot_settings_broadcast = details::slot_settings_broadcast_<>;
 
-using SlotTypes = details::Typelist<slot_simplify, slot_postprocess>;
+using SlotTypes = details::Typelist<slot_simplify, slot_postprocess, slot_settings_broadcast>;
 } // namespace plugins
 using slots = plugins::details::SingletonRegistry<plugins::SlotTypes, plugins::details::Holder>;
 

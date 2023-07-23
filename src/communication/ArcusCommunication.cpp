@@ -523,6 +523,9 @@ void ArcusCommunication::sliceNext()
         {
             switch (plugin.id())
             {
+            case cura::proto::SlotID::SETTINGS_BROADCAST:
+                slots::instance().connect<plugins::slot_settings_broadcast>(utils::createChannel({ plugin.address(), plugin.port() }));
+                break;
             case cura::proto::SlotID::SIMPLIFY_MODIFY:
                 slots::instance().connect<plugins::slot_simplify>(utils::createChannel({ plugin.address(), plugin.port() }));
                 break;
@@ -544,7 +547,7 @@ void ArcusCommunication::sliceNext()
     private_data->readExtruderSettingsMessage(slice_message->extruders());
 
     // Broadcast the settings to the plugins
-    slots::instance().broadcast<"BroadcastSettings">(*slice_message);
+    slots::instance().broadcast<plugins::slot_settings_broadcast>(*slice_message);
     const size_t extruder_count = slice.scene.extruders.size();
 
     // For each setting, register what extruder it should be obtained from (if this is limited to an extruder).
