@@ -78,6 +78,9 @@ class Registry;
 template<template<typename> class Unit>
 class Registry<Typelist<>, Unit>
 {
+public:
+    template<typename Tp>
+    void broadcast(auto&&... args) {}  // Base case, do nothing
 };
 
 template<typename T, typename... Types, template<typename> class Unit>
@@ -86,6 +89,7 @@ class Registry<Typelist<T, Types...>, Unit> : public Registry<Typelist<Types...>
 public:
     using ValueType = T;
     using Base = Registry<Typelist<Types...>, Unit>;
+    using Base::broadcast;
     friend Base;
 
     template<typename Tp>
@@ -110,7 +114,7 @@ public:
     void broadcast(auto&&... args)
     {
         value_.proxy.template broadcast<Tp::slot_id>(std::forward<decltype(args)>(args)...);
-        // TODO: traverse the types and broadcast over each slot
+        Base::template broadcast<Tp>(std::forward<decltype(args)>(args)...);
     }
 
 protected:
