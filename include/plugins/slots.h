@@ -80,7 +80,9 @@ class Registry<Typelist<>, Unit>
 {
 public:
     template<typename Tp>
-    void broadcast(auto&&... args) {}  // Base case, do nothing
+    void broadcast(auto&&... args)
+    {
+    } // Base case, do nothing
 };
 
 template<typename T, typename... Types, template<typename> class Unit>
