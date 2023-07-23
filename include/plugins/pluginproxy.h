@@ -168,7 +168,7 @@ public:
      *
      * @throws std::runtime_error if communication with the plugin fails.
      */
-    value_type operator()(auto&&... args)
+    value_type modify(auto&&... args)
     {
         agrpc::GrpcContext grpc_context;
         value_type ret_value{};

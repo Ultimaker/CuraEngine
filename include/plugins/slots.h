@@ -95,9 +95,9 @@ public:
     }
 
     template<typename Tp>
-    constexpr auto invoke(auto&&... args)
+    constexpr auto modify(auto&&... args)
     {
-        return std::invoke(get<Tp>(), std::forward<decltype(args)>(args)...);
+        return get<Tp>().modify(std::forward<decltype(args)>(args)...);
     }
 
     template<typename Tp>

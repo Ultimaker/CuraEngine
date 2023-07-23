@@ -64,7 +64,7 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_noplugin)(benchmark::State
         Polygons simplified;
 		for (const auto& polys : shapes)
 		{
-			benchmark::DoNotOptimize(simplified = slots::instance().invoke<plugins::slot_simplify>(polys, MM2INT(0.25), MM2INT(0.025), 50000));
+			benchmark::DoNotOptimize(simplified = slots::instance().modify<plugins::slot_simplify>(polys, MM2INT(0.25), MM2INT(0.025), 50000));
 		}
 	}
 }
@@ -89,7 +89,7 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_localplugin)(benchmark::St
         Polygons simplified;
         for (const auto& polys : shapes)
         {
-            benchmark::DoNotOptimize(simplified = slots::instance().invoke<plugins::slot_simplify>(polys, MM2INT(0.25), MM2INT(0.025), 50000));
+            benchmark::DoNotOptimize(simplified = slots::instance().modify<plugins::slot_simplify>(polys, MM2INT(0.25), MM2INT(0.025), 50000));
         }
     }
 }

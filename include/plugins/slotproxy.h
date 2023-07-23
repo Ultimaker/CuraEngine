@@ -74,11 +74,11 @@ public:
      * @param args The arguments for the plugin request.
      * @return The result of the plugin request or the default behavior.
      */
-    auto operator()(auto&&... args)
+    constexpr auto modify(auto&&... args)
     {
         if (plugin_.has_value())
         {
-            return std::invoke(plugin_.value(), std::forward<decltype(args)>(args)...);
+            return plugin_.value().modify(std::forward<decltype(args)>(args)...);
         }
         return std::invoke(default_process, std::forward<decltype(args)>(args)...);
     }
