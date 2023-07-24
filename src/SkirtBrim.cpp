@@ -210,7 +210,7 @@ void SkirtBrim::generate()
 
 std::vector<coord_t> SkirtBrim::generatePrimaryBrim(std::vector<Offset>& all_brim_offsets, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder)
 {
-    std::vector<coord_t> total_length(extruder_count, 0u);
+    std::vector<coord_t> total_length(extruder_count, 0U);
 
     for (size_t offset_idx = 0; offset_idx < all_brim_offsets.size(); offset_idx++)
     {
@@ -220,10 +220,11 @@ std::vector<coord_t> SkirtBrim::generatePrimaryBrim(std::vector<Offset>& all_bri
             storage.skirt_brim[offset.extruder_nr].resize(offset.inset_idx + 1);
         }
         SkirtBrimLine& output_location = storage.skirt_brim[offset.extruder_nr][offset.inset_idx];
-        coord_t added_length = generateOffset(offset, covered_area, allowed_areas_per_extruder, output_location);
-        if (! added_length)
+        const coord_t added_length = generateOffset(offset, covered_area, allowed_areas_per_extruder, output_location);
+
+        if (added_length == 0)
         { // no more place for more brim. Trying to satisfy minimum length constraint with generateSecondarySkirtBrim
-            break;
+            continue;
         }
         total_length[offset.extruder_nr] += added_length;
 
@@ -311,7 +312,7 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Polygons& covered_area, 
             auto offset_dist = line_widths[offset.extruder_nr];
 
             Polygons local_brim;
-            auto closed_polygons_brim = storage.skirt_brim[offset.extruder_nr][reference_idx].closed_polygons.offset(offset_dist, ClipperLib::jtRound);
+            auto closed_polygons_brim = storage.skirt_brim[offset.extruder_nr][reference_idx].closed_polygons.offsetPolyLine(offset_dist, ClipperLib::jtRound, true);
             local_brim.add(closed_polygons_brim);
 
             auto open_polylines_brim = storage.skirt_brim[offset.extruder_nr][reference_idx].open_polylines.offsetPolyLine(offset_dist, ClipperLib::jtRound);
