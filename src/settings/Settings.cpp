@@ -443,6 +443,9 @@ EFillMethod Settings::get<EFillMethod>(const std::string& key) const
     {
         return EFillMethod::LIGHTNING;
     }
+    else if (value.rfind("PLUGIN", 0) == 0) {
+        return EFillMethod::PLUGIN;
+    }
     else // Default.
     {
         return EFillMethod::NONE;
