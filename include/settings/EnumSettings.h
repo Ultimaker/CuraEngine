@@ -27,8 +27,8 @@ enum class EFillMethod
     CROSS_3D,
     GYROID,
     LIGHTNING,
-    PLUGIN,
-    NONE // NOTE: Should remain last! (May be used in testing to enumarate the enum.)
+    NONE, // NOTE: Should remain last! (May be used in testing to enumarate the enum.)
+    PLUGIN, // Place plugin after none to prevent it from being tested in the gtest suite.
 };
 
 /*!
