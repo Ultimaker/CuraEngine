@@ -694,6 +694,17 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea
             current_elem.to_buildplate = true; // sometimes nodes that can reach the buildplate are marked as cant reach, tainting subtrees. This corrects it.
             spdlog::debug("Corrected taint leading to a wrong to model value on layer {} targeting {} with radius {}", layer_idx - 1, current_elem.target_height, radius);
         }
+
+        // Sometimes the avoidance can contain holes that are smaller than 1, so in that case increase the area slightly,
+        // technically this makes the influence area is larger than it should be (as it overlaps with the avoidance slightly),
+        // but everything compensates for small rounding errors already, so it will be fine.
+        // Other solution would be to apply a morphological closure for the avoidances, but as this issue occurs very rarely it may not be worth the performance impact.
+        if(! settings.no_error && ! to_bp_data.empty() && to_bp_data.area()<1)
+        {
+            to_bp_data = to_bp_data.unionPolygons(to_bp_data.offsetPolyLine(1));
+            spdlog::warn("Detected very small influence area, possible caused by a small hole in the avoidance. Compensating.");
+        }
+
     }
     if (config.support_rests_on_model)
     {
@@ -714,6 +725,17 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea
                 to_model_data = TreeSupportUtils::safeUnion(increased.difference(volumes_.getAvoidance(radius, layer_idx - 1, AvoidanceType::COLLISION, true, settings.use_min_distance)));
             }
         }
+
+        // Sometimes the avoidance can contain holes that are smaller than 1, so in that case increase the area slightly,
+        // technically this makes the influence area is larger than it should be (as it overlaps with the avoidance slightly),
+        // but everything compensates for small rounding errors already, so it will be fine.
+        // Other solution would be to apply a morphological closure for the avoidances, but as this issue occurs very rarely it may not be worth the performance impact.
+        if(! settings.no_error && ! to_model_data.empty() && to_model_data.area()<1)
+        {
+            to_model_data = to_model_data.unionPolygons(to_model_data.offsetPolyLine(1));
+            spdlog::warn("Detected very small influence area, possible caused by a small hole in the avoidance. Compensating.");
+        }
+
     }
 
     check_layer_data = current_elem.to_buildplate ? to_bp_data : to_model_data;
