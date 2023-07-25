@@ -400,6 +400,9 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
             {
                 first_layer_outline
                     = first_layer_outline.unionPolygons(storage.getLayerOutlines(i_layer, include_support, include_prime_tower, external_only, extruder.extruder_nr));
+                Polygons machine_area = storage.getMachineBorder(extruder.extruder_nr);
+                first_layer_outline.toPolylines();
+                first_layer_outline = machine_area.intersectionPolyLines(first_layer_outline, false);
             }
         }
 
@@ -430,6 +433,7 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
         // the skirt lines can cross the shield lines.
         // This shouldn't be a big problem, since the skirt lines are far away from the model.
         first_layer_outline = first_layer_outline.approxConvexHull();
+
     }
     else
     { // add brim underneath support by removing support where there's brim around the model
