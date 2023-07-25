@@ -433,7 +433,6 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
         // the skirt lines can cross the shield lines.
         // This shouldn't be a big problem, since the skirt lines are far away from the model.
         first_layer_outline = first_layer_outline.approxConvexHull();
-
     }
     else
     { // add brim underneath support by removing support where there's brim around the model
