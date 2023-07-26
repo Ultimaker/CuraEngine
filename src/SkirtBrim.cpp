@@ -230,7 +230,7 @@ std::vector<coord_t> SkirtBrim::generatePrimaryBrim(std::vector<Offset>& all_bri
 
         if (offset.is_last && total_length[offset.extruder_nr] < skirt_brim_minimal_length[offset.extruder_nr]
             && // This was the last offset of this extruder, but the brim lines don't meet minimal length yet
-            total_length[offset.extruder_nr] > 0U // No lines got added; we have no extrusion lines to build on
+            total_length[offset.extruder_nr] > 0u // No lines got added; we have no extrusion lines to build on
         )
         {
             offset.is_last = false;
@@ -383,11 +383,24 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
         const bool skirt_around_prime_tower_brim = storage.primeTower.enabled && global_settings.get<bool>("prime_tower_brim_enable");
         const bool include_prime_tower = ! skirt_around_prime_tower_brim; // include manually otherwise
 
-        const int skirt_height = global_settings.get<int>("skirt_height");
         first_layer_outline = Polygons();
-        for (int i_layer = layer_nr; i_layer <= skirt_height; ++i_layer)
+        int skirt_height = 0;
+        for (const auto& extruder : Application::getInstance().current_slice->scene.extruders)
         {
-            first_layer_outline = first_layer_outline.unionPolygons(storage.getLayerOutlines(i_layer, include_support, include_prime_tower, external_only, extruder_nr));
+            if (extruder_nr == -1 || extruder_nr == extruder.extruder_nr)
+            {
+                skirt_height = std::max(skirt_height, extruder.settings.get<int>("skirt_height"));
+            }
+        }
+        skirt_height = std::min(skirt_height, static_cast<int>(storage.print_layer_count));
+
+        for (int i_layer = layer_nr; i_layer < skirt_height; ++i_layer)
+        {
+            for (const auto& extruder : Application::getInstance().current_slice->scene.extruders)
+            {
+                first_layer_outline
+                    = first_layer_outline.unionPolygons(storage.getLayerOutlines(i_layer, include_support, include_prime_tower, external_only, extruder.extruder_nr));
+            }
         }
 
         if (skirt_around_prime_tower_brim)
