@@ -10,16 +10,33 @@ AssureOutOfSourceBuilds()
 option(ENABLE_ARCUS "Enable support for ARCUS" ON)
 option(ENABLE_TESTING "Build with unit tests" OFF)
 option(EXTENSIVE_WARNINGS "Build with all warnings" ON)
+option(ENABLE_PLUGINS "Build with plugins" ON)
+option(ENABLE_REMOTE_PLUGINS "Build with all warnings" OFF)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
+#set(GRPC_PROTOS "List of all protobuf definitions (see: https://github.com/Ultimaker/curaengine_grpc_definitions)")
+#set(GRPC_IMPORT_DIRS "List of all protobuf dirs definitions (see: https://github.com/Ultimaker/curaengine_grpc_definitions)")
 
-# Create Protobuf files if Arcus is used
+# Generate the plugin types
+find_package(protobuf REQUIRED)
+find_package(asio-grpc REQUIRED)
+find_package(gRPC REQUIRED)
+option(RETARDED_APPLE_CLANG "Apple Clang <= 13 used" OFF)
+
+MESSAGE(STATUS "Compiling with plugins support: ${ENABLE_PLUGINS}")
+if (${ENABLE_PLUGINS})
+    MESSAGE(STATUS "Plugin secure remotes allowed: ${ENABLE_REMOTE_PLUGINS}")
+endif ()
+
+asio_grpc_protobuf_generate(PROTOS "${GRPC_PROTOS}" IMPORT_DIRS ${GRPC_IMPORT_DIRS}
+        OUT_VAR "ASIO_GRPC_PLUGIN_PROTO_SOURCES"
+        OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated"
+        GENERATE_GRPC GENERATE_MOCK_CODE)
+
 if (ENABLE_ARCUS)
     message(STATUS "Building with Arcus")
-
     find_package(arcus REQUIRED)
-    find_package(protobuf REQUIRED)
     protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 endif ()
 
@@ -110,6 +127,7 @@ set(engine_SRCS # Except main.cpp.
 
         src/utils/AABB.cpp
         src/utils/AABB3D.cpp
+        src/utils/channel.cpp
         src/utils/Date.cpp
         src/utils/ExtrusionJunction.cpp
         src/utils/ExtrusionLine.cpp
@@ -137,7 +155,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/VoxelUtils.cpp
         )
 
-add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})
+add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS} ${ASIO_GRPC_PLUGIN_PROTO_SOURCES})
 use_threads(_CuraEngine)
 
 target_include_directories(_CuraEngine
@@ -146,10 +164,14 @@ target_include_directories(_CuraEngine
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}> # Include Cura.pb.h
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated> # Include generated plugin types
         )
+
 target_compile_definitions(_CuraEngine
         PUBLIC
         $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
+        $<$<BOOL:${ENABLE_PLUGINS}>:ENABLE_PLUGINS>
+        $<$<AND:$<BOOL:${ENABLE_PLUGINS}>,$<BOOL:${ENABLE_REMOTE_PLUGINS}>>:ENABLE_REMOTE_PLUGINS>
         $<$<BOOL:${OLDER_APPLE_CLANG}>:OLDER_APPLE_CLANG>
         CURA_ENGINE_VERSION=\"${CURA_ENGINE_VERSION}\"
         $<$<BOOL:${ENABLE_TESTING}>:BUILD_TESTS>
@@ -170,7 +192,7 @@ if (${EXTENSIVE_WARNINGS})
 endif ()
 
 if (ENABLE_ARCUS)
-    target_link_libraries(_CuraEngine PRIVATE arcus::arcus protobuf::libprotobuf)
+    target_link_libraries(_CuraEngine PUBLIC arcus::arcus )
 endif ()
 
 find_package(clipper REQUIRED)
@@ -181,6 +203,8 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
+find_package(neargye-semver REQUIRED)
+find_package(gRPC REQUIRED)
 
 if (ENABLE_TESTING)
     find_package(GTest REQUIRED)
@@ -196,6 +220,10 @@ target_link_libraries(_CuraEngine
         stb::stb
         boost::boost
         scripta::scripta
+        neargye-semver::neargye-semver
+        asio-grpc::asio-grpc
+        grpc::grpc
+        protobuf::libprotobuf
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
 
 if (NOT WIN32)
@@ -225,4 +253,4 @@ endif ()
 
 if (ENABLE_BENCHMARKS)
     add_subdirectory(benchmark)
-endif()
+endif ()

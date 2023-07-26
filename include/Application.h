@@ -1,18 +1,23 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
 #include "utils/NoCopy.h"
-#include <cstddef> //For size_t.
+
 #include <cassert>
+#include <cstddef>
+#include <string>
+
 
 namespace cura
 {
 class Communication;
 class Slice;
 class ThreadPool;
+
+struct PluginSetupConfiguration;
 
 /*!
  * A singleton class that serves as the starting point for all slicing.
@@ -85,7 +90,9 @@ public:
      *
      * \param nworkers The number of workers (including the main thread) that are ran.
      */
-    void startThreadPool(int nworkers=0);
+    void startThreadPool(int nworkers = 0);
+
+    std::string instance_uuid;
 
 protected:
 #ifdef ARCUS
@@ -95,7 +102,7 @@ protected:
      * \param argv The arguments provided to the application.
      */
     void connect();
-#endif //ARCUS
+#endif // ARCUS
 
     /*!
      * \brief Print the header and license to the stderr channel.
@@ -134,8 +141,10 @@ private:
      * This destroys the Communication instance along with it.
      */
     ~Application();
+
+    void registerPlugins(const PluginSetupConfiguration& plugins_config);
 };
 
-} //Cura namespace.
+} // namespace cura
 
-#endif //APPLICATION_H
+#endif // APPLICATION_H
