@@ -81,7 +81,7 @@ template<template<typename> class Unit>
 class Registry<Typelist<>, Unit>
 {
 public:
-    void append_to_connect_map(std::map<v0::SlotID, std::function<void(const std::shared_ptr<grpc::Channel&>)>>& function_map)
+    constexpr void append_to_connect_map(slot_to_connect_map_t& function_map)
     {
     } // Base case, do nothing.
 
@@ -100,13 +100,14 @@ public:
     using Base::broadcast;
     friend Base;
 
-    void append_to_connect_map(slot_to_connect_map_t& function_map)
+    constexpr void append_to_connect_map(slot_to_connect_map_t& function_map)
     {
         function_map.insert({ T::slot_id,
                               [&](std::shared_ptr<grpc::Channel> plugin)
                               {
-                                  this->connect<T::slot_id>(plugin);
+                                  connect<T::slot_id>(plugin);
                               } });
+        Base::append_to_connect_map(function_map);
     }
 
     template<v0::SlotID S>
