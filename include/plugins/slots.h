@@ -79,7 +79,7 @@ template<template<typename> class Unit>
 class Registry<Typelist<>, Unit>
 {
 public:
-    template<typename Tp>
+    template<v0::SlotID S>
     void broadcast(auto&&... args)
     {
     } // Base case, do nothing
@@ -94,48 +94,49 @@ public:
     using Base::broadcast;
     friend Base;
 
-    template<typename Tp>
-    constexpr Tp& get()
+    template<v0::SlotID S>
+    constexpr auto& get()
     {
-        return get_type<Tp>().proxy;
+        return get_type<S>().proxy;
     }
 
-    template<typename Tp>
+    template<v0::SlotID S>
     constexpr auto modify(auto&&... args)
     {
-        return get<Tp>().modify(std::forward<decltype(args)>(args)...);
+        return get<S>().modify(std::forward<decltype(args)>(args)...);
     }
 
-    template<typename Tp>
+    template<v0::SlotID S>
     void connect(auto&& plugin)
     {
-        get_type<Tp>().proxy = Tp{ std::forward<Tp>(std::move(plugin)) };
+        using Tp = decltype(get_type<S>().proxy);
+        get_type<S>().proxy = Tp{ std::forward<Tp>(std::move(plugin)) };
     }
 
-    template<typename Tp>
+    template<v0::SlotID S>
     void broadcast(auto&&... args)
     {
-        value_.proxy.template broadcast<Tp::slot_id>(std::forward<decltype(args)>(args)...);
-        Base::template broadcast<Tp>(std::forward<decltype(args)>(args)...);
+        value_.proxy.template broadcast<S>(std::forward<decltype(args)>(args)...);
+        Base::template broadcast<S>(std::forward<decltype(args)>(args)...);
     }
 
 protected:
-    template<typename Tp>
-    constexpr Unit<Tp>& get_type()
+    template<v0::SlotID S>
+    constexpr auto& get_type()
     {
-        return get_helper<Tp>(std::is_same<Tp, ValueType>{});
+        return get_helper<S>(std::bool_constant<S == ValueType::slot_id>{});
     }
 
-    template<typename Tp>
-    constexpr Unit<Tp>& get_helper(std::true_type)
+    template<v0::SlotID S>
+    constexpr auto& get_helper(std::true_type)
     {
         return value_;
     }
 
-    template<typename Tp>
-    constexpr Unit<Tp>& get_helper(std::false_type)
+    template<v0::SlotID S>
+    constexpr auto& get_helper(std::false_type)
     {
-        return Base::template get_type<Tp>();
+        return Base::template get_type<S>();
     }
 
     Unit<ValueType> value_;

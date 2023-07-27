@@ -342,7 +342,7 @@ void ArcusCommunication::beginGCode()
 
 void ArcusCommunication::flushGCode()
 {
-    const std::string& message_str = slots::instance().modify<plugins::slot_postprocess>(private_data->gcode_output_stream.str());
+    const std::string& message_str = slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(private_data->gcode_output_stream.str());
     if (message_str.size() == 0)
     {
         return;
@@ -375,7 +375,7 @@ void ArcusCommunication::sendCurrentPosition(const Point& position)
 void ArcusCommunication::sendGCodePrefix(const std::string& prefix) const
 {
     std::shared_ptr<proto::GCodePrefix> message = std::make_shared<proto::GCodePrefix>();
-    message->set_data(slots::instance().modify<plugins::slot_postprocess>(prefix));
+    message->set_data(slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(prefix));
     private_data->socket->sendMessage(message);
 }
 
@@ -547,7 +547,7 @@ void ArcusCommunication::sliceNext()
     private_data->readExtruderSettingsMessage(slice_message->extruders());
 
     // Broadcast the settings to the plugins
-    slots::instance().broadcast<plugins::slot_settings_broadcast>(*slice_message);
+    slots::instance().broadcast<plugins::v0::SlotID::SETTINGS_BROADCAST>(*slice_message);
     const size_t extruder_count = slice.scene.extruders.size();
 
     // For each setting, register what extruder it should be obtained from (if this is limited to an extruder).
