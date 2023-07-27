@@ -1,5 +1,5 @@
-// Copyright (c) 2021 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef ENUMSETTINGS_H
 #define ENUMSETTINGS_H
@@ -27,7 +27,7 @@ enum class EFillMethod
     CROSS_3D,
     GYROID,
     LIGHTNING,
-    NONE, // NOTE: Should remain last! (May be used in testing to enumarate the enum.)
+    NONE, // NOTE: Should remain second last! Before PLUGIN (Might be used in testing to enumerate the enum.)
     PLUGIN, // Place plugin after none to prevent it from being tested in the gtest suite.
 };
 
@@ -39,7 +39,8 @@ enum class EPlatformAdhesion
     SKIRT,
     BRIM,
     RAFT,
-    NONE
+    NONE,
+    PLUGIN,
 };
 
 /*!
@@ -49,7 +50,8 @@ enum class ESupportType
 {
     NONE,
     PLATFORM_ONLY,
-    EVERYWHERE
+    EVERYWHERE,
+    PLUGIN,
 };
 
 /*!
@@ -58,7 +60,8 @@ enum class ESupportType
 enum class ESupportStructure
 {
     NORMAL,
-    TREE
+    TREE,
+    PLUGIN,
 };
 
 enum class EZSeamType
@@ -71,7 +74,8 @@ enum class EZSeamType
     /* The 'Skirt/brim' type behaves like shortest, except it doesn't try to do tie-breaking for similar locations to
      * the last attempt, as that gives a different result when the seams are next to each other instead of on top.
      */
-    SKIRT_BRIM
+    SKIRT_BRIM,
+    PLUGIN,
 };
 
 enum class EZSeamCornerPrefType
@@ -80,26 +84,30 @@ enum class EZSeamCornerPrefType
     Z_SEAM_CORNER_PREF_INNER,
     Z_SEAM_CORNER_PREF_OUTER,
     Z_SEAM_CORNER_PREF_ANY,
-    Z_SEAM_CORNER_PREF_WEIGHTED
+    Z_SEAM_CORNER_PREF_WEIGHTED,
+    PLUGIN,
 };
 
 enum class ESurfaceMode
 {
     NORMAL,
     SURFACE,
-    BOTH
+    BOTH,
+    PLUGIN,
 };
 
 enum class FillPerimeterGapMode
 {
     NOWHERE,
-    EVERYWHERE
+    EVERYWHERE,
+    PLUGIN,
 };
 
 enum class BuildPlateShape
 {
     RECTANGULAR,
-    ELLIPTIC
+    ELLIPTIC,
+    PLUGIN,
 };
 
 enum class CombingMode
@@ -108,7 +116,8 @@ enum class CombingMode
     ALL,
     NO_SKIN,
     NO_OUTER_SURFACES,
-    INFILL
+    INFILL,
+    PLUGIN,
 };
 
 /*!
@@ -117,20 +126,23 @@ enum class CombingMode
 enum class DraftShieldHeightLimitation
 {
     FULL, // Draft shield takes full height of the print.
-    LIMITED // Draft shield is limited by draft_shield_height setting.
+    LIMITED, // Draft shield is limited by draft_shield_height setting.
+    PLUGIN,
 };
 
 enum class SupportDistPriority
 {
     XY_OVERRIDES_Z,
-    Z_OVERRIDES_XY
+    Z_OVERRIDES_XY,
+    PLUGIN,
 };
 
 enum class SlicingTolerance
 {
     MIDDLE,
     INCLUSIVE,
-    EXCLUSIVE
+    EXCLUSIVE,
+    PLUGIN,
 };
 /*!
  * Different flavors of GCode. Some machines require different types of GCode.
@@ -207,6 +219,7 @@ enum class EGCodeFlavor
      * Real RepRap GCode suitable for printers using RepRap firmware (e.g. Duet controllers)
      **/
     REPRAP = 8,
+    PLUGIN = 9,
 };
 
 /*!
@@ -228,7 +241,8 @@ enum class InsetDirection
      * If the innermost wall is a central wall, it is printed last. Otherwise
      * prints the same as inside out.
      */
-    CENTER_LAST
+    CENTER_LAST,
+    PLUGIN,
 };
 
 } // namespace cura
