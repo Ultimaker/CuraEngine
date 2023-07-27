@@ -521,21 +521,8 @@ void ArcusCommunication::sliceNext()
     {
         if (plugin.has_address() && plugin.has_port())
         {
-            switch (plugin.id())
-            {
-            case cura::proto::SlotID::SETTINGS_BROADCAST:
-                slots::instance().connect<plugins::slot_settings_broadcast>(utils::createChannel({ plugin.address(), plugin.port() }));
-                break;
-            case cura::proto::SlotID::SIMPLIFY_MODIFY:
-                slots::instance().connect<plugins::slot_simplify>(utils::createChannel({ plugin.address(), plugin.port() }));
-                break;
-            case cura::proto::SlotID::POSTPROCESS_MODIFY:
-                slots::instance().connect<plugins::slot_postprocess>(utils::createChannel({ plugin.address(), plugin.port() }));
-                break;
-            default:
-                spdlog::error("Not yet implemented: {}", plugin.id());
-                break;
-            }
+            const auto slot_id = static_cast<plugins::v0::SlotID>(plugin.id());
+            SlotConnectionFactory::instance().connect(slot_id, utils::createChannel({ plugin.address(), plugin.port() }));
         }
     }
 #endif // ENABLE_PLUGINS

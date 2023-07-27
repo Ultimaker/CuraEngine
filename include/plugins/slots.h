@@ -67,6 +67,8 @@ template<class Default = default_process>
 using slot_settings_broadcast_
     = SlotProxy<v0::SlotID::SETTINGS_BROADCAST, "<=1.0.0", slots::broadcast::v0::BroadcastService::Stub, Validator, broadcast_settings_request, empty, Default>;
 
+using slot_to_connect_map_t = std::map<v0::SlotID, std::function<void(std::shared_ptr<grpc::Channel>)>>;
+
 template<typename... Types>
 struct Typelist
 {
@@ -79,6 +81,10 @@ template<template<typename> class Unit>
 class Registry<Typelist<>, Unit>
 {
 public:
+    void append_to_connect_map(std::map<v0::SlotID, std::function<void(const std::shared_ptr<grpc::Channel&>)>>& function_map)
+    {
+    } // Base case, do nothing.
+
     template<v0::SlotID S>
     void broadcast(auto&&... args)
     {
@@ -93,6 +99,11 @@ public:
     using Base = Registry<Typelist<Types...>, Unit>;
     using Base::broadcast;
     friend Base;
+
+    void append_to_connect_map(slot_to_connect_map_t& function_map)
+    {
+        function_map.insert({ T::slot_id, [&](std::shared_ptr<grpc::Channel> plugin) { this->connect<T::slot_id>(plugin); } });
+    }
 
     template<v0::SlotID S>
     constexpr auto& get()
@@ -170,8 +181,34 @@ using slot_postprocess = details::slot_postprocess_<>;
 using slot_settings_broadcast = details::slot_settings_broadcast_<>;
 
 using SlotTypes = details::Typelist<slot_simplify, slot_postprocess, slot_settings_broadcast>;
+
+template<typename S>
+class SlotConnectionFactory_
+{
+public:
+    static SlotConnectionFactory_<S>& instance()
+    {
+        static SlotConnectionFactory_<S> instance;
+        return instance;
+    }
+
+    void connect(const plugins::v0::SlotID& slot_id, std::shared_ptr<grpc::Channel> plugin)
+    {
+        slot_to_connect_map[slot_id](plugin);
+    }
+
+private:
+    SlotConnectionFactory_()
+    {
+        S::instance().append_to_connect_map(slot_to_connect_map);
+    }
+
+    plugins::details::slot_to_connect_map_t slot_to_connect_map;
+};
+
 } // namespace plugins
 using slots = plugins::details::SingletonRegistry<plugins::SlotTypes, plugins::details::Holder>;
+using SlotConnectionFactory = plugins::SlotConnectionFactory_<slots>;
 
 } // namespace cura
 
