@@ -62,6 +62,7 @@ template<class Parent, default_modifier_v Default, utils::grpc_convertable Respo
 class PluginProxyModifyComponent<Parent, Default, ResponseTp>
 {
     using value_type = typename ResponseTp::native_value_type;
+
 public:
     PluginProxyModifyComponent(Parent& parent)
     {
@@ -81,7 +82,8 @@ class PluginProxyModifyComponent<Parent, Stub, ResponseTp>
     using modify_stub_t = Stub;
 
 public:
-    PluginProxyModifyComponent(Parent& parent) : parent_(parent)
+    PluginProxyModifyComponent(Parent& parent)
+        : parent_(parent)
     {
     }
 
@@ -171,6 +173,7 @@ template<plugins::v0::SlotID SlotID, utils::CharRangeLiteral SlotVersionRng, cla
 class PluginProxy
 {
     friend PluginProxyModifyComponent;
+
 public:
     // type aliases for easy use
     using value_type = typename ResponseTp::native_value_type;
@@ -229,7 +232,7 @@ public:
                 if (valid_)
                 {
                     spdlog::info("Using plugin: '{}-{}' running at [{}] for slot {}", plugin_info.plugin_name, plugin_info.plugin_version, plugin_info.peer, slot_info_.slot_id);
-                    if (!plugin_info.broadcast_subscriptions.empty())
+                    if (! plugin_info.broadcast_subscriptions.empty())
                     {
                         spdlog::info("Subscribing plugin '{}' to the following broadcasts {}", plugin_info.plugin_name, plugin_info.broadcast_subscriptions);
                     }
@@ -242,7 +245,7 @@ public:
         {
             throw exceptions::RemoteException(slot_info_, status.error_message());
         }
-        if (! plugin_info.plugin_name.empty() && !plugin_info.slot_version.empty())
+        if (! plugin_info.plugin_name.empty() && ! plugin_info.slot_version.empty())
         {
             plugin_info_ = plugin_info;
         }
