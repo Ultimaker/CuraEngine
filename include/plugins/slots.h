@@ -102,7 +102,11 @@ public:
 
     void append_to_connect_map(slot_to_connect_map_t& function_map)
     {
-        function_map.insert({ T::slot_id, [&](std::shared_ptr<grpc::Channel> plugin) { this->connect<T::slot_id>(plugin); } });
+        function_map.insert({ T::slot_id,
+                              [&](std::shared_ptr<grpc::Channel> plugin)
+                              {
+                                  this->connect<T::slot_id>(plugin);
+                              } });
     }
 
     template<v0::SlotID S>
