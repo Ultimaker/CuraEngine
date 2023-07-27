@@ -35,6 +35,125 @@
 namespace cura::plugins
 {
 
+template<typename T>
+concept plugin_modifier_v = requires(T value)
+{
+    requires std::is_member_function_pointer_v<decltype(&T::PrepareAsyncCall)>;
+};
+
+template<typename T>
+concept default_modifier_v = requires(T value)
+{
+    requires ! plugin_modifier_v<T>;
+    requires std::is_member_function_pointer_v<decltype(&T::operator())>;
+};
+
+template<class Parent, class Stub, utils::grpc_convertable ResponseTp>
+class PluginProxyModifyComponent
+{
+    using value_type = typename ResponseTp::native_value_type;
+
+public:
+    PluginProxyModifyComponent(Parent& parent);
+    value_type modify(auto&&... args);
+};
+
+template<class Parent, default_modifier_v Default, utils::grpc_convertable ResponseTp>
+class PluginProxyModifyComponent<Parent, Default, ResponseTp>
+{
+    using value_type = typename ResponseTp::native_value_type;
+public:
+    PluginProxyModifyComponent(Parent& parent)
+    {
+    }
+
+    value_type modify(auto&&... args)
+    {
+        return Default(std::forward<decltype(args)>(args)...);
+    }
+};
+
+template<class Parent, plugin_modifier_v Stub, utils::grpc_convertable ResponseTp>
+class PluginProxyModifyComponent<Parent, Stub, ResponseTp>
+{
+    using value_type = typename ResponseTp::native_value_type;
+    using rsp_msg_type = typename ResponseTp::value_type;
+    using modify_stub_t = Stub;
+
+public:
+    PluginProxyModifyComponent(Parent& parent) : parent_(parent)
+    {
+    }
+
+    /**
+     * @brief Executes to plugin Modify operation.
+     *
+     * As part of this operation, a request is sent to the plugin
+     * and the returned response is processed.
+     *
+     * @tparam Args -  argument types for the plugin request
+     * @param args - arguments for the plugin request
+     * @return The converted response value from plugin.
+     *
+     * @throws std::runtime_error if communication with the plugin fails.
+     */
+    value_type modify(auto&&... args)
+    {
+        agrpc::GrpcContext grpc_context;
+        value_type ret_value{};
+        grpc::Status status;
+
+        boost::asio::co_spawn(
+            grpc_context,
+            [this, &grpc_context, &status, &ret_value, &args...]()
+            {
+                return this->modifyCall(grpc_context, status, ret_value, std::forward<decltype(args)>(args)...);
+            },
+            boost::asio::detached);
+        grpc_context.run();
+
+        if (! status.ok()) // TODO: handle different kind of status codes
+        {
+            if (parent_.plugin_info_.has_value())
+            {
+                throw exceptions::RemoteException(parent_.slot_info_, parent_.plugin_info_.value(), status.error_message());
+            }
+            throw exceptions::RemoteException(parent_.slot_info_, status.error_message());
+        }
+        return ret_value;
+    }
+
+private:
+    /**
+     * @brief Executes the modifyCall operation with the plugin.
+     *
+     * Sends a request to the plugin and saves the response.
+     *
+     * @param grpc_context - The gRPC context to use for the call
+     * @param status - Status of the gRPC call which gets updated in this method
+     * @param ret_value - Reference to the value in which response to be stored
+     * @param args - Request arguments
+     * @return A boost::asio::awaitable<void> indicating completion of the operation
+     */
+    boost::asio::awaitable<void> modifyCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, value_type& ret_value, auto&&... args)
+    {
+        using RPC = agrpc::RPC<&modify_stub_t::PrepareAsyncCall>;
+        grpc::ClientContext client_context{};
+        parent_.prep_client_context(client_context);
+
+        // Construct request
+        auto request{ parent_.req_(std::forward<decltype(args)>(args)...) };
+
+        // Make unary request
+        rsp_msg_type response;
+        status = co_await RPC::request(grpc_context, parent_.modify_stub_, client_context, request, response, boost::asio::use_awaitable);
+        ret_value = parent_.rsp_(response);
+        co_return;
+    }
+
+    Parent& parent_;
+};
+
 /**
  * @brief A plugin proxy class template.
  *
@@ -51,6 +170,7 @@ namespace cura::plugins
 template<plugins::v0::SlotID SlotID, utils::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, utils::grpc_convertable RequestTp, utils::grpc_convertable ResponseTp>
 class PluginProxy
 {
+    friend PluginProxyModifyComponent;
 public:
     // type aliases for easy use
     using value_type = typename ResponseTp::native_value_type;
@@ -109,7 +229,7 @@ public:
                 if (valid_)
                 {
                     spdlog::info("Using plugin: '{}-{}' running at [{}] for slot {}", plugin_info.plugin_name, plugin_info.plugin_version, plugin_info.peer, slot_info_.slot_id);
-                    if (! plugin_info.broadcast_subscriptions.empty())
+                    if (!plugin_info.broadcast_subscriptions.empty())
                     {
                         spdlog::info("Subscribing plugin '{}' to the following broadcasts {}", plugin_info.plugin_name, plugin_info.broadcast_subscriptions);
                     }
@@ -122,7 +242,7 @@ public:
         {
             throw exceptions::RemoteException(slot_info_, status.error_message());
         }
-        if (! plugin_info.plugin_name.empty() && ! plugin_info.slot_version.empty())
+        if (! plugin_info.plugin_name.empty() && !plugin_info.slot_version.empty())
         {
             plugin_info_ = plugin_info;
         }
@@ -156,42 +276,10 @@ public:
     }
     ~PluginProxy() = default;
 
-    /**
-     * @brief Executes to plugin Modify operation.
-     *
-     * As part of this operation, a request is sent to the plugin
-     * and the returned response is processed.
-     *
-     * @tparam Args -  argument types for the plugin request
-     * @param args - arguments for the plugin request
-     * @return The converted response value from plugin.
-     *
-     * @throws std::runtime_error if communication with the plugin fails.
-     */
     value_type modify(auto&&... args)
     {
-        agrpc::GrpcContext grpc_context;
-        value_type ret_value{};
-        grpc::Status status;
-
-        boost::asio::co_spawn(
-            grpc_context,
-            [this, &grpc_context, &status, &ret_value, &args...]()
-            {
-                return this->modifyCall(grpc_context, status, ret_value, std::forward<decltype(args)>(args)...);
-            },
-            boost::asio::detached);
-        grpc_context.run();
-
-        if (! status.ok()) // TODO: handle different kind of status codes
-        {
-            if (plugin_info_.has_value())
-            {
-                throw exceptions::RemoteException(slot_info_, plugin_info_.value(), status.error_message());
-            }
-            throw exceptions::RemoteException(slot_info_, status.error_message());
-        }
-        return ret_value;
+        static auto modify_component = PluginProxyModifyComponent<decltype(*this), modify_stub_t, rsp_converter_type>(*this);
+        return modify_component.modify(std::forward<decltype(args)>(args)...);
     }
 
     template<v0::SlotID S>
@@ -235,33 +323,6 @@ private:
                               .version_range = SlotVersionRng.value,
                               .engine_uuid = Application::getInstance().instance_uuid }; ///< Holds information about the plugin slot.
     std::optional<plugin_metadata> plugin_info_{ std::nullopt }; ///< Optional object that holds the plugin metadata, set after handshake
-
-    /**
-     * @brief Executes the modifyCall operation with the plugin.
-     *
-     * Sends a request to the plugin and saves the response.
-     *
-     * @param grpc_context - The gRPC context to use for the call
-     * @param status - Status of the gRPC call which gets updated in this method
-     * @param ret_value - Reference to the value in which response to be stored
-     * @param args - Request arguments
-     * @return A boost::asio::awaitable<void> indicating completion of the operation
-     */
-    boost::asio::awaitable<void> modifyCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, value_type& ret_value, auto&&... args)
-    {
-        using RPC = agrpc::RPC<&modify_stub_t::PrepareAsyncCall>;
-        grpc::ClientContext client_context{};
-        prep_client_context(client_context);
-
-        // Construct request
-        auto request{ req_(std::forward<decltype(args)>(args)...) };
-
-        // Make unary request
-        rsp_msg_type response;
-        status = co_await RPC::request(grpc_context, modify_stub_, client_context, request, response, boost::asio::use_awaitable);
-        ret_value = rsp_(response);
-        co_return;
-    }
 
     template<v0::SlotID S>
     boost::asio::awaitable<void> broadcastCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, auto&&... args)
