@@ -21,11 +21,6 @@
 namespace cura::plugins
 {
 
-// (Will be) Used to make/identify slots with no modify (or generate) methods.
-class NoStub
-{
-};
-
 /**
  * @brief A class template representing a proxy for a plugin slot.
  *
@@ -81,7 +76,7 @@ public:
      */
     constexpr auto modify(auto&&... args)
     {
-        if (plugin_.has_value() && ! std::is_same<value_type::modify_stub_t, plugins::NoStub>{})
+        if (plugin_.has_value())
         {
             return plugin_.value().modify(std::forward<decltype(args)>(args)...);
         }
