@@ -10,7 +10,7 @@ namespace cura::utils
 {
 
 // Source: https://learnmoderncpp.com/2020/06/01/strings-as-switch-case-labels/
-inline constexpr uint64_t hash_djb2a(const std::string_view value)
+constexpr inline uint64_t hash_djb2a(const std::string_view value)
 {
     uint64_t hash{ 5381 };
     for (unsigned char c : value)
@@ -20,7 +20,7 @@ inline constexpr uint64_t hash_djb2a(const std::string_view value)
     return hash;
 }
 
-inline constexpr uint64_t hash_enum(const std::string_view value)
+constexpr inline uint64_t hash_enum(const std::string_view value)
 {
     constexpr uint64_t plugin_namespace_sep_location{ 6 };
     if (value.size() > plugin_namespace_sep_location && value.at(plugin_namespace_sep_location) == ':')
