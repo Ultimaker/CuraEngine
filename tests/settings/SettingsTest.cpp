@@ -1,10 +1,12 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "settings/Settings.h" //The class under test.
+
 #include "Application.h" //To test extruder train settings.
 #include "ExtruderTrain.h"
 #include "Slice.h"
+#include "settings/EnumSettings.h"
 #include "settings/FlowTempGraph.h"
 #include "settings/types/Angle.h"
 #include "settings/types/Duration.h"
@@ -14,6 +16,7 @@
 #include "settings/types/Velocity.h"
 #include "utils/Coord_t.h"
 #include "utils/FMatrix4x3.h" //Testing matrix transformation settings.
+
 #include <cmath> //For M_PI.
 #include <gtest/gtest.h>
 #include <memory> //For shared_ptr.
@@ -248,6 +251,18 @@ TEST_F(SettingsTest, LimitToExtruder)
     current_slice->scene.settings.add("test_setting", "Sting has been kidnapped. The Police have no lead.");
 
     EXPECT_EQ(limit_extruder_value, settings.get<std::string>("test_setting"));
+}
+
+TEST_F(SettingsTest, PluginExtendedEnum)
+{
+    settings.add("infill_type", "PLUGIN::plugin_1::MOZAIC");
+    EXPECT_EQ(settings.get<EFillMethod>("infill_type"), EFillMethod::PLUGIN);
+}
+
+TEST_F(SettingsTest, EnumStringSwitch)
+{
+    settings.add("infill_type", "lightning");
+    EXPECT_EQ(settings.get<EFillMethod>("infill_type"), EFillMethod::LIGHTNING);
 }
 
 } // namespace cura
