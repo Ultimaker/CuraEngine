@@ -13,6 +13,8 @@
 #include "utils/IntPoint.h"
 #include "utils/section_type.h"
 
+#include <numbers>
+
 namespace cura
 {
 
@@ -65,15 +67,44 @@ class Infill
     coord_t pocket_size{}; //!< The size of the pockets at the intersections of the fractal in the cross 3d pattern
     bool mirror_offset{}; //!< Indication in which offset direction the extra infill lines are made
 
-    static constexpr double one_over_sqrt_2 = 0.7071067811865475244008443621048490392848359376884740; //!< 1.0 / sqrt(2.0)
+    static constexpr auto one_over_sqrt_2 = 1.0 / std::numbers::sqrt2;
+
 public:
-    Infill() = default;
+    constexpr Infill() noexcept = default;
 
     Infill(
         EFillMethod pattern,
         bool zig_zaggify,
         bool connect_polygons,
-        const Polygons in_outline,
+        Polygons in_outline,
+        coord_t infill_line_width,
+        coord_t line_distance,
+        coord_t infill_overlap,
+        size_t infill_multiplier,
+        AngleDegrees fill_angle,
+        coord_t z,
+        coord_t shift,
+        coord_t max_resolution,
+        coord_t max_deviation) noexcept
+        : pattern{ pattern }
+        , zig_zaggify{ zig_zaggify }
+        , connect_polygons{ connect_polygons }
+        , outer_contour{ in_outline }
+        , infill_line_width{ infill_line_width }
+        , line_distance{ line_distance }
+        , infill_overlap{ infill_overlap }
+        , infill_multiplier{ infill_multiplier }
+        , fill_angle{ fill_angle }
+        , z{ z }
+        , shift{ shift }
+        , max_resolution{ max_resolution }
+        , max_deviation{ max_deviation } {};
+
+    Infill(
+        EFillMethod pattern,
+        bool zig_zaggify,
+        bool connect_polygons,
+        Polygons in_outline,
         coord_t infill_line_width,
         coord_t line_distance,
         coord_t infill_overlap,
@@ -83,48 +114,79 @@ public:
         coord_t shift,
         coord_t max_resolution,
         coord_t max_deviation,
-        size_t wall_line_count = 0,
-        coord_t small_area_width = 0,
-        const Point& infill_origin = Point(),
-        bool skip_line_stitching = false,
-        bool fill_gaps = true,
-        bool connected_zigzags = false,
-        bool use_endpieces = false,
-        bool skip_some_zags = false,
-        size_t zag_skip_count = 0,
-        coord_t pocket_size = 0)
-        : pattern(pattern)
-        , zig_zaggify(zig_zaggify)
-        , connect_polygons(connect_polygons)
-        , outer_contour(in_outline)
-        , infill_line_width(infill_line_width)
-        , line_distance(line_distance)
-        , infill_overlap(infill_overlap)
-        , infill_multiplier(infill_multiplier)
-        , fill_angle(fill_angle)
-        , z(z)
-        , shift(shift)
-        , max_resolution(max_resolution)
-        , max_deviation(max_deviation)
-        , wall_line_count(wall_line_count)
-        , small_area_width(
-              0) // FIXME!: Disable small_area_width for the 5.4.x releases. Current plan is to figure out why this feature causes small line segments & fix that before 5.5.x
-        , infill_origin(infill_origin)
-        , skip_line_stitching(skip_line_stitching)
-        , fill_gaps(fill_gaps)
-        , connected_zigzags(connected_zigzags)
-        , use_endpieces(use_endpieces)
-        , skip_some_zags(skip_some_zags)
-        , zag_skip_count(zag_skip_count)
-        , pocket_size(pocket_size)
-        , mirror_offset(zig_zaggify)
+        size_t wall_line_count,
+        coord_t small_area_width,
+        Point infill_origin,
+        bool skip_line_stitching) noexcept
+        : pattern{ pattern }
+        , zig_zaggify{ zig_zaggify }
+        , connect_polygons{ connect_polygons }
+        , outer_contour{ in_outline }
+        , infill_line_width{ infill_line_width }
+        , line_distance{ line_distance }
+        , infill_overlap{ infill_overlap }
+        , infill_multiplier{ infill_multiplier }
+        , fill_angle{ fill_angle }
+        , z{ z }
+        , shift{ shift }
+        , max_resolution{ max_resolution }
+        , max_deviation{ max_deviation }
+        , wall_line_count{ wall_line_count }
+        , small_area_width{ 0 }
+        // FIXME!: Disable small_area_width for the 5.4.x releases. Current plan is to figure out why this feature causes small line segments & fix that before 5.5.0
+        , infill_origin{ infill_origin }
+        , skip_line_stitching{ skip_line_stitching } {};
+
+    Infill(
+        EFillMethod pattern,
+        bool zig_zaggify,
+        bool connect_polygons,
+        Polygons in_outline,
+        coord_t infill_line_width,
+        coord_t line_distance,
+        coord_t infill_overlap,
+        size_t infill_multiplier,
+        AngleDegrees fill_angle,
+        coord_t z,
+        coord_t shift,
+        coord_t max_resolution,
+        coord_t max_deviation,
+        size_t wall_line_count,
+        coord_t small_area_width,
+        Point infill_origin,
+        bool skip_line_stitching,
+        bool fill_gaps,
+        bool connected_zigzags,
+        bool use_endpieces,
+        bool skip_some_zags,
+        size_t zag_skip_count,
+        coord_t pocket_size) noexcept
+        : pattern{ pattern }
+        , zig_zaggify{ zig_zaggify }
+        , connect_polygons{ connect_polygons }
+        , outer_contour{ in_outline }
+        , infill_line_width{ infill_line_width }
+        , line_distance{ line_distance }
+        , infill_overlap{ infill_overlap }
+        , infill_multiplier{ infill_multiplier }
+        , fill_angle{ fill_angle }
+        , z{ z }
+        , shift{ shift }
+        , max_resolution{ max_resolution }
+        , max_deviation{ max_deviation }
+        , wall_line_count{ wall_line_count }
+        , small_area_width{ 0 }
+        // FIXME!: Disable small_area_width for the 5.4.x releases. Current plan is to figure out why this feature causes small line segments & fix that before 5.5.0
+        , infill_origin{ infill_origin }
+        , skip_line_stitching{ skip_line_stitching }
+        , fill_gaps{ fill_gaps }
+        , connected_zigzags{ connected_zigzags }
+        , use_endpieces{ use_endpieces }
+        , skip_some_zags{ skip_some_zags }
+        , zag_skip_count{ zag_skip_count }
+        , pocket_size{ pocket_size }
+        , mirror_offset{ zig_zaggify }
     {
-        // TODO: The connected lines algorithm is only available for linear-based infill, for now.
-        // We skip ZigZag, Cross and Cross3D because they have their own algorithms. Eventually we want to replace all that with the new algorithm.
-        // Cubic Subdivision ends lines in the center of the infill so it won't be effective.
-        connect_lines = zig_zaggify
-                     && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC
-                         || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON);
     }
 
     /*!
