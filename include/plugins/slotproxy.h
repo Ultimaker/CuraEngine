@@ -79,11 +79,11 @@ public:
      * @param args The arguments for the plugin request.
      * @return The result of the plugin request or the default behavior.
      */
-    constexpr auto modify(auto&&... args)
+    constexpr auto invoke(auto&&... args)
     {
         if (plugin_.has_value() && ! std::is_same_v<typename value_type::modify_stub_t, plugins::NoStub>)
         {
-            return plugin_.value().modify(std::forward<decltype(args)>(args)...);
+            return plugin_.value().invoke(std::forward<decltype(args)>(args)...);
         }
         return std::invoke(default_process, std::forward<decltype(args)>(args)...);
     }

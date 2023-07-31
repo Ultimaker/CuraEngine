@@ -128,7 +128,13 @@ public:
     template<v0::SlotID S>
     constexpr auto modify(auto&&... args)
     {
-        return get<S>().modify(std::forward<decltype(args)>(args)...);
+        return get<S>().invoke(std::forward<decltype(args)>(args)...);
+    }
+
+    template<v0::SlotID S>
+    constexpr auto generate(auto&&... args)
+    {
+        return get<S>().invoke(std::forward<decltype(args)>(args)...);
     }
 
     template<v0::SlotID S>
