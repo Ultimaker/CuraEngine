@@ -487,14 +487,14 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
         }
     }
     Polygons plate = storage.getMachineBorder(reference_extruder_nr);
-    //Get the outermost polygon where brim or skirt can be placed
-    permissiable_area = plate.offset(((line_widths[reference_extruder_nr]/2) * line_count[reference_extruder_nr]) - gap[reference_extruder_nr]);
+    // Get the outermost polygon where brim or skirt can be placed
+    permissiable_area = plate.offset(((line_widths[reference_extruder_nr] / 2) * line_count[reference_extruder_nr]) - gap[reference_extruder_nr]);
     constexpr coord_t join_distance = 20;
     first_layer_outline = first_layer_outline.offset(join_distance).offset(-join_distance); // merge adjacent models into single polygon
     constexpr coord_t smallest_line_length = 200;
     constexpr coord_t largest_error_of_removed_point = 50;
     first_layer_outline = Simplify(smallest_line_length, largest_error_of_removed_point, 0).polygon(first_layer_outline);
-    //check if there is any area left on plate for printing brim or skirt
+    // check if there is any area left on plate for printing brim or skirt
     permissiable_area = permissiable_area.difference(first_layer_outline);
 
     if (permissiable_area.empty())
