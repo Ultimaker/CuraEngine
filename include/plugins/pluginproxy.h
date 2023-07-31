@@ -168,7 +168,7 @@ public:
      *
      * @throws std::runtime_error if communication with the plugin fails.
      */
-    value_type operator()(auto&&... args)
+    value_type modify(auto&&... args)
     {
         agrpc::GrpcContext grpc_context;
         value_type ret_value{};
@@ -194,10 +194,10 @@ public:
         return ret_value;
     }
 
-    template<utils::CharRangeLiteral BroadcastChannel>
+    template<v0::SlotID S>
     void broadcast(auto&&... args)
     {
-        if (! plugin_info_->broadcast_subscriptions.contains(BroadcastChannel.value))
+        if (! plugin_info_->broadcast_subscriptions.contains(S))
         {
             return;
         }
@@ -208,7 +208,7 @@ public:
             grpc_context,
             [this, &grpc_context, &status, &args...]()
             {
-                return this->broadcastCall<BroadcastChannel>(grpc_context, status, std::forward<decltype(args)>(args)...);
+                return this->broadcastCall<S>(grpc_context, status, std::forward<decltype(args)>(args)...);
             },
             boost::asio::detached);
         grpc_context.run();
@@ -263,14 +263,14 @@ private:
         co_return;
     }
 
-    template<utils::CharRangeLiteral BroadcastChannel>
+    template<v0::SlotID S>
     boost::asio::awaitable<void> broadcastCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, auto&&... args)
     {
         grpc::ClientContext client_context{};
         prep_client_context(client_context);
 
-        auto broadcaster{ details::broadcast_factory<broadcast_stub_t, BroadcastChannel>() };
-        auto request = details::broadcast_message_factory<BroadcastChannel>(std::forward<decltype(args)>(args)...);
+        auto broadcaster{ details::broadcast_factory<broadcast_stub_t, S>() };
+        auto request = details::broadcast_message_factory<S>(std::forward<decltype(args)>(args)...);
         auto response = google::protobuf::Empty{};
         status = co_await broadcaster.request(grpc_context, broadcast_stub_, client_context, request, response, boost::asio::use_awaitable);
         co_return;
