@@ -368,6 +368,8 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
     Polygons first_layer_outline;
     Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     int reference_extruder_nr = skirt_brim_extruder_nr;
+    Polygons permissiable_area;
+
     assert(! (reference_extruder_nr == -1 && extruder_nr == -1) && "We should only request the outlines of all layers when the brim is being generated for only one material");
     if (reference_extruder_nr == -1)
     {
@@ -400,9 +402,6 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
             {
                 first_layer_outline
                     = first_layer_outline.unionPolygons(storage.getLayerOutlines(i_layer, include_support, include_prime_tower, external_only, extruder.extruder_nr));
-                Polygons machine_area = storage.getMachineBorder(extruder.extruder_nr);
-                first_layer_outline.toPolylines();
-                first_layer_outline = machine_area.intersectionPolyLines(first_layer_outline, false);
             }
         }
 
@@ -487,14 +486,21 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
             first_layer_outline.add(storage.primeTower.outer_poly); // don't remove parts of the prime tower, but make a brim for it
         }
     }
+    Polygons plate = storage.getMachineBorder(reference_extruder_nr);
+    //Get the outermost polygon where brim or skirt can be placed
+    permissiable_area = plate.offset(((line_widths[reference_extruder_nr]/2) * line_count[reference_extruder_nr]) - gap[reference_extruder_nr]);
     constexpr coord_t join_distance = 20;
     first_layer_outline = first_layer_outline.offset(join_distance).offset(-join_distance); // merge adjacent models into single polygon
     constexpr coord_t smallest_line_length = 200;
     constexpr coord_t largest_error_of_removed_point = 50;
     first_layer_outline = Simplify(smallest_line_length, largest_error_of_removed_point, 0).polygon(first_layer_outline);
-    if (first_layer_outline.empty())
+    //check if there is any area left on plate for printing brim or skirt
+    permissiable_area = permissiable_area.difference(first_layer_outline);
+
+    if (permissiable_area.empty())
     {
         spdlog::error("Couldn't generate skirt / brim! No polygons on first layer.");
+        first_layer_outline = permissiable_area;
     }
     return first_layer_outline;
 }
