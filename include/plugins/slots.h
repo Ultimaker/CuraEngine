@@ -4,9 +4,9 @@
 #ifndef PLUGINS_SLOTS_H
 #define PLUGINS_SLOTS_H
 
+#include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
 #include "cura/plugins/slots/postprocess/v0/modify.grpc.pb.h"
 #include "cura/plugins/slots/simplify/v0/modify.grpc.pb.h"
-#include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
 #include "cura/plugins/v0/slot_id.pb.h"
 #include "infill.h"
 #include "plugins/converters.h"
