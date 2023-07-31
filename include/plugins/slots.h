@@ -18,6 +18,7 @@
 
 #include <exception>
 #include <memory>
+#include <utility>
 
 namespace cura
 {
@@ -179,6 +180,30 @@ struct Holder
     T proxy;
 };
 
+template<typename S>
+class SlotConnectionFactory
+{
+public:
+    static SlotConnectionFactory<S>& instance()
+    {
+        static SlotConnectionFactory<S> instance;
+        return instance;
+    }
+
+    void connect(const plugins::v0::SlotID& slot_id, std::shared_ptr<grpc::Channel> plugin)
+    {
+        slot_to_connect_map[slot_id](std::move(plugin));
+    }
+
+private:
+    SlotConnectionFactory()
+    {
+        S::instance().append_to_connect_map(slot_to_connect_map);
+    }
+
+    plugins::details::slot_to_connect_map_t slot_to_connect_map;
+};
+
 } // namespace details
 
 using slot_simplify = details::slot_simplify_<details::simplify_default>;
@@ -187,33 +212,9 @@ using slot_settings_broadcast = details::slot_settings_broadcast_<>;
 
 using SlotTypes = details::Typelist<slot_simplify, slot_postprocess, slot_settings_broadcast>;
 
-template<typename S>
-class SlotConnectionFactory_
-{
-public:
-    static SlotConnectionFactory_<S>& instance()
-    {
-        static SlotConnectionFactory_<S> instance;
-        return instance;
-    }
-
-    void connect(const plugins::v0::SlotID& slot_id, std::shared_ptr<grpc::Channel> plugin)
-    {
-        slot_to_connect_map[slot_id](plugin);
-    }
-
-private:
-    SlotConnectionFactory_()
-    {
-        S::instance().append_to_connect_map(slot_to_connect_map);
-    }
-
-    plugins::details::slot_to_connect_map_t slot_to_connect_map;
-};
-
 } // namespace plugins
 using slots = plugins::details::SingletonRegistry<plugins::SlotTypes, plugins::details::Holder>;
-using SlotConnectionFactory = plugins::SlotConnectionFactory_<slots>;
+using SlotConnectionFactory = plugins::details::SlotConnectionFactory<slots>;
 
 } // namespace cura
 
