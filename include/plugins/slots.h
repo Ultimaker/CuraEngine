@@ -5,9 +5,9 @@
 #define PLUGINS_SLOTS_H
 
 #include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
+#include "cura/plugins/slots/infill/v0/generate.grpc.pb.h"
 #include "cura/plugins/slots/postprocess/v0/modify.grpc.pb.h"
 #include "cura/plugins/slots/simplify/v0/modify.grpc.pb.h"
-#include "cura/plugins/slots/infill/v0/generate.grpc.pb.h"
 #include "cura/plugins/v0/slot_id.pb.h"
 #include "infill.h"
 #include "plugins/converters.h"
@@ -65,7 +65,14 @@ using slot_simplify_
     = SlotProxy<v0::SlotID::SIMPLIFY_MODIFY, "<=1.0.0", slots::simplify::v0::modify::SimplifyModifyService::Stub, Validator, simplify_request, simplify_response, Default>;
 
 template<class Default = default_process>
-using slot_infill_generate_ = SlotProxy<v0::SlotID::INFILL_GENERATE, "<=1.0.0", slots::infill::v0::generate::InfillGenerateService::Stub, Validator, infill_generate_request, infill_generate_response, Default>;
+using slot_infill_generate_ = SlotProxy<
+    v0::SlotID::INFILL_GENERATE,
+    "<=1.0.0",
+    slots::infill::v0::generate::InfillGenerateService::Stub,
+    Validator,
+    infill_generate_request,
+    infill_generate_response,
+    Default>;
 
 /**
  * @brief Alias for the Postprocess slot.

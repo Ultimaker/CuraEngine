@@ -267,16 +267,16 @@ struct postprocess_response
 
 struct infill_generate_request
 {
-     using value_type = slots::infill::v0::generate::CallRequest;
-     using native_value_type = Infill;
+    using value_type = slots::infill::v0::generate::CallRequest;
+    using native_value_type = Infill;
 
-     value_type operator()(native_value_type infill,
-                           const Settings& settings,
-                           const SierpinskiFillProvider* cross_fill_provider,
-                           const LightningLayer* lightning_trees,
-                           const SliceMeshStorage* mesh
-     ) const
-     {
+    value_type operator()(
+        native_value_type infill,
+        const Settings& settings,
+        const SierpinskiFillProvider* cross_fill_provider,
+        const LightningLayer* lightning_trees,
+        const SliceMeshStorage* mesh) const
+    {
         value_type message{};
 
         if (infill.inner_contour.empty())
@@ -286,7 +286,7 @@ struct infill_generate_request
 
         auto* msg_infill_areas = message.mutable_infill_areas();
         auto* msg_polygons = msg_infill_areas->mutable_polygons();
-        for (auto& polygon: infill.inner_contour.splitIntoParts())
+        for (auto& polygon : infill.inner_contour.splitIntoParts())
         {
             auto* msg_polygon = msg_polygons->Add();
             auto* msg_outline = msg_polygon->mutable_outline();
@@ -312,27 +312,27 @@ struct infill_generate_request
         }
 
         return message;
-     }
+    }
 };
 
 struct infill_generate_response
 {
-     using value_type = slots::infill::v0::generate::CallResponse;
-     using native_value_type = std::tuple<std::vector<VariableWidthLines>, Polygons, Polygons>;
+    using value_type = slots::infill::v0::generate::CallResponse;
+    using native_value_type = std::tuple<std::vector<VariableWidthLines>, Polygons, Polygons>;
 
-     native_value_type operator()(const value_type& message) const
-     {
+    native_value_type operator()(const value_type& message) const
+    {
         VariableWidthLines toolpaths;
         Polygons result_polygons;
         Polygons result_lines;
 
-        for (auto& tool_path: message.tool_paths().tool_paths())
+        for (auto& tool_path : message.tool_paths().tool_paths())
         {
             ExtrusionLine lines;
-            for (auto& msg_junction: tool_path.junctions())
+            for (auto& msg_junction : tool_path.junctions())
             {
                 auto& p = msg_junction.point();
-                auto junction = ExtrusionJunction { p.x(), p.y(), msg_junction.width() };
+                auto junction = ExtrusionJunction{ p.x(), p.y(), msg_junction.width() };
                 lines.emplace_back(junction);
             }
 
@@ -342,22 +342,22 @@ struct infill_generate_response
         std::vector<VariableWidthLines> toolpaths_;
         toolpaths_.push_back(toolpaths);
 
-        for (auto& polygon_msg: message.polygons().polygons())
+        for (auto& polygon_msg : message.polygons().polygons())
         {
-            Polygons polygon {};
+            Polygons polygon{};
 
-            Polygon outline {};
-            for (auto& path_msg: polygon_msg.outline().path())
+            Polygon outline{};
+            for (auto& path_msg : polygon_msg.outline().path())
             {
                 outline.add(Point{ path_msg.x(), path_msg.y() });
             }
             polygon.add(outline);
 
 
-            for (auto& hole_msg: polygon_msg.holes())
+            for (auto& hole_msg : polygon_msg.holes())
             {
-                Polygon hole {};
-                for (auto& path_msg: hole_msg.path())
+                Polygon hole{};
+                for (auto& path_msg : hole_msg.path())
                 {
                     hole.add(Point{ path_msg.x(), path_msg.y() });
                 }
@@ -367,10 +367,10 @@ struct infill_generate_response
             result_polygons.add(polygon);
         }
 
-        for (auto& polygon: message.poly_lines().paths())
+        for (auto& polygon : message.poly_lines().paths())
         {
             Polygon poly_line;
-            for (auto& p: polygon.path())
+            for (auto& p : polygon.path())
             {
                 poly_line.emplace_back(Point{ p.x(), p.y() });
             }
@@ -378,7 +378,7 @@ struct infill_generate_response
         }
 
         return std::make_tuple(toolpaths_, result_polygons, result_lines);
-     }
+    }
 };
 
 } // namespace cura::plugins

@@ -51,7 +51,15 @@ static inline int computeScanSegmentIdx(int x, int line_width)
 namespace cura
 {
 
-Polygons Infill::generateWallToolPaths(std::vector<VariableWidthLines>& toolpaths, Polygons& outer_contour, const size_t wall_line_count, const coord_t line_width, const coord_t infill_overlap, const Settings& settings, int layer_idx, SectionType section_type)
+Polygons Infill::generateWallToolPaths(
+    std::vector<VariableWidthLines>& toolpaths,
+    Polygons& outer_contour,
+    const size_t wall_line_count,
+    const coord_t line_width,
+    const coord_t infill_overlap,
+    const Settings& settings,
+    int layer_idx,
+    SectionType section_type)
 {
     outer_contour = outer_contour.offset(infill_overlap);
     scripta::log("infill_outer_contour", outer_contour, section_type, layer_idx, scripta::CellVDI{ "infill_overlap", infill_overlap });
@@ -71,15 +79,16 @@ Polygons Infill::generateWallToolPaths(std::vector<VariableWidthLines>& toolpath
     return inner_contour;
 }
 
-void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
-                      Polygons& result_polygons,
-                      Polygons& result_lines,
-                      const Settings& settings,
-                      int layer_idx,
-                      SectionType section_type,
-                      const SierpinskiFillProvider* cross_fill_provider,
-                      const LightningLayer* lightning_trees,
-                      const SliceMeshStorage* mesh)
+void Infill::generate(
+    std::vector<VariableWidthLines>& toolpaths,
+    Polygons& result_polygons,
+    Polygons& result_lines,
+    const Settings& settings,
+    int layer_idx,
+    SectionType section_type,
+    const SierpinskiFillProvider* cross_fill_provider,
+    const LightningLayer* lightning_trees,
+    const SliceMeshStorage* mesh)
 {
     if (outer_contour.empty())
     {
@@ -106,10 +115,8 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
         small_infill.clear();
         for (const auto& small_infill_part : small_infill_parts)
         {
-            if (
-                small_infill_part.offset(-infill_line_width / 2).offset(infill_line_width / 2).area() < infill_line_width * infill_line_width * 10
-                && ! inner_contour.intersection(small_infill_part.offset(infill_line_width / 4)).empty()
-            )
+            if (small_infill_part.offset(-infill_line_width / 2).offset(infill_line_width / 2).area() < infill_line_width * infill_line_width * 10
+                && ! inner_contour.intersection(small_infill_part.offset(infill_line_width / 4)).empty())
             {
                 inner_contour.add(small_infill_part);
             }
@@ -125,12 +132,16 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
         const size_t narrow_wall_count = small_area_width / infill_line_width + 1;
         WallToolPaths wall_toolpaths(small_infill, infill_line_width, narrow_wall_count, 0, settings, layer_idx, section_type);
         std::vector<VariableWidthLines> small_infill_paths = wall_toolpaths.getToolPaths();
-        scripta::log("infill_small_infill_paths_0", small_infill_paths, section_type, layer_idx,
-                     scripta::CellVDI{"is_closed", &ExtrusionLine::is_closed },
-                     scripta::CellVDI{"is_odd", &ExtrusionLine::is_odd },
-                     scripta::CellVDI{"inset_idx", &ExtrusionLine::inset_idx },
-                     scripta::PointVDI{"width", &ExtrusionJunction::w },
-                     scripta::PointVDI{"perimeter_index", &ExtrusionJunction::perimeter_index });
+        scripta::log(
+            "infill_small_infill_paths_0",
+            small_infill_paths,
+            section_type,
+            layer_idx,
+            scripta::CellVDI{ "is_closed", &ExtrusionLine::is_closed },
+            scripta::CellVDI{ "is_odd", &ExtrusionLine::is_odd },
+            scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx },
+            scripta::PointVDI{ "width", &ExtrusionJunction::w },
+            scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index });
         for (const auto& small_infill_path : small_infill_paths)
         {
             toolpaths.emplace_back(small_infill_path);
@@ -142,9 +153,11 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
     if (pattern == EFillMethod::ZIG_ZAG // Zig-zag prints the zags along the walls.
         || (zig_zaggify
             && (pattern == EFillMethod::LINES // Zig-zaggified infill patterns print their zags along the walls.
-                || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON
-                || pattern == EFillMethod::GYROID || pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D))
-        || infill_multiplier % 2 == 0) // Multiplied infill prints loops of infill, partly along the walls, if even. For odd multipliers >1 it gets offset by the multiply algorithm itself.
+                || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL
+                || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON || pattern == EFillMethod::GYROID || pattern == EFillMethod::CROSS
+                || pattern == EFillMethod::CROSS_3D))
+        || infill_multiplier % 2
+               == 0) // Multiplied infill prints loops of infill, partly along the walls, if even. For odd multipliers >1 it gets offset by the multiply algorithm itself.
     {
         inner_contour = inner_contour.offset(-infill_line_width / 2);
         inner_contour = Simplify(max_resolution, max_deviation, 0).polygon(inner_contour);
@@ -161,7 +174,8 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
         Polygons generated_result_polygons;
         Polygons generated_result_lines;
 
-        auto [toolpaths_, generated_result_polygons_, generated_result_lines_] = slots::instance().generate<plugins::v0::SlotID::INFILL_GENERATE>(*this, settings, cross_fill_provider, lightning_trees, mesh);
+        auto [toolpaths_, generated_result_polygons_, generated_result_lines_]
+            = slots::instance().generate<plugins::v0::SlotID::INFILL_GENERATE>(*this, settings, cross_fill_provider, lightning_trees, mesh);
         toolpaths.insert(toolpaths.end(), toolpaths_.begin(), toolpaths_.end());
         generated_result_polygons.add(generated_result_polygons_);
         generated_result_lines.add(generated_result_lines_);
@@ -178,7 +192,8 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
         Polygons generated_result_polygons;
         Polygons generated_result_lines;
 
-        auto [toolpaths_, generated_result_polygons_, generated_result_lines_] = slots::instance().generate<plugins::v0::SlotID::INFILL_GENERATE>(*this, settings, cross_fill_provider, lightning_trees, mesh);
+        auto [toolpaths_, generated_result_polygons_, generated_result_lines_]
+            = slots::instance().generate<plugins::v0::SlotID::INFILL_GENERATE>(*this, settings, cross_fill_provider, lightning_trees, mesh);
         toolpaths.insert(toolpaths.end(), toolpaths_.begin(), toolpaths_.end());
         generated_result_polygons.add(generated_result_polygons_);
         generated_result_lines.add(generated_result_lines_);
@@ -188,17 +203,27 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
     }
     scripta::log("infill_result_polygons_0", result_polygons, section_type, layer_idx);
     scripta::log("infill_result_lines_0", result_lines, section_type, layer_idx);
-    scripta::log("infill_toolpaths_0", toolpaths, section_type, layer_idx,
-                 scripta::CellVDI{"is_closed", &ExtrusionLine::is_closed },
-                 scripta::CellVDI{"is_odd", &ExtrusionLine::is_odd },
-                 scripta::CellVDI{"inset_idx", &ExtrusionLine::inset_idx },
-                 scripta::PointVDI{"width", &ExtrusionJunction::w },
-                 scripta::PointVDI{"perimeter_index", &ExtrusionJunction::perimeter_index });
+    scripta::log(
+        "infill_toolpaths_0",
+        toolpaths,
+        section_type,
+        layer_idx,
+        scripta::CellVDI{ "is_closed", &ExtrusionLine::is_closed },
+        scripta::CellVDI{ "is_odd", &ExtrusionLine::is_odd },
+        scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx },
+        scripta::PointVDI{ "width", &ExtrusionJunction::w },
+        scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index });
     if (connect_polygons)
     {
         // remove too small polygons
         coord_t snap_distance = infill_line_width * 2; // polygons with a span of max 1 * nozzle_size are too small
-        auto it = std::remove_if(result_polygons.begin(), result_polygons.end(), [snap_distance](PolygonRef poly) { return poly.shorterThan(snap_distance); });
+        auto it = std::remove_if(
+            result_polygons.begin(),
+            result_polygons.end(),
+            [snap_distance](PolygonRef poly)
+            {
+                return poly.shorterThan(snap_distance);
+            });
         result_polygons.erase(it, result_polygons.end());
 
         PolygonConnector connector(infill_line_width);
@@ -211,21 +236,21 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
         toolpaths = connected_paths;
         scripta::log("infill_result_polygons_1", result_polygons, section_type, layer_idx);
         scripta::log("infill_result_lines_1", result_lines, section_type, layer_idx);
-        scripta::log("infill_toolpaths_1", toolpaths, section_type, layer_idx,
-                     scripta::CellVDI{"is_closed", &ExtrusionLine::is_closed },
-                     scripta::CellVDI{"is_odd", &ExtrusionLine::is_odd },
-                     scripta::CellVDI{"inset_idx", &ExtrusionLine::inset_idx },
-                     scripta::PointVDI{"width", &ExtrusionJunction::w },
-                     scripta::PointVDI{"perimeter_index", &ExtrusionJunction::perimeter_index });
+        scripta::log(
+            "infill_toolpaths_1",
+            toolpaths,
+            section_type,
+            layer_idx,
+            scripta::CellVDI{ "is_closed", &ExtrusionLine::is_closed },
+            scripta::CellVDI{ "is_odd", &ExtrusionLine::is_odd },
+            scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx },
+            scripta::PointVDI{ "width", &ExtrusionJunction::w },
+            scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index });
     }
 }
 
-std::tuple<std::vector<VariableWidthLines>, Polygons, Polygons> Infill::_generate(
-    const Settings& settings,
-    const SierpinskiFillProvider* cross_fill_provider,
-    const LightningLayer* lightning_trees,
-    const SliceMeshStorage* mesh
-    )
+std::tuple<std::vector<VariableWidthLines>, Polygons, Polygons>
+    Infill::_generate(const Settings& settings, const SierpinskiFillProvider* cross_fill_provider, const LightningLayer* lightning_trees, const SliceMeshStorage* mesh)
 {
     if (inner_contour.empty())
         return {};
@@ -305,7 +330,9 @@ std::tuple<std::vector<VariableWidthLines>, Polygons, Polygons> Infill::_generat
     Simplify simplifier(max_resolution, max_deviation, 0);
     result_polygons = simplifier.polygon(result_polygons);
 
-    if (! skip_line_stitching && (zig_zaggify || pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D || pattern == EFillMethod::CUBICSUBDIV || pattern == EFillMethod::GYROID || pattern == EFillMethod::ZIG_ZAG))
+    if (! skip_line_stitching
+        && (zig_zaggify || pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D || pattern == EFillMethod::CUBICSUBDIV || pattern == EFillMethod::GYROID
+            || pattern == EFillMethod::ZIG_ZAG))
     { // don't stich for non-zig-zagged line infill types
         Polygons stitched_lines;
         PolylineStitcher<Polygons, Polygon, Point>::stitch(result_lines, stitched_lines, result_polygons, infill_line_width);
@@ -332,7 +359,8 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
         const Polygons first_offset_polygons_inward = result_polygons.offset(-offset); // make lines on the inside of the input polygons
         const Polygons first_offset_polygons_outward = result_polygons.offset(offset); // make lines on the other side of the input polygons
         const Polygons first_offset_polygons = first_offset_polygons_outward.difference(first_offset_polygons_inward);
-        first_offset = first_offset_lines.unionPolygons(first_offset_polygons); // usually we only have either lines or polygons, but this code also handles an infill pattern which generates both
+        first_offset = first_offset_lines.unionPolygons(
+            first_offset_polygons); // usually we only have either lines or polygons, but this code also handles an infill pattern which generates both
         if (zig_zaggify)
         {
             first_offset = inner_contour.difference(first_offset);
@@ -419,7 +447,8 @@ void Infill::generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths
 
         constexpr size_t inset_wall_count = 1; // 1 wall at a time.
         constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
-        WallToolPaths wall_toolpaths(current_inset, infill_line_width, inset_wall_count, wall_0_inset, settings, 0, SectionType::CONCENTRIC_INFILL); // FIXME: @jellespijker pass the correct layer
+        WallToolPaths wall_toolpaths(current_inset, infill_line_width, inset_wall_count, wall_0_inset, settings, 0, SectionType::CONCENTRIC_INFILL); // FIXME: @jellespijker pass
+                                                                                                                                                     // the correct layer
         const std::vector<VariableWidthLines> inset_paths = wall_toolpaths.getToolPaths();
         toolpaths.insert(toolpaths.end(), inset_paths.begin(), inset_paths.end());
 
@@ -513,7 +542,14 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
     }
 }
 
-void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<coord_t>>& cut_list, coord_t shift)
+void Infill::addLineInfill(
+    Polygons& result,
+    const PointMatrix& rotation_matrix,
+    const int scanline_min_idx,
+    const int line_distance,
+    const AABB boundary,
+    std::vector<std::vector<coord_t>>& cut_list,
+    coord_t shift)
 {
     assert(! connect_lines && "connectLines() should add the infill lines, not addLineInfill");
 
@@ -590,7 +626,13 @@ void Infill::generateZigZagInfill(Polygons& result, const coord_t line_distance,
  * Edit: the term scansegment is wrong, since I call a boundary segment leaving from an even scanline to the left as belonging to an even scansegment,
  *  while I also call a boundary segment leaving from an even scanline toward the right as belonging to an even scansegment.
  */
-void Infill::generateLinearBasedInfill(Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, coord_t extra_shift)
+void Infill::generateLinearBasedInfill(
+    Polygons& result,
+    const int line_distance,
+    const PointMatrix& rotation_matrix,
+    ZigzagConnectorProcessor& zigzag_connector_processor,
+    const bool connected_zigzags,
+    coord_t extra_shift)
 {
     if (line_distance == 0 || inner_contour.empty()) // No infill to generate (0% density) or no area to generate it in.
     {
@@ -621,7 +663,10 @@ void Infill::generateLinearBasedInfill(Polygons& result, const int line_distance
     // Then we can later join two crossings together to form lines and still know what polygon line segments that infill line connected to.
     struct Crossing
     {
-        Crossing(Point coordinate, size_t polygon_index, size_t vertex_index) : coordinate(coordinate), polygon_index(polygon_index), vertex_index(vertex_index){};
+        Crossing(Point coordinate, size_t polygon_index, size_t vertex_index)
+            : coordinate(coordinate)
+            , polygon_index(polygon_index)
+            , vertex_index(vertex_index){};
         Point coordinate;
         size_t polygon_index;
         size_t vertex_index;
@@ -670,12 +715,14 @@ void Infill::generateLinearBasedInfill(Polygons& result, const int line_distance
             if (p0.X < p1.X)
             {
                 scanline_idx0 = computeScanSegmentIdx(p0.X - shift, line_distance) + 1; // + 1 cause we don't cross the scanline of the first scan segment
-                scanline_idx1 = computeScanSegmentIdx(p1.X - shift, line_distance); // -1 cause the vertex point is handled in the next segment (or not in the case which looks like >)
+                scanline_idx1
+                    = computeScanSegmentIdx(p1.X - shift, line_distance); // -1 cause the vertex point is handled in the next segment (or not in the case which looks like >)
             }
             else
             {
                 direction = -1;
-                scanline_idx0 = computeScanSegmentIdx(p0.X - shift, line_distance); // -1 cause the vertex point is handled in the previous segment (or not in the case which looks like >)
+                scanline_idx0
+                    = computeScanSegmentIdx(p0.X - shift, line_distance); // -1 cause the vertex point is handled in the previous segment (or not in the case which looks like >)
                 scanline_idx1 = computeScanSegmentIdx(p1.X - shift, line_distance) + 1; // + 1 cause we don't cross the scanline of the first scan segment
             }
 
@@ -715,7 +762,8 @@ void Infill::generateLinearBasedInfill(Polygons& result, const int line_distance
                 {
                     continue;
                 }
-                InfillLineSegment* new_segment = new InfillLineSegment(unrotated_first, first.vertex_index, first.polygon_index, unrotated_second, second.vertex_index, second.polygon_index);
+                InfillLineSegment* new_segment
+                    = new InfillLineSegment(unrotated_first, first.vertex_index, first.polygon_index, unrotated_second, second.vertex_index, second.polygon_index);
                 // Put the same line segment in the data structure twice: Once for each of the polygon line segment that it crosses.
                 crossings_on_line[first.polygon_index][first.vertex_index].push_back(new_segment);
                 crossings_on_line[second.polygon_index][second.vertex_index].push_back(new_segment);
@@ -774,15 +822,18 @@ void Infill::connectLines(Polygons& result_lines)
             Point vertex_after = inner_contour_polygon[vertex_index];
 
             // Sort crossings on every line by how far they are from their initial point.
-            std::sort(crossings_on_polygon_segment.begin(),
-                      crossings_on_polygon_segment.end(),
-                      [&vertex_before, polygon_index, vertex_index](InfillLineSegment* left_hand_side, InfillLineSegment* right_hand_side)
-                      {
-                          // Find the two endpoints that are relevant.
-                          const Point left_hand_point = (left_hand_side->start_segment == vertex_index && left_hand_side->start_polygon == polygon_index) ? left_hand_side->start : left_hand_side->end;
-                          const Point right_hand_point = (right_hand_side->start_segment == vertex_index && right_hand_side->start_polygon == polygon_index) ? right_hand_side->start : right_hand_side->end;
-                          return vSize(left_hand_point - vertex_before) < vSize(right_hand_point - vertex_before);
-                      });
+            std::sort(
+                crossings_on_polygon_segment.begin(),
+                crossings_on_polygon_segment.end(),
+                [&vertex_before, polygon_index, vertex_index](InfillLineSegment* left_hand_side, InfillLineSegment* right_hand_side)
+                {
+                    // Find the two endpoints that are relevant.
+                    const Point left_hand_point
+                        = (left_hand_side->start_segment == vertex_index && left_hand_side->start_polygon == polygon_index) ? left_hand_side->start : left_hand_side->end;
+                    const Point right_hand_point
+                        = (right_hand_side->start_segment == vertex_index && right_hand_side->start_polygon == polygon_index) ? right_hand_side->start : right_hand_side->end;
+                    return vSize(left_hand_point - vertex_before) < vSize(right_hand_point - vertex_before);
+                });
 
             for (InfillLineSegment* crossing : crossings_on_polygon_segment)
             {
@@ -797,14 +848,16 @@ void Infill::connectLines(Polygons& result_lines)
                     assert(crossing_handle != (size_t)-1);
                     const size_t previous_crossing_handle = connected_lines.find(previous_crossing);
                     assert(previous_crossing_handle != (size_t)-1);
-                    if (crossing_handle == previous_crossing_handle) // These two infill lines are already connected. Don't create a loop now. Continue connecting with the next crossing.
+                    if (crossing_handle
+                        == previous_crossing_handle) // These two infill lines are already connected. Don't create a loop now. Continue connecting with the next crossing.
                     {
                         continue;
                     }
 
                     // Join two infill lines together with a connecting line.
                     // Here the InfillLineSegments function as a linked list, so that they can easily be joined.
-                    const Point previous_point = (previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index) ? previous_segment->start : previous_segment->end;
+                    const Point previous_point
+                        = (previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index) ? previous_segment->start : previous_segment->end;
                     const Point next_point = (crossing->start_segment == vertex_index && crossing->start_polygon == polygon_index) ? crossing->start : crossing->end;
                     InfillLineSegment* new_segment;
                     // If the segment is zero length, we avoid creating it but still want to connect the crossing with the previous segment
@@ -822,7 +875,8 @@ void Infill::connectLines(Polygons& result_lines)
                     }
                     else
                     {
-                        new_segment = new InfillLineSegment(previous_point, vertex_index, polygon_index, next_point, vertex_index, polygon_index); // A connecting line between them.
+                        new_segment
+                            = new InfillLineSegment(previous_point, vertex_index, polygon_index, next_point, vertex_index, polygon_index); // A connecting line between them.
                         new_segment->previous = previous_segment;
                         if (previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index)
                         {
@@ -863,7 +917,13 @@ void Infill::connectLines(Polygons& result_lines)
                     }
                     else
                     {
-                        new_segment = new InfillLineSegment(previous_segment->start, vertex_index, polygon_index, vertex_after, (vertex_index + 1) % inner_contour[polygon_index].size(), polygon_index);
+                        new_segment = new InfillLineSegment(
+                            previous_segment->start,
+                            vertex_index,
+                            polygon_index,
+                            vertex_after,
+                            (vertex_index + 1) % inner_contour[polygon_index].size(),
+                            polygon_index);
                         previous_segment->previous = new_segment;
                         new_segment->previous = previous_segment;
                         previous_segment = new_segment;
@@ -879,7 +939,13 @@ void Infill::connectLines(Polygons& result_lines)
                     }
                     else
                     {
-                        new_segment = new InfillLineSegment(previous_segment->end, vertex_index, polygon_index, vertex_after, (vertex_index + 1) % inner_contour[polygon_index].size(), polygon_index);
+                        new_segment = new InfillLineSegment(
+                            previous_segment->end,
+                            vertex_index,
+                            polygon_index,
+                            vertex_after,
+                            (vertex_index + 1) % inner_contour[polygon_index].size(),
+                            polygon_index);
                         previous_segment->next = new_segment;
                         new_segment->previous = previous_segment;
                         previous_segment = new_segment;
