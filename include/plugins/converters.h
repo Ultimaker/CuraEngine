@@ -9,10 +9,10 @@
 #include "cura/plugins/slots/broadcast/v0/broadcast.pb.h"
 #include "cura/plugins/slots/handshake/v0/handshake.grpc.pb.h"
 #include "cura/plugins/slots/handshake/v0/handshake.pb.h"
-#include "cura/plugins/slots/postprocess/v0/postprocess.grpc.pb.h"
-#include "cura/plugins/slots/postprocess/v0/postprocess.pb.h"
-#include "cura/plugins/slots/simplify/v0/simplify.grpc.pb.h"
-#include "cura/plugins/slots/simplify/v0/simplify.pb.h"
+#include "cura/plugins/slots/postprocess/v0/modify.grpc.pb.h"
+#include "cura/plugins/slots/postprocess/v0/modify.pb.h"
+#include "cura/plugins/slots/simplify/v0/modify.grpc.pb.h"
+#include "cura/plugins/slots/simplify/v0/modify.pb.h"
 #include "plugins/metadata.h"
 #include "plugins/types.h"
 
@@ -140,7 +140,7 @@ struct handshake_response
 
 struct simplify_request
 {
-    using value_type = slots::simplify::v0::CallRequest; ///< The protobuf message type.
+    using value_type = slots::simplify::v0::modify::CallRequest; ///< The protobuf message type.
     using native_value_type = Polygons; ///< The native value type.
 
     /**
@@ -198,7 +198,7 @@ struct simplify_request
  */
 struct simplify_response
 {
-    using value_type = slots::simplify::v0::CallResponse; ///< The protobuf message type.
+    using value_type = slots::simplify::v0::modify::CallResponse; ///< The protobuf message type.
     using native_value_type = Polygons; ///< The native value type.
 
     /**
@@ -236,7 +236,7 @@ struct simplify_response
 
 struct postprocess_request
 {
-    using value_type = slots::postprocess::v0::CallRequest; ///< The protobuf message type.
+    using value_type = slots::postprocess::v0::modify::CallRequest; ///< The protobuf message type.
     using native_value_type = std::string; ///< The native value type.
 
     /**
@@ -255,7 +255,7 @@ struct postprocess_request
 
 struct postprocess_response
 {
-    using value_type = slots::postprocess::v0::CallResponse;
+    using value_type = slots::postprocess::v0::modify::CallResponse;
     using native_value_type = std::string;
 
     native_value_type operator()(const value_type& message) const
@@ -263,6 +263,12 @@ struct postprocess_response
         return message.gcode_word();
     }
 };
+
+//struct infill_generate_request
+//{
+//    using value_type = slots::infill::v0::generate::CallRequest
+//    using native_value_type = Polygons
+//}
 
 } // namespace cura::plugins
 

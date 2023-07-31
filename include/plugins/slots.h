@@ -4,9 +4,10 @@
 #ifndef PLUGINS_SLOTS_H
 #define PLUGINS_SLOTS_H
 
-#include "cura/plugins/slots/postprocess/v0/postprocess.grpc.pb.h"
-#include "cura/plugins/slots/simplify/v0/simplify.grpc.pb.h"
+#include "cura/plugins/slots/postprocess/v0/modify.grpc.pb.h"
+#include "cura/plugins/slots/simplify/v0/modify.grpc.pb.h"
 #include "cura/plugins/v0/slot_id.pb.h"
+#include "infill.h"
 #include "plugins/converters.h"
 #include "plugins/slotproxy.h"
 #include "plugins/types.h"
@@ -49,7 +50,7 @@ struct simplify_default
  * @tparam Default The default behavior when no plugin is registered.
  */
 template<class Default = default_process>
-using slot_simplify_ = SlotProxy<v0::SlotID::SIMPLIFY_MODIFY, "<=1.0.0", slots::simplify::v0::SimplifyModifyService::Stub, Validator, simplify_request, simplify_response, Default>;
+using slot_simplify_ = SlotProxy<v0::SlotID::SIMPLIFY_MODIFY, "<=1.0.0", slots::simplify::v0::modify::SimplifyModifyService::Stub, Validator, simplify_request, simplify_response, Default>;
 
 /**
  * @brief Alias for the Postprocess slot.
@@ -60,7 +61,7 @@ using slot_simplify_ = SlotProxy<v0::SlotID::SIMPLIFY_MODIFY, "<=1.0.0", slots::
  */
 template<class Default = default_process>
 using slot_postprocess_
-    = SlotProxy<v0::SlotID::POSTPROCESS_MODIFY, "<=1.0.0", slots::postprocess::v0::PostprocessModifyService::Stub, Validator, postprocess_request, postprocess_response, Default>;
+    = SlotProxy<v0::SlotID::POSTPROCESS_MODIFY, "<=1.0.0", slots::postprocess::v0::modify::PostprocessModifyService::Stub, Validator, postprocess_request, postprocess_response, Default>;
 
 template<typename... Types>
 struct Typelist
