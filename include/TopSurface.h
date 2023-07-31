@@ -60,6 +60,6 @@ public:
     Polygons areas;
 };
 
-}
+} // namespace cura
 
 #endif /* TOPSURFACE_H */
