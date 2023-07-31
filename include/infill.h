@@ -7,8 +7,8 @@
 #include "infill/LightningGenerator.h"
 #include "infill/ZigzagConnectorProcessor.h"
 #include "settings/EnumSettings.h" //For infill types.
-#include "settings/types/Angle.h"
 #include "settings/Settings.h"
+#include "settings/types/Angle.h"
 #include "utils/ExtrusionLine.h"
 #include "utils/IntPoint.h"
 #include "utils/section_type.h"
@@ -20,9 +20,15 @@ class AABB;
 class SierpinskiFillProvider;
 class SliceMeshStorage;
 
+//namespace plugins::details
+//{
+//    struct infill_default;
+//}
+
 class Infill 
 {
     friend class InfillTest;
+//    friend class plugins::details::infill_default;
 
     EFillMethod pattern; //!< the space filling pattern of the infill to generate
     bool zig_zaggify; //!< Whether to connect the end pieces of the support lines via the wall
@@ -51,6 +57,11 @@ class Infill
     coord_t pocket_size; //!< The size of the pockets at the intersections of the fractal in the cross 3d pattern
     bool mirror_offset; //!< Indication in which offset direction the extra infill lines are made
 
+    const Settings& settings;
+    const SierpinskiFillProvider* cross_fill_provider = nullptr;
+    const LightningLayer * lightning_layer = nullptr;
+    const SliceMeshStorage* mesh = nullptr;
+
     static constexpr double one_over_sqrt_2 = 0.7071067811865475244008443621048490392848359376884740; //!< 1.0 / sqrt(2.0)
 public:
     Infill(EFillMethod pattern
@@ -66,6 +77,7 @@ public:
         , coord_t shift
         , coord_t max_resolution
         , coord_t max_deviation
+        , const Settings& settings
         , size_t wall_line_count = 0
         , coord_t small_area_width = 0
         , const Point& infill_origin = Point()
@@ -76,6 +88,9 @@ public:
         , bool skip_some_zags = false
         , size_t zag_skip_count = 0
         , coord_t pocket_size = 0
+        , const SierpinskiFillProvider* cross_fill_provider = nullptr
+        , const LightningLayer* lightning_layer = nullptr
+        , const SliceMeshStorage* mesh = nullptr
     )
     : pattern(pattern)
     , zig_zaggify(zig_zaggify)
@@ -101,6 +116,10 @@ public:
     , zag_skip_count(zag_skip_count)
     , pocket_size(pocket_size)
     , mirror_offset(zig_zaggify)
+    , settings(settings)
+    , cross_fill_provider(cross_fill_provider)
+    , lightning_layer(lightning_layer)
+    , mesh(mesh)
     {
         //TODO: The connected lines algorithm is only available for linear-based infill, for now.
         //We skip ZigZag, Cross and Cross3D because they have their own algorithms. Eventually we want to replace all that with the new algorithm.
@@ -119,7 +138,7 @@ public:
      * \param mesh A mesh for which to generate infill (should only be used for non-helper-mesh objects).
      * \param[in] cross_fill_provider The cross fractal subdivision decision functor
      */
-    void generate(std::vector<VariableWidthLines>& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, int layer_idx, SectionType section_type, const SierpinskiFillProvider* cross_fill_provider = nullptr, const LightningLayer * lightning_layer = nullptr, const SliceMeshStorage* mesh = nullptr);
+    void generate(std::vector<VariableWidthLines>& toolpaths, Polygons& result_polygons, Polygons& result_lines, int layer_idx, SectionType section_type);
 
     /*!
      * Generate the wall toolpaths of an infill area. It will return the inner contour and set the inner-contour.
@@ -138,16 +157,15 @@ private:
     /*!
      * Generate the infill pattern without the infill_multiplier functionality
      */
-    void _generate(std::vector<VariableWidthLines>& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const LightningLayer * lightning_layer = nullptr, const SliceMeshStorage* mesh = nullptr);
-
+    void _generate(std::vector<VariableWidthLines>& toolpaths, Polygons& result_polygons, Polygons& result_lines);
     /*!
      * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.
-     * 
+     *
      * This is done in a way such that there is not overlap between the lines
      * except the middle original one if the multiplier is odd.
-     * 
+     *
      * This introduces a lot of line segments.
-     * 
+     *
      * \param[in,out] result_polygons The polygons to be multiplied (input and output)
      * \param[in,out] result_lines The lines to be multiplied (input and output)
      */
@@ -266,7 +284,7 @@ private:
      * \param toolpaths (output) The resulting toolpaths. Binned by inset_idx.
      * \param inset_value The offset between each consecutive two polygons
      */
-    void generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths, const Settings& settings);
+    void generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths);
 
     /*!
      * Generate a rectangular grid of infill lines

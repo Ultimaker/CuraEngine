@@ -44,6 +44,14 @@ struct simplify_default
     }
 };
 
+//struct infill_generate_default
+//{
+//    auto operator()(Infill& infill, auto&&... args)
+//    {
+//        return infill._generate(std::forward<decltype(args)>(args)...);
+//    }
+//};
+
 /**
  * @brief Alias for the Simplify slot.
  *
@@ -54,6 +62,9 @@ struct simplify_default
 template<class Default = default_process>
 using slot_simplify_
     = SlotProxy<v0::SlotID::SIMPLIFY_MODIFY, "<=1.0.0", slots::simplify::v0::modify::SimplifyModifyService::Stub, Validator, simplify_request, simplify_response, Default>;
+
+//template<class Default = default_process>
+//using slot_infill_generate_ = SlotProxy<v0::SlotID::INFILL_GENERATE, "<=1.0.0", slots::infill::v0::generate::InfillGenerateService::Stub, Validator, infill_generate_request, infill_generate_response, Default>;
 
 /**
  * @brief Alias for the Postprocess slot.
@@ -223,6 +234,7 @@ private:
 using slot_simplify = details::slot_simplify_<details::simplify_default>;
 using slot_postprocess = details::slot_postprocess_<>;
 using slot_settings_broadcast = details::slot_settings_broadcast_<>;
+//using slot_infill_generate = details::slot_infill_generate_<details::infill_generate_default>;
 
 using SlotTypes = details::Typelist<slot_simplify, slot_postprocess, slot_settings_broadcast>;
 

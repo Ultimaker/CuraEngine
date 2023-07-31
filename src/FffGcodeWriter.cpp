@@ -639,6 +639,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 extra_infill_shift,
                 max_resolution,
                 max_deviation,
+                base_settings,
                 wall_line_count,
                 small_area_width,
                 infill_origin,
@@ -650,7 +651,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 zag_skip_count,
                 pocket_size);
             std::vector<VariableWidthLines> raft_paths;
-            infill_comp.generate(raft_paths, raft_polygons, raftLines, base_settings, layer_nr, SectionType::ADHESION);
+            infill_comp.generate(raft_paths, raft_polygons, raftLines, layer_nr, SectionType::ADHESION);
             if (! raft_paths.empty())
             {
                 const GCodePathConfig& config = gcode_layer.configs_storage.raft_base_config;
@@ -765,6 +766,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 extra_infill_shift,
                 interface_max_resolution,
                 interface_max_deviation,
+                interface_settings,
                 wall_line_count,
                 small_area_width,
                 infill_origin,
@@ -776,7 +778,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 zag_skip_count,
                 pocket_size);
             std::vector<VariableWidthLines> raft_paths; // Should remain empty, since we have no walls.
-            infill_comp.generate(raft_paths, raft_polygons, raft_lines, interface_settings, layer_nr, SectionType::ADHESION);
+            infill_comp.generate(raft_paths, raft_polygons, raft_lines, layer_nr, SectionType::ADHESION);
             gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_interface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
 
             raft_polygons.clear();
@@ -870,6 +872,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 extra_infill_shift,
                 surface_max_resolution,
                 surface_max_deviation,
+                surface_settings,
                 wall_line_count,
                 small_area_width,
                 infill_origin,
@@ -881,7 +884,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 zag_skip_count,
                 pocket_size);
             std::vector<VariableWidthLines> raft_paths; // Should remain empty, since we have no walls.
-            infill_comp.generate(raft_paths, raft_polygons, raft_lines, surface_settings, layer_nr, SectionType::ADHESION);
+            infill_comp.generate(raft_paths, raft_polygons, raft_lines, layer_nr, SectionType::ADHESION);
             gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
 
             raft_polygons.clear();
@@ -1629,6 +1632,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
                 infill_shift,
                 max_resolution,
                 max_deviation,
+                mesh.settings,
                 wall_line_count,
                 small_area_width,
                 infill_origin,
@@ -1638,17 +1642,17 @@ bool FffGcodeWriter::processMultiLayerInfill(
                 use_endpieces,
                 skip_some_zags,
                 zag_skip_count,
-                mesh.settings.get<coord_t>("cross_infill_pocket_size"));
+                mesh.settings.get<coord_t>("cross_infill_pocket_size"),
+                mesh.cross_fill_provider,
+                lightning_layer,
+                &mesh
+            );
             infill_comp.generate(
                 infill_paths,
                 infill_polygons,
                 infill_lines,
-                mesh.settings,
                 gcode_layer.getLayerNr(),
-                SectionType::INFILL,
-                mesh.cross_fill_provider,
-                lightning_layer,
-                &mesh);
+                SectionType::INFILL);
         }
         if (! infill_lines.empty() || ! infill_polygons.empty())
         {
@@ -1835,6 +1839,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
                 infill_shift,
                 max_resolution,
                 max_deviation,
+                mesh.settings,
                 skin_below_wall_count,
                 small_area_width,
                 infill_origin,
@@ -1844,17 +1849,16 @@ bool FffGcodeWriter::processSingleLayerInfill(
                 use_endpieces,
                 skip_some_zags,
                 zag_skip_count,
-                pocket_size);
+                pocket_size,
+                mesh.cross_fill_provider,
+                lightning_layer,
+                &mesh);
             infill_comp.generate(
                 wall_tool_paths.back(),
                 infill_polygons,
                 infill_lines,
-                mesh.settings,
                 gcode_layer.getLayerNr(),
-                SectionType::INFILL,
-                mesh.cross_fill_provider,
-                lightning_layer,
-                &mesh);
+                SectionType::INFILL);
             if (density_idx < last_idx)
             {
                 const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, min_skin_below_wall_count);
@@ -1900,6 +1904,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
             infill_shift,
             max_resolution,
             max_deviation,
+            mesh.settings,
             wall_line_count_here,
             small_area_width,
             infill_origin,
@@ -1909,17 +1914,18 @@ bool FffGcodeWriter::processSingleLayerInfill(
             use_endpieces,
             skip_some_zags,
             zag_skip_count,
-            pocket_size);
+            pocket_size,
+            mesh.cross_fill_provider,
+            lightning_layer,
+            &mesh
+        );
         infill_comp.generate(
             wall_tool_paths.back(),
             infill_polygons,
             infill_lines,
-            mesh.settings,
             gcode_layer.getLayerNr(),
-            SectionType::INFILL,
-            mesh.cross_fill_provider,
-            lightning_layer,
-            &mesh);
+            SectionType::INFILL
+        );
         if (density_idx < last_idx)
         {
             const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, wall_line_count);
@@ -2761,6 +2767,7 @@ void FffGcodeWriter::processSkinPrintFeature(
         extra_infill_shift,
         max_resolution,
         max_deviation,
+        mesh.settings,
         wall_line_count,
         small_area_width,
         infill_origin,
@@ -2771,7 +2778,7 @@ void FffGcodeWriter::processSkinPrintFeature(
         skip_some_zags,
         zag_skip_count,
         pocket_size);
-    infill_comp.generate(skin_paths, skin_polygons, skin_lines, mesh.settings, gcode_layer.getLayerNr(), SectionType::SKIN);
+    infill_comp.generate(skin_paths, skin_polygons, skin_lines, gcode_layer.getLayerNr(), SectionType::SKIN);
 
     // add paths
     if (! skin_polygons.empty() || ! skin_lines.empty() || ! skin_paths.empty())
@@ -3113,6 +3120,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     support_shift,
                     max_resolution,
                     max_deviation,
+                    infill_extruder.settings,
                     wall_count,
                     small_area_width,
                     infill_origin,
@@ -3122,15 +3130,14 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     use_endpieces,
                     skip_some_zags,
                     zag_skip_count,
-                    pocket_size);
+                    pocket_size,
+                    storage.support.cross_fill_provider);
                 infill_comp.generate(
                     wall_toolpaths_here,
                     support_polygons,
                     support_lines,
-                    infill_extruder.settings,
                     gcode_layer.getLayerNr(),
-                    SectionType::SUPPORT,
-                    storage.support.cross_fill_provider);
+                    SectionType::SUPPORT);
             }
 
             if (need_travel_to_end_of_last_spiral && infill_extruder.settings.get<bool>("magic_spiralize"))
@@ -3314,6 +3321,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
         extra_infill_shift,
         max_resolution,
         max_deviation,
+        roof_extruder.settings,
         wall_line_count,
         small_area_width,
         infill_origin,
@@ -3327,7 +3335,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     Polygons roof_polygons;
     std::vector<VariableWidthLines> roof_paths;
     Polygons roof_lines;
-    roof_computation.generate(roof_paths, roof_polygons, roof_lines, roof_extruder.settings, gcode_layer.getLayerNr(), SectionType::SUPPORT);
+    roof_computation.generate(roof_paths, roof_polygons, roof_lines, gcode_layer.getLayerNr(), SectionType::SUPPORT);
     if ((gcode_layer.getLayerNr() == 0 && wall.empty()) || (gcode_layer.getLayerNr() > 0 && roof_paths.empty() && roof_polygons.empty() && roof_lines.empty()))
     {
         return false; // We didn't create any support roof.
@@ -3432,6 +3440,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
         extra_infill_shift,
         max_resolution,
         max_deviation,
+        bottom_extruder.settings,
         wall_line_count,
         small_area_width,
         infill_origin,
@@ -3445,7 +3454,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     Polygons bottom_polygons;
     std::vector<VariableWidthLines> bottom_paths;
     Polygons bottom_lines;
-    bottom_computation.generate(bottom_paths, bottom_polygons, bottom_lines, bottom_extruder.settings, gcode_layer.getLayerNr(), SectionType::SUPPORT);
+    bottom_computation.generate(bottom_paths, bottom_polygons, bottom_lines, gcode_layer.getLayerNr(), SectionType::SUPPORT);
     if (bottom_paths.empty() && bottom_polygons.empty() && bottom_lines.empty())
     {
         return false;

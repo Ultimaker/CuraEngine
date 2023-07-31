@@ -95,10 +95,10 @@ std::vector<Point> PolygonUtils::spreadDotsArea(const Polygons& polygons, Point 
 {
     std::vector<VariableWidthLines> dummy_toolpaths;
     Settings dummy_settings;
-    Infill infill_gen(EFillMethod::LINES, false, false, polygons, 0, grid_size.X, 0, 1, 0, 0, 0, 0, 0);
+    Infill infill_gen(EFillMethod::LINES, false, false, polygons, 0, grid_size.X, 0, 1, 0, 0, 0, 0, 0, dummy_settings);
     Polygons result_polygons;
     Polygons result_lines;
-    infill_gen.generate(dummy_toolpaths, result_polygons, result_lines, dummy_settings, 0, SectionType::DOTS);  // FIXME: @jellespijker make sure the propper layer nr is used
+    infill_gen.generate(dummy_toolpaths, result_polygons, result_lines, 0, SectionType::DOTS);  // FIXME: @jellespijker make sure the propper layer nr is used
     std::vector<Point> result;
     for (PolygonRef line : result_lines)
     {

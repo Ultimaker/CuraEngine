@@ -72,12 +72,8 @@ Polygons Infill::generateWallToolPaths(std::vector<VariableWidthLines>& toolpath
 void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
                       Polygons& result_polygons,
                       Polygons& result_lines,
-                      const Settings& settings,
                       int layer_idx,
-                      SectionType section_type,
-                      const SierpinskiFillProvider* cross_fill_provider,
-                      const LightningLayer* lightning_trees,
-                      const SliceMeshStorage* mesh)
+                      SectionType section_type)
 {
     if (outer_contour.empty())
     {
@@ -159,7 +155,9 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
         Polygons generated_result_polygons;
         Polygons generated_result_lines;
 
-        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines);
+
+
         zig_zaggify = zig_zaggify_real;
         multiplyInfill(generated_result_polygons, generated_result_lines);
         result_polygons.add(generated_result_polygons);
@@ -171,7 +169,12 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
         // So make sure we provide it with a Polygons that is safe to clear and only add stuff to result_lines.
         Polygons generated_result_polygons;
         Polygons generated_result_lines;
-        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
+
+
+
+        _generate(toolpaths, generated_result_polygons, generated_result_lines);
+
+
         result_polygons.add(generated_result_polygons);
         result_lines.add(generated_result_lines);
     }
@@ -211,11 +214,7 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
 
 void Infill::_generate(std::vector<VariableWidthLines>& toolpaths,
                        Polygons& result_polygons,
-                       Polygons& result_lines,
-                       const Settings& settings,
-                       const SierpinskiFillProvider* cross_fill_provider,
-                       const LightningLayer* lightning_trees,
-                       const SliceMeshStorage* mesh)
+                       Polygons& result_lines)
 {
     if (inner_contour.empty())
         return;
@@ -246,7 +245,7 @@ void Infill::_generate(std::vector<VariableWidthLines>& toolpaths,
         generateTrihexagonInfill(result_lines);
         break;
     case EFillMethod::CONCENTRIC:
-        generateConcentricInfill(toolpaths, settings);
+        generateConcentricInfill(toolpaths);
         break;
     case EFillMethod::ZIG_ZAG:
         generateZigZagInfill(result_lines, line_distance, fill_angle);
@@ -273,7 +272,7 @@ void Infill::_generate(std::vector<VariableWidthLines>& toolpaths,
         break;
     case EFillMethod::LIGHTNING:
         assert(lightning_trees); // "Cannot generate Lightning infill without a generator!\n"
-        generateLightningInfill(lightning_trees, result_lines);
+        generateLightningInfill(lightning_layer, result_lines);
         break;
     default:
         spdlog::error("Fill pattern has unknown value.\n");
@@ -386,7 +385,7 @@ void Infill::generateLightningInfill(const LightningLayer* trees, Polygons& resu
     result_lines.add(trees->convertToLines(inner_contour, infill_line_width));
 }
 
-void Infill::generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths, const Settings& settings)
+void Infill::generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths)
 {
     const coord_t min_area = infill_line_width * infill_line_width;
 
