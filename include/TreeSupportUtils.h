@@ -139,7 +139,6 @@ public:
                 support_shift,
                 config.maximum_resolution,
                 config.maximum_deviation,
-                config.settings,
                 wall_line_count,
                 narrow_area_width,
                 infill_origin,
@@ -149,13 +148,12 @@ public:
                 use_endpieces,
                 skip_some_zags,
                 zag_skip_count,
-                pocket_size,
-                cross_fill_provider
+                pocket_size
             );
 
         Polygons areas;
         Polygons lines;
-        roof_computation.generate(toolpaths, areas, lines, layer_idx, SectionType::SUPPORT);
+        roof_computation.generate(toolpaths, areas, lines, config.settings, layer_idx, SectionType::SUPPORT, cross_fill_provider);
         lines.add(toPolylines(areas));
         lines.add(toPolylines(toolpaths));
         return lines;
