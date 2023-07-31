@@ -264,11 +264,11 @@ struct postprocess_response
     }
 };
 
-//struct infill_generate_request
+// struct infill_generate_request
 //{
-//    using value_type = slots::infill::v0::generate::CallRequest
-//    using native_value_type = Polygons
-//}
+//     using value_type = slots::infill::v0::generate::CallRequest
+//     using native_value_type = Polygons
+// }
 
 } // namespace cura::plugins
 
