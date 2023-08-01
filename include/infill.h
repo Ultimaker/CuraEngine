@@ -241,8 +241,6 @@ public:
         SectionType section_type);
 
 private:
-
-
     /*!
      * Generate the infill pattern without the infill_multiplier functionality
      */
