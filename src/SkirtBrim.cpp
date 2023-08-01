@@ -403,6 +403,7 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
             }
         }
 
+
         if (skirt_around_prime_tower_brim)
         {
             const int prime_tower_brim_extruder_nr = storage.primeTower.extruder_order[0];
@@ -626,6 +627,12 @@ void SkirtBrim::generateSupportBrim()
 
     const coord_t brim_width = brim_line_width * line_count;
     coord_t skirt_brim_length = 0;
+
+    if (storage.skirt_brim[support_infill_extruder.extruder_nr].empty())
+    {
+        storage.skirt_brim[support_infill_extruder.extruder_nr].emplace_back();
+    }
+
     for (const SkirtBrimLine& brim_line : storage.skirt_brim[support_infill_extruder.extruder_nr])
     {
         skirt_brim_length += brim_line.closed_polygons.polygonLength();
