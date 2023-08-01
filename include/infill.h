@@ -22,20 +22,9 @@ class AABB;
 class SierpinskiFillProvider;
 class SliceMeshStorage;
 
-namespace plugins
-{
-namespace details
-{
-struct infill_generate_default;
-}
-struct infill_generate_request;
-} // namespace plugins
-
 class Infill
 {
     friend class InfillTest;
-    friend class plugins::details::infill_generate_default;
-    friend class plugins::infill_generate_request;
 
     EFillMethod pattern{}; //!< the space filling pattern of the infill to generate
     bool zig_zaggify{}; //!< Whether to connect the end pieces of the support lines via the wall
@@ -244,12 +233,7 @@ private:
     /*!
      * Generate the infill pattern without the infill_multiplier functionality
      */
-    std::tuple<std::vector<VariableWidthLines>, Polygons, Polygons> _generate(
-        const Settings& settings,
-        const SierpinskiFillProvider* cross_fill_pattern = nullptr,
-        const LightningLayer* lightning_layer = nullptr,
-        const SliceMeshStorage* mesh = nullptr);
-    /*!
+    void _generate(std::vector<VariableWidthLines>& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const LightningLayer * lightning_layer = nullptr, const SliceMeshStorage* mesh = nullptr);    /*!
      * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.
      *
      * This is done in a way such that there is not overlap between the lines

@@ -174,11 +174,7 @@ void Infill::generate(
         Polygons generated_result_polygons;
         Polygons generated_result_lines;
 
-        auto [toolpaths_, generated_result_polygons_, generated_result_lines_]
-            = slots::instance().generate<plugins::v0::SlotID::INFILL_GENERATE>(*this, settings, cross_fill_provider, lightning_trees, mesh);
-        toolpaths.insert(toolpaths.end(), toolpaths_.begin(), toolpaths_.end());
-        generated_result_polygons.add(generated_result_polygons_);
-        generated_result_lines.add(generated_result_lines_);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
 
         zig_zaggify = zig_zaggify_real;
         multiplyInfill(generated_result_polygons, generated_result_lines);
@@ -192,11 +188,7 @@ void Infill::generate(
         Polygons generated_result_polygons;
         Polygons generated_result_lines;
 
-        auto [toolpaths_, generated_result_polygons_, generated_result_lines_]
-            = slots::instance().generate<plugins::v0::SlotID::INFILL_GENERATE>(*this, settings, cross_fill_provider, lightning_trees, mesh);
-        toolpaths.insert(toolpaths.end(), toolpaths_.begin(), toolpaths_.end());
-        generated_result_polygons.add(generated_result_polygons_);
-        generated_result_lines.add(generated_result_lines_);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
 
         result_polygons.add(generated_result_polygons);
         result_lines.add(generated_result_lines);
@@ -249,17 +241,17 @@ void Infill::generate(
     }
 }
 
-std::tuple<std::vector<VariableWidthLines>, Polygons, Polygons>
-    Infill::_generate(const Settings& settings, const SierpinskiFillProvider* cross_fill_provider, const LightningLayer* lightning_trees, const SliceMeshStorage* mesh)
-{
+void Infill::_generate(std::vector<VariableWidthLines>& toolpaths,
+                       Polygons& result_polygons,
+                       Polygons& result_lines,
+                       const Settings& settings,
+                       const SierpinskiFillProvider* cross_fill_provider,
+                       const LightningLayer* lightning_trees,
+                       const SliceMeshStorage* mesh){
     if (inner_contour.empty())
-        return {};
+        return;
     if (line_distance == 0)
-        return {};
-
-    std::vector<VariableWidthLines> toolpaths;
-    Polygons result_polygons;
-    Polygons result_lines;
+        return;
 
     switch (pattern)
     {
@@ -314,6 +306,15 @@ std::tuple<std::vector<VariableWidthLines>, Polygons, Polygons>
         assert(lightning_trees); // "Cannot generate Lightning infill without a generator!\n"
         generateLightningInfill(lightning_trees, result_lines);
         break;
+    case EFillMethod::PLUGIN:
+    {
+        auto [toolpaths_, generated_result_polygons_, generated_result_lines_]
+            = slots::instance().generate<plugins::v0::SlotID::INFILL_GENERATE>(inner_contour);
+                toolpaths.insert(toolpaths.end(), toolpaths_.begin(), toolpaths_.end());
+                result_polygons.add(generated_result_polygons_);
+                result_lines.add(generated_result_lines_);
+        break;
+    }
     default:
         spdlog::error("Fill pattern has unknown value.\n");
         break;
@@ -321,7 +322,7 @@ std::tuple<std::vector<VariableWidthLines>, Polygons, Polygons>
 
     if (connect_lines)
     {
-        // The list should be empty because it will be again filled completely. Otherwise might have double lines.
+        // The list should be empty because it will be again filled completely. Otherwise, might have double lines.
         assert(result_lines.empty());
         result_lines.clear();
         connectLines(result_lines);

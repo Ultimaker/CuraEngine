@@ -269,25 +269,20 @@ struct postprocess_response
 struct infill_generate_request
 {
     using value_type = slots::infill::v0::generate::CallRequest;
-    using native_value_type = Infill;
+    using native_value_type = Polygons;
 
-    value_type operator()(
-        native_value_type infill,
-        const Settings& settings,
-        const SierpinskiFillProvider* cross_fill_provider,
-        const LightningLayer* lightning_trees,
-        const SliceMeshStorage* mesh) const
+    value_type operator()(const native_value_type& inner_contour) const
     {
         value_type message{};
 
-        if (infill.inner_contour.empty())
+        if (inner_contour.empty())
         {
             return message;
         }
 
         auto* msg_infill_areas = message.mutable_infill_areas();
         auto* msg_polygons = msg_infill_areas->mutable_polygons();
-        for (auto& polygon : infill.inner_contour.splitIntoParts())
+        for (auto& polygon : inner_contour.splitIntoParts())
         {
             auto* msg_polygon = msg_polygons->Add();
             auto* msg_outline = msg_polygon->mutable_outline();
