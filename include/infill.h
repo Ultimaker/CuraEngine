@@ -69,6 +69,13 @@ class Infill
 
     static constexpr auto one_over_sqrt_2 = 1.0 / std::numbers::sqrt2;
 
+    constexpr bool calcConnectLines(const EFillMethod pattern, const bool zig_zaggify)
+    {
+        return zig_zaggify
+            && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC
+                || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON);
+    }
+
 public:
     constexpr Infill() noexcept = default;
 
@@ -234,12 +241,7 @@ public:
         SectionType section_type);
 
 private:
-    constexpr bool calcConnectLines(const auto& pattern, const auto& zig_zaggify) const
-    {
-        return zig_zaggify
-            && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC
-                || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON);
-    }
+
 
     /*!
      * Generate the infill pattern without the infill_multiplier functionality
