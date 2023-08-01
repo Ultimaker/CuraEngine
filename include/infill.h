@@ -233,17 +233,24 @@ private:
     /*!
      * Generate the infill pattern without the infill_multiplier functionality
      */
-    void _generate(std::vector<VariableWidthLines>& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const LightningLayer * lightning_layer = nullptr, const SliceMeshStorage* mesh = nullptr);    /*!
-     * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.
-     *
-     * This is done in a way such that there is not overlap between the lines
-     * except the middle original one if the multiplier is odd.
-     *
-     * This introduces a lot of line segments.
-     *
-     * \param[in,out] result_polygons The polygons to be multiplied (input and output)
-     * \param[in,out] result_lines The lines to be multiplied (input and output)
-     */
+    void _generate(
+        std::vector<VariableWidthLines>& toolpaths,
+        Polygons& result_polygons,
+        Polygons& result_lines,
+        const Settings& settings,
+        const SierpinskiFillProvider* cross_fill_pattern = nullptr,
+        const LightningLayer* lightning_layer = nullptr,
+        const SliceMeshStorage* mesh = nullptr); /*!
+                                                  * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.
+                                                  *
+                                                  * This is done in a way such that there is not overlap between the lines
+                                                  * except the middle original one if the multiplier is odd.
+                                                  *
+                                                  * This introduces a lot of line segments.
+                                                  *
+                                                  * \param[in,out] result_polygons The polygons to be multiplied (input and output)
+                                                  * \param[in,out] result_lines The lines to be multiplied (input and output)
+                                                  */
     void multiplyInfill(Polygons& result_polygons, Polygons& result_lines);
 
     struct InfillLineSegment

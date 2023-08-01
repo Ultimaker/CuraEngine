@@ -241,13 +241,15 @@ void Infill::generate(
     }
 }
 
-void Infill::_generate(std::vector<VariableWidthLines>& toolpaths,
-                       Polygons& result_polygons,
-                       Polygons& result_lines,
-                       const Settings& settings,
-                       const SierpinskiFillProvider* cross_fill_provider,
-                       const LightningLayer* lightning_trees,
-                       const SliceMeshStorage* mesh){
+void Infill::_generate(
+    std::vector<VariableWidthLines>& toolpaths,
+    Polygons& result_polygons,
+    Polygons& result_lines,
+    const Settings& settings,
+    const SierpinskiFillProvider* cross_fill_provider,
+    const LightningLayer* lightning_trees,
+    const SliceMeshStorage* mesh)
+{
     if (inner_contour.empty())
         return;
     if (line_distance == 0)
@@ -308,11 +310,10 @@ void Infill::_generate(std::vector<VariableWidthLines>& toolpaths,
         break;
     case EFillMethod::PLUGIN:
     {
-        auto [toolpaths_, generated_result_polygons_, generated_result_lines_]
-            = slots::instance().generate<plugins::v0::SlotID::INFILL_GENERATE>(inner_contour);
-                toolpaths.insert(toolpaths.end(), toolpaths_.begin(), toolpaths_.end());
-                result_polygons.add(generated_result_polygons_);
-                result_lines.add(generated_result_lines_);
+        auto [toolpaths_, generated_result_polygons_, generated_result_lines_] = slots::instance().generate<plugins::v0::SlotID::INFILL_GENERATE>(inner_contour);
+        toolpaths.insert(toolpaths.end(), toolpaths_.begin(), toolpaths_.end());
+        result_polygons.add(generated_result_polygons_);
+        result_lines.add(generated_result_lines_);
         break;
     }
     default:
