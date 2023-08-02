@@ -35,55 +35,103 @@
 namespace cura::plugins
 {
 
+namespace details
+{
 template<typename T>
-concept plugin_modifier_v = requires(T value)
+concept plugin_modifier = requires(T value)
 {
     requires std::is_member_function_pointer_v<decltype(&T::PrepareAsyncCall)>;
 };
 
 template<typename T>
-concept default_modifier_v = requires(T value)
+concept not_plugin_modifier = requires(T value)
 {
-    requires ! plugin_modifier_v<T>;
+    requires ! plugin_modifier<T>;
+};
+
+template<typename T>
+concept default_modifier = requires(T value)
+{
+    requires not_plugin_modifier<T>;
     requires std::is_member_function_pointer_v<decltype(&T::operator())>;
 };
+} // namespace details
 
-template<class Parent, class Stub, utils::grpc_convertable ResponseTp>
+/**
+ * @brief Prepares client_context for the remote call.
+ *
+ * Sets timeout for the call and adds metadata to context.
+ *
+ * @param client_context - Client context to prepare
+ * @param timeout - Call timeout duration (optional, default = 500ms)
+ */
+inline void prep_client_context(grpc::ClientContext& client_context, const slot_metadata& slot_info, const std::chrono::milliseconds& timeout = std::chrono::milliseconds(500))
+{
+    // Set time-out
+    client_context.set_deadline(std::chrono::system_clock::now() + timeout);
+
+    // Metadata
+    client_context.AddMetadata("cura-engine-uuid", slot_info.engine_uuid.data());
+    client_context.AddMetadata("cura-thread-id", fmt::format("{}", std::this_thread::get_id()));
+}
+
+template<class Stub, typename RequestTp, typename ResponseTp>
 class PluginProxyModifyComponent
 {
-    using value_type = typename ResponseTp::native_value_type;
-
 public:
-    PluginProxyModifyComponent(Parent& parent);
-    value_type modify(auto&&... args);
+    PluginProxyModifyComponent(const slot_metadata& slot_info, const std::optional<plugin_metadata>& plugin_info, std::shared_ptr<grpc::Channel> channel);
+    auto modify(auto&&... args);
 };
 
-template<class Parent, default_modifier_v Default, utils::grpc_convertable ResponseTp>
-class PluginProxyModifyComponent<Parent, Default, ResponseTp>
+template<details::default_modifier Default>
+class PluginProxyModifyComponent<Default, std::monostate, std::monostate>
 {
-    using value_type = typename ResponseTp::native_value_type;
-
 public:
-    PluginProxyModifyComponent(Parent& parent)
+    PluginProxyModifyComponent(const slot_metadata& slot_info, const std::optional<plugin_metadata>& plugin_info, std::shared_ptr<grpc::Channel> channel)
     {
     }
 
-    value_type modify(auto&&... args)
+    auto modify(auto&&... args)
     {
-        return Default(std::forward<decltype(args)>(args)...);
+        return default_modify_(std::forward<decltype(args)>(args)...);
+    }
+
+private:
+    Default default_modify_;
+};
+
+template<details::not_plugin_modifier Stub, utils::grpc_convertable RequestTp>
+class PluginProxyModifyComponent<Stub, RequestTp, empty>
+{
+public:
+    PluginProxyModifyComponent(const slot_metadata& slot_info, const std::optional<plugin_metadata>& plugin_info, std::shared_ptr<grpc::Channel> channel)
+    {
+    }
+
+    auto modify(auto&&... args)
+    {
+        assert(false); // Modify on a stub which it isn't meant for (for example, broadcast), should not actually be called.
+        return 0;
     }
 };
 
-template<class Parent, plugin_modifier_v Stub, utils::grpc_convertable ResponseTp>
-class PluginProxyModifyComponent<Parent, Stub, ResponseTp>
+template<details::plugin_modifier Stub, utils::grpc_convertable RequestTp, utils::grpc_convertable ResponseTp>
+class PluginProxyModifyComponent<Stub, RequestTp, ResponseTp>
 {
     using value_type = typename ResponseTp::native_value_type;
+
+    using req_converter_type = RequestTp;
+    using rsp_converter_type = ResponseTp;
+    using req_msg_type = typename RequestTp::value_type;
     using rsp_msg_type = typename ResponseTp::value_type;
+
     using modify_stub_t = Stub;
 
 public:
-    PluginProxyModifyComponent(Parent& parent)
-        : parent_(parent)
+    PluginProxyModifyComponent(const slot_metadata& slot_info, const std::optional<plugin_metadata>& plugin_info, std::shared_ptr<grpc::Channel> channel)
+        : slot_info_{ slot_info }
+        , plugin_info_{ plugin_info }
+        , modify_stub_{ channel }
     {
     }
 
@@ -99,7 +147,7 @@ public:
      *
      * @throws std::runtime_error if communication with the plugin fails.
      */
-    value_type modify(auto&&... args)
+    auto modify(auto&&... args)
     {
         agrpc::GrpcContext grpc_context;
         value_type ret_value{};
@@ -116,11 +164,11 @@ public:
 
         if (! status.ok()) // TODO: handle different kind of status codes
         {
-            if (parent_.plugin_info_.has_value())
+            if (plugin_info_.has_value())
             {
-                throw exceptions::RemoteException(parent_.slot_info_, parent_.plugin_info_.value(), status.error_message());
+                throw exceptions::RemoteException(slot_info_, plugin_info_.value(), status.error_message());
             }
-            throw exceptions::RemoteException(parent_.slot_info_, status.error_message());
+            throw exceptions::RemoteException(slot_info_, status.error_message());
         }
         return ret_value;
     }
@@ -141,19 +189,24 @@ private:
     {
         using RPC = agrpc::RPC<&modify_stub_t::PrepareAsyncCall>;
         grpc::ClientContext client_context{};
-        parent_.prep_client_context(client_context);
+        prep_client_context(client_context, slot_info_);
 
         // Construct request
-        auto request{ parent_.req_(std::forward<decltype(args)>(args)...) };
+        auto request{ req_(std::forward<decltype(args)>(args)...) };
 
         // Make unary request
         rsp_msg_type response;
-        status = co_await RPC::request(grpc_context, parent_.modify_stub_, client_context, request, response, boost::asio::use_awaitable);
-        ret_value = parent_.rsp_(response);
+        status = co_await RPC::request(grpc_context, modify_stub_, client_context, request, response, boost::asio::use_awaitable);
+        ret_value = rsp_(response);
         co_return;
     }
 
-    Parent& parent_;
+    req_converter_type req_{}; ///< The Modify request converter object.
+    rsp_converter_type rsp_{}; ///< The Modify response converter object.
+
+    slot_metadata/*&*/ slot_info_;
+    std::optional<plugin_metadata>/*&*/ plugin_info_;
+    ranges::semiregular_box<modify_stub_t> modify_stub_; ///< The gRPC Modify stub for communication.
 };
 
 /**
@@ -164,29 +217,26 @@ private:
  * SlotVersionRng - plugin version range
  * Stub - process stub type
  * ValidatorTp - validator type
- * RequestTp - gRPC convertible request type,
- * ResponseTp - gRPC convertible response type.
+ * RequestTp - gRPC convertible request type, or dummy -- if stub is a proper modify-stub, and not default, this is enforced by the specialization of the modify component
+ * ResponseTp - gRPC convertible response type, or dummy -- if stub is a proper modify-stub, and not default, this is enforced by the specialization of the modify component
  *
  * Class provides methods for validating the plugin, making requests and processing responses.
  */
-template<plugins::v0::SlotID SlotID, utils::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, utils::grpc_convertable RequestTp, utils::grpc_convertable ResponseTp>
+template<plugins::v0::SlotID SlotID, utils::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, typename RequestTp, typename ResponseTp>
 class PluginProxy
 {
-    friend PluginProxyModifyComponent;
-
 public:
     // type aliases for easy use
     using value_type = typename ResponseTp::native_value_type;
     using validator_type = ValidatorTp;
-
-    using req_msg_type = typename RequestTp::value_type;
-    using rsp_msg_type = typename ResponseTp::value_type;
 
     using req_converter_type = RequestTp;
     using rsp_converter_type = ResponseTp;
 
     using modify_stub_t = Stub;
     using broadcast_stub_t = slots::broadcast::v0::BroadcastService::Stub;
+
+    using modify_component_t = PluginProxyModifyComponent<modify_stub_t, req_converter_type, rsp_converter_type>;
 
     /**
      * @brief Constructs a PluginProxy object.
@@ -202,8 +252,8 @@ public:
     constexpr PluginProxy() = default;
 
     explicit PluginProxy(std::shared_ptr<grpc::Channel> channel)
-        : modify_stub_(channel)
-        , broadcast_stub_(channel)
+        : broadcast_stub_(channel)
+        , modify_component_(slot_info_, plugin_info_, channel)
     {
         // Connect to the plugin and exchange a handshake
         agrpc::GrpcContext grpc_context;
@@ -217,7 +267,7 @@ public:
             {
                 using RPC = agrpc::RPC<&slots::handshake::v0::HandshakeService::Stub::PrepareAsyncCall>;
                 grpc::ClientContext client_context{};
-                prep_client_context(client_context);
+                prep_client_context(client_context, slot_info_);
 
                 // Construct request
                 handshake_request handshake_req;
@@ -258,7 +308,7 @@ public:
         if (this != &other)
         {
             valid_ = other.valid_;
-            modify_stub_ = other.modify_stub_;
+            modify_component_ = other.modify_component_;
             broadcast_stub_ = other.broadcast_stub_;
             plugin_info_ = other.plugin_info_;
             slot_info_ = other.slot_info_;
@@ -270,7 +320,7 @@ public:
         if (this != &other)
         {
             valid_ = std::move(other.valid_);
-            modify_stub_ = std::move(other.modify_stub_);
+            modify_component_ = std::move(other.modify_component_);
             broadcast_stub_ = std::move(other.broadcast_stub_);
             plugin_info_ = std::move(other.plugin_info_);
             slot_info_ = std::move(other.slot_info_);
@@ -281,8 +331,7 @@ public:
 
     value_type modify(auto&&... args)
     {
-        static auto modify_component = PluginProxyModifyComponent<decltype(*this), modify_stub_t, rsp_converter_type>(*this);
-        return modify_component.modify(std::forward<decltype(args)>(args)...);
+        return modify_component_.modify(std::forward<decltype(args)>(args)...);
     }
 
     template<v0::SlotID S>
@@ -316,10 +365,7 @@ public:
 
 private:
     validator_type valid_{}; ///< The validator object for plugin validation.
-    req_converter_type req_{}; ///< The Modify request converter object.
-    rsp_converter_type rsp_{}; ///< The Modify response converter object.
 
-    ranges::semiregular_box<modify_stub_t> modify_stub_; ///< The gRPC Modify stub for communication.
     ranges::semiregular_box<broadcast_stub_t> broadcast_stub_; ///< The gRPC Broadcast stub for communication.
 
     slot_metadata slot_info_{ .slot_id = SlotID,
@@ -327,11 +373,13 @@ private:
                               .engine_uuid = Application::getInstance().instance_uuid }; ///< Holds information about the plugin slot.
     std::optional<plugin_metadata> plugin_info_{ std::nullopt }; ///< Optional object that holds the plugin metadata, set after handshake
 
+    modify_component_t modify_component_;
+
     template<v0::SlotID S>
     boost::asio::awaitable<void> broadcastCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, auto&&... args)
     {
         grpc::ClientContext client_context{};
-        prep_client_context(client_context);
+        prep_client_context(client_context, slot_info_);
 
         auto broadcaster{ details::broadcast_factory<broadcast_stub_t, S>() };
         auto request = details::broadcast_message_factory<S>(std::forward<decltype(args)>(args)...);
@@ -339,25 +387,8 @@ private:
         status = co_await broadcaster.request(grpc_context, broadcast_stub_, client_context, request, response, boost::asio::use_awaitable);
         co_return;
     }
-
-    /**
-     * @brief Prepares client_context for the remote call.
-     *
-     * Sets timeout for the call and adds metadata to context.
-     *
-     * @param client_context - Client context to prepare
-     * @param timeout - Call timeout duration (optional, default = 500ms)
-     */
-    void prep_client_context(grpc::ClientContext& client_context, std::chrono::milliseconds timeout = std::chrono::milliseconds(500))
-    {
-        // Set time-out
-        client_context.set_deadline(std::chrono::system_clock::now() + timeout);
-
-        // Metadata
-        client_context.AddMetadata("cura-engine-uuid", slot_info_.engine_uuid.data());
-        client_context.AddMetadata("cura-thread-id", fmt::format("{}", std::this_thread::get_id()));
-    }
 };
+
 } // namespace cura::plugins
 
 #endif // PLUGINS_PLUGINPROXY_H
