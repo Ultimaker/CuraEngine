@@ -37,6 +37,7 @@ namespace cura::plugins
 
 namespace details
 {
+
 template<typename T>
 concept plugin_modifier = requires(T value)
 {
@@ -44,17 +45,8 @@ concept plugin_modifier = requires(T value)
 };
 
 template<typename T>
-concept not_plugin_modifier = requires(T value)
-{
-    requires ! plugin_modifier<T>;
-};
+concept not_plugin_modifier = ! plugin_modifier<T>;
 
-template<typename T>
-concept default_modifier = requires(T value)
-{
-    requires not_plugin_modifier<T>;
-    requires std::is_member_function_pointer_v<decltype(&T::operator())>;
-};
 } // namespace details
 
 /**
@@ -79,31 +71,17 @@ template<class Stub, typename RequestTp, typename ResponseTp>
 class PluginProxyModifyComponent
 {
 public:
+    constexpr PluginProxyModifyComponent();
     PluginProxyModifyComponent(const slot_metadata& slot_info, const std::optional<plugin_metadata>& plugin_info, std::shared_ptr<grpc::Channel> channel);
     auto modify(auto&&... args);
 };
 
-template<details::default_modifier Default>
-class PluginProxyModifyComponent<Default, std::monostate, std::monostate>
+template<details::not_plugin_modifier Stub, typename RequestTp, typename ResponseTp>
+class PluginProxyModifyComponent<Stub, RequestTp, ResponseTp>
 {
 public:
-    PluginProxyModifyComponent(const slot_metadata& slot_info, const std::optional<plugin_metadata>& plugin_info, std::shared_ptr<grpc::Channel> channel)
-    {
-    }
+    constexpr PluginProxyModifyComponent() = default;
 
-    auto modify(auto&&... args)
-    {
-        return default_modify_(std::forward<decltype(args)>(args)...);
-    }
-
-private:
-    Default default_modify_;
-};
-
-template<details::not_plugin_modifier Stub, utils::grpc_convertable RequestTp>
-class PluginProxyModifyComponent<Stub, RequestTp, empty>
-{
-public:
     PluginProxyModifyComponent(const slot_metadata& slot_info, const std::optional<plugin_metadata>& plugin_info, std::shared_ptr<grpc::Channel> channel)
     {
     }
@@ -122,12 +100,13 @@ class PluginProxyModifyComponent<Stub, RequestTp, ResponseTp>
 
     using req_converter_type = RequestTp;
     using rsp_converter_type = ResponseTp;
-    using req_msg_type = typename RequestTp::value_type;
     using rsp_msg_type = typename ResponseTp::value_type;
 
     using modify_stub_t = Stub;
 
 public:
+    constexpr PluginProxyModifyComponent() = default;
+
     PluginProxyModifyComponent(const slot_metadata& slot_info, const std::optional<plugin_metadata>& plugin_info, std::shared_ptr<grpc::Channel> channel)
         : slot_info_{ slot_info }
         , plugin_info_{ plugin_info }
@@ -209,6 +188,69 @@ private:
     ranges::semiregular_box<modify_stub_t> modify_stub_; ///< The gRPC Modify stub for communication.
 };
 
+template<plugins::v0::SlotID S>  // NOTE: Leave slot here (templated) for the case where we have to specialize broadcast-channels by slot.
+class PluginProxyBroadcastComponent
+{
+    using broadcast_stub_t = slots::broadcast::v0::BroadcastService::Stub;
+
+public:
+    constexpr PluginProxyBroadcastComponent() = default;
+
+    PluginProxyBroadcastComponent(const slot_metadata& slot_info, const std::optional<plugin_metadata>& plugin_info, std::shared_ptr<grpc::Channel> channel)
+        : slot_info_{ slot_info }
+        , plugin_info_{ plugin_info }
+        , broadcast_stub_{ channel }
+    {
+    }
+
+    template<plugins::v0::SlotID Subscription>
+    void broadcast(auto&&... args)
+    {
+        if (! plugin_info_->broadcast_subscriptions.contains(Subscription))
+        {
+            return;
+        }
+        agrpc::GrpcContext grpc_context;
+        grpc::Status status;
+
+        boost::asio::co_spawn(
+            grpc_context,
+            [this, &grpc_context, &status, &args...]()
+            {
+                return this->broadcastCall<Subscription>(grpc_context, status, std::forward<decltype(args)>(args)...);
+            },
+            boost::asio::detached);
+        grpc_context.run();
+
+        if (! status.ok()) // TODO: handle different kind of status codes
+        {
+            if (plugin_info_.has_value())
+            {
+                throw exceptions::RemoteException(slot_info_, plugin_info_.value(), status.error_message());
+            }
+            throw exceptions::RemoteException(slot_info_, status.error_message());
+        }
+    }
+
+private:
+    template<plugins::v0::SlotID Subscription>
+    boost::asio::awaitable<void> broadcastCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, auto&&... args)
+    {
+        grpc::ClientContext client_context{};
+        prep_client_context(client_context, slot_info_);
+
+        auto broadcaster{ details::broadcast_factory<broadcast_stub_t, Subscription>() };
+        auto request = details::broadcast_message_factory<Subscription>(std::forward<decltype(args)>(args)...);
+        auto response = google::protobuf::Empty{};
+        status = co_await broadcaster.request(grpc_context, broadcast_stub_, client_context, request, response, boost::asio::use_awaitable);
+        co_return;
+    }
+
+    slot_metadata/*&*/ slot_info_;
+    std::optional<plugin_metadata>/*&*/ plugin_info_;
+    ranges::semiregular_box<broadcast_stub_t> broadcast_stub_; ///< The gRPC Broadcast stub for communication.
+};
+
 /**
  * @brief A plugin proxy class template.
  *
@@ -233,10 +275,8 @@ public:
     using req_converter_type = RequestTp;
     using rsp_converter_type = ResponseTp;
 
-    using modify_stub_t = Stub;
-    using broadcast_stub_t = slots::broadcast::v0::BroadcastService::Stub;
-
-    using modify_component_t = PluginProxyModifyComponent<modify_stub_t, req_converter_type, rsp_converter_type>;
+    using modify_component_t = PluginProxyModifyComponent<Stub, req_converter_type, rsp_converter_type>;
+    using broadcast_component_t = PluginProxyBroadcastComponent<SlotID>;
 
     /**
      * @brief Constructs a PluginProxy object.
@@ -252,8 +292,6 @@ public:
     constexpr PluginProxy() = default;
 
     explicit PluginProxy(std::shared_ptr<grpc::Channel> channel)
-        : broadcast_stub_(channel)
-        , modify_component_(slot_info_, plugin_info_, channel)
     {
         // Connect to the plugin and exchange a handshake
         agrpc::GrpcContext grpc_context;
@@ -299,6 +337,10 @@ public:
         {
             plugin_info_ = plugin_info;
         }
+
+        // Can only do this _after_ it's sure the slot_info and plugin_info have been set properly.
+        broadcast_component_ = broadcast_component_t(slot_info_, plugin_info_, channel);
+        modify_component_ = modify_component_t(slot_info_, plugin_info_, channel);
     };
 
     constexpr PluginProxy(const PluginProxy&) = default;
@@ -309,7 +351,7 @@ public:
         {
             valid_ = other.valid_;
             modify_component_ = other.modify_component_;
-            broadcast_stub_ = other.broadcast_stub_;
+            broadcast_component_ = other.broadcast_component_;
             plugin_info_ = other.plugin_info_;
             slot_info_ = other.slot_info_;
         }
@@ -321,7 +363,7 @@ public:
         {
             valid_ = std::move(other.valid_);
             modify_component_ = std::move(other.modify_component_);
-            broadcast_stub_ = std::move(other.broadcast_stub_);
+            broadcast_component_ = std::move(other.broadcast_component_);
             plugin_info_ = std::move(other.plugin_info_);
             slot_info_ = std::move(other.slot_info_);
         }
@@ -334,39 +376,14 @@ public:
         return modify_component_.modify(std::forward<decltype(args)>(args)...);
     }
 
-    template<v0::SlotID S>
+    template<plugins::v0::SlotID Subscription>
     void broadcast(auto&&... args)
     {
-        if (! plugin_info_->broadcast_subscriptions.contains(S))
-        {
-            return;
-        }
-        agrpc::GrpcContext grpc_context;
-        grpc::Status status;
-
-        boost::asio::co_spawn(
-            grpc_context,
-            [this, &grpc_context, &status, &args...]()
-            {
-                return this->broadcastCall<S>(grpc_context, status, std::forward<decltype(args)>(args)...);
-            },
-            boost::asio::detached);
-        grpc_context.run();
-
-        if (! status.ok()) // TODO: handle different kind of status codes
-        {
-            if (plugin_info_.has_value())
-            {
-                throw exceptions::RemoteException(slot_info_, plugin_info_.value(), status.error_message());
-            }
-            throw exceptions::RemoteException(slot_info_, status.error_message());
-        }
+        return broadcast_component_.broadcast<Subscription>(std::forward<decltype(args)>(args)...);
     }
 
 private:
     validator_type valid_{}; ///< The validator object for plugin validation.
-
-    ranges::semiregular_box<broadcast_stub_t> broadcast_stub_; ///< The gRPC Broadcast stub for communication.
 
     slot_metadata slot_info_{ .slot_id = SlotID,
                               .version_range = SlotVersionRng.value,
@@ -374,19 +391,7 @@ private:
     std::optional<plugin_metadata> plugin_info_{ std::nullopt }; ///< Optional object that holds the plugin metadata, set after handshake
 
     modify_component_t modify_component_;
-
-    template<v0::SlotID S>
-    boost::asio::awaitable<void> broadcastCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, auto&&... args)
-    {
-        grpc::ClientContext client_context{};
-        prep_client_context(client_context, slot_info_);
-
-        auto broadcaster{ details::broadcast_factory<broadcast_stub_t, S>() };
-        auto request = details::broadcast_message_factory<S>(std::forward<decltype(args)>(args)...);
-        auto response = google::protobuf::Empty{};
-        status = co_await broadcaster.request(grpc_context, broadcast_stub_, client_context, request, response, boost::asio::use_awaitable);
-        co_return;
-    }
+    broadcast_component_t broadcast_component_;
 };
 
 } // namespace cura::plugins
