@@ -27,7 +27,7 @@
 namespace cura::plugins
 {
 
-template<plugins::v0::SlotID S>  // NOTE: Leave slot here (templated) for the case where we have to specialize broadcast-channels by slot.
+template<plugins::v0::SlotID S> // NOTE: Leave slot here (templated) for the case where we have to specialize broadcast-channels by slot.
 class PluginProxyBroadcastComponent
 {
     using broadcast_stub_t = slots::broadcast::v0::BroadcastService::Stub;

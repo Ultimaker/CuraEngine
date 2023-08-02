@@ -5,8 +5,8 @@
 #define PLUGINS_PLUGINPROXY_H
 
 #include "Application.h"
-#include "components/common.h"
 #include "components/broadcast.h"
+#include "components/common.h"
 #include "components/modify.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.pb.h"
@@ -171,16 +171,9 @@ private:
     validator_type valid_{}; ///< The validator object for plugin validation.
 
     details::slot_info_ptr slot_info_ ///< Holds information about the plugin slot.
-    {
-        std::make_shared<slot_metadata>(
-            slot_metadata
-            {
-                .slot_id = SlotID,
-                .version_range = SlotVersionRng.value,
-                .engine_uuid = Application::getInstance().instance_uuid
-            })
-    };
-    details::plugin_info_ptr plugin_info_{ std::make_shared<std::optional<plugin_metadata>>(std::nullopt) }; ///< Optional object that holds the plugin metadata, set after handshake
+        { std::make_shared<slot_metadata>(slot_metadata{ .slot_id = SlotID, .version_range = SlotVersionRng.value, .engine_uuid = Application::getInstance().instance_uuid }) };
+    details::plugin_info_ptr plugin_info_{ std::make_shared<std::optional<plugin_metadata>>(
+        std::nullopt) }; ///< Optional object that holds the plugin metadata, set after handshake
 
     modify_component_t modify_component_;
     broadcast_component_t broadcast_component_;
