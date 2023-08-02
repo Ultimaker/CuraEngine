@@ -204,8 +204,8 @@ private:
     req_converter_type req_{}; ///< The Modify request converter object.
     rsp_converter_type rsp_{}; ///< The Modify response converter object.
 
-    slot_metadata/*&*/ slot_info_;
-    std::optional<plugin_metadata>/*&*/ plugin_info_;
+    slot_metadata /*&*/ slot_info_;
+    std::optional<plugin_metadata> /*&*/ plugin_info_;
     ranges::semiregular_box<modify_stub_t> modify_stub_; ///< The gRPC Modify stub for communication.
 };
 
