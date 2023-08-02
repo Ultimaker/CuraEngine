@@ -271,9 +271,10 @@ struct infill_generate_request
     using value_type = slots::infill::v0::generate::CallRequest;
     using native_value_type = Polygons;
 
-    value_type operator()(const native_value_type& inner_contour) const
+    value_type operator()(const native_value_type& inner_contour, const std::string& pattern) const
     {
         value_type message{};
+        message.set_pattern(pattern);
 
         if (inner_contour.empty())
         {
