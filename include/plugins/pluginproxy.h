@@ -7,7 +7,7 @@
 #include "Application.h"
 #include "components/broadcast.h"
 #include "components/common.h"
-#include "components/modify.h"
+#include "components/invoke.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.pb.h"
 #include "cura/plugins/slots/handshake/v0/handshake.grpc.pb.h"
@@ -46,8 +46,8 @@ namespace cura::plugins
  * SlotVersionRng - plugin version range
  * Stub - process stub type
  * ValidatorTp - validator type
- * RequestTp - gRPC convertible request type, or dummy -- if stub is a proper modify-stub, and not default, this is enforced by the specialization of the modify component
- * ResponseTp - gRPC convertible response type, or dummy -- if stub is a proper modify-stub, and not default, this is enforced by the specialization of the modify component
+ * RequestTp - gRPC convertible request type, or dummy -- if stub is a proper invoke-stub, this is enforced by the specialization of the invoke component
+ * ResponseTp - gRPC convertible response type, or dummy -- if stub is a proper invoke-stub, this is enforced by the specialization of the invoke component
  *
  * Class provides methods for validating the plugin, making requests and processing responses.
  */
@@ -62,7 +62,7 @@ public:
     using req_converter_type = RequestTp;
     using rsp_converter_type = ResponseTp;
 
-    using modify_component_t = PluginProxyModifyComponent<Stub, req_converter_type, rsp_converter_type>;
+    using invoke_component_t = PluginProxyInvokeComponent<Stub, req_converter_type, rsp_converter_type>;
     using broadcast_component_t = PluginProxyBroadcastComponent<SlotID>;
 
     /**
@@ -79,7 +79,7 @@ public:
     constexpr PluginProxy() = default;
 
     explicit PluginProxy(std::shared_ptr<grpc::Channel> channel)
-        : modify_component_{ slot_info_, plugin_info_, channel }
+        : invoke_component_{ slot_info_, plugin_info_, channel }
         , broadcast_component_{ slot_info_, plugin_info_, channel }
     {
         // Connect to the plugin and exchange a handshake
@@ -135,7 +135,7 @@ public:
         if (this != &other)
         {
             valid_ = other.valid_;
-            modify_component_ = other.modify_component_;
+            invoke_component_ = other.invoke_component_;
             broadcast_component_ = other.broadcast_component_;
             plugin_info_ = other.plugin_info_;
             slot_info_ = other.slot_info_;
@@ -147,7 +147,7 @@ public:
         if (this != &other)
         {
             valid_ = std::move(other.valid_);
-            modify_component_ = std::move(other.modify_component_);
+            invoke_component_ = std::move(other.invoke_component_);
             broadcast_component_ = std::move(other.broadcast_component_);
             plugin_info_ = std::move(other.plugin_info_);
             slot_info_ = std::move(other.slot_info_);
@@ -158,7 +158,7 @@ public:
 
     value_type invoke(auto&&... args)
     {
-        return modify_component_.modify(std::forward<decltype(args)>(args)...);
+        return invoke_component_.invoke(std::forward<decltype(args)>(args)...);
     }
 
     template<plugins::v0::SlotID Subscription>
@@ -175,7 +175,7 @@ private:
     details::plugin_info_ptr plugin_info_{ std::make_shared<std::optional<plugin_metadata>>(
         std::nullopt) }; ///< Optional object that holds the plugin metadata, set after handshake
 
-    modify_component_t modify_component_;
+    invoke_component_t invoke_component_;
     broadcast_component_t broadcast_component_;
 };
 
