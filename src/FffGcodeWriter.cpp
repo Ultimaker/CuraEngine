@@ -391,7 +391,7 @@ size_t FffGcodeWriter::getStartExtruder(const SliceDataStorage& storage)
     {
         start_extruder_nr = skirt_brim_extruder->extruder_nr;
     }
-<<<<<<< HEAD
+
     else if (
         (adhesion_type == EPlatformAdhesion::BRIM || mesh_group_settings.get<bool>("prime_tower_brim_enable")) && skirt_brim_extruder
         && (skirt_brim_extruder->settings.get<int>("brim_line_count") > 0 || skirt_brim_extruder->settings.get<coord_t>("skirt_brim_minimal_length") > 0))
@@ -399,17 +399,6 @@ size_t FffGcodeWriter::getStartExtruder(const SliceDataStorage& storage)
         start_extruder_nr = skirt_brim_extruder->extruder_nr;
     }
     else if (adhesion_type == EPlatformAdhesion::RAFT && skirt_brim_extruder)
-=======
-    else if ((adhesion_type == EPlatformAdhesion::BRIM || mesh_group_settings.get<bool>("prime_tower_brim_enable"))
-             && skirt_brim_extruder
-             && (skirt_brim_extruder->settings.get<int>("brim_line_count") > 0 || skirt_brim_extruder->settings.get<coord_t>("skirt_brim_minimal_length") > 0))
-    {
-        start_extruder_nr = skirt_brim_extruder->extruder_nr;
-    }
-    else if (adhesion_type == EPlatformAdhesion::RAFT
-             && skirt_brim_extruder
-    )
->>>>>>> 595ef2bf5 (skirt printed before support)
     {
         start_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr;
     }
