@@ -5,6 +5,9 @@
 #define PLUGINS_PLUGINPROXY_H
 
 #include "Application.h"
+#include "components/broadcast.h"
+#include "components/common.h"
+#include "components/modify.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.pb.h"
 #include "cura/plugins/slots/handshake/v0/handshake.grpc.pb.h"
@@ -43,12 +46,12 @@ namespace cura::plugins
  * SlotVersionRng - plugin version range
  * Stub - process stub type
  * ValidatorTp - validator type
- * RequestTp - gRPC convertible request type,
- * ResponseTp - gRPC convertible response type.
+ * RequestTp - gRPC convertible request type, or dummy -- if stub is a proper modify-stub, and not default, this is enforced by the specialization of the modify component
+ * ResponseTp - gRPC convertible response type, or dummy -- if stub is a proper modify-stub, and not default, this is enforced by the specialization of the modify component
  *
  * Class provides methods for validating the plugin, making requests and processing responses.
  */
-template<plugins::v0::SlotID SlotID, utils::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, utils::grpc_convertable RequestTp, utils::grpc_convertable ResponseTp>
+template<plugins::v0::SlotID SlotID, utils::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, typename RequestTp, typename ResponseTp>
 class PluginProxy
 {
 public:
@@ -56,14 +59,11 @@ public:
     using value_type = typename ResponseTp::native_value_type;
     using validator_type = ValidatorTp;
 
-    using req_msg_type = typename RequestTp::value_type;
-    using rsp_msg_type = typename ResponseTp::value_type;
-
     using req_converter_type = RequestTp;
     using rsp_converter_type = ResponseTp;
 
-    using modify_stub_t = Stub;
-    using broadcast_stub_t = slots::broadcast::v0::BroadcastService::Stub;
+    using modify_component_t = PluginProxyModifyComponent<Stub, req_converter_type, rsp_converter_type>;
+    using broadcast_component_t = PluginProxyBroadcastComponent<SlotID>;
 
     /**
      * @brief Constructs a PluginProxy object.
@@ -79,8 +79,8 @@ public:
     constexpr PluginProxy() = default;
 
     explicit PluginProxy(std::shared_ptr<grpc::Channel> channel)
-        : modify_stub_(channel)
-        , broadcast_stub_(channel)
+        : modify_component_{ slot_info_, plugin_info_, channel }
+        , broadcast_component_{ slot_info_, plugin_info_, channel }
     {
         // Connect to the plugin and exchange a handshake
         agrpc::GrpcContext grpc_context;
@@ -94,21 +94,21 @@ public:
             {
                 using RPC = agrpc::RPC<&slots::handshake::v0::HandshakeService::Stub::PrepareAsyncCall>;
                 grpc::ClientContext client_context{};
-                prep_client_context(client_context);
+                prep_client_context(client_context, *slot_info_);
 
                 // Construct request
                 handshake_request handshake_req;
-                handshake_request::value_type request{ handshake_req(slot_info_) };
+                handshake_request::value_type request{ handshake_req(*slot_info_) };
 
                 // Make unary request
                 handshake_response::value_type response;
                 status = co_await RPC::request(grpc_context, handshake_stub, client_context, request, response, boost::asio::use_awaitable);
                 handshake_response handshake_rsp;
                 plugin_info = handshake_rsp(response, client_context.peer());
-                valid_ = validator_type{ slot_info_, plugin_info_.value() };
+                valid_ = validator_type{ *slot_info_, plugin_info };
                 if (valid_)
                 {
-                    spdlog::info("Using plugin: '{}-{}' running at [{}] for slot {}", plugin_info.plugin_name, plugin_info.plugin_version, plugin_info.peer, slot_info_.slot_id);
+                    spdlog::info("Using plugin: '{}-{}' running at [{}] for slot {}", plugin_info.plugin_name, plugin_info.plugin_version, plugin_info.peer, slot_info_->slot_id);
                     if (! plugin_info.broadcast_subscriptions.empty())
                     {
                         spdlog::info("Subscribing plugin '{}' to the following broadcasts {}", plugin_info.plugin_name, plugin_info.broadcast_subscriptions);
@@ -120,11 +120,11 @@ public:
 
         if (! status.ok()) // TODO: handle different kind of status codes
         {
-            throw exceptions::RemoteException(slot_info_, status.error_message());
+            throw exceptions::RemoteException(*slot_info_, status.error_message());
         }
         if (! plugin_info.plugin_name.empty() && ! plugin_info.slot_version.empty())
         {
-            plugin_info_ = plugin_info;
+            plugin_info_->emplace(plugin_info);
         }
     };
 
@@ -135,8 +135,8 @@ public:
         if (this != &other)
         {
             valid_ = other.valid_;
-            modify_stub_ = other.modify_stub_;
-            broadcast_stub_ = other.broadcast_stub_;
+            modify_component_ = other.modify_component_;
+            broadcast_component_ = other.broadcast_component_;
             plugin_info_ = other.plugin_info_;
             slot_info_ = other.slot_info_;
         }
@@ -147,8 +147,8 @@ public:
         if (this != &other)
         {
             valid_ = std::move(other.valid_);
-            modify_stub_ = std::move(other.modify_stub_);
-            broadcast_stub_ = std::move(other.broadcast_stub_);
+            modify_component_ = std::move(other.modify_component_);
+            broadcast_component_ = std::move(other.broadcast_component_);
             plugin_info_ = std::move(other.plugin_info_);
             slot_info_ = std::move(other.slot_info_);
         }
@@ -156,144 +156,29 @@ public:
     }
     ~PluginProxy() = default;
 
-    /**
-     * @brief Executes to plugin Modify operation.
-     *
-     * As part of this operation, a request is sent to the plugin
-     * and the returned response is processed.
-     *
-     * @tparam Args -  argument types for the plugin request
-     * @param args - arguments for the plugin request
-     * @return The converted response value from plugin.
-     *
-     * @throws std::runtime_error if communication with the plugin fails.
-     */
     value_type invoke(auto&&... args)
     {
-        agrpc::GrpcContext grpc_context;
-        value_type ret_value{};
-        grpc::Status status;
-
-        boost::asio::co_spawn(
-            grpc_context,
-            [this, &grpc_context, &status, &ret_value, &args...]()
-            {
-                return this->modifyCall(grpc_context, status, ret_value, std::forward<decltype(args)>(args)...);
-            },
-            boost::asio::detached);
-        grpc_context.run();
-
-        if (! status.ok()) // TODO: handle different kind of status codes
-        {
-            if (plugin_info_.has_value())
-            {
-                throw exceptions::RemoteException(slot_info_, plugin_info_.value(), status.error_message());
-            }
-            throw exceptions::RemoteException(slot_info_, status.error_message());
-        }
-        return ret_value;
+        return modify_component_.modify(std::forward<decltype(args)>(args)...);
     }
 
-    template<v0::SlotID S>
+    template<plugins::v0::SlotID Subscription>
     void broadcast(auto&&... args)
     {
-        if (! plugin_info_->broadcast_subscriptions.contains(S))
-        {
-            return;
-        }
-        agrpc::GrpcContext grpc_context;
-        grpc::Status status;
-
-        boost::asio::co_spawn(
-            grpc_context,
-            [this, &grpc_context, &status, &args...]()
-            {
-                return this->broadcastCall<S>(grpc_context, status, std::forward<decltype(args)>(args)...);
-            },
-            boost::asio::detached);
-        grpc_context.run();
-
-        if (! status.ok()) // TODO: handle different kind of status codes
-        {
-            if (plugin_info_.has_value())
-            {
-                throw exceptions::RemoteException(slot_info_, plugin_info_.value(), status.error_message());
-            }
-            throw exceptions::RemoteException(slot_info_, status.error_message());
-        }
+        return broadcast_component_.template broadcast<Subscription>(std::forward<decltype(args)>(args)...);
     }
 
 private:
     validator_type valid_{}; ///< The validator object for plugin validation.
-    req_converter_type req_{}; ///< The Modify request converter object.
-    rsp_converter_type rsp_{}; ///< The Modify response converter object.
 
-    ranges::semiregular_box<modify_stub_t> modify_stub_; ///< The gRPC Modify stub for communication.
-    ranges::semiregular_box<broadcast_stub_t> broadcast_stub_; ///< The gRPC Broadcast stub for communication.
+    details::slot_info_ptr slot_info_ ///< Holds information about the plugin slot.
+        { std::make_shared<slot_metadata>(slot_metadata{ .slot_id = SlotID, .version_range = SlotVersionRng.value, .engine_uuid = Application::getInstance().instance_uuid }) };
+    details::plugin_info_ptr plugin_info_{ std::make_shared<std::optional<plugin_metadata>>(
+        std::nullopt) }; ///< Optional object that holds the plugin metadata, set after handshake
 
-    slot_metadata slot_info_{ .slot_id = SlotID,
-                              .version_range = SlotVersionRng.value,
-                              .engine_uuid = Application::getInstance().instance_uuid }; ///< Holds information about the plugin slot.
-    std::optional<plugin_metadata> plugin_info_{ std::nullopt }; ///< Optional object that holds the plugin metadata, set after handshake
-
-    /**
-     * @brief Executes the modifyCall operation with the plugin.
-     *
-     * Sends a request to the plugin and saves the response.
-     *
-     * @param grpc_context - The gRPC context to use for the call
-     * @param status - Status of the gRPC call which gets updated in this method
-     * @param ret_value - Reference to the value in which response to be stored
-     * @param args - Request arguments
-     * @return A boost::asio::awaitable<void> indicating completion of the operation
-     */
-    boost::asio::awaitable<void> modifyCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, value_type& ret_value, auto&&... args)
-    {
-        using RPC = agrpc::RPC<&modify_stub_t::PrepareAsyncCall>;
-        grpc::ClientContext client_context{};
-        prep_client_context(client_context);
-
-        // Construct request
-        auto request{ req_(std::forward<decltype(args)>(args)...) };
-
-        // Make unary request
-        rsp_msg_type response;
-        status = co_await RPC::request(grpc_context, modify_stub_, client_context, request, response, boost::asio::use_awaitable);
-        ret_value = rsp_(response);
-        co_return;
-    }
-
-    template<v0::SlotID S>
-    boost::asio::awaitable<void> broadcastCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, auto&&... args)
-    {
-        grpc::ClientContext client_context{};
-        prep_client_context(client_context);
-
-        auto broadcaster{ details::broadcast_factory<broadcast_stub_t, S>() };
-        auto request = details::broadcast_message_factory<S>(std::forward<decltype(args)>(args)...);
-        auto response = google::protobuf::Empty{};
-        status = co_await broadcaster.request(grpc_context, broadcast_stub_, client_context, request, response, boost::asio::use_awaitable);
-        co_return;
-    }
-
-    /**
-     * @brief Prepares client_context for the remote call.
-     *
-     * Sets timeout for the call and adds metadata to context.
-     *
-     * @param client_context - Client context to prepare
-     * @param timeout - Call timeout duration (optional, default = 500ms)
-     */
-    void prep_client_context(grpc::ClientContext& client_context, std::chrono::milliseconds timeout = std::chrono::milliseconds(500))
-    {
-        // Set time-out
-        client_context.set_deadline(std::chrono::system_clock::now() + timeout);
-
-        // Metadata
-        client_context.AddMetadata("cura-engine-uuid", slot_info_.engine_uuid.data());
-        client_context.AddMetadata("cura-thread-id", fmt::format("{}", std::this_thread::get_id()));
-    }
+    modify_component_t modify_component_;
+    broadcast_component_t broadcast_component_;
 };
+
 } // namespace cura::plugins
 
 #endif // PLUGINS_PLUGINPROXY_H
