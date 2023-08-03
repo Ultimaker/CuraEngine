@@ -1152,23 +1152,24 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
     const bool reverse_print_direction = false;
 
-    // For layer_nr != 0 add only the innermost brim line (which is only the case if skirt_height > 1)
-    Polygons inner_brim_line;
-    inner_brim_line.add(all_brim_lines[0]);
+    if (! all_brim_lines.empty())
+    {
+        // For layer_nr != 0 add only the innermost brim line (which is only the case if skirt_height > 1)
+        Polygons inner_brim_line;
+        inner_brim_line.add(all_brim_lines[0]);
 
-    gcode_layer.addLinesByOptimizer
-    (
-        layer_nr == 0 ? all_brim_lines : inner_brim_line,
-        gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
-        SpaceFillType::PolyLines,
-        enable_travel_optimization,
-        wipe_dist,
-        flow_ratio,
-        start_close_to,
-        fan_speed,
-        reverse_print_direction,
-        order_requirements
-    );
+        gcode_layer.addLinesByOptimizer(
+            layer_nr == 0 ? all_brim_lines : inner_brim_line,
+            gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
+            SpaceFillType::PolyLines,
+            enable_travel_optimization,
+            wipe_dist,
+            flow_ratio,
+            start_close_to,
+            fan_speed,
+            reverse_print_direction,
+            order_requirements);
+    }
 }
 
 void FffGcodeWriter::processOozeShield(const SliceDataStorage& storage, LayerPlan& gcode_layer) const
