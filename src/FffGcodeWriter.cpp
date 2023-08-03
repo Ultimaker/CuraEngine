@@ -1213,19 +1213,17 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         Polygons inner_brim_line;
         inner_brim_line.add(all_brim_lines[0]);
 
-        gcode_layer.addLinesByOptimizer
-            (
-                layer_nr == 0 ? all_brim_lines : inner_brim_line,
-                gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
-                SpaceFillType::PolyLines,
-                enable_travel_optimization,
-                wipe_dist,
-                flow_ratio,
-                start_close_to,
-                fan_speed,
-                reverse_print_direction,
-                order_requirements
-            );
+        gcode_layer.addLinesByOptimizer(
+            layer_nr == 0 ? all_brim_lines : inner_brim_line,
+            gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
+            SpaceFillType::PolyLines,
+            enable_travel_optimization,
+            wipe_dist,
+            flow_ratio,
+            start_close_to,
+            fan_speed,
+            reverse_print_direction,
+            order_requirements);
     }
 
 
@@ -1237,19 +1235,17 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         total_line_count += storage.support_brim.size();
         Polygons support_brim_lines = storage.support_brim;
         support_brim_lines.toPolylines();
-        gcode_layer.addLinesByOptimizer
-            (
-                support_brim_lines,
-                gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
-                SpaceFillType::PolyLines,
-                enable_travel_optimization,
-                wipe_dist,
-                flow_ratio,
-                start_close_to,
-                fan_speed,
-                reverse_print_direction,
-                order_requirements = {}
-            );
+        gcode_layer.addLinesByOptimizer(
+            support_brim_lines,
+            gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
+            SpaceFillType::PolyLines,
+            enable_travel_optimization,
+            wipe_dist,
+            flow_ratio,
+            start_close_to,
+            fan_speed,
+            reverse_print_direction,
+            order_requirements = {});
     }
 }
 
