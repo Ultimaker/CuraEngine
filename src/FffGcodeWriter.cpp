@@ -1226,17 +1226,17 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
 
         gcode_layer.addLinesByOptimizer
             (
-            layer_nr == 0 ? all_brim_lines : inner_brim_line,
-            gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
-            SpaceFillType::PolyLines,
-            enable_travel_optimization,
-            wipe_dist,
-            flow_ratio,
-            start_close_to,
-            fan_speed,
-            reverse_print_direction,
-            order_requirements
-                );
+                layer_nr == 0 ? all_brim_lines : inner_brim_line,
+                gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
+                SpaceFillType::PolyLines,
+                enable_travel_optimization,
+                wipe_dist,
+                flow_ratio,
+                start_close_to,
+                fan_speed,
+                reverse_print_direction,
+                order_requirements
+            );
     }
 
 
@@ -1250,16 +1250,16 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         support_brim_lines.toPolylines();
         gcode_layer.addLinesByOptimizer
             (
-            support_brim_lines,
-            gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
-            SpaceFillType::PolyLines,
-            enable_travel_optimization,
-            wipe_dist,
-            flow_ratio,
-            start_close_to,
-            fan_speed,
-            reverse_print_direction,
-            order_requirements = {}
+                support_brim_lines,
+                gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
+                SpaceFillType::PolyLines,
+                enable_travel_optimization,
+                wipe_dist,
+                flow_ratio,
+                start_close_to,
+                fan_speed,
+                reverse_print_direction,
+                order_requirements = {}
             );
     }
 }
