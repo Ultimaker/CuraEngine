@@ -164,7 +164,7 @@ public:
     template<plugins::v0::SlotID Subscription>
     void broadcast(auto&&... args)
     {
-        return broadcast_component_.broadcast<Subscription>(std::forward<decltype(args)>(args)...);
+        return broadcast_component_.template broadcast<Subscription>(std::forward<decltype(args)>(args)...);
     }
 
 private:
