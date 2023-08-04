@@ -91,7 +91,7 @@ public:
     , max_resolution(max_resolution)
     , max_deviation(max_deviation)
     , wall_line_count(wall_line_count)
-    , small_area_width(0) // FIXME!: Disable small_area_width for the 5.4.x releases. Current plan is to figure out why this feature causes small line segments & fix that before 5.5.x
+    , small_area_width(small_area_width)
     , infill_origin(infill_origin)
     , skip_line_stitching(skip_line_stitching)
     , fill_gaps(fill_gaps)
