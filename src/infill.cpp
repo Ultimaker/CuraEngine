@@ -93,11 +93,15 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths,
     // infill pattern is concentric or if the small_area_width is zero.
     if (pattern != EFillMethod::CONCENTRIC && small_area_width > 0)
     {
+        const auto to_small_length = INT2MM(static_cast<double>(infill_line_width) / 2.0);
+
         // Split the infill region in a narrow region and the normal region.
         Polygons small_infill = inner_contour;
-        inner_contour = inner_contour.offset(-small_area_width / 2).offset(small_area_width / 2);
+        inner_contour = inner_contour.offset(-small_area_width / 2);
+        inner_contour.removeSmallAreas(to_small_length * to_small_length, true);
+        inner_contour = inner_contour.offset(small_area_width / 2);
+        inner_contour = Simplify(max_resolution, max_deviation, 0).polygon(inner_contour);
         small_infill = small_infill.difference(inner_contour);
-        small_infill = Simplify(max_resolution, max_deviation, 0).polygon(small_infill);
 
         // Small corners of a bigger area should not be considered narrow and are therefore added to the bigger area again.
         auto small_infill_parts = small_infill.splitIntoParts();
