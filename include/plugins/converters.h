@@ -20,6 +20,7 @@
 
 #include <range/v3/range/operations.hpp>
 #include <range/v3/view/drop.hpp>
+#include <spdlog/spdlog.h>
 
 #include <google/protobuf/empty.pb.h>
 #include <string>
@@ -271,10 +272,15 @@ struct infill_generate_request
     using value_type = slots::infill::v0::generate::CallRequest;
     using native_value_type = Polygons;
 
-    value_type operator()(const native_value_type& inner_contour, const std::string& pattern) const
+    value_type operator()(const native_value_type& inner_contour, const std::string& pattern, const Settings& settings) const
     {
         value_type message{};
         message.set_pattern(pattern);
+        auto* msg_settings = message.mutable_settings()->mutable_settings();
+        for (const auto& [key, value] : settings.getFlattendSettings())
+        {
+            msg_settings->insert({ key, value });
+        }
 
         if (inner_contour.empty())
         {

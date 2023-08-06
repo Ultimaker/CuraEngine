@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef SETTINGS_SETTINGS_H
 #define SETTINGS_SETTINGS_H
@@ -94,6 +94,8 @@ public:
      * If this set of settings has no value for a setting, the parent is asked.
      */
     void setParent(Settings* new_parent);
+
+    std::unordered_map<std::string, std::string> getFlattendSettings() const;
 
 private:
     /*!

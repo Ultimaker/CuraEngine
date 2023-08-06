@@ -20,6 +20,7 @@
 #include "utils/string.h" //For Escaped.
 #include "utils/types/string_switch.h" //For string switch.
 
+#include <range/v3/view/remove_if.hpp>
 #include <spdlog/spdlog.h>
 
 #include <cctype>
@@ -768,6 +769,20 @@ std::string Settings::getWithoutLimiting(const std::string& key) const
     {
         spdlog::error("Trying to retrieve setting with no value given: {}", key);
         std::exit(2);
+    }
+}
+
+std::unordered_map<std::string, std::string> Settings::getFlattendSettings() const
+{
+    if (parent)
+    {
+        auto parent_settings = parent->getFlattendSettings();
+        parent_settings.insert(settings.begin(), settings.end());
+        return parent_settings;
+    }
+    else
+    {
+        return settings;
     }
 }
 
