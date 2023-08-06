@@ -20,7 +20,8 @@
 #include "utils/string.h" //For Escaped.
 #include "utils/types/string_switch.h" //For string switch.
 
-#include <range/v3/view/remove_if.hpp>
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/map.hpp>
 #include <spdlog/spdlog.h>
 
 #include <cctype>
@@ -774,16 +775,23 @@ std::string Settings::getWithoutLimiting(const std::string& key) const
 
 std::unordered_map<std::string, std::string> Settings::getFlattendSettings() const
 {
+    auto keys = getKeys();
+    return keys
+         | ranges::views::transform(
+               [&](const auto& key)
+               {
+                   return std::pair<std::string, std::string>(key, get<std::string>(key));
+               })
+         | ranges::to<std::unordered_map<std::string, std::string>>();
+}
+
+std::vector<std::string> Settings::getKeys() const
+{
     if (parent)
     {
-        auto parent_settings = parent->getFlattendSettings();
-        parent_settings.insert(settings.begin(), settings.end());
-        return parent_settings;
+        return parent->getKeys();
     }
-    else
-    {
-        return settings;
-    }
+    return ranges::views::keys(settings) | ranges::to_vector;
 }
 
 } // namespace cura

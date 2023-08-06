@@ -98,6 +98,8 @@ public:
 
     std::unordered_map<std::string, std::string> getFlattendSettings() const;
 
+    std::vector<std::string> getKeys() const;
+
 private:
     /*!
      * Optionally, a parent setting container to ask for the value of a setting
