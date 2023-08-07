@@ -81,8 +81,8 @@ jobs:
 
       - name: Get Conan configuration
         run: |
-          conan profile new default --detect
           conan config install https://github.com/Ultimaker/conan-config.git
+          conan profile new default --detect
 
       - name: Use Conan download cache (Bash)
         if: ${{ runner.os != 'Windows' }}
