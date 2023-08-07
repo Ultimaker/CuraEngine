@@ -109,7 +109,7 @@ jobs:
         run: |
           . ./activate_github_actions_runenv.sh
           . ./activate_github_actions_buildenv.sh
-        working-directory: build/generators
+        working-directory: build/Release/generators
 
       - name: Build CuraEngine and tests
         run: |
