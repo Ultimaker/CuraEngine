@@ -9,15 +9,18 @@
 #include "cura/plugins/slots/broadcast/v0/broadcast.pb.h"
 #include "cura/plugins/slots/handshake/v0/handshake.grpc.pb.h"
 #include "cura/plugins/slots/handshake/v0/handshake.pb.h"
-#include "cura/plugins/slots/postprocess/v0/postprocess.grpc.pb.h"
-#include "cura/plugins/slots/postprocess/v0/postprocess.pb.h"
-#include "cura/plugins/slots/simplify/v0/simplify.grpc.pb.h"
-#include "cura/plugins/slots/simplify/v0/simplify.pb.h"
+#include "cura/plugins/slots/infill/v0/generate.grpc.pb.h"
+#include "cura/plugins/slots/infill/v0/generate.pb.h"
+#include "cura/plugins/slots/postprocess/v0/modify.grpc.pb.h"
+#include "cura/plugins/slots/postprocess/v0/modify.pb.h"
+#include "cura/plugins/slots/simplify/v0/modify.grpc.pb.h"
+#include "cura/plugins/slots/simplify/v0/modify.pb.h"
 #include "plugins/metadata.h"
 #include "plugins/types.h"
 
 #include <range/v3/range/operations.hpp>
 #include <range/v3/view/drop.hpp>
+#include <spdlog/spdlog.h>
 
 #include <google/protobuf/empty.pb.h>
 #include <string>
@@ -140,7 +143,7 @@ struct handshake_response
 
 struct simplify_request
 {
-    using value_type = slots::simplify::v0::CallRequest; ///< The protobuf message type.
+    using value_type = slots::simplify::v0::modify::CallRequest; ///< The protobuf message type.
     using native_value_type = Polygons; ///< The native value type.
 
     /**
@@ -198,7 +201,7 @@ struct simplify_request
  */
 struct simplify_response
 {
-    using value_type = slots::simplify::v0::CallResponse; ///< The protobuf message type.
+    using value_type = slots::simplify::v0::modify::CallResponse; ///< The protobuf message type.
     using native_value_type = Polygons; ///< The native value type.
 
     /**
@@ -236,7 +239,7 @@ struct simplify_response
 
 struct postprocess_request
 {
-    using value_type = slots::postprocess::v0::CallRequest; ///< The protobuf message type.
+    using value_type = slots::postprocess::v0::modify::CallRequest; ///< The protobuf message type.
     using native_value_type = std::string; ///< The native value type.
 
     /**
@@ -255,12 +258,125 @@ struct postprocess_request
 
 struct postprocess_response
 {
-    using value_type = slots::postprocess::v0::CallResponse;
+    using value_type = slots::postprocess::v0::modify::CallResponse;
     using native_value_type = std::string;
 
     native_value_type operator()(const value_type& message) const
     {
         return message.gcode_word();
+    }
+};
+
+struct infill_generate_request
+{
+    using value_type = slots::infill::v0::generate::CallRequest;
+    using native_value_type = Polygons;
+
+    value_type operator()(const native_value_type& inner_contour, const std::string& pattern, const Settings& settings) const
+    {
+        value_type message{};
+        message.set_pattern(pattern);
+        auto* msg_settings = message.mutable_settings()->mutable_settings();
+        for (const auto& [key, value] : settings.getFlattendSettings())
+        {
+            msg_settings->insert({ key, value });
+        }
+
+        if (inner_contour.empty())
+        {
+            return message;
+        }
+
+        auto* msg_polygons = message.mutable_infill_areas();
+        auto* msg_polygon = msg_polygons->add_polygons();
+        auto* msg_outline = msg_polygon->mutable_outline();
+
+        for (const auto& point : ranges::front(inner_contour.paths))
+        {
+            auto* msg_outline_path = msg_outline->add_path();
+            msg_outline_path->set_x(point.X);
+            msg_outline_path->set_y(point.Y);
+        }
+
+        auto* msg_holes = msg_polygon->mutable_holes();
+        for (const auto& polygon : inner_contour.paths | ranges::views::drop(1))
+        {
+            auto* msg_hole = msg_holes->Add();
+            for (const auto& point : polygon)
+            {
+                auto* msg_path = msg_hole->add_path();
+                msg_path->set_x(point.X);
+                msg_path->set_y(point.Y);
+            }
+        }
+
+        return message;
+    }
+};
+
+struct infill_generate_response
+{
+    using value_type = slots::infill::v0::generate::CallResponse;
+    using native_value_type = std::tuple<std::vector<VariableWidthLines>, Polygons, Polygons>;
+
+    native_value_type operator()(const value_type& message) const
+    {
+        VariableWidthLines toolpaths;
+        Polygons result_polygons;
+        Polygons result_lines;
+
+        for (auto& tool_path : message.tool_paths().tool_paths())
+        {
+            ExtrusionLine lines;
+            for (auto& msg_junction : tool_path.junctions())
+            {
+                auto& p = msg_junction.point();
+                auto junction = ExtrusionJunction{ p.x(), p.y(), msg_junction.width() };
+                lines.emplace_back(junction);
+            }
+
+            toolpaths.push_back(lines);
+        }
+
+        std::vector<VariableWidthLines> toolpaths_;
+        toolpaths_.push_back(toolpaths);
+
+        for (auto& polygon_msg : message.polygons().polygons())
+        {
+            Polygons polygon{};
+
+            Polygon outline{};
+            for (auto& path_msg : polygon_msg.outline().path())
+            {
+                outline.add(Point{ path_msg.x(), path_msg.y() });
+            }
+            polygon.add(outline);
+
+
+            for (auto& hole_msg : polygon_msg.holes())
+            {
+                Polygon hole{};
+                for (auto& path_msg : hole_msg.path())
+                {
+                    hole.add(Point{ path_msg.x(), path_msg.y() });
+                }
+                polygon.add(hole);
+            }
+
+            result_polygons.add(polygon);
+        }
+
+        for (auto& polygon : message.poly_lines().paths())
+        {
+            Polygon poly_line;
+            for (auto& p : polygon.path())
+            {
+                poly_line.emplace_back(Point{ p.x(), p.y() });
+            }
+            result_lines.emplace_back(poly_line);
+        }
+
+        return std::make_tuple(toolpaths_, result_polygons, result_lines);
     }
 };
 

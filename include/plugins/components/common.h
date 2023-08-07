@@ -28,7 +28,8 @@ using plugin_info_ptr = std::shared_ptr<std::optional<plugin_metadata>>;
  * @param client_context - Client context to prepare
  * @param timeout - Call timeout duration (optional, default = 500ms)
  */
-inline void prep_client_context(grpc::ClientContext& client_context, const slot_metadata& slot_info, const std::chrono::milliseconds& timeout = std::chrono::milliseconds(500))
+inline static void
+    prep_client_context(grpc::ClientContext& client_context, const slot_metadata& slot_info, const std::chrono::milliseconds& timeout = std::chrono::milliseconds(500))
 {
     // Set time-out
     client_context.set_deadline(std::chrono::system_clock::now() + timeout);
