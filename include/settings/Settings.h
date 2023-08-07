@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef SETTINGS_SETTINGS_H
 #define SETTINGS_SETTINGS_H
@@ -64,7 +64,8 @@ public:
      * \param key The key of the setting to get.
      * \return The setting's value, cast to the desired type.
      */
-    template<typename A> A get(const std::string& key) const;
+    template<typename A>
+    A get(const std::string& key) const;
 
     /*!
      * \brief Get a string containing all settings in this container.
@@ -95,6 +96,10 @@ public:
      */
     void setParent(Settings* new_parent);
 
+    std::unordered_map<std::string, std::string> getFlattendSettings() const;
+
+    std::vector<std::string> getKeys() const;
+
 private:
     /*!
      * Optionally, a parent setting container to ask for the value of a setting
@@ -119,7 +124,6 @@ private:
     std::string getWithoutLimiting(const std::string& key) const;
 };
 
-} //namespace cura
+} // namespace cura
 
-#endif //SETTINGS_SETTINGS_H
-
+#endif // SETTINGS_SETTINGS_H
