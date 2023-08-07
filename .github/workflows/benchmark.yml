@@ -14,6 +14,7 @@ on:
       - 'conandata.yml'
       - 'CMakeLists.txt'
       - '.github/workflows/benchmark.yml'
+      - '.github/workflows/requirements-conan-package.txt'
     branches:
       - main
       - CURA-9906_benchmark
