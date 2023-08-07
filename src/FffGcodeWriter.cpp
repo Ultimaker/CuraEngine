@@ -1115,7 +1115,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     }
     Polygons all_brim_lines;
 
-    
+
     all_brim_lines.reserve(total_line_count);
 
     const coord_t line_w = train.settings.get<coord_t>("skirt_brim_line_width") * train.settings.get<Ratio>("initial_layer_line_width_factor");
@@ -1214,15 +1214,15 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
 
         gcode_layer.addLinesByOptimizer(
             layer_nr == 0 ? all_brim_lines : inner_brim_line,
-        gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
-        SpaceFillType::PolyLines,
-        enable_travel_optimization,
-        wipe_dist,
-        flow_ratio,
-        start_close_to,
-        fan_speed,
-        reverse_print_direction,
-        order_requirements);
+            gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
+            SpaceFillType::PolyLines,
+            enable_travel_optimization,
+            wipe_dist,
+            flow_ratio,
+            start_close_to,
+            fan_speed,
+            reverse_print_direction,
+            order_requirements);
     }
 
 
