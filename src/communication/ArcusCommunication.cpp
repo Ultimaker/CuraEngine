@@ -522,7 +522,7 @@ void ArcusCommunication::sliceNext()
         if (plugin.has_address() && plugin.has_port())
         {
             const auto slot_id = static_cast<plugins::v0::SlotID>(plugin.id());
-            SlotConnectionFactory::instance().connect(slot_id, utils::createChannel({ plugin.address(), plugin.port() }));
+            slots::instance().connect(slot_id, utils::createChannel({ plugin.address(), plugin.port() }));
         }
     }
 #endif // ENABLE_PLUGINS

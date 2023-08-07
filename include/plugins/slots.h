@@ -98,8 +98,6 @@ template<class Default = default_process>
 using slot_settings_broadcast_
     = SlotProxy<v0::SlotID::SETTINGS_BROADCAST, "<=1.0.0", slots::broadcast::v0::BroadcastService::Stub, Validator, broadcast_settings_request, empty, Default>;
 
-using slot_to_connect_map_t = std::map<v0::SlotID, std::function<void(std::shared_ptr<grpc::Channel>)>>;
-
 template<typename... Types>
 struct Typelist
 {
@@ -112,9 +110,10 @@ template<template<typename> class Unit>
 class Registry<Typelist<>, Unit>
 {
 public:
-    constexpr void append_to_connect_map(slot_to_connect_map_t& function_map)
+    void connect(const v0::SlotID& slot_id, auto&& channel)
     {
-    } // Base case, do nothing.
+        assert(false);
+    } // Base case, should not be executed
 
     template<v0::SlotID S>
     void broadcast(auto&&... args)
@@ -130,16 +129,6 @@ public:
     using Base = Registry<Typelist<Types...>, Unit>;
     using Base::broadcast;
     friend Base;
-
-    constexpr void append_to_connect_map(slot_to_connect_map_t& function_map)
-    {
-        function_map.insert({ T::slot_id,
-                              [&](std::shared_ptr<grpc::Channel> plugin)
-                              {
-                                  connect<T::slot_id>(plugin);
-                              } });
-        Base::append_to_connect_map(function_map);
-    }
 
     template<v0::SlotID S>
     constexpr auto& get()
@@ -159,11 +148,15 @@ public:
         return get<S>().invoke(std::forward<decltype(args)>(args)...);
     }
 
-    template<v0::SlotID S>
-    void connect(auto&& plugin)
+    void connect(const v0::SlotID& slot_id, auto&& channel)
     {
-        using Tp = decltype(get_type<S>().proxy);
-        get_type<S>().proxy = Tp{ std::forward<Tp>(std::move(plugin)) };
+        if (slot_id == T::slot_id)
+        {
+            using Tp = decltype(get_type<T::slot_id>().proxy);
+            get_type<T::slot_id>().proxy = Tp{ std::forward<Tp>(std::move(channel)) };
+            return;
+        }
+        Base::connect(slot_id, channel);
     }
 
     template<v0::SlotID S>
@@ -216,30 +209,6 @@ struct Holder
     T proxy;
 };
 
-template<typename S>
-class SlotConnectionFactory
-{
-public:
-    static SlotConnectionFactory<S>& instance()
-    {
-        static SlotConnectionFactory<S> instance;
-        return instance;
-    }
-
-    void connect(const plugins::v0::SlotID& slot_id, std::shared_ptr<grpc::Channel> plugin)
-    {
-        slot_to_connect_map[slot_id](std::move(plugin));
-    }
-
-private:
-    SlotConnectionFactory()
-    {
-        S::instance().append_to_connect_map(slot_to_connect_map);
-    }
-
-    plugins::details::slot_to_connect_map_t slot_to_connect_map;
-};
-
 } // namespace details
 
 using slot_simplify = details::slot_simplify_<details::simplify_default>;
@@ -251,7 +220,6 @@ using SlotTypes = details::Typelist<slot_simplify, slot_postprocess, slot_settin
 
 } // namespace plugins
 using slots = plugins::details::SingletonRegistry<plugins::SlotTypes, plugins::details::Holder>;
-using SlotConnectionFactory = plugins::details::SlotConnectionFactory<slots>;
 
 } // namespace cura
 
