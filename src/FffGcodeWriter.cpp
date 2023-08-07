@@ -389,6 +389,7 @@ size_t FffGcodeWriter::getStartExtruder(const SliceDataStorage& storage)
     {
         start_extruder_nr = skirt_brim_extruder->extruder_nr;
     }
+
     else if (
         (adhesion_type == EPlatformAdhesion::BRIM || mesh_group_settings.get<bool>("prime_tower_brim_enable")) && skirt_brim_extruder
         && (skirt_brim_extruder->settings.get<int>("brim_line_count") > 0 || skirt_brim_extruder->settings.get<coord_t>("skirt_brim_minimal_length") > 0))
@@ -1114,17 +1115,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     }
     Polygons all_brim_lines;
 
-    // Add the support brim before the below algorithm which takes order requirements into account
-    // For support brim we don't care about the order, because support doesn't need to be accurate.
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    if (extruder_nr == mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr)
-    {
-        total_line_count += storage.support_brim.size();
-        Polygons support_brim_lines = storage.support_brim;
-        support_brim_lines.toPolylines();
-        all_brim_lines = support_brim_lines;
-    }
-
+    
     all_brim_lines.reserve(total_line_count);
 
     const coord_t line_w = train.settings.get<coord_t>("skirt_brim_line_width") * train.settings.get<Ratio>("initial_layer_line_width_factor");
@@ -1215,12 +1206,14 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
     const bool reverse_print_direction = false;
 
-    // For layer_nr != 0 add only the innermost brim line (which is only the case if skirt_height > 1)
-    Polygons inner_brim_line;
-    inner_brim_line.add(all_brim_lines[0]);
+    if (! all_brim_lines.empty())
+    {
+        // For layer_nr != 0 add only the innermost brim line (which is only the case if skirt_height > 1)
+        Polygons inner_brim_line;
+        inner_brim_line.add(all_brim_lines[0]);
 
-    gcode_layer.addLinesByOptimizer(
-        layer_nr == 0 ? all_brim_lines : inner_brim_line,
+        gcode_layer.addLinesByOptimizer(
+            layer_nr == 0 ? all_brim_lines : inner_brim_line,
         gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
         SpaceFillType::PolyLines,
         enable_travel_optimization,
@@ -1230,6 +1223,29 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         fan_speed,
         reverse_print_direction,
         order_requirements);
+    }
+
+
+    // Add the support brim after the skirt_brim to gcode_layer
+    // For support brim we don't care about the order, because support doesn't need to be accurate.
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    if (extruder_nr == mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr)
+    {
+        total_line_count += storage.support_brim.size();
+        Polygons support_brim_lines = storage.support_brim;
+        support_brim_lines.toPolylines();
+        gcode_layer.addLinesByOptimizer(
+            support_brim_lines,
+            gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
+            SpaceFillType::PolyLines,
+            enable_travel_optimization,
+            wipe_dist,
+            flow_ratio,
+            start_close_to,
+            fan_speed,
+            reverse_print_direction,
+            order_requirements = {});
+    }
 }
 
 void FffGcodeWriter::processOozeShield(const SliceDataStorage& storage, LayerPlan& gcode_layer) const
