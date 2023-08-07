@@ -4,6 +4,7 @@
 #ifndef CURAENGINE_INCLUDE_PLUGINS_METADATA_H
 #define CURAENGINE_INCLUDE_PLUGINS_METADATA_H
 
+#include "cura/plugins/v0/slot_id.pb.h"
 #include "plugins/types.h"
 
 #include <grpcpp/client_context.h>
@@ -21,7 +22,7 @@ struct plugin_metadata
     std::string plugin_name;
     std::string plugin_version;
     std::string peer;
-    std::set<std::string> broadcast_subscriptions;
+    std::set<int> broadcast_subscriptions;
 };
 
 struct slot_metadata

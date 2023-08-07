@@ -788,7 +788,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
 
     // Finally optimize all the polygons. Every point removed saves time in the long run.
     //    polygons = Simplify(mesh->settings).polygon(polygons);
-    polygons = slots::instance().invoke<plugins::slot_simplify>(
+    polygons = slots::instance().modify<plugins::v0::SlotID::SIMPLIFY_MODIFY>(
         polygons,
         mesh->settings.get<coord_t>("meshfix_maximum_resolution"),
         mesh->settings.get<coord_t>("meshfix_maximum_deviation"),

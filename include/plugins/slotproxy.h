@@ -44,6 +44,8 @@ class SlotProxy
     std::optional<value_type> plugin_{ std::nullopt };
 
 public:
+    static constexpr plugins::v0::SlotID slot_id{ SlotID };
+
     /**
      * @brief Default constructor.
      *
@@ -72,21 +74,21 @@ public:
      * @param args The arguments for the plugin request.
      * @return The result of the plugin request or the default behavior.
      */
-    auto operator()(auto&&... args)
+    constexpr auto modify(auto&&... args)
     {
         if (plugin_.has_value())
         {
-            return std::invoke(plugin_.value(), std::forward<decltype(args)>(args)...);
+            return plugin_.value().modify(std::forward<decltype(args)>(args)...);
         }
         return std::invoke(default_process, std::forward<decltype(args)>(args)...);
     }
 
-    template<utils::CharRangeLiteral BroadcastChannel>
+    template<v0::SlotID S>
     void broadcast(auto&&... args)
     {
         if (plugin_.has_value())
         {
-            plugin_.value().template broadcast<BroadcastChannel>(std::forward<decltype(args)>(args)...);
+            plugin_.value().template broadcast<S>(std::forward<decltype(args)>(args)...);
         }
     }
 };

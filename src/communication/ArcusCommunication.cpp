@@ -342,7 +342,7 @@ void ArcusCommunication::beginGCode()
 
 void ArcusCommunication::flushGCode()
 {
-    const std::string& message_str = slots::instance().invoke<plugins::slot_postprocess>(private_data->gcode_output_stream.str());
+    const std::string& message_str = slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(private_data->gcode_output_stream.str());
     if (message_str.size() == 0)
     {
         return;
@@ -375,7 +375,7 @@ void ArcusCommunication::sendCurrentPosition(const Point& position)
 void ArcusCommunication::sendGCodePrefix(const std::string& prefix) const
 {
     std::shared_ptr<proto::GCodePrefix> message = std::make_shared<proto::GCodePrefix>();
-    message->set_data(slots::instance().invoke<plugins::slot_postprocess>(prefix));
+    message->set_data(slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(prefix));
     private_data->socket->sendMessage(message);
 }
 
@@ -521,18 +521,8 @@ void ArcusCommunication::sliceNext()
     {
         if (plugin.has_address() && plugin.has_port())
         {
-            switch (plugin.id())
-            {
-            case cura::proto::SlotID::SIMPLIFY_MODIFY:
-                slots::instance().connect<plugins::slot_simplify>(utils::createChannel({ plugin.address(), plugin.port() }));
-                break;
-            case cura::proto::SlotID::POSTPROCESS_MODIFY:
-                slots::instance().connect<plugins::slot_postprocess>(utils::createChannel({ plugin.address(), plugin.port() }));
-                break;
-            default:
-                spdlog::error("Not yet implemented: {}", plugin.id());
-                break;
-            }
+            const auto slot_id = static_cast<plugins::v0::SlotID>(plugin.id());
+            slots::instance().connect(slot_id, utils::createChannel({ plugin.address(), plugin.port() }));
         }
     }
 #endif // ENABLE_PLUGINS
@@ -544,7 +534,7 @@ void ArcusCommunication::sliceNext()
     private_data->readExtruderSettingsMessage(slice_message->extruders());
 
     // Broadcast the settings to the plugins
-    slots::instance().broadcast<"BroadcastSettings">(*slice_message);
+    slots::instance().broadcast<plugins::v0::SlotID::SETTINGS_BROADCAST>(*slice_message);
     const size_t extruder_count = slice.scene.extruders.size();
 
     // For each setting, register what extruder it should be obtained from (if this is limited to an extruder).

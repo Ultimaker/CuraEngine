@@ -4,6 +4,7 @@
 #ifndef PLUGINS_SLOTS_H
 #define PLUGINS_SLOTS_H
 
+#include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
 #include "cura/plugins/slots/postprocess/v0/postprocess.grpc.pb.h"
 #include "cura/plugins/slots/simplify/v0/simplify.grpc.pb.h"
 #include "cura/plugins/v0/slot_id.pb.h"
@@ -62,6 +63,10 @@ template<class Default = default_process>
 using slot_postprocess_
     = SlotProxy<v0::SlotID::POSTPROCESS_MODIFY, "<=1.0.0", slots::postprocess::v0::PostprocessModifyService::Stub, Validator, postprocess_request, postprocess_response, Default>;
 
+template<class Default = default_process>
+using slot_settings_broadcast_
+    = SlotProxy<v0::SlotID::SETTINGS_BROADCAST, "<=1.0.0", slots::broadcast::v0::BroadcastService::Stub, Validator, broadcast_settings_request, empty, Default>;
+
 template<typename... Types>
 struct Typelist
 {
@@ -73,6 +78,16 @@ class Registry;
 template<template<typename> class Unit>
 class Registry<Typelist<>, Unit>
 {
+public:
+    void connect(const v0::SlotID& slot_id, auto&& channel)
+    {
+        assert(false);
+    } // Base case, should not be executed
+
+    template<v0::SlotID S>
+    void broadcast(auto&&... args)
+    {
+    } // Base case, do nothing
 };
 
 template<typename T, typename... Types, template<typename> class Unit>
@@ -81,50 +96,56 @@ class Registry<Typelist<T, Types...>, Unit> : public Registry<Typelist<Types...>
 public:
     using ValueType = T;
     using Base = Registry<Typelist<Types...>, Unit>;
+    using Base::broadcast;
     friend Base;
 
-    template<typename Tp>
-    constexpr Tp& get()
+    template<v0::SlotID S>
+    constexpr auto& get()
     {
-        return get_type<Tp>().proxy;
+        return get_type<S>().proxy;
     }
 
-    template<typename Tp>
-    constexpr auto invoke(auto&&... args)
+    template<v0::SlotID S>
+    constexpr auto modify(auto&&... args)
     {
-        return std::invoke(get<Tp>(), std::forward<decltype(args)>(args)...);
+        return get<S>().modify(std::forward<decltype(args)>(args)...);
     }
 
-    template<typename Tp>
-    void connect(auto&& plugin)
+    void connect(const v0::SlotID& slot_id, auto&& channel)
     {
-        get_type<Tp>().proxy = Tp{ std::forward<Tp>(std::move(plugin)) };
+        if (slot_id == T::slot_id)
+        {
+            using Tp = decltype(get_type<T::slot_id>().proxy);
+            get_type<T::slot_id>().proxy = Tp{ std::forward<Tp>(std::move(channel)) };
+            return;
+        }
+        Base::connect(slot_id, channel);
     }
 
-    template<utils::CharRangeLiteral BroadcastChannel>
+    template<v0::SlotID S>
     void broadcast(auto&&... args)
     {
-        value_.proxy.template broadcast<BroadcastChannel>(std::forward<decltype(args)>(args)...);
-        Base::value_.proxy.template broadcast<BroadcastChannel>(std::forward<decltype(args)>(args)...);
+        value_.proxy.template broadcast<S>(std::forward<decltype(args)>(args)...);
+        Base::template broadcast<S>(std::forward<decltype(args)>(args)...);
     }
 
 protected:
-    template<typename Tp>
-    constexpr Unit<Tp>& get_type()
+    template<v0::SlotID S>
+    constexpr auto& get_type()
     {
-        return get_helper<Tp>(std::is_same<Tp, ValueType>{});
+        return get_helper<S>(std::bool_constant<S == ValueType::slot_id>{});
     }
 
-    template<typename Tp>
-    constexpr Unit<Tp>& get_helper(std::true_type)
+    template<v0::SlotID S>
+    constexpr auto& get_helper(std::true_type)
     {
         return value_;
     }
 
-    template<typename Tp>
-    constexpr Unit<Tp>& get_helper(std::false_type)
+    template<v0::SlotID S>
+    constexpr auto& get_helper(std::false_type)
     {
-        return Base::template get_type<Tp>();
+        return Base::template get_type<S>();
     }
 
     Unit<ValueType> value_;
@@ -147,6 +168,7 @@ private:
 template<typename T>
 struct Holder
 {
+    using value_type = T;
     T proxy;
 };
 
@@ -154,8 +176,10 @@ struct Holder
 
 using slot_simplify = details::slot_simplify_<details::simplify_default>;
 using slot_postprocess = details::slot_postprocess_<>;
+using slot_settings_broadcast = details::slot_settings_broadcast_<>;
 
-using SlotTypes = details::Typelist<slot_simplify, slot_postprocess>;
+using SlotTypes = details::Typelist<slot_simplify, slot_postprocess, slot_settings_broadcast>;
+
 } // namespace plugins
 using slots = plugins::details::SingletonRegistry<plugins::SlotTypes, plugins::details::Holder>;
 

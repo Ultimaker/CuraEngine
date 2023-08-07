@@ -133,7 +133,7 @@ struct handshake_response
                  .plugin_name = message.plugin_name(),
                  .plugin_version = message.plugin_version(),
                  .peer = std::string{ peer },
-                 .broadcast_subscriptions = std::set<std::string>(message.broadcast_subscriptions().begin(), message.broadcast_subscriptions().end()) };
+                 .broadcast_subscriptions = std::set<int>(message.broadcast_subscriptions().begin(), message.broadcast_subscriptions().end()) };
     }
 };
 

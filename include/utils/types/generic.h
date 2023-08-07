@@ -4,13 +4,10 @@
 #ifndef CURAENGINE_GENERIC_H
 #define CURAENGINE_GENERIC_H
 
-#include "utils/types/char_range_literal.h"
-
 #include <range/v3/range_concepts.hpp>
 
 #include <concepts>
 #include <functional>
-#include <google/protobuf/message.h>
 #include <type_traits>
 
 namespace cura::utils
@@ -29,23 +26,6 @@ concept grpc_convertable = requires(T value)
     requires ranges::semiregular<typename T::value_type>;
     requires ranges::semiregular<typename T::native_value_type>;
 };
-
-template<utils::CharRangeLiteral T1, utils::CharRangeLiteral T2>
-class is_broadcast_channel
-{
-    inline static constexpr bool value_() noexcept
-    {
-        constexpr std::string_view t1{ T1.value };
-        constexpr std::string_view t2{ T2.value };
-        return t1.compare(t2) == 0;
-    }
-
-public:
-    inline static constexpr bool value = value_();
-};
-
-template<utils::CharRangeLiteral T1, utils::CharRangeLiteral T2>
-inline constexpr bool is_broadcast_channel_v = is_broadcast_channel<T1, T2>::value;
 
 #ifdef OLDER_APPLE_CLANG
 
