@@ -50,13 +50,13 @@ struct converter
     using value_type = Msg; ///< The protobuf message type.
     using native_value_type = Native; ///< The native value type.
     friend derived_type;
-    
+
     constexpr auto operator()(auto&&... args) const
     {
         return static_cast<const derived_type*>(this)->operator()(std::forward<decltype(args)>(args)...);
     }
 };
-}
+} // namespace details
 
 struct empty
 {
