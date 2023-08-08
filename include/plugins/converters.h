@@ -41,6 +41,22 @@ class Settings;
 namespace cura::plugins
 {
 
+namespace details
+{
+template<class T, class Msg, class Native>
+struct converter
+{
+    using derived_type = T; ///< The derived type.
+    using value_type = Msg; ///< The protobuf message type.
+    using native_value_type = Native; ///< The native value type.
+    friend derived_type;
+    
+    constexpr auto operator()(auto&&... args) const
+    {
+        return static_cast<const derived_type*>(this)->operator()(std::forward<decltype(args)>(args)...);
+    }
+};
+}
 
 struct empty
 {
@@ -52,142 +68,59 @@ struct empty
     constexpr native_value_type operator()(const value_type&) const;
 };
 
-struct broadcast_settings_request
+struct broadcast_settings_request : public details::converter<broadcast_settings_request, slots::broadcast::v0::BroadcastServiceSettingsRequest, cura::proto::Slice>
 {
-    using value_type = slots::broadcast::v0::BroadcastServiceSettingsRequest; ///< The protobuf message type.
-    using native_value_type = cura::proto::Slice; ///< The native value type.
-
-    /**
-     * @brief Converts native data for broadcasting to a `proto::BroadcastServiceSettingsRequest` message.
-     *
-     * @param key The key of the setting to be broadcasted.
-     * @param value The value of the setting to be broadcasted.
-     * @return The converted `proto::BroadcastServiceSettingsRequest` message.
-     */
     value_type operator()(const native_value_type& slice_message) const;
 };
 
-
-struct handshake_request
+struct handshake_request : public details::converter<handshake_request, slots::handshake::v0::CallRequest, slot_metadata>
 {
-    using value_type = slots::handshake::v0::CallRequest; ///< The protobuf message type.
-    using native_value_type = slot_metadata; ///< The native value type.
-
-    /**
-     * @brief Converts native data for handshake to a `proto::HandshakeRequest` message.
-     *
-     * @param service_name The name of the service.
-     * @param version_range The version range of the service.
-     * @return The converted `proto::HandshakeRequest` message.
-     */
-
     value_type operator()(const native_value_type& slot_info) const;
 };
 
-struct handshake_response
+struct handshake_response : public details::converter<handshake_response, slots::handshake::v0::CallResponse, plugin_metadata>
 {
-    using value_type = slots::handshake::v0::CallResponse; ///< The protobuf message type.
-    using native_value_type = plugin_metadata; ///< The native value type.
-
-    /**
-     * @brief Converts a `proto::HandshakeResponse` message to native data.
-     *
-     * @param message The `proto::HandshakeResponse` message.
-     * @return The native data.
-     */
     native_value_type operator()(const value_type& message, std::string_view peer) const;
 };
 
-
-struct simplify_request
+struct simplify_request : public details::converter<simplify_request, slots::simplify::v0::modify::CallRequest, Polygons>
 {
-    using value_type = slots::simplify::v0::modify::CallRequest; ///< The protobuf message type.
-    using native_value_type = Polygons; ///< The native value type.
-
-    /**
-     * @brief Converts native data for simplification to a `proto::SimplifyRequest` message.
-     *
-     * @param polygons The polygons to be simplified.
-     * @param max_resolution The maximum resolution for the simplified polygons.
-     * @param max_deviation The maximum deviation for the simplified polygons.
-     * @param max_area_deviation The maximum area deviation for the simplified polygons.
-     * @return The converted `proto::SimplifyRequest` message.
-     */
     value_type operator()(const native_value_type& polygons, const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation) const;
 };
 
-/**
- * @brief A converter struct for simplify responses.
- *
- * The `simplify_response` struct provides a conversion function that converts a `proto::SimplifyResponse`
- * message to a native value type.
- */
-struct simplify_response
+struct simplify_response : public details::converter<simplify_response, slots::simplify::v0::modify::CallResponse, Polygons>
 {
-    using value_type = slots::simplify::v0::modify::CallResponse; ///< The protobuf message type.
-    using native_value_type = Polygons; ///< The native value type.
-
-    /**
-     * @brief Converts a `proto::SimplifyResponse` message to a native value type.
-     *
-     * @param message The `proto::SimplifyResponse` message.
-     * @return The converted native value.
-     */
     native_value_type operator()(const value_type& message) const;
 };
 
-
-struct postprocess_request
+struct postprocess_request : public details::converter<postprocess_request, slots::postprocess::v0::modify::CallRequest, std::string>
 {
-    using value_type = slots::postprocess::v0::modify::CallRequest; ///< The protobuf message type.
-    using native_value_type = std::string; ///< The native value type.
-
-    /**
-     * @brief Converts a native G-code string to a `proto::PostprocessRequest` message.
-     *
-     * @param gcode The native G-code string.
-     * @return The converted `proto::PostprocessRequest` message.
-     */
     value_type operator()(const native_value_type& gcode) const;
 };
 
-struct postprocess_response
+struct postprocess_response : public details::converter<postprocess_response, slots::postprocess::v0::modify::CallResponse, std::string>
 {
-    using value_type = slots::postprocess::v0::modify::CallResponse;
-    using native_value_type = std::string;
-
     native_value_type operator()(const value_type& message) const;
 };
 
-struct infill_generate_request
+struct infill_generate_request : public details::converter<infill_generate_request, slots::infill::v0::generate::CallRequest, Polygons>
 {
-    using value_type = slots::infill::v0::generate::CallRequest;
-    using native_value_type = Polygons;
-
     value_type operator()(const native_value_type& inner_contour, const std::string& pattern, const Settings& settings) const;
 };
 
 struct infill_generate_response
+    : public details::converter<infill_generate_response, slots::infill::v0::generate::CallResponse, std::tuple<std::vector<std::vector<ExtrusionLine>>, Polygons, Polygons>>
 {
-    using value_type = slots::infill::v0::generate::CallResponse;
-    using native_value_type = std::tuple<std::vector<std::vector<ExtrusionLine>>, Polygons, Polygons>;
-
     native_value_type operator()(const value_type& message) const;
 };
 
-struct gcode_paths_modify_request
+struct gcode_paths_modify_request : public details::converter<gcode_paths_modify_request, slots::gcode_paths::v0::modify::CallRequest, std::vector<GCodePath>>
 {
-    using value_type = slots::gcode_paths::v0::modify::CallRequest;
-    using native_value_type = std::vector<GCodePath>;
-
-    value_type operator()(const native_value_type& paths, const size_t extruder_nr, const LayerIndex layer_nr) const;
+    value_type operator()(const native_value_type& gcode, const size_t extruder_nr, const LayerIndex layer_nr) const;
 };
 
-struct gcode_paths_modify_response
+struct gcode_paths_modify_response : public details::converter<gcode_paths_modify_response, slots::gcode_paths::v0::modify::CallResponse, std::vector<GCodePath>>
 {
-    using value_type = slots::gcode_paths::v0::modify::CallResponse;
-    using native_value_type = std::vector<GCodePath>;
-
     native_value_type operator()(const value_type& message) const;
 };
 
