@@ -22,38 +22,30 @@ struct NumericFacade
     constexpr NumericFacade(const NumericFacade& other) noexcept = default;
     constexpr NumericFacade(NumericFacade&& other) noexcept = default;
 
-    constexpr NumericFacade(const floating_point auto value) noexcept
-    requires floating_point<value_type>
-        : value{ static_cast<value_type>(value) } {};
+    constexpr NumericFacade(const floating_point auto value) noexcept requires floating_point<value_type> : value{ static_cast<value_type>(value) } {};
 
-    constexpr NumericFacade(const integral auto value) noexcept
-    requires integral<value_type>
-        : value{ static_cast<value_type>(value) } {};
+    constexpr NumericFacade(const integral auto value) noexcept requires integral<value_type> : value{ static_cast<value_type>(value) } {};
 
     constexpr NumericFacade& operator=(const NumericFacade& other) noexcept = default;
 
-    constexpr NumericFacade& operator=(const floating_point auto& other) noexcept
-    requires floating_point<value_type>
+    constexpr NumericFacade& operator=(const floating_point auto& other) noexcept requires floating_point<value_type>
     {
         this->value = static_cast<value_type>(other);
         return *this;
     }
-    constexpr NumericFacade& operator=(const integral auto& other) noexcept
-    requires integral<value_type>
+    constexpr NumericFacade& operator=(const integral auto& other) noexcept requires integral<value_type>
     {
         this->value = static_cast<value_type>(other);
         return *this;
     }
 
     constexpr NumericFacade& operator=(NumericFacade&& other) noexcept = default;
-    constexpr NumericFacade& operator=(const integral auto&& other) noexcept
-    requires integral<value_type>
+    constexpr NumericFacade& operator=(const integral auto&& other) noexcept requires integral<value_type>
     {
         this->value = static_cast<value_type>(other);
         return *this;
     }
-    constexpr NumericFacade& operator=(const floating_point auto&& other) noexcept
-    requires floating_point<value_type>
+    constexpr NumericFacade& operator=(const floating_point auto&& other) noexcept requires floating_point<value_type>
     {
         this->value = static_cast<value_type>(other);
         return *this;
@@ -180,28 +172,24 @@ struct NumericFacade
         return { -value };
     }
 
-    constexpr NumericFacade& operator++() noexcept
-    requires integral<value_type>
+    constexpr NumericFacade& operator++() noexcept requires integral<value_type>
     {
         ++value;
         return *this;
     }
 
-    constexpr NumericFacade operator++(int) noexcept
-    requires integral<value_type>
+    constexpr NumericFacade operator++(int) noexcept requires integral<value_type>
     {
         return { value++ };
     }
 
-    constexpr NumericFacade& operator--() noexcept
-    requires integral<value_type>
+    constexpr NumericFacade& operator--() noexcept requires integral<value_type>
     {
         --value;
         return *this;
     }
 
-    constexpr NumericFacade operator--(int) noexcept
-    requires integral<value_type>
+    constexpr NumericFacade operator--(int) noexcept requires integral<value_type>
     {
         return { value-- };
     }
