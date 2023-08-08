@@ -114,7 +114,7 @@ set(engine_SRCS # Except main.cpp.
         src/pathPlanning/GCodePath.cpp
         src/pathPlanning/LinePolygonsCrossings.cpp
         src/pathPlanning/NozzleTempInsert.cpp
-        src/pathPlanning/TimeMaterialEstimates.cpp
+
 
         src/progress/Progress.cpp
         src/progress/ProgressStageEstimator.cpp

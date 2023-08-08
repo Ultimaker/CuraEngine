@@ -427,7 +427,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
         return;
     }
 
-    assert((time_window >= 0 || last_extruder_plan.estimates.getMaterial() == 0) && "Time window should always be positive if we actually extrude");
+    assert((time_window >= 0 || last_extruder_plan.estimates.material == 0) && "Time window should always be positive if we actually extrude");
 
     //          ,layer change                                                                                   .
     //          :     ,precool command                   ,layer change                                          .
@@ -520,11 +520,11 @@ void LayerPlanBuffer::insertTempCommands()
         Ratio avg_flow;
         if (time > 0.0)
         {
-            avg_flow = extruder_plan.estimates.getMaterial() / time;
+            avg_flow = extruder_plan.estimates.material / time;
         }
         else
         {
-            assert(extruder_plan.estimates.getMaterial() == 0.0 && "No extrusion time should mean no material usage!");
+            assert(extruder_plan.estimates.material == 0.0 && "No extrusion time should mean no material usage!");
             avg_flow = 0.0;
         }
 

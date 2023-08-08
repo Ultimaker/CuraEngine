@@ -1590,7 +1590,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
 {
     const double minimalSpeed = fan_speed_layer_time_settings.cool_min_speed;
     const double travelTime = estimates.getTravelTime();
-    const double extrudeTime = estimates.getExtrudeTime();
+    const double extrudeTime = estimates.extrude_time;
 
     const double totalTime = travelTime + extrudeTime + time_other_extr_plans;
     constexpr double epsilon = 0.01;
