@@ -192,18 +192,18 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
     const coord_t wall_width = infill_extruder.settings.get<coord_t>("support_line_width");
 
     // no early-out for this function; it needs to initialize the [infill_area_per_combine_per_density]
-    float layer_skip_count = 8; // skip every so many layers as to ignore small gaps in the model making computation more easy
+    double layer_skip_count { 8.0 }; // skip every so many layers as to ignore small gaps in the model making computation more easy
     size_t gradual_support_step_layer_count = round_divide(gradual_support_step_height, mesh_group_settings.get<coord_t>("layer_height")); // The difference in layer count between consecutive density infill areas.
 
     // make gradual_support_step_height divisable by layer_skip_count
-    const float n_skip_steps_per_gradual_step = std::max(1.0f, std::ceil(gradual_support_step_layer_count / layer_skip_count)); // only decrease layer_skip_count to make it a divisor of gradual_support_step_layer_count
+    const auto n_skip_steps_per_gradual_step = std::max(1.0, std::ceil(gradual_support_step_layer_count / layer_skip_count)); // only decrease layer_skip_count to make it a divisor of gradual_support_step_layer_count
     layer_skip_count = gradual_support_step_layer_count / n_skip_steps_per_gradual_step;
 
     LayerIndex min_layer = 0;
     LayerIndex max_layer = total_layer_count - 1;
 
     // compute different density areas for each support island
-    for (LayerIndex layer_nr = 0; layer_nr < static_cast<LayerIndex>(total_layer_count) - 1; layer_nr++)
+    for (LayerIndex layer_nr = 0; layer_nr < total_layer_count - 1; layer_nr++)
     {
         if (layer_nr < min_layer || layer_nr > max_layer)
         {
@@ -229,8 +229,8 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
             Polygons less_dense_support = infill_area; // one step less dense with each density_step
             for (unsigned int density_step = 0; density_step < max_density_steps; ++density_step)
             {
-                LayerIndex min_layer = layer_nr + density_step * gradual_support_step_layer_count + LayerIndex(layer_skip_count);
-                LayerIndex max_layer = layer_nr + (density_step + 1) * gradual_support_step_layer_count;
+                LayerIndex min_layer { layer_nr + density_step * gradual_support_step_layer_count + static_cast<LayerIndex::value_type>(layer_skip_count) };
+                LayerIndex max_layer { layer_nr + (density_step + 1) * gradual_support_step_layer_count };
 
                 for (float upper_layer_idx = min_layer; upper_layer_idx <= max_layer; upper_layer_idx += layer_skip_count)
                 {
@@ -831,7 +831,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
 
     constexpr LayerIndex layer_index_offset { 1 };
 
-    const LayerIndex layer_idx_below { std::max(layer_idx - layer_index_offset, LayerIndex { 0 }) };
+    const LayerIndex layer_idx_below { std::max(LayerIndex{ layer_idx - layer_index_offset }, LayerIndex { 0 }) };
     if (layer_idx_below != layer_idx)
     {
         auto layer_below = simplify.polygon(storage.layers[layer_idx_below].getOutlines()
@@ -851,7 +851,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
         );
     }
 
-    const LayerIndex layer_idx_above { std::min(layer_idx + layer_index_offset, LayerIndex(static_cast<int>(storage.layers.size()) - 1)) };
+    const LayerIndex layer_idx_above { std::min(LayerIndex{ layer_idx + layer_index_offset }, LayerIndex { storage.layers.size() - 1 }) };
     if (layer_idx_above != layer_idx)
     {
         auto layer_above = simplify.polygon(storage.layers[layer_idx_below].getOutlines()
@@ -1487,7 +1487,7 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
     constexpr bool no_prime_tower = false;
 
     constexpr double smooth_height = 0.4; //mm
-    const auto layers_below = static_cast<LayerIndex>(std::round(smooth_height / mesh.settings.get<double>("layer_height")));
+    const LayerIndex layers_below { static_cast<LayerIndex::value_type>(std::round(smooth_height / mesh.settings.get<double>("layer_height"))) };
 
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const AngleRadians support_angle = mesh.settings.get<AngleRadians>("support_angle");
@@ -1766,7 +1766,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
     for (LayerIndex layer_idx = 0; layer_idx < static_cast<int>(support_layers.size() - z_distance_top); layer_idx++)
     {
-        const LayerIndex top_layer_idx_above = std::min(static_cast<LayerIndex>(support_layers.size() - 1), layer_idx + roof_layer_count + z_distance_top); // Maximum layer of the model that generates support roof.
+        const LayerIndex top_layer_idx_above { std::min(LayerIndex { support_layers.size() - 1 }, LayerIndex{ layer_idx + roof_layer_count + z_distance_top }) }; // Maximum layer of the model that generates support roof.
         Polygons mesh_outlines;
         for (float layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top; layer_idx_above -= z_skip)
         {

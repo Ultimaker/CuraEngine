@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef TIME_ESTIMATE_H
 #define TIME_ESTIMATE_H
@@ -11,11 +11,11 @@
 #include "PrintFeature.h"
 #include "settings/types/Duration.h" //Print time estimates.
 #include "settings/types/Velocity.h" //Speeds and accelerations at which we print.
+#include "settings/types/Ratio.h"
 
 namespace cura
 {
 
-class Ratio;
 class Settings;
 
 /*!
@@ -68,10 +68,10 @@ public:
     };
 
 private:
-    Velocity max_feedrate[NUM_AXIS] = {600, 600, 40, 25}; // mm/s
+    Velocity max_feedrate[NUM_AXIS] = {600.0, 600.0, 40.0, 25.0}; // mm/s
     Velocity minimumfeedrate = 0.01;
-    Acceleration acceleration = 3000;
-    Acceleration max_acceleration[NUM_AXIS] = {9000, 9000, 100, 10000};
+    Acceleration acceleration = 3000.0;
+    Acceleration max_acceleration[NUM_AXIS] = {9000.0, 9000.0, 100.0, 10000.0};
     Velocity max_xy_jerk = 20.0;
     Velocity max_z_jerk = 0.4;
     Velocity max_e_jerk = 5.0;

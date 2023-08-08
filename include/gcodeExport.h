@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef GCODEEXPORT_H
 #define GCODEEXPORT_H
@@ -462,14 +462,14 @@ public:
      * \param hop_height The height to move above the current layer.
      * \param speed The speed used for moving. 
      */
-    void writeZhopStart(const coord_t hop_height, Velocity speed = 0);
+    void writeZhopStart(const coord_t hop_height, Velocity speed = 0.0);
 
     /*!
      * End a z hop: go back to the layer height
      *
      * \param speed The speed used for moving.
      */
-    void writeZhopEnd(Velocity speed = 0);
+    void writeZhopEnd(Velocity speed = 0.0);
 
     /*!
      * Start the new_extruder: 

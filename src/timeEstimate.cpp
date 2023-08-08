@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <math.h>
 #include <stdio.h>
@@ -9,7 +9,6 @@
 #include "timeEstimate.h"
 #include "utils/math.h"
 #include "settings/Settings.h"
-#include "settings/types/Ratio.h"
 
 namespace cura
 {
@@ -44,7 +43,7 @@ void TimeEstimateCalculator::addTime(const Duration& time)
     extra_time += time;
 }
 
-void TimeEstimateCalculator::setAcceleration(const Velocity& acc)
+void TimeEstimateCalculator::setAcceleration(const Acceleration& acc)
 {
     acceleration = acc;
 }
@@ -219,15 +218,15 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
         }
     }
     
-    Velocity vmax_junction = max_xy_jerk / 2;
-    Ratio vmax_junction_factor = 1.0;
-    if (current_abs_feedrate[Z_AXIS] > max_z_jerk / 2)
+    Velocity vmax_junction { max_xy_jerk / 2.0 };
+    Ratio vmax_junction_factor { 1.0 };
+    if (current_abs_feedrate[Z_AXIS] > max_z_jerk / 2.0)
     {
-        vmax_junction = std::min(vmax_junction, max_z_jerk / 2);
+        vmax_junction = std::min(vmax_junction, Velocity { max_z_jerk / 2.0 });
     }
-    if (current_abs_feedrate[E_AXIS] > max_e_jerk / 2)
+    if (current_abs_feedrate[E_AXIS] > max_e_jerk / 2.0)
     {
-        vmax_junction = std::min(vmax_junction, max_e_jerk / 2);
+        vmax_junction = std::min(vmax_junction, Velocity{ max_e_jerk / 2.0 });
     }
     vmax_junction = std::min(vmax_junction, block.nominal_feedrate);
     const Velocity safe_speed = vmax_junction;
@@ -250,7 +249,7 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
         {
             vmax_junction_factor = std::min(vmax_junction_factor, Ratio(max_e_jerk / e_jerk));
         }
-        vmax_junction = std::min(previous_nominal_feedrate, vmax_junction * vmax_junction_factor); // Limit speed to max previous speed
+        vmax_junction = std::min(previous_nominal_feedrate, Velocity { vmax_junction * vmax_junction_factor }); // Limit speed to max previous speed
     }
 
     block.max_entry_speed = vmax_junction;

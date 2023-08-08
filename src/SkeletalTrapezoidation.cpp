@@ -1074,7 +1074,7 @@ void SkeletalTrapezoidation::generateTransitionEnds(edge_t& edge, coord_t mid_po
     const float transition_mid_position = beading_strategy.getTransitionAnchorPos(lower_bead_count);
     constexpr float inner_bead_width_ratio_after_transition = 1.0;
 
-    constexpr coord_t start_rest = 0;
+    constexpr Ratio start_rest { 0.0 };
     const float mid_rest = transition_mid_position * inner_bead_width_ratio_after_transition;
     constexpr float end_rest = inner_bead_width_ratio_after_transition;
 

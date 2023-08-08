@@ -1,3 +1,6 @@
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
+
 #include "TreeSupportTipGenerator.h"
 #include "Application.h" //To get settings.
 #include "infill/SierpinskiFillProvider.h"
@@ -518,7 +521,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
 
                         // the roof will be combined with roof above and below, to see if a part of this roof may be part of a valid roof further up/down.
                         // This prevents the situation where a roof gets removed even tough its area would contribute to a (better) printable roof area further down.
-                        for (const LayerIndex layer_offset : ranges::views::iota(-LayerIndex(std::min(size_t(layer_idx),support_roof_layers)), LayerIndex(std::min(size_t(potential_support_roofs.size()-layer_idx),support_roof_layers+1))))
+                        for (const LayerIndex layer_offset : ranges::views::iota(-LayerIndex { std::min(layer_idx, LayerIndex { support_roof_layers }) }, LayerIndex { std::min(LayerIndex { potential_support_roofs.size() - layer_idx }, LayerIndex{ support_roof_layers + 1} ) }))
                         {
                             fuzzy_area.add(support_roof_drawn[layer_idx+layer_offset]);
                             fuzzy_area.add(potential_support_roofs[layer_idx+layer_offset]);

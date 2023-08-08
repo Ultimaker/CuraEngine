@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <assert.h>
@@ -45,10 +45,10 @@ GCodeExport::GCodeExport() : output_stream(&std::cout), currentPosition(0, 0, MM
 
     total_print_times = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
 
-    currentSpeed = 1;
-    current_print_acceleration = -1;
-    current_travel_acceleration = -1;
-    current_jerk = -1;
+    currentSpeed = 1.0;
+    current_print_acceleration = -1.0;
+    current_travel_acceleration = -1.0;
+    current_jerk = -1.0;
 
     is_z_hopped = 0;
     setFlavor(EGCodeFlavor::MARLIN);
@@ -1122,7 +1122,7 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         *output_stream << new_line;
         // Assume default UM2 retraction settings.
         estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value + retraction_diff_e_amount)),
-                                25,
+                                25.0,
                                 PrintFeatureType::MoveRetraction); // TODO: hardcoded values!
     }
     else

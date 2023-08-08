@@ -750,7 +750,7 @@ void LayerPlan::addWallLine(const Point& p0,
             speed_factor = 1 - (1 - speed_factor) * acceleration_factor;
             if (speed_factor >= 0.9)
             {
-                speed_factor = 1;
+                speed_factor = 1.0;
             }
             distance_to_line_end = vSize(cur_point - line_end);
         }
@@ -899,7 +899,7 @@ void LayerPlan::addWall(const ExtrusionLine& wall,
 
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
 
-    const Ratio nominal_line_width_multiplier = 1.0 / Ratio(non_bridge_config.getLineWidth()); // we multiply the flow with the actual wanted line width (for that junction), and then multiply with this
+    const Ratio nominal_line_width_multiplier { 1.0 / Ratio { static_cast<Ratio::value_type>(non_bridge_config.getLineWidth()) } }; // we multiply the flow with the actual wanted line width (for that junction), and then multiply with this
 
     // helper function to calculate the distance from the start of the current wall line to the first bridge segment
 
@@ -1109,7 +1109,7 @@ void LayerPlan::addInfillWall(const ExtrusionLine& wall, const GCodePathConfig& 
 
     for (const auto& junction_n : wall)
     {
-        const Ratio width_factor = junction_n.w / Ratio(path_config.getLineWidth());
+        const Ratio width_factor { static_cast<Ratio::value_type>(junction_n.w) / Ratio { static_cast<Ratio::value_type>(path_config.getLineWidth()) } };
         constexpr SpaceFillType space_fill_type = SpaceFillType::Polygons;
         constexpr Ratio flow = 1.0_r;
         addExtrusionMove(junction_n.p, path_config, space_fill_type, flow, width_factor);

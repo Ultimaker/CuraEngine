@@ -1,5 +1,5 @@
-// Copyright (c) 2021 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "TreeModelVolumes.h"
 #include "TreeSupport.h"
@@ -801,7 +801,7 @@ void TreeModelVolumes::calculateAccumulatedPlaceable0(const LayerIndex max_layer
         {
             start_layer++;
         }
-        start_layer = std::max(start_layer.value + 1, 1);
+        start_layer = std::max(LayerIndex { start_layer + 1 }, LayerIndex { 1 });
     }
     if (start_layer > max_layer)
     {
@@ -823,7 +823,7 @@ void TreeModelVolumes::calculateAccumulatedPlaceable0(const LayerIndex max_layer
     }
     cura::parallel_for<size_t>
        (
-           std::max(start_layer-1,LayerIndex(1)),
+           std::max(LayerIndex{ start_layer - 1 }, LayerIndex{ 1 }),
            data.size(),
            [&](const coord_t layer_idx)
            {

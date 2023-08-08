@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "infill/SubDivCube.h"
 
@@ -201,7 +201,7 @@ bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, coor
     int top_layer = (center.z + radius) / layer_height;
     for (int test_layer = bottom_layer; test_layer <= top_layer; test_layer += 3) // steps of three. Low-hanging speed gain.
     {
-        part_dist = static_cast<Ratio>(test_layer * layer_height - center.z) / radius;
+        part_dist = Ratio { static_cast<Ratio::value_type>(test_layer * layer_height - center.z) } / radius;
         sphere_slice_radius2 = radius * radius * (1.0 - (part_dist * part_dist));
         Point loc(center.x, center.y);
 

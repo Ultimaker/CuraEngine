@@ -175,7 +175,7 @@ void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, 
     {
         return; // don't subtract anything form the downskin
     }
-    LayerIndex bottom_check_start_layer_idx = std::max(LayerIndex(0), layer_nr - bottom_layer_count);
+    LayerIndex bottom_check_start_layer_idx { std::max(LayerIndex { 0 }, LayerIndex { layer_nr - bottom_layer_count }) };
     Polygons not_air = getOutlineOnLayer(part, bottom_check_start_layer_idx);
     if (!no_small_gaps_heuristic)
     {

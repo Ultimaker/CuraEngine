@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifdef ARCUS
@@ -133,7 +133,7 @@ public:
         }
         else if (initial_point != last_point)
         {
-            addLineSegment(PrintFeatureType::NoneType, initial_point, 1, 0, 0);
+            addLineSegment(PrintFeatureType::NoneType, initial_point, 1, 0, 0.0);
         }
     }
 
