@@ -311,7 +311,7 @@ void Infill::_generate(
     case EFillMethod::PLUGIN:
     {
         auto [toolpaths_, generated_result_polygons_, generated_result_lines_]
-            = slots::instance().generate<plugins::v0::SlotID::INFILL_GENERATE>(inner_contour, mesh->settings.get<std::string>("infill_pattern"), mesh->settings);
+            = slots::instance().generate<plugins::v0::SlotID::INFILL_GENERATE>(inner_contour, mesh ? mesh->settings.get<std::string>("infill_pattern") : settings.get<std::string>("infill_pattern"), mesh ? mesh->settings : settings);
         toolpaths.insert(toolpaths.end(), toolpaths_.begin(), toolpaths_.end());
         result_polygons.add(generated_result_polygons_);
         result_lines.add(generated_result_lines_);
