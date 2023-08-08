@@ -10,11 +10,11 @@ namespace cura
 struct TimeMaterialEstimates
 {
     double extrude_time{ 0.0 }; //!< Time in seconds occupied by extrusion
-    double extrude_time_at_slowest_path_speed{ 0.0 }; //!< Time in seconds occupied by extrusion assuming paths are printed at slowest path speed, usually the outer wall speed
-    double extrude_time_at_minimum_speed{ 0.0 }; //!< Time in seconds occupied by extrusion assuming paths are printed at the user specified Minimum Speed
     double unretracted_travel_time{ 0.0 }; //!< Time in seconds occupied by non-retracted travel (non-extrusion)
     double retracted_travel_time{ 0.0 }; //!< Time in seconds occupied by retracted travel (non-extrusion)
     double material{ 0.0 }; //!< Material used (in mm^3)
+    double extrude_time_at_slowest_path_speed{ 0.0 }; //!< Time in seconds occupied by extrusion assuming paths are printed at slowest path speed, usually the outer wall speed
+    double extrude_time_at_minimum_speed{ 0.0 }; //!< Time in seconds occupied by extrusion assuming paths are printed at the user specified Minimum Speed
 
     constexpr TimeMaterialEstimates& operator+=(const TimeMaterialEstimates& other) noexcept
     {
