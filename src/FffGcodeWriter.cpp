@@ -2790,7 +2790,17 @@ void FffGcodeWriter::processSkinPrintFeature(
         skip_some_zags,
         zag_skip_count,
         pocket_size);
-    infill_comp.generate(skin_paths, skin_polygons, skin_lines, mesh.settings, gcode_layer.getLayerNr(), SectionType::SKIN, nullptr, nullptr, nullptr, small_areas_on_surface ? Polygons() : exposed_to_air);
+    infill_comp.generate(
+        skin_paths,
+        skin_polygons,
+        skin_lines,
+        mesh.settings,
+        gcode_layer.getLayerNr(),
+        SectionType::SKIN,
+        nullptr,
+        nullptr,
+        nullptr,
+        small_areas_on_surface ? Polygons() : exposed_to_air);
 
     // add paths
     if (! skin_polygons.empty() || ! skin_lines.empty() || ! skin_paths.empty())
