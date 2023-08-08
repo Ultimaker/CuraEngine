@@ -1,16 +1,17 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <spdlog/spdlog.h>
+#include "LayerPlanBuffer.h"
 
 #include "Application.h" //To flush g-code through the communication channel.
 #include "ExtruderTrain.h"
 #include "FffProcessor.h"
 #include "LayerPlan.h"
-#include "LayerPlanBuffer.h"
 #include "Slice.h"
 #include "communication/Communication.h" //To flush g-code through the communication channel.
 #include "gcodeExport.h"
+
+#include <spdlog/spdlog.h>
 
 namespace cura
 {
@@ -99,7 +100,8 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
         prev_layer->setIsInside(new_layer_destination_state->second);
         const bool force_retract = extruder_settings.get<bool>("retract_at_layer_change")
                                 || (mesh_group_settings.get<bool>("travel_retract_before_outer_wall")
-                                    && (mesh_group_settings.get<InsetDirection>("inset_direction") == InsetDirection::OUTSIDE_IN || mesh_group_settings.get<size_t>("wall_line_count") == 1)); // Moving towards an outer wall.
+                                    && (mesh_group_settings.get<InsetDirection>("inset_direction") == InsetDirection::OUTSIDE_IN
+                                        || mesh_group_settings.get<size_t>("wall_line_count") == 1)); // Moving towards an outer wall.
         prev_layer->final_travel_z = newest_layer->z;
         GCodePath& path = prev_layer->addTravel(first_location_new_layer, force_retract);
         if (force_retract && ! path.retract)
@@ -180,7 +182,13 @@ Preheat::WarmUpResult LayerPlanBuffer::computeStandbyTempPlan(std::vector<Extrud
                 temp_before = extruder_plan_before.extrusion_temperature.value_or(initial_print_temp);
             }
             constexpr bool during_printing = false;
-            Preheat::WarmUpResult warm_up = preheat_config.getWarmUpPointAfterCoolDown(in_between_time, extruder, temp_before, extruder_settings.get<Temperature>("material_standby_temperature"), initial_print_temp, during_printing);
+            Preheat::WarmUpResult warm_up = preheat_config.getWarmUpPointAfterCoolDown(
+                in_between_time,
+                extruder,
+                temp_before,
+                extruder_settings.get<Temperature>("material_standby_temperature"),
+                initial_print_temp,
+                during_printing);
             warm_up.heating_time = std::min(in_between_time, warm_up.heating_time + extra_preheat_time);
             return warm_up;
         }
@@ -233,10 +241,7 @@ void LayerPlanBuffer::handleStandbyTemp(std::vector<ExtruderPlan*>& extruder_pla
     spdlog::warn("Couldn't find previous extruder plan so as to set the standby temperature. Inserting temp command in earliest available layer.");
     ExtruderPlan& earliest_extruder_plan = *extruder_plans[0];
     constexpr bool wait = false;
-    earliest_extruder_plan.insertCommand(NozzleTempInsert{ .path_idx = 0,
-                                                           .extruder = extruder,
-                                                           .temperature = standby_temp,
-                                                           .wait = wait });
+    earliest_extruder_plan.insertCommand(NozzleTempInsert{ .path_idx = 0, .extruder = extruder, .temperature = standby_temp, .wait = wait });
 }
 
 void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
@@ -281,10 +286,8 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPl
     // time_before_extruder_plan_to_insert falls before all plans in the buffer
     bool wait = false;
     unsigned int path_idx = 0;
-    extruder_plans[0]->insertCommand(NozzleTempInsert { .path_idx = path_idx,
-                                                       .extruder = extruder,
-                                                       .temperature = initial_print_temp,
-                                                       .wait = wait }); // insert preheat command at verfy beginning of buffer
+    extruder_plans[0]->insertCommand(
+        NozzleTempInsert{ .path_idx = path_idx, .extruder = extruder, .temperature = initial_print_temp, .wait = wait }); // insert preheat command at verfy beginning of buffer
 }
 
 void LayerPlanBuffer::insertTempCommands(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
@@ -350,10 +353,7 @@ void LayerPlanBuffer::insertPrintTempCommand(ExtruderPlan& extruder_plan)
             }
         }
         bool wait = false;
-        extruder_plan.insertCommand(NozzleTempInsert{ .path_idx = path_idx,
-                                                      .extruder = extruder,
-                                                      .temperature = print_temp,
-                                                      .wait = wait });
+        extruder_plan.insertCommand(NozzleTempInsert{ .path_idx = path_idx, .extruder = extruder, .temperature = print_temp, .wait = wait });
     }
     extruder_plan.heated_pre_travel_time = heated_pre_travel_time;
 }
@@ -388,12 +388,14 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
         }
     }
 
-    double time_window =
-        0; // The time window within which the nozzle needs to heat from the initial print temp to the printing temperature and then back to the final print temp; i.e. from the first to the last extrusion move with this extruder
-    double weighted_average_extrusion_temp = 0; // The average of the normal extrusion temperatures of the extruder plans (which might be different due to flow dependent temp or due to initial layer temp) Weighted by time
+    double time_window = 0; // The time window within which the nozzle needs to heat from the initial print temp to the printing temperature and then back to the final print temp;
+                            // i.e. from the first to the last extrusion move with this extruder
+    double weighted_average_extrusion_temp = 0; // The average of the normal extrusion temperatures of the extruder plans (which might be different due to flow dependent temp or
+                                                // due to initial layer temp) Weighted by time
     std::optional<double> initial_print_temp; // The initial print temp of the first extruder plan with this extruder
     { // compute time window and print temp statistics
-        double heated_pre_travel_time = -1; // The time before the first extrude move from the start of the extruder plan during which the nozzle is stable at the initial print temperature
+        double heated_pre_travel_time
+            = -1; // The time before the first extrude move from the start of the extruder plan during which the nozzle is stable at the initial print temperature
         for (unsigned int prev_extruder_plan_idx = last_extruder_plan_idx; (int)prev_extruder_plan_idx >= 0; prev_extruder_plan_idx--)
         {
             ExtruderPlan& prev_extruder_plan = *extruder_plans[prev_extruder_plan_idx];
@@ -442,7 +444,8 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
     // This approximation is quite ok since it only determines where to insert the precool temp command,
     // which means the stable temperature of the previous extruder plan and the stable temperature of the next extruder plan couldn't be reached
     constexpr bool during_printing = true;
-    Preheat::CoolDownResult warm_cool_result = preheat_config.getCoolDownPointAfterWarmUp(time_window, extruder, *initial_print_temp, weighted_average_extrusion_temp, final_print_temp, during_printing);
+    Preheat::CoolDownResult warm_cool_result
+        = preheat_config.getCoolDownPointAfterWarmUp(time_window, extruder, *initial_print_temp, weighted_average_extrusion_temp, final_print_temp, during_printing);
     double cool_down_time = warm_cool_result.cooling_time;
     assert(cool_down_time >= 0);
 
@@ -465,7 +468,8 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
         }
     }
 
-    // at this point cool_down_time is what time is left if cool down time of extruder plans after precool_extruder_plan (up until last_extruder_plan) are already taken into account
+    // at this point cool_down_time is what time is left if cool down time of extruder plans after precool_extruder_plan (up until last_extruder_plan) are already taken into
+    // account
 
     { // insert temp command in precool_extruder_plan
         double extrusion_time_seen = 0;
@@ -481,11 +485,8 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
         }
         bool wait = false;
         double time_after_path_start = extrusion_time_seen - cool_down_time;
-        precool_extruder_plan->insertCommand(NozzleTempInsert { .path_idx = path_idx,
-                                                                .extruder = extruder,
-                                                                .temperature = final_print_temp,
-                                                                .wait = wait,
-                                                                .time_after_path_start = time_after_path_start });
+        precool_extruder_plan->insertCommand(
+            NozzleTempInsert{ .path_idx = path_idx, .extruder = extruder, .temperature = final_print_temp, .wait = wait, .time_after_path_start = time_after_path_start });
     }
 }
 
