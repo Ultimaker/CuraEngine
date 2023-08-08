@@ -384,6 +384,29 @@ struct infill_generate_response
     }
 };
 
+struct gcode_paths_modify_request
+{
+    using value_type = slots::gcode_paths::v0::modify::CallRequest;
+    using native_value_type = std::vector<double>;
+
+    value_type operator()(const native_value_type& paths, const std::integral auto extruder_nr, const std::integral auto layer_nr) const
+    {
+        value_type message{};
+        return message;
+    }
+};
+
+struct gcode_paths_modify_response
+{
+    using value_type = slots::gcode_paths::v0::modify::CallResponse;
+    using native_value_type = std::vector<double>;
+
+    native_value_type operator()(const value_type& message) const
+    {
+        return {};
+    }
+};
+
 } // namespace cura::plugins
 
 

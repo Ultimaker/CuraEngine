@@ -101,8 +101,14 @@ using slot_settings_broadcast_
     = SlotProxy<v0::SlotID::SETTINGS_BROADCAST, "<=1.0.0", slots::broadcast::v0::BroadcastService::Stub, Validator, broadcast_settings_request, empty, Default>;
 
 template<class Default = default_process>
-using slot_gcode_paths_modify_
-    = SlotProxy<v0::SlotID::GCODE_PATHS_MODIFY, "<=1.0.0", slots::gcode_paths::v0::modify::GCodePathsModifyService::Stub, Validator, empty, empty, Default>;
+using slot_gcode_paths_modify_ = SlotProxy<
+    v0::SlotID::GCODE_PATHS_MODIFY,
+    "<=1.0.0",
+    slots::gcode_paths::v0::modify::GCodePathsModifyService::Stub,
+    Validator,
+    gcode_paths_modify_request,
+    gcode_paths_modify_response,
+    Default>;
 
 template<typename... Types>
 struct Typelist
