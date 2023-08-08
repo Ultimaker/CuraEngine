@@ -4,9 +4,9 @@
 #ifndef PLUGINS_BROADCASTCOMPONENT_H
 #define PLUGINS_BROADCASTCOMPONENT_H
 
-#include "common.h"
 #include "cura/plugins/v0/slot_id.pb.h"
 #include "plugins/broadcasts.h"
+#include "plugins/components/common.h"
 #include "plugins/exception.h"
 #include "plugins/metadata.h"
 #include "utils/format/thread_id.h"
