@@ -5,8 +5,11 @@
 #define PLUGINS_CONVERTERS_H
 
 #include "Cura.pb.h"
+#include "WallToolPaths.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.pb.h"
+#include "cura/plugins/slots/gcode_paths/v0/modify.grpc.pb.h"
+#include "cura/plugins/slots/gcode_paths/v0/modify.pb.h"
 #include "cura/plugins/slots/handshake/v0/handshake.grpc.pb.h"
 #include "cura/plugins/slots/handshake/v0/handshake.pb.h"
 #include "cura/plugins/slots/infill/v0/generate.grpc.pb.h"
@@ -17,6 +20,7 @@
 #include "cura/plugins/slots/simplify/v0/modify.pb.h"
 #include "plugins/metadata.h"
 #include "plugins/types.h"
+#include "utils/polygon.h"
 
 #include <range/v3/range/operations.hpp>
 #include <range/v3/view/drop.hpp>
@@ -376,7 +380,7 @@ struct infill_generate_response
             result_lines.emplace_back(poly_line);
         }
 
-        return std::make_tuple(toolpaths_, result_polygons, result_lines);
+        return { toolpaths_, result_polygons, result_lines };
     }
 };
 

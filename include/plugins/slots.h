@@ -4,19 +4,20 @@
 #ifndef PLUGINS_SLOTS_H
 #define PLUGINS_SLOTS_H
 
+#include "WallToolPaths.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
 #include "cura/plugins/slots/gcode_paths/v0/modify.grpc.pb.h"
 #include "cura/plugins/slots/infill/v0/generate.grpc.pb.h"
 #include "cura/plugins/slots/postprocess/v0/modify.grpc.pb.h"
 #include "cura/plugins/slots/simplify/v0/modify.grpc.pb.h"
 #include "cura/plugins/v0/slot_id.pb.h"
-#include "infill.h"
 #include "plugins/converters.h"
 #include "plugins/slotproxy.h"
 #include "plugins/types.h"
 #include "plugins/validator.h"
 #include "utils/IntPoint.h"
 #include "utils/Simplify.h" // TODO: Remove once the simplify slot has been removed
+#include "utils/polygon.h"
 #include "utils/types/char_range_literal.h"
 
 #include <exception>
