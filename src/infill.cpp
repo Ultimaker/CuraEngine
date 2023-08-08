@@ -87,7 +87,8 @@ void Infill::generate(
     SectionType section_type,
     const SierpinskiFillProvider* cross_fill_provider,
     const LightningLayer* lightning_trees,
-    const SliceMeshStorage* mesh)
+    const SliceMeshStorage* mesh,
+    const Polygons& prevent_small_exposed_to_air)
 {
     if (outer_contour.empty())
     {
@@ -110,6 +111,10 @@ void Infill::generate(
         inner_contour = inner_contour.offset(-small_area_width / 2);
         inner_contour.removeSmallAreas(to_small_length * to_small_length, true);
         inner_contour = inner_contour.offset(small_area_width / 2);
+        if (prevent_small_exposed_to_air.area() > 0)
+        {
+            inner_contour = inner_contour.unionPolygons(prevent_small_exposed_to_air).intersection(small_infill);
+        }
         inner_contour = Simplify(max_resolution, max_deviation, 0).polygon(inner_contour);
         small_infill = small_infill.difference(inner_contour);
 
