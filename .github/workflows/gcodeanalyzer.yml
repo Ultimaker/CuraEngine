@@ -152,7 +152,7 @@ jobs:
 
       - name: Collect STL-files, run CuraEngine, output GCode-files
         run: |
-          export CURA_ENGINE_SEARCH_PATH=./Cura/resources/definitions:./Cura/resources/extruders
+          export CURA_ENGINE_SEARCH_PATH=../Cura/resources/definitions:../Cura/resources/extruders
           for file in `ls ../NightlyTestModels/*.stl`;
           do
               ./build/Release/CuraEngine slice --force-read-parent --force-read-nondefault -v -p -j ../Cura/resources/definitions/ultimaker_s3.def.json -l $file -o ../`basename $file .stl`.gcode
