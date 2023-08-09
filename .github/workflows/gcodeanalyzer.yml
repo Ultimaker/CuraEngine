@@ -32,7 +32,24 @@ env:
   CONAN_NON_INTERACTIVE: 1
 
 jobs:
+  check_actor:
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.skip_check.outputs.proceed }}
+    steps:
+      - id: skip_check
+        run: |
+          if [[ "${{ github.actor }}" == *"[bot]"* ]]; then
+            echo "::set-output name=proceed::true"
+          elif [[ "${{ github.event.pull_request.head.repo.fork }}" == "false" ]]; then 
+            echo "::set-output name=proceed::true"
+          else
+            echo "::set-output name=proceed::false"
+          fi
+        shell: bash
+
   conan-recipe-version:
+    if: ${{ needs.check_actor.outputs.proceed == 'true' }}
     uses: ultimaker/cura/.github/workflows/conan-recipe-version.yml@main
     with:
       project_name: curaengine
