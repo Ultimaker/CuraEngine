@@ -40,15 +40,16 @@ jobs:
       - id: skip_check
         run: |
           if [[ "${{ github.actor }}" == *"[bot]"* ]]; then
-            echo "::set-output name=proceed::true"
+            echo "proceed=true" >> $GITHUB_OUTPUT
           elif [[ "${{ github.event.pull_request.head.repo.fork }}" == "false" ]]; then 
-            echo "::set-output name=proceed::true"
+            echo "proceed=true" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=proceed::false"
+            echo "proceed=false" >> $GITHUB_OUTPUT
           fi
         shell: bash
 
   conan-recipe-version:
+    needs: [ check_actor ]
     if: ${{ needs.check_actor.outputs.proceed == 'true' }}
     uses: ultimaker/cura/.github/workflows/conan-recipe-version.yml@main
     with:
