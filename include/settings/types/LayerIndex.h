@@ -1,8 +1,10 @@
-//Copyright (c) 2019 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef LAYERINDEX_H
 #define LAYERINDEX_H
+
+#include "utils/types/numeric_facade.h"
 
 #include <functional>
 
@@ -15,112 +17,27 @@ namespace cura
  * This is a facade. It behaves exactly like an integer but is used to indicate
  * that it is a layer number.
  */
-struct LayerIndex
+struct LayerIndex : public utils::NumericFacade<int64_t>
 {
-    /*
-     * \brief Default constructor setting the layer index to 0.
-     */
-    constexpr LayerIndex() : value(0) {};
+    using base_type = utils::NumericFacade<int64_t>;
+    using base_type::NumericFacade;
 
-    /*
-     * \brief Casts an integer to a LayerIndex instance.
-     */
-    constexpr LayerIndex(int value) : value(value) {};
-
-    /*
-     * \brief Casts the LayerIndex instance to an integer.
-     */
-    constexpr operator int() const
-    {
-        return value;
-    }
-
-    /*
-     * Some operators to add and subtract layer numbers.
-     */
-    LayerIndex operator +(const LayerIndex& other) const
-    {
-        return LayerIndex(value + other.value);
-    }
-    template<typename E> LayerIndex operator +(const E& other) const
-    {
-        return LayerIndex(value + other);
-    }
-
-    LayerIndex operator -(const LayerIndex& other) const
-    {
-        return LayerIndex(value - other.value);
-    }
-    template<typename E> LayerIndex operator -(const E& other) const
-    {
-        return LayerIndex(value - other);
-    }
-
-    LayerIndex& operator +=(const LayerIndex& other)
-    {
-        value += other.value;
-        return *this;
-    }
-    template<typename E> LayerIndex& operator +=(const E& other)
-    {
-        value += other;
-        return *this;
-    }
-
-    LayerIndex& operator -=(const LayerIndex& other)
-    {
-        value -= other.value;
-        return *this;
-    }
-    template<typename E> LayerIndex& operator -=(const E& other)
-    {
-        value -= other;
-        return *this;
-    }
-
-    LayerIndex& operator ++()
-    {
-        value++;
-        return *this;
-    }
-    LayerIndex operator ++(int) //Postfix.
-    {
-        LayerIndex original_value(value);
-        operator++(); //Increment myself.
-        return original_value;
-    }
-    LayerIndex& operator --()
-    {
-        value--;
-        return *this;
-    }
-    LayerIndex operator --(int) //Postfix.
-    {
-        LayerIndex original_value(value);
-        operator--(); //Decrement myself.
-        return original_value;
-    }
-
-    /*
-     * \brief The actual layer index.
-     *
-     * Note that this could be negative for raft layers.
-     */
-    int value = 0;
+    constexpr LayerIndex(const base_type& base) noexcept
+        : base_type{ base } {};
 };
 
-}
+} // namespace cura
 
 namespace std
 {
-    template<>
-    struct hash<cura::LayerIndex>
+template<>
+struct hash<cura::LayerIndex>
+{
+    auto operator()(const cura::LayerIndex& layer_index) const
     {
-        size_t operator()(const cura::LayerIndex& layer_index) const
-        {
-            return hash<int>()(layer_index.value);
-        }
-    };
-}
+        return hash<decltype(layer_index.value)>()(layer_index.value);
+    }
+};
+} // namespace std
 
-#endif //LAYERINDEX_H
+#endif // LAYERINDEX_H
