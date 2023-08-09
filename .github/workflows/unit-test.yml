@@ -1,7 +1,5 @@
 ---
 name: unit-test
-# FIXME: This should be a reusable workflow
-
 on:
   push:
     paths:
@@ -11,13 +9,11 @@ on:
       - 'tests/**'
       - 'test_package/**'
       - 'conanfile.py'
-      - 'conandata.yml'
       - 'CMakeLists.txt'
       - '.github/workflows/unit-test.yml'
       - '.github/workflows/requirements-conan-package.txt'
     branches:
       - main
-      - 'CURA-*'
       - '[0-9]+.[0-9]+'
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'
@@ -30,7 +26,6 @@ on:
       - 'tests/**'
       - 'test_package/**'
       - 'conanfile.py'
-      - 'conandata.yml'
       - 'CMakeLists.txt'
       - '.github/workflows/unit-test.yml'
       - '.github/workflows/requirements-conan-package.txt'

@@ -1,25 +1,30 @@
 name: Benchmark
 on:
-  schedule:
-    - cron: '15 6,12,17 * * *'
-
-  # FIXME: remove the path trigger after merge
   push:
     paths:
       - 'include/**'
       - 'src/**'
-      - 'cmake/**'
       - 'benchmark/**'
-      - 'conanfile.py'
-      - 'conandata.yml'
-      - 'CMakeLists.txt'
       - '.github/workflows/benchmark.yml'
       - '.github/workflows/requirements-conan-package.txt'
     branches:
       - main
-      - CURA-9906_benchmark
     tags:
       - '[0-9].[0-9].[0-9]*'
+  pull_request:
+    types: [ opened, reopened, synchronize ]
+    paths:
+      - 'include/**'
+      - 'src/**'
+      - 'benchmark/**'
+      - '.github/workflows/benchmark.yml'
+      - '.github/workflows/requirements-conan-package.txt'
+    branches:
+      - main
+      - 'CURA-*'
+      - '[0-9]+.[0-9]+'
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
 
 env:
   CONAN_LOGIN_USERNAME_CURA: ${{ secrets.CONAN_USER }}
@@ -130,6 +135,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: true
           # Show alert with commit comment on detecting possible performance regression
-          alert-threshold: '200%'
+          alert-threshold: '175%'
+          summary-always: true
           comment-on-alert: true
-          fail-on-alert: true
+          max-items-in-chart: 250
