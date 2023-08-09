@@ -61,6 +61,7 @@ jobs:
       - name: Checkout GCodeAnalyzer
         uses: actions/checkout@v3
         with:
+          repository: 'Ultimaker/gcodeanalyzer'
           ref: 'main'
           path: 'GCodeAnalyzer'
           token: ${{ secrets.GITHUB_TOKEN }}
