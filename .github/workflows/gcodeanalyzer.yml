@@ -9,7 +9,7 @@ on:
       - 'conanfile.py'
       - 'conandata.yml'
       - 'CMakeLists.txt'
-      - '.github/workflows/benchmark.yml'
+      - '.github/workflows/gcodeanalyzer.yml'
       - '.github/workflows/requirements-conan-package.txt'
     branches:
       - main
@@ -28,7 +28,7 @@ on:
       - 'conanfile.py'
       - 'conandata.yml'
       - 'CMakeLists.txt'
-      - '.github/workflows/unit-test.yml'
+      - '.github/workflows/gcodeanalyzer.yml'
       - '.github/workflows/requirements-conan-package.txt'
     branches:
       - main
