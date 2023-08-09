@@ -7,3 +7,4 @@ url: https://ultimaker.github.io/CuraEngine
 aux_links:
     Repository: https://github.com/Ultimaker/CuraEngine
     Benchmarks: https://ultimaker.github.io/CuraEngine/dev/bench/
+    GCodeAnalyzer: https://ultimaker.github.io/CuraEngine/dev/gcodeanalyzer/
