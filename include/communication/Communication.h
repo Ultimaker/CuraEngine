@@ -4,13 +4,13 @@
 #ifndef COMMUNICATION_H
 #define COMMUNICATION_H
 
-#include "../utils/IntPoint.h" //For coord_t and Point.
+#include "settings/types/LayerIndex.h"
+#include "settings/types/Velocity.h"
+#include "utils/IntPoint.h"
 
 namespace cura
 {
-//Some forward declarations to increase compilation speed.
-struct LayerIndex;
-struct Velocity;
+// Some forward declarations to increase compilation speed.
 enum class PrintFeatureType : unsigned char;
 class Polygons;
 class ConstPolygonRef;
@@ -26,7 +26,7 @@ public:
     /*
      * \brief Close the communication channel.
      */
-    virtual ~Communication() {}
+    virtual ~Communication() = default;
 
     /*
      * \brief Test if there are more slices to be queued.
@@ -180,7 +180,6 @@ public:
     virtual void sliceNext() = 0;
 };
 
-} //namespace cura
+} // namespace cura
 
-#endif //COMMUNICATION_H
-
+#endif // COMMUNICATION_H

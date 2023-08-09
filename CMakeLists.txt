@@ -12,6 +12,7 @@ option(ENABLE_TESTING "Build with unit tests" OFF)
 option(EXTENSIVE_WARNINGS "Build with all warnings" ON)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
+option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
 
 # Create Protobuf files if Arcus is used
 if (ENABLE_ARCUS)
@@ -149,6 +150,7 @@ target_include_directories(_CuraEngine
 target_compile_definitions(_CuraEngine
         PUBLIC
         $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
+        $<$<BOOL:${OLDER_APPLE_CLANG}>:OLDER_APPLE_CLANG>
         CURA_ENGINE_VERSION=\"${CURA_ENGINE_VERSION}\"
         $<$<BOOL:${ENABLE_TESTING}>:BUILD_TESTS>
         PRIVATE
