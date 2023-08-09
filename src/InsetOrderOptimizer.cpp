@@ -1,21 +1,18 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include "InsetOrderOptimizer.h"
+
 #include "ExtruderTrain.h"
 #include "FffGcodeWriter.h"
-#include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
 #include "utils/views/convert.h"
 #include "utils/views/dfs.h"
-#include <spdlog/spdlog.h>
-
-#include <iterator>
-#include <tuple>
 
 #include <range/v3/algorithm/max.hpp>
 #include <range/v3/algorithm/sort.hpp>
-#include <range/v3/range/operations.hpp>
 #include <range/v3/range/conversion.hpp>
+#include <range/v3/range/operations.hpp>
 #include <range/v3/view/addressof.hpp>
 #include <range/v3/view/any_view.hpp>
 #include <range/v3/view/drop.hpp>
@@ -26,6 +23,10 @@
 #include <range/v3/view/take_exactly.hpp>
 #include <range/v3/view/transform.hpp>
 #include <range/v3/view/zip.hpp>
+#include <spdlog/spdlog.h>
+
+#include <iterator>
+#include <tuple>
 
 namespace rg = ranges;
 namespace rv = ranges::views;
@@ -33,22 +34,23 @@ namespace rv = ranges::views;
 namespace cura
 {
 
-InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer,
-                                         const SliceDataStorage& storage,
-                                         LayerPlan& gcode_layer,
-                                         const Settings& settings,
-                                         const int extruder_nr,
-                                         const GCodePathConfig& inset_0_non_bridge_config,
-                                         const GCodePathConfig& inset_X_non_bridge_config,
-                                         const GCodePathConfig& inset_0_bridge_config,
-                                         const GCodePathConfig& inset_X_bridge_config,
-                                         const bool retract_before_outer_wall,
-                                         const coord_t wall_0_wipe_dist,
-                                         const coord_t wall_x_wipe_dist,
-                                         const size_t wall_0_extruder_nr,
-                                         const size_t wall_x_extruder_nr,
-                                         const ZSeamConfig& z_seam_config,
-                                         const std::vector<VariableWidthLines>& paths)
+InsetOrderOptimizer::InsetOrderOptimizer(
+    const FffGcodeWriter& gcode_writer,
+    const SliceDataStorage& storage,
+    LayerPlan& gcode_layer,
+    const Settings& settings,
+    const int extruder_nr,
+    const GCodePathConfig& inset_0_non_bridge_config,
+    const GCodePathConfig& inset_X_non_bridge_config,
+    const GCodePathConfig& inset_0_bridge_config,
+    const GCodePathConfig& inset_X_bridge_config,
+    const bool retract_before_outer_wall,
+    const coord_t wall_0_wipe_dist,
+    const coord_t wall_x_wipe_dist,
+    const size_t wall_0_extruder_nr,
+    const size_t wall_x_extruder_nr,
+    const ZSeamConfig& z_seam_config,
+    const std::vector<VariableWidthLines>& paths)
     : gcode_writer(gcode_writer)
     , storage(storage)
     , gcode_layer(gcode_layer)
@@ -94,7 +96,8 @@ bool InsetOrderOptimizer::addToLayer()
     constexpr bool group_outer_walls = true;
     // When we alternate walls, also alternate the direction at which the first wall starts in.
     // On even layers we start with normal direction, on odd layers with inverted direction.
-    PathOrderOptimizer<const ExtrusionLine*> order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops, combing_boundary, reverse, order, group_outer_walls);
+    PathOrderOptimizer<const ExtrusionLine*>
+        order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops, combing_boundary, reverse, order, group_outer_walls);
 
     for (const auto& line : walls_to_be_added)
     {
@@ -157,7 +160,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                             {
                                 const auto poly = std::get<1>(locator);
                                 const auto line = std::get<0>(locator);
-                                return LineLoc {
+                                return LineLoc{
                                     .line = line,
                                     .poly = poly,
                                     .area = line->is_closed ? poly.area() : 0.0,
@@ -166,7 +169,13 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                       | rg::to_vector;
 
     // Sort polygons by increasing area, we are building the graph from the leaves (smallest area) upwards.
-    rg::sort( locator_view, [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &LineLoc::area);
+    rg::sort(
+        locator_view,
+        [](const auto& lhs, const auto& rhs)
+        {
+            return std::abs(lhs) < std::abs(rhs);
+        },
+        &LineLoc::area);
 
     // Create a bi-direction directed acyclic graph (Tree). Where polygon B is a child of A if B is inside A. The root of the graph is
     // the polygon that contains all other polygons. The leaves are polygons that contain no polygons.
@@ -209,20 +218,19 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         // - mark all reachable nodes with their depth from the root
         // - find hole roots, these are the innermost polygons enclosing a hole
         {
-            const std::function<void(const LineLoc*, const unsigned int)> initialize_nodes =
-                [graph, root, &hole_roots, &min_node, &min_depth]
-                (const auto current_node, const auto depth)
-                {
-                    min_node[current_node] = root;
-                    min_depth[current_node] = depth;
+            const std::function<void(const LineLoc*, const unsigned int)> initialize_nodes
+                = [graph, root, &hole_roots, &min_node, &min_depth](const auto current_node, const auto depth)
+            {
+                min_node[current_node] = root;
+                min_depth[current_node] = depth;
 
-                    // find hole roots (defined by a positive area in clipper1), these are leaves of the tree structure
-                    // as odd walls are also leaves we filter them out by adding a non-zero area check
-                    if (current_node != root && graph.count(current_node) == 1 && current_node->line->is_closed && current_node->area > 0)
-                    {
-                        hole_roots.push_back(current_node);
-                    }
-                };
+                // find hole roots (defined by a positive area in clipper1), these are leaves of the tree structure
+                // as odd walls are also leaves we filter them out by adding a non-zero area check
+                if (current_node != root && graph.count(current_node) == 1 && current_node->line->is_closed && current_node->area > 0)
+                {
+                    hole_roots.push_back(current_node);
+                }
+            };
 
             actions::dfs_depth_state(root, graph, initialize_nodes);
         };
@@ -233,16 +241,14 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         {
             for (auto& hole_root : hole_roots)
             {
-                const std::function<void(const LineLoc*, const unsigned int)> update_nodes =
-                    [hole_root, &min_depth, &min_node]
-                    (const auto& current_node, auto depth)
+                const std::function<void(const LineLoc*, const unsigned int)> update_nodes = [hole_root, &min_depth, &min_node](const auto& current_node, auto depth)
+                {
+                    if (depth < min_depth[current_node])
                     {
-                        if (depth < min_depth[current_node])
-                        {
-                            min_depth[current_node] = depth;
-                            min_node[current_node] = hole_root;
-                        }
-                    };
+                        min_depth[current_node] = depth;
+                        min_node[current_node] = hole_root;
+                    }
+                };
 
                 actions::dfs_depth_state(hole_root, graph, update_nodes);
             }
@@ -252,22 +258,21 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         // the depth is closest to root $r$
         {
             const LineLoc* root_ = root;
-            const std::function<void(const LineLoc*, const LineLoc*)> set_order_constraints =
-                [&order, &min_node, &root_, graph, outer_to_inner]
-                (const auto& current_node, const auto& parent_node)
+            const std::function<void(const LineLoc*, const LineLoc*)> set_order_constraints
+                = [&order, &min_node, &root_, graph, outer_to_inner](const auto& current_node, const auto& parent_node)
+            {
+                if (min_node[current_node] == root_ && parent_node != nullptr)
                 {
-                   if (min_node[current_node] == root_ && parent_node != nullptr)
-                   {
-                       if (outer_to_inner)
-                       {
-                           order.insert(std::make_pair(parent_node->line, current_node->line));
-                       }
-                       else
-                       {
-                           order.insert(std::make_pair(current_node->line, parent_node->line));
-                       }
-                   }
-                };
+                    if (outer_to_inner)
+                    {
+                        order.insert(std::make_pair(parent_node->line, current_node->line));
+                    }
+                    else
+                    {
+                        order.insert(std::make_pair(current_node->line, parent_node->line));
+                    }
+                }
+            };
 
             actions::dfs_parent_state(root, graph, set_order_constraints);
 
@@ -354,7 +359,7 @@ std::vector<ExtrusionLine> InsetOrderOptimizer::getWallsToBeAdded(const bool rev
 {
     if (paths.empty())
     {
-        return { };
+        return {};
     }
     rg::any_view<VariableWidthLines> view;
     if (reverse)

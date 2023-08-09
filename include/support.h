@@ -4,8 +4,8 @@
 #ifndef SUPPORT_H
 #define SUPPORT_H
 
-#include "utils/polygon.h"
 #include "settings/types/LayerIndex.h"
+#include "utils/polygon.h"
 
 #include <cstddef>
 #include <vector>

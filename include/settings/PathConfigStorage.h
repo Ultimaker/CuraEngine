@@ -1,14 +1,14 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SETTINGS_PATH_CONFIGS_H
 #define SETTINGS_PATH_CONFIGS_H
 
-#include <vector>
-
 #include "GCodePathConfig.h"
-#include "utils/Coord_t.h"
 #include "settings/types/LayerIndex.h"
+#include "utils/Coord_t.h"
+
+#include <vector>
 
 namespace cura
 {
@@ -35,6 +35,7 @@ private:
 
     const std::vector<Ratio> line_width_factor_per_extruder;
     static std::vector<Ratio> getLineWidthFactorPerExtruder(const LayerIndex& layer_nr);
+
 public:
     class MeshPathConfigs
     {
@@ -44,7 +45,7 @@ public:
         GCodePathConfig bridge_inset0_config;
         GCodePathConfig bridge_insetX_config;
         GCodePathConfig skin_config;
-        GCodePathConfig bridge_skin_config;  // used for first bridge layer
+        GCodePathConfig bridge_skin_config; // used for first bridge layer
         GCodePathConfig bridge_skin_config2; // used for second bridge layer
         GCodePathConfig bridge_skin_config3; // used for third bridge layer
         GCodePathConfig roofing_config;
