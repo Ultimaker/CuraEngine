@@ -28,7 +28,7 @@
 
 namespace cura
 {
-    class SmoothTest_TestSmooth_Test;
+class SmoothTest_TestSmooth_Test;
 }
 
 namespace cura::actions
@@ -46,16 +46,22 @@ struct smooth_fn
         return ranges::make_action_closure(ranges::bind_back(smooth_fn{}, fluid_motion_shift_distance, fluid_motion_small_distance, fluid_motion_angle));
     }
 
-    constexpr auto operator()(const utils::integral auto fluid_motion_shift_distance, const utils::integral auto fluid_motion_small_distance, const utils::floating_point auto fluid_motion_angle) const
+    constexpr auto operator()(
+        const utils::integral auto fluid_motion_shift_distance,
+        const utils::integral auto fluid_motion_small_distance,
+        const utils::floating_point auto fluid_motion_angle) const
     {
         return ranges::make_action_closure(ranges::bind_back(smooth_fn{}, fluid_motion_shift_distance, fluid_motion_small_distance, fluid_motion_angle));
     }
 
     template<class Rng>
-    requires
-        ranges::forward_range<Rng> && ranges::sized_range<Rng> && ranges::erasable_range<Rng, ranges::iterator_t<Rng>, ranges::sentinel_t<Rng>> &&(
+    requires ranges::forward_range<Rng> && ranges::sized_range<Rng> && ranges::erasable_range<Rng, ranges::iterator_t<Rng>, ranges::sentinel_t<Rng>> &&(
         utils::point2d<ranges::range_value_t<Rng>> || utils::junctions<Rng>)constexpr auto
-        operator()(Rng&& rng, const utils::integral auto fluid_motion_shift_distance, const utils::integral auto fluid_motion_small_distance, const utils::floating_point auto fluid_motion_angle) const
+        operator()(
+            Rng&& rng,
+            const utils::integral auto fluid_motion_shift_distance,
+            const utils::integral auto fluid_motion_small_distance,
+            const utils::floating_point auto fluid_motion_angle) const
     {
         const auto fluid_motion_shift_distance3 = 3 * fluid_motion_shift_distance;
 
@@ -189,7 +195,8 @@ private:
 
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
-    Point shiftPointTowards(Point& p0, Point& p1, const utils::numeric auto move_distance, const utils::floating_point auto p0p1_distance) const noexcept
+        Point shiftPointTowards(Point& p0, Point& p1, const utils::numeric auto move_distance, const utils::floating_point auto p0p1_distance)
+    const noexcept
     {
         using coord_type = std::remove_cvref_t<decltype(std::get<"X">(p0))>;
         const auto shift_distance = move_distance / p0p1_distance;
@@ -200,15 +207,13 @@ private:
     }
 
     template<class Point>
-    requires utils::point2d<Point> || utils::junction<Point>
-    utils::floating_point auto dist(Point& point_0, Point& point_1) const noexcept
+    requires utils::point2d<Point> || utils::junction<Point> utils::floating_point auto dist(Point& point_0, Point& point_1) const noexcept
     {
         return std::hypot(std::get<"X">(point_0) - std::get<"X">(point_1), std::get<"Y">(point_0) - std::get<"Y">(point_1));
     }
 
     template<class Vector>
-    requires utils::point2d<Vector> || utils::junction<Vector>
-    utils::floating_point auto magnitude(Vector& v) const noexcept
+    requires utils::point2d<Vector> || utils::junction<Vector> utils::floating_point auto magnitude(Vector& v) const noexcept
     {
         return std::hypot(std::get<"X">(v), std::get<"Y">(v));
     }
@@ -222,13 +227,7 @@ private:
 
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
-    bool isSmooth(
-        Point& A,
-        Point& B,
-        Point& C,
-        Point& D,
-        utils::floating_point auto fluid_motion_angle
-    ) const noexcept
+    bool isSmooth(Point& A, Point& B, Point& C, Point& D, utils::floating_point auto fluid_motion_angle) const noexcept
     {
         /*
          * Move points A and B, so they are both at equal distance from C and D
