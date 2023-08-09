@@ -99,7 +99,7 @@ jobs:
 
       - name: Install Python requirements and Create default Conan profile
         run: |
-          pip install -r .github/workflows/requirements-conan-package.txt
+          pip install -r CuraEngine/.github/workflows/requirements-conan-package.txt
           pip install wheel numpy pandas python-dateutil pytz six
           pip install git+https://github.com/ultimaker/libcharon@CURA-9495_analyzer_requisites#egg=charon
           pip install pytest pytest-benchmark
