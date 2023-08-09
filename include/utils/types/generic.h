@@ -4,6 +4,8 @@
 #ifndef CURAENGINE_GENERIC_H
 #define CURAENGINE_GENERIC_H
 
+#include <range/v3/range/concepts.hpp>
+
 #include <concepts>
 #include <functional>
 #include <type_traits>
@@ -53,6 +55,9 @@ template<typename Tp>
 concept floating_point = std::floating_point<Tp>;
 #endif
 // clang-format on
+
+template<typename Tp>
+concept numeric = std::is_arithmetic_v<std::remove_cvref_t<Tp>>;
 } // namespace cura::utils
 
 #endif // CURAENGINE_GENERIC_H

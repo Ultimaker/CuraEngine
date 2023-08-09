@@ -10,7 +10,7 @@ from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
 from conan.tools.scm import Version
 
-required_conan_version = ">=1.56.0"
+required_conan_version = ">=1.54 <=1.56.0 || >=1.58.0 <2.0.0"
 
 
 class CuraEngineConan(ConanFile):
