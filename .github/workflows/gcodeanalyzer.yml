@@ -4,11 +4,6 @@ on:
     paths:
       - 'include/**'
       - 'src/**'
-      - 'cmake/**'
-      - 'benchmark/**'
-      - 'conanfile.py'
-      - 'conandata.yml'
-      - 'CMakeLists.txt'
       - '.github/workflows/gcodeanalyzer.yml'
       - '.github/workflows/requirements-conan-package.txt'
     branches:
@@ -18,12 +13,6 @@ on:
     paths:
       - 'include/**'
       - 'src/**'
-      - 'cmake/**'
-      - 'tests/**'
-      - 'test_package/**'
-      - 'conanfile.py'
-      - 'conandata.yml'
-      - 'CMakeLists.txt'
       - '.github/workflows/gcodeanalyzer.yml'
       - '.github/workflows/requirements-conan-package.txt'
     branches:
@@ -277,10 +266,8 @@ jobs:
           tool: customBiggerIsBetter
           github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: true
-          summary-always: true
           gh-repository: github.com/Ultimaker/CuraEngine
           # Show alert with commit comment on detecting possible performance regression
           alert-threshold: '10%'
           comment-on-alert: true
           fail-on-alert: true
-          alert-comment-cc-users: '@jellespijker'
