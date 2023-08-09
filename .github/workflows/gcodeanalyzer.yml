@@ -92,12 +92,6 @@ jobs:
           cache: 'pip'
           cache-dependency-path: CuraEngine/.github/workflows/requirements-conan-package.txt
 
-      - name: Cache Benchmark library
-        uses: actions/cache@v1
-        with:
-          path: ./cache
-          key: ${{ runner.os }}-gcodeanalyzer
-
       - name: Install Python requirements and Create default Conan profile
         run: |
           pip install -r CuraEngine/.github/workflows/requirements-conan-package.txt
@@ -278,7 +272,6 @@ jobs:
         uses: benchmark-action/github-action-benchmark@v1
         with:
           name: CGcodeAnalyzer
-          external-data-json-path: ./cache/benchmark-data.json
           output-file-path: output.json
           benchmark-data-dir-path: dev/gcodeanalyzer
           tool: customBiggerIsBetter
