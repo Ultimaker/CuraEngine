@@ -64,7 +64,7 @@ jobs:
           repository: 'Ultimaker/GCodeAnalyzer'
           ref: 'main'
           path: 'GCodeAnalyzer'
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GCODEANALYZER_PAT }}
 
       - name: Checkout Test Models
         uses: actions/checkout@v3
