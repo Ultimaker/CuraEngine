@@ -268,6 +268,8 @@ jobs:
           auto-push: true
           gh-repository: github.com/Ultimaker/CuraEngine
           # Show alert with commit comment on detecting possible performance regression
-          alert-threshold: '10%'
+          alert-threshold: '110%'
+          summary-always: true
+          comment-always: true
           comment-on-alert: true
           fail-on-alert: true
