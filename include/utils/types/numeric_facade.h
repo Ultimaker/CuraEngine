@@ -22,9 +22,9 @@ struct NumericFacade
     constexpr NumericFacade(const NumericFacade& other) noexcept = default;
     constexpr NumericFacade(NumericFacade&& other) noexcept = default;
 
-    constexpr NumericFacade(const floating_point auto value) noexcept requires floating_point<value_type> : value{ static_cast<value_type>(value) } {};
+    constexpr NumericFacade(const floating_point auto val) noexcept requires floating_point<value_type> : value{ static_cast<value_type>(val) } {};
 
-    constexpr NumericFacade(const integral auto value) noexcept requires integral<value_type> : value{ static_cast<value_type>(value) } {};
+    constexpr NumericFacade(const integral auto val) noexcept requires integral<value_type> : value{ static_cast<value_type>(val) } {};
 
     constexpr NumericFacade& operator=(const NumericFacade& other) noexcept = default;
 
