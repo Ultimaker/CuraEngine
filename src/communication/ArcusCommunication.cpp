@@ -138,7 +138,7 @@ public:
         }
         else if (initial_point != last_point)
         {
-            addLineSegment(PrintFeatureType::NoneType, initial_point, 1, 0, 0);
+            addLineSegment(PrintFeatureType::NoneType, initial_point, 1, 0, 0.0);
         }
     }
 

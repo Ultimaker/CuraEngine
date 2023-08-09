@@ -173,6 +173,12 @@ Velocity Settings::get<Velocity>(const std::string& key) const
 }
 
 template<>
+Acceleration Settings::get<Acceleration>(const std::string& key) const
+{
+    return get<double>(key);
+}
+
+template<>
 Ratio Settings::get<Ratio>(const std::string& key) const
 {
     return get<double>(key) / 100.0; // The settings are all in percentages, but we need to interpret them as radians.
