@@ -2,8 +2,8 @@ name: lint-poster
 
 on:
   workflow_run:
-    workflows: ["lint-tidier"]
-    types: [completed]
+    workflows: [ "lint-tidier" ]
+    types: [ completed ]
 
 jobs:
   lint-poster-job:
