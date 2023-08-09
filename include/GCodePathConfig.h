@@ -5,14 +5,13 @@
 #define G_CODE_PATH_CONFIG_H
 
 #include "PrintFeature.h"
-#include "settings/types/Ratio.h" //For flow rate.
+#include "settings/types/Ratio.h"
 #include "settings/types/Velocity.h"
+#include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
 
 namespace cura 
 {
-
-struct LayerIndex;
 
 /*!
  * The GCodePathConfig is the configuration for moves/extrusion actions. This defines at which width the line is printed and at which speed.

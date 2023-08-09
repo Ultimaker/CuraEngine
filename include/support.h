@@ -5,6 +5,7 @@
 #define SUPPORT_H
 
 #include "utils/polygon.h"
+#include "settings/types/LayerIndex.h"
 
 #include <cstddef>
 #include <vector>
@@ -12,7 +13,6 @@
 namespace cura
 {
 
-struct LayerIndex;
 class Settings;
 class SliceDataStorage;
 class SliceMeshStorage;

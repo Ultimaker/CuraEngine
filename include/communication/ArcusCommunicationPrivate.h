@@ -9,11 +9,11 @@
 
 #include "ArcusCommunication.h" //We're adding a subclass to this.
 #include "SliceDataStruct.h"
+#include "settings/types/LayerIndex.h"
 
 namespace cura
 {
 
-struct LayerIndex;
 
 class ArcusCommunication::Private
 {

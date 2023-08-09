@@ -12,6 +12,7 @@
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
 #include "settings/types/Temperature.h" //Bed temperature.
 #include "settings/types/Velocity.h"
+#include "settings/types/LayerIndex.h"
 #include "sliceDataStorage.h"
 #include "timeEstimate.h"
 #include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
@@ -24,7 +25,6 @@
 namespace cura
 {
 
-struct LayerIndex;
 class RetractionConfig;
 struct WipeScriptConfig;
 

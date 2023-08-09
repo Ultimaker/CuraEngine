@@ -6,14 +6,14 @@
 
 #include <vector>
 
-#include "../GCodePathConfig.h"
-#include "../utils/Coord_t.h"
+#include "GCodePathConfig.h"
+#include "utils/Coord_t.h"
+#include "settings/types/LayerIndex.h"
 
 namespace cura
 {
 
 class ExtruderTrain;
-struct LayerIndex;
 class SliceDataStorage;
 class SliceMeshStorage;
 

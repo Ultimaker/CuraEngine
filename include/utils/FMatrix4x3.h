@@ -4,12 +4,13 @@
 #ifndef FMATRIX4X3_H
 #define FMATRIX4X3_H
 
+#include "settings/types/Ratio.h"
+
 namespace cura
 {
 
 class FPoint3;
 class Point3;
-class Ratio;
 
 /*!
  * A 4x3 affine transformation matrix.
