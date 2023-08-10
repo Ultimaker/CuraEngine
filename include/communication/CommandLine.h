@@ -86,7 +86,7 @@ public:
      * The command line doesn't do anything with that information so this is
      * ignored.
      */
-    void sendLayerComplete(const LayerIndex&, const coord_t&, const coord_t&) override;
+    void sendLayerComplete(const LayerIndex::value_type&, const coord_t&, const coord_t&) override;
 
     /*
      * \brief Send a line for display.
@@ -143,7 +143,7 @@ public:
      * This has no effect though because we don't shwo these three functions
      * because the command line doesn't show layer view.
      */
-    void setLayerForSend(const LayerIndex&) override;
+    void setLayerForSend(const LayerIndex::value_type&) override;
 
     /*
      * \brief Slice the next scene that the command line commands us to slice.

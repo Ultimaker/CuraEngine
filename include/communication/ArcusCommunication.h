@@ -117,7 +117,7 @@ public:
      * \param z The z-coordinate of the top side of the layer.
      * \param thickness The thickness of the layer.
      */
-    void sendLayerComplete(const LayerIndex& layer_nr, const coord_t& z, const coord_t& thickness) override;
+    void sendLayerComplete(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness) override;
 
     /*
      * \brief Send a line to the front-end to display in layer view.
@@ -192,7 +192,7 @@ public:
      * \param layer_nr The index of the layer to send data for. This is zero-
      * indexed but may be negative for raft layers.
      */
-    void setLayerForSend(const LayerIndex& layer_nr) override;
+    void setLayerForSend(const LayerIndex::value_type& layer_nr) override;
 
     /*
      * \brief Slice the next scene that the front-end wants us to slice.
