@@ -82,7 +82,8 @@ struct smooth_fn
             const auto D = *std::next(windows_it, 3);
 
             const auto fluid_motion_shift_distance3 = 3 * fluid_motion_shift_distance;
-            if (dist(*A, *B) < fluid_motion_shift_distance3 || dist(*B, *C) > fluid_motion_small_distance || dist(*C, *D) < fluid_motion_shift_distance3)            {
+            if (dist(*A, *B) < fluid_motion_shift_distance3 || dist(*B, *C) > fluid_motion_small_distance || dist(*C, *D) < fluid_motion_shift_distance3)
+            {
                 continue;
             }
 
