@@ -225,7 +225,7 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
     const size_t num_vertex = raw_vertices.size();
     for (size_t i_coord = 0; i_coord < num_vertex; ++i_coord)
     {
-        auto micrometers = static_cast<coord_t>(raw_vertices[i_coord] * 1000.F);
+        auto micrometers = static_cast<coord_t>(std::llrintf(raw_vertices[i_coord] * 1000.F));
         raw_min_coords[i_coord % 3] = std::min(micrometers, raw_min_coords[i_coord % 3]);
         raw_max_coords[i_coord % 3] = std::max(micrometers, raw_max_coords[i_coord % 3]);
     }
