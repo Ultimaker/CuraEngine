@@ -297,5 +297,35 @@ INSTANTIATE_TEST_SUITE_P(RotateAroundInstantiation,
                                          RotateAroundParameters(Point(-67, 14), Point(50, 50), 12, Point(-57, -9)) // 12 degrees rotation. Actually ends up at [-57, -9.5]!
                                          ));
 
+class Temp {};
+
+TEST(Temp, LineDistTests)
+{
+    std::srand(987);
+    for (int z = 0; z < 100; ++z)
+    {
+        const Point p{ 500000 + (std::rand() % 4000) - 2000, 500000 + (std::rand() % 4000) - 2000 };
+
+        const coord_t d = (std::rand() % 2000) - 1000 /2;
+        const double rang = std::rand() / (static_cast<double>(RAND_MAX) / 6.29);
+        const Point x{ p.X + static_cast<coord_t>(d * std::cos(rang)), p.Y - static_cast<coord_t>(d * std::sin(rang)) };
+
+        // Use positive lengths here, so line and line-segment should give the same answers.
+        coord_t len = std::rand() % 1000;
+        const Point a{ x.X + static_cast<coord_t>(len * std::sin(rang)), x.Y + static_cast<coord_t>(len * std::cos(rang)) };
+        len = std::rand() % 1000;
+        const Point b{ x.X - static_cast<coord_t>(len * std::sin(rang)), x.Y - static_cast<coord_t>(len * std::cos(rang)) };
+
+        const coord_t abs_d = std::abs(d);
+        ASSERT_NEAR(LinearAlg2D::getDistFromLine(p, a, b), abs_d, 5);
+        ASSERT_NEAR(vSize(LinearAlg2D::getClosestOnLine(p, a, b) - x), 0, 5);
+        ASSERT_NEAR(vSize(LinearAlg2D::getClosestOnLineSegment(p, a, b) - x), 0, 5);
+        ASSERT_NEAR(std::sqrt(LinearAlg2D::getDist2FromLine(p, a, b)), abs_d, 5);
+        ASSERT_NEAR(std::sqrt(LinearAlg2D::getDist2FromLineSegment(a, p, b)), abs_d, 5);
+
+        ASSERT_NEAR(std::round(std::sqrt(LinearAlg2D::getDist2FromLine(p, a, b))), LinearAlg2D::getDistFromLine(p, a, b), 5);
+    }
+}
+
 } // namespace cura
 // NOLINTEND(*-magic-numbers)

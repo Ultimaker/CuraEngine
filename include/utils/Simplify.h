@@ -133,6 +133,27 @@ protected:
      */
     constexpr static coord_t min_resolution = 5; //5 units, regardless of how big those are, to allow for rounding errors.
 
+    template<typename Polygonal>
+    bool detectSmall(const Polygonal& polygon, const coord_t& min_size) const
+    {
+        if (polygon.size() < min_size) //For polygon, 2 or fewer vertices is degenerate. Delete it. For polyline, 1 vertex is degenerate.
+        {
+            return true;
+        }
+        if (polygon.size() == min_size)
+        {
+            const auto a = getPosition(polygon[0]);
+            const auto b = getPosition(polygon[1]);
+            const auto c = getPosition(polygon[polygon.size() - 1]);
+            if (std::max(std::max(vSize2(b - a), vSize2(c - a)), vSize2(c - b)) < min_resolution * min_resolution)
+            {
+                // ... unless they are degenetate.
+                return true;
+            }
+        }
+        return false;
+    }
+
     /*!
      * The main simplification algorithm starts here.
      * \tparam Polygonal A polygonal object, which is a list of vertices.
@@ -144,7 +165,7 @@ protected:
     Polygonal simplify(const Polygonal& polygon, const bool is_closed) const
     {
         const size_t min_size = is_closed ? 3 : 2;
-        if(polygon.size() < min_size) //For polygon, 2 or fewer vertices is degenerate. Delete it. For polyline, 1 vertex is degenerate.
+        if (detectSmall(polygon, min_size))
         {
             return createEmpty(polygon);
         }
@@ -160,32 +181,41 @@ protected:
         };
         std::priority_queue<std::pair<size_t, coord_t>, std::vector<std::pair<size_t, coord_t>>, decltype(comparator)> by_importance(comparator);
 
-        //Add the initial points.
-        for(size_t i = 0; i < polygon.size(); ++i)
-        {
-            const coord_t vertex_importance = importance(polygon, to_delete, i, is_closed);
-            by_importance.emplace(i, vertex_importance);
-        }
-
-        //Iteratively remove the least important point until a threshold.
         Polygonal result = polygon; //Make a copy so that we can also shift vertices.
-        coord_t vertex_importance = 0;
-        while(by_importance.size() > min_size)
+        for (int64_t current_removed = -1; (polygon.size() - current_removed) > min_size && current_removed != 0;)
         {
-            std::pair<size_t, coord_t> vertex = by_importance.top();
-            by_importance.pop();
-            //The importance may have changed since this vertex was inserted. Re-compute it now.
-            //If it doesn't change, it's safe to process.
-            vertex_importance = importance(result, to_delete, vertex.first, is_closed);
-            if(vertex_importance != vertex.second)
+            current_removed = 0;
+
+            //Add the initial points.
+            for (size_t i = 0; i < result.size(); ++i)
             {
-                by_importance.emplace(vertex.first, vertex_importance); //Re-insert with updated importance.
-                continue;
+                if (to_delete[i])
+                {
+                    continue;
+                }
+                const coord_t vertex_importance = importance(result, to_delete, i, is_closed);
+                by_importance.emplace(i, vertex_importance);
             }
 
-            if(vertex_importance <= max_deviation * max_deviation)
+            //Iteratively remove the least important point until a threshold.
+            coord_t vertex_importance = 0;
+            while (! by_importance.empty() && (polygon.size() - current_removed) > min_size)
             {
-                remove(result, to_delete, vertex.first, vertex_importance, is_closed);
+                std::pair<size_t, coord_t> vertex = by_importance.top();
+                by_importance.pop();
+                //The importance may have changed since this vertex was inserted. Re-compute it now.
+                //If it doesn't change, it's safe to process.
+                vertex_importance = importance(result, to_delete, vertex.first, is_closed);
+                if (vertex_importance != vertex.second)
+                {
+                    by_importance.emplace(vertex.first, vertex_importance); //Re-insert with updated importance.
+                    continue;
+                }
+
+                if (vertex_importance <= max_deviation * max_deviation)
+                {
+                    current_removed += remove(result, to_delete, vertex.first, vertex_importance, is_closed) ? 1 : 0;
+                }
             }
         }
 
@@ -199,6 +229,10 @@ protected:
             }
         }
 
+        if (detectSmall(filtered, min_size))
+        {
+            return createEmpty(filtered);
+        }
         return filtered;
     }
 
@@ -260,17 +294,18 @@ protected:
      * \param vertex The index of the vertex to remove.
      * \param deviation2 The previously found deviation for this vertex.
      * \param is_closed Whether we're working on a closed polygon or an open
+     \return Whether something is actually removed
      * polyline.
      */
     template<typename Polygonal>
-    void remove(Polygonal& polygon, std::vector<bool>& to_delete, const size_t vertex, const coord_t deviation2, const bool is_closed) const
+    bool remove(Polygonal& polygon, std::vector<bool>& to_delete, const size_t vertex, const coord_t deviation2, const bool is_closed) const
     {
         if(deviation2 <= min_resolution * min_resolution)
         {
             //At less than the minimum resolution we're always allowed to delete the vertex.
             //Even if the adjacent line segments are very long.
             to_delete[vertex] = true;
-            return;
+            return true;
         }
 
         const size_t before = previousNotDeleted(vertex, to_delete);
@@ -285,7 +320,7 @@ protected:
         {
             //Removing this vertex does little harm. No long lines will be shifted.
             to_delete[vertex] = true;
-            return;
+            return true;
         }
 
         //Otherwise, one edge next to this vertex is longer than max_resolution. The other is shorter.
@@ -296,7 +331,7 @@ protected:
         {
             if(!is_closed && before == 0) //No edge before the short edge.
             {
-                return; //Edge cannot be deleted without shifting a long edge. Don't remove anything.
+                return false; //Edge cannot be deleted without shifting a long edge. Don't remove anything.
             }
             const size_t before_before = previousNotDeleted(before, to_delete);
             before_from = getPosition(polygon[before_before]);
@@ -308,7 +343,7 @@ protected:
         {
             if(!is_closed && after == polygon.size() - 1) //No edge after the short edge.
             {
-                return; //Edge cannot be deleted without shifting a long edge. Don't remove anything.
+                return false; //Edge cannot be deleted without shifting a long edge. Don't remove anything.
             }
             const size_t after_after = nextNotDeleted(after, to_delete);
             before_from = getPosition(polygon[before]);
@@ -320,14 +355,16 @@ protected:
         const bool did_intersect = LinearAlg2D::lineLineIntersection(before_from, before_to, after_from, after_to, intersection);
         if(!did_intersect) //Lines are parallel.
         {
-            return; //Cannot remove edge without shifting a long edge. Don't remove anything.
+            return false; //Cannot remove edge without shifting a long edge. Don't remove anything.
         }
         const coord_t intersection_deviation = LinearAlg2D::getDist2FromLineSegment(before_to, intersection, after_from);
         if(intersection_deviation <= max_deviation * max_deviation) //Intersection point doesn't deviate too much. Use it!
         {
             to_delete[vertex] = true;
             polygon[length2_before <= length2_after ? before : after] = createIntersection(polygon[before], intersection, polygon[after]);
+            return true;
         }
+        return false;
     }
 
     /*!
