@@ -1,29 +1,32 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <cstring> //For strtok and strcopy.
-#include <errno.h> // error number when trying to read file
-#include <filesystem>
-#include <fstream> //To check if files exist.
-#include <numeric> //For std::accumulate.
-#include <unordered_set>
-
-#include <rapidjson/error/en.h> //Loading JSON documents to get settings from them.
-#include <rapidjson/filereadstream.h>
-#include <rapidjson/rapidjson.h>
-#include <spdlog/spdlog.h>
+#include "communication/CommandLine.h"
 
 #include "Application.h" //To get the extruders for material estimates.
 #include "ExtruderTrain.h"
 #include "FffProcessor.h" //To start a slice and get time estimates.
 #include "Slice.h"
-#include "communication/CommandLine.h"
 #include "utils/FMatrix4x3.h" //For the mesh_rotation_matrix setting.
+
+#include <spdlog/spdlog.h>
+
+#include <cstring> //For strtok and strcopy.
+#include <errno.h> // error number when trying to read file
+#include <filesystem>
+#include <fstream> //To check if files exist.
+#include <numeric> //For std::accumulate.
+#include <rapidjson/error/en.h> //Loading JSON documents to get settings from them.
+#include <rapidjson/filereadstream.h>
+#include <rapidjson/rapidjson.h>
+#include <unordered_set>
 
 namespace cura
 {
 
-CommandLine::CommandLine(const std::vector<std::string>& arguments) : arguments(arguments), last_shown_progress(0)
+CommandLine::CommandLine(const std::vector<std::string>& arguments)
+    : arguments(arguments)
+    , last_shown_progress(0)
 {
 }
 
@@ -165,7 +168,8 @@ void CommandLine::sliceNext()
                 }
                 else if (argument.find("--force-read-nondefault") == 0 || argument.find("--force_read_nondefault") == 0)
                 {
-                    spdlog::info("From this point on, if 'default_value' is not available, force the parser to read 'value' (instead of dropping it) to fill the used setting-values.");
+                    spdlog::info(
+                        "From this point on, if 'default_value' is not available, force the parser to read 'value' (instead of dropping it) to fill the used setting-values.");
                     force_read_nondefault = true;
                 }
                 else if (argument.find("--end-force-read") == 0 || argument.find("--end_force_read") == 0)
@@ -407,14 +411,12 @@ std::unordered_set<std::string> CommandLine::defaultSearchDirectories()
     return result;
 }
 
-int CommandLine::loadJSON
-(
+int CommandLine::loadJSON(
     const rapidjson::Document& document,
     const std::unordered_set<std::string>& search_directories,
     Settings& settings,
     bool force_read_parent,
-    bool force_read_nondefault
-)
+    bool force_read_nondefault)
 {
     // Inheritance from other JSON documents.
     if (document.HasMember("inherits") && document["inherits"].IsString())
@@ -433,7 +435,8 @@ int CommandLine::loadJSON
     }
 
     // Extruders defined from here, if any.
-    // Note that this always puts the extruder settings in the slice of the current extruder. It doesn't keep the nested structure of the JSON files, if extruders would have their own sub-extruders.
+    // Note that this always puts the extruder settings in the slice of the current extruder. It doesn't keep the nested structure of the JSON files, if extruders would have their
+    // own sub-extruders.
     Scene& scene = Application::getInstance().current_slice->scene;
     if (document.HasMember("metadata") && document["metadata"].IsObject())
     {
@@ -502,20 +505,17 @@ bool jsonValue2Str(const rapidjson::Value& value, std::string& value_string)
         }
         std::string temp;
         jsonValue2Str(value[0], temp);
-        value_string =
-            std::string("[") +
-            std::accumulate
-            (
-                std::next(value.Begin()),
-                value.End(),
-                temp,
-                [&temp](std::string converted, const rapidjson::Value& next)
-                {
-                    jsonValue2Str(next, temp);
-                    return std::move(converted) + "," + temp;
-                }
-            ) +
-            std::string("]");
+        value_string = std::string("[")
+                     + std::accumulate(
+                           std::next(value.Begin()),
+                           value.End(),
+                           temp,
+                           [&temp](std::string converted, const rapidjson::Value& next)
+                           {
+                               jsonValue2Str(next, temp);
+                               return std::move(converted) + "," + temp;
+                           })
+                     + std::string("]");
     }
     else
     {

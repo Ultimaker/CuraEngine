@@ -6,17 +6,17 @@
 #ifdef ARCUS
 
 #ifdef BUILD_TESTS
-    #include <gtest/gtest_prod.h>
+#include <gtest/gtest_prod.h>
 #endif
-#include <memory> //For unique_ptr and shared_ptr.
-
 #include "Communication.h" //The class we're implementing.
 #include "Cura.pb.h" //To create Protobuf messages for Cura's front-end.
 
-//Forward declarations to speed up compilation.
+#include <memory> //For unique_ptr and shared_ptr.
+
+// Forward declarations to speed up compilation.
 namespace Arcus
 {
-    class Socket;
+class Socket;
 }
 
 namespace cura
@@ -227,7 +227,7 @@ private:
     const std::unique_ptr<PathCompiler> path_compiler;
 };
 
-} //namespace cura
+} // namespace cura
 
-#endif //ARCUS
-#endif //ARCUSCOMMUNICATION_H
+#endif // ARCUS
+#endif // ARCUSCOMMUNICATION_H

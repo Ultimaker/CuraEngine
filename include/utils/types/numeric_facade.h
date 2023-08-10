@@ -21,8 +21,10 @@ struct NumericFacade
     constexpr NumericFacade(const NumericFacade& other) noexcept = default;
     constexpr NumericFacade(NumericFacade&& other) noexcept = default;
 
-    constexpr NumericFacade(const floating_point auto val) noexcept : value{ static_cast<value_type>(val) } {};
-    constexpr explicit NumericFacade(const integral auto val) noexcept : value{ static_cast<value_type>(val) } {};
+    constexpr NumericFacade(const floating_point auto val) noexcept
+        : value{ static_cast<value_type>(val) } {};
+    constexpr explicit NumericFacade(const integral auto val) noexcept
+        : value{ static_cast<value_type>(val) } {};
 
     constexpr NumericFacade& operator=(const NumericFacade& other) noexcept = default;
 
@@ -160,7 +162,6 @@ struct NumericFacade
     {
         return { -value };
     }
-
 };
 
 } // namespace cura::utils
