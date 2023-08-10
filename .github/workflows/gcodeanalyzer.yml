@@ -85,12 +85,20 @@ jobs:
 
       - name: Checkout .def.json files from Cura frontend
         run: |
+          cd CuraEngine
+          branch_name=$(git rev-parse --abbrev-ref HEAD)
+          exists=$(git show-ref --quiet "refs/remotes/origin/${branch_name}")
+          cd ..
           mkdir Cura
           cd Cura
           git init
           git sparse-checkout set resources/definitions resources/extruders
           git remote add -f origin https://github.com/Ultimaker/Cura
-          git pull origin main
+          if [ ${exists} ]; then
+            git pull origin ${branch_name}
+          else
+            git pull origin main
+          fi
           cd ..
 
       - name: Setup Python and pip
