@@ -36,7 +36,27 @@ env:
   CONAN_NON_INTERACTIVE: 1
 
 jobs:
+  check_actor:
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.skip_check.outputs.proceed }}
+    steps:
+      - id: skip_check
+        run: |
+          if [[ "${{ github.actor }}" == *"[bot]"* ]]; then
+            echo "proceed=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.pull_request }}" == "" ]]; then 
+            echo "proceed=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.pull_request.head.repo.fork }}" == "false" ]]; then 
+            echo "proceed=true" >> $GITHUB_OUTPUT
+          else
+            echo "proceed=false" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
   conan-recipe-version:
+    needs: [ check_actor ]
+    if: ${{ needs.check_actor.outputs.proceed == 'true' }}
     uses: ultimaker/cura/.github/workflows/conan-recipe-version.yml@main
     with:
       project_name: curaengine
@@ -123,7 +143,7 @@ jobs:
 
       - name: Run benchmark CuraEngine
         id: run-test
-        run: ./benchmarks --benchmark_format=json --benchmark_context=version=`${{ needs.conan-recipe-version.outputs.recipe_semver_full }}` | tee benchmark_result.json
+        run: ./benchmarks --benchmark_format=json --benchmark_context=version=`"${{ needs.conan-recipe-version.outputs.recipe_semver_full }}"` | tee benchmark_result.json
         working-directory: build/Release/benchmark
 
       - name: Store benchmark result
