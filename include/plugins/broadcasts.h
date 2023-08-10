@@ -4,8 +4,8 @@
 #ifndef PLUGINS_BROADCAST_H
 #define PLUGINS_BROADCAST_H
 
-#include "cura/plugins/v0/slot_id.pb.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
+#include "cura/plugins/v0/slot_id.pb.h"
 #include "plugins/converters.h"
 
 #include <agrpc/asio_grpc.hpp>

@@ -82,7 +82,13 @@ private:
         request_type request{};
 
         auto response = google::protobuf::Empty{};
-        status = co_await request_type::ClientRPC::request(grpc_context, broadcast_stub_, client_context, request(std::forward<decltype(args)>(args)...), response, boost::asio::use_awaitable);
+        status = co_await request_type::ClientRPC::request(
+            grpc_context,
+            broadcast_stub_,
+            client_context,
+            request(std::forward<decltype(args)>(args)...),
+            response,
+            boost::asio::use_awaitable);
         co_return;
     }
 
