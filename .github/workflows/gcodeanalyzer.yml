@@ -86,10 +86,10 @@ jobs:
       - name: Determine the corresponding Cura branch
         id: curabranch
         run: |
-          status_code=$(curl -s -o /dev/null -w "%{http_code}" "https://api.github.com/repos/ultimaker/cura/branches/${{ github.ref_name }}")
+          status_code=$(curl -s -o /dev/null -w "%{http_code}" "https://api.github.com/repos/ultimaker/cura/branches/${{ github.head_ref }}")
           if [ "$status_code" -eq 200 ]; then
             echo "The branch exists in Cura"
-            echo "branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "branch=${{ github.head_ref }}" >> $GITHUB_OUTPUT
           else
             echo "branch=main" >> $GITHUB_OUTPUT
           fi
