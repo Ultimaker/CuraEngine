@@ -36,7 +36,12 @@ std::shared_ptr<grpc::Channel> createChannel(const ChannelSetupConfiguration& co
         spdlog::warn("Remote plugins where disabled, will not connect to {}:{}.", config.host, config.port);
         return std::shared_ptr<grpc::ChannelCredentials>();
     };
-    return grpc::CreateChannel(fmt::format("{}:{}", config.host, config.port), create_credentials(config));
+    grpc::ChannelArguments args;
+    args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS, 200 * 1000 /*200 sec*/);
+    args.SetInt(GRPC_ARG_KEEPALIVE_TIMEOUT_MS, 100 * 1000 /*100 sec*/);
+    args.SetInt(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
+
+    return grpc::CreateCustomChannel(fmt::format("{}:{}", config.host, config.port), create_credentials(config), args);
 }
 
 } // namespace cura::utils
