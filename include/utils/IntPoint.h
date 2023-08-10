@@ -1,5 +1,5 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2020 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_INT_POINT_H
 #define UTILS_INT_POINT_H
@@ -10,21 +10,19 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 */
 #define INLINE static inline
 
-//Include Clipper to get the ClipperLib::IntPoint definition, which we reuse as Point definition.
-#include <polyclipping/clipper.hpp>
+// Include Clipper to get the ClipperLib::IntPoint definition, which we reuse as Point definition.
+#include "../utils/math.h" // for M_PI. Use relative path to avoid pulling <math.h>
+#include "Point3.h" //For applying Point3Matrices.
+
 #include <cmath>
 #include <functional> // for hash function object
 #include <iostream> // auto-serialization / auto-toString()
 #include <limits>
+#include <polyclipping/clipper.hpp>
 #include <stdint.h>
 
-#include "Point3.h" //For applying Point3Matrices.
-
-
-#include "../utils/math.h" // for M_PI. Use relative path to avoid pulling <math.h>
-
 #ifdef __GNUC__
-#define DEPRECATED(func) func __attribute__ ((deprecated))
+#define DEPRECATED(func) func __attribute__((deprecated))
 #elif defined(_MSC_VER)
 #define DEPRECATED(func) __declspec(deprecated) func
 #else
@@ -45,22 +43,62 @@ typedef ClipperLib::IntPoint Point;
 static Point no_point(std::numeric_limits<ClipperLib::cInt>::min(), std::numeric_limits<ClipperLib::cInt>::min());
 
 /* Extra operators to make it easier to do math with the 64bit Point objects */
-INLINE Point operator-(const Point& p0) { return Point(-p0.X, -p0.Y); }
-INLINE Point operator+(const Point& p0, const Point& p1) { return Point(p0.X+p1.X, p0.Y+p1.Y); }
-INLINE Point operator-(const Point& p0, const Point& p1) { return Point(p0.X-p1.X, p0.Y-p1.Y); }
-INLINE Point operator*(const Point& p0, const coord_t i) { return Point(p0.X * i, p0.Y * i); }
-template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type> //Use only for numeric types.
-INLINE Point operator*(const Point& p0, const T i) { return Point(p0.X * i, p0.Y * i); }
-template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type> //Use only for numeric types.
-INLINE Point operator*(const T i, const Point& p0) { return p0 * i; }
-INLINE Point operator/(const Point& p0, const coord_t i) { return Point(p0.X/i, p0.Y/i); }
-INLINE Point operator/(const Point& p0, const Point& p1) { return Point(p0.X/p1.X, p0.Y/p1.Y); }
-INLINE Point operator%(const Point& p0, const coord_t i) { return Point(p0.X%i, p0.Y%i); }
+INLINE Point operator-(const Point& p0)
+{
+    return Point(-p0.X, -p0.Y);
+}
+INLINE Point operator+(const Point& p0, const Point& p1)
+{
+    return Point(p0.X + p1.X, p0.Y + p1.Y);
+}
+INLINE Point operator-(const Point& p0, const Point& p1)
+{
+    return Point(p0.X - p1.X, p0.Y - p1.Y);
+}
+INLINE Point operator*(const Point& p0, const coord_t i)
+{
+    return Point(p0.X * i, p0.Y * i);
+}
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type> // Use only for numeric types.
+INLINE Point operator*(const Point& p0, const T i)
+{
+    return Point(std::llrint(p0.X * i), std::llrint(p0.Y * i));
+}
+template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type> // Use only for numeric types.
+INLINE Point operator*(const T i, const Point& p0)
+{
+    return p0 * i;
+}
+INLINE Point operator/(const Point& p0, const coord_t i)
+{
+    return Point(p0.X / i, p0.Y / i);
+}
+INLINE Point operator/(const Point& p0, const Point& p1)
+{
+    return Point(p0.X / p1.X, p0.Y / p1.Y);
+}
+INLINE Point operator%(const Point& p0, const coord_t i)
+{
+    return Point(p0.X % i, p0.Y % i);
+}
 
-INLINE Point& operator += (Point& p0, const Point& p1) { p0.X += p1.X; p0.Y += p1.Y; return p0; }
-INLINE Point& operator -= (Point& p0, const Point& p1) { p0.X -= p1.X; p0.Y -= p1.Y; return p0; }
+INLINE Point& operator+=(Point& p0, const Point& p1)
+{
+    p0.X += p1.X;
+    p0.Y += p1.Y;
+    return p0;
+}
+INLINE Point& operator-=(Point& p0, const Point& p1)
+{
+    p0.X -= p1.X;
+    p0.Y -= p1.Y;
+    return p0;
+}
 
-INLINE bool operator < (const Point& p0, const Point& p1) { return p0.X < p1.X || (p0.X == p1.X && p0.Y < p1.Y); }
+INLINE bool operator<(const Point& p0, const Point& p1)
+{
+    return p0.X < p1.X || (p0.X == p1.X && p0.Y < p1.Y);
+}
 
 /* ***** NOTE *****
    TL;DR: DO NOT implement operators *= and /= because of the default values in ClipperLib::IntPoint's constructor.
@@ -71,16 +109,16 @@ INLINE bool operator < (const Point& p0, const Point& p1) { return p0.X < p1.X |
    an IntPoint(5, y = 0) and you end up with wrong results.
  */
 
-//INLINE bool operator==(const Point& p0, const Point& p1) { return p0.X==p1.X&&p0.Y==p1.Y; }
-//INLINE bool operator!=(const Point& p0, const Point& p1) { return p0.X!=p1.X||p0.Y!=p1.Y; }
+// INLINE bool operator==(const Point& p0, const Point& p1) { return p0.X==p1.X&&p0.Y==p1.Y; }
+// INLINE bool operator!=(const Point& p0, const Point& p1) { return p0.X!=p1.X||p0.Y!=p1.Y; }
 
 INLINE coord_t vSize2(const Point& p0)
 {
-    return p0.X*p0.X+p0.Y*p0.Y;
+    return p0.X * p0.X + p0.Y * p0.Y;
 }
 INLINE float vSize2f(const Point& p0)
 {
-    return static_cast<float>(p0.X)*static_cast<float>(p0.X)+static_cast<float>(p0.Y)*static_cast<float>(p0.Y);
+    return static_cast<float>(p0.X) * static_cast<float>(p0.X) + static_cast<float>(p0.Y) * static_cast<float>(p0.Y);
 }
 
 INLINE bool shorterThen(const Point& p0, const coord_t len)
@@ -110,7 +148,7 @@ INLINE double vSizeMM(const Point& p0)
 {
     double fx = INT2MM(p0.X);
     double fy = INT2MM(p0.Y);
-    return sqrt(fx*fx+fy*fy);
+    return sqrt(fx * fx + fy * fy);
 }
 
 INLINE Point normal(const Point& p0, coord_t len)
@@ -146,7 +184,8 @@ INLINE coord_t cross(const Point& p0, const Point& p1)
 INLINE int angle(const Point& p)
 {
     double angle = std::atan2(p.X, p.Y) / M_PI * 180.0;
-    if (angle < 0.0) angle += 360.0;
+    if (angle < 0.0)
+        angle += 360.0;
     return angle;
 }
 
@@ -156,12 +195,14 @@ INLINE const Point& make_point(const Point& p)
     return p;
 }
 
-}//namespace cura
+} // namespace cura
 
-namespace std {
-template <>
-struct hash<cura::Point> {
-    size_t operator()(const cura::Point & pp) const
+namespace std
+{
+template<>
+struct hash<cura::Point>
+{
+    size_t operator()(const cura::Point& pp) const
     {
         static int prime = 31;
         int result = 89;
@@ -170,7 +211,7 @@ struct hash<cura::Point> {
         return result;
     }
 };
-}
+} // namespace std
 
 namespace cura
 {
@@ -234,8 +275,8 @@ public:
         PointMatrix ret;
         double det = matrix[0] * matrix[3] - matrix[1] * matrix[2];
         ret.matrix[0] = matrix[3] / det;
-        ret.matrix[1] = - matrix[1] / det;
-        ret.matrix[2] = - matrix[2] / det;
+        ret.matrix[1] = -matrix[1] / det;
+        ret.matrix[2] = -matrix[2] / det;
         ret.matrix[3] = matrix[0] / det;
         return ret;
     }
@@ -278,9 +319,10 @@ public:
 
     Point3 apply(const Point3 p) const
     {
-        return Point3(p.x * matrix[0] + p.y * matrix[1] + p.z * matrix[2]
-                    , p.x * matrix[3] + p.y * matrix[4] + p.z * matrix[5]
-                    , p.x * matrix[6] + p.y * matrix[7] + p.z * matrix[8]);
+        return Point3(
+            std::llrint(p.x * matrix[0] + p.y * matrix[1] + p.z * matrix[2]),
+            std::llrint(p.x * matrix[3] + p.y * matrix[4] + p.z * matrix[5]),
+            std::llrint(p.x * matrix[6] + p.y * matrix[7] + p.z * matrix[8]));
     }
 
     /*!
@@ -319,33 +361,38 @@ public:
 };
 
 
-inline Point3 operator+(const Point3& p3, const Point& p2) {
+inline Point3 operator+(const Point3& p3, const Point& p2)
+{
     return Point3(p3.x + p2.X, p3.y + p2.Y, p3.z);
 }
-inline Point3& operator+=(Point3& p3, const Point& p2) {
+inline Point3& operator+=(Point3& p3, const Point& p2)
+{
     p3.x += p2.X;
     p3.y += p2.Y;
     return p3;
 }
 
-inline Point operator+(const Point& p2, const Point3& p3) {
+inline Point operator+(const Point& p2, const Point3& p3)
+{
     return Point(p3.x + p2.X, p3.y + p2.Y);
 }
 
 
-inline Point3 operator-(const Point3& p3, const Point& p2) {
+inline Point3 operator-(const Point3& p3, const Point& p2)
+{
     return Point3(p3.x - p2.X, p3.y - p2.Y, p3.z);
 }
-inline Point3& operator-=(Point3& p3, const Point& p2) {
+inline Point3& operator-=(Point3& p3, const Point& p2)
+{
     p3.x -= p2.X;
     p3.y -= p2.Y;
     return p3;
 }
 
-inline Point operator-(const Point& p2, const Point3& p3) {
+inline Point operator-(const Point& p2, const Point3& p3)
+{
     return Point(p2.X - p3.x, p2.Y - p3.y);
 }
 
-}//namespace cura
-#endif//UTILS_INT_POINT_H
-
+} // namespace cura
+#endif // UTILS_INT_POINT_H
