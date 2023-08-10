@@ -990,7 +990,7 @@ std::vector<SlicerLayer> Slicer::buildLayersWithHeight(
     }
 
     // define all layer z positions (depending on slicing mode, see above)
-    for (unsigned int layer_nr = 1; layer_nr < slice_layer_count; layer_nr++)
+    for (LayerIndex layer_nr = 1; layer_nr < slice_layer_count; layer_nr++)
     {
         if (use_variable_layer_heights)
         {
@@ -1017,13 +1017,13 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
     switch (slicing_tolerance)
     {
     case SlicingTolerance::INCLUSIVE:
-        for (unsigned int layer_nr = 0; layer_nr + 1 < layers.size(); layer_nr++)
+        for (LayerIndex layer_nr = 0; layer_nr + 1 < layers.size(); layer_nr++)
         {
             layers[layer_nr].polygons = layers[layer_nr].polygons.unionPolygons(layers[layer_nr + 1].polygons);
         }
         break;
     case SlicingTolerance::EXCLUSIVE:
-        for (unsigned int layer_nr = 0; layer_nr + 1 < layers.size(); layer_nr++)
+        for (LayerIndex layer_nr = 0; layer_nr + 1 < layers.size(); layer_nr++)
         {
             layers[layer_nr].polygons = layers[layer_nr].polygons.intersection(layers[layer_nr + 1].polygons);
         }

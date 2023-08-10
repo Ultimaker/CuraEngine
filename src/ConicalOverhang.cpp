@@ -1,12 +1,14 @@
-//Copyright (c) 2016 Tim Kuipers
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2016 Tim Kuipers
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ConicalOverhang.h"
+
 #include "mesh.h"
-#include "utils/Simplify.h" //Simplifying at every step to prevent getting lots of vertices from all the insets.
-#include "slicer.h"
 #include "settings/types/Angle.h" //To process the overhang angle.
+#include "settings/types/LayerIndex.h"
+#include "slicer.h"
+#include "utils/Simplify.h" //Simplifying at every step to prevent getting lots of vertices from all the insets.
 
 namespace cura
 {
@@ -15,11 +17,11 @@ void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
 {
     const AngleRadians angle = mesh.settings.get<AngleRadians>("conical_overhang_angle");
     const double maxHoleArea = mesh.settings.get<double>("conical_overhang_hole_size");
-    const double tan_angle = tan(angle);  // the XY-component of the angle
+    const double tan_angle = tan(angle); // the XY-component of the angle
     const coord_t layer_thickness = mesh.settings.get<coord_t>("layer_height");
     coord_t max_dist_from_lower_layer = tan_angle * layer_thickness; // max dist which can be bridged
 
-    for(unsigned int layer_nr = slicer->layers.size() - 2; static_cast<int>(layer_nr) >= 0; layer_nr--)
+    for (LayerIndex layer_nr = slicer->layers.size() - 2; static_cast<int>(layer_nr) >= 0; layer_nr--)
     {
         SlicerLayer& layer = slicer->layers[layer_nr];
         SlicerLayer& layer_above = slicer->layers[layer_nr + 1];
@@ -30,7 +32,7 @@ void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
             Polygons diff = layer_above.polygons.difference(layer.polygons.offset(-safe_dist));
             layer.polygons = layer.polygons.unionPolygons(diff);
             layer.polygons = layer.polygons.smooth(safe_dist);
-                            layer.polygons = Simplify(safe_dist, safe_dist / 2, 0).polygon(layer.polygons);
+            layer.polygons = Simplify(safe_dist, safe_dist / 2, 0).polygon(layer.polygons);
             // somehow layer.polygons get really jagged lines with a lot of vertices
             // without the above steps slicing goes really slow
         }
@@ -43,22 +45,22 @@ void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
 
             // Now go through all the holes in the current layer and check if they intersect anything in the layer above
             // If not, then they're the top of a hole and should be cut from the layer above before the union
-            for(unsigned int part = 0; part < layerParts.size(); part++)
+            for (unsigned int part = 0; part < layerParts.size(); part++)
             {
-                if(layerParts[part].size() > 1) // first poly is the outer contour, 1..n are the holes
+                if (layerParts[part].size() > 1) // first poly is the outer contour, 1..n are the holes
                 {
-                    for(unsigned int hole_nr = 1; hole_nr < layerParts[part].size(); ++hole_nr)
+                    for (unsigned int hole_nr = 1; hole_nr < layerParts[part].size(); ++hole_nr)
                     {
                         Polygons holePoly;
                         holePoly.add(layerParts[part][hole_nr]);
                         if (maxHoleArea > 0.0 && INT2MM2(std::abs(holePoly.area())) < maxHoleArea)
                         {
                             Polygons holeWithAbove = holePoly.intersection(above);
-                            if(!holeWithAbove.empty())
+                            if (! holeWithAbove.empty())
                             {
                                 // The hole had some intersection with the above layer, check if it's a complete overlap
                                 Polygons holeDifference = holePoly.xorPolygons(holeWithAbove);
-                                if(holeDifference.empty())
+                                if (holeDifference.empty())
                                 {
                                     // The hole was returned unchanged, so the layer above must completely cover it.  Remove the hole from the layer above.
                                     above = above.difference(holePoly);
@@ -68,10 +70,10 @@ void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
                     }
                 }
             }
-            // And now union with offset of the resulting above layer 
+            // And now union with offset of the resulting above layer
             layer.polygons = layer.polygons.unionPolygons(above.offset(-max_dist_from_lower_layer));
         }
     }
 }
 
-}//namespace cura
+} // namespace cura
