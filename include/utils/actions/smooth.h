@@ -192,7 +192,7 @@ private:
     requires utils::point2d<Vector> || utils::junction<Vector>
     constexpr auto cosAngle(Vector& a, Vector& b, const utils::floating_point auto a_magnitude, const utils::floating_point auto b_magnitude) const noexcept
     {
-        if (a_magnitude <= std::numeric_limits<decltype(a_magnitude)>::epsilon()|| b_magnitude <= std::numeric_limits<decltype(b_magnitude)>::epsilon())
+        if (a_magnitude <= std::numeric_limits<decltype(a_magnitude)>::epsilon() || b_magnitude <= std::numeric_limits<decltype(b_magnitude)>::epsilon())
         {
             return static_cast<decltype(a_magnitude * b_magnitude)>(0.0);
         }
@@ -256,8 +256,7 @@ private:
         const utils::floating_point auto fluid_motion_angle,
         const utils::floating_point auto dist_ab,
         const utils::floating_point auto dist_bc,
-        const utils::floating_point auto dist_cd
-    ) const noexcept
+        const utils::floating_point auto dist_cd) const noexcept
     {
         /*
          * Move points A and B, so they are both at equal distance from C and D
