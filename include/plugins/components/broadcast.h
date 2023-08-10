@@ -4,9 +4,9 @@
 #ifndef PLUGINS_BROADCASTCOMPONENT_H
 #define PLUGINS_BROADCASTCOMPONENT_H
 
-#include "common.h"
 #include "cura/plugins/v0/slot_id.pb.h"
 #include "plugins/broadcasts.h"
+#include "plugins/components/common.h"
 #include "plugins/exception.h"
 #include "plugins/metadata.h"
 #include "utils/format/thread_id.h"
@@ -28,6 +28,10 @@
 
 namespace cura::plugins
 {
+namespace exceptions
+{
+class RemoteException; // forward declaration probably needed due to us obfuscating some other classes with forward declarations
+} // namespace exceptions
 
 template<plugins::v0::SlotID S> // NOTE: Leave slot here (templated) for the case where we have to specialize broadcast-channels by slot.
 class PluginProxyBroadcastComponent

@@ -11,6 +11,7 @@
 #include "communication/Communication.h"
 #include "pathPlanning/Comb.h"
 #include "pathPlanning/CombPaths.h"
+#include "plugins/slots.h"
 #include "raft.h" // getTotalExtraLayers
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
@@ -1590,7 +1591,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
 {
     const double minimalSpeed = fan_speed_layer_time_settings.cool_min_speed;
     const double travelTime = estimates.getTravelTime();
-    const double extrudeTime = estimates.getExtrudeTime();
+    const double extrudeTime = estimates.extrude_time;
 
     const double totalTime = travelTime + extrudeTime + time_other_extr_plans;
     constexpr double epsilon = 0.01;
@@ -1907,6 +1908,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     for (size_t extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
         ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
+
+        // TODO: Insert modify slot for the gcodepaths CURA-10446
+
         const RetractionAndWipeConfig* retraction_config
             = current_mesh ? &current_mesh->retraction_wipe_config : &storage.retraction_wipe_config_per_extruder[extruder_plan.extruder_nr];
         coord_t z_hop_height = retraction_config->retraction_config.zHop;
