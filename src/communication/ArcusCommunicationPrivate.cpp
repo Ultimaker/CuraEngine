@@ -3,20 +3,26 @@
 
 #ifdef ARCUS
 
-#include <spdlog/spdlog.h>
+#include "communication/ArcusCommunicationPrivate.h"
 
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
-#include "communication/ArcusCommunicationPrivate.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/FMatrix4x3.h" //To convert vertices to integer-points.
 #include "utils/floatpoint.h" //To accept vertices (which are provided in floating point).
 
+#include <spdlog/spdlog.h>
+
 namespace cura
 {
 
-ArcusCommunication::Private::Private() : socket(nullptr), object_count(0), last_sent_progress(-1), slice_count(0), millisecUntilNextTry(100)
+ArcusCommunication::Private::Private()
+    : socket(nullptr)
+    , object_count(0)
+    , last_sent_progress(-1)
+    , slice_count(0)
+    , millisecUntilNextTry(100)
 {
 }
 
@@ -67,7 +73,9 @@ void ArcusCommunication::Private::readExtruderSettingsMessage(const google::prot
             spdlog::warn("Received extruder index that is out of range: {}", extruder_nr);
             continue;
         }
-        ExtruderTrain& extruder = slice->scene.extruders[extruder_nr]; // Extruder messages may arrive out of order, so don't iteratively get the next extruder but take the extruder_nr from this message.
+        ExtruderTrain& extruder
+            = slice->scene
+                  .extruders[extruder_nr]; // Extruder messages may arrive out of order, so don't iteratively get the next extruder but take the extruder_nr from this message.
         for (const cura::proto::Setting& setting_message : extruder_message.settings().settings())
         {
             extruder.settings.add(setting_message.name(), setting_message.value());
