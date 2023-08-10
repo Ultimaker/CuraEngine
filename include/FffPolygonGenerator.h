@@ -108,7 +108,7 @@ private:
      *
      * \return Whether or not the layer is empty
      */
-    bool isEmptyLayer(SliceDataStorage& storage, const unsigned int layer_idx);
+    bool isEmptyLayer(SliceDataStorage& storage, const LayerIndex& layer_idx);
 
     /*!
      * \brief Remove all bottom layers which are empty.
