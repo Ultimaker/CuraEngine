@@ -10,6 +10,7 @@
 #include "slicer.h"
 #include "utils/PolylineStitcher.h"
 #include "settings/EnumSettings.h"
+#include "settings/types/LayerIndex.h"
 
 namespace cura 
 {
@@ -50,7 +51,7 @@ void carveMultipleVolumes(std::vector<Slicer*> &volumes)
             {
                 continue;
             }
-            for (unsigned int layerNr = 0; layerNr < volume_1.layers.size(); layerNr++)
+            for (LayerIndex layerNr = 0; layerNr < volume_1.layers.size(); layerNr++)
             {
                 SlicerLayer& layer1 = volume_1.layers[layerNr];
                 SlicerLayer& layer2 = volume_2.layers[layerNr];
@@ -91,7 +92,7 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*> &volumes)
         }
         AABB3D aabb(volume->mesh->getAABB());
         aabb.expandXY(overlap); // expand to account for the case where two models and their bounding boxes are adjacent along the X or Y-direction
-        for (unsigned int layer_nr = 0; layer_nr < volume->layers.size(); layer_nr++)
+        for (LayerIndex layer_nr = 0; layer_nr < volume->layers.size(); layer_nr++)
         {
             Polygons all_other_volumes;
             for (Slicer* other_volume : volumes)
@@ -125,7 +126,7 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
             continue;
         }
         Slicer& cutting_mesh_volume = *volumes[carving_mesh_idx];
-        for (unsigned int layer_nr = 0; layer_nr < cutting_mesh_volume.layers.size(); layer_nr++)
+        for (LayerIndex layer_nr = 0; layer_nr < cutting_mesh_volume.layers.size(); layer_nr++)
         {
             Polygons& cutting_mesh_polygons = cutting_mesh_volume.layers[layer_nr].polygons;
             Polygons& cutting_mesh_polylines = cutting_mesh_volume.layers[layer_nr].openPolylines;
