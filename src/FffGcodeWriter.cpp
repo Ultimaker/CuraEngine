@@ -2963,7 +2963,8 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
 bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer) const
 {
     bool added_something = false;
-    const SupportLayer& support_layer = storage.support.supportLayers[std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr())]; // account for negative layer numbers for raft filler layers
+    const SupportLayer& support_layer
+        = storage.support.supportLayers[std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr())]; // account for negative layer numbers for raft filler layers
 
     if (gcode_layer.getLayerNr() > storage.support.layer_nr_max_filled_layer || support_layer.support_infill_parts.empty())
     {
