@@ -70,6 +70,9 @@ struct smooth_fn
             return static_cast<Rng&&>(rng);
         }
 
+        const auto fluid_motion_shift_distance3 = 3 * fluid_motion_shift_distance;
+        const auto cos_fluid_motion_angle = std::cos(fluid_motion_angle);
+
         auto tmp = rng; // We don't want to shift the points of the in-going range, therefore we create a temporary copy
         auto windows = ranges::views::concat(ranges::views::single(ranges::back(tmp)), ranges::views::concat(tmp, tmp | ranges::views::take(4))) | ranges::views::addressof;
 
@@ -77,22 +80,32 @@ struct smooth_fn
         // The previous and next segment should have a remaining length of at least the smooth distance, otherwise the point is not shifted, but deleted.
         for (auto windows_it = ranges::begin(windows); ranges::distance(windows_it, ranges::end(windows)) > 2; ++windows_it)
         {
-            const auto A = *windows_it;
-            const auto B = *std::next(windows_it, 1);
-            const auto C = *std::next(windows_it, 2);
-            const auto D = *std::next(windows_it, 3);
+            const auto a = *windows_it;
+            const auto b = *std::next(windows_it, 1);
+            const auto c = *std::next(windows_it, 2);
+            const auto d = *std::next(windows_it, 3);
 
-            const auto fluid_motion_shift_distance3 = 3 * fluid_motion_shift_distance;
-            if (dist(*A, *B) < fluid_motion_shift_distance3 || dist(*B, *C) > fluid_motion_small_distance || dist(*C, *D) < fluid_motion_shift_distance3)
+            const auto magnitude_ab = dist(*a, *b);
+            const auto magnitude_bc = dist(*b, *c);
+            const auto magnitude_cd = dist(*c, *d);
+
+            if (magnitude_bc > fluid_motion_small_distance)
             {
                 continue;
             }
 
-            const auto cos_fluid_motion_angle = std::cos(fluid_motion_angle);
-            if (! isSmooth(*A, *B, *C, *D, cos_fluid_motion_angle))
+            // only if segments ab and cd are long enough, we can shift b and c
+            // 3 * fluid_motion_shift_distance is the minimum length of the segments ab and cd
+            // as this allows us to shift both ends with the shift distance and still have some room to spare
+            if (magnitude_ab < fluid_motion_shift_distance3 || magnitude_cd < fluid_motion_shift_distance3)
             {
-                *B = shiftPointTowards(*B, *A, fluid_motion_shift_distance);
-                *C = shiftPointTowards(*C, *D, fluid_motion_shift_distance);
+                continue;
+            }
+
+            if (! isSmooth(*a, *b, *c, *d, cos_fluid_motion_angle, magnitude_ab, magnitude_bc, magnitude_cd))
+            {
+                *b = shiftPointTowards(*b, *a, fluid_motion_shift_distance, magnitude_ab);
+                *c = shiftPointTowards(*c, *d, fluid_motion_shift_distance, magnitude_cd);
             }
         }
 
@@ -113,16 +126,16 @@ private:
      */
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
-    auto cosAngle(Point& A, Point& B, Point& C) const noexcept
+    constexpr auto cosAngle(Point& a, Point& b, Point& c) const noexcept
     {
-        return cosAngle(A, B, C, dist(A, B), dist(B, C));
+        return cosAngle(a, b, c, dist(a, b), dist(b, c));
     }
 
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
-    auto cosAngle(Point& A, Point& B, Point& C, const utils::floating_point auto AB_magnitude, const utils::floating_point auto BC_magnitude) const noexcept
+    constexpr auto cosAngle(Point& a, Point& b, Point& c, const utils::floating_point auto ab_magnitude, const utils::floating_point auto bc_magnitude) const noexcept
     {
-        return cosAngle(A, B, B, C, AB_magnitude, BC_magnitude);
+        return cosAngle(a, b, b, c, ab_magnitude, bc_magnitude);
     }
 
     /*
@@ -144,19 +157,19 @@ private:
      */
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
-    auto cosAngle(Point& A, Point& B, Point& C, Point& D) const noexcept
+    constexpr auto cosAngle(Point& a, Point& b, Point& c, Point& d) const noexcept
     {
-        return cosAngle(A, B, C, D, dist(A, B), dist(C, D));
+        return cosAngle(a, b, c, d, dist(a, b), dist(c, d));
     }
 
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
-    auto cosAngle(Point& A, Point& B, Point& C, Point& D, const utils::floating_point auto AB_magnitude, const utils::floating_point auto BC_magnitude) const noexcept
+    constexpr auto cosAngle(Point& a, Point& b, Point& c, Point& d, const utils::floating_point auto ab_magnitude, const utils::floating_point auto bc_magnitude) const noexcept
     {
-        Point VectorA = { std::get<"X">(B) - std::get<"X">(A), std::get<"Y">(B) - std::get<"Y">(A) };
-        Point VectorB = { std::get<"X">(D) - std::get<"X">(C), std::get<"Y">(D) - std::get<"Y">(C) };
+        Point vector_a = { std::get<"X">(b) - std::get<"X">(a), std::get<"Y">(b) - std::get<"Y">(a) };
+        Point vector_b = { std::get<"X">(d) - std::get<"X">(c), std::get<"Y">(d) - std::get<"Y">(c) };
 
-        return cosAngle(VectorA, VectorB, AB_magnitude, BC_magnitude);
+        return cosAngle(vector_a, vector_b, ab_magnitude, bc_magnitude);
     }
 
     /*
@@ -170,20 +183,20 @@ private:
      */
     template<class Vector>
     requires utils::point2d<Vector> || utils::junction<Vector>
-    auto cosAngle(Vector& A, Vector& B) const noexcept
+    constexpr auto cosAngle(Vector& a, Vector& b) const noexcept
     {
-        return cosAngle<Point>(A, B, magnitude(A), magnitude(B));
+        return cosAngle<Point>(a, b, magnitude(a), magnitude(b));
     }
 
     template<class Vector>
     requires utils::point2d<Vector> || utils::junction<Vector>
-    auto cosAngle(Vector& A, Vector& B, const utils::floating_point auto A_magnitude, const utils::floating_point auto B_magnitude) const noexcept
+    constexpr auto cosAngle(Vector& a, Vector& b, const utils::floating_point auto a_magnitude, const utils::floating_point auto b_magnitude) const noexcept
     {
-        if (A_magnitude <= std::numeric_limits<decltype(A_magnitude)>::epsilon() || B_magnitude <= std::numeric_limits<decltype(B_magnitude)>::epsilon())
+        if (a_magnitude <= std::numeric_limits<decltype(a_magnitude)>::epsilon()|| b_magnitude <= std::numeric_limits<decltype(b_magnitude)>::epsilon())
         {
-            return static_cast<decltype(A_magnitude * B_magnitude)>(0.0);
+            return static_cast<decltype(a_magnitude * b_magnitude)>(0.0);
         }
-        return static_cast<decltype(A_magnitude * B_magnitude)>(dotProduct(A, B)) / (A_magnitude * B_magnitude);
+        return static_cast<decltype(a_magnitude * b_magnitude)>(dotProduct(a, b)) / (a_magnitude * b_magnitude);
     }
 
     template<class Point>
@@ -195,8 +208,7 @@ private:
 
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
-        Point shiftPointTowards(Point& p0, Point& p1, const utils::numeric auto move_distance, const utils::floating_point auto p0p1_distance)
-    const noexcept
+    constexpr Point shiftPointTowards(Point& p0, Point& p1, const utils::numeric auto move_distance, const utils::floating_point auto p0p1_distance) const noexcept
     {
         using coord_type = std::remove_cvref_t<decltype(std::get<"X">(p0))>;
         const auto shift_distance = move_distance / p0p1_distance;
@@ -207,27 +219,45 @@ private:
     }
 
     template<class Point>
-    requires utils::point2d<Point> || utils::junction<Point> utils::floating_point auto dist(Point& point_0, Point& point_1) const noexcept
+    requires utils::point2d<Point> || utils::junction<Point>
+    constexpr utils::floating_point auto dist(Point& point_0, Point& point_1) const noexcept
     {
         return std::hypot(std::get<"X">(point_0) - std::get<"X">(point_1), std::get<"Y">(point_0) - std::get<"Y">(point_1));
     }
 
     template<class Vector>
-    requires utils::point2d<Vector> || utils::junction<Vector> utils::floating_point auto magnitude(Vector& v) const noexcept
+    requires utils::point2d<Vector> || utils::junction<Vector>
+    constexpr utils::floating_point auto magnitude(Vector& v) const noexcept
     {
         return std::hypot(std::get<"X">(v), std::get<"Y">(v));
     }
 
     template<class Vector>
     requires utils::point2d<Vector> || utils::junction<Vector>
-    auto dotProduct(Vector& point_0, Vector& point_1) const noexcept
+    constexpr auto dotProduct(Vector& point_0, Vector& point_1) const noexcept
     {
         return std::get<"X">(point_0) * std::get<"X">(point_1) + std::get<"Y">(point_0) * std::get<"Y">(point_1);
     }
 
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
-    bool isSmooth(Point& A, Point& B, Point& C, Point& D, utils::floating_point auto fluid_motion_angle) const noexcept
+    constexpr bool isSmooth(Point& a, Point& b, Point& c, Point& d, const utils::floating_point auto fluid_motion_angle) const noexcept
+    {
+        return isSmooth(a, b, c, d, fluid_motion_angle, dist(a, b), dist(b, c), dist(c, d));
+    }
+
+    template<class Point>
+    requires utils::point2d<Point> || utils::junction<Point>
+    constexpr bool isSmooth(
+        Point& a,
+        Point& b,
+        Point& c,
+        Point& d,
+        const utils::floating_point auto fluid_motion_angle,
+        const utils::floating_point auto dist_ab,
+        const utils::floating_point auto dist_bc,
+        const utils::floating_point auto dist_cd
+    ) const noexcept
     {
         /*
          * Move points A and B, so they are both at equal distance from C and D
@@ -245,15 +275,12 @@ private:
          * vectors [A_,D_] and [B,C] are oriented within a certain angle
          */
         constexpr auto shift_distance = 300.;
-        auto A_ = shiftPointTowards(B, A, shift_distance);
-        auto D_ = shiftPointTowards(C, D, shift_distance);
+        auto a_ = shiftPointTowards(b, a, shift_distance, dist_ab);
+        auto d_ = shiftPointTowards(c, d, shift_distance, dist_cd);
 
-        // precompute distance BC
-        const auto BC_magnitude = dist(B, C);
-
-        const auto cos_angle_fluid = cosAngle(A_, D_, B, C, dist(A_, D_), BC_magnitude);
-        const auto cos_angle_abc = cosAngle(A_, B, C, shift_distance, BC_magnitude);
-        const auto cos_angle_bcd = cosAngle(B, C, D_, BC_magnitude, shift_distance);
+        const auto cos_angle_fluid = cosAngle(a_, d_, b, c, dist(a_, d_), dist_bc);
+        const auto cos_angle_abc = cosAngle(a_, b, c, shift_distance, dist_bc);
+        const auto cos_angle_bcd = cosAngle(b, c, d_, dist_bc, shift_distance);
 
         // The motion is fluid if either of the marker angles is smaller than the max angle
         return cos_angle_fluid >= fluid_motion_angle || cos_angle_abc >= fluid_motion_angle || cos_angle_bcd >= fluid_motion_angle;
