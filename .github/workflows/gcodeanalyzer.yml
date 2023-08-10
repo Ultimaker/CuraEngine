@@ -41,6 +41,8 @@ jobs:
         run: |
           if [[ "${{ github.actor }}" == *"[bot]"* ]]; then
             echo "proceed=true" >> $GITHUB_OUTPUT
+         elif [[ "${{ github.event.pull_request }}" == "" ]]; then 
+            echo "proceed=true" >> $GITHUB_OUTPUT
           elif [[ "${{ github.event.pull_request.head.repo.fork }}" == "false" ]]; then 
             echo "proceed=true" >> $GITHUB_OUTPUT
           else
