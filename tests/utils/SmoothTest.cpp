@@ -18,7 +18,7 @@ TEST(SmoothTest, TestSmooth)
 {
     // test isSmooth utility function
     cura::actions::smooth_fn smooth;
-    const auto FLUID_ANGLE = 5.;
+    const auto FLUID_ANGLE = 15.;
     const auto COS_FLUID_ANGLE = std::cos(FLUID_ANGLE * M_PI / 180.);
 
     {
@@ -162,10 +162,6 @@ TEST(SmoothTest, TestSmooth)
         auto B = cura::Point{ 148854, 162229 };
         auto C = cura::Point{ 148866, 162244 };
         auto D = cura::Point{ 149772, 162297 };
-
-        spdlog::info("smooth.dist(A, B): {}", smooth.dist(A, B));
-        spdlog::info("smooth.dist(B, C): {}", smooth.dist(B, C));
-        spdlog::info("smooth.dist(C, D): {}", smooth.dist(C, D));
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, false);
