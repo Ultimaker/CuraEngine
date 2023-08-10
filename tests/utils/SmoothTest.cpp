@@ -94,9 +94,9 @@ TEST(SmoothTest, TestSmooth)
         /*
          *
          *
-         *              B
+         *              C
          *               \
-         *  D ----------- C
+         *  A ----------- B
          *                 \
          *                  \
          *                   \
@@ -155,6 +155,21 @@ TEST(SmoothTest, TestSmooth)
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, true);
     }
+
+    {
+        // real life example of a line that is clearly not smooth
+        auto A = cura::Point{ 148451, 162177 };
+        auto B = cura::Point{ 148854, 162229 };
+        auto C = cura::Point{ 148866, 162244 };
+        auto D = cura::Point{ 149772, 162297 };
+
+        spdlog::info("smooth.dist(A, B): {}", smooth.dist(A, B));
+        spdlog::info("smooth.dist(B, C): {}", smooth.dist(B, C));
+        spdlog::info("smooth.dist(C, D): {}", smooth.dist(C, D));
+
+        const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
+        EXPECT_EQ(is_smooth, false);
+    };
 
 }
 } // namespace cura
