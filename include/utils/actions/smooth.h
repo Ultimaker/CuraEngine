@@ -63,8 +63,6 @@ struct smooth_fn
             const utils::integral auto fluid_motion_small_distance,
             const utils::floating_point auto fluid_motion_angle) const
     {
-        const auto fluid_motion_shift_distance3 = 3 * fluid_motion_shift_distance;
-
         const auto size = ranges::distance(rng) - 1;
         if (size < 4)
         {
@@ -83,16 +81,16 @@ struct smooth_fn
             const auto C = *std::next(windows_it, 2);
             const auto D = *std::next(windows_it, 3);
 
-            if (dist(*A, *B) < fluid_motion_shift_distance3 || dist(*B, *C) > fluid_motion_small_distance || dist(*C, *D) < fluid_motion_shift_distance3)
-            {
+            const auto fluid_motion_shift_distance3 = 3 * fluid_motion_shift_distance;
+            if (dist(*A, *B) < fluid_motion_shift_distance3 || dist(*B, *C) > fluid_motion_small_distance || dist(*C, *D) < fluid_motion_shift_distance3)            {
                 continue;
             }
 
             const auto cos_fluid_motion_angle = std::cos(fluid_motion_angle);
             if (! isSmooth(*A, *B, *C, *D, cos_fluid_motion_angle))
             {
-                *A = shiftPointTowards(*B, *A, fluid_motion_shift_distance);
-                *D = shiftPointTowards(*C, *D, fluid_motion_shift_distance);
+                *B = shiftPointTowards(*B, *A, fluid_motion_shift_distance);
+                *C = shiftPointTowards(*C, *D, fluid_motion_shift_distance);
             }
         }
 
@@ -255,7 +253,7 @@ private:
         const auto cos_angle_abc = cosAngle(A_, B, C, shift_distance, BC_magnitude);
         const auto cos_angle_bcd = cosAngle(B, C, D_, BC_magnitude, shift_distance);
 
-        // tThe motion is fluid if either of the marker angles is smaller than the max angle
+        // The motion is fluid if either of the marker angles is smaller than the max angle
         return cos_angle_fluid >= fluid_motion_angle || cos_angle_abc >= fluid_motion_angle || cos_angle_bcd >= fluid_motion_angle;
     }
 };
