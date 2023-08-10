@@ -7,6 +7,7 @@
 #include "utils/Simplify.h" //Simplifying at every step to prevent getting lots of vertices from all the insets.
 #include "slicer.h"
 #include "settings/types/Angle.h" //To process the overhang angle.
+#include "settings/types/LayerIndex.h"
 
 namespace cura
 {
@@ -19,7 +20,7 @@ void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
     const coord_t layer_thickness = mesh.settings.get<coord_t>("layer_height");
     coord_t max_dist_from_lower_layer = tan_angle * layer_thickness; // max dist which can be bridged
 
-    for(unsigned int layer_nr = slicer->layers.size() - 2; static_cast<int>(layer_nr) >= 0; layer_nr--)
+    for(LayerIndex layer_nr = slicer->layers.size() - 2; static_cast<int>(layer_nr) >= 0; layer_nr--)
     {
         SlicerLayer& layer = slicer->layers[layer_nr];
         SlicerLayer& layer_above = slicer->layers[layer_nr + 1];

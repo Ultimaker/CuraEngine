@@ -285,7 +285,7 @@ std::string GCodeExport::getFileHeader(
 }
 
 
-void GCodeExport::setLayerNr(unsigned int layer_nr_)
+void GCodeExport::setLayerNr(const LayerIndex& layer_nr_)
 {
     layer_nr = layer_nr_;
 }

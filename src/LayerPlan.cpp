@@ -2412,7 +2412,7 @@ void LayerPlan::applyBackPressureCompensation()
     }
 }
 
-int LayerPlan::getLayerNr() const
+LayerIndex LayerPlan::getLayerNr() const
 {
     return layer_nr;
 }

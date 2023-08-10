@@ -99,7 +99,7 @@ private:
     const size_t wall_x_extruder_nr;
     const ZSeamConfig& z_seam_config;
     const std::vector<VariableWidthLines>& paths;
-    const unsigned int layer_nr;
+    const LayerIndex layer_nr;
 
     std::vector<std::vector<ConstPolygonPointer>> inset_polys; // vector of vectors holding the inset polygons
     Polygons retraction_region; //After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see retraction_region_calculated).

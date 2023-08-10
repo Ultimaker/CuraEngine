@@ -9,6 +9,7 @@
 #include "Slice.h"
 #include "slicer.h"
 #include "utils/polygonUtils.h"
+#include "settings/types/LayerIndex.h"
 #include "utils/VoxelUtils.h"
 
 #include <range/v3/view/enumerate.hpp>
@@ -215,7 +216,7 @@ std::vector<Polygons> InterlockingGenerator::computeUnionedVolumeRegions() const
     const size_t max_layer_count = std::max(mesh_a.layers.size(), mesh_b.layers.size()) + 1; // introduce ghost layer on top for correct skin computation of topmost layer.
     std::vector<Polygons> layer_regions(max_layer_count);
 
-    for (unsigned int layer_nr = 0; layer_nr < max_layer_count; layer_nr++)
+    for (LayerIndex layer_nr = 0; layer_nr < max_layer_count; layer_nr++)
     {
         Polygons& layer_region = layer_regions[layer_nr];
         for (Slicer* mesh : {&mesh_a, &mesh_b})
@@ -288,7 +289,7 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
         Point3 bottom_corner = vu.toLowerCorner(grid_loc);
         for (size_t mesh_idx = 0; mesh_idx < 2; mesh_idx++)
         {
-            for (unsigned int layer_nr = bottom_corner.z; layer_nr < bottom_corner.z + cell_size.z && layer_nr < max_layer_count; layer_nr += beam_layer_count)
+            for (LayerIndex layer_nr = bottom_corner.z; layer_nr < bottom_corner.z + cell_size.z && layer_nr < max_layer_count; layer_nr += beam_layer_count)
             {
                 Polygons areas_here = cell_area_per_mesh_per_layer[(layer_nr / beam_layer_count) % cell_area_per_mesh_per_layer.size()][mesh_idx];
                 areas_here.translate(Point(bottom_corner.x, bottom_corner.y));

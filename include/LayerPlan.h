@@ -327,7 +327,7 @@ public:
 
     const Polygons* getCombBoundaryInside() const;
 
-    int getLayerNr() const;
+    LayerIndex getLayerNr() const;
 
     /*!
      * Get the last planned position, or if no position has been planned yet, the user specified layer start position.

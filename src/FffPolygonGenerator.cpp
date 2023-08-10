@@ -295,7 +295,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         const bool has_raft = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT;
 
         // calculate the height at which each layer is actually printed (printZ)
-        for (unsigned int layer_nr = 0; layer_nr < meshStorage.layers.size(); layer_nr++)
+        for (LayerIndex layer_nr = 0; layer_nr < meshStorage.layers.size(); layer_nr++)
         {
             SliceLayer& layer = meshStorage.layers[layer_nr];
 
@@ -715,7 +715,7 @@ void FffPolygonGenerator::processWalls(SliceMeshStorage& mesh, size_t layer_nr)
     walls_computation.generateWalls(layer, SectionType::WALL);
 }
 
-bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const unsigned int layer_idx)
+bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const LayerIndex& layer_idx)
 {
     if (storage.support.generated && layer_idx < storage.support.supportLayers.size())
     {
@@ -962,10 +962,10 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
 
-    const unsigned int layer_skip = 500 / layer_height + 1;
+    const LayerIndex layer_skip{ 500 / layer_height + 1 };
 
     Polygons& draft_shield = storage.draft_protection_shield;
-    for (unsigned int layer_nr = 0; layer_nr < storage.print_layer_count && layer_nr < draft_shield_layers; layer_nr += layer_skip)
+    for (LayerIndex layer_nr = 0; layer_nr < storage.print_layer_count && layer_nr < draft_shield_layers; layer_nr += layer_skip)
     {
         constexpr bool around_support = true;
         constexpr bool around_prime_tower = false;
@@ -1052,7 +1052,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
     auto hole_area = Polygons();
     std::function<bool(const bool&, const ExtrusionJunction&)> accumulate_is_in_hole = [](const bool& prev_result, const ExtrusionJunction& junction) { return false; };
 
-    for (unsigned int layer_nr = start_layer_nr; layer_nr < mesh.layers.size(); layer_nr++)
+    for (LayerIndex layer_nr = start_layer_nr; layer_nr < mesh.layers.size(); layer_nr++)
     {
         SliceLayer& layer = mesh.layers[layer_nr];
         for (SliceLayerPart& part : layer.parts)

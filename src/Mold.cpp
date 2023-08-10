@@ -34,12 +34,12 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
         }
     }
 
-    unsigned int layer_count = 0;
+    LayerIndex layer_count = 0;
     { // compute layer_count
         for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
         {
             Slicer& slicer = *slicer_list[mesh_idx];
-            unsigned int layer_count_here = slicer.layers.size();
+            LayerIndex layer_count_here = slicer.layers.size();
             layer_count = std::max(layer_count, layer_count_here);
         }
     }
@@ -92,7 +92,7 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
             // add roofs
             if (roof_layer_count > 0 && layer_nr > 0)
             {
-                unsigned int layer_nr_below = std::max(0, static_cast<int>(layer_nr - roof_layer_count));
+                LayerIndex layer_nr_below = std::max(0, static_cast<int>(layer_nr - roof_layer_count));
                 Polygons roofs = slicer.layers[layer_nr_below].polygons.offset(width, ClipperLib::jtRound); // TODO: don't compute offset twice!
                 layer.polygons = layer.polygons.unionPolygons(roofs);
             }
