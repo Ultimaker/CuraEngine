@@ -23,6 +23,7 @@
 #include <spdlog/spdlog.h>
 
 #include <functional>
+#include <limits>
 #include <numbers>
 #include <set>
 
@@ -178,7 +179,7 @@ private:
     requires utils::point2d<Vector> || utils::junction<Vector>
     auto cosAngle(Vector& A, Vector& B, const utils::floating_point auto A_magnitude, const utils::floating_point auto B_magnitude) const noexcept
     {
-        if (A_magnitude <= FLT_EPSILON || B_magnitude <= FLT_EPSILON)
+        if (A_magnitude <= std::numeric_limits<decltype(A_magnitude)>::epsilon || B_magnitude <= std::numeric_limits<decltype(B_magnitude)>::epsilon)
         {
             return static_cast<decltype(A_magnitude * B_magnitude)>(0.0);
         }
