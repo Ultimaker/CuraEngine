@@ -20,7 +20,7 @@ ArcusCommunication::Private::Private() : socket(nullptr), object_count(0), last_
 {
 }
 
-std::shared_ptr<proto::LayerOptimized> ArcusCommunication::Private::getOptimizedLayerById(LayerIndex layer_nr)
+std::shared_ptr<proto::LayerOptimized> ArcusCommunication::Private::getOptimizedLayerById(LayerIndex::value_type layer_nr)
 {
     layer_nr += optimized_layers.current_layer_offset;
     std::unordered_map<int, std::shared_ptr<proto::LayerOptimized>>::iterator find_result = optimized_layers.slice_data.find(layer_nr);

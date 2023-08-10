@@ -40,7 +40,7 @@ void CommandLine::sendCurrentPosition(const Point&)
 void CommandLine::sendFinishedSlicing() const
 {
 }
-void CommandLine::sendLayerComplete(const LayerIndex&, const coord_t&, const coord_t&)
+void CommandLine::sendLayerComplete(const LayerIndex::value_type&, const coord_t&, const coord_t&)
 {
 }
 void CommandLine::sendLineTo(const PrintFeatureType&, const Point&, const coord_t&, const coord_t&, const Velocity&)
@@ -58,7 +58,7 @@ void CommandLine::sendPolygons(const PrintFeatureType&, const Polygons&, const c
 void CommandLine::setExtruderForSend(const ExtruderTrain&)
 {
 }
-void CommandLine::setLayerForSend(const LayerIndex&)
+void CommandLine::setLayerForSend(const LayerIndex::value_type&)
 {
 }
 
