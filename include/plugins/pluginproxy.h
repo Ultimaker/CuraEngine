@@ -21,6 +21,8 @@
 #include "utils/types/generic.h"
 
 #include <agrpc/asio_grpc.hpp>
+#include <agrpc/client_rpc.hpp>
+#include <agrpc/use_awaitable.hpp>
 #include <agrpc/grpc_context.hpp>
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
@@ -92,7 +94,7 @@ public:
             grpc_context,
             [this, &grpc_context, &status, &plugin_info, &handshake_stub]() -> boost::asio::awaitable<void>
             {
-                using RPC = agrpc::RPC<&slots::handshake::v0::HandshakeService::Stub::PrepareAsyncCall>;
+                using RPC = agrpc::ClientRPC<&slots::handshake::v0::HandshakeService::Stub::PrepareAsyncCall>;
                 grpc::ClientContext client_context{};
                 prep_client_context(client_context, *slot_info_);
 

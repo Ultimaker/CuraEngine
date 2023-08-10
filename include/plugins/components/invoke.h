@@ -14,6 +14,7 @@
 #include "utils/types/generic.h"
 
 #include <agrpc/asio_grpc.hpp>
+#include <agrpc/client_rpc.hpp>
 #include <agrpc/grpc_context.hpp>
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
@@ -139,7 +140,7 @@ private:
      */
     boost::asio::awaitable<void> invokeCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, value_type& ret_value, auto&&... args)
     {
-        using RPC = agrpc::RPC<&invoke_stub_t::PrepareAsyncCall>;
+        using RPC = agrpc::ClientRPC<&invoke_stub_t::PrepareAsyncCall>;
         grpc::ClientContext client_context{};
         prep_client_context(client_context, *slot_info_);
 

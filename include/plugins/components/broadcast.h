@@ -14,7 +14,9 @@
 #include "utils/types/generic.h"
 
 #include <agrpc/asio_grpc.hpp>
+#include <agrpc/client_rpc.hpp>
 #include <agrpc/grpc_context.hpp>
+#include <boost/asio.hpp>
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
@@ -30,8 +32,6 @@ namespace cura::plugins
 template<plugins::v0::SlotID S> // NOTE: Leave slot here (templated) for the case where we have to specialize broadcast-channels by slot.
 class PluginProxyBroadcastComponent
 {
-    using broadcast_stub_t = slots::broadcast::v0::BroadcastService::Stub;
-
 public:
     constexpr PluginProxyBroadcastComponent() = default;
 
@@ -78,16 +78,17 @@ private:
         grpc::ClientContext client_context{};
         prep_client_context(client_context, *slot_info_);
 
-        auto broadcaster{ details::broadcast_factory<broadcast_stub_t, Subscription>() };
-        auto request = details::broadcast_message_factory<Subscription>(std::forward<decltype(args)>(args)...);
+        using request_type = details::broadcast_rpc<Subscription>;
+        request_type request{};
+
         auto response = google::protobuf::Empty{};
-        status = co_await broadcaster.request(grpc_context, broadcast_stub_, client_context, request, response, boost::asio::use_awaitable);
+        status = co_await request_type::ClientRPC::request(grpc_context, broadcast_stub_, client_context, request(std::forward<decltype(args)>(args)...), response, boost::asio::use_awaitable);
         co_return;
     }
 
     details::slot_info_ptr slot_info_;
     details::plugin_info_ptr plugin_info_;
-    ranges::semiregular_box<broadcast_stub_t> broadcast_stub_; ///< The gRPC Broadcast stub for communication.
+    ranges::semiregular_box<details::broadcast_stub<>::stub_type> broadcast_stub_; ///< The gRPC Broadcast stub for communication.
 };
 
 } // namespace cura::plugins
