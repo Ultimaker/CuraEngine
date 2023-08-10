@@ -156,5 +156,5 @@ jobs:
           auto-push: true
           # Show alert with commit comment on detecting possible performance regression
           alert-threshold: '175%'
-          comment-on-alert: true
+          comment-on-alert: false
           max-items-in-chart: 250
