@@ -29,7 +29,7 @@
 namespace cura
 {
 class SmoothTest_TestSmooth_Test;
-}
+} // namespace cura
 
 namespace cura::actions
 {
@@ -38,7 +38,7 @@ struct smooth_fn
 {
     friend class cura::SmoothTest_TestSmooth_Test;
 
-    const auto operator()(const Settings& settings) const
+    auto operator()(const Settings& settings) const
     {
         const auto fluid_motion_shift_distance = settings.get<coord_t>("meshfix_fluid_motion_shift_distance");
         const auto fluid_motion_small_distance = settings.get<coord_t>("meshfix_fluid_motion_small_distance");

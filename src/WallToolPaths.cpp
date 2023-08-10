@@ -82,7 +82,7 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     const coord_t open_close_distance
         = settings.get<bool>("fill_outline_gaps") ? settings.get<coord_t>("min_feature_size") / 2 - 5 : settings.get<coord_t>("min_wall_line_width") / 2 - 5;
     const coord_t epsilon_offset = (allowed_distance / 2) - 1;
-    const AngleRadians transitioning_angle = settings.get<AngleRadians>("wall_transition_angle");
+    const auto transitioning_angle = settings.get<AngleRadians>("wall_transition_angle");
     constexpr coord_t discretization_step_size = MM2INT(0.8);
 
     // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self intersections allowed:
@@ -143,8 +143,8 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
         max_bead_count,
         wall_0_inset,
         wall_distribution_count);
-    const coord_t transition_filter_dist = settings.get<coord_t>("wall_transition_filter_distance");
-    const coord_t allowed_filter_deviation = settings.get<coord_t>("wall_transition_filter_deviation");
+    const auto transition_filter_dist = settings.get<coord_t>("wall_transition_filter_distance");
+    const auto allowed_filter_deviation = settings.get<coord_t>("wall_transition_filter_deviation");
     SkeletalTrapezoidation wall_maker(
         prepared_outline,
         *beading_strat,
