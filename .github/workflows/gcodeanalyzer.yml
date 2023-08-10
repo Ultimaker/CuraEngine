@@ -83,23 +83,26 @@ jobs:
           path: 'NightlyTestModels'
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Checkout .def.json files from Cura frontend
+      - name: Determine the corresponding Cura branch
+        id: curabranch
         run: |
-          cd CuraEngine
-          branch_name=$(git rev-parse --abbrev-ref HEAD)
-          exists=$(curl -s -o /dev/null -w "%{http_code}" https://api.github.com/repos/ultimaker/cura/branches/${branch_name})
-          cd ..
-          mkdir Cura
-          cd Cura
-          git init
-          git sparse-checkout set resources/definitions resources/extruders
-          git remote add -f origin https://github.com/Ultimaker/Cura
-          if [ "$exists" == "200" ]; then
-            git pull origin ${branch_name}
+          status_code=$(curl -s -o /dev/null -w "%{http_code}" "https://api.github.com/repos/ultimaker/cura/branches/${{ github.head_ref }}")
+          if [ "$status_code" -eq 200 ]; then
+            echo "The branch exists in Cura"
+            echo "branch=${{ github.head_ref }}" >> $GITHUB_OUTPUT
           else
-            git pull origin main
+            echo "branch=main" >> $GITHUB_OUTPUT
           fi
-          cd ..
+
+      - name: Checkout Cura
+        uses: actions/checkout@v3
+        with:
+          repository: 'Ultimaker/Cura'
+          ref: ${{ steps.curabranch.outputs.branch}}
+          path: 'Cura'
+          sparse-checkout: |
+            resources/definitions
+            resources/extruders
 
       - name: Setup Python and pip
         uses: actions/setup-python@v4
