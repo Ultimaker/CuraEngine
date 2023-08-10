@@ -87,7 +87,7 @@ jobs:
         run: |
           cd CuraEngine
           branch_name=$(git rev-parse --abbrev-ref HEAD)
-          exists=$(curl -s -o /dev/null -w "%{http_code}" https://api.github.com/repos/ultimaker/cura/branches/${branch_name})
+          exists=$(curl -s -o /dev/null -w "%{http_code}" "https://api.github.com/repos/ultimaker/cura/branches/${branch_name}")
           cd ..
           mkdir Cura
           cd Cura
@@ -95,8 +95,10 @@ jobs:
           git sparse-checkout set resources/definitions resources/extruders
           git remote add -f origin https://github.com/Ultimaker/Cura
           if [ "$exists" == "200" ]; then
+            echo "Using '${branch_name}' for Cura" >> $GITHUB_STEP_SUMMARY
             git pull origin ${branch_name}
           else
+            echo "Using 'main' for Cura" >> $GITHUB_STEP_SUMMARY
             git pull origin main
           fi
           cd ..
