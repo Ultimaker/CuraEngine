@@ -6,6 +6,7 @@
 
 #include "plugins/metadata.h"
 #include "plugins/types.h"
+#include "plugins/validator.h"
 
 #include <fmt/format.h>
 

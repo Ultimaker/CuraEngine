@@ -25,6 +25,9 @@
 #include <range/v3/utility/semiregular_box.hpp>
 #include <spdlog/spdlog.h>
 
+#include <memory>
+#include <type_traits>
+
 namespace cura::plugins
 {
 namespace details
