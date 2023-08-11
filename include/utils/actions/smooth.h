@@ -126,14 +126,14 @@ private:
      */
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
-    constexpr auto cosAngle(Point& a, Point& b, Point& c) const noexcept
+    inline constexpr auto cosAngle(Point& a, Point& b, Point& c) const noexcept
     {
         return cosAngle(a, b, c, dist(a, b), dist(b, c));
     }
 
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
-    constexpr auto cosAngle(Point& a, Point& b, Point& c, const utils::floating_point auto ab_magnitude, const utils::floating_point auto bc_magnitude) const noexcept
+    inline constexpr auto cosAngle(Point& a, Point& b, Point& c, const utils::floating_point auto ab_magnitude, const utils::floating_point auto bc_magnitude) const noexcept
     {
         return cosAngle(a, b, b, c, ab_magnitude, bc_magnitude);
     }
@@ -157,14 +157,14 @@ private:
      */
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
-    constexpr auto cosAngle(Point& a, Point& b, Point& c, Point& d) const noexcept
+    inline constexpr auto cosAngle(Point& a, Point& b, Point& c, Point& d) const noexcept
     {
         return cosAngle(a, b, c, d, dist(a, b), dist(c, d));
     }
 
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
-    constexpr auto cosAngle(Point& a, Point& b, Point& c, Point& d, const utils::floating_point auto ab_magnitude, const utils::floating_point auto bc_magnitude) const noexcept
+    inline constexpr auto cosAngle(Point& a, Point& b, Point& c, Point& d, const utils::floating_point auto ab_magnitude, const utils::floating_point auto bc_magnitude) const noexcept
     {
         Point vector_a = { std::get<"X">(b) - std::get<"X">(a), std::get<"Y">(b) - std::get<"Y">(a) };
         Point vector_b = { std::get<"X">(d) - std::get<"X">(c), std::get<"Y">(d) - std::get<"Y">(c) };
@@ -183,14 +183,14 @@ private:
      */
     template<class Vector>
     requires utils::point2d<Vector> || utils::junction<Vector>
-    constexpr auto cosAngle(Vector& a, Vector& b) const noexcept
+    inline constexpr auto cosAngle(Vector& a, Vector& b) const noexcept
     {
         return cosAngle<Point>(a, b, magnitude(a), magnitude(b));
     }
 
     template<class Vector>
     requires utils::point2d<Vector> || utils::junction<Vector>
-    constexpr auto cosAngle(Vector& a, Vector& b, const utils::floating_point auto a_magnitude, const utils::floating_point auto b_magnitude) const noexcept
+    inline constexpr auto cosAngle(Vector& a, Vector& b, const utils::floating_point auto a_magnitude, const utils::floating_point auto b_magnitude) const noexcept
     {
         if (a_magnitude <= std::numeric_limits<decltype(a_magnitude)>::epsilon() || b_magnitude <= std::numeric_limits<decltype(b_magnitude)>::epsilon())
         {
@@ -201,14 +201,14 @@ private:
 
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
-    constexpr Point shiftPointTowards(Point& p0, Point& p1, const utils::numeric auto move_distance) const noexcept
+    inline constexpr Point shiftPointTowards(Point& p0, Point& p1, const utils::numeric auto move_distance) const noexcept
     {
         return shiftPointTowards(p0, p1, move_distance, dist(p0, p1));
     }
 
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
-    constexpr Point shiftPointTowards(Point& p0, Point& p1, const utils::numeric auto move_distance, const utils::floating_point auto p0p1_distance) const noexcept
+    inline constexpr Point shiftPointTowards(Point& p0, Point& p1, const utils::numeric auto move_distance, const utils::floating_point auto p0p1_distance) const noexcept
     {
         using coord_type = std::remove_cvref_t<decltype(std::get<"X">(p0))>;
         const auto shift_distance = move_distance / p0p1_distance;
@@ -220,7 +220,7 @@ private:
 
     template<class Point>
     requires utils::point2d<Point> || utils::junction<Point>
-    constexpr utils::floating_point auto dist(Point& point_0, Point& point_1) const noexcept
+    inline constexpr utils::floating_point auto dist(Point& point_0, Point& point_1) const noexcept
     {
         Point vector = { std::get<"X">(point_1) - std::get<"X">(point_0), std::get<"Y">(point_1) - std::get<"Y">(point_0) };
         return magnitude(vector);
@@ -228,14 +228,14 @@ private:
 
     template<class Vector>
     requires utils::point2d<Vector> || utils::junction<Vector>
-    constexpr utils::floating_point auto magnitude(Vector& v) const noexcept
+    inline constexpr utils::floating_point auto magnitude(Vector& v) const noexcept
     {
         return std::hypot(std::get<"X">(v), std::get<"Y">(v));
     }
 
     template<class Vector>
     requires utils::point2d<Vector> || utils::junction<Vector>
-    constexpr auto dotProduct(Vector& point_0, Vector& point_1) const noexcept
+    inline constexpr auto dotProduct(Vector& point_0, Vector& point_1) const noexcept
     {
         return std::get<"X">(point_0) * std::get<"X">(point_1) + std::get<"Y">(point_0) * std::get<"Y">(point_1);
     }
