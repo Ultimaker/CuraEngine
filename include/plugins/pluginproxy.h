@@ -178,7 +178,12 @@ public:
         {
             if (plugin_info_.has_value())
             {
-                spdlog::error("Plugin '{}' running at [{}] for slot {} failed with error: {}", plugin_info_.value().plugin_name, plugin_info_.value().peer, slot_info_.slot_id, status.error_message());
+                spdlog::error(
+                    "Plugin '{}' running at [{}] for slot {} failed with error: {}",
+                    plugin_info_.value().plugin_name,
+                    plugin_info_.value().peer,
+                    slot_info_.slot_id,
+                    status.error_message());
                 throw exceptions::RemoteException(slot_info_, plugin_info_.value(), status.error_message());
             }
             spdlog::error("Plugin for slot {} failed with error: {}", slot_info_.slot_id, status.error_message());
@@ -210,7 +215,12 @@ public:
         {
             if (plugin_info_.has_value())
             {
-                spdlog::error("Plugin '{}' running at [{}] for slot {} failed with error: {}", plugin_info_.value().plugin_name, plugin_info_.value().peer, slot_info_.slot_id, status.error_message());
+                spdlog::error(
+                    "Plugin '{}' running at [{}] for slot {} failed with error: {}",
+                    plugin_info_.value().plugin_name,
+                    plugin_info_.value().peer,
+                    slot_info_.slot_id,
+                    status.error_message());
                 throw exceptions::RemoteException(slot_info_, plugin_info_.value(), status.error_message());
             }
             spdlog::error("Plugin for slot {} failed with error: {}", slot_info_.slot_id, status.error_message());
