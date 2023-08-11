@@ -7,9 +7,9 @@
 #include <sys/resource.h> //For setpriority.
 #endif
 
-#include <spdlog/spdlog.h>
-
 #include "Application.h"
+
+#include <spdlog/spdlog.h>
 
 namespace cura
 {
