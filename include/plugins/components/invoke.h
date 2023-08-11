@@ -4,9 +4,9 @@
 #ifndef PLUGINS_INVOKECOMPONENT_H
 #define PLUGINS_INVOKECOMPONENT_H
 
-#include "common.h"
 #include "cura/plugins/v0/slot_id.pb.h"
 #include "plugins/broadcasts.h"
+#include "plugins/components/common.h"
 #include "plugins/exception.h"
 #include "plugins/metadata.h"
 #include "utils/format/thread_id.h"
@@ -24,6 +24,9 @@
 #include <fmt/ranges.h>
 #include <range/v3/utility/semiregular_box.hpp>
 #include <spdlog/spdlog.h>
+
+#include <memory>
+#include <type_traits>
 
 namespace cura::plugins
 {

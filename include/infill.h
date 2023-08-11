@@ -9,6 +9,7 @@
 #include "settings/EnumSettings.h" //For infill types.
 #include "settings/Settings.h"
 #include "settings/types/Angle.h"
+#include "utils/AABB.h"
 #include "utils/ExtrusionLine.h"
 #include "utils/IntPoint.h"
 #include "utils/section_type.h"
@@ -18,7 +19,6 @@
 namespace cura
 {
 
-class AABB;
 class SierpinskiFillProvider;
 class SliceMeshStorage;
 

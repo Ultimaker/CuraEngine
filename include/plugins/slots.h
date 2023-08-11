@@ -4,18 +4,20 @@
 #ifndef PLUGINS_SLOTS_H
 #define PLUGINS_SLOTS_H
 
+#include "WallToolPaths.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
+#include "cura/plugins/slots/gcode_paths/v0/modify.grpc.pb.h"
 #include "cura/plugins/slots/infill/v0/generate.grpc.pb.h"
 #include "cura/plugins/slots/postprocess/v0/modify.grpc.pb.h"
 #include "cura/plugins/slots/simplify/v0/modify.grpc.pb.h"
 #include "cura/plugins/v0/slot_id.pb.h"
-#include "infill.h"
 #include "plugins/converters.h"
 #include "plugins/slotproxy.h"
 #include "plugins/types.h"
 #include "plugins/validator.h"
 #include "utils/IntPoint.h"
 #include "utils/Simplify.h" // TODO: Remove once the simplify slot has been removed
+#include "utils/polygon.h"
 #include "utils/types/char_range_literal.h"
 
 #include <exception>
@@ -97,6 +99,16 @@ using slot_postprocess_ = SlotProxy<
 template<class Default = default_process>
 using slot_settings_broadcast_
     = SlotProxy<v0::SlotID::SETTINGS_BROADCAST, "<=1.0.0", slots::broadcast::v0::BroadcastService::Stub, Validator, broadcast_settings_request, empty, Default>;
+
+template<class Default = default_process>
+using slot_gcode_paths_modify_ = SlotProxy<
+    v0::SlotID::GCODE_PATHS_MODIFY,
+    "<=1.0.0",
+    slots::gcode_paths::v0::modify::GCodePathsModifyService::Stub,
+    Validator,
+    gcode_paths_modify_request,
+    gcode_paths_modify_response,
+    Default>;
 
 template<typename... Types>
 struct Typelist
@@ -211,12 +223,13 @@ struct Holder
 
 } // namespace details
 
-using slot_simplify = details::slot_simplify_<details::simplify_default>;
+using slot_gcode_paths_modify = details::slot_gcode_paths_modify_<>;
+using slot_infill_generate = details::slot_infill_generate_<details::infill_generate_default>;
 using slot_postprocess = details::slot_postprocess_<>;
 using slot_settings_broadcast = details::slot_settings_broadcast_<>;
-using slot_infill_generate = details::slot_infill_generate_<details::infill_generate_default>;
+using slot_simplify = details::slot_simplify_<details::simplify_default>;
 
-using SlotTypes = details::Typelist<slot_simplify, slot_postprocess, slot_settings_broadcast, slot_infill_generate>;
+using SlotTypes = details::Typelist<slot_gcode_paths_modify, slot_infill_generate, slot_postprocess, slot_settings_broadcast, slot_simplify>;
 
 } // namespace plugins
 using slots = plugins::details::SingletonRegistry<plugins::SlotTypes, plugins::details::Holder>;

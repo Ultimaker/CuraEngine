@@ -11,6 +11,10 @@
 #include <agrpc/asio_grpc.hpp>
 #include <agrpc/grpc_context.hpp>
 
+#include <chrono>
+#include <memory>
+#include <optional>
+
 namespace cura::plugins
 {
 
