@@ -28,15 +28,12 @@
 #include <string>
 #include <tuple>
 
+#include "WallToolPaths.h"
+#include "pathPlanning/GCodePath.h"
+#include "settings/Settings.h"
+#include "settings/types/LayerIndex.h"
+#include "utils/polygon.h"
 
-namespace cura
-{
-class GCodePath;
-class LayerIndex;
-class ExtrusionLine;
-class Polygons;
-class Settings;
-} // namespace cura
 
 namespace cura::plugins
 {
