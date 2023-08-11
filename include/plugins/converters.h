@@ -5,6 +5,7 @@
 #define PLUGINS_CONVERTERS_H
 
 #include "Cura.pb.h"
+#include "WallToolPaths.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.pb.h"
 #include "cura/plugins/slots/gcode_paths/v0/modify.grpc.pb.h"
@@ -17,8 +18,12 @@
 #include "cura/plugins/slots/postprocess/v0/modify.pb.h"
 #include "cura/plugins/slots/simplify/v0/modify.grpc.pb.h"
 #include "cura/plugins/slots/simplify/v0/modify.pb.h"
+#include "pathPlanning/GCodePath.h"
 #include "plugins/metadata.h"
 #include "plugins/types.h"
+#include "settings/Settings.h"
+#include "settings/types/LayerIndex.h"
+#include "utils/polygon.h"
 
 #include <range/v3/range/operations.hpp>
 #include <range/v3/view/drop.hpp>
@@ -27,12 +32,6 @@
 #include <google/protobuf/empty.pb.h>
 #include <string>
 #include <tuple>
-
-#include "WallToolPaths.h"
-#include "pathPlanning/GCodePath.h"
-#include "settings/Settings.h"
-#include "settings/types/LayerIndex.h"
-#include "utils/polygon.h"
 
 
 namespace cura::plugins
