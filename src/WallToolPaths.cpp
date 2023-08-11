@@ -91,7 +91,7 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     scripta::log("prepared_outline_0", prepared_outline, section_type, layer_idx);
     prepared_outline.removeSmallAreas(small_area_length * small_area_length, false);
     prepared_outline = Simplify(settings).polygon(prepared_outline);
-    if (settings.get<bool>("meshfix_fluid_motion_enabled") && section_type != SectionType::SUPPORT)
+    if (false && settings.get<bool>("meshfix_fluid_motion_enabled") && section_type != SectionType::SUPPORT)
     {
         // No need to smooth support walls
         auto smoother = actions::smooth(settings);
