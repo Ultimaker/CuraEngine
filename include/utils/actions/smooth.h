@@ -222,7 +222,8 @@ private:
     requires utils::point2d<Point> || utils::junction<Point>
     constexpr utils::floating_point auto dist(Point& point_0, Point& point_1) const noexcept
     {
-        return std::hypot(std::get<"X">(point_0) - std::get<"X">(point_1), std::get<"Y">(point_0) - std::get<"Y">(point_1));
+        Point vector = { std::get<"X">(point_1) - std::get<"X">(point_0), std::get<"Y">(point_1) - std::get<"Y">(point_0) };
+        return magnitude(vector);
     }
 
     template<class Vector>
