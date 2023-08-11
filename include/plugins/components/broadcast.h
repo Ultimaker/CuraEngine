@@ -31,10 +31,6 @@
 
 namespace cura::plugins
 {
-namespace exceptions
-{
-class RemoteException; // forward declaration probably needed due to us obfuscating some other classes with forward declarations
-} // namespace exceptions
 
 template<plugins::v0::SlotID S> // NOTE: Leave slot here (templated) for the case where we have to specialize broadcast-channels by slot.
 class PluginProxyBroadcastComponent
