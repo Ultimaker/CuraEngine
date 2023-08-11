@@ -14,6 +14,8 @@
 #include "utils/IntPoint.h"
 #include "utils/section_type.h"
 
+#include <range/v3/range/concepts.hpp>
+
 #include <numbers>
 
 namespace cura
@@ -550,7 +552,7 @@ private:
      */
     void connectLines(Polygons& result_lines);
 };
-static_assert(std::semiregular<Infill>, "Infill should be semiregular");
+static_assert(concepts::semiregular<Infill>, "Infill should be semiregular");
 
 } // namespace cura
 
