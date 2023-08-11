@@ -5,11 +5,10 @@
 #define UTILS_AABB3D_H
 
 #include "IntPoint.h"
+#include "utils/AABB.h"
 
 namespace cura
 {
-
-class AABB;
 
 /*!
 An Axis Aligned Bounding Box. Has a min and max vector, representing minimal and maximal coordinates in the three axes.
