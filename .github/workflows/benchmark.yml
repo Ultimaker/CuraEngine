@@ -155,11 +155,13 @@ jobs:
         with:
           name: C++ Benchmark
           output-file-path: build/Release/benchmark/benchmark_result.json
+          gh-repository: github.com/Ultimaker/CuraEngineBenchmarks
+          gh-pages-branch: main
           benchmark-data-dir-path: dev/bench
           tool: 'googlecpp'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.CURA_BENCHMARK_PAT }}
           auto-push: true
           alert-threshold: '175%'
-          summary-always: true
-          comment-on-alert: true
+#           summary-always: true
+#           comment-on-alert: true
           max-items-in-chart: 250

@@ -77,7 +77,7 @@ jobs:
           repository: 'Ultimaker/GCodeAnalyzer'
           ref: 'main'
           path: 'GCodeAnalyzer'
-          token: ${{ secrets.GCODEANALYZER_PAT }}
+          token: ${{ secrets.CURA_BENCHMARK_PAT }}
 
       - name: Checkout Test Models
         uses: actions/checkout@v3
@@ -297,9 +297,11 @@ jobs:
         with:
           name: CGcodeAnalyzer
           output-file-path: output.json
+          gh-repository: github.com/Ultimaker/CuraEngineBenchmarks
+          gh-pages-branch: main
           benchmark-data-dir-path: dev/gcodeanalyzer
           tool: customBiggerIsBetter
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.CURA_BENCHMARK_PAT }}
           auto-push: true
           alert-threshold: '110%'
           summary-always: true
