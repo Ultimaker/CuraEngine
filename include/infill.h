@@ -66,7 +66,7 @@ class Infill
     }
 
 public:
-     Infill() noexcept = default;
+    Infill() noexcept = default;
 
     Infill(
         EFillMethod pattern,
