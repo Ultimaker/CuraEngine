@@ -479,3 +479,7 @@ retraction_hop_only_when_collides=True
 ironing_flow=10.0
 material_shrinkage_percentage_z=100
 material_shrinkage_percentage_xy=100
+meshfix_fluid_motion_enabled=True
+meshfix_fluid_motion_shift_distance=0.03
+meshfix_fluid_motion_small_distance=0.001
+meshfix_fluid_motion_angle=5
