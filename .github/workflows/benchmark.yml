@@ -162,6 +162,6 @@ jobs:
           github-token: ${{ secrets.CURA_BENCHMARK_PAT }}
           auto-push: true
           alert-threshold: '175%'
-          summary-always: true
-          comment-on-alert: true
+#           summary-always: true
+#           comment-on-alert: true
           max-items-in-chart: 250
