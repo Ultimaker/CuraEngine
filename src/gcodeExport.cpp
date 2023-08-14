@@ -1,12 +1,7 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <assert.h>
-#include <cmath>
-#include <iomanip>
-#include <stdarg.h>
-
-#include <spdlog/spdlog.h>
+#include "gcodeExport.h"
 
 #include "Application.h" //To send layer view data.
 #include "ExtruderTrain.h"
@@ -15,10 +10,16 @@
 #include "Slice.h"
 #include "WipeScriptConfig.h"
 #include "communication/Communication.h" //To send layer view data.
-#include "gcodeExport.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/Date.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
+
+#include <spdlog/spdlog.h>
+
+#include <assert.h>
+#include <cmath>
+#include <iomanip>
+#include <stdarg.h>
 
 namespace cura
 {
@@ -35,7 +36,11 @@ std::string transliterate(const std::string& text)
     return stream.str();
 }
 
-GCodeExport::GCodeExport() : output_stream(&std::cout), currentPosition(0, 0, MM2INT(20)), layer_nr(0), relative_extrusion(false)
+GCodeExport::GCodeExport()
+    : output_stream(&std::cout)
+    , currentPosition(0, 0, MM2INT(20))
+    , layer_nr(0)
+    , relative_extrusion(false)
 {
     *output_stream << std::fixed;
 
@@ -45,10 +50,10 @@ GCodeExport::GCodeExport() : output_stream(&std::cout), currentPosition(0, 0, MM
 
     total_print_times = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
 
-    currentSpeed = 1;
-    current_print_acceleration = -1;
-    current_travel_acceleration = -1;
-    current_jerk = -1;
+    currentSpeed = 1.0;
+    current_print_acceleration = -1.0;
+    current_travel_acceleration = -1.0;
+    current_jerk = -1.0;
 
     is_z_hopped = 0;
     setFlavor(EGCodeFlavor::MARLIN);
@@ -85,7 +90,8 @@ void GCodeExport::preSetup(const size_t start_extruder)
         const ExtruderTrain& train = scene.extruders[extruder_nr];
         setFilamentDiameter(extruder_nr, train.settings.get<coord_t>("material_diameter"));
 
-        extruder_attr[extruder_nr].last_retraction_prime_speed = train.settings.get<Velocity>("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
+        extruder_attr[extruder_nr].last_retraction_prime_speed
+            = train.settings.get<Velocity>("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
         extruder_attr[extruder_nr].fan_number = train.settings.get<size_t>("machine_extruder_cooling_fan_number");
     }
 
@@ -160,7 +166,11 @@ const std::string GCodeExport::flavorToString(const EGCodeFlavor& flavor) const
     }
 }
 
-std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used, const Duration* print_time, const std::vector<double>& filament_used, const std::vector<std::string>& mat_ids)
+std::string GCodeExport::getFileHeader(
+    const std::vector<bool>& extruder_is_used,
+    const Duration* print_time,
+    const std::vector<double>& filament_used,
+    const std::vector<std::string>& mat_ids)
 {
     std::ostringstream prefix;
 
@@ -275,7 +285,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
 }
 
 
-void GCodeExport::setLayerNr(unsigned int layer_nr_)
+void GCodeExport::setLayerNr(const LayerIndex& layer_nr_)
 {
     layer_nr = layer_nr_;
 }
@@ -387,8 +397,10 @@ double GCodeExport::getCurrentExtrudedVolume() const
     const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[current_extruder].settings;
     if (! extruder_settings.get<bool>("machine_firmware_retract"))
     { // no E values are changed to perform a retraction
-        extrusion_amount -= extruder_attr[current_extruder].retraction_e_amount_at_e_start; // subtract the increment in E which was used for the first unretraction instead of extrusion
-        extrusion_amount += extruder_attr[current_extruder].retraction_e_amount_current; // add the decrement in E which the filament is behind on extrusion due to the last retraction
+        extrusion_amount
+            -= extruder_attr[current_extruder].retraction_e_amount_at_e_start; // subtract the increment in E which was used for the first unretraction instead of extrusion
+        extrusion_amount
+            += extruder_attr[current_extruder].retraction_e_amount_current; // add the decrement in E which the filament is behind on extrusion due to the last retraction
     }
     if (is_volumetric)
     {
@@ -616,7 +628,8 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
     bool should_prime_extruder = true;
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
 
-    if (Application::getInstance().communication->isSequential()) // If we must output the g-code sequentially, we must already place the g-code header here even if we don't know the exact time/material usages yet.
+    if (Application::getInstance().communication->isSequential()) // If we must output the g-code sequentially, we must already place the g-code header here even if we don't know
+                                                                  // the exact time/material usages yet.
     {
         std::string prefix = getFileHeader(storage.getExtrudersUsed());
         writeCode(prefix.c_str());
@@ -719,7 +732,9 @@ void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage
         {
             const Temperature bed_temp = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
             if (scene.current_mesh_group == scene.mesh_groups.begin() // Always write bed temperature for first mesh group.
-                || bed_temp != (scene.current_mesh_group - 1)->settings.get<Temperature>("material_bed_temperature")) // Don't write bed temperature if identical to temperature of previous group.
+                || bed_temp
+                       != (scene.current_mesh_group - 1)
+                              ->settings.get<Temperature>("material_bed_temperature")) // Don't write bed temperature if identical to temperature of previous group.
             {
                 if (bed_temp != 0)
                 {
@@ -874,14 +889,18 @@ void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Velo
         if (! extruder_attr[current_extruder].retraction_e_amount_current)
         {
             *output_stream << "M103" << new_line;
-            extruder_attr[current_extruder].retraction_e_amount_current = 1.0; // 1.0 used as stub; BFB doesn't use the actual retraction amount; it performs retraction on the firmware automatically
+            extruder_attr[current_extruder].retraction_e_amount_current
+                = 1.0; // 1.0 used as stub; BFB doesn't use the actual retraction amount; it performs retraction on the firmware automatically
         }
     }
     *output_stream << "G1 X" << MMtoStream{ gcode_pos.X } << " Y" << MMtoStream{ gcode_pos.Y } << " Z" << MMtoStream{ z };
     *output_stream << " F" << PrecisionedDouble{ 1, fspeed } << new_line;
 
     currentPosition = Point3(x, y, z);
-    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), speed, feature);
+    estimateCalculator.plan(
+        TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)),
+        speed,
+        feature);
 }
 
 void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed)
@@ -907,7 +926,14 @@ void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z,
     writeFXYZE(speed, x, y, z, current_e_value, travel_move_type);
 }
 
-void GCodeExport::writeExtrusion(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed, const double extrusion_mm3_per_mm, const PrintFeatureType& feature, const bool update_extrusion_offset)
+void GCodeExport::writeExtrusion(
+    const coord_t x,
+    const coord_t y,
+    const coord_t z,
+    const Velocity& speed,
+    const double extrusion_mm3_per_mm,
+    const PrintFeatureType& feature,
+    const bool update_extrusion_offset)
 {
     if (currentPosition.x == x && currentPosition.y == y && currentPosition.z == z)
     {
@@ -1021,33 +1047,45 @@ void GCodeExport::writeUnretractionAndPrime()
             if (prime_volume != 0)
             {
                 const double output_e = (relative_extrusion) ? prime_volume_e : current_e_value;
-                *output_stream << "G1 F" << PrecisionedDouble{ 1, extruder_attr[current_extruder].last_retraction_prime_speed * 60 } << " " << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{ 5, output_e }
-                               << new_line;
+                *output_stream << "G1 F" << PrecisionedDouble{ 1, extruder_attr[current_extruder].last_retraction_prime_speed * 60 } << " "
+                               << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{ 5, output_e } << new_line;
                 currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
             }
-            estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), 25.0, PrintFeatureType::MoveRetraction);
+            estimateCalculator.plan(
+                TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)),
+                25.0,
+                PrintFeatureType::MoveRetraction);
         }
         else
         {
             current_e_value += extruder_attr[current_extruder].retraction_e_amount_current;
             const double output_e = (relative_extrusion) ? extruder_attr[current_extruder].retraction_e_amount_current + prime_volume_e : current_e_value;
-            *output_stream << "G1 F" << PrecisionedDouble{ 1, extruder_attr[current_extruder].last_retraction_prime_speed * 60 } << " " << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{ 5, output_e } << new_line;
+            *output_stream << "G1 F" << PrecisionedDouble{ 1, extruder_attr[current_extruder].last_retraction_prime_speed * 60 } << " "
+                           << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{ 5, output_e } << new_line;
             currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
-            estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed, PrintFeatureType::MoveRetraction);
+            estimateCalculator.plan(
+                TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)),
+                currentSpeed,
+                PrintFeatureType::MoveRetraction);
         }
     }
     else if (prime_volume != 0.0)
     {
         const double output_e = (relative_extrusion) ? prime_volume_e : current_e_value;
-        *output_stream << "G1 F" << PrecisionedDouble{ 1, extruder_attr[current_extruder].last_retraction_prime_speed * 60 } << " " << extruder_attr[current_extruder].extruderCharacter;
+        *output_stream << "G1 F" << PrecisionedDouble{ 1, extruder_attr[current_extruder].last_retraction_prime_speed * 60 } << " "
+                       << extruder_attr[current_extruder].extruderCharacter;
         *output_stream << PrecisionedDouble{ 5, output_e } << new_line;
         currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
-        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed, PrintFeatureType::NoneType);
+        estimateCalculator.plan(
+            TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)),
+            currentSpeed,
+            PrintFeatureType::NoneType);
     }
     extruder_attr[current_extruder].prime_volume = 0.0;
 
     if (getCurrentExtrudedVolume() > 10000.0 && flavor != EGCodeFlavor::BFB
-        && flavor != EGCodeFlavor::MAKERBOT) // According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
+        && flavor != EGCodeFlavor::MAKERBOT) // According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it
+                                             // every 10m, just to be sure.
     {
         resetExtrusionValue();
     }
@@ -1121,9 +1159,10 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         }
         *output_stream << new_line;
         // Assume default UM2 retraction settings.
-        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value + retraction_diff_e_amount)),
-                                25,
-                                PrintFeatureType::MoveRetraction); // TODO: hardcoded values!
+        estimateCalculator.plan(
+            TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value + retraction_diff_e_amount)),
+            25.0,
+            PrintFeatureType::MoveRetraction); // TODO: hardcoded values!
     }
     else
     {
@@ -1132,7 +1171,10 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         const double output_e = (relative_extrusion) ? retraction_diff_e_amount : current_e_value;
         *output_stream << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " " << extr_attr.extruderCharacter << PrecisionedDouble{ 5, output_e } << new_line;
         currentSpeed = speed;
-        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed, PrintFeatureType::MoveRetraction);
+        estimateCalculator.plan(
+            TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)),
+            currentSpeed,
+            PrintFeatureType::MoveRetraction);
         extr_attr.last_retraction_prime_speed = config.primeSpeed;
     }
 
@@ -1286,7 +1328,10 @@ void GCodeExport::writePrimeTrain(const Velocity& travel_speed)
         // ideally the prime position would be respected whether we do a blob or not,
         // but the frontend currently doesn't support a value function of an extruder setting depending on an fdmprinter setting,
         // which is needed to automatically ignore the prime position for the printer when blob is disabled
-        Point3 prime_pos(extruder_settings.get<coord_t>("extruder_prime_pos_x"), extruder_settings.get<coord_t>("extruder_prime_pos_y"), extruder_settings.get<coord_t>("extruder_prime_pos_z"));
+        Point3 prime_pos(
+            extruder_settings.get<coord_t>("extruder_prime_pos_x"),
+            extruder_settings.get<coord_t>("extruder_prime_pos_y"),
+            extruder_settings.get<coord_t>("extruder_prime_pos_z"));
         if (! extruder_settings.get<bool>("extruder_prime_pos_abs"))
         {
             // currentPosition.z can be already z hopped

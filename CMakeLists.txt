@@ -115,6 +115,7 @@ set(engine_SRCS # Except main.cpp.
         src/pathPlanning/LinePolygonsCrossings.cpp
         src/pathPlanning/NozzleTempInsert.cpp
 
+        include/plugins/converters.h
         src/plugins/converters.cpp
 
         src/progress/Progress.cpp

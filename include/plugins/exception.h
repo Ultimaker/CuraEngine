@@ -1,11 +1,12 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef PLUGINS_EXCEPTIONS_H
-#define PLUGINS_EXCEPTIONS_H
+#ifndef PLUGINS_EXCEPTION_H
+#define PLUGINS_EXCEPTION_H
 
 #include "plugins/metadata.h"
 #include "plugins/types.h"
+#include "plugins/validator.h"
 
 #include <fmt/format.h>
 
@@ -70,4 +71,4 @@ public:
 
 } // namespace cura::plugins::exceptions
 
-#endif // PLUGINS_EXCEPTIONS_H
+#endif // PLUGINS_EXCEPTION_H

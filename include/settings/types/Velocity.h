@@ -1,8 +1,10 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef VELOCITY_H
 #define VELOCITY_H
+
+#include "utils/types/numeric_facade.h"
 
 namespace cura
 {
@@ -12,74 +14,24 @@ namespace cura
  *
  * This is a facade. It behaves like a double, only it can't be negative.
  */
-struct Velocity
+struct Velocity : public utils::NumericFacade<double>
 {
-    /*
-     * \brief Default constructor setting velocity to 0.
-     */
-    constexpr Velocity() : value(0.0) {};
+    using base_type = utils::NumericFacade<double>;
+    using base_type::NumericFacade;
 
-    /*
-     * \brief Casts a double to a Velocity instance.
-     */
-    constexpr Velocity(double value) : value(value) {};
-
-    /*
-     * \brief Casts the Temperature instance to a double.
-     */
-    constexpr operator double() const
-    {
-        return value;
-    }
-
-    /*
-     * Some operators for arithmetic on velocities.
-     */
-    Velocity operator *(const Velocity& other) const
-    {
-        return Velocity(value * other.value);
-    }
-    template<typename E> Velocity operator *(const E& other) const
-    {
-        return Velocity(value * other);
-    }
-    Velocity operator /(const Velocity& other) const
-    {
-        return Velocity(value / other.value);
-    }
-    template<typename E> Velocity operator /(const E& other) const
-    {
-        return Velocity(value / other);
-    }
-    Velocity& operator *=(const Velocity& other)
-    {
-        value *= other.value;
-        return *this;
-    }
-    template<typename E> Velocity& operator *=(const E& other)
-    {
-        value *= other;
-        return *this;
-    }
-    Velocity& operator /=(const Velocity& other)
-    {
-        value /= other.value;
-        return *this;
-    }
-    template<typename E> Velocity& operator /=(const E& other)
-    {
-        value /= other;
-        return *this;
-    }
-
-    /*
-     * \brief The actual temperature, as a double.
-     */
-    double value = 0;
+    constexpr Velocity(const base_type& base) noexcept
+        : base_type{ base } {};
 };
 
-using Acceleration = Velocity; //Use the same logic for acceleration variables.
+struct Acceleration : public utils::NumericFacade<double>
+{
+    using base_type = utils::NumericFacade<double>;
+    using base_type::NumericFacade;
 
-}
+    constexpr Acceleration(const base_type& base) noexcept
+        : base_type{ base } {};
+};
 
-#endif //VELOCITY_H
+} // namespace cura
+
+#endif // VELOCITY_H

@@ -142,25 +142,25 @@ TEST_F(SettingsTest, AddSettingTemperature)
 TEST_F(SettingsTest, AddSettingVelocity)
 {
     settings.add("test_setting", "12.345");
-    EXPECT_DOUBLE_EQ(Velocity(12.345), settings.get<Velocity>("test_setting"));
+    EXPECT_DOUBLE_EQ(Velocity { 12.345 }, settings.get<Velocity>("test_setting"));
 
     settings.add("test_setting", "-78");
-    EXPECT_DOUBLE_EQ(Velocity(-78), settings.get<Velocity>("test_setting"));
+    EXPECT_DOUBLE_EQ(Velocity{ -78.0 }, settings.get<Velocity>("test_setting"));
 }
 
 TEST_F(SettingsTest, AddSettingRatio)
 {
     settings.add("test_setting", "1.618");
-    EXPECT_DOUBLE_EQ(Ratio(0.01618), settings.get<Ratio>("test_setting")) << "With ratios, the input is interpreted in percentages.";
+    EXPECT_DOUBLE_EQ(Ratio { 0.01618 }, settings.get<Ratio>("test_setting")) << "With ratios, the input is interpreted in percentages.";
 }
 
 TEST_F(SettingsTest, AddSettingDuration)
 {
     settings.add("test_setting", "1234.5678");
-    EXPECT_DOUBLE_EQ(Duration(1234.5678), settings.get<Duration>("test_setting"));
+    EXPECT_DOUBLE_EQ(Duration { 1234.5678 }, settings.get<Duration>("test_setting"));
 
     settings.add("test_setting", "-1234.5678");
-    EXPECT_DOUBLE_EQ(Duration(0), settings.get<Duration>("test_setting")) << "Negative duration doesn't exist, so it gets rounded to 0.";
+    EXPECT_DOUBLE_EQ(Duration { 0 }, settings.get<Duration>("test_setting")) << "Negative duration doesn't exist, so it gets rounded to 0.";
 }
 
 TEST_F(SettingsTest, AddSettingFlowTempGraph)

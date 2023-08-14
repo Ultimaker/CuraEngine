@@ -58,7 +58,7 @@ struct TimeMaterialEstimates
                                       material - other.material };
     }
 
-    constexpr bool operator<=>(const TimeMaterialEstimates& other) const noexcept = default;
+    constexpr auto operator<=>(const TimeMaterialEstimates& other) const noexcept = default;
 
     constexpr void reset() noexcept
     {

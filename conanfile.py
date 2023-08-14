@@ -71,6 +71,7 @@ class CuraEngineConan(ConanFile):
         self.options["grpc"].php_plugin = False
         self.options["grpc"].python_plugin = False
         self.options["grpc"].ruby_plugin = False
+        self.options["asio-grpc"].backend = "boost"
         self.options["asio-grpc"].local_allocator = "recycling_allocator"
         if self.options.enable_arcus:
             self.options["arcus"].shared = True
@@ -105,7 +106,7 @@ class CuraEngineConan(ConanFile):
         self.requires("protobuf/3.21.9")
         self.requires("zlib/1.2.12")
         self.requires("openssl/1.1.1l")
-        self.requires("asio-grpc/2.4.0")
+        self.requires("asio-grpc/2.6.0")
         self.requires("curaengine_grpc_definitions/latest@ultimaker/cura_10446")
 
     def generate(self):

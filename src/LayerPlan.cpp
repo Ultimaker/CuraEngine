@@ -11,7 +11,7 @@
 #include "communication/Communication.h"
 #include "pathPlanning/Comb.h"
 #include "pathPlanning/CombPaths.h"
-#include "plugins/slots.h"
+//#include "plugins/slots.h"
 #include "raft.h" // getTotalExtraLayers
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
@@ -689,7 +689,7 @@ void LayerPlan::addWallLine(
     Ratio speed_factor,
     double distance_to_bridge_start)
 {
-    const coord_t min_line_len = settings.get<coord_t>("meshfix_maximum_resolution") / 2; // Shouldn't cut up stuff (too much) below the required simplify resolution.
+    const coord_t min_line_len = 5; // we ignore lines less than 5um long
     const double acceleration_segment_len = MM2INT(1); // accelerate using segments of this length
     const double acceleration_factor = 0.75; // must be < 1, the larger the value, the slower the acceleration
     const bool spiralize = false;
@@ -789,7 +789,7 @@ void LayerPlan::addWallLine(
             speed_factor = 1 - (1 - speed_factor) * acceleration_factor;
             if (speed_factor >= 0.9)
             {
-                speed_factor = 1;
+                speed_factor = 1.0;
             }
             distance_to_line_end = vSize(cur_point - line_end);
         }
@@ -962,8 +962,9 @@ void LayerPlan::addWall(
 
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
 
-    const Ratio nominal_line_width_multiplier
-        = 1.0 / Ratio(non_bridge_config.getLineWidth()); // we multiply the flow with the actual wanted line width (for that junction), and then multiply with this
+    const Ratio nominal_line_width_multiplier{
+        1.0 / Ratio{ static_cast<Ratio::value_type>(non_bridge_config.getLineWidth()) }
+    }; // we multiply the flow with the actual wanted line width (for that junction), and then multiply with this
 
     // helper function to calculate the distance from the start of the current wall line to the first bridge segment
 
@@ -1190,7 +1191,7 @@ void LayerPlan::addInfillWall(const ExtrusionLine& wall, const GCodePathConfig& 
 
     for (const auto& junction_n : wall)
     {
-        const Ratio width_factor = junction_n.w / Ratio(path_config.getLineWidth());
+        const Ratio width_factor{ static_cast<Ratio::value_type>(junction_n.w) / Ratio{ static_cast<Ratio::value_type>(path_config.getLineWidth()) } };
         constexpr SpaceFillType space_fill_type = SpaceFillType::Polygons;
         constexpr Ratio flow = 1.0_r;
         addExtrusionMove(junction_n.p, path_config, space_fill_type, flow, width_factor);
@@ -2415,7 +2416,7 @@ void LayerPlan::applyBackPressureCompensation()
     }
 }
 
-int LayerPlan::getLayerNr() const
+LayerIndex LayerPlan::getLayerNr() const
 {
     return layer_nr;
 }

@@ -1,25 +1,34 @@
 name: Benchmark
 on:
-  schedule:
-    - cron: '15 6,12,17 * * *'
-
-  # FIXME: remove the path trigger after merge
   push:
     paths:
       - 'include/**'
       - 'src/**'
-      - 'cmake/**'
       - 'benchmark/**'
-      - 'conanfile.py'
-      - 'conandata.yml'
-      - 'CMakeLists.txt'
       - '.github/workflows/benchmark.yml'
       - '.github/workflows/requirements-conan-package.txt'
     branches:
       - main
-      - CURA-9906_benchmark
     tags:
       - '[0-9].[0-9].[0-9]*'
+  pull_request:
+    types: [ opened, reopened, synchronize ]
+    paths:
+      - 'include/**'
+      - 'src/**'
+      - 'benchmark/**'
+      - '.github/workflows/benchmark.yml'
+      - '.github/workflows/requirements-conan-package.txt'
+    branches:
+      - main
+      - 'CURA-*'
+      - '[0-9]+.[0-9]+'
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+  deployments: write
 
 env:
   CONAN_LOGIN_USERNAME_CURA: ${{ secrets.CONAN_USER }}
@@ -31,7 +40,27 @@ env:
   CONAN_NON_INTERACTIVE: 1
 
 jobs:
+  check_actor:
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.skip_check.outputs.proceed }}
+    steps:
+      - id: skip_check
+        run: |
+          if [[ "${{ github.actor }}" == *"[bot]"* ]]; then
+            echo "proceed=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.pull_request }}" == "" ]]; then 
+            echo "proceed=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.pull_request.head.repo.fork }}" == "false" ]]; then 
+            echo "proceed=true" >> $GITHUB_OUTPUT
+          else
+            echo "proceed=false" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
   conan-recipe-version:
+    needs: [ check_actor ]
+    if: ${{ needs.check_actor.outputs.proceed == 'true' }}
     uses: ultimaker/cura/.github/workflows/conan-recipe-version.yml@main
     with:
       project_name: curaengine
@@ -118,18 +147,21 @@ jobs:
 
       - name: Run benchmark CuraEngine
         id: run-test
-        run: ./benchmarks --benchmark_format=json --benchmark_context=version=`${{ needs.conan-recipe-version.outputs.recipe_semver_full }}` | tee benchmark_result.json
+        run: ./benchmarks --benchmark_format=json --benchmark_out=benchmark_result.json
         working-directory: build/Release/benchmark
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
         with:
           name: C++ Benchmark
-          tool: 'googlecpp'
           output-file-path: build/Release/benchmark/benchmark_result.json
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          gh-repository: github.com/Ultimaker/CuraEngineBenchmarks
+          gh-pages-branch: main
+          benchmark-data-dir-path: dev/bench
+          tool: 'googlecpp'
+          github-token: ${{ secrets.CURA_BENCHMARK_PAT }}
           auto-push: true
-          # Show alert with commit comment on detecting possible performance regression
-          alert-threshold: '200%'
+          alert-threshold: '175%'
+          summary-always: true
           comment-on-alert: true
-          fail-on-alert: true
+          max-items-in-chart: 250

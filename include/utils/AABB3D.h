@@ -1,15 +1,14 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_AABB3D_H
 #define UTILS_AABB3D_H
 
 #include "IntPoint.h"
+#include "utils/AABB.h"
 
 namespace cura
 {
-
-class AABB;
 
 /*!
 An Axis Aligned Bounding Box. Has a min and max vector, representing minimal and maximal coordinates in the three axes.
@@ -44,9 +43,9 @@ struct AABB3D
 
     /*!
      * Check whether this aabb overlaps with another.
-     * 
+     *
      * In the boundary case false is returned.
-     * 
+     *
      * \param other the aabb to check for overlaps with
      * \return Whether the two aabbs overlap
      */
@@ -91,7 +90,7 @@ struct AABB3D
 
     /*!
      * Offset the bounding box in the horizontal direction; outward or inward.
-     * 
+     *
      * \param outset the distance (positive or negative) to expand the bounding box outward
      * \return this object (which has changed)
      */
@@ -99,13 +98,12 @@ struct AABB3D
 
     /*!
      * Offset the bounding box in the horizontal direction; outward or inward.
-     * 
+     *
      * \param outset the distance (positive or negative) to expand the bounding box outward
      * \return this object (which has changed)
      */
     AABB3D expandXY(coord_t outset);
 };
 
-}//namespace cura
-#endif//UTILS_AABB3D_H
-
+} // namespace cura
+#endif // UTILS_AABB3D_H
