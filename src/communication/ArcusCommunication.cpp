@@ -390,7 +390,7 @@ void ArcusCommunication::sendFinishedSlicing() const
     spdlog::debug("Sent slicing finished message.");
 }
 
-void ArcusCommunication::sendLayerComplete(const LayerIndex& layer_nr, const coord_t& z, const coord_t& thickness)
+void ArcusCommunication::sendLayerComplete(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness)
 {
     std::shared_ptr<proto::LayerOptimized> layer = private_data->getOptimizedLayerById(layer_nr);
     layer->set_height(z);
@@ -491,7 +491,7 @@ void ArcusCommunication::sendProgress(const float& progress) const
     private_data->last_sent_progress = rounded_amount;
 }
 
-void ArcusCommunication::setLayerForSend(const LayerIndex& layer_nr)
+void ArcusCommunication::setLayerForSend(const LayerIndex::value_type& layer_nr)
 {
     path_compiler->setLayer(layer_nr);
 }

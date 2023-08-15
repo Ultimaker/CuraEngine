@@ -22,6 +22,10 @@ on:
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'
 
+permissions:
+  contents: write
+  deployments: write
+
 env:
   CONAN_LOGIN_USERNAME_CURA: ${{ secrets.CONAN_USER }}
   CONAN_PASSWORD_CURA: ${{ secrets.CONAN_PASS }}
@@ -73,7 +77,7 @@ jobs:
           repository: 'Ultimaker/GCodeAnalyzer'
           ref: 'main'
           path: 'GCodeAnalyzer'
-          token: ${{ secrets.GCODEANALYZER_PAT }}
+          token: ${{ secrets.CURA_BENCHMARK_PAT }}
 
       - name: Checkout Test Models
         uses: actions/checkout@v3
@@ -83,15 +87,26 @@ jobs:
           path: 'NightlyTestModels'
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Checkout .def.json files from Cura frontend
+      - name: Determine the corresponding Cura branch
+        id: curabranch
         run: |
-          mkdir Cura
-          cd Cura
-          git init
-          git sparse-checkout set resources/definitions resources/extruders
-          git remote add -f origin https://github.com/Ultimaker/Cura
-          git pull origin main
-          cd ..
+          status_code=$(curl -s -o /dev/null -w "%{http_code}" "https://api.github.com/repos/ultimaker/cura/branches/${{ github.head_ref }}")
+          if [ "$status_code" -eq 200 ]; then
+            echo "The branch exists in Cura"
+            echo "branch=${{ github.head_ref }}" >> $GITHUB_OUTPUT
+          else
+            echo "branch=main" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout Cura
+        uses: actions/checkout@v3
+        with:
+          repository: 'Ultimaker/Cura'
+          ref: ${{ steps.curabranch.outputs.branch}}
+          path: 'Cura'
+          sparse-checkout: |
+            resources/definitions
+            resources/extruders
 
       - name: Setup Python and pip
         uses: actions/setup-python@v4
@@ -282,12 +297,12 @@ jobs:
         with:
           name: CGcodeAnalyzer
           output-file-path: output.json
+          gh-repository: github.com/Ultimaker/CuraEngineBenchmarks
+          gh-pages-branch: main
           benchmark-data-dir-path: dev/gcodeanalyzer
           tool: customBiggerIsBetter
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.CURA_BENCHMARK_PAT }}
           auto-push: true
-          gh-repository: github.com/Ultimaker/CuraEngine
-          # Show alert with commit comment on detecting possible performance regression
           alert-threshold: '110%'
           summary-always: true
           comment-on-alert: true

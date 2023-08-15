@@ -27,7 +27,7 @@ public:
      * \param layer_nr The layer number to get the optimised layer data for.
      * \return The optimised layer data for that layer.
      */
-    std::shared_ptr<proto::LayerOptimized> getOptimizedLayerById(LayerIndex layer_nr);
+    std::shared_ptr<proto::LayerOptimized> getOptimizedLayerById(LayerIndex::value_type layer_nr);
 
     /*
      * Reads the global settings from a Protobuf message.

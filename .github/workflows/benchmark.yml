@@ -26,6 +26,10 @@ on:
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'
 
+permissions:
+  contents: write
+  deployments: write
+
 env:
   CONAN_LOGIN_USERNAME_CURA: ${{ secrets.CONAN_USER }}
   CONAN_PASSWORD_CURA: ${{ secrets.CONAN_PASS }}
@@ -143,19 +147,21 @@ jobs:
 
       - name: Run benchmark CuraEngine
         id: run-test
-        run: ./benchmarks --benchmark_format=json --benchmark_context=version=`"${{ needs.conan-recipe-version.outputs.recipe_semver_full }}"` | tee benchmark_result.json
+        run: ./benchmarks --benchmark_format=json --benchmark_out=benchmark_result.json
         working-directory: build/Release/benchmark
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
         with:
           name: C++ Benchmark
-          tool: 'googlecpp'
           output-file-path: build/Release/benchmark/benchmark_result.json
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          gh-repository: github.com/Ultimaker/CuraEngineBenchmarks
+          gh-pages-branch: main
+          benchmark-data-dir-path: dev/bench
+          tool: 'googlecpp'
+          github-token: ${{ secrets.CURA_BENCHMARK_PAT }}
           auto-push: true
-          # Show alert with commit comment on detecting possible performance regression
           alert-threshold: '175%'
-          summary-always: true
-          comment-on-alert: true
+#           summary-always: true
+#           comment-on-alert: true
           max-items-in-chart: 250

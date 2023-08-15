@@ -8,6 +8,7 @@
 #include "utils/Coord_t.h"
 #include "utils/polygon.h" //In the signature of Communication.
 #include <gmock/gmock.h>
+#include "settings/types/LayerIndex.h"
 
 namespace cura
 {
@@ -21,7 +22,7 @@ public:
     MOCK_CONST_METHOD0(hasSlice, bool());
     MOCK_CONST_METHOD0(isSequential, bool());
     MOCK_CONST_METHOD1(sendProgress, void(const float& progress));
-    MOCK_METHOD3(sendLayerComplete, void(const LayerIndex& layer_nr, const coord_t& z, const coord_t& thickness));
+    MOCK_METHOD3(sendLayerComplete, void(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness));
     MOCK_METHOD5(sendPolygons,
                  void(const PrintFeatureType& type,
                       const Polygons& polygons,
@@ -42,7 +43,7 @@ public:
                       const Velocity& velocity));
     MOCK_METHOD1(sendCurrentPosition, void(const Point& position));
     MOCK_METHOD1(setExtruderForSend, void(const ExtruderTrain& extruder));
-    MOCK_METHOD1(setLayerForSend, void(const LayerIndex& layer_nr));
+    MOCK_METHOD1(setLayerForSend, void(const LayerIndex::value_type& layer_nr));
     MOCK_METHOD0(sendOptimizedLayerData, void());
     MOCK_CONST_METHOD0(sendPrintTimeMaterialEstimates, void());
     MOCK_METHOD0(beginGCode, void());
