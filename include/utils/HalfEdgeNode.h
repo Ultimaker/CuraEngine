@@ -1,5 +1,5 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_HALF_EDGE_NODE_H
 #define UTILS_HALF_EDGE_NODE_H
@@ -10,9 +10,6 @@
 
 namespace cura
 {
-
-template<typename node_data_t, typename edge_data_t, typename derived_node_t, typename derived_edge_t>
-class HalfEdge;
 
 template<typename node_data_t, typename edge_data_t, typename derived_node_t, typename derived_edge_t>
 class HalfEdgeNode

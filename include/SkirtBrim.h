@@ -204,25 +204,6 @@ public:
      * Generate the brim which is printed from the outlines of the support inward.
      */
     void generateSupportBrim();
-
-private:
-    /*!
-     * \brief Generate the skirt/brim lines around the model.
-     * 
-     * \param start_distance The distance of the first outset from the parts at
-     * the first line.
-     * \param primary_line_count Number of offsets / brim lines of the primary
-     * extruder.
-     * \param primary_extruder_minimal_length The minimal total length of the
-     * skirt/brim lines of the primary extruder.
-     * \param first_layer_outline The reference polygons from which to offset
-     * outward to generate skirt/brim lines.
-     * \param[out] skirt_brim_primary_extruder Where to store the resulting
-     * brim/skirt lines.
-     * \return The offset of the last brim/skirt line from the reference polygon
-     * \p first_layer_outline.
-     */
-    static coord_t generatePrimarySkirtBrimLines(const coord_t start_distance, size_t& primary_line_count, const coord_t primary_extruder_minimal_length, const Polygons& first_layer_outline, Polygons& skirt_brim_primary_extruder);
 };
 }//namespace cura
 

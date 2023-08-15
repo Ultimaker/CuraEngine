@@ -1,24 +1,23 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef PREHEAT_H
 #define PREHEAT_H
 
-#include <cassert>
-#include <algorithm> // max
-
 #include "settings/types/Duration.h"
+#include "settings/types/Ratio.h"
 #include "settings/types/Temperature.h"
 
-namespace cura 
-{
+#include <algorithm> // max
+#include <cassert>
 
-class Ratio;
+namespace cura
+{
 
 /*!
  * Class for computing heatup and cooldown times used for computing the time the printer needs to heat up to a printing temperature.
  */
-class Preheat 
+class Preheat
 {
 public:
     /*!
@@ -44,7 +43,7 @@ public:
     /*!
      * Get the optimal temperature corresponding to a given average flow,
      * or the initial layer temperature.
-     * 
+     *
      * \param extruder The extruder train
      * \param flow The flow for which to get the optimal temperature
      * \param is_initial_layer Whether the initial layer temperature should be returned instead of flow-based temperature
@@ -54,12 +53,12 @@ public:
 
     /*!
      * Decide when to start warming up again after starting to cool down towards \p temp_mid.
-     * Two cases are considered: 
+     * Two cases are considered:
      * the case where the standby temperature is reached  \__/    .
      * and the case where it isn't  \/    .
-     * 
+     *
      * \warning it is assumed that \p temp_mid is lower than both \p temp_start and \p temp_end. If not somewhat weird results may follow.
-     * 
+     *
     //                    ,temp_end
     //                   /                                    .
     //     ,temp_start  /                                     .
@@ -78,12 +77,12 @@ public:
 
     /*!
      * Decide when to start cooling down again after starting to warm up towards the \p temp_mid
-     * Two cases are considered: 
+     * Two cases are considered:
      * the case where the temperature is reached  /"""\    .
      * and the case where it isn't  /\    .
-     * 
+     *
      * \warning it is assumed that \p temp_mid is higher than both \p temp_start and \p temp_end. If not somewhat weird results may follow.
-     * 
+     *
     //               _> temp_mid
     //       /""""""""\                                       .
     //      /          \                                      .
@@ -111,6 +110,6 @@ public:
     Duration getTimeToGoFromTempToTemp(const size_t extruder, const Temperature& temp_before, const Temperature& temp_after, const bool during_printing);
 };
 
-} // namespace cura 
+} // namespace cura
 
 #endif // PREHEAT_H

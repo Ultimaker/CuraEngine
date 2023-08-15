@@ -1,5 +1,5 @@
-// Copyright (c) 2020 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef CURAENGINE_WALLTOOLPATHS_H
 #define CURAENGINE_WALLTOOLPATHS_H
@@ -10,6 +10,7 @@
 #include "settings/Settings.h"
 #include "utils/ExtrusionLine.h"
 #include "utils/polygon.h"
+#include "utils/section_type.h"
 
 namespace cura
 {
@@ -24,7 +25,7 @@ public:
      * \param wall_0_inset How far to inset the outer wall, to make it adhere better to other walls.
      * \param settings The settings as provided by the user
      */
-    WallToolPaths(const Polygons& outline, const coord_t nominal_bead_width, const size_t inset_count, const coord_t wall_0_inset, const Settings& settings);
+    WallToolPaths(const Polygons& outline, const coord_t nominal_bead_width, const size_t inset_count, const coord_t wall_0_inset, const Settings& settings, const int layer_idx, SectionType section_type);
 
     /*!
      * A class that creates the toolpaths given an outline, nominal bead width and maximum amount of walls
@@ -35,7 +36,7 @@ public:
      * \param wall_0_inset How far to inset the outer wall, to make it adhere better to other walls.
      * \param settings The settings as provided by the user
      */
-    WallToolPaths(const Polygons& outline, const coord_t bead_width_0, const coord_t bead_width_x, const size_t inset_count, const coord_t wall_0_inset, const Settings& settings);
+    WallToolPaths(const Polygons& outline, const coord_t bead_width_0, const coord_t bead_width_x, const size_t inset_count, const coord_t wall_0_inset, const Settings& settings, const int layer_idx, SectionType section_type);
 
     /*!
      * Generates the Toolpaths
@@ -120,6 +121,8 @@ private:
     std::vector<VariableWidthLines> toolpaths; //<! The generated toolpaths binned by inset_idx.
     Polygons inner_contour;  //<! The inner contour of the generated toolpaths
     const Settings& settings;
+    int layer_idx;
+    SectionType section_type;
 };
 } // namespace cura
 

@@ -1,0 +1,46 @@
+name: lint-formatter
+
+on:
+  workflow_dispatch:
+
+  push:
+    paths:
+      - 'include/**/*.h*'
+      - 'src/**/*.c*'
+
+jobs:
+  lint-formatter-job:
+    name: Auto-apply clang-format
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - uses: technote-space/get-diff-action@v6
+        with:
+          PATTERNS: |
+            include/**/*.h*
+            src/**/*.c*
+
+      - name: Setup Python and pip
+        if: env.GIT_DIFF && !env.MATCHED_FILES  # If nothing happens with python and/or pip after, the clean-up crashes.
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11.x
+          cache: 'pip'
+          cache-dependency-path: .github/workflows/requirements-linter.txt
+
+      - name: Install Python requirements for runner
+        if: env.GIT_DIFF && !env.MATCHED_FILES
+        run: pip install -r .github/workflows/requirements-linter.txt
+
+      - name: Format file
+        if: env.GIT_DIFF && !env.MATCHED_FILES
+        run: |
+          clang-format -i  ${{ env.GIT_DIFF_FILTERED }}
+
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        if: env.GIT_DIFF && !env.MATCHED_FILES
+        with:
+          commit_message: "Applied clang-format."

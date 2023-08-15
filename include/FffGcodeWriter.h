@@ -1,4 +1,4 @@
-//  Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef GCODE_WRITER_H
@@ -35,7 +35,6 @@ class TimeKeeper;
  */
 class FffGcodeWriter : public NoCopy
 {
-    friend class Scene; // cause WireFrame2Gcode uses the member [gcode] (TODO)
     friend class FffProcessor; //Because FffProcessor exposes finalize (TODO)
 private:
     coord_t max_object_height; //!< The maximal height of all previously sliced meshgroups, used to avoid collision when moving to the next meshgroup to print.
@@ -84,7 +83,8 @@ private:
                                                                                        //!< and fan speeds. Configured for each extruder.
 
     std::string slice_uuid; //!< The UUID of the current slice.
-  public:
+
+public:
     /*
      * \brief Construct a g-code writer.
      *
@@ -145,13 +145,6 @@ private:
     void setConfigFanSpeedLayerTime();
 
     /*!
-     * Create and set the SliceDataStorage::coasting_config for each extruder.
-     * 
-     * \param[out] storage The data storage to which to save the configuration
-     */
-    void setConfigCoasting(SliceDataStorage& storage);
-
-    /*!
      * Set the retraction and wipe config globally, per extruder and per mesh.
      * 
      * \param[out] storage The data storage to which to save the configurations
@@ -192,24 +185,6 @@ private:
     void setSupportAngles(SliceDataStorage& storage);
 
     /*!
-    * Set temperatures for the initial layer. Called by 'processStartingCode' and whenever a new object is started at layer 0.
-    *
-    * \param[in] storage where the slice data is stored.
-    * \param[in] start_extruder_nr The extruder with which to start the print.
-    */
-    void processInitialLayerTemperature(const SliceDataStorage& storage, const size_t start_extruder_nr);
-
-    /*!
-     * Set temperatures and perform initial priming.
-     * 
-     * Write a stub header if CuraEngine is in command line tool mode. (Cause writing the header afterwards would entail moving all gcode down.)
-     * 
-     * \param[in] storage where the slice data is stored.
-     * \param[in] start_extruder_nr The extruder with which to start the print.
-     */
-    void processStartingCode(const SliceDataStorage& storage, const size_t start_extruder_nr);
-
-    /*!
      * Move up and over the already printed meshgroups to print the next meshgroup.
      * 
      * \param[in] storage where the slice data is stored.
@@ -246,13 +221,6 @@ private:
      * \return whether any extruder need to be primed separately just before they are used
      */
     bool getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, const size_t extruder_nr) const;
-
-    /*!
-     * Plan priming of all used extruders which haven't been primed yet
-     * \param[in] storage where the slice data is stored.
-     * \param layer_plan The initial planning of the g-code of the layer.
-     */
-    void ensureAllExtrudersArePrimed(const SliceDataStorage& storage, LayerPlan& layer_plan) const;
 
     /*!
      * Add the skirt or the brim to the layer plan \p gcodeLayer if it hasn't already been added yet.
@@ -603,7 +571,6 @@ private:
      */
     bool addSupportBottomsToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer) const;
 
-public:
     /*!
      * Change to a new extruder, and add the prime tower instructions if the new extruder is different from the last.
      * 
@@ -615,7 +582,6 @@ public:
      */
     void setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t extruder_nr) const;
 
-private:
     /*!
      * Add the prime tower gcode for the current layer.
      * \param[in] storage where the slice data is stored.

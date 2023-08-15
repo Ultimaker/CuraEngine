@@ -1,15 +1,16 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
-
-#include <array>
-#include <list>
-#include <sstream>
-#include <unordered_set>
 
 #include "infill.h"
 #include "utils/SparsePointGridInclusive.h"
 #include "utils/linearAlg2D.h"
 #include "utils/polygonUtils.h"
+
+#include <array>
+#include <list>
+#include <sstream>
+#include <unordered_set>
+#include <range/v3/view/enumerate.hpp>
 
 #ifdef DEBUG
 #include "utils/AABB.h"
@@ -97,7 +98,7 @@ std::vector<Point> PolygonUtils::spreadDotsArea(const Polygons& polygons, Point 
     Infill infill_gen(EFillMethod::LINES, false, false, polygons, 0, grid_size.X, 0, 1, 0, 0, 0, 0, 0);
     Polygons result_polygons;
     Polygons result_lines;
-    infill_gen.generate(dummy_toolpaths, result_polygons, result_lines, dummy_settings);
+    infill_gen.generate(dummy_toolpaths, result_polygons, result_lines, dummy_settings, 0, SectionType::DOTS);  // FIXME: @jellespijker make sure the propper layer nr is used
     std::vector<Point> result;
     for (PolygonRef line : result_lines)
     {
@@ -1484,6 +1485,89 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Polygons& thiss)
     }
 
     ClipperLib::SimplifyPolygons(thiss.paths);
+}
+
+Polygons PolygonUtils::unionManySmall(const Polygons& p)
+{
+    if (p.paths.size() < 8)
+    {
+        return p.unionPolygons();
+    }
+
+    Polygons a, b;
+    a.paths.reserve(p.paths.size() / 2);
+    b.paths.reserve(a.paths.size() + 1);
+    for (const auto& [i, path] : p.paths | ranges::view::enumerate)
+    {
+        (i % 2 == 0 ? b : a).paths.push_back(path);
+    }
+    return unionManySmall(a).unionPolygons(unionManySmall(b));
+}
+
+Polygons PolygonUtils::clipPolygonWithAABB(const Polygons& src, const AABB& aabb)
+{
+    Polygons out;
+    out.reserve(src.size());
+    for (const auto path : src)
+    {
+        Polygon poly;
+
+        const size_t cnt = path.size();
+        if (cnt < 3)
+        {
+            return Polygons();
+        }
+
+        enum class Side
+        {
+            Left = 1,
+            Right = 2,
+            Top = 4,
+            Bottom = 8
+        };
+
+        auto sides = [aabb](const Point& p) { return int(p.X < aabb.min.X) * int(Side::Left) + int(p.X > aabb.max.X) * int(Side::Right) + int(p.Y < aabb.min.Y) * int(Side::Bottom) + int(p.Y > aabb.max.Y) * int(Side::Top); };
+
+        int sides_prev = sides(path.back());
+        int sides_this = sides(path.front());
+        const size_t last = cnt - 1;
+
+        for (size_t i = 0; i < last; ++i)
+        {
+            int sides_next = sides(path[i + 1]);
+            if ( // This point is inside. Take it.
+                sides_this == 0 ||
+                // Either this point is outside and previous or next is inside, or
+                // the edge possibly cuts corner of the bounding box.
+                (sides_prev & sides_this & sides_next) == 0)
+            {
+                poly.add(path[i]);
+                sides_prev = sides_this;
+            }
+            else
+            {
+                // All the three points (this, prev, next) are outside at the same side.
+                // Ignore this point.
+            }
+            sides_this = sides_next;
+        }
+
+        // Never produce just a single point output polygon.
+        if (! poly.empty())
+        {
+            int sides_next = sides(poly.front());
+            if (sides_this == 0 || // The last point is inside. Take it.
+                (sides_prev & sides_this & sides_next) == 0) // Either this point is outside and previous or next is inside, or the edge possibly cuts corner of the bounding box.
+
+                poly.add(path.back());
+        }
+
+        if (! poly.empty())
+        {
+            out.add(poly);
+        }
+    }
+    return out;
 }
 
 } // namespace cura
