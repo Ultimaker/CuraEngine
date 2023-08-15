@@ -124,13 +124,12 @@ template<template<typename> class Unit>
 class Registry<Typelist<>, Unit>
 {
 public:
-    void connect(const v0::SlotID& slot_id, auto&& channel)
+    constexpr void connect(auto&&... args) noexcept
     {
-        assert(false);
-    } // Base case, should not be executed
+    }
 
     template<v0::SlotID S>
-    void broadcast(auto&&... args)
+    constexpr void broadcast(auto&&... args) noexcept
     {
     } // Base case, do nothing
 };
@@ -162,15 +161,15 @@ public:
         return get<S>().invoke(std::forward<decltype(args)>(args)...);
     }
 
-    void connect(const v0::SlotID& slot_id, auto&& channel)
+    void connect(const v0::SlotID& slot_id, auto name, auto& version, auto&& channel)
     {
         if (slot_id == T::slot_id)
         {
-            using Tp = decltype(get_type<T::slot_id>().proxy);
-            get_type<T::slot_id>().proxy = Tp{ std::forward<Tp>(std::move(channel)) };
+            using Tp = Unit<T>::value_type;
+            value_.proxy = Tp{ name, version, std::forward<decltype(channel)>(channel) };
             return;
         }
-        Base::connect(slot_id, channel);
+        Base::connect(slot_id, name, version, std::forward<decltype(channel)>(channel));
     }
 
     template<v0::SlotID S>

@@ -71,7 +71,7 @@ struct broadcast_settings_request : public details::converter<broadcast_settings
 
 struct handshake_request : public details::converter<handshake_request, slots::handshake::v0::CallRequest, slot_metadata>
 {
-    value_type operator()(const native_value_type& slot_info) const;
+    value_type operator()(const std::string& name, const std::string& version, const native_value_type& slot_info) const;
 };
 
 struct handshake_response : public details::converter<handshake_response, slots::handshake::v0::CallResponse, plugin_metadata>

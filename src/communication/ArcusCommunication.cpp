@@ -519,11 +519,8 @@ void ArcusCommunication::sliceNext()
 #ifdef ENABLE_PLUGINS
     for (const auto& plugin : slice_message->engine_plugins())
     {
-        if (plugin.has_address() && plugin.has_port())
-        {
-            const auto slot_id = static_cast<plugins::v0::SlotID>(plugin.id());
-            slots::instance().connect(slot_id, utils::createChannel({ plugin.address(), plugin.port() }));
-        }
+        const auto slot_id = static_cast<plugins::v0::SlotID>(plugin.id());
+        slots::instance().connect(slot_id, plugin.plugin_name(), plugin.plugin_version(), utils::createChannel({ plugin.address(), plugin.port() }));
     }
 #endif // ENABLE_PLUGINS
 
