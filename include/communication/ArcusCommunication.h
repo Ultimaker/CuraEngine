@@ -6,17 +6,17 @@
 #ifdef ARCUS
 
 #ifdef BUILD_TESTS
-    #include <gtest/gtest_prod.h>
+#include <gtest/gtest_prod.h>
 #endif
-#include <memory> //For unique_ptr and shared_ptr.
-
 #include "Communication.h" //The class we're implementing.
 #include "Cura.pb.h" //To create Protobuf messages for Cura's front-end.
 
-//Forward declarations to speed up compilation.
+#include <memory> //For unique_ptr and shared_ptr.
+
+// Forward declarations to speed up compilation.
 namespace Arcus
 {
-    class Socket;
+class Socket;
 }
 
 namespace cura
@@ -117,7 +117,7 @@ public:
      * \param z The z-coordinate of the top side of the layer.
      * \param thickness The thickness of the layer.
      */
-    void sendLayerComplete(const LayerIndex& layer_nr, const coord_t& z, const coord_t& thickness) override;
+    void sendLayerComplete(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness) override;
 
     /*
      * \brief Send a line to the front-end to display in layer view.
@@ -192,7 +192,7 @@ public:
      * \param layer_nr The index of the layer to send data for. This is zero-
      * indexed but may be negative for raft layers.
      */
-    void setLayerForSend(const LayerIndex& layer_nr) override;
+    void setLayerForSend(const LayerIndex::value_type& layer_nr) override;
 
     /*
      * \brief Slice the next scene that the front-end wants us to slice.
@@ -227,7 +227,7 @@ private:
     const std::unique_ptr<PathCompiler> path_compiler;
 };
 
-} //namespace cura
+} // namespace cura
 
-#endif //ARCUS
-#endif //ARCUSCOMMUNICATION_H
+#endif // ARCUS
+#endif // ARCUSCOMMUNICATION_H
