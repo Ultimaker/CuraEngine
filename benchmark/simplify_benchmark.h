@@ -79,7 +79,7 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_localplugin)(benchmark::St
 
     try
     {
-        slots::instance().connect(plugins::v0::SlotID::SIMPLIFY_MODIFY, utils::createChannel({ host, port }));
+        slots::instance().connect(plugins::v0::SlotID::SIMPLIFY_MODIFY, "", "", utils::createChannel({ host, port }));
     }
     catch (std::runtime_error e)
     {
