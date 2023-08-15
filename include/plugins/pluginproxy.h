@@ -123,6 +123,7 @@ public:
 
         if (! status.ok()) // TODO: handle different kind of status codes
         {
+            spdlog::error(status.error_message());
             throw exceptions::RemoteException(slot_info_, status.error_message());
         }
         if (! plugin_info.plugin_name.empty() && ! plugin_info.slot_version.empty())
