@@ -2764,7 +2764,8 @@ void FffGcodeWriter::processSkinPrintFeature(
     constexpr int zag_skip_count = 0;
     constexpr coord_t pocket_size = 0;
     const bool small_areas_on_surface = mesh.settings.get<bool>("small_skin_on_surface");
-    const auto& exposed_to_air = mesh.layers[gcode_layer.getLayerNr()].top_surface.areas;
+    const auto& current_layer = mesh.layers[gcode_layer.getLayerNr()];
+    const auto& exposed_to_air = current_layer.top_surface.areas.unionPolygons(current_layer.bottom_surface);
 
     Infill infill_comp(
         pattern,
