@@ -65,14 +65,6 @@ class CuraEngineConan(ConanFile):
         self.options["clipper"].shared = True
 
         self.options["protobuf"].shared = False
-        self.options["grpc"].csharp_plugin = False
-        self.options["grpc"].node_plugin = False
-        self.options["grpc"].objective_c_plugin = False
-        self.options["grpc"].php_plugin = False
-        self.options["grpc"].python_plugin = False
-        self.options["grpc"].ruby_plugin = False
-        self.options["asio-grpc"].backend = "boost"
-        self.options["asio-grpc"].local_allocator = "recycling_allocator"
         if self.options.enable_arcus:
             self.options["arcus"].shared = True
 
@@ -94,8 +86,11 @@ class CuraEngineConan(ConanFile):
     def requirements(self):
         if self.options.enable_arcus:
             self.requires("arcus/(latest)@ultimaker/cura_10475")  # TODO: point to `testing` once the CURA-10475 from libArcus is main
+        self.requires("asio-grpc/2.6.0")
+        self.requires("grpc/1.50.1")
+        self.requires("curaengine_grpc_definitions/latest@ultimaker/cura_10446")
         self.requires("clipper/6.4.2")
-        self.requires("boost/1.81.0")
+        self.requires("boost/1.82.0")
         self.requires("rapidjson/1.1.0")
         self.requires("stb/20200203")
         self.requires("spdlog/1.10.0")
@@ -106,8 +101,7 @@ class CuraEngineConan(ConanFile):
         self.requires("protobuf/3.21.9")
         self.requires("zlib/1.2.12")
         self.requires("openssl/1.1.1l")
-        self.requires("asio-grpc/2.6.0")
-        self.requires("curaengine_grpc_definitions/latest@ultimaker/cura_10446")
+
 
     def generate(self):
         deps = CMakeDeps(self)
@@ -125,10 +119,6 @@ class CuraEngineConan(ConanFile):
             tc.variables["ENABLE_REMOTE_PLUGINS"] = self.options.enable_remote_plugins
         else:
             tc.variables["ENABLE_PLUGINS"] = self.options.enable_plugins
-        cpp_info = self.dependencies["curaengine_grpc_definitions"].cpp_info
-        tc.variables["GRPC_IMPORT_DIRS"] = cpp_info.resdirs[0].replace("\\", "/")
-        tc.variables["GRPC_PROTOS"] = ";".join([str(p).replace("\\", "/") for p in Path(cpp_info.resdirs[0]).rglob("*.proto")])
-
         tc.generate()
 
         for dep in self.dependencies.values():

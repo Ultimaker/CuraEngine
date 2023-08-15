@@ -15,24 +15,18 @@ option(ENABLE_REMOTE_PLUGINS "Build with all warnings" OFF)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
-#set(GRPC_PROTOS "List of all protobuf definitions (see: https://github.com/Ultimaker/curaengine_grpc_definitions)")
-#set(GRPC_IMPORT_DIRS "List of all protobuf dirs definitions (see: https://github.com/Ultimaker/curaengine_grpc_definitions)")
 
 # Generate the plugin types
 find_package(protobuf REQUIRED)
 find_package(asio-grpc REQUIRED)
 find_package(gRPC REQUIRED)
-option(RETARDED_APPLE_CLANG "Apple Clang <= 13 used" OFF)
+find_package(curaengine_grpc_definitions REQUIRED)
+option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
 
 MESSAGE(STATUS "Compiling with plugins support: ${ENABLE_PLUGINS}")
 if (${ENABLE_PLUGINS})
     MESSAGE(STATUS "Plugin secure remotes allowed: ${ENABLE_REMOTE_PLUGINS}")
 endif ()
-
-asio_grpc_protobuf_generate(PROTOS "${GRPC_PROTOS}" IMPORT_DIRS ${GRPC_IMPORT_DIRS}
-        OUT_VAR "ASIO_GRPC_PLUGIN_PROTO_SOURCES"
-        OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated"
-        GENERATE_GRPC GENERATE_MOCK_CODE)
 
 if (ENABLE_ARCUS)
     message(STATUS "Building with Arcus")
@@ -156,7 +150,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/VoxelUtils.cpp
         )
 
-add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS} ${ASIO_GRPC_PLUGIN_PROTO_SOURCES})
+add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})
 use_threads(_CuraEngine)
 
 target_include_directories(_CuraEngine
@@ -205,7 +199,6 @@ find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
 find_package(neargye-semver REQUIRED)
-find_package(gRPC REQUIRED)
 
 if (ENABLE_TESTING)
     find_package(GTest REQUIRED)
@@ -222,6 +215,7 @@ target_link_libraries(_CuraEngine
         boost::boost
         scripta::scripta
         neargye-semver::neargye-semver
+        curaengine_grpc_definitions::curaengine_grpc_definitions
         asio-grpc::asio-grpc
         grpc::grpc
         protobuf::libprotobuf
