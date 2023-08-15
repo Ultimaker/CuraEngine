@@ -60,11 +60,13 @@ broadcast_settings_request::value_type broadcast_settings_request::operator()(co
     return message;
 }
 
-handshake_request::value_type handshake_request::operator()(const handshake_request::native_value_type& slot_info) const
+handshake_request::value_type handshake_request::operator()(const std::string& name, const std::string& version, const handshake_request::native_value_type& slot_info) const
 {
     value_type message{};
     message.set_slot_id(slot_info.slot_id);
     message.set_version_range(slot_info.version_range.data());
+    message.set_plugin_name(name);
+    message.set_plugin_version(version);
     return message;
 }
 
@@ -276,10 +278,6 @@ gcode_paths_modify_request::value_type
             points->set_x(point.X);
             points->set_y(point.Y);
         }
-
-        // Construct the estimations for the GCodePath
-        auto* estimations = gcode_path->mutable_estimates();
-        estimations->set_extrude_time(path.estimates.extrude_time);
     }
 
 

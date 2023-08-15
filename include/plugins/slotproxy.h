@@ -60,8 +60,8 @@ public:
      *
      * @param channel A shared pointer to the gRPC channel for communication with the plugin.
      */
-    SlotProxy(std::shared_ptr<grpc::Channel> channel)
-        : plugin_{ std::move(channel) } {};
+    SlotProxy(const std::string& name, const std::string& version, std::shared_ptr<grpc::Channel> channel)
+        : plugin_{ value_type{ name, version, channel } } {};
 
     /**
      * @brief Executes the plugin operation.

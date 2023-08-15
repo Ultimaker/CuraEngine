@@ -81,7 +81,7 @@ public:
      */
     constexpr PluginProxy() = default;
 
-    explicit PluginProxy(std::shared_ptr<grpc::Channel> channel)
+    PluginProxy(const std::string& name, const std::string& version, std::shared_ptr<grpc::Channel> channel)
         : invoke_stub_{ channel }
         , broadcast_stub_{ channel }
     {
@@ -93,7 +93,7 @@ public:
 
         boost::asio::co_spawn(
             grpc_context,
-            [this, &grpc_context, &status, &plugin_info, &handshake_stub]() -> boost::asio::awaitable<void>
+            [this, &grpc_context, &status, &plugin_info, &handshake_stub, &name, &version]() -> boost::asio::awaitable<void>
             {
                 using RPC = agrpc::ClientRPC<&slots::handshake::v0::HandshakeService::Stub::PrepareAsyncCall>;
                 grpc::ClientContext client_context{};
@@ -101,7 +101,7 @@ public:
 
                 // Construct request
                 handshake_request handshake_req;
-                handshake_request::value_type request{ handshake_req(slot_info_) };
+                handshake_request::value_type request{ handshake_req(name, version, slot_info_) };
 
                 // Make unary request
                 handshake_response::value_type response;
