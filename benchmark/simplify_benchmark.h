@@ -72,29 +72,5 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_noplugin)(benchmark::State
 
 BENCHMARK_REGISTER_F(SimplifyTestFixture, simplify_slot_noplugin);
 
-BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_localplugin)(benchmark::State& st)
-{
-    auto host = "localhost";
-    auto port = 33700UL;
-
-    try
-    {
-        slots::instance().connect(plugins::v0::SlotID::SIMPLIFY_MODIFY, "", "", utils::createChannel({ host, port }));
-    }
-    catch (std::runtime_error e)
-    {
-        st.SkipWithError(e.what());
-    }
-    for (auto _ : st)
-    {
-        Polygons simplified;
-        for (const auto& polys : shapes)
-        {
-            benchmark::DoNotOptimize(simplified = slots::instance().modify<plugins::v0::SlotID::SIMPLIFY_MODIFY>(polys, MM2INT(0.25), MM2INT(0.025), 50000));
-        }
-    }
-}
-
-BENCHMARK_REGISTER_F(SimplifyTestFixture, simplify_slot_localplugin);
 } // namespace cura
 #endif // CURAENGINE_BENCHMARK_SIMPLIFY_BENCHMARK_H
