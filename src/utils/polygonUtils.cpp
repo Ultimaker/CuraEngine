@@ -1,27 +1,33 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include "utils/polygonUtils.h"
+
 #include "infill.h"
 #include "utils/SparsePointGridInclusive.h"
 #include "utils/linearAlg2D.h"
-#include "utils/polygonUtils.h"
+
+#include <range/v3/view/enumerate.hpp>
 
 #include <array>
 #include <list>
 #include <sstream>
 #include <unordered_set>
-#include <range/v3/view/enumerate.hpp>
 
 #ifdef DEBUG
 #include "utils/AABB.h"
 #include "utils/SVG.h"
+
 #include <spdlog/spdlog.h>
 #endif
 
 namespace cura
 {
 
-const std::function<int(Point)> PolygonUtils::no_penalty_function = [](Point) { return 0; };
+const std::function<int(Point)> PolygonUtils::no_penalty_function = [](Point)
+{
+    return 0;
+};
 
 int64_t PolygonUtils::segmentLength(PolygonsPointIndex start, PolygonsPointIndex end)
 {
@@ -98,7 +104,7 @@ std::vector<Point> PolygonUtils::spreadDotsArea(const Polygons& polygons, Point 
     Infill infill_gen(EFillMethod::LINES, false, false, polygons, 0, grid_size.X, 0, 1, 0, 0, 0, 0, 0);
     Polygons result_polygons;
     Polygons result_lines;
-    infill_gen.generate(dummy_toolpaths, result_polygons, result_lines, dummy_settings, 0, SectionType::DOTS);  // FIXME: @jellespijker make sure the propper layer nr is used
+    infill_gen.generate(dummy_toolpaths, result_polygons, result_lines, dummy_settings, 0, SectionType::DOTS); // FIXME: @jellespijker make sure the propper layer nr is used
     std::vector<Point> result;
     for (PolygonRef line : result_lines)
     {
@@ -120,7 +126,13 @@ std::vector<Point> PolygonUtils::spreadDotsArea(const Polygons& polygons, Point 
     return result;
 }
 
-bool PolygonUtils::lineSegmentPolygonsIntersection(const Point& a, const Point& b, const Polygons& current_outlines, const LocToLineGrid& outline_locator, Point& result, const coord_t within_max_dist)
+bool PolygonUtils::lineSegmentPolygonsIntersection(
+    const Point& a,
+    const Point& b,
+    const Polygons& current_outlines,
+    const LocToLineGrid& outline_locator,
+    Point& result,
+    const coord_t within_max_dist)
 {
     const coord_t within_max_dist2 = within_max_dist * within_max_dist;
 
@@ -129,7 +141,8 @@ bool PolygonUtils::lineSegmentPolygonsIntersection(const Point& a, const Point& 
 
     const auto processOnIntersect = [&result, &closest_dist2, &a, &b, &coll](const Point& p_start, const Point& p_end)
     {
-        if (LinearAlg2D::lineLineIntersection(a, b, p_start, p_end, coll) && LinearAlg2D::pointIsProjectedBeyondLine(coll, p_start, p_end) == 0 && LinearAlg2D::pointIsProjectedBeyondLine(coll, a, b) == 0)
+        if (LinearAlg2D::lineLineIntersection(a, b, p_start, p_end, coll) && LinearAlg2D::pointIsProjectedBeyondLine(coll, p_start, p_end) == 0
+            && LinearAlg2D::pointIsProjectedBeyondLine(coll, a, b) == 0)
         {
             const coord_t dist2 = vSize2(b - coll);
             if (dist2 < closest_dist2)
@@ -233,13 +246,14 @@ unsigned int PolygonUtils::moveOutside(const Polygons& polygons, Point& from, in
     return moveInside(polygons, from, -distance, maxDist2);
 }
 
-ClosestPolygonPoint PolygonUtils::moveInside2(const Polygons& polygons,
-                                              Point& from,
-                                              const int distance,
-                                              const int64_t max_dist2,
-                                              const Polygons* loc_to_line_polygons,
-                                              const LocToLineGrid* loc_to_line_grid,
-                                              const std::function<int(Point)>& penalty_function)
+ClosestPolygonPoint PolygonUtils::moveInside2(
+    const Polygons& polygons,
+    Point& from,
+    const int distance,
+    const int64_t max_dist2,
+    const Polygons* loc_to_line_polygons,
+    const LocToLineGrid* loc_to_line_grid,
+    const std::function<int(Point)>& penalty_function)
 {
     std::optional<ClosestPolygonPoint> closest_polygon_point;
     if (loc_to_line_grid)
@@ -253,8 +267,14 @@ ClosestPolygonPoint PolygonUtils::moveInside2(const Polygons& polygons,
     return _moveInside2(*closest_polygon_point, distance, from, max_dist2);
 }
 
-ClosestPolygonPoint
-    PolygonUtils::moveInside2(const Polygons& loc_to_line_polygons, ConstPolygonRef polygon, Point& from, const int distance, const int64_t max_dist2, const LocToLineGrid* loc_to_line_grid, const std::function<int(Point)>& penalty_function)
+ClosestPolygonPoint PolygonUtils::moveInside2(
+    const Polygons& loc_to_line_polygons,
+    ConstPolygonRef polygon,
+    Point& from,
+    const int distance,
+    const int64_t max_dist2,
+    const LocToLineGrid* loc_to_line_grid,
+    const std::function<int(Point)>& penalty_function)
 {
     std::optional<ClosestPolygonPoint> closest_polygon_point;
     if (loc_to_line_grid)
@@ -596,25 +616,27 @@ Point PolygonUtils::moveInside(const ClosestPolygonPoint& cpp, const int distanc
     }
 }
 
-ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons,
-                                                        Point& from,
-                                                        int preferred_dist_inside,
-                                                        int64_t max_dist2,
-                                                        const Polygons* loc_to_line_polygons,
-                                                        const LocToLineGrid* loc_to_line_grid,
-                                                        const std::function<int(Point)>& penalty_function)
+ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(
+    const Polygons& polygons,
+    Point& from,
+    int preferred_dist_inside,
+    int64_t max_dist2,
+    const Polygons* loc_to_line_polygons,
+    const LocToLineGrid* loc_to_line_grid,
+    const std::function<int(Point)>& penalty_function)
 {
     const ClosestPolygonPoint closest_polygon_point = moveInside2(polygons, from, preferred_dist_inside, max_dist2, loc_to_line_polygons, loc_to_line_grid, penalty_function);
     return ensureInsideOrOutside(polygons, from, closest_polygon_point, preferred_dist_inside, loc_to_line_polygons, loc_to_line_grid, penalty_function);
 }
 
-ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons,
-                                                        Point& from,
-                                                        const ClosestPolygonPoint& closest_polygon_point,
-                                                        int preferred_dist_inside,
-                                                        const Polygons* loc_to_line_polygons,
-                                                        const LocToLineGrid* loc_to_line_grid,
-                                                        const std::function<int(Point)>& penalty_function)
+ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(
+    const Polygons& polygons,
+    Point& from,
+    const ClosestPolygonPoint& closest_polygon_point,
+    int preferred_dist_inside,
+    const Polygons* loc_to_line_polygons,
+    const LocToLineGrid* loc_to_line_grid,
+    const std::function<int(Point)>& penalty_function)
 {
     if (! closest_polygon_point.isValid())
     {
@@ -646,7 +668,8 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
     else
     {
         const coord_t offset = (is_outside_boundary) ? -preferred_dist_inside : preferred_dist_inside; // perform inset on outer boundary and outset on holes
-        Polygons insetted = closest_poly.offset(offset / 2); // perform less inset, because chances are (thin parts of) the polygon will disappear, given that moveInside did an overshoot
+        Polygons insetted
+            = closest_poly.offset(offset / 2); // perform less inset, because chances are (thin parts of) the polygon will disappear, given that moveInside did an overshoot
         if (insetted.size() == 0)
         {
             return ClosestPolygonPoint(); // we couldn't move inside
@@ -666,7 +689,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                 {
 #ifdef DEBUG
                     static bool has_run = false;
-                    if ( ! has_run)
+                    if (! has_run)
                     {
                         try
                         {
@@ -755,7 +778,8 @@ void PolygonUtils::walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_re
     //    \-'|
     //     o o >> should find connection here
     coord_t best_distance2 = vSize2(poly1_result.p() - poly2_result.p());
-    auto check_neighboring_vert = [&best_distance2](ConstPolygonRef from_poly, ConstPolygonRef to_poly, ClosestPolygonPoint& from_poly_result, ClosestPolygonPoint& to_poly_result, bool vertex_after)
+    auto check_neighboring_vert
+        = [&best_distance2](ConstPolygonRef from_poly, ConstPolygonRef to_poly, ClosestPolygonPoint& from_poly_result, ClosestPolygonPoint& to_poly_result, bool vertex_after)
     {
         const Point after_poly2_result = to_poly[(to_poly_result.point_idx + vertex_after) % to_poly.size()];
         const ClosestPolygonPoint poly1_after_poly2_result = findNearestClosest(after_poly2_result, from_poly, from_poly_result.point_idx);
@@ -978,7 +1002,8 @@ std::unique_ptr<LocToLineGrid> PolygonUtils::createLocToLineGrid(const Polygons&
  *
  * We could skip the duplication by keeping a vector of vectors of bools.
  */
-std::optional<ClosestPolygonPoint> PolygonUtils::findClose(Point from, const Polygons& polygons, const LocToLineGrid& loc_to_line, const std::function<int(Point)>& penalty_function)
+std::optional<ClosestPolygonPoint>
+    PolygonUtils::findClose(Point from, const Polygons& polygons, const LocToLineGrid& loc_to_line, const std::function<int(Point)>& penalty_function)
 {
     std::vector<PolygonsPointIndex> near_lines = loc_to_line.getNearby(from, loc_to_line.getCellSize());
 
@@ -1011,7 +1036,8 @@ std::optional<ClosestPolygonPoint> PolygonUtils::findClose(Point from, const Pol
     }
 }
 
-std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> PolygonUtils::findClose(ConstPolygonRef from, const Polygons& destination, const LocToLineGrid& destination_loc_to_line, const std::function<int(Point)>& penalty_function)
+std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>>
+    PolygonUtils::findClose(ConstPolygonRef from, const Polygons& destination, const LocToLineGrid& destination_loc_to_line, const std::function<int(Point)>& penalty_function)
 {
     std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> ret;
     int p0_idx = from.size() - 1;
@@ -1166,7 +1192,8 @@ std::optional<ClosestPolygonPoint> PolygonUtils::getNextParallelIntersection(con
     coord_t prev_projected = 0;
     for (unsigned int next_point_nr = 0; next_point_nr < poly.size(); next_point_nr++)
     {
-        const unsigned int next_point_idx = forward ? (start.point_idx + 1 + next_point_nr) % poly.size() : (static_cast<size_t>(start.point_idx) - next_point_nr + poly.size()) % poly.size(); // cast in order to accomodate subtracting
+        const unsigned int next_point_idx = forward ? (start.point_idx + 1 + next_point_nr) % poly.size()
+                                                    : (static_cast<size_t>(start.point_idx) - next_point_nr + poly.size()) % poly.size(); // cast in order to accomodate subtracting
         const Point next_vert = poly[next_point_idx];
         const Point so = next_vert - s;
         const coord_t projected = dot(shift, so) / dist;
@@ -1176,7 +1203,8 @@ std::optional<ClosestPolygonPoint> PolygonUtils::getNextParallelIntersection(con
             const coord_t segment_length = vSize(segment_vector);
             const coord_t projected_segment_length = std::abs(projected - prev_projected);
             const int16_t sign = (projected > 0) ? 1 : -1;
-            const coord_t projected_inter_segment_length = dist - sign * prev_projected; // add the prev_projected to dist if it is projected to the other side of the input line than where the intersection occurs.
+            const coord_t projected_inter_segment_length
+                = dist - sign * prev_projected; // add the prev_projected to dist if it is projected to the other side of the input line than where the intersection occurs.
             const coord_t inter_segment_length = segment_length * projected_inter_segment_length / projected_segment_length;
             const Point intersection = prev_vert + normal(next_vert - prev_vert, inter_segment_length);
 
@@ -1212,7 +1240,8 @@ bool PolygonUtils::polygonCollidesWithLineSegment(const Point from, const Point 
 
     PolygonsPointIndex result;
 
-    std::function<bool(const PolygonsPointIndex&)> process_elem_func = [transformed_from, transformed_to, &transformation_matrix, &result, &ret](const PolygonsPointIndex& line_start)
+    std::function<bool(const PolygonsPointIndex&)> process_elem_func
+        = [transformed_from, transformed_to, &transformation_matrix, &result, &ret](const PolygonsPointIndex& line_start)
     {
         Point p0 = transformation_matrix.apply(line_start.p());
         Point p1 = transformation_matrix.apply(line_start.next().p());
@@ -1331,7 +1360,11 @@ bool PolygonUtils::polygonOutlinesAdjacent(const ConstPolygonRef inner_poly, con
     return false;
 }
 
-void PolygonUtils::findAdjacentPolygons(std::vector<unsigned>& adjacent_poly_indices, const ConstPolygonRef& poly, const std::vector<ConstPolygonPointer>& possible_adjacent_polys, const coord_t max_gap)
+void PolygonUtils::findAdjacentPolygons(
+    std::vector<unsigned>& adjacent_poly_indices,
+    const ConstPolygonRef& poly,
+    const std::vector<ConstPolygonPointer>& possible_adjacent_polys,
+    const coord_t max_gap)
 {
     // given a polygon, and a vector of polygons, return a vector containing the indices of the polygons that are adjacent to the given polygon
     for (unsigned poly_idx = 0; poly_idx < possible_adjacent_polys.size(); ++poly_idx)
@@ -1526,7 +1559,11 @@ Polygons PolygonUtils::clipPolygonWithAABB(const Polygons& src, const AABB& aabb
             Bottom = 8
         };
 
-        auto sides = [aabb](const Point& p) { return int(p.X < aabb.min.X) * int(Side::Left) + int(p.X > aabb.max.X) * int(Side::Right) + int(p.Y < aabb.min.Y) * int(Side::Bottom) + int(p.Y > aabb.max.Y) * int(Side::Top); };
+        auto sides = [aabb](const Point& p)
+        {
+            return int(p.X < aabb.min.X) * int(Side::Left) + int(p.X > aabb.max.X) * int(Side::Right) + int(p.Y < aabb.min.Y) * int(Side::Bottom)
+                 + int(p.Y > aabb.max.Y) * int(Side::Top);
+        };
 
         int sides_prev = sides(path.back());
         int sides_this = sides(path.front());

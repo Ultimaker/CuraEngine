@@ -1,5 +1,5 @@
-//Copyright (c) 2023 UltiMaker
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef PATH_PLANNING_G_CODE_PATH_H
 #define PATH_PLANNING_G_CODE_PATH_H
@@ -35,14 +35,16 @@ public:
     Ratio speed_factor; //!< A speed factor that is multiplied with the travel speed. This factor can be used to change the travel speed.
     Ratio speed_back_pressure_factor; // <! The factor the (non-travel) speed should be multiplied with as a consequence of back pressure compensation.
     bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path.
-    bool unretract_before_last_travel_move; //!< Whether the last move of the path should be preceded by an unretraction. Used to unretract in the last travel move before an outer wall
+    bool unretract_before_last_travel_move; //!< Whether the last move of the path should be preceded by an unretraction. Used to unretract in the last travel move before an outer
+                                            //!< wall
     bool perform_z_hop; //!< Whether to perform a z_hop in this path, which is assumed to be a travel path.
     bool perform_prime; //!< Whether this path is preceded by a prime (blob)
     bool skip_agressive_merge_hint; //!< Wheter this path needs to skip merging if any travel paths are in between the extrusions.
     std::vector<Point> points; //!< The points constituting this path.
     bool done; //!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
 
-    bool spiralize; //!< Whether to gradually increment the z position during the printing of this path. A sequence of spiralized paths should start at the given layer height and end in one layer higher.
+    bool spiralize; //!< Whether to gradually increment the z position during the printing of this path. A sequence of spiralized paths should start at the given layer height and
+                    //!< end in one layer higher.
 
     double fan_speed; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
 
@@ -61,7 +63,14 @@ public:
      * \param speed_factor The factor that the travel speed will be multiplied with
      * this path.
      */
-    GCodePath(const GCodePathConfig config, const SliceMeshStorage* mesh_id, const SpaceFillType space_fill_type, const Ratio flow, const Ratio width_factor, const bool spiralize, const Ratio speed_factor = 1.0);
+    GCodePath(
+        const GCodePathConfig config,
+        const SliceMeshStorage* mesh_id,
+        const SpaceFillType space_fill_type,
+        const Ratio flow,
+        const Ratio width_factor,
+        const bool spiralize,
+        const Ratio speed_factor = 1.0);
 
     /*!
      * Whether this config is the config of a travel path.
@@ -90,7 +99,7 @@ public:
      *
      * \param fan_speed the fan speed to use for this path
      */
-     void setFanSpeed(double fan_speed);
+    void setFanSpeed(double fan_speed);
 
     /*!
      * Get the fan speed for this path
@@ -99,6 +108,6 @@ public:
     double getFanSpeed() const;
 };
 
-}//namespace cura
+} // namespace cura
 
-#endif//PATH_PLANNING_G_CODE_PATH_H
+#endif // PATH_PLANNING_G_CODE_PATH_H

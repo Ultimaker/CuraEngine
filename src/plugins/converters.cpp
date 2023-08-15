@@ -275,7 +275,8 @@ gcode_paths_modify_request::value_type
     {
         auto* gcode_path = gcode_paths->Add();
 
-        switch (path.space_fill_type){
+        switch (path.space_fill_type)
+        {
         case SpaceFillType::None:
             gcode_path->set_space_fill_type(v0::SpaceFillType::NONE);
             break;
@@ -374,8 +375,10 @@ gcode_paths_modify_response::native_value_type gcode_paths_modify_response::oper
     {
         const auto config = [gcode_path_msg]()
         {
-            const auto type = [gcode_path_msg]() {
-                switch (gcode_path_msg.config().feature()) {
+            const auto type = [gcode_path_msg]()
+            {
+                switch (gcode_path_msg.config().feature())
+                {
                 case v0::PrintFeature::NONETYPE:
                     return PrintFeatureType::NoneType;
                 case v0::PrintFeature::OUTERWALL:
@@ -410,11 +413,9 @@ gcode_paths_modify_response::native_value_type gcode_paths_modify_response::oper
             const coord_t line_width = gcode_path_msg.config().line_width();
             const coord_t layer_height = gcode_path_msg.config().layer_thickness();
             const Ratio flow = gcode_path_msg.config().flow_ratio();
-            const GCodePathConfig::SpeedDerivatives speed_derivatives = {
-                gcode_path_msg.config().speed_derivatives().velocity(),
-                gcode_path_msg.config().speed_derivatives().acceleration(),
-                gcode_path_msg.config().speed_derivatives().jerk()
-            };
+            const GCodePathConfig::SpeedDerivatives speed_derivatives = { gcode_path_msg.config().speed_derivatives().velocity(),
+                                                                          gcode_path_msg.config().speed_derivatives().acceleration(),
+                                                                          gcode_path_msg.config().speed_derivatives().jerk() };
             const bool is_bridge_path = gcode_path_msg.config().is_bridge_path();
             const double fan_speed = gcode_path_msg.config().fan_speed();
             return GCodePathConfig(type, line_width, layer_height, flow, speed_derivatives, is_bridge_path, fan_speed);
@@ -426,7 +427,8 @@ gcode_paths_modify_response::native_value_type gcode_paths_modify_response::oper
             const SliceMeshStorage* mesh_id = nullptr;
             const SpaceFillType space_fill_type = [gcode_path_msg]()
             {
-                switch (gcode_path_msg.space_fill_type()) {
+                switch (gcode_path_msg.space_fill_type())
+                {
                 case v0::SpaceFillType::NONE:
                     return SpaceFillType::None;
                 case v0::SpaceFillType::POLYGONS:
@@ -447,7 +449,11 @@ gcode_paths_modify_response::native_value_type gcode_paths_modify_response::oper
             const auto path = GCodePath(config, mesh_id, space_fill_type, flow, width_factor, spiralize, speed_factor);
             GCodePath gcode_path(path);
             gcode_path.points = gcode_path_msg.path().path()
-                              | ranges::views::transform([](const auto& point_msg) { return Point{ point_msg.x(), point_msg.y() }; })
+                              | ranges::views::transform(
+                                    [](const auto& point_msg)
+                                    {
+                                        return Point{ point_msg.x(), point_msg.y() };
+                                    })
                               | ranges::to_vector;
             return gcode_path;
         }();

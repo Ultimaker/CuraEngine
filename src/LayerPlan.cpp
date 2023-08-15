@@ -12,13 +12,13 @@
 #include "pathPlanning/Comb.h"
 #include "pathPlanning/CombPaths.h"
 //#include "plugins/slots.h"
+#include "plugins/slots.h"
 #include "raft.h" // getTotalExtraLayers
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "utils/Simplify.h"
 #include "utils/linearAlg2D.h"
 #include "utils/polygonUtils.h"
-#include "plugins/slots.h"
 
 #include <range/v3/algorithm/max_element.hpp>
 #include <spdlog/spdlog.h>
@@ -111,7 +111,7 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
     // TODO put back config equality check
     if (paths.size() > 0 /*&& paths.back().config == config*/ && ! paths.back().done && paths.back().flow == flow && paths.back().width_factor == width_factor
-     && paths.back().speed_factor == speed_factor && paths.back().mesh == current_mesh) // spiralize can only change when a travel path is in between
+        && paths.back().speed_factor == speed_factor && paths.back().mesh == current_mesh) // spiralize can only change when a travel path is in between
     {
         return &paths.back();
     }
@@ -1911,11 +1911,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     {
         ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
 
-        extruder_plan.paths = slots::instance().generate<plugins::v0::SlotID::GCODE_PATHS_MODIFY>(
-            extruder_plan.paths,
-            extruder_plan.extruder_nr,
-            layer_nr
-        );
+        extruder_plan.paths = slots::instance().generate<plugins::v0::SlotID::GCODE_PATHS_MODIFY>(extruder_plan.paths, extruder_plan.extruder_nr, layer_nr);
 
         // Since the time/material estimates _may_ have changed during the plugin modify step we recalculate it
         extruder_plan.computeNaiveTimeEstimates(gcode.getPositionXY());
@@ -2098,7 +2094,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
             }
             // TODO re-enable the config_changed check
-            const auto& extruder_changed = !last_extrusion_config.has_value() /* || last_extrusion_config.value() != path.config */;
+            const auto& extruder_changed = ! last_extrusion_config.has_value() /* || last_extrusion_config.value() != path.config */;
             if (! path.config.isTravelPath() && extruder_changed)
             {
                 gcode.writeTypeComment(path.config.type);
@@ -2107,7 +2103,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     gcode.writeComment("BRIDGE");
                 }
                 // TODO uncomment next line, make path.config copyable
-//                last_extrusion_config = path.config;
+                //                last_extrusion_config = path.config;
                 update_extrusion_offset = true;
             }
             else
@@ -2313,8 +2309,8 @@ bool LayerPlan::writePathWithCoasting(
     const coord_t coasting_dist
         = MM2INT(MM2_2INT(coasting_volume) / layer_thickness) / path.config.getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
     const double coasting_min_volume = extruder.settings.get<double>("coasting_min_volume");
-    const coord_t coasting_min_dist = MM2INT(MM2_2INT(coasting_min_volume + coasting_volume) / layer_thickness)
-                                    / path.config.getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
+    const coord_t coasting_min_dist
+        = MM2INT(MM2_2INT(coasting_min_volume + coasting_volume) / layer_thickness) / path.config.getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
     //           /\ the minimal distance when coasting will coast the full coasting volume instead of linearly less with linearly smaller paths
 
     std::vector<coord_t> accumulated_dist_per_point; // the first accumulated dist is that of the last point! (that of the last point is always zero...)
