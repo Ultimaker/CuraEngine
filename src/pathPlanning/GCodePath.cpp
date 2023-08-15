@@ -6,8 +6,8 @@
 
 namespace cura
 {
-GCodePath::GCodePath(const GCodePathConfig& config, const SliceMeshStorage* mesh, const SpaceFillType space_fill_type, const Ratio flow, const Ratio width_factor, const bool spiralize, const Ratio speed_factor) :
-    config(&config),
+GCodePath::GCodePath(const GCodePathConfig config, const SliceMeshStorage* mesh, const SpaceFillType space_fill_type, const Ratio flow, const Ratio width_factor, const bool spiralize, const Ratio speed_factor) :
+    config(config),
     mesh(mesh),
     space_fill_type(space_fill_type),
     flow(flow),
@@ -29,17 +29,17 @@ GCodePath::GCodePath(const GCodePathConfig& config, const SliceMeshStorage* mesh
 
 bool GCodePath::isTravelPath() const
 {
-    return config->isTravelPath();
+    return config.isTravelPath();
 }
 
 double GCodePath::getExtrusionMM3perMM() const
 {
-    return flow * width_factor * config->getExtrusionMM3perMM();
+    return flow * width_factor * config.getExtrusionMM3perMM();
 }
 
 coord_t GCodePath::getLineWidthForLayerView() const
 {
-    return flow * width_factor * config->getLineWidth() * config->getFlowRatio();
+    return flow * width_factor * config.getLineWidth() * config.getFlowRatio();
 }
 
 void GCodePath::setFanSpeed(double fan_speed)
@@ -49,7 +49,7 @@ void GCodePath::setFanSpeed(double fan_speed)
 
 double GCodePath::getFanSpeed() const
 {
-    return (fan_speed >= 0 && fan_speed <= 100) ? fan_speed : config->getFanSpeed();
+    return (fan_speed >= 0 && fan_speed <= 100) ? fan_speed : config.getFanSpeed();
 }
 
 }

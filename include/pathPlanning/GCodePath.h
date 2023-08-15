@@ -1,41 +1,40 @@
-//Copyright (c) 2022 Ultimaker B.V.
+//Copyright (c) 2023 UltiMaker
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef PATH_PLANNING_G_CODE_PATH_H
 #define PATH_PLANNING_G_CODE_PATH_H
 
 #include "../SpaceFillType.h"
-#include "../sliceDataStorage.h"
 #include "../settings/types/Ratio.h"
+#include "../sliceDataStorage.h"
 #include "../utils/IntPoint.h"
+#include "GCodePathConfig.h"
 #include "TimeMaterialEstimates.h"
 
-namespace cura 
+namespace cura
 {
-
-class GCodePathConfig;
 
 /*!
  * A class for representing a planned path.
- * 
+ *
  * A path consists of several segments of the same type of movement: retracted travel, infill extrusion, etc.
- * 
+ *
  * This is a compact premature representation in which are line segments have the same config, i.e. the config of this path.
- * 
- * In the final representation (gcode) each line segment may have different properties, 
+ *
+ * In the final representation (gcode) each line segment may have different properties,
  * which are added when the generated GCodePaths are processed.
  */
 class GCodePath
 {
 public:
-    const GCodePathConfig* config; //!< The configuration settings of the path.
+    const GCodePathConfig config; //!< The configuration settings of the path.
     const SliceMeshStorage* mesh; //!< Which mesh this path belongs to, if any. If it's not part of any mesh, the mesh should be nullptr;
     SpaceFillType space_fill_type; //!< The type of space filling of which this path is a part
     Ratio flow; //!< A type-independent flow configuration
     Ratio width_factor; //!< Adjustment to the line width. Similar to flow, but causes the speed_back_pressure_factor to be adjusted.
     Ratio speed_factor; //!< A speed factor that is multiplied with the travel speed. This factor can be used to change the travel speed.
     Ratio speed_back_pressure_factor; // <! The factor the (non-travel) speed should be multiplied with as a consequence of back pressure compensation.
-    bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path. 
+    bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path.
     bool unretract_before_last_travel_move; //!< Whether the last move of the path should be preceded by an unretraction. Used to unretract in the last travel move before an outer wall
     bool perform_z_hop; //!< Whether to perform a z_hop in this path, which is assumed to be a travel path.
     bool perform_prime; //!< Whether this path is preceded by a prime (blob)
@@ -62,20 +61,20 @@ public:
      * \param speed_factor The factor that the travel speed will be multiplied with
      * this path.
      */
-    GCodePath(const GCodePathConfig& config, const SliceMeshStorage* mesh_id, const SpaceFillType space_fill_type, const Ratio flow, const Ratio width_factor, const bool spiralize, const Ratio speed_factor = 1.0);
+    GCodePath(const GCodePathConfig config, const SliceMeshStorage* mesh_id, const SpaceFillType space_fill_type, const Ratio flow, const Ratio width_factor, const bool spiralize, const Ratio speed_factor = 1.0);
 
     /*!
      * Whether this config is the config of a travel path.
-     * 
+     *
      * \return Whether this config is the config of a travel path.
      */
     bool isTravelPath() const;
 
     /*!
      * Get the material flow in mm^3 per mm traversed.
-     * 
+     *
      * \warning Can only be called after the layer height has been set (which is done while writing the gcode!)
-     * 
+     *
      * \return The flow
      */
     double getExtrusionMM3perMM() const;

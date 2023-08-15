@@ -4,11 +4,15 @@
 
 #include "plugins/converters.h"
 
+#include "GCodePathConfig.h"
 #include "WallToolPaths.h"
 #include "pathPlanning/GCodePath.h"
 #include "settings/Settings.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/polygon.h"
+
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/transform.hpp>
 
 namespace cura::plugins
 {
@@ -271,22 +275,186 @@ gcode_paths_modify_request::value_type
     {
         auto* gcode_path = gcode_paths->Add();
 
+        switch (path.space_fill_type){
+        case SpaceFillType::None:
+            gcode_path->set_space_fill_type(v0::SpaceFillType::NONE);
+            break;
+        case SpaceFillType::Polygons:
+            gcode_path->set_space_fill_type(v0::SpaceFillType::POLYGONS);
+            break;
+        case SpaceFillType::PolyLines:
+            gcode_path->set_space_fill_type(v0::SpaceFillType::POLY_LINES);
+            break;
+        case SpaceFillType::Lines:
+            gcode_path->set_space_fill_type(v0::SpaceFillType::LINES);
+            break;
+        default:
+            gcode_path->set_space_fill_type(v0::SpaceFillType::NONE);
+        }
+
+        gcode_path->set_flow(path.flow);
+        gcode_path->set_width_factor(path.width_factor);
+        spdlog::info("path.spiralize: {}", path.spiralize);
+        gcode_path->set_spiralize(path.spiralize);
+        gcode_path->set_speed_factor(path.speed_factor);
+
         // Construct the OpenPath from the points in a GCodePath
-        auto* points = gcode_path->mutable_path()->add_path();
         for (const auto& point : path.points)
         {
+            auto* points = gcode_path->mutable_path()->add_path();
             points->set_x(point.X);
             points->set_y(point.Y);
         }
-    }
 
+        auto* config_msg = gcode_path->mutable_config();
+
+        switch (path.config.getPrintFeatureType())
+        {
+        case PrintFeatureType::NoneType:
+            config_msg->set_feature(v0::PrintFeature::NONETYPE);
+            break;
+        case PrintFeatureType::OuterWall:
+            config_msg->set_feature(v0::PrintFeature::OUTERWALL);
+            break;
+        case PrintFeatureType::InnerWall:
+            config_msg->set_feature(v0::PrintFeature::INNERWALL);
+            break;
+        case PrintFeatureType::Skin:
+            config_msg->set_feature(v0::PrintFeature::SKIN);
+            break;
+        case PrintFeatureType::Support:
+            config_msg->set_feature(v0::PrintFeature::SUPPORT);
+            break;
+        case PrintFeatureType::SkirtBrim:
+            config_msg->set_feature(v0::PrintFeature::SKIRTBRIM);
+            break;
+        case PrintFeatureType::Infill:
+            config_msg->set_feature(v0::PrintFeature::INFILL);
+            break;
+        case PrintFeatureType::SupportInfill:
+            config_msg->set_feature(v0::PrintFeature::SUPPORTINFILL);
+            break;
+        case PrintFeatureType::MoveCombing:
+            config_msg->set_feature(v0::PrintFeature::MOVECOMBING);
+            break;
+        case PrintFeatureType::MoveRetraction:
+            config_msg->set_feature(v0::PrintFeature::MOVERETRACTION);
+            break;
+        case PrintFeatureType::SupportInterface:
+            config_msg->set_feature(v0::PrintFeature::SUPPORTINTERFACE);
+            break;
+        case PrintFeatureType::PrimeTower:
+            config_msg->set_feature(v0::PrintFeature::PRIMETOWER);
+            break;
+        case PrintFeatureType::NumPrintFeatureTypes:
+            config_msg->set_feature(v0::PrintFeature::NUMPRINTFEATURETYPES);
+            break;
+        default:
+            config_msg->set_feature(v0::PrintFeature::NONETYPE);
+            break;
+        }
+
+        config_msg->set_line_width(path.config.getLineWidth());
+        config_msg->set_layer_thickness(path.config.getLayerThickness());
+        config_msg->set_flow_ratio(path.config.getFlowRatio());
+        config_msg->set_is_bridge_path(path.config.isBridgePath());
+        config_msg->set_fan_speed(path.config.getFanSpeed());
+        config_msg->mutable_speed_derivatives()->set_velocity(path.config.getSpeed());
+        config_msg->mutable_speed_derivatives()->set_acceleration(path.config.getAcceleration());
+        config_msg->mutable_speed_derivatives()->set_jerk(path.config.getJerk());
+    }
 
     return message;
 }
 
-
 gcode_paths_modify_response::native_value_type gcode_paths_modify_response::operator()(const gcode_paths_modify_response::value_type& message) const
 {
-    return gcode_paths_modify_response::native_value_type();
+    std::vector<GCodePath> paths;
+    for (const auto& gcode_path_msg : message.gcode_paths())
+    {
+        const auto config = [gcode_path_msg]()
+        {
+            const auto type = [gcode_path_msg]() {
+                switch (gcode_path_msg.config().feature()) {
+                case v0::PrintFeature::NONETYPE:
+                    return PrintFeatureType::NoneType;
+                case v0::PrintFeature::OUTERWALL:
+                    return PrintFeatureType::OuterWall;
+                case v0::PrintFeature::INNERWALL:
+                    return PrintFeatureType::InnerWall;
+                case v0::PrintFeature::SKIN:
+                    return PrintFeatureType::Skin;
+                case v0::PrintFeature::SUPPORT:
+                    return PrintFeatureType::Support;
+                case v0::PrintFeature::SKIRTBRIM:
+                    return PrintFeatureType::SkirtBrim;
+                case v0::PrintFeature::INFILL:
+                    return PrintFeatureType::Infill;
+                case v0::PrintFeature::SUPPORTINFILL:
+                    return PrintFeatureType::SupportInfill;
+                case v0::PrintFeature::MOVECOMBING:
+                    return PrintFeatureType::MoveCombing;
+                case v0::PrintFeature::MOVERETRACTION:
+                    return PrintFeatureType::MoveRetraction;
+                case v0::PrintFeature::SUPPORTINTERFACE:
+                    return PrintFeatureType::SupportInterface;
+                case v0::PrintFeature::PRIMETOWER:
+                    return PrintFeatureType::PrimeTower;
+                case v0::PrintFeature::NUMPRINTFEATURETYPES:
+                    return PrintFeatureType::NumPrintFeatureTypes;
+                default:
+                    return PrintFeatureType::NoneType;
+                }
+            }();
+
+            const coord_t line_width = gcode_path_msg.config().line_width();
+            const coord_t layer_height = gcode_path_msg.config().layer_thickness();
+            const Ratio flow = gcode_path_msg.config().flow_ratio();
+            const GCodePathConfig::SpeedDerivatives speed_derivatives = {
+                gcode_path_msg.config().speed_derivatives().velocity(),
+                gcode_path_msg.config().speed_derivatives().acceleration(),
+                gcode_path_msg.config().speed_derivatives().jerk()
+            };
+            const bool is_bridge_path = gcode_path_msg.config().is_bridge_path();
+            const double fan_speed = gcode_path_msg.config().fan_speed();
+            return GCodePathConfig(type, line_width, layer_height, flow, speed_derivatives, is_bridge_path, fan_speed);
+        }();
+
+        const auto gcode_path = [config, gcode_path_msg]()
+        {
+            // TODO get actual mesh_id from message
+            const SliceMeshStorage* mesh_id = nullptr;
+            const SpaceFillType space_fill_type = [gcode_path_msg]()
+            {
+                switch (gcode_path_msg.space_fill_type()) {
+                case v0::SpaceFillType::NONE:
+                    return SpaceFillType::None;
+                case v0::SpaceFillType::POLYGONS:
+                    return SpaceFillType::Polygons;
+                case v0::SpaceFillType::POLY_LINES:
+                    return SpaceFillType::PolyLines;
+                case v0::SpaceFillType::LINES:
+                    return SpaceFillType::Lines;
+                default:
+                    return SpaceFillType::None;
+                }
+            }();
+            const Ratio flow = gcode_path_msg.flow();
+            const Ratio width_factor = gcode_path_msg.width_factor();
+            const bool spiralize = gcode_path_msg.spiralize();
+            const Ratio speed_factor = gcode_path_msg.speed_factor();
+
+            const auto path = GCodePath(config, mesh_id, space_fill_type, flow, width_factor, spiralize, speed_factor);
+            GCodePath gcode_path(path);
+            gcode_path.points = gcode_path_msg.path().path()
+                              | ranges::views::transform([](const auto& point_msg) { return Point{ point_msg.x(), point_msg.y() }; })
+                              | ranges::to_vector;
+            return gcode_path;
+        }();
+
+        paths.emplace_back(gcode_path);
+    }
+
+    return paths;
 }
 } // namespace cura::plugins

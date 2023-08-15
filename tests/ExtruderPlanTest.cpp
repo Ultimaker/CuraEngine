@@ -198,12 +198,12 @@ public:
      */
     [[nodiscard]] static double calculatePathWidth(const GCodePath& path)
     {
-        return path.getExtrusionMM3perMM() / path.config->getFlowRatio() / path.flow * path.config->getSpeed() * path.speed_back_pressure_factor;
+        return path.getExtrusionMM3perMM() / path.config.getFlowRatio() / path.flow * path.config.getSpeed() * path.speed_back_pressure_factor;
     }
 
     [[nodiscard]] static bool shouldCountPath(const GCodePath& path)
     {
-        return path.flow > 0.0 && path.width_factor > 0.0 && path.config->getFlowRatio() > 0.0 && path.config->getLineWidth() > 0 && ! path.config->isTravelPath() && ! path.config->isBridgePath();
+        return path.flow > 0.0 && path.width_factor > 0.0 && path.config.getFlowRatio() > 0.0 && path.config.getLineWidth() > 0 && ! path.config.isTravelPath() && ! path.config.isBridgePath();
     }
 };
 

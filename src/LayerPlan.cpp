@@ -18,6 +18,7 @@
 #include "utils/Simplify.h"
 #include "utils/linearAlg2D.h"
 #include "utils/polygonUtils.h"
+#include "plugins/slots.h"
 
 #include <range/v3/algorithm/max_element.hpp>
 #include <spdlog/spdlog.h>
@@ -89,8 +90,8 @@ void ExtruderPlan::applyBackPressureCompensation(const Ratio back_pressure_compe
     constexpr double epsilon_speed_factor = 0.001; // Don't put on actual 'limit double minimum', because we don't want printers to stall.
     for (auto& path : paths)
     {
-        const double nominal_width_for_path = static_cast<double>(path.config->getLineWidth());
-        if (path.width_factor <= 0.0 || nominal_width_for_path <= 0.0 || path.config->isTravelPath() || path.config->isBridgePath())
+        const double nominal_width_for_path = static_cast<double>(path.config.getLineWidth());
+        if (path.width_factor <= 0.0 || nominal_width_for_path <= 0.0 || path.config.isTravelPath() || path.config.isBridgePath())
         {
             continue;
         }
@@ -108,8 +109,9 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     const Ratio speed_factor)
 {
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
-    if (paths.size() > 0 && paths.back().config == &config && ! paths.back().done && paths.back().flow == flow && paths.back().width_factor == width_factor
-        && paths.back().speed_factor == speed_factor && paths.back().mesh == current_mesh) // spiralize can only change when a travel path is in between
+    // TODO put back config equality check
+    if (paths.size() > 0 /*&& paths.back().config == config*/ && ! paths.back().done && paths.back().flow == flow && paths.back().width_factor == width_factor
+     && paths.back().speed_factor == speed_factor && paths.back().mesh == current_mesh) // spiralize can only change when a travel path is in between
     {
         return &paths.back();
     }
@@ -575,7 +577,7 @@ void LayerPlan::addExtrusionMove(
     path->setFanSpeed(fan_speed);
     if (! static_cast<bool>(first_extrusion_acc_jerk))
     {
-        first_extrusion_acc_jerk = std::make_pair(path->config->getAcceleration(), path->config->getJerk());
+        first_extrusion_acc_jerk = std::make_pair(path->config.getAcceleration(), path->config.getJerk());
     }
     last_planned_position = p;
 }
@@ -1612,7 +1614,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
         double target_speed = 0.0;
         std::function<double(const GCodePath&)> slow_down_func{ [&target_speed](const GCodePath& path)
                                                                 {
-                                                                    return std::min(target_speed / (path.config->getSpeed() * path.speed_factor), 1.0);
+                                                                    return std::min(target_speed / (path.config.getSpeed() * path.speed_factor), 1.0);
                                                                 } };
 
         if (minExtrudeTime >= total_extrude_time_at_minimum_speed)
@@ -1647,8 +1649,8 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
             factor = (1 / total_extrude_time_at_slowest_speed - 1 / minExtrudeTime) / (1 / total_extrude_time_at_slowest_speed - 1 / extrudeTime);
             slow_down_func = [&slowest_path_speed = slowest_path_speed, &factor](const GCodePath& path)
             {
-                const double target_speed = slowest_path_speed * (1.0 - factor) + (path.config->getSpeed() * path.speed_factor) * factor;
-                return std::min(target_speed / (path.config->getSpeed() * path.speed_factor), 1.0);
+                const double target_speed = slowest_path_speed * (1.0 - factor) + (path.config.getSpeed() * path.speed_factor) * factor;
+                return std::min(target_speed / (path.config.getSpeed() * path.speed_factor), 1.0);
             };
 
             // Update stored naive time estimates
@@ -1676,7 +1678,7 @@ double ExtruderPlan::getRetractTime(const GCodePath& path)
 std::pair<double, double> ExtruderPlan::getPointToPointTime(const Point& p0, const Point& p1, const GCodePath& path)
 {
     const double length = vSizeMM(p0 - p1);
-    return { length, length / (path.config->getSpeed() * path.speed_factor) };
+    return { length, length / (path.config.getSpeed() * path.speed_factor) };
 }
 
 TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_position)
@@ -1690,7 +1692,7 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
         std::numeric_limits<double>::max(),
         [](double value, const GCodePath& path)
         {
-            return path.isTravelPath() ? value : std::min(value, path.config->getSpeed().value * path.speed_factor);
+            return path.isTravelPath() ? value : std::min(value, path.config.getSpeed().value * path.speed_factor);
         });
 
     bool was_retracted = false; // wrong assumption; won't matter that much. (TODO)
@@ -1743,9 +1745,9 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
                     path.estimates.extrude_time_at_minimum_speed += length / min_path_speed;
                     path.estimates.extrude_time_at_slowest_path_speed += length / slowest_path_speed;
                 }
-                material_estimate += length * INT2MM(layer_thickness) * INT2MM(path.config->getLineWidth());
+                material_estimate += length * INT2MM(layer_thickness) * INT2MM(path.config.getLineWidth());
             }
-            double thisTime = length / (path.config->getSpeed() * path.speed_factor);
+            double thisTime = length / (path.config.getSpeed() * path.speed_factor);
             *path_time_estimate += thisTime;
             p0 = p1;
         }
@@ -1896,7 +1898,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
     gcode.setZ(z);
 
-    const GCodePathConfig* last_extrusion_config = nullptr; // used to check whether we need to insert a TYPE comment in the gcode.
+    std::optional<GCodePathConfig> last_extrusion_config = std::nullopt; // used to check whether we need to insert a TYPE comment in the gcode.
 
     size_t extruder_nr = gcode.getExtruderNr();
     const bool acceleration_enabled = mesh_group_settings.get<bool>("acceleration_enabled");
@@ -1909,7 +1911,14 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     {
         ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
 
-        // TODO: Insert modify slot for the gcodepaths CURA-10446
+        extruder_plan.paths = slots::instance().generate<plugins::v0::SlotID::GCODE_PATHS_MODIFY>(
+            extruder_plan.paths,
+            extruder_plan.extruder_nr,
+            layer_nr
+        );
+
+        // Since the time/material estimates _may_ have changed during the plugin modify step we recalculate it
+        extruder_plan.computeNaiveTimeEstimates(gcode.getPositionXY());
 
         const RetractionAndWipeConfig* retraction_config
             = current_mesh ? &current_mesh->retraction_wipe_config : &storage.retraction_wipe_config_per_extruder[extruder_plan.extruder_nr];
@@ -2005,7 +2014,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.writeRetraction(retraction_config->retraction_config);
             }
 
-            if (! path.retract && path.config->isTravelPath() && path.points.size() == 1 && path.points[0] == gcode.getPositionXY() && z == gcode.getPositionZ())
+            if (! path.retract && path.config.isTravelPath() && path.points.size() == 1 && path.points[0] == gcode.getPositionXY() && z == gcode.getPositionZ())
             {
                 // ignore travel moves to the current location to avoid needless change of acceleration/jerk
                 continue;
@@ -2015,7 +2024,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             size_t next_extrusion_idx = path_idx + 1;
             if ((acceleration_enabled && ! acceleration_travel_enabled) || (jerk_enabled && ! jerk_travel_enabled))
             {
-                while (next_extrusion_idx < paths.size() && paths[next_extrusion_idx].config->isTravelPath())
+                while (next_extrusion_idx < paths.size() && paths[next_extrusion_idx].config.isTravelPath())
                 {
                     ++next_extrusion_idx;
                 }
@@ -2023,11 +2032,11 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             if (acceleration_enabled)
             {
-                if (path.config->isTravelPath())
+                if (path.config.isTravelPath())
                 {
                     if (acceleration_travel_enabled)
                     {
-                        gcode.writeTravelAcceleration(path.config->getAcceleration());
+                        gcode.writeTravelAcceleration(path.config.getAcceleration());
                     }
                     else
                     {
@@ -2041,20 +2050,20 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         }
                         else
                         {
-                            gcode.writeTravelAcceleration(paths[next_extrusion_idx].config->getAcceleration());
+                            gcode.writeTravelAcceleration(paths[next_extrusion_idx].config.getAcceleration());
                         }
                     }
                 }
                 else
                 {
-                    gcode.writePrintAcceleration(path.config->getAcceleration());
+                    gcode.writePrintAcceleration(path.config.getAcceleration());
                 }
             }
             if (jerk_enabled)
             {
                 if (jerk_travel_enabled)
                 {
-                    gcode.writeJerk(path.config->getJerk());
+                    gcode.writeJerk(path.config.getJerk());
                 }
                 else
                 {
@@ -2068,7 +2077,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     }
                     else
                     {
-                        gcode.writeJerk(paths[next_extrusion_idx].config->getJerk());
+                        gcode.writeJerk(paths[next_extrusion_idx].config.getJerk());
                     }
                 }
             }
@@ -2088,14 +2097,17 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     gcode.writeZhopEnd();
                 }
             }
-            if (! path.config->isTravelPath() && last_extrusion_config != path.config)
+            // TODO re-enable the config_changed check
+            const auto& extruder_changed = !last_extrusion_config.has_value() /* || last_extrusion_config.value() != path.config */;
+            if (! path.config.isTravelPath() && extruder_changed)
             {
-                gcode.writeTypeComment(path.config->type);
-                if (path.config->isBridgePath())
+                gcode.writeTypeComment(path.config.type);
+                if (path.config.isBridgePath())
                 {
                     gcode.writeComment("BRIDGE");
                 }
-                last_extrusion_config = path.config;
+                // TODO uncomment next line, make path.config copyable
+//                last_extrusion_config = path.config;
                 update_extrusion_offset = true;
             }
             else
@@ -2103,7 +2115,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 update_extrusion_offset = false;
             }
 
-            double speed = path.config->getSpeed();
+            double speed = path.config.getSpeed();
 
             // for some movements such as prime tower purge, the speed may get changed by this factor
             speed *= path.speed_factor;
@@ -2116,7 +2128,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 ss << "MESH:" << (current_mesh ? current_mesh->mesh_name : "NONMESH");
                 gcode.writeComment(ss.str());
             }
-            if (path.config->isTravelPath())
+            if (path.config.isTravelPath())
             { // early comp for travel paths, which are handled more simply
                 if (! path.perform_z_hop && final_travel_z != z && extruder_plan_idx == (extruder_plans.size() - 1) && path_idx == (paths.size() - 1))
                 {
@@ -2162,8 +2174,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         insertTempOnTime(time, path_idx);
 
                         const double extrude_speed = speed * path.speed_back_pressure_factor;
-                        communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), extrude_speed);
-                        gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
+                        communication->sendLineTo(path.config.type, path.points[point_idx], path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
+                        gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config.type, update_extrusion_offset);
 
                         prev_point = path.points[point_idx];
                     }
@@ -2199,8 +2211,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         gcode.setZ(std::round(z + layer_thickness * length / totalLength));
 
                         const double extrude_speed = speed * path.speed_back_pressure_factor;
-                        communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), extrude_speed);
-                        gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
+                        communication->sendLineTo(path.config.type, path.points[point_idx], path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
+                        gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config.type, update_extrusion_offset);
                     }
                     // for layer display only - the loop finished at the seam vertex but as we started from
                     // the location of the previous layer's seam vertex the loop may have a gap if this layer's
@@ -2211,7 +2223,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     // vertex would not be shifted (as it's the last vertex in the sequence). The smoother the model,
                     // the less the vertices are shifted and the less obvious is the ridge. If the layer display
                     // really displayed a spiral rather than slices of a spiral, this would not be required.
-                    communication->sendLineTo(path.config->type, path.points[0], path.getLineWidthForLayerView(), path.config->getLayerThickness(), speed);
+                    communication->sendLineTo(path.config.type, path.points[0], path.getLineWidthForLayerView(), path.config.getLayerThickness(), speed);
                 }
                 path_idx--; // the last path_idx didnt spiralize, so it's not part of the current spiralize path
             }
@@ -2289,20 +2301,20 @@ bool LayerPlan::writePathWithCoasting(
     }
     const std::vector<GCodePath>& paths = extruder_plan.paths;
     const GCodePath& path = paths[path_idx];
-    if (path_idx + 1 >= paths.size() || (path.isTravelPath() || ! paths[path_idx + 1].config->isTravelPath()) || path.points.size() < 2)
+    if (path_idx + 1 >= paths.size() || (path.isTravelPath() || ! paths[path_idx + 1].config.isTravelPath()) || path.points.size() < 2)
     {
         return false;
     }
 
     coord_t coasting_min_dist_considered = MM2INT(0.1); // hardcoded setting for when to not perform coasting
 
-    const double extrude_speed = path.config->getSpeed() * path.speed_factor * path.speed_back_pressure_factor;
+    const double extrude_speed = path.config.getSpeed() * path.speed_factor * path.speed_back_pressure_factor;
 
     const coord_t coasting_dist
-        = MM2INT(MM2_2INT(coasting_volume) / layer_thickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
+        = MM2INT(MM2_2INT(coasting_volume) / layer_thickness) / path.config.getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
     const double coasting_min_volume = extruder.settings.get<double>("coasting_min_volume");
     const coord_t coasting_min_dist = MM2INT(MM2_2INT(coasting_min_volume + coasting_volume) / layer_thickness)
-                                    / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
+                                    / path.config.getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
     //           /\ the minimal distance when coasting will coast the full coasting volume instead of linearly less with linearly smaller paths
 
     std::vector<coord_t> accumulated_dist_per_point; // the first accumulated dist is that of the last point! (that of the last point is always zero...)
@@ -2379,13 +2391,13 @@ bool LayerPlan::writePathWithCoasting(
             auto [_, time] = extruder_plan.getPointToPointTime(prev_pt, path.points[point_idx], path);
             insertTempOnTime(time, path_idx);
 
-            communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), extrude_speed);
-            gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config->type);
+            communication->sendLineTo(path.config.type, path.points[point_idx], path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
+            gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config.type);
 
             prev_pt = path.points[point_idx];
         }
-        communication->sendLineTo(path.config->type, start, path.getLineWidthForLayerView(), path.config->getLayerThickness(), extrude_speed);
-        gcode.writeExtrusion(start, extrude_speed, path.getExtrusionMM3perMM(), path.config->type);
+        communication->sendLineTo(path.config.type, start, path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
+        gcode.writeExtrusion(start, extrude_speed, path.getExtrusionMM3perMM(), path.config.type);
     }
 
     // write coasting path
@@ -2395,7 +2407,7 @@ bool LayerPlan::writePathWithCoasting(
         insertTempOnTime(time, path_idx);
 
         const Ratio coasting_speed_modifier = extruder.settings.get<Ratio>("coasting_speed");
-        const Velocity speed = Velocity(coasting_speed_modifier * path.config->getSpeed());
+        const Velocity speed = Velocity(coasting_speed_modifier * path.config.getSpeed());
         gcode.writeTravel(path.points[point_idx], speed);
 
         prev_pt = path.points[point_idx];
