@@ -104,12 +104,12 @@ void Infill::generate(
     // infill pattern is concentric or if the small_area_width is zero.
     if (pattern != EFillMethod::CONCENTRIC && small_area_width > 0)
     {
-        const auto to_small_length = INT2MM(static_cast<double>(infill_line_width) / 2.0);
+        const auto too_small_length = INT2MM(static_cast<double>(infill_line_width) / 2.0);
 
         // Split the infill region in a narrow region and the normal region.
         Polygons small_infill = inner_contour;
         inner_contour = inner_contour.offset(-small_area_width / 2);
-        inner_contour.removeSmallAreas(to_small_length * to_small_length, true);
+        inner_contour.removeSmallAreas(too_small_length * too_small_length, true);
         inner_contour = inner_contour.offset(small_area_width / 2);
         if (prevent_small_exposed_to_air.area() > 0)
         {
