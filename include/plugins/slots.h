@@ -165,7 +165,7 @@ public:
     {
         if (slot_id == T::slot_id)
         {
-            using Tp = Unit<T>::value_type;
+            using Tp = typename Unit<T>::value_type;
             value_.proxy = Tp{ name, version, std::forward<decltype(channel)>(channel) };
             return;
         }
