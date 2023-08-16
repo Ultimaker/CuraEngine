@@ -261,7 +261,7 @@ private:
         const utils::floating_point auto dist_cd) const noexcept
     {
         /*
-         * Move points A and B, so they are both at equal distance from C and D
+         * Move points A and D, so they are both at equal distance from B and C
          *
          *        B--C
          *       /    \
