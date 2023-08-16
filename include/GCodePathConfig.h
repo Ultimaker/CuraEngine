@@ -17,47 +17,17 @@ namespace cura
 /*!
  * The GCodePathConfig is the configuration for moves/extrusion actions. This defines at which width the line is printed and at which speed.
  */
-class GCodePathConfig
+struct GCodePathConfig
 {
-public:
-    const PrintFeatureType type; //!< name of the feature type
+    PrintFeatureType type {}; //!< name of the feature type
+    coord_t line_width {}; //!< width of the line extruded
+    coord_t layer_thickness {}; //!< current layer height in micron
+    Ratio flow {}; //!< extrusion flow modifier.
+    SpeedDerivatives speed_derivatives {}; //!< The speed settings (and acceleration and jerk) of the extruded line. May be changed when smoothSpeed is called.
+    bool is_bridge_path { false }; //!< whether current config is used when bridging
+    double fan_speed { FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
+    double extrusion_mm3_per_mm { calculateExtrusion() }; //!< current mm^3 filament moved per mm line traversed
     static constexpr double FAN_SPEED_DEFAULT = -1;
-
-private:
-    SpeedDerivatives speed_derivatives; //!< The speed settings (and acceleration and jerk) of the extruded line. May be changed when smoothSpeed is called.
-    const coord_t line_width; //!< width of the line extruded
-    const coord_t layer_thickness; //!< current layer height in micron
-    const Ratio flow; //!< extrusion flow modifier.
-    const double extrusion_mm3_per_mm; //!< current mm^3 filament moved per mm line traversed
-    const bool is_bridge_path; //!< whether current config is used when bridging
-    const double fan_speed; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
-public:
-    GCodePathConfig(
-        const PrintFeatureType& type,
-        const coord_t line_width,
-        const coord_t layer_height,
-        const Ratio& flow,
-        const SpeedDerivatives speed_derivatives,
-        const bool is_bridge_path = false,
-        const double fan_speed = FAN_SPEED_DEFAULT);
-
-    /*!
-     * copy constructor
-     */
-    GCodePathConfig(const GCodePathConfig& other);
-
-    /*!
-     * Set the speed to somewhere between the speed of @p first_layer_config and the iconic speed.
-     *
-     * \warning This functions should not be called with @p layer_nr > @p max_speed_layer !
-     *
-     * \warning Calling this function twice will smooth the speed more toward \p first_layer_config
-     *
-     * \param first_layer_config The speed settings at layer zero
-     * \param layer_nr The layer number
-     * \param max_speed_layer The layer number for which the speed_iconic should be used.
-     */
-    void smoothSpeed(SpeedDerivatives first_layer_config, const LayerIndex& layer_nr, const LayerIndex& max_speed_layer);
 
     /*!
      * Can only be called after the layer height has been set (which is done while writing the gcode!)

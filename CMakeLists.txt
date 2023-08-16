@@ -160,7 +160,6 @@ target_include_directories(_CuraEngine
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}> # Include Cura.pb.h
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated> # Include generated plugin types
         )
 
 target_compile_definitions(_CuraEngine

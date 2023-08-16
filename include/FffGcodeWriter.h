@@ -1,5 +1,5 @@
 // Copyright (c) 2023 UltiMaker
-//  CuraEngine is released under the terms of the AGPLv3 or higher.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef GCODE_WRITER_H
 #define GCODE_WRITER_H
@@ -309,7 +309,7 @@ private:
      * \param mesh_config the line config with which to print a print feature
      * \param gcodeLayer The initial planning of the gcode of the layer.
      */
-    void addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcodeLayer) const;
+    void addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcodeLayer) const;
     
     /*!
      * Add the open polylines from a single layer from a single mesh-volume to the layer plan \p gcodeLayer for mesh the surface modes.
@@ -319,7 +319,7 @@ private:
      * \param mesh_config the line config with which to print a print feature
      * \param gcodeLayer The initial planning of the gcode of the layer.
      */
-    void addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const;
+    void addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const;
     
     /*!
      * Add all features of a given extruder from a single layer from a single mesh-volume to the layer plan \p gcode_layer.
@@ -332,7 +332,7 @@ private:
      * \param mesh_config the line config with which to print a print feature
      * \param gcode_layer The initial planning of the gcode of the layer.
      */
-    void addMeshLayerToGCode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const;
+    void addMeshLayerToGCode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const size_t extruder_nr, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const;
 
     /*!
      * Add all features of the given extruder from a single part from a given layer of a mesh-volume to the layer plan \p gcode_layer.
@@ -346,7 +346,7 @@ private:
      * \param part The part to add
      * \param gcode_layer The initial planning of the gcode of the layer.
      */
-    void addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer) const;
+    void addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const size_t extruder_nr, const MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer) const;
 
     /*!
      * \brief Add infill for a given part in a layer plan.
@@ -359,7 +359,7 @@ private:
      * \param part The part for which to create gcode.
      * \return Whether this function added anything to the layer plan.
      */
-    bool processInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
+    bool processInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const size_t extruder_nr, const MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
 
     /*!
      * \brief Add thicker (multiple layers) sparse infill for a given part in a
@@ -373,7 +373,7 @@ private:
      * \param part The part for which to create gcode.
      * \return Whether this function added anything to the layer plan.
      */
-    bool processMultiLayerInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
+    bool processMultiLayerInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const size_t extruder_nr, const MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
 
     /*!
      * \brief Add normal sparse infill for a given part in a layer.
@@ -385,7 +385,7 @@ private:
      * \param part The part for which to create gcode.
      * \return Whether this function added anything to the layer plan.
      */
-    bool processSingleLayerInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
+    bool processSingleLayerInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const size_t extruder_nr, const MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
 
     /*!
      * Generate the insets for the walls of a given layer part.
@@ -397,7 +397,7 @@ private:
      * \param part The part for which to create gcode
      * \return Whether this function added anything to the layer plan
      */
-    bool processInsets(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
+    bool processInsets(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const size_t extruder_nr, const MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
 
     /*!
      * Generate the a spiralized wall for a given layer part.
@@ -407,7 +407,7 @@ private:
      * \param part The part for which to create gcode
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      */
-    void processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const SliceMeshStorage& mesh) const;
+    void processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const MeshPathConfigs& mesh_config, const SliceLayerPart& part, const SliceMeshStorage& mesh) const;
 
     /*!
      * Add the gcode of the top/bottom skin of the given part and of the perimeter gaps.
@@ -420,7 +420,7 @@ private:
      * \param part The part for which to create gcode
      * \return Whether this function added anything to the layer plan
      */
-    bool processSkin(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
+    bool processSkin(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
 
     /*!
      * Add the gcode of the top/bottom skin of the given skin part and of the perimeter gaps.
@@ -443,7 +443,7 @@ private:
      * \param skin_part The skin part for which to create gcode
      * \return Whether this function added anything to the layer plan
      */
-    bool processSkinPart(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part) const;
+    bool processSkinPart(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const MeshPathConfigs& mesh_config, const SkinPart& skin_part) const;
 
     /*!
      * Add the roofing which is the area inside the innermost skin inset which has air 'directly' above
@@ -456,7 +456,7 @@ private:
      * \param skin_part The skin part for which to create gcode
      * \param[out] added_something Whether this function added anything to the layer plan
      */
-    void processRoofing(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, bool& added_something) const;
+    void processRoofing(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const MeshPathConfigs& mesh_config, const SkinPart& skin_part, bool& added_something) const;
 
     /*!
      * Add the normal skinfill which is the area inside the innermost skin inset
@@ -470,7 +470,7 @@ private:
      * \param skin_part The skin part for which to create gcode
      * \param[out] added_something Whether this function added anything to the layer plan
      */
-    void processTopBottom(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, bool& added_something) const;
+    void processTopBottom(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const MeshPathConfigs& mesh_config, const SkinPart& skin_part, bool& added_something) const;
 
     /*!
      * Process a dense skin feature like roofing or top/bottom
@@ -491,7 +491,7 @@ private:
      * \param[out] added_something Whether this function added anything to the layer plan
      * \param fan_speed fan speed override for this skin area
      */
-    void processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const size_t extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, const AngleDegrees skin_angle, const coord_t skin_overlap, const Ratio skin_density, const bool monotonic, bool& added_something, double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT) const;
+    void processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, const size_t extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, const AngleDegrees skin_angle, const coord_t skin_overlap, const Ratio skin_density, const bool monotonic, bool& added_something, double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT) const;
 
     /*!
      *  see if we can avoid printing a lines or zig zag style skin part in multiple segments by moving to

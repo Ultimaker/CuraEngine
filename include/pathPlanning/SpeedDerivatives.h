@@ -16,7 +16,19 @@ struct SpeedDerivatives
     Acceleration acceleration{}; //!< acceleration of head movement (mm/s^2)
     Velocity jerk{}; //!< jerk of the head movement (around stand still) as instantaneous speed change (mm/s)
 
-    constexpr void smoothSpeed(const SpeedDerivatives& first_layer_config, const LayerIndex layer_nr, const LayerIndex max_speed_layer_nr);
+
+    /*!
+     * Set the speed to somewhere between the speed of @p first_layer_config and the iconic speed.
+     *
+     * \warning This functions should not be called with @p layer_nr > @p max_speed_layer !
+     *
+     * \warning Calling this function twice will smooth the speed more toward \p first_layer_config
+     *
+     * \param first_layer_config The speed settings at layer zero
+     * \param layer_nr The layer number
+     * \param max_speed_layer The layer number for which the speed_iconic should be used.
+     */
+    void smoothSpeed(const SpeedDerivatives& first_layer_config, const LayerIndex layer_nr, const LayerIndex max_speed_layer_nr);
 };
 
 } // namespace cura

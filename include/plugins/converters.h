@@ -24,6 +24,7 @@
 #include "settings/Settings.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/polygon.h"
+#include "pathPlanning/SpeedDerivatives.h"
 
 #include <range/v3/range/operations.hpp>
 #include <range/v3/view/drop.hpp>
