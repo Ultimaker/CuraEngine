@@ -1617,7 +1617,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
             }
 
             constexpr size_t wall_line_count = 0; // wall toolpaths are when gradual infill areas are determined
-            const coord_t small_area_width = mesh.settings.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
+            const coord_t small_area_width = 0;
             constexpr coord_t infill_overlap = 0; // Overlap is handled when the wall toolpaths are generated
             constexpr bool skip_stitching = false;
             constexpr bool connected_zigzags = false;
@@ -1834,7 +1834,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
             // infill region with skin above has to have at least one infill wall line
             const size_t min_skin_below_wall_count = wall_line_count > 0 ? wall_line_count : 1;
             const size_t skin_below_wall_count = density_idx == last_idx ? min_skin_below_wall_count : 0;
-            const coord_t small_area_width = mesh.settings.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
+            const coord_t small_area_width = 0;
             wall_tool_paths.emplace_back(std::vector<VariableWidthLines>());
             const coord_t overlap = infill_overlap - (density_idx == last_idx ? 0 : wall_line_count * infill_line_width);
             Infill infill_comp(
@@ -1898,7 +1898,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
         in_outline.removeSmallAreas(minimum_small_area);
 
         constexpr size_t wall_line_count_here = 0; // Wall toolpaths were generated in generateGradualInfill for the sparsest density, denser parts don't have walls by default
-        const coord_t small_area_width = mesh.settings.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
+        const coord_t small_area_width = 0;
         constexpr coord_t overlap = 0; // overlap is already applied for the sparsest density in the generateGradualInfill
 
         wall_tool_paths.emplace_back();
@@ -3112,8 +3112,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 const Polygons& area = part.infill_area_per_combine_per_density[density_idx][combine_idx];
 
                 constexpr size_t wall_count = 0; // Walls are generated somewhere else, so their layers aren't vertically combined.
-                const coord_t small_area_width
-                    = mesh_group_settings.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
+                const coord_t small_area_width = 0;
                 constexpr bool skip_stitching = false;
                 const bool fill_gaps = density_idx == 0; // Only fill gaps for one of the densities.
                 Infill infill_comp(
