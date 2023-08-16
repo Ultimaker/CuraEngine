@@ -19,14 +19,14 @@ namespace cura
  */
 struct GCodePathConfig
 {
-    PrintFeatureType type {}; //!< name of the feature type
-    coord_t line_width {}; //!< width of the line extruded
-    coord_t layer_thickness {}; //!< current layer height in micron
-    Ratio flow {}; //!< extrusion flow modifier.
-    SpeedDerivatives speed_derivatives {}; //!< The speed settings (and acceleration and jerk) of the extruded line. May be changed when smoothSpeed is called.
-    bool is_bridge_path { false }; //!< whether current config is used when bridging
-    double fan_speed { FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
-    double extrusion_mm3_per_mm { calculateExtrusion() }; //!< current mm^3 filament moved per mm line traversed
+    PrintFeatureType type{}; //!< name of the feature type
+    coord_t line_width{}; //!< width of the line extruded
+    coord_t layer_thickness{}; //!< current layer height in micron
+    Ratio flow{}; //!< extrusion flow modifier.
+    SpeedDerivatives speed_derivatives{}; //!< The speed settings (and acceleration and jerk) of the extruded line. May be changed when smoothSpeed is called.
+    bool is_bridge_path{ false }; //!< whether current config is used when bridging
+    double fan_speed{ FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
+    double extrusion_mm3_per_mm{ calculateExtrusion() }; //!< current mm^3 filament moved per mm line traversed
     static constexpr double FAN_SPEED_DEFAULT = -1;
 
     /*!

@@ -57,8 +57,6 @@ private:
     static std::vector<Ratio> getLineWidthFactorPerExtruder(const LayerIndex& layer_nr);
 
 public:
-
-
     GCodePathConfig raft_base_config;
     GCodePathConfig raft_interface_config;
     GCodePathConfig raft_surface_config;

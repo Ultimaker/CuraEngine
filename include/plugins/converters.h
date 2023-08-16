@@ -19,12 +19,12 @@
 #include "cura/plugins/slots/simplify/v0/modify.grpc.pb.h"
 #include "cura/plugins/slots/simplify/v0/modify.pb.h"
 #include "pathPlanning/GCodePath.h"
+#include "pathPlanning/SpeedDerivatives.h"
 #include "plugins/metadata.h"
 #include "plugins/types.h"
 #include "settings/Settings.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/polygon.h"
-#include "pathPlanning/SpeedDerivatives.h"
 
 #include <range/v3/range/operations.hpp>
 #include <range/v3/view/drop.hpp>

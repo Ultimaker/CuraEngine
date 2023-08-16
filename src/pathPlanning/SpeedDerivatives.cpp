@@ -13,9 +13,9 @@ void SpeedDerivatives::smoothSpeed(const SpeedDerivatives& first_layer_config, c
     const auto first_layer_acceleration = std::min(acceleration, first_layer_config.acceleration);
     const auto first_layer_jerk = std::min(jerk, first_layer_config.jerk);
     speed = (speed * static_cast<double>(layer_nr)) / max_speed_layer + (first_layer_speed * (max_speed_layer - static_cast<double>(layer_nr)) / max_speed_layer);
-    acceleration = (acceleration * static_cast<double>(layer_nr)) / max_speed_layer + (first_layer_acceleration * (max_speed_layer - static_cast<double>(layer_nr)) / max_speed_layer);
+    acceleration
+        = (acceleration * static_cast<double>(layer_nr)) / max_speed_layer + (first_layer_acceleration * (max_speed_layer - static_cast<double>(layer_nr)) / max_speed_layer);
     jerk = (jerk * static_cast<double>(layer_nr)) / max_speed_layer + (first_layer_jerk * (max_speed_layer - static_cast<double>(layer_nr)) / max_speed_layer);
-
 }
 
 } // namespace cura

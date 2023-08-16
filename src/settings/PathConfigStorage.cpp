@@ -32,11 +32,7 @@ std::vector<Ratio> PathConfigStorage::getLineWidthFactorPerExtruder(const LayerI
     return ret;
 }
 
-MeshPathConfigs::MeshPathConfigs(
-    const SliceMeshStorage& mesh,
-    const coord_t layer_thickness,
-    const LayerIndex& layer_nr,
-    const std::vector<Ratio>& line_width_factor_per_extruder)
+MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t layer_thickness, const LayerIndex& layer_nr, const std::vector<Ratio>& line_width_factor_per_extruder)
     : inset0_config(
         PrintFeatureType::OuterWall,
         mesh.settings.get<coord_t>("wall_line_width_0") * line_width_factor_per_extruder[mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr],
