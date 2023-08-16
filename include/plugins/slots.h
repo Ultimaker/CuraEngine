@@ -124,12 +124,12 @@ template<template<typename> class Unit>
 class Registry<Typelist<>, Unit>
 {
 public:
-    constexpr void connect(auto&&... args) noexcept
+    constexpr void connect([[maybe_unused]] auto&&... args) noexcept
     {
     }
 
     template<v0::SlotID S>
-    constexpr void broadcast(auto&&... args) noexcept
+    constexpr void broadcast([[maybe_unused]] auto&&... args) noexcept
     {
     } // Base case, do nothing
 };
