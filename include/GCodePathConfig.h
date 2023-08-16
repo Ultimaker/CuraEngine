@@ -1,10 +1,11 @@
-// Copyright (c) 2018 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef G_CODE_PATH_CONFIG_H
 #define G_CODE_PATH_CONFIG_H
 
 #include "PrintFeature.h"
+#include "pathPlanning/SpeedDerivatives.h"
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Ratio.h"
 #include "settings/types/Velocity.h"
@@ -19,21 +20,6 @@ namespace cura
 class GCodePathConfig
 {
 public:
-    /*!
-     * A simple wrapper class for all derivatives of position which are used when printing a line
-     */
-    struct SpeedDerivatives
-    {
-        Velocity speed; //!< movement speed (mm/s)
-        Acceleration acceleration; //!< acceleration of head movement (mm/s^2)
-        Velocity jerk; //!< jerk of the head movement (around stand still) as instantaneous speed change (mm/s)
-        SpeedDerivatives(Velocity speed, Acceleration acceleration, Velocity jerk)
-            : speed(speed)
-            , acceleration(acceleration)
-            , jerk(jerk)
-        {
-        }
-    };
     const PrintFeatureType type; //!< name of the feature type
     static constexpr double FAN_SPEED_DEFAULT = -1;
 

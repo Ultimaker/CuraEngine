@@ -1,15 +1,15 @@
 // Copyright (c) 2023 UltiMaker
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef PATH_PLANNING_G_CODE_PATH_H
 #define PATH_PLANNING_G_CODE_PATH_H
 
-#include "../SpaceFillType.h"
-#include "../settings/types/Ratio.h"
-#include "../sliceDataStorage.h"
-#include "../utils/IntPoint.h"
 #include "GCodePathConfig.h"
+#include "SpaceFillType.h"
 #include "TimeMaterialEstimates.h"
+#include "settings/types/Ratio.h"
+#include "sliceDataStorage.h"
+#include "utils/IntPoint.h"
 
 namespace cura
 {

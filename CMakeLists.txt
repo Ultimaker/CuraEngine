@@ -108,6 +108,7 @@ set(engine_SRCS # Except main.cpp.
         src/pathPlanning/GCodePath.cpp
         src/pathPlanning/LinePolygonsCrossings.cpp
         src/pathPlanning/NozzleTempInsert.cpp
+        src/pathPlanning/SpeedDerivatives.cpp
 
         src/plugins/converters.cpp
 

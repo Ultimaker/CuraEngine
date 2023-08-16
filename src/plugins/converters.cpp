@@ -7,6 +7,7 @@
 #include "GCodePathConfig.h"
 #include "WallToolPaths.h"
 #include "pathPlanning/GCodePath.h"
+#include "pathPlanning/SpeedDerivatives.h"
 #include "settings/Settings.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/polygon.h"
@@ -413,9 +414,9 @@ gcode_paths_modify_response::native_value_type gcode_paths_modify_response::oper
             const coord_t line_width = gcode_path_msg.config().line_width();
             const coord_t layer_height = gcode_path_msg.config().layer_thickness();
             const Ratio flow = gcode_path_msg.config().flow_ratio();
-            const GCodePathConfig::SpeedDerivatives speed_derivatives = { gcode_path_msg.config().speed_derivatives().velocity(),
-                                                                          gcode_path_msg.config().speed_derivatives().acceleration(),
-                                                                          gcode_path_msg.config().speed_derivatives().jerk() };
+            const SpeedDerivatives speed_derivatives = { gcode_path_msg.config().speed_derivatives().velocity(),
+                                                         gcode_path_msg.config().speed_derivatives().acceleration(),
+                                                         gcode_path_msg.config().speed_derivatives().jerk() };
             const bool is_bridge_path = gcode_path_msg.config().is_bridge_path();
             const double fan_speed = gcode_path_msg.config().fan_speed();
             return GCodePathConfig(type, line_width, layer_height, flow, speed_derivatives, is_bridge_path, fan_speed);

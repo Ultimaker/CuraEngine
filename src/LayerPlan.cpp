@@ -11,7 +11,6 @@
 #include "communication/Communication.h"
 #include "pathPlanning/Comb.h"
 #include "pathPlanning/CombPaths.h"
-//#include "plugins/slots.h"
 #include "plugins/slots.h"
 #include "raft.h" // getTotalExtraLayers
 #include "settings/types/Ratio.h"
