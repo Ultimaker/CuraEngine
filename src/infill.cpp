@@ -111,10 +111,7 @@ void Infill::generate(
         inner_contour = inner_contour.offset(-small_area_width / 2);
         inner_contour.removeSmallAreas(too_small_length * too_small_length, true);
         inner_contour = inner_contour.offset(small_area_width / 2);
-        if (prevent_small_exposed_to_air.area() > 0)
-        {
-            inner_contour = inner_contour.unionPolygons(prevent_small_exposed_to_air).intersection(small_infill);
-        }
+        inner_contour = inner_contour.unionPolygons(prevent_small_exposed_to_air).intersection(small_infill);
         inner_contour = Simplify(max_resolution, max_deviation, 0).polygon(inner_contour);
         small_infill = small_infill.difference(inner_contour);
 
