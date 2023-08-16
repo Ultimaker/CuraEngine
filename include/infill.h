@@ -10,7 +10,6 @@
 #include "settings/Settings.h"
 #include "settings/types/Angle.h"
 #include "utils/AABB.h"
-#include "settings/types/Angle.h"
 #include "utils/ExtrusionLine.h"
 #include "utils/IntPoint.h"
 #include "utils/section_type.h"
