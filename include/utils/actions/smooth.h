@@ -167,10 +167,10 @@ private:
     inline constexpr auto
         cosAngle(Point& a, Point& b, Point& c, Point& d, const utils::floating_point auto ab_magnitude, const utils::floating_point auto bc_magnitude) const noexcept
     {
-        Point vector_a = { std::get<"X">(b) - std::get<"X">(a), std::get<"Y">(b) - std::get<"Y">(a) };
-        Point vector_b = { std::get<"X">(d) - std::get<"X">(c), std::get<"Y">(d) - std::get<"Y">(c) };
+        Point vector_ab = { std::get<"X">(b) - std::get<"X">(a), std::get<"Y">(b) - std::get<"Y">(a) };
+        Point vector_cd = { std::get<"X">(d) - std::get<"X">(c), std::get<"Y">(d) - std::get<"Y">(c) };
 
-        return cosAngle(vector_a, vector_b, ab_magnitude, bc_magnitude);
+        return cosAngle(vector_ab, vector_cd, ab_magnitude, bc_magnitude);
     }
 
     /*
