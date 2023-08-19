@@ -31,7 +31,12 @@
 #include <spdlog/spdlog.h>
 
 #include <chrono>
+#if __has_include(<coroutine>)
 #include <coroutine>
+#elif __has_include(<experimental/coroutine>)
+#include <experimental/coroutine>
+#define USE_EXPERIMENTAL_COROUTINE
+#endif
 #include <memory>
 #include <optional>
 #include <string>
