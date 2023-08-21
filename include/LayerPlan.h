@@ -4,14 +4,6 @@
 #ifndef LAYER_PLAN_H
 #define LAYER_PLAN_H
 
-#include <functional>
-#include <limits>
-#include <optional>
-#include <vector>
-#ifdef BUILD_TESTS
-#include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
-#endif
-
 #include "FanSpeedLayerTime.h"
 #include "InsetOrderOptimizer.h"
 #include "PathOrderOptimizer.h"
@@ -24,6 +16,15 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/ExtrusionJunction.h"
 #include "utils/polygon.h"
+
+#include <functional>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <vector>
+#ifdef BUILD_TESTS
+#include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
+#endif
 
 namespace cura
 {
@@ -245,7 +246,7 @@ private:
     std::vector<bool> has_prime_tower_planned_per_extruder; //!< For each extruder, whether the prime tower is planned yet or not.
     std::optional<Point> last_planned_position; //!< The last planned XY position of the print head (if known)
 
-    const SliceMeshStorage* current_mesh; //!< The mesh of the last planned move.
+    std::shared_ptr<SliceMeshStorage> current_mesh; //!< The mesh of the last planned move.
 
     /*!
      * Whether the skirt or brim polygons have been processed into planned paths
@@ -413,7 +414,7 @@ public:
      * Track the currently printing mesh.
      * \param mesh_id A unique ID indicating the current mesh.
      */
-    void setMesh(const SliceMeshStorage* mesh_id);
+    void setMesh(const std::shared_ptr<SliceMeshStorage> &mesh);
 
     /*!
      * Set bridge_wall_mask.

@@ -28,6 +28,7 @@
 #include <limits> // numeric_limits
 #include <list>
 #include <optional>
+#include <memory>
 #include <unordered_set>
 
 namespace cura
@@ -1470,7 +1471,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
         return;
     }
 
-    gcode_layer.setMesh(&mesh);
+    gcode_layer.setMesh(std::make_shared<SliceMeshStorage>(mesh));
 
     ZSeamConfig z_seam_config;
     if (mesh.isPrinted()) //"normal" meshes with walls, skin, infill, etc. get the traditional part ordering based on the z-seam settings.

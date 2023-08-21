@@ -339,7 +339,7 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
     }
     return true;
 }
-void LayerPlan::setMesh(const SliceMeshStorage* mesh)
+void LayerPlan::setMesh(const std::shared_ptr<SliceMeshStorage> &mesh)
 {
     current_mesh = mesh;
 }
@@ -1904,7 +1904,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     const bool acceleration_travel_enabled = mesh_group_settings.get<bool>("acceleration_travel_enabled");
     const bool jerk_enabled = mesh_group_settings.get<bool>("jerk_enabled");
     const bool jerk_travel_enabled = mesh_group_settings.get<bool>("jerk_travel_enabled");
-    const SliceMeshStorage* current_mesh = nullptr;
+    std::shared_ptr<SliceMeshStorage> current_mesh;
 
     for (size_t extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {

@@ -447,7 +447,7 @@ gcode_paths_modify_response::native_value_type gcode_paths_modify_response::oper
             const bool spiralize = gcode_path_msg.spiralize();
             const Ratio speed_factor = gcode_path_msg.speed_factor();
 
-            const auto path = GCodePath(config, mesh_id, space_fill_type, flow, width_factor, spiralize, speed_factor);
+            const auto path = GCodePath(config, nullptr, space_fill_type, flow, width_factor, spiralize, speed_factor);
             GCodePath gcode_path(path);
             gcode_path.points = gcode_path_msg.path().path()
                               | ranges::views::transform(

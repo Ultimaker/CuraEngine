@@ -6,7 +6,6 @@
 
 #include "PrintFeature.h"
 #include "pathPlanning/SpeedDerivatives.h"
-#include "settings/types/LayerIndex.h"
 #include "settings/types/Ratio.h"
 #include "settings/types/Velocity.h"
 #include "utils/Coord_t.h"
@@ -29,42 +28,45 @@ struct GCodePathConfig
     double extrusion_mm3_per_mm{ calculateExtrusion() }; //!< current mm^3 filament moved per mm line traversed
     static constexpr double FAN_SPEED_DEFAULT = -1;
 
+    [[nodiscard]] constexpr bool operator==(const GCodePathConfig& other) const noexcept = default;
+    [[nodiscard]] constexpr auto operator<=>(const GCodePathConfig& other) const = default;
+
     /*!
      * Can only be called after the layer height has been set (which is done while writing the gcode!)
      */
-    double getExtrusionMM3perMM() const;
+    [[nodiscard]] double getExtrusionMM3perMM() const noexcept;
 
     /*!
      * Get the movement speed in mm/s
      */
-    Velocity getSpeed() const;
+    [[nodiscard]] Velocity getSpeed() const noexcept;
 
     /*!
      * Get the current acceleration of this config
      */
-    Acceleration getAcceleration() const;
+    [[nodiscard]] Acceleration getAcceleration() const noexcept;
 
     /*!
      * Get the current jerk of this config
      */
-    Velocity getJerk() const;
+    [[nodiscard]] Velocity getJerk() const noexcept;
 
-    coord_t getLineWidth() const;
+    [[nodiscard]] coord_t getLineWidth() const noexcept;
 
-    bool isTravelPath() const;
+    [[nodiscard]] bool isTravelPath() const noexcept;
 
-    bool isBridgePath() const;
+    [[nodiscard]] bool isBridgePath() const noexcept;
 
-    double getFanSpeed() const;
+    [[nodiscard]] double getFanSpeed() const noexcept;
 
-    Ratio getFlowRatio() const;
+    [[nodiscard]] Ratio getFlowRatio() const noexcept;
 
-    coord_t getLayerThickness() const;
+    [[nodiscard]] coord_t getLayerThickness() const noexcept;
 
-    const PrintFeatureType& getPrintFeatureType() const;
+    [[nodiscard]] PrintFeatureType getPrintFeatureType() const noexcept;
 
 private:
-    double calculateExtrusion() const;
+    [[nodiscard]] double calculateExtrusion() const noexcept;
 };
 
 

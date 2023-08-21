@@ -1,61 +1,32 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "pathPlanning/GCodePath.h"
 
-#include "GCodePathConfig.h"
-
 namespace cura
 {
-GCodePath::GCodePath(
-    const GCodePathConfig config,
-    const SliceMeshStorage* mesh,
-    const SpaceFillType space_fill_type,
-    const Ratio flow,
-    const Ratio width_factor,
-    const bool spiralize,
-    const Ratio speed_factor)
-    : config(config)
-    , mesh(mesh)
-    , space_fill_type(space_fill_type)
-    , flow(flow)
-    , width_factor(width_factor)
-    , speed_factor(speed_factor)
-    , speed_back_pressure_factor(1.0)
-    , retract(false)
-    , unretract_before_last_travel_move(false)
-    , perform_z_hop(false)
-    , perform_prime(false)
-    , skip_agressive_merge_hint(false)
-    , points(std::vector<Point>())
-    , done(false)
-    , spiralize(spiralize)
-    , fan_speed(GCodePathConfig::FAN_SPEED_DEFAULT)
-    , estimates(TimeMaterialEstimates())
-{
-}
 
-bool GCodePath::isTravelPath() const
+[[nodiscard]] bool GCodePath::isTravelPath() const noexcept
 {
     return config.isTravelPath();
 }
 
-double GCodePath::getExtrusionMM3perMM() const
+[[nodiscard]] double GCodePath::getExtrusionMM3perMM() const noexcept
 {
     return flow * width_factor * config.getExtrusionMM3perMM();
 }
 
-coord_t GCodePath::getLineWidthForLayerView() const
+[[nodiscard]] coord_t GCodePath::getLineWidthForLayerView() const noexcept
 {
-    return flow * width_factor * config.getLineWidth() * config.getFlowRatio();
+    return static_cast<coord_t>(flow * width_factor * static_cast<double>(config.getLineWidth()) * config.getFlowRatio());
 }
 
-void GCodePath::setFanSpeed(double fan_speed)
+void GCodePath::setFanSpeed(const double fanspeed) noexcept
 {
-    this->fan_speed = fan_speed;
+    fan_speed = fanspeed;
 }
 
-double GCodePath::getFanSpeed() const
+[[nodiscard]] double GCodePath::getFanSpeed() const noexcept
 {
     return (fan_speed >= 0 && fan_speed <= 100) ? fan_speed : config.getFanSpeed();
 }

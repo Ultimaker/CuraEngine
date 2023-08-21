@@ -16,6 +16,8 @@ struct SpeedDerivatives
     Acceleration acceleration{}; //!< acceleration of head movement (mm/s^2)
     Velocity jerk{}; //!< jerk of the head movement (around stand still) as instantaneous speed change (mm/s)
 
+    constexpr bool operator==(const SpeedDerivatives& other) const noexcept = default;
+    constexpr auto operator<=>(const SpeedDerivatives& other) const noexcept = default;
 
     /*!
      * Set the speed to somewhere between the speed of @p first_layer_config and the iconic speed.

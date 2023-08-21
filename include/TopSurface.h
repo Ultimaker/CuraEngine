@@ -4,12 +4,13 @@
 #ifndef TOPSURFACE_H
 #define TOPSURFACE_H
 
+#include "GCodePathConfig.h"
+
 #include "utils/polygon.h" //For the polygon areas.
 
 namespace cura
 {
 
-class GCodePathConfig;
 class FffGcodeWriter;
 class LayerPlan;
 class SliceMeshStorage;

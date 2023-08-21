@@ -3,68 +3,67 @@
 
 #include "GCodePathConfig.h"
 
-#include "settings/types/LayerIndex.h"
 #include "utils/IntPoint.h" // INT2MM
 
 namespace cura
 {
 
-double GCodePathConfig::getExtrusionMM3perMM() const
+[[nodiscard]] double GCodePathConfig::getExtrusionMM3perMM() const noexcept
 {
     return extrusion_mm3_per_mm;
 }
 
-Velocity GCodePathConfig::getSpeed() const
+[[nodiscard]] Velocity GCodePathConfig::getSpeed() const noexcept
 {
     return speed_derivatives.speed;
 }
 
-Acceleration GCodePathConfig::getAcceleration() const
+[[nodiscard]] Acceleration GCodePathConfig::getAcceleration() const noexcept
 {
     return speed_derivatives.acceleration;
 }
 
-Velocity GCodePathConfig::getJerk() const
+[[nodiscard]] Velocity GCodePathConfig::getJerk() const noexcept
 {
     return speed_derivatives.jerk;
 }
 
-coord_t GCodePathConfig::getLineWidth() const
+[[nodiscard]] coord_t GCodePathConfig::getLineWidth() const noexcept
 {
     return line_width;
 }
 
-coord_t GCodePathConfig::getLayerThickness() const
+[[nodiscard]] coord_t GCodePathConfig::getLayerThickness() const noexcept
 {
     return layer_thickness;
 }
 
-const PrintFeatureType& GCodePathConfig::getPrintFeatureType() const
+[[nodiscard]] PrintFeatureType GCodePathConfig::getPrintFeatureType() const noexcept
 {
     return type;
 }
 
-bool GCodePathConfig::isTravelPath() const
+[[nodiscard]] bool GCodePathConfig::isTravelPath() const noexcept
 {
     return line_width == 0;
 }
 
-bool GCodePathConfig::isBridgePath() const
+[[nodiscard]] bool GCodePathConfig::isBridgePath() const noexcept
 {
     return is_bridge_path;
 }
 
-double GCodePathConfig::getFanSpeed() const
+[[nodiscard]] double GCodePathConfig::getFanSpeed() const noexcept
 {
     return fan_speed;
 }
 
-Ratio GCodePathConfig::getFlowRatio() const
+[[nodiscard]] Ratio GCodePathConfig::getFlowRatio() const noexcept
 {
     return flow;
 }
 
-double GCodePathConfig::calculateExtrusion() const
+[[nodiscard]] double GCodePathConfig::calculateExtrusion() const noexcept
 {
     return INT2MM(line_width) * INT2MM(layer_thickness) * double(flow);
 }
