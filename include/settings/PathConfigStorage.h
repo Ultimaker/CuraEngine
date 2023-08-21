@@ -6,8 +6,8 @@
 
 #include "GCodePathConfig.h"
 #include "pathPlanning/SpeedDerivatives.h"
-#include "settings/types/LayerIndex.h"
 #include "settings/MeshPathConfigs.h"
+#include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
 
 #include <vector>

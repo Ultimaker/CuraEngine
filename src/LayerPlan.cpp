@@ -339,7 +339,7 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
     }
     return true;
 }
-void LayerPlan::setMesh(const std::shared_ptr<SliceMeshStorage> &mesh)
+void LayerPlan::setMesh(const std::shared_ptr<SliceMeshStorage>& mesh)
 {
     current_mesh = mesh;
 }

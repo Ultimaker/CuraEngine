@@ -414,7 +414,7 @@ public:
      * Track the currently printing mesh.
      * \param mesh_id A unique ID indicating the current mesh.
      */
-    void setMesh(const std::shared_ptr<SliceMeshStorage> &mesh);
+    void setMesh(const std::shared_ptr<SliceMeshStorage>& mesh);
 
     /*!
      * Set bridge_wall_mask.

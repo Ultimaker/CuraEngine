@@ -27,8 +27,8 @@
 #include <algorithm>
 #include <limits> // numeric_limits
 #include <list>
-#include <optional>
 #include <memory>
+#include <optional>
 #include <unordered_set>
 
 namespace cura
