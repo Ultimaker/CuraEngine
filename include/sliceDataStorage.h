@@ -1,16 +1,14 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SLICE_DATA_STORAGE_H
 #define SLICE_DATA_STORAGE_H
-
-#include <map>
-#include <optional>
 
 #include "PrimeTower.h"
 #include "RetractionConfig.h"
 #include "SupportInfillPart.h"
 #include "TopSurface.h"
+#include "WipeScriptConfig.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
 #include "settings/types/Angle.h" //Infill angles.
 #include "settings/types/LayerIndex.h"
@@ -19,7 +17,9 @@
 #include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
 #include "utils/polygon.h"
-#include "WipeScriptConfig.h"
+
+#include <map>
+#include <optional>
 
 // libArachne
 #include "utils/ExtrusionLine.h"
@@ -32,14 +32,15 @@ class SierpinskiFillProvider;
 class LightningGenerator;
 
 /*!
- * A SkinPart is a connected area designated as top and/or bottom skin. 
+ * A SkinPart is a connected area designated as top and/or bottom skin.
  * Surrounding each non-bridged skin area with an outline may result in better top skins.
  * It's filled during FffProcessor.processSliceData(.) and used in FffProcessor.writeGCode(.) to generate the final gcode.
  */
 class SkinPart
 {
 public:
-    PolygonsPart outline;           //!< The skinOutline is the area which needs to be 100% filled to generate a proper top&bottom filling. It's filled by the "skin" module. Includes both roofing and non-roofing.
+    PolygonsPart outline; //!< The skinOutline is the area which needs to be 100% filled to generate a proper top&bottom filling. It's filled by the "skin" module. Includes both
+                          //!< roofing and non-roofing.
     Polygons skin_fill; //!< The part of the skin which is not roofing.
     Polygons roofing_fill; //!< The inner infill which has air directly above
     Polygons top_most_surface_fill; //!< The inner infill of the uppermost top layer which has air directly above.
@@ -64,7 +65,7 @@ public:
                             //!< Too small parts will be omitted compared to the outline.
     Polygons spiral_wall; //!< The centerline of the wall used by spiralize mode. Only computed if spiralize mode is enabled.
     Polygons inner_area; //!< The area of the outline, minus the walls. This will be filled with either skin or infill.
-    std::vector<SkinPart> skin_parts;  //!< The skin parts which are filled for 100% with lines and/or insets.
+    std::vector<SkinPart> skin_parts; //!< The skin parts which are filled for 100% with lines and/or insets.
     std::vector<VariableWidthLines> wall_toolpaths; //!< toolpaths for walls, will replace(?) the insets. Binned by inset_idx.
     std::vector<VariableWidthLines> infill_wall_toolpaths; //!< toolpaths for the walls of the infill areas. Binned by inset_idx.
 
@@ -125,7 +126,7 @@ public:
      * This maximum number of layers we can combine is a user setting. This number, say "n", means the maximum number of layers we can combine into one.
      * On the combined layers, the extrusion amount will be higher than the normal extrusion amount because it needs to extrude for multiple layers instead of one.
      *
-     * infill_area[x][n] is infill_area of (n+1) layers thick. 
+     * infill_area[x][n] is infill_area of (n+1) layers thick.
      *
      * infill_area[0] corresponds to the most dense infill area.
      * infill_area[x] will lie fully inside infill_area[x+1].
@@ -161,9 +162,9 @@ public:
 class SliceLayer
 {
 public:
-    coord_t printZ;     //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
-    coord_t thickness;  //!< The thickness of this layer. Can be different when using variable layer heights.
-    std::vector<SliceLayerPart> parts;  //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
+    coord_t printZ; //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
+    coord_t thickness; //!< The thickness of this layer. Can be different when using variable layer heights.
+    std::vector<SliceLayerPart> parts; //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
     Polygons openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
 
     /*!
@@ -175,8 +176,15 @@ public:
     TopSurface top_surface;
 
     /*!
+     * \brief The parts of the model that are exposed at the bottom(s) of the model.
+     *
+     * Note: Filled only when needed.
+     */
+    Polygons bottom_surface;
+
+    /*!
      * Get the all outlines of all layer parts in this layer.
-     * 
+     *
      * \param external_polys_only Whether to only include the outermost outline of each layer part
      * \return A collection of all the outline polygons
      */
@@ -185,7 +193,7 @@ public:
     /*!
      * Get the all outlines of all layer parts in this layer.
      * Add those polygons to @p result.
-     * 
+     *
      * \param external_polys_only Whether to only include the outermost outline of each layer part
      * \param result The result: a collection of all the outline polygons
      */
@@ -197,12 +205,10 @@ public:
 /******************/
 
 
-
-
 class SupportLayer
 {
 public:
-    std::vector<SupportInfillPart> support_infill_parts;  //!< a list of support infill parts
+    std::vector<SupportInfillPart> support_infill_parts; //!< a list of support infill parts
     Polygons support_bottom; //!< Piece of support below the support and above the model. This must not overlap with any of the support_infill_parts or support_roof.
     Polygons support_roof; //!< Piece of support above the support and below the model. This must not overlap with any of the support_infill_parts or support_bottom.
     Polygons support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support
@@ -253,8 +259,10 @@ public:
     std::vector<AngleDegrees> roofing_angles; //!< a list of angle values which is cycled through to determine the roofing angle of each layer
     std::vector<AngleDegrees> skin_angles; //!< a list of angle values which is cycled through to determine the skin angle of each layer
     std::vector<Polygons> overhang_areas; //!< For each layer the areas that are classified as overhang on this mesh.
-    std::vector<Polygons> full_overhang_areas; //!< For each layer the full overhang without the tangent of the overhang angle removed, such that the overhang area adjoins the areas of the next layers.
-    std::vector<std::vector<Polygons>> overhang_points; //!< For each layer a list of points where point-overhang is detected. This is overhang that hasn't got any surface area, such as a corner pointing downwards.
+    std::vector<Polygons> full_overhang_areas; //!< For each layer the full overhang without the tangent of the overhang angle removed, such that the overhang area adjoins the
+                                               //!< areas of the next layers.
+    std::vector<std::vector<Polygons>> overhang_points; //!< For each layer a list of points where point-overhang is detected. This is overhang that hasn't got any surface area,
+                                                        //!< such as a corner pointing downwards.
     AABB3D bounding_box; //!< the mesh's bounding box
 
     SubDivCube* base_subdiv_cube;
@@ -322,22 +330,23 @@ public:
     std::vector<RetractionAndWipeConfig> retraction_wipe_config_per_extruder; //!< Config for retractions, extruder switch retractions, and wipes, per extruder.
 
     SupportStorage support;
-    
+
     std::vector<SkirtBrimLine> skirt_brim[MAX_EXTRUDERS]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
     Polygons support_brim; //!< brim lines for support, going from the edge of the support inward. \note Not ordered by inset.
-    Polygons raftOutline;               //Storage for the outline of the raft. Will be filled with lines when the GCode is generated.
-    Polygons primeRaftOutline;          // ... the raft underneath the prime-tower will have to be printed first, if there is one. (When the raft has top layers with a different extruder for example.)
+    Polygons raftOutline; // Storage for the outline of the raft. Will be filled with lines when the GCode is generated.
+    Polygons primeRaftOutline; // ... the raft underneath the prime-tower will have to be printed first, if there is one. (When the raft has top layers with a different extruder
+                               // for example.)
 
     int max_print_height_second_to_last_extruder; //!< Used in multi-extrusion: the layer number beyond which all models are printed with the same extruder
     std::vector<int> max_print_height_per_extruder; //!< For each extruder the highest layer number at which it is used.
     std::vector<size_t> max_print_height_order; //!< Ordered indices into max_print_height_per_extruder: back() will return the extruder number with the highest print height.
 
     std::vector<int> spiralize_seam_vertex_indices; //!< the index of the seam vertex for each layer
-    std::vector<Polygons* > spiralize_wall_outlines; //!< the wall outline polygons for each layer
+    std::vector<Polygons*> spiralize_wall_outlines; //!< the wall outline polygons for each layer
 
     PrimeTower primeTower;
 
-    std::vector<Polygons> oozeShield;        //oozeShield per layer
+    std::vector<Polygons> oozeShield; // oozeShield per layer
     Polygons draft_protection_shield; //!< The polygons for a heightened skirt which protects from warping by gusts of wind and acts as a heated chamber.
 
     /*!
@@ -352,7 +361,7 @@ public:
 
     /*!
      * Get all outlines within a given layer.
-     * 
+     *
      * \param layer_nr The index of the layer for which to get the outlines
      * (negative layer numbers indicate the raft).
      * \param include_support Whether to include support in the outline.
@@ -361,11 +370,13 @@ public:
      * \param external_polys_only Whether to disregard all hole polygons.
      * \param extruder_nr (optional) only give back outlines for this extruder (where the walls are printed with this extruder)
      */
-    Polygons getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only = false, const int extruder_nr = -1) const;
+    Polygons
+        getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only = false, const int extruder_nr = -1)
+            const;
 
     /*!
      * Get the extruders used.
-     * 
+     *
      * \return A vector of booleans indicating whether the extruder with the
      * corresponding index is used in the mesh group.
      */
@@ -373,7 +384,7 @@ public:
 
     /*!
      * Get the extruders used on a particular layer.
-     * 
+     *
      * \param layer_nr the layer for which to check
      * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
      */
@@ -402,6 +413,6 @@ private:
     std::vector<RetractionAndWipeConfig> initializeRetractionAndWipeConfigs();
 };
 
-}//namespace cura
+} // namespace cura
 
-#endif//SLICE_DATA_STORAGE_H
+#endif // SLICE_DATA_STORAGE_H
