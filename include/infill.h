@@ -49,11 +49,11 @@ class Infill
     size_t wall_line_count{}; //!< Number of walls to generate at the boundary of the infill region, spaced \ref infill_line_width apart
     coord_t small_area_width{}; //!< Maximum width of a small infill region to be filled with walls
     Point infill_origin{}; //!< origin of the infill pattern
-    bool skip_line_stitching{}; //!< Whether to bypass the line stitching normally performed for polyline type infills
-    bool fill_gaps{}; //!< Whether to fill gaps in strips of infill that would be too thin to fit the infill lines. If disabled, those areas are left empty.
-    bool connected_zigzags{}; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
-    bool use_endpieces{}; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
-    bool skip_some_zags{}; //!< (ZigZag) Whether to skip some zags
+    bool skip_line_stitching{ false }; //!< Whether to bypass the line stitching normally performed for polyline type infills
+    bool fill_gaps{ true }; //!< Whether to fill gaps in strips of infill that would be too thin to fit the infill lines. If disabled, those areas are left empty.
+    bool connected_zigzags{ false }; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
+    bool use_endpieces{ false }; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
+    bool skip_some_zags{ false }; //!< (ZigZag) Whether to skip some zags
     size_t zag_skip_count{}; //!< (ZigZag) To skip one zag in every N if skip some zags is enabled
     coord_t pocket_size{}; //!< The size of the pockets at the intersections of the fractal in the cross 3d pattern
     bool mirror_offset{}; //!< Indication in which offset direction the extra infill lines are made
@@ -130,8 +130,7 @@ public:
         , max_resolution{ max_resolution }
         , max_deviation{ max_deviation }
         , wall_line_count{ wall_line_count }
-        , small_area_width{ 0 }
-        // FIXME!: Disable small_area_width for the 5.4.x releases. Current plan is to figure out why this feature causes small line segments & fix that before 5.5.0
+        , small_area_width{ small_area_width }
         , infill_origin{ infill_origin }
         , skip_line_stitching{ skip_line_stitching } {};
 
@@ -173,8 +172,7 @@ public:
         , max_resolution{ max_resolution }
         , max_deviation{ max_deviation }
         , wall_line_count{ wall_line_count }
-        , small_area_width{ 0 }
-        // FIXME!: Disable small_area_width for the 5.4.x releases. Current plan is to figure out why this feature causes small line segments & fix that before 5.5.0
+        , small_area_width{ small_area_width }
         , infill_origin{ infill_origin }
         , skip_line_stitching{ skip_line_stitching }
         , fill_gaps{ fill_gaps }
@@ -242,17 +240,19 @@ private:
         const Settings& settings,
         const SierpinskiFillProvider* cross_fill_pattern = nullptr,
         const LightningLayer* lightning_layer = nullptr,
-        const SliceMeshStorage* mesh = nullptr); /*!
-                                                  * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.
-                                                  *
-                                                  * This is done in a way such that there is not overlap between the lines
-                                                  * except the middle original one if the multiplier is odd.
-                                                  *
-                                                  * This introduces a lot of line segments.
-                                                  *
-                                                  * \param[in,out] result_polygons The polygons to be multiplied (input and output)
-                                                  * \param[in,out] result_lines The lines to be multiplied (input and output)
-                                                  */
+        const SliceMeshStorage* mesh = nullptr);
+
+    /*!
+     * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.
+     *
+     * This is done in a way such that there is not overlap between the lines
+     * except the middle original one if the multiplier is odd.
+     *
+     * This introduces a lot of line segments.
+     *
+     * \param[in,out] result_polygons The polygons to be multiplied (input and output)
+     * \param[in,out] result_lines The lines to be multiplied (input and output)
+     */
     void multiplyInfill(Polygons& result_polygons, Polygons& result_lines);
 
     struct InfillLineSegment
