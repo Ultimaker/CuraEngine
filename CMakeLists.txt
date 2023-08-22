@@ -117,6 +117,7 @@ set(engine_SRCS # Except main.cpp.
 
         src/settings/AdaptiveLayerHeights.cpp
         src/settings/FlowTempGraph.cpp
+        src/settings/MeshPathConfigs.cpp
         src/settings/PathConfigStorage.cpp
         src/settings/Settings.cpp
         src/settings/ZSeamConfig.cpp
