@@ -120,7 +120,6 @@ struct gcode_paths_modify_request : public details::converter<gcode_paths_modify
 
 struct gcode_paths_modify_response : public details::converter<gcode_paths_modify_response, slots::gcode_paths::v0::modify::CallResponse, std::vector<GCodePath>>
 {
-
     [[nodiscard]] static constexpr PrintFeatureType getPrintFeatureType(const v0::PrintFeature feature) noexcept;
     [[nodiscard]] static GCodePathConfig buildConfig(const v0::GCodePath& path);
     [[nodiscard]] static constexpr SpaceFillType getSpaceFillType(const v0::SpaceFillType space_fill_type) noexcept;
