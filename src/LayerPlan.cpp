@@ -1910,7 +1910,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     {
         ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
 
-        extruder_plan.paths = slots::instance().generate<plugins::v0::SlotID::GCODE_PATHS_MODIFY>(extruder_plan.paths, extruder_plan.extruder_nr, layer_nr);
+        extruder_plan.paths = slots::instance().modify<plugins::v0::SlotID::GCODE_PATHS_MODIFY>(extruder_plan.paths, extruder_plan.extruder_nr, layer_nr);
 
         // Since the time/material estimates _may_ have changed during the plugin modify step we recalculate it
         extruder_plan.computeNaiveTimeEstimates(gcode.getPositionXY());

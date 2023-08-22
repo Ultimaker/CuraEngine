@@ -87,7 +87,7 @@ struct simplify_request : public details::converter<simplify_request, slots::sim
 
 struct simplify_response : public details::converter<simplify_response, slots::simplify::v0::modify::CallResponse, Polygons>
 {
-    native_value_type operator()(const value_type& message) const;
+    native_value_type operator()([[maybe_unused]] native_value_type& original_value, const value_type& message) const;
 };
 
 struct postprocess_request : public details::converter<postprocess_request, slots::postprocess::v0::modify::CallRequest, std::string>
@@ -97,7 +97,7 @@ struct postprocess_request : public details::converter<postprocess_request, slot
 
 struct postprocess_response : public details::converter<postprocess_response, slots::postprocess::v0::modify::CallResponse, std::string>
 {
-    native_value_type operator()(const value_type& message) const;
+    native_value_type operator()([[maybe_unused]] native_value_type& original_value, const value_type& message) const;
 };
 
 struct infill_generate_request : public details::converter<infill_generate_request, slots::infill::v0::generate::CallRequest, Polygons>
@@ -113,17 +113,18 @@ struct infill_generate_response
 
 struct gcode_paths_modify_request : public details::converter<gcode_paths_modify_request, slots::gcode_paths::v0::modify::CallRequest, std::vector<GCodePath>>
 {
-    [[nodsicard]] static constexpr v0::SpaceFillType getSpaceFillType(const SpaceFillType space_fill_type) noexcept;
+    [[nodiscard]] static constexpr v0::SpaceFillType getSpaceFillType(const SpaceFillType space_fill_type) noexcept;
     [[nodiscard]] static constexpr v0::PrintFeature getPrintFeature(const PrintFeatureType print_feature_type) noexcept;
     value_type operator()(const native_value_type& gcode, const size_t extruder_nr, const LayerIndex layer_nr) const;
 };
 
 struct gcode_paths_modify_response : public details::converter<gcode_paths_modify_response, slots::gcode_paths::v0::modify::CallResponse, std::vector<GCodePath>>
 {
+
     [[nodiscard]] static constexpr PrintFeatureType getPrintFeatureType(const v0::PrintFeature feature) noexcept;
     [[nodiscard]] static GCodePathConfig buildConfig(const v0::GCodePath& path);
     [[nodiscard]] static constexpr SpaceFillType getSpaceFillType(const v0::SpaceFillType space_fill_type) noexcept;
-    native_value_type operator()(const value_type& message) const;
+    native_value_type operator()(native_value_type& original_value, const value_type& message) const;
 };
 
 } // namespace cura::plugins

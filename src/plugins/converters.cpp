@@ -13,6 +13,7 @@
 #include "utils/polygon.h"
 
 #include <range/v3/range/conversion.hpp>
+#include <range/v3/view/filter.hpp>
 #include <range/v3/view/transform.hpp>
 
 namespace cura::plugins
@@ -123,7 +124,8 @@ simplify_request::value_type
     return message;
 }
 
-simplify_response::native_value_type simplify_response::operator()(const simplify_response::value_type& message) const
+simplify_response::native_value_type
+    simplify_response::operator()([[maybe_unused]] simplify_response::native_value_type& original_value, const simplify_response::value_type& message) const
 {
     native_value_type poly{};
     for (const auto& paths : message.polygons().polygons())
@@ -155,7 +157,8 @@ postprocess_request::value_type postprocess_request::operator()(const postproces
     return message;
 }
 
-postprocess_response::native_value_type postprocess_response::operator()(const postprocess_response::value_type& message) const
+postprocess_response::native_value_type
+    postprocess_response::operator()([[maybe_unused]] postprocess_response::native_value_type& original_value, const postprocess_response::value_type& message) const
 {
     return message.gcode_word();
 }
@@ -279,7 +282,7 @@ infill_generate_response::native_value_type infill_generate_response::operator()
     }
 }
 
-[[nodsicard]] constexpr v0::PrintFeature gcode_paths_modify_request::getPrintFeature(const cura::PrintFeatureType print_feature_type) noexcept
+[[nodiscard]] constexpr v0::PrintFeature gcode_paths_modify_request::getPrintFeature(const cura::PrintFeatureType print_feature_type) noexcept
 {
     switch (print_feature_type)
     {
@@ -332,7 +335,7 @@ gcode_paths_modify_request::value_type
         gcode_path->set_width_factor(path.width_factor);
         gcode_path->set_spiralize(path.spiralize);
         gcode_path->set_speed_factor(path.speed_factor);
-
+        gcode_path->set_mesh_name(path.mesh ? path.mesh->mesh_name : "");
         // Construct the OpenPath from the points in a GCodePath
         for (const auto& point : path.points)
         {
@@ -428,12 +431,22 @@ gcode_paths_modify_request::value_type
              .fan_speed = fan_speed };
 }
 
-gcode_paths_modify_response::native_value_type gcode_paths_modify_response::operator()(const gcode_paths_modify_response::value_type& message) const
+gcode_paths_modify_response::native_value_type
+    gcode_paths_modify_response::operator()(gcode_paths_modify_response::native_value_type& original_value, const gcode_paths_modify_response::value_type& message) const
 {
     std::vector<GCodePath> paths;
+    using map_t = std::unordered_map<std::string, std::shared_ptr<SliceMeshStorage>>;
+    auto meshes = original_value
+                | ranges::views::filter([](const auto& path){ return path.mesh != nullptr; })
+                | ranges::views::transform(
+                      [](const auto& path) -> map_t::value_type
+                      {
+                          return { path.mesh->mesh_name, path.mesh };
+                      })
+                | ranges::to<map_t>;
+
     for (const auto& gcode_path_msg : message.gcode_paths())
     {
-        const std::shared_ptr<SliceMeshStorage> mesh = nullptr;
         const GCodePathConfig config = buildConfig(gcode_path_msg);
         const Ratio flow = gcode_path_msg.flow();
         const Ratio width_factor = gcode_path_msg.width_factor();
@@ -441,7 +454,7 @@ gcode_paths_modify_response::native_value_type gcode_paths_modify_response::oper
         const Ratio speed_factor = gcode_path_msg.speed_factor();
         const auto space_fill_type = getSpaceFillType(gcode_path_msg.space_fill_type());
         GCodePath path{ .config = config,
-                        .mesh = mesh,
+                        .mesh = gcode_path_msg.mesh_name().empty() ? nullptr : meshes.at(gcode_path_msg.mesh_name()),
                         .space_fill_type = space_fill_type,
                         .flow = flow,
                         .width_factor = width_factor,
