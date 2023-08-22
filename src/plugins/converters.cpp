@@ -262,12 +262,63 @@ infill_generate_response::native_value_type infill_generate_response::operator()
     return { toolpaths_, result_polygons, result_lines };
 }
 
+[[nodiscard]] constexpr v0::SpaceFillType gcode_paths_modify_request::getSpaceFillType(const cura::SpaceFillType space_fill_type) noexcept
+{
+    switch (space_fill_type)
+    {
+    case SpaceFillType::None:
+        return v0::SpaceFillType::NONE;
+    case SpaceFillType::Polygons:
+        return v0::SpaceFillType::POLYGONS;
+    case SpaceFillType::PolyLines:
+        return v0::SpaceFillType::POLY_LINES;
+    case SpaceFillType::Lines:
+        return v0::SpaceFillType::LINES;
+    default:
+        return v0::SpaceFillType::NONE;
+    }
+}
+
+[[nodsicard]] constexpr v0::PrintFeature gcode_paths_modify_request::getPrintFeature(const cura::PrintFeatureType print_feature_type) noexcept
+{
+    switch (print_feature_type)
+    {
+    case PrintFeatureType::NoneType:
+        return v0::PrintFeature::NONETYPE;
+    case PrintFeatureType::OuterWall:
+        return v0::PrintFeature::OUTERWALL;
+    case PrintFeatureType::InnerWall:
+        return v0::PrintFeature::INNERWALL;
+    case PrintFeatureType::Skin:
+        return v0::PrintFeature::SKIN;
+    case PrintFeatureType::Support:
+        return v0::PrintFeature::SUPPORT;
+    case PrintFeatureType::SkirtBrim:
+        return v0::PrintFeature::SKIRTBRIM;
+    case PrintFeatureType::Infill:
+        return v0::PrintFeature::INFILL;
+    case PrintFeatureType::SupportInfill:
+        return v0::PrintFeature::SUPPORTINFILL;
+    case PrintFeatureType::MoveCombing:
+        return v0::PrintFeature::MOVECOMBING;
+    case PrintFeatureType::MoveRetraction:
+        return v0::PrintFeature::MOVERETRACTION;
+    case PrintFeatureType::SupportInterface:
+        return v0::PrintFeature::SUPPORTINTERFACE;
+    case PrintFeatureType::PrimeTower:
+        return v0::PrintFeature::PRIMETOWER;
+    case PrintFeatureType::NumPrintFeatureTypes:
+        return v0::PrintFeature::NUMPRINTFEATURETYPES;
+    default:
+        return v0::PrintFeature::NONETYPE;
+    }
+}
 
 gcode_paths_modify_request::value_type
     gcode_paths_modify_request::operator()(const gcode_paths_modify_request::native_value_type& paths, const size_t extruder_nr, const LayerIndex layer_nr) const
 {
     value_type message{};
-    message.set_extruder_nr(extruder_nr);
+    message.set_extruder_nr(static_cast<int64_t>(extruder_nr));
     message.set_layer_nr(layer_nr);
 
     // Construct the repeated GCodepath message
@@ -275,24 +326,7 @@ gcode_paths_modify_request::value_type
     for (const auto& path : paths)
     {
         auto* gcode_path = gcode_paths->Add();
-
-        switch (path.space_fill_type)
-        {
-        case SpaceFillType::None:
-            gcode_path->set_space_fill_type(v0::SpaceFillType::NONE);
-            break;
-        case SpaceFillType::Polygons:
-            gcode_path->set_space_fill_type(v0::SpaceFillType::POLYGONS);
-            break;
-        case SpaceFillType::PolyLines:
-            gcode_path->set_space_fill_type(v0::SpaceFillType::POLY_LINES);
-            break;
-        case SpaceFillType::Lines:
-            gcode_path->set_space_fill_type(v0::SpaceFillType::LINES);
-            break;
-        default:
-            gcode_path->set_space_fill_type(v0::SpaceFillType::NONE);
-        }
+        gcode_path->set_space_fill_type(getSpaceFillType(path.space_fill_type));
 
         gcode_path->set_flow(path.flow);
         gcode_path->set_width_factor(path.width_factor);
@@ -308,53 +342,7 @@ gcode_paths_modify_request::value_type
         }
 
         auto* config_msg = gcode_path->mutable_config();
-
-        switch (path.config.getPrintFeatureType())
-        {
-        case PrintFeatureType::NoneType:
-            config_msg->set_feature(v0::PrintFeature::NONETYPE);
-            break;
-        case PrintFeatureType::OuterWall:
-            config_msg->set_feature(v0::PrintFeature::OUTERWALL);
-            break;
-        case PrintFeatureType::InnerWall:
-            config_msg->set_feature(v0::PrintFeature::INNERWALL);
-            break;
-        case PrintFeatureType::Skin:
-            config_msg->set_feature(v0::PrintFeature::SKIN);
-            break;
-        case PrintFeatureType::Support:
-            config_msg->set_feature(v0::PrintFeature::SUPPORT);
-            break;
-        case PrintFeatureType::SkirtBrim:
-            config_msg->set_feature(v0::PrintFeature::SKIRTBRIM);
-            break;
-        case PrintFeatureType::Infill:
-            config_msg->set_feature(v0::PrintFeature::INFILL);
-            break;
-        case PrintFeatureType::SupportInfill:
-            config_msg->set_feature(v0::PrintFeature::SUPPORTINFILL);
-            break;
-        case PrintFeatureType::MoveCombing:
-            config_msg->set_feature(v0::PrintFeature::MOVECOMBING);
-            break;
-        case PrintFeatureType::MoveRetraction:
-            config_msg->set_feature(v0::PrintFeature::MOVERETRACTION);
-            break;
-        case PrintFeatureType::SupportInterface:
-            config_msg->set_feature(v0::PrintFeature::SUPPORTINTERFACE);
-            break;
-        case PrintFeatureType::PrimeTower:
-            config_msg->set_feature(v0::PrintFeature::PRIMETOWER);
-            break;
-        case PrintFeatureType::NumPrintFeatureTypes:
-            config_msg->set_feature(v0::PrintFeature::NUMPRINTFEATURETYPES);
-            break;
-        default:
-            config_msg->set_feature(v0::PrintFeature::NONETYPE);
-            break;
-        }
-
+        config_msg->set_feature(getPrintFeature(path.config.type));
         config_msg->set_line_width(path.config.getLineWidth());
         config_msg->set_layer_thickness(path.config.getLayerThickness());
         config_msg->set_flow_ratio(path.config.getFlowRatio());

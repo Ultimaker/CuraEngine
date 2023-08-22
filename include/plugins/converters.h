@@ -113,6 +113,8 @@ struct infill_generate_response
 
 struct gcode_paths_modify_request : public details::converter<gcode_paths_modify_request, slots::gcode_paths::v0::modify::CallRequest, std::vector<GCodePath>>
 {
+    [[nodsicard]] static constexpr v0::SpaceFillType getSpaceFillType(const SpaceFillType space_fill_type) noexcept;
+    [[nodiscard]] static constexpr v0::PrintFeature getPrintFeature(const PrintFeatureType print_feature_type) noexcept;
     value_type operator()(const native_value_type& gcode, const size_t extruder_nr, const LayerIndex layer_nr) const;
 };
 
