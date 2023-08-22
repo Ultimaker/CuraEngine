@@ -1,4 +1,4 @@
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 #ifndef CURAENGINE_TREESUPPORTENUMS_H
 #define CURAENGINE_TREESUPPORTENUMS_H
 
@@ -28,6 +28,6 @@ enum class AvoidanceType
     COLLISION
 };
 
-}//end namespace
+} // namespace cura
 
 #endif // CURAENGINE_TREESUPPORTENUMS_H

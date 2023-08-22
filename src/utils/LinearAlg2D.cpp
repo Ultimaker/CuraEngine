@@ -1,15 +1,15 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/linearAlg2D.h"
 
-#include <cmath> // atan2
-#include <cassert>
-#include <algorithm> // swap
-
 #include "utils/IntPoint.h" // dot
 
-namespace cura 
+#include <algorithm> // swap
+#include <cassert>
+#include <cmath> // atan2
+
+namespace cura
 {
 
 float LinearAlg2D::getAngleLeft(const Point& a, const Point& b, const Point& c)
@@ -20,10 +20,7 @@ float LinearAlg2D::getAngleLeft(const Point& a, const Point& b, const Point& c)
     const coord_t det = ba.X * bc.Y - ba.Y * bc.X; // determinant
     if (det == 0)
     {
-        if (
-            (ba.X != 0 && (ba.X > 0) == (bc.X > 0))
-            || (ba.X == 0 && (ba.Y > 0) == (bc.Y > 0))
-            )
+        if ((ba.X != 0 && (ba.X > 0) == (bc.X > 0)) || (ba.X == 0 && (ba.Y > 0) == (bc.Y > 0)))
         {
             return 0; // pointy bit
         }
@@ -37,7 +34,7 @@ float LinearAlg2D::getAngleLeft(const Point& a, const Point& b, const Point& c)
     {
         return angle;
     }
-    else 
+    else
     {
         return M_PI * 2 + angle;
     }
@@ -55,7 +52,7 @@ bool LinearAlg2D::getPointOnLineWithDist(const Point& p, const Point& a, const P
     const Point ab = b - a;
     const coord_t ab_size = vSize(ab);
     const Point ap = p - a;
-    const coord_t ax_size = (ab_size < 50)? dot(normal(ab, 1000), ap) / 1000 : dot(ab, ap) / ab_size;
+    const coord_t ax_size = (ab_size < 50) ? dot(normal(ab, 1000), ap) / 1000 : dot(ab, ap) / ab_size;
     const coord_t ap_size2 = vSize2(ap);
     const coord_t px_size = sqrt(std::max(coord_t(0), ap_size2 - ax_size * ax_size));
     if (px_size > dist)
@@ -159,9 +156,10 @@ bool LinearAlg2D::lineSegmentsCollide(const Point& a_from_transformed, const Poi
 {
     assert(std::abs(a_from_transformed.Y - a_to_transformed.Y) < 2 && "line a is supposed to be transformed to be aligned with the X axis!");
     assert(a_from_transformed.X - 2 <= a_to_transformed.X && "line a is supposed to be aligned with X axis in positive direction!");
-    if ((b_from_transformed.Y >= a_from_transformed.Y && b_to_transformed.Y <= a_from_transformed.Y) || (b_to_transformed.Y >= a_from_transformed.Y && b_from_transformed.Y <= a_from_transformed.Y))
+    if ((b_from_transformed.Y >= a_from_transformed.Y && b_to_transformed.Y <= a_from_transformed.Y)
+        || (b_to_transformed.Y >= a_from_transformed.Y && b_from_transformed.Y <= a_from_transformed.Y))
     {
-        if(b_to_transformed.Y == b_from_transformed.Y)
+        if (b_to_transformed.Y == b_from_transformed.Y)
         {
             if (b_to_transformed.X < b_from_transformed.X)
             {
@@ -179,7 +177,8 @@ bool LinearAlg2D::lineSegmentsCollide(const Point& a_from_transformed, const Poi
         }
         else
         {
-            const coord_t x = b_from_transformed.X + (b_to_transformed.X - b_from_transformed.X) * (a_from_transformed.Y - b_from_transformed.Y) / (b_to_transformed.Y - b_from_transformed.Y);
+            const coord_t x
+                = b_from_transformed.X + (b_to_transformed.X - b_from_transformed.X) * (a_from_transformed.Y - b_from_transformed.Y) / (b_to_transformed.Y - b_from_transformed.Y);
             if (x >= a_from_transformed.X && x <= a_to_transformed.X)
             {
                 return true;
@@ -214,26 +213,25 @@ bool LinearAlg2D::isInsideCorner(const Point a, const Point b, const Point c, co
      */
 
 
-
-    constexpr coord_t normal_length = 10000; //Create a normal vector of reasonable length in order to reduce rounding error.
+    constexpr coord_t normal_length = 10000; // Create a normal vector of reasonable length in order to reduce rounding error.
     const Point ba = normal(a - b, normal_length);
     const Point bc = normal(c - b, normal_length);
     const Point bq = query_point - b;
-    const Point perpendicular = turn90CCW(bq); //The query projects to this perpendicular to coordinate 0.
-    const coord_t project_a_perpendicular = dot(ba, perpendicular); //Project vertex A on the perpendicular line.
-    const coord_t project_c_perpendicular = dot(bc, perpendicular); //Project vertex C on the perpendicular line.
-    if ((project_a_perpendicular > 0) != (project_c_perpendicular > 0)) //Query is between A and C on the projection.
+    const Point perpendicular = turn90CCW(bq); // The query projects to this perpendicular to coordinate 0.
+    const coord_t project_a_perpendicular = dot(ba, perpendicular); // Project vertex A on the perpendicular line.
+    const coord_t project_c_perpendicular = dot(bc, perpendicular); // Project vertex C on the perpendicular line.
+    if ((project_a_perpendicular > 0) != (project_c_perpendicular > 0)) // Query is between A and C on the projection.
     {
-        return project_a_perpendicular > 0; //Due to the winding order of corner ABC, this means that the query is inside.
+        return project_a_perpendicular > 0; // Due to the winding order of corner ABC, this means that the query is inside.
     }
-    else //Beyond either A or C, but it could still be inside of the polygon.
+    else // Beyond either A or C, but it could still be inside of the polygon.
     {
-        const coord_t project_a_parallel = dot(ba, bq); //Project not on the perpendicular, but on the original.
+        const coord_t project_a_parallel = dot(ba, bq); // Project not on the perpendicular, but on the original.
         const coord_t project_c_parallel = dot(bc, bq);
 
-        //Either:
-        // * A is to the right of B (project_a_perpendicular > 0) and C is below A (project_c_parallel < project_a_parallel), or
-        // * A is to the left of B (project_a_perpendicular < 0) and C is above A (project_c_parallel > project_a_parallel).
+        // Either:
+        //  * A is to the right of B (project_a_perpendicular > 0) and C is below A (project_c_parallel < project_a_parallel), or
+        //  * A is to the left of B (project_a_perpendicular < 0) and C is above A (project_c_parallel > project_a_parallel).
         return (project_c_parallel < project_a_parallel) == (project_a_perpendicular > 0);
     }
 }
@@ -248,7 +246,7 @@ coord_t LinearAlg2D::getDistFromLine(const Point& p, const Point& a, const Point
     const Point vab = b - a;
     const Point vap = p - a;
     const double ab_size = vSize(vab);
-    if(ab_size == 0) //Line of 0 length. Assume it's a line perpendicular to the direction to p.
+    if (ab_size == 0) // Line of 0 length. Assume it's a line perpendicular to the direction to p.
     {
         return vSize(vap);
     }

@@ -3,25 +3,25 @@
 
 #include "Application.h"
 
-#include <chrono>
-#include <memory>
-#include <string>
-
-#include <fmt/format.h>
-#include <fmt/ranges.h>
-#include <spdlog/sinks/dup_filter_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/spdlog.h>
-#include <spdlog/cfg/helpers.h>
-#include <spdlog/details/registry.h>
-#include <spdlog/details/os.h>
-
 #include "FffProcessor.h"
 #include "communication/ArcusCommunication.h" //To connect via Arcus to the front-end.
 #include "communication/CommandLine.h" //To use the command line to slice stuff.
 #include "progress/Progress.h"
 #include "utils/ThreadPool.h"
 #include "utils/string.h" //For stringcasecompare.
+
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+#include <spdlog/cfg/helpers.h>
+#include <spdlog/details/os.h>
+#include <spdlog/details/registry.h>
+#include <spdlog/sinks/dup_filter_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
+
+#include <chrono>
+#include <memory>
+#include <string>
 
 namespace cura
 {
@@ -32,7 +32,8 @@ Application::Application()
     auto base_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     dup_sink->add_sink(base_sink);
 
-    spdlog::default_logger()->sinks() = std::vector<std::shared_ptr<spdlog::sinks::sink>>{ dup_sink }; // replace default_logger sinks with the duplicating filtering sink to avoid spamming
+    spdlog::default_logger()->sinks()
+        = std::vector<std::shared_ptr<spdlog::sinks::sink>>{ dup_sink }; // replace default_logger sinks with the duplicating filtering sink to avoid spamming
 
     if (auto spdlog_val = spdlog::details::os::getenv("CURAENGINE_LOG_LEVEL"); ! spdlog_val.empty())
     {
@@ -135,9 +136,11 @@ void Application::printHelp() const
     fmt::print("  -o <output_file>\n\tSpecify a file to which to write the generated gcode.\n");
     fmt::print("\n");
     fmt::print("The settings are appended to the last supplied object:\n");
-    fmt::print("CuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e0 [extruder train 0 settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object settings] \n\t--next [next group settings]\n\t... etc.\n");
+    fmt::print("CuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e0 [extruder train 0 settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object "
+               "settings] \n\t--next [next group settings]\n\t... etc.\n");
     fmt::print("\n");
-    fmt::print("In order to load machine definitions from custom locations, you need to create the environment variable CURA_ENGINE_SEARCH_PATH, which should contain all search paths delimited by a (semi-)colon.\n");
+    fmt::print("In order to load machine definitions from custom locations, you need to create the environment variable CURA_ENGINE_SEARCH_PATH, which should contain all search "
+               "paths delimited by a (semi-)colon.\n");
     fmt::print("\n");
 }
 

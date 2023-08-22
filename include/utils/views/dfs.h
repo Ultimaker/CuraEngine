@@ -4,10 +4,10 @@
 #ifndef CURAENGINE_DFS_SORT_H
 #define CURAENGINE_DFS_SORT_H
 
+#include "utils/types/graph.h"
+
 #include <range/v3/algorithm/contains.hpp>
 #include <range/v3/view/subrange.hpp>
-
-#include "utils/types/graph.h"
 
 namespace cura::actions
 {
@@ -39,14 +39,14 @@ std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours = [](c
 };
 
 template<utils::nodeable Node, typename State, utils::graphable Graph>
-constexpr void dfs(
-    const Node& current_node,
-    const Graph& graph,
-    std::function<State(const Node, const State)> handle_node,
-    std::unordered_set<Node>& visited,
-    const State& state = nullptr,
-    std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours = details::get_neighbours<Node, Graph>
-) {
+constexpr void
+    dfs(const Node& current_node,
+        const Graph& graph,
+        std::function<State(const Node, const State)> handle_node,
+        std::unordered_set<Node>& visited,
+        const State& state = nullptr,
+        std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours = details::get_neighbours<Node, Graph>)
+{
     if (visited.contains(current_node))
     {
         return;

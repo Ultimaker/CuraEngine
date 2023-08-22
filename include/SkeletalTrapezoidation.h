@@ -4,39 +4,38 @@
 #ifndef SKELETAL_TRAPEZOIDATION_H
 #define SKELETAL_TRAPEZOIDATION_H
 
-#include <boost/polygon/voronoi.hpp>
+#include "BeadingStrategy/BeadingStrategy.h"
+#include "SkeletalTrapezoidationEdge.h"
+#include "SkeletalTrapezoidationGraph.h"
+#include "SkeletalTrapezoidationJoint.h"
+#include "settings/types/Ratio.h"
+#include "utils/ExtrusionJunction.h"
+#include "utils/ExtrusionLine.h"
+#include "utils/HalfEdgeGraph.h"
+#include "utils/PolygonsSegmentIndex.h"
+#include "utils/polygon.h"
+#include "utils/section_type.h"
 
+#include <boost/polygon/voronoi.hpp>
 #include <memory> // smart pointers
 #include <unordered_map>
 #include <utility> // pair
-
-#include "utils/HalfEdgeGraph.h"
-#include "utils/polygon.h"
-#include "utils/PolygonsSegmentIndex.h"
-#include "utils/ExtrusionJunction.h"
-#include "utils/ExtrusionLine.h"
-#include "utils/section_type.h"
-#include "settings/types/Ratio.h"
-#include "SkeletalTrapezoidationEdge.h"
-#include "SkeletalTrapezoidationJoint.h"
-#include "BeadingStrategy/BeadingStrategy.h"
-#include "SkeletalTrapezoidationGraph.h"
 
 namespace cura
 {
 
 /*!
  * Main class of the dynamic beading strategies.
- * 
+ *
  * The input polygon region is decomposed into trapezoids and represented as a half-edge data-structure.
- * 
+ *
  * We determine which edges are 'central' accordinding to the transitioning_angle of the beading strategy,
  * and determine the bead count for these central regions and apply them outward when generating toolpaths. [oversimplified]
- * 
+ *
  * The method can be visually explained as generating the 3D union of cones surface on the outline polygons,
- * and changing the heights along central regions of that surface so that they are flat. 
+ * and changing the heights along central regions of that surface so that they are flat.
  * For more info, please consult the paper "A framework for adaptive width control of dense contour-parallel toolpaths in fused
-deposition modeling" by Kuipers et al. 
+deposition modeling" by Kuipers et al.
  * This visual explanation aid explains the use of "upward", "lower" etc,
  * i.e. the radial distance and/or the bead count are used as heights of this visualization, there is no coordinate called 'Z'.
  *
@@ -66,7 +65,7 @@ class SkeletalTrapezoidation
     coord_t beading_propagation_transition_dist; //!< When there are different beadings propagated from below and from above, use this transitioning distance
     static constexpr coord_t central_filter_dist = 20; //!< Filter areas marked as 'central' smaller than this
     static constexpr coord_t snap_dist = 20; //!< Generic arithmatic inaccuracy. Only used to determine whether a transition really needs to insert an extra edge.
-    int layer_idx { };
+    int layer_idx{};
     SectionType section_type;
 
     /*!
@@ -99,16 +98,16 @@ public:
      * beadings propagated from below and from above, use this transitioning
      * distance.
      */
-    SkeletalTrapezoidation(const Polygons& polys, 
-                           const BeadingStrategy& beading_strategy,
-                           AngleRadians transitioning_angle,
-                           coord_t discretization_step_size,
-                           coord_t transition_filter_dist,
-                           coord_t allowed_filter_deviation,
-                           coord_t beading_propagation_transition_dist,
-                           int layer_idx,
-                           SectionType section_type
-                           );
+    SkeletalTrapezoidation(
+        const Polygons& polys,
+        const BeadingStrategy& beading_strategy,
+        AngleRadians transitioning_angle,
+        coord_t discretization_step_size,
+        coord_t transition_filter_dist,
+        coord_t allowed_filter_deviation,
+        coord_t beading_propagation_transition_dist,
+        int layer_idx,
+        SectionType section_type);
 
     /*!
      * A skeletal graph through the polygons that we need to fill with beads.
@@ -141,19 +140,20 @@ protected:
         TransitionMidRef(edge_t* edge, std::list<TransitionMiddle>::iterator transition_it)
             : edge(edge)
             , transition_it(transition_it)
-        {}
+        {
+        }
     };
 
     /*!
      * Compute the skeletal trapezoidation decomposition of the input shape.
-     * 
+     *
      * Compute the Voronoi Diagram (VD) and transfer all inside edges into our half-edge (HE) datastructure.
-     * 
+     *
      * The algorithm is currently a bit overcomplicated, because the discretization of parabolic edges is performed at the same time as all edges are being transfered,
      * which means that there is no one-to-one mapping from VD edges to HE edges.
      * Instead we map from a VD edge to the last HE edge.
      * This could be cimplified by recording the edges which should be discretized and discretizing the mafterwards.
-     * 
+     *
      * Another complication arises because the VD uses floating logic, which can result in zero-length segments after rounding to integers.
      * We therefore collapse edges and their whole cells afterwards.
      */
@@ -169,7 +169,7 @@ protected:
 
     /*!
      * (Eventual) returned 'polylines per index' result (from generateToolpaths):
-     * 
+     *
      * Binned by inset_idx.
      */
     std::vector<VariableWidthLines>* p_generated_toolpaths;
@@ -178,7 +178,15 @@ protected:
      * Transfer an edge from the VD to the HE and perform discretization of parabolic edges (and vertex-vertex edges)
      * \p prev_edge serves as input and output. May be null as input.
      */
-    void transferEdge(Point from, Point to, vd_t::edge_type& vd_edge, edge_t*& prev_edge, Point& start_source_point, Point& end_source_point, const std::vector<Point>& points, const std::vector<Segment>& segments);
+    void transferEdge(
+        Point from,
+        Point to,
+        vd_t::edge_type& vd_edge,
+        edge_t*& prev_edge,
+        Point& start_source_point,
+        Point& end_source_point,
+        const std::vector<Point>& points,
+        const std::vector<Segment>& segments);
 
     /*!
      * Discretize a Voronoi edge that represents the medial axis of a vertex-
@@ -231,7 +239,14 @@ protected:
      * /return Whether the cell is inside of the polygon. If it's outside of the
      * polygon we should skip processing it altogether.
      */
-    bool computePointCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments);
+    bool computePointCellRange(
+        vd_t::cell_type& cell,
+        Point& start_source_point,
+        Point& end_source_point,
+        vd_t::edge_type*& starting_vd_edge,
+        vd_t::edge_type*& ending_vd_edge,
+        const std::vector<Point>& points,
+        const std::vector<Segment>& segments);
 
     /*!
      * Compute the range of line segments that surround a cell of the skeletal
@@ -257,7 +272,14 @@ protected:
      * /return Whether the cell is inside of the polygon. If it's outside of the
      * polygon we should skip processing it altogether.
      */
-    void computeSegmentCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments);
+    void computeSegmentCellRange(
+        vd_t::cell_type& cell,
+        Point& start_source_point,
+        Point& end_source_point,
+        vd_t::edge_type*& starting_vd_edge,
+        vd_t::edge_type*& ending_vd_edge,
+        const std::vector<Point>& points,
+        const std::vector<Segment>& segments);
 
     /*!
      * For VD cells associated with an input polygon vertex, we need to separate the node at the end and start of the cell into two
@@ -273,7 +295,7 @@ protected:
 
     /*!
      * Filter out small central areas.
-     * 
+     *
      * Only used to get rid of small edges which get marked as central because
      * of rounding errors because the region is so small.
      */
@@ -289,9 +311,9 @@ protected:
     /*!
      * Unmark the outermost edges directly connected to the outline, as not
      * being central.
-     * 
+     *
      * Only used to emulate some related literature.
-     * 
+     *
      * The paper shows that this function is bad for the stability of the framework.
      */
     void filterOuterCentral();
@@ -429,7 +451,15 @@ protected:
      * \return Whether the given edge is going downward (i.e. towards a thinner
      * region of the polygon).
      */
-    bool generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t transition_half_length, Ratio start_rest, Ratio end_rest, coord_t transition_lower_bead_count, ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends);
+    bool generateTransitionEnd(
+        edge_t& edge,
+        coord_t start_pos,
+        coord_t end_pos,
+        coord_t transition_half_length,
+        Ratio start_rest,
+        Ratio end_rest,
+        coord_t transition_lower_bead_count,
+        ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends);
 
     /*!
      * Determines whether an edge is going downwards or upwards in the graph.
@@ -488,28 +518,30 @@ protected:
     /*!
      * Propagate beading information from nodes that are closer to the edge
      * (low radius R) to nodes that are farther from the edge (high R).
-     * 
+     *
      * only propagate from nodes with beading info upward to nodes without beading info
-     * 
+     *
      * Edges are sorted by their radius, so that we can do a depth-first walk
      * without employing a recursive algorithm.
-     * 
+     *
      * In upward propagated beadings we store the distance traveled, so that we can merge these beadings with the downward propagated beadings in \ref propagateBeadingsDownward(.)
-     * 
-     * \param upward_quad_mids all upward halfedges of the inner skeletal edges (not directly connected to the outline) sorted on their highest [distance_to_boundary]. Higher dist first.
+     *
+     * \param upward_quad_mids all upward halfedges of the inner skeletal edges (not directly connected to the outline) sorted on their highest [distance_to_boundary]. Higher dist
+     * first.
      */
     void propagateBeadingsUpward(std::vector<edge_t*>& upward_quad_mids, ptr_vector_t<BeadingPropagation>& node_beadings);
 
     /*!
      * propagate beading info from higher R nodes to lower R nodes
-     * 
+     *
      * merge with upward propagated beadings if they are encountered
-     * 
+     *
      * don't transfer to nodes which lie on the outline polygon
-     * 
+     *
      * edges are sorted so that we can do a depth-first walk without employing a recursive algorithm
-     * 
-     * \param upward_quad_mids all upward halfedges of the inner skeletal edges (not directly connected to the outline) sorted on their highest [distance_to_boundary]. Higher dist first.
+     *
+     * \param upward_quad_mids all upward halfedges of the inner skeletal edges (not directly connected to the outline) sorted on their highest [distance_to_boundary]. Higher dist
+     * first.
      */
     void propagateBeadingsDownward(std::vector<edge_t*>& upward_quad_mids, ptr_vector_t<BeadingPropagation>& node_beadings);
 
@@ -580,7 +612,7 @@ protected:
 
     /*!
      * Add a new toolpath segment, defined between two extrusion-juntions.
-     * 
+     *
      * \param from The junction from which to add a segment.
      * \param to The junction to which to add a segment.
      * \param is_odd Whether this segment is an odd gap filler along the middle of the skeleton.

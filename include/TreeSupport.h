@@ -1,5 +1,5 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2021 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef TREESUPPORT_H
 #define TREESUPPORT_H
@@ -69,8 +69,6 @@ public:
 
 
 private:
-
-
     /*!
      * \brief Precalculates all avoidances, that could be required.
      *
@@ -101,17 +99,14 @@ private:
      * \param reduced_aabb[in,out] The already processed elements.
      * \param input_aabb[in] Not yet processed elements
      * \param to_bp_areas[in] The Elements of the current Layer that will reach the buildplate. Value is the influence area where the center of a circle of support may be placed.
-     * \param to_model_areas[in] The Elements of the current Layer that do not have to reach the buildplate. Also contains main as every element that can reach the buildplate is not forced to.
-     *     Value is the influence area where the center of a circle of support may be placed.
-     * \param influence_areas[in] The influence areas without avoidance removed.
+     * \param to_model_areas[in] The Elements of the current Layer that do not have to reach the buildplate. Also contains main as every element that can reach the buildplate is
+     * not forced to. Value is the influence area where the center of a circle of support may be placed. \param influence_areas[in] The influence areas without avoidance removed.
      * \param insert_bp_areas[out] Elements to be inserted into the main dictionary after the Helper terminates.
      * \param insert_model_areas[out] Elements to be inserted into the secondary dictionary after the Helper terminates.
-     * \param insert_influence[out] Elements to be inserted into the dictionary containing the largest possibly valid influence area (ignoring if the area may not be there because of avoidance)
-     * \param erase[out] Elements that should be deleted from the above dictionaries.
-     * \param layer_idx[in] The Index of the current Layer.
+     * \param insert_influence[out] Elements to be inserted into the dictionary containing the largest possibly valid influence area (ignoring if the area may not be there because
+     * of avoidance) \param erase[out] Elements that should be deleted from the above dictionaries. \param layer_idx[in] The Index of the current Layer.
      */
-    void mergeHelper
-    (
+    void mergeHelper(
         std::map<TreeSupportElement, AABB>& reduced_aabb,
         std::map<TreeSupportElement, AABB>& input_aabb,
         const PropertyAreasUnordered& to_bp_areas,
@@ -121,8 +116,7 @@ private:
         PropertyAreasUnordered& insert_model_areas,
         PropertyAreasUnordered& insert_influence,
         std::vector<TreeSupportElement>& erase,
-        const LayerIndex layer_idx
-    );
+        const LayerIndex layer_idx);
 
     /*!
      * \brief Merges Influence Areas if possible.
@@ -132,28 +126,23 @@ private:
      *
      * \param to_bp_areas[in] The Elements of the current Layer that will reach the buildplate.
      *  Value is the influence area where the center of a circle of support may be placed.
-     * \param to_model_areas[in] The Elements of the current Layer that do not have to reach the buildplate. Also contains main as every element that can reach the buildplate is not forced to.
-     *  Value is the influence area where the center of a circle of support may be placed.
-     * \param influence_areas[in] The Elements of the current Layer without avoidances removed. This is the largest possible influence area for this layer.
-     *  Value is the influence area where the center of a circle of support may be placed.
-     * \param layer_idx[in] The current layer.
+     * \param to_model_areas[in] The Elements of the current Layer that do not have to reach the buildplate. Also contains main as every element that can reach the buildplate is
+     * not forced to. Value is the influence area where the center of a circle of support may be placed. \param influence_areas[in] The Elements of the current Layer without
+     * avoidances removed. This is the largest possible influence area for this layer. Value is the influence area where the center of a circle of support may be placed. \param
+     * layer_idx[in] The current layer.
      */
-    void mergeInfluenceAreas
-    (
-        PropertyAreasUnordered& to_bp_areas,
-        PropertyAreas& to_model_areas,
-        PropertyAreas& influence_areas,
-        LayerIndex layer_idx
-    );
+    void mergeInfluenceAreas(PropertyAreasUnordered& to_bp_areas, PropertyAreas& to_model_areas, PropertyAreas& influence_areas, LayerIndex layer_idx);
 
     /*!
      * \brief Checks if an influence area contains a valid subsection and returns the corresponding metadata and the new Influence area.
      *
      * Calculates an influence areas of the layer below, based on the influence area of one element on the current layer.
-     * Increases every influence area by maximum_move_distance_slow. If this is not enough, as in we would change our gracious or to_buildplate status the influence areas are instead increased by maximum_move_distance_slow.
-     * Also ensures that increasing the radius of a branch, does not cause it to change its status (like to_buildplate ). If this were the case, the radius is not increased instead.
+     * Increases every influence area by maximum_move_distance_slow. If this is not enough, as in we would change our gracious or to_buildplate status the influence areas are
+     * instead increased by maximum_move_distance_slow. Also ensures that increasing the radius of a branch, does not cause it to change its status (like to_buildplate ). If this
+     * were the case, the radius is not increased instead.
      *
-     * Warning: The used format inside this is different as the SupportElement does not have a valid area member. Instead this area is saved as value of the dictionary. This was done to avoid not needed heap allocations.
+     * Warning: The used format inside this is different as the SupportElement does not have a valid area member. Instead this area is saved as value of the dictionary. This was
+     * done to avoid not needed heap allocations.
      *
      * \param settings[in] Which settings have to be used to check validity.
      * \param layer_idx[in] Number of the current layer.
@@ -161,13 +150,12 @@ private:
      * \param relevant_offset[in] The maximal possible influence area. No guarantee regarding validity with current layer collision required, as it is ensured in-function!
      * \param to_bp_data[out] The part of the Influence area that can reach the buildplate.
      * \param to_model_data[out] The part of the Influence area that do not have to reach the buildplate. This has overlap with new_layer_data.
-     * \param increased[out]  Area than can reach all further up support points. No assurance is made that the buildplate or the model can be reached in accordance to the user-supplied settings.
-     * \param overspeed[in] How much should the already offset area be offset again. Usually this is 0.
-     * \param mergelayer[in] Will the merge method be called on this layer. This information is required as some calculation can be avoided if they are not required for merging.
-     * \return A valid support element for the next layer regarding the calculated influence areas. Empty if no influence are can be created using the supplied influence area and settings.
+     * \param increased[out]  Area than can reach all further up support points. No assurance is made that the buildplate or the model can be reached in accordance to the
+     * user-supplied settings. \param overspeed[in] How much should the already offset area be offset again. Usually this is 0. \param mergelayer[in] Will the merge method be
+     * called on this layer. This information is required as some calculation can be avoided if they are not required for merging. \return A valid support element for the next
+     * layer regarding the calculated influence areas. Empty if no influence are can be created using the supplied influence area and settings.
      */
-    std::optional<TreeSupportElement> increaseSingleArea
-    (
+    std::optional<TreeSupportElement> increaseSingleArea(
         AreaIncreaseSettings settings,
         LayerIndex layer_idx,
         TreeSupportElement* parent,
@@ -176,37 +164,35 @@ private:
         Polygons& to_model_data,
         Polygons& increased,
         const coord_t overspeed,
-        const bool mergelayer
-    );
+        const bool mergelayer);
 
     /*!
      * \brief Increases influence areas as far as required.
      *
      * Calculates influence areas of the layer below, based on the influence areas of the current layer.
-     * Increases every influence area by maximum_move_distance_slow. If this is not enough, as in it would change the gracious or to_buildplate status, the influence areas are instead increased by maximum_move_distance.
-     * Also ensures that increasing the radius of a branch, does not cause it to change its status (like to_buildplate ). If this were the case, the radius is not increased instead.
+     * Increases every influence area by maximum_move_distance_slow. If this is not enough, as in it would change the gracious or to_buildplate status, the influence areas are
+     * instead increased by maximum_move_distance. Also ensures that increasing the radius of a branch, does not cause it to change its status (like to_buildplate ). If this were
+     * the case, the radius is not increased instead.
      *
-     * Warning: The used format inside this is different as the SupportElement does not have a valid area member. Instead this area is saved as value of the dictionary. This was done to avoid not needed heap allocations.
+     * Warning: The used format inside this is different as the SupportElement does not have a valid area member. Instead this area is saved as value of the dictionary. This was
+     * done to avoid not needed heap allocations.
      *
      * \param to_bp_areas[out] Influence areas that can reach the buildplate
-     * \param to_model_areas[out] Influence areas that do not have to reach the buildplate. This has overlap with new_layer_data, as areas that can reach the buildplate are also considered valid areas to the model.
-     *     This redundancy is required if a to_buildplate influence area is allowed to merge with a to model influence area.
-     * \param influence_areas[out] Area than can reach all further up support points. No assurance is made that the buildplate or the model can be reached in accordance to the user-supplied settings.
-     * \param bypass_merge_areas[out] Influence areas ready to be added to the layer below that do not need merging.
-     * \param last_layer[in] Influence areas of the current layer.
-     * \param layer_idx[in] Number of the current layer.
-     * \param mergelayer[in] Will the merge method be called on this layer. This information is required as some calculation can be avoided if they are not required for merging.
+     * \param to_model_areas[out] Influence areas that do not have to reach the buildplate. This has overlap with new_layer_data, as areas that can reach the buildplate are also
+     * considered valid areas to the model. This redundancy is required if a to_buildplate influence area is allowed to merge with a to model influence area. \param
+     * influence_areas[out] Area than can reach all further up support points. No assurance is made that the buildplate or the model can be reached in accordance to the
+     * user-supplied settings. \param bypass_merge_areas[out] Influence areas ready to be added to the layer below that do not need merging. \param last_layer[in] Influence areas
+     * of the current layer. \param layer_idx[in] Number of the current layer. \param mergelayer[in] Will the merge method be called on this layer. This information is required as
+     * some calculation can be avoided if they are not required for merging.
      */
-    void increaseAreas
-    (
+    void increaseAreas(
         PropertyAreasUnordered& to_bp_areas,
         PropertyAreas& to_model_areas,
         PropertyAreas& influence_areas,
         std::vector<TreeSupportElement*>& bypass_merge_areas,
         const std::vector<TreeSupportElement*>& last_layer,
         const LayerIndex layer_idx,
-        const bool mergelayer
-    );
+        const bool mergelayer);
 
     /*!
      * \brief Propagates influence downwards, and merges overlapping ones.
@@ -245,15 +231,13 @@ private:
      *
      * \param linear_data[in] All currently existing influence areas with the layer they are on
      * \param layer_tree_polygons[out] Resulting branch areas with the layerindex they appear on.
-     *    layer_tree_polygons.size() has to be at least linear_data.size() as each Influence area in linear_data will save have at least one (that's why it's a vector<vector>) corresponding branch area in layer_tree_polygons.
-     * \param inverse_tree_order[in] A mapping that returns the child of every influence area.
+     *    layer_tree_polygons.size() has to be at least linear_data.size() as each Influence area in linear_data will save have at least one (that's why it's a vector<vector>)
+     * corresponding branch area in layer_tree_polygons. \param inverse_tree_order[in] A mapping that returns the child of every influence area.
      */
-    void generateBranchAreas
-    (
+    void generateBranchAreas(
         std::vector<std::pair<LayerIndex, TreeSupportElement*>>& linear_data,
         std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons,
-        const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order
-    );
+        const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order);
 
     /*!
      * \brief Applies some smoothing to the outer wall, intended to smooth out sudden jumps as they can happen when a branch moves though a hole.
@@ -270,13 +254,11 @@ private:
      * \param dropped_down_areas[out] Areas that have to be added to support all non-graceful areas.
      * \param inverse_tree_order[in] A mapping that returns the child of every influence area.
      */
-    void dropNonGraciousAreas
-    (
+    void dropNonGraciousAreas(
         std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons,
         const std::vector<std::pair<LayerIndex, TreeSupportElement*>>& linear_data,
         std::vector<std::vector<std::pair<LayerIndex, Polygons>>>& dropped_down_areas,
-        const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order
-    );
+        const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order);
 
 
     void filterFloatingLines(std::vector<Polygons>& support_layer_storage);
@@ -335,7 +317,6 @@ private:
      * Required for the progress bar the behave as expected when areas have to be calculated multiple times
      */
     double progress_offset = 0;
-
 };
 
 

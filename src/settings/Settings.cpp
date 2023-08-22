@@ -686,19 +686,19 @@ template<>
 PrimeTowerMethod Settings::get<PrimeTowerMethod>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    if(value == "default")
+    if (value == "default")
     {
         return PrimeTowerMethod::DEFAULT;
     }
-    else if(value == "optimized")
+    else if (value == "optimized")
     {
         return PrimeTowerMethod::OPTIMIZED;
     }
-    else if(value  == "optimized_consistent")
+    else if (value == "optimized_consistent")
     {
         return PrimeTowerMethod::OPTIMIZED_CONSISTENT;
     }
-    else //Default.
+    else // Default.
     {
         return PrimeTowerMethod::NONE;
     }

@@ -4,17 +4,17 @@
 #ifndef TREEMODELVOLUMES_H
 #define TREEMODELVOLUMES_H
 
-#include <future>
-#include <mutex>
-#include <unordered_map>
-#include <unordered_set>
-
 #include "TreeSupportSettings.h"
 #include "settings/EnumSettings.h" //To store whether X/Y or Z distance gets priority.
 #include "settings/types/LayerIndex.h" //Part of the RadiusLayerPair.
 #include "sliceDataStorage.h"
 #include "utils/Simplify.h"
 #include "utils/polygon.h" //For polygon parameters.
+
+#include <future>
+#include <mutex>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace cura
 {
@@ -33,8 +33,7 @@ class TreeModelVolumes
 {
 public:
     TreeModelVolumes() = default;
-    TreeModelVolumes
-    (
+    TreeModelVolumes(
         const SliceDataStorage& storage,
         coord_t max_move,
         coord_t max_move_slow,
@@ -42,8 +41,7 @@ public:
         size_t current_mesh_idx,
         double progress_multiplier,
         double progress_offset,
-        const std::vector<Polygons>& additional_excluded_areas = std::vector<Polygons>()
-    );
+        const std::vector<Polygons>& additional_excluded_areas = std::vector<Polygons>());
     TreeModelVolumes(TreeModelVolumes&&) = default;
     TreeModelVolumes& operator=(TreeModelVolumes&&) = default;
 
@@ -123,11 +121,9 @@ public:
     const Polygons& getPlaceableAreas(coord_t radius, LayerIndex layer_idx);
 
     /*!
-     * \brief Provides the area that represents the walls, as in the printed area, of the model. This is an abstract representation not equal with the outline. See calculateWallRestrictions for better description.
-     * \param radius The radius of the node of interest.
-     * \param layer_idx The layer of interest.
-     * \param min_xy_dist is the minimum xy distance used.
-     * \return Polygons object
+     * \brief Provides the area that represents the walls, as in the printed area, of the model. This is an abstract representation not equal with the outline. See
+     * calculateWallRestrictions for better description. \param radius The radius of the node of interest. \param layer_idx The layer of interest. \param min_xy_dist is the minimum
+     * xy distance used. \return Polygons object
      */
     const Polygons& getWallRestriction(coord_t radius, LayerIndex layer_idx, bool min_xy_dist);
 
@@ -289,7 +285,8 @@ private:
     void calculatePlaceables(const std::deque<RadiusLayerPair>& keys);
 
     /*!
-     * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model without being able to place a branch with given radius on a single layer.
+     * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model without being able to place a branch with given radius on a
+     * single layer.
      *
      * The result is a 2D area that would cause nodes of radius \p radius to
      * collide with the model in a not wanted way. Result is saved in the cache.
@@ -299,7 +296,8 @@ private:
     void calculateAvoidanceToModel(const std::deque<RadiusLayerPair>& keys);
 
     /*!
-     * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model without being able to place a branch with given radius on a single layer.
+     * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model without being able to place a branch with given radius on a
+     * single layer.
      *
      * The result is a 2D area that would cause nodes of radius \p radius to
      * collide with the model in a not wanted way. Result is saved in the cache.
@@ -311,9 +309,11 @@ private:
     }
 
     /*!
-     * \brief Creates the areas that can not be passed when expanding an area downwards. As such these areas are an somewhat abstract representation of a wall (as in a printed object).
+     * \brief Creates the areas that can not be passed when expanding an area downwards. As such these areas are an somewhat abstract representation of a wall (as in a printed
+     * object).
      *
-     * These areas are at least xy_min_dist wide. When calculating it is always assumed that every wall is printed on top of another (as in has an overlap with the wall a layer below). Result is saved in the corresponding cache.
+     * These areas are at least xy_min_dist wide. When calculating it is always assumed that every wall is printed on top of another (as in has an overlap with the wall a layer
+     * below). Result is saved in the corresponding cache.
      *
      * \param keys RadiusLayerPairs of all requested areas. Every radius will be calculated up to the provided layer.
      *
@@ -322,9 +322,9 @@ private:
     void calculateWallRestrictions(const std::deque<RadiusLayerPair>& keys);
 
     /*!
-     * \brief Creates the areas that can not be passed when expanding an area downwards. As such these areas are an somewhat abstract representation of a wall (as in a printed object).
-     * These areas are at least xy_min_dist wide. When calculating it is always assumed that every wall is printed on top of another (as in has an overlap with the wall a layer below). Result is saved in the corresponding cache.
-     * \param key RadiusLayerPair of the requested area. It well be will be calculated up to the provided layer.
+     * \brief Creates the areas that can not be passed when expanding an area downwards. As such these areas are an somewhat abstract representation of a wall (as in a printed
+     * object). These areas are at least xy_min_dist wide. When calculating it is always assumed that every wall is printed on top of another (as in has an overlap with the wall a
+     * layer below). Result is saved in the corresponding cache. \param key RadiusLayerPair of the requested area. It well be will be calculated up to the provided layer.
      */
     void calculateWallRestrictions(RadiusLayerPair key)
     {
@@ -336,7 +336,7 @@ private:
      * \param key RadiusLayerPair of the requested areas. The radius will be calculated up to the provided layer.
      * \return A wrapped optional reference of the requested area (if it was found, an empty optional if nothing was found)
      */
-    template <typename KEY>
+    template<typename KEY>
     const std::optional<std::reference_wrapper<const Polygons>> getArea(const std::unordered_map<KEY, Polygons>& cache, const KEY key) const;
 
     bool checkSettingsEquality(const Settings& me, const Settings& other) const;
@@ -499,7 +499,8 @@ private:
     std::unique_ptr<std::mutex> critical_placeable_areas_cache_ = std::make_unique<std::mutex>();
 
     /*!
-     * \brief Caches to avoid holes smaller than the radius until which the radius is always increased, as they are free of holes. Also called safe avoidances, as they are safe regarding not running into holes.
+     * \brief Caches to avoid holes smaller than the radius until which the radius is always increased, as they are free of holes. Also called safe avoidances, as they are safe
+     * regarding not running into holes.
      */
     mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_hole_;
     std::unique_ptr<std::mutex> critical_avoidance_cache_holefree_ = std::make_unique<std::mutex>();
@@ -513,7 +514,8 @@ private:
     mutable std::unordered_map<RadiusLayerPair, Polygons> wall_restrictions_cache_;
     std::unique_ptr<std::mutex> critical_wall_restrictions_cache_ = std::make_unique<std::mutex>();
 
-    // A different cache for min_xy_dist as the maximal safe distance an influence area can be increased(guaranteed overlap of two walls in consecutive layer) is much smaller when min_xy_dist is used. This causes the area of the wall restriction to be thinner and as such just using the min_xy_dist wall restriction would be slower.
+    // A different cache for min_xy_dist as the maximal safe distance an influence area can be increased(guaranteed overlap of two walls in consecutive layer) is much smaller when
+    // min_xy_dist is used. This causes the area of the wall restriction to be thinner and as such just using the min_xy_dist wall restriction would be slower.
     mutable std::unordered_map<RadiusLayerPair, Polygons> wall_restrictions_cache_min_;
     std::unique_ptr<std::mutex> critical_wall_restrictions_cache_min_ = std::make_unique<std::mutex>();
 
@@ -522,6 +524,6 @@ private:
     Simplify simplifier = Simplify(0, 0, 0); // a simplifier to simplify polygons. Will be properly initialised in the constructor.
 };
 
-}
+} // namespace cura
 
-#endif //TREEMODELVOLUMES_H
+#endif // TREEMODELVOLUMES_H
