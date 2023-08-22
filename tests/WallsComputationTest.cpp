@@ -1,14 +1,17 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <range/v3/view/join.hpp>
-#include "InsetOrderOptimizer.h" //Unit also under test.
 #include "WallsComputation.h" //Unit under test.
+#include "InsetOrderOptimizer.h" //Unit also under test.
 #include "settings/Settings.h" //Settings to generate walls with.
 #include "sliceDataStorage.h" //Sl
+#include "slicer.h"
 #include "utils/polygon.h" //To create example polygons.
 #include <gtest/gtest.h>
+#include <range/v3/view/join.hpp>
 #include <unordered_set>
+
+#include <scripta/logger.h>
 
 #ifdef WALLS_COMPUTATION_TEST_SVG_OUTPUT
 #include "utils/SVG.h"
@@ -70,6 +73,7 @@ public:
         settings.add("magic_spiralize", "false");
         settings.add("meshfix_maximum_deviation", "0.1");
         settings.add("meshfix_maximum_extrusion_area_deviation", "0.01");
+        settings.add("meshfix_fluid_motion_enabled", "false");
         settings.add("meshfix_maximum_resolution", "0.01");
         settings.add("min_wall_line_width", "0.3");
         settings.add("min_bead_width", "0");
@@ -95,13 +99,15 @@ public:
  */
 TEST_F(WallsComputationTest, GenerateWallsForLayerSinglePart)
 {
+    auto layers = std::vector<SlicerLayer>(200, SlicerLayer{});
+    scripta::setAll(layers);
     SliceLayer layer;
     layer.parts.emplace_back();
     SliceLayerPart& part = layer.parts.back();
     part.outline.add(square_shape);
 
     // Run the test.
-    walls_computation.generateWalls(&layer);
+    walls_computation.generateWalls(&layer, SectionType::WALL);
 
     // Verify that something was generated.
     EXPECT_FALSE(part.wall_toolpaths.empty()) << "There must be some walls.";
@@ -123,7 +129,7 @@ TEST_F(WallsComputationTest, GenerateWallsZeroWalls)
     part.outline.add(square_shape);
 
     // Run the test.
-    walls_computation.generateWalls(&layer);
+    walls_computation.generateWalls(&layer, SectionType::WALL);
 
     // Verify that there is still an inner area, outline and parts.
     EXPECT_EQ(part.inner_area.area(), square_shape.area()) << "There are no walls, so the inner area (for infill/skin) needs to be the entire part.";
@@ -144,7 +150,7 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     part.outline.add(ff_holes);
 
     // Run the test.
-    walls_computation.generateWalls(&layer);
+    walls_computation.generateWalls(&layer, SectionType::WALL);
 
     const bool outer_to_inner = false;
     std::vector<ExtrusionLine> all_paths;

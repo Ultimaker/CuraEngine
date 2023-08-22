@@ -12,10 +12,7 @@ option(ENABLE_TESTING "Build with unit tests" OFF)
 option(EXTENSIVE_WARNINGS "Build with all warnings" ON)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
-
-if (NOT APPLE)
-    option(ENABLE_OPENMP "Use OpenMP for parallel code" ON)
-endif ()
+option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
 
 # Create Protobuf files if Arcus is used
 if (ENABLE_ARCUS)
@@ -65,6 +62,7 @@ set(engine_SRCS # Except main.cpp.
         src/support.cpp
         src/timeEstimate.cpp
         src/TopSurface.cpp
+        src/TreeSupportTipGenerator.cpp
         src/TreeModelVolumes.cpp
         src/TreeSupport.cpp
         src/WallsComputation.cpp
@@ -152,6 +150,7 @@ target_include_directories(_CuraEngine
 target_compile_definitions(_CuraEngine
         PUBLIC
         $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
+        $<$<BOOL:${OLDER_APPLE_CLANG}>:OLDER_APPLE_CLANG>
         CURA_ENGINE_VERSION=\"${CURA_ENGINE_VERSION}\"
         $<$<BOOL:${ENABLE_TESTING}>:BUILD_TESTS>
         PRIVATE
@@ -170,11 +169,6 @@ if (${EXTENSIVE_WARNINGS})
     set_project_warnings(_CuraEngine)
 endif ()
 
-if (ENABLE_OPENMP)
-    find_package(OpenMP REQUIRED)
-    target_link_libraries(_CuraEngine PUBLIC OpenMP::OpenMP_CXX)
-endif ()
-
 if (ENABLE_ARCUS)
     target_link_libraries(_CuraEngine PRIVATE arcus::arcus protobuf::libprotobuf)
 endif ()
@@ -186,6 +180,7 @@ find_package(Boost REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
+find_package(scripta REQUIRED)
 
 if (ENABLE_TESTING)
     find_package(GTest REQUIRED)
@@ -200,6 +195,7 @@ target_link_libraries(_CuraEngine
         rapidjson
         stb::stb
         boost::boost
+        scripta::scripta
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
 
 if (NOT WIN32)

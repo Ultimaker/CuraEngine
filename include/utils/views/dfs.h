@@ -7,7 +7,7 @@
 #include <range/v3/algorithm/contains.hpp>
 #include <range/v3/view/subrange.hpp>
 
-#include "utils/concepts/graph.h"
+#include "utils/types/graph.h"
 
 namespace cura::actions
 {
@@ -24,7 +24,7 @@ namespace cura::actions
 
 namespace details
 {
-template<nodeable Node, graphable Graph>
+template<utils::nodeable Node, utils::graphable Graph>
 std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours = [](const Node current_node, const Graph& graph)
 {
     const auto& [neighbour_begin, neighbour_end] = graph.equal_range(current_node);
@@ -38,7 +38,7 @@ std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours = [](c
 };
 };
 
-template<nodeable Node, typename State, graphable Graph>
+template<utils::nodeable Node, typename State, utils::graphable Graph>
 constexpr void dfs(
     const Node& current_node,
     const Graph& graph,
@@ -61,7 +61,7 @@ constexpr void dfs(
     }
 }
 
-template<nodeable Node, graphable Graph>
+template<utils::nodeable Node, utils::graphable Graph>
 constexpr void dfs_parent_state(const Node& current_node, const Graph& graph, std::function<void(const Node, const Node)> handle_node)
 {
     const std::function<Node(const Node, const Node)> parent_view = [handle_node](auto current_node, auto parent_node)
@@ -74,7 +74,7 @@ constexpr void dfs_parent_state(const Node& current_node, const Graph& graph, st
     dfs(current_node, graph, parent_view, visited);
 }
 
-template<nodeable Node, graphable Graph>
+template<utils::nodeable Node, utils::graphable Graph>
 constexpr void dfs_depth_state(const Node& current_node, const Graph& graph, std::function<void(const Node, const unsigned int)> handle_node)
 {
     const std::function<unsigned int(const Node, const unsigned int)> depth_view = [handle_node](auto current_node, auto depth)

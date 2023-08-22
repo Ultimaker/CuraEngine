@@ -1,126 +1,209 @@
-//Copyright (c) 2019 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef LAYERINDEX_H
 #define LAYERINDEX_H
+
+#include "utils/types/generic.h"
 
 #include <functional>
 
 namespace cura
 {
 
-/*
- * \brief Struct behaving like a layer number.
- *
- * This is a facade. It behaves exactly like an integer but is used to indicate
- * that it is a layer number.
- */
 struct LayerIndex
 {
-    /*
-     * \brief Default constructor setting the layer index to 0.
-     */
-    constexpr LayerIndex() : value(0) {};
+    using value_type = int64_t;
+    using difference_type = std::ptrdiff_t;
 
-    /*
-     * \brief Casts an integer to a LayerIndex instance.
-     */
-    constexpr LayerIndex(int value) : value(value) {};
+    value_type value{};
 
-    /*
-     * \brief Casts the LayerIndex instance to an integer.
-     */
-    constexpr operator int() const
+    constexpr LayerIndex() noexcept = default;
+
+    constexpr LayerIndex(const LayerIndex& other) noexcept = default;
+    constexpr LayerIndex(LayerIndex&& other) noexcept = default;
+
+    constexpr explicit LayerIndex(const utils::floating_point auto val) noexcept
+        : value{ static_cast<value_type>(val) } {};
+
+    constexpr LayerIndex(const utils::integral auto val) noexcept
+        : value{ static_cast<value_type>(val) } {};
+
+    constexpr LayerIndex& operator=(const LayerIndex& other) noexcept = default;
+
+    constexpr LayerIndex& operator=(const utils::integral auto& other) noexcept
+    {
+        this->value = static_cast<value_type>(other);
+        return *this;
+    }
+
+    constexpr LayerIndex& operator=(LayerIndex&& other) noexcept = default;
+    constexpr LayerIndex& operator=(const utils::integral auto&& other) noexcept
+    {
+        this->value = static_cast<value_type>(other);
+        return *this;
+    }
+
+    ~LayerIndex() noexcept = default;
+
+    constexpr operator value_type() const noexcept
     {
         return value;
     }
 
-    /*
-     * Some operators to add and subtract layer numbers.
-     */
-    LayerIndex operator +(const LayerIndex& other) const
+    constexpr bool operator==(const LayerIndex& other) const noexcept
     {
-        return LayerIndex(value + other.value);
-    }
-    template<typename E> LayerIndex operator +(const E& other) const
-    {
-        return LayerIndex(value + other);
+        return value == other.value;
     }
 
-    LayerIndex operator -(const LayerIndex& other) const
+    constexpr bool operator==(const utils::integral auto& other) const noexcept
     {
-        return LayerIndex(value - other.value);
-    }
-    template<typename E> LayerIndex operator -(const E& other) const
-    {
-        return LayerIndex(value - other);
+        return value == static_cast<value_type>(other);
     }
 
-    LayerIndex& operator +=(const LayerIndex& other)
+    constexpr auto operator<=>(const LayerIndex& other) const noexcept = default;
+    constexpr auto operator<=>(const utils::integral auto& other) const noexcept
+    {
+        return value <=> static_cast<value_type>(other);
+    };
+
+    constexpr LayerIndex& operator+=(const LayerIndex& other) noexcept
     {
         value += other.value;
         return *this;
     }
-    template<typename E> LayerIndex& operator +=(const E& other)
+
+    constexpr LayerIndex& operator+=(const utils::integral auto& other) noexcept
     {
-        value += other;
+        value += static_cast<value_type>(other);
         return *this;
     }
 
-    LayerIndex& operator -=(const LayerIndex& other)
+    constexpr LayerIndex& operator-=(const LayerIndex& other) noexcept
     {
         value -= other.value;
         return *this;
     }
-    template<typename E> LayerIndex& operator -=(const E& other)
+
+    constexpr LayerIndex& operator-=(const utils::integral auto& other) noexcept
     {
-        value -= other;
+        value -= static_cast<value_type>(other);
         return *this;
     }
 
-    LayerIndex& operator ++()
+    constexpr LayerIndex& operator*=(const LayerIndex& other) noexcept
     {
-        value++;
+        value *= other.value;
         return *this;
-    }
-    LayerIndex operator ++(int) //Postfix.
-    {
-        LayerIndex original_value(value);
-        operator++(); //Increment myself.
-        return original_value;
-    }
-    LayerIndex& operator --()
-    {
-        value--;
-        return *this;
-    }
-    LayerIndex operator --(int) //Postfix.
-    {
-        LayerIndex original_value(value);
-        operator--(); //Decrement myself.
-        return original_value;
     }
 
-    /*
-     * \brief The actual layer index.
-     *
-     * Note that this could be negative for raft layers.
-     */
-    int value = 0;
+    constexpr LayerIndex& operator*=(const utils::integral auto& other) noexcept
+    {
+        value *= static_cast<value_type>(other);
+        return *this;
+    }
+
+    constexpr LayerIndex& operator/=(const LayerIndex& other)
+    {
+        value /= other.value;
+        return *this;
+    }
+
+    constexpr LayerIndex& operator/=(const utils::integral auto& other)
+    {
+        value /= static_cast<value_type>(other);
+        return *this;
+    }
+
+    constexpr LayerIndex operator+(const LayerIndex& other) const noexcept
+    {
+        return { value + other.value };
+    }
+
+    constexpr LayerIndex operator+(LayerIndex&& other) const noexcept
+    {
+        return { value + other.value };
+    }
+
+    constexpr LayerIndex operator+(const utils::integral auto& other) const noexcept
+    {
+        return { value + static_cast<value_type>(other) };
+    }
+
+    constexpr LayerIndex operator-(const LayerIndex& other) const noexcept
+    {
+        return { value - other.value };
+    }
+
+    constexpr LayerIndex operator-(const utils::integral auto& other) const noexcept
+    {
+        return { value - static_cast<value_type>(other) };
+    }
+
+    constexpr LayerIndex operator*(const LayerIndex& other) const noexcept
+    {
+        return { value * other.value };
+    }
+
+    constexpr LayerIndex operator*(const utils::integral auto& other) const noexcept
+    {
+        return { value * static_cast<value_type>(other) };
+    }
+
+    constexpr LayerIndex operator/(const LayerIndex& other) const
+    {
+        return { value / other.value };
+    }
+
+    constexpr LayerIndex operator/(const utils::integral auto& other) const
+    {
+        return { value / static_cast<value_type>(other) };
+    }
+
+    constexpr LayerIndex operator-() const noexcept
+    {
+        return { -value };
+    }
+
+    constexpr LayerIndex& operator++() noexcept
+    {
+        ++value;
+        return *this;
+    }
+
+    LayerIndex operator++(int) noexcept
+    {
+        LayerIndex tmp{ *this };
+        operator++();
+        return tmp;
+    }
+
+    constexpr LayerIndex& operator--() noexcept
+    {
+        --value;
+        return *this;
+    }
+
+    LayerIndex operator--(int) noexcept
+    {
+        LayerIndex tmp{ *this };
+        operator--();
+        return tmp;
+    }
 };
 
-}
+} // namespace cura
 
 namespace std
 {
-    template<>
-    struct hash<cura::LayerIndex>
+template<>
+struct hash<cura::LayerIndex>
+{
+    auto operator()(const cura::LayerIndex& layer_index) const
     {
-        size_t operator()(const cura::LayerIndex& layer_index) const
-        {
-            return hash<int>()(layer_index.value);
-        }
-    };
-}
+        return hash<decltype(layer_index.value)>()(layer_index.value);
+    }
+};
+} // namespace std
 
-#endif //LAYERINDEX_H
+#endif // LAYERINDEX_H

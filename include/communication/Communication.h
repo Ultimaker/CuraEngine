@@ -4,13 +4,13 @@
 #ifndef COMMUNICATION_H
 #define COMMUNICATION_H
 
-#include "../utils/IntPoint.h" //For coord_t and Point.
+#include "settings/types/LayerIndex.h"
+#include "settings/types/Velocity.h"
+#include "utils/IntPoint.h"
 
 namespace cura
 {
-//Some forward declarations to increase compilation speed.
-struct LayerIndex;
-struct Velocity;
+// Some forward declarations to increase compilation speed.
 enum class PrintFeatureType : unsigned char;
 class Polygons;
 class ConstPolygonRef;
@@ -26,7 +26,7 @@ public:
     /*
      * \brief Close the communication channel.
      */
-    virtual ~Communication() {}
+    virtual ~Communication() = default;
 
     /*
      * \brief Test if there are more slices to be queued.
@@ -62,7 +62,7 @@ public:
      * \param z The z-coordinate of the top side of the layer.
      * \param thickness The thickness of the layer.
      */
-    virtual void sendLayerComplete(const LayerIndex& layer_nr, const coord_t& z, const coord_t& thickness) = 0;
+    virtual void sendLayerComplete(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness) = 0;
 
     /*
      * \brief Send polygons to the user to visualise.
@@ -126,7 +126,7 @@ public:
      * \param layer_nr The index of the layer to send data for. This is zero-
      * indexed but may be negative for raft layers.
      */
-    virtual void setLayerForSend(const LayerIndex& layer_nr) = 0;
+    virtual void setLayerForSend(const LayerIndex::value_type& layer_nr) = 0;
 
     /*
      * \brief Send the sliced layer data through this communication after the
@@ -180,7 +180,6 @@ public:
     virtual void sliceNext() = 0;
 };
 
-} //namespace cura
+} // namespace cura
 
-#endif //COMMUNICATION_H
-
+#endif // COMMUNICATION_H

@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef CURAENGINE_INFILL_BENCHMARK_H
@@ -112,7 +112,7 @@ BENCHMARK_DEFINE_F(InfillTest, Infill_generate_connect)(benchmark::State& st)
         std::vector<VariableWidthLines> result_paths;
         Polygons result_polygons;
         Polygons result_lines;
-        infill.generate(result_paths, result_polygons, result_lines, settings, nullptr, nullptr);
+        infill.generate(result_paths, result_polygons, result_lines, settings, 0, SectionType::INFILL, nullptr, nullptr);
     }
 }
 

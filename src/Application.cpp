@@ -119,16 +119,12 @@ void Application::printHelp() const
     fmt::print("CuraEngine connect <host>[:<port>] [-j <settings.def.json>]\n");
     fmt::print("  --connect <host>[:<port>]\n\tConnect to <host> via a command socket, \n\tinstead of passing information via the command line\n");
     fmt::print("  -v\n\tIncrease the verbose level (show log messages).\n");
-#ifdef _OPENMP
     fmt::print("  -m<thread_count>\n\tSet the desired number of threads. Supports only a single digit.\n");
-#endif // _OPENMP
     fmt::print("\n");
 #endif // ARCUS
     fmt::print("CuraEngine slice [-v] [-p] [-j <settings.json>] [-s <settingkey>=<value>] [-g] [-e<extruder_nr>] [-o <output.gcode>] [-l <model.stl>] [--next]\n");
     fmt::print("  -v\n\tIncrease the verbose level (show log messages).\n");
-#ifdef _OPENMP
     fmt::print("  -m<thread_count>\n\tSet the desired number of threads.\n");
-#endif // _OPENMP
     fmt::print("  -p\n\tLog progress information.\n");
     fmt::print("  -j\n\tLoad settings.def.json file to register all settings and their defaults.\n");
     fmt::print("  -s <setting>=<value>\n\tSet a setting to a value for the last supplied object, \n\textruder train, or general settings.\n");

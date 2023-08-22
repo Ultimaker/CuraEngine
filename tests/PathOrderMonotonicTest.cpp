@@ -1,16 +1,19 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "PathOrderMonotonic.h"
 #include "ReadTestPolygons.h"
 #include "infill.h"
+#include "slicer.h"
 #include "utils/Coord_t.h"
 #include "utils/math.h"
 #include "utils/polygon.h"
-#include <filesystem>
 #include <gtest/gtest.h>
+#include <filesystem>
 #include <polyclipping/clipper.hpp>
 #include <string>
+
+#include <scripta/logger.h>
 
 // To diagnose failing tests with visual images, uncomment the following line:
 // #define TEST_PATHS_SVG_OUTPUT
@@ -82,7 +85,7 @@ bool getInfillLines(const std::string& filename, const AngleRadians& angle, Poly
         Settings infill_settings;
         std::vector<VariableWidthLines> result_paths;
         Polygons dummy_polys;
-        infill_comp.generate(result_paths, dummy_polys, output, infill_settings, nullptr, nullptr);
+        infill_comp.generate(result_paths, dummy_polys, output, infill_settings, 1, SectionType::INFILL, nullptr, nullptr);
     }
     return true;
 }
@@ -128,6 +131,8 @@ void writeDebugSVG(const std::string& original_filename, const AngleRadians& ang
 // NOLINTBEGIN(*-magic-numbers)
 TEST_P(PathOrderMonotonicTest, SectionsTest)
 {
+    auto layers = std::vector<SlicerLayer>(200, SlicerLayer{});
+    scripta::setAll(layers);
     const auto params = GetParam();
     const double angle_radians{ std::get<1>(params) };
     const auto& filename = std::get<0>(params);
