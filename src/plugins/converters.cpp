@@ -296,7 +296,6 @@ gcode_paths_modify_request::value_type
 
         gcode_path->set_flow(path.flow);
         gcode_path->set_width_factor(path.width_factor);
-        spdlog::info("path.spiralize: {}", path.spiralize);
         gcode_path->set_spiralize(path.spiralize);
         gcode_path->set_speed_factor(path.speed_factor);
 
@@ -369,97 +368,106 @@ gcode_paths_modify_request::value_type
     return message;
 }
 
+[[nodiscard]] constexpr PrintFeatureType gcode_paths_modify_response::getPrintFeatureType(const v0::PrintFeature feature) noexcept
+{
+    switch (feature)
+    {
+    case v0::PrintFeature::NONETYPE:
+        return PrintFeatureType::NoneType;
+    case v0::PrintFeature::OUTERWALL:
+        return PrintFeatureType::OuterWall;
+    case v0::PrintFeature::INNERWALL:
+        return PrintFeatureType::InnerWall;
+    case v0::PrintFeature::SKIN:
+        return PrintFeatureType::Skin;
+    case v0::PrintFeature::SUPPORT:
+        return PrintFeatureType::Support;
+    case v0::PrintFeature::SKIRTBRIM:
+        return PrintFeatureType::SkirtBrim;
+    case v0::PrintFeature::INFILL:
+        return PrintFeatureType::Infill;
+    case v0::PrintFeature::SUPPORTINFILL:
+        return PrintFeatureType::SupportInfill;
+    case v0::PrintFeature::MOVECOMBING:
+        return PrintFeatureType::MoveCombing;
+    case v0::PrintFeature::MOVERETRACTION:
+        return PrintFeatureType::MoveRetraction;
+    case v0::PrintFeature::SUPPORTINTERFACE:
+        return PrintFeatureType::SupportInterface;
+    case v0::PrintFeature::PRIMETOWER:
+        return PrintFeatureType::PrimeTower;
+    case v0::PrintFeature::NUMPRINTFEATURETYPES:
+        return PrintFeatureType::NumPrintFeatureTypes;
+    default:
+        return PrintFeatureType::NoneType;
+    }
+}
+
+[[nodiscard]] constexpr SpaceFillType gcode_paths_modify_response::getSpaceFillType(const v0::SpaceFillType space_fill_type) noexcept
+{
+    switch (space_fill_type)
+    {
+    case v0::SpaceFillType::NONE:
+        return SpaceFillType::None;
+    case v0::SpaceFillType::POLYGONS:
+        return SpaceFillType::Polygons;
+    case v0::SpaceFillType::POLY_LINES:
+        return SpaceFillType::PolyLines;
+    case v0::SpaceFillType::LINES:
+        return SpaceFillType::Lines;
+    default:
+        return SpaceFillType::None;
+    }
+}
+
+[[nodiscard]] GCodePathConfig gcode_paths_modify_response::buildConfig(const v0::GCodePath& path)
+{
+    const coord_t line_width = path.config().line_width();
+    const coord_t layer_height = path.config().layer_thickness();
+    const Ratio flow = path.config().flow_ratio();
+    const SpeedDerivatives speed_derivatives{ .speed = path.config().speed_derivatives().velocity(),
+                                              .acceleration = path.config().speed_derivatives().acceleration(),
+                                              .jerk = path.config().speed_derivatives().jerk() };
+    const bool is_bridge_path = path.config().is_bridge_path();
+    const double fan_speed = path.config().fan_speed();
+    const auto feature_type = getPrintFeatureType(path.config().feature());
+    return { .type = feature_type,
+             .line_width = line_width,
+             .layer_thickness = layer_height,
+             .flow = flow,
+             .speed_derivatives = speed_derivatives,
+             .is_bridge_path = is_bridge_path,
+             .fan_speed = fan_speed };
+}
+
 gcode_paths_modify_response::native_value_type gcode_paths_modify_response::operator()(const gcode_paths_modify_response::value_type& message) const
 {
     std::vector<GCodePath> paths;
     for (const auto& gcode_path_msg : message.gcode_paths())
     {
-        const auto config = [gcode_path_msg]()
-        {
-            const auto type = [gcode_path_msg]()
-            {
-                switch (gcode_path_msg.config().feature())
-                {
-                case v0::PrintFeature::NONETYPE:
-                    return PrintFeatureType::NoneType;
-                case v0::PrintFeature::OUTERWALL:
-                    return PrintFeatureType::OuterWall;
-                case v0::PrintFeature::INNERWALL:
-                    return PrintFeatureType::InnerWall;
-                case v0::PrintFeature::SKIN:
-                    return PrintFeatureType::Skin;
-                case v0::PrintFeature::SUPPORT:
-                    return PrintFeatureType::Support;
-                case v0::PrintFeature::SKIRTBRIM:
-                    return PrintFeatureType::SkirtBrim;
-                case v0::PrintFeature::INFILL:
-                    return PrintFeatureType::Infill;
-                case v0::PrintFeature::SUPPORTINFILL:
-                    return PrintFeatureType::SupportInfill;
-                case v0::PrintFeature::MOVECOMBING:
-                    return PrintFeatureType::MoveCombing;
-                case v0::PrintFeature::MOVERETRACTION:
-                    return PrintFeatureType::MoveRetraction;
-                case v0::PrintFeature::SUPPORTINTERFACE:
-                    return PrintFeatureType::SupportInterface;
-                case v0::PrintFeature::PRIMETOWER:
-                    return PrintFeatureType::PrimeTower;
-                case v0::PrintFeature::NUMPRINTFEATURETYPES:
-                    return PrintFeatureType::NumPrintFeatureTypes;
-                default:
-                    return PrintFeatureType::NoneType;
-                }
-            }();
+        const std::shared_ptr<SliceMeshStorage> mesh = nullptr;
+        const GCodePathConfig config = buildConfig(gcode_path_msg);
+        const Ratio flow = gcode_path_msg.flow();
+        const Ratio width_factor = gcode_path_msg.width_factor();
+        const bool spiralize = gcode_path_msg.spiralize();
+        const Ratio speed_factor = gcode_path_msg.speed_factor();
+        const auto space_fill_type = getSpaceFillType(gcode_path_msg.space_fill_type());
+        GCodePath path{ .config = config,
+                        .mesh = mesh,
+                        .space_fill_type = space_fill_type,
+                        .flow = flow,
+                        .width_factor = width_factor,
+                        .spiralize = spiralize,
+                        .speed_factor = speed_factor };
+        path.points = gcode_path_msg.path().path()
+                    | ranges::views::transform(
+                          [](const auto& point_msg)
+                          {
+                              return Point{ point_msg.x(), point_msg.y() };
+                          })
+                    | ranges::to_vector;
 
-            const coord_t line_width = gcode_path_msg.config().line_width();
-            const coord_t layer_height = gcode_path_msg.config().layer_thickness();
-            const Ratio flow = gcode_path_msg.config().flow_ratio();
-            const SpeedDerivatives speed_derivatives = { gcode_path_msg.config().speed_derivatives().velocity(),
-                                                         gcode_path_msg.config().speed_derivatives().acceleration(),
-                                                         gcode_path_msg.config().speed_derivatives().jerk() };
-            const bool is_bridge_path = gcode_path_msg.config().is_bridge_path();
-            const double fan_speed = gcode_path_msg.config().fan_speed();
-            return GCodePathConfig(type, line_width, layer_height, flow, speed_derivatives, is_bridge_path, fan_speed);
-        }();
-
-        const auto gcode_path = [config, gcode_path_msg]()
-        {
-            // TODO get actual mesh_id from message
-            const SliceMeshStorage* mesh_id = nullptr;
-            const SpaceFillType space_fill_type = [gcode_path_msg]()
-            {
-                switch (gcode_path_msg.space_fill_type())
-                {
-                case v0::SpaceFillType::NONE:
-                    return SpaceFillType::None;
-                case v0::SpaceFillType::POLYGONS:
-                    return SpaceFillType::Polygons;
-                case v0::SpaceFillType::POLY_LINES:
-                    return SpaceFillType::PolyLines;
-                case v0::SpaceFillType::LINES:
-                    return SpaceFillType::Lines;
-                default:
-                    return SpaceFillType::None;
-                }
-            }();
-            const Ratio flow = gcode_path_msg.flow();
-            const Ratio width_factor = gcode_path_msg.width_factor();
-            const bool spiralize = gcode_path_msg.spiralize();
-            const Ratio speed_factor = gcode_path_msg.speed_factor();
-
-            const auto path = GCodePath(config, nullptr, space_fill_type, flow, width_factor, spiralize, speed_factor);
-            GCodePath gcode_path(path);
-            gcode_path.points = gcode_path_msg.path().path()
-                              | ranges::views::transform(
-                                    [](const auto& point_msg)
-                                    {
-                                        return Point{ point_msg.x(), point_msg.y() };
-                                    })
-                              | ranges::to_vector;
-            return gcode_path;
-        }();
-
-        paths.emplace_back(gcode_path);
+        paths.emplace_back(path);
     }
 
     return paths;
