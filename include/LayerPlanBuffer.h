@@ -7,6 +7,8 @@
 #include "Preheat.h"
 #include "settings/Settings.h"
 #include "settings/types/Duration.h"
+#include "LayerPlan.h"
+#include "ExtruderPlan.h"
 
 #include <list>
 #include <vector>
@@ -14,8 +16,8 @@
 namespace cura
 {
 
-class ExtruderPlan;
-class LayerPlan;
+
+
 class GCodeExport;
 
 /*!
@@ -33,6 +35,8 @@ class GCodeExport;
  */
 class LayerPlanBuffer
 {
+    friend class LayerPlan;
+    friend class LayerPlanBuffer;
     GCodeExport& gcode;
 
     Preheat preheat_config; //!< the nozzle and material temperature settings for each extruder train.

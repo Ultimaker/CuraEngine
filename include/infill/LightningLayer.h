@@ -1,11 +1,12 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef LIGHTNING_LAYER_H
 #define LIGHTNING_LAYER_H
 
 #include "../utils/polygonUtils.h"
 #include "../utils/SquareGrid.h"
+#include "infill/LightningTreeNode.h"
 
 #include <memory>
 #include <vector>
@@ -14,8 +15,6 @@
 
 namespace cura
 {
-class LightningTreeNode;
-
 using LightningTreeNodeSPtr = std::shared_ptr<LightningTreeNode>;
 using SparseLightningTreeNodeGrid = SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>;
 

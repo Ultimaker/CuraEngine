@@ -26,10 +26,6 @@ SupportStorage::SupportStorage() : generated(false), layer_nr_max_filled_layer(-
 SupportStorage::~SupportStorage()
 {
     supportLayers.clear();
-    if (cross_fill_provider)
-    {
-        delete cross_fill_provider;
-    }
 }
 
 Polygons& SliceLayerPart::getOwnInfillArea()
@@ -102,21 +98,6 @@ SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
     layers.resize(slice_layer_count);
 }
 
-SliceMeshStorage::~SliceMeshStorage()
-{
-    if (base_subdiv_cube)
-    {
-        delete base_subdiv_cube;
-    }
-    if (cross_fill_provider)
-    {
-        delete cross_fill_provider;
-    }
-    if (lightning_generator)
-    {
-        delete lightning_generator;
-    }
-}
 
 bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
 {

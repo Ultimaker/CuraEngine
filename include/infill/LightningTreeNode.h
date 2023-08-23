@@ -1,5 +1,5 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef LIGHTNING_TREE_NODE_H
 #define LIGHTNING_TREE_NODE_H
@@ -17,10 +17,6 @@ namespace cura
 
 constexpr coord_t locator_cell_size = 4000;
 
-class LightningTreeNode;
-
-using LightningTreeNodeSPtr = std::shared_ptr<LightningTreeNode>;
-
 // NOTE: As written, this struct will only be valid for a single layer, will have to be updated for the next.
 // NOTE: Reasons for implementing this with some separate closures:
 //       - keep clear deliniation during development
@@ -37,6 +33,7 @@ using LightningTreeNodeSPtr = std::shared_ptr<LightningTreeNode>;
  */
 class LightningTreeNode : public std::enable_shared_from_this<LightningTreeNode>
 {
+    using LightningTreeNodeSPtr = std::shared_ptr<LightningTreeNode>;
 public:
     // Workaround for private/protected constructors and 'make_shared': https://stackoverflow.com/a/27832765
     template<typename ...Arg> LightningTreeNodeSPtr static create(Arg&&...arg)

@@ -378,7 +378,7 @@ Polygons TreeSupportTipGenerator::ensureMaximumDistancePolyline(const Polygons& 
 }
 
 
-SierpinskiFillProvider* TreeSupportTipGenerator::generateCrossFillProvider(const SliceMeshStorage& mesh, coord_t line_distance, coord_t line_width) const
+std::shared_ptr<SierpinskiFillProvider> TreeSupportTipGenerator::generateCrossFillProvider(const SliceMeshStorage& mesh, coord_t line_distance, coord_t line_width) const
 {
     if (config.support_pattern == EFillMethod::CROSS || config.support_pattern == EFillMethod::CROSS_3D)
     {
@@ -399,12 +399,9 @@ SierpinskiFillProvider* TreeSupportTipGenerator::generateCrossFillProvider(const
         std::ifstream cross_fs(cross_subdisivion_spec_image_file.c_str());
         if (cross_subdisivion_spec_image_file != "" && cross_fs.good())
         {
-            return new SierpinskiFillProvider(aabb, line_distance, line_width, cross_subdisivion_spec_image_file);
+            return std::make_shared<SierpinskiFillProvider>(aabb, line_distance, line_width, cross_subdisivion_spec_image_file);
         }
-        else
-        {
-            return new SierpinskiFillProvider(aabb, line_distance, line_width);
-        }
+		return std::make_shared<SierpinskiFillProvider>(aabb, line_distance, line_width);
     }
     return nullptr;
 }

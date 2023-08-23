@@ -1,3 +1,6 @@
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
+
 #ifndef TREESUPPORTTUTILS_H
 #define TREESUPPORTTUTILS_H
 
@@ -95,7 +98,7 @@ public:
      * todo doku
      * \return A Polygons object that represents the resulting infill lines.
      */
-    [[nodiscard]] static Polygons generateSupportInfillLines(const Polygons& area,const TreeSupportSettings& config, bool roof, LayerIndex layer_idx, coord_t support_infill_distance, SierpinskiFillProvider* cross_fill_provider, bool include_walls, bool generate_support_supporting = false)
+    [[nodiscard]] static Polygons generateSupportInfillLines(const Polygons& area,const TreeSupportSettings& config, bool roof, LayerIndex layer_idx, coord_t support_infill_distance, std::shared_ptr<SierpinskiFillProvider> cross_fill_provider, bool include_walls, bool generate_support_supporting = false)
     {
         Polygons gaps;
         // As we effectivly use lines to place our supportPoints we may use the Infill class for it, while not made for it, it works perfectly.

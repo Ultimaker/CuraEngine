@@ -1,11 +1,13 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "infill/LightningTreeNode.h"
 
 #include "utils/linearAlg2D.h"
 
 using namespace cura;
+
+using LightningTreeNodeSPtr = std::shared_ptr<LightningTreeNode>;
 
 coord_t LightningTreeNode::getWeightedDistance(const Point& unsupported_location, const coord_t& supporting_radius) const
 {

@@ -41,6 +41,7 @@ set(engine_SRCS # Except main.cpp.
         src/Application.cpp
         src/bridge.cpp
         src/ConicalOverhang.cpp
+        src/ExtruderPlan.cpp
         src/ExtruderTrain.cpp
         src/FffGcodeWriter.cpp
         src/FffPolygonGenerator.cpp
