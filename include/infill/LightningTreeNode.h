@@ -4,13 +4,13 @@
 #ifndef LIGHTNING_TREE_NODE_H
 #define LIGHTNING_TREE_NODE_H
 
+#include "../utils/polygon.h"
+#include "../utils/polygonUtils.h"
+
 #include <functional>
 #include <memory>
 #include <optional>
 #include <vector>
-
-#include "../utils/polygonUtils.h"
-#include "../utils/polygon.h"
 
 namespace cura
 {
@@ -34,13 +34,18 @@ constexpr coord_t locator_cell_size = 4000;
 class LightningTreeNode : public std::enable_shared_from_this<LightningTreeNode>
 {
     using LightningTreeNodeSPtr = std::shared_ptr<LightningTreeNode>;
+
 public:
     // Workaround for private/protected constructors and 'make_shared': https://stackoverflow.com/a/27832765
-    template<typename ...Arg> LightningTreeNodeSPtr static create(Arg&&...arg)
+    template<typename... Arg>
+    LightningTreeNodeSPtr static create(Arg&&... arg)
     {
         struct EnableMakeShared : public LightningTreeNode
         {
-            EnableMakeShared(Arg&&...arg) : LightningTreeNode(std::forward<Arg>(arg)...) {}
+            EnableMakeShared(Arg&&... arg)
+                : LightningTreeNode(std::forward<Arg>(arg)...)
+            {
+            }
         };
         return std::make_shared<EnableMakeShared>(std::forward<Arg>(arg)...);
     }
@@ -91,15 +96,13 @@ public:
      * \param max_remove_colinear_dist The maximum distance of a line-segment
      * from which straightening may remove a colinear point.
      */
-    void propagateToNextLayer
-    (
+    void propagateToNextLayer(
         std::vector<LightningTreeNodeSPtr>& next_trees,
         const Polygons& next_outlines,
         const LocToLineGrid& outline_locator,
         const coord_t prune_distance,
         const coord_t smooth_magnitude,
-        const coord_t max_remove_colinear_dist
-    ) const;
+        const coord_t max_remove_colinear_dist) const;
 
     /*!
      * Executes a given function for every line segment in this node's sub-tree.
@@ -144,7 +147,10 @@ public:
      * \return ``true`` if this node is the root (no parents) or ``false`` if it
      * is a child node of some other node.
      */
-    bool isRoot() const { return is_root; }
+    bool isRoot() const
+    {
+        return is_root;
+    }
 
     /*!
      * Reverse the parent-child relationship all the way to the root, from this node onward.
@@ -226,11 +232,11 @@ protected:
 public:
     /*!
      * Convert the tree into polylines
-     * 
+     *
      * At each junction one line is chosen at random to continue
-     * 
+     *
      * The lines start at a leaf and end in a junction
-     * 
+     *
      * \param output all branches in this tree connected into polylines
      */
     void convertToPolylines(Polygons& output, const coord_t line_width) const;
@@ -244,11 +250,11 @@ public:
 protected:
     /*!
      * Convert the tree into polylines
-     * 
+     *
      * At each junction one line is chosen at random to continue
-     * 
+     *
      * The lines start at a leaf and end in a junction
-     * 
+     *
      * \param long_line a reference to a polyline in \p output which to continue building on in the recursion
      * \param output all branches in this tree connected into polylines
      */
@@ -261,7 +267,7 @@ protected:
     std::weak_ptr<LightningTreeNode> parent;
     std::vector<LightningTreeNodeSPtr> children;
 
-    std::optional<Point> last_grounding_location;  //<! The last known grounding location, see 'getLastGroundingLocation()'.
+    std::optional<Point> last_grounding_location; //<! The last known grounding location, see 'getLastGroundingLocation()'.
 };
 
 } // namespace cura

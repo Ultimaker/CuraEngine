@@ -401,7 +401,7 @@ std::shared_ptr<SierpinskiFillProvider> TreeSupportTipGenerator::generateCrossFi
         {
             return std::make_shared<SierpinskiFillProvider>(aabb, line_distance, line_width, cross_subdisivion_spec_image_file);
         }
-		return std::make_shared<SierpinskiFillProvider>(aabb, line_distance, line_width);
+        return std::make_shared<SierpinskiFillProvider>(aabb, line_distance, line_width);
     }
     return nullptr;
 }

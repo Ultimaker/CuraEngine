@@ -761,8 +761,10 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
             {
                 spdlog::error("Cannot find density image: {}.", cross_subdisivion_spec_image_file);
             }
-            storage.support.cross_fill_provider
-                = std::make_shared<SierpinskiFillProvider>(aabb, infill_extruder.settings.get<coord_t>("support_line_distance"), infill_extruder.settings.get<coord_t>("support_line_width"));
+            storage.support.cross_fill_provider = std::make_shared<SierpinskiFillProvider>(
+                aabb,
+                infill_extruder.settings.get<coord_t>("support_line_distance"),
+                infill_extruder.settings.get<coord_t>("support_line_width"));
         }
     }
 }

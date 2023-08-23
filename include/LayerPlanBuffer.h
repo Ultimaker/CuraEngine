@@ -4,18 +4,17 @@
 #ifndef LAYER_PLAN_BUFFER_H
 #define LAYER_PLAN_BUFFER_H
 
+#include "ExtruderPlan.h"
+#include "LayerPlan.h"
 #include "Preheat.h"
 #include "settings/Settings.h"
 #include "settings/types/Duration.h"
-#include "LayerPlan.h"
-#include "ExtruderPlan.h"
 
 #include <list>
 #include <vector>
 
 namespace cura
 {
-
 
 
 class GCodeExport;

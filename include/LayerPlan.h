@@ -4,6 +4,7 @@
 #ifndef LAYER_PLAN_H
 #define LAYER_PLAN_H
 
+#include "ExtruderPlan.h"
 #include "FanSpeedLayerTime.h"
 #include "InsetOrderOptimizer.h"
 #include "PathOrderOptimizer.h"
@@ -16,7 +17,6 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/ExtrusionJunction.h"
 #include "utils/polygon.h"
-#include "ExtruderPlan.h"
 
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
