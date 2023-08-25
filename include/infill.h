@@ -193,9 +193,11 @@ private:
          */
         InfillLineSegment(const Point start, const size_t start_segment, const size_t start_polygon, const Point end, const size_t end_segment, const size_t end_polygon)
             : start(start)
+            , altered_start(start)
             , start_segment(start_segment)
             , start_polygon(start_polygon)
             , end(end)
+            , altered_end(end)
             , end_segment(end_segment)
             , end_polygon(end_polygon)
             , previous(nullptr)
@@ -205,6 +207,11 @@ private:
          * Where the line segment starts.
          */
         Point start;
+
+        /*!
+         * TODO: documentation
+         */
+        Point altered_start;
 
         /*!
          * Which polygon line segment the start of this infill line belongs to.
@@ -224,9 +231,19 @@ private:
         size_t start_polygon;
 
         /*!
+         * TODO: documentation
+         */
+        std::optional<Point> start_bend;
+
+        /*!
          * Where the line segment ends.
          */
         Point end;
+
+        /*!
+         * TODO: documentation
+         */
+        Point altered_end;
 
         /*!
          * Which polygon line segment the end of this infill line belongs to.
@@ -246,6 +263,11 @@ private:
         size_t end_polygon;
 
         /*!
+         * TODO: documentation
+         */
+        std::optional<Point> end_bend;
+
+        /*!
          * The previous line segment that this line segment is connected to, if
          * any.
          */
@@ -263,6 +285,16 @@ private:
          * \param other The line segment to compare this line segment with.
          */
         bool operator==(const InfillLineSegment& other) const;
+
+        /*!
+         * TODO: documentation
+         */
+        void swapDirection();
+
+        /*!
+         * TODO: documentation
+         */
+        void appendTo(PolygonRef& result_polyline, const bool include_start = true);
     };
 
     /*!
@@ -467,6 +499,11 @@ private:
      * \return the distance the infill pattern should be shifted
      */
     coord_t getShiftOffsetFromInfillOriginAndRotation(const double& infill_rotation);
+
+    /*!
+     * TODO: documentation!
+     */
+    void resolveIntersection(const coord_t at_distance, const Point& intersect, Point& connect_start, Point& connect_end, InfillLineSegment* a, InfillLineSegment* b);
 
     /*!
      * Connects infill lines together so that they form polylines.

@@ -423,6 +423,13 @@ public:
      * Test whether the \p query_point is inside of a polygon w.r.t a single corner.
      */
     static bool isInsideCorner(const Point a, const Point b, const Point c, const Point query_point);
+
+    /*!
+     * TODO: documentation
+     *
+     * NOTE: Result is _not_ a normalized vector!
+     */
+    static Point getBisectorVector(const Point& intersect, const Point& a, const Point& b);
 };
 
 
