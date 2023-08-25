@@ -425,9 +425,13 @@ public:
     static bool isInsideCorner(const Point a, const Point b, const Point c, const Point query_point);
 
     /*!
-     * TODO: documentation
+     * Finds the vector for the bisection of a-b as seen from the intersection point.
      *
-     * NOTE: Result is _not_ a normalized vector!
+     * NOTE: The result has _not_ been normalized! This is done to prevent numerical instability later on.
+     *
+     * \param intersect The origin of the constellation.
+     * \param a The first point.
+     * \param b The second point.
      */
     static Point getBisectorVector(const Point& intersect, const Point& a, const Point& b);
 };

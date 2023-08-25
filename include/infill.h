@@ -209,7 +209,9 @@ private:
         Point start;
 
         /*!
-         * TODO: documentation
+         * If the line-segment starts at a different point due to prevention of crossing near the boundary, it gets saved here.
+         *
+         * The original start-point is still used to determine ordering then, so it can't just be overwritten.
          */
         Point altered_start;
 
@@ -231,7 +233,7 @@ private:
         size_t start_polygon;
 
         /*!
-         * TODO: documentation
+         * If the line-segment needs to prevent crossing with another line near its start, a point is inserted near the start.
          */
         std::optional<Point> start_bend;
 
@@ -241,7 +243,9 @@ private:
         Point end;
 
         /*!
-         * TODO: documentation
+         * If the line-segment ends at a different point due to prevention of crossing near the boundary, it gets saved here.
+         *
+         * The original end-point is still used to determine ordering then, so it can't just be overwritten.
          */
         Point altered_end;
 
@@ -263,7 +267,7 @@ private:
         size_t end_polygon;
 
         /*!
-         * TODO: documentation
+         * If the line-segment needs to prevent crossing with another line near its end, a point is inserted near the end.
          */
         std::optional<Point> end_bend;
 
@@ -287,12 +291,16 @@ private:
         bool operator==(const InfillLineSegment& other) const;
 
         /*!
-         * TODO: documentation
+         * Invert the direction of the line-segment.
+         *
+         * Useful when the next move is from end to start instead of 'forwards'.
          */
         void swapDirection();
 
         /*!
-         * TODO: documentation
+         * Append this line-segment to the results, start, bends and end.
+         *
+         * \param include_start Wether to include the start point or not, useful when tracing a poly-line.
          */
         void appendTo(PolygonRef& result_polyline, const bool include_start = true);
     };
@@ -501,7 +509,25 @@ private:
     coord_t getShiftOffsetFromInfillOriginAndRotation(const double& infill_rotation);
 
     /*!
-     * TODO: documentation!
+     * Used to prevent intersections of linear-based infill.
+     *
+     * When connecting infill, and the infill crosses itself near the boundary, small 'loops' can occur, which have large internal angles.
+     * Prevent this by altering the two crossing line-segments just before the crossing takes place:
+     *
+     *  \   /    \   /
+     *   \ /      \ /
+     *    X       | |
+     *   / \      | |
+     *   ---       -
+     * =======  =======
+     *  before   after
+     *
+     * \param at_distance At which distance the offset of the bisector takes place (will be the length of the resulting connection along the edge).
+     * \param intersect The point at which these line-segments intersect.
+     * \param connect_start Input; the original point at the border which the first line-segment touches. Output; the updated point.
+     * \param connect_end Input; the original point at the border which the second line-segment touches. Output; the updated point.
+     * \param a The first line-segment.
+     * \param b The second line-segment.
      */
     void resolveIntersection(const coord_t at_distance, const Point& intersect, Point& connect_start, Point& connect_end, InfillLineSegment* a, InfillLineSegment* b);
 
