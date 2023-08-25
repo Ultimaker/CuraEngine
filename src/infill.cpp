@@ -949,13 +949,8 @@ void Infill::connectLines(Polygons& result_lines)
                 }
                 else
                 {
-                    new_segment = new InfillLineSegment(
-                        previous_side,
-                        vertex_index,
-                        polygon_index,
-                        vertex_after,
-                        (vertex_index + 1) % inner_contour[polygon_index].size(),
-                        polygon_index);
+                    new_segment
+                        = new InfillLineSegment(previous_side, vertex_index, polygon_index, vertex_after, (vertex_index + 1) % inner_contour[polygon_index].size(), polygon_index);
                     (choose_side ? previous_segment->previous : previous_segment->next) = new_segment;
                     new_segment->previous = previous_segment;
                     previous_segment = new_segment;
