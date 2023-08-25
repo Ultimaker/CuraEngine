@@ -838,6 +838,7 @@ void Infill::connectLines(Polygons& result_lines)
         }
     }
 
+    const auto half_line_distance_squared = (line_distance * line_distance) / 4;
     for (size_t polygon_index = 0; polygon_index < inner_contour.size(); polygon_index++)
     {
         ConstPolygonRef inner_contour_polygon = inner_contour[polygon_index];
@@ -898,7 +899,8 @@ void Infill::connectLines(Polygons& result_lines)
                     InfillLineSegment* new_segment;
                     // If the segment is near zero length, we avoid creating it but still want to connect the crossing with the previous segment.
                     constexpr coord_t epsilon_squared = 25;
-                    if (vSize2(previous_point - next_point) < epsilon_squared)
+                    const auto connect_distance_squared = vSize2(previous_point - next_point);
+                    if (connect_distance_squared < epsilon_squared)
                     {
                         if (previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index)
                         {
@@ -914,7 +916,8 @@ void Infill::connectLines(Polygons& result_lines)
                     {
                         // Resolve any intersections of the fill lines close to the boundary, by inserting extra points so the lines don't create a tiny 'loop' just inside the boundary.
                         Point intersect;
-                        if (LinearAlg2D::lineLineIntersection(previous_segment->start, previous_segment->end, crossing->start, crossing->end, intersect) &&
+                        if ( connect_distance_squared < half_line_distance_squared &&
+                            LinearAlg2D::lineLineIntersection(previous_segment->start, previous_segment->end, crossing->start, crossing->end, intersect) &&
                             LinearAlg2D::pointIsProjectedBeyondLine(intersect, previous_segment->start, previous_segment->end) == 0 &&
                             LinearAlg2D::pointIsProjectedBeyondLine(intersect, crossing->start, crossing->end) == 0)
                         {
