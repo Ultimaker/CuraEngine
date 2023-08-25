@@ -43,46 +43,45 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
     , support_roof_train(Application::getInstance().current_slice->scene.extruders[support_roof_extruder_nr])
     , support_bottom_train(Application::getInstance().current_slice->scene.extruders[support_bottom_extruder_nr])
     , line_width_factor_per_extruder(PathConfigStorage::getLineWidthFactorPerExtruder(layer_nr))
-    , raft_base_config(
-          PrintFeatureType::SupportInterface,
-          raft_base_train.settings.get<coord_t>("raft_base_line_width"),
-          raft_base_train.settings.get<coord_t>("raft_base_thickness"),
-          Ratio(1.0),
-          SpeedDerivatives{ .speed = raft_base_train.settings.get<Velocity>("raft_base_speed"),
-                            .acceleration = raft_base_train.settings.get<Acceleration>("raft_base_acceleration"),
-                            .jerk = raft_base_train.settings.get<Velocity>("raft_base_jerk") })
-    , raft_interface_config(
-          PrintFeatureType::Support,
-          raft_interface_train.settings.get<coord_t>("raft_interface_line_width"),
-          raft_interface_train.settings.get<coord_t>("raft_interface_thickness"),
-          Ratio(1.0),
-          SpeedDerivatives{ .speed = raft_interface_train.settings.get<Velocity>("raft_interface_speed"),
-                            .acceleration = raft_interface_train.settings.get<Acceleration>("raft_interface_acceleration"),
-                            .jerk = raft_interface_train.settings.get<Velocity>("raft_interface_jerk") })
-    , raft_surface_config(
-          PrintFeatureType::SupportInterface,
-          raft_surface_train.settings.get<coord_t>("raft_surface_line_width"),
-          raft_surface_train.settings.get<coord_t>("raft_surface_thickness"),
-          Ratio(1.0),
-          SpeedDerivatives{ .speed = raft_surface_train.settings.get<Velocity>("raft_surface_speed"),
-                            .acceleration = raft_surface_train.settings.get<Acceleration>("raft_surface_acceleration"),
-                            .jerk = raft_surface_train.settings.get<Velocity>("raft_surface_jerk") })
-    , support_roof_config(
-          PrintFeatureType::SupportInterface,
-          support_roof_train.settings.get<coord_t>("support_roof_line_width") * line_width_factor_per_extruder[support_roof_extruder_nr],
-          layer_thickness,
-          support_roof_train.settings.get<Ratio>("support_roof_material_flow") * ((layer_nr == 0) ? support_roof_train.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0)),
-          SpeedDerivatives{ .speed = support_roof_train.settings.get<Velocity>("speed_support_roof"),
-                            .acceleration = support_roof_train.settings.get<Acceleration>("acceleration_support_roof"),
-                            .jerk = support_roof_train.settings.get<Velocity>("jerk_support_roof") })
-    , support_bottom_config(
-          PrintFeatureType::SupportInterface,
-          support_bottom_train.settings.get<coord_t>("support_bottom_line_width") * line_width_factor_per_extruder[support_bottom_extruder_nr],
-          layer_thickness,
-          support_roof_train.settings.get<Ratio>("support_bottom_material_flow") * ((layer_nr == 0) ? support_roof_train.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0)),
-          SpeedDerivatives{ .speed = support_bottom_train.settings.get<Velocity>("speed_support_bottom"),
-                            .acceleration = support_bottom_train.settings.get<Acceleration>("acceleration_support_bottom"),
-                            .jerk = support_bottom_train.settings.get<Velocity>("jerk_support_bottom") })
+    , raft_base_config(GCodePathConfig{ .type = PrintFeatureType::SupportInterface,
+                                        .line_width = raft_base_train.settings.get<coord_t>("raft_base_line_width"),
+                                        .layer_thickness = raft_base_train.settings.get<coord_t>("raft_base_thickness"),
+                                        .flow = Ratio(1.0),
+                                        .speed_derivatives = SpeedDerivatives{ .speed = raft_base_train.settings.get<Velocity>("raft_base_speed"),
+                                                                               .acceleration = raft_base_train.settings.get<Acceleration>("raft_base_acceleration"),
+                                                                               .jerk = raft_base_train.settings.get<Velocity>("raft_base_jerk") } })
+    , raft_interface_config(GCodePathConfig{ .type = PrintFeatureType::Support,
+                                             .line_width = raft_interface_train.settings.get<coord_t>("raft_interface_line_width"),
+                                             .layer_thickness = raft_interface_train.settings.get<coord_t>("raft_interface_thickness"),
+                                             .flow = Ratio(1.0),
+                                             .speed_derivatives = SpeedDerivatives{ .speed = raft_interface_train.settings.get<Velocity>("raft_interface_speed"),
+                                                                                    .acceleration = raft_interface_train.settings.get<Acceleration>("raft_interface_acceleration"),
+                                                                                    .jerk = raft_interface_train.settings.get<Velocity>("raft_interface_jerk") } })
+    , raft_surface_config(GCodePathConfig{ .type = PrintFeatureType::SupportInterface,
+                                           .line_width = raft_surface_train.settings.get<coord_t>("raft_surface_line_width"),
+                                           .layer_thickness = raft_surface_train.settings.get<coord_t>("raft_surface_thickness"),
+                                           .flow = Ratio(1.0),
+                                           .speed_derivatives = SpeedDerivatives{ .speed = raft_surface_train.settings.get<Velocity>("raft_surface_speed"),
+                                                                                  .acceleration = raft_surface_train.settings.get<Acceleration>("raft_surface_acceleration"),
+                                                                                  .jerk = raft_surface_train.settings.get<Velocity>("raft_surface_jerk") } })
+    , support_roof_config(GCodePathConfig{
+          .type = PrintFeatureType::SupportInterface,
+          .line_width = static_cast<coord_t>(support_roof_train.settings.get<coord_t>("support_roof_line_width") * line_width_factor_per_extruder[support_roof_extruder_nr]),
+          .layer_thickness = layer_thickness,
+          .flow
+          = support_roof_train.settings.get<Ratio>("support_roof_material_flow") * ((layer_nr == 0) ? support_roof_train.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0)),
+          .speed_derivatives = { .speed = support_roof_train.settings.get<Velocity>("speed_support_roof"),
+                                 .acceleration = support_roof_train.settings.get<Acceleration>("acceleration_support_roof"),
+                                 .jerk = support_roof_train.settings.get<Velocity>("jerk_support_roof") } })
+    , support_bottom_config(GCodePathConfig{
+          .type = PrintFeatureType::SupportInterface,
+          .line_width = static_cast<coord_t>(support_bottom_train.settings.get<coord_t>("support_bottom_line_width") * line_width_factor_per_extruder[support_bottom_extruder_nr]),
+          .layer_thickness = layer_thickness,
+          .flow = support_roof_train.settings.get<Ratio>("support_bottom_material_flow")
+                * ((layer_nr == 0) ? support_roof_train.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0)),
+          .speed_derivatives = SpeedDerivatives{ .speed = support_bottom_train.settings.get<Velocity>("speed_support_bottom"),
+                                                 .acceleration = support_bottom_train.settings.get<Acceleration>("acceleration_support_bottom"),
+                                                 .jerk = support_bottom_train.settings.get<Velocity>("jerk_support_bottom") } })
 {
     const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
     travel_config_per_extruder.reserve(extruder_count);
@@ -92,35 +91,36 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
-        travel_config_per_extruder.emplace_back(
-            PrintFeatureType::MoveCombing,
-            0,
-            0,
-            0.0,
-            SpeedDerivatives{ .speed = train.settings.get<Velocity>("speed_travel"),
-                              .acceleration = train.settings.get<Acceleration>("acceleration_travel"),
-                              .jerk = train.settings.get<Velocity>("jerk_travel") });
+        travel_config_per_extruder.emplace_back(GCodePathConfig{ .type = PrintFeatureType::MoveCombing,
+                                                                 .line_width = 0,
+                                                                 .layer_thickness = 0,
+                                                                 .flow = 0.0,
+                                                                 .speed_derivatives = SpeedDerivatives{ .speed = train.settings.get<Velocity>("speed_travel"),
+                                                                                                        .acceleration = train.settings.get<Acceleration>("acceleration_travel"),
+                                                                                                        .jerk = train.settings.get<Velocity>("jerk_travel") } });
         skirt_brim_config_per_extruder.emplace_back(
-            PrintFeatureType::SkirtBrim,
-            train.settings.get<coord_t>("skirt_brim_line_width")
-                * ((mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT)
-                       ? 1.0_r
-                       : line_width_factor_per_extruder[extruder_nr]) // cause it's also used for the draft/ooze shield
-            ,
-            layer_thickness,
-            train.settings.get<Ratio>("skirt_brim_material_flow") * ((layer_nr == 0) ? train.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0)),
-            SpeedDerivatives{ .speed = train.settings.get<Velocity>("skirt_brim_speed"),
-                              .acceleration = train.settings.get<Acceleration>("acceleration_skirt_brim"),
-                              .jerk = train.settings.get<Velocity>("jerk_skirt_brim") });
-        prime_tower_config_per_extruder.emplace_back(
-            PrintFeatureType::PrimeTower,
-            train.settings.get<coord_t>("prime_tower_line_width")
-                * ((mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT) ? 1.0_r : line_width_factor_per_extruder[extruder_nr]),
-            layer_thickness,
-            train.settings.get<Ratio>("prime_tower_flow") * ((layer_nr == 0) ? train.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0)),
-            SpeedDerivatives{ .speed = train.settings.get<Velocity>("speed_prime_tower"),
-                              .acceleration = train.settings.get<Acceleration>("acceleration_prime_tower"),
-                              .jerk = train.settings.get<Velocity>("jerk_prime_tower") });
+            GCodePathConfig{ .type = PrintFeatureType::SkirtBrim,
+                             .line_width = static_cast<coord_t>(
+                                 train.settings.get<coord_t>("skirt_brim_line_width")
+                                 * ((mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT)
+                                        ? 1.0_r
+                                        : line_width_factor_per_extruder[extruder_nr])) // cause it's also used for the draft/ooze shield
+                             ,
+                             .layer_thickness = layer_thickness,
+                             .flow = train.settings.get<Ratio>("skirt_brim_material_flow") * ((layer_nr == 0) ? train.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0)),
+                             .speed_derivatives = SpeedDerivatives{ .speed = train.settings.get<Velocity>("skirt_brim_speed"),
+                                                                    .acceleration = train.settings.get<Acceleration>("acceleration_skirt_brim"),
+                                                                    .jerk = train.settings.get<Velocity>("jerk_skirt_brim") } });
+        prime_tower_config_per_extruder.emplace_back(GCodePathConfig{
+            .type = PrintFeatureType::PrimeTower,
+            .line_width = static_cast<coord_t>(
+                train.settings.get<coord_t>("prime_tower_line_width")
+                * ((mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT) ? 1.0_r : line_width_factor_per_extruder[extruder_nr])),
+            .layer_thickness = layer_thickness,
+            .flow = train.settings.get<Ratio>("prime_tower_flow") * ((layer_nr == 0) ? train.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0)),
+            .speed_derivatives = SpeedDerivatives{ .speed = train.settings.get<Velocity>("speed_prime_tower"),
+                                                   .acceleration = train.settings.get<Acceleration>("acceleration_prime_tower"),
+                                                   .jerk = train.settings.get<Velocity>("jerk_prime_tower") } });
     }
 
     mesh_configs.reserve(storage.meshes.size());
@@ -135,14 +135,14 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
     for (int combine_idx = 0; combine_idx < MAX_INFILL_COMBINE; combine_idx++)
     {
         support_infill_config.emplace_back(
-            PrintFeatureType::Support,
-            support_infill_train.settings.get<coord_t>("support_line_width") * support_infill_line_width_factor,
-            layer_thickness,
-            support_infill_train.settings.get<Ratio>("support_material_flow") * ((layer_nr == 0) ? support_infill_train.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0))
-                * (combine_idx + 1),
-            SpeedDerivatives{ .speed = support_infill_train.settings.get<Velocity>("speed_support_infill"),
-                              .acceleration = support_infill_train.settings.get<Acceleration>("acceleration_support_infill"),
-                              .jerk = support_infill_train.settings.get<Velocity>("jerk_support_infill") });
+            GCodePathConfig{ .type = PrintFeatureType::Support,
+                             .line_width = static_cast<coord_t>(support_infill_train.settings.get<coord_t>("support_line_width") * support_infill_line_width_factor),
+                             .layer_thickness = layer_thickness,
+                             .flow = -support_infill_train.settings.get<Ratio>("support_material_flow")
+                                   * ((layer_nr == 0) ? support_infill_train.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0)) * (combine_idx + 1),
+                             .speed_derivatives = SpeedDerivatives{ .speed = support_infill_train.settings.get<Velocity>("speed_support_infill"),
+                                                                    .acceleration = support_infill_train.settings.get<Acceleration>("acceleration_support_infill"),
+                                                                    .jerk = support_infill_train.settings.get<Velocity>("jerk_support_infill") } });
     }
 
     const size_t initial_speedup_layer_count = mesh_group_settings.get<size_t>("speed_slowdown_layers");

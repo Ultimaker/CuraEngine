@@ -50,7 +50,14 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     {
         return &paths.back();
     }
-    paths.emplace_back(config, current_mesh, space_fill_type, flow, width_factor, spiralize, speed_factor);
+    paths.emplace_back(GCodePath{ .config = config,
+                                  .mesh = current_mesh,
+                                  .space_fill_type = space_fill_type,
+                                  .flow = flow,
+                                  .width_factor = width_factor,
+                                  .spiralize = spiralize,
+                                  .speed_factor = speed_factor });
+
     GCodePath* ret = &paths.back();
     ret->skip_agressive_merge_hint = mode_skip_agressive_merge;
     return ret;
