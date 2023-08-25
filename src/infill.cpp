@@ -13,11 +13,11 @@
 #include "infill/SubDivCube.h"
 #include "infill/UniformDensityProvider.h"
 #include "sliceDataStorage.h"
-#include "utils/linearAlg2D.h"
 #include "utils/PolygonConnector.h"
 #include "utils/PolylineStitcher.h"
 #include "utils/Simplify.h"
 #include "utils/UnionFind.h"
+#include "utils/linearAlg2D.h"
 #include "utils/polygonUtils.h"
 
 #include <scripta/logger.h>
@@ -914,12 +914,13 @@ void Infill::connectLines(Polygons& result_lines)
                     }
                     else
                     {
-                        // Resolve any intersections of the fill lines close to the boundary, by inserting extra points so the lines don't create a tiny 'loop' just inside the boundary.
+                        // Resolve any intersections of the fill lines close to the boundary, by inserting extra points so the lines don't create a tiny 'loop' just inside the
+                        // boundary.
                         Point intersect;
-                        if ( connect_distance_squared < half_line_distance_squared &&
-                            LinearAlg2D::lineLineIntersection(previous_segment->start, previous_segment->end, crossing->start, crossing->end, intersect) &&
-                            LinearAlg2D::pointIsProjectedBeyondLine(intersect, previous_segment->start, previous_segment->end) == 0 &&
-                            LinearAlg2D::pointIsProjectedBeyondLine(intersect, crossing->start, crossing->end) == 0)
+                        if (connect_distance_squared < half_line_distance_squared
+                            && LinearAlg2D::lineLineIntersection(previous_segment->start, previous_segment->end, crossing->start, crossing->end, intersect)
+                            && LinearAlg2D::pointIsProjectedBeyondLine(intersect, previous_segment->start, previous_segment->end) == 0
+                            && LinearAlg2D::pointIsProjectedBeyondLine(intersect, crossing->start, crossing->end) == 0)
                         {
                             resolveIntersection(infill_line_width, intersect, previous_point, next_point, previous_segment, crossing);
                         }
