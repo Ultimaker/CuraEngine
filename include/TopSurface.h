@@ -12,6 +12,7 @@ namespace cura
 class GCodePathConfig;
 class FffGcodeWriter;
 class LayerPlan;
+class SliceDataStorage;
 class SliceMeshStorage;
 class SliceDataStorage;
 

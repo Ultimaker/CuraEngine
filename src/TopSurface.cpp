@@ -66,7 +66,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     const Ratio ironing_flow = mesh.settings.get<Ratio>("ironing_flow");
     const bool enforce_monotonic_order = mesh.settings.get<bool>("ironing_monotonic");
     constexpr size_t wall_line_count = 0;
-    const coord_t small_area_width = mesh.settings.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
+    const coord_t small_area_width = 0; // This shouldn't be on for ironing.
     const Point infill_origin = Point();
     const bool skip_line_stitching = enforce_monotonic_order;
 
