@@ -2760,6 +2760,9 @@ void FffGcodeWriter::processSkinPrintFeature(
     constexpr bool skip_some_zags = false;
     constexpr int zag_skip_count = 0;
     constexpr coord_t pocket_size = 0;
+    const bool small_areas_on_surface = mesh.settings.get<bool>("small_skin_on_surface");
+    const auto& current_layer = mesh.layers[gcode_layer.getLayerNr()];
+    const auto& exposed_to_air = current_layer.top_surface.areas.unionPolygons(current_layer.bottom_surface);
 
     Infill infill_comp(
         pattern,
@@ -2785,7 +2788,17 @@ void FffGcodeWriter::processSkinPrintFeature(
         skip_some_zags,
         zag_skip_count,
         pocket_size);
-    infill_comp.generate(skin_paths, skin_polygons, skin_lines, mesh.settings, gcode_layer.getLayerNr(), SectionType::SKIN);
+    infill_comp.generate(
+        skin_paths,
+        skin_polygons,
+        skin_lines,
+        mesh.settings,
+        gcode_layer.getLayerNr(),
+        SectionType::SKIN,
+        nullptr,
+        nullptr,
+        nullptr,
+        small_areas_on_surface ? Polygons() : exposed_to_air);
 
     // add paths
     if (! skin_polygons.empty() || ! skin_lines.empty() || ! skin_paths.empty())

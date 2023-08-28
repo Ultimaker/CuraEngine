@@ -88,7 +88,8 @@ void Infill::generate(
     SectionType section_type,
     const std::shared_ptr<SierpinskiFillProvider> cross_fill_provider,
     const std::shared_ptr<LightningLayer> lightning_trees,
-    const SliceMeshStorage* mesh)
+    const SliceMeshStorage* mesh,
+    const Polygons& prevent_small_exposed_to_air)
 {
     if (outer_contour.empty())
     {
@@ -104,13 +105,14 @@ void Infill::generate(
     // infill pattern is concentric or if the small_area_width is zero.
     if (pattern != EFillMethod::CONCENTRIC && small_area_width > 0)
     {
-        const auto to_small_length = INT2MM(static_cast<double>(infill_line_width) / 2.0);
+        const auto too_small_length = INT2MM(static_cast<double>(infill_line_width) / 2.0);
 
         // Split the infill region in a narrow region and the normal region.
         Polygons small_infill = inner_contour;
         inner_contour = inner_contour.offset(-small_area_width / 2);
-        inner_contour.removeSmallAreas(to_small_length * to_small_length, true);
+        inner_contour.removeSmallAreas(too_small_length * too_small_length, true);
         inner_contour = inner_contour.offset(small_area_width / 2);
+        inner_contour = inner_contour.unionPolygons(prevent_small_exposed_to_air).intersection(small_infill);
         inner_contour = Simplify(max_resolution, max_deviation, 0).polygon(inner_contour);
         small_infill = small_infill.difference(inner_contour);
 

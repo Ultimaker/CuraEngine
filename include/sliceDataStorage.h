@@ -177,6 +177,13 @@ public:
     TopSurface top_surface;
 
     /*!
+     * \brief The parts of the model that are exposed at the bottom(s) of the model.
+     *
+     * Note: Filled only when needed.
+     */
+    Polygons bottom_surface;
+
+    /*!
      * Get the all outlines of all layer parts in this layer.
      *
      * \param external_polys_only Whether to only include the outermost outline of each layer part

@@ -205,7 +205,8 @@ public:
         SectionType section_type,
         const std::shared_ptr<SierpinskiFillProvider> cross_fill_provider = nullptr,
         const std::shared_ptr<LightningLayer> lightning_layer = nullptr,
-        const SliceMeshStorage* mesh = nullptr);
+        const SliceMeshStorage* mesh = nullptr,
+        const Polygons& prevent_small_exposed_to_air = Polygons());
 
     /*!
      * Generate the wall toolpaths of an infill area. It will return the inner contour and set the inner-contour.
