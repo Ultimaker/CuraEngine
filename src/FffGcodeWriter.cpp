@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <limits> // numeric_limits
 #include <list>
+#include <memory>
 #include <optional>
 #include <unordered_set>
 
@@ -1022,7 +1023,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
             for (size_t mesh_idx : mesh_order)
             {
                 const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-                const PathConfigStorage::MeshPathConfigs& mesh_config = gcode_layer.configs_storage.mesh_configs[mesh_idx];
+                const MeshPathConfigs& mesh_config = gcode_layer.configs_storage.mesh_configs[mesh_idx];
                 if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE
                     && extruder_nr
                            == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr // mesh surface mode should always only be printed with the outer wall extruder!
@@ -1404,11 +1405,8 @@ std::vector<size_t> FffGcodeWriter::calculateMeshOrder(const SliceDataStorage& s
     return ret;
 }
 
-void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(
-    const SliceDataStorage& storage,
-    const SliceMeshStorage& mesh,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
-    LayerPlan& gcode_layer) const
+void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer)
+    const
 {
     if (gcode_layer.getLayerNr() > mesh.layer_nr_max_filled_layer)
     {
@@ -1442,7 +1440,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(
     addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer);
 }
 
-void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const
+void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const
 {
     const SliceLayer* layer = &mesh.layers[gcode_layer.getLayerNr()];
 
@@ -1453,7 +1451,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
     const SliceDataStorage& storage,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     LayerPlan& gcode_layer) const
 {
     if (gcode_layer.getLayerNr() > mesh.layer_nr_max_filled_layer)
@@ -1473,7 +1471,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
         return;
     }
 
-    gcode_layer.setMesh(&mesh);
+    gcode_layer.setMesh(std::make_shared<SliceMeshStorage>(mesh));
 
     ZSeamConfig z_seam_config;
     if (mesh.isPrinted()) //"normal" meshes with walls, skin, infill, etc. get the traditional part ordering based on the z-seam settings.
@@ -1511,7 +1509,7 @@ void FffGcodeWriter::addMeshPartToGCode(
     const SliceDataStorage& storage,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
     LayerPlan& gcode_layer) const
 {
@@ -1553,7 +1551,7 @@ bool FffGcodeWriter::processInfill(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr)
@@ -1570,7 +1568,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr)
@@ -1626,10 +1624,10 @@ bool FffGcodeWriter::processMultiLayerInfill(
             constexpr size_t zag_skip_count = 0;
             const bool fill_gaps = density_idx == 0; // Only fill gaps for the lowest density.
 
-            const LightningLayer* lightning_layer = nullptr;
+            std::shared_ptr<LightningLayer> lightning_layer = nullptr;
             if (mesh.lightning_generator)
             {
-                lightning_layer = &mesh.lightning_generator->getTreesForLayer(gcode_layer.getLayerNr());
+                lightning_layer = std::make_shared<LightningLayer>(mesh.lightning_generator->getTreesForLayer(gcode_layer.getLayerNr()));
             }
             Infill infill_comp(
                 infill_pattern,
@@ -1707,7 +1705,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr)
@@ -1822,10 +1820,10 @@ bool FffGcodeWriter::processSingleLayerInfill(
 
         Polygons in_outline = part.infill_area_per_combine_per_density[density_idx][0];
 
-        const LightningLayer* lightning_layer = nullptr;
+        std::shared_ptr<LightningLayer> lightning_layer;
         if (mesh.lightning_generator)
         {
-            lightning_layer = &mesh.lightning_generator->getTreesForLayer(gcode_layer.getLayerNr());
+            lightning_layer = std::make_shared<LightningLayer>(mesh.lightning_generator->getTreesForLayer(gcode_layer.getLayerNr()));
         }
 
         const bool fill_gaps = density_idx == 0; // Only fill gaps in the lowest infill density pattern.
@@ -2171,7 +2169,7 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(
 void FffGcodeWriter::processSpiralizedWall(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
     const SliceMeshStorage& mesh) const
 {
@@ -2209,7 +2207,7 @@ bool FffGcodeWriter::processInsets(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part) const
 {
     bool added_something = false;
@@ -2454,7 +2452,7 @@ bool FffGcodeWriter::processSkin(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part) const
 {
     const size_t top_bottom_extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr;
@@ -2489,7 +2487,7 @@ bool FffGcodeWriter::processSkinPart(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SkinPart& skin_part) const
 {
     bool added_something = false;
@@ -2508,7 +2506,7 @@ void FffGcodeWriter::processRoofing(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SkinPart& skin_part,
     bool& added_something) const
 {
@@ -2549,7 +2547,7 @@ void FffGcodeWriter::processTopBottom(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SkinPart& skin_part,
     bool& added_something) const
 {
@@ -2730,7 +2728,7 @@ void FffGcodeWriter::processSkinPrintFeature(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const size_t extruder_nr,
     const Polygons& area,
     const GCodePathConfig& config,

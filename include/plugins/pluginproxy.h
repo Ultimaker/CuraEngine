@@ -165,7 +165,7 @@ public:
     }
     ~PluginProxy() = default;
 
-    value_type invoke(auto&&... args)
+    value_type generate(auto&&... args)
     {
         agrpc::GrpcContext grpc_context;
         value_type ret_value{};
@@ -175,7 +175,40 @@ public:
             grpc_context,
             [this, &grpc_context, &status, &ret_value, &args...]()
             {
-                return this->invokeCall(grpc_context, status, ret_value, std::forward<decltype(args)>(args)...);
+                return this->generateCall(grpc_context, status, ret_value, std::forward<decltype(args)>(args)...);
+            },
+            boost::asio::detached);
+        grpc_context.run();
+
+        if (! status.ok()) // TODO: handle different kind of status codes
+        {
+            if (plugin_info_.has_value())
+            {
+                spdlog::error(
+                    "Plugin '{}' running at [{}] for slot {} failed with error: {}",
+                    plugin_info_.value().plugin_name,
+                    plugin_info_.value().peer,
+                    slot_info_.slot_id,
+                    status.error_message());
+                throw exceptions::RemoteException(slot_info_, plugin_info_.value(), status.error_message());
+            }
+            spdlog::error("Plugin for slot {} failed with error: {}", slot_info_.slot_id, status.error_message());
+            throw exceptions::RemoteException(slot_info_, status.error_message());
+        }
+        return ret_value;
+    }
+
+    value_type modify(auto& original_value, auto&&... args)
+    {
+        agrpc::GrpcContext grpc_context;
+        value_type ret_value{};
+        grpc::Status status;
+
+        boost::asio::co_spawn(
+            grpc_context,
+            [this, &grpc_context, &status, &ret_value, &original_value, &args...]()
+            {
+                return this->modifyCall(grpc_context, status, ret_value, original_value, std::forward<decltype(args)>(args)...);
             },
             boost::asio::detached);
         grpc_context.run();
@@ -256,7 +289,7 @@ private:
      * @param args - Request arguments
      * @return A boost::asio::awaitable<void> indicating completion of the operation
      */
-    boost::asio::awaitable<void> invokeCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, value_type& ret_value, auto&&... args)
+    boost::asio::awaitable<void> generateCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, value_type& ret_value, auto&&... args)
     {
         using RPC = agrpc::ClientRPC<&invoke_stub_t::PrepareAsyncCall>;
         grpc::ClientContext client_context{};
@@ -269,6 +302,22 @@ private:
         rsp_msg_type response;
         status = co_await RPC::request(grpc_context, invoke_stub_, client_context, request, response, boost::asio::use_awaitable);
         ret_value = rsp_(response);
+        co_return;
+    }
+
+    boost::asio::awaitable<void> modifyCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, value_type& ret_value, auto& original_value, auto&&... args)
+    {
+        using RPC = agrpc::ClientRPC<&invoke_stub_t::PrepareAsyncCall>;
+        grpc::ClientContext client_context{};
+        prep_client_context(client_context, slot_info_);
+
+        // Construct request
+        auto request{ req_(original_value, std::forward<decltype(args)>(args)...) };
+
+        // Make unary request
+        rsp_msg_type response;
+        status = co_await RPC::request(grpc_context, invoke_stub_, client_context, request, response, boost::asio::use_awaitable);
+        ret_value = std::move(rsp_(original_value, response));
         co_return;
     }
 

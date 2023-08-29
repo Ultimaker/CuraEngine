@@ -4,6 +4,8 @@
 #ifndef LAYER_PLAN_BUFFER_H
 #define LAYER_PLAN_BUFFER_H
 
+#include "ExtruderPlan.h"
+#include "LayerPlan.h"
 #include "Preheat.h"
 #include "settings/Settings.h"
 #include "settings/types/Duration.h"
@@ -14,8 +16,7 @@
 namespace cura
 {
 
-class ExtruderPlan;
-class LayerPlan;
+
 class GCodeExport;
 
 /*!
@@ -33,6 +34,8 @@ class GCodeExport;
  */
 class LayerPlanBuffer
 {
+    friend class LayerPlan;
+    friend class LayerPlanBuffer;
     GCodeExport& gcode;
 
     Preheat preheat_config; //!< the nozzle and material temperature settings for each extruder train.

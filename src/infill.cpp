@@ -86,8 +86,8 @@ void Infill::generate(
     const Settings& settings,
     int layer_idx,
     SectionType section_type,
-    const SierpinskiFillProvider* cross_fill_provider,
-    const LightningLayer* lightning_trees,
+    const std::shared_ptr<SierpinskiFillProvider> cross_fill_provider,
+    const std::shared_ptr<LightningLayer> lightning_trees,
     const SliceMeshStorage* mesh,
     const Polygons& prevent_small_exposed_to_air)
 {
@@ -252,8 +252,8 @@ void Infill::_generate(
     Polygons& result_polygons,
     Polygons& result_lines,
     const Settings& settings,
-    const SierpinskiFillProvider* cross_fill_provider,
-    const LightningLayer* lightning_trees,
+    const std::shared_ptr<SierpinskiFillProvider> cross_fill_provider,
+    const std::shared_ptr<LightningLayer> lightning_trees,
     const SliceMeshStorage* mesh)
 {
     if (inner_contour.empty())
@@ -429,7 +429,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines, Polygons& result_polyg
     PolylineStitcher<Polygons, Polygon, Point>::stitch(line_segments, result_lines, result_polygons, infill_line_width);
 }
 
-void Infill::generateLightningInfill(const LightningLayer* trees, Polygons& result_lines)
+void Infill::generateLightningInfill(const std::shared_ptr<LightningLayer> trees, Polygons& result_lines)
 {
     // Don't need to support areas smaller than line width, as they are always within radius:
     if (std::abs(inner_contour.area()) < infill_line_width || ! trees)

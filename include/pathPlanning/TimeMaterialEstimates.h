@@ -40,23 +40,23 @@ struct TimeMaterialEstimates
 
     constexpr TimeMaterialEstimates operator+(const TimeMaterialEstimates& other) const noexcept
     {
-        return TimeMaterialEstimates{ extrude_time + other.extrude_time,
-                                      extrude_time_at_slowest_path_speed + other.extrude_time_at_slowest_path_speed,
-                                      extrude_time_at_minimum_speed + other.extrude_time_at_minimum_speed,
-                                      unretracted_travel_time + other.unretracted_travel_time,
-                                      retracted_travel_time + other.retracted_travel_time,
-                                      material + other.material };
-    }
+        return { .extrude_time = extrude_time + other.extrude_time,
+                 .unretracted_travel_time = unretracted_travel_time + other.unretracted_travel_time,
+                 .retracted_travel_time = retracted_travel_time + other.retracted_travel_time,
+                 .material = material + other.material,
+                 .extrude_time_at_slowest_path_speed = extrude_time_at_slowest_path_speed + other.extrude_time_at_slowest_path_speed,
+                 .extrude_time_at_minimum_speed = extrude_time_at_minimum_speed + other.extrude_time_at_minimum_speed };
+    };
 
     constexpr TimeMaterialEstimates operator-(const TimeMaterialEstimates& other) const noexcept
     {
-        return TimeMaterialEstimates{ extrude_time - other.extrude_time,
-                                      extrude_time_at_slowest_path_speed - other.extrude_time_at_slowest_path_speed,
-                                      extrude_time_at_minimum_speed - other.extrude_time_at_minimum_speed,
-                                      unretracted_travel_time - other.unretracted_travel_time,
-                                      retracted_travel_time - other.retracted_travel_time,
-                                      material - other.material };
-    }
+        return { .extrude_time = extrude_time - other.extrude_time,
+                 .unretracted_travel_time = unretracted_travel_time - other.unretracted_travel_time,
+                 .retracted_travel_time = retracted_travel_time - other.retracted_travel_time,
+                 .material = material - other.material,
+                 .extrude_time_at_slowest_path_speed = extrude_time_at_slowest_path_speed - other.extrude_time_at_slowest_path_speed,
+                 .extrude_time_at_minimum_speed = extrude_time_at_minimum_speed - other.extrude_time_at_minimum_speed };
+    };
 
     constexpr auto operator<=>(const TimeMaterialEstimates& other) const noexcept = default;
 

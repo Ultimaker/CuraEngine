@@ -124,12 +124,12 @@ template<template<typename> class Unit>
 class Registry<Typelist<>, Unit>
 {
 public:
-    constexpr void connect(auto&&... args) noexcept
+    constexpr void connect([[maybe_unused]] auto&&... args) noexcept
     {
     }
 
     template<v0::SlotID S>
-    constexpr void broadcast(auto&&... args) noexcept
+    constexpr void broadcast([[maybe_unused]] auto&&... args) noexcept
     {
     } // Base case, do nothing
 };
@@ -150,15 +150,15 @@ public:
     }
 
     template<v0::SlotID S>
-    constexpr auto modify(auto&&... args)
+    constexpr auto modify(auto& original_value, auto&&... args)
     {
-        return get<S>().invoke(std::forward<decltype(args)>(args)...);
+        return get<S>().modify(original_value, std::forward<decltype(args)>(args)...);
     }
 
     template<v0::SlotID S>
     constexpr auto generate(auto&&... args)
     {
-        return get<S>().invoke(std::forward<decltype(args)>(args)...);
+        return get<S>().generate(std::forward<decltype(args)>(args)...);
     }
 
     void connect(const v0::SlotID& slot_id, auto name, auto& version, auto&& channel)

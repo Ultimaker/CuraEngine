@@ -342,7 +342,8 @@ void ArcusCommunication::beginGCode()
 
 void ArcusCommunication::flushGCode()
 {
-    const std::string& message_str = slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(private_data->gcode_output_stream.str());
+    std::string gcode_output_stream = private_data->gcode_output_stream.str();
+    auto message_str = slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(gcode_output_stream);
     if (message_str.size() == 0)
     {
         return;
@@ -375,7 +376,8 @@ void ArcusCommunication::sendCurrentPosition(const Point& position)
 void ArcusCommunication::sendGCodePrefix(const std::string& prefix) const
 {
     std::shared_ptr<proto::GCodePrefix> message = std::make_shared<proto::GCodePrefix>();
-    message->set_data(slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(prefix));
+    std::string message_str = prefix;
+    message->set_data(slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(message_str));
     private_data->socket->sendMessage(message);
 }
 

@@ -27,11 +27,23 @@ struct formatter<cura::plugins::v0::SlotID>
 
         switch (slot_id)
         {
+        case cura::plugins::v0::SlotID::SETTINGS_BROADCAST:
+            slot_name = "SettingsBroadcastService";
+            break;
         case cura::plugins::v0::SlotID::SIMPLIFY_MODIFY:
             slot_name = "SimplifyService";
             break;
         case cura::plugins::v0::SlotID::POSTPROCESS_MODIFY:
             slot_name = "PostprocessService";
+            break;
+        case cura::plugins::v0::SlotID::INFILL_MODIFY:
+            slot_name = "InfillModifyService";
+            break;
+        case cura::plugins::v0::SlotID::GCODE_PATHS_MODIFY:
+            slot_name = "GcodePathsModifyService";
+            break;
+        case cura::plugins::v0::SlotID::INFILL_GENERATE:
+            slot_name = "InfillGenerateService";
             break;
         default:
             slot_name = "Unknown";

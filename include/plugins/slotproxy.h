@@ -74,13 +74,26 @@ public:
      * @param args The arguments for the plugin request.
      * @return The result of the plugin request or the default behavior.
      */
-    constexpr auto invoke(auto&&... args)
+    constexpr auto generate(auto&&... args)
     {
         if (plugin_.has_value())
         {
-            return plugin_.value().invoke(std::forward<decltype(args)>(args)...);
+            return plugin_.value().generate(std::forward<decltype(args)>(args)...);
         }
         return std::invoke(default_process, std::forward<decltype(args)>(args)...);
+    }
+
+    constexpr auto modify(auto& original_value, auto&&... args)
+    {
+        if (plugin_.has_value())
+        {
+            return plugin_.value().modify(original_value, std::forward<decltype(args)>(args)...);
+        }
+        if constexpr (sizeof...(args) == 0)
+        {
+            return std::invoke(default_process, original_value);
+        }
+        return std::invoke(default_process, original_value, std::forward<decltype(args)>(args)...);
     }
 
     template<v0::SlotID S>

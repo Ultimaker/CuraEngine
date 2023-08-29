@@ -41,6 +41,7 @@ set(engine_SRCS # Except main.cpp.
         src/Application.cpp
         src/bridge.cpp
         src/ConicalOverhang.cpp
+        src/ExtruderPlan.cpp
         src/ExtruderTrain.cpp
         src/FffGcodeWriter.cpp
         src/FffPolygonGenerator.cpp
@@ -108,6 +109,7 @@ set(engine_SRCS # Except main.cpp.
         src/pathPlanning/GCodePath.cpp
         src/pathPlanning/LinePolygonsCrossings.cpp
         src/pathPlanning/NozzleTempInsert.cpp
+        src/pathPlanning/SpeedDerivatives.cpp
 
         src/plugins/converters.cpp
 
@@ -116,6 +118,7 @@ set(engine_SRCS # Except main.cpp.
 
         src/settings/AdaptiveLayerHeights.cpp
         src/settings/FlowTempGraph.cpp
+        src/settings/MeshPathConfigs.cpp
         src/settings/PathConfigStorage.cpp
         src/settings/Settings.cpp
         src/settings/ZSeamConfig.cpp
@@ -159,7 +162,6 @@ target_include_directories(_CuraEngine
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}> # Include Cura.pb.h
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated> # Include generated plugin types
         )
 
 target_compile_definitions(_CuraEngine
