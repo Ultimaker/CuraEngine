@@ -31,8 +31,8 @@ namespace cura
 TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceDataStorage& storage, const SliceMeshStorage& mesh, TreeModelVolumes& volumes_s)
     : config(mesh.settings)
     , use_fake_roof(! mesh.settings.get<bool>("support_roof_enable"))
-    , minimum_roof_area(! use_fake_roof ? mesh.settings.get<double>("minimum_roof_area") : SUPPORT_TREE_MINIMUM_FAKE_ROOF_AREA)
     , minimum_support_area(mesh.settings.get<double>("minimum_support_area"))
+    , minimum_roof_area(! use_fake_roof ? mesh.settings.get<double>("minimum_roof_area") : std::max(SUPPORT_TREE_MINIMUM_FAKE_ROOF_AREA, minimum_support_area))
     , support_roof_layers(
           mesh.settings.get<bool>("support_roof_enable") ? round_divide(mesh.settings.get<coord_t>("support_roof_height"), config.layer_height)
           : use_fake_roof                                ? SUPPORT_TREE_MINIMUM_FAKE_ROOF_LAYERS
@@ -973,6 +973,11 @@ void TreeSupportTipGenerator::generateTips(
             {
                 for (Polygons& remaining_overhang_part : remaining_overhang.splitIntoParts(false))
                 {
+                    if (remaining_overhang_part.area() <= MM2_2INT(minimum_support_area))
+                    {
+                        continue;
+                    }
+
                     std::vector<LineInformation> overhang_lines;
                     Polygons polylines = ensureMaximumDistancePolyline(generateLines(remaining_overhang_part, false, layer_idx), config.min_radius, 1, false);
                     // ^^^ Support_line_width to form a line here as otherwise most will be unsupported.

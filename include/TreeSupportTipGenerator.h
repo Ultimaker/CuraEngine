@@ -194,14 +194,14 @@ private:
 
 
     /*!
-     * \brief Minimum area an overhang has to have to become a roof.
-     */
-    const double minimum_roof_area;
-
-    /*!
      * \brief Minimum area an overhang has to have to be supported.
      */
     const double minimum_support_area;
+
+    /*!
+     * \brief Minimum area an overhang has to have to become a roof.
+     */
+    const double minimum_roof_area;
 
     /*!
      * \brief Amount of layers of roof. Zero if roof is disabled
