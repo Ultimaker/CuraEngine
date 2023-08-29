@@ -64,7 +64,7 @@ class CuraEngineConan(ConanFile):
     def build_requirements(self):
         self.test_requires("standardprojectsettings/[>=0.1.0]@ultimaker/stable")
         if self.options.enable_arcus:
-            self.test_requires("protobuf/3.21.4")
+            self.test_requires("protobuf/3.21.9")
         if self.options.enable_testing:
             self.test_requires("gtest/1.12.1")
         if self.options.enable_benchmarks:
