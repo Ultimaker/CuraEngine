@@ -427,8 +427,9 @@ public:
      * \param intersect The origin of the constellation.
      * \param a The first point.
      * \param b The second point.
+     * \param vec_len The lenght of the resultant vector. It's not wise to set this to 1, since we do tend to do integer math here.
      */
-    static Point getBisectorVector(const Point& intersect, const Point& a, const Point& b);
+    static Point getBisectorVector(const Point& intersect, const Point& a, const Point& b, const coord_t vec_len);
 };
 
 

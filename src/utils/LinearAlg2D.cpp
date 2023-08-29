@@ -255,12 +255,11 @@ coord_t LinearAlg2D::getDistFromLine(const Point& p, const Point& a, const Point
     return px_size;
 }
 
-Point LinearAlg2D::getBisectorVector(const Point& intersect, const Point& a, const Point& b)
+Point LinearAlg2D::getBisectorVector(const Point& intersect, const Point& a, const Point& b, const coord_t vec_len)
 {
-    constexpr coord_t large_enough = 0xFFFF;
     const auto a0 = a - intersect;
     const auto b0 = b - intersect;
-    return (((a0 * large_enough) / std::max(1LL, vSize(a0))) + ((b0 * large_enough) / std::max(1LL, vSize(b0)))) / 2;
+    return (((a0 * vec_len) / std::max(1LL, vSize(a0))) + ((b0 * vec_len) / std::max(1LL, vSize(b0)))) / 2;
 }
 
 } // namespace cura
