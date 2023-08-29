@@ -796,8 +796,8 @@ void Infill::resolveIntersection(const coord_t at_distance, const Point& interse
     // Initialize 'bends'.
     assert(! bend_a.has_value());
     assert(! bend_b.has_value());
-    bend_a.emplace(0, 0);
-    bend_b.emplace(0, 0);
+    bend_a.emplace(bend_a.X, bend_a.Y);
+    bend_b.emplace(bend_b.X, bend_b.Y);
 
     // Find a bisector of the intersection; specifically, the one that crosses the connection & offset it by 1/2 distance to each side.
     const auto bisect = LinearAlg2D::getBisectorVector(intersect, connect_start, connect_end);
@@ -808,7 +808,6 @@ void Infill::resolveIntersection(const coord_t at_distance, const Point& interse
     const auto t = s + bisect;
 
     // Use both of the resulting lines to place the 'bends' by intersecting with the original line-segments.
-    Point helper_a, helper_b;
     assert(LinearAlg2D::lineLineIntersection(q, r, a->start, a->end, bend_a.value()));
     assert(LinearAlg2D::lineLineIntersection(s, t, b->start, b->end, bend_b.value()));
 
