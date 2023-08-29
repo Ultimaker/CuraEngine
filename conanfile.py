@@ -43,7 +43,7 @@ class CuraEngineConan(ConanFile):
 
     def set_version(self):
         if not self.version:
-            self.version = "5.5.0-alpha.1"
+            self.version = "5.5.0-alpha"
 
     def export_sources(self):
         copy(self, "CMakeLists.txt", self.recipe_folder, self.export_sources_folder)
