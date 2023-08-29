@@ -72,7 +72,7 @@ class CuraEngineConan(ConanFile):
 
     def requirements(self):
         if self.options.enable_arcus:
-            self.requires("arcus/5.2.2")
+            self.requires("arcus/(latest)@ultimaker/cura_10475")
             self.requires("zlib/1.2.12")
         self.requires("clipper/6.4.2")
         self.requires("boost/1.79.0")
