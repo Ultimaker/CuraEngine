@@ -138,7 +138,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
             GCodePathConfig{ .type = PrintFeatureType::Support,
                              .line_width = static_cast<coord_t>(support_infill_train.settings.get<coord_t>("support_line_width") * support_infill_line_width_factor),
                              .layer_thickness = layer_thickness,
-                             .flow = -support_infill_train.settings.get<Ratio>("support_material_flow")
+                             .flow = support_infill_train.settings.get<Ratio>("support_material_flow")
                                    * ((layer_nr == 0) ? support_infill_train.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0)) * (combine_idx + 1),
                              .speed_derivatives = SpeedDerivatives{ .speed = support_infill_train.settings.get<Velocity>("speed_support_infill"),
                                                                     .acceleration = support_infill_train.settings.get<Acceleration>("acceleration_support_infill"),

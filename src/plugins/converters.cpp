@@ -125,7 +125,7 @@ simplify_request::value_type
 }
 
 simplify_response::native_value_type
-    simplify_response::operator()([[maybe_unused]] simplify_response::native_value_type& original_value, const simplify_response::value_type& message) const
+    simplify_response::operator()([[maybe_unused]] const simplify_response::native_value_type& original_value, const simplify_response::value_type& message) const
 {
     native_value_type poly{};
     for (const auto& paths : message.polygons().polygons())
@@ -158,7 +158,7 @@ postprocess_request::value_type postprocess_request::operator()(const postproces
 }
 
 postprocess_response::native_value_type
-    postprocess_response::operator()([[maybe_unused]] postprocess_response::native_value_type& original_value, const postprocess_response::value_type& message) const
+    postprocess_response::operator()([[maybe_unused]] const postprocess_response::native_value_type& original_value, const postprocess_response::value_type& message) const
 {
     return message.gcode_word();
 }

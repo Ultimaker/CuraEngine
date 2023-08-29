@@ -87,7 +87,7 @@ struct simplify_request : public details::converter<simplify_request, slots::sim
 
 struct simplify_response : public details::converter<simplify_response, slots::simplify::v0::modify::CallResponse, Polygons>
 {
-    native_value_type operator()([[maybe_unused]] native_value_type& original_value, const value_type& message) const;
+    native_value_type operator()([[maybe_unused]] const native_value_type& original_value, const value_type& message) const;
 };
 
 struct postprocess_request : public details::converter<postprocess_request, slots::postprocess::v0::modify::CallRequest, std::string>
@@ -97,7 +97,7 @@ struct postprocess_request : public details::converter<postprocess_request, slot
 
 struct postprocess_response : public details::converter<postprocess_response, slots::postprocess::v0::modify::CallResponse, std::string>
 {
-    native_value_type operator()([[maybe_unused]] native_value_type& original_value, const value_type& message) const;
+    native_value_type operator()([[maybe_unused]] const native_value_type& original_value, const value_type& message) const;
 };
 
 struct infill_generate_request : public details::converter<infill_generate_request, slots::infill::v0::generate::CallRequest, Polygons>
