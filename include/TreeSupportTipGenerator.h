@@ -2,6 +2,7 @@
 #define TREESUPPORTTIPGENERATOR_H
 
 #include "TreeModelVolumes.h"
+#include "TreeSupport.h"
 #include "TreeSupportBaseCircle.h"
 #include "TreeSupportElement.h"
 #include "TreeSupportEnums.h"
@@ -12,7 +13,6 @@
 #include "sliceDataStorage.h"
 #include "utils/Coord_t.h"
 #include "utils/polygon.h"
-#include "TreeSupport.h"
 
 namespace cura
 {
@@ -20,12 +20,10 @@ namespace cura
 
 class TreeSupportTipGenerator
 {
-
 public:
-
     TreeSupportTipGenerator(const SliceDataStorage& storage, const SliceMeshStorage& mesh, TreeModelVolumes& volumes_);
 
-    ~ TreeSupportTipGenerator()
+    ~TreeSupportTipGenerator()
     {
         if (cross_fill_provider)
         {
@@ -43,10 +41,14 @@ public:
 
      * \return All lines of the \p polylines object, with information for each point regarding in which avoidance it is currently valid in.
      */
-    void generateTips(SliceDataStorage& storage,const SliceMeshStorage& mesh ,std::vector<std::set<TreeSupportElement*>>& move_bounds, std::vector<Polygons>& additional_support_areas, std::vector<Polygons>& placed_support_lines_support_areas);
+    void generateTips(
+        SliceDataStorage& storage,
+        const SliceMeshStorage& mesh,
+        std::vector<std::set<TreeSupportElement*>>& move_bounds,
+        std::vector<Polygons>& additional_support_areas,
+        std::vector<Polygons>& placed_support_lines_support_areas);
 
 private:
-
     enum class LineStatus
     {
         INVALID,
@@ -85,17 +87,16 @@ private:
     std::function<bool(std::pair<Point, TreeSupportTipGenerator::LineStatus>)> getEvaluatePointForNextLayerFunction(size_t current_layer);
 
     /*!
-     * \brief Evaluates which points of some lines are not valid one layer below and which are. Assumes all points are valid on the current layer. Validity is evaluated using supplied lambda.
+     * \brief Evaluates which points of some lines are not valid one layer below and which are. Assumes all points are valid on the current layer. Validity is evaluated using
+     * supplied lambda.
      *
      * \param lines[in] The lines that have to be evaluated.
      * \param evaluatePoint[in] The function used to evaluate the points.
      * \return A pair with which points are still valid in the first slot and which are not in the second slot.
      */
-    std::pair<std::vector<LineInformation>, std::vector<LineInformation>> splitLines
-        (
-            std::vector<LineInformation> lines,
-            std::function<bool(std::pair<Point, TreeSupportTipGenerator::LineStatus>)> evaluatePoint
-        ); // assumes all Points on the current line are valid
+    std::pair<std::vector<LineInformation>, std::vector<LineInformation>> splitLines(
+        std::vector<LineInformation> lines,
+        std::function<bool(std::pair<Point, TreeSupportTipGenerator::LineStatus>)> evaluatePoint); // assumes all Points on the current line are valid
 
     /*!
      * \brief Ensures that every line segment is about distance in length. The resulting lines may differ from the original but all points are on the original
@@ -125,7 +126,7 @@ private:
      * \param result[out] The dropped overhang ares
      * \param roof[in] Whether the result is for roof generation.
      */
-    void dropOverhangAreas(const SliceMeshStorage& mesh, std::vector<Polygons>& result, bool roof );
+    void dropOverhangAreas(const SliceMeshStorage& mesh, std::vector<Polygons>& result, bool roof);
 
     /*!
      * \brief Calculates which areas should be supported with roof, and saves these in roof support_roof_drawn
@@ -143,7 +144,15 @@ private:
      * \param roof[in] Whether the tip supports a roof.
      * \param skip_ovalisation[in] Whether the tip may be ovalized when drawn later.
      */
-    void addPointAsInfluenceArea(std::vector<std::set<TreeSupportElement *>>& move_bounds, std::pair<Point, LineStatus> p, size_t dtt, LayerIndex insert_layer, size_t dont_move_until, bool roof, bool skip_ovalisation, std::vector<Point> additional_ovalization_targets = std::vector<Point>());
+    void addPointAsInfluenceArea(
+        std::vector<std::set<TreeSupportElement*>>& move_bounds,
+        std::pair<Point, LineStatus> p,
+        size_t dtt,
+        LayerIndex insert_layer,
+        size_t dont_move_until,
+        bool roof,
+        bool skip_ovalisation,
+        std::vector<Point> additional_ovalization_targets = std::vector<Point>());
 
 
     /*!
@@ -155,7 +164,14 @@ private:
      * \param supports_roof[in] Whether the tip supports a roof.
      * \param dont_move_until[in] Until which dtt the branch should not move if possible.
      */
-    void addLinesAsInfluenceAreas(std::vector<std::set<TreeSupportElement *>>& move_bounds, std::vector<TreeSupportTipGenerator::LineInformation> lines, size_t roof_tip_layers, LayerIndex insert_layer_idx, bool supports_roof, size_t dont_move_until, bool connect_points);
+    void addLinesAsInfluenceAreas(
+        std::vector<std::set<TreeSupportElement*>>& move_bounds,
+        std::vector<TreeSupportTipGenerator::LineInformation> lines,
+        size_t roof_tip_layers,
+        LayerIndex insert_layer_idx,
+        bool supports_roof,
+        size_t dont_move_until,
+        bool connect_points);
 
     /*!
      * \brief Remove tips that should not have been added in the first place.
@@ -163,7 +179,7 @@ private:
      * \param storage[in] Background storage, required for adding roofs.
      * \param additional_support_areas[in] Areas that should have been roofs, but are now support, as they would not generate any lines as roof.
      */
-    void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement *>>& move_bounds,SliceDataStorage& storage, std::vector<Polygons>& additional_support_areas);
+    void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<Polygons>& additional_support_areas);
 
 
     /*!
@@ -264,7 +280,8 @@ private:
     const bool only_gracious = SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL;
 
     /*!
-     * \brief Whether minimum_roof_area is a hard limit. If false the roof will be combined with roof above and below, to see if a part of this roof may be part of a valid roof further up/down.
+     * \brief Whether minimum_roof_area is a hard limit. If false the roof will be combined with roof above and below, to see if a part of this roof may be part of a valid roof
+     * further up/down.
      */
     const bool force_minimum_roof_area = SUPPORT_TREE_MINIMUM_ROOF_AREA_HARD_LIMIT;
 
@@ -294,15 +311,10 @@ private:
     std::vector<Polygons> roof_tips_drawn;
 
 
-
-
     std::mutex critical_move_bounds;
     std::mutex critical_roof_tips;
-
-
-
 };
 
-}
+} // namespace cura
 
 #endif /* TREESUPPORT_H */
