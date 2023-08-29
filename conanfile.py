@@ -85,7 +85,7 @@ class CuraEngineConan(ConanFile):
 
     def requirements(self):
         if self.options.enable_arcus:
-            self.requires("arcus/(latest)@ultimaker/cura_10475")  # TODO: point to `testing` once the CURA-10475 from libArcus is main
+            self.requires("arcus/(latest)@ultimaker/cura_10951")
         self.requires("asio-grpc/2.6.0")
         self.requires("grpc/1.50.1")
         self.requires("curaengine_grpc_definitions/latest@ultimaker/cura_10446")
