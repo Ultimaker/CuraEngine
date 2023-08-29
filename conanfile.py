@@ -83,6 +83,7 @@ class CuraEngineConan(ConanFile):
         if self.options.enable_benchmarks:
             self.test_requires("benchmark/1.7.0")
 
+
     def requirements(self):
         if self.options.enable_arcus:
             self.requires("arcus/(latest)@ultimaker/cura_10475")
