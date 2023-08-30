@@ -193,9 +193,11 @@ private:
          */
         InfillLineSegment(const Point start, const size_t start_segment, const size_t start_polygon, const Point end, const size_t end_segment, const size_t end_polygon)
             : start(start)
+            , altered_start(start)
             , start_segment(start_segment)
             , start_polygon(start_polygon)
             , end(end)
+            , altered_end(end)
             , end_segment(end_segment)
             , end_polygon(end_polygon)
             , previous(nullptr)
@@ -205,6 +207,13 @@ private:
          * Where the line segment starts.
          */
         Point start;
+
+        /*!
+         * If the line-segment starts at a different point due to prevention of crossing near the boundary, it gets saved here.
+         *
+         * The original start-point is still used to determine ordering then, so it can't just be overwritten.
+         */
+        Point altered_start;
 
         /*!
          * Which polygon line segment the start of this infill line belongs to.
@@ -224,9 +233,21 @@ private:
         size_t start_polygon;
 
         /*!
+         * If the line-segment needs to prevent crossing with another line near its start, a point is inserted near the start.
+         */
+        std::optional<Point> start_bend;
+
+        /*!
          * Where the line segment ends.
          */
         Point end;
+
+        /*!
+         * If the line-segment ends at a different point due to prevention of crossing near the boundary, it gets saved here.
+         *
+         * The original end-point is still used to determine ordering then, so it can't just be overwritten.
+         */
+        Point altered_end;
 
         /*!
          * Which polygon line segment the end of this infill line belongs to.
@@ -246,6 +267,11 @@ private:
         size_t end_polygon;
 
         /*!
+         * If the line-segment needs to prevent crossing with another line near its end, a point is inserted near the end.
+         */
+        std::optional<Point> end_bend;
+
+        /*!
          * The previous line segment that this line segment is connected to, if
          * any.
          */
@@ -263,6 +289,20 @@ private:
          * \param other The line segment to compare this line segment with.
          */
         bool operator==(const InfillLineSegment& other) const;
+
+        /*!
+         * Invert the direction of the line-segment.
+         *
+         * Useful when the next move is from end to start instead of 'forwards'.
+         */
+        void swapDirection();
+
+        /*!
+         * Append this line-segment to the results, start, bends and end.
+         *
+         * \param include_start Wether to include the start point or not, useful when tracing a poly-line.
+         */
+        void appendTo(PolygonRef& result_polyline, const bool include_start = true);
     };
 
     /*!
@@ -467,6 +507,29 @@ private:
      * \return the distance the infill pattern should be shifted
      */
     coord_t getShiftOffsetFromInfillOriginAndRotation(const double& infill_rotation);
+
+    /*!
+     * Used to prevent intersections of linear-based infill.
+     *
+     * When connecting infill, and the infill crosses itself near the boundary, small 'loops' can occur, which have large internal angles.
+     * Prevent this by altering the two crossing line-segments just before the crossing takes place:
+     *
+     *  \   /    \   /
+     *   \ /      \ /
+     *    X       | |
+     *   / \      | |
+     *   ---       -
+     * =======  =======
+     *  before   after
+     *
+     * \param at_distance At which distance the offset of the bisector takes place (will be the length of the resulting connection along the edge).
+     * \param intersect The point at which these line-segments intersect.
+     * \param connect_start Input; the original point at the border which the first line-segment touches. Output; the updated point.
+     * \param connect_end Input; the original point at the border which the second line-segment touches. Output; the updated point.
+     * \param a The first line-segment.
+     * \param b The second line-segment.
+     */
+    void resolveIntersection(const coord_t at_distance, const Point& intersect, Point& connect_start, Point& connect_end, InfillLineSegment* a, InfillLineSegment* b);
 
     /*!
      * Connects infill lines together so that they form polylines.

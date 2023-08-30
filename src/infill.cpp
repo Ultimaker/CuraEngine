@@ -17,6 +17,7 @@
 #include "utils/PolylineStitcher.h"
 #include "utils/Simplify.h"
 #include "utils/UnionFind.h"
+#include "utils/linearAlg2D.h"
 #include "utils/polygonUtils.h"
 
 #include <scripta/logger.h>
@@ -782,6 +783,42 @@ void Infill::generateLinearBasedInfill(
     }
 }
 
+void Infill::resolveIntersection(const coord_t at_distance, const Point& intersect, Point& connect_start, Point& connect_end, InfillLineSegment* a, InfillLineSegment* b)
+{
+    // Select wich ends of the line need to 'bend'.
+    const bool forward_line_a = a->end == connect_start;
+    const bool forward_line_b = b->start == connect_end;
+    auto& bend_a = forward_line_a ? a->end_bend : a->start_bend;
+    auto& bend_b = forward_line_b ? b->start_bend : b->end_bend;
+    auto& end_a = forward_line_a ? a->altered_end : a->altered_start;
+    auto& end_b = forward_line_b ? b->altered_start : b->altered_end;
+
+    // Set values ('pre existing' values are needed when feeging these as reference parameters to functions that need a value).
+    bend_a.emplace(0, 0);
+    bend_b.emplace(0, 0);
+
+    // Find a bisector of the intersection; specifically, the one that crosses the connection & offset it by 1/2 distance to each side.
+    constexpr auto large_enough_vec_len = 0xFFFF;
+    const auto bisect = LinearAlg2D::getBisectorVector(intersect, connect_start, connect_end, large_enough_vec_len);
+    const auto offset = ((at_distance / 2) * Point(-bisect.Y, bisect.X)) / large_enough_vec_len;
+    const auto q = intersect + offset;
+    const auto r = q + bisect;
+    const auto s = intersect - offset;
+    const auto t = s + bisect;
+
+    // Use both of the resulting lines to place the 'bends' by intersecting with the original line-segments.
+    LinearAlg2D::lineLineIntersection(q, r, a->start, a->end, bend_a.value());
+    LinearAlg2D::lineLineIntersection(s, t, b->start, b->end, bend_b.value());
+
+    // Also set the new end-points.
+    LinearAlg2D::lineLineIntersection(connect_start, connect_end, q, r, end_a);
+    LinearAlg2D::lineLineIntersection(connect_start, connect_end, s, t, end_b);
+
+    // The connecting line will be made from the end-points.
+    connect_start = end_a;
+    connect_end = end_b;
+}
+
 void Infill::connectLines(Polygons& result_lines)
 {
     UnionFind<InfillLineSegment*> connected_lines; // Keeps track of which lines are connected to which.
@@ -799,6 +836,7 @@ void Infill::connectLines(Polygons& result_lines)
         }
     }
 
+    const auto half_line_distance_squared = (line_distance * line_distance) / 4;
     for (size_t polygon_index = 0; polygon_index < inner_contour.size(); polygon_index++)
     {
         ConstPolygonRef inner_contour_polygon = inner_contour[polygon_index];
@@ -824,10 +862,10 @@ void Infill::connectLines(Polygons& result_lines)
                 [&vertex_before, polygon_index, vertex_index](InfillLineSegment* left_hand_side, InfillLineSegment* right_hand_side)
                 {
                     // Find the two endpoints that are relevant.
-                    const Point left_hand_point
-                        = (left_hand_side->start_segment == vertex_index && left_hand_side->start_polygon == polygon_index) ? left_hand_side->start : left_hand_side->end;
-                    const Point right_hand_point
-                        = (right_hand_side->start_segment == vertex_index && right_hand_side->start_polygon == polygon_index) ? right_hand_side->start : right_hand_side->end;
+                    const bool choose_left = (left_hand_side->start_segment == vertex_index && left_hand_side->start_polygon == polygon_index);
+                    const bool choose_right = (right_hand_side->start_segment == vertex_index && right_hand_side->start_polygon == polygon_index);
+                    const Point left_hand_point = choose_left ? left_hand_side->start : left_hand_side->end;
+                    const Point right_hand_point = choose_right ? right_hand_side->start : right_hand_side->end;
                     return vSize(left_hand_point - vertex_before) < vSize(right_hand_point - vertex_before);
                 });
 
@@ -844,55 +882,48 @@ void Infill::connectLines(Polygons& result_lines)
                     assert(crossing_handle != (size_t)-1);
                     const size_t previous_crossing_handle = connected_lines.find(previous_crossing);
                     assert(previous_crossing_handle != (size_t)-1);
-                    if (crossing_handle
-                        == previous_crossing_handle) // These two infill lines are already connected. Don't create a loop now. Continue connecting with the next crossing.
+                    if (crossing_handle == previous_crossing_handle)
                     {
+                        // These two infill lines are already connected. Don't create a loop now. Continue connecting with the next crossing.
                         continue;
                     }
 
                     // Join two infill lines together with a connecting line.
                     // Here the InfillLineSegments function as a linked list, so that they can easily be joined.
-                    const Point previous_point
-                        = (previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index) ? previous_segment->start : previous_segment->end;
-                    const Point next_point = (crossing->start_segment == vertex_index && crossing->start_polygon == polygon_index) ? crossing->start : crossing->end;
+                    const bool previous_forward = (previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index);
+                    const bool next_forward = (crossing->start_segment == vertex_index && crossing->start_polygon == polygon_index);
+                    Point& previous_point = previous_forward ? previous_segment->start : previous_segment->end;
+                    Point& next_point = next_forward ? crossing->start : crossing->end;
+
                     InfillLineSegment* new_segment;
-                    // If the segment is zero length, we avoid creating it but still want to connect the crossing with the previous segment
+                    // If the segment is near length, we avoid creating it but still want to connect the crossing with the previous segment.
                     if (previous_point == next_point)
                     {
-                        if (previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index)
-                        {
-                            previous_segment->previous = crossing;
-                        }
-                        else
-                        {
-                            previous_segment->next = crossing;
-                        }
+                        (previous_forward ? previous_segment->previous : previous_segment->next) = crossing;
                         new_segment = previous_segment;
                     }
                     else
                     {
-                        new_segment
-                            = new InfillLineSegment(previous_point, vertex_index, polygon_index, next_point, vertex_index, polygon_index); // A connecting line between them.
+                        // Resolve any intersections of the fill lines close to the boundary, by inserting extra points so the lines don't create a tiny 'loop'.
+                        Point intersect;
+                        if (vSize2(previous_point - next_point) < half_line_distance_squared
+                            && LinearAlg2D::lineLineIntersection(previous_segment->start, previous_segment->end, crossing->start, crossing->end, intersect)
+                            && LinearAlg2D::pointIsProjectedBeyondLine(intersect, previous_segment->start, previous_segment->end) == 0
+                            && LinearAlg2D::pointIsProjectedBeyondLine(intersect, crossing->start, crossing->end) == 0)
+                        {
+                            resolveIntersection(infill_line_width, intersect, previous_point, next_point, previous_segment, crossing);
+                        }
+
+                        // A connecting line between them.
+                        new_segment = new InfillLineSegment(previous_point, vertex_index, polygon_index, next_point, vertex_index, polygon_index);
+                        new_segment->altered_start = previous_point;
+                        new_segment->altered_end = next_point;
                         new_segment->previous = previous_segment;
-                        if (previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index)
-                        {
-                            previous_segment->previous = new_segment;
-                        }
-                        else
-                        {
-                            previous_segment->next = new_segment;
-                        }
+                        (previous_forward ? previous_segment->previous : previous_segment->next) = new_segment;
                         new_segment->next = crossing;
                     }
 
-                    if (crossing->start_segment == vertex_index && crossing->start_polygon == polygon_index)
-                    {
-                        crossing->previous = new_segment;
-                    }
-                    else
-                    {
-                        crossing->next = new_segment;
-                    }
+                    (next_forward ? crossing->previous : crossing->next) = new_segment;
                     connected_lines.unite(crossing_handle, previous_crossing_handle);
                     previous_crossing = nullptr;
                     previous_segment = nullptr;
@@ -903,49 +934,22 @@ void Infill::connectLines(Polygons& result_lines)
             if (previous_crossing)
             {
                 InfillLineSegment* new_segment;
-                if (vertex_index == previous_segment->start_segment && polygon_index == previous_segment->start_polygon)
+
+                const bool choose_side = (vertex_index == previous_segment->start_segment && polygon_index == previous_segment->start_polygon);
+                const auto& previous_side = choose_side ? previous_segment->start : previous_segment->end;
+                if (previous_side == vertex_after)
                 {
-                    if (previous_segment->start == vertex_after)
-                    {
-                        // Edge case when an infill line ends directly on top of vertex_after: We skip the extra connecting line segment, as that would be 0-length.
-                        previous_segment = nullptr;
-                        previous_crossing = nullptr;
-                    }
-                    else
-                    {
-                        new_segment = new InfillLineSegment(
-                            previous_segment->start,
-                            vertex_index,
-                            polygon_index,
-                            vertex_after,
-                            (vertex_index + 1) % inner_contour[polygon_index].size(),
-                            polygon_index);
-                        previous_segment->previous = new_segment;
-                        new_segment->previous = previous_segment;
-                        previous_segment = new_segment;
-                    }
+                    // Edge case when an infill line ends directly on top of vertex_after: We skip the extra connecting line segment, as that would be 0-length.
+                    previous_segment = nullptr;
+                    previous_crossing = nullptr;
                 }
                 else
                 {
-                    if (previous_segment->end == vertex_after)
-                    {
-                        // Edge case when an infill line ends directly on top of vertex_after: We skip the extra connecting line segment, as that would be 0-length.
-                        previous_segment = nullptr;
-                        previous_crossing = nullptr;
-                    }
-                    else
-                    {
-                        new_segment = new InfillLineSegment(
-                            previous_segment->end,
-                            vertex_index,
-                            polygon_index,
-                            vertex_after,
-                            (vertex_index + 1) % inner_contour[polygon_index].size(),
-                            polygon_index);
-                        previous_segment->next = new_segment;
-                        new_segment->previous = previous_segment;
-                        previous_segment = new_segment;
-                    }
+                    new_segment
+                        = new InfillLineSegment(previous_side, vertex_index, polygon_index, vertex_after, (vertex_index + 1) % inner_contour[polygon_index].size(), polygon_index);
+                    (choose_side ? previous_segment->previous : previous_segment->next) = new_segment;
+                    new_segment->previous = previous_segment;
+                    previous_segment = new_segment;
                 }
             }
 
@@ -970,26 +974,34 @@ void Infill::connectLines(Polygons& result_lines)
         InfillLineSegment* current_infill_line = infill_line;
         while (current_infill_line->next && current_infill_line->previous) // Until we reached an endpoint.
         {
-            const Point next_vertex = (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start;
-            current_infill_line = (previous_vertex == current_infill_line->start) ? current_infill_line->next : current_infill_line->previous;
+            const bool choose_side = (previous_vertex == current_infill_line->start);
+            const Point next_vertex = choose_side ? current_infill_line->end : current_infill_line->start;
+            current_infill_line = choose_side ? current_infill_line->next : current_infill_line->previous;
             previous_vertex = next_vertex;
         }
 
         // Now go along the linked list of infill lines and output the infill lines to the actual result.
-        InfillLineSegment* old_line = current_infill_line;
-        const Point first_vertex = (! current_infill_line->previous) ? current_infill_line->start : current_infill_line->end;
-        previous_vertex = (! current_infill_line->previous) ? current_infill_line->end : current_infill_line->start;
-        current_infill_line = (first_vertex == current_infill_line->start) ? current_infill_line->next : current_infill_line->previous;
         PolygonRef result_line = result_lines.newPoly();
-        result_line.add(first_vertex);
-        result_line.add(previous_vertex);
+        InfillLineSegment* old_line = current_infill_line;
+        if (current_infill_line->previous)
+        {
+            current_infill_line->swapDirection();
+        }
+        current_infill_line->appendTo(result_line);
+        previous_vertex = current_infill_line->end;
+        current_infill_line = current_infill_line->next;
         delete old_line;
         while (current_infill_line)
         {
             old_line = current_infill_line; // We'll delete this after we've traversed to the next line.
-            const Point next_vertex = (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start; // Opposite side of the line.
-            current_infill_line = (previous_vertex == current_infill_line->start) ? current_infill_line->next : current_infill_line->previous;
-            result_line.add(next_vertex);
+            if (previous_vertex != current_infill_line->start)
+            {
+                current_infill_line->swapDirection();
+            }
+            const Point next_vertex = current_infill_line->end; // Opposite side of the line.
+            constexpr bool polyline_break = false;
+            current_infill_line->appendTo(result_line, polyline_break);
+            current_infill_line = current_infill_line->next;
             previous_vertex = next_vertex;
             delete old_line;
         }
@@ -1001,6 +1013,31 @@ void Infill::connectLines(Polygons& result_lines)
 bool Infill::InfillLineSegment::operator==(const InfillLineSegment& other) const
 {
     return start == other.start && end == other.end;
+}
+
+void Infill::InfillLineSegment::swapDirection()
+{
+    std::swap(start, end);
+    std::swap(altered_start, altered_end);
+    std::swap(start_bend, end_bend);
+    std::swap(next, previous);
+}
+
+void Infill::InfillLineSegment::appendTo(PolygonRef& result_polyline, const bool include_start)
+{
+    if (include_start)
+    {
+        result_polyline.add(altered_start);
+    }
+    if (start_bend.has_value())
+    {
+        result_polyline.add(start_bend.value());
+    }
+    if (end_bend.has_value())
+    {
+        result_polyline.add(end_bend.value());
+    }
+    result_polyline.add(altered_end);
 }
 
 } // namespace cura
