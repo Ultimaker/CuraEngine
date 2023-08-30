@@ -329,13 +329,6 @@ gcode_paths_modify_request::value_type
     for (const auto& path : paths)
     {
         auto* gcode_path = gcode_paths->Add();
-        gcode_path->set_space_fill_type(getSpaceFillType(path.space_fill_type));
-
-        gcode_path->set_flow(path.flow);
-        gcode_path->set_width_factor(path.width_factor);
-        gcode_path->set_spiralize(path.spiralize);
-        gcode_path->set_speed_factor(path.speed_factor);
-        gcode_path->set_mesh_name(path.mesh ? path.mesh->mesh_name : "");
         // Construct the OpenPath from the points in a GCodePath
         for (const auto& point : path.points)
         {
@@ -343,17 +336,27 @@ gcode_paths_modify_request::value_type
             points->set_x(point.X);
             points->set_y(point.Y);
         }
-
-        auto* config_msg = gcode_path->mutable_config();
-        config_msg->set_feature(getPrintFeature(path.config.type));
-        config_msg->set_line_width(path.config.getLineWidth());
-        config_msg->set_layer_thickness(path.config.getLayerThickness());
-        config_msg->set_flow_ratio(path.config.getFlowRatio());
-        config_msg->set_is_bridge_path(path.config.isBridgePath());
-        config_msg->set_fan_speed(path.config.getFanSpeed());
-        config_msg->mutable_speed_derivatives()->set_velocity(path.config.getSpeed());
-        config_msg->mutable_speed_derivatives()->set_acceleration(path.config.getAcceleration());
-        config_msg->mutable_speed_derivatives()->set_jerk(path.config.getJerk());
+        gcode_path->set_space_fill_type(getSpaceFillType(path.space_fill_type));
+        gcode_path->set_flow(path.flow);
+        gcode_path->set_width_factor(path.width_factor);
+        gcode_path->set_spiralize(path.spiralize);
+        gcode_path->set_speed_factor(path.speed_factor);
+        gcode_path->set_speed_back_pressure_factor(path.speed_back_pressure_factor);
+        gcode_path->set_retract(path.retract);
+        gcode_path->set_unretract_before_last_travel_move(path.unretract_before_last_travel_move);
+        gcode_path->set_perform_z_hop(path.perform_z_hop);
+        gcode_path->set_skip_agressive_merge_hint(path.skip_agressive_merge_hint);
+        gcode_path->set_done(path.done);
+        gcode_path->set_fan_speed(path.getFanSpeed());
+        gcode_path->set_mesh_name(path.mesh ? path.mesh->mesh_name : "");
+        gcode_path->set_feature(getPrintFeature(path.config.type));
+        gcode_path->mutable_speed_derivatives()->set_velocity(path.config.getSpeed());
+        gcode_path->mutable_speed_derivatives()->set_acceleration(path.config.getAcceleration());
+        gcode_path->mutable_speed_derivatives()->set_jerk(path.config.getJerk());
+        gcode_path->set_line_width(path.config.getLineWidth());
+        gcode_path->set_layer_thickness(path.config.getLayerThickness());
+        gcode_path->set_flow_ratio(path.config.getFlowRatio());
+        gcode_path->set_is_bridge_path(path.config.isBridgePath());
     }
 
     return message;
@@ -413,22 +416,14 @@ gcode_paths_modify_request::value_type
 
 [[nodiscard]] GCodePathConfig gcode_paths_modify_response::buildConfig(const v0::GCodePath& path)
 {
-    const coord_t line_width = path.config().line_width();
-    const coord_t layer_height = path.config().layer_thickness();
-    const Ratio flow = path.config().flow_ratio();
-    const SpeedDerivatives speed_derivatives{ .speed = path.config().speed_derivatives().velocity(),
-                                              .acceleration = path.config().speed_derivatives().acceleration(),
-                                              .jerk = path.config().speed_derivatives().jerk() };
-    const bool is_bridge_path = path.config().is_bridge_path();
-    const double fan_speed = path.config().fan_speed();
-    const auto feature_type = getPrintFeatureType(path.config().feature());
-    return { .type = feature_type,
-             .line_width = line_width,
-             .layer_thickness = layer_height,
-             .flow = flow,
-             .speed_derivatives = speed_derivatives,
-             .is_bridge_path = is_bridge_path,
-             .fan_speed = fan_speed };
+    return { .type = getPrintFeatureType(path.feature()),
+             .line_width = path.line_width(),
+             .layer_thickness = path.layer_thickness(),
+             .flow = path.flow_ratio(),
+             .speed_derivatives
+             = SpeedDerivatives{ .speed = path.speed_derivatives().velocity(), .acceleration = path.speed_derivatives().acceleration(), .jerk = path.speed_derivatives().jerk() },
+             .is_bridge_path = path.is_bridge_path(),
+             .fan_speed = path.fan_speed() };
 }
 
 gcode_paths_modify_response::native_value_type
@@ -451,19 +446,23 @@ gcode_paths_modify_response::native_value_type
 
     for (const auto& gcode_path_msg : message.gcode_paths())
     {
-        const GCodePathConfig config = buildConfig(gcode_path_msg);
-        const Ratio flow = gcode_path_msg.flow();
-        const Ratio width_factor = gcode_path_msg.width_factor();
-        const bool spiralize = gcode_path_msg.spiralize();
-        const Ratio speed_factor = gcode_path_msg.speed_factor();
-        const auto space_fill_type = getSpaceFillType(gcode_path_msg.space_fill_type());
-        GCodePath path{ .config = config,
-                        .mesh = gcode_path_msg.mesh_name().empty() ? nullptr : meshes.at(gcode_path_msg.mesh_name()),
-                        .space_fill_type = space_fill_type,
-                        .flow = flow,
-                        .width_factor = width_factor,
-                        .spiralize = spiralize,
-                        .speed_factor = speed_factor };
+        GCodePath path {
+            .config = buildConfig(gcode_path_msg),
+            .mesh = gcode_path_msg.mesh_name().empty() ? nullptr : meshes.at(gcode_path_msg.mesh_name()),
+            .space_fill_type = getSpaceFillType(gcode_path_msg.space_fill_type()),
+            .flow = gcode_path_msg.flow(),
+            .width_factor = gcode_path_msg.width_factor(),
+            .spiralize = gcode_path_msg.spiralize(),
+            .speed_factor = gcode_path_msg.speed_factor(),
+            .speed_back_pressure_factor = gcode_path_msg.speed_back_pressure_factor(),
+            .retract = gcode_path_msg.retract(),
+            .unretract_before_last_travel_move = gcode_path_msg.unretract_before_last_travel_move(),
+            .perform_z_hop = gcode_path_msg.perform_z_hop(),
+            .skip_agressive_merge_hint = gcode_path_msg.skip_agressive_merge_hint(),
+            .done = gcode_path_msg.done(),
+            .fan_speed = gcode_path_msg.fan_speed(),
+        };
+
         path.points = gcode_path_msg.path().path()
                     | ranges::views::transform(
                           [](const auto& point_msg)
