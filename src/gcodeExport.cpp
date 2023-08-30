@@ -706,6 +706,26 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
     return should_prime_extruder;
 }
 
+void GCodeExport::processInitialLayerBedTemperature()
+{
+    Scene& scene = Application::getInstance().current_slice->scene;
+
+    if (scene.current_mesh_group->settings.get<bool>("material_bed_temp_prepend") && scene.current_mesh_group->settings.get<bool>("machine_heated_bed"))
+    {
+        const Temperature bed_temp = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
+        if (scene.current_mesh_group == scene.mesh_groups.begin() // Always write bed temperature for first mesh group.
+            || bed_temp
+                   != (scene.current_mesh_group - 1)
+                          ->settings.get<Temperature>("material_bed_temperature")) // Don't write bed temperature if identical to temperature of previous group.
+        {
+            if (bed_temp != 0)
+            {
+                writeBedTemperatureCommand(bed_temp, scene.current_mesh_group->settings.get<bool>("material_bed_temp_wait"));
+            }
+        }
+    }
+}
+
 void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage, const size_t start_extruder_nr)
 {
     Scene& scene = Application::getInstance().current_slice->scene;
@@ -713,6 +733,8 @@ void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage
 
     if (getFlavor() == EGCodeFlavor::GRIFFIN)
     {
+        processInitialLayerBedTemperature();
+
         ExtruderTrain& train = scene.extruders[start_extruder_nr];
         constexpr bool wait = true;
         const Temperature print_temp_0 = train.settings.get<Temperature>("material_print_temperature_layer_0");
@@ -728,20 +750,7 @@ void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage
             writeLine(tmp.str().c_str());
         }
 
-        if (scene.current_mesh_group->settings.get<bool>("material_bed_temp_prepend") && scene.current_mesh_group->settings.get<bool>("machine_heated_bed"))
-        {
-            const Temperature bed_temp = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
-            if (scene.current_mesh_group == scene.mesh_groups.begin() // Always write bed temperature for first mesh group.
-                || bed_temp
-                       != (scene.current_mesh_group - 1)
-                              ->settings.get<Temperature>("material_bed_temperature")) // Don't write bed temperature if identical to temperature of previous group.
-            {
-                if (bed_temp != 0)
-                {
-                    writeBedTemperatureCommand(bed_temp, scene.current_mesh_group->settings.get<bool>("material_bed_temp_wait"));
-                }
-            }
-        }
+        processInitialLayerBedTemperature();
 
         if (scene.current_mesh_group->settings.get<bool>("material_print_temp_prepend"))
         {
