@@ -2070,8 +2070,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     gcode.writeZhopEnd();
                 }
             }
-            // TODO re-enable the config_changed check
-            const auto& extruder_changed = ! last_extrusion_config.has_value() /* || last_extrusion_config.value() != path.config */;
+            const auto& extruder_changed = ! last_extrusion_config.has_value() || (last_extrusion_config.value().type != path.config.type);
             if (! path.config.isTravelPath() && extruder_changed)
             {
                 gcode.writeTypeComment(path.config.type);
@@ -2079,8 +2078,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 {
                     gcode.writeComment("BRIDGE");
                 }
-                // TODO uncomment next line, make path.config copyable
-                //                last_extrusion_config = path.config;
+                last_extrusion_config = path.config;
                 update_extrusion_offset = true;
             }
             else
