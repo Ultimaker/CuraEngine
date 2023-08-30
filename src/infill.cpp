@@ -896,7 +896,7 @@ void Infill::connectLines(Polygons& result_lines)
                     Point& next_point = next_forward ? crossing->start : crossing->end;
 
                     InfillLineSegment* new_segment;
-                    // If the segment is near zero length, we avoid creating it but still want to connect the crossing with the previous segment.
+                    // If the segment is near length, we avoid creating it but still want to connect the crossing with the previous segment.
                     if (previous_point == next_point)
                     {
                         (previous_forward ? previous_segment->previous : previous_segment->next) = crossing;
