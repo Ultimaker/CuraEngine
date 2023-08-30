@@ -88,7 +88,7 @@ class CuraEngineConan(ConanFile):
             self.requires("arcus/(latest)@ultimaker/cura_10475")
         self.requires("asio-grpc/2.6.0")
         self.requires("grpc/1.50.1")
-        self.requires("curaengine_grpc_definitions/latest@ultimaker/cura_10446")
+        self.requires("curaengine_grpc_definitions/latest@ultimaker/testing")
         self.requires("clipper/6.4.2")
         self.requires("boost/1.82.0")
         self.requires("rapidjson/1.1.0")
