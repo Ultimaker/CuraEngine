@@ -446,7 +446,7 @@ gcode_paths_modify_response::native_value_type
 
     for (const auto& gcode_path_msg : message.gcode_paths())
     {
-        GCodePath path {
+        GCodePath path{
             .config = buildConfig(gcode_path_msg),
             .mesh = gcode_path_msg.mesh_name().empty() ? nullptr : meshes.at(gcode_path_msg.mesh_name()),
             .space_fill_type = getSpaceFillType(gcode_path_msg.space_fill_type()),
