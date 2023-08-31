@@ -105,6 +105,7 @@ class CuraEngineConan(ConanFile):
         deps = CMakeDeps(self)
         deps.generate()
 
+
         tc = CMakeToolchain(self)
         tc.variables["CURA_ENGINE_VERSION"] = self.version
         tc.variables["ENABLE_ARCUS"] = self.options.enable_arcus
