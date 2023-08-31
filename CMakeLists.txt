@@ -243,6 +243,34 @@ target_link_libraries(CuraEngine PRIVATE _CuraEngine)
 target_compile_definitions(CuraEngine PRIVATE VERSION=\"${CURA_ENGINE_VERSION}\")
 
 # Compiling the test environment.
+if (ENABLE_TESTING OR ENABLE_BENCHMARKS)
+    set(TESTS_HELPERS_SRC tests/ReadTestPolygons.cpp)
+
+    set(TESTS_SRC_ARCUS)
+    if (ENABLE_ARCUS)
+        list(APPEND TESTS_SRC_ARCUS
+                ArcusCommunicationTest
+                ArcusCommunicationPrivateTest)
+        list(APPEND TESTS_HELPERS_SRC tests/arcus/MockSocket.cpp)
+    endif ()
+
+    add_library(test_helpers ${TESTS_HELPERS_SRC})
+    target_compile_definitions(test_helpers PUBLIC $<$<BOOL:${BUILD_TESTING}>:BUILD_TESTS> $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>)
+    target_include_directories(test_helpers PUBLIC "include" ${CMAKE_BINARY_DIR}/generated)
+    target_link_libraries(test_helpers PRIVATE
+            _CuraEngine
+            GTest::gtest
+            GTest::gmock
+            clipper::clipper
+            curaengine_grpc_definitions::curaengine_grpc_definitions
+            asio-grpc::asio-grpc
+            grpc::grpc
+            protobuf::libprotobuf)
+    if (ENABLE_ARCUS)
+        target_link_libraries(test_helpers PUBLIC arcus::arcus)
+    endif ()
+endif ()
+
 if (ENABLE_TESTING)
     enable_testing()
     add_subdirectory(tests)
