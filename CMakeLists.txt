@@ -238,7 +238,7 @@ else ()
     add_executable(CuraEngine src/main.cpp ${RES_FILES}) # ..., but don't forget the glitter!
 endif (NOT WIN32)
 
-# Create the executable
+use_threads(CuraEngine)
 target_link_libraries(CuraEngine PRIVATE _CuraEngine)
 target_compile_definitions(CuraEngine PRIVATE VERSION=\"${CURA_ENGINE_VERSION}\")
 
