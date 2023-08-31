@@ -188,8 +188,9 @@ protected:
      *
      * \param maximum_cool_min_layer_time Maximum minimum layer time for all extruders in this layer
      * \param time_other_extr_plans Time spend on other extruders in this layer
+     * \return if minimal layer time has indeed been applied
      */
-    void forceMinimalLayerTime(double maximum_cool_min_layer_time, double time_other_extr_plans);
+    bool forceMinimalLayerTime(double maximum_cool_min_layer_time, double time_other_extr_plans);
 
     /*!
      * @return The time needed for (un)retract the path
@@ -270,6 +271,8 @@ private:
     coord_t comb_move_inside_distance; //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
     Polygons bridge_wall_mask; //!< The regions of a layer part that are not supported, used for bridging
     Polygons overhang_mask; //!< The regions of a layer part where the walls overhang
+
+    bool min_layer_time_used = false; //!< Wether or not the minimum layer time (cool_min_layer_time) was actually used in this layerplan.
 
     const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder;
 
