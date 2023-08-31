@@ -10,7 +10,7 @@ from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
 from conan.tools.scm import Version
 
-required_conan_version = ">=1.54 <=1.56.0 || >=1.58.0 <2.0.0"
+required_conan_version = ">=1.58.0 <2.0.0"
 
 
 class CuraEngineConan(ConanFile):
@@ -25,13 +25,11 @@ class CuraEngineConan(ConanFile):
 
     options = {
         "enable_arcus": [True, False],
-        "enable_testing": [True, False],
         "enable_benchmarks": [True, False],
         "enable_extensive_warnings": [True, False]
     }
     default_options = {
         "enable_arcus": True,
-        "enable_testing": False,
         "enable_benchmarks": False,
         "enable_extensive_warnings": False,
     }
@@ -65,7 +63,7 @@ class CuraEngineConan(ConanFile):
         self.test_requires("standardprojectsettings/[>=0.1.0]@ultimaker/stable")
         if self.options.enable_arcus:
             self.test_requires("protobuf/3.21.9")
-        if self.options.enable_testing:
+        if not self.conf.get("tools.build:skip_test", False, check_type=bool):
             self.test_requires("gtest/1.12.1")
         if self.options.enable_benchmarks:
             self.test_requires("benchmark/1.7.0")
@@ -90,7 +88,7 @@ class CuraEngineConan(ConanFile):
         tc = CMakeToolchain(self)
         tc.variables["CURA_ENGINE_VERSION"] = self.version
         tc.variables["ENABLE_ARCUS"] = self.options.enable_arcus
-        tc.variables["ENABLE_TESTING"] = self.options.enable_testing
+        tc.variables["ENABLE_TESTING"] = not self.conf.get("tools.build:skip_test", False, check_type=bool)
         tc.variables["ENABLE_BENCHMARKS"] = self.options.enable_benchmarks
         tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
         tc.variables["OLDER_APPLE_CLANG"] = self.settings.compiler == "apple-clang" and Version(self.settings.compiler.version) < "14"
@@ -102,7 +100,7 @@ class CuraEngineConan(ConanFile):
                 copy(self, "*.dll", dep.cpp_info.libdirs[0], self.build_folder)
             if len(dep.cpp_info.bindirs) > 0:
                 copy(self, "*.dll", dep.cpp_info.bindirs[0], self.build_folder)
-            if self.options.enable_testing:
+            if not self.conf.get("tools.build:skip_test", False, check_type=bool):
                 test_path = path.join(self.build_folder,  "tests")
                 if not path.exists(test_path):
                     mkdir(self, test_path)
