@@ -71,8 +71,8 @@ public:
     GCodePathConfig travel_config;
 
     ExtruderPlanTestPathCollection()
-        : extrusion_config(PrintFeatureType::OuterWall, 400, 100, 1.0_r, SpeedDerivatives(50.0, 1000.0, 10.0))
-        , travel_config(PrintFeatureType::MoveCombing, 0, 100, 0.0_r, SpeedDerivatives(120.0, 5000.0, 30.0))
+        : extrusion_config(GCodePathConfig{ .type = PrintFeatureType::OuterWall, .line_width = 400, .layer_thickness = 100, .flow = 1.0_r, .speed_derivatives = SpeedDerivatives { .speed = 50.0, .acceleration = 1000.0, .jerk = 10.0 } })
+        , travel_config(GCodePathConfig{ .type = PrintFeatureType::MoveCombing, .line_width = 0, .layer_thickness = 100, .flow = 0.0_r, .speed_derivatives = SpeedDerivatives { .speed = 120.0, .acceleration = 5000.0, .jerk = 30.0 } })
     {
         std::shared_ptr<SliceMeshStorage> mesh = nullptr;
         constexpr Ratio flow_1 = 1.0_r;
