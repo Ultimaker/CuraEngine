@@ -110,6 +110,21 @@ void GCodeExport::preSetup(const size_t start_extruder)
     }
 
     estimateCalculator.setFirmwareDefaults(mesh_group->settings);
+
+    if (mesh_group != scene.mesh_groups.begin())
+    {
+        // Current bed temperature is the one of the previous group
+        bed_temperature = (scene.current_mesh_group - 1)->settings.get<Temperature>("material_bed_temperature");
+    }
+    else if (! scene.current_mesh_group->settings.get<bool>("material_bed_temp_prepend"))
+    {
+        // Current bed temperature is the one of the first layer (has already been set in header)
+        bed_temperature = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
+    }
+    else
+    {
+        // Current bed temperature has not been set yet
+    }
 }
 
 void GCodeExport::setInitialAndBuildVolumeTemps(const unsigned int start_extruder_nr)
@@ -708,21 +723,12 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
 
 void GCodeExport::processInitialLayerBedTemperature()
 {
-    Scene& scene = Application::getInstance().current_slice->scene;
-
-    if (scene.current_mesh_group->settings.get<bool>("material_bed_temp_prepend") && scene.current_mesh_group->settings.get<bool>("machine_heated_bed"))
+    const Scene& scene = Application::getInstance().current_slice->scene;
+    const bool heated = scene.current_mesh_group->settings.get<bool>("machine_heated_bed");
+    const Temperature bed_temp = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
+    if (heated && bed_temp != 0)
     {
-        const Temperature bed_temp = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
-        if (scene.current_mesh_group == scene.mesh_groups.begin() // Always write bed temperature for first mesh group.
-            || bed_temp
-                   != (scene.current_mesh_group - 1)
-                          ->settings.get<Temperature>("material_bed_temperature")) // Don't write bed temperature if identical to temperature of previous group.
-        {
-            if (bed_temp != 0)
-            {
-                writeBedTemperatureCommand(bed_temp, scene.current_mesh_group->settings.get<bool>("material_bed_temp_wait"));
-            }
-        }
+        writeBedTemperatureCommand(bed_temp, scene.current_mesh_group->settings.get<bool>("material_bed_temp_wait"));
     }
 }
 
