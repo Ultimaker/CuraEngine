@@ -461,6 +461,11 @@ private:
      */
     void writeMoveBFB(const int x, const int y, const int z, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature);
 
+    /*!
+     * Set bed temperature for the initial layer. Called by 'processInitialLayerTemperatures'.
+     */
+    void processInitialLayerBedTemperature();
+
 public:
     /*!
      * Get ready for extrusion moves:
