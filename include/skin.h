@@ -125,7 +125,7 @@ protected:
      * where the infill areas (output) are stored.
      * \param skin The skin areas on the layer of the \p part
      */
-    void generateInfill(SliceLayerPart& part, const Polygons& skin);
+    void generateInfill(SliceLayerPart& part);
 
     /*!
      * Remove the areas which are 'directly' under air from the \ref SkinPart::inner_infill and 
