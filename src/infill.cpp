@@ -800,7 +800,7 @@ void Infill::resolveIntersection(const coord_t at_distance, const Point& interse
     bend_b.emplace(0, 0);
 
     // Find a bisector of the intersection; specifically, the one that crosses the connection & offset it by 1/2 distance to each side.
-    constexpr auto large_enough_vec_len = 0xFFFF;
+    constexpr auto large_enough_vec_len = 0xFFFFFFFF;
     const auto bisect = LinearAlg2D::getBisectorVector(intersect, connect_start, connect_end, large_enough_vec_len);
     const auto offset = ((at_distance / 2) * Point(-bisect.Y, bisect.X)) / large_enough_vec_len;
     const auto q = intersect + offset;
