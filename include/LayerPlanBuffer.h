@@ -4,10 +4,11 @@
 #ifndef LAYER_PLAN_BUFFER_H
 #define LAYER_PLAN_BUFFER_H
 
-#include <list>
-
+#include "gcodeExport.h"
 #include "Preheat.h"
 #include "settings/types/Duration.h"
+
+#include <list>
 
 namespace cura 
 {
