@@ -144,6 +144,7 @@ public:
      * \param line_width [in] The optimum wall line width of the walls
      * \param infill_overlap [in] The overlap of the infill
      * \param settings [in] A settings storage to use for generating variable-width walls.
+     * \param is_bridge_skin [in] Setting to filter out the extra skin walls while bridging
      * \return The inner contour of the wall toolpaths
      */
     static Polygons generateWallToolPaths(
