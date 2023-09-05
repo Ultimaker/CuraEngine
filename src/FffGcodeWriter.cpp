@@ -2724,7 +2724,8 @@ void FffGcodeWriter::processTopBottom(
         skin_density,
         monotonic,
         added_something,
-        fan_speed);
+        fan_speed,
+        is_bridge_skin);
 }
 
 void FffGcodeWriter::processSkinPrintFeature(
@@ -2741,7 +2742,8 @@ void FffGcodeWriter::processSkinPrintFeature(
     const Ratio skin_density,
     const bool monotonic,
     bool& added_something,
-    double fan_speed) const
+    double fan_speed,
+    const bool is_bridge_skin) const
 {
     Polygons skin_polygons;
     Polygons skin_lines;
@@ -2801,7 +2803,8 @@ void FffGcodeWriter::processSkinPrintFeature(
         nullptr,
         nullptr,
         nullptr,
-        small_areas_on_surface ? Polygons() : exposed_to_air);
+        small_areas_on_surface ? Polygons() : exposed_to_air,
+        is_bridge_skin);
 
     // add paths
     if (! skin_polygons.empty() || ! skin_lines.empty() || ! skin_paths.empty())

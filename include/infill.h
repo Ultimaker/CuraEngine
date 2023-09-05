@@ -131,7 +131,8 @@ public:
         const SierpinskiFillProvider* cross_fill_provider = nullptr,
         const LightningLayer* lightning_layer = nullptr,
         const SliceMeshStorage* mesh = nullptr,
-        const Polygons& prevent_small_exposed_to_air = Polygons());
+        const Polygons& prevent_small_exposed_to_air = Polygons(),
+        const bool is_bridge_skin = false);
 
     /*!
      * Generate the wall toolpaths of an infill area. It will return the inner contour and set the inner-contour.
@@ -153,7 +154,8 @@ public:
         const coord_t infill_overlap,
         const Settings& settings,
         int layer_idx,
-        SectionType section_type);
+        SectionType section_type,
+        const bool is_bridge_skin = false);
 
 private:
     /*!
