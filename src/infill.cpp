@@ -808,12 +808,14 @@ void Infill::resolveIntersection(const coord_t at_distance, const Point& interse
     auto& end_a = forward_line_a ? a->altered_end : a->altered_start;
     auto& end_b = forward_line_b ? b->altered_start : b->altered_end;
 
-    // Set values ('pre existing' values are needed when feeging these as reference parameters to functions that need a value).
+    // Set values ('pre existing' values are needed when feeding these as reference parameters to functions that need a value).
+    assert(! bend_a.has_value());
+    assert(! bend_b.has_value());
     bend_a.emplace(0, 0);
     bend_b.emplace(0, 0);
 
     // Find a bisector of the intersection; specifically, the one that crosses the connection & offset it by 1/2 distance to each side.
-    constexpr auto large_enough_vec_len = 0xFFFF;
+    constexpr auto large_enough_vec_len = 0xFFFFFFFF;
     const auto bisect = LinearAlg2D::getBisectorVector(intersect, connect_start, connect_end, large_enough_vec_len);
     const auto offset = ((at_distance / 2) * Point(-bisect.Y, bisect.X)) / large_enough_vec_len;
     const auto q = intersect + offset;
@@ -821,17 +823,29 @@ void Infill::resolveIntersection(const coord_t at_distance, const Point& interse
     const auto s = intersect - offset;
     const auto t = s + bisect;
 
+    // In certain rare conditions, the lines do not actually intersect in a way that we can solve with the current algorithm.
+    bool is_resolved = true;
+
     // Use both of the resulting lines to place the 'bends' by intersecting with the original line-segments.
-    LinearAlg2D::lineLineIntersection(q, r, a->start, a->end, bend_a.value());
-    LinearAlg2D::lineLineIntersection(s, t, b->start, b->end, bend_b.value());
+    is_resolved &= LinearAlg2D::lineLineIntersection(q, r, a->start, a->end, bend_a.value());
+    is_resolved &= LinearAlg2D::lineLineIntersection(s, t, b->start, b->end, bend_b.value());
 
     // Also set the new end-points.
-    LinearAlg2D::lineLineIntersection(connect_start, connect_end, q, r, end_a);
-    LinearAlg2D::lineLineIntersection(connect_start, connect_end, s, t, end_b);
+    is_resolved &= LinearAlg2D::lineLineIntersection(connect_start, connect_end, q, r, end_a);
+    is_resolved &= LinearAlg2D::lineLineIntersection(connect_start, connect_end, s, t, end_b);
 
-    // The connecting line will be made from the end-points.
-    connect_start = end_a;
-    connect_end = end_b;
+    if (is_resolved)
+    {
+        // The connecting line will be made from the end-points.
+        connect_start = end_a;
+        connect_end = end_b;
+    }
+    else
+    {
+        // Put everything that has now potentially become messed up, back.
+        bend_a.reset();
+        bend_b.reset();
+    }
 }
 
 void Infill::connectLines(Polygons& result_lines)
