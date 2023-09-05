@@ -8,11 +8,13 @@
 
 #include "Preheat.h"
 #include "settings/types/Duration.h"
+#include "settings/Settings.h"
 
 namespace cura 
 {
 
 class ExtruderPlan;
+class GCodeExport;
 class LayerPlan;
 
 /*!
