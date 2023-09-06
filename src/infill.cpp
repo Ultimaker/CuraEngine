@@ -814,12 +814,12 @@ void Infill::resolveIntersection(const coord_t at_distance, const Point& interse
     bool is_resolved = true;
 
     // Use both of the resulting lines to place the 'bends' by intersecting with the original line-segments.
-    is_resolved &= LinearAlg2D::lineLineIntersection(q, r, a->start, a->end, bend_a.value());
-    is_resolved &= LinearAlg2D::lineLineIntersection(s, t, b->start, b->end, bend_b.value());
+    is_resolved &= LinearAlg2D::lineLineIntersection(q, r, a->start, a->end, bend_a.value()) && LinearAlg2D::pointIsProjectedBeyondLine(bend_a.value(), a->start, a->end) == 0;
+    is_resolved &= LinearAlg2D::lineLineIntersection(s, t, b->start, b->end, bend_b.value()) && LinearAlg2D::pointIsProjectedBeyondLine(bend_b.value(), b->start, b->end) == 0;
 
-    // Also set the new end-points.
-    is_resolved &= LinearAlg2D::lineLineIntersection(connect_start, connect_end, q, r, end_a);
-    is_resolved &= LinearAlg2D::lineLineIntersection(connect_start, connect_end, s, t, end_b);
+    // Also set the new end-points
+    is_resolved &= LinearAlg2D::lineLineIntersection(connect_start, connect_end, q, r, end_a) && LinearAlg2D::pointIsProjectedBeyondLine(end_a, connect_start, connect_end) == 0;
+    is_resolved &= LinearAlg2D::lineLineIntersection(connect_start, connect_end, s, t, end_b) && LinearAlg2D::pointIsProjectedBeyondLine(end_b, connect_start, connect_end) == 0;
 
     if (is_resolved)
     {
