@@ -110,6 +110,24 @@ void GCodeExport::preSetup(const size_t start_extruder)
     }
 
     estimateCalculator.setFirmwareDefaults(mesh_group->settings);
+
+    if (mesh_group == scene.mesh_groups.begin())
+    {
+        if (! scene.current_mesh_group->settings.get<bool>("material_bed_temp_prepend"))
+        {
+            // Current bed temperature is the one of the first layer (has already been set in header)
+            bed_temperature = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
+        }
+        else
+        {
+            // Bed temperature has not been set yet
+        }
+    }
+    else
+    {
+        // Current bed temperature is the one of the previous group
+        bed_temperature = (scene.current_mesh_group - 1)->settings.get<Temperature>("material_bed_temperature");
+    }
 }
 
 void GCodeExport::setInitialAndBuildVolumeTemps(const unsigned int start_extruder_nr)
@@ -708,21 +726,12 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
 
 void GCodeExport::processInitialLayerBedTemperature()
 {
-    Scene& scene = Application::getInstance().current_slice->scene;
-
-    if (scene.current_mesh_group->settings.get<bool>("material_bed_temp_prepend") && scene.current_mesh_group->settings.get<bool>("machine_heated_bed"))
+    const Scene& scene = Application::getInstance().current_slice->scene;
+    const bool heated = scene.current_mesh_group->settings.get<bool>("machine_heated_bed");
+    const Temperature bed_temp = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
+    if (heated && bed_temp != 0)
     {
-        const Temperature bed_temp = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
-        if (scene.current_mesh_group == scene.mesh_groups.begin() // Always write bed temperature for first mesh group.
-            || bed_temp
-                   != (scene.current_mesh_group - 1)
-                          ->settings.get<Temperature>("material_bed_temperature")) // Don't write bed temperature if identical to temperature of previous group.
-        {
-            if (bed_temp != 0)
-            {
-                writeBedTemperatureCommand(bed_temp, scene.current_mesh_group->settings.get<bool>("material_bed_temp_wait"));
-            }
-        }
+        writeBedTemperatureCommand(bed_temp, scene.current_mesh_group->settings.get<bool>("material_bed_temp_wait"));
     }
 }
 
@@ -1511,10 +1520,10 @@ void GCodeExport::writeBedTemperatureCommand(const Temperature& temperature, con
     { // The UM2 family doesn't support temperature commands (they are fixed in the firmware)
         return;
     }
-    bool wrote_command = false;
-    if (wait)
+
+    if (bed_temperature != temperature) // Not already at the desired temperature.
     {
-        if (bed_temperature != temperature) // Not already at the desired temperature.
+        if (wait)
         {
             if (flavor == EGCodeFlavor::MARLIN)
             {
@@ -1522,20 +1531,17 @@ void GCodeExport::writeBedTemperatureCommand(const Temperature& temperature, con
                 *output_stream << PrecisionedDouble{ 1, temperature } << new_line;
                 *output_stream << "M105" << new_line;
             }
+            *output_stream << "M190 S";
         }
-        *output_stream << "M190 S";
-        wrote_command = true;
-    }
-    else if (bed_temperature != temperature)
-    {
-        *output_stream << "M140 S";
-        wrote_command = true;
-    }
-    if (wrote_command)
-    {
+        else
+        {
+            *output_stream << "M140 S";
+        }
+
         *output_stream << PrecisionedDouble{ 1, temperature } << new_line;
+
+        bed_temperature = temperature;
     }
-    bed_temperature = temperature;
 }
 
 void GCodeExport::writeBuildVolumeTemperatureCommand(const Temperature& temperature, const bool wait)
