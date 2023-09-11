@@ -8,6 +8,7 @@
 #include "LayerPlanBuffer.h"
 #include "gcodeExport.h"
 #include "settings/MeshPathConfigs.h"
+#include "settings/PathConfigStorage.h" //For the MeshPathConfigs subclass.
 #include "utils/ExtrusionLine.h" //Processing variable-width paths.
 #include "utils/NoCopy.h"
 
@@ -309,7 +310,11 @@ private:
      * \param mesh_config the line config with which to print a print feature
      * \param gcodeLayer The initial planning of the gcode of the layer.
      */
-    void addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcodeLayer) const;
+    void addMeshLayerToGCode_meshSurfaceMode(
+        const SliceDataStorage& storage,
+        const SliceMeshStorage& mesh,
+        const MeshPathConfigs& mesh_config,
+        LayerPlan& gcodeLayer) const;
 
     /*!
      * Add the open polylines from a single layer from a single mesh-volume to the layer plan \p gcodeLayer for mesh the surface modes.
@@ -332,8 +337,12 @@ private:
      * \param mesh_config the line config with which to print a print feature
      * \param gcode_layer The initial planning of the gcode of the layer.
      */
-    void addMeshLayerToGCode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const size_t extruder_nr, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer)
-        const;
+    void addMeshLayerToGCode(
+        const SliceDataStorage& storage,
+        const SliceMeshStorage& mesh,
+        const size_t extruder_nr,
+        const MeshPathConfigs& mesh_config,
+        LayerPlan& gcode_layer) const;
 
     /*!
      * Add all features of the given extruder from a single part from a given layer of a mesh-volume to the layer plan \p gcode_layer.
@@ -438,9 +447,12 @@ private:
      * \param part The part for which to create gcode
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      */
-    void
-        processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const MeshPathConfigs& mesh_config, const SliceLayerPart& part, const SliceMeshStorage& mesh)
-            const;
+    void processSpiralizedWall(
+        const SliceDataStorage& storage,
+        LayerPlan& gcode_layer,
+        const MeshPathConfigs& mesh_config,
+        const SliceLayerPart& part,
+        const SliceMeshStorage& mesh) const;
 
     /*!
      * Add the gcode of the top/bottom skin of the given part and of the perimeter gaps.
@@ -564,7 +576,8 @@ private:
         const Ratio skin_density,
         const bool monotonic,
         bool& added_something,
-        double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT) const;
+        double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
+        const bool is_bridge_skin = false) const;
 
     /*!
      *  see if we can avoid printing a lines or zig zag style skin part in multiple segments by moving to

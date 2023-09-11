@@ -206,7 +206,8 @@ public:
         const std::shared_ptr<SierpinskiFillProvider> cross_fill_provider = nullptr,
         const std::shared_ptr<LightningLayer> lightning_layer = nullptr,
         const SliceMeshStorage* mesh = nullptr,
-        const Polygons& prevent_small_exposed_to_air = Polygons());
+        const Polygons& prevent_small_exposed_to_air = Polygons(),
+        const bool is_bridge_skin = false);
 
     /*!
      * Generate the wall toolpaths of an infill area. It will return the inner contour and set the inner-contour.
@@ -218,6 +219,7 @@ public:
      * \param line_width [in] The optimum wall line width of the walls
      * \param infill_overlap [in] The overlap of the infill
      * \param settings [in] A settings storage to use for generating variable-width walls.
+     * \param is_bridge_skin [in] Setting to filter out the extra skin walls while bridging
      * \return The inner contour of the wall toolpaths
      */
     static Polygons generateWallToolPaths(
@@ -228,7 +230,8 @@ public:
         const coord_t infill_overlap,
         const Settings& settings,
         int layer_idx,
-        SectionType section_type);
+        SectionType section_type,
+        const bool is_bridge_skin = false);
 
 private:
     /*!

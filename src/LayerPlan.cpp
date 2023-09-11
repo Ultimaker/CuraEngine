@@ -663,7 +663,7 @@ void LayerPlan::addWallLine(
 
             // flow required for the next line segment - when accelerating after a bridge segment, the flow is increased in inverse proportion to the speed_factor
             // so the slower the feedrate, the greater the flow - the idea is to get the extruder back to normal pressure as quickly as possible
-            const float segment_flow = (speed_factor < 1) ? flow * (1 / speed_factor) : flow;
+            const float segment_flow = (speed_factor > 1) ? flow * (1 / speed_factor) : flow;
 
             // if a bridge is present in this wall, this particular segment may need to be partially or wholely coasted
             if (distance_to_bridge_start > 0)
@@ -1831,8 +1831,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         mesh_group_settings.get<Ratio>("flow_rate_extrusion_offset_factor")); // Offset is in mm.
 
     static LayerIndex layer_1{ 1 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()) };
-    if (layer_nr == layer_1 && mesh_group_settings.get<bool>("machine_heated_bed")
-        && mesh_group_settings.get<Temperature>("material_bed_temperature") != mesh_group_settings.get<Temperature>("material_bed_temperature_layer_0"))
+    if (layer_nr == layer_1 && mesh_group_settings.get<bool>("machine_heated_bed"))
     {
         constexpr bool wait = false;
         gcode.writeBedTemperatureCommand(mesh_group_settings.get<Temperature>("material_bed_temperature"), wait);

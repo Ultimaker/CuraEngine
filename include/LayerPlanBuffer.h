@@ -8,6 +8,7 @@
 #include "LayerPlan.h"
 #include "Preheat.h"
 #include "settings/Settings.h"
+#include "gcodeExport.h"
 #include "settings/types/Duration.h"
 
 #include <list>
