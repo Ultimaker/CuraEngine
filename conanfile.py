@@ -80,10 +80,9 @@ class CuraEngineConan(ConanFile):
         if self.options.enable_benchmarks:
             self.test_requires("benchmark/1.7.0")
 
-
     def requirements(self):
         if self.options.enable_arcus:
-            self.requires("arcus/(latest)@ultimaker/cura_10475")
+            self.requires("arcus/5.3.0")
         self.requires("asio-grpc/2.6.0")
         self.requires("grpc/1.50.1")
         self.requires("curaengine_grpc_definitions/(latest)@ultimaker/testing")
@@ -100,11 +99,9 @@ class CuraEngineConan(ConanFile):
         self.requires("zlib/1.2.12")
         self.requires("openssl/1.1.1l")
 
-
     def generate(self):
         deps = CMakeDeps(self)
         deps.generate()
-
 
         tc = CMakeToolchain(self)
         tc.variables["CURA_ENGINE_VERSION"] = self.version
