@@ -1,3 +1,6 @@
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
+
 #ifndef TREESUPPORTTUTILS_H
 #define TREESUPPORTTUTILS_H
 
@@ -99,7 +102,7 @@ public:
         bool roof,
         LayerIndex layer_idx,
         coord_t support_infill_distance,
-        SierpinskiFillProvider* cross_fill_provider,
+        std::shared_ptr<SierpinskiFillProvider> cross_fill_provider,
         bool include_walls,
         bool generate_support_supporting = false)
     {

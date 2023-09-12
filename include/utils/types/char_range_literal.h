@@ -12,7 +12,7 @@ namespace cura::utils
 template<size_t N>
 struct CharRangeLiteral
 {
-    constexpr CharRangeLiteral(const char (&str)[N])
+    constexpr CharRangeLiteral(const char (&str)[N]) noexcept
     {
         std::copy_n(str, N, value);
     }

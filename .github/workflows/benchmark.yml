@@ -76,7 +76,7 @@ jobs:
       - name: Setup Python and pip
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10.x'
+          python-version: '3.11.x'
           architecture: 'x64'
           cache: 'pip'
           cache-dependency-path: .github/workflows/requirements-conan-package.txt
@@ -103,16 +103,19 @@ jobs:
           sudo apt upgrade
           sudo apt install build-essential checkinstall libegl-dev zlib1g-dev libssl-dev ninja-build autoconf libx11-dev libx11-xcb-dev libfontenc-dev libice-dev libsm-dev libxau-dev libxaw7-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxdmcp-dev libxext-dev libxfixes-dev libxi-dev libxinerama-dev libxkbfile-dev libxmu-dev libxmuu-dev libxpm-dev libxrandr-dev libxrender-dev libxres-dev libxss-dev libxt-dev libxtst-dev libxv-dev libxvmc-dev libxxf86vm-dev xtrans-dev libxcb-render0-dev libxcb-render-util0-dev libxcb-xkb-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev libxcb-shape0-dev libxcb-sync-dev libxcb-xfixes0-dev libxcb-xinerama0-dev xkb-data libxcb-dri3-dev uuid-dev libxcb-util-dev libxkbcommon-x11-dev pkg-config -y
 
-      - name: Install GCC-12 on ubuntu-22.04
+      - name: Install GCC-132 on ubuntu
         run: |
-          sudo apt install g++-12 gcc-12 -y
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 12
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 12
+          sudo apt install g++-13 gcc-13 -y
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 13
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 13
+
+      - name: Create the default Conan profile
+        run: conan profile new default --detect
 
       - name: Get Conan configuration
         run: |
           conan config install https://github.com/Ultimaker/conan-config.git
-          conan profile new default --detect
+          conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
 
       - name: Use Conan download cache (Bash)
         if: ${{ runner.os != 'Windows' }}
@@ -161,7 +164,7 @@ jobs:
           tool: 'googlecpp'
           github-token: ${{ secrets.CURA_BENCHMARK_PAT }}
           auto-push: true
-          alert-threshold: '175%'
-#           summary-always: true
-#           comment-on-alert: true
+          #          alert-threshold: '175%'
+          #          summary-always: true
+          #          comment-on-alert: true
           max-items-in-chart: 250

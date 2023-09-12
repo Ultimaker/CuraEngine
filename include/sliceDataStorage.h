@@ -1,5 +1,5 @@
 // Copyright (c) 2023 UltiMaker
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef SLICE_DATA_STORAGE_H
 #define SLICE_DATA_STORAGE_H
@@ -19,6 +19,7 @@
 #include "utils/polygon.h"
 
 #include <map>
+#include <memory>
 #include <optional>
 
 // libArachne
@@ -237,7 +238,7 @@ public:
     std::vector<AngleDegrees> support_bottom_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
 
     std::vector<SupportLayer> supportLayers;
-    SierpinskiFillProvider* cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
+    std::shared_ptr<SierpinskiFillProvider> cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
 
     SupportStorage();
     ~SupportStorage();
@@ -265,10 +266,10 @@ public:
                                                         //!< such as a corner pointing downwards.
     AABB3D bounding_box; //!< the mesh's bounding box
 
-    SubDivCube* base_subdiv_cube;
-    SierpinskiFillProvider* cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
+    std::shared_ptr<SubDivCube> base_subdiv_cube;
+    std::shared_ptr<SierpinskiFillProvider> cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
 
-    LightningGenerator* lightning_generator; //!< Pre-computed structure for Lightning type infill
+    std::shared_ptr<LightningGenerator> lightning_generator; //!< Pre-computed structure for Lightning type infill
 
     RetractionAndWipeConfig retraction_wipe_config; //!< Per-Object retraction and wipe settings.
 
@@ -280,8 +281,6 @@ public:
      * layer that contains a part of the mesh.
      */
     SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count);
-
-    virtual ~SliceMeshStorage();
 
     /*!
      * \param extruder_nr The extruder for which to check

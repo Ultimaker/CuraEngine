@@ -1,21 +1,24 @@
-// Copyright (c) 2018 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef LAYER_PLAN_BUFFER_H
 #define LAYER_PLAN_BUFFER_H
 
+#include "ExtruderPlan.h"
+#include "LayerPlan.h"
 #include "Preheat.h"
+#include "gcodeExport.h"
 #include "settings/Settings.h"
 #include "settings/types/Duration.h"
 
 #include <list>
+#include <vector>
 
 namespace cura
 {
 
-class ExtruderPlan;
+
 class GCodeExport;
-class LayerPlan;
 
 /*!
  * Class for buffering multiple layer plans (\ref LayerPlan) / extruder plans within those layer plans, so that temperature commands can be inserted in earlier layer plans.
@@ -32,6 +35,8 @@ class LayerPlan;
  */
 class LayerPlanBuffer
 {
+    friend class LayerPlan;
+    friend class LayerPlanBuffer;
     GCodeExport& gcode;
 
     Preheat preheat_config; //!< the nozzle and material temperature settings for each extruder train.
@@ -206,7 +211,6 @@ private:
      */
     void handleStandbyTemp(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx, double standby_temp);
 };
-
 
 } // namespace cura
 

@@ -90,6 +90,8 @@ private:
         double last_e_value_after_wipe; //!< The current material amount extruded since last wipe
 
         unsigned fan_number; // nozzle print cooling fan number
+        Point nozzle_offset; //!< Cache of setting machine_nozzle_offset_[xy]
+        bool machine_firmware_retract; //!< Cache of setting machine_firmware_retract
 
         std::deque<double> extruded_volume_at_previous_n_retractions; // in mm^3
 
@@ -460,6 +462,11 @@ private:
      * \param feature print feature to track print time for
      */
     void writeMoveBFB(const int x, const int y, const int z, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature);
+
+    /*!
+     * Set bed temperature for the initial layer. Called by 'processInitialLayerTemperatures'.
+     */
+    void processInitialLayerBedTemperature();
 
 public:
     /*!

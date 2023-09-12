@@ -5,6 +5,7 @@
 
 #include "Application.h"
 #include "Slice.h"
+#include "plugins/slots.h"
 #include "settings/AdaptiveLayerHeights.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/LayerIndex.h"
@@ -786,7 +787,12 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     polygons.erase(it, polygons.end());
 
     // Finally optimize all the polygons. Every point removed saves time in the long run.
-    polygons = Simplify(mesh->settings).polygon(polygons);
+    //    polygons = Simplify(mesh->settings).polygon(polygons);
+    polygons = slots::instance().modify<plugins::v0::SlotID::SIMPLIFY_MODIFY>(
+        polygons,
+        mesh->settings.get<coord_t>("meshfix_maximum_resolution"),
+        mesh->settings.get<coord_t>("meshfix_maximum_deviation"),
+        static_cast<coord_t>(mesh->settings.get<size_t>("meshfix_maximum_extrusion_area_deviation")));
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 
     // Clean up polylines for Surface Mode printing

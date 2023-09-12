@@ -682,7 +682,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
         std::ifstream cross_fs(cross_subdivision_spec_image_file.c_str());
         if (! cross_subdivision_spec_image_file.empty() && cross_fs.good())
         {
-            mesh.cross_fill_provider = new SierpinskiFillProvider(
+            mesh.cross_fill_provider = std::make_shared<SierpinskiFillProvider>(
                 mesh.bounding_box,
                 mesh.settings.get<coord_t>("infill_line_distance"),
                 mesh.settings.get<coord_t>("infill_line_width"),
@@ -695,7 +695,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
                 spdlog::error("Cannot find density image: {}.", cross_subdivision_spec_image_file);
             }
             mesh.cross_fill_provider
-                = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"));
+                = std::make_shared<SierpinskiFillProvider>(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"));
         }
     }
 
@@ -703,7 +703,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     if (mesh.settings.get<coord_t>("infill_line_distance") > 0 && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::LIGHTNING)
     {
         // TODO: Make all of these into new type pointers (but the cross fill things need to happen too then, otherwise it'd just look weird).
-        mesh.lightning_generator = new LightningGenerator(mesh);
+        mesh.lightning_generator = std::make_shared<LightningGenerator>(mesh);
     }
 
     // combine infill

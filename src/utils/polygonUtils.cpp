@@ -1566,7 +1566,7 @@ Polygons PolygonUtils::unionManySmall(const Polygons& p)
     Polygons a, b;
     a.paths.reserve(p.paths.size() / 2);
     b.paths.reserve(a.paths.size() + 1);
-    for (const auto& [i, path] : p.paths | ranges::view::enumerate)
+    for (const auto& [i, path] : p.paths | ranges::views::enumerate)
     {
         (i % 2 == 0 ? b : a).paths.push_back(path);
     }

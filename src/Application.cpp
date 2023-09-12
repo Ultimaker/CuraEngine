@@ -6,10 +6,13 @@
 #include "FffProcessor.h"
 #include "communication/ArcusCommunication.h" //To connect via Arcus to the front-end.
 #include "communication/CommandLine.h" //To use the command line to slice stuff.
+#include "plugins/slots.h"
 #include "progress/Progress.h"
 #include "utils/ThreadPool.h"
 #include "utils/string.h" //For stringcasecompare.
 
+#include <boost/uuid/random_generator.hpp> //For generating a UUID.
+#include <boost/uuid/uuid_io.hpp> //For generating a UUID.
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <spdlog/cfg/helpers.h>
@@ -27,6 +30,7 @@ namespace cura
 {
 
 Application::Application()
+    : instance_uuid(boost::uuids::to_string(boost::uuids::random_generator()()))
 {
     auto dup_sink = std::make_shared<spdlog::sinks::dup_filter_sink_mt>(std::chrono::seconds{ 10 });
     auto base_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -38,7 +42,7 @@ Application::Application()
     if (auto spdlog_val = spdlog::details::os::getenv("CURAENGINE_LOG_LEVEL"); ! spdlog_val.empty())
     {
         spdlog::cfg::helpers::load_levels(spdlog_val);
-    }
+    };
 }
 
 Application::~Application()
@@ -148,7 +152,7 @@ void Application::printLicense() const
 {
     fmt::print("\n");
     fmt::print("Cura_SteamEngine version {}\n", CURA_ENGINE_VERSION);
-    fmt::print("Copyright (C) 2022 Ultimaker\n");
+    fmt::print("Copyright (C) 2023 Ultimaker\n");
     fmt::print("\n");
     fmt::print("This program is free software: you can redistribute it and/or modify\n");
     fmt::print("it under the terms of the GNU Affero General Public License as published by\n");

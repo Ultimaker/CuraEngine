@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/linearAlg2D.h"
@@ -253,6 +253,13 @@ coord_t LinearAlg2D::getDistFromLine(const Point& p, const Point& a, const Point
     const coord_t area_times_two = std::abs((p.X - b.X) * (p.Y - a.Y) + (a.X - p.X) * (p.Y - b.Y)); // Shoelace formula, factored
     const coord_t px_size = area_times_two / ab_size;
     return px_size;
+}
+
+Point LinearAlg2D::getBisectorVector(const Point& intersect, const Point& a, const Point& b, const coord_t vec_len)
+{
+    const auto a0 = a - intersect;
+    const auto b0 = b - intersect;
+    return (((a0 * vec_len) / std::max(1LL, vSize(a0))) + ((b0 * vec_len) / std::max(1LL, vSize(b0)))) / 2;
 }
 
 } // namespace cura

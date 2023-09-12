@@ -1,3 +1,6 @@
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
+
 #ifndef TREESUPPORTTIPGENERATOR_H
 #define TREESUPPORTTIPGENERATOR_H
 
@@ -22,14 +25,6 @@ class TreeSupportTipGenerator
 {
 public:
     TreeSupportTipGenerator(const SliceDataStorage& storage, const SliceMeshStorage& mesh, TreeModelVolumes& volumes_);
-
-    ~TreeSupportTipGenerator()
-    {
-        if (cross_fill_provider)
-        {
-            delete cross_fill_provider;
-        }
-    }
 
     /*!
      * \brief Generate tips, that will later form branches
@@ -117,7 +112,7 @@ private:
      * \param line_width[in] What is the width of a line used in the infill.
      * \return A valid CrossInfillProvider. Has to be freed manually to avoid a memory leak.
      */
-    SierpinskiFillProvider* generateCrossFillProvider(const SliceMeshStorage& mesh, coord_t line_distance, coord_t line_width) const;
+    std::shared_ptr<SierpinskiFillProvider> generateCrossFillProvider(const SliceMeshStorage& mesh, coord_t line_distance, coord_t line_width) const;
 
 
     /*!
@@ -199,14 +194,14 @@ private:
 
 
     /*!
-     * \brief Minimum area an overhang has to have to become a roof.
-     */
-    const double minimum_roof_area;
-
-    /*!
      * \brief Minimum area an overhang has to have to be supported.
      */
     const double minimum_support_area;
+
+    /*!
+     * \brief Minimum area an overhang has to have to become a roof.
+     */
+    const double minimum_roof_area;
 
     /*!
      * \brief Amount of layers of roof. Zero if roof is disabled
@@ -293,7 +288,7 @@ private:
     /*!
      * \brief Required to generate cross infill patterns
      */
-    SierpinskiFillProvider* cross_fill_provider;
+    std::shared_ptr<SierpinskiFillProvider> cross_fill_provider;
 
     /*!
      * \brief Map that saves locations of already inserted tips. Used to prevent tips far to close together from being added.
