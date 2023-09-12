@@ -23,17 +23,6 @@ coord_t SubDivCube::radius_addition = 0;
 Point3Matrix SubDivCube::rotation_matrix;
 PointMatrix SubDivCube::infill_rotation_matrix;
 
-SubDivCube::~SubDivCube()
-{
-    for (int child_idx = 0; child_idx < 8; child_idx++)
-    {
-        if (children[child_idx])
-        {
-            delete children[child_idx];
-        }
-    }
-}
-
 void SubDivCube::precomputeOctree(SliceMeshStorage& mesh, const Point& infill_origin)
 {
     radius_addition = mesh.settings.get<coord_t>("sub_div_rad_add");
@@ -91,7 +80,7 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh, const Point& infill_or
 
     rotation_matrix = infill_angle_mat.compose(tilt);
 
-    mesh.base_subdiv_cube = new SubDivCube(mesh, center, curr_recursion_depth - 1);
+    mesh.base_subdiv_cube = std::make_shared<SubDivCube>(mesh, center, curr_recursion_depth - 1);
 }
 
 void SubDivCube::generateSubdivisionLines(const coord_t z, Polygons& result)
@@ -189,7 +178,7 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, size_t depth)
         child_center = center + rotation_matrix.apply(rel_child_center * int32_t(cube_properties.side_length / 4));
         if (isValidSubdivision(mesh, child_center, radius))
         {
-            children[child_nr] = new SubDivCube(mesh, child_center, depth - 1);
+            children[child_nr] = std::make_shared<SubDivCube>(mesh, child_center, depth - 1);
             child_nr++;
         }
     }

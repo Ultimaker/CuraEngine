@@ -684,7 +684,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
         std::ifstream cross_fs(cross_subdivision_spec_image_file.c_str());
         if (! cross_subdivision_spec_image_file.empty() && cross_fs.good())
         {
-            mesh.cross_fill_provider = new SierpinskiFillProvider(
+            mesh.cross_fill_provider = std::make_shared<SierpinskiFillProvider>(
                 mesh.bounding_box,
                 mesh.settings.get<coord_t>("infill_line_distance"),
                 mesh.settings.get<coord_t>("infill_line_width"),
@@ -697,7 +697,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
                 spdlog::error("Cannot find density image: {}.", cross_subdivision_spec_image_file);
             }
             mesh.cross_fill_provider
-                = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"));
+                = std::make_shared<SierpinskiFillProvider>(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"));
         }
     }
 
@@ -705,7 +705,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     if (mesh.settings.get<coord_t>("infill_line_distance") > 0 && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::LIGHTNING)
     {
         // TODO: Make all of these into new type pointers (but the cross fill things need to happen too then, otherwise it'd just look weird).
-        mesh.lightning_generator = new LightningGenerator(mesh);
+        mesh.lightning_generator = std::make_shared<LightningGenerator>(mesh);
     }
 
     // combine infill
@@ -824,10 +824,21 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, const La
     SkinInfillAreaComputation skin_infill_area_computation(layer_nr, mesh, process_infill);
     skin_infill_area_computation.generateSkinsAndInfill();
 
-    if (mesh.settings.get<bool>("ironing_enabled") && (! mesh.settings.get<bool>("ironing_only_highest_layer") || mesh.layer_nr_max_filled_layer == layer_nr))
+    if (mesh.settings.get<bool>("ironing_enabled") && (! mesh.settings.get<bool>("ironing_only_highest_layer") || mesh.layer_nr_max_filled_layer == layer_nr)
+        || ! mesh.settings.get<bool>("small_skin_on_surface"))
     {
         // Generate the top surface to iron over.
         mesh.layers[layer_nr].top_surface.setAreasFromMeshAndLayerNumber(mesh, layer_nr);
+    }
+
+    if (layer_nr >= 0 && ! mesh.settings.get<bool>("small_skin_on_surface"))
+    {
+        // Generate the bottom surface.
+        mesh.layers[layer_nr].bottom_surface = mesh.layers[layer_nr].getOutlines();
+        if (layer_nr > 0)
+        {
+            mesh.layers[layer_nr].bottom_surface = mesh.layers[layer_nr].bottom_surface.difference(mesh.layers[layer_nr - 1].getOutlines());
+        }
     }
 }
 

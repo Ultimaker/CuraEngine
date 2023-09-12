@@ -25,10 +25,9 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
-#include <boost/uuid/random_generator.hpp> //For generating a UUID.
-#include <boost/uuid/uuid_io.hpp> //For generating a UUID.
 #include <limits> // numeric_limits
 #include <list>
+#include <memory>
 #include <optional>
 #include <unordered_set>
 
@@ -38,7 +37,7 @@ namespace cura
 FffGcodeWriter::FffGcodeWriter()
     : max_object_height(0)
     , layer_plan_buffer(gcode)
-    , slice_uuid(boost::uuids::to_string(boost::uuids::random_generator()()))
+    , slice_uuid(Application::getInstance().instance_uuid)
 {
     for (unsigned int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
     { // initialize all as max layer_nr, so that they get updated to the lowest layer on which they are used.
@@ -1024,7 +1023,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
             for (size_t mesh_idx : mesh_order)
             {
                 const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-                const PathConfigStorage::MeshPathConfigs& mesh_config = gcode_layer.configs_storage.mesh_configs[mesh_idx];
+                const MeshPathConfigs& mesh_config = gcode_layer.configs_storage.mesh_configs[mesh_idx];
                 if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE
                     && extruder_nr
                            == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr // mesh surface mode should always only be printed with the outer wall extruder!
@@ -1116,6 +1115,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         total_line_count += line.open_polylines.size();
     }
     Polygons all_brim_lines;
+
 
     all_brim_lines.reserve(total_line_count);
 
@@ -1405,11 +1405,8 @@ std::vector<size_t> FffGcodeWriter::calculateMeshOrder(const SliceDataStorage& s
     return ret;
 }
 
-void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(
-    const SliceDataStorage& storage,
-    const SliceMeshStorage& mesh,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
-    LayerPlan& gcode_layer) const
+void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer)
+    const
 {
     if (gcode_layer.getLayerNr() > mesh.layer_nr_max_filled_layer)
     {
@@ -1443,7 +1440,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(
     addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer);
 }
 
-void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const
+void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const
 {
     const SliceLayer* layer = &mesh.layers[gcode_layer.getLayerNr()];
 
@@ -1454,7 +1451,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
     const SliceDataStorage& storage,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     LayerPlan& gcode_layer) const
 {
     if (gcode_layer.getLayerNr() > mesh.layer_nr_max_filled_layer)
@@ -1474,7 +1471,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
         return;
     }
 
-    gcode_layer.setMesh(&mesh);
+    gcode_layer.setMesh(std::make_shared<SliceMeshStorage>(mesh));
 
     ZSeamConfig z_seam_config;
     if (mesh.isPrinted()) //"normal" meshes with walls, skin, infill, etc. get the traditional part ordering based on the z-seam settings.
@@ -1512,7 +1509,7 @@ void FffGcodeWriter::addMeshPartToGCode(
     const SliceDataStorage& storage,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
     LayerPlan& gcode_layer) const
 {
@@ -1554,7 +1551,7 @@ bool FffGcodeWriter::processInfill(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr)
@@ -1571,7 +1568,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr)
@@ -1618,7 +1615,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
             }
 
             constexpr size_t wall_line_count = 0; // wall toolpaths are when gradual infill areas are determined
-            const coord_t small_area_width = mesh.settings.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
+            const coord_t small_area_width = 0;
             constexpr coord_t infill_overlap = 0; // Overlap is handled when the wall toolpaths are generated
             constexpr bool skip_stitching = false;
             constexpr bool connected_zigzags = false;
@@ -1627,10 +1624,10 @@ bool FffGcodeWriter::processMultiLayerInfill(
             constexpr size_t zag_skip_count = 0;
             const bool fill_gaps = density_idx == 0; // Only fill gaps for the lowest density.
 
-            const LightningLayer* lightning_layer = nullptr;
+            std::shared_ptr<LightningLayer> lightning_layer = nullptr;
             if (mesh.lightning_generator)
             {
-                lightning_layer = &mesh.lightning_generator->getTreesForLayer(gcode_layer.getLayerNr());
+                lightning_layer = std::make_shared<LightningLayer>(mesh.lightning_generator->getTreesForLayer(gcode_layer.getLayerNr()));
             }
             Infill infill_comp(
                 infill_pattern,
@@ -1708,7 +1705,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr)
@@ -1823,10 +1820,10 @@ bool FffGcodeWriter::processSingleLayerInfill(
 
         Polygons in_outline = part.infill_area_per_combine_per_density[density_idx][0];
 
-        const LightningLayer* lightning_layer = nullptr;
+        std::shared_ptr<LightningLayer> lightning_layer;
         if (mesh.lightning_generator)
         {
-            lightning_layer = &mesh.lightning_generator->getTreesForLayer(gcode_layer.getLayerNr());
+            lightning_layer = std::make_shared<LightningLayer>(mesh.lightning_generator->getTreesForLayer(gcode_layer.getLayerNr()));
         }
 
         const bool fill_gaps = density_idx == 0; // Only fill gaps in the lowest infill density pattern.
@@ -1835,7 +1832,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
             // infill region with skin above has to have at least one infill wall line
             const size_t min_skin_below_wall_count = wall_line_count > 0 ? wall_line_count : 1;
             const size_t skin_below_wall_count = density_idx == last_idx ? min_skin_below_wall_count : 0;
-            const coord_t small_area_width = mesh.settings.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
+            const coord_t small_area_width = 0;
             wall_tool_paths.emplace_back(std::vector<VariableWidthLines>());
             const coord_t overlap = infill_overlap - (density_idx == last_idx ? 0 : wall_line_count * infill_line_width);
             Infill infill_comp(
@@ -1899,7 +1896,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
         in_outline.removeSmallAreas(minimum_small_area);
 
         constexpr size_t wall_line_count_here = 0; // Wall toolpaths were generated in generateGradualInfill for the sparsest density, denser parts don't have walls by default
-        const coord_t small_area_width = mesh.settings.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
+        const coord_t small_area_width = 0;
         constexpr coord_t overlap = 0; // overlap is already applied for the sparsest density in the generateGradualInfill
 
         wall_tool_paths.emplace_back();
@@ -2172,7 +2169,7 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(
 void FffGcodeWriter::processSpiralizedWall(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
     const SliceMeshStorage& mesh) const
 {
@@ -2210,7 +2207,7 @@ bool FffGcodeWriter::processInsets(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part) const
 {
     bool added_something = false;
@@ -2455,7 +2452,7 @@ bool FffGcodeWriter::processSkin(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part) const
 {
     const size_t top_bottom_extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr;
@@ -2490,7 +2487,7 @@ bool FffGcodeWriter::processSkinPart(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SkinPart& skin_part) const
 {
     bool added_something = false;
@@ -2509,7 +2506,7 @@ void FffGcodeWriter::processRoofing(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SkinPart& skin_part,
     bool& added_something) const
 {
@@ -2550,7 +2547,7 @@ void FffGcodeWriter::processTopBottom(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SkinPart& skin_part,
     bool& added_something) const
 {
@@ -2724,14 +2721,15 @@ void FffGcodeWriter::processTopBottom(
         skin_density,
         monotonic,
         added_something,
-        fan_speed);
+        fan_speed,
+        is_bridge_skin);
 }
 
 void FffGcodeWriter::processSkinPrintFeature(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
-    const PathConfigStorage::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const size_t extruder_nr,
     const Polygons& area,
     const GCodePathConfig& config,
@@ -2741,7 +2739,8 @@ void FffGcodeWriter::processSkinPrintFeature(
     const Ratio skin_density,
     const bool monotonic,
     bool& added_something,
-    double fan_speed) const
+    double fan_speed,
+    const bool is_bridge_skin) const
 {
     Polygons skin_polygons;
     Polygons skin_lines;
@@ -2763,6 +2762,9 @@ void FffGcodeWriter::processSkinPrintFeature(
     constexpr bool skip_some_zags = false;
     constexpr int zag_skip_count = 0;
     constexpr coord_t pocket_size = 0;
+    const bool small_areas_on_surface = mesh.settings.get<bool>("small_skin_on_surface");
+    const auto& current_layer = mesh.layers[gcode_layer.getLayerNr()];
+    const auto& exposed_to_air = current_layer.top_surface.areas.unionPolygons(current_layer.bottom_surface);
 
     Infill infill_comp(
         pattern,
@@ -2788,7 +2790,18 @@ void FffGcodeWriter::processSkinPrintFeature(
         skip_some_zags,
         zag_skip_count,
         pocket_size);
-    infill_comp.generate(skin_paths, skin_polygons, skin_lines, mesh.settings, gcode_layer.getLayerNr(), SectionType::SKIN);
+    infill_comp.generate(
+        skin_paths,
+        skin_polygons,
+        skin_lines,
+        mesh.settings,
+        gcode_layer.getLayerNr(),
+        SectionType::SKIN,
+        nullptr,
+        nullptr,
+        nullptr,
+        small_areas_on_surface ? Polygons() : exposed_to_air,
+        is_bridge_skin);
 
     // add paths
     if (! skin_polygons.empty() || ! skin_lines.empty() || ! skin_paths.empty())
@@ -3113,8 +3126,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 const Polygons& area = part.infill_area_per_combine_per_density[density_idx][combine_idx];
 
                 constexpr size_t wall_count = 0; // Walls are generated somewhere else, so their layers aren't vertically combined.
-                const coord_t small_area_width
-                    = mesh_group_settings.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
+                const coord_t small_area_width = 0;
                 constexpr bool skip_stitching = false;
                 const bool fill_gaps = density_idx == 0; // Only fill gaps for one of the densities.
                 Infill infill_comp(
