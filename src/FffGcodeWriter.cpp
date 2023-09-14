@@ -1471,7 +1471,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
         return;
     }
 
-    gcode_layer.setMesh(std::make_shared<SliceMeshStorage>(mesh));
+    gcode_layer.setMesh(mesh);
 
     ZSeamConfig z_seam_config;
     if (mesh.isPrinted()) //"normal" meshes with walls, skin, infill, etc. get the traditional part ordering based on the z-seam settings.
@@ -1502,7 +1502,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
     {
         addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer);
     }
-    gcode_layer.setMesh(nullptr);
+    gcode_layer.resetMesh();
 }
 
 void FffGcodeWriter::addMeshPartToGCode(

@@ -430,7 +430,7 @@ gcode_paths_modify_response::native_value_type
     gcode_paths_modify_response::operator()(gcode_paths_modify_response::native_value_type& original_value, const gcode_paths_modify_response::value_type& message) const
 {
     std::vector<GCodePath> paths;
-    using map_t = std::unordered_map<std::string, std::shared_ptr<SliceMeshStorage>>;
+    using map_t = std::unordered_map<std::string, const SliceMeshStorage*>;
     auto meshes = original_value
                 | ranges::views::filter(
                       [](const auto& path)

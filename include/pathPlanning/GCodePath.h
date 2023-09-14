@@ -30,7 +30,7 @@ namespace cura
 struct GCodePath
 {
     GCodePathConfig config{}; //!< The configuration settings of the path.
-    std::shared_ptr<SliceMeshStorage> mesh; //!< Which mesh this path belongs to, if any. If it's not part of any mesh, the mesh should be nullptr;
+    const SliceMeshStorage* mesh; //!< Which mesh this path belongs to, if any. If it's not part of any mesh, the mesh should be nullptr;
     SpaceFillType space_fill_type{}; //!< The type of space filling of which this path is a part
     Ratio flow{}; //!< A type-independent flow configuration
     Ratio width_factor{}; //!< Adjustment to the line width. Similar to flow, but causes the speed_back_pressure_factor to be adjusted.

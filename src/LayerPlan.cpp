@@ -282,9 +282,15 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
     }
     return true;
 }
-void LayerPlan::setMesh(const std::shared_ptr<SliceMeshStorage>& mesh)
+
+void LayerPlan::setMesh(const SliceMeshStorage& mesh)
 {
-    current_mesh = mesh;
+    current_mesh = &mesh;
+}
+
+void LayerPlan::resetMesh()
+{
+    current_mesh = nullptr;
 }
 
 void LayerPlan::moveInsideCombBoundary(const coord_t distance, const std::optional<SliceLayerPart>& part)
@@ -1846,7 +1852,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     const bool acceleration_travel_enabled = mesh_group_settings.get<bool>("acceleration_travel_enabled");
     const bool jerk_enabled = mesh_group_settings.get<bool>("jerk_enabled");
     const bool jerk_travel_enabled = mesh_group_settings.get<bool>("jerk_travel_enabled");
-    std::shared_ptr<SliceMeshStorage> current_mesh;
+    const SliceMeshStorage* current_mesh = nullptr;
 
     for (size_t extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
