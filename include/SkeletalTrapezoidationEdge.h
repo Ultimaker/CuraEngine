@@ -80,7 +80,7 @@ public:
     {
         return transitions.use_count() > 0 && (ignore_empty || ! transitions.lock()->empty());
     }
-    void setTransitions(std::shared_ptr<std::list<TransitionMiddle>> storage)
+    void setTransitions(std::shared_ptr<std::list<TransitionMiddle>>& storage)
     {
         transitions = storage;
     }
@@ -93,7 +93,7 @@ public:
     {
         return transition_ends.use_count() > 0 && (ignore_empty || ! transition_ends.lock()->empty());
     }
-    void setTransitionEnds(std::shared_ptr<std::list<TransitionEnd>> storage)
+    void setTransitionEnds(std::shared_ptr<std::list<TransitionEnd>>& storage)
     {
         transition_ends = storage;
     }
@@ -106,7 +106,7 @@ public:
     {
         return extrusion_junctions.use_count() > 0 && (ignore_empty || ! extrusion_junctions.lock()->empty());
     }
-    void setExtrusionJunctions(std::shared_ptr<LineJunctions> storage)
+    void setExtrusionJunctions(std::shared_ptr<LineJunctions>& storage)
     {
         extrusion_junctions = storage;
     }

@@ -43,7 +43,7 @@ public:
     {
         return beading.use_count() > 0;
     }
-    void setBeading(std::shared_ptr<BeadingPropagation> storage)
+    void setBeading(std::shared_ptr<BeadingPropagation>& storage)
     {
         beading = storage;
     }
