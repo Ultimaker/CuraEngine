@@ -4,11 +4,11 @@
 #ifndef SKELETAL_TRAPEZOIDATION_EDGE_H
 #define SKELETAL_TRAPEZOIDATION_EDGE_H
 
-#include <memory> // smart pointers
-#include <list>
-#include <vector>
-
 #include "utils/ExtrusionJunction.h"
+
+#include <list>
+#include <memory> // smart pointers
+#include <vector>
 
 namespace cura
 {
@@ -16,7 +16,12 @@ namespace cura
 class SkeletalTrapezoidationEdge
 {
 private:
-    enum class Central : int { UNKNOWN = -1, NO = 0, YES = 1};
+    enum class Central : int
+    {
+        UNKNOWN = -1,
+        NO = 0,
+        YES = 1
+    };
 
 public:
     /*!
@@ -28,9 +33,11 @@ public:
         int lower_bead_count;
         coord_t feature_radius; // The feature radius at which this transition is placed
         TransitionMiddle(coord_t pos, int lower_bead_count, coord_t feature_radius)
-            : pos(pos), lower_bead_count(lower_bead_count)
+            : pos(pos)
+            , lower_bead_count(lower_bead_count)
             , feature_radius(feature_radius)
-        {}
+        {
+        }
     };
 
     /*!
@@ -42,8 +49,11 @@ public:
         int lower_bead_count;
         bool is_lower_end; // Whether this is the ed of the transition with lower bead count
         TransitionEnd(coord_t pos, int lower_bead_count, bool is_lower_end)
-            : pos(pos), lower_bead_count(lower_bead_count), is_lower_end(is_lower_end)
-        {}
+            : pos(pos)
+            , lower_bead_count(lower_bead_count)
+            , is_lower_end(is_lower_end)
+        {
+        }
     };
 
     enum class EdgeType : int
@@ -55,12 +65,14 @@ public:
     EdgeType type;
 
     SkeletalTrapezoidationEdge()
-    : SkeletalTrapezoidationEdge(EdgeType::NORMAL)
-    {}
+        : SkeletalTrapezoidationEdge(EdgeType::NORMAL)
+    {
+    }
     SkeletalTrapezoidationEdge(const EdgeType& type)
-    : type(type)
-    , is_central(Central::UNKNOWN)
-    {}
+        : type(type)
+        , is_central(Central::UNKNOWN)
+    {
+    }
 
     bool isCentral() const
     {
