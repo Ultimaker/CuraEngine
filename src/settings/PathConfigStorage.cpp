@@ -124,9 +124,9 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
     }
 
     mesh_configs.reserve(storage.meshes.size());
-    for (const SliceMeshStorage& mesh_storage : storage.meshes)
+    for (const auto& mesh_storage : storage.meshes)
     {
-        mesh_configs.emplace_back(mesh_storage, layer_thickness, layer_nr, line_width_factor_per_extruder);
+        mesh_configs.emplace_back(*mesh_storage, layer_thickness, layer_nr, line_width_factor_per_extruder);
     }
 
     support_infill_config.reserve(MAX_INFILL_COMBINE);
@@ -224,7 +224,7 @@ void PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& storag
     { // meshes
         for (size_t mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
         {
-            const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+            const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
 
             const SpeedDerivatives initial_layer_speed_config{ .speed = mesh.settings.get<Velocity>("speed_print_layer_0"),
                                                                .acceleration = mesh.settings.get<Acceleration>("acceleration_print_layer_0"),

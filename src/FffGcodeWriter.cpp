@@ -106,8 +106,9 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     }
 
     size_t total_layers = 0;
-    for (SliceMeshStorage& mesh : storage.meshes)
+    for (auto& mesh_ptr : storage.meshes)
     {
+        auto& mesh = *mesh_ptr;
         size_t mesh_layer_num = mesh.layers.size();
 
         // calculation of _actual_ number of layers in loop.
@@ -269,7 +270,7 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceDataStorage& storage, size_
             const std::vector<size_t>& mesh_order = mesh_order_per_extruder[extruder_nr];
             for (unsigned int mesh_idx : mesh_order)
             {
-                SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+                auto& mesh = *storage.meshes[mesh_idx];
                 // if this mesh has layer data for this layer process it
                 if (! done_this_layer && mesh.layers.size() > layer_nr)
                 {
@@ -371,9 +372,9 @@ void FffGcodeWriter::setConfigRetractionAndWipe(SliceDataStorage& storage)
         ExtruderTrain& train = scene.extruders[extruder_index];
         retractionAndWipeConfigFromSettings(train.settings, &storage.retraction_wipe_config_per_extruder[extruder_index]);
     }
-    for (SliceMeshStorage& mesh : storage.meshes)
+    for (auto& mesh : storage.meshes)
     {
-        retractionAndWipeConfigFromSettings(mesh.settings, &mesh.retraction_wipe_config);
+        retractionAndWipeConfigFromSettings(mesh->settings, &mesh->retraction_wipe_config);
     }
 }
 
@@ -505,9 +506,9 @@ void FffGcodeWriter::setSupportAngles(SliceDataStorage& storage)
             }
             else
             {
-                for (const SliceMeshStorage& mesh : storage.meshes)
+                for (const auto& mesh : storage.meshes)
                 {
-                    if (mesh.settings.get<coord_t>(interface_height_setting)
+                    if (mesh->settings.get<coord_t>(interface_height_setting)
                         >= 2 * Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height"))
                     {
                         // Some roofs are quite thick.
@@ -913,10 +914,11 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
     }
     else
     {
-        z = storage.meshes[0].layers[layer_nr].printZ; // stub default
+        z = storage.meshes[0]->layers[layer_nr].printZ; // stub default
         // find printZ of first actual printed mesh
-        for (const SliceMeshStorage& mesh : storage.meshes)
+        for (const auto& mesh_ptr : storage.meshes)
         {
+            const auto& mesh = *mesh_ptr;
             if (layer_nr >= static_cast<int>(mesh.layers.size()) || mesh.settings.get<bool>("support_mesh") || mesh.settings.get<bool>("anti_overhang_mesh")
                 || mesh.settings.get<bool>("cutting_mesh") || mesh.settings.get<bool>("infill_mesh"))
             {
@@ -951,8 +953,9 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
     }
 
     coord_t max_inner_wall_width = 0;
-    for (const SliceMeshStorage& mesh : storage.meshes)
+    for (const auto& mesh_ptr : storage.meshes)
     {
+        const auto& mesh = *mesh_ptr;
         coord_t mesh_inner_wall_width = mesh.settings.get<coord_t>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
         if (layer_nr == 0)
         {
@@ -1022,14 +1025,14 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
             const std::vector<size_t>& mesh_order = mesh_order_per_extruder[extruder_nr];
             for (size_t mesh_idx : mesh_order)
             {
-                const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+                const auto& mesh = storage.meshes[mesh_idx];
                 const MeshPathConfigs& mesh_config = gcode_layer.configs_storage.mesh_configs[mesh_idx];
-                if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE
+                if (mesh->settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE
                     && extruder_nr
-                           == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr // mesh surface mode should always only be printed with the outer wall extruder!
+                           == mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr // mesh surface mode should always only be printed with the outer wall extruder!
                 )
                 {
-                    addMeshLayerToGCode_meshSurfaceMode(storage, mesh, mesh_config, gcode_layer);
+                    addMeshLayerToGCode_meshSurfaceMode(storage, *mesh, mesh_config, gcode_layer);
                 }
                 else
                 {
@@ -1382,7 +1385,7 @@ std::vector<size_t> FffGcodeWriter::calculateMeshOrder(const SliceDataStorage& s
     std::vector<MeshGroup>::iterator mesh_group = Application::getInstance().current_slice->scene.current_mesh_group;
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
-        const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+        const auto& mesh = *storage.meshes[mesh_idx];
         if (mesh.getExtruderIsUsed(extruder_nr))
         {
             const Mesh& mesh_data = mesh_group->meshes[mesh_idx];
@@ -1449,11 +1452,12 @@ void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, c
 
 void FffGcodeWriter::addMeshLayerToGCode(
     const SliceDataStorage& storage,
-    const SliceMeshStorage& mesh,
+    const std::shared_ptr<SliceMeshStorage>& mesh_ptr,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     LayerPlan& gcode_layer) const
 {
+    const auto& mesh = *mesh_ptr;
     if (gcode_layer.getLayerNr() > mesh.layer_nr_max_filled_layer)
     {
         return;
@@ -1471,7 +1475,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
         return;
     }
 
-    gcode_layer.setMesh(std::make_shared<SliceMeshStorage>(mesh));
+    gcode_layer.setMesh(mesh_ptr);
 
     ZSeamConfig z_seam_config;
     if (mesh.isPrinted()) //"normal" meshes with walls, skin, infill, etc. get the traditional part ordering based on the z-seam settings.
@@ -2259,8 +2263,9 @@ bool FffGcodeWriter::processInsets(
 
         Polygons outlines_below;
         AABB boundaryBox(part.outline);
-        for (const SliceMeshStorage& m : storage.meshes)
+        for (const auto& mesh_ptr : storage.meshes)
         {
+            const auto& m = *mesh_ptr;
             if (m.isPrinted())
             {
                 for (const SliceLayerPart& prevLayerPart : m.layers[gcode_layer.getLayerNr() - 1].parts)

@@ -300,16 +300,16 @@ Polygons
         Polygons total;
         if (layer_nr >= 0)
         {
-            for (const SliceMeshStorage& mesh : meshes)
+            for (const auto& mesh : meshes)
             {
-                if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh")
-                    || (extruder_nr != -1 && extruder_nr != int(mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)))
+                if (mesh->settings.get<bool>("infill_mesh") || mesh->settings.get<bool>("anti_overhang_mesh")
+                    || (extruder_nr != -1 && extruder_nr != int(mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)))
                 {
                     continue;
                 }
-                const SliceLayer& layer = mesh.layers[layer_nr];
+                const SliceLayer& layer = mesh->layers[layer_nr];
                 layer.getOutlines(total, external_polys_only);
-                if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+                if (mesh->settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
                     total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(MM2INT(0.1)));
                 }
@@ -381,9 +381,9 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
 
     // support
     // support is presupposed to be present...
-    for (const SliceMeshStorage& mesh : meshes)
+    for (const auto& mesh : meshes)
     {
-        if (mesh.settings.get<bool>("support_enable") || mesh.settings.get<bool>("support_mesh"))
+        if (mesh->settings.get<bool>("support_enable") || mesh->settings.get<bool>("support_mesh"))
         {
             ret[mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr] = true;
             ret[mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr] = true;
@@ -399,11 +399,11 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     }
 
     // all meshes are presupposed to actually have content
-    for (const SliceMeshStorage& mesh : meshes)
+    for (const auto& mesh : meshes)
     {
         for (unsigned int extruder_nr = 0; extruder_nr < ret.size(); extruder_nr++)
         {
-            ret[extruder_nr] = ret[extruder_nr] || mesh.getExtruderIsUsed(extruder_nr);
+            ret[extruder_nr] = ret[extruder_nr] || mesh->getExtruderIsUsed(extruder_nr);
         }
     }
     return ret;
@@ -508,11 +508,11 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) 
 
     if (include_models)
     {
-        for (const SliceMeshStorage& mesh : meshes)
+        for (const auto& mesh : meshes)
         {
             for (unsigned int extruder_nr = 0; extruder_nr < ret.size(); extruder_nr++)
             {
-                ret[extruder_nr] = ret[extruder_nr] || mesh.getExtruderIsUsed(extruder_nr, layer_nr);
+                ret[extruder_nr] = ret[extruder_nr] || mesh->getExtruderIsUsed(extruder_nr, layer_nr);
             }
         }
     }

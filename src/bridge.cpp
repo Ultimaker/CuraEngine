@@ -24,8 +24,9 @@ int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const Sl
     const Ratio sparse_infill_max_density = settings.get<Ratio>("bridge_sparse_infill_max_density");
 
     // include parts from all meshes
-    for (const SliceMeshStorage& mesh : storage.meshes)
+    for (const auto& mesh_ptr : storage.meshes)
     {
+        const auto& mesh = *mesh_ptr;
         if (mesh.isPrinted())
         {
             const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
