@@ -9,6 +9,7 @@
 
 #include "utils/polygon.h" // Polygons
 #include "utils/polygonUtils.h"
+#include "ExtruderPrime.h"
 
 namespace cura 
 {
@@ -86,7 +87,7 @@ public:
      * \param prev_extruder The previous extruder with which paths were planned; from which extruder a switch was made
      * \param new_extruder The switched to extruder with which the prime tower paths should be generated.
      */
-    void addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const std::vector<bool> &required_extruder_prime, const size_t prev_extruder, const size_t new_extruder) const;
+    void addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const std::vector<ExtruderPrime> &required_extruder_prime, const size_t prev_extruder, const size_t new_extruder) const;
 
     /*!
      * \brief Subtract the prime tower from the support areas in storage.
@@ -153,7 +154,7 @@ private:
     void addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t extruder) const;
 
     #warning TBD documentation
-    void addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::vector<bool>& required_extruder_prime, const size_t current_extruder, std::vector<size_t>& primed_extruders) const;
+    void addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::vector<ExtruderPrime> &required_extruder_prime, const size_t current_extruder, std::vector<size_t>& primed_extruders, bool group_with_next_extruders) const;
 
     /*!
      * For an extruder switch that happens not on the first layer, the extruder needs to be primed on the prime tower.

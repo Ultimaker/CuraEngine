@@ -4,6 +4,7 @@
 #ifndef GCODE_WRITER_H
 #define GCODE_WRITER_H
 
+#include "ExtruderPrime.h"
 #include "FanSpeedLayerTime.h"
 #include "LayerPlanBuffer.h"
 #include "gcodeExport.h"
@@ -70,7 +71,7 @@ private:
 
     std::vector<std::vector<size_t>> mesh_order_per_extruder; //!< For each extruder, the order of the meshes (first element is first mesh to be printed)
 
-    std::vector<std::vector<bool>> extruder_prime_required_by_layer; //!< For each layer, indicates which extruders actually require to be primed
+    std::vector<std::vector<ExtruderPrime>> extruder_prime_required_by_layer; //!< For each layer, indicates which extruders actually require to be primed
 
     /*!
      * For each extruder on which layer the prime will be planned,
@@ -280,6 +281,12 @@ private:
      */
     void calculatePrimeLayerPerExtruder(const SliceDataStorage& storage);
 
+    struct ExtruderUse
+    {
+        size_t extruder_nr;
+        ExtruderPrime prime;
+    };
+
     /*!
      * Gets a list of extruders that are used on the given layer, but excluding the given starting extruder.
      * When it's on the first layer, the prime blob will also be taken into account.
@@ -291,7 +298,7 @@ private:
      * \param current_extruder The current extruder with which we last printed
      * \return The order of extruders for a layer beginning with \p current_extruder
      */
-    std::vector<size_t> getUsedExtrudersOnLayerExcludingStartingExtruder(const SliceDataStorage& storage, const size_t start_extruder, const LayerIndex& layer_nr) const;
+    std::vector<ExtruderUse> getUsedExtrudersOnLayerExcludingStartingExtruder(const SliceDataStorage& storage, const size_t start_extruder, const LayerIndex& layer_nr) const;
 
     /*!
      * Calculate in which order to plan the meshes of a specific extruder
