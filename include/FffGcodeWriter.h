@@ -333,7 +333,12 @@ private:
      * \param mesh_config the line config with which to print a print feature
      * \param gcode_layer The initial planning of the gcode of the layer.
      */
-    void addMeshLayerToGCode(const SliceDataStorage& storage, const std::shared_ptr<SliceMeshStorage>& mesh_ptr, const size_t extruder_nr, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const;
+    void addMeshLayerToGCode(
+        const SliceDataStorage& storage,
+        const std::shared_ptr<SliceMeshStorage>& mesh_ptr,
+        const size_t extruder_nr,
+        const MeshPathConfigs& mesh_config,
+        LayerPlan& gcode_layer) const;
 
     /*!
      * Add all features of the given extruder from a single part from a given layer of a mesh-volume to the layer plan \p gcode_layer.

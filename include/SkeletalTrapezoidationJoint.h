@@ -1,13 +1,13 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2020 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SKELETAL_TRAPEZOIDATION_JOINT_H
 #define SKELETAL_TRAPEZOIDATION_JOINT_H
 
-#include <memory> // smart pointers
-
 #include "BeadingStrategy/BeadingStrategy.h"
 #include "utils/IntPoint.h"
+
+#include <memory> // smart pointers
 
 namespace cura
 {
@@ -15,6 +15,7 @@ namespace cura
 class SkeletalTrapezoidationJoint
 {
     using Beading = BeadingStrategy::Beading;
+
 public:
     struct BeadingPropagation
     {
@@ -27,17 +28,20 @@ public:
             , dist_to_bottom_source(0)
             , dist_from_top_source(0)
             , is_upward_propagated_only(false)
-        {}
+        {
+        }
     };
 
     coord_t distance_to_boundary;
     coord_t bead_count;
-    float transition_ratio; //! The distance near the skeleton to leave free because this joint is in the middle of a transition, as a fraction of the inner bead width of the bead at the higher transition.
+    float transition_ratio; //! The distance near the skeleton to leave free because this joint is in the middle of a transition, as a fraction of the inner bead width of the bead
+                            //! at the higher transition.
     SkeletalTrapezoidationJoint()
-    : distance_to_boundary(-1)
-    , bead_count(-1)
-    , transition_ratio(0)
-    {}
+        : distance_to_boundary(-1)
+        , bead_count(-1)
+        , transition_ratio(0)
+    {
+    }
 
     bool hasBeading() const
     {
@@ -53,7 +57,6 @@ public:
     }
 
 private:
-
     std::weak_ptr<BeadingPropagation> beading;
 };
 

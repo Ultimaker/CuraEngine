@@ -275,7 +275,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         Mesh& mesh = scene.current_mesh_group->meshes[meshIdx];
 
         // always make a new SliceMeshStorage, so that they have the same ordering / indexing as meshgroup.meshes
-        storage.meshes.push_back(std::make_shared<SliceMeshStorage>(& meshgroup->meshes[meshIdx], slicer->layers.size())); // new mesh in storage had settings from the Mesh
+        storage.meshes.push_back(std::make_shared<SliceMeshStorage>(&meshgroup->meshes[meshIdx], slicer->layers.size())); // new mesh in storage had settings from the Mesh
         auto& meshStorage = *storage.meshes.back();
 
         // only create layer parts for normal meshes
