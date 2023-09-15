@@ -33,8 +33,8 @@ public:
      */
     Validator(const slot_metadata& slot_info, const plugin_metadata& plugin_info)
     {
-        auto slot_range = semver::range::detail::range(slot_info.version_range);
-        auto slot_version = semver::from_string(plugin_info.slot_version);
+        auto slot_range = semver::range::detail::range(plugin_info.slot_version_range);
+        auto slot_version = semver::from_string(slot_info.version);
         valid_ = slot_range.satisfies(slot_version, include_prerelease_);
     };
 

@@ -28,19 +28,19 @@ namespace cura::plugins
  * for communication with plugins assigned to the slot. It delegates plugin requests to the
  * corresponding PluginProxy object and provides a default behavior when no plugin is available.
  *
- * @tparam Slot The plugin slot ID.
- * @tparam Validator The type used for validating the plugin.
+ * @tparam SlotID The plugin slot ID.
+ * @tparam SlotVersion The version of the indicated slot.
  * @tparam Stub The process stub type.
- * @tparam Prepare The prepare type.
- * @tparam Request The gRPC convertible request type.
- * @tparam Response The gRPC convertible response type.
+ * @tparam ValidatorTp The type used for validating the plugin.
+ * @tparam RequestTp The gRPC convertible request type.
+ * @tparam ResponseTp The gRPC convertible response type.
  * @tparam Default The default behavior when no plugin is available.
  */
-template<plugins::v0::SlotID SlotID, utils::CharRangeLiteral SlotVersionRng, class Stub, class ValidatorTp, class RequestTp, class ResponseTp, class Default>
+template<plugins::v0::SlotID SlotID, utils::CharRangeLiteral SlotVersion, class Stub, class ValidatorTp, class RequestTp, class ResponseTp, class Default>
 class SlotProxy
 {
     Default default_process{};
-    using value_type = PluginProxy<SlotID, SlotVersionRng, Stub, ValidatorTp, RequestTp, ResponseTp>;
+    using value_type = PluginProxy<SlotID, SlotVersion, Stub, ValidatorTp, RequestTp, ResponseTp>;
     std::optional<value_type> plugin_{ std::nullopt };
 
 public:

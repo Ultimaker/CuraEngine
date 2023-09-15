@@ -70,7 +70,7 @@ handshake_request::value_type handshake_request::operator()(const std::string& n
 {
     value_type message{};
     message.set_slot_id(slot_info.slot_id);
-    message.set_version_range(slot_info.version_range.data());
+    message.set_version(slot_info.version.data());
     message.set_plugin_name(name);
     message.set_plugin_version(version);
     return message;
@@ -78,7 +78,7 @@ handshake_request::value_type handshake_request::operator()(const std::string& n
 
 handshake_response::native_value_type handshake_response::operator()(const handshake_response::value_type& message, std::string_view peer) const
 {
-    return { .slot_version = message.slot_version(),
+    return { .slot_version_range = message.slot_version_range(),
              .plugin_name = message.plugin_name(),
              .plugin_version = message.plugin_version(),
              .peer = std::string{ peer },
