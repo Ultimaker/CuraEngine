@@ -49,8 +49,9 @@ TreeModelVolumes::TreeModelVolumes(
     coord_t min_maximum_area_deviation = std::numeric_limits<coord_t>::max();
 
     support_rests_on_model = false;
-    for (auto [mesh_idx, mesh] : storage.meshes | ranges::views::enumerate)
+    for (auto [mesh_idx, mesh_ptr] : storage.meshes | ranges::views::enumerate)
     {
+        auto& mesh = *mesh_ptr;
         bool added = false;
         for (auto [idx, layer_outline] : layer_outlines_ | ranges::views::enumerate)
         {
@@ -103,7 +104,7 @@ TreeModelVolumes::TreeModelVolumes(
     {
         // Workaround for compiler bug on apple-clang -- Closure won't properly capture variables in capture lists in outer scope.
         const auto& mesh_idx_l = mesh_idx;
-        const auto& mesh_l = mesh;
+        const auto& mesh_l = *mesh;
         // ^^^ Remove when fixed (and rename accordingly in the below parallel-for).
 
         cura::parallel_for<coord_t>(

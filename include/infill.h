@@ -203,8 +203,8 @@ public:
         const Settings& settings,
         int layer_idx,
         SectionType section_type,
-        const std::shared_ptr<SierpinskiFillProvider> cross_fill_provider = nullptr,
-        const std::shared_ptr<LightningLayer> lightning_layer = nullptr,
+        const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider = nullptr,
+        const std::shared_ptr<LightningLayer>& lightning_layer = nullptr,
         const SliceMeshStorage* mesh = nullptr,
         const Polygons& prevent_small_exposed_to_air = Polygons(),
         const bool is_bridge_skin = false);
@@ -242,8 +242,8 @@ private:
         Polygons& result_polygons,
         Polygons& result_lines,
         const Settings& settings,
-        const std::shared_ptr<SierpinskiFillProvider> cross_fill_pattern = nullptr,
-        const std::shared_ptr<LightningLayer> lightning_layer = nullptr,
+        const std::shared_ptr<SierpinskiFillProvider>& cross_fill_pattern = nullptr,
+        const std::shared_ptr<LightningLayer>& lightning_layer = nullptr,
         const SliceMeshStorage* mesh = nullptr);
 
     /*!
@@ -402,7 +402,7 @@ private:
      * see https://hal.archives-ouvertes.fr/hal-02155929/document
      * \param result (output) The resulting polygons
      */
-    void generateLightningInfill(const std::shared_ptr<LightningLayer> lightning_layer, Polygons& result_lines);
+    void generateLightningInfill(const std::shared_ptr<LightningLayer>& lightning_layer, Polygons& result_lines);
 
     /*!
      * Generate sparse concentric infill

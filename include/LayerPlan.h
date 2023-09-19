@@ -70,7 +70,7 @@ private:
     std::vector<bool> has_prime_tower_planned_per_extruder; //!< For each extruder, whether the prime tower is planned yet or not.
     std::optional<Point> last_planned_position; //!< The last planned XY position of the print head (if known)
 
-    std::shared_ptr<SliceMeshStorage> current_mesh; //!< The mesh of the last planned move.
+    std::shared_ptr<const SliceMeshStorage> current_mesh; //!< The mesh of the last planned move.
 
     /*!
      * Whether the skirt or brim polygons have been processed into planned paths
@@ -238,7 +238,7 @@ public:
      * Track the currently printing mesh.
      * \param mesh_id A unique ID indicating the current mesh.
      */
-    void setMesh(const std::shared_ptr<SliceMeshStorage>& mesh);
+    void setMesh(const std::shared_ptr<const SliceMeshStorage>& mesh);
 
     /*!
      * Set bridge_wall_mask.
