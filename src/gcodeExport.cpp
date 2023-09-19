@@ -763,7 +763,7 @@ void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage
 
         processInitialLayerBedTemperature();
 
-        if (scene.current_mesh_group->settings.get<bool>("material_print_temp_prepend"))
+        if (scene.current_mesh_group->settings.get<bool>("material_print_temp_prepend") || (scene.current_mesh_group != scene.mesh_groups.begin()))
         {
             for (unsigned extruder_nr = 0; extruder_nr < num_extruders; extruder_nr++)
             {
