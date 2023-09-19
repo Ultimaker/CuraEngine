@@ -159,8 +159,9 @@ Polygons LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
         }
         else
         {
-            for (const SliceMeshStorage& mesh : storage.meshes)
+            for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
             {
+                const auto& mesh = *mesh_ptr;
                 const SliceLayer& layer = mesh.layers[static_cast<size_t>(layer_nr)];
                 // don't process infill_mesh or anti_overhang_mesh
                 if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
@@ -282,7 +283,7 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
     }
     return true;
 }
-void LayerPlan::setMesh(const std::shared_ptr<SliceMeshStorage>& mesh)
+void LayerPlan::setMesh(const std::shared_ptr<const SliceMeshStorage>& mesh)
 {
     current_mesh = mesh;
 }
@@ -1187,9 +1188,9 @@ void LayerPlan::addLinesByOptimizer(
         if (layer_nr >= 0)
         {
             // determine how much the skin/infill lines overlap the combing boundary
-            for (const SliceMeshStorage& mesh : storage.meshes)
+            for (const std::shared_ptr<SliceMeshStorage>& mesh : storage.meshes)
             {
-                const coord_t overlap = std::max(mesh.settings.get<coord_t>("skin_overlap_mm"), mesh.settings.get<coord_t>("infill_overlap_mm"));
+                const coord_t overlap = std::max(mesh->settings.get<coord_t>("skin_overlap_mm"), mesh->settings.get<coord_t>("infill_overlap_mm"));
                 if (overlap > dist)
                 {
                     dist = overlap;
@@ -1846,7 +1847,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     const bool acceleration_travel_enabled = mesh_group_settings.get<bool>("acceleration_travel_enabled");
     const bool jerk_enabled = mesh_group_settings.get<bool>("jerk_enabled");
     const bool jerk_travel_enabled = mesh_group_settings.get<bool>("jerk_travel_enabled");
-    std::shared_ptr<SliceMeshStorage> current_mesh;
+    std::shared_ptr<const SliceMeshStorage> current_mesh;
 
     for (size_t extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
