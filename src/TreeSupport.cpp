@@ -39,7 +39,7 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
 {
     size_t largest_printed_mesh_idx = 0;
 
-    for (const auto& mesh_ptr : storage.meshes)
+    for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
     {
         const auto& mesh = *mesh_ptr;
         TreeSupportSettings::some_model_contains_thick_roof |= mesh.settings.get<coord_t>("support_roof_height") >= 2 * mesh.settings.get<coord_t>("layer_height");
@@ -52,7 +52,7 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
     // Only one setting object is needed per group, as different settings in the same group may only occur in the tip, which uses the original settings objects from the meshes.
     for (auto [mesh_idx, mesh_ptr] : storage.meshes | ranges::views::enumerate)
     {
-        auto& mesh = *mesh_ptr;
+        SliceMeshStorage& mesh = *mesh_ptr;
         const bool non_supportable_mesh = mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh") || mesh.settings.get<bool>("support_mesh");
         if (mesh.settings.get<ESupportStructure>("support_structure") != ESupportStructure::TREE || ! mesh.settings.get<bool>("support_enable") || non_supportable_mesh)
         {

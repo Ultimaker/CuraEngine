@@ -599,7 +599,7 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
 
 void AreaSupport::generateOverhangAreas(SliceDataStorage& storage)
 {
-    for (auto& mesh_ptr : storage.meshes)
+    for (std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
     {
         auto& mesh = *mesh_ptr;
         if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))

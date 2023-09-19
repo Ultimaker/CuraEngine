@@ -276,7 +276,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
         // always make a new SliceMeshStorage, so that they have the same ordering / indexing as meshgroup.meshes
         storage.meshes.push_back(std::make_shared<SliceMeshStorage>(&meshgroup->meshes[meshIdx], slicer->layers.size())); // new mesh in storage had settings from the Mesh
-        auto& meshStorage = *storage.meshes.back();
+        SliceMeshStorage& meshStorage = *storage.meshes.back();
 
         // only create layer parts for normal meshes
         const bool is_support_modifier = AreaSupport::handleSupportModifierMesh(storage, mesh.settings, slicer);
@@ -347,7 +347,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     // compute layer count and remove first empty layers
     // there is no separate progress stage for removeEmptyFisrtLayer (TODO)
     unsigned int slice_layer_count = 0;
-    for (auto& mesh_ptr : storage.meshes)
+    for (std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
     {
         auto& mesh = *mesh_ptr;
         if (! mesh.settings.get<bool>("infill_mesh") && ! mesh.settings.get<bool>("anti_overhang_mesh"))
@@ -433,7 +433,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     spdlog::debug("Meshes post-processing");
     // meshes post processing
-    for (auto& mesh : storage.meshes)
+    for (std::shared_ptr<SliceMeshStorage>& mesh : storage.meshes)
     {
         processDerivedWallsSkinInfill(*mesh);
     }
@@ -742,7 +742,7 @@ bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const LayerInd
             return false;
         }
     }
-    for (auto& mesh_ptr : storage.meshes)
+    for (std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
     {
         auto& mesh = *mesh_ptr;
         if (layer_idx >= mesh.layers.size())
@@ -855,7 +855,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
     max_print_height_per_extruder.resize(extruder_count, -(raft_layers + 1)); // Initialize all as -1 (or lower in case of raft).
     { // compute max_object_height_per_extruder
         // Height of the meshes themselves.
-        for (auto& mesh_ptr : storage.meshes)
+        for (std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
         {
             auto& mesh = *mesh_ptr;
             if (mesh.settings.get<bool>("anti_overhang_mesh") || mesh.settings.get<bool>("support_mesh"))

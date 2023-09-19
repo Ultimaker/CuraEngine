@@ -32,7 +32,7 @@ int bridgeAngle(
     const Ratio sparse_infill_max_density = settings.get<Ratio>("bridge_sparse_infill_max_density");
 
     // include parts from all meshes
-    for (const auto& mesh_ptr : storage.meshes)
+    for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
     {
         const auto& mesh = *mesh_ptr;
         if (mesh.isPrinted())

@@ -124,7 +124,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
     }
 
     mesh_configs.reserve(storage.meshes.size());
-    for (const auto& mesh_storage : storage.meshes)
+    for (const std::shared_ptr<SliceMeshStorage>& mesh_storage : storage.meshes)
     {
         mesh_configs.emplace_back(*mesh_storage, layer_thickness, layer_nr, line_width_factor_per_extruder);
     }

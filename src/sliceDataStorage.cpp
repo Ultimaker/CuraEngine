@@ -300,7 +300,7 @@ Polygons
         Polygons total;
         if (layer_nr >= 0)
         {
-            for (const auto& mesh : meshes)
+            for (const std::shared_ptr<SliceMeshStorage>& mesh : meshes)
             {
                 if (mesh->settings.get<bool>("infill_mesh") || mesh->settings.get<bool>("anti_overhang_mesh")
                     || (extruder_nr != -1 && extruder_nr != int(mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)))
@@ -381,7 +381,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
 
     // support
     // support is presupposed to be present...
-    for (const auto& mesh : meshes)
+    for (const std::shared_ptr<SliceMeshStorage>& mesh : meshes)
     {
         if (mesh->settings.get<bool>("support_enable") || mesh->settings.get<bool>("support_mesh"))
         {
@@ -399,7 +399,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     }
 
     // all meshes are presupposed to actually have content
-    for (const auto& mesh : meshes)
+    for (const std::shared_ptr<SliceMeshStorage>& mesh : meshes)
     {
         for (unsigned int extruder_nr = 0; extruder_nr < ret.size(); extruder_nr++)
         {
@@ -508,7 +508,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) 
 
     if (include_models)
     {
-        for (const auto& mesh : meshes)
+        for (const std::shared_ptr<SliceMeshStorage>& mesh : meshes)
         {
             for (unsigned int extruder_nr = 0; extruder_nr < ret.size(); extruder_nr++)
             {

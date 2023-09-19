@@ -159,7 +159,7 @@ Polygons LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
         }
         else
         {
-            for (const auto& mesh_ptr : storage.meshes)
+            for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
             {
                 const auto& mesh = *mesh_ptr;
                 const SliceLayer& layer = mesh.layers[static_cast<size_t>(layer_nr)];
@@ -1188,7 +1188,7 @@ void LayerPlan::addLinesByOptimizer(
         if (layer_nr >= 0)
         {
             // determine how much the skin/infill lines overlap the combing boundary
-            for (const auto& mesh : storage.meshes)
+            for (const std::shared_ptr<SliceMeshStorage>& mesh : storage.meshes)
             {
                 const coord_t overlap = std::max(mesh->settings.get<coord_t>("skin_overlap_mm"), mesh->settings.get<coord_t>("infill_overlap_mm"));
                 if (overlap > dist)
