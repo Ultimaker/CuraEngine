@@ -2403,7 +2403,6 @@ void LayerPlan::applyModifyPlugin()
             scripta::CellVDI{ "fan_speed", &GCodePath::getFanSpeed },
             scripta::CellVDI{ "is_travel_path", &GCodePath::isTravelPath },
             scripta::CellVDI{ "extrusion_mm3_per_mm", &GCodePath::getExtrusionMM3perMM });
-
     }
 }
 
