@@ -28,13 +28,13 @@ public:
 
     ValidatorException(const auto& validator, const slot_metadata& slot_info, const plugin_metadata& plugin_info) noexcept
         : msg_(fmt::format(
-            "Failed to validate plugin '{}-{}' running at [{}] for slot '{}', slot range '{}' incompatible with plugin slot version '{}'",
+            "Failed to validate plugin '{}-{}' running at [{}] for slot '{}', version '{}' incompatible with plugin specified slot-version-range '{}'.",
             plugin_info.plugin_name,
             plugin_info.plugin_version,
             plugin_info.peer,
             slot_info.slot_id,
-            slot_info.version_range,
-            plugin_info.slot_version))
+            slot_info.version,
+            plugin_info.slot_version_range))
     {
     }
 

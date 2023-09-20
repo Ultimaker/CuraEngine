@@ -18,7 +18,7 @@ namespace cura::plugins
 
 struct plugin_metadata
 {
-    std::string slot_version;
+    std::string slot_version_range;
     std::string plugin_name;
     std::string plugin_version;
     std::string peer;
@@ -28,7 +28,7 @@ struct plugin_metadata
 struct slot_metadata
 {
     plugins::v0::SlotID slot_id;
-    std::string_view version_range;
+    std::string_view version;
     std::string_view engine_uuid;
 };
 
