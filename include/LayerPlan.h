@@ -705,6 +705,11 @@ public:
     void moveInsideCombBoundary(const coord_t distance, const std::optional<SliceLayerPart>& part = std::nullopt);
 
     /*!
+     * If enabled, apply the modify plugin to the layer-plan.
+     */
+    void applyModifyPlugin();
+
+    /*!
      * Apply back-pressure compensation to this layer-plan.
      * Since the total (filament) pressure in a feeder-system is not only dependent on the pressure that exists between the nozzle and the
      * feed-mechanism (which should be near-constant on a bowden style setup), but _also_ between the nozzle and the last-printed layer. This last

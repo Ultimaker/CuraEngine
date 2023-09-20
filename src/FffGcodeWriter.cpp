@@ -1049,6 +1049,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         }
     }
 
+    gcode_layer.applyModifyPlugin();
     gcode_layer.applyBackPressureCompensation();
     return gcode_layer;
 }
