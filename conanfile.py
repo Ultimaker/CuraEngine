@@ -40,7 +40,7 @@ class CuraEngineConan(ConanFile):
 
     def set_version(self):
         if not self.version:
-            self.version = "5.5.0-alpha"
+            self.version = "5.5.0-beta.1"
 
     def export_sources(self):
         copy(self, "CMakeLists.txt", self.recipe_folder, self.export_sources_folder)
@@ -82,10 +82,10 @@ class CuraEngineConan(ConanFile):
 
     def requirements(self):
         if self.options.enable_arcus:
-            self.requires("arcus/5.3.0")
+            self.requires("arcus/(latest)@ultimaker/stable")
         self.requires("asio-grpc/2.6.0")
         self.requires("grpc/1.50.1")
-        self.requires("curaengine_grpc_definitions/(latest)@ultimaker/testing")
+        self.requires("curaengine_grpc_definitions/(latest)@ultimaker/stable")
         self.requires("clipper/6.4.2")
         self.requires("boost/1.82.0")
         self.requires("rapidjson/1.1.0")
