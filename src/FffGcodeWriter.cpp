@@ -3332,7 +3332,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     const coord_t leftover_support_distance = support_top_distance % layer_height;
 
     auto infill_outlines = { support_layer.support_roof.difference(support_layer.support_fractional_roof_top), support_layer.support_fractional_roof_top };
-    auto current_roof_config = gcode_layer.configs_storage.support_roof_config;  // copy!
+    auto current_roof_config = gcode_layer.configs_storage.support_roof_config; // copy!
     bool generated_something = false;
     for (auto infill_outline : infill_outlines)
     {
@@ -3382,13 +3382,13 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
         {
             gcode_layer.addPolygonsByOptimizer(wall, current_roof_config);
         }
-        if (!roof_polygons.empty())
+        if (! roof_polygons.empty())
         {
             constexpr bool force_comb_retract = false;
             gcode_layer.addTravel(roof_polygons[0][0], force_comb_retract);
             gcode_layer.addPolygonsByOptimizer(roof_polygons, current_roof_config);
         }
-        if (!roof_paths.empty())
+        if (! roof_paths.empty())
         {
             const GCodePathConfig& config = current_roof_config;
             constexpr bool retract_before_outer_wall = false;

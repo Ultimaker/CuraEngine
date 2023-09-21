@@ -47,7 +47,8 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
 {
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
     if (paths.size() > 0 && paths.back().config == config && ! paths.back().done && paths.back().flow == flow && paths.back().width_factor == width_factor
-        && paths.back().speed_factor == speed_factor && paths.back().z_offset == z_offset && paths.back().mesh == current_mesh) // spiralize can only change when a travel path is in between
+        && paths.back().speed_factor == speed_factor && paths.back().z_offset == z_offset
+        && paths.back().mesh == current_mesh) // spiralize can only change when a travel path is in between
     {
         return &paths.back();
     }
