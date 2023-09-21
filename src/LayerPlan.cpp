@@ -38,19 +38,21 @@ constexpr int MINIMUM_SQUARED_LINE_LENGTH = MINIMUM_LINE_LENGTH * MINIMUM_LINE_L
 
 GCodePath* LayerPlan::getLatestPathWithConfig(
     const GCodePathConfig& config,
-    SpaceFillType space_fill_type,
+    const coord_t z_offset,
+    const SpaceFillType space_fill_type,
     const Ratio flow,
     const Ratio width_factor,
-    bool spiralize,
+    const bool spiralize,
     const Ratio speed_factor)
 {
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
     if (paths.size() > 0 && paths.back().config == config && ! paths.back().done && paths.back().flow == flow && paths.back().width_factor == width_factor
-        && paths.back().speed_factor == speed_factor && paths.back().mesh == current_mesh) // spiralize can only change when a travel path is in between
+        && paths.back().speed_factor == speed_factor && paths.back().z_offset == z_offset && paths.back().mesh == current_mesh) // spiralize can only change when a travel path is in between
     {
         return &paths.back();
     }
-    paths.emplace_back(GCodePath{ .config = config,
+    paths.emplace_back(GCodePath{ .z_offset = z_offset,
+                                  .config = config,
                                   .mesh = current_mesh,
                                   .space_fill_type = space_fill_type,
                                   .flow = flow,
@@ -326,14 +328,14 @@ std::optional<std::pair<Point, bool>> LayerPlan::getFirstTravelDestinationState(
     return ret;
 }
 
-GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
+GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract, const coord_t z_offset)
 {
     const GCodePathConfig& travel_config = configs_storage.travel_config_per_extruder[getExtruder()];
 
     const RetractionConfig& retraction_config
         = current_mesh ? current_mesh->retraction_wipe_config.retraction_config : storage.retraction_wipe_config_per_extruder[getExtruder()].retraction_config;
 
-    GCodePath* path = getLatestPathWithConfig(travel_config, SpaceFillType::None);
+    GCodePath* path = getLatestPathWithConfig(travel_config, z_offset, SpaceFillType::None);
 
     bool combed = false;
 
@@ -478,7 +480,7 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
     return ret;
 }
 
-GCodePath& LayerPlan::addTravel_simple(Point p, GCodePath* path)
+GCodePath& LayerPlan::addTravel_simple(const Point p, GCodePath* path)
 {
     bool is_first_travel_of_layer = ! static_cast<bool>(last_planned_position);
     if (is_first_travel_of_layer)
@@ -488,7 +490,7 @@ GCodePath& LayerPlan::addTravel_simple(Point p, GCodePath* path)
     }
     if (path == nullptr)
     {
-        path = getLatestPathWithConfig(configs_storage.travel_config_per_extruder[getExtruder()], SpaceFillType::None);
+        path = getLatestPathWithConfig(configs_storage.travel_config_per_extruder[getExtruder()], 0, SpaceFillType::None);
     }
     path->points.push_back(p);
     last_planned_position = p;
@@ -506,16 +508,16 @@ void LayerPlan::planPrime(const float& prime_blob_wipe_length)
 }
 
 void LayerPlan::addExtrusionMove(
-    Point p,
+    const Point p,
     const GCodePathConfig& config,
-    SpaceFillType space_fill_type,
+    const SpaceFillType space_fill_type,
     const Ratio& flow,
     const Ratio width_factor,
-    bool spiralize,
-    Ratio speed_factor,
-    double fan_speed)
+    const bool spiralize,
+    const Ratio speed_factor,
+    const double fan_speed)
 {
-    GCodePath* path = getLatestPathWithConfig(config, space_fill_type, flow, width_factor, spiralize, speed_factor);
+    GCodePath* path = getLatestPathWithConfig(config, config.z_offset, space_fill_type, flow, width_factor, spiralize, speed_factor);
     path->points.push_back(p);
     path->setFanSpeed(fan_speed);
     if (! static_cast<bool>(first_extrusion_acc_jerk))
@@ -537,7 +539,7 @@ void LayerPlan::addPolygon(
 {
     constexpr Ratio width_ratio = 1.0_r; // Not printed with variable line width.
     Point p0 = polygon[start_idx];
-    addTravel(p0, always_retract);
+    addTravel(p0, always_retract, config.z_offset);
     const int direction = backwards ? -1 : 1;
     for (size_t point_idx = 1; point_idx < polygon.size(); point_idx++)
     {
@@ -1250,7 +1252,7 @@ void LayerPlan::addLinesInGivenOrder(
         }
         else
         {
-            addTravel(start);
+            addTravel(start, false, config.z_offset);
         }
 
         Point p0 = start;
@@ -1947,7 +1949,12 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.writeRetraction(retraction_config->retraction_config);
             }
 
-            if (! path.retract && path.config.isTravelPath() && path.points.size() == 1 && path.points[0] == gcode.getPositionXY() && z == gcode.getPositionZ())
+            if (z > 0)
+            {
+                gcode.setZ(z + path.z_offset);
+            }
+
+            if (! path.retract && path.config.isTravelPath() && path.points.size() == 1 && path.points[0] == gcode.getPositionXY() && (z + path.z_offset) == gcode.getPositionZ())
             {
                 // ignore travel moves to the current location to avoid needless change of acceleration/jerk
                 continue;

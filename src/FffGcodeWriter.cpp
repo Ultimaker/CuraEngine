@@ -3327,89 +3327,100 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
         support_roof_line_distance *= roof_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
     }
 
-    Polygons infill_outline = support_layer.support_roof;
-    Polygons wall;
-    // make sure there is a wall if this is on the first layer
-    if (gcode_layer.getLayerNr() == 0)
-    {
-        wall = support_layer.support_roof.offset(-support_roof_line_width / 2);
-        infill_outline = wall.offset(-support_roof_line_width / 2);
-    }
+    const auto half_layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height") / 2;
 
-    Infill roof_computation(
-        pattern,
-        zig_zaggify_infill,
-        connect_polygons,
-        infill_outline,
-        gcode_layer.configs_storage.support_roof_config.getLineWidth(),
-        support_roof_line_distance,
-        support_roof_overlap,
-        infill_multiplier,
-        fill_angle,
-        gcode_layer.z,
-        extra_infill_shift,
-        max_resolution,
-        max_deviation,
-        wall_line_count,
-        small_area_width,
-        infill_origin,
-        skip_stitching,
-        fill_gaps,
-        connected_zigzags,
-        use_endpieces,
-        skip_some_zags,
-        zag_skip_count,
-        pocket_size);
-    Polygons roof_polygons;
-    std::vector<VariableWidthLines> roof_paths;
-    Polygons roof_lines;
-    roof_computation.generate(roof_paths, roof_polygons, roof_lines, roof_extruder.settings, gcode_layer.getLayerNr(), SectionType::SUPPORT);
-    if ((gcode_layer.getLayerNr() == 0 && wall.empty()) || (gcode_layer.getLayerNr() > 0 && roof_paths.empty() && roof_polygons.empty() && roof_lines.empty()))
+    auto infill_outlines = { support_layer.support_roof.difference(support_layer.support_fractional_roof_top), support_layer.support_fractional_roof_top };
+    auto current_roof_config = gcode_layer.configs_storage.support_roof_config;  // copy!
+    bool generated_something = false;
+    for (auto infill_outline : infill_outlines)
     {
-        return false; // We didn't create any support roof.
-    }
-    gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
-    if (gcode_layer.getLayerNr() == 0)
-    {
-        gcode_layer.addPolygonsByOptimizer(wall, gcode_layer.configs_storage.support_roof_config);
-    }
-    if (! roof_polygons.empty())
-    {
-        constexpr bool force_comb_retract = false;
-        gcode_layer.addTravel(roof_polygons[0][0], force_comb_retract);
-        gcode_layer.addPolygonsByOptimizer(roof_polygons, gcode_layer.configs_storage.support_roof_config);
-    }
-    if (! roof_paths.empty())
-    {
-        const GCodePathConfig& config = gcode_layer.configs_storage.support_roof_config;
-        constexpr bool retract_before_outer_wall = false;
-        constexpr coord_t wipe_dist = 0;
-        const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+        Polygons wall;
+        // make sure there is a wall if this is on the first layer
+        if (gcode_layer.getLayerNr() == 0)
+        {
+            wall = support_layer.support_roof.offset(-support_roof_line_width / 2);
+            infill_outline = wall.offset(-support_roof_line_width / 2);
+        }
 
-        InsetOrderOptimizer wall_orderer(
-            *this,
-            storage,
-            gcode_layer,
-            roof_extruder.settings,
-            roof_extruder_nr,
-            config,
-            config,
-            config,
-            config,
-            retract_before_outer_wall,
-            wipe_dist,
-            wipe_dist,
-            roof_extruder_nr,
-            roof_extruder_nr,
-            z_seam_config,
-            roof_paths);
-        wall_orderer.addToLayer();
+        Infill roof_computation(
+            pattern,
+            zig_zaggify_infill,
+            connect_polygons,
+            infill_outline,
+            current_roof_config.getLineWidth(),
+            support_roof_line_distance,
+            support_roof_overlap,
+            infill_multiplier,
+            fill_angle,
+            gcode_layer.z + current_roof_config.z_offset,
+            extra_infill_shift,
+            max_resolution,
+            max_deviation,
+            wall_line_count,
+            small_area_width,
+            infill_origin,
+            skip_stitching,
+            fill_gaps,
+            connected_zigzags,
+            use_endpieces,
+            skip_some_zags,
+            zag_skip_count,
+            pocket_size);
+        Polygons roof_polygons;
+        std::vector<VariableWidthLines> roof_paths;
+        Polygons roof_lines;
+        roof_computation.generate(roof_paths, roof_polygons, roof_lines, roof_extruder.settings, gcode_layer.getLayerNr(), SectionType::SUPPORT);
+        if ((gcode_layer.getLayerNr() == 0 && wall.empty()) || (gcode_layer.getLayerNr() > 0 && roof_paths.empty() && roof_polygons.empty() && roof_lines.empty()))
+        {
+            continue; // We didn't create any support roof.
+        }
+        generated_something = true; // We _did_ create at least some support roof.
+        gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
+        if (gcode_layer.getLayerNr() == 0)
+        {
+            gcode_layer.addPolygonsByOptimizer(wall, current_roof_config);
+        }
+        if (!roof_polygons.empty())
+        {
+            constexpr bool force_comb_retract = false;
+            gcode_layer.addTravel(roof_polygons[0][0], force_comb_retract);
+            gcode_layer.addPolygonsByOptimizer(roof_polygons, current_roof_config);
+        }
+        if (!roof_paths.empty())
+        {
+            const GCodePathConfig& config = current_roof_config;
+            constexpr bool retract_before_outer_wall = false;
+            constexpr coord_t wipe_dist = 0;
+            const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+
+            InsetOrderOptimizer wall_orderer(
+                *this,
+                storage,
+                gcode_layer,
+                roof_extruder.settings,
+                roof_extruder_nr,
+                config,
+                config,
+                config,
+                config,
+                retract_before_outer_wall,
+                wipe_dist,
+                wipe_dist,
+                roof_extruder_nr,
+                roof_extruder_nr,
+                z_seam_config,
+                roof_paths);
+            wall_orderer.addToLayer();
+        }
+        gcode_layer.addLinesByOptimizer(
+            roof_lines,
+            gcode_layer.configs_storage.support_roof_config,
+            (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
+
+        current_roof_config.z_offset = -half_layer_height;
+        current_roof_config.flow /= 2.0;
     }
-    gcode_layer.addLinesByOptimizer(
-        roof_lines,
-        gcode_layer.configs_storage.support_roof_config,
-        (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
-    return true;
+    return generated_something;
 }
 
 bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, LayerPlan& gcode_layer) const

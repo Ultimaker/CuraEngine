@@ -29,6 +29,7 @@ namespace cura
  */
 struct GCodePath
 {
+    coord_t z_offset{};
     GCodePathConfig config{}; //!< The configuration settings of the path.
     std::shared_ptr<const SliceMeshStorage> mesh; //!< Which mesh this path belongs to, if any. If it's not part of any mesh, the mesh should be nullptr;
     SpaceFillType space_fill_type{}; //!< The type of space filling of which this path is a part
