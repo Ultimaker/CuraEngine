@@ -155,11 +155,16 @@ void PrimeTower::generatePaths_denseInfill()
             // Generate a concentric infill pattern in the form insets for the prime tower's first layer instead of using
             // the infill pattern because the infill pattern tries to connect polygons in different insets which causes the
             // first layer of the prime tower to not stick well.
-            Polygons inset = outer_poly.offset(-cumulative_inset - line_width_layer0 / 2);
-            while (! inset.empty())
+            Polygons inset = outer_poly.offset(-(-cumulative_inset - line_width_layer0 / 2));
+            /*while (! inset.empty())
             {
                 pattern_layer0.polygons.add(inset);
                 inset = inset.offset(-line_width_layer0);
+            }*/
+            for (int i = 0; i < 15; ++i)
+            {
+                pattern_layer0.polygons.add(inset);
+                inset = inset.offset(line_width_layer0);
             }
         }
         cumulative_inset += wall_nr * line_width;
@@ -225,14 +230,18 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
 
 void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t extruder_nr) const
 {
-    const ExtrusionMoves& pattern
-        //= (gcode_layer.getLayerNr() == -static_cast<LayerIndex>(Raft::getFillerLayerCount())) ? pattern_per_extruder_layer0[extruder_nr] : pattern_per_extruder[extruder_nr];
-        = (gcode_layer.getLayerNr() == -static_cast<LayerIndex>(Raft::getTotalExtraLayers())) ? pattern_per_extruder_layer0[extruder_nr] : pattern_per_extruder[extruder_nr];
-
     const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
 
+    const ExtrusionMoves& pattern = pattern_per_extruder[extruder_nr];
     gcode_layer.addPolygonsByOptimizer(pattern.polygons, config);
     gcode_layer.addLinesByOptimizer(pattern.lines, config, SpaceFillType::Lines);
+
+    if (gcode_layer.getLayerNr() == -static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
+    {
+        const ExtrusionMoves& pattern0 = pattern_per_extruder_layer0[extruder_nr];
+        gcode_layer.addPolygonsByOptimizer(pattern0.polygons, config);
+        gcode_layer.addLinesByOptimizer(pattern0.lines, config, SpaceFillType::Lines);
+    }
 }
 
 void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
