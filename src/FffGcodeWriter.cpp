@@ -2287,7 +2287,7 @@ bool FffGcodeWriter::processInsets(
         if (mesh_group_settings.get<bool>("support_enable"))
         {
             const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
-            const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height) + 1;
+            const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height); // Previously '... +1', but now there is an extra fractional layer on top.
             const int support_layer_nr = gcode_layer.getLayerNr() - z_distance_top_layers;
 
             if (support_layer_nr > 0)
@@ -2596,7 +2596,7 @@ void FffGcodeWriter::processTopBottom(
     {
         const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
         const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
-        const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height) + 1;
+        const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height); // Previously '... +1', but now there is an extra fractional layer on top.
         support_layer_nr = layer_nr - z_distance_top_layers;
     }
 
@@ -3327,7 +3327,9 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
         support_roof_line_distance *= roof_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
     }
 
-    const auto half_layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height") / 2;
+    const auto layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height");
+    const auto support_top_distance = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("support_top_distance");
+    const coord_t leftover_support_distance = support_top_distance % layer_height;
 
     auto infill_outlines = { support_layer.support_roof.difference(support_layer.support_fractional_roof_top), support_layer.support_fractional_roof_top };
     auto current_roof_config = gcode_layer.configs_storage.support_roof_config;  // copy!
@@ -3417,8 +3419,8 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
             gcode_layer.configs_storage.support_roof_config,
             (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
 
-        current_roof_config.z_offset = -half_layer_height;
-        current_roof_config.flow /= 2.0;
+        current_roof_config.z_offset = -leftover_support_distance;
+        current_roof_config.flow *= Ratio(layer_height - leftover_support_distance, layer_height);
     }
     return generated_something;
 }
