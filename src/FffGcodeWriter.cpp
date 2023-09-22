@@ -3331,10 +3331,14 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     const auto support_top_distance = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("support_top_distance");
     const coord_t leftover_support_distance = support_top_distance % layer_height;
 
-    auto infill_outlines = { support_layer.support_roof.difference(support_layer.support_fractional_roof_top), support_layer.support_fractional_roof_top };
+    std::vector<Polygons> infill_outlines =
+    {
+        Simplify(roof_extruder.settings).polygon(support_layer.support_roof.difference(support_layer.support_fractional_roof_top)),
+        Simplify(roof_extruder.settings).polygon(support_layer.support_fractional_roof_top)
+    };
     auto current_roof_config = gcode_layer.configs_storage.support_roof_config; // copy!
     bool generated_something = false;
-    for (auto infill_outline : infill_outlines)
+    for (auto& infill_outline : infill_outlines)
     {
         Polygons wall;
         // make sure there is a wall if this is on the first layer
