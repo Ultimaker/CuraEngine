@@ -236,7 +236,8 @@ void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t ext
     gcode_layer.addPolygonsByOptimizer(pattern.polygons, config);
     gcode_layer.addLinesByOptimizer(pattern.lines, config, SpaceFillType::Lines);
 
-    if (gcode_layer.getLayerNr() == -static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
+    // if (gcode_layer.getLayerNr() == -static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
+    if (gcode_layer.getLayerNr() < 0 && extruder_nr == 0)
     {
         const ExtrusionMoves& pattern0 = pattern_per_extruder_layer0[extruder_nr];
         gcode_layer.addPolygonsByOptimizer(pattern0.polygons, config);
