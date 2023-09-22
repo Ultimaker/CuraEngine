@@ -143,21 +143,21 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         findLayerSeamsForSpiralize(storage, total_layers);
     }
 
-    int process_layer_starting_layer_nr = 0;
+    // int process_layer_starting_layer_nr = 0;
     const bool has_raft = scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT;
     if (has_raft)
     {
         processRaft(storage);
         // process filler layers to fill the airgap with helper object (support etc) so that they stick better to the raft.
         // only process the filler layers if there is anything to print in them.
-        for (bool extruder_is_used_in_filler_layers : storage.getExtrudersUsed(-1))
+        /*for (bool extruder_is_used_in_filler_layers : storage.getExtrudersUsed(-1))
         {
             if (extruder_is_used_in_filler_layers)
             {
                 process_layer_starting_layer_nr = -Raft::getFillerLayerCount();
                 break;
             }
-        }
+        }*/
     }
 
     run_multiple_producers_ordered_consumer(
@@ -687,6 +687,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         layer_plan_buffer.handle(gcode_layer, gcode);
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
+
+        setExtruder_addPrime(storage, gcode_layer, 0);
     }
 
     const coord_t interface_layer_height = interface_settings.get<coord_t>("raft_interface_thickness");
@@ -790,6 +792,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         layer_plan_buffer.handle(gcode_layer, gcode);
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
+
+        setExtruder_addPrime(storage, gcode_layer, 0);
     }
 
     const coord_t surface_layer_height = surface_settings.get<coord_t>("raft_surface_thickness");
@@ -894,6 +898,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         }
 
         layer_plan_buffer.handle(gcode_layer, gcode);
+
+        setExtruder_addPrime(storage, gcode_layer, 0);
     }
 }
 
@@ -1014,7 +1020,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         //    later in the print a prime tower is needed.
         //  - prime tower is already printed this layer (only applicable for more than 2 extruders).
         //    The setExtruder_addPrime takes care of this.
-        if (extruder_nr != extruder_order.front() || extruder_order.size() == 1)
+        if (extruder_nr != extruder_order.front() || (extruder_order.size() == 1 && layer_nr >= 0) || extruder_nr == 0)
         {
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         }
@@ -1045,7 +1051,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         // Always print a prime tower before switching extruder. Unless:
         //  - The prime tower is already printed this layer (setExtruder_addPrime takes care of this).
         //  - this is the last extruder of the layer, since the next layer will start with the same extruder.
-        if (extruder_nr != extruder_order.back())
+        if (extruder_nr != extruder_order.back() && layer_nr >= 0)
         {
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         }
