@@ -149,22 +149,24 @@ void PrimeTower::generatePaths_denseInfill()
         else
         {
             // Generate the pattern for the first layer.
-            coord_t line_width_layer0 = line_width * scene.extruders[extruder_nr].settings.get<Ratio>("initial_layer_line_width_factor");
+            const coord_t line_width_layer0 = scene.extruders[extruder_nr].settings.get<coord_t>("raft_base_line_width");
             ExtrusionMoves& pattern_layer0 = pattern_per_extruder_layer0[extruder_nr];
 
             // Generate a concentric infill pattern in the form insets for the prime tower's first layer instead of using
             // the infill pattern because the infill pattern tries to connect polygons in different insets which causes the
             // first layer of the prime tower to not stick well.
-            Polygons inset = outer_poly.offset(-(-cumulative_inset - line_width_layer0 / 2));
-            /*while (! inset.empty())
+            Polygons inset = outer_poly.offset(-cumulative_inset - line_width_layer0 / 2);
+            while (! inset.empty())
             {
                 pattern_layer0.polygons.add(inset);
                 inset = inset.offset(-line_width_layer0);
-            }*/
+            }
+
+            Polygons outset = outer_poly.offset(cumulative_inset + line_width_layer0 / 2);
             for (int i = 0; i < 15; ++i)
             {
-                pattern_layer0.polygons.add(inset);
-                inset = inset.offset(line_width_layer0);
+                pattern_layer0.polygons.add(outset);
+                outset = outset.offset(line_width_layer0);
             }
         }
         cumulative_inset += wall_nr * line_width;
@@ -230,18 +232,26 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
 
 void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t extruder_nr) const
 {
-    const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
+    const GCodePathConfig& config
+        = gcode_layer.getLayerNr() < 0 ? gcode_layer.configs_storage.raft_base_config : gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
 
-    const ExtrusionMoves& pattern = pattern_per_extruder[extruder_nr];
-    gcode_layer.addPolygonsByOptimizer(pattern.polygons, config);
-    gcode_layer.addLinesByOptimizer(pattern.lines, config, SpaceFillType::Lines);
 
     // if (gcode_layer.getLayerNr() == -static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
     if (gcode_layer.getLayerNr() < 0 && extruder_nr == 0)
     {
+        const GCodePathConfig& config = gcode_layer.configs_storage.raft_base_config;
+
         const ExtrusionMoves& pattern0 = pattern_per_extruder_layer0[extruder_nr];
         gcode_layer.addPolygonsByOptimizer(pattern0.polygons, config);
         gcode_layer.addLinesByOptimizer(pattern0.lines, config, SpaceFillType::Lines);
+    }
+    else
+    {
+        const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
+
+        const ExtrusionMoves& pattern = pattern_per_extruder[extruder_nr];
+        gcode_layer.addPolygonsByOptimizer(pattern.polygons, config);
+        gcode_layer.addLinesByOptimizer(pattern.lines, config, SpaceFillType::Lines);
     }
 }
 

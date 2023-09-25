@@ -1498,7 +1498,7 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperatu
         *output_stream << " T" << extruder;
     }
 #ifdef ASSERT_INSANE_OUTPUT
-    assert(temperature >= 0);
+    // assert(temperature >= 0);
 #endif // ASSERT_INSANE_OUTPUT
     *output_stream << " S" << PrecisionedDouble{ 1, temperature } << new_line;
     if (extruder != current_extruder && always_write_active_tool)

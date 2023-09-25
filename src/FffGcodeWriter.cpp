@@ -143,28 +143,28 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         findLayerSeamsForSpiralize(storage, total_layers);
     }
 
-    // int process_layer_starting_layer_nr = 0;
+    int process_layer_starting_layer_nr = 0;
     const bool has_raft = scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT;
     if (has_raft)
     {
         processRaft(storage);
         // process filler layers to fill the airgap with helper object (support etc) so that they stick better to the raft.
         // only process the filler layers if there is anything to print in them.
-        /*for (bool extruder_is_used_in_filler_layers : storage.getExtrudersUsed(-1))
+        for (bool extruder_is_used_in_filler_layers : storage.getExtrudersUsed(-1))
         {
             if (extruder_is_used_in_filler_layers)
             {
                 process_layer_starting_layer_nr = -Raft::getFillerLayerCount();
                 break;
             }
-        }*/
+        }
     }
 
     run_multiple_producers_ordered_consumer(
-        // process_layer_starting_layer_nr,
-        -Raft::getTotalExtraLayers(),
-        // total_layers + Raft::getFillerLayerCount() - 1,
-        total_layers,
+        process_layer_starting_layer_nr,
+        //-Raft::getTotalExtraLayers(),
+        total_layers + Raft::getFillerLayerCount() - 1,
+        // total_layers,
         [&storage, total_layers, this](int layer_nr)
         {
             return &processLayer(storage, layer_nr, total_layers);
