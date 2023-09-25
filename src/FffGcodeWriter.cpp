@@ -1232,7 +1232,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
 
 
     // Add the support brim after the skirt_brim to gcode_layer
-    //support brim is only added in layer 0
+    // support brim is only added in layer 0
     // For support brim we don't care about the order, because support doesn't need to be accurate.
     if (layer_nr == 0)
     {
