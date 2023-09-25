@@ -685,10 +685,10 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             raftLines.clear();
         }
 
+        setExtruder_addPrime(storage, gcode_layer, 0);
+
         layer_plan_buffer.handle(gcode_layer, gcode);
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
-
-        setExtruder_addPrime(storage, gcode_layer, 0);
     }
 
     const coord_t interface_layer_height = interface_settings.get<coord_t>("raft_interface_thickness");
@@ -790,10 +790,10 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             raft_lines.clear();
         }
 
+        setExtruder_addPrime(storage, gcode_layer, 0);
+
         layer_plan_buffer.handle(gcode_layer, gcode);
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
-
-        setExtruder_addPrime(storage, gcode_layer, 0);
     }
 
     const coord_t surface_layer_height = surface_settings.get<coord_t>("raft_surface_thickness");
@@ -897,9 +897,9 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             raft_lines.clear();
         }
 
-        layer_plan_buffer.handle(gcode_layer, gcode);
-
         setExtruder_addPrime(storage, gcode_layer, 0);
+
+        layer_plan_buffer.handle(gcode_layer, gcode);
     }
 }
 

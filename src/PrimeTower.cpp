@@ -274,46 +274,6 @@ void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t ext
             gcode_layer.addLinesByOptimizer(pattern0.lines, config, SpaceFillType::Lines);
         }
     }
-
-    /*
-    if (gcode_layer.getLayerNr() > -static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
-    {
-        const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
-
-        // Actual prime pattern
-        const ExtrusionMoves& pattern = pattern_per_extruder[extruder_nr];
-        gcode_layer.addPolygonsByOptimizer(pattern.polygons, config);
-        gcode_layer.addLinesByOptimizer(pattern.lines, config, SpaceFillType::Lines);
-
-        if (gcode_layer.getLayerNr() < 0 && extruder_nr == 0)
-        {
-            const ExtrusionMoves& pattern0 = pattern_per_extruder_layer0[extruder_nr];
-            gcode_layer.addPolygonsByOptimizer(pattern0.polygons, config);
-            gcode_layer.addLinesByOptimizer(pattern0.lines, config, SpaceFillType::Lines);
-        }
-    }
-*/
-
-    // if (gcode_layer.getLayerNr() == -static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
-    /*if (gcode_layer.getLayerNr() < 0 && extruder_nr == 0)
-    {
-        if (gcode_layer.getLayerNr() == -Raft::getTotalExtraLayers())
-        {
-            const GCodePathConfig& config = gcode_layer.configs_storage.raft_base_config;
-
-            const ExtrusionMoves& pattern0 = pattern_per_extruder_layer0[extruder_nr];
-            gcode_layer.addPolygonsByOptimizer(pattern0.polygons, config);
-            gcode_layer.addLinesByOptimizer(pattern0.lines, config, SpaceFillType::Lines);
-        }
-        else
-        {
-            const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
-
-            const ExtrusionMoves& pattern_raft = pattern_per_extruder_layer_raft[extruder_nr];
-            gcode_layer.addPolygonsByOptimizer(pattern_raft.polygons, config);
-            gcode_layer.addLinesByOptimizer(pattern_raft.lines, config, SpaceFillType::Lines);
-        }
-    }*/
 }
 
 void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
