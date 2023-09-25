@@ -41,6 +41,7 @@ private:
 
     std::vector<ExtrusionMoves> pattern_per_extruder; //!< For each extruder the pattern to print on all layers of the prime tower.
     std::vector<ExtrusionMoves> pattern_per_extruder_layer0; //!< For each extruder the pattern to print on the first layer
+    std::vector<ExtrusionMoves> pattern_per_extruder_layer_raft; //!< For each extruder the pattern to print on the raft layers
 
 public:
     bool enabled; //!< Whether the prime tower is enabled.
