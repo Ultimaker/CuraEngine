@@ -3375,6 +3375,9 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
         roof_computation.generate(roof_paths, roof_polygons, roof_lines, roof_extruder.settings, gcode_layer.getLayerNr(), SectionType::SUPPORT);
         if ((gcode_layer.getLayerNr() == 0 && wall.empty()) || (gcode_layer.getLayerNr() > 0 && roof_paths.empty() && roof_polygons.empty() && roof_lines.empty()))
         {
+            current_roof_config.z_offset = -leftover_support_distance;
+            current_roof_config.flow *= Ratio(layer_height - leftover_support_distance, layer_height);
+
             continue; // We didn't create any support roof.
         }
         generated_something = true; // We _did_ create at least some support roof.
@@ -3417,7 +3420,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
         }
         gcode_layer.addLinesByOptimizer(
             roof_lines,
-            gcode_layer.configs_storage.support_roof_config,
+            current_roof_config,
             (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
 
         current_roof_config.z_offset = -leftover_support_distance;
