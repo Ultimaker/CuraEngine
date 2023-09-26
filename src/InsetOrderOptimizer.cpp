@@ -93,7 +93,7 @@ bool InsetOrderOptimizer::addToLayer()
 
     constexpr bool detect_loops = false;
     constexpr Polygons* combing_boundary = nullptr;
-    const auto group_outer_walls = false;
+    const auto group_outer_walls = settings.get<bool>("group_outer_walls");
     // When we alternate walls, also alternate the direction at which the first wall starts in.
     // On even layers we start with normal direction, on odd layers with inverted direction.
     PathOrderOptimizer<const ExtrusionLine*>
