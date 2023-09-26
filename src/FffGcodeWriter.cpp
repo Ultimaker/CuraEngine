@@ -3418,10 +3418,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
                 roof_paths);
             wall_orderer.addToLayer();
         }
-        gcode_layer.addLinesByOptimizer(
-            roof_lines,
-            current_roof_config,
-            (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
+        gcode_layer.addLinesByOptimizer(roof_lines, current_roof_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
 
         current_roof_config.z_offset = -leftover_support_distance;
         current_roof_config.flow *= Ratio(layer_height - leftover_support_distance, layer_height);
