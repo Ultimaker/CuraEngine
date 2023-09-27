@@ -685,7 +685,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             raftLines.clear();
         }
 
-        setExtruder_addPrime(storage, gcode_layer, 0);
+        setExtruder_addPrime(storage, gcode_layer, storage.primeTower.extruder_order.front());
 
         layer_plan_buffer.handle(gcode_layer, gcode);
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
@@ -790,7 +790,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             raft_lines.clear();
         }
 
-        setExtruder_addPrime(storage, gcode_layer, 0);
+        setExtruder_addPrime(storage, gcode_layer, storage.primeTower.extruder_order.front());
 
         layer_plan_buffer.handle(gcode_layer, gcode);
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
@@ -897,7 +897,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             raft_lines.clear();
         }
 
-        setExtruder_addPrime(storage, gcode_layer, 0);
+        setExtruder_addPrime(storage, gcode_layer, storage.primeTower.extruder_order.front());
 
         layer_plan_buffer.handle(gcode_layer, gcode);
     }
