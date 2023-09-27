@@ -101,7 +101,7 @@ public:
     void subtractFromSupport(SliceDataStorage& storage);
 
 private:
-    ExtrusionMoves generatePaths_extraBrim(const Polygons &outer_poly, coord_t extra_radius, coord_t line_width, bool add_inset);
+    ExtrusionMoves generatePaths_extraBrim(const Polygons& outer_poly, coord_t extra_radius, coord_t line_width, bool add_inset);
 
     /*!
      * \see WipeTower::generatePaths
