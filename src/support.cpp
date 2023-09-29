@@ -56,7 +56,7 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
     };
     ModifierType modifier_type
         = (mesh_settings.get<bool>("anti_overhang_mesh")) ? ANTI_OVERHANG : ((mesh_settings.get<bool>("support_mesh_drop_down")) ? SUPPORT_DROP_DOWN : SUPPORT_VANILLA);
-    for (unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
+    for (LayerIndex layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
     {
         SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
         const SlicerLayer& slicer_layer = slicer->layers[layer_nr];
@@ -99,7 +99,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(
     const size_t wall_line_count = infill_extruder.settings.get<size_t>("support_wall_count");
 
     // Generate separate support islands
-    for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
+    for (LayerIndex layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
     {
         unsigned int wall_line_count_this_layer = wall_line_count;
         if (layer_nr == 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG))
@@ -425,7 +425,7 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
 void AreaSupport::cleanup(SliceDataStorage& storage)
 {
     const coord_t support_line_width = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("support_line_width");
-    for (unsigned int layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
+    for (LayerIndex layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
     {
         SupportLayer& layer = storage.support.supportLayers[layer_nr];
         for (unsigned int part_idx = 0; part_idx < layer.support_infill_parts.size(); part_idx++)
@@ -599,8 +599,9 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
 
 void AreaSupport::generateOverhangAreas(SliceDataStorage& storage)
 {
-    for (SliceMeshStorage& mesh : storage.meshes)
+    for (std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
     {
+        auto& mesh = *mesh_ptr;
         if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
         {
             continue;
@@ -645,14 +646,14 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
-        SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+        SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
         if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
         {
             continue;
         }
-        Settings* infill_settings = &storage.meshes[mesh_idx].settings;
-        Settings* roof_settings = &storage.meshes[mesh_idx].settings;
-        Settings* bottom_settings = &storage.meshes[mesh_idx].settings;
+        Settings* infill_settings = &storage.meshes[mesh_idx]->settings;
+        Settings* roof_settings = &storage.meshes[mesh_idx]->settings;
+        Settings* bottom_settings = &storage.meshes[mesh_idx]->settings;
         if (mesh.settings.get<bool>("support_mesh"))
         {
             if ((mesh.settings.get<bool>("support_mesh_drop_down") && support_meshes_drop_down_handled)
@@ -685,7 +686,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
         }
     }
 
-    for (unsigned int layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
+    for (LayerIndex layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
     {
         Polygons& support_areas = global_support_areas_per_layer[layer_idx];
         support_areas = support_areas.unionPolygons();
@@ -694,7 +695,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
     // handle support interface
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
-        SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+        SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
         if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
         {
             continue;
@@ -725,12 +726,12 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
         AABB3D aabb;
         for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
         {
-            const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+            const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
             if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
             {
                 continue;
             }
-            Settings& infill_settings = storage.meshes[mesh_idx].settings;
+            Settings& infill_settings = storage.meshes[mesh_idx]->settings;
             if (mesh.settings.get<bool>("support_mesh"))
             {
                 // use extruder train settings rather than the per-object settings of the first support mesh encountered.
@@ -749,7 +750,7 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
         std::ifstream cross_fs(cross_subdisivion_spec_image_file.c_str());
         if (cross_subdisivion_spec_image_file != "" && cross_fs.good())
         {
-            storage.support.cross_fill_provider = new SierpinskiFillProvider(
+            storage.support.cross_fill_provider = std::make_shared<SierpinskiFillProvider>(
                 aabb,
                 infill_extruder.settings.get<coord_t>("support_line_distance"),
                 infill_extruder.settings.get<coord_t>("support_line_width"),
@@ -761,8 +762,10 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
             {
                 spdlog::error("Cannot find density image: {}.", cross_subdisivion_spec_image_file);
             }
-            storage.support.cross_fill_provider
-                = new SierpinskiFillProvider(aabb, infill_extruder.settings.get<coord_t>("support_line_distance"), infill_extruder.settings.get<coord_t>("support_line_width"));
+            storage.support.cross_fill_provider = std::make_shared<SierpinskiFillProvider>(
+                aabb,
+                infill_extruder.settings.get<coord_t>("support_line_distance"),
+                infill_extruder.settings.get<coord_t>("support_line_width"));
         }
     }
 }
@@ -1037,7 +1040,7 @@ void AreaSupport::generateSupportAreasForMesh(
     const size_t layer_count,
     std::vector<Polygons>& support_areas)
 {
-    SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+    SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
 
     const ESupportStructure support_structure = mesh.settings.get<ESupportStructure>("support_structure");
     const bool is_support_mesh_place_holder
@@ -1323,7 +1326,7 @@ void AreaSupport::generateSupportAreasForMesh(
             conical_support_offset = (tan(-conical_support_angle) - 0.01) * layer_thickness;
         }
         const bool conical_support = infill_settings.get<bool>("support_conical_enabled") && conical_support_angle != 0;
-        for (unsigned int layer_idx = 1; layer_idx < storage.support.supportLayers.size(); layer_idx++)
+        for (LayerIndex layer_idx = 1; layer_idx < storage.support.supportLayers.size(); layer_idx++)
         {
             const Polygons& layer = support_areas[layer_idx];
 
@@ -1507,7 +1510,7 @@ void AreaSupport::moveUpFromModel(
  *         ^^^^^^^^^      overhang extensions
  *         ^^^^^^^^^^^^^^ overhang
  */
-std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const unsigned int layer_idx)
+std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_idx)
 {
     const Polygons outlines = mesh.layers[layer_idx].getOutlines();
     constexpr bool no_support = false;
@@ -1765,7 +1768,7 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
     const double minimum_bottom_area = mesh.settings.get<double>("minimum_bottom_area");
 
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
-    for (unsigned int layer_idx = support_layers.size() - 1; static_cast<int>(layer_idx) >= static_cast<int>(z_distance_bottom); layer_idx--)
+    for (LayerIndex layer_idx = support_layers.size() - 1; layer_idx >= static_cast<int>(z_distance_bottom); --layer_idx)
     {
         const unsigned int bottom_layer_idx_below = std::max(0, int(layer_idx) - int(bottom_layer_count) - int(z_distance_bottom));
         Polygons mesh_outlines;
