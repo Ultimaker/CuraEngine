@@ -1,17 +1,17 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef PRIME_TOWER_H
 #define PRIME_TOWER_H
 
-#include <vector>
-#include <map>
-
+#include "ExtruderUse.h"
 #include "utils/polygon.h" // Polygons
 #include "utils/polygonUtils.h"
-#include "ExtruderUse.h"
 
-namespace cura 
+#include <map>
+#include <vector>
+
+namespace cura
 {
 
 class SliceDataStorage;
@@ -43,7 +43,8 @@ private:
 
     std::vector<ExtrusionMoves> pattern_per_extruder; //!< For each extruder the pattern to print on all layers of the prime tower.
     std::vector<ExtrusionMoves> pattern_per_extruder_layer0; //!< For each extruder the pattern to print on the first layer
-    std::map<size_t, std::map<size_t, ExtrusionMoves>> sparse_pattern_per_extruders; //!< For each extruders combination, and for each actual extruder, the pattern to print on all layers where extruders are actually useless.
+    std::map<size_t, std::map<size_t, ExtrusionMoves>>
+        sparse_pattern_per_extruders; //!< For each extruders combination, and for each actual extruder, the pattern to print on all layers where extruders are actually useless.
 
 public:
     bool enabled; //!< Whether the prime tower is enabled.
@@ -80,14 +81,19 @@ public:
 
     /*!
      * Add path plans for the prime tower to the \p gcode_layer
-     * 
+     *
      * \param storage where to get settings from; where to get the maximum height of the prime tower from
      * \param[in,out] gcode_layer Where to get the current extruder from; where to store the generated layer paths
      * \param required_extruder_prime the extruders which actually required to be primed at this layer
      * \param prev_extruder The previous extruder with which paths were planned; from which extruder a switch was made
      * \param new_extruder The switched to extruder with which the prime tower paths should be generated.
      */
-    void addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const std::vector<ExtruderUse> &required_extruder_prime, const size_t prev_extruder, const size_t new_extruder) const;
+    void addToGcode(
+        const SliceDataStorage& storage,
+        LayerPlan& gcode_layer,
+        const std::vector<ExtruderUse>& required_extruder_prime,
+        const size_t prev_extruder,
+        const size_t new_extruder) const;
 
     /*!
      * \brief Subtract the prime tower from the support areas in storage.
@@ -98,7 +104,6 @@ public:
     void subtractFromSupport(SliceDataStorage& storage);
 
 private:
-
     /*!
      * Generate the prime tower area to be used on each layer
      *
@@ -108,12 +113,12 @@ private:
 
     /*!
      * \see WipeTower::generatePaths
-     * 
+     *
      * Generate the extrude paths for each extruder on even and odd layers
      * Fill the ground poly with dense infill.
      * \param cumulative_insets [in, out] The insets added to each extruder to compute the radius of its ring
      */
-    void generatePaths_denseInfill(std::vector<coord_t> &cumulative_insets);
+    void generatePaths_denseInfill(std::vector<coord_t>& cumulative_insets);
 
     /*!
      * \see WipeTower::generatePaths
@@ -121,7 +126,7 @@ private:
      * \brief Generate the sparse extrude paths for each extruders combination
      * \param cumulative_insets The insets added to each extruder to compute the radius of its ring
      */
-    void generatePaths_sparseInfill(const std::vector<coord_t> &cumulative_insets);
+    void generatePaths_sparseInfill(const std::vector<coord_t>& cumulative_insets);
 
     /*!
      * \brief Generate the sparse extrude paths for an extruders combination
@@ -132,7 +137,12 @@ private:
      * \param line_width The actual line width of the extruder
      * \param actual_extruder_nr The actual extruder to be used
      */
-    ExtrusionMoves generatePath_sparseInfill(const size_t first_extruder, const size_t last_extruder, const std::vector<coord_t> &rings_radii, const coord_t line_width, const size_t actual_extruder_nr);
+    ExtrusionMoves generatePath_sparseInfill(
+        const size_t first_extruder,
+        const size_t last_extruder,
+        const std::vector<coord_t>& rings_radii,
+        const coord_t line_width,
+        const size_t actual_extruder_nr);
 
     /*!
      * Generate start locations on the prime tower. The locations are evenly spread around the prime tower's perimeter.
@@ -153,8 +163,13 @@ private:
      */
     void addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t extruder) const;
 
-    #warning TBD documentation
-    void addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::vector<ExtruderUse> &required_extruder_prime, const size_t current_extruder, std::vector<size_t>& primed_extruders, bool group_with_next_extruders) const;
+#warning TBD documentation
+    void addToGcode_optimizedInfill(
+        LayerPlan& gcode_layer,
+        const std::vector<ExtruderUse>& required_extruder_prime,
+        const size_t current_extruder,
+        std::vector<size_t>& primed_extruders,
+        bool group_with_next_extruders) const;
 
     /*!
      * For an extruder switch that happens not on the first layer, the extruder needs to be primed on the prime tower.
@@ -165,8 +180,6 @@ private:
 };
 
 
-
-
-}//namespace cura
+} // namespace cura
 
 #endif // PRIME_TOWER_H
