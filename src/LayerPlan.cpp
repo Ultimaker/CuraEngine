@@ -159,8 +159,9 @@ Polygons LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
         }
         else
         {
-            for (const SliceMeshStorage& mesh : storage.meshes)
+            for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
             {
+                const auto& mesh = *mesh_ptr;
                 const SliceLayer& layer = mesh.layers[static_cast<size_t>(layer_nr)];
                 // don't process infill_mesh or anti_overhang_mesh
                 if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
@@ -282,7 +283,7 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
     }
     return true;
 }
-void LayerPlan::setMesh(const std::shared_ptr<SliceMeshStorage>& mesh)
+void LayerPlan::setMesh(const std::shared_ptr<const SliceMeshStorage>& mesh)
 {
     current_mesh = mesh;
 }
@@ -1187,9 +1188,9 @@ void LayerPlan::addLinesByOptimizer(
         if (layer_nr >= 0)
         {
             // determine how much the skin/infill lines overlap the combing boundary
-            for (const SliceMeshStorage& mesh : storage.meshes)
+            for (const std::shared_ptr<SliceMeshStorage>& mesh : storage.meshes)
             {
-                const coord_t overlap = std::max(mesh.settings.get<coord_t>("skin_overlap_mm"), mesh.settings.get<coord_t>("infill_overlap_mm"));
+                const coord_t overlap = std::max(mesh->settings.get<coord_t>("skin_overlap_mm"), mesh->settings.get<coord_t>("infill_overlap_mm"));
                 if (overlap > dist)
                 {
                     dist = overlap;
@@ -1846,51 +1847,11 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     const bool acceleration_travel_enabled = mesh_group_settings.get<bool>("acceleration_travel_enabled");
     const bool jerk_enabled = mesh_group_settings.get<bool>("jerk_enabled");
     const bool jerk_travel_enabled = mesh_group_settings.get<bool>("jerk_travel_enabled");
-    std::shared_ptr<SliceMeshStorage> current_mesh;
+    std::shared_ptr<const SliceMeshStorage> current_mesh;
 
     for (size_t extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
         ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
-
-        scripta::log(
-            "extruder_plan_0",
-            extruder_plan.paths,
-            SectionType::NA,
-            layer_nr,
-            scripta::CellVDI{ "flow", &GCodePath::flow },
-            scripta::CellVDI{ "width_factor", &GCodePath::width_factor },
-            scripta::CellVDI{ "spiralize", &GCodePath::spiralize },
-            scripta::CellVDI{ "speed_factor", &GCodePath::speed_factor },
-            scripta::CellVDI{ "speed_back_pressure_factor", &GCodePath::speed_back_pressure_factor },
-            scripta::CellVDI{ "retract", &GCodePath::retract },
-            scripta::CellVDI{ "unretract_before_last_travel_move", &GCodePath::unretract_before_last_travel_move },
-            scripta::CellVDI{ "perform_z_hop", &GCodePath::perform_z_hop },
-            scripta::CellVDI{ "perform_prime", &GCodePath::perform_prime },
-            scripta::CellVDI{ "fan_speed", &GCodePath::getFanSpeed },
-            scripta::CellVDI{ "is_travel_path", &GCodePath::isTravelPath },
-            scripta::CellVDI{ "extrusion_mm3_per_mm", &GCodePath::getExtrusionMM3perMM });
-
-        extruder_plan.paths = slots::instance().modify<plugins::v0::SlotID::GCODE_PATHS_MODIFY>(extruder_plan.paths, extruder_plan.extruder_nr, layer_nr);
-
-        // Since the time/material estimates _may_ have changed during the plugin modify step we recalculate it
-        extruder_plan.computeNaiveTimeEstimates(gcode.getPositionXY());
-        scripta::log(
-            "extruder_plan_1",
-            extruder_plan.paths,
-            SectionType::NA,
-            layer_nr,
-            scripta::CellVDI{ "flow", &GCodePath::flow },
-            scripta::CellVDI{ "width_factor", &GCodePath::width_factor },
-            scripta::CellVDI{ "spiralize", &GCodePath::spiralize },
-            scripta::CellVDI{ "speed_factor", &GCodePath::speed_factor },
-            scripta::CellVDI{ "speed_back_pressure_factor", &GCodePath::speed_back_pressure_factor },
-            scripta::CellVDI{ "retract", &GCodePath::retract },
-            scripta::CellVDI{ "unretract_before_last_travel_move", &GCodePath::unretract_before_last_travel_move },
-            scripta::CellVDI{ "perform_z_hop", &GCodePath::perform_z_hop },
-            scripta::CellVDI{ "perform_prime", &GCodePath::perform_prime },
-            scripta::CellVDI{ "fan_speed", &GCodePath::getFanSpeed },
-            scripta::CellVDI{ "is_travel_path", &GCodePath::isTravelPath },
-            scripta::CellVDI{ "extrusion_mm3_per_mm", &GCodePath::getExtrusionMM3perMM });
 
         const RetractionAndWipeConfig* retraction_config
             = current_mesh ? &current_mesh->retraction_wipe_config : &storage.retraction_wipe_config_per_extruder[extruder_plan.extruder_nr];
@@ -2400,6 +2361,50 @@ bool LayerPlan::writePathWithCoasting(
         prev_pt = path.points[point_idx];
     }
     return true;
+}
+
+void LayerPlan::applyModifyPlugin()
+{
+    for (auto& extruder_plan : extruder_plans)
+    {
+        scripta::log(
+            "extruder_plan_0",
+            extruder_plan.paths,
+            SectionType::NA,
+            layer_nr,
+            scripta::CellVDI{ "flow", &GCodePath::flow },
+            scripta::CellVDI{ "width_factor", &GCodePath::width_factor },
+            scripta::CellVDI{ "spiralize", &GCodePath::spiralize },
+            scripta::CellVDI{ "speed_factor", &GCodePath::speed_factor },
+            scripta::CellVDI{ "speed_back_pressure_factor", &GCodePath::speed_back_pressure_factor },
+            scripta::CellVDI{ "retract", &GCodePath::retract },
+            scripta::CellVDI{ "unretract_before_last_travel_move", &GCodePath::unretract_before_last_travel_move },
+            scripta::CellVDI{ "perform_z_hop", &GCodePath::perform_z_hop },
+            scripta::CellVDI{ "perform_prime", &GCodePath::perform_prime },
+            scripta::CellVDI{ "fan_speed", &GCodePath::getFanSpeed },
+            scripta::CellVDI{ "is_travel_path", &GCodePath::isTravelPath },
+            scripta::CellVDI{ "extrusion_mm3_per_mm", &GCodePath::getExtrusionMM3perMM });
+
+        extruder_plan.paths = slots::instance().modify<plugins::v0::SlotID::GCODE_PATHS_MODIFY>(extruder_plan.paths, extruder_plan.extruder_nr, layer_nr);
+
+        scripta::log(
+            "extruder_plan_1",
+            extruder_plan.paths,
+            SectionType::NA,
+            layer_nr,
+            scripta::CellVDI{ "flow", &GCodePath::flow },
+            scripta::CellVDI{ "width_factor", &GCodePath::width_factor },
+            scripta::CellVDI{ "spiralize", &GCodePath::spiralize },
+            scripta::CellVDI{ "speed_factor", &GCodePath::speed_factor },
+            scripta::CellVDI{ "speed_back_pressure_factor", &GCodePath::speed_back_pressure_factor },
+            scripta::CellVDI{ "retract", &GCodePath::retract },
+            scripta::CellVDI{ "unretract_before_last_travel_move", &GCodePath::unretract_before_last_travel_move },
+            scripta::CellVDI{ "perform_z_hop", &GCodePath::perform_z_hop },
+            scripta::CellVDI{ "perform_prime", &GCodePath::perform_prime },
+            scripta::CellVDI{ "fan_speed", &GCodePath::getFanSpeed },
+            scripta::CellVDI{ "is_travel_path", &GCodePath::isTravelPath },
+            scripta::CellVDI{ "extrusion_mm3_per_mm", &GCodePath::getExtrusionMM3perMM });
+    }
 }
 
 void LayerPlan::applyBackPressureCompensation()

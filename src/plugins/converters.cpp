@@ -70,7 +70,7 @@ handshake_request::value_type handshake_request::operator()(const std::string& n
 {
     value_type message{};
     message.set_slot_id(slot_info.slot_id);
-    message.set_version_range(slot_info.version_range.data());
+    message.set_version(slot_info.version.data());
     message.set_plugin_name(name);
     message.set_plugin_version(version);
     return message;
@@ -78,7 +78,7 @@ handshake_request::value_type handshake_request::operator()(const std::string& n
 
 handshake_response::native_value_type handshake_response::operator()(const handshake_response::value_type& message, std::string_view peer) const
 {
-    return { .slot_version = message.slot_version(),
+    return { .slot_version_range = message.slot_version_range(),
              .plugin_name = message.plugin_name(),
              .plugin_version = message.plugin_version(),
              .peer = std::string{ peer },
@@ -345,6 +345,7 @@ gcode_paths_modify_request::value_type
         gcode_path->set_retract(path.retract);
         gcode_path->set_unretract_before_last_travel_move(path.unretract_before_last_travel_move);
         gcode_path->set_perform_z_hop(path.perform_z_hop);
+        gcode_path->set_perform_prime(path.perform_prime);
         gcode_path->set_skip_agressive_merge_hint(path.skip_agressive_merge_hint);
         gcode_path->set_done(path.done);
         gcode_path->set_fan_speed(path.getFanSpeed());
@@ -430,7 +431,7 @@ gcode_paths_modify_response::native_value_type
     gcode_paths_modify_response::operator()(gcode_paths_modify_response::native_value_type& original_value, const gcode_paths_modify_response::value_type& message) const
 {
     std::vector<GCodePath> paths;
-    using map_t = std::unordered_map<std::string, std::shared_ptr<SliceMeshStorage>>;
+    using map_t = std::unordered_map<std::string, std::shared_ptr<const SliceMeshStorage>>;
     auto meshes = original_value
                 | ranges::views::filter(
                       [](const auto& path)
@@ -458,6 +459,7 @@ gcode_paths_modify_response::native_value_type
             .retract = gcode_path_msg.retract(),
             .unretract_before_last_travel_move = gcode_path_msg.unretract_before_last_travel_move(),
             .perform_z_hop = gcode_path_msg.perform_z_hop(),
+            .perform_prime = gcode_path_msg.perform_prime(),
             .skip_agressive_merge_hint = gcode_path_msg.skip_agressive_merge_hint(),
             .done = gcode_path_msg.done(),
             .fan_speed = gcode_path_msg.fan_speed(),

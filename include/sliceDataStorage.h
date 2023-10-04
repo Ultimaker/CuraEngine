@@ -324,7 +324,7 @@ public:
 
     Point3 model_size, model_min, model_max;
     AABB3D machine_size; //!< The bounding box with the width, height and depth of the printer.
-    std::vector<SliceMeshStorage> meshes;
+    std::vector<std::shared_ptr<SliceMeshStorage>> meshes;
 
     std::vector<RetractionAndWipeConfig> retraction_wipe_config_per_extruder; //!< Config for retractions, extruder switch retractions, and wipes, per extruder.
 

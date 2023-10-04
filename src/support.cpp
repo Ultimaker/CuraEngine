@@ -599,8 +599,9 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
 
 void AreaSupport::generateOverhangAreas(SliceDataStorage& storage)
 {
-    for (SliceMeshStorage& mesh : storage.meshes)
+    for (std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
     {
+        auto& mesh = *mesh_ptr;
         if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
         {
             continue;
@@ -645,14 +646,14 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
-        SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+        SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
         if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
         {
             continue;
         }
-        Settings* infill_settings = &storage.meshes[mesh_idx].settings;
-        Settings* roof_settings = &storage.meshes[mesh_idx].settings;
-        Settings* bottom_settings = &storage.meshes[mesh_idx].settings;
+        Settings* infill_settings = &storage.meshes[mesh_idx]->settings;
+        Settings* roof_settings = &storage.meshes[mesh_idx]->settings;
+        Settings* bottom_settings = &storage.meshes[mesh_idx]->settings;
         if (mesh.settings.get<bool>("support_mesh"))
         {
             if ((mesh.settings.get<bool>("support_mesh_drop_down") && support_meshes_drop_down_handled)
@@ -694,7 +695,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
     // handle support interface
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
-        SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+        SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
         if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
         {
             continue;
@@ -725,12 +726,12 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
         AABB3D aabb;
         for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
         {
-            const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+            const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
             if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
             {
                 continue;
             }
-            Settings& infill_settings = storage.meshes[mesh_idx].settings;
+            Settings& infill_settings = storage.meshes[mesh_idx]->settings;
             if (mesh.settings.get<bool>("support_mesh"))
             {
                 // use extruder train settings rather than the per-object settings of the first support mesh encountered.
@@ -1039,7 +1040,7 @@ void AreaSupport::generateSupportAreasForMesh(
     const size_t layer_count,
     std::vector<Polygons>& support_areas)
 {
-    SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+    SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
 
     const ESupportStructure support_structure = mesh.settings.get<ESupportStructure>("support_structure");
     const bool is_support_mesh_place_holder

@@ -39,8 +39,9 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
 {
     size_t largest_printed_mesh_idx = 0;
 
-    for (const SliceMeshStorage& mesh : storage.meshes)
+    for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
     {
+        const auto& mesh = *mesh_ptr;
         TreeSupportSettings::some_model_contains_thick_roof |= mesh.settings.get<coord_t>("support_roof_height") >= 2 * mesh.settings.get<coord_t>("layer_height");
         TreeSupportSettings::has_to_rely_on_min_xy_dist_only |= mesh.settings.get<coord_t>("support_top_distance") == 0
                                                              || mesh.settings.get<coord_t>("support_bottom_distance") == 0
@@ -49,8 +50,9 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
 
     // Group all meshes that can be processed together. NOTE this is different from mesh-groups!
     // Only one setting object is needed per group, as different settings in the same group may only occur in the tip, which uses the original settings objects from the meshes.
-    for (auto [mesh_idx, mesh] : storage.meshes | ranges::views::enumerate)
+    for (auto [mesh_idx, mesh_ptr] : storage.meshes | ranges::views::enumerate)
     {
+        SliceMeshStorage& mesh = *mesh_ptr;
         const bool non_supportable_mesh = mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh") || mesh.settings.get<bool>("support_mesh");
         if (mesh.settings.get<ESupportStructure>("support_structure") != ESupportStructure::TREE || ! mesh.settings.get<bool>("support_enable") || non_supportable_mesh)
         {
@@ -79,14 +81,14 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
         }
 
         // no need to do this per mesh group as adaptive layers and raft setting are not setable per mesh.
-        if (storage.meshes[largest_printed_mesh_idx].layers.back().printZ < mesh.layers.back().printZ)
+        if (storage.meshes[largest_printed_mesh_idx]->layers.back().printZ < mesh.layers.back().printZ)
         {
             largest_printed_mesh_idx = mesh_idx;
         }
     }
-    std::vector<coord_t> known_z(storage.meshes[largest_printed_mesh_idx].layers.size());
+    std::vector<coord_t> known_z(storage.meshes[largest_printed_mesh_idx]->layers.size());
 
-    for (auto [z, layer] : ranges::views::enumerate(storage.meshes[largest_printed_mesh_idx].layers))
+    for (auto [z, layer] : ranges::views::enumerate(storage.meshes[largest_printed_mesh_idx]->layers))
     {
         known_z[z] = layer.printZ;
     }
@@ -163,7 +165,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         // ### Place tips of the support tree
         for (size_t mesh_idx : processing.second)
         {
-            generateInitialAreas(storage.meshes[mesh_idx], move_bounds, storage);
+            generateInitialAreas(*storage.meshes[mesh_idx], move_bounds, storage);
         }
         const auto t_gen = std::chrono::high_resolution_clock::now();
 
@@ -216,7 +218,7 @@ void TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size
     LayerIndex max_layer = 0;
     for (size_t mesh_idx : currently_processing_meshes)
     {
-        const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+        const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
         const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
         const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
         const size_t z_distance_top_layers = round_up_divide(z_distance_top,

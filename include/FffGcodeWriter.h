@@ -337,13 +337,17 @@ private:
      * This adds all features (e.g. walls, skin etc.) of this \p mesh to the gcode which are printed using \p extruder_nr
      *
      * \param[in] storage where the slice data is stored.
-     * \param mesh The mesh to add to the layer plan \p gcode_layer.
+     * \param mesh_ptr The mesh to add to the layer plan \p gcode_layer.
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param mesh_config the line config with which to print a print feature
      * \param gcode_layer The initial planning of the gcode of the layer.
      */
-    void addMeshLayerToGCode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const size_t extruder_nr, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer)
-        const;
+    void addMeshLayerToGCode(
+        const SliceDataStorage& storage,
+        const std::shared_ptr<SliceMeshStorage>& mesh_ptr,
+        const size_t extruder_nr,
+        const MeshPathConfigs& mesh_config,
+        LayerPlan& gcode_layer) const;
 
     /*!
      * Add all features of the given extruder from a single part from a given layer of a mesh-volume to the layer plan \p gcode_layer.
