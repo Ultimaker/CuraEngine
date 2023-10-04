@@ -281,7 +281,7 @@ void PrimeTower::generateStartLocations()
 void PrimeTower::addToGcode(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
-    const std::vector<ExtruderPrime>& required_extruder_prime,
+    const std::vector<ExtruderUse>& required_extruder_prime,
     const size_t prev_extruder,
     const size_t new_extruder) const
 {
@@ -321,7 +321,21 @@ void PrimeTower::addToGcode(
     PrimeTowerMethod method = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<PrimeTowerMethod>("prime_tower_mode");
     std::vector<size_t> primed_extruders;
 
-    switch (required_extruder_prime[new_extruder])
+    auto extruder_iterator = std::find_if(
+        required_extruder_prime.begin(),
+        required_extruder_prime.end(),
+        [new_extruder](const ExtruderUse& extruder_use)
+        {
+            return extruder_use.extruder_nr == new_extruder;
+        });
+
+    if (extruder_iterator == required_extruder_prime.end())
+    {
+        // Extruder is not used on this lyer
+        return;
+    }
+
+    switch (extruder_iterator->prime)
     {
     case ExtruderPrime::None:
         primed_extruders.push_back(new_extruder);
@@ -413,7 +427,7 @@ void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t ext
 
 void PrimeTower::addToGcode_optimizedInfill(
     LayerPlan& gcode_layer,
-    const std::vector<ExtruderPrime>& required_extruder_prime,
+    const std::vector<ExtruderUse>& required_extruder_prime,
     const size_t current_extruder,
     std::vector<size_t>& primed_extruders,
     bool group_with_next_extruders) const
@@ -426,12 +440,12 @@ void PrimeTower::addToGcode_optimizedInfill(
 
         // First, gather all extruders to be primed : we are going to process them all now, even if
         // the rings are not besides each other
-        for (size_t extruder_nr = 0; extruder_nr < required_extruder_prime.size(); ++extruder_nr)
+        for (const ExtruderUse& extruder_use : required_extruder_prime)
         {
-            if (required_extruder_prime[extruder_nr] == ExtruderPrime::Sparse && ! gcode_layer.getPrimeTowerIsPlanned(extruder_nr))
+            if (extruder_use.prime == ExtruderPrime::Sparse && ! gcode_layer.getPrimeTowerIsPlanned(extruder_use.extruder_nr))
             {
-                extruders_to_prime.push_back(extruder_nr);
-                primed_extruders.push_back(extruder_nr);
+                extruders_to_prime.push_back(extruder_use.extruder_nr);
+                primed_extruders.push_back(extruder_use.extruder_nr);
             }
         }
 
