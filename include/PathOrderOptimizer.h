@@ -646,7 +646,7 @@ protected:
                 // so the user has some control over where the seam will lie.
 
                 // the divisor here may need adjusting to obtain the best results (TBD)
-                corner_shift = score_distance / 10;
+                corner_shift = score_distance / 50;
             }
 
             float score = score_distance;
