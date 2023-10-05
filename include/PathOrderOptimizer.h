@@ -136,7 +136,7 @@ public:
      * This reorders the \ref paths field and fills their starting vertices and
      * directions.
      */
-    void optimize()
+    void optimize(bool precompute_start = true)
     {
         if(paths.empty())
         {
@@ -188,7 +188,7 @@ public:
 
         //For some Z seam types the start position can be pre-computed.
         //This is faster since we don't need to re-compute the start position at each step then.
-        const bool precompute_start = seam_config.type == EZSeamType::RANDOM || seam_config.type == EZSeamType::USER_SPECIFIED || seam_config.type == EZSeamType::SHARPEST_CORNER;
+        precompute_start &= seam_config.type == EZSeamType::RANDOM || seam_config.type == EZSeamType::USER_SPECIFIED || seam_config.type == EZSeamType::SHARPEST_CORNER;
         if(precompute_start)
         {
             for(auto& path : paths)
@@ -656,13 +656,13 @@ protected:
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
                 if(corner_angle < 0) // Indeed a concave corner? Give it some advantage over other corners. More advantage for sharper corners.
                 {
-                    score -= (-corner_angle + 1.0) * corner_shift;
+                    score += corner_angle * corner_shift;
                 }
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
                 if(corner_angle > 0) // Indeed a convex corner?
                 {
-                    score -= (corner_angle + 1.0) * corner_shift;
+                    score -= corner_angle * corner_shift;
                 }
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
@@ -707,6 +707,43 @@ protected:
         return best_i;
     }
 
+    Point findNeighbourPoint(const OrderablePath& path, int here, coord_t distance)
+    {
+        assert(distance);
+
+        const Point here_pos = (*path.converted)[here];
+        int direction = distance > 0 ? 1 : -1;
+        distance = std::abs(distance);
+
+        coord_t actual_distance = 0;
+        int actual_delta = 0;
+
+        Point prev_pos = here_pos;
+        Point next_pos;
+        while(actual_distance < distance)
+        {
+            actual_delta += direction;
+            next_pos = (*path.converted)[(here + actual_delta + path.converted->size()) % path.converted->size()];
+            actual_distance += vSize(next_pos - prev_pos);
+            prev_pos = next_pos;
+        }
+
+        if(actual_distance > distance) // Which is veeeery likely
+        {
+            prev_pos = (*path.converted)[(here + actual_delta -direction + path.converted->size()) % path.converted->size()];
+
+            Point vector = next_pos - prev_pos;
+            coord_t vector_size = vSize(vector);
+            Point unit_vector = (vector * 1000) / vector_size;
+            Point vector_delta = unit_vector * (vector_size - (actual_distance - distance));
+            return prev_pos + vector_delta / 1000;
+        }
+        else
+        {
+            return next_pos;
+        }
+    }
+
     /*!
     * Some models have very sharp corners, but also have a high resolution. If a sharp corner
     * consists of many points each point individual might have a shallow corner, but the
@@ -722,68 +759,27 @@ protected:
     */
     float cornerAngle(const OrderablePath& path, int i, const coord_t angle_query_distance = 100, const float fall_off_strength = 0.5)
     {
-        // If the edge length becomes too small we cannot accurately calculate the angle
-        // define a minimum edge length, so we don't get deviant values in the angle calculations
-        constexpr coord_t min_edge_length = 10;
-        constexpr coord_t min_edge_length2 = min_edge_length * min_edge_length;
+        static constexpr coord_t distance_step = 2000;
+        static constexpr coord_t max_distance = 5000;
 
-        const int offset_index = i % path.converted->size();
-        Point here = (*path.converted)[offset_index];
+        const Point here = (*path.converted)[i];
 
-        const std::function<Point(const int, const Point&)> find_neighbour_point = [&offset_index, &path](const int direction, const Point& here)
+        float angle = 0.0;
+        int computed_angles = 0;
+
+        for(coord_t distance = distance_step ; distance <= max_distance ; distance += distance_step)
         {
-            int offset_index_ = offset_index;
-            Point neighbour;
-            do
-            {
-                offset_index_ = (offset_index_ + path.converted->size() + direction) % path.converted->size();
-                neighbour = (*path.converted)[offset_index_];
-            }
-            while (vSize2(here - neighbour) < min_edge_length2 && offset_index_ != offset_index); // find previous point that is at least min_edge_length units away from here
-            return neighbour;
-        };
+            Point next = findNeighbourPoint(path, i, distance);
+            Point previous = findNeighbourPoint(path, i, -distance);
 
-        const std::function<coord_t(Point&, Point&, Point&)> iterate_to_previous_point = [&find_neighbour_point](Point& previous_, Point& here_, Point& next_)
-        {
-            const auto dist = vSize(here_ - next_);
-            next_ = here_;
-            here_ = previous_;
-            previous_ = find_neighbour_point(-1, here_);
-            return dist;
-        };
-        Point previous = find_neighbour_point(-1, here);
-
-        const std::function<coord_t(Point&, Point&, Point&)> iterate_to_next_point = [&find_neighbour_point](Point& previous_, Point& here_, Point& next_)
-        {
-            const auto dist = vSize(here_ - previous_);
-            previous_ = here_;
-            here_ = next_;
-            next_ = find_neighbour_point(1, here_);
-            return dist;
-        };
-        Point next = find_neighbour_point(1, here);
-
-        float corner_angle = LinearAlg2D::getAngleLeft(previous, here, next) - M_PI;
-
-        for (const auto& iterate_func : {iterate_to_previous_point, iterate_to_next_point})
-        {
-            Point next_ = next;
-            Point here_ = here;
-            Point previous_ = previous;
-            for
-            (
-                coord_t distance_to_query = iterate_func(previous_, here_, next_);
-                distance_to_query < angle_query_distance && here_ != here;
-                distance_to_query += iterate_func(previous_, here_, next_)
-            )
-            {
-                // angles further away from the query point are weighted less
-                const float angle_weight = 1.0 - pow(distance_to_query / angle_query_distance, fall_off_strength);
-                corner_angle += (LinearAlg2D::getAngleLeft(previous_, here_, next_) - M_PI) * angle_weight;
-            }
+            angle += LinearAlg2D::getAngleLeft(previous, here, next) - M_PI;
+            computed_angles++;
         }
 
-        return corner_angle / M_PI; // Limit angle between -1 and 1.
+        angle /= computed_angles;
+        angle /= M_PI;
+
+        return angle;
     }
 
     /*!
