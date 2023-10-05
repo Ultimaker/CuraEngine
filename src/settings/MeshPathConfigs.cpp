@@ -28,32 +28,26 @@ MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t lay
                      .speed_derivatives = { .speed = mesh.settings.get<Velocity>("speed_wall_x"),
                                             .acceleration = mesh.settings.get<Acceleration>("acceleration_wall_x"),
                                             .jerk = mesh.settings.get<Velocity>("jerk_wall_x") } }
-    , inset0_roofing_config
-    {
-        .type = PrintFeatureType::OuterWall,
-        .line_width = static_cast<coord_t>(
-            mesh.settings.get<coord_t>("wall_line_width_0") * line_width_factor_per_extruder[mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr]),
-        .layer_thickness = layer_thickness,
-        .flow = mesh.settings.get<Ratio>("wall_0_material_flow_roofing") * (layer_nr == 0 ? mesh.settings.get<Ratio>("wall_0_material_flow_layer_0") : Ratio{ 1.0 }),
-        .speed_derivatives = {
-            .speed = mesh.settings.get<Velocity>("speed_wall_0_roofing"),
-            .acceleration = mesh.settings.get<Acceleration>("acceleration_wall_0_roofing"),
-            .jerk = mesh.settings.get<Velocity>("jerk_wall_0_roofing")
-        }
-    }
-    , insetX_roofing_config
-    {
-        .type = PrintFeatureType::OuterWall,
-        .line_width = static_cast<coord_t>(
-            mesh.settings.get<coord_t>("wall_line_width_x") * line_width_factor_per_extruder[mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr]),
-        .layer_thickness = layer_thickness,
-        .flow = mesh.settings.get<Ratio>("wall_x_material_flow_roofing") * (layer_nr == 0 ? mesh.settings.get<Ratio>("wall_x_material_flow_layer_0") : Ratio{ 1.0 }),
-        .speed_derivatives = {
-            .speed = mesh.settings.get<Velocity>("speed_wall_x_roofing"),
-            .acceleration = mesh.settings.get<Acceleration>("acceleration_wall_x_roofing"),
-            .jerk = mesh.settings.get<Velocity>("jerk_wall_x_roofing")
-        }
-    }
+    , inset0_roofing_config{ .type = PrintFeatureType::OuterWall,
+                             .line_width = static_cast<coord_t>(
+                                 mesh.settings.get<coord_t>("wall_line_width_0")
+                                 * line_width_factor_per_extruder[mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr]),
+                             .layer_thickness = layer_thickness,
+                             .flow
+                             = mesh.settings.get<Ratio>("wall_0_material_flow_roofing") * (layer_nr == 0 ? mesh.settings.get<Ratio>("wall_0_material_flow_layer_0") : Ratio{ 1.0 }),
+                             .speed_derivatives = { .speed = mesh.settings.get<Velocity>("speed_wall_0_roofing"),
+                                                    .acceleration = mesh.settings.get<Acceleration>("acceleration_wall_0_roofing"),
+                                                    .jerk = mesh.settings.get<Velocity>("jerk_wall_0_roofing") } }
+    , insetX_roofing_config{ .type = PrintFeatureType::OuterWall,
+                             .line_width = static_cast<coord_t>(
+                                 mesh.settings.get<coord_t>("wall_line_width_x")
+                                 * line_width_factor_per_extruder[mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr]),
+                             .layer_thickness = layer_thickness,
+                             .flow
+                             = mesh.settings.get<Ratio>("wall_x_material_flow_roofing") * (layer_nr == 0 ? mesh.settings.get<Ratio>("wall_x_material_flow_layer_0") : Ratio{ 1.0 }),
+                             .speed_derivatives = { .speed = mesh.settings.get<Velocity>("speed_wall_x_roofing"),
+                                                    .acceleration = mesh.settings.get<Acceleration>("acceleration_wall_x_roofing"),
+                                                    .jerk = mesh.settings.get<Velocity>("jerk_wall_x_roofing") } }
     , bridge_inset0_config{ .type = PrintFeatureType::OuterWall,
                             .line_width = static_cast<coord_t>(
                                 mesh.settings.get<coord_t>("wall_line_width_0")

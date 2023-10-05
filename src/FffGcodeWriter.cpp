@@ -2395,7 +2395,8 @@ bool FffGcodeWriter::processInsets(
     else
     {
         // for layers that (partially) do not have any layers above we apply the roofing configuration
-        auto use_roofing_config = [&part, &mesh, &gcode_layer](){
+        auto use_roofing_config = [&part, &mesh, &gcode_layer]()
+        {
             const auto getOutlineOnLayer = [mesh](const SliceLayerPart& part_here, const LayerIndex layer2_nr) -> Polygons
             {
                 Polygons result;
@@ -2453,15 +2454,19 @@ bool FffGcodeWriter::processInsets(
                 return true;
             }
 
-            const auto point_view = ranges::views::transform([](auto extrusion_junction) { return extrusion_junction.p; });
+            const auto point_view = ranges::views::transform(
+                [](auto extrusion_junction)
+                {
+                    return extrusion_junction.p;
+                });
 
-            for (const auto& path: part.wall_toolpaths)
+            for (const auto& path : part.wall_toolpaths)
             {
-                for (const auto& wall: path)
+                for (const auto& wall : path)
                 {
                     for (const auto& p : wall | point_view)
                     {
-                        if (!filled_area_above.inside(p))
+                        if (! filled_area_above.inside(p))
                         {
                             return true;
                         }
