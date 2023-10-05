@@ -668,7 +668,7 @@ void SkirtBrim::generateSupportBrim()
 
         storage.support_brim.add(brim_line);
 
-        const coord_t length = skirt_brim_length + storage.support_brim.polygonLength();
+        const coord_t length = (adhesion_type == EPlatformAdhesion::NONE)? skirt_brim_length: skirt_brim_length + storage.support_brim.polygonLength();
         if (skirt_brim_number + 1 >= line_count && length > 0 && length < minimal_length) // Make brim or skirt have more lines when total length is too small.
         {
             line_count++;
