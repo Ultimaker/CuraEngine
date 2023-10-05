@@ -15,6 +15,8 @@ struct MeshPathConfigs
 {
     GCodePathConfig inset0_config{};
     GCodePathConfig insetX_config{};
+    GCodePathConfig inset0_roofing_config{};
+    GCodePathConfig insetX_roofing_config{};
     GCodePathConfig bridge_inset0_config{};
     GCodePathConfig bridge_insetX_config{};
     GCodePathConfig skin_config{};
