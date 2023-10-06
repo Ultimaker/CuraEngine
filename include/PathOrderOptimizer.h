@@ -636,12 +636,12 @@ protected:
             return vert;
         }
 
-        //Precompute segments lengths because we are going to need them multiple times
+        // Precompute segments lengths because we are going to need them multiple times
         std::vector<coord_t> segments_sizes(path.converted->size());
         coord_t total_length = 0;
-        for(const auto& [i, here]: **path.converted | ranges::views::enumerate)
+        for (const auto& [i, here] : **path.converted | ranges::views::enumerate)
         {
-            const Point &next = (*path.converted)[(i + 1) % path.converted->size()];
+            const Point& next = (*path.converted)[(i + 1) % path.converted->size()];
             coord_t segment_size = vSize(next - here);
             segments_sizes[i] = segment_size;
             total_length += segment_size;
@@ -651,18 +651,18 @@ protected:
         float best_score = std::numeric_limits<float>::infinity();
         for (const auto& [i, here] : **path.converted | ranges::views::enumerate)
         {
-            if(i == path.converted->size() - 1)
+            if (i == path.converted->size() - 1)
             {
-                //The path is closed so the last point is the same as the first, don't process it twice
+                // The path is closed so the last point is the same as the first, don't process it twice
                 continue;
             }
 
-            //For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
-            //For SHARPEST_CORNER, use a fixed starting score of 0.
-            const coord_t distance = (combing_boundary == nullptr)
-                ? getDirectDistance(here, target_pos)
-                : getCombingDistance(here, target_pos);
-            const float score_distance = (seam_config.type == EZSeamType::SHARPEST_CORNER && seam_config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE) ? MM2INT(10) : vSize2(here - target_pos);
+            // For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
+            // For SHARPEST_CORNER, use a fixed starting score of 0.
+            const coord_t distance = (combing_boundary == nullptr) ? getDirectDistance(here, target_pos) : getCombingDistance(here, target_pos);
+            const float score_distance = (seam_config.type == EZSeamType::SHARPEST_CORNER && seam_config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
+                                           ? MM2INT(10)
+                                           : vSize2(here - target_pos);
 
             float corner_angle = cornerAngle(path, i, segments_sizes, total_length);
             // angles < 0 are concave (left turning)
@@ -758,7 +758,7 @@ protected:
      * \param segments_sizes The pre-computed sizes of the segments
      * \return The position of the path a the given distance from the reference point
      */
-    static Point findNeighbourPoint(const OrderablePath& path, int here, coord_t distance, const std::vector<coord_t> &segments_sizes)
+    static Point findNeighbourPoint(const OrderablePath& path, int here, coord_t distance, const std::vector<coord_t>& segments_sizes)
     {
         const int direction = distance > 0 ? 1 : -1;
         const int size_delta = distance > 0 ? -1 : 0;
@@ -768,20 +768,20 @@ protected:
         int actual_delta = 0;
         coord_t travelled_distance = 0;
         coord_t segment_size = 0;
-        while(travelled_distance < distance)
+        while (travelled_distance < distance)
         {
             actual_delta += direction;
             segment_size = segments_sizes[(here + actual_delta + size_delta + path.converted->size()) % path.converted->size()];
             travelled_distance += segment_size;
         }
 
-        const Point &next_pos = (*path.converted)[(here + actual_delta + path.converted->size()) % path.converted->size()];
+        const Point& next_pos = (*path.converted)[(here + actual_delta + path.converted->size()) % path.converted->size()];
 
-        if(travelled_distance > distance) [[likely]]
+        if (travelled_distance > distance) [[likely]]
         {
             // We have overtaken the required distance, go backward on the last segment
-            int prev = (here + actual_delta -direction + path.converted->size()) % path.converted->size();
-            const Point &prev_pos = (*path.converted)[prev];
+            int prev = (here + actual_delta - direction + path.converted->size()) % path.converted->size();
+            const Point& prev_pos = (*path.converted)[prev];
 
             const Point vector = next_pos - prev_pos;
             const Point unit_vector = (vector * 1000) / segment_size;
@@ -796,22 +796,22 @@ protected:
     }
 
     /*!
-    * Some models have very sharp corners, but also have a high resolution. If a sharp corner
-    * consists of many points each point individual might have a shallow corner, but the
-    * collective angle of all nearby points is greater. To counter this the cornerAngle is
-    * calculated from two points within angle_query_distance of the query point, no matter
-    * what segment this leads us to
-    * \param path The vertex data of a path
-    * \param i index of the query point
-    * \param segments_sizes The pre-computed sizes of the segments
-    * \param total_length The path total length
-    * \param angle_query_distance query range (default to 1mm)
-    * \return angle between the reference point and the two sibling points, weighed to [-1.0 ; 1.0]
-    */
-    static float cornerAngle(const OrderablePath& path, int i, const std::vector<coord_t> &segments_sizes, coord_t total_length, const coord_t angle_query_distance = 1000)
+     * Some models have very sharp corners, but also have a high resolution. If a sharp corner
+     * consists of many points each point individual might have a shallow corner, but the
+     * collective angle of all nearby points is greater. To counter this the cornerAngle is
+     * calculated from two points within angle_query_distance of the query point, no matter
+     * what segment this leads us to
+     * \param path The vertex data of a path
+     * \param i index of the query point
+     * \param segments_sizes The pre-computed sizes of the segments
+     * \param total_length The path total length
+     * \param angle_query_distance query range (default to 1mm)
+     * \return angle between the reference point and the two sibling points, weighed to [-1.0 ; 1.0]
+     */
+    static float cornerAngle(const OrderablePath& path, int i, const std::vector<coord_t>& segments_sizes, coord_t total_length, const coord_t angle_query_distance = 1000)
     {
         const coord_t bounded_distance = std::min(angle_query_distance, total_length / 2);
-        const Point &here = (*path.converted)[i];
+        const Point& here = (*path.converted)[i];
         const Point next = findNeighbourPoint(path, i, bounded_distance, segments_sizes);
         const Point previous = findNeighbourPoint(path, i, -bounded_distance, segments_sizes);
 
