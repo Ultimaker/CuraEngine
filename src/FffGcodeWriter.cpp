@@ -164,6 +164,8 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     run_multiple_producers_ordered_consumer(
         process_layer_starting_layer_nr,
+        //-Raft::getTotalExtraLayers(),
+        // total_layers + Raft::getFillerLayerCount() - 1,
         total_layers,
         [&storage, total_layers, this](int layer_nr)
         {
@@ -685,6 +687,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             raftLines.clear();
         }
 
+        setExtruder_addPrime(storage, gcode_layer, storage.primeTower.extruder_order.front());
+
         layer_plan_buffer.handle(gcode_layer, gcode);
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
@@ -787,6 +791,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             raft_polygons.clear();
             raft_lines.clear();
         }
+
+        setExtruder_addPrime(storage, gcode_layer, storage.primeTower.extruder_order.front());
 
         layer_plan_buffer.handle(gcode_layer, gcode);
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
@@ -892,6 +898,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             raft_polygons.clear();
             raft_lines.clear();
         }
+
+        setExtruder_addPrime(storage, gcode_layer, storage.primeTower.extruder_order.front());
 
         layer_plan_buffer.handle(gcode_layer, gcode);
     }
@@ -1014,7 +1022,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         //    later in the print a prime tower is needed.
         //  - prime tower is already printed this layer (only applicable for more than 2 extruders).
         //    The setExtruder_addPrime takes care of this.
-        if (extruder_nr != extruder_order.front() || extruder_order.size() == 1)
+        if (extruder_nr != extruder_order.front() || (extruder_order.size() == 1 && layer_nr >= 0) || extruder_nr == 0)
         {
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         }
@@ -1045,7 +1053,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         // Always print a prime tower before switching extruder. Unless:
         //  - The prime tower is already printed this layer (setExtruder_addPrime takes care of this).
         //  - this is the last extruder of the layer, since the next layer will start with the same extruder.
-        if (extruder_nr != extruder_order.back())
+        if (extruder_nr != extruder_order.back() && layer_nr >= 0)
         {
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         }
@@ -1347,7 +1355,7 @@ std::vector<size_t> FffGcodeWriter::getUsedExtrudersOnLayerExcludingStartingExtr
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
 
     // The outermost prime tower extruder is always used if there is a prime tower, apart on layers with negative index (e.g. for the raft)
-    if (mesh_group_settings.get<bool>("prime_tower_enable") && layer_nr >= 0 && layer_nr <= storage.max_print_height_second_to_last_extruder)
+    if (mesh_group_settings.get<bool>("prime_tower_enable") && /*layer_nr >= 0 &&*/ layer_nr <= storage.max_print_height_second_to_last_extruder)
     {
         extruder_is_used_on_this_layer[storage.primeTower.extruder_order[0]] = true;
     }
