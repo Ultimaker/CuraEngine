@@ -17,10 +17,10 @@
 #include <range/v3/algorithm/partition_copy.hpp>
 #include <range/v3/iterator/insert_iterators.hpp>
 #include <range/v3/view/addressof.hpp>
+#include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/reverse.hpp>
-#include <range/v3/view/drop_last.hpp>
 #include <spdlog/spdlog.h>
 
 #include <unordered_set>
