@@ -3,17 +3,18 @@
 
 #include "SkeletalTrapezoidationGraph.h"
 
-#include <unordered_map>
+#include "utils/linearAlg2D.h"
+#include "utils/macros.h"
 
 #include <spdlog/spdlog.h>
 
-#include "utils/linearAlg2D.h"
-#include "utils/macros.h"
+#include <unordered_map>
 
 namespace cura
 {
 
-STHalfEdge::STHalfEdge(SkeletalTrapezoidationEdge data) : HalfEdge(data)
+STHalfEdge::STHalfEdge(SkeletalTrapezoidationEdge data)
+    : HalfEdge(data)
 {
 }
 
@@ -131,7 +132,8 @@ STHalfEdge* STHalfEdge::getNextUnconnected()
     return result->twin;
 }
 
-STHalfEdgeNode::STHalfEdgeNode(SkeletalTrapezoidationJoint data, Point p) : HalfEdgeNode(data, p)
+STHalfEdgeNode::STHalfEdgeNode(SkeletalTrapezoidationJoint data, Point p)
+    : HalfEdgeNode(data, p)
 {
 }
 
@@ -223,7 +225,10 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
         }
     };
 
-    auto should_collapse = [snap_dist](node_t* a, node_t* b) { return shorterThen(a->p - b->p, snap_dist); };
+    auto should_collapse = [snap_dist](node_t* a, node_t* b)
+    {
+        return shorterThen(a->p - b->p, snap_dist);
+    };
 
     for (auto edge_it = edges.begin(); edge_it != edges.end();)
     {
@@ -253,10 +258,6 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
             {
                 edge_from_3->from = quad_mid->from;
                 edge_from_3->twin->to = quad_mid->from;
-                if (count > 50)
-                {
-                    std::cerr << edge_from_3->from->p << " - " << edge_from_3->to->p << '\n';
-                }
                 if (++count > 1000)
                 {
                     break;
