@@ -1495,7 +1495,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
     {
         part_order_optimizer.addPolygon(&part);
     }
-    part_order_optimizer.optimize();
+    part_order_optimizer.optimize(false);
     for (const PathOrdering<const SliceLayerPart*>& path : part_order_optimizer.paths)
     {
         addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *path.vertices, gcode_layer);
