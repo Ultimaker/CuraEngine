@@ -20,6 +20,7 @@
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/reverse.hpp>
+#include <range/v3/view/drop_last.hpp>
 #include <spdlog/spdlog.h>
 
 #include <unordered_set>
@@ -649,14 +650,8 @@ protected:
 
         size_t best_i;
         float best_score = std::numeric_limits<float>::infinity();
-        for (const auto& [i, here] : **path.converted | ranges::views::enumerate)
+        for (const auto& [i, here] : **path.converted | ranges::views::drop_last(1) | ranges::views::enumerate)
         {
-            if (i == path.converted->size() - 1)
-            {
-                // The path is closed so the last point is the same as the first, don't process it twice
-                continue;
-            }
-
             // For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
             // For SHARPEST_CORNER, use a fixed starting score of 0.
             const coord_t distance = (combing_boundary == nullptr) ? getDirectDistance(here, target_pos) : getCombingDistance(here, target_pos);
