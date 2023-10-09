@@ -642,7 +642,7 @@ protected:
         for (const auto& [i, here] : **path.converted | ranges::views::enumerate)
         {
             const Point& next = (*path.converted)[(i + 1) % path.converted->size()];
-            coord_t segment_size = vSize(next - here);
+            const coord_t segment_size = vSize(next - here);
             segments_sizes[i] = segment_size;
             total_length += segment_size;
         }
