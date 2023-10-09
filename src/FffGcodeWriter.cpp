@@ -21,6 +21,8 @@
 #include "utils/math.h"
 #include "utils/orderOptimizer.h"
 
+#include <range/v3/view/sliding.hpp>
+#include <range/v3/view/transform.hpp>
 #include <range/v3/view/zip.hpp>
 #include <spdlog/spdlog.h>
 
@@ -2392,6 +2394,101 @@ bool FffGcodeWriter::processInsets(
     }
     else
     {
+        // for layers that (partially) do not have any layers above we apply the roofing configuration
+        auto use_roofing_config = [&part, &mesh, &gcode_layer]()
+        {
+            const auto getOutlineOnLayer = [mesh](const SliceLayerPart& part_here, const LayerIndex layer2_nr) -> Polygons
+            {
+                Polygons result;
+                if (layer2_nr >= static_cast<int>(mesh.layers.size()))
+                {
+                    return result;
+                }
+                const SliceLayer& layer2 = mesh.layers[layer2_nr];
+                for (const SliceLayerPart& part2 : layer2.parts)
+                {
+                    if (part_here.boundaryBox.hit(part2.boundaryBox))
+                    {
+                        result.add(part2.outline);
+                    }
+                }
+                return result;
+            };
+
+            const auto filled_area_above = [&getOutlineOnLayer, &part, &mesh, &gcode_layer]() -> Polygons
+            {
+                const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
+                const bool no_small_gaps_heuristic = mesh.settings.get<bool>("skin_no_small_gaps_heuristic");
+                const int layer_nr = gcode_layer.getLayerNr();
+                auto filled_area_above = getOutlineOnLayer(part, layer_nr + roofing_layer_count);
+                if (! no_small_gaps_heuristic)
+                {
+                    for (int layer_nr_above = layer_nr + 1; layer_nr_above < layer_nr + roofing_layer_count; layer_nr_above++)
+                    {
+                        Polygons outlines_above = getOutlineOnLayer(part, layer_nr_above);
+                        filled_area_above = filled_area_above.intersection(outlines_above);
+                    }
+                }
+                if (layer_nr > 0)
+                {
+                    // if the skin has air below it then cutting it into regions could cause a region
+                    // to be wholely or partly above air and it may not be printable so restrict
+                    // the regions that have air above (the visible regions) to not include any area that
+                    // has air below (fixes https://github.com/Ultimaker/Cura/issues/2656)
+
+                    // set air_below to the skin area for the current layer that has air below it
+                    Polygons air_below = getOutlineOnLayer(part, layer_nr).difference(getOutlineOnLayer(part, layer_nr - 1));
+
+                    if (! air_below.empty())
+                    {
+                        // add the polygons that have air below to the no air above polygons
+                        filled_area_above = filled_area_above.unionPolygons(air_below);
+                    }
+                }
+
+                return filled_area_above;
+            }();
+
+            if (filled_area_above.empty())
+            {
+                return true;
+            }
+
+            const auto point_view = ranges::views::transform(
+                [](auto extrusion_junction)
+                {
+                    return extrusion_junction.p;
+                });
+
+            for (const auto& path : part.wall_toolpaths)
+            {
+                for (const auto& wall : path)
+                {
+                    for (const auto& p : wall | point_view)
+                    {
+                        if (! filled_area_above.inside(p))
+                        {
+                            return true;
+                        }
+                    }
+
+                    for (const auto& window : wall | point_view | ranges::views::sliding(2))
+                    {
+                        auto p0 = window[0];
+                        auto p1 = window[1];
+                        if (PolygonUtils::polygonCollidesWithLineSegment(filled_area_above, p0, p1))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }();
+
+        const GCodePathConfig& inset0_config = use_roofing_config ? mesh_config.inset0_roofing_config : mesh_config.inset0_config;
+        const GCodePathConfig& insetX_config = use_roofing_config ? mesh_config.insetX_roofing_config : mesh_config.insetX_config;
+
         // Main case: Optimize the insets with the InsetOrderOptimizer.
         const coord_t wall_x_wipe_dist = 0;
         const ZSeamConfig z_seam_config(
@@ -2405,8 +2502,8 @@ bool FffGcodeWriter::processInsets(
             gcode_layer,
             mesh.settings,
             extruder_nr,
-            mesh_config.inset0_config,
-            mesh_config.insetX_config,
+            inset0_config,
+            insetX_config,
             mesh_config.bridge_inset0_config,
             mesh_config.bridge_insetX_config,
             mesh.settings.get<bool>("travel_retract_before_outer_wall"),
@@ -3050,7 +3147,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     }
     island_order_optimizer.optimize();
 
-    const auto support_brim_line_count = infill_extruder.settings.get<coord_t>("support_brim_line_count");
     const auto support_connect_zigzags = infill_extruder.settings.get<bool>("support_connect_zigzags");
     const auto support_structure = infill_extruder.settings.get<ESupportStructure>("support_structure");
     const Point infill_origin;

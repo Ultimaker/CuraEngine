@@ -346,8 +346,6 @@ void SkinInfillAreaComputation::generateRoofingFillAndSkinFill(SliceLayerPart& p
  */
 Polygons SkinInfillAreaComputation::generateFilledAreaAbove(SliceLayerPart& part, size_t roofing_layer_count)
 {
-    const size_t wall_idx = std::min(size_t(2), mesh.settings.get<size_t>("wall_line_count"));
-
     Polygons filled_area_above = getOutlineOnLayer(part, layer_nr + roofing_layer_count);
     if (! no_small_gaps_heuristic)
     {
