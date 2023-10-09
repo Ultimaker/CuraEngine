@@ -689,16 +689,12 @@ protected:
             {
             default:
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
-                if (corner_angle < 0) // Indeed a concave corner? Give it some advantage over other corners. More advantage for sharper corners.
-                {
-                    score += corner_angle * corner_shift;
-                }
+                // Give advantage to concave corners. More advantage for sharper corners.
+                score += corner_angle * corner_shift;
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
-                if (corner_angle > 0) // Indeed a convex corner?
-                {
-                    score -= corner_angle * corner_shift;
-                }
+                // Give advantage to convex corners. More advantage for sharper corners.
+                score -= corner_angle * corner_shift;
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
                 score -= std::abs(corner_angle) * corner_shift; // Still give sharper corners more advantage.
@@ -717,7 +713,7 @@ protected:
             }
             }
 
-            constexpr float EPSILON = 25.0;
+            constexpr float EPSILON = 5.0;
             if (std::abs(best_score - score) <= EPSILON)
             {
                 // add breaker for two candidate starting location with similar score
