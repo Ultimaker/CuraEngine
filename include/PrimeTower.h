@@ -102,9 +102,9 @@ public:
     void subtractFromSupport(SliceDataStorage& storage);
 
 private:
-    ExtrusionMoves generatePaths_base(const Polygons &outer_poly, coord_t extra_radius, coord_t line_width);
+    ExtrusionMoves generatePaths_base(const Polygons& outer_poly, coord_t extra_radius, coord_t line_width);
 
-    ExtrusionMoves generatePaths_inset(const Polygons &outer_poly, coord_t line_width, coord_t initial_inset);
+    ExtrusionMoves generatePaths_inset(const Polygons& outer_poly, coord_t line_width, coord_t initial_inset);
 
     /*!
      * \see WipeTower::generatePaths
