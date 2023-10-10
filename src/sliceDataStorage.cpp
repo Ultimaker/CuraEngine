@@ -333,7 +333,14 @@ Polygons
         {
             if (primeTower.enabled)
             {
-                total.add(primeTower.outer_poly);
+                if (layer_nr == 0)
+                {
+                    total.add(primeTower.footprint);
+                }
+                else
+                {
+                    total.add(primeTower.outer_poly);
+                }
             }
         }
         return total;

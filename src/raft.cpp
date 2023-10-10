@@ -66,14 +66,14 @@ void Raft::generate(SliceDataStorage& storage)
         }
     }
 
-    // storage.primeRaftOutline = storage.primeTower.outer_poly.offset(distance, ClipperLib::jtRound);
-    //  NOTE: the raft doesn't take the prime tower brim into account, because it's (currently) not being printed when printing a raft
-    // if (settings.get<bool>("raft_remove_inside_corners"))
-    //{
-    //     storage.primeRaftOutline = storage.primeRaftOutline.unionPolygons(storage.raftOutline);
-    //     storage.primeRaftOutline.makeConvex();
-    // }
-    // storage.primeRaftOutline = storage.primeRaftOutline.difference(storage.raftOutline); // In case of overlaps.
+    const coord_t prime_tower_distance = settings.get<coord_t>("prime_tower_base_size");
+    storage.primeRaftOutline = storage.primeTower.outer_poly.offset(prime_tower_distance, ClipperLib::jtRound);
+    if (settings.get<bool>("raft_remove_inside_corners"))
+    {
+        storage.primeRaftOutline = storage.primeRaftOutline.unionPolygons(storage.raftOutline);
+        storage.primeRaftOutline.makeConvex();
+    }
+    storage.primeRaftOutline = storage.primeRaftOutline.difference(storage.raftOutline); // In case of overlaps.
 }
 
 coord_t Raft::getTotalThickness()

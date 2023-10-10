@@ -40,13 +40,14 @@ private:
     const unsigned int number_of_prime_tower_start_locations = 21; //!< The required size of \ref PrimeTower::wipe_locations
 
     std::vector<ExtrusionMoves> pattern_per_extruder; //!< For each extruder the pattern to print on all layers of the prime tower.
-    std::vector<ExtrusionMoves> pattern_extra_brim_per_layer; //!< For each layer with an extra brim, the pattern to be added
+    std::vector<std::vector<ExtrusionMoves>> pattern_extra_brim_per_layer; //!< For each layer of each extruder with an extra brim, the pattern to be added
 
 public:
     bool enabled; //!< Whether the prime tower is enabled.
     bool would_have_actual_tower; //!< Whether there is an actual tower.
     bool multiple_extruders_on_first_layer; //!< Whether multiple extruders are allowed on the first layer of the prime tower (e.g. when a raft is there)
     Polygons outer_poly; //!< The outline of the outermost prime tower.
+    Polygons footprint; //!< The outline of the prime tower on layer 0
 
     /*
      * In which order, from outside to inside, will we be printing the prime
@@ -101,7 +102,9 @@ public:
     void subtractFromSupport(SliceDataStorage& storage);
 
 private:
-    ExtrusionMoves generatePaths_extraBrim(const Polygons &outer_poly, coord_t extra_radius, coord_t line_width, bool add_inset);
+    ExtrusionMoves generatePaths_base(const Polygons &outer_poly, coord_t extra_radius, coord_t line_width);
+
+    ExtrusionMoves generatePaths_inset(const Polygons &outer_poly, coord_t line_width, coord_t initial_inset);
 
     /*!
      * \see WipeTower::generatePaths

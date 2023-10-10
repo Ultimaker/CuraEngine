@@ -97,6 +97,18 @@ void PrimeTower::generateGroundpoly()
     middle = Point(x - tower_size / 2, y + tower_size / 2);
 
     post_wipe_point = Point(x - tower_size / 2, y + tower_size / 2);
+
+    const bool base_enabled = mesh_group_settings.get<bool>("prime_tower_brim_enable");
+    const coord_t base_extra_radius = mesh_group_settings.get<coord_t>("prime_tower_base_size");
+    const coord_t base_height = mesh_group_settings.get<coord_t>("prime_tower_base_height");
+    if (base_enabled && base_extra_radius > 0 && base_height > 0)
+    {
+        footprint = outer_poly.offset(base_extra_radius);
+    }
+    else
+    {
+        footprint = outer_poly;
+    }
 }
 
 void PrimeTower::generatePaths(const SliceDataStorage& storage)
@@ -110,23 +122,13 @@ void PrimeTower::generatePaths(const SliceDataStorage& storage)
     }
 }
 
-PrimeTower::ExtrusionMoves PrimeTower::generatePaths_extraBrim(const Polygons& outer_poly, coord_t extra_radius, coord_t line_width, bool add_inset)
+PrimeTower::ExtrusionMoves PrimeTower::generatePaths_base(const Polygons& outer_poly, coord_t extra_radius, coord_t line_width)
 {
     const Scene& scene = Application::getInstance().current_slice->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const coord_t tower_size = mesh_group_settings.get<coord_t>("prime_tower_size");
 
     ExtrusionMoves pattern;
-
-    if (add_inset)
-    {
-        Polygons inset = outer_poly.offset(-line_width / 2);
-        while (! inset.empty())
-        {
-            pattern.polygons.add(inset);
-            inset = inset.offset(-line_width);
-        }
-    }
 
     int circles = 0;
     Polygons outset = outer_poly.offset(line_width / 2);
@@ -140,15 +142,34 @@ PrimeTower::ExtrusionMoves PrimeTower::generatePaths_extraBrim(const Polygons& o
     return pattern;
 }
 
+PrimeTower::ExtrusionMoves PrimeTower::generatePaths_inset(const Polygons& outer_poly, coord_t line_width, coord_t initial_inset)
+{
+    const Scene& scene = Application::getInstance().current_slice->scene;
+    const Settings& mesh_group_settings = scene.current_mesh_group->settings;
+
+    ExtrusionMoves pattern;
+
+    Polygons inset = outer_poly.offset(-(initial_inset + line_width / 2));
+    while (! inset.empty())
+    {
+        pattern.polygons.add(inset);
+        inset = inset.offset(-line_width);
+    }
+
+    return pattern;
+}
+
 void PrimeTower::generatePaths_denseInfill()
 {
-    constexpr coord_t brim_extra_radius = 20000;
-    constexpr coord_t brim_extra_height = 20000;
-
     const Scene& scene = Application::getInstance().current_slice->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
+    const bool base_enabled = mesh_group_settings.get<bool>("prime_tower_brim_enable");
+    const coord_t base_extra_radius = scene.settings.get<coord_t>("prime_tower_base_size");
+    const coord_t base_height = scene.settings.get<coord_t>("prime_tower_base_height");
+    const int magnitude = scene.settings.get<int>("prime_tower_base_curve_magnitude");
     pattern_per_extruder.resize(extruder_count);
+    pattern_extra_brim_per_layer.resize(extruder_count);
 
     coord_t cumulative_inset = 0; // Each tower shape is going to be printed inside the other. This is the inset we're doing for each extruder.
     for (size_t extruder_nr : extruder_order)
@@ -173,23 +194,33 @@ void PrimeTower::generatePaths_denseInfill()
             }
         }
 
-        // Only the most inside extruder needs to fill the inside of the prime tower
-        if (extruder_nr == extruder_order.front())
+        // The most outside extruder is used for the base
+        if (base_enabled && extruder_nr == extruder_order.front())
         {
-            // Generate the pattern for the first layer.
-            const coord_t line_width_layer0 = scene.extruders[extruder_nr].settings.get<coord_t>("raft_base_line_width");
-            ExtrusionMoves pattern_layer0 = generatePaths_extraBrim(outer_poly, brim_extra_radius, line_width_layer0, true);
-            pattern_extra_brim_per_layer.push_back(pattern_layer0);
-
-            for (coord_t z = layer_height; z < brim_extra_height; z += layer_height)
+            for (coord_t z = 0; z < base_height; z += layer_height)
             {
-                double brim_radius_factor = std::pow((1.0 - static_cast<double>(z) / brim_extra_height), 4);
-                coord_t extra_radius = brim_extra_radius * brim_radius_factor;
-                ExtrusionMoves pattern = generatePaths_extraBrim(outer_poly, extra_radius, line_width, false);
-                pattern_extra_brim_per_layer.push_back(pattern);
+                double brim_radius_factor = std::pow((1.0 - static_cast<double>(z) / base_height), magnitude);
+                coord_t extra_radius = base_extra_radius * brim_radius_factor;
+                ExtrusionMoves pattern = generatePaths_base(outer_poly, extra_radius, line_width);
+                if (pattern.polygons.empty() && pattern.lines.empty())
+                {
+                    break;
+                }
+                pattern_extra_brim_per_layer[extruder_nr].push_back(pattern);
             }
         }
+
         cumulative_inset += wall_nr * line_width;
+
+        // Only the most inside extruder needs to fill the inside of the prime tower
+        if (extruder_nr == extruder_order.back())
+        {
+            ExtrusionMoves pattern = generatePaths_inset(outer_poly, line_width, cumulative_inset);
+            if (! pattern.polygons.empty() || ! pattern.lines.empty())
+            {
+                pattern_extra_brim_per_layer[extruder_nr].push_back(pattern);
+            }
+        }
     }
 }
 
@@ -215,7 +246,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
     }
 
     const LayerIndex layer_nr = gcode_layer.getLayerNr();
-    if (/*layer_nr < 0 ||*/ layer_nr > storage.max_print_height_second_to_last_extruder + 1)
+    if (layer_nr > storage.max_print_height_second_to_last_extruder + 1)
     {
         return;
     }
@@ -252,26 +283,30 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
 
 void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t extruder_nr) const
 {
-    LayerIndex absolute_layer_number = gcode_layer.getLayerNr() + Raft::getTotalExtraLayers();
-    assert(absolute_layer_number >= 0);
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const ExtruderTrain& base_train = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr");
+    const bool adhesion_raft = base_train.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT;
+    LayerIndex absolute_layer_number = gcode_layer.getLayerNr();
+    if (adhesion_raft)
+    {
+        absolute_layer_number += Raft::getTotalExtraLayers();
+    }
 
-    if (absolute_layer_number > 0)
+    if (! adhesion_raft || absolute_layer_number > 0)
     {
         // Actual prime pattern
         const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
-
         const ExtrusionMoves& pattern = pattern_per_extruder[extruder_nr];
         gcode_layer.addPolygonsByOptimizer(pattern.polygons, config);
         gcode_layer.addLinesByOptimizer(pattern.lines, config, SpaceFillType::Lines);
     }
 
-    if (absolute_layer_number < pattern_extra_brim_per_layer.size() && extruder_nr == extruder_order.front())
+    const std::vector<ExtrusionMoves>& pattern_extra_brim = pattern_extra_brim_per_layer[extruder_nr];
+    if (absolute_layer_number < pattern_extra_brim.size())
     {
-        // Specific case for first layer => very high adhesion
-        const GCodePathConfig& config
-            = absolute_layer_number == 0 ? gcode_layer.configs_storage.raft_base_config : gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
-
-        const ExtrusionMoves& pattern = pattern_extra_brim_per_layer[absolute_layer_number];
+        // Extra rings for stronger base
+        const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
+        const ExtrusionMoves& pattern = pattern_extra_brim[absolute_layer_number];
         gcode_layer.addPolygonsByOptimizer(pattern.polygons, config);
         gcode_layer.addLinesByOptimizer(pattern.lines, config, SpaceFillType::Lines);
     }

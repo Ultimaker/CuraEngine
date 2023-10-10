@@ -164,8 +164,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     run_multiple_producers_ordered_consumer(
         process_layer_starting_layer_nr,
-        //-Raft::getTotalExtraLayers(),
-        // total_layers + Raft::getFillerLayerCount() - 1,
         total_layers,
         [&storage, total_layers, this](int layer_nr)
         {
@@ -687,8 +685,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             raftLines.clear();
         }
 
-        setExtruder_addPrime(storage, gcode_layer, storage.primeTower.extruder_order.front());
-
         layer_plan_buffer.handle(gcode_layer, gcode);
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
@@ -735,11 +731,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         std::vector<Polygons> raft_outline_paths;
         const coord_t small_offset = gcode_layer.configs_storage.raft_interface_config.getLineWidth()
                                    / 2; // Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
-        if (storage.primeRaftOutline.area() > 0)
-        {
-            raft_outline_paths.emplace_back(storage.primeRaftOutline.offset(-small_offset));
-            raft_outline_paths.back() = Simplify(interface_settings).polygon(raft_outline_paths.back()); // Remove those micron-movements.
-        }
         raft_outline_paths.emplace_back(storage.raftOutline.offset(-small_offset));
         raft_outline_paths.back() = Simplify(interface_settings).polygon(raft_outline_paths.back()); // Remove those micron-movements.
         const coord_t infill_outline_width = gcode_layer.configs_storage.raft_interface_config.getLineWidth();
@@ -841,11 +832,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         std::vector<Polygons> raft_outline_paths;
         const coord_t small_offset = gcode_layer.configs_storage.raft_interface_config.getLineWidth()
                                    / 2; // Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
-        if (storage.primeRaftOutline.area() > 0)
-        {
-            raft_outline_paths.emplace_back(storage.primeRaftOutline.offset(-small_offset));
-            raft_outline_paths.back() = Simplify(interface_settings).polygon(raft_outline_paths.back()); // Remove those micron-movements.
-        }
         raft_outline_paths.emplace_back(storage.raftOutline.offset(-small_offset));
         raft_outline_paths.back() = Simplify(interface_settings).polygon(raft_outline_paths.back()); // Remove those micron-movements.
         const coord_t infill_outline_width = gcode_layer.configs_storage.raft_interface_config.getLineWidth();

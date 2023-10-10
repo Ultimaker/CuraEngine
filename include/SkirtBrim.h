@@ -119,15 +119,6 @@ private:
     std::vector<Offset> generateBrimOffsetPlan(std::vector<Polygons>& starting_outlines);
 
     /*!
-     * In case that the models have skirt 'adhesion', but the prime tower has a brim, the covered areas are different.
-     *
-     * Since the output of this function will need to be handled differently than the rest of the adhesion lines, have a separate function.
-     * Specifically, for skirt an additional 'approximate convex hull' is applied to the initial 'covered area', which is detrimental to brim.
-     * \return An ordered list of offsets of the prime-tower to perform in the order in which they are to be performed.
-     */
-    std::vector<Offset> generatePrimeTowerBrimForSkirtAdhesionOffsetPlan();
-
-    /*!
      * Generate the primary skirt/brim of the one skirt_brim_extruder or of all extruders simultaneously.
      * 
      * \param[in,out] all_brim_offsets The offsets to perform. Adjusted when the minimal length constraint isn't met yet.

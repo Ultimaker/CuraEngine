@@ -110,39 +110,15 @@ std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Pol
     return all_brim_offsets;
 }
 
-std::vector<SkirtBrim::Offset> SkirtBrim::generatePrimeTowerBrimForSkirtAdhesionOffsetPlan()
-{
-    std::vector<Offset> prime_brim_offsets;
-
-    const Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    const bool prime_tower_brim_enable = global_settings.get<bool>("prime_tower_brim_enable");
-    if (adhesion_type == EPlatformAdhesion::SKIRT && prime_tower_brim_enable && storage.primeTower.enabled)
-    {
-        const int extruder_nr = storage.primeTower.extruder_order[0];
-        const ExtruderTrain& extruder = extruders[extruder_nr];
-        int line_count = extruder.settings.get<int>("brim_line_count");
-        coord_t gap = extruder.settings.get<coord_t>("brim_gap");
-        for (int line_idx = 0; line_idx < line_count; line_idx++)
-        {
-            const bool is_last = line_idx == line_count - 1;
-            coord_t offset = gap + line_widths[extruder_nr] / 2 + line_widths[extruder_nr] * line_idx;
-            prime_brim_offsets.emplace_back(&storage.primeTower.outer_poly, external_polys_only[extruder_nr], offset, offset, line_idx, extruder_nr, is_last);
-        }
-    }
-
-    std::sort(prime_brim_offsets.begin(), prime_brim_offsets.end(), OffsetSorter);
-    return prime_brim_offsets;
-}
-
 void SkirtBrim::generate()
 {
     std::vector<Polygons> starting_outlines(extruder_count);
     std::vector<Offset> all_brim_offsets = generateBrimOffsetPlan(starting_outlines);
-    std::vector<Offset> prime_brim_offsets_for_skirt = generatePrimeTowerBrimForSkirtAdhesionOffsetPlan();
 
     constexpr LayerIndex layer_nr = 0;
     constexpr bool include_support = true;
-    Polygons covered_area = storage.getLayerOutlines(layer_nr, include_support, /*include_prime_tower*/ true, /*external_polys_only*/ false);
+    const bool include_prime_tower = adhesion_type == EPlatformAdhesion::SKIRT;
+    Polygons covered_area = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, /*external_polys_only*/ false);
 
     std::vector<Polygons> allowed_areas_per_extruder(extruder_count);
     for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
@@ -159,14 +135,6 @@ void SkirtBrim::generate()
             // so that the brim lines don't overlap with the holes by half the line width
             allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(getInternalHoleExclusionArea(covered_area, extruder_nr));
         }
-    }
-
-    // Note that the brim generated here for the prime-tower is _only_ when the rest if the model uses skirt.
-    // If everything uses brim to begin with, _including_ the prime-tower, it's not generated here, but along the rest.
-    if (! prime_brim_offsets_for_skirt.empty())
-    {
-        // Note that his ignores the returned lengths: Less 'correct' in a sense, will be predictable for the user.
-        generatePrimaryBrim(prime_brim_offsets_for_skirt, covered_area, allowed_areas_per_extruder);
     }
 
     // Apply 'approximate convex hull' if the adhesion is skirt _after_ any skirt but also prime-tower-brim adhesion.
@@ -406,12 +374,7 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
 
         if (skirt_around_prime_tower_brim)
         {
-            const int prime_tower_brim_extruder_nr = storage.primeTower.extruder_order[0];
-            const ExtruderTrain& prime_tower_brim_extruder = extruders[prime_tower_brim_extruder_nr];
-            int line_count = prime_tower_brim_extruder.settings.get<int>("brim_line_count");
-            coord_t tower_gap = prime_tower_brim_extruder.settings.get<coord_t>("brim_gap");
-            coord_t brim_width = tower_gap + line_count * line_widths[prime_tower_brim_extruder_nr];
-            first_layer_outline = first_layer_outline.unionPolygons(storage.primeTower.outer_poly.offset(brim_width));
+            first_layer_outline = first_layer_outline.unionPolygons(storage.primeTower.footprint);
         }
 
         Polygons shields;
@@ -435,7 +398,7 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
     else
     { // add brim underneath support by removing support where there's brim around the model
         constexpr bool include_support = false; // Include manually below.
-        constexpr bool include_prime_tower = false; // Include manually below.
+        constexpr bool include_prime_tower = false; // Not included.
         constexpr bool external_outlines_only = false; // Remove manually below.
         first_layer_outline = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_outlines_only, extruder_nr);
         first_layer_outline = first_layer_outline.unionPolygons(); // To guard against overlapping outlines, which would produce holes according to the even-odd rule.
@@ -479,10 +442,6 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
             }
             first_layer_outline.add(support_layer.support_bottom);
             first_layer_outline.add(support_layer.support_roof);
-        }
-        if (storage.primeTower.enabled && global_settings.get<bool>("prime_tower_brim_enable") && (extruder_nr == -1 || int(storage.primeTower.extruder_order[0]) == extruder_nr))
-        {
-            first_layer_outline.add(storage.primeTower.outer_poly); // don't remove parts of the prime tower, but make a brim for it
         }
     }
     constexpr coord_t join_distance = 20;
