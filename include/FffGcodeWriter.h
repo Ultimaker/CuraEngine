@@ -569,8 +569,7 @@ private:
         const Ratio skin_density,
         const bool monotonic,
         bool& added_something,
-        double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
-        const bool is_bridge_skin = false) const;
+        double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT) const;
 
     /*!
      *  see if we can avoid printing a lines or zig zag style skin part in multiple segments by moving to
