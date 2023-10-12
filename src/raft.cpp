@@ -8,7 +8,6 @@
 #include "Slice.h"
 #include "settings/EnumSettings.h" //For EPlatformAdhesion.
 #include "sliceDataStorage.h"
-#include "support.h"
 #include "utils/math.h"
 
 #include <polyclipping/clipper.hpp>
@@ -65,15 +64,6 @@ void Raft::generate(SliceDataStorage& storage)
             return;
         }
     }
-
-    const coord_t prime_tower_distance = settings.get<coord_t>("prime_tower_base_size");
-    storage.primeRaftOutline = storage.primeTower.outer_poly.offset(prime_tower_distance, ClipperLib::jtRound);
-    if (settings.get<bool>("raft_remove_inside_corners"))
-    {
-        storage.primeRaftOutline = storage.primeRaftOutline.unionPolygons(storage.raftOutline);
-        storage.primeRaftOutline.makeConvex();
-    }
-    storage.primeRaftOutline = storage.primeRaftOutline.difference(storage.raftOutline); // In case of overlaps.
 }
 
 coord_t Raft::getTotalThickness()

@@ -4,6 +4,7 @@
 #ifndef PRIME_TOWER_H
 #define PRIME_TOWER_H
 
+#include "settings/types/LayerIndex.h"
 #include "utils/polygon.h" // Polygons
 #include "utils/polygonUtils.h"
 
@@ -42,12 +43,20 @@ private:
     std::vector<ExtrusionMoves> pattern_per_extruder; //!< For each extruder the pattern to print on all layers of the prime tower.
     std::vector<std::vector<ExtrusionMoves>> pattern_extra_brim_per_layer; //!< For each layer of each extruder with an extra brim, the pattern to be added
 
+    Polygons outer_poly; //!< The outline of the outermost prime tower.
+
+    struct BasePolygon
+    {
+        Polygons polygons;
+        size_t extra_rings;
+    };
+
+    std::vector<Polygons> outer_poly_base; //!< The outline of the prime tower for layers having a base
+
 public:
     bool enabled; //!< Whether the prime tower is enabled.
     bool would_have_actual_tower; //!< Whether there is an actual tower.
     bool multiple_extruders_on_first_layer; //!< Whether multiple extruders are allowed on the first layer of the prime tower (e.g. when a raft is there)
-    Polygons outer_poly; //!< The outline of the outermost prime tower.
-    Polygons footprint; //!< The outline of the prime tower on layer 0
 
     /*
      * In which order, from outside to inside, will we be printing the prime
@@ -101,10 +110,14 @@ public:
      */
     void subtractFromSupport(SliceDataStorage& storage);
 
-private:
-    ExtrusionMoves generatePaths_base(const Polygons& outer_poly, coord_t extra_radius, coord_t line_width);
+    const Polygons &getOuterPoly(const LayerIndex &layer_nr) const;
 
-    ExtrusionMoves generatePaths_inset(const Polygons& outer_poly, coord_t line_width, coord_t initial_inset);
+    const Polygons &getGroundPoly() const;
+
+private:
+    static ExtrusionMoves generatePaths_base(const Polygons &inset, size_t rings, coord_t line_width);
+
+    static ExtrusionMoves generatePaths_inset(const Polygons& outer_poly, coord_t line_width, coord_t initial_inset);
 
     /*!
      * \see WipeTower::generatePaths

@@ -87,7 +87,8 @@ void PrimeTower::generateGroundpoly()
         return;
     }
 
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Scene& scene = Application::getInstance().current_slice->scene;
+    const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const coord_t tower_size = mesh_group_settings.get<coord_t>("prime_tower_size");
 
     const coord_t x = mesh_group_settings.get<coord_t>("prime_tower_position_x");
@@ -97,18 +98,6 @@ void PrimeTower::generateGroundpoly()
     middle = Point(x - tower_size / 2, y + tower_size / 2);
 
     post_wipe_point = Point(x - tower_size / 2, y + tower_size / 2);
-
-    const bool base_enabled = mesh_group_settings.get<bool>("prime_tower_brim_enable");
-    const coord_t base_extra_radius = mesh_group_settings.get<coord_t>("prime_tower_base_size");
-    const coord_t base_height = mesh_group_settings.get<coord_t>("prime_tower_base_height");
-    if (base_enabled && base_extra_radius > 0 && base_height > 0)
-    {
-        footprint = outer_poly.offset(base_extra_radius);
-    }
-    else
-    {
-        footprint = outer_poly;
-    }
 }
 
 void PrimeTower::generatePaths(const SliceDataStorage& storage)
@@ -122,21 +111,15 @@ void PrimeTower::generatePaths(const SliceDataStorage& storage)
     }
 }
 
-PrimeTower::ExtrusionMoves PrimeTower::generatePaths_base(const Polygons& outer_poly, coord_t extra_radius, coord_t line_width)
+PrimeTower::ExtrusionMoves PrimeTower::generatePaths_base(const Polygons& inset, size_t rings, coord_t line_width)
 {
-    const Scene& scene = Application::getInstance().current_slice->scene;
-    const Settings& mesh_group_settings = scene.current_mesh_group->settings;
-    const coord_t tower_size = mesh_group_settings.get<coord_t>("prime_tower_size");
-
     ExtrusionMoves pattern;
 
-    int circles = 0;
-    Polygons outset = outer_poly.offset(line_width / 2);
-    while (outset.max() - outset.min() < (tower_size + extra_radius * 2))
+    Polygons path = inset.offset(line_width / 2);
+    for (size_t ring = 0; ring < rings; ++ring)
     {
-        pattern.polygons.add(outset);
-        outset = outset.offset(line_width);
-        circles++;
+        pattern.polygons.add(path);
+        path = path.offset(line_width);
     }
 
     return pattern;
@@ -167,7 +150,9 @@ void PrimeTower::generatePaths_denseInfill()
     const bool base_enabled = mesh_group_settings.get<bool>("prime_tower_brim_enable");
     const coord_t base_extra_radius = scene.settings.get<coord_t>("prime_tower_base_size");
     const coord_t base_height = scene.settings.get<coord_t>("prime_tower_base_height");
-    const int magnitude = scene.settings.get<int>("prime_tower_base_curve_magnitude");
+    const int base_curve_magnitude = mesh_group_settings.get<int>("prime_tower_base_curve_magnitude");
+    const coord_t line_width = scene.extruders[extruder_order.front()].settings.get<coord_t>("prime_tower_line_width");
+
     pattern_per_extruder.resize(extruder_count);
     pattern_extra_brim_per_layer.resize(extruder_count);
 
@@ -195,18 +180,21 @@ void PrimeTower::generatePaths_denseInfill()
         }
 
         // The most outside extruder is used for the base
-        if (base_enabled && extruder_nr == extruder_order.front())
+        if (extruder_nr == extruder_order.front() && base_enabled && base_extra_radius > 0 && base_height > 0)
         {
             for (coord_t z = 0; z < base_height; z += layer_height)
             {
-                double brim_radius_factor = std::pow((1.0 - static_cast<double>(z) / base_height), magnitude);
+                double brim_radius_factor = std::pow((1.0 - static_cast<double>(z) / base_height), base_curve_magnitude);
                 coord_t extra_radius = base_extra_radius * brim_radius_factor;
-                ExtrusionMoves pattern = generatePaths_base(outer_poly, extra_radius, line_width);
-                if (pattern.polygons.empty() && pattern.lines.empty())
+                size_t extra_rings = extra_radius / line_width;
+                if (extra_rings == 0)
                 {
                     break;
                 }
-                pattern_extra_brim_per_layer[extruder_nr].push_back(pattern);
+                extra_radius = line_width * extra_rings;
+                outer_poly_base.push_back(outer_poly.offset(extra_radius));
+
+                pattern_extra_brim_per_layer[extruder_nr].push_back(generatePaths_base(outer_poly, extra_rings, line_width));
             }
         }
 
@@ -283,14 +271,9 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
 
 void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t extruder_nr) const
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    const ExtruderTrain& base_train = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr");
-    const bool adhesion_raft = base_train.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT;
-    LayerIndex absolute_layer_number = gcode_layer.getLayerNr();
-    if (adhesion_raft)
-    {
-        absolute_layer_number += Raft::getTotalExtraLayers();
-    }
+    const size_t raft_total_extra_layers = Raft::getTotalExtraLayers();
+    const bool adhesion_raft = raft_total_extra_layers > 0;
+    LayerIndex absolute_layer_number = gcode_layer.getLayerNr() + raft_total_extra_layers;
 
     if (! adhesion_raft || absolute_layer_number > 0)
     {
@@ -322,6 +305,24 @@ void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
         // take the differences of the support infill parts and the prime tower area
         support_layer.excludeAreasFromSupportInfillAreas(outside_polygon, outside_polygon_boundary_box);
     }
+}
+
+const Polygons& PrimeTower::getOuterPoly(const LayerIndex& layer_nr) const
+{
+    const LayerIndex absolute_layer_nr = layer_nr + Raft::getTotalExtraLayers();
+    if (absolute_layer_nr < outer_poly_base.size())
+    {
+        return outer_poly_base[absolute_layer_nr];
+    }
+    else
+    {
+        return outer_poly;
+    }
+}
+
+const Polygons& PrimeTower::getGroundPoly() const
+{
+    return getOuterPoly(-Raft::getTotalExtraLayers());
 }
 
 void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const int extruder_nr) const

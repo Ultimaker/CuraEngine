@@ -118,6 +118,7 @@ void SkirtBrim::generate()
     constexpr LayerIndex layer_nr = 0;
     constexpr bool include_support = true;
     const bool include_prime_tower = adhesion_type == EPlatformAdhesion::SKIRT;
+    const bool has_prime_tower = storage.primeTower.enabled;
     Polygons covered_area = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, /*external_polys_only*/ false);
 
     std::vector<Polygons> allowed_areas_per_extruder(extruder_count);
@@ -134,6 +135,11 @@ void SkirtBrim::generate()
             // Expand covered area on inside of holes when external_only is enabled for any extruder,
             // so that the brim lines don't overlap with the holes by half the line width
             allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(getInternalHoleExclusionArea(covered_area, extruder_nr));
+        }
+
+        if (has_prime_tower)
+        {
+            allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(storage.primeTower.getGroundPoly());
         }
     }
 
@@ -344,12 +350,12 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
     const int primary_line_count = line_count[reference_extruder_nr];
     const bool external_only
         = adhesion_type == EPlatformAdhesion::SKIRT || external_polys_only[reference_extruder_nr]; // Whether to include holes or not. Skirt doesn't have any holes.
+    const bool has_prime_tower = storage.primeTower.enabled;
     const LayerIndex layer_nr = 0;
     if (adhesion_type == EPlatformAdhesion::SKIRT)
     {
         constexpr bool include_support = true;
-        const bool skirt_around_prime_tower_brim = storage.primeTower.enabled && global_settings.get<bool>("prime_tower_brim_enable");
-        const bool include_prime_tower = ! skirt_around_prime_tower_brim; // include manually otherwise
+        const bool include_prime_tower = ! has_prime_tower; // include manually otherwise
 
         first_layer_outline = Polygons();
         int skirt_height = 0;
@@ -371,10 +377,9 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
             }
         }
 
-
-        if (skirt_around_prime_tower_brim)
+        if (has_prime_tower)
         {
-            first_layer_outline = first_layer_outline.unionPolygons(storage.primeTower.footprint);
+            first_layer_outline = first_layer_outline.unionPolygons(storage.primeTower.getGroundPoly());
         }
 
         Polygons shields;
