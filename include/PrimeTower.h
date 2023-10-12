@@ -110,12 +110,12 @@ public:
      */
     void subtractFromSupport(SliceDataStorage& storage);
 
-    const Polygons &getOuterPoly(const LayerIndex &layer_nr) const;
+    const Polygons& getOuterPoly(const LayerIndex& layer_nr) const;
 
-    const Polygons &getGroundPoly() const;
+    const Polygons& getGroundPoly() const;
 
 private:
-    static ExtrusionMoves generatePaths_base(const Polygons &inset, size_t rings, coord_t line_width);
+    static ExtrusionMoves generatePaths_base(const Polygons& inset, size_t rings, coord_t line_width);
 
     static ExtrusionMoves generatePaths_inset(const Polygons& outer_poly, coord_t line_width, coord_t initial_inset);
 
