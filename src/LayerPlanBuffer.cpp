@@ -429,7 +429,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
         return;
     }
 
-    assert((time_window >= -0.001 || last_extruder_plan.estimates.material == 0) && "Time window should always be positive if we actually extrude");
+    assert((time_window >= 0 || last_extruder_plan.estimates.material == 0) && "Time window should always be positive if we actually extrude");
 
     //          ,layer change                                                                                   .
     //          :     ,precool command                   ,layer change                                          .
