@@ -41,17 +41,10 @@ private:
     const unsigned int number_of_prime_tower_start_locations = 21; //!< The required size of \ref PrimeTower::wipe_locations
 
     std::vector<ExtrusionMoves> pattern_per_extruder; //!< For each extruder the pattern to print on all layers of the prime tower.
-    std::vector<std::vector<ExtrusionMoves>> pattern_extra_brim_per_layer; //!< For each layer of each extruder with an extra brim, the pattern to be added
+    std::vector<std::vector<ExtrusionMoves>> pattern_extra_brim_per_layer; //!< For each layer of each extruder, the extra pattern to be added for adhesion and/or strength
 
     Polygons outer_poly; //!< The outline of the outermost prime tower.
-
-    struct BasePolygon
-    {
-        Polygons polygons;
-        size_t extra_rings;
-    };
-
-    std::vector<Polygons> outer_poly_base; //!< The outline of the prime tower for layers having a base
+    std::vector<Polygons> outer_poly_base; //!< The outline of the layers having extra width for the base
 
 public:
     bool enabled; //!< Whether the prime tower is enabled.
@@ -110,17 +103,46 @@ public:
      */
     void subtractFromSupport(SliceDataStorage& storage);
 
+    /*!
+     * Get the outer polygon for the given layer, which may be the priming polygon only, or a larger polygon for layers with a base
+     *
+     * \param[in] layer_nr The index of the layer
+     * \return The outer polygon for the prime tower at the given layer
+     */
     const Polygons& getOuterPoly(const LayerIndex& layer_nr) const;
 
+    /*!
+     * Get the outer polygon for the very first layer, which may be the priming polygon only, or a larger polygon if there is a base
+     */
     const Polygons& getGroundPoly() const;
 
 private:
+    /*!
+     * \see PrimeTower::generatePaths
+     *
+     * Generate extra rings around the actual prime rings for a stronger base
+     *
+     * \param inset The inner circle of the rings to start generating the rings from
+     * \param rings The number of rings to add
+     * \param line_width The actual line width to distance the rings from each other
+     * \return The generated rings paths
+     */
     static ExtrusionMoves generatePaths_base(const Polygons& inset, size_t rings, coord_t line_width);
 
+    /*!
+     * \see PrimeTower::generatePaths
+     *
+     * Generate extra rings inside the given circle for a better adhesion on the first layer
+     *
+     * \param outer_poly The outer polygon to start generating the rings from
+     * \param line_width The actual line width to distance the rings from each other
+     * \param initial_inset The inset distance to be added to the first generated ring
+     * \return The generated rings paths
+     */
     static ExtrusionMoves generatePaths_inset(const Polygons& outer_poly, coord_t line_width, coord_t initial_inset);
 
     /*!
-     * \see WipeTower::generatePaths
+     * \see PrimeTower::generatePaths
      *
      * Generate the extrude paths for each extruder on even and odd layers
      * Fill the ground poly with dense infill.
