@@ -297,10 +297,10 @@ void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t ext
 
 void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
 {
-    const Polygons outside_polygon = outer_poly.getOutsidePolygons();
-    AABB outside_polygon_boundary_box(outside_polygon);
     for (size_t layer = 0; layer <= (size_t)storage.max_print_height_second_to_last_extruder + 1 && layer < storage.support.supportLayers.size(); layer++)
     {
+        const Polygons outside_polygon = getOuterPoly(layer).getOutsidePolygons();
+        AABB outside_polygon_boundary_box(outside_polygon);
         SupportLayer& support_layer = storage.support.supportLayers[layer];
         // take the differences of the support infill parts and the prime tower area
         support_layer.excludeAreasFromSupportInfillAreas(outside_polygon, outside_polygon_boundary_box);
