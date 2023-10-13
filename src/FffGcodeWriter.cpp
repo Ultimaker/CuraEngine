@@ -3064,7 +3064,11 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
     }
     if (extruder_nr == support_roof_extruder_nr)
     {
-        support_added |= addSupportRoofsToGCode(storage, support_layer.support_roof.difference(support_layer.support_fractional_roof), gcode_layer.configs_storage.support_roof_config, gcode_layer);
+        support_added |= addSupportRoofsToGCode(
+            storage,
+            support_layer.support_roof.difference(support_layer.support_fractional_roof),
+            gcode_layer.configs_storage.support_roof_config,
+            gcode_layer);
         support_added |= addSupportRoofsToGCode(storage, support_layer.support_fractional_roof, gcode_layer.configs_storage.support_fractional_roof_config, gcode_layer);
     }
     if (extruder_nr == support_bottom_extruder_nr)
@@ -3377,7 +3381,11 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 }
 
 
-bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, const Polygons& support_roof_outlines, const GCodePathConfig& current_roof_config, LayerPlan& gcode_layer) const
+bool FffGcodeWriter::addSupportRoofsToGCode(
+    const SliceDataStorage& storage,
+    const Polygons& support_roof_outlines,
+    const GCodePathConfig& current_roof_config,
+    LayerPlan& gcode_layer) const
 {
     const SupportLayer& support_layer = storage.support.supportLayers[std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr())];
 
