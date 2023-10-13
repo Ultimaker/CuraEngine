@@ -104,14 +104,7 @@ coord_t Raft::getFillerLayerHeight()
         return normal_layer_height;
     }
 
-    if (getFillerLayerCount() != 0)
-    {
-        return round_divide(getZdiffBetweenRaftAndLayer0(), getFillerLayerCount());
-    }
-    else
-    {
-        return mesh_group_settings.get<coord_t>("layer_height");
-    }
+    return round_divide(getZdiffBetweenRaftAndLayer0(), getFillerLayerCount());
 }
 
 
