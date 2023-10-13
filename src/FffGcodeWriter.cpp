@@ -624,6 +624,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         Polygons raft_outline_path = storage.raftOutline;
         if (storage.primeTower.enabled)
         {
+            // Base layer is shared with prime tower base
             raft_outline_path = raft_outline_path.unionPolygons(storage.primeTower.getOuterPoly(layer_nr));
         }
 
@@ -747,6 +748,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         if (storage.primeTower.enabled)
         {
+            // Interface layer excludes prime tower base
             raft_outline_path = raft_outline_path.difference(storage.primeTower.getOuterPoly(layer_nr));
         }
 
@@ -851,6 +853,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         if (storage.primeTower.enabled)
         {
+            // Surface layers exclude prime tower base
             raft_outline_path = raft_outline_path.difference(storage.primeTower.getOuterPoly(layer_nr));
         }
 
