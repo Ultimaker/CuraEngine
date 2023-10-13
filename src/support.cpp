@@ -115,7 +115,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(
             continue;
         }
 
-        const Polygons& global_support_areas_above = (layer_nr + 1) >= global_support_areas_per_layer.size() ? Polygons() : global_support_areas_per_layer[layer_nr + 1];
+        const Polygons& global_support_areas_above = (layer_nr + 1) >= global_support_areas_per_layer.size() || layer_nr <= 0 ? Polygons() : global_support_areas_per_layer[layer_nr + 1];
         const auto all_support_areas_in_layer = { global_support_areas.intersection(global_support_areas_above), global_support_areas.difference(global_support_areas_above) };
         bool use_fractional_config = false;
         for (auto& support_areas : all_support_areas_in_layer)
@@ -1822,7 +1822,10 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         Polygons roofs;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roof_outline_offset, minimum_roof_area, roofs);
         support_layers[layer_idx].support_roof.add(roofs);
-        support_layers[layer_idx].support_fractional_roof.add(roofs.difference(support_layers[layer_idx + 1].support_roof));
+        if (layer_idx > 0)
+        {
+            support_layers[layer_idx].support_fractional_roof.add(roofs.difference(support_layers[layer_idx + 1].support_roof));
+        }
         scripta::log("support_interface_roofs", roofs, SectionType::SUPPORT, layer_idx);
     }
 
