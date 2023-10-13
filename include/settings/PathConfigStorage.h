@@ -48,7 +48,9 @@ public:
     std::vector<GCodePathConfig> prime_tower_config_per_extruder; //!< Configuration for the prime tower per extruder.
 
     std::vector<GCodePathConfig> support_infill_config; //!< The config used to print the normal support, rather than the support interface
+    std::vector<GCodePathConfig> support_fractional_infill_config; //!< The config used to print the normal support on fractional layer-height parts.
     GCodePathConfig support_roof_config; //!< The config used to print the dense roofs of support.
+    GCodePathConfig support_fractional_roof_config; //!< The config used to print the dense roofs of support on fractional layer-height parts.
     GCodePathConfig support_bottom_config; //!< The config to use to print the dense bottoms of support
 
     std::vector<MeshPathConfigs> mesh_configs; //!< For each meash the config for all its feature types

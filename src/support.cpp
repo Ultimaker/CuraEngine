@@ -106,7 +106,6 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(
         { // The first layer will be printed with a grid pattern
             wall_line_count_this_layer++;
         }
-        assert(storage.support.supportLayers[layer_nr].support_infill_parts.empty() && "support infill part list is supposed to be uninitialized");
 
         const Polygons& global_support_areas = global_support_areas_per_layer[layer_nr];
         if (global_support_areas.size() == 0 || layer_nr < min_layer || layer_nr > max_layer)
@@ -116,19 +115,26 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(
             continue;
         }
 
-        std::vector<PolygonsPart> support_islands = global_support_areas.splitIntoParts();
-        for (const PolygonsPart& island_outline : support_islands)
+        const Polygons& global_support_areas_above = (layer_nr + 1) >= global_support_areas_per_layer.size() ? Polygons() : global_support_areas_per_layer[layer_nr + 1];
+        const auto all_support_areas_in_layer = { global_support_areas.intersection(global_support_areas_above), global_support_areas.difference(global_support_areas_above) };
+        bool use_fractional_config = false;
+        for (auto& support_areas : all_support_areas_in_layer)
         {
-            coord_t support_line_width_here = support_line_width;
-            if (layer_nr == 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
+            std::vector<PolygonsPart> support_islands = support_areas.splitIntoParts();
+            for (const PolygonsPart& island_outline : support_islands)
             {
-                support_line_width_here *= infill_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
-            }
-            // We don't generate insets and infill area for the parts yet because later the skirt/brim and prime
-            // tower will remove themselves from the support, so the outlines of the parts can be changed.
-            SupportInfillPart support_infill_part(island_outline, support_line_width_here, wall_line_count_this_layer);
+                coord_t support_line_width_here = support_line_width;
+                if (layer_nr == 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
+                {
+                    support_line_width_here *= infill_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
+                }
+                // We don't generate insets and infill area for the parts yet because later the skirt/brim and prime
+                // tower will remove themselves from the support, so the outlines of the parts can be changed.
+                SupportInfillPart support_infill_part(island_outline, support_line_width_here, use_fractional_config, wall_line_count_this_layer);
 
-            storage.support.supportLayers[layer_nr].support_infill_parts.push_back(support_infill_part);
+                storage.support.supportLayers[layer_nr].support_infill_parts.push_back(support_infill_part);
+            }
+            use_fractional_config = true;
         }
     }
 }
@@ -1816,16 +1822,14 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         Polygons roofs;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roof_outline_offset, minimum_roof_area, roofs);
         support_layers[layer_idx].support_roof.add(roofs);
-        support_layers[layer_idx].support_fractional_roof_top = roofs.difference(support_layers[layer_idx + 1].support_roof);
+        support_layers[layer_idx].support_fractional_roof.add(roofs.difference(support_layers[layer_idx + 1].support_roof));
         scripta::log("support_interface_roofs", roofs, SectionType::SUPPORT, layer_idx);
     }
 
     // Remove support in between the support roof and the model. Subtracts the roof polygons from the support polygons on the layers above it.
     for (auto [layer_idx, support_layer] : support_layers | ranges::views::enumerate | ranges::views::drop(1) | ranges::views::drop_last(z_distance_top))
     {
-        Polygons roof = support_layer.support_roof;
-
-        if (roof.empty())
+        if (support_layer.support_roof.empty())
         {
             continue;
         }
@@ -1834,7 +1838,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         int upper = std::min(static_cast<int>(layer_idx + roof_layer_count + z_distance_top + 5), static_cast<int>(global_support_areas_per_layer.size()) - 1);
         for (Polygons& global_support : global_support_areas_per_layer | ranges::views::slice(lower, upper))
         {
-            global_support = global_support.difference(roof);
+            global_support = global_support.difference(support_layer.support_roof);
         }
     }
 }
