@@ -686,28 +686,26 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
         }
     }
 
-    for (LayerIndex layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
+    for (Polygons& support_areas : global_support_areas_per_layer)
     {
-        Polygons& support_areas = global_support_areas_per_layer[layer_idx];
         support_areas = support_areas.unionPolygons();
     }
 
     // handle support interface
-    for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
+    for (auto& mesh : storage.meshes)
     {
-        SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
-        if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
+        if (mesh->settings.get<bool>("infill_mesh") || mesh->settings.get<bool>("anti_overhang_mesh"))
         {
             continue;
         }
 
-        if (mesh.settings.get<bool>("support_roof_enable"))
+        if (mesh->settings.get<bool>("support_roof_enable"))
         {
-            generateSupportRoof(storage, mesh, global_support_areas_per_layer);
+            generateSupportRoof(storage, *mesh, global_support_areas_per_layer);
         }
-        if (mesh.settings.get<bool>("support_bottom_enable"))
+        if (mesh->settings.get<bool>("support_bottom_enable"))
         {
-            generateSupportBottom(storage, mesh, global_support_areas_per_layer);
+            generateSupportBottom(storage, *mesh, global_support_areas_per_layer);
         }
     }
 
