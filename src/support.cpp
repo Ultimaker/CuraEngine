@@ -30,6 +30,9 @@
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/slice.hpp>
 #include <range/v3/view/zip.hpp>
+#include <range/v3/view/concat.hpp>
+#include <range/v3/view/sliding.hpp>
+#include <range/v3/view/take.hpp>
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
 
