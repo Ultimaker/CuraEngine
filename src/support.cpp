@@ -115,27 +115,25 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(
             continue;
         }
 
+        coord_t support_line_width_here = support_line_width;
+        if (layer_nr == 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
+        {
+            support_line_width_here *= infill_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
+        }
+        // We don't generate insets and infill area for the parts yet because later the skirt/brim and prime
+        // tower will remove themselves from the support, so the outlines of the parts can be changed.
+
         const Polygons& global_support_areas_above
             = (layer_nr + 1) >= global_support_areas_per_layer.size() || layer_nr <= 0 ? Polygons() : global_support_areas_per_layer[layer_nr + 1];
         const auto all_support_areas_in_layer = { global_support_areas.difference(global_support_areas_above), global_support_areas.intersection(global_support_areas_above) };
-        bool use_fractional_config = false;
+        bool use_fractional_config = true;
         for (auto& support_areas : all_support_areas_in_layer)
         {
-            std::vector<PolygonsPart> support_islands = support_areas.splitIntoParts();
-            for (const PolygonsPart& island_outline : support_islands)
+            for (const PolygonsPart& island_outline : support_areas.splitIntoParts())
             {
-                coord_t support_line_width_here = support_line_width;
-                if (layer_nr == 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
-                {
-                    support_line_width_here *= infill_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
-                }
-                // We don't generate insets and infill area for the parts yet because later the skirt/brim and prime
-                // tower will remove themselves from the support, so the outlines of the parts can be changed.
-                SupportInfillPart support_infill_part(island_outline, support_line_width_here, use_fractional_config, wall_line_count_this_layer);
-
-                storage.support.supportLayers[layer_nr].support_infill_parts.push_back(support_infill_part);
+                storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back(island_outline, support_line_width_here, use_fractional_config, wall_line_count_this_layer);
             }
-            use_fractional_config = true;
+            use_fractional_config = false;
         }
     }
 }
