@@ -117,7 +117,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(
 
         const Polygons& global_support_areas_above
             = (layer_nr + 1) >= global_support_areas_per_layer.size() || layer_nr <= 0 ? Polygons() : global_support_areas_per_layer[layer_nr + 1];
-        const auto all_support_areas_in_layer = { global_support_areas.intersection(global_support_areas_above), global_support_areas.difference(global_support_areas_above) };
+        const auto all_support_areas_in_layer = { global_support_areas.difference(global_support_areas_above), global_support_areas.intersection(global_support_areas_above) };
         bool use_fractional_config = false;
         for (auto& support_areas : all_support_areas_in_layer)
         {

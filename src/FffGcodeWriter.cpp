@@ -3058,6 +3058,10 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
         return support_added;
     }
 
+    if (extruder_nr == support_roof_extruder_nr)
+    {
+        support_added |= addSupportRoofsToGCode(storage, support_layer.support_fractional_roof, gcode_layer.configs_storage.support_fractional_roof_config, gcode_layer);
+    }
     if (extruder_nr == support_infill_extruder_nr)
     {
         support_added |= processSupportInfill(storage, gcode_layer);
@@ -3069,7 +3073,6 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
             support_layer.support_roof.difference(support_layer.support_fractional_roof),
             gcode_layer.configs_storage.support_roof_config,
             gcode_layer);
-        support_added |= addSupportRoofsToGCode(storage, support_layer.support_fractional_roof, gcode_layer.configs_storage.support_fractional_roof_config, gcode_layer);
     }
     if (extruder_nr == support_bottom_extruder_nr)
     {
