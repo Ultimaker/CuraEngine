@@ -227,16 +227,23 @@ public:
      */
     void excludeAreasFromSupportInfillAreas(const Polygons& exclude_polygons, const AABB& exclude_polygons_boundary_box);
 
-    /* Fill up the infill parts for the support with the given support polygons. The support polygons will be split into parts. This also takes into account fractional-height support layers.
+    /* Fill up the infill parts for the support with the given support polygons. The support polygons will be split into parts. This also takes into account fractional-height
+     * support layers.
      *
      * \param layer_nr Current layer index.
      * \param support_fill_per_layer All of the (infill) support (since the layer above might be needed).
      * \param support_line_width Line width of the support extrusions.
      * \param wall_line_count Wall-line count around the fill.
      * \param grow_layer_above (optional, default to 0) In cases where support shrinks per layer up, an appropriate offset may be nescesary.
-     * \param unionAll (optional, default to false) Wether to 'union all' for the split into parts bit. 
+     * \param unionAll (optional, default to false) Wether to 'union all' for the split into parts bit.
      */
-    void fillInfillParts(const LayerIndex layer_nr, const std::vector<Polygons>& support_fill_per_layer, const coord_t support_line_width, const coord_t wall_line_count, const coord_t grow_layer_above = 0, const bool unionAll = false);
+    void fillInfillParts(
+        const LayerIndex layer_nr,
+        const std::vector<Polygons>& support_fill_per_layer,
+        const coord_t support_line_width,
+        const coord_t wall_line_count,
+        const coord_t grow_layer_above = 0,
+        const bool unionAll = false);
 };
 
 class SupportStorage

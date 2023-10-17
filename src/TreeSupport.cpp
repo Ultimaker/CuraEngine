@@ -2226,8 +2226,9 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
                 support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(floor_layer.offset(10)); // Subtract the support floor from the normal support.
             }
 
-            constexpr bool convert_every_part = true;  // Convert every part into a PolygonsPart for the support.
-            storage.support.supportLayers[layer_idx].fillInfillParts(layer_idx, support_layer_storage, config.support_line_width, config.support_wall_count, config.maximum_move_distance, convert_every_part);
+            constexpr bool convert_every_part = true; // Convert every part into a PolygonsPart for the support.
+            storage.support.supportLayers[layer_idx]
+                .fillInfillParts(layer_idx, support_layer_storage, config.support_line_width, config.support_wall_count, config.maximum_move_distance, convert_every_part);
 
             {
                 std::lock_guard<std::mutex> critical_section_progress(critical_sections);
