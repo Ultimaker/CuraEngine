@@ -2226,19 +2226,8 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
                 support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(floor_layer.offset(10)); // Subtract the support floor from the normal support.
             }
 
-            const Polygons support_layer_storage_above
-                = (layer_idx + 1) >= support_layer_storage.size() || layer_idx <= 0 ? Polygons() : support_layer_storage[layer_idx + 1].offset(config.maximum_move_distance);
-            const auto all_support_areas_in_layer
-                = { support_layer_storage[layer_idx].difference(support_layer_storage_above), support_layer_storage[layer_idx].intersection(support_layer_storage_above) };
-            bool use_fractional_config = true;
-            for (auto& support_areas : all_support_areas_in_layer)
-            {
-                for (auto& part : support_areas.splitIntoParts(true)) // Convert every part into a PolygonsPart for the support.
-                {
-                    storage.support.supportLayers[layer_idx].support_infill_parts.emplace_back(part, config.support_line_width, use_fractional_config, config.support_wall_count);
-                }
-                use_fractional_config = false;
-            }
+            constexpr bool convert_every_part = true;  // Convert every part into a PolygonsPart for the support.
+            storage.support.supportLayers[layer_idx].fillInfillParts(layer_idx, support_layer_storage, config.support_line_width, config.support_wall_count, config.maximum_move_distance, convert_every_part);
 
             {
                 std::lock_guard<std::mutex> critical_section_progress(critical_sections);
