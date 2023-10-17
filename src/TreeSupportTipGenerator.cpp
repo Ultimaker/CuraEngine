@@ -1164,9 +1164,20 @@ void TreeSupportTipGenerator::generateTips(
             {
                 if (use_fake_roof)
                 {
-                    for (auto part : support_roof_drawn[layer_idx].splitIntoParts())
+                    const Polygons support_roof_drawn_above = (layer_idx + 1) >= support_roof_drawn.size() || layer_idx <= 0 ? Polygons() : support_roof_drawn[layer_idx + 1].offset(config.maximum_move_distance);;
+                    const auto all_support_areas_in_layer = { support_roof_drawn[layer_idx].intersection(support_roof_drawn_above), support_roof_drawn[layer_idx].difference(support_roof_drawn_above)};
+                    bool use_fractional_config = false;
+                    for (auto& support_areas : all_support_areas_in_layer)
                     {
-                        storage.support.supportLayers[layer_idx].support_infill_parts.emplace_back(part, config.support_line_width, 0, support_roof_line_distance);
+                        for (const auto& part : support_areas.splitIntoParts())
+                        {
+                            if (part.area() < config.min_feature_size * config.min_feature_size)
+                            {
+                                continue;
+                            }
+                            storage.support.supportLayers[layer_idx].support_infill_parts.emplace_back(part, config.support_line_width, use_fractional_config, 0, support_roof_line_distance);
+                        }
+                        use_fractional_config = true;
                     }
                     placed_support_lines_support_areas[layer_idx].add(TreeSupportUtils::generateSupportInfillLines(
                                                                           support_roof_drawn[layer_idx],
@@ -1183,6 +1194,21 @@ void TreeSupportTipGenerator::generateTips(
                     storage.support.supportLayers[layer_idx].support_roof.add(support_roof_drawn[layer_idx]);
                     storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.unionPolygons(roof_tips_drawn[layer_idx]);
                 }
+            }
+        });
+
+    cura::parallel_for<coord_t>(
+        1,
+        mesh.overhang_areas.size() - z_distance_delta,
+        [&](const LayerIndex layer_idx)
+        {
+            if (layer_idx > 0)
+            {
+                storage.support.supportLayers[layer_idx].support_fractional_roof.add(
+                    storage.support.supportLayers[layer_idx].support_roof.difference(
+                        storage.support.supportLayers[layer_idx + 1].support_roof
+                    )
+                );
             }
         });
 
