@@ -1166,7 +1166,6 @@ void TreeSupportTipGenerator::generateTips(
                 {
                     const Polygons support_roof_drawn_above
                         = (layer_idx + 1) >= support_roof_drawn.size() || layer_idx <= 0 ? Polygons() : support_roof_drawn[layer_idx + 1].offset(config.maximum_move_distance);
-                    ;
                     const auto all_support_areas_in_layer
                         = { support_roof_drawn[layer_idx].difference(support_roof_drawn_above), support_roof_drawn[layer_idx].intersection(support_roof_drawn_above) };
                     bool use_fractional_config = false;
@@ -1174,10 +1173,6 @@ void TreeSupportTipGenerator::generateTips(
                     {
                         for (const auto& part : support_areas.splitIntoParts())
                         {
-                            if (part.area() < config.min_feature_size * config.min_feature_size)
-                            {
-                                continue;
-                            }
                             storage.support.supportLayers[layer_idx]
                                 .support_infill_parts.emplace_back(part, config.support_line_width, use_fractional_config, 0, support_roof_line_distance);
                         }
