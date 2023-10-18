@@ -3,6 +3,9 @@
 
 #include "PrimeTower.h"
 
+#include <algorithm>
+#include <limits>
+
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "LayerPlan.h"
@@ -13,9 +16,6 @@
 #include "infill.h"
 #include "raft.h"
 #include "sliceDataStorage.h"
-
-#include <algorithm>
-#include <limits>
 
 #define CIRCLE_RESOLUTION 32 // The number of vertices in each circle.
 
@@ -154,8 +154,8 @@ void PrimeTower::generatePaths_denseInfill()
     const int base_curve_magnitude = mesh_group_settings.get<int>("prime_tower_base_curve_magnitude");
     const coord_t line_width = scene.extruders[extruder_order.front()].settings.get<coord_t>("prime_tower_line_width");
 
-    pattern_per_extruder.resize(extruder_count);
-    pattern_extra_brim_per_layer.resize(extruder_count);
+    prime_moves.resize(extruder_count);
+    base_extra_moves.resize(extruder_count);
 
     coord_t cumulative_inset = 0; // Each tower shape is going to be printed inside the other. This is the inset we're doing for each extruder.
     for (size_t extruder_nr : extruder_order)
@@ -164,7 +164,7 @@ void PrimeTower::generatePaths_denseInfill()
         const coord_t required_volume = MM3_2INT(scene.extruders[extruder_nr].settings.get<double>("prime_tower_min_volume"));
         const Ratio flow = scene.extruders[extruder_nr].settings.get<Ratio>("prime_tower_flow");
         coord_t current_volume = 0;
-        ExtrusionMoves& pattern = pattern_per_extruder[extruder_nr];
+        ExtrusionMoves& pattern = prime_moves[extruder_nr];
 
         // Create the walls of the prime tower.
         unsigned int wall_nr = 0;
@@ -195,7 +195,7 @@ void PrimeTower::generatePaths_denseInfill()
                 extra_radius = line_width * extra_rings;
                 outer_poly_base.push_back(outer_poly.offset(extra_radius));
 
-                pattern_extra_brim_per_layer[extruder_nr].push_back(generatePaths_base(outer_poly, extra_rings, line_width));
+                base_extra_moves[extruder_nr].push_back(generatePaths_base(outer_poly, extra_rings, line_width));
             }
         }
 
@@ -207,7 +207,7 @@ void PrimeTower::generatePaths_denseInfill()
             ExtrusionMoves pattern = generatePaths_inset(outer_poly, line_width, cumulative_inset);
             if (! pattern.polygons.empty() || ! pattern.lines.empty())
             {
-                pattern_extra_brim_per_layer[extruder_nr].push_back(pattern);
+                base_extra_moves[extruder_nr].push_back(pattern);
             }
         }
     }
@@ -280,12 +280,12 @@ void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t ext
     {
         // Actual prime pattern
         const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
-        const ExtrusionMoves& pattern = pattern_per_extruder[extruder_nr];
+        const ExtrusionMoves& pattern = prime_moves[extruder_nr];
         gcode_layer.addPolygonsByOptimizer(pattern.polygons, config);
         gcode_layer.addLinesByOptimizer(pattern.lines, config, SpaceFillType::Lines);
     }
 
-    const std::vector<ExtrusionMoves>& pattern_extra_brim = pattern_extra_brim_per_layer[extruder_nr];
+    const std::vector<ExtrusionMoves>& pattern_extra_brim = base_extra_moves[extruder_nr];
     if (absolute_layer_number < pattern_extra_brim.size())
     {
         // Extra rings for stronger base

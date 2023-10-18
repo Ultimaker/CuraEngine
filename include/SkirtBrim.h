@@ -4,12 +4,12 @@
 #ifndef SKIRT_BRIM_H
 #define SKIRT_BRIM_H
 
+#include <variant>
+
 #include "ExtruderTrain.h"
 #include "settings/EnumSettings.h"
 #include "sliceDataStorage.h"
 #include "utils/Coord_t.h"
-
-#include <variant>
 
 namespace cura
 {

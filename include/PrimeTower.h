@@ -4,11 +4,12 @@
 #ifndef PRIME_TOWER_H
 #define PRIME_TOWER_H
 
+#include <vector>
+
 #include "settings/types/LayerIndex.h"
 #include "utils/polygon.h" // Polygons
 #include "utils/polygonUtils.h"
 
-#include <vector>
 
 namespace cura
 {
@@ -30,7 +31,11 @@ private:
         Polygons polygons;
         Polygons lines;
     };
-    unsigned int extruder_count; //!< Number of extruders
+
+    using MovesByExtruder = std::vector<ExtrusionMoves>;
+    using MovesByLayer = std::vector<MovesByExtruder>;
+
+    size_t extruder_count; //!< Number of extruders
 
     bool wipe_from_middle; //!< Whether to wipe on the inside of the hollow prime tower
     Point middle; //!< The middle of the prime tower
@@ -40,8 +45,8 @@ private:
     std::vector<ClosestPolygonPoint> prime_tower_start_locations; //!< The differernt locations where to pre-wipe the active nozzle
     const unsigned int number_of_prime_tower_start_locations = 21; //!< The required size of \ref PrimeTower::wipe_locations
 
-    std::vector<ExtrusionMoves> pattern_per_extruder; //!< For each extruder the pattern to print on all layers of the prime tower.
-    std::vector<std::vector<ExtrusionMoves>> pattern_extra_brim_per_layer; //!< For each layer of each extruder, the extra pattern to be added for adhesion and/or strength
+    MovesByExtruder prime_moves; //!< For each extruder, the moves to be processed for actual priming.
+    MovesByLayer base_extra_moves; //!< For each layer and each extruder, the extra moves to be processed for better adhesion/strength
 
     Polygons outer_poly; //!< The outline of the outermost prime tower.
     std::vector<Polygons> outer_poly_base; //!< The outline of the layers having extra width for the base
@@ -58,7 +63,7 @@ public:
      * This is the spatial order from outside to inside. This is NOT the actual
      * order in time in which they are printed.
      */
-    std::vector<unsigned int> extruder_order;
+    std::vector<size_t> extruder_order;
 
     /*!
      * \brief Creates a prime tower instance that will determine where and how
