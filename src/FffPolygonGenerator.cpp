@@ -1,13 +1,13 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <spdlog/spdlog.h>
-
 #include <algorithm>
 #include <atomic>
 #include <fstream> // ifstream.good()
 #include <map> // multimap (ordered map allowing duplicate keys)
 #include <numeric>
+
+#include <spdlog/spdlog.h>
 
 // Code smell: Order of the includes is important here, probably due to some forward declarations which might be masking some undefined behaviours
 // clang-format off

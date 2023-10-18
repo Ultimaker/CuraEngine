@@ -3,17 +3,17 @@
 
 #include "TreeModelVolumes.h"
 
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/iota.hpp>
+#include <range/v3/view/reverse.hpp>
+#include <spdlog/spdlog.h>
+
 #include "TreeSupport.h"
 #include "TreeSupportEnums.h"
 #include "progress/Progress.h"
 #include "sliceDataStorage.h"
 #include "utils/ThreadPool.h"
 #include "utils/algorithm.h"
-
-#include <range/v3/view/enumerate.hpp>
-#include <range/v3/view/iota.hpp>
-#include <range/v3/view/reverse.hpp>
-#include <spdlog/spdlog.h>
 
 namespace cura
 {

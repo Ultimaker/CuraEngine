@@ -3,14 +3,14 @@
 
 #include "raft.h"
 
+#include <polyclipping/clipper.hpp>
+
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "settings/EnumSettings.h" //For EPlatformAdhesion.
 #include "sliceDataStorage.h"
 #include "utils/math.h"
-
-#include <polyclipping/clipper.hpp>
 
 namespace cura
 {

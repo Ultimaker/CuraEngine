@@ -3,6 +3,8 @@
 
 #include "SkirtBrim.h"
 
+#include <spdlog/spdlog.h>
+
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
@@ -12,8 +14,6 @@
 #include "support.h"
 #include "utils/PolylineStitcher.h"
 #include "utils/Simplify.h" //Simplifying the brim/skirt at every inset.
-
-#include <spdlog/spdlog.h>
 
 namespace cura
 {

@@ -3,6 +3,8 @@
 
 #include "sliceDataStorage.h"
 
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "FffProcessor.h" //To create a mesh group with if none is provided.
@@ -13,8 +15,6 @@
 #include "infill/SubDivCube.h" // For the destructor
 #include "raft.h"
 #include "utils/math.h" //For PI.
-
-#include <spdlog/spdlog.h>
 
 
 namespace cura
