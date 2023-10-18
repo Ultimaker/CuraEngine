@@ -5,6 +5,7 @@
 #define PRIME_TOWER_H
 
 #include "ExtruderUse.h"
+#include "settings/EnumSettings.h"
 #include "utils/polygon.h" // Polygons
 #include "utils/polygonUtils.h"
 
@@ -59,7 +60,7 @@ public:
      * This is the spatial order from outside to inside. This is NOT the actual
      * order in time in which they are printed.
      */
-    std::vector<unsigned int> extruder_order;
+    std::vector<size_t> extruder_order;
 
     /*!
      * \brief Creates a prime tower instance that will determine where and how
@@ -164,12 +165,16 @@ private:
     void addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t extruder) const;
 
 #warning TBD documentation
-    void addToGcode_optimizedInfill(
+    void addToGcode_optimizedInfill(LayerPlan& gcode_layer,
+        const std::vector<size_t>& extruders_to_prime,
+        const size_t current_extruder) const;
+
+    std::vector<size_t> findExtrudersSparseInfill(
         LayerPlan& gcode_layer,
         const std::vector<ExtruderUse>& required_extruder_prime,
         const size_t current_extruder,
-        std::vector<size_t>& primed_extruders,
-        bool group_with_next_extruders) const;
+        cura::PrimeTowerMethod method,
+        const std::vector<size_t>& initial_list = {}) const;
 
     /*!
      * For an extruder switch that happens not on the first layer, the extruder needs to be primed on the prime tower.

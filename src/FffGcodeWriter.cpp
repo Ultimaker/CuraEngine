@@ -897,8 +897,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
 LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers) const
 {
-    spdlog::debug("GcodeWriter processing layer {} of {}", layer_nr, total_layers);
-
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
     coord_t z;
@@ -1322,65 +1320,6 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
         std::vector<ExtruderUse> extruder_order = getUsedExtrudersOnLayerExcludingStartingExtruder(storage, last_extruder, layer_nr);
         extruder_order_per_layer_here.push_back(extruder_order);
 
-        /*std::vector<size_t> extruder_order_ids;
-        std::vector<ExtruderPrime> extruder_primes;
-        for (const ExtruderUse& extruder_use : extruder_order)
-        {
-            extruder_order_ids.push_back(extruder_use.extruder_nr);
-            extruder_primes.push_back(extruder_use.prime);
-        }
-        extruder_order_per_layer_here.push_back(extruder_order_ids);
-        extruder_prime_required_by_layer.push_back(extruder_primes);*/
-
-#warning remove this
-#if 0
-        logAlways("##### Used extruders for layer %d (last %d)\n", layer_nr, last_extruder);
-        for(const size_t &extruder_nr : extruder_order)
-        {
-            logAlways("##### %d\n", extruder_nr);
-        }
-#endif
-
-        //        if (layer_nr >= 0 && ! extruder_order_per_layer_here.empty())
-        //        {
-        //            ExtruderPrime default_prime;
-        //            switch (prime_tower_mode)
-        //            {
-        //            case PrimeTowerMethod::NONE:
-        //            case PrimeTowerMethod::DEFAULT:
-        //            case PrimeTowerMethod::OPTIMIZED:
-        //                default_prime = ExtruderPrime::None;
-        //                break;
-
-        //            case PrimeTowerMethod::OPTIMIZED_CONSISTENT:
-        //                default_prime = ExtruderPrime::Sparse;
-        //                break;
-        //            }
-
-        //            std::vector<ExtruderPrime> extruder_prime_required(extruder_count, default_prime);
-
-        //            // First used extruder only needs to be primed if an other extruder has been used before
-        //            if (extruder_order.front() != last_extruder)
-        //            {
-        //                extruder_prime_required[extruder_order.front()] = ExtruderPrime::Prime;
-        //            }
-
-        //            // All other used extruders need to be primed
-        //            for (size_t index = 1; index < extruder_order.size(); ++index)
-        //            {
-        //                extruder_prime_required[extruder_order[index]] = ExtruderPrime::Prime;
-        //            }
-
-        //            extruder_prime_required_by_layer.push_back(extruder_prime_required);
-
-#warning remove this
-#if 0
-            logAlways("##### Required primes for layer %d:\n", layer_nr);
-            for(size_t extruder_nr = 0 ; extruder_nr < extruder_count ; ++extruder_nr)
-            {
-                logAlways("##### EX%d %d\n", extruder_nr, extruder_prime_required[extruder_nr] ? 1 : 0);
-            }
-#endif
         last_extruder = extruder_order.back().extruder_nr;
     }
 }
@@ -1422,6 +1361,7 @@ std::vector<ExtruderUse>
     }
 
     // Now check whether extuders should really used, and how
+    size_t last_extruder = start_extruder;
     for (size_t extruder_nr : ordered_extruders)
     {
         ExtruderPrime prime = ExtruderPrime::None;
@@ -1443,37 +1383,36 @@ std::vector<ExtruderUse>
             }
             break;
 
-        case PrimeTowerMethod::OPTIMIZED:
         case PrimeTowerMethod::OPTIMIZED_CONSISTENT:
-            if (extruder_is_used_on_this_layer[extruder_nr])
+            if (extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder)
             {
-#warning only prime if different from actual extruder (for consistent only)
                 prime = ExtruderPrime::Prime;
             }
-            else
+            else if (layer_nr < storage.max_print_height_second_to_last_extruder)
             {
                 prime = ExtruderPrime::Sparse;
             }
             break;
+
+        case PrimeTowerMethod::OPTIMIZED:
+            if (extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder)
+            {
+                prime = ExtruderPrime::Prime;
+            }
+            break;
         }
 
-        if (extruder_is_used_on_this_layer[start_extruder] || prime != ExtruderPrime::None)
+        if (extruder_is_used_on_this_layer[extruder_nr] || prime != ExtruderPrime::None)
         {
             ret.push_back(ExtruderUse{ extruder_nr, prime });
+            last_extruder = extruder_nr;
         }
     }
 
-    spdlog::info(" {} ################", layer_nr);
-    for (const ExtruderUse& extruder_use : ret)
+    if (method == PrimeTowerMethod::OPTIMIZED && ret.size() == 1 && ret.front().prime == ExtruderPrime::None)
     {
-        spdlog::info("ext {} {}", int(extruder_use.extruder_nr), int(extruder_use.prime));
+        ret.front().prime = ExtruderPrime::Sparse;
     }
-
-    // The outermost prime tower extruder is always used if there is a prime tower, apart on layers with negative index (e.g. for the raft)
-    //    if (method == PrimeTowerMethod::DEFAULT && layer_nr >= 0 && layer_nr <= storage.max_print_height_second_to_last_extruder)
-    //    {
-    //        extruder_is_used_on_this_layer[storage.primeTower.extruder_order[0]] = true;
-    //    }
 
 #warning restore this
 #if 0
@@ -1491,24 +1430,6 @@ std::vector<ExtruderUse>
         }
     }
 #endif
-
-    //    if (method != PrimeTowerMethod::OPTIMIZED || extruder_is_used_on_this_layer[start_extruder])
-    //    {
-    //        ret.push_back(start_extruder);
-    //    }
-
-    //    for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
-    //    {
-    //        if (extruder_nr == start_extruder)
-    //        { // skip the current extruder, it's the one we started out planning
-    //            continue;
-    //        }
-    //        if (! extruder_is_used_on_this_layer[extruder_nr] && method != PrimeTowerMethod::OPTIMIZED_CONSISTENT)
-    //        {
-    //            continue;
-    //        }
-    //        ret.push_back(extruder_nr);
-    //    }
 
     assert(ret.size() <= (size_t)extruder_count && "Not more extruders may be planned in a layer than there are extruders!");
     return ret;
