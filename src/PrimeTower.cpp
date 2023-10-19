@@ -111,37 +111,6 @@ void PrimeTower::generatePaths(const SliceDataStorage& storage)
     }
 }
 
-PrimeTower::ExtrusionMoves PrimeTower::generatePaths_base(const Polygons& inset, size_t rings, coord_t line_width)
-{
-    ExtrusionMoves pattern;
-
-    Polygons path = inset.offset(line_width / 2);
-    for (size_t ring = 0; ring < rings; ++ring)
-    {
-        pattern.polygons.add(path);
-        path = path.offset(line_width);
-    }
-
-    return pattern;
-}
-
-PrimeTower::ExtrusionMoves PrimeTower::generatePaths_inset(const Polygons& outer_poly, coord_t line_width, coord_t initial_inset)
-{
-    const Scene& scene = Application::getInstance().current_slice->scene;
-    const Settings& mesh_group_settings = scene.current_mesh_group->settings;
-
-    ExtrusionMoves pattern;
-
-    Polygons inset = outer_poly.offset(-(initial_inset + line_width / 2));
-    while (! inset.empty())
-    {
-        pattern.polygons.add(inset);
-        inset = inset.offset(-line_width);
-    }
-
-    return pattern;
-}
-
 void PrimeTower::generatePaths_denseInfill()
 {
     const Scene& scene = Application::getInstance().current_slice->scene;
@@ -164,7 +133,7 @@ void PrimeTower::generatePaths_denseInfill()
         const coord_t required_volume = MM3_2INT(scene.extruders[extruder_nr].settings.get<double>("prime_tower_min_volume"));
         const Ratio flow = scene.extruders[extruder_nr].settings.get<Ratio>("prime_tower_flow");
         coord_t current_volume = 0;
-        ExtrusionMoves& pattern = prime_moves[extruder_nr];
+        Polygons& pattern = prime_moves[extruder_nr];
 
         // Create the walls of the prime tower.
         unsigned int wall_nr = 0;
@@ -172,7 +141,7 @@ void PrimeTower::generatePaths_denseInfill()
         {
             // Create a new polygon with an offset from the outer polygon.
             Polygons polygons = outer_poly.offset(-cumulative_inset - wall_nr * line_width - line_width / 2);
-            pattern.polygons.add(polygons);
+            pattern.add(polygons);
             current_volume += polygons.polygonLength() * line_width * layer_height * flow;
             if (polygons.empty()) // Don't continue. We won't ever reach the required volume because it doesn't fit.
             {
@@ -195,7 +164,7 @@ void PrimeTower::generatePaths_denseInfill()
                 extra_radius = line_width * extra_rings;
                 outer_poly_base.push_back(outer_poly.offset(extra_radius));
 
-                base_extra_moves[extruder_nr].push_back(generatePaths_base(outer_poly, extra_rings, line_width));
+                base_extra_moves[extruder_nr].push_back(PolygonUtils::generateOutset(outer_poly, extra_rings, line_width));
             }
         }
 
@@ -204,8 +173,8 @@ void PrimeTower::generatePaths_denseInfill()
         // Only the most inside extruder needs to fill the inside of the prime tower
         if (extruder_nr == extruder_order.back())
         {
-            ExtrusionMoves pattern = generatePaths_inset(outer_poly, line_width, cumulative_inset);
-            if (! pattern.polygons.empty() || ! pattern.lines.empty())
+            Polygons pattern = PolygonUtils::generateInset(outer_poly, line_width, cumulative_inset);
+            if (! pattern.empty())
             {
                 base_extra_moves[extruder_nr].push_back(pattern);
             }
@@ -280,19 +249,17 @@ void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t ext
     {
         // Actual prime pattern
         const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
-        const ExtrusionMoves& pattern = prime_moves[extruder_nr];
-        gcode_layer.addPolygonsByOptimizer(pattern.polygons, config);
-        gcode_layer.addLinesByOptimizer(pattern.lines, config, SpaceFillType::Lines);
+        const Polygons& pattern = prime_moves[extruder_nr];
+        gcode_layer.addPolygonsByOptimizer(pattern, config);
     }
 
-    const std::vector<ExtrusionMoves>& pattern_extra_brim = base_extra_moves[extruder_nr];
+    const std::vector<Polygons>& pattern_extra_brim = base_extra_moves[extruder_nr];
     if (absolute_layer_number < pattern_extra_brim.size())
     {
         // Extra rings for stronger base
         const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
-        const ExtrusionMoves& pattern = pattern_extra_brim[absolute_layer_number];
-        gcode_layer.addPolygonsByOptimizer(pattern.polygons, config);
-        gcode_layer.addLinesByOptimizer(pattern.lines, config, SpaceFillType::Lines);
+        const Polygons& pattern = pattern_extra_brim[absolute_layer_number];
+        gcode_layer.addPolygonsByOptimizer(pattern, config);
     }
 }
 

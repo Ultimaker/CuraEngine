@@ -26,13 +26,7 @@ class LayerPlan;
 class PrimeTower
 {
 private:
-    struct ExtrusionMoves
-    {
-        Polygons polygons;
-        Polygons lines;
-    };
-
-    using MovesByExtruder = std::vector<ExtrusionMoves>;
+    using MovesByExtruder = std::vector<Polygons>;
     using MovesByLayer = std::vector<MovesByExtruder>;
 
     size_t extruder_count; //!< Number of extruders
@@ -122,30 +116,6 @@ public:
     const Polygons& getGroundPoly() const;
 
 private:
-    /*!
-     * \see PrimeTower::generatePaths
-     *
-     * Generate extra rings around the actual prime rings for a stronger base
-     *
-     * \param inset The inner circle of the rings to start generating the rings from
-     * \param rings The number of rings to add
-     * \param line_width The actual line width to distance the rings from each other
-     * \return The generated rings paths
-     */
-    static ExtrusionMoves generatePaths_base(const Polygons& inset, size_t rings, coord_t line_width);
-
-    /*!
-     * \see PrimeTower::generatePaths
-     *
-     * Generate extra rings inside the given circle for a better adhesion on the first layer
-     *
-     * \param outer_poly The outer polygon to start generating the rings from
-     * \param line_width The actual line width to distance the rings from each other
-     * \param initial_inset The inset distance to be added to the first generated ring
-     * \return The generated rings paths
-     */
-    static ExtrusionMoves generatePaths_inset(const Polygons& outer_poly, coord_t line_width, coord_t initial_inset);
-
     /*!
      * \see PrimeTower::generatePaths
      *
