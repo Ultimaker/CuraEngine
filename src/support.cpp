@@ -24,15 +24,15 @@
 #include "utils/views/get.h"
 
 #include <range/v3/numeric/accumulate.hpp>
+#include <range/v3/view/concat.hpp>
 #include <range/v3/view/drop.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/slice.hpp>
-#include <range/v3/view/zip.hpp>
-#include <range/v3/view/concat.hpp>
 #include <range/v3/view/sliding.hpp>
 #include <range/v3/view/take.hpp>
+#include <range/v3/view/zip.hpp>
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
 
@@ -854,7 +854,8 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
     // slope. We need at least two layers to calculate the slope; one above the current layer and one below.
     // This is because the bottom layer uses _support_distance_bot_ and the top layer uses _support_distance_top_
     // for the z-distance, and we want to take in both these values into account when creating the xy-distance poly.
-    struct z_delta_poly_t {
+    struct z_delta_poly_t
+    {
         double support_distance;
         double delta_z;
         Polygons layer_delta;
@@ -870,7 +871,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
     if (layer_idx_below != layer_idx)
     {
         const auto layer_below = simplify.polygon(storage.layers[layer_idx_below].getOutlines().offset(-close_dist).offset(close_dist));
-        z_distances_layer_deltas.emplace_back(z_delta_poly_t {
+        z_distances_layer_deltas.emplace_back(z_delta_poly_t{
             .support_distance = support_distance_bot,
             .delta_z = -static_cast<double>(layer_index_offset * layer_thickness),
             .layer_delta = layer_below,
@@ -881,7 +882,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
     if (layer_idx_above != layer_idx)
     {
         const auto layer_above = simplify.polygon(storage.layers[layer_idx_above].getOutlines().offset(-close_dist).offset(close_dist));
-        z_distances_layer_deltas.emplace_back(z_delta_poly_t {
+        z_distances_layer_deltas.emplace_back(z_delta_poly_t{
             .support_distance = support_distance_top,
             .delta_z = static_cast<double>(layer_index_offset * layer_thickness),
             .layer_delta = layer_above,
@@ -918,8 +919,9 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
                 for (auto delta_poly : layer_delta)
                 {
                     constexpr auto window_size = 2;
-                    const auto view = ranges::views::concat(delta_poly, (delta_poly | ranges::views::take(window_size -1))) // wrap around to make sure all line segments are included
-                                    | ranges::views::sliding(window_size); // sliding window of size 2 to get start/end of line segment
+                    const auto view
+                        = ranges::views::concat(delta_poly, (delta_poly | ranges::views::take(window_size - 1))) // wrap around to make sure all line segments are included
+                        | ranges::views::sliding(window_size); // sliding window of size 2 to get start/end of line segment
 
                     for (auto window : view)
                     {
