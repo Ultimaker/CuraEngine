@@ -725,6 +725,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         gcode_layer.setIsInside(true);
 
         current_extruder_nr = interface_extruder_nr;
+        gcode_layer.setExtruder(current_extruder_nr);
 
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, interface_layer_height);
 
@@ -829,7 +830,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         // make sure that we are using the correct extruder to print raft
         current_extruder_nr = surface_extruder_nr;
-
+        gcode_layer.setExtruder(current_extruder_nr);
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, surface_layer_height);
 
         std::vector<Polygons> raft_outline_paths;
