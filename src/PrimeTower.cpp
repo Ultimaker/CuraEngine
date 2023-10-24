@@ -120,7 +120,7 @@ void PrimeTower::generatePaths_denseInfill()
     const coord_t base_extra_radius = scene.settings.get<coord_t>("prime_tower_base_size");
     const bool has_raft = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT;
     const coord_t base_height = std::max(scene.settings.get<coord_t>("prime_tower_base_height"), has_raft ? layer_height : 0);
-    const int base_curve_magnitude = mesh_group_settings.get<int>("prime_tower_base_curve_magnitude");
+    const double base_curve_magnitude = mesh_group_settings.get<double>("prime_tower_base_curve_magnitude");
     const coord_t line_width = scene.extruders[extruder_order.front()].settings.get<coord_t>("prime_tower_line_width");
 
     prime_moves.resize(extruder_count);
