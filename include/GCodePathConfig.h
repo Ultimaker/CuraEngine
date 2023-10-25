@@ -18,7 +18,7 @@ namespace cura
  */
 struct GCodePathConfig
 {
-    coord_t z_offset{};
+    coord_t z_offset{}; //<! vertical offset from 'full' layer height
     PrintFeatureType type{}; //!< name of the feature type
     coord_t line_width{}; //!< width of the line extruded
     coord_t layer_thickness{}; //!< current layer height in micron

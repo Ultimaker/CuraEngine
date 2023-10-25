@@ -38,8 +38,8 @@ constexpr int MINIMUM_SQUARED_LINE_LENGTH = MINIMUM_LINE_LENGTH * MINIMUM_LINE_L
 
 GCodePath* LayerPlan::getLatestPathWithConfig(
     const GCodePathConfig& config,
-    const coord_t z_offset,
     const SpaceFillType space_fill_type,
+    const coord_t z_offset,
     const Ratio flow,
     const Ratio width_factor,
     const bool spiralize,
@@ -329,14 +329,14 @@ std::optional<std::pair<Point, bool>> LayerPlan::getFirstTravelDestinationState(
     return ret;
 }
 
-GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract, const coord_t z_offset)
+GCodePath& LayerPlan::addTravel(const Point& p, const bool force_retract, const coord_t z_offset)
 {
     const GCodePathConfig& travel_config = configs_storage.travel_config_per_extruder[getExtruder()];
 
     const RetractionConfig& retraction_config
         = current_mesh ? current_mesh->retraction_wipe_config.retraction_config : storage.retraction_wipe_config_per_extruder[getExtruder()].retraction_config;
 
-    GCodePath* path = getLatestPathWithConfig(travel_config, z_offset, SpaceFillType::None);
+    GCodePath* path = getLatestPathWithConfig(travel_config, SpaceFillType::None, z_offset);
 
     bool combed = false;
 
@@ -481,7 +481,7 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract, const c
     return ret;
 }
 
-GCodePath& LayerPlan::addTravel_simple(const Point p, GCodePath* path)
+GCodePath& LayerPlan::addTravel_simple(const Point& p, GCodePath* path)
 {
     bool is_first_travel_of_layer = ! static_cast<bool>(last_planned_position);
     if (is_first_travel_of_layer)
@@ -491,7 +491,7 @@ GCodePath& LayerPlan::addTravel_simple(const Point p, GCodePath* path)
     }
     if (path == nullptr)
     {
-        path = getLatestPathWithConfig(configs_storage.travel_config_per_extruder[getExtruder()], 0, SpaceFillType::None);
+        path = getLatestPathWithConfig(configs_storage.travel_config_per_extruder[getExtruder()], SpaceFillType::None);
     }
     path->points.push_back(p);
     last_planned_position = p;
@@ -518,7 +518,7 @@ void LayerPlan::addExtrusionMove(
     const Ratio speed_factor,
     const double fan_speed)
 {
-    GCodePath* path = getLatestPathWithConfig(config, config.z_offset, space_fill_type, flow, width_factor, spiralize, speed_factor);
+    GCodePath* path = getLatestPathWithConfig(config, space_fill_type, config.z_offset, flow, width_factor, spiralize, speed_factor);
     path->points.push_back(p);
     path->setFanSpeed(fan_speed);
     if (! static_cast<bool>(first_extrusion_acc_jerk))
