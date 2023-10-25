@@ -2079,7 +2079,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     // Prevent the final travel(s) from resetting to the 'previous' layer height.
                     gcode.setZ(final_travel_z);
                 }
-                for (unsigned int point_idx = 0; point_idx < path.points.size() - 1; point_idx++)
+                for (size_t point_idx = 0; point_idx + 1 < path.points.size(); point_idx++)
                 {
                     gcode.writeTravel(path.points[point_idx], speed);
                 }
