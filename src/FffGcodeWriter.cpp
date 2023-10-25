@@ -2289,7 +2289,7 @@ bool FffGcodeWriter::processInsets(
         if (mesh_group_settings.get<bool>("support_enable"))
         {
             const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
-            const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height); // Previously '... +1', but now there is an extra fractional layer on top.
+            const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height) + (z_distance_top % layer_height == 0) ? 1 : 0;
             const int support_layer_nr = gcode_layer.getLayerNr() - z_distance_top_layers;
 
             if (support_layer_nr > 0)
@@ -2693,7 +2693,7 @@ void FffGcodeWriter::processTopBottom(
     {
         const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
         const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
-        const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height); // Previously '... +1', but now there is an extra fractional layer on top.
+        const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height) + (z_distance_top % layer_height == 0) ? 1 : 0;
         support_layer_nr = layer_nr - z_distance_top_layers;
     }
 

@@ -785,7 +785,7 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
     // Don't generate overhang areas if the Z distance is higher than the objects we're generating support for.
     const coord_t layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height");
     const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
-    const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height); // Previously '... +1', but now there is an extra fractional layer on top.
+    const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height) + (z_distance_top % layer_height == 0) ? 1 : 0;
     if (z_distance_top_layers + 1 > storage.print_layer_count)
     {
         return;
@@ -1050,7 +1050,7 @@ void AreaSupport::generateSupportAreasForMesh(
     // early out
     const coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
     const coord_t z_distance_top = ((mesh.settings.get<bool>("support_roof_enable")) ? roof_settings : infill_settings).get<coord_t>("support_top_distance");
-    const size_t layer_z_distance_top = round_up_divide(z_distance_top, layer_thickness); // Previously '... +1', but now there is an extra fractional layer on top.
+    const size_t layer_z_distance_top = round_up_divide(z_distance_top, layer_thickness) + (z_distance_top % layer_thickness == 0) ? 1 : 0;
     if (layer_z_distance_top + 1 > layer_count)
     {
         return;
