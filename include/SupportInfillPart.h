@@ -4,11 +4,11 @@
 #ifndef SUPPORT_INFILL_PART_H
 #define SUPPORT_INFILL_PART_H
 
+#include <vector>
+
 #include "utils/AABB.h"
 #include "utils/ExtrusionLine.h"
 #include "utils/polygon.h"
-
-#include <vector>
 
 
 namespace cura

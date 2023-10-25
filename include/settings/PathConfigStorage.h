@@ -4,13 +4,13 @@
 #ifndef SETTINGS_PATH_CONFIGS_H
 #define SETTINGS_PATH_CONFIGS_H
 
+#include <vector>
+
 #include "GCodePathConfig.h"
 #include "pathPlanning/SpeedDerivatives.h"
 #include "settings/MeshPathConfigs.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
-
-#include <vector>
 
 namespace cura
 {

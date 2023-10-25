@@ -4,15 +4,15 @@
 #ifndef PATH_PLANNING_G_CODE_PATH_H
 #define PATH_PLANNING_G_CODE_PATH_H
 
+#include <memory>
+#include <vector>
+
 #include "GCodePathConfig.h"
 #include "SpaceFillType.h"
 #include "TimeMaterialEstimates.h"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "utils/IntPoint.h"
-
-#include <memory>
-#include <vector>
 
 namespace cura
 {

@@ -3,6 +3,21 @@
 
 #include "support.h"
 
+#include <cmath> // sqrt, round
+#include <deque>
+#include <fstream> // ifstream.good()
+#include <utility> // pair
+
+#include <range/v3/numeric/accumulate.hpp>
+#include <range/v3/view/drop.hpp>
+#include <range/v3/view/drop_last.hpp>
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/filter.hpp>
+#include <range/v3/view/slice.hpp>
+#include <range/v3/view/zip.hpp>
+#include <scripta/logger.h>
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To get settings.
 #include "BoostInterface.hpp"
 #include "ExtruderTrain.h"
@@ -23,21 +38,6 @@
 #include "utils/VoronoiUtils.h"
 #include "utils/math.h"
 #include "utils/views/get.h"
-
-#include <range/v3/numeric/accumulate.hpp>
-#include <range/v3/view/drop.hpp>
-#include <range/v3/view/drop_last.hpp>
-#include <range/v3/view/enumerate.hpp>
-#include <range/v3/view/filter.hpp>
-#include <range/v3/view/slice.hpp>
-#include <range/v3/view/zip.hpp>
-#include <scripta/logger.h>
-#include <spdlog/spdlog.h>
-
-#include <cmath> // sqrt, round
-#include <deque>
-#include <fstream> // ifstream.good()
-#include <utility> // pair
 
 namespace cura
 {

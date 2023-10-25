@@ -3,6 +3,20 @@
 
 #include "TreeSupport.h"
 
+#include <chrono>
+#include <fstream>
+#include <optional>
+#include <stdio.h>
+#include <string>
+#include <thread>
+
+#include <range/v3/view/drop_last.hpp>
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/iota.hpp>
+#include <range/v3/view/reverse.hpp>
+#include <scripta/logger.h>
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To get settings.
 #include "TreeSupportTipGenerator.h"
 #include "TreeSupportUtils.h"
@@ -17,20 +31,6 @@
 #include "utils/math.h" //For round_up_divide and PI.
 #include "utils/polygonUtils.h" //For moveInside.
 #include "utils/section_type.h"
-
-#include <range/v3/view/drop_last.hpp>
-#include <range/v3/view/enumerate.hpp>
-#include <range/v3/view/iota.hpp>
-#include <range/v3/view/reverse.hpp>
-#include <scripta/logger.h>
-#include <spdlog/spdlog.h>
-
-#include <chrono>
-#include <fstream>
-#include <optional>
-#include <stdio.h>
-#include <string>
-#include <thread>
 
 namespace cura
 {

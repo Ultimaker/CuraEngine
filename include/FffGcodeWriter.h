@@ -4,6 +4,9 @@
 #ifndef GCODE_WRITER_H
 #define GCODE_WRITER_H
 
+#include <fstream>
+#include <optional>
+
 #include "FanSpeedLayerTime.h"
 #include "LayerPlanBuffer.h"
 #include "gcodeExport.h"
@@ -11,9 +14,6 @@
 #include "settings/PathConfigStorage.h" //For the MeshPathConfigs subclass.
 #include "utils/ExtrusionLine.h" //Processing variable-width paths.
 #include "utils/NoCopy.h"
-
-#include <fstream>
-#include <optional>
 
 namespace cura
 {

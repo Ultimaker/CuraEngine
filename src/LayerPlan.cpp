@@ -3,6 +3,15 @@
 
 #include "LayerPlan.h"
 
+#include <algorithm>
+#include <cstring>
+#include <numeric>
+#include <optional>
+
+#include <range/v3/algorithm/max_element.hpp>
+#include <scripta/logger.h>
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To communicate layer view data.
 #include "ExtruderTrain.h"
 #include "PathOrderMonotonic.h" //Monotonic ordering of skin lines.
@@ -19,15 +28,6 @@
 #include "utils/linearAlg2D.h"
 #include "utils/polygonUtils.h"
 #include "utils/section_type.h"
-
-#include <range/v3/algorithm/max_element.hpp>
-#include <scripta/logger.h>
-#include <spdlog/spdlog.h>
-
-#include <algorithm>
-#include <cstring>
-#include <numeric>
-#include <optional>
 
 namespace cura
 {
