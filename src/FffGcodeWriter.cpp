@@ -3,6 +3,19 @@
 
 #include "FffGcodeWriter.h"
 
+#include <algorithm>
+#include <limits> // numeric_limits
+#include <list>
+#include <memory>
+#include <optional>
+#include <unordered_set>
+
+#include <range/v3/view/concat.hpp>
+#include <range/v3/view/sliding.hpp>
+#include <range/v3/view/transform.hpp>
+#include <range/v3/view/zip.hpp>
+#include <spdlog/spdlog.h>
+
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "FffProcessor.h"
@@ -20,19 +33,6 @@
 #include "utils/linearAlg2D.h"
 #include "utils/math.h"
 #include "utils/orderOptimizer.h"
-
-#include <range/v3/view/concat.hpp>
-#include <range/v3/view/sliding.hpp>
-#include <range/v3/view/transform.hpp>
-#include <range/v3/view/zip.hpp>
-#include <spdlog/spdlog.h>
-
-#include <algorithm>
-#include <limits> // numeric_limits
-#include <list>
-#include <memory>
-#include <optional>
-#include <unordered_set>
 
 namespace cura
 {
@@ -622,69 +622,66 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         const coord_t max_resolution = base_settings.get<coord_t>("meshfix_maximum_resolution");
         const coord_t max_deviation = base_settings.get<coord_t>("meshfix_maximum_deviation");
 
-        std::vector<Polygons> raft_outline_paths;
-        if (storage.primeRaftOutline.area() > 0)
+        Polygons raft_outline_path = storage.raftOutline;
+        if (storage.primeTower.enabled)
         {
-            raft_outline_paths.emplace_back(storage.primeRaftOutline);
+            // Base layer is shared with prime tower base
+            raft_outline_path = raft_outline_path.unionPolygons(storage.primeTower.getOuterPoly(layer_nr));
         }
-        raft_outline_paths.emplace_back(storage.raftOutline);
 
-        for (const Polygons& raft_outline_path : raft_outline_paths)
+        Infill infill_comp(
+            EFillMethod::LINES,
+            zig_zaggify_infill,
+            connect_polygons,
+            raft_outline_path,
+            gcode_layer.configs_storage.raft_base_config.getLineWidth(),
+            line_spacing,
+            fill_overlap,
+            infill_multiplier,
+            fill_angle,
+            z,
+            extra_infill_shift,
+            max_resolution,
+            max_deviation,
+            wall_line_count,
+            small_area_width,
+            infill_origin,
+            skip_stitching,
+            fill_gaps,
+            connected_zigzags,
+            use_endpieces,
+            skip_some_zags,
+            zag_skip_count,
+            pocket_size);
+        std::vector<VariableWidthLines> raft_paths;
+        infill_comp.generate(raft_paths, raft_polygons, raftLines, base_settings, layer_nr, SectionType::ADHESION);
+        if (! raft_paths.empty())
         {
-            Infill infill_comp(
-                EFillMethod::LINES,
-                zig_zaggify_infill,
-                connect_polygons,
-                raft_outline_path,
-                gcode_layer.configs_storage.raft_base_config.getLineWidth(),
-                line_spacing,
-                fill_overlap,
-                infill_multiplier,
-                fill_angle,
-                z,
-                extra_infill_shift,
-                max_resolution,
-                max_deviation,
-                wall_line_count,
-                small_area_width,
-                infill_origin,
-                skip_stitching,
-                fill_gaps,
-                connected_zigzags,
-                use_endpieces,
-                skip_some_zags,
-                zag_skip_count,
-                pocket_size);
-            std::vector<VariableWidthLines> raft_paths;
-            infill_comp.generate(raft_paths, raft_polygons, raftLines, base_settings, layer_nr, SectionType::ADHESION);
-            if (! raft_paths.empty())
-            {
-                const GCodePathConfig& config = gcode_layer.configs_storage.raft_base_config;
-                const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
-                InsetOrderOptimizer wall_orderer(
-                    *this,
-                    storage,
-                    gcode_layer,
-                    base_settings,
-                    base_extruder_nr,
-                    config,
-                    config,
-                    config,
-                    config,
-                    retract_before_outer_wall,
-                    wipe_dist,
-                    wipe_dist,
-                    base_extruder_nr,
-                    base_extruder_nr,
-                    z_seam_config,
-                    raft_paths);
-                wall_orderer.addToLayer();
-            }
-            gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_base_config, SpaceFillType::Lines);
-
-            raft_polygons.clear();
-            raftLines.clear();
+            const GCodePathConfig& config = gcode_layer.configs_storage.raft_base_config;
+            const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+            InsetOrderOptimizer wall_orderer(
+                *this,
+                storage,
+                gcode_layer,
+                base_settings,
+                base_extruder_nr,
+                config,
+                config,
+                config,
+                config,
+                retract_before_outer_wall,
+                wipe_dist,
+                wipe_dist,
+                base_extruder_nr,
+                base_extruder_nr,
+                z_seam_config,
+                raft_paths);
+            wall_orderer.addToLayer();
         }
+        gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_base_config, SpaceFillType::Lines);
+
+        raft_polygons.clear();
+        raftLines.clear();
 
         layer_plan_buffer.handle(gcode_layer, gcode);
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
@@ -726,19 +723,15 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         gcode_layer.setIsInside(true);
 
         current_extruder_nr = interface_extruder_nr;
+        gcode_layer.setExtruder(current_extruder_nr);
 
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, interface_layer_height);
 
-        std::vector<Polygons> raft_outline_paths;
+        Polygons raft_outline_path;
         const coord_t small_offset = gcode_layer.configs_storage.raft_interface_config.getLineWidth()
                                    / 2; // Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
-        if (storage.primeRaftOutline.area() > 0)
-        {
-            raft_outline_paths.emplace_back(storage.primeRaftOutline.offset(-small_offset));
-            raft_outline_paths.back() = Simplify(interface_settings).polygon(raft_outline_paths.back()); // Remove those micron-movements.
-        }
-        raft_outline_paths.emplace_back(storage.raftOutline.offset(-small_offset));
-        raft_outline_paths.back() = Simplify(interface_settings).polygon(raft_outline_paths.back()); // Remove those micron-movements.
+        raft_outline_path = storage.raftOutline.offset(-small_offset);
+        raft_outline_path = Simplify(interface_settings).polygon(raft_outline_path); // Remove those micron-movements.
         const coord_t infill_outline_width = gcode_layer.configs_storage.raft_interface_config.getLineWidth();
         Polygons raft_lines;
         AngleDegrees fill_angle = (num_surface_layers + num_interface_layers - raft_interface_layer) % 2 ? 45 : 135; // 90 degrees rotated from the first top layer.
@@ -755,39 +748,44 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr int zag_skip_count = 0;
         constexpr coord_t pocket_size = 0;
 
-        for (const Polygons& raft_outline_path : raft_outline_paths)
+        if (storage.primeTower.enabled)
         {
-            Infill infill_comp(
-                EFillMethod::ZIG_ZAG,
-                zig_zaggify_infill,
-                connect_polygons,
-                raft_outline_path,
-                infill_outline_width,
-                interface_line_spacing,
-                fill_overlap,
-                infill_multiplier,
-                fill_angle,
-                z,
-                extra_infill_shift,
-                interface_max_resolution,
-                interface_max_deviation,
-                wall_line_count,
-                small_area_width,
-                infill_origin,
-                skip_stitching,
-                fill_gaps,
-                connected_zigzags,
-                use_endpieces,
-                skip_some_zags,
-                zag_skip_count,
-                pocket_size);
-            std::vector<VariableWidthLines> raft_paths; // Should remain empty, since we have no walls.
-            infill_comp.generate(raft_paths, raft_polygons, raft_lines, interface_settings, layer_nr, SectionType::ADHESION);
-            gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_interface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
-
-            raft_polygons.clear();
-            raft_lines.clear();
+            // Interface layer excludes prime tower base
+            raft_outline_path = raft_outline_path.difference(storage.primeTower.getOuterPoly(layer_nr));
         }
+
+        Infill infill_comp(
+            EFillMethod::ZIG_ZAG,
+            zig_zaggify_infill,
+            connect_polygons,
+            raft_outline_path,
+            infill_outline_width,
+            interface_line_spacing,
+            fill_overlap,
+            infill_multiplier,
+            fill_angle,
+            z,
+            extra_infill_shift,
+            interface_max_resolution,
+            interface_max_deviation,
+            wall_line_count,
+            small_area_width,
+            infill_origin,
+            skip_stitching,
+            fill_gaps,
+            connected_zigzags,
+            use_endpieces,
+            skip_some_zags,
+            zag_skip_count,
+            pocket_size);
+        std::vector<VariableWidthLines> raft_paths; // Should remain empty, since we have no walls.
+        infill_comp.generate(raft_paths, raft_polygons, raft_lines, interface_settings, layer_nr, SectionType::ADHESION);
+        gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_interface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
+
+        raft_polygons.clear();
+        raft_lines.clear();
+
+        setExtruder_addPrime(storage, gcode_layer, storage.primeTower.extruder_order.front());
 
         layer_plan_buffer.handle(gcode_layer, gcode);
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
@@ -830,19 +828,14 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         // make sure that we are using the correct extruder to print raft
         current_extruder_nr = surface_extruder_nr;
-
+        gcode_layer.setExtruder(current_extruder_nr);
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, surface_layer_height);
 
-        std::vector<Polygons> raft_outline_paths;
+        Polygons raft_outline_path;
         const coord_t small_offset = gcode_layer.configs_storage.raft_interface_config.getLineWidth()
                                    / 2; // Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
-        if (storage.primeRaftOutline.area() > 0)
-        {
-            raft_outline_paths.emplace_back(storage.primeRaftOutline.offset(-small_offset));
-            raft_outline_paths.back() = Simplify(interface_settings).polygon(raft_outline_paths.back()); // Remove those micron-movements.
-        }
-        raft_outline_paths.emplace_back(storage.raftOutline.offset(-small_offset));
-        raft_outline_paths.back() = Simplify(interface_settings).polygon(raft_outline_paths.back()); // Remove those micron-movements.
+        raft_outline_path = storage.raftOutline.offset(-small_offset);
+        raft_outline_path = Simplify(interface_settings).polygon(raft_outline_path); // Remove those micron-movements.
         const coord_t infill_outline_width = gcode_layer.configs_storage.raft_interface_config.getLineWidth();
         Polygons raft_lines;
         AngleDegrees fill_angle
@@ -860,39 +853,44 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr size_t zag_skip_count = 0;
         constexpr coord_t pocket_size = 0;
 
-        for (const Polygons& raft_outline_path : raft_outline_paths)
+        if (storage.primeTower.enabled)
         {
-            Infill infill_comp(
-                EFillMethod::ZIG_ZAG,
-                zig_zaggify_infill,
-                connect_polygons,
-                raft_outline_path,
-                infill_outline_width,
-                surface_line_spacing,
-                fill_overlap,
-                infill_multiplier,
-                fill_angle,
-                z,
-                extra_infill_shift,
-                surface_max_resolution,
-                surface_max_deviation,
-                wall_line_count,
-                small_area_width,
-                infill_origin,
-                skip_stitching,
-                fill_gaps,
-                connected_zigzags,
-                use_endpieces,
-                skip_some_zags,
-                zag_skip_count,
-                pocket_size);
-            std::vector<VariableWidthLines> raft_paths; // Should remain empty, since we have no walls.
-            infill_comp.generate(raft_paths, raft_polygons, raft_lines, surface_settings, layer_nr, SectionType::ADHESION);
-            gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
-
-            raft_polygons.clear();
-            raft_lines.clear();
+            // Surface layers exclude prime tower base
+            raft_outline_path = raft_outline_path.difference(storage.primeTower.getOuterPoly(layer_nr));
         }
+
+        Infill infill_comp(
+            EFillMethod::ZIG_ZAG,
+            zig_zaggify_infill,
+            connect_polygons,
+            raft_outline_path,
+            infill_outline_width,
+            surface_line_spacing,
+            fill_overlap,
+            infill_multiplier,
+            fill_angle,
+            z,
+            extra_infill_shift,
+            surface_max_resolution,
+            surface_max_deviation,
+            wall_line_count,
+            small_area_width,
+            infill_origin,
+            skip_stitching,
+            fill_gaps,
+            connected_zigzags,
+            use_endpieces,
+            skip_some_zags,
+            zag_skip_count,
+            pocket_size);
+        std::vector<VariableWidthLines> raft_paths; // Should remain empty, since we have no walls.
+        infill_comp.generate(raft_paths, raft_polygons, raft_lines, surface_settings, layer_nr, SectionType::ADHESION);
+        gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
+
+        raft_polygons.clear();
+        raft_lines.clear();
+
+        setExtruder_addPrime(storage, gcode_layer, storage.primeTower.extruder_order.front());
 
         layer_plan_buffer.handle(gcode_layer, gcode);
     }
@@ -1015,7 +1013,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         //    later in the print a prime tower is needed.
         //  - prime tower is already printed this layer (only applicable for more than 2 extruders).
         //    The setExtruder_addPrime takes care of this.
-        if (extruder_nr != extruder_order.front() || extruder_order.size() == 1)
+        if (extruder_nr != extruder_order.front() || (extruder_order.size() == 1 && layer_nr >= 0) || extruder_nr == 0)
         {
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         }
@@ -1046,7 +1044,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         // Always print a prime tower before switching extruder. Unless:
         //  - The prime tower is already printed this layer (setExtruder_addPrime takes care of this).
         //  - this is the last extruder of the layer, since the next layer will start with the same extruder.
-        if (extruder_nr != extruder_order.back())
+        if (extruder_nr != extruder_order.back() && layer_nr >= 0)
         {
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         }
@@ -1348,7 +1346,7 @@ std::vector<size_t> FffGcodeWriter::getUsedExtrudersOnLayerExcludingStartingExtr
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
 
     // The outermost prime tower extruder is always used if there is a prime tower, apart on layers with negative index (e.g. for the raft)
-    if (mesh_group_settings.get<bool>("prime_tower_enable") && layer_nr >= 0 && layer_nr <= storage.max_print_height_second_to_last_extruder)
+    if (mesh_group_settings.get<bool>("prime_tower_enable") && /*layer_nr >= 0 &&*/ layer_nr <= storage.max_print_height_second_to_last_extruder)
     {
         extruder_is_used_on_this_layer[storage.primeTower.extruder_order[0]] = true;
     }

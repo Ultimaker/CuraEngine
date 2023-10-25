@@ -3,6 +3,8 @@
 
 #include "LayerPlanBuffer.h"
 
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To flush g-code through the communication channel.
 #include "ExtruderTrain.h"
 #include "FffProcessor.h"
@@ -10,8 +12,6 @@
 #include "Slice.h"
 #include "communication/Communication.h" //To flush g-code through the communication channel.
 #include "gcodeExport.h"
-
-#include <spdlog/spdlog.h>
 
 namespace cura
 {
@@ -429,7 +429,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
         return;
     }
 
-    assert((time_window >= 0 || last_extruder_plan.estimates.material == 0) && "Time window should always be positive if we actually extrude");
+    assert((time_window >= -0.001 || last_extruder_plan.estimates.material == 0) && "Time window should always be positive if we actually extrude");
 
     //          ,layer change                                                                                   .
     //          :     ,precool command                   ,layer change                                          .
