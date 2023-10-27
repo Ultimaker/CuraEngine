@@ -556,6 +556,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     const size_t base_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr;
     const size_t interface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr;
     const size_t surface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr;
+    const size_t prime_tower_extruder_nr = storage.primeTower.extruder_order.front();
 
     coord_t z = 0;
     const LayerIndex initial_raft_layer_nr = -Raft::getTotalExtraLayers();
@@ -596,8 +597,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         LayerPlan& gcode_layer
             = *new LayerPlan(storage, layer_nr, z, layer_height, base_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_base, comb_offset, line_width, avoid_distance);
         gcode_layer.setIsInside(true);
-
-        gcode_layer.setExtruder(base_extruder_nr);
 
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_height);
 
@@ -696,6 +695,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
     for (LayerIndex raft_interface_layer = 1; static_cast<size_t>(raft_interface_layer) <= num_interface_layers; ++raft_interface_layer)
     { // raft interface layer
+        bool prime_tower_added_on_this_layer = ! storage.primeTower.enabled;
         const LayerIndex layer_nr = initial_raft_layer_nr + raft_interface_layer;
         z += interface_layer_height;
 
@@ -719,10 +719,19 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             comb_offset,
             interface_line_width,
             interface_avoid_distance);
-        gcode_layer.setIsInside(true);
 
-        current_extruder_nr = interface_extruder_nr;
-        gcode_layer.setExtruder(current_extruder_nr);
+        if (! prime_tower_added_on_this_layer && current_extruder_nr == prime_tower_extruder_nr)
+        {
+            addPrimeTower(storage, gcode_layer, current_extruder_nr);
+            prime_tower_added_on_this_layer = true;
+        }
+
+        gcode_layer.setIsInside(true);
+        if (interface_extruder_nr != current_extruder_nr)
+        {
+            setExtruder_addPrime(storage, gcode_layer, interface_extruder_nr);
+            current_extruder_nr = interface_extruder_nr;
+        }
 
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, interface_layer_height);
 
@@ -784,7 +793,11 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         raft_polygons.clear();
         raft_lines.clear();
 
-        setExtruder_addPrime(storage, gcode_layer, storage.primeTower.extruder_order.front());
+        if (! prime_tower_added_on_this_layer)
+        {
+            setExtruder_addPrime(storage, gcode_layer, prime_tower_extruder_nr);
+            current_extruder_nr = prime_tower_extruder_nr;
+        }
 
         layer_plan_buffer.handle(gcode_layer, gcode);
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
@@ -800,6 +813,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
     for (LayerIndex raft_surface_layer = 1; static_cast<size_t>(raft_surface_layer) <= num_surface_layers; raft_surface_layer++)
     { // raft surface layers
+        bool prime_tower_added_on_this_layer = ! storage.primeTower.enabled;
         const LayerIndex layer_nr = initial_raft_layer_nr + 1 + num_interface_layers + raft_surface_layer - 1; // +1: 1 base layer
         z += surface_layer_height;
 
@@ -823,11 +837,21 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             comb_offset,
             surface_line_width,
             surface_avoid_distance);
+
+        if (! prime_tower_added_on_this_layer && current_extruder_nr == prime_tower_extruder_nr)
+        {
+            addPrimeTower(storage, gcode_layer, current_extruder_nr);
+            prime_tower_added_on_this_layer = true;
+        }
+
         gcode_layer.setIsInside(true);
 
         // make sure that we are using the correct extruder to print raft
-        current_extruder_nr = surface_extruder_nr;
-        gcode_layer.setExtruder(current_extruder_nr);
+        if (current_extruder_nr != surface_extruder_nr)
+        {
+            setExtruder_addPrime(storage, gcode_layer, surface_extruder_nr);
+            current_extruder_nr = surface_extruder_nr;
+        }
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, surface_layer_height);
 
         Polygons raft_outline_path;
@@ -889,7 +913,11 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         raft_polygons.clear();
         raft_lines.clear();
 
-        setExtruder_addPrime(storage, gcode_layer, storage.primeTower.extruder_order.front());
+        if (! prime_tower_added_on_this_layer)
+        {
+            setExtruder_addPrime(storage, gcode_layer, prime_tower_extruder_nr);
+            current_extruder_nr = prime_tower_extruder_nr;
+        }
 
         layer_plan_buffer.handle(gcode_layer, gcode);
     }
@@ -3620,8 +3648,6 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
 
 void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t extruder_nr) const
 {
-    const size_t outermost_prime_tower_extruder = storage.primeTower.extruder_order[0];
-
     const size_t previous_extruder = gcode_layer.getExtruder();
     const bool extruder_changed = gcode_layer.setExtruder(extruder_nr);
 
