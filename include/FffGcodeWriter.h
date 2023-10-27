@@ -4,6 +4,9 @@
 #ifndef GCODE_WRITER_H
 #define GCODE_WRITER_H
 
+#include <fstream>
+#include <optional>
+
 #include "FanSpeedLayerTime.h"
 #include "LayerPlanBuffer.h"
 #include "gcodeExport.h"
@@ -11,9 +14,6 @@
 #include "settings/PathConfigStorage.h" //For the MeshPathConfigs subclass.
 #include "utils/ExtrusionLine.h" //Processing variable-width paths.
 #include "utils/NoCopy.h"
-
-#include <fstream>
-#include <optional>
 
 namespace cura
 {
@@ -634,10 +634,12 @@ private:
      * layer.
      *
      * \param[in] storage Where the slice data is stored.
+     * \param[in] support_roof_outlines which polygons to generate roofs for -- originally split-up because of fractional (layer-height) layers
+     * \param[in] current_roof_config config to be used -- most importantly, support has slightly different configs for fractional (layer-height) layers
      * \param gcodeLayer The initial planning of the g-code of the layer.
      * \return Whether any support skin was added to the layer plan.
      */
-    bool addSupportRoofsToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer) const;
+    bool addSupportRoofsToGCode(const SliceDataStorage& storage, const Polygons& support_roof_outlines, const GCodePathConfig& current_roof_config, LayerPlan& gcode_layer) const;
 
     /*!
      * Add the support bottoms to the layer plan \p gcodeLayer of the current
