@@ -1061,7 +1061,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         //    later in the print a prime tower is needed.
         //  - prime tower is already printed this layer (only applicable for more than 2 extruders).
         //    The setExtruder_addPrime takes care of this.
-        if (extruder_nr != extruder_order.front() || (extruder_order.size() == 1 && layer_nr >= 0) || extruder_nr == 0)
+        if (extruder_nr != extruder_order.front().extruder_nr || (extruder_order.size() == 1 && layer_nr >= 0) || extruder_nr == 0)
         {
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         }
@@ -1092,7 +1092,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         // Always print a prime tower before switching extruder. Unless:
         //  - The prime tower is already printed this layer (setExtruder_addPrime takes care of this).
         //  - this is the last extruder of the layer, since the next layer will start with the same extruder.
-        if (extruder_nr != extruder_order.back() && layer_nr >= 0)
+        if (extruder_nr != extruder_order.back().extruder_nr && layer_nr >= 0)
         {
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         }
@@ -1403,9 +1403,7 @@ std::vector<ExtruderUse>
     // Make a temp list with the potential ordered extruders
     std::vector<size_t> ordered_extruders;
     ordered_extruders.push_back(start_extruder);
-
-    // The outermost prime tower extruder is always used if there is a prime tower, apart on layers with negative index (e.g. for the raft)
-    if (mesh_group_settings.get<bool>("prime_tower_enable") && /*layer_nr >= 0 &&*/ layer_nr <= storage.max_print_height_second_to_last_extruder)
+    for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         if (extruder_nr != start_extruder)
         {

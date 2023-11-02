@@ -246,10 +246,10 @@ void PrimeTower::generatePaths_sparseInfill(const std::vector<coord_t>& cumulati
                     extruders_combination |= (1 << extruder_nr);
                 }
 
-                std::map<size_t, ExtrusionMoves> infills_for_combination;
+                std::map<size_t, Polygons> infills_for_combination;
                 for (const ActualExtruder& actual_extruder : actual_extruders)
                 {
-                    ExtrusionMoves infill = generatePath_sparseInfill(first_extruder, last_extruder, rings_radii, actual_extruder.line_width, actual_extruder.number);
+                    Polygons infill = generatePath_sparseInfill(first_extruder, last_extruder, rings_radii, actual_extruder.line_width, actual_extruder.number);
                     infills_for_combination[actual_extruder.number] = infill;
                 }
 
@@ -259,7 +259,7 @@ void PrimeTower::generatePaths_sparseInfill(const std::vector<coord_t>& cumulati
     }
 }
 
-PrimeTower::ExtrusionMoves PrimeTower::generatePath_sparseInfill(
+Polygons PrimeTower::generatePath_sparseInfill(
     const size_t first_extruder,
     const size_t last_extruder,
     const std::vector<coord_t>& rings_radii,
@@ -277,7 +277,7 @@ PrimeTower::ExtrusionMoves PrimeTower::generatePath_sparseInfill(
     const size_t nb_rings = std::ceil(static_cast<float>(radius_delta) / max_bridging_distance);
     const coord_t actual_radius_step = radius_delta / nb_rings;
 
-    ExtrusionMoves pattern;
+    Polygons pattern;
     for (size_t i = 0; i < nb_rings; ++i)
     {
         const coord_t ring_inner_radius = (inner_radius + i * actual_radius_step) + semi_line_width;
@@ -285,7 +285,7 @@ PrimeTower::ExtrusionMoves PrimeTower::generatePath_sparseInfill(
 
         const size_t semi_nb_spokes = std::ceil((M_PI * ring_outer_radius) / max_bridging_distance);
 
-        pattern.polygons.add(PolygonUtils::makeWheel(middle, ring_inner_radius, ring_outer_radius, semi_nb_spokes, ARC_RESOLUTION));
+        pattern.add(PolygonUtils::makeWheel(middle, ring_inner_radius, ring_outer_radius, semi_nb_spokes, ARC_RESOLUTION));
     }
 
     return pattern;
@@ -479,12 +479,12 @@ void PrimeTower::addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::v
         auto iterator_combination = sparse_pattern_per_extruders.find(mask);
         if (iterator_combination != sparse_pattern_per_extruders.end())
         {
-            const std::map<size_t, ExtrusionMoves>& infill_for_combination = iterator_combination->second;
+            const std::map<size_t, Polygons>& infill_for_combination = iterator_combination->second;
 
             auto iterator_extruder_nr = infill_for_combination.find(current_extruder);
             if (iterator_extruder_nr != infill_for_combination.end())
             {
-                gcode_layer.addPolygonsByOptimizer(iterator_extruder_nr->second.polygons, config);
+                gcode_layer.addPolygonsByOptimizer(iterator_extruder_nr->second, config);
             }
             else
             {

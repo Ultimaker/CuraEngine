@@ -152,7 +152,7 @@ private:
      * \param line_width The actual line width of the extruder
      * \param actual_extruder_nr The actual extruder to be used
      */
-    ExtrusionMoves generatePath_sparseInfill(
+    Polygons generatePath_sparseInfill(
         const size_t first_extruder,
         const size_t last_extruder,
         const std::vector<coord_t>& rings_radii,
