@@ -3,6 +3,8 @@
 
 #include "skin.h"
 
+#include <cmath> // std::ceil
+
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "Slice.h"
@@ -14,8 +16,6 @@
 #include "sliceDataStorage.h"
 #include "utils/math.h"
 #include "utils/polygonUtils.h"
-
-#include <cmath> // std::ceil
 
 #define MIN_AREA_SIZE (0.4 * 0.4)
 

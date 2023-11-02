@@ -3,6 +3,13 @@
 
 #include "gcodeExport.h"
 
+#include <assert.h>
+#include <cmath>
+#include <iomanip>
+#include <stdarg.h>
+
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To send layer view data.
 #include "ExtruderTrain.h"
 #include "PrintFeature.h"
@@ -13,13 +20,6 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/Date.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
-
-#include <spdlog/spdlog.h>
-
-#include <assert.h>
-#include <cmath>
-#include <iomanip>
-#include <stdarg.h>
 
 namespace cura
 {

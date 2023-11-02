@@ -3,6 +3,13 @@
 
 #include "infill.h"
 
+#include <algorithm> //For std::sort.
+#include <functional>
+#include <unordered_set>
+
+#include <scripta/logger.h>
+#include <spdlog/spdlog.h>
+
 #include "WallToolPaths.h"
 #include "infill/GyroidInfill.h"
 #include "infill/ImageBasedDensityProvider.h"
@@ -20,13 +27,6 @@
 #include "utils/UnionFind.h"
 #include "utils/linearAlg2D.h"
 #include "utils/polygonUtils.h"
-
-#include <scripta/logger.h>
-#include <spdlog/spdlog.h>
-
-#include <algorithm> //For std::sort.
-#include <functional>
-#include <unordered_set>
 
 /*!
  * Function which returns the scanline_idx for a given x coordinate

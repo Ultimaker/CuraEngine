@@ -3,12 +3,12 @@
 
 #include "SkeletalTrapezoidationGraph.h"
 
-#include "utils/linearAlg2D.h"
-#include "utils/macros.h"
+#include <unordered_map>
 
 #include <spdlog/spdlog.h>
 
-#include <unordered_map>
+#include "utils/linearAlg2D.h"
+#include "utils/macros.h"
 
 namespace cura
 {
