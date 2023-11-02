@@ -3,6 +3,20 @@
 
 #include "TreeSupport.h"
 
+#include <chrono>
+#include <fstream>
+#include <optional>
+#include <stdio.h>
+#include <string>
+#include <thread>
+
+#include <range/v3/view/drop_last.hpp>
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/iota.hpp>
+#include <range/v3/view/reverse.hpp>
+#include <scripta/logger.h>
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To get settings.
 #include "TreeSupportTipGenerator.h"
 #include "TreeSupportUtils.h"
@@ -17,20 +31,6 @@
 #include "utils/math.h" //For round_up_divide and PI.
 #include "utils/polygonUtils.h" //For moveInside.
 #include "utils/section_type.h"
-
-#include <range/v3/view/drop_last.hpp>
-#include <range/v3/view/enumerate.hpp>
-#include <range/v3/view/iota.hpp>
-#include <range/v3/view/reverse.hpp>
-#include <scripta/logger.h>
-#include <spdlog/spdlog.h>
-
-#include <chrono>
-#include <fstream>
-#include <optional>
-#include <stdio.h>
-#include <string>
-#include <thread>
 
 namespace cura
 {
@@ -2226,10 +2226,9 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
                 support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(floor_layer.offset(10)); // Subtract the support floor from the normal support.
             }
 
-            for (PolygonsPart part : support_layer_storage[layer_idx].splitIntoParts(true)) // Convert every part into a PolygonsPart for the support.
-            {
-                storage.support.supportLayers[layer_idx].support_infill_parts.emplace_back(part, config.support_line_width, config.support_wall_count);
-            }
+            constexpr bool convert_every_part = true; // Convert every part into a PolygonsPart for the support.
+            storage.support.supportLayers[layer_idx]
+                .fillInfillParts(layer_idx, support_layer_storage, config.support_line_width, config.support_wall_count, config.maximum_move_distance, convert_every_part);
 
             {
                 std::lock_guard<std::mutex> critical_section_progress(critical_sections);

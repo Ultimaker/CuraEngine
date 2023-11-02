@@ -60,14 +60,13 @@ Polygons Infill::generateWallToolPaths(
     const coord_t infill_overlap,
     const Settings& settings,
     int layer_idx,
-    SectionType section_type,
-    const bool is_bridge_skin)
+    SectionType section_type)
 {
     outer_contour = outer_contour.offset(infill_overlap);
     scripta::log("infill_outer_contour", outer_contour, section_type, layer_idx, scripta::CellVDI{ "infill_overlap", infill_overlap });
 
     Polygons inner_contour;
-    if ((wall_line_count > 0) && (! is_bridge_skin))
+    if (wall_line_count > 0)
     {
         constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
         WallToolPaths wall_toolpaths(outer_contour, line_width, wall_line_count, wall_0_inset, settings, layer_idx, section_type);
@@ -91,15 +90,14 @@ void Infill::generate(
     const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
     const std::shared_ptr<LightningLayer>& lightning_trees,
     const SliceMeshStorage* mesh,
-    const Polygons& prevent_small_exposed_to_air,
-    const bool is_bridge_skin)
+    const Polygons& prevent_small_exposed_to_air)
 {
     if (outer_contour.empty())
     {
         return;
     }
 
-    inner_contour = generateWallToolPaths(toolpaths, outer_contour, wall_line_count, infill_line_width, infill_overlap, settings, layer_idx, section_type, is_bridge_skin);
+    inner_contour = generateWallToolPaths(toolpaths, outer_contour, wall_line_count, infill_line_width, infill_overlap, settings, layer_idx, section_type);
     scripta::log("infill_inner_contour_0", inner_contour, section_type, layer_idx);
 
     // It does not make sense to print a pattern in a small region. So the infill region

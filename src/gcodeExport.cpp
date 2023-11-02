@@ -266,7 +266,6 @@ std::string GCodeExport::getFileHeader(
         break;
     default:
         prefix << ";FLAVOR:" << flavorToString(flavor) << new_line;
-        prefix << ";TARGET_MACHINE.NAME:" << transliterate(machine_name) << new_line;
         prefix << ";TIME:" << ((print_time) ? static_cast<int>(*print_time) : 6666) << new_line;
         if (flavor == EGCodeFlavor::ULTIGCODE)
         {
@@ -309,6 +308,7 @@ std::string GCodeExport::getFileHeader(
         prefix << ";MAXX:" << INT2MM(total_bounding_box.max.x) << new_line;
         prefix << ";MAXY:" << INT2MM(total_bounding_box.max.y) << new_line;
         prefix << ";MAXZ:" << INT2MM(total_bounding_box.max.z) << new_line;
+        prefix << ";TARGET_MACHINE.NAME:" << transliterate(machine_name) << new_line;
     }
 
     return prefix.str();

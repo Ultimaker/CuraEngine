@@ -4,15 +4,15 @@
 #ifndef UTILS_POLYGON_UTILS_H
 #define UTILS_POLYGON_UTILS_H
 
-#include "PolygonsPointIndex.h"
-#include "SparseLineGrid.h"
-#include "SparsePointGridInclusive.h"
-#include "polygon.h"
-
 #include <functional> // function
 #include <limits>
 #include <memory> // unique_ptr
 #include <optional>
+
+#include "PolygonsPointIndex.h"
+#include "SparseLineGrid.h"
+#include "SparsePointGridInclusive.h"
+#include "polygon.h"
 
 namespace cura
 {
@@ -688,6 +688,26 @@ public:
      * \return A new Polygon that is said intersection
      */
     static Polygons clipPolygonWithAABB(const Polygons& src, const AABB& aabb);
+
+    /*!
+     * Generate a few outset polygons around the given base, according to the given line width
+     *
+     * \param inner_poly The inner polygon to start generating the outset from
+     * \param count The number of outer polygons to add
+     * \param line_width The actual line width to distance the polygons from each other (and from the base)
+     * \return The generated outset polygons
+     */
+    static Polygons generateOutset(const Polygons& inner_poly, size_t count, coord_t line_width);
+
+    /*!
+     * Generate inset polygons inside the given base, until there is no space left, according to the given line width
+     *
+     * \param outer_poly The outer polygon to start generating the inset from
+     * \param line_width The actual line width to distance the polygons from each other (and from the base)
+     * \param initial_inset The inset distance to be added to the first generated polygon
+     * \return The generated inset polygons
+     */
+    static Polygons generateInset(const Polygons& outer_poly, coord_t line_width, coord_t initial_inset = 0);
 
 private:
     /*!

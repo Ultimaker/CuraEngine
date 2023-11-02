@@ -3,22 +3,22 @@
 
 #include "utils/polygonUtils.h"
 
-#include "infill.h"
-#include "utils/SparsePointGridInclusive.h"
-#include "utils/linearAlg2D.h"
-
-#include <range/v3/view/enumerate.hpp>
-
 #include <array>
 #include <list>
 #include <sstream>
 #include <unordered_set>
 
+#include <range/v3/view/enumerate.hpp>
+
+#include "infill.h"
+#include "utils/SparsePointGridInclusive.h"
+#include "utils/linearAlg2D.h"
+
 #ifdef DEBUG
+#include <spdlog/spdlog.h>
+
 #include "utils/AABB.h"
 #include "utils/SVG.h"
-
-#include <spdlog/spdlog.h>
 #endif
 
 namespace cura
@@ -1641,6 +1641,34 @@ Polygons PolygonUtils::clipPolygonWithAABB(const Polygons& src, const AABB& aabb
         }
     }
     return out;
+}
+
+Polygons PolygonUtils::generateOutset(const Polygons& inner_poly, size_t count, coord_t line_width)
+{
+    Polygons outset;
+
+    Polygons current_outset;
+    for (size_t index = 0; index < count; ++index)
+    {
+        current_outset = index == 0 ? inner_poly.offset(line_width / 2) : current_outset.offset(line_width);
+        outset.add(current_outset);
+    }
+
+    return outset;
+}
+
+Polygons PolygonUtils::generateInset(const Polygons& outer_poly, coord_t line_width, coord_t initial_inset)
+{
+    Polygons inset;
+
+    Polygons current_inset = outer_poly.offset(-(initial_inset + line_width / 2));
+    while (! current_inset.empty())
+    {
+        inset.add(current_inset);
+        current_inset = current_inset.offset(-line_width);
+    }
+
+    return inset;
 }
 
 } // namespace cura

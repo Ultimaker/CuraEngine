@@ -110,6 +110,7 @@ private:
      *
      * \param config The config used for the path returned
      * \param space_fill_type The type of space filling which this path employs
+     * \param z_offset (optional) Vertical offset w.r.t current layer height, defaults to 0
      * \param flow (optional) A ratio for the extrusion speed
      * \param spiralize Whether to gradually increase the z while printing. (Note that this path may be part of a sequence of spiralized paths, forming one polygon)
      * \param speed_factor (optional) a factor which the speed will be multiplied by.
@@ -117,10 +118,11 @@ private:
      */
     GCodePath* getLatestPathWithConfig(
         const GCodePathConfig& config,
-        SpaceFillType space_fill_type,
+        const SpaceFillType space_fill_type,
+        const coord_t z_offset = 0,
         const Ratio flow = 1.0_r,
         const Ratio width_factor = 1.0_r,
-        bool spiralize = false,
+        const bool spiralize = false,
         const Ratio speed_factor = 1.0_r);
 
 public:
@@ -281,7 +283,7 @@ public:
      * \param p The point to travel to.
      * \param force_retract Whether to force a retraction to occur.
      */
-    GCodePath& addTravel(const Point p, const bool force_retract = false);
+    GCodePath& addTravel(const Point& p, const bool force_retract = false, const coord_t z_offset = 0);
 
     /*!
      * Add a travel path to a certain point and retract if needed.
@@ -291,7 +293,7 @@ public:
      * \param p The point to travel to
      * \param path (optional) The travel path to which to add the point \p p
      */
-    GCodePath& addTravel_simple(Point p, GCodePath* path = nullptr);
+    GCodePath& addTravel_simple(const Point& p, GCodePath* path = nullptr);
 
     /*!
      * Plan a prime blob at the current location.
@@ -317,14 +319,14 @@ public:
      * \param fan_speed Fan speed override for this path.
      */
     void addExtrusionMove(
-        Point p,
+        const Point p,
         const GCodePathConfig& config,
-        SpaceFillType space_fill_type,
+        const SpaceFillType space_fill_type,
         const Ratio& flow = 1.0_r,
         const Ratio width_factor = 1.0_r,
-        bool spiralize = false,
-        Ratio speed_factor = 1.0_r,
-        double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
+        const bool spiralize = false,
+        const Ratio speed_factor = 1.0_r,
+        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
 
     /*!
      * Add polygon to the gcode starting at vertex \p startIdx

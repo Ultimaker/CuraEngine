@@ -3,6 +3,17 @@
 
 #include "TreeSupportTipGenerator.h"
 
+#include <chrono>
+#include <fstream>
+#include <stdio.h>
+#include <string>
+
+#include <range/v3/view/drop_last.hpp>
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/iota.hpp>
+#include <range/v3/view/reverse.hpp>
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To get settings.
 #include "TreeSupportUtils.h"
 #include "infill/SierpinskiFillProvider.h"
@@ -12,17 +23,6 @@
 #include "utils/algorithm.h"
 #include "utils/math.h" //For round_up_divide and PI.
 #include "utils/polygonUtils.h" //For moveInside.
-
-#include <range/v3/view/drop_last.hpp>
-#include <range/v3/view/enumerate.hpp>
-#include <range/v3/view/iota.hpp>
-#include <range/v3/view/reverse.hpp>
-#include <spdlog/spdlog.h>
-
-#include <chrono>
-#include <fstream>
-#include <stdio.h>
-#include <string>
 
 
 namespace cura
@@ -1164,10 +1164,8 @@ void TreeSupportTipGenerator::generateTips(
             {
                 if (use_fake_roof)
                 {
-                    for (auto part : support_roof_drawn[layer_idx].splitIntoParts())
-                    {
-                        storage.support.supportLayers[layer_idx].support_infill_parts.emplace_back(part, config.support_line_width, 0, support_roof_line_distance);
-                    }
+                    storage.support.supportLayers[layer_idx]
+                        .fillInfillParts(layer_idx, support_roof_drawn, config.support_line_width, support_roof_line_distance, config.maximum_move_distance);
                     placed_support_lines_support_areas[layer_idx].add(TreeSupportUtils::generateSupportInfillLines(
                                                                           support_roof_drawn[layer_idx],
                                                                           config,
@@ -1183,6 +1181,18 @@ void TreeSupportTipGenerator::generateTips(
                     storage.support.supportLayers[layer_idx].support_roof.add(support_roof_drawn[layer_idx]);
                     storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.unionPolygons(roof_tips_drawn[layer_idx]);
                 }
+            }
+        });
+
+    cura::parallel_for<coord_t>(
+        1,
+        mesh.overhang_areas.size() - z_distance_delta,
+        [&](const LayerIndex layer_idx)
+        {
+            if (layer_idx > 0)
+            {
+                storage.support.supportLayers[layer_idx].support_fractional_roof.add(
+                    storage.support.supportLayers[layer_idx].support_roof.difference(storage.support.supportLayers[layer_idx + 1].support_roof));
             }
         });
 

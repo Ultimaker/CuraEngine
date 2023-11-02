@@ -4,13 +4,14 @@
 #ifndef PRIME_TOWER_H
 #define PRIME_TOWER_H
 
-#include "ExtruderUse.h"
-#include "settings/EnumSettings.h"
-#include "utils/polygon.h" // Polygons
-#include "utils/polygonUtils.h"
-
 #include <map>
 #include <vector>
+
+#include "ExtruderUse.h"
+#include "settings/EnumSettings.h"
+#include "settings/types/LayerIndex.h"
+#include "utils/polygon.h" // Polygons
+#include "utils/polygonUtils.h"
 
 namespace cura
 {
@@ -27,12 +28,10 @@ class LayerPlan;
 class PrimeTower
 {
 private:
-    struct ExtrusionMoves
-    {
-        Polygons polygons;
-        Polygons lines;
-    };
-    unsigned int extruder_count; //!< Number of extruders
+    using MovesByExtruder = std::vector<Polygons>;
+    using MovesByLayer = std::vector<MovesByExtruder>;
+
+    size_t extruder_count; //!< Number of extruders
 
     bool wipe_from_middle; //!< Whether to wipe on the inside of the hollow prime tower
     Point middle; //!< The middle of the prime tower
@@ -42,16 +41,18 @@ private:
     std::vector<ClosestPolygonPoint> prime_tower_start_locations; //!< The differernt locations where to pre-wipe the active nozzle
     const unsigned int number_of_prime_tower_start_locations = 21; //!< The required size of \ref PrimeTower::wipe_locations
 
-    std::vector<ExtrusionMoves> pattern_per_extruder; //!< For each extruder the pattern to print on all layers of the prime tower.
-    std::vector<ExtrusionMoves> pattern_per_extruder_layer0; //!< For each extruder the pattern to print on the first layer
-    std::map<size_t, std::map<size_t, ExtrusionMoves>>
+    MovesByExtruder prime_moves; //!< For each extruder, the moves to be processed for actual priming.
+    std::map<size_t, std::map<size_t, Polygons>>
         sparse_pattern_per_extruders; //!< For each extruders combination, and for each actual extruder, the pattern to print on all layers where extruders are actually useless.
+    MovesByLayer base_extra_moves; //!< For each layer and each extruder, the extra moves to be processed for better adhesion/strength
+
+    Polygons outer_poly; //!< The outline of the outermost prime tower.
+    std::vector<Polygons> outer_poly_base; //!< The outline of the layers having extra width for the base
 
 public:
     bool enabled; //!< Whether the prime tower is enabled.
     bool would_have_actual_tower; //!< Whether there is an actual tower.
     bool multiple_extruders_on_first_layer; //!< Whether multiple extruders are allowed on the first layer of the prime tower (e.g. when a raft is there)
-    Polygons outer_poly; //!< The outline of the outermost prime tower.
 
     /*
      * In which order, from outside to inside, will we be printing the prime
@@ -74,6 +75,13 @@ public:
      * Check whether we actually use the prime tower.
      */
     void checkUsed(const SliceDataStorage& storage);
+
+    /*!
+     * Generate the prime tower area to be used on each layer
+     *
+     * Fills \ref PrimeTower::inner_poly and sets \ref PrimeTower::middle
+     */
+    void generateGroundpoly();
 
     /*!
      * Generate the area where the prime tower should be.
@@ -104,16 +112,22 @@ public:
      */
     void subtractFromSupport(SliceDataStorage& storage);
 
-private:
     /*!
-     * Generate the prime tower area to be used on each layer
+     * Get the outer polygon for the given layer, which may be the priming polygon only, or a larger polygon for layers with a base
      *
-     * Fills \ref PrimeTower::inner_poly and sets \ref PrimeTower::middle
+     * \param[in] layer_nr The index of the layer
+     * \return The outer polygon for the prime tower at the given layer
      */
-    void generateGroundpoly();
+    const Polygons& getOuterPoly(const LayerIndex& layer_nr) const;
 
     /*!
-     * \see WipeTower::generatePaths
+     * Get the outer polygon for the very first layer, which may be the priming polygon only, or a larger polygon if there is a base
+     */
+    const Polygons& getGroundPoly() const;
+
+private:
+    /*!
+     * \see PrimeTower::generatePaths
      *
      * Generate the extrude paths for each extruder on even and odd layers
      * Fill the ground poly with dense infill.

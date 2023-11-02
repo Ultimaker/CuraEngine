@@ -4,11 +4,11 @@
 #ifndef SUPPORT_INFILL_PART_H
 #define SUPPORT_INFILL_PART_H
 
+#include <vector>
+
 #include "utils/AABB.h"
 #include "utils/ExtrusionLine.h"
 #include "utils/polygon.h"
-
-#include <vector>
 
 
 namespace cura
@@ -34,8 +34,9 @@ public:
     std::vector<VariableWidthLines> wall_toolpaths; //!< Any walls go here, not in the areas, where they could be combined vertically (don't combine walls). Binned by inset_idx.
 
     coord_t custom_line_distance;
+    bool use_fractional_config; //!< Request to use the configuration used to fill a partial layer height here, instead of the normal full layer height configuration.
 
-    SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, int inset_count_to_generate = 0, coord_t custom_line_distance = 0);
+    SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, bool use_fractional_config, int inset_count_to_generate = 0, coord_t custom_line_distance = 0);
 
     const Polygons& getInfillArea() const;
 };
