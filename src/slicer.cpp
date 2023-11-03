@@ -819,7 +819,15 @@ Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_c
     TimeKeeper slice_timer;
 
     layers = buildLayersWithHeight(slice_layer_count, slicing_tolerance, initial_layer_thickness, thickness, use_variable_layer_heights, adaptive_layers);
-    scripta::setAll(layers);
+    scripta::setAll(layers,
+                    static_cast<int>(mesh->settings.get<EPlatformAdhesion>("adhesion_type")),
+                    mesh->settings.get<int>("raft_surface_layers"),
+                    mesh->settings.get<coord_t>("raft_surface_thickness"),
+                    mesh->settings.get<int>("raft_interface_layers"),
+                    mesh->settings.get<coord_t>("raft_interface_thickness"),
+                    mesh->settings.get<coord_t>("raft_base_thickness"),
+                    mesh->settings.get<coord_t>("raft_airgap"),
+                    mesh->settings.get<coord_t>("layer_0_z_overlap"));
 
     std::vector<std::pair<int32_t, int32_t>> zbbox = buildZHeightsForFaces(*mesh);
 
