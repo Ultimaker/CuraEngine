@@ -69,6 +69,7 @@ private:
     std::vector<Point> layer_start_pos_per_extruder; //!< The starting position of a layer for each extruder
     std::vector<bool> has_prime_tower_planned_per_extruder; //!< For each extruder, whether the prime tower is planned yet or not.
     bool has_prime_tower_base_planned; //!< Whether the prime tower base is planned yet or not.
+    bool has_prime_tower_inset_planned; //!< Whether the prime tower inset is planned yet or not.
     std::optional<Point> last_planned_position; //!< The last planned XY position of the print head (if known)
 
     std::shared_ptr<const SliceMeshStorage> current_mesh; //!< The mesh of the last planned move.
@@ -213,6 +214,16 @@ public:
      * Mark the prime tower extra base as planned.
      */
     void setPrimeTowerBaseIsPlanned();
+
+    /*!
+     * Whether the prime tower extra inset is already planned.
+     */
+    bool getPrimeTowerInsetIsPlanned() const;
+
+    /*!
+     * Mark the prime tower extra inset as planned.
+     */
+    void setPrimeTowerInsetIsPlanned();
 
     bool getSkirtBrimIsPlanned(unsigned int extruder_nr) const;
 

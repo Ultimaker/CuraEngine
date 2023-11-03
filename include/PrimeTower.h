@@ -45,6 +45,7 @@ private:
     std::map<size_t, std::map<size_t, Polygons>>
         sparse_pattern_per_extruders; //!< For each extruders combination, and for each actual extruder, the pattern to print on all layers where extruders are actually useless.
     MovesByLayer base_extra_moves; //!< For each layer and each extruder, the extra moves to be processed for better adhesion/strength
+    MovesByExtruder inset_extra_moves; //!< For each extruder, the extra inset moves to be processed for better adhesion on initial layer
 
     Polygons outer_poly; //!< The outline of the outermost prime tower.
     std::vector<Polygons> outer_poly_base; //!< The outline of the layers having extra width for the base
@@ -178,7 +179,9 @@ private:
      */
     void addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t extruder) const;
 
-    void addToGcode_base(LayerPlan& gcode_layer, const size_t extruder_nr) const;
+    bool addToGcode_base(LayerPlan& gcode_layer, const size_t extruder_nr) const;
+
+    bool addToGcode_inset(LayerPlan& gcode_layer, const size_t extruder_nr) const;
 
 #warning TBD documentation
     void addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::vector<size_t>& extruders_to_prime, const size_t current_extruder) const;

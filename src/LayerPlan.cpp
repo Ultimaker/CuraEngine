@@ -99,6 +99,7 @@ LayerPlan::LayerPlan(
     , layer_thickness(layer_thickness)
     , has_prime_tower_planned_per_extruder(Application::getInstance().current_slice->scene.extruders.size(), false)
     , has_prime_tower_base_planned(false)
+    , has_prime_tower_inset_planned(false)
     , current_mesh(nullptr)
     , last_extruder_previous_layer(start_extruder)
     , last_planned_extruder(&Application::getInstance().current_slice->scene.extruders[start_extruder])
@@ -328,6 +329,16 @@ bool LayerPlan::getPrimeTowerBaseIsPlanned() const
 void LayerPlan::setPrimeTowerBaseIsPlanned()
 {
     has_prime_tower_base_planned = true;
+}
+
+bool LayerPlan::getPrimeTowerInsetIsPlanned() const
+{
+    return has_prime_tower_inset_planned;
+}
+
+void LayerPlan::setPrimeTowerInsetIsPlanned()
+{
+    has_prime_tower_inset_planned = true;
 }
 
 std::optional<std::pair<Point, bool>> LayerPlan::getFirstTravelDestinationState() const

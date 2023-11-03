@@ -135,10 +135,10 @@ void PrimeTower::generatePaths_denseInfill(std::vector<coord_t>& cumulative_inse
     const bool has_raft = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT;
     const coord_t base_height = std::max(scene.settings.get<coord_t>("prime_tower_base_height"), has_raft ? layer_height : 0);
     const double base_curve_magnitude = mesh_group_settings.get<double>("prime_tower_base_curve_magnitude");
-    const coord_t line_width = scene.extruders[extruder_order.front()].settings.get<coord_t>("prime_tower_line_width");
 
     prime_moves.resize(extruder_count);
     base_extra_moves.resize(extruder_count);
+    inset_extra_moves.resize(extruder_count);
 
     coord_t cumulative_inset = 0; // Each tower shape is going to be printed inside the other. This is the inset we're doing for each extruder.
     for (size_t extruder_nr : extruder_order)
@@ -188,17 +188,17 @@ void PrimeTower::generatePaths_denseInfill(std::vector<coord_t>& cumulative_inse
         cumulative_insets.push_back(cumulative_inset);
     }
 
-    // Now we have to total cumulative inset, generate the base inside extra rings
+    // Now we have the total cumulative inset, generate the base inside extra rings
     for (size_t extruder_nr : extruder_order)
     {
         const coord_t line_width = scene.extruders[extruder_nr].settings.get<coord_t>("prime_tower_line_width");
-        MovesByExtruder& moves = base_extra_moves[extruder_nr];
-        if (! moves.empty() && (method == PrimeTowerMethod::OPTIMIZED || extruder_nr == extruder_order.back()))
+
+        if (extruder_nr == extruder_order.back() || method == PrimeTowerMethod::OPTIMIZED)
         {
             Polygons pattern = PolygonUtils::generateInset(outer_poly, line_width, cumulative_inset);
             if (! pattern.empty())
             {
-                moves[0].add(pattern);
+                inset_extra_moves[extruder_nr].add(pattern);
             }
         }
     }
@@ -389,10 +389,14 @@ void PrimeTower::addToGcode(
         break;
     }
 
-    if (! gcode_layer.getPrimeTowerBaseIsPlanned())
+    if (! gcode_layer.getPrimeTowerBaseIsPlanned() && addToGcode_base(gcode_layer, new_extruder))
     {
-        addToGcode_base(gcode_layer, new_extruder);
         gcode_layer.setPrimeTowerBaseIsPlanned();
+    }
+
+    if (! gcode_layer.getPrimeTowerInsetIsPlanned() && addToGcode_inset(gcode_layer, new_extruder))
+    {
+        gcode_layer.setPrimeTowerInsetIsPlanned();
     }
 
     for (const size_t& primed_extruder : extra_primed_extruders)
@@ -427,7 +431,7 @@ void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t ext
     }
 }
 
-void PrimeTower::addToGcode_base(LayerPlan& gcode_layer, const size_t extruder_nr) const
+bool PrimeTower::addToGcode_base(LayerPlan& gcode_layer, const size_t extruder_nr) const
 {
     const size_t raft_total_extra_layers = Raft::getTotalExtraLayers();
     LayerIndex absolute_layer_number = gcode_layer.getLayerNr() + raft_total_extra_layers;
@@ -436,10 +440,35 @@ void PrimeTower::addToGcode_base(LayerPlan& gcode_layer, const size_t extruder_n
     if (absolute_layer_number < pattern_extra_brim.size())
     {
         // Extra rings for stronger base
-        const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
         const Polygons& pattern = pattern_extra_brim[absolute_layer_number];
-        gcode_layer.addPolygonsByOptimizer(pattern, config);
+        if (! pattern.empty())
+        {
+            const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
+            gcode_layer.addPolygonsByOptimizer(pattern, config);
+            return true;
+        }
     }
+
+    return false;
+}
+
+bool PrimeTower::addToGcode_inset(LayerPlan& gcode_layer, const size_t extruder_nr) const
+{
+    const size_t raft_total_extra_layers = Raft::getTotalExtraLayers();
+    LayerIndex absolute_layer_number = gcode_layer.getLayerNr() + raft_total_extra_layers;
+
+    if (absolute_layer_number == 0) // Extra-adhesion on very first layer only
+    {
+        const Polygons& pattern_extra_inset = inset_extra_moves[extruder_nr];
+        if (! pattern_extra_inset.empty())
+        {
+            const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
+            gcode_layer.addPolygonsByOptimizer(pattern_extra_inset, config);
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void PrimeTower::addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::vector<size_t>& extruders_to_prime, const size_t current_extruder) const
