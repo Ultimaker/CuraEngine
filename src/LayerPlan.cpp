@@ -98,6 +98,7 @@ LayerPlan::LayerPlan(
     , is_raft_layer(layer_nr < 0 - static_cast<LayerIndex>(Raft::getFillerLayerCount()))
     , layer_thickness(layer_thickness)
     , has_prime_tower_planned_per_extruder(Application::getInstance().current_slice->scene.extruders.size(), false)
+    , has_prime_tower_base_planned(false)
     , current_mesh(nullptr)
     , last_extruder_previous_layer(start_extruder)
     , last_planned_extruder(&Application::getInstance().current_slice->scene.extruders[start_extruder])
@@ -317,6 +318,16 @@ bool LayerPlan::getPrimeTowerIsPlanned(unsigned int extruder_nr) const
 void LayerPlan::setPrimeTowerIsPlanned(unsigned int extruder_nr)
 {
     has_prime_tower_planned_per_extruder[extruder_nr] = true;
+}
+
+bool LayerPlan::getPrimeTowerBaseIsPlanned() const
+{
+    return has_prime_tower_base_planned;
+}
+
+void LayerPlan::setPrimeTowerBaseIsPlanned()
+{
+    has_prime_tower_base_planned = true;
 }
 
 std::optional<std::pair<Point, bool>> LayerPlan::getFirstTravelDestinationState() const

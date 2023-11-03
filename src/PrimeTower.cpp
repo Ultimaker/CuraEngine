@@ -163,8 +163,10 @@ void PrimeTower::generatePaths_denseInfill(std::vector<coord_t>& cumulative_inse
             }
         }
 
-        // The most outside extruder is used for the base
-        if (extruder_nr == extruder_order.front() && (base_enabled || has_raft) && base_extra_radius > 0 && base_height > 0)
+        // Generate the base outside extra rings
+        if ((method == PrimeTowerMethod::OPTIMIZED
+             || (extruder_nr == extruder_order.front() && (method == PrimeTowerMethod::OPTIMIZED_CONSISTENT || method == PrimeTowerMethod::DEFAULT)))
+            && (base_enabled || has_raft) && base_extra_radius > 0 && base_height > 0)
         {
             for (coord_t z = 0; z < base_height; z += layer_height)
             {
@@ -184,14 +186,19 @@ void PrimeTower::generatePaths_denseInfill(std::vector<coord_t>& cumulative_inse
 
         cumulative_inset += wall_nr * line_width;
         cumulative_insets.push_back(cumulative_inset);
+    }
 
-        // Only the most inside extruder needs to fill the inside of the prime tower
-        if (extruder_nr == extruder_order.back())
+    // Now we have to total cumulative inset, generate the base inside extra rings
+    for (size_t extruder_nr : extruder_order)
+    {
+        const coord_t line_width = scene.extruders[extruder_nr].settings.get<coord_t>("prime_tower_line_width");
+        MovesByExtruder& moves = base_extra_moves[extruder_nr];
+        if (! moves.empty() && (method == PrimeTowerMethod::OPTIMIZED || extruder_nr == extruder_order.back()))
         {
             Polygons pattern = PolygonUtils::generateInset(outer_poly, line_width, cumulative_inset);
             if (! pattern.empty())
             {
-                base_extra_moves[extruder_nr].push_back(pattern);
+                moves[0].add(pattern);
             }
         }
     }
@@ -382,6 +389,12 @@ void PrimeTower::addToGcode(
         break;
     }
 
+    if (! gcode_layer.getPrimeTowerBaseIsPlanned())
+    {
+        addToGcode_base(gcode_layer, new_extruder);
+        gcode_layer.setPrimeTowerBaseIsPlanned();
+    }
+
     for (const size_t& primed_extruder : extra_primed_extruders)
     {
         gcode_layer.setPrimeTowerIsPlanned(primed_extruder);
@@ -412,6 +425,12 @@ void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t ext
         const Polygons& pattern = prime_moves[extruder_nr];
         gcode_layer.addPolygonsByOptimizer(pattern, config);
     }
+}
+
+void PrimeTower::addToGcode_base(LayerPlan& gcode_layer, const size_t extruder_nr) const
+{
+    const size_t raft_total_extra_layers = Raft::getTotalExtraLayers();
+    LayerIndex absolute_layer_number = gcode_layer.getLayerNr() + raft_total_extra_layers;
 
     const std::vector<Polygons>& pattern_extra_brim = base_extra_moves[extruder_nr];
     if (absolute_layer_number < pattern_extra_brim.size())

@@ -178,6 +178,8 @@ private:
      */
     void addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t extruder) const;
 
+    void addToGcode_base(LayerPlan& gcode_layer, const size_t extruder_nr) const;
+
 #warning TBD documentation
     void addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::vector<size_t>& extruders_to_prime, const size_t current_extruder) const;
 
