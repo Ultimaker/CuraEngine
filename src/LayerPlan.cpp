@@ -1920,7 +1920,11 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
             }
         }
-        gcode.writeFanCommand(extruder_plan.getFanSpeed());
+        // Fan speed may already be set by plugin. Prevents two fan speed commands without move in between.
+        if(!extruder_plan.paths.empty() && extruder_plan.paths.front().fan_speed == -1)
+        {
+            gcode.writeFanCommand(extruder_plan.getFanSpeed());
+        }
         std::vector<GCodePath>& paths = extruder_plan.paths;
 
         extruder_plan.inserts.sort();
@@ -1942,6 +1946,14 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             cumulative_path_time = 0.; // reset to 0 for current path.
 
             GCodePath& path = paths[path_idx];
+
+            // Fans need time to reach the new setting. Adjust fan speed as early as possible. If travel paths have a non default fan speed for some reason set it as fan speed.
+            // As such modification could be made by a plugin.
+            if(!path.isTravelPath() || path.fan_speed < 0)
+            {
+                const double path_fan_speed = path.getFanSpeed();
+                gcode.writeFanCommand(path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : extruder_plan.getFanSpeed());
+            }
 
             if (path.perform_prime)
             {
@@ -2095,9 +2107,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             bool spiralize = path.spiralize;
             if (! spiralize) // normal (extrusion) move (with coasting)
             {
-                // if path provides a valid (in range 0-100) fan speed, use it
-                const double path_fan_speed = path.getFanSpeed();
-                gcode.writeFanCommand(path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : extruder_plan.getFanSpeed());
 
                 bool coasting = extruder.settings.get<bool>("coasting_enable");
                 if (coasting)
@@ -2373,6 +2382,7 @@ bool LayerPlan::writePathWithCoasting(
 
 void LayerPlan::applyModifyPlugin()
 {
+    bool handled_initial_travel = false;
     for (auto& extruder_plan : extruder_plans)
     {
         scripta::log(
@@ -2395,6 +2405,40 @@ void LayerPlan::applyModifyPlugin()
 
         extruder_plan.paths = slots::instance().modify<plugins::v0::SlotID::GCODE_PATHS_MODIFY>(extruder_plan.paths, extruder_plan.extruder_nr, layer_nr);
 
+        // Check if the plugin changed first_travel_destination and update it accordingly if it has
+        if (! handled_initial_travel)
+        {
+            for (auto& path : extruder_plan.paths)
+            {
+                if (path.isTravelPath() && path.points.size() > 0)
+                {
+                    if (path.points.front() != first_travel_destination)
+                    {
+                        first_travel_destination = path.points.front();
+                        first_travel_destination_is_inside = current_mesh->layers[layer_nr].getOutlines().inside(path.points.front());
+                    }
+                    handled_initial_travel = true;
+                }
+            }
+        }
+
+        size_t removed_count = std::erase_if(
+            extruder_plan.paths,
+            [](GCodePath& path)
+            {
+                return path.points.empty();
+            });
+        if (removed_count > 0)
+        {
+            spdlog::warn("Removed {} empty paths after plugin slot GCODE_PATHS_MODIFY was executed", removed_count);
+        }
+        // Ensure that the output is at least valid enough to not cause crashes.
+        if (extruder_plan.paths.size() == 0)
+        {
+            GCodePath* reinstated_path = getLatestPathWithConfig(configs_storage.travel_config_per_extruder[getExtruder()], SpaceFillType::None);
+            addTravel_simple(first_travel_destination.value_or(getLastPlannedPositionOrStartingPosition()), reinstated_path);
+        }
+
         scripta::log(
             "extruder_plan_1",
             extruder_plan.paths,
@@ -2413,6 +2457,7 @@ void LayerPlan::applyModifyPlugin()
             scripta::CellVDI{ "is_travel_path", &GCodePath::isTravelPath },
             scripta::CellVDI{ "extrusion_mm3_per_mm", &GCodePath::getExtrusionMM3perMM });
     }
+
 }
 
 void LayerPlan::applyBackPressureCompensation()
