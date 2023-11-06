@@ -95,15 +95,15 @@ public:
      * \param storage where to get settings from; where to get the maximum height of the prime tower from
      * \param[in,out] gcode_layer Where to get the current extruder from; where to store the generated layer paths
      * \param required_extruder_prime the extruders which actually required to be primed at this layer
-     * \param prev_extruder The previous extruder with which paths were planned; from which extruder a switch was made
-     * \param new_extruder The switched to extruder with which the prime tower paths should be generated.
+     * \param prev_extruder_nr The previous extruder with which paths were planned; from which extruder a switch was made
+     * \param new_extruder_nr The switched to extruder with which the prime tower paths should be generated.
      */
     void addToGcode(
         const SliceDataStorage& storage,
         LayerPlan& gcode_layer,
         const std::vector<ExtruderUse>& required_extruder_prime,
-        const size_t prev_extruder,
-        const size_t new_extruder) const;
+        const size_t prev_extruder_nr,
+        const size_t new_extruder_nr) const;
 
     /*!
      * \brief Subtract the prime tower from the support areas in storage.
@@ -147,15 +147,15 @@ private:
     /*!
      * \brief Generate the sparse extrude paths for an extruders combination
      *
-     * \param first_extruder The index of the first extruder to be pseudo-primed
-     * \param last_extruder The index of the last extruder to be pseudo-primed
+     * \param first_extruder_nr The index of the first extruder to be pseudo-primed
+     * \param last_extruder_nr The index of the last extruder to be pseudo-primed
      * \param rings_radii The external radii of each extruder ring, plus the internal radius of the internal ring
      * \param line_width The actual line width of the extruder
-     * \param actual_extruder_nr The actual extruder to be used
+     * \param actual_extruder_nr The number of the actual extruder to be used
      */
     Polygons generatePath_sparseInfill(
-        const size_t first_extruder,
-        const size_t last_extruder,
+        const size_t first_extruder_idx,
+        const size_t last_extruder_idx,
         const std::vector<coord_t>& rings_radii,
         const coord_t line_width,
         const size_t actual_extruder_nr);
@@ -184,14 +184,13 @@ private:
     bool addToGcode_inset(LayerPlan& gcode_layer, const size_t extruder_nr) const;
 
 #warning TBD documentation
-    void addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::vector<size_t>& extruders_to_prime, const size_t current_extruder) const;
+    void addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::vector<size_t>& extruders_to_prime_idx, const size_t current_extruder_nr) const;
 
-    std::vector<size_t> findExtrudersSparseInfill(
-        LayerPlan& gcode_layer,
+    std::vector<size_t> findExtrudersSparseInfill(LayerPlan& gcode_layer,
         const std::vector<ExtruderUse>& required_extruder_prime,
-        const size_t current_extruder,
+        const size_t current_extruder_nr,
         cura::PrimeTowerMethod method,
-        const std::vector<size_t>& initial_list = {}) const;
+        const std::vector<size_t>& initial_list_idx = {}) const;
 
     /*!
      * For an extruder switch that happens not on the first layer, the extruder needs to be primed on the prime tower.

@@ -70,7 +70,6 @@ PrimeTower::PrimeTower()
             const Ratio adhesion_b = scene_pointer->extruders[extruder_nr_b].settings.get<Ratio>("material_adhesion_tendency");
             return adhesion_a < adhesion_b;
         });
-#warning TBD take care of actual extruder order for optimized tower !
 }
 
 void PrimeTower::checkUsed(const SliceDataStorage& storage)
@@ -242,21 +241,21 @@ void PrimeTower::generatePaths_sparseInfill(const std::vector<coord_t>& cumulati
         // Generate all possible extruders combinations, e.g. if there are 4 extruders, we have combinations
         // 0 / 0-1 / 0-1-2 / 0-1-2-3 / 1 / 1-2 / 1-2-3 / 2 / 2-3 / 3
         // A combination is represented by a bitmask
-#warning this should be iterated in outer-to-inner order
-        for (size_t first_extruder = 0; first_extruder < nb_extruders; ++first_extruder)
+        for (size_t first_extruder_idx = 0; first_extruder_idx < nb_extruders; ++first_extruder_idx)
         {
-            for (size_t last_extruder = first_extruder; last_extruder < nb_extruders; ++last_extruder)
+            for (size_t last_extruder_idx = first_extruder_idx; last_extruder_idx < nb_extruders; ++last_extruder_idx)
             {
                 size_t extruders_combination = 0;
-                for (size_t extruder_nr = first_extruder; extruder_nr <= last_extruder; ++extruder_nr)
+                for (size_t extruder_idx = first_extruder_idx; extruder_idx <= last_extruder_idx; ++extruder_idx)
                 {
+                    size_t extruder_nr = extruder_order.at(extruder_idx);
                     extruders_combination |= (1 << extruder_nr);
                 }
 
                 std::map<size_t, Polygons> infills_for_combination;
                 for (const ActualExtruder& actual_extruder : actual_extruders)
                 {
-                    Polygons infill = generatePath_sparseInfill(first_extruder, last_extruder, rings_radii, actual_extruder.line_width, actual_extruder.number);
+                    Polygons infill = generatePath_sparseInfill(first_extruder_idx, last_extruder_idx, rings_radii, actual_extruder.line_width, actual_extruder.number);
                     infills_for_combination[actual_extruder.number] = infill;
                 }
 
@@ -267,32 +266,36 @@ void PrimeTower::generatePaths_sparseInfill(const std::vector<coord_t>& cumulati
 }
 
 Polygons PrimeTower::generatePath_sparseInfill(
-    const size_t first_extruder,
-    const size_t last_extruder,
+    const size_t first_extruder_idx,
+    const size_t last_extruder_idx,
     const std::vector<coord_t>& rings_radii,
     const coord_t line_width,
     const size_t actual_extruder_nr)
 {
     const Scene& scene = Application::getInstance().current_slice->scene;
     const coord_t max_bridging_distance = scene.extruders[actual_extruder_nr].settings.get<coord_t>("prime_tower_max_bridging_distance");
-    const coord_t outer_radius = rings_radii[first_extruder];
-    const coord_t inner_radius = rings_radii[last_extruder + 1];
+    const coord_t outer_radius = rings_radii[first_extruder_idx];
+    const coord_t inner_radius = rings_radii[last_extruder_idx + 1];
     const coord_t radius_delta = outer_radius - inner_radius;
     const coord_t semi_line_width = line_width / 2;
 
+    Polygons pattern;
+
     // Split ring according to max bridging distance
     const size_t nb_rings = std::ceil(static_cast<float>(radius_delta) / max_bridging_distance);
-    const coord_t actual_radius_step = radius_delta / nb_rings;
-
-    Polygons pattern;
-    for (size_t i = 0; i < nb_rings; ++i)
+    if (nb_rings)
     {
-        const coord_t ring_inner_radius = (inner_radius + i * actual_radius_step) + semi_line_width;
-        const coord_t ring_outer_radius = (inner_radius + (i + 1) * actual_radius_step) - semi_line_width;
+        const coord_t actual_radius_step = radius_delta / nb_rings;
 
-        const size_t semi_nb_spokes = std::ceil((M_PI * ring_outer_radius) / max_bridging_distance);
+        for (size_t i = 0; i < nb_rings; ++i)
+        {
+            const coord_t ring_inner_radius = (inner_radius + i * actual_radius_step) + semi_line_width;
+            const coord_t ring_outer_radius = (inner_radius + (i + 1) * actual_radius_step) - semi_line_width;
 
-        pattern.add(PolygonUtils::makeWheel(middle, ring_inner_radius, ring_outer_radius, semi_nb_spokes, ARC_RESOLUTION));
+            const size_t semi_nb_spokes = std::ceil((M_PI * ring_outer_radius) / max_bridging_distance);
+
+            pattern.add(PolygonUtils::makeWheel(middle, ring_inner_radius, ring_outer_radius, semi_nb_spokes, ARC_RESOLUTION));
+        }
     }
 
     return pattern;
@@ -305,6 +308,7 @@ void PrimeTower::generateStartLocations()
     PolygonsPointIndex segment_start = PolygonsPointIndex(&outer_poly, 0, 0);
     PolygonsPointIndex segment_end = segment_start;
 
+#warning Generate dots that are forcibly over a segment, even on sparse infill
     PolygonUtils::spreadDots(segment_start, segment_end, number_of_prime_tower_start_locations, prime_tower_start_locations);
 }
 
@@ -312,15 +316,15 @@ void PrimeTower::addToGcode(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
     const std::vector<ExtruderUse>& required_extruder_prime,
-    const size_t prev_extruder,
-    const size_t new_extruder) const
+    const size_t prev_extruder_nr,
+    const size_t new_extruder_nr) const
 {
     if (! (enabled && would_have_actual_tower))
     {
         return;
     }
 
-    if (gcode_layer.getPrimeTowerIsPlanned(new_extruder))
+    if (gcode_layer.getPrimeTowerIsPlanned(new_extruder_nr))
     { // don't print the prime tower if it has been printed already with this extruder.
         return;
     }
@@ -331,10 +335,10 @@ void PrimeTower::addToGcode(
         return;
     }
 
-    bool post_wipe = Application::getInstance().current_slice->scene.extruders[prev_extruder].settings.get<bool>("prime_tower_wipe_enabled");
+    bool post_wipe = Application::getInstance().current_slice->scene.extruders[prev_extruder_nr].settings.get<bool>("prime_tower_wipe_enabled");
 
     // Do not wipe on the first layer, we will generate non-hollow prime tower there for better bed adhesion.
-    if (prev_extruder == new_extruder || layer_nr == 0)
+    if (prev_extruder_nr == new_extruder_nr || layer_nr == 0)
     {
         post_wipe = false;
     }
@@ -342,18 +346,15 @@ void PrimeTower::addToGcode(
     // Go to the start location if it's not the first layer
     if (layer_nr != 0)
     {
-        gotoStartLocation(gcode_layer, new_extruder);
+        gotoStartLocation(gcode_layer, new_extruder_nr);
     }
-
-    PrimeTowerMethod method = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<PrimeTowerMethod>("prime_tower_mode");
-    std::vector<size_t> extra_primed_extruders;
 
     auto extruder_iterator = std::find_if(
         required_extruder_prime.begin(),
         required_extruder_prime.end(),
-        [new_extruder](const ExtruderUse& extruder_use)
+        [new_extruder_nr](const ExtruderUse& extruder_use)
         {
-            return extruder_use.extruder_nr == new_extruder;
+            return extruder_use.extruder_nr == new_extruder_nr;
         });
 
     if (extruder_iterator == required_extruder_prime.end())
@@ -362,55 +363,70 @@ void PrimeTower::addToGcode(
         return;
     }
 
+    size_t new_extruder_idx;
+    auto iterator = std::find(extruder_order.begin(), extruder_order.end(), new_extruder_nr);
+    if (iterator != extruder_order.end())
+    {
+        new_extruder_idx = *iterator;
+    }
+    else
+    {
+        // Given extruder nr is not registered ?!
+        return;
+    }
+
+    PrimeTowerMethod method = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<PrimeTowerMethod>("prime_tower_mode");
+    std::vector<size_t> extra_primed_extruders_idx;
+
     switch (extruder_iterator->prime)
     {
     case ExtruderPrime::None:
         if (method != PrimeTowerMethod::OPTIMIZED)
         {
-            gcode_layer.setPrimeTowerIsPlanned(new_extruder);
+            gcode_layer.setPrimeTowerIsPlanned(new_extruder_nr);
         }
         break;
 
     case ExtruderPrime::Sparse:
-        extra_primed_extruders = findExtrudersSparseInfill(gcode_layer, required_extruder_prime, new_extruder, method, { new_extruder });
-        addToGcode_optimizedInfill(gcode_layer, extra_primed_extruders, new_extruder);
+        extra_primed_extruders_idx = findExtrudersSparseInfill(gcode_layer, required_extruder_prime, new_extruder_nr, method, { new_extruder_idx });
+        addToGcode_optimizedInfill(gcode_layer, extra_primed_extruders_idx, new_extruder_nr);
         break;
 
     case ExtruderPrime::Prime:
-        addToGcode_denseInfill(gcode_layer, new_extruder);
-        gcode_layer.setPrimeTowerIsPlanned(new_extruder);
+        addToGcode_denseInfill(gcode_layer, new_extruder_nr);
+        gcode_layer.setPrimeTowerIsPlanned(new_extruder_nr);
 
         if (method == PrimeTowerMethod::OPTIMIZED && gcode_layer.getLayerNr() < storage.max_print_height_second_to_last_extruder)
         {
             // Whatever happens before and after, use the current extruder to prime all the non-required extruders now
-            extra_primed_extruders = findExtrudersSparseInfill(gcode_layer, required_extruder_prime, new_extruder, method);
-            addToGcode_optimizedInfill(gcode_layer, extra_primed_extruders, new_extruder);
+            extra_primed_extruders_idx = findExtrudersSparseInfill(gcode_layer, required_extruder_prime, new_extruder_nr, method);
+            addToGcode_optimizedInfill(gcode_layer, extra_primed_extruders_idx, new_extruder_nr);
         }
         break;
     }
 
-    if (! gcode_layer.getPrimeTowerBaseIsPlanned() && addToGcode_base(gcode_layer, new_extruder))
+    if (! gcode_layer.getPrimeTowerBaseIsPlanned() && addToGcode_base(gcode_layer, new_extruder_nr))
     {
         gcode_layer.setPrimeTowerBaseIsPlanned();
     }
 
-    if (! gcode_layer.getPrimeTowerInsetIsPlanned() && addToGcode_inset(gcode_layer, new_extruder))
+    if (! gcode_layer.getPrimeTowerInsetIsPlanned() && addToGcode_inset(gcode_layer, new_extruder_nr))
     {
         gcode_layer.setPrimeTowerInsetIsPlanned();
     }
 
-    for (const size_t& primed_extruder : extra_primed_extruders)
+    for (const size_t& primed_extruder_idx : extra_primed_extruders_idx)
     {
-        gcode_layer.setPrimeTowerIsPlanned(primed_extruder);
+        gcode_layer.setPrimeTowerIsPlanned(extruder_order.at(primed_extruder_idx));
     }
 
     // post-wipe:
     if (post_wipe)
     {
         // Make sure we wipe the old extruder on the prime tower.
-        const Settings& previous_settings = Application::getInstance().current_slice->scene.extruders[prev_extruder].settings;
+        const Settings& previous_settings = Application::getInstance().current_slice->scene.extruders[prev_extruder_nr].settings;
         const Point previous_nozzle_offset = Point(previous_settings.get<coord_t>("machine_nozzle_offset_x"), previous_settings.get<coord_t>("machine_nozzle_offset_y"));
-        const Settings& new_settings = Application::getInstance().current_slice->scene.extruders[new_extruder].settings;
+        const Settings& new_settings = Application::getInstance().current_slice->scene.extruders[new_extruder_nr].settings;
         const Point new_nozzle_offset = Point(new_settings.get<coord_t>("machine_nozzle_offset_x"), new_settings.get<coord_t>("machine_nozzle_offset_y"));
         gcode_layer.addTravel(post_wipe_point - previous_nozzle_offset + new_nozzle_offset);
     }
@@ -471,57 +487,43 @@ bool PrimeTower::addToGcode_inset(LayerPlan& gcode_layer, const size_t extruder_
     return false;
 }
 
-void PrimeTower::addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::vector<size_t>& extruders_to_prime, const size_t current_extruder) const
+void PrimeTower::addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::vector<size_t>& extruders_to_prime_idx, const size_t current_extruder_nr) const
 {
-    std::vector<std::vector<size_t>> extruders_to_prime_grouped;
+    std::vector<std::vector<size_t>> extruders_to_prime_idx_grouped;
 
     // Group extruders which are besides each other
-    for (size_t extruder_to_prime : extruders_to_prime)
+    for (size_t extruder_to_prime_idx : extruders_to_prime_idx)
     {
-        if (extruders_to_prime_grouped.empty())
+        if (extruders_to_prime_idx_grouped.empty())
         {
             // First extruder : create new group
-            extruders_to_prime_grouped.push_back({ extruder_to_prime });
+            extruders_to_prime_idx_grouped.push_back({ extruder_to_prime_idx });
         }
         else
         {
-            std::vector<size_t>& last_group = extruders_to_prime_grouped.back();
-#warning This does not take care of extruders ordering
-            if (last_group.back() == extruder_to_prime - 1)
+            std::vector<size_t>& last_group = extruders_to_prime_idx_grouped.back();
+            if (last_group.back() == extruder_to_prime_idx - 1)
             {
                 // New extruders which belongs to same group
-                last_group.push_back(extruder_to_prime);
+                last_group.push_back(extruder_to_prime_idx);
             }
             else
             {
                 // New extruders which belongs to new group
-                extruders_to_prime_grouped.push_back({ extruder_to_prime });
+                extruders_to_prime_idx_grouped.push_back({ extruder_to_prime_idx });
             }
         }
     }
 
-    std::string grouped_extruders;
-    for (auto& group : extruders_to_prime_grouped)
-    {
-        grouped_extruders.append("{");
-        for (auto& extruder : group)
-        {
-            grouped_extruders.append(std::to_string(extruder));
-            grouped_extruders.append(",");
-        }
-        grouped_extruders.append("}");
-    }
-
-#warning What should we do in case of extruders with different lines widths ?
     // And finally, append patterns for each group
-    const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[current_extruder];
+    const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[current_extruder_nr];
 
-    for (const std::vector<size_t>& group : extruders_to_prime_grouped)
+    for (const std::vector<size_t>& group_idx : extruders_to_prime_idx_grouped)
     {
         size_t mask = 0;
-        for (const size_t& extruder : group)
+        for (const size_t& extruder_idx : group_idx)
         {
-            mask |= (1 << extruder);
+            mask |= (1 << extruder_order.at(extruder_idx));
         }
 
         auto iterator_combination = sparse_pattern_per_extruders.find(mask);
@@ -529,14 +531,14 @@ void PrimeTower::addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::v
         {
             const std::map<size_t, Polygons>& infill_for_combination = iterator_combination->second;
 
-            auto iterator_extruder_nr = infill_for_combination.find(current_extruder);
+            auto iterator_extruder_nr = infill_for_combination.find(current_extruder_nr);
             if (iterator_extruder_nr != infill_for_combination.end())
             {
                 gcode_layer.addPolygonsByOptimizer(iterator_extruder_nr->second, config);
             }
             else
             {
-                spdlog::warn("Sparse pattern not found for extruder {}, skipping\n", current_extruder);
+                spdlog::warn("Sparse pattern not found for extruder {}, skipping\n", current_extruder_nr);
             }
         }
         else
@@ -549,40 +551,44 @@ void PrimeTower::addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::v
 std::vector<size_t> PrimeTower::findExtrudersSparseInfill(
     LayerPlan& gcode_layer,
     const std::vector<ExtruderUse>& required_extruder_prime,
-    const size_t current_extruder,
+    const size_t current_extruder_nr,
     PrimeTowerMethod method,
-    const std::vector<size_t>& initial_list) const
+    const std::vector<size_t>& initial_list_idx) const
 {
-    std::vector<size_t> extruders_to_prime;
+    std::vector<size_t> extruders_to_prime_idx;
 
-    for (size_t extruder_nr : extruder_order)
+    for (size_t extruder_idx = 0; extruder_idx < extruder_order.size(); extruder_idx++)
     {
-        auto iterator_initial_list = std::find(initial_list.begin(), initial_list.end(), extruder_nr);
-        bool is_in_initial_list = iterator_initial_list != initial_list.end();
+        auto iterator_initial_list = std::find(initial_list_idx.begin(), initial_list_idx.end(), extruder_idx);
+        bool is_in_initial_list = iterator_initial_list != initial_list_idx.end();
 
         if (is_in_initial_list)
         {
-            extruders_to_prime.push_back(extruder_nr);
+            extruders_to_prime_idx.push_back(extruder_idx);
         }
-        else if (method == PrimeTowerMethod::OPTIMIZED && ! gcode_layer.getPrimeTowerIsPlanned(extruder_nr))
+        else
         {
-            auto iterator_required_list = std::find_if(
-                required_extruder_prime.begin(),
-                required_extruder_prime.end(),
-                [extruder_nr](const ExtruderUse& extruder_use)
-                {
-                    return extruder_use.extruder_nr == extruder_nr && extruder_use.prime == ExtruderPrime::Prime;
-                });
-            bool is_in_required_list = iterator_required_list != required_extruder_prime.end();
-
-            if (! is_in_required_list)
+            size_t extruder_nr = extruder_order.at(extruder_idx);
+            if (method == PrimeTowerMethod::OPTIMIZED && ! gcode_layer.getPrimeTowerIsPlanned(extruder_nr))
             {
-                extruders_to_prime.push_back(extruder_nr);
+                auto iterator_required_list = std::find_if(
+                    required_extruder_prime.begin(),
+                    required_extruder_prime.end(),
+                    [extruder_nr](const ExtruderUse& extruder_use)
+                    {
+                        return extruder_use.extruder_nr == extruder_nr && extruder_use.prime == ExtruderPrime::Prime;
+                    });
+                bool is_in_required_list = iterator_required_list != required_extruder_prime.end();
+
+                if (! is_in_required_list)
+                {
+                    extruders_to_prime_idx.push_back(extruder_idx);
+                }
             }
         }
     }
 
-    return extruders_to_prime;
+    return extruders_to_prime_idx;
 }
 
 void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
