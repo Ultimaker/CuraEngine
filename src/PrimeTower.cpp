@@ -190,10 +190,9 @@ void PrimeTower::generatePaths_denseInfill(std::vector<coord_t>& cumulative_inse
     // Now we have the total cumulative inset, generate the base inside extra rings
     for (size_t extruder_nr : extruder_order)
     {
-        const coord_t line_width = scene.extruders[extruder_nr].settings.get<coord_t>("prime_tower_line_width");
-
         if (extruder_nr == extruder_order.back() || method == PrimeTowerMethod::OPTIMIZED)
         {
+            const coord_t line_width = scene.extruders[extruder_nr].settings.get<coord_t>("prime_tower_line_width");
             Polygons pattern = PolygonUtils::generateInset(outer_poly, line_width, cumulative_inset);
             if (! pattern.empty())
             {
@@ -243,7 +242,9 @@ void PrimeTower::generatePaths_sparseInfill(const std::vector<coord_t>& cumulati
         // A combination is represented by a bitmask
         for (size_t first_extruder_idx = 0; first_extruder_idx < nb_extruders; ++first_extruder_idx)
         {
-            for (size_t last_extruder_idx = first_extruder_idx; last_extruder_idx < nb_extruders; ++last_extruder_idx)
+            size_t nb_extruders_sparse = method == PrimeTowerMethod::OPTIMIZED_CONSISTENT ? first_extruder_idx + 1 : nb_extruders;
+
+            for (size_t last_extruder_idx = first_extruder_idx; last_extruder_idx < nb_extruders_sparse; ++last_extruder_idx)
             {
                 size_t extruders_combination = 0;
                 for (size_t extruder_idx = first_extruder_idx; extruder_idx <= last_extruder_idx; ++extruder_idx)
@@ -367,7 +368,7 @@ void PrimeTower::addToGcode(
     auto iterator = std::find(extruder_order.begin(), extruder_order.end(), new_extruder_nr);
     if (iterator != extruder_order.end())
     {
-        new_extruder_idx = *iterator;
+        new_extruder_idx = iterator - extruder_order.begin();
     }
     else
     {
