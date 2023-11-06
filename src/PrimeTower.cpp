@@ -256,8 +256,11 @@ void PrimeTower::generatePaths_sparseInfill(const std::vector<coord_t>& cumulati
                 std::map<size_t, Polygons> infills_for_combination;
                 for (const ActualExtruder& actual_extruder : actual_extruders)
                 {
-                    Polygons infill = generatePath_sparseInfill(first_extruder_idx, last_extruder_idx, rings_radii, actual_extruder.line_width, actual_extruder.number);
-                    infills_for_combination[actual_extruder.number] = infill;
+                    if (method == PrimeTowerMethod::OPTIMIZED || actual_extruder.number == extruder_order.at(first_extruder_idx))
+                    {
+                        Polygons infill = generatePath_sparseInfill(first_extruder_idx, last_extruder_idx, rings_radii, actual_extruder.line_width, actual_extruder.number);
+                        infills_for_combination[actual_extruder.number] = infill;
+                    }
                 }
 
                 sparse_pattern_per_extruders[extruders_combination] = infills_for_combination;
