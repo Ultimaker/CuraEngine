@@ -1439,7 +1439,7 @@ std::vector<ExtruderUse>
             {
                 prime = ExtruderPrime::Prime;
             }
-            else if (layer_nr < storage.max_print_height_second_to_last_extruder)
+            else if (layer_nr < storage.max_print_height_second_to_last_extruder + 1)
             {
                 prime = ExtruderPrime::Sparse;
             }
