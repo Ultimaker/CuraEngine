@@ -2415,9 +2415,9 @@ void LayerPlan::applyModifyPlugin()
                     if (path.points.front() != first_travel_destination)
                     {
                         first_travel_destination = path.points.front();
-                        first_travel_destination_is_inside = current_mesh->layers[layer_nr].getOutlines().inside(path.points.front());
                     }
                     handled_initial_travel = true;
+                    break;
                 }
             }
         }
