@@ -5,6 +5,7 @@
 
 #include <cassert>
 
+#include <range/v3/view/enumerate.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get the communication channel to send progress through.
@@ -27,6 +28,7 @@ std::string Progress::names[] = { "start", "slice", "layerparts", "inset+skin", 
 
 double Progress::accumulated_times[N_PROGRESS_STAGES] = { -1 };
 double Progress::total_timing = -1;
+std::optional<LayerIndex> Progress::first_skipped_layer{};
 
 float Progress::calcOverallProgress(Stage stage, float stage_progress)
 {
@@ -72,27 +74,43 @@ void Progress::messageProgressStage(Progress::Stage stage, TimeKeeper* time_keep
     }
 }
 
-void Progress::messageProgressLayer(LayerIndex layer_nr, size_t total_layers, double total_time, const TimeKeeper::RegisteredTimes& stages)
+void Progress::messageProgressLayer(LayerIndex layer_nr, size_t total_layers, double total_time, const TimeKeeper::RegisteredTimes& stages, double skip_threshold)
 {
-    messageProgress(Stage::EXPORT, std::max(layer_nr.value, LayerIndex::value_type(0)) + 1, total_layers);
-
-    spdlog::info("+---- Layer export [{}] accomplished in {:03.3f}s", layer_nr.value, total_time);
-
-    size_t padding = 0;
-    auto iterator_max_size = std::max_element(
-        stages.begin(),
-        stages.end(),
-        [](const TimeKeeper::RegisteredTime& time1, const TimeKeeper::RegisteredTime& time2)
-        {
-            return time1.stage.size() < time2.stage.size();
-        });
-    if (iterator_max_size != stages.end())
+    if (total_time < skip_threshold)
     {
-        padding = iterator_max_size->stage.size();
-
-        for (const TimeKeeper::RegisteredTime& time : stages)
+        if (! first_skipped_layer)
         {
-            spdlog::info("| *{}:{} {:03.3f}s", time.stage, std::string(padding - time.stage.size(), ' '), time.duration);
+            first_skipped_layer = layer_nr;
+        }
+    }
+    else
+    {
+        if (first_skipped_layer)
+        {
+            spdlog::info("Skipped time reporting for layers [{}...{}]", first_skipped_layer.value().value, layer_nr.value);
+            first_skipped_layer.reset();
+        }
+
+        messageProgress(Stage::EXPORT, std::max(layer_nr.value, LayerIndex::value_type(0)) + 1, total_layers);
+
+        spdlog::info("┌ Layer export [{}] accomplished in {:03.3f}s", layer_nr.value, total_time);
+
+        size_t padding = 0;
+        auto iterator_max_size = std::max_element(
+            stages.begin(),
+            stages.end(),
+            [](const TimeKeeper::RegisteredTime& time1, const TimeKeeper::RegisteredTime& time2)
+            {
+                return time1.stage.size() < time2.stage.size();
+            });
+        if (iterator_max_size != stages.end())
+        {
+            padding = iterator_max_size->stage.size();
+
+            for (auto [index, time] : stages | ranges::view::enumerate)
+            {
+                spdlog::info("{}── {}:{} {:03.3f}s", index < stages.size() - 1 ? "├" : "└", time.stage, std::string(padding - time.stage.size(), ' '), time.duration);
+            }
         }
     }
 }

@@ -43,6 +43,7 @@ private:
     static std::string names[N_PROGRESS_STAGES]; //!< name of each stage
     static double accumulated_times[N_PROGRESS_STAGES]; //!< Time past before each stage
     static double total_timing; //!< An estimate of the total time
+    static std::optional<LayerIndex> first_skipped_layer; //!< The index of the layer for which we skipped time reporting
     /*!
      * Give an estimate between 0 and 1 of how far the process is.
      *
@@ -62,6 +63,7 @@ public:
      * \param progress_in_stage_max The maximal value of \p progress_in_stage
      */
     static void messageProgress(Stage stage, int progress_in_stage, int progress_in_stage_max);
+
     /*!
      * Message the progress stage over the command socket.
      *
@@ -70,7 +72,17 @@ public:
      */
     static void messageProgressStage(Stage stage, TimeKeeper* timeKeeper);
 
-    static void messageProgressLayer(LayerIndex layer_nr, size_t total_layers, double total_time, const TimeKeeper::RegisteredTimes& stages);
+    /*!
+     * Message the layer progress over the command socket and into logging output.
+     *
+     * \param layer_nr The processed layer number
+     * \param total_layers The total number of layers to be processed
+     * \param total_time The total layer processing time, in seconds
+     * \param stage The detailed stages time reporting for this layer
+     * \param skip_threshold The time threshold under which we consider that the full layer time reporting should be skipped
+     *                       because it is not relevant
+     */
+    static void messageProgressLayer(LayerIndex layer_nr, size_t total_layers, double total_time, const TimeKeeper::RegisteredTimes& stages, double skip_threshold = 0.1);
 };
 
 
