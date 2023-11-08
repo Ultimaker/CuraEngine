@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SVG_H
 #define SVG_H
@@ -19,7 +19,8 @@ class FPoint3;
 class SVG : NoCopy
 {
 public:
-    enum class Color {
+    enum class Color
+    {
         BLACK,
         WHITE,
         GRAY,
@@ -40,18 +41,20 @@ public:
         Color color;
         int r, g, b;
         ColorObject(Color color)
-        : is_enum(true)
-        , color(color)
-        {}
+            : is_enum(true)
+            , color(color)
+        {
+        }
         ColorObject(int r, int g, int b)
-        : is_enum(false)
-        , r(r)
-        , g(g)
-        , b(b)
-        {}
+            : is_enum(false)
+            , r(r)
+            , g(g)
+            , b(b)
+        {
+        }
     };
-private:
 
+private:
     std::string toString(const Color color) const;
     std::string toString(const ColorObject& color) const;
 
@@ -64,6 +67,8 @@ private:
     size_t layer_nr = 1;
 
     bool output_is_html;
+
+    void writePathPoint(const Point& p) const;
 
 public:
     SVG(std::string filename, const AABB aabb, const Point canvas_size = Point(1024, 1024), const ColorObject background = Color::NONE);
@@ -103,10 +108,10 @@ public:
 
     /*!
      * \brief Draws a polyline on the canvas.
-     * 
+     *
      * The polyline is the set of line segments between each pair of consecutive
      * points in the specified vector.
-     * 
+     *
      * \param polyline A set of points between which line segments must be
      * drawn.
      * \param color The colour of the line segments. If this is not specified,
@@ -122,23 +127,23 @@ public:
 
     /*!
      * \brief Draws a dashed line on the canvas from point A to point B.
-     * 
+     *
      * This is useful in the case where multiple lines may overlap each other.
-     * 
+     *
      * \param a The starting endpoint of the line.
      * \param b The ending endpoint of the line.
      * \param color The stroke colour of the line.
      */
-    void writeDashedLine(const Point& a,const Point& b, ColorObject color = Color::BLACK) const;
+    void writeDashedLine(const Point& a, const Point& b, ColorObject color = Color::BLACK) const;
 
     template<typename... Args>
     void printf(const char* txt, Args&&... args) const;
 
     void writeText(const Point& p, const std::string& txt, const ColorObject color = Color::BLACK, const float font_size = 10) const;
 
-    void writePolygons(const Polygons& polys, const ColorObject color = Color::BLACK, const float stroke_width = 1) const;
+    void writePolygons(const Polygons& polys, const ColorObject color = Color::BLACK, const float stroke_width = 1, bool as_path = false) const;
 
-    void writePolygon(ConstPolygonRef poly, const ColorObject color = Color::BLACK, const float stroke_width = 1) const;
+    void writePolygon(ConstPolygonRef poly, const ColorObject color = Color::BLACK, const float stroke_width = 1, bool as_path = false) const;
 
     void writePolylines(const Polygons& polys, const ColorObject color = Color::BLACK, const float stroke_width = 1) const;
 
@@ -187,7 +192,6 @@ public:
      * \param font_size The size of the font to write the coordinates with.
      */
     void writeCoordinateGrid(const coord_t grid_size = MM2INT(1), const Color color = Color::BLACK, const float stroke_width = 0.1, const float font_size = 10) const;
-
 };
 
 template<typename... Args>

@@ -3,6 +3,13 @@
 
 #include "slicer.h"
 
+#include <algorithm> // remove_if
+#include <numbers>
+#include <stdio.h>
+
+#include <scripta/logger.h>
+#include <spdlog/spdlog.h>
+
 #include "Application.h"
 #include "Slice.h"
 #include "plugins/slots.h"
@@ -14,13 +21,6 @@
 #include "utils/ThreadPool.h"
 #include "utils/gettime.h"
 #include "utils/section_type.h"
-
-#include <scripta/logger.h>
-#include <spdlog/spdlog.h>
-
-#include <algorithm> // remove_if
-#include <numbers>
-#include <stdio.h>
 
 namespace cura
 {
@@ -819,17 +819,26 @@ Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_c
     TimeKeeper slice_timer;
 
     layers = buildLayersWithHeight(slice_layer_count, slicing_tolerance, initial_layer_thickness, thickness, use_variable_layer_heights, adaptive_layers);
-    scripta::setAll(layers);
+    scripta::setAll(
+        layers,
+        static_cast<int>(mesh->settings.get<EPlatformAdhesion>("adhesion_type")),
+        mesh->settings.get<int>("raft_surface_layers"),
+        mesh->settings.get<coord_t>("raft_surface_thickness"),
+        mesh->settings.get<int>("raft_interface_layers"),
+        mesh->settings.get<coord_t>("raft_interface_thickness"),
+        mesh->settings.get<coord_t>("raft_base_thickness"),
+        mesh->settings.get<coord_t>("raft_airgap"),
+        mesh->settings.get<coord_t>("layer_0_z_overlap"));
 
     std::vector<std::pair<int32_t, int32_t>> zbbox = buildZHeightsForFaces(*mesh);
 
     buildSegments(*mesh, zbbox, slicing_tolerance, layers);
 
-    spdlog::info("Slice of mesh took {:3} seconds", slice_timer.restart());
+    spdlog::info("Slice of mesh took {:03.3f} seconds", slice_timer.restart());
 
     makePolygons(*i_mesh, slicing_tolerance, layers);
     scripta::log("sliced_polygons", layers, SectionType::NA);
-    spdlog::info("Make polygons took {:3} seconds", slice_timer.restart());
+    spdlog::info("Make polygons took {:03.3f} seconds", slice_timer.restart());
 }
 
 void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t, int32_t>>& zbbox, const SlicingTolerance& slicing_tolerance, std::vector<SlicerLayer>& layers)

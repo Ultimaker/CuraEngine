@@ -3,21 +3,21 @@
 
 #include "MeshGroup.h"
 
-#include "settings/types/Ratio.h" //For the shrinkage percentage and scale factor.
-#include "utils/FMatrix4x3.h" //To transform the input meshes for shrinkage compensation and to align in command line mode.
-#include "utils/floatpoint.h" //To accept incoming meshes with floating point vertices.
-#include "utils/gettime.h"
-#include "utils/section_type.h"
-#include "utils/string.h"
+#include <limits>
+#include <stdio.h>
+#include <string.h>
 
 #include <fmt/format.h>
 #include <range/v3/view/enumerate.hpp>
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
 
-#include <limits>
-#include <stdio.h>
-#include <string.h>
+#include "settings/types/Ratio.h" //For the shrinkage percentage and scale factor.
+#include "utils/FMatrix4x3.h" //To transform the input meshes for shrinkage compensation and to align in command line mode.
+#include "utils/floatpoint.h" //To accept incoming meshes with floating point vertices.
+#include "utils/gettime.h"
+#include "utils/section_type.h"
+#include "utils/string.h"
 
 namespace cura
 {
@@ -290,7 +290,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMa
         if (loadMeshSTL(&mesh, filename, transformation)) // Load it! If successful...
         {
             meshgroup->meshes.push_back(mesh);
-            spdlog::info("loading '{}' took {:3} seconds", filename, load_timer.restart());
+            spdlog::info("loading '{}' took {:03.3f} seconds", filename, load_timer.restart());
             return true;
         }
     }

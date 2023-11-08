@@ -7,6 +7,7 @@
 #include <limits> // numeric_limits
 #include <list>
 #include <memory>
+#include <numeric>
 #include <optional>
 #include <unordered_set>
 
@@ -168,14 +169,14 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         total_layers,
         [&storage, total_layers, this](int layer_nr)
         {
-            return &processLayer(storage, layer_nr, total_layers);
+            return std::make_optional(processLayer(storage, layer_nr, total_layers));
         },
-        [this, total_layers](LayerPlan* gcode_layer)
+        [this, total_layers](std::optional<ProcessLayerResult> result_opt)
         {
-            Progress::messageProgress(Progress::Stage::EXPORT, std::max(LayerIndex{ 0 }, gcode_layer->getLayerNr()) + 1, total_layers);
-            layer_plan_buffer.handle(*gcode_layer, gcode);
+            const ProcessLayerResult& result = result_opt.value();
+            Progress::messageProgressLayer(result.layer_plan->getLayerNr(), total_layers, result.total_elapsed_time, result.stages_times);
+            layer_plan_buffer.handle(*result.layer_plan, gcode);
         });
-
 
     layer_plan_buffer.flush();
 
@@ -945,8 +946,12 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     }
 }
 
-LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers) const
+FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers) const
 {
+    spdlog::debug("GcodeWriter processing layer {} of {}", layer_nr, total_layers);
+    TimeKeeper time_keeper;
+    spdlog::stopwatch timer_total;
+
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
     coord_t z;
@@ -1030,6 +1035,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         comb_offset_from_outlines,
         first_outer_wall_line_width,
         avoid_distance);
+    time_keeper.registerTime("Init");
 
     if (include_helper_parts)
     {
@@ -1038,11 +1044,15 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         if (storage.skirt_brim[extruder_nr].size() > 0)
         {
             processSkirtBrim(storage, gcode_layer, extruder_nr, layer_nr);
+            time_keeper.registerTime("Skirt/brim");
         }
 
         // handle shield(s) first in a layer so that chances are higher that the other nozzle is wiped (for the ooze shield)
         processOozeShield(storage, gcode_layer);
+        time_keeper.registerTime("Ooze shield");
+
         processDraftShield(storage, gcode_layer);
+        time_keeper.registerTime("Draft shield");
     }
 
     const size_t support_roof_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr;
@@ -1064,10 +1074,12 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         if (extruder_nr != extruder_order.front().extruder_nr || (extruder_order.size() == 1 && layer_nr >= 0) || extruder_nr == 0)
         {
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+            time_keeper.registerTime("Prime tower pre");
         }
         if (include_helper_parts && (extruder_nr == support_infill_extruder_nr || extruder_nr == support_roof_extruder_nr || extruder_nr == support_bottom_extruder_nr))
         {
             addSupportToGCode(storage, gcode_layer, extruder_nr);
+            time_keeper.registerTime("Supports");
         }
         if (layer_nr >= 0)
         {
@@ -1087,6 +1099,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
                 {
                     addMeshLayerToGCode(storage, mesh, extruder_nr, mesh_config, gcode_layer);
                 }
+                time_keeper.registerTime(fmt::format("Mesh {}", mesh_idx));
             }
         }
         // Always print a prime tower before switching extruder. Unless:
@@ -1095,12 +1108,17 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         if (extruder_nr != extruder_order.back().extruder_nr && layer_nr >= 0)
         {
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+            time_keeper.registerTime("Prime tower post");
         }
     }
 
     gcode_layer.applyModifyPlugin();
+    time_keeper.registerTime("Modify plugin");
+
     gcode_layer.applyBackPressureCompensation();
-    return gcode_layer;
+    time_keeper.registerTime("Back pressure comp.");
+
+    return { &gcode_layer, timer_total.elapsed().count(), time_keeper.getRegisteredTimes() };
 }
 
 bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, const size_t extruder_nr) const
@@ -2088,8 +2106,8 @@ bool FffGcodeWriter::processSingleLayerInfill(
             else // So walls_generated must be true.
             {
                 std::vector<VariableWidthLines>* start_paths = &wall_tool_paths[rand() % wall_tool_paths.size()];
-                while (start_paths->empty() || (*start_paths)[0].empty()) // We know for sure (because walls_generated) that one of them is not empty. So randomise until we hit it.
-                                                                          // Should almost always be very quick.
+                while (start_paths->empty() || (*start_paths)[0].empty()) // We know for sure (because walls_generated) that one of them is not empty. So randomise until we hit
+                                                                          // it. Should almost always be very quick.
                 {
                     start_paths = &wall_tool_paths[rand() % wall_tool_paths.size()];
                 }
@@ -2221,8 +2239,8 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(
                             }
                             else // this layer is the 1st layer above the layer whose infill we're printing
                             {
-                                // add this layer's skin region without subtracting the overlap but still make a gap between this skin region and what has been accumulated so far
-                                // we do this so that these skin region edges will definitely have infill walls below them
+                                // add this layer's skin region without subtracting the overlap but still make a gap between this skin region and what has been accumulated so
+                                // far we do this so that these skin region edges will definitely have infill walls below them
 
                                 // looking from the side, if the combined regions so far look like this...
                                 //
@@ -2253,8 +2271,8 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(
             }
         }
 
-        // the shrink/expand here is to remove regions of infill below skin that are narrower than the width of the infill walls otherwise the infill walls could merge and form a
-        // bump
+        // the shrink/expand here is to remove regions of infill below skin that are narrower than the width of the infill walls otherwise the infill walls could merge and form
+        // a bump
         infill_below_skin = skin_above_combined.intersection(part.infill_area_per_combine_per_density.back().front()).offset(-infill_line_width).offset(infill_line_width);
 
         constexpr bool remove_small_holes_from_infill_below_skin = true;

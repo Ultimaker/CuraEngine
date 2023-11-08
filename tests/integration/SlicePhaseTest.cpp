@@ -1,6 +1,10 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include <filesystem>
+
+#include <gtest/gtest.h>
+
 #include "Application.h" // To set up a slice with settings.
 #include "Slice.h" // To set up a scene to slice.
 #include "slicer.h" // Starts the slicing phase that we want to test.
@@ -8,8 +12,6 @@
 #include "utils/FMatrix4x3.h" // To load STL files.
 #include "utils/polygon.h" // Creating polygons to compare to sliced layers.
 #include "utils/polygonUtils.h" // Comparing similarity of polygons.
-#include <filesystem>
-#include <gtest/gtest.h>
 
 namespace cura
 {
@@ -35,6 +37,13 @@ class SlicePhaseTest : public testing::Test
         scene.settings.add("slicing_tolerance", "middle");
         scene.settings.add("layer_height_0", "0.2");
         scene.settings.add("layer_height", "0.1");
+        scene.settings.add("layer_0_z_overlap", "0.0");
+        scene.settings.add("raft_airgap", "0.0");
+        scene.settings.add("raft_base_thickness", "0.2");
+        scene.settings.add("raft_interface_thickness", "0.2");
+        scene.settings.add("raft_interface_layers", "1");
+        scene.settings.add("raft_surface_thickness", "0.2");
+        scene.settings.add("raft_surface_layers", "1");
         scene.settings.add("magic_mesh_surface_mode", "normal");
         scene.settings.add("meshfix_extensive_stitching", "false");
         scene.settings.add("meshfix_keep_open_polygons", "false");
@@ -51,6 +60,7 @@ class SlicePhaseTest : public testing::Test
         scene.settings.add("anti_overhang_mesh", "false");
         scene.settings.add("cutting_mesh", "false");
         scene.settings.add("infill_mesh", "false");
+        scene.settings.add("adhesion_type", "none");
     }
 };
 
@@ -121,7 +131,8 @@ TEST_F(SlicePhaseTest, Cylinder1000)
 
     const FMatrix4x3 transformation;
     // Path to cylinder1000.stl is relative to CMAKE_CURRENT_SOURCE_DIR/tests.
-    ASSERT_TRUE(loadMeshIntoMeshGroup(&mesh_group, std::filesystem::path(__FILE__).parent_path().append("resources/cylinder1000.stl").string().c_str(), transformation, scene.settings));
+    ASSERT_TRUE(
+        loadMeshIntoMeshGroup(&mesh_group, std::filesystem::path(__FILE__).parent_path().append("resources/cylinder1000.stl").string().c_str(), transformation, scene.settings));
     EXPECT_EQ(mesh_group.meshes.size(), 1);
     Mesh& cylinder_mesh = mesh_group.meshes[0];
 

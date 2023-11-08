@@ -15,6 +15,7 @@
 #include "settings/PathConfigStorage.h" //For the MeshPathConfigs subclass.
 #include "utils/ExtrusionLine.h" //Processing variable-width paths.
 #include "utils/NoCopy.h"
+#include "utils/gettime.h"
 
 namespace cura
 {
@@ -26,7 +27,6 @@ class SliceDataStorage;
 class SliceMeshStorage;
 class SliceLayer;
 class SliceLayerPart;
-class TimeKeeper;
 
 /*!
  * Secondary stage in Fused Filament Fabrication processing: The generated polygons are used in the gcode generation.
@@ -140,6 +140,13 @@ public:
     void writeGCode(SliceDataStorage& storage, TimeKeeper& timeKeeper);
 
 private:
+    struct ProcessLayerResult
+    {
+        LayerPlan* layer_plan;
+        double total_elapsed_time;
+        TimeKeeper::RegisteredTimes stages_times;
+    };
+
     /*!
      * \brief Set the FffGcodeWriter::fan_speed_layer_time_settings by
      * retrieving all settings from the global/per-meshgroup settings.
@@ -211,7 +218,7 @@ private:
      * \param total_layers The total number of layers.
      * \return The layer plans
      */
-    LayerPlan& processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers) const;
+    ProcessLayerResult processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers) const;
 
     /*!
      * This function checks whether prime blob should happen for any extruder on the first layer.

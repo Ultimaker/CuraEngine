@@ -390,8 +390,8 @@ void PrimeTower::addToGcode(
         break;
 
     case ExtruderPrime::Sparse:
-        extra_primed_extruders_idx = findExtrudersSparseInfill(gcode_layer, required_extruder_prime, new_extruder_nr, method, { new_extruder_idx });
-        addToGcode_optimizedInfill(gcode_layer, extra_primed_extruders_idx, new_extruder_nr);
+        extra_primed_extruders_idx = findExtrudersSparseInfill(gcode_layer, required_extruder_prime, method, { new_extruder_idx });
+        addToGcode_sparseInfill(gcode_layer, extra_primed_extruders_idx, new_extruder_nr);
         break;
 
     case ExtruderPrime::Prime:
@@ -401,8 +401,8 @@ void PrimeTower::addToGcode(
         if (method == PrimeTowerMethod::OPTIMIZED && gcode_layer.getLayerNr() < storage.max_print_height_second_to_last_extruder)
         {
             // Whatever happens before and after, use the current extruder to prime all the non-required extruders now
-            extra_primed_extruders_idx = findExtrudersSparseInfill(gcode_layer, required_extruder_prime, new_extruder_nr, method);
-            addToGcode_optimizedInfill(gcode_layer, extra_primed_extruders_idx, new_extruder_nr);
+            extra_primed_extruders_idx = findExtrudersSparseInfill(gcode_layer, required_extruder_prime, method);
+            addToGcode_sparseInfill(gcode_layer, extra_primed_extruders_idx, new_extruder_nr);
         }
         break;
     }
@@ -489,7 +489,7 @@ bool PrimeTower::addToGcode_inset(LayerPlan& gcode_layer, const size_t extruder_
     return false;
 }
 
-void PrimeTower::addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::vector<size_t>& extruders_to_prime_idx, const size_t current_extruder_nr) const
+void PrimeTower::addToGcode_sparseInfill(LayerPlan& gcode_layer, const std::vector<size_t>& extruders_to_prime_idx, const size_t current_extruder_nr) const
 {
     std::vector<std::vector<size_t>> extruders_to_prime_idx_grouped;
 
@@ -553,7 +553,6 @@ void PrimeTower::addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::v
 std::vector<size_t> PrimeTower::findExtrudersSparseInfill(
     LayerPlan& gcode_layer,
     const std::vector<ExtruderUse>& required_extruder_prime,
-    const size_t current_extruder_nr,
     PrimeTowerMethod method,
     const std::vector<size_t>& initial_list_idx) const
 {

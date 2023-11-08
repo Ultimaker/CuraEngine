@@ -179,17 +179,46 @@ private:
      */
     void addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t extruder) const;
 
+    /*!
+     * \brief Add path plans for the prime tower extra outer rings to make the stronger base
+     * \param gcode_layer The gcode export to add the paths plans to
+     * \param extruder_nr The current extruder number
+     * \return True if something has actually been added, according to the extruder number
+     *         and current layer.
+     */
     bool addToGcode_base(LayerPlan& gcode_layer, const size_t extruder_nr) const;
 
+    /*!
+     * \brief Add path plans for the prime tower extra inner rings to increase bed adhesion
+     * \param gcode_layer The gcode export to add the paths plans to
+     * \param extruder_nr The current extruder number
+     * \return True if something has actually been added, according to the extruder number
+     *         and current layer.
+     */
     bool addToGcode_inset(LayerPlan& gcode_layer, const size_t extruder_nr) const;
 
-#warning TBD documentation
-    void addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::vector<size_t>& extruders_to_prime_idx, const size_t current_extruder_nr) const;
+    /*!
+     * \brief Add path plans in the case an extruder is not to be actually primed, but we still
+     *        want to print something to make the prime tower consistent.
+     * \param gcode_layer The gcode export to add the paths plans to
+     * \param extruders_to_prime_idx The indexes of the extra extruders which also don't require being primed on this layer
+     * \param current_extruder_nr The extruder currently being used
+     */
+    void addToGcode_sparseInfill(LayerPlan& gcode_layer, const std::vector<size_t>& extruders_to_prime_idx, const size_t current_extruder_nr) const;
 
+    /*!
+     * \brief Find the list of extruders that don't actually need to be primed during this layer, and for which
+     *        we want to print only the sparse infill to keep the prime tower consistent.
+     * \param gcode_layer The current gcode export
+     * \param required_extruder_prime The pre-computed list of extruders uses during this layer
+     * \param method The current prime tower strategy
+     * \param initial_list_idx A list potentially containing extruders that we already know can be used for
+     *                         sparse infill
+     * \return The indexes of extruders to be used for sparse infill
+     */
     std::vector<size_t> findExtrudersSparseInfill(
         LayerPlan& gcode_layer,
         const std::vector<ExtruderUse>& required_extruder_prime,
-        const size_t current_extruder_nr,
         cura::PrimeTowerMethod method,
         const std::vector<size_t>& initial_list_idx = {}) const;
 
