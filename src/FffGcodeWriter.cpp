@@ -1400,6 +1400,19 @@ std::vector<ExtruderUse>
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
     PrimeTowerMethod method = mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode");
 
+    // check if we are on the first layer
+    if (layer_nr == -static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
+    {
+        // check if we need prime blob on the first layer
+        for (size_t used_idx = 0; used_idx < extruder_is_used_on_this_layer.size(); used_idx++)
+        {
+            if (getExtruderNeedPrimeBlobDuringFirstLayer(storage, used_idx))
+            {
+                extruder_is_used_on_this_layer[used_idx] = true;
+            }
+        }
+    }
+
     // Make a temp list with the potential ordered extruders
     std::vector<size_t> ordered_extruders;
     ordered_extruders.push_back(start_extruder);
@@ -1464,23 +1477,6 @@ std::vector<ExtruderUse>
     {
         ret.front().prime = ExtruderPrime::Sparse;
     }
-
-#warning restore this
-#if 0
-    // check if we are on the first layer
-    if ((mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT && layer_nr == -static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
-        || (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT && layer_nr == 0))
-    {
-        // check if we need prime blob on the first layer
-        for (size_t used_idx = 0; used_idx < extruder_is_used_on_this_layer.size(); used_idx++)
-        {
-            if (getExtruderNeedPrimeBlobDuringFirstLayer(storage, used_idx))
-            {
-                extruder_is_used_on_this_layer[used_idx] = true;
-            }
-        }
-    }
-#endif
 
     assert(ret.size() <= (size_t)extruder_count && "Not more extruders may be planned in a layer than there are extruders!");
     return ret;

@@ -311,8 +311,6 @@ void PrimeTower::generateStartLocations()
     // so use the same start and end segments for this.
     PolygonsPointIndex segment_start = PolygonsPointIndex(&outer_poly, 0, 0);
     PolygonsPointIndex segment_end = segment_start;
-
-#warning Generate dots that are forcibly over a segment, even on sparse infill
     PolygonUtils::spreadDots(segment_start, segment_end, number_of_prime_tower_start_locations, prime_tower_start_locations);
 }
 
