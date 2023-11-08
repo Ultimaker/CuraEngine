@@ -1949,7 +1949,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             // Fans need time to reach the new setting. Adjust fan speed as early as possible. If travel paths have a non default fan speed for some reason set it as fan speed.
             // As such modification could be made by a plugin.
-            if(!path.isTravelPath() || path.fan_speed < 0)
+            if(!path.isTravelPath() || path.fan_speed >= 0)
             {
                 const double path_fan_speed = path.getFanSpeed();
                 gcode.writeFanCommand(path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : extruder_plan.getFanSpeed());
