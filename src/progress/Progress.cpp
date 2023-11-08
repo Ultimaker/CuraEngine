@@ -108,7 +108,7 @@ void Progress::messageProgressLayer(LayerIndex layer_nr, size_t total_layers, do
         {
             padding = iterator_max_size->stage.size();
 
-            for (auto [index, time] : stages | ranges::view::enumerate)
+            for (auto [index, time] : stages | ranges::views::enumerate)
             {
                 spdlog::info("{}── {}:{} {:03.3f}s", index < stages.size() - 1 ? "├" : "└", time.stage, std::string(padding - time.stage.size(), ' '), time.duration);
             }
