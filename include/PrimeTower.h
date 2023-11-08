@@ -186,7 +186,8 @@ private:
 #warning TBD documentation
     void addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::vector<size_t>& extruders_to_prime_idx, const size_t current_extruder_nr) const;
 
-    std::vector<size_t> findExtrudersSparseInfill(LayerPlan& gcode_layer,
+    std::vector<size_t> findExtrudersSparseInfill(
+        LayerPlan& gcode_layer,
         const std::vector<ExtruderUse>& required_extruder_prime,
         const size_t current_extruder_nr,
         cura::PrimeTowerMethod method,
