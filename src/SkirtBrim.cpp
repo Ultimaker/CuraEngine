@@ -13,7 +13,6 @@
 #include "sliceDataStorage.h"
 #include "support.h"
 #include "utils/PolylineStitcher.h"
-#include "utils/SVG.h"
 #include "utils/Simplify.h" //Simplifying the brim/skirt at every inset.
 
 namespace cura
@@ -121,9 +120,6 @@ void SkirtBrim::generate()
     const bool include_prime_tower = adhesion_type == EPlatformAdhesion::SKIRT;
     const bool has_prime_tower = storage.primeTower.enabled;
     Polygons covered_area = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, /*external_polys_only*/ false);
-
-    SVG svg("/tmp/machine.svg", storage.machine_size.flatten());
-    svg.writePolygons(storage.getMachineBorder(0), SVG::Color::RAINBOW, 1, true);
 
     std::vector<Polygons> allowed_areas_per_extruder(extruder_count);
     for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)

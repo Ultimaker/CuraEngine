@@ -1,15 +1,12 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "utils/SVG.h"
-
 #include <sstream>
 
-#include <range/v3/view/drop_exactly.hpp>
-#include <range/v3/view/drop_last.hpp>
 #include <spdlog/spdlog.h>
 
 #include "utils/ExtrusionLine.h"
+#include "utils/SVG.h"
 #include "utils/floatpoint.h"
 #include "utils/polygon.h"
 
@@ -60,34 +57,17 @@ std::string SVG::toString(const ColorObject& color) const
     }
 }
 
-void SVG::writePathPoint(const Point& p) const
-{
-    FPoint3 transformed = transformF(p);
-    fprintf(out, "%f,%f", transformed.x, transformed.y);
-}
-
 
 SVG::SVG(std::string filename, AABB aabb, Point canvas_size, ColorObject background)
-    : SVG(
-        filename,
-        aabb,
-        std::min(double(canvas_size.X - canvas_size.X / 5 * 2) / (aabb.max.X - aabb.min.X), double(canvas_size.Y - canvas_size.Y / 5) / (aabb.max.Y - aabb.min.Y)),
-        canvas_size,
-        background)
+    : SVG(filename, aabb, std::min(double(canvas_size.X - canvas_size.X / 5 * 2) / (aabb.max.X - aabb.min.X), double(canvas_size.Y - canvas_size.Y / 5) / (aabb.max.Y - aabb.min.Y)), canvas_size, background)
 {
 }
 
-SVG::SVG(std::string filename, AABB aabb, double scale, ColorObject background)
-    : SVG(filename, aabb, scale, (aabb.max - aabb.min) * scale, background)
+SVG::SVG(std::string filename, AABB aabb, double scale, ColorObject background) : SVG(filename, aabb, scale, (aabb.max - aabb.min) * scale, background)
 {
 }
 
-SVG::SVG(std::string filename, AABB aabb, double scale, Point canvas_size, ColorObject background)
-    : aabb(aabb)
-    , aabb_size(aabb.max - aabb.min)
-    , canvas_size(canvas_size)
-    , scale(scale)
-    , background(background)
+SVG::SVG(std::string filename, AABB aabb, double scale, Point canvas_size, ColorObject background) : aabb(aabb), aabb_size(aabb.max - aabb.min), canvas_size(canvas_size), scale(scale), background(background)
 {
     output_is_html = strcmp(filename.c_str() + strlen(filename.c_str()) - 4, "html") == 0;
     out = fopen(filename.c_str(), "w");
@@ -185,12 +165,7 @@ void SVG::writeAreas(const Polygons& polygons, const ColorObject color, const Co
 
 void SVG::writeAreas(ConstPolygonRef polygon, const ColorObject color, const ColorObject outline_color, const float stroke_width) const
 {
-    fprintf(
-        out,
-        "<polygon fill=\"%s\" stroke=\"%s\" stroke-width=\"%f\" points=\"",
-        toString(color).c_str(),
-        toString(outline_color).c_str(),
-        stroke_width); // The beginning of the polygon tag.
+    fprintf(out, "<polygon fill=\"%s\" stroke=\"%s\" stroke-width=\"%f\" points=\"", toString(color).c_str(), toString(outline_color).c_str(), stroke_width); // The beginning of the polygon tag.
     for (const Point& point : polygon) // Add every point to the list of points.
     {
         FPoint3 transformed = transformF(point);
@@ -234,12 +209,7 @@ void SVG::writeLines(const std::vector<Point>& polyline, const ColorObject color
     }
 
     FPoint3 transformed = transformF(polyline[0]); // Element 0 must exist due to the check above.
-    fprintf(
-        out,
-        "<path fill=\"none\" stroke=\"%s\" stroke-width=\"1\" d=\"M%f,%f",
-        toString(color).c_str(),
-        transformed.x,
-        transformed.y); // Write the start of the path tag and the first endpoint.
+    fprintf(out, "<path fill=\"none\" stroke=\"%s\" stroke-width=\"1\" d=\"M%f,%f", toString(color).c_str(), transformed.x, transformed.y); // Write the start of the path tag and the first endpoint.
     for (size_t point = 1; point < polyline.size(); point++)
     {
         transformed = transformF(polyline[point]);
@@ -266,20 +236,7 @@ void SVG::writeArrow(const Point& a, const Point& b, const ColorObject color, co
     FPoint3 tip = fb + normal * head_size - direction * head_size;
     FPoint3 b_base = fb + normal * stroke_width - direction * stroke_width * 2.41;
     FPoint3 a_base = fa + normal * stroke_width;
-    fprintf(
-        out,
-        "<polygon fill=\"%s\" points=\"%f,%f %f,%f %f,%f %f,%f %f,%f\" />",
-        toString(color).c_str(),
-        fa.x,
-        fa.y,
-        fb.x,
-        fb.y,
-        tip.x,
-        tip.y,
-        b_base.x,
-        b_base.y,
-        a_base.x,
-        a_base.y);
+    fprintf(out, "<polygon fill=\"%s\" points=\"%f,%f %f,%f %f,%f %f,%f %f,%f\" />", toString(color).c_str(), fa.x, fa.y, fb.x, fb.y, tip.x, tip.y, b_base.x, b_base.y, a_base.x, a_base.y);
 }
 
 void SVG::writeLineRGB(const Point& from, const Point& to, const int r, const int g, const int b, const float stroke_width) const
@@ -302,69 +259,48 @@ void SVG::writeText(const Point& p, const std::string& txt, const ColorObject co
     fprintf(out, "<text x=\"%f\" y=\"%f\" style=\"font-size: %fpx;\" fill=\"%s\">%s</text>\n", pf.x, pf.y, font_size, toString(color).c_str(), txt.c_str());
 }
 
-void SVG::writePolygons(const Polygons& polys, const ColorObject color, const float stroke_width, bool as_path) const
+void SVG::writePolygons(const Polygons& polys, const ColorObject color, const float stroke_width) const
 {
     for (ConstPolygonRef poly : polys)
     {
-        writePolygon(poly, color, stroke_width, as_path);
+        writePolygon(poly, color, stroke_width);
     }
 }
 
-void SVG::writePolygon(ConstPolygonRef poly, const ColorObject color, const float stroke_width, bool as_path) const
+void SVG::writePolygon(ConstPolygonRef poly, const ColorObject color, const float stroke_width) const
 {
     if (poly.size() == 0)
     {
         return;
     }
-
-    if (as_path)
+    int size = poly.size();
+    Point p0 = poly.back();
+    int i = 0;
+    for (Point p1 : poly)
     {
-        fprintf(out, "    <path\n");
-        fprintf(out, "style=\"fill:none;stroke:%s;stroke-width:%f\"\n", toString(color).c_str(), stroke_width);
-
-        fprintf(out, "d=\"M ");
-        writePathPoint(poly.front());
-
-        for (const Point& p : poly | ranges::view::drop_exactly(1))
+        if (color.color == Color::RAINBOW)
         {
-            fprintf(out, " L ");
-            writePathPoint(p);
+            int g = (i * 255 * 11 / size) % (255 * 2);
+            if (g > 255)
+            {
+                g = 255 * 2 - g;
+            }
+            int b = (i * 255 * 5 / size) % (255 * 2);
+            if (b > 255)
+            {
+                b = 255 * 2 - b;
+            }
+            writeLineRGB(p0, p1, i * 255 / size, g, b, stroke_width);
         }
-
-        fprintf(out, " Z\"");
-
-        fprintf(out, " />\n");
-    }
-    else
-    {
-        int size = poly.size();
-        Point p0 = poly.back();
-        int i = 0;
-        for (Point p1 : poly)
+        else
         {
-            if (color.color == Color::RAINBOW)
-            {
-                int g = (i * 255 * 11 / size) % (255 * 2);
-                if (g > 255)
-                {
-                    g = 255 * 2 - g;
-                }
-                int b = (i * 255 * 5 / size) % (255 * 2);
-                if (b > 255)
-                {
-                    b = 255 * 2 - b;
-                }
-                writeLineRGB(p0, p1, i * 255 / size, g, b, stroke_width);
-            }
-            else
-            {
-                writeLine(p0, p1, color, stroke_width);
-            }
-            p0 = p1;
-            i++;
+            writeLine(p0, p1, color, stroke_width);
         }
+        p0 = p1;
+        i++;
     }
 }
+
 
 void SVG::writePolylines(const Polygons& polys, const ColorObject color, const float stroke_width) const
 {
@@ -433,7 +369,7 @@ void SVG::writeLine(const ExtrusionLine& line, const ColorObject color, const fl
     {
         ExtrusionJunction end_vertex = line.junctions[index];
 
-        // Compute the corners of the trapezoid for this variable-width line segment.
+               // Compute the corners of the trapezoid for this variable-width line segment.
         const Point direction_vector = end_vertex.p - start_vertex.p;
         const Point direction_left = turn90CCW(direction_vector);
         const Point direction_right = -direction_left; // Opposite of left.
@@ -442,18 +378,7 @@ void SVG::writeLine(const ExtrusionLine& line, const ColorObject color, const fl
         const FPoint3 end_left = transformF(end_vertex.p + normal(direction_left, std::max(minimum_line_width, end_vertex.w * width_factor)));
         const FPoint3 end_right = transformF(end_vertex.p + normal(direction_right, std::max(minimum_line_width, end_vertex.w * width_factor)));
 
-        fprintf(
-            out,
-            "<polygon fill=\"%s\" points=\"%f,%f %f,%f %f,%f %f,%f\" />\n",
-            toString(color).c_str(),
-            start_left.x,
-            start_left.y,
-            start_right.x,
-            start_right.y,
-            end_right.x,
-            end_right.y,
-            end_left.x,
-            end_left.y);
+        fprintf(out, "<polygon fill=\"%s\" points=\"%f,%f %f,%f %f,%f %f,%f\" />\n", toString(color).c_str(), start_left.x, start_left.y, start_right.x, start_right.y, end_right.x, end_right.y, end_left.x, end_left.y);
 
         start_vertex = end_vertex; // For the next line segment.
     }

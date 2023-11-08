@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+//Copyright (c) 2022 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SVG_H
 #define SVG_H
@@ -19,8 +19,7 @@ class FPoint3;
 class SVG : NoCopy
 {
 public:
-    enum class Color
-    {
+    enum class Color {
         BLACK,
         WHITE,
         GRAY,
@@ -43,18 +42,16 @@ public:
         ColorObject(Color color)
             : is_enum(true)
             , color(color)
-        {
-        }
+        {}
         ColorObject(int r, int g, int b)
             : is_enum(false)
             , r(r)
             , g(g)
             , b(b)
-        {
-        }
+        {}
     };
-
 private:
+
     std::string toString(const Color color) const;
     std::string toString(const ColorObject& color) const;
 
@@ -67,8 +64,6 @@ private:
     size_t layer_nr = 1;
 
     bool output_is_html;
-
-    void writePathPoint(const Point& p) const;
 
 public:
     SVG(std::string filename, const AABB aabb, const Point canvas_size = Point(1024, 1024), const ColorObject background = Color::NONE);
@@ -134,16 +129,16 @@ public:
      * \param b The ending endpoint of the line.
      * \param color The stroke colour of the line.
      */
-    void writeDashedLine(const Point& a, const Point& b, ColorObject color = Color::BLACK) const;
+    void writeDashedLine(const Point& a,const Point& b, ColorObject color = Color::BLACK) const;
 
     template<typename... Args>
     void printf(const char* txt, Args&&... args) const;
 
     void writeText(const Point& p, const std::string& txt, const ColorObject color = Color::BLACK, const float font_size = 10) const;
 
-    void writePolygons(const Polygons& polys, const ColorObject color = Color::BLACK, const float stroke_width = 1, bool as_path = false) const;
+    void writePolygons(const Polygons& polys, const ColorObject color = Color::BLACK, const float stroke_width = 1) const;
 
-    void writePolygon(ConstPolygonRef poly, const ColorObject color = Color::BLACK, const float stroke_width = 1, bool as_path = false) const;
+    void writePolygon(ConstPolygonRef poly, const ColorObject color = Color::BLACK, const float stroke_width = 1) const;
 
     void writePolylines(const Polygons& polys, const ColorObject color = Color::BLACK, const float stroke_width = 1) const;
 
@@ -192,6 +187,7 @@ public:
      * \param font_size The size of the font to write the coordinates with.
      */
     void writeCoordinateGrid(const coord_t grid_size = MM2INT(1), const Color color = Color::BLACK, const float stroke_width = 0.1, const float font_size = 10) const;
+
 };
 
 template<typename... Args>

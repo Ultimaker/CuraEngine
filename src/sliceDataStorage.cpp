@@ -560,14 +560,9 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
 
     Polygons disallowed_areas = mesh_group_settings.get<Polygons>("machine_disallowed_areas");
     disallowed_areas = disallowed_areas.unionPolygons(); // union overlapping disallowed areas
-
-    // The disallowed areas are always expressed in buildplate-centered coordinates
-    // if (! mesh_group_settings.get<bool>("machine_center_is_zero"))
-    {
-        for (PolygonRef poly : disallowed_areas)
-            for (Point& p : poly)
-                p = Point(machine_size.max.x / 2 + p.X, machine_size.max.y / 2 - p.Y);
-    }
+    for (PolygonRef poly : disallowed_areas)
+        for (Point& p : poly)
+            p = Point(machine_size.max.x / 2 + p.X, machine_size.max.y / 2 - p.Y); // apparently the frontend stores the disallowed areas in a different coordinate system
 
     std::vector<bool> extruder_is_used = getExtrudersUsed();
 
