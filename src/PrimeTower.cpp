@@ -103,7 +103,7 @@ void PrimeTower::generateGroundpoly()
 void PrimeTower::generatePaths(const SliceDataStorage& storage)
 {
     would_have_actual_tower
-        = storage.max_print_height_second_to_last_extruder >= 0; // Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
+        = storage.max_print_height_second_to_last_extruder >= -Raft::getTotalExtraLayers() + 1; // Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
     if (would_have_actual_tower && enabled)
     {
         generatePaths_denseInfill();
