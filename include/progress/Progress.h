@@ -1,10 +1,13 @@
-// Copyright (c) 2018 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef PROGRESS_H
 #define PROGRESS_H
 
+#include <array>
 #include <string>
+#include <string_view>
+#include <optional>
 
 #include "utils/gettime.h"
 
@@ -13,7 +16,7 @@ namespace cura
 
 struct LayerIndex;
 
-#define N_PROGRESS_STAGES 7
+static constexpr size_t N_PROGRESS_STAGES = 7;
 
 /*!
  * Class for handling the progress bar and the progress logging.
@@ -39,9 +42,18 @@ public:
     };
 
 private:
-    static double times[N_PROGRESS_STAGES]; //!< Time estimates per stage
-    static std::string names[N_PROGRESS_STAGES]; //!< name of each stage
-    static double accumulated_times[N_PROGRESS_STAGES]; //!< Time past before each stage
+    static constexpr std::array<double, N_PROGRESS_STAGES> times{
+        0.0, // START   = 0,
+        5.269, // SLICING = 1,
+        1.533, // PARTS   = 2,
+        71.811, // INSET_SKIN = 3
+        51.009, // SUPPORT = 4,
+        154.62, // EXPORT  = 5,
+        0.1 // FINISH  = 6
+    };
+
+    static constexpr std::array<std::string_view, N_PROGRESS_STAGES> names{ "start", "slice", "layerparts", "inset+skin", "support", "export", "process" };
+    static std::array<double, N_PROGRESS_STAGES> accumulated_times; //!< Time past before each stage
     static double total_timing; //!< An estimate of the total time
     static std::optional<LayerIndex> first_skipped_layer; //!< The index of the layer for which we skipped time reporting
     /*!
@@ -51,7 +63,7 @@ private:
      * \param stage_process How far we currently are in the \p stage
      * \return An estimate of the overall progress.
      */
-    static float calcOverallProgress(Stage stage, float stage_progress);
+    static double calcOverallProgress(Stage stage, double stage_progress);
 
 public:
     static void init(); //!< Initialize some values needed in a fast computation of the progress
