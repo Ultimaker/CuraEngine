@@ -565,8 +565,12 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
     if (! mesh_group_settings.get<bool>("machine_center_is_zero"))
     {
         for (PolygonRef poly : disallowed_areas)
+        {
             for (Point& p : poly)
+            {
                 p = Point(machine_size.max.x / 2 + p.X, machine_size.max.y / 2 - p.Y);
+            }
+        }
     }
 
     std::vector<bool> extruder_is_used = getExtrudersUsed();
