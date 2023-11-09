@@ -561,7 +561,8 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
     Polygons disallowed_areas = mesh_group_settings.get<Polygons>("machine_disallowed_areas");
     disallowed_areas = disallowed_areas.unionPolygons(); // union overlapping disallowed areas
 
-    // The disallowed areas are always expressed in buildplate-centered coordinates
+    // The disallowed areas are expressed in buildplate-centered coordinates, but the models
+    // may be expressed in front-left-centered coordinantes, so in this case we need to translate them
     if (! mesh_group_settings.get<bool>("machine_center_is_zero"))
     {
         for (PolygonRef poly : disallowed_areas)
