@@ -104,7 +104,7 @@ void PrimeTower::generatePaths(const SliceDataStorage& storage)
 {
     const int raft_total_extra_layers = Raft::getTotalExtraLayers();
     would_have_actual_tower = storage.max_print_height_second_to_last_extruder
-                           >= -raft_total_extra_layers + 1; // Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
+                           >= -raft_total_extra_layers; // Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
     if (would_have_actual_tower && enabled)
     {
         generatePaths_denseInfill();
