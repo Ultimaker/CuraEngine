@@ -66,7 +66,7 @@ jobs:
     uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml@CURA-10831
     with:
       project_name: curaengine
-      release: ${{ inputs.create_release }}
+      release: ${{ github.event.inputs.create_release == 'true' }}
 
   conan-package-export:
     needs: [ conan-recipe-version ]
