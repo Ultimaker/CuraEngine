@@ -40,7 +40,7 @@ class CuraEngineConan(ConanFile):
 
     def set_version(self):
         if not self.version:
-            self.version = "5.6.0-beta.1"
+            self.version = self.conan_data["version"]
 
     def export_sources(self):
         copy(self, "CMakeLists.txt", self.recipe_folder, self.export_sources_folder)
@@ -81,11 +81,13 @@ class CuraEngineConan(ConanFile):
             self.test_requires("benchmark/1.7.0")
 
     def requirements(self):
-        if self.options.enable_arcus:
-            self.requires("arcus/5.3.0")
+        for req in self.conan_data["requirements"]:
+            if "arcus" in req and not self.options.enable_arcus:
+                continue
+            self.requires(req)
+
         self.requires("asio-grpc/2.6.0")
         self.requires("grpc/1.50.1")
-        self.requires("curaengine_grpc_definitions/(latest)@ultimaker/testing")
         self.requires("clipper/6.4.2")
         self.requires("boost/1.82.0")
         self.requires("rapidjson/1.1.0")
@@ -93,7 +95,6 @@ class CuraEngineConan(ConanFile):
         self.requires("spdlog/1.10.0")
         self.requires("fmt/9.0.0")
         self.requires("range-v3/0.12.0")
-        self.requires("scripta/0.1.0@ultimaker/testing")
         self.requires("neargye-semver/0.3.0")
         self.requires("protobuf/3.21.9")
         self.requires("zlib/1.2.12")
@@ -124,15 +125,14 @@ class CuraEngineConan(ConanFile):
             if len(dep.cpp_info.bindirs) > 0:
                 copy(self, "*.dll", dep.cpp_info.bindirs[0], self.build_folder)
             if not self.conf.get("tools.build:skip_test", False, check_type=bool):
-                test_path = path.join(self.build_folder,  "tests")
+                test_path = path.join(self.build_folder, "tests")
                 if not path.exists(test_path):
                     mkdir(self, test_path)
                 if len(dep.cpp_info.libdirs) > 0:
-                    copy(self, "*.dylib", dep.cpp_info.libdirs[0], path.join(self.build_folder,  "tests"))
-                    copy(self, "*.dll", dep.cpp_info.libdirs[0], path.join(self.build_folder,  "tests"))
+                    copy(self, "*.dylib", dep.cpp_info.libdirs[0], path.join(self.build_folder, "tests"))
+                    copy(self, "*.dll", dep.cpp_info.libdirs[0], path.join(self.build_folder, "tests"))
                 if len(dep.cpp_info.bindirs) > 0:
-                    copy(self, "*.dll", dep.cpp_info.bindirs[0], path.join(self.build_folder,  "tests"))
-
+                    copy(self, "*.dll", dep.cpp_info.bindirs[0], path.join(self.build_folder, "tests"))
 
     def layout(self):
         cmake_layout(self)
@@ -146,9 +146,9 @@ class CuraEngineConan(ConanFile):
 
     def package(self):
         ext = ".exe" if self.settings.os == "Windows" else ""
-        copy(self, f"CuraEngine{ext}", src = self.build_folder, dst = path.join(self.package_folder, "bin"))
-        copy(self, f"_CuraEngine.*", src = self.build_folder, dst = path.join(self.package_folder, "lib"))
-        copy(self, "LICENSE*", src = self.source_folder, dst = path.join(self.package_folder, "license"))
+        copy(self, f"CuraEngine{ext}", src=self.build_folder, dst=path.join(self.package_folder, "bin"))
+        copy(self, f"_CuraEngine.*", src=self.build_folder, dst=path.join(self.package_folder, "lib"))
+        copy(self, "LICENSE*", src=self.source_folder, dst=path.join(self.package_folder, "license"))
 
     def package_info(self):
         ext = ".exe" if self.settings.os == "Windows" else ""
