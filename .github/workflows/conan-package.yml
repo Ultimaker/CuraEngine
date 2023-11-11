@@ -75,7 +75,7 @@ jobs:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
       recipe_id_latest: ${{ needs.conan-recipe-version.outputs.recipe_id_latest }}
       runs_on: 'ubuntu-22.04'
-      python_version: '3.12.x'
+      python_version: '3.11.x'
       conan_logging_level: 'info'
     secrets: inherit
 
@@ -89,7 +89,7 @@ jobs:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
       build_id: 3
       runs_on: 'macos-11'
-      python_version: '3.12.x'
+      python_version: '3.11.x'
       conan_logging_level: 'info'
     secrets: inherit
 
@@ -103,7 +103,7 @@ jobs:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
       build_id: 4
       runs_on: 'windows-2022'
-      python_version: '3.12.x'
+      python_version: '3.11.x'
       conan_config_branch: ''
       conan_logging_level: 'info'
     secrets: inherit
@@ -118,6 +118,6 @@ jobs:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
       build_id: 2
       runs_on: 'ubuntu-22.04'
-      python_version: '3.12.x'
+      python_version: '3.11.x'
       conan_logging_level: 'info'
     secrets: inherit
