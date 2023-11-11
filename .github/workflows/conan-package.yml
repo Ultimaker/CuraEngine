@@ -19,6 +19,11 @@ on:
         default: false
         type: boolean
         description: 'Create latest alias'
+      create_release:
+        required: true
+        default: false
+        type: boolean
+        description: 'Create a conan-package-release'
       create_binaries_windows:
         required: true
         default: false
@@ -50,17 +55,18 @@ on:
     branches:
       - main
       - 'CURA-*'
-      - '[1-9].[0-9]*'
-      - '[1-9].[0-9][0-9]*'
+      - '[0-9].[0-9]*'
+      - '[0-9].[0-9][0-9]*'
     tags:
-      - '[1-9]+.[0-9]+.[0-9]*'
-      - '[1-9]+.[0-9]+.[0-9]'
+      - '[0-9]+.[0-9]+.[0-9]*'
+      - '[0-9]+.[0-9]+.[0-9]'
 
 jobs:
   conan-recipe-version:
     uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml@CURA-10831
     with:
       project_name: curaengine
+      release: ${{ inputs.create_release }}
 
   conan-package-export:
     needs: [ conan-recipe-version ]
@@ -69,7 +75,7 @@ jobs:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
       recipe_id_latest: ${{ needs.conan-recipe-version.outputs.recipe_id_latest }}
       runs_on: 'ubuntu-22.04'
-      python_version: '3.11.x'
+      python_version: '3.12.x'
       conan_logging_level: 'info'
     secrets: inherit
 
@@ -83,7 +89,7 @@ jobs:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
       build_id: 3
       runs_on: 'macos-11'
-      python_version: '3.11.x'
+      python_version: '3.12.x'
       conan_logging_level: 'info'
     secrets: inherit
 
@@ -97,7 +103,7 @@ jobs:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
       build_id: 4
       runs_on: 'windows-2022'
-      python_version: '3.11.x'
+      python_version: '3.12.x'
       conan_config_branch: ''
       conan_logging_level: 'info'
     secrets: inherit
@@ -112,32 +118,6 @@ jobs:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
       build_id: 2
       runs_on: 'ubuntu-22.04'
-      python_version: '3.11.x'
+      python_version: '3.12.x'
       conan_logging_level: 'info'
-    secrets: inherit
-
-  notify-export:
-    if: ${{ always() }}
-    needs: [ conan-recipe-version, conan-package-export ]
-
-    uses: ultimaker/cura/.github/workflows/notify.yml@main
-    with:
-      success: ${{ contains(join(needs.*.result, ','), 'success') }}
-      success_title: "New Conan recipe exported in ${{ github.repository }}"
-      success_body: "Exported ${{ needs.conan-recipe-version.outputs.recipe_id_full }}"
-      failure_title: "Failed to export Conan Export in ${{ github.repository }}"
-      failure_body: "Failed to exported ${{ needs.conan-recipe-version.outputs.recipe_id_full }}"
-    secrets: inherit
-
-  notify-create:
-    if: ${{ always() && ((github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) || (github.event_name == 'workflow_dispatch' && inputs.create_binaries_linux)) }}
-    needs: [ conan-recipe-version, conan-package-create-macos, conan-package-create-windows, conan-package-create-linux ]
-
-    uses: ultimaker/cura/.github/workflows/notify.yml@main
-    with:
-      success: ${{ contains(join(needs.*.result, ','), 'success') }}
-      success_title: "New binaries created in ${{ github.repository }}"
-      success_body: "Created binaries for ${{ needs.conan-recipe-version.outputs.recipe_id_full }}"
-      failure_title: "Failed to create binaries in ${{ github.repository }}"
-      failure_body: "Failed to created binaries for ${{ needs.conan-recipe-version.outputs.recipe_id_full }}"
     secrets: inherit
