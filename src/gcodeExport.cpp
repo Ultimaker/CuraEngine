@@ -3,6 +3,13 @@
 
 #include "gcodeExport.h"
 
+#include <assert.h>
+#include <cmath>
+#include <iomanip>
+#include <stdarg.h>
+
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To send layer view data.
 #include "ExtruderTrain.h"
 #include "PrintFeature.h"
@@ -13,13 +20,6 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/Date.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
-
-#include <spdlog/spdlog.h>
-
-#include <assert.h>
-#include <cmath>
-#include <iomanip>
-#include <stdarg.h>
 
 namespace cura
 {
@@ -1254,8 +1254,8 @@ void GCodeExport::startExtruder(const size_t new_extruder)
     assert(getCurrentExtrudedVolume() == 0.0 && "Just after an extruder switch we haven't extruded anything yet!");
     resetExtrusionValue(); // zero the E value on the new extruder, just to be sure
 
-    const std::string start_code = Application::getInstance().current_slice->scene.extruders[new_extruder].settings.get<std::string>("machine_extruder_start_code");
-
+    const auto extruder_settings = Application::getInstance().current_slice->scene.extruders[new_extruder].settings;
+    const auto start_code = extruder_settings.get<std::string>("machine_extruder_start_code");
     if (! start_code.empty())
     {
         if (relative_extrusion)
@@ -1270,6 +1270,9 @@ void GCodeExport::startExtruder(const size_t new_extruder)
             writeExtrusionMode(true); // restore relative extrusion mode
         }
     }
+
+    const auto start_code_duration = extruder_settings.get<Duration>("machine_extruder_start_code_duration");
+    estimateCalculator.addTime(start_code_duration);
 
     Application::getInstance().communication->setExtruderForSend(Application::getInstance().current_slice->scene.extruders[new_extruder]);
     Application::getInstance().communication->sendCurrentPosition(getPositionXY());
@@ -1302,7 +1305,7 @@ void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& re
 
     resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
 
-    const std::string end_code = old_extruder_settings.get<std::string>("machine_extruder_end_code");
+    const auto end_code = old_extruder_settings.get<std::string>("machine_extruder_end_code");
 
     if (! end_code.empty())
     {
@@ -1318,6 +1321,9 @@ void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& re
             writeExtrusionMode(true); // restore relative extrusion mode
         }
     }
+
+    const auto end_code_duration = old_extruder_settings.get<Duration>("machine_extruder_end_code_duration");
+    estimateCalculator.addTime(end_code_duration);
 
     startExtruder(new_extruder);
 }
