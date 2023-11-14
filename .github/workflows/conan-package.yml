@@ -81,7 +81,6 @@ jobs:
     uses: ultimaker/cura-workflows/.github/workflows/conan-package-create-macos.yml@CURA-10831
     with:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
-      recipe_id_latest: ${{ needs.conan-recipe-version.outputs.recipe_id_latest }}
     secrets: inherit
 
   conan-package-create-windows:
@@ -90,7 +89,6 @@ jobs:
     uses: ultimaker/cura-workflows/.github/workflows/conan-package-create-windows.yml@CURA-10831
     with:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
-      recipe_id_latest: ${{ needs.conan-recipe-version.outputs.recipe_id_latest }}
     secrets: inherit
 
   conan-package-create-linux:
@@ -99,5 +97,4 @@ jobs:
     uses: ultimaker/cura-workflows/.github/workflows/conan-package-create-linux.yml@CURA-10831
     with:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
-      recipe_id_latest: ${{ needs.conan-recipe-version.outputs.recipe_id_latest }}
     secrets: inherit
