@@ -70,13 +70,10 @@ jobs:
 
   conan-package-export:
     needs: [ conan-recipe-version ]
-    uses: ultimaker/cura/.github/workflows/conan-recipe-export.yml@main
+    uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-export.yml@CURA-10831
     with:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
       recipe_id_latest: ${{ needs.conan-recipe-version.outputs.recipe_id_latest }}
-      runs_on: 'ubuntu-22.04'
-      python_version: '3.11.x'
-      conan_logging_level: 'info'
     secrets: inherit
 
   conan-package-create-macos:
