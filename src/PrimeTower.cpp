@@ -398,7 +398,7 @@ void PrimeTower::addToGcode(
         addToGcode_denseInfill(gcode_layer, new_extruder_nr);
         gcode_layer.setPrimeTowerIsPlanned(new_extruder_nr);
 
-        if (method == PrimeTowerMethod::OPTIMIZED && gcode_layer.getLayerNr() < storage.max_print_height_second_to_last_extruder)
+        if (method == PrimeTowerMethod::OPTIMIZED && gcode_layer.getLayerNr() <= storage.max_print_height_second_to_last_extruder)
         {
             // Whatever happens before and after, use the current extruder to prime all the non-required extruders now
             extra_primed_extruders_idx = findExtrudersSparseInfill(gcode_layer, required_extruder_prime, method);

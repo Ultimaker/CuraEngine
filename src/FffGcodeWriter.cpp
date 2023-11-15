@@ -1470,7 +1470,7 @@ std::vector<ExtruderUse>
             {
                 prime = ExtruderPrime::Prime;
             }
-            else if (layer_nr < storage.max_print_height_second_to_last_extruder + 1)
+            else if (layer_nr < storage.max_print_height_second_to_last_extruder)
             {
                 prime = ExtruderPrime::Sparse;
             }
@@ -1491,7 +1491,7 @@ std::vector<ExtruderUse>
         }
     }
 
-    if (method == PrimeTowerMethod::OPTIMIZED && ret.size() == 1 && ret.front().prime == ExtruderPrime::None)
+    if (method == PrimeTowerMethod::OPTIMIZED && ret.size() == 1 && ret.front().prime == ExtruderPrime::None && layer_nr <= storage.max_print_height_second_to_last_extruder)
     {
         ret.front().prime = ExtruderPrime::Sparse;
     }
