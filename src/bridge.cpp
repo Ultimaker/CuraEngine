@@ -1,22 +1,30 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "bridge.h"
-#include "sliceDataStorage.h"
+
 #include "settings/types/Ratio.h"
+#include "sliceDataStorage.h"
 #include "utils/AABB.h"
 #include "utils/polygon.h"
 
 namespace cura
 {
 
-int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const SliceDataStorage& storage, const unsigned layer_nr, const unsigned bridge_layer, const SupportLayer* support_layer, Polygons& supported_regions)
+int bridgeAngle(
+    const Settings& settings,
+    const Polygons& skin_outline,
+    const SliceDataStorage& storage,
+    const unsigned layer_nr,
+    const unsigned bridge_layer,
+    const SupportLayer* support_layer,
+    Polygons& supported_regions)
 {
     assert(! skin_outline.empty());
     AABB boundary_box(skin_outline);
 
-    //To detect if we have a bridge, first calculate the intersection of the current layer with the previous layer.
-    // This gives us the islands that the layer rests on.
+    // To detect if we have a bridge, first calculate the intersection of the current layer with the previous layer.
+    //  This gives us the islands that the layer rests on.
     Polygons islands;
 
     Polygons prev_layer_outline; // we also want the complete outline of the previous layer
@@ -24,8 +32,9 @@ int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const Sl
     const Ratio sparse_infill_max_density = settings.get<Ratio>("bridge_sparse_infill_max_density");
 
     // include parts from all meshes
-    for (const SliceMeshStorage& mesh : storage.meshes)
+    for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
     {
+        const auto& mesh = *mesh_ptr;
         if (mesh.isPrinted())
         {
             const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
@@ -41,7 +50,7 @@ int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const Sl
                 }
                 prev_layer_outline.add(solid_below); // not intersected with skin
 
-                if (!boundary_box.hit(prev_layer_part.boundaryBox))
+                if (! boundary_box.hit(prev_layer_part.boundaryBox))
                     continue;
 
                 islands.add(skin_outline.intersection(solid_below));
@@ -58,7 +67,7 @@ int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const Sl
         // the model on one side but the remainder of the skin is above support would look like
         // a bridge because it would have two islands) - FIXME more work required here?
 
-        if (!support_layer->support_roof.empty())
+        if (! support_layer->support_roof.empty())
         {
             AABB support_roof_bb(support_layer->support_roof);
             if (boundary_box.hit(support_roof_bb))
@@ -66,7 +75,7 @@ int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const Sl
                 prev_layer_outline.add(support_layer->support_roof); // not intersected with skin
 
                 Polygons supported_skin(skin_outline.intersection(support_layer->support_roof));
-                if (!supported_skin.empty())
+                if (! supported_skin.empty())
                 {
                     supported_regions.add(supported_skin);
                 }
@@ -82,7 +91,7 @@ int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const Sl
                     prev_layer_outline.add(support_part.getInfillArea()); // not intersected with skin
 
                     Polygons supported_skin(skin_outline.intersection(support_part.getInfillArea()));
-                    if (!supported_skin.empty())
+                    if (! supported_skin.empty())
                     {
                         supported_regions.add(supported_skin);
                     }
@@ -114,7 +123,8 @@ int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const Sl
         Polygons skin_perimeter_lines;
         for (ConstPolygonRef poly : skin_outline)
         {
-            if (poly.empty()) continue;
+            if (poly.empty())
+                continue;
             skin_perimeter_lines.add(poly);
             skin_perimeter_lines.back().emplace_back(poly.front());
         }
@@ -156,15 +166,15 @@ int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const Sl
         return -1;
     }
 
-    //Next find the 2 largest islands that we rest on.
+    // Next find the 2 largest islands that we rest on.
     double area1 = 0;
     double area2 = 0;
     int idx1 = -1;
     int idx2 = -1;
-    for(unsigned int n=0; n<islands.size(); n++)
+    for (unsigned int n = 0; n < islands.size(); n++)
     {
-        //Skip internal holes
-        if (!islands[n].orientation())
+        // Skip internal holes
+        if (! islands[n].orientation())
             continue;
         double area = std::abs(islands[n].area());
         if (area > area1)
@@ -183,15 +193,14 @@ int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const Sl
             idx2 = n;
         }
     }
-    
+
     if (idx1 < 0 || idx2 < 0)
         return -1;
-    
+
     Point center1 = islands[idx1].centerOfMass();
     Point center2 = islands[idx2].centerOfMass();
 
     return angle(center2 - center1);
 }
 
-}//namespace cura
-
+} // namespace cura

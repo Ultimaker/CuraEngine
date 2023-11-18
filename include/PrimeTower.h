@@ -1,15 +1,17 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef PRIME_TOWER_H
 #define PRIME_TOWER_H
 
 #include <vector>
 
+#include "settings/types/LayerIndex.h"
 #include "utils/polygon.h" // Polygons
 #include "utils/polygonUtils.h"
 
-namespace cura 
+
+namespace cura
 {
 
 class SliceDataStorage;
@@ -24,12 +26,10 @@ class LayerPlan;
 class PrimeTower
 {
 private:
-    struct ExtrusionMoves
-    {
-        Polygons polygons;
-        Polygons lines;
-    };
-    unsigned int extruder_count; //!< Number of extruders
+    using MovesByExtruder = std::vector<Polygons>;
+    using MovesByLayer = std::vector<MovesByExtruder>;
+
+    size_t extruder_count; //!< Number of extruders
 
     bool wipe_from_middle; //!< Whether to wipe on the inside of the hollow prime tower
     Point middle; //!< The middle of the prime tower
@@ -39,14 +39,16 @@ private:
     std::vector<ClosestPolygonPoint> prime_tower_start_locations; //!< The differernt locations where to pre-wipe the active nozzle
     const unsigned int number_of_prime_tower_start_locations = 21; //!< The required size of \ref PrimeTower::wipe_locations
 
-    std::vector<ExtrusionMoves> pattern_per_extruder; //!< For each extruder the pattern to print on all layers of the prime tower.
-    std::vector<ExtrusionMoves> pattern_per_extruder_layer0; //!< For each extruder the pattern to print on the first layer
+    MovesByExtruder prime_moves; //!< For each extruder, the moves to be processed for actual priming.
+    MovesByLayer base_extra_moves; //!< For each layer and each extruder, the extra moves to be processed for better adhesion/strength
+
+    Polygons outer_poly; //!< The outline of the outermost prime tower.
+    std::vector<Polygons> outer_poly_base; //!< The outline of the layers having extra width for the base
 
 public:
     bool enabled; //!< Whether the prime tower is enabled.
     bool would_have_actual_tower; //!< Whether there is an actual tower.
     bool multiple_extruders_on_first_layer; //!< Whether multiple extruders are allowed on the first layer of the prime tower (e.g. when a raft is there)
-    Polygons outer_poly; //!< The outline of the outermost prime tower.
 
     /*
      * In which order, from outside to inside, will we be printing the prime
@@ -55,7 +57,7 @@ public:
      * This is the spatial order from outside to inside. This is NOT the actual
      * order in time in which they are printed.
      */
-    std::vector<unsigned int> extruder_order;
+    std::vector<size_t> extruder_order;
 
     /*!
      * \brief Creates a prime tower instance that will determine where and how
@@ -72,7 +74,7 @@ public:
 
     /*!
      * Generate the prime tower area to be used on each layer
-     * 
+     *
      * Fills \ref PrimeTower::inner_poly and sets \ref PrimeTower::middle
      */
     void generateGroundpoly();
@@ -84,7 +86,7 @@ public:
 
     /*!
      * Add path plans for the prime tower to the \p gcode_layer
-     * 
+     *
      * \param storage where to get settings from; where to get the maximum height of the prime tower from
      * \param[in,out] gcode_layer Where to get the current extruder from; where to store the generated layer paths
      * \param prev_extruder The previous extruder with which paths were planned; from which extruder a switch was made
@@ -100,11 +102,23 @@ public:
      */
     void subtractFromSupport(SliceDataStorage& storage);
 
-private:
+    /*!
+     * Get the outer polygon for the given layer, which may be the priming polygon only, or a larger polygon for layers with a base
+     *
+     * \param[in] layer_nr The index of the layer
+     * \return The outer polygon for the prime tower at the given layer
+     */
+    const Polygons& getOuterPoly(const LayerIndex& layer_nr) const;
 
     /*!
-     * \see WipeTower::generatePaths
-     * 
+     * Get the outer polygon for the very first layer, which may be the priming polygon only, or a larger polygon if there is a base
+     */
+    const Polygons& getGroundPoly() const;
+
+private:
+    /*!
+     * \see PrimeTower::generatePaths
+     *
      * Generate the extrude paths for each extruder on even and odd layers
      * Fill the ground poly with dense infill.
      */
@@ -138,8 +152,6 @@ private:
 };
 
 
-
-
-}//namespace cura
+} // namespace cura
 
 #endif // PRIME_TOWER_H

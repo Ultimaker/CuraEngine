@@ -4,213 +4,54 @@
 #ifndef LAYER_PLAN_H
 #define LAYER_PLAN_H
 
-#include <functional>
-#include <limits>
-#include <optional>
-#include <vector>
-#ifdef BUILD_TESTS
-    #include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
-#endif
-
+#include "ExtruderPlan.h"
 #include "FanSpeedLayerTime.h"
-#include "gcodeExport.h"
+#include "InsetOrderOptimizer.h"
 #include "PathOrderOptimizer.h"
 #include "SpaceFillType.h"
+#include "gcodeExport.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/NozzleTempInsert.h"
 #include "pathPlanning/TimeMaterialEstimates.h"
 #include "settings/PathConfigStorage.h"
 #include "settings/types/LayerIndex.h"
+#include "utils/ExtrusionJunction.h"
 #include "utils/polygon.h"
 
-#include "InsetOrderOptimizer.h"
-#include "utils/ExtrusionJunction.h"
+#ifdef BUILD_TESTS
+#include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
+#endif
 
-namespace cura 
+#include <functional>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <vector>
+
+namespace cura
 {
 
 class Comb;
-class LayerPlan; // forward declaration so that ExtruderPlan can be a friend
-class LayerPlanBuffer; // forward declaration so that ExtruderPlan can be a friend
 class SliceDataStorage;
+class LayerPlanBuffer;
+
 
 /*!
- * An extruder plan contains all planned paths (GCodePath) pertaining to a single extruder train.
- * 
- * It allows for temperature command inserts which can be inserted in between paths.
- */
-class ExtruderPlan
-{
-    friend class LayerPlan; // TODO: LayerPlan still does a lot which should actually be handled in this class.
-    friend class LayerPlanBuffer; // TODO: LayerPlanBuffer handles paths directly
-#ifdef BUILD_TESTS
-    friend class ExtruderPlanPathsParameterizedTest;
-    FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompensated);
-    FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull);
-    FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf);
-    FRIEND_TEST(ExtruderPlanTest, BackPressureCompensationEmptyPlan);
-#endif
-protected:
-    std::vector<GCodePath> paths; //!< The paths planned for this extruder
-    std::list<NozzleTempInsert> inserts; //!< The nozzle temperature command inserts, to be inserted in between segments
-
-    double heated_pre_travel_time; //!< The time at the start of this ExtruderPlan during which the head travels and has a temperature of initial_print_temperature
-
-    /*!
-     * The required temperature at the start of this extruder plan
-     * or the temp to which to heat gradually over the layer change between this plan and the previous with the same extruder.
-     * 
-     * In case this extruder plan uses a different extruder than the last extruder plan:
-     * this is the temperature to which to heat and wait before starting this extruder.
-     * 
-     * In case this extruder plan uses the same extruder as the previous extruder plan (previous layer):
-     * this is the temperature used to heat to gradually when moving from the previous extruder layer to the next.
-     * In that case no temperature (and wait) command will be inserted from this value, but a NozzleTempInsert is used instead.
-     * In this case this member is only used as a way to convey information between different calls of \ref LayerPlanBuffer::processBuffer
-     */
-    double required_start_temperature;
-    std::optional<double> extrusion_temperature; //!< The normal temperature for printing this extruder plan. That start and end of this extruder plan may deviate because of the initial and final print temp (none if extruder plan has no extrusion moves)
-    std::optional<std::list<NozzleTempInsert>::iterator> extrusion_temperature_command; //!< The command to heat from the printing temperature of this extruder plan to the printing temperature of the next extruder plan (if it has the same extruder).
-    std::optional<double> prev_extruder_standby_temp; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
-
-    TimeMaterialEstimates estimates; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
-    double slowest_path_speed;
-
-public:
-    size_t extruder_nr; //!< The extruder used for this paths in the current plan.
-
-    /*!
-     * Simple contructor.
-     * 
-     * \warning Doesn't set the required temperature yet.
-     * 
-     * \param extruder The extruder number for which this object is a plan.
-     * \param layer_nr The layer index of the layer that this extruder plan is
-     * part of.
-     * \param is_raft_layer Whether this extruder plan is part of a raft layer.
-     */
-    ExtruderPlan(const size_t extruder, const LayerIndex layer_nr, const bool is_initial_layer, const bool is_raft_layer, const coord_t layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config);
-
-
-    void insertCommand(auto&& insert)
-    {
-        inserts.emplace_back(std::forward<decltype(insert)>(insert));
-    }
-
-    /*!
-     * Insert the inserts into gcode which should be inserted before \p path_idx
-     * 
-     * \param path_idx The index into ExtruderPlan::paths which is currently being consider for temperature command insertion
-     * \param gcode The gcode exporter to which to write the temperature command.
-     * \param cumulative_path_time The time spend on this path up to this point.
-     */
-    void handleInserts(const size_t path_idx, GCodeExport& gcode, const double& cumulative_path_time = std::numeric_limits<double>::infinity());
-
-    /*!
-     * Insert all remaining temp inserts into gcode, to be called at the end of an extruder plan
-     * 
-     * Inserts temperature commands which should be inserted _after_ the last path.
-     * Also inserts all temperatures which should have been inserted earlier,
-     * but for which ExtruderPlan::handleInserts hasn't been called correctly.
-     * 
-     * \param gcode The gcode exporter to which to write the temperature command.
-     */
-    void handleAllRemainingInserts(GCodeExport& gcode);
-
-    /*!
-     * Applying speed corrections for minimal layer times and determine the fanSpeed. 
-     * 
-     * \param force_minimal_layer_time Whether we should apply speed changes and perhaps a head lift in order to meet the minimal layer time
-     * \param starting_position The position the head was before starting this extruder plan
-     */
-    void processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time, Point starting_position);
-
-    /*!
-     * Get the fan speed computed for this extruder plan
-     * 
-     * \warning assumes ExtruderPlan::processFanSpeedAndMinimalLayerTime has already been called
-     * 
-     * \return The fan speed computed in processFanSpeedAndMinimalLayerTime
-     */
-    double getFanSpeed();
-
-    /*!
-     * Apply back-pressure compensation to this path.
-     * Since the total (filament) pressure in a feeder-system is not only dependent on the pressure that exists between the nozzle and the
-     * feed-mechanism (which should be near-constant on a bowden style setup), but _also_ between the nozzle and the last-printed layer.
-     * This last type is called 'back-pressure'. In this function, properties of the path-outflow are adjusted so that the back-pressure is
-     * compensated for. This is conjectured to be especially important if the printer has a Bowden-tube style setup.
-     *
-     * \param The amount of back-pressure compensation as a ratio. 'Applying' a value of 0 is a no-op.
-     */
-    void applyBackPressureCompensation(const Ratio back_pressure_compensation);
-
-protected:
-    LayerIndex layer_nr; //!< The layer number at which we are currently printing.
-    bool is_initial_layer; //!< Whether this extruder plan is printed on the very first layer (which might be raft)
-    const bool is_raft_layer; //!< Whether this is a layer which is part of the raft
-
-    coord_t layer_thickness; //!< The thickness of this layer in Z-direction
-
-    const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings; //!< The fan speed and layer time settings used to limit this extruder plan
-
-    const RetractionConfig& retraction_config; //!< The retraction settings for the extruder of this plan
-
-    double extraTime; //!< Extra waiting time at the and of this extruder plan, so that the filament can cool
-
-    double fan_speed; //!< The fan speed to be used during this extruder plan
-
-    double temperatureFactor; //!< Temperature reduction factor for small layers
-
-    /*!
-     * Set the fan speed to be used while printing this extruder plan
-     * 
-     * \param fan_speed The speed for the fan
-     */
-    void setFanSpeed(double fan_speed);
-
-    /*!
-     * Force the minimal layer time to hold by slowing down and lifting the head if required.
-     * 
-     */
-    void forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrusionTime);
-
-    /*!
-     * @return The time needed for (un)retract the path
-     */
-    double getRetractTime(const GCodePath& path);
-
-    /*!
-     * @return distance between p0 and p1 as well as the time spend on the segment
-     */
-    std::pair<double, double> getPointToPointTime(const Point& p0, const Point& p1, const GCodePath& path);
-
-    /*!
-     * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates.
-     * and store them in each ExtruderPlan and each GCodePath.
-     * 
-     * \param starting_position The position the head was in before starting this layer
-     * \return the total estimates of this layer
-     */
-    TimeMaterialEstimates computeNaiveTimeEstimates(Point starting_position);
-};
-
-class LayerPlanBuffer; // forward declaration to prevent circular dependency
-
-/*! 
  * The LayerPlan class stores multiple moves that are planned.
- * 
- * 
+ *
+ *
  * It facilitates the combing to keep the head inside the print.
  * It also keeps track of the print time estimate for this planning so speed adjustments can be made for the minimal-layer-time.
- * 
+ *
  * A LayerPlan is also knows as a 'layer plan'.
- * 
+ *
  */
 class LayerPlan : public NoCopy
 {
     friend class LayerPlanBuffer;
+#ifdef BUILD_TESTS
     friend class AddTravelTest;
+#endif
 
 public:
     const PathConfigStorage configs_storage; //!< The line configs for this layer for each feature type
@@ -219,7 +60,6 @@ public:
     bool mode_skip_agressive_merge; //!< Whether to give every new path the 'skip_agressive_merge_hint' property (see GCodePath); default is false.
 
 private:
-
     const SliceDataStorage& storage; //!< The polygon data obtained from FffPolygonProcessor
     const LayerIndex layer_nr; //!< The layer number of this layer plan
     const bool is_initial_layer; //!< Whether this is the first layer (which might be raft)
@@ -230,7 +70,7 @@ private:
     std::vector<bool> has_prime_tower_planned_per_extruder; //!< For each extruder, whether the prime tower is planned yet or not.
     std::optional<Point> last_planned_position; //!< The last planned XY position of the print head (if known)
 
-    const SliceMeshStorage* current_mesh; //!< The mesh of the last planned move.
+    std::shared_ptr<const SliceMeshStorage> current_mesh; //!< The mesh of the last planned move.
 
     /*!
      * Whether the skirt or brim polygons have been processed into planned paths
@@ -252,7 +92,7 @@ private:
     Polygons comb_boundary_minimum; //!< The minimum boundary within which to comb, or to move into when performing a retraction.
     Polygons comb_boundary_preferred; //!< The boundary preferably within which to comb, or to move into when performing a retraction.
     Comb* comb;
-    coord_t comb_move_inside_distance;  //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
+    coord_t comb_move_inside_distance; //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
     Polygons bridge_wall_mask; //!< The regions of a layer part that are not supported, used for bridging
     Polygons overhang_mask; //!< The regions of a layer part where the walls overhang
 
@@ -267,25 +107,33 @@ private:
     /*!
      * Either create a new path with the given config or return the last path if it already had that config.
      * If LayerPlan::forceNewPathStart has been called a new path will always be returned.
-     * 
+     *
      * \param config The config used for the path returned
      * \param space_fill_type The type of space filling which this path employs
+     * \param z_offset (optional) Vertical offset w.r.t current layer height, defaults to 0
      * \param flow (optional) A ratio for the extrusion speed
      * \param spiralize Whether to gradually increase the z while printing. (Note that this path may be part of a sequence of spiralized paths, forming one polygon)
      * \param speed_factor (optional) a factor which the speed will be multiplied by.
      * \return A path with the given config which is now the last path in LayerPlan::paths
      */
-    GCodePath* getLatestPathWithConfig(const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio flow = 1.0_r, const Ratio width_factor = 1.0_r, bool spiralize = false, const Ratio speed_factor = 1.0_r);
+    GCodePath* getLatestPathWithConfig(
+        const GCodePathConfig& config,
+        const SpaceFillType space_fill_type,
+        const coord_t z_offset = 0,
+        const Ratio flow = 1.0_r,
+        const Ratio width_factor = 1.0_r,
+        const bool spiralize = false,
+        const Ratio speed_factor = 1.0_r);
 
 public:
     /*!
      * Force LayerPlan::getLatestPathWithConfig to return a new path.
-     * 
-     * This function is introduced because in some cases 
-     * LayerPlan::getLatestPathWithConfig is called consecutively with the same config pointer, 
+     *
+     * This function is introduced because in some cases
+     * LayerPlan::getLatestPathWithConfig is called consecutively with the same config pointer,
      * though the content of the config has changed.
-     * 
-     * Example cases: 
+     *
+     * Example cases:
      * - when changing extruder, the same travel config is used, but its extruder field is changed.
      */
     void forceNewPathStart();
@@ -305,7 +153,16 @@ public:
      * \param travel_avoid_distance The distance by which to avoid other layer
      * parts when travelling through air.
      */
-    LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord_t z, coord_t layer_height, size_t start_extruder, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, coord_t comb_boundary_offset, coord_t comb_move_inside_distance, coord_t travel_avoid_distance);
+    LayerPlan(
+        const SliceDataStorage& storage,
+        LayerIndex layer_nr,
+        coord_t z,
+        coord_t layer_height,
+        size_t start_extruder,
+        const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder,
+        coord_t comb_boundary_offset,
+        coord_t comb_move_inside_distance,
+        coord_t travel_avoid_distance);
 
     ~LayerPlan();
 
@@ -319,11 +176,11 @@ public:
 
     const Polygons* getCombBoundaryInside() const;
 
-    int getLayerNr() const;
+    LayerIndex getLayerNr() const;
 
     /*!
      * Get the last planned position, or if no position has been planned yet, the user specified layer start position.
-     * 
+     *
      * \warning The layer start position might be outside of the build plate!
      */
     Point getLastPlannedPositionOrStartingPosition() const;
@@ -353,17 +210,17 @@ public:
     /*!
      * Get the destination state of the first travel move.
      * This consists of the location and whether the destination was inside the model, or e.g. to support
-     * 
+     *
      * Returns nothing if the layer is empty and no travel move was ever made.
      */
     std::optional<std::pair<Point, bool>> getFirstTravelDestinationState() const;
 
     /*!
-    * Set whether the next destination is inside a layer part or not.
-    * 
-    * Features like infill, walls, skin etc. are considered inside.
-    * Features like prime tower and support are considered outside.
-    */
+     * Set whether the next destination is inside a layer part or not.
+     *
+     * Features like infill, walls, skin etc. are considered inside.
+     * Features like prime tower and support are considered outside.
+     */
     void setIsInside(bool is_inside);
 
     /*!
@@ -383,7 +240,7 @@ public:
      * Track the currently printing mesh.
      * \param mesh_id A unique ID indicating the current mesh.
      */
-    void setMesh(const SliceMeshStorage* mesh_id);
+    void setMesh(const std::shared_ptr<const SliceMeshStorage>& mesh);
 
     /*!
      * Set bridge_wall_mask.
@@ -426,17 +283,17 @@ public:
      * \param p The point to travel to.
      * \param force_retract Whether to force a retraction to occur.
      */
-    GCodePath& addTravel(const Point p, const bool force_retract = false);
+    GCodePath& addTravel(const Point& p, const bool force_retract = false, const coord_t z_offset = 0);
 
     /*!
      * Add a travel path to a certain point and retract if needed.
-     * 
+     *
      * No combing is performed.
-     * 
+     *
      * \param p The point to travel to
      * \param path (optional) The travel path to which to add the point \p p
      */
-    GCodePath& addTravel_simple(Point p, GCodePath* path = nullptr);
+    GCodePath& addTravel_simple(const Point& p, GCodePath* path = nullptr);
 
     /*!
      * Plan a prime blob at the current location.
@@ -445,7 +302,7 @@ public:
 
     /*!
      * Add an extrusion move to a certain point, optionally with a different flow than the one in the \p config.
-     * 
+     *
      * \param p The point to extrude to
      * \param config The config with which to extrude
      * \param space_fill_type Of what space filling type this extrusion move is
@@ -461,7 +318,15 @@ public:
      * forming one polygon.)
      * \param fan_speed Fan speed override for this path.
      */
-    void addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio& flow = 1.0_r, const Ratio width_factor = 1.0_r, bool spiralize = false, Ratio speed_factor = 1.0_r, double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
+    void addExtrusionMove(
+        const Point p,
+        const GCodePathConfig& config,
+        const SpaceFillType space_fill_type,
+        const Ratio& flow = 1.0_r,
+        const Ratio width_factor = 1.0_r,
+        const bool spiralize = false,
+        const Ratio speed_factor = 1.0_r,
+        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
 
     /*!
      * Add polygon to the gcode starting at vertex \p startIdx
@@ -474,11 +339,19 @@ public:
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
      */
-    void addPolygon(ConstPolygonRef polygon, int startIdx, const bool reverse, const GCodePathConfig& config, coord_t wall_0_wipe_dist = 0, bool spiralize = false, const Ratio& flow_ratio = 1.0_r, bool always_retract = false);
+    void addPolygon(
+        ConstPolygonRef polygon,
+        int startIdx,
+        const bool reverse,
+        const GCodePathConfig& config,
+        coord_t wall_0_wipe_dist = 0,
+        bool spiralize = false,
+        const Ratio& flow_ratio = 1.0_r,
+        bool always_retract = false);
 
     /*!
      * Add polygons to the gcode with optimized order.
-     * 
+     *
      * When \p spiralize is true, each polygon will gradually increase from a z
      * corresponding to this layer to the z corresponding to the next layer.
      * Doing this for each polygon means there is a chance for the print head to
@@ -486,7 +359,7 @@ public:
      * would mean you are printing half of the layer in non-spiralize mode,
      * while each layer starts with a different part. Two towers would result in
      * alternating spiralize and non-spiralize layers.
-     * 
+     *
      * \param polygons The polygons.
      * \param config The config with which to print the polygon lines.
      * for each given segment (optionally nullptr).
@@ -504,7 +377,16 @@ public:
      * \param start_near_location Start optimising the path near this location.
      * If unset, this causes it to start near the last planned location.
      */
-    void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, bool spiralize = false, const Ratio flow_ratio = 1.0_r, bool always_retract = false, bool reverse_order = false, const std::optional<Point> start_near_location = std::optional<Point>());
+    void addPolygonsByOptimizer(
+        const Polygons& polygons,
+        const GCodePathConfig& config,
+        const ZSeamConfig& z_seam_config = ZSeamConfig(),
+        coord_t wall_0_wipe_dist = 0,
+        bool spiralize = false,
+        const Ratio flow_ratio = 1.0_r,
+        bool always_retract = false,
+        bool reverse_order = false,
+        const std::optional<Point> start_near_location = std::optional<Point>());
 
     /*!
      * Add a single line that is part of a wall to the gcode.
@@ -526,7 +408,17 @@ public:
      * \param distance_to_bridge_start The distance along the wall from p0 to
      * the first bridge segment.
      */
-    void addWallLine(const Point& p0, const Point& p1, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, const Ratio width_factor, float& non_bridge_line_volume, Ratio speed_factor, double distance_to_bridge_start);
+    void addWallLine(
+        const Point& p0,
+        const Point& p1,
+        const Settings& settings,
+        const GCodePathConfig& non_bridge_config,
+        const GCodePathConfig& bridge_config,
+        float flow,
+        const Ratio width_factor,
+        float& non_bridge_line_volume,
+        Ratio speed_factor,
+        double distance_to_bridge_start);
 
     /*!
      * Add a wall to the g-code starting at vertex \p start_idx
@@ -543,7 +435,15 @@ public:
      * \param always_retract Whether to force a retraction when moving to the
      * start of the wall (used for outer walls).
      */
-    void addWall(ConstPolygonRef wall, int start_idx, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract);
+    void addWall(
+        ConstPolygonRef wall,
+        int start_idx,
+        const Settings& settings,
+        const GCodePathConfig& non_bridge_config,
+        const GCodePathConfig& bridge_config,
+        coord_t wall_0_wipe_dist,
+        float flow_ratio,
+        bool always_retract);
 
     /*!
      * Add a wall to the g-code starting at vertex \p start_idx
@@ -564,7 +464,18 @@ public:
      * \param is_reversed Whether to print this wall in reverse direction.
      * \param is_linked_path Whether the path is a continuation off the previous path
      */
-    void addWall(const ExtrusionLine& wall, int start_idx, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed, const bool is_reversed, const bool is_linked_path);
+    void addWall(
+        const ExtrusionLine& wall,
+        int start_idx,
+        const Settings& settings,
+        const GCodePathConfig& non_bridge_config,
+        const GCodePathConfig& bridge_config,
+        coord_t wall_0_wipe_dist,
+        float flow_ratio,
+        bool always_retract,
+        const bool is_closed,
+        const bool is_reversed,
+        const bool is_linked_path);
 
     /*!
      * Add an infill wall to the g-code
@@ -586,8 +497,7 @@ public:
      * \param always_retract Whether to force a retraction when moving to the start of a wall (used for outer walls)
      * \param alternate_inset_direction_modifier Whether to alternate the direction of the walls for each inset.
      */
-    void addWalls
-    (
+    void addWalls(
         const Polygons& walls,
         const Settings& settings,
         const GCodePathConfig& non_bridge_config,
@@ -595,8 +505,7 @@ public:
         const ZSeamConfig& z_seam_config = ZSeamConfig(),
         coord_t wall_0_wipe_dist = 0,
         float flow_ratio = 1.0,
-        bool always_retract = false
-    );
+        bool always_retract = false);
 
     /*!
      * Add lines to the gcode with optimized order.
@@ -611,7 +520,17 @@ public:
      * \param reverse_print_direction Whether to reverse the optimized order and their printing direction.
      * \param order_requirements Pairs where first needs to be printed before second. Pointers are pointing to elements of \p polygons
      */
-    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, const SpaceFillType space_fill_type, const bool enable_travel_optimization = false, const coord_t wipe_dist = 0, const Ratio flow_ratio = 1.0, const std::optional<Point> near_start_location = std::optional<Point>(), const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT, const bool reverse_print_direction = false, const std::unordered_multimap<ConstPolygonPointer, ConstPolygonPointer>& order_requirements = PathOrderOptimizer<ConstPolygonPointer>::no_order_requirements);
+    void addLinesByOptimizer(
+        const Polygons& polygons,
+        const GCodePathConfig& config,
+        const SpaceFillType space_fill_type,
+        const bool enable_travel_optimization = false,
+        const coord_t wipe_dist = 0,
+        const Ratio flow_ratio = 1.0,
+        const std::optional<Point> near_start_location = std::optional<Point>(),
+        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
+        const bool reverse_print_direction = false,
+        const std::unordered_multimap<ConstPolygonPointer, ConstPolygonPointer>& order_requirements = PathOrderOptimizer<ConstPolygonPointer>::no_order_requirements);
 
     /*!
      * Add polygons to the g-code with monotonic order.
@@ -634,8 +553,7 @@ public:
      * \param flow_ratio The ratio with which to multiply the extrusion amount.
      * \param fan_speed Fan speed override for this path.
      */
-    void addLinesMonotonic
-    (
+    void addLinesMonotonic(
         const Polygons& area,
         const Polygons& polygons,
         const GCodePathConfig& config,
@@ -645,8 +563,7 @@ public:
         const coord_t exclude_distance = 0,
         const coord_t wipe_dist = 0,
         const Ratio flow_ratio = 1.0_r,
-        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT
-    );
+        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
 
 protected:
     /*!
@@ -664,8 +581,7 @@ protected:
         const SpaceFillType space_fill_type,
         const coord_t wipe_dist,
         const Ratio flow_ratio,
-        const double fan_speed
-    );
+        const double fan_speed);
 
 public:
     /*!
@@ -681,7 +597,14 @@ public:
      * \param is_top_layer true when the top layer of the spiral is being printed
      * \param is_bottom_layer true when the bottom layer of the spiral is being printed
      */
-    void spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRef wall, ConstPolygonRef last_wall, int seam_vertex_idx, int last_seam_vertex_idx, const bool is_top_layer, const bool is_bottom_layer);
+    void spiralizeWallSlice(
+        const GCodePathConfig& config,
+        ConstPolygonRef wall,
+        ConstPolygonRef last_wall,
+        int seam_vertex_idx,
+        int last_seam_vertex_idx,
+        const bool is_top_layer,
+        const bool is_bottom_layer);
 
 
     /*!
@@ -708,7 +631,7 @@ public:
         while (true)
         {
             const Point& vertex = cura::make_point(wall[curr_idx]);
-            if (!air_below.inside(vertex, true))
+            if (! air_below.inside(vertex, true))
             {
                 // vertex isn't above air so it's OK to use
                 return curr_idx;
@@ -729,7 +652,7 @@ public:
 
     /*!
      * Write the planned paths to gcode
-     * 
+     *
      * \param gcode The gcode to write the planned paths to
      */
     void writeGCode(GCodeExport& gcode);
@@ -737,18 +660,18 @@ public:
     /*!
      * Whether the current retracted path is to be an extruder switch retraction.
      * This function is used to avoid a G10 S1 after a G10.
-     * 
+     *
      * \param extruder_plan_idx The index of the current extruder plan
-     * \param path_idx The index of the current retracted path 
+     * \param path_idx The index of the current retracted path
      * \return Whether the path should be an extruder switch retracted path
      */
     bool makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigned int path_idx);
-    
+
     /*!
      * Writes a path to GCode and performs coasting, or returns false if it did nothing.
-     * 
+     *
      * Coasting replaces the last piece of an extruded path by move commands and uses the oozed material to lay down lines.
-     * 
+     *
      * \param gcode The gcode to write the planned paths to.
      * \param extruder_plan_idx The index of the current extruder plan.
      * \param path_idx The index into LayerPlan::paths for the next path to be
@@ -756,15 +679,20 @@ public:
      * \param layer_thickness The height of the current layer.
      * \return Whether any GCode has been written for the path.
      */
-    bool writePathWithCoasting(GCodeExport& gcode, const size_t extruder_plan_idx, const size_t path_idx, const coord_t layer_thickness, const std::function<void(const double, const int64_t)> insertTempOnTime);
+    bool writePathWithCoasting(
+        GCodeExport& gcode,
+        const size_t extruder_plan_idx,
+        const size_t path_idx,
+        const coord_t layer_thickness,
+        const std::function<void(const double, const int64_t)> insertTempOnTime);
 
     /*!
-     * Applying speed corrections for minimal layer times and determine the fanSpeed. 
-     * 
+     * Applying speed corrections for minimal layer times and determine the fanSpeed.
+     *
      * \param starting_position The position of the print head when the first extruder plan of this layer starts
      */
     void processFanSpeedAndMinimalLayerTime(Point starting_position);
-    
+
     /*!
      * Add a travel move to the layer plan to move inside the current layer part
      * by a given distance away from the outline.
@@ -779,6 +707,11 @@ public:
     void moveInsideCombBoundary(const coord_t distance, const std::optional<SliceLayerPart>& part = std::nullopt);
 
     /*!
+     * If enabled, apply the modify plugin to the layer-plan.
+     */
+    void applyModifyPlugin();
+
+    /*!
      * Apply back-pressure compensation to this layer-plan.
      * Since the total (filament) pressure in a feeder-system is not only dependent on the pressure that exists between the nozzle and the
      * feed-mechanism (which should be near-constant on a bowden style setup), but _also_ between the nozzle and the last-printed layer. This last
@@ -788,7 +721,6 @@ public:
     void applyBackPressureCompensation();
 
 private:
-
     /*!
      * \brief Compute the preferred or minimum combing boundary
      *
@@ -808,6 +740,6 @@ private:
     Polygons computeCombBoundary(const CombBoundary boundary_type);
 };
 
-}//namespace cura
+} // namespace cura
 
 #endif // LAYER_PLAN_H

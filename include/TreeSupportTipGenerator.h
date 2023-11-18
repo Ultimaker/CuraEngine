@@ -1,7 +1,11 @@
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
+
 #ifndef TREESUPPORTTIPGENERATOR_H
 #define TREESUPPORTTIPGENERATOR_H
 
 #include "TreeModelVolumes.h"
+#include "TreeSupport.h"
 #include "TreeSupportBaseCircle.h"
 #include "TreeSupportElement.h"
 #include "TreeSupportEnums.h"
@@ -12,7 +16,6 @@
 #include "sliceDataStorage.h"
 #include "utils/Coord_t.h"
 #include "utils/polygon.h"
-#include "TreeSupport.h"
 
 namespace cura
 {
@@ -20,18 +23,8 @@ namespace cura
 
 class TreeSupportTipGenerator
 {
-
 public:
-
     TreeSupportTipGenerator(const SliceDataStorage& storage, const SliceMeshStorage& mesh, TreeModelVolumes& volumes_);
-
-    ~ TreeSupportTipGenerator()
-    {
-        if (cross_fill_provider)
-        {
-            delete cross_fill_provider;
-        }
-    }
 
     /*!
      * \brief Generate tips, that will later form branches
@@ -44,10 +37,14 @@ public:
      * \param support_free_areas[out] Areas where no support (including roof) of any kind is to be drawn.
      * \return All lines of the \p polylines object, with information for each point regarding in which avoidance it is currently valid in.
      */
-    void generateTips(SliceDataStorage& storage,const SliceMeshStorage& mesh ,std::vector<std::set<TreeSupportElement*>>& move_bounds, std::vector<Polygons>& additional_support_areas, std::vector<Polygons>& placed_support_lines_support_areas, std::vector<Polygons>& placed_fake_roof_areas, std::vector<Polygons>& support_free_areas);
+    void generateTips(
+        SliceDataStorage& storage,
+        const SliceMeshStorage& mesh,
+        std::vector<std::set<TreeSupportElement*>>& move_bounds,
+        std::vector<Polygons>& additional_support_areas,
+        std::vector<Polygons>& placed_support_lines_support_areas, std::vector<Polygons>& placed_fake_roof_areas, std::vector<Polygons>& support_free_areas);
 
 private:
-
     enum class LineStatus
     {
         INVALID,
@@ -96,17 +93,16 @@ private:
     std::function<bool(std::pair<Point, TreeSupportTipGenerator::LineStatus>)> getEvaluatePointForNextLayerFunction(size_t current_layer);
 
     /*!
-     * \brief Evaluates which points of some lines are not valid one layer below and which are. Assumes all points are valid on the current layer. Validity is evaluated using supplied lambda.
+     * \brief Evaluates which points of some lines are not valid one layer below and which are. Assumes all points are valid on the current layer. Validity is evaluated using
+     * supplied lambda.
      *
      * \param lines[in] The lines that have to be evaluated.
      * \param evaluatePoint[in] The function used to evaluate the points.
      * \return A pair with which points are still valid in the first slot and which are not in the second slot.
      */
-    std::pair<std::vector<LineInformation>, std::vector<LineInformation>> splitLines
-        (
-            std::vector<LineInformation> lines,
-            std::function<bool(std::pair<Point, TreeSupportTipGenerator::LineStatus>)> evaluatePoint
-        ); // assumes all Points on the current line are valid
+    std::pair<std::vector<LineInformation>, std::vector<LineInformation>> splitLines(
+        std::vector<LineInformation> lines,
+        std::function<bool(std::pair<Point, TreeSupportTipGenerator::LineStatus>)> evaluatePoint); // assumes all Points on the current line are valid
 
     /*!
      * \brief Ensures that every line segment is about distance in length. The resulting lines may differ from the original but all points are on the original
@@ -127,7 +123,7 @@ private:
      * \param line_width[in] What is the width of a line used in the infill.
      * \return A valid CrossInfillProvider. Has to be freed manually to avoid a memory leak.
      */
-    SierpinskiFillProvider* generateCrossFillProvider(const SliceMeshStorage& mesh, coord_t line_distance, coord_t line_width) const;
+    std::shared_ptr<SierpinskiFillProvider> generateCrossFillProvider(const SliceMeshStorage& mesh, coord_t line_distance, coord_t line_width) const;
 
     /*!
      * \brief Provides areas that do not have a connection to the buildplate or a certain height.
@@ -136,14 +132,14 @@ private:
      * \return A vector containing the areas, how many layers of material they have below them and the idx of each area usable to get the next one layer above.
      */
     std::vector<UnsupportedAreaInformation> getUnsupportedArea(LayerIndex layer_idx, size_t idx_of_area_below);
-    
+
     /*!
      * \brief Provides areas that do not have a connection to the buildplate or any other non support material below it.
      * \param layer_idx The layer said area is on.
      * \return A vector containing the areas, how many layers of material they have below them (always 0) and the idx of each area usable to get the next one layer above.
      */
     std::vector<UnsupportedAreaInformation> getFullyUnsupportedArea(LayerIndex layer_idx);
-    
+
     /*!
      * \brief Calculates which parts of the model to not connect with the buildplate and how many layers of material is below them (height).
      * Results are stored in a cache.
@@ -165,7 +161,7 @@ private:
      * \param result[out] The dropped overhang ares
      * \param roof[in] Whether the result is for roof generation.
      */
-    void dropOverhangAreas(const SliceMeshStorage& mesh, std::vector<Polygons>& result, bool roof );
+    void dropOverhangAreas(const SliceMeshStorage& mesh, std::vector<Polygons>& result, bool roof);
 
     /*!
      * \brief Calculates which areas should be supported with roof, and saves these in roof support_roof_drawn
@@ -184,7 +180,10 @@ private:
      * \param skip_ovalisation[in] Whether the tip may be ovalized when drawn later.
      * \param additional_ovalization_targets[in] Additional targets the ovalization should reach.
      */
-    void addPointAsInfluenceArea(std::vector<std::set<TreeSupportElement *>>& move_bounds, std::pair<Point, TreeSupportTipGenerator::LineStatus> p, size_t dtt, LayerIndex insert_layer, size_t dont_move_until, bool roof, bool cradle, bool skip_ovalisation, std::vector<Point> additional_ovalization_targets = std::vector<Point>());
+    void addPointAsInfluenceArea(
+        std::vector<std::set<TreeSupportElement*>>& move_bounds,
+        std::pair<Point, TreeSupportTipGenerator::LineStatus> p, size_t dtt, LayerIndex insert_layer, size_t dont_move_until, bool roof, bool cradle, bool skip_ovalisation,
+        std::vector<Point> additional_ovalization_targets = std::vector<Point>());
 
 
     /*!
@@ -197,7 +196,8 @@ private:
      * \param dont_move_until[in] Until which dtt the branch should not move if possible.
      * \param connect_points [in] If the points of said line should be connected by ovalization.
      */
-    void addLinesAsInfluenceAreas(std::vector<std::set<TreeSupportElement *>>& move_bounds, std::vector<TreeSupportTipGenerator::LineInformation> lines, size_t roof_tip_layers, LayerIndex insert_layer_idx, bool supports_roof, bool supports_cradle, size_t dont_move_until, bool connect_points);
+    void addLinesAsInfluenceAreas(std::vector<std::set<TreeSupportElement *>>& move_bounds, std::vector<TreeSupportTipGenerator::LineInformation> lines, size_t roof_tip_layers, LayerIndex insert_layer_idx, bool supports_roof, bool supports_cradle, size_t dont_move_until,
+        bool connect_points);
 
     /*!
      * \brief Remove tips that should not have been added in the first place.
@@ -205,7 +205,7 @@ private:
      * \param storage[in] Background storage, required for adding roofs.
      * \param additional_support_areas[in] Areas that should have been roofs, but are now support, as they would not generate any lines as roof.
      */
-    void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement *>>& move_bounds,SliceDataStorage& storage, std::vector<Polygons>& additional_support_areas);
+    void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<Polygons>& additional_support_areas);
 
     /*!
      * \brief If large areas should be supported by a roof out of regular support lines.
@@ -221,6 +221,7 @@ private:
      * \brief Contains config settings to avoid loading them in every function. This was done to improve readability of the code.
      */
     TreeSupportSettings config;
+
 
     /*!
      * \brief Minimum area an overhang has to have to be supported.
@@ -304,7 +305,8 @@ private:
     const bool only_gracious = SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL;
 
     /*!
-     * \brief Whether minimum_roof_area is a hard limit. If false the roof will be combined with roof above and below, to see if a part of this roof may be part of a valid roof further up/down.
+     * \brief Whether minimum_roof_area is a hard limit. If false the roof will be combined with roof above and below, to see if a part of this roof may be part of a valid roof
+     * further up/down.
      */
     const bool force_minimum_roof_area = SUPPORT_TREE_MINIMUM_ROOF_AREA_HARD_LIMIT;
 
@@ -316,7 +318,7 @@ private:
     /*!
      * \brief Required to generate cross infill patterns
      */
-    SierpinskiFillProvider* cross_fill_provider;
+    std::shared_ptr<SierpinskiFillProvider> cross_fill_provider;
 
     /*!
      * \brief Map that saves locations of already inserted tips. Used to prevent tips far to close together from being added.
@@ -416,6 +418,6 @@ private:
 
 };
 
-}
+} // namespace cura
 
 #endif /* TREESUPPORT_H */

@@ -169,6 +169,7 @@ public:
         settings->add("support_roof_extruder_nr", "0");
         settings->add("support_roof_line_width", "0.404");
         settings->add("support_roof_material_flow", "104");
+        settings->add("support_top_distance", "200");
         settings->add("wall_line_count", "3");
         settings->add("wall_line_width_x", "0.3");
         settings->add("wall_line_width_0", "0.301");

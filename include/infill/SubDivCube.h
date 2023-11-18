@@ -1,17 +1,17 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef INFILL_SUBDIVCUBE_H
 #define INFILL_SUBDIVCUBE_H
 
-#include "../settings/types/Ratio.h"
-#include "../utils/IntPoint.h"
-#include "../utils/Point3.h"
+#include "settings/types/LayerIndex.h"
+#include "settings/types/Ratio.h"
+#include "utils/IntPoint.h"
+#include "utils/Point3.h"
 
 namespace cura
 {
 
-struct LayerIndex;
 class Polygons;
 class SliceMeshStorage;
 
@@ -26,8 +26,6 @@ public:
      */
     SubDivCube(SliceMeshStorage& mesh, Point3& center, size_t depth);
 
-    ~SubDivCube(); //!< destructor (also destroys children)
-
     /*!
      * Precompute the octree of subdivided cubes
      * \param mesh contains infill layer data and settings
@@ -40,6 +38,7 @@ public:
      * \param result (output) The resulting lines
      */
     void generateSubdivisionLines(const coord_t z, Polygons& result);
+
 private:
     /*!
      * Generates the lines of subdivision of the specific cube at the specific layer. It recursively calls itself, so it ends up drawing all the subdivision lines of sub-cubes too.
@@ -90,16 +89,14 @@ private:
     static coord_t distanceFromPointToMesh(SliceMeshStorage& mesh, const LayerIndex layer_nr, Point& location, coord_t* distance2);
 
     /*!
-     * Adds the defined line to the specified polygons. It assumes that the specified polygons are all parallel lines. Combines line segments with touching ends closer than epsilon.
-     * \param[out] group the polygons to add the line to
-     * \param from the first endpoint of the line
-     * \param to the second endpoint of the line
+     * Adds the defined line to the specified polygons. It assumes that the specified polygons are all parallel lines. Combines line segments with touching ends closer than
+     * epsilon. \param[out] group the polygons to add the line to \param from the first endpoint of the line \param to the second endpoint of the line
      */
     void addLineAndCombine(Polygons& group, Point from, Point to);
 
     size_t depth; //!< the recursion depth of the cube (0 is most recursed)
     Point3 center; //!< center location of the cube in absolute coordinates
-    SubDivCube* children[8] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}; //!< pointers to this cube's eight octree children
+    std::array<std::shared_ptr<SubDivCube>, 8> children; //!< pointers to this cube's eight octree children
     static std::vector<CubeProperties> cube_properties_per_recursion_step; //!< precomputed array of basic properties of cubes based on recursion depth.
     static Ratio radius_multiplier; //!< multiplier for the bounding radius when determining if a cube should be subdivided
     static Point3Matrix rotation_matrix; //!< The rotation matrix to get from axis aligned cubes to cubes standing on a corner point aligned with the infill_angle
@@ -107,5 +104,5 @@ private:
     static coord_t radius_addition; //!< addition to the bounding radius when determining if a cube should be subdivided
 };
 
-}
-#endif //INFILL_SUBDIVCUBE_H
+} // namespace cura
+#endif // INFILL_SUBDIVCUBE_H

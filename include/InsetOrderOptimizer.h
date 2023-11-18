@@ -4,10 +4,10 @@
 #ifndef INSET_ORDER_OPTIMIZER_H
 #define INSET_ORDER_OPTIMIZER_H
 
-#include <unordered_set>
-
 #include "settings/ZSeamConfig.h"
 #include "sliceDataStorage.h"
+
+#include <unordered_set>
 
 namespace cura
 {
@@ -37,22 +37,23 @@ public:
      * \param part The part from which to read the previously generated insets.
      * \param layer_nr The current layer number.
      */
-    InsetOrderOptimizer(const FffGcodeWriter& gcode_writer,
-                        const SliceDataStorage& storage,
-                        LayerPlan& gcode_layer,
-                        const Settings& settings,
-                        const int extruder_nr,
-                        const GCodePathConfig& inset_0_non_bridge_config,
-                        const GCodePathConfig& inset_X_non_bridge_config,
-                        const GCodePathConfig& inset_0_bridge_config,
-                        const GCodePathConfig& inset_X_bridge_config,
-                        const bool retract_before_outer_wall,
-                        const coord_t wall_0_wipe_dist,
-                        const coord_t wall_x_wipe_dist,
-                        const size_t wall_0_extruder_nr,
-                        const size_t wall_x_extruder_nr,
-                        const ZSeamConfig& z_seam_config,
-                        const std::vector<VariableWidthLines>& paths);
+    InsetOrderOptimizer(
+        const FffGcodeWriter& gcode_writer,
+        const SliceDataStorage& storage,
+        LayerPlan& gcode_layer,
+        const Settings& settings,
+        const int extruder_nr,
+        const GCodePathConfig& inset_0_non_bridge_config,
+        const GCodePathConfig& inset_X_non_bridge_config,
+        const GCodePathConfig& inset_0_bridge_config,
+        const GCodePathConfig& inset_X_bridge_config,
+        const bool retract_before_outer_wall,
+        const coord_t wall_0_wipe_dist,
+        const coord_t wall_x_wipe_dist,
+        const size_t wall_0_extruder_nr,
+        const size_t wall_x_extruder_nr,
+        const ZSeamConfig& z_seam_config,
+        const std::vector<VariableWidthLines>& paths);
 
     /*!
      * Adds the insets to the given layer plan.
@@ -66,9 +67,9 @@ public:
     /*!
      * Get the order constraints of the insets when printing walls per region / hole.
      * Each returned pair consists of adjacent wall lines where the left has an inset_idx one lower than the right.
-     * 
+     *
      * Odd walls should always go after their enclosing wall polygons.
-     * 
+     *
      * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
      */
     static value_type getRegionOrder(const auto& input, const bool outer_to_inner);
@@ -76,12 +77,13 @@ public:
     /*!
      * Get the order constraints of the insets when printing walls per inset.
      * Each returned pair consists of adjacent wall lines where the left has an inset_idx one lower than the right.
-     * 
+     *
      * Odd walls should always go after their enclosing wall polygons.
-     * 
+     *
      * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
      */
     static value_type getInsetOrder(const auto& input, const bool outer_to_inner);
+
 private:
     const FffGcodeWriter& gcode_writer;
     const SliceDataStorage& storage;
@@ -99,10 +101,11 @@ private:
     const size_t wall_x_extruder_nr;
     const ZSeamConfig& z_seam_config;
     const std::vector<VariableWidthLines>& paths;
-    const unsigned int layer_nr;
+    const LayerIndex layer_nr;
 
     std::vector<std::vector<ConstPolygonPointer>> inset_polys; // vector of vectors holding the inset polygons
-    Polygons retraction_region; //After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see retraction_region_calculated).
+    Polygons retraction_region; // After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see
+                                // retraction_region_calculated).
 
     /*!
      * Determine if the paths should be reversed
@@ -130,8 +133,7 @@ private:
      * \return A vector of ExtrusionLines with walls that should be printed
      */
     std::vector<ExtrusionLine> getWallsToBeAdded(const bool reverse, const bool use_one_extruder);
-
 };
-} //namespace cura
+} // namespace cura
 
 #endif // INSET_ORDER_OPTIMIZER_H

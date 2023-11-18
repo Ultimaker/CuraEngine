@@ -1,15 +1,16 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "gcodeExport.h" // The unit under test.
+
 #include "Application.h" // To set up a slice with settings.
 #include "RetractionConfig.h" // For extruder switch tests.
 #include "Slice.h" // To set up a slice with settings.
 #include "WipeScriptConfig.h" // For wipe script tests.
 #include "arcus/MockCommunication.h" // To prevent calls to any missing Communication class.
-#include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
 #include "utils/Date.h" // To check the Griffin header.
+
 #include <gtest/gtest.h>
 
 // NOLINTBEGIN(*-magic-numbers)
@@ -52,10 +53,10 @@ public:
         gcode.current_extruder = 0;
         gcode.current_fan_speed = -1;
         gcode.total_print_times = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
-        gcode.currentSpeed = 1;
-        gcode.current_print_acceleration = -1;
-        gcode.current_travel_acceleration = -1;
-        gcode.current_jerk = -1;
+        gcode.currentSpeed = 1.0;
+        gcode.current_print_acceleration = -1.0;
+        gcode.current_travel_acceleration = -1.0;
+        gcode.current_jerk = -1.0;
         gcode.is_z_hopped = 0;
         gcode.setFlavor(EGCodeFlavor::MARLIN);
         gcode.bed_temperature = 0;
@@ -102,12 +103,13 @@ TEST_F(GCodeExportTest, CommentMultiLine)
                        "You can honestly say\n"
                        "You made on that day\n"
                        "A Chilean chinchilla's chin chilly");
-    EXPECT_EQ(std::string(";If you catch a chinchilla in Chile\n"
-                          ";And cut off its beard, willy-nilly\n"
-                          ";You can honestly say\n"
-                          ";You made on that day\n"
-                          ";A Chilean chinchilla's chin chilly\n"),
-              output.str())
+    EXPECT_EQ(
+        std::string(";If you catch a chinchilla in Chile\n"
+                    ";And cut off its beard, willy-nilly\n"
+                    ";You can honestly say\n"
+                    ";You made on that day\n"
+                    ";A Chilean chinchilla's chin chilly\n"),
+        output.str())
         << "Each line must be preceded by a semicolon.";
 }
 
@@ -116,10 +118,11 @@ TEST_F(GCodeExportTest, CommentMultiple)
     gcode.writeComment("Thunderbolt and lightning");
     gcode.writeComment("Very very frightening me");
     gcode.writeComment(" - Galileo (1638)");
-    EXPECT_EQ(std::string(";Thunderbolt and lightning\n"
-                          ";Very very frightening me\n"
-                          "; - Galileo (1638)\n"),
-              output.str())
+    EXPECT_EQ(
+        std::string(";Thunderbolt and lightning\n"
+                    ";Very very frightening me\n"
+                    "; - Galileo (1638)\n"),
+        output.str())
         << "Semicolon before each line, and newline in between.";
 }
 
@@ -210,10 +213,10 @@ public:
         gcode.current_extruder = 0;
         gcode.current_fan_speed = -1;
         gcode.total_print_times = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
-        gcode.currentSpeed = 1;
-        gcode.current_print_acceleration = -1;
-        gcode.current_travel_acceleration = -1;
-        gcode.current_jerk = -1;
+        gcode.currentSpeed = 1.0;
+        gcode.current_print_acceleration = -1.0;
+        gcode.current_travel_acceleration = -1.0;
+        gcode.current_jerk = -1.0;
         gcode.is_z_hopped = 0;
         gcode.setFlavor(EGCodeFlavor::MARLIN);
         gcode.initial_bed_temp = 0;
@@ -329,9 +332,10 @@ TEST_F(GCodeExportTest, HeaderUltiGCode)
 
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
-    EXPECT_EQ(result,
-              ";FLAVOR:UltiGCode\n;TIME:1337\n;MATERIAL:100\n;MATERIAL2:200\n;NOZZLE_DIAMETER:0.4\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;"
-              "MAXY:1\n;MAXZ:1\n");
+    EXPECT_EQ(
+        result,
+        ";FLAVOR:UltiGCode\n;TIME:1337\n;MATERIAL:100\n;MATERIAL2:200\n;NOZZLE_DIAMETER:0.4\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;"
+        "MAXY:1\n;MAXZ:1\n;TARGET_MACHINE.NAME:Your favourite 3D printer\n");
 }
 
 TEST_F(GCodeExportTest, HeaderRepRap)
@@ -348,9 +352,10 @@ TEST_F(GCodeExportTest, HeaderRepRap)
 
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
-    EXPECT_EQ(result,
-              ";FLAVOR:RepRap\n;TIME:1337\n;Filament used: 0.02m, 0.05m\n;Layer height: "
-              "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n");
+    EXPECT_EQ(
+        result,
+        ";FLAVOR:RepRap\n;TIME:1337\n;Filament used: 0.02m, 0.05m\n;Layer height: "
+        "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n;TARGET_MACHINE.NAME:Your favourite 3D printer\n");
 }
 
 TEST_F(GCodeExportTest, HeaderMarlin)
@@ -367,9 +372,10 @@ TEST_F(GCodeExportTest, HeaderMarlin)
 
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
-    EXPECT_EQ(result,
-              ";FLAVOR:Marlin\n;TIME:1337\n;Filament used: 0.02m, 0.05m\n;Layer height: "
-              "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n");
+    EXPECT_EQ(
+        result,
+        ";FLAVOR:Marlin\n;TIME:1337\n;Filament used: 0.02m, 0.05m\n;Layer height: "
+        "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n;TARGET_MACHINE.NAME:Your favourite 3D printer\n");
 }
 
 TEST_F(GCodeExportTest, HeaderMarlinVolumetric)
@@ -384,9 +390,10 @@ TEST_F(GCodeExportTest, HeaderMarlinVolumetric)
 
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
-    EXPECT_EQ(result,
-              ";FLAVOR:Marlin(Volumetric)\n;TIME:1337\n;Filament used: 100mm3, 200mm3\n;Layer height: "
-              "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n");
+    EXPECT_EQ(
+        result,
+        ";FLAVOR:Marlin(Volumetric)\n;TIME:1337\n;Filament used: 100mm3, 200mm3\n;Layer height: "
+        "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n;TARGET_MACHINE.NAME:Your favourite 3D printer\n");
 }
 
 /*
@@ -406,8 +413,9 @@ TEST_F(GCodeExportTest, EVsMmVolumetric)
                                                             "area of the filament to convert the volume to a length.";
 
     constexpr double mm_input = 33.0;
-    EXPECT_EQ(gcode.mmToE(mm_input), mm_input * filament_area) << "Since the input mm is linear but the E output must be volumetric, we need to multiply by the cross-sectional area to convert "
-                                                                  "length to volume.";
+    EXPECT_EQ(gcode.mmToE(mm_input), mm_input * filament_area)
+        << "Since the input mm is linear but the E output must be volumetric, we need to multiply by the cross-sectional area to convert "
+           "length to volume.";
 
     constexpr double e_input = 100.0;
     EXPECT_EQ(gcode.eToMm3(e_input, 0), e_input) << "Since the E is volumetric and mm3 is also volumetric, the output needs to be the same.";
@@ -432,8 +440,9 @@ TEST_F(GCodeExportTest, EVsMmLinear)
     }
 
     constexpr double mm3_input = 33.0;
-    EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input / filament_area) << "Since the input mm3 is volumetric but the E output must be linear, we need to divide by the cross-sectional area to convert "
-                                                                     "volume to length.";
+    EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input / filament_area)
+        << "Since the input mm3 is volumetric but the E output must be linear, we need to divide by the cross-sectional area to convert "
+           "volume to length.";
 
     constexpr double e_input = 100.0;
     EXPECT_EQ(gcode.eToMm3(e_input, 0), e_input * filament_area) << "Since the input E is linear but the output must be volumetric, we "
@@ -493,7 +502,7 @@ TEST_F(GCodeExportTest, WriteZHopStartCustomSpeed)
     Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); // 60mm/min.
     gcode.current_layer_z = 2000;
     constexpr coord_t hop_height = 3000;
-    constexpr Velocity speed = 4; // 240 mm/min.
+    constexpr Velocity speed{ 4.0 }; // 240 mm/min.
     gcode.writeZhopStart(hop_height, speed);
     EXPECT_EQ(std::string("G1 F240 Z5\n"), output.str()) << "Custom provided speed should be used.";
 }
@@ -521,7 +530,7 @@ TEST_F(GCodeExportTest, WriteZHopEndCustomSpeed)
     Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1");
     gcode.current_layer_z = 2000;
     gcode.is_z_hopped = 3000;
-    constexpr Velocity speed = 4; // 240 mm/min.
+    constexpr Velocity speed{ 4.0 }; // 240 mm/min.
     gcode.writeZhopEnd(speed);
     EXPECT_EQ(std::string("G1 F240 Z2\n"), output.str()) << "Custom provided speed should be used.";
 }
@@ -539,7 +548,7 @@ TEST_F(GCodeExportTest, insertWipeScriptSingleMove)
     config.brush_pos_x = 2000;
     config.repeat_count = 1;
     config.move_distance = 500;
-    config.move_speed = 10;
+    config.move_speed = 10.0;
     config.pause = 0;
 
     EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(3);
@@ -571,7 +580,7 @@ TEST_F(GCodeExportTest, insertWipeScriptMultipleMoves)
     config.brush_pos_x = 2000;
     config.repeat_count = 4;
     config.move_distance = 500;
-    config.move_speed = 10;
+    config.move_speed = 10.0;
     config.pause = 0;
 
     EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(6);
@@ -609,7 +618,7 @@ TEST_F(GCodeExportTest, insertWipeScriptOptionalDelay)
     config.brush_pos_x = 2000;
     config.repeat_count = 1;
     config.move_distance = 500;
-    config.move_speed = 10;
+    config.move_speed = 10.0;
     config.pause = 1.5; // 1.5 sec = 1500 ms.
 
     EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(3);
@@ -637,7 +646,7 @@ TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
     gcode.current_extruder = 0;
     gcode.extruder_attr[0].filament_area = 10.0;
     gcode.relative_extrusion = false;
-    gcode.currentSpeed = 1;
+    gcode.currentSpeed = 1.0;
     Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
     Application::getInstance().current_slice->scene.extruders.emplace_back(0, &Application::getInstance().current_slice->scene.current_mesh_group->settings);
     Application::getInstance().current_slice->scene.extruders.back().settings.add("machine_firmware_retract", "false");
@@ -645,8 +654,8 @@ TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
     WipeScriptConfig config;
     config.retraction_enable = true;
     config.retraction_config.distance = 1;
-    config.retraction_config.speed = 2; // 120 mm/min.
-    config.retraction_config.primeSpeed = 3; // 180 mm/min.
+    config.retraction_config.speed = 2.0; // 120 mm/min.
+    config.retraction_config.primeSpeed = 3.0; // 180 mm/min.
     config.retraction_config.prime_volume = gcode.extruder_attr[0].filament_area * 4; // 4mm in linear dimensions
     config.retraction_config.retraction_count_max = 100; // Practically no limit.
     config.retraction_config.retraction_extrusion_window = 1;
@@ -655,7 +664,7 @@ TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
     config.brush_pos_x = 2000;
     config.repeat_count = 1;
     config.move_distance = 500;
-    config.move_speed = 10;
+    config.move_speed = 10.0;
     config.pause = 0;
 
     EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(3);
@@ -680,18 +689,18 @@ TEST_F(GCodeExportTest, insertWipeScriptHopEnable)
     gcode.currentPosition = Point3(1000, 1000, 1000);
     gcode.current_layer_z = 1000;
     gcode.use_extruder_offset_to_offset_coords = false;
-    gcode.currentSpeed = 1;
+    gcode.currentSpeed = 1.0;
     Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
 
     WipeScriptConfig config;
     config.retraction_enable = false;
     config.hop_enable = true;
-    config.hop_speed = 2; // 120 mm/min.
+    config.hop_speed = 2.0; // 120 mm/min.
     config.hop_amount = 300;
     config.brush_pos_x = 2000;
     config.repeat_count = 1;
     config.move_distance = 500;
-    config.move_speed = 10;
+    config.move_speed = 10.0;
     config.pause = 0;
 
     EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(3);

@@ -3,22 +3,24 @@
 
 #include "SkeletalTrapezoidation.h"
 
+#include "BoostInterface.hpp"
+#include "settings/types/Ratio.h"
+#include "utils/VoronoiUtils.h"
+#include "utils/linearAlg2D.h"
+#include "utils/macros.h"
+
+#include <scripta/logger.h>
+#include <spdlog/spdlog.h>
+
 #include <functional>
 #include <queue>
 #include <sstream>
 #include <stack>
 #include <unordered_set>
 
-#include <scripta/logger.h>
-#include <spdlog/spdlog.h>
-
-#include "settings/types/Ratio.h"
-#include "BoostInterface.hpp"
-#include "utils/VoronoiUtils.h"
-#include "utils/linearAlg2D.h"
-#include "utils/macros.h"
-
-#define SKELETAL_TRAPEZOIDATION_BEAD_SEARCH_MAX 1000 // A limit to how long it'll keep searching for adjacent beads. Increasing will re-use beadings more often (saving performance), but search longer for beading (costing performance).
+#define SKELETAL_TRAPEZOIDATION_BEAD_SEARCH_MAX \
+    1000 // A limit to how long it'll keep searching for adjacent beads. Increasing will re-use beadings more often (saving performance), but search longer for beading (costing
+         // performance).
 
 namespace cura
 {
@@ -39,7 +41,15 @@ SkeletalTrapezoidation::node_t& SkeletalTrapezoidation::makeNode(vd_t::vertex_ty
     }
 }
 
-void SkeletalTrapezoidation::transferEdge(Point from, Point to, vd_t::edge_type& vd_edge, edge_t*& prev_edge, Point& start_source_point, Point& end_source_point, const std::vector<Point>& points, const std::vector<Segment>& segments)
+void SkeletalTrapezoidation::transferEdge(
+    Point from,
+    Point to,
+    vd_t::edge_type& vd_edge,
+    edge_t*& prev_edge,
+    Point& start_source_point,
+    Point& end_source_point,
+    const std::vector<Point>& points,
+    const std::vector<Segment>& segments)
 {
     auto he_edge_it = vd_edge_to_he_edge.find(vd_edge.twin());
     if (he_edge_it != vd_edge_to_he_edge.end())
@@ -107,7 +117,8 @@ void SkeletalTrapezoidation::transferEdge(Point from, Point to, vd_t::edge_type&
         {
             spdlog::warn("Previous edge doesn't go anywhere.");
         }
-        node_t* v0 = (prev_edge) ? prev_edge->to : &makeNode(*vd_edge.vertex0(), from); // TODO: investigate whether boost:voronoi can produce multiple verts and violates consistency
+        node_t* v0
+            = (prev_edge) ? prev_edge->to : &makeNode(*vd_edge.vertex0(), from); // TODO: investigate whether boost:voronoi can produce multiple verts and violates consistency
         Point p0 = discretized.front();
         for (size_t p1_idx = 1; p1_idx < discretized.size(); p1_idx++)
         {
@@ -254,13 +265,14 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
 }
 
 
-bool SkeletalTrapezoidation::computePointCellRange(vd_t::cell_type& cell,
-                                                   Point& start_source_point,
-                                                   Point& end_source_point,
-                                                   vd_t::edge_type*& starting_vd_edge,
-                                                   vd_t::edge_type*& ending_vd_edge,
-                                                   const std::vector<Point>& points,
-                                                   const std::vector<Segment>& segments)
+bool SkeletalTrapezoidation::computePointCellRange(
+    vd_t::cell_type& cell,
+    Point& start_source_point,
+    Point& end_source_point,
+    vd_t::edge_type*& starting_vd_edge,
+    vd_t::edge_type*& ending_vd_edge,
+    const std::vector<Point>& points,
+    const std::vector<Segment>& segments)
 {
     if (cell.incident_edge()->is_infinite())
     {
@@ -298,7 +310,9 @@ bool SkeletalTrapezoidation::computePointCellRange(vd_t::cell_type& cell,
         }
         else
         {
-            assert((VoronoiUtils::p(vd_edge->vertex0()) == source_point || ! vd_edge->is_secondary()) && "point cells must end in the point! They cannot cross the point with an edge, because collinear edges are not allowed in the input.");
+            assert(
+                (VoronoiUtils::p(vd_edge->vertex0()) == source_point || ! vd_edge->is_secondary())
+                && "point cells must end in the point! They cannot cross the point with an edge, because collinear edges are not allowed in the input.");
         }
     } while (vd_edge = vd_edge->next(), vd_edge != cell.incident_edge());
     assert(starting_vd_edge && ending_vd_edge);
@@ -306,13 +320,14 @@ bool SkeletalTrapezoidation::computePointCellRange(vd_t::cell_type& cell,
     return true;
 }
 
-void SkeletalTrapezoidation::computeSegmentCellRange(vd_t::cell_type& cell,
-                                                     Point& start_source_point,
-                                                     Point& end_source_point,
-                                                     vd_t::edge_type*& starting_vd_edge,
-                                                     vd_t::edge_type*& ending_vd_edge,
-                                                     const std::vector<Point>& points,
-                                                     const std::vector<Segment>& segments)
+void SkeletalTrapezoidation::computeSegmentCellRange(
+    vd_t::cell_type& cell,
+    Point& start_source_point,
+    Point& end_source_point,
+    vd_t::edge_type*& starting_vd_edge,
+    vd_t::edge_type*& ending_vd_edge,
+    const std::vector<Point>& points,
+    const std::vector<Segment>& segments)
 {
     const Segment& source_segment = VoronoiUtils::getSourceSegment(cell, points, segments);
     Point from = source_segment.from();
@@ -357,15 +372,16 @@ void SkeletalTrapezoidation::computeSegmentCellRange(vd_t::cell_type& cell,
     end_source_point = source_segment.from();
 }
 
-SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys,
-                                               const BeadingStrategy& beading_strategy,
-                                               AngleRadians transitioning_angle,
-                                               coord_t discretization_step_size,
-                                               coord_t transition_filter_dist,
-                                               coord_t allowed_filter_deviation,
-                                               coord_t beading_propagation_transition_dist,
-                                               int layer_idx,
-                                               SectionType section_type)
+SkeletalTrapezoidation::SkeletalTrapezoidation(
+    const Polygons& polys,
+    const BeadingStrategy& beading_strategy,
+    AngleRadians transitioning_angle,
+    coord_t discretization_step_size,
+    coord_t transition_filter_dist,
+    coord_t allowed_filter_deviation,
+    coord_t beading_propagation_transition_dist,
+    int layer_idx,
+    SectionType section_type)
     : transitioning_angle(transitioning_angle)
     , discretization_step_size(discretization_step_size)
     , transition_filter_dist(transition_filter_dist)
@@ -375,6 +391,7 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys,
     , layer_idx(layer_idx)
     , section_type(section_type)
 {
+    scripta::log("skeletal_trapezoidation_0", polys, section_type, layer_idx);
     constructFromPolygons(polys);
 }
 
@@ -431,7 +448,15 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
 
         // Copy start to end edge to graph
         edge_t* prev_edge = nullptr;
-        transferEdge(start_source_point, VoronoiUtils::p(starting_vonoroi_edge->vertex1()), *starting_vonoroi_edge, prev_edge, start_source_point, end_source_point, points, segments);
+        transferEdge(
+            start_source_point,
+            VoronoiUtils::p(starting_vonoroi_edge->vertex1()),
+            *starting_vonoroi_edge,
+            prev_edge,
+            start_source_point,
+            end_source_point,
+            points,
+            segments);
         node_t* starting_node = vd_node_to_he_node[starting_vonoroi_edge->vertex0()];
         starting_node->data.distance_to_boundary = 0;
 
@@ -515,44 +540,164 @@ void SkeletalTrapezoidation::generateToolpaths(std::vector<VariableWidthLines>& 
     }
 
     updateBeadCount();
-    scripta::log("st_graph_0", graph, section_type, layer_idx,
-                 scripta::CellVDI{"is_central", [](const auto& edge){ return static_cast<int>(edge.data.is_central); } },
-                 scripta::CellVDI{"type", [](const auto& edge){ return static_cast<int>(edge.data.type); } },
-                 scripta::PointVDI{"distance_to_boundary", [](const auto& node){ return node->data.distance_to_boundary; } },
-                 scripta::PointVDI{"bead_count", [](const auto& node){ return node->data.bead_count; } },
-                 scripta::PointVDI{"transition_ratio", [](const auto& node){ return node->data.transition_ratio; } });
+    scripta::log(
+        "st_graph_0",
+        graph,
+        section_type,
+        layer_idx,
+        scripta::CellVDI{ "is_central",
+                          [](const auto& edge)
+                          {
+                              return static_cast<int>(edge.data.is_central);
+                          } },
+        scripta::CellVDI{ "type",
+                          [](const auto& edge)
+                          {
+                              return static_cast<int>(edge.data.type);
+                          } },
+        scripta::PointVDI{ "distance_to_boundary",
+                           [](const auto& node)
+                           {
+                               return node->data.distance_to_boundary;
+                           } },
+        scripta::PointVDI{ "bead_count",
+                           [](const auto& node)
+                           {
+                               return node->data.bead_count;
+                           } },
+        scripta::PointVDI{ "transition_ratio",
+                           [](const auto& node)
+                           {
+                               return node->data.transition_ratio;
+                           } });
 
     filterNoncentralRegions();
-    scripta::log("st_graph_1", graph, section_type, layer_idx,
-                 scripta::CellVDI{"is_central", [](const auto& edge){ return static_cast<int>(edge.data.is_central); } },
-                 scripta::CellVDI{"type", [](const auto& edge){ return static_cast<int>(edge.data.type); } },
-                 scripta::PointVDI{"distance_to_boundary", [](const auto& node){ return node->data.distance_to_boundary; } },
-                 scripta::PointVDI{"bead_count", [](const auto& node){ return node->data.bead_count; } },
-                 scripta::PointVDI{"transition_ratio", [](const auto& node){ return node->data.transition_ratio; } });
+    scripta::log(
+        "st_graph_1",
+        graph,
+        section_type,
+        layer_idx,
+        scripta::CellVDI{ "is_central",
+                          [](const auto& edge)
+                          {
+                              return static_cast<int>(edge.data.is_central);
+                          } },
+        scripta::CellVDI{ "type",
+                          [](const auto& edge)
+                          {
+                              return static_cast<int>(edge.data.type);
+                          } },
+        scripta::PointVDI{ "distance_to_boundary",
+                           [](const auto& node)
+                           {
+                               return node->data.distance_to_boundary;
+                           } },
+        scripta::PointVDI{ "bead_count",
+                           [](const auto& node)
+                           {
+                               return node->data.bead_count;
+                           } },
+        scripta::PointVDI{ "transition_ratio",
+                           [](const auto& node)
+                           {
+                               return node->data.transition_ratio;
+                           } });
 
     generateTransitioningRibs();
-    scripta::log("st_graph_2", graph, section_type, layer_idx,
-             scripta::CellVDI{"is_central", [](const auto& edge){ return static_cast<int>(edge.data.is_central); } },
-             scripta::CellVDI{"type", [](const auto& edge){ return static_cast<int>(edge.data.type); } },
-             scripta::PointVDI{"distance_to_boundary", [](const auto& node){ return node->data.distance_to_boundary; } },
-             scripta::PointVDI{"bead_count", [](const auto& node){ return node->data.bead_count; } },
-             scripta::PointVDI{"transition_ratio", [](const auto& node){ return node->data.transition_ratio; } });
+    scripta::log(
+        "st_graph_2",
+        graph,
+        section_type,
+        layer_idx,
+        scripta::CellVDI{ "is_central",
+                          [](const auto& edge)
+                          {
+                              return static_cast<int>(edge.data.is_central);
+                          } },
+        scripta::CellVDI{ "type",
+                          [](const auto& edge)
+                          {
+                              return static_cast<int>(edge.data.type);
+                          } },
+        scripta::PointVDI{ "distance_to_boundary",
+                           [](const auto& node)
+                           {
+                               return node->data.distance_to_boundary;
+                           } },
+        scripta::PointVDI{ "bead_count",
+                           [](const auto& node)
+                           {
+                               return node->data.bead_count;
+                           } },
+        scripta::PointVDI{ "transition_ratio",
+                           [](const auto& node)
+                           {
+                               return node->data.transition_ratio;
+                           } });
 
     generateExtraRibs();
-    scripta::log("st_graph_3", graph, section_type, layer_idx,
-             scripta::CellVDI{"is_central", [](const auto& edge){ return static_cast<int>(edge.data.is_central); } },
-             scripta::CellVDI{"type", [](const auto& edge){ return static_cast<int>(edge.data.type); } },
-             scripta::PointVDI{"distance_to_boundary", [](const auto& node){ return node->data.distance_to_boundary; } },
-             scripta::PointVDI{"bead_count", [](const auto& node){ return node->data.bead_count; } },
-             scripta::PointVDI{"transition_ratio", [](const auto& node){ return node->data.transition_ratio; } });
+    scripta::log(
+        "st_graph_3",
+        graph,
+        section_type,
+        layer_idx,
+        scripta::CellVDI{ "is_central",
+                          [](const auto& edge)
+                          {
+                              return static_cast<int>(edge.data.is_central);
+                          } },
+        scripta::CellVDI{ "type",
+                          [](const auto& edge)
+                          {
+                              return static_cast<int>(edge.data.type);
+                          } },
+        scripta::PointVDI{ "distance_to_boundary",
+                           [](const auto& node)
+                           {
+                               return node->data.distance_to_boundary;
+                           } },
+        scripta::PointVDI{ "bead_count",
+                           [](const auto& node)
+                           {
+                               return node->data.bead_count;
+                           } },
+        scripta::PointVDI{ "transition_ratio",
+                           [](const auto& node)
+                           {
+                               return node->data.transition_ratio;
+                           } });
 
     generateSegments();
-    scripta::log("st_graph_4", graph, section_type, layer_idx,
-                 scripta::CellVDI{"is_central", [](const auto& edge){ return static_cast<int>(edge.data.is_central); } },
-                 scripta::CellVDI{"type", [](const auto& edge){ return static_cast<int>(edge.data.type); } },
-                 scripta::PointVDI{"distance_to_boundary", [](const auto& node){ return node->data.distance_to_boundary; } },
-                 scripta::PointVDI{"bead_count", [](const auto& node){ return node->data.bead_count; } },
-                 scripta::PointVDI{"transition_ratio", [](const auto& node){ return node->data.transition_ratio; } });
+    scripta::log(
+        "st_graph_4",
+        graph,
+        section_type,
+        layer_idx,
+        scripta::CellVDI{ "is_central",
+                          [](const auto& edge)
+                          {
+                              return static_cast<int>(edge.data.is_central);
+                          } },
+        scripta::CellVDI{ "type",
+                          [](const auto& edge)
+                          {
+                              return static_cast<int>(edge.data.type);
+                          } },
+        scripta::PointVDI{ "distance_to_boundary",
+                           [](const auto& node)
+                           {
+                               return node->data.distance_to_boundary;
+                           } },
+        scripta::PointVDI{ "bead_count",
+                           [](const auto& node)
+                           {
+                               return node->data.bead_count;
+                           } },
+        scripta::PointVDI{ "transition_ratio",
+                           [](const auto& node)
+                           {
+                               return node->data.transition_ratio;
+                           } });
 }
 
 void SkeletalTrapezoidation::updateIsCentral()
@@ -919,7 +1064,8 @@ void SkeletalTrapezoidation::filterTransitionMids()
     }
 }
 
-std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, coord_t traveled_dist, coord_t max_dist, bool going_up)
+std::list<SkeletalTrapezoidation::TransitionMidRef>
+    SkeletalTrapezoidation::dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, coord_t traveled_dist, coord_t max_dist, bool going_up)
 {
     std::list<TransitionMidRef> to_be_dissolved;
     if (traveled_dist > max_dist)
@@ -946,7 +1092,9 @@ std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::diss
         const coord_t radius_here = edge->from->data.distance_to_boundary;
         const bool dissolve_result_is_odd = bool(origin_transition.lower_bead_count % 2) == going_up;
         const coord_t width_deviation = std::abs(origin_radius - radius_here) * 2; // times by two because the deviation happens at both sides of the significant edge
-        const coord_t line_width_deviation = dissolve_result_is_odd ? width_deviation : width_deviation / 2; // assume the deviation will be split over either 1 or 2 lines, i.e. assume wall_distribution_count = 1
+        const coord_t line_width_deviation = dissolve_result_is_odd
+                                               ? width_deviation
+                                               : width_deviation / 2; // assume the deviation will be split over either 1 or 2 lines, i.e. assume wall_distribution_count = 1
         if (line_width_deviation > allowed_filter_deviation)
         {
             should_dissolve = false;
@@ -973,7 +1121,8 @@ std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::diss
         }
         if (should_dissolve && ! seen_transition_on_this_edge)
         {
-            std::list<SkeletalTrapezoidation::TransitionMidRef> to_be_dissolved_here = dissolveNearbyTransitions(edge, origin_transition, traveled_dist + ab_size, max_dist, going_up);
+            std::list<SkeletalTrapezoidation::TransitionMidRef> to_be_dissolved_here
+                = dissolveNearbyTransitions(edge, origin_transition, traveled_dist + ab_size, max_dist, going_up);
             if (to_be_dissolved_here.empty())
             { // The region is too long to be dissolved in this direction, so it cannot be dissolved in any direction.
                 to_be_dissolved.clear();
@@ -1073,7 +1222,7 @@ void SkeletalTrapezoidation::generateTransitionEnds(edge_t& edge, coord_t mid_po
     const float transition_mid_position = beading_strategy.getTransitionAnchorPos(lower_bead_count);
     constexpr float inner_bead_width_ratio_after_transition = 1.0;
 
-    constexpr coord_t start_rest = 0;
+    constexpr Ratio start_rest{ 0.0 };
     const float mid_rest = transition_mid_position * inner_bead_width_ratio_after_transition;
     constexpr float end_rest = inner_bead_width_ratio_after_transition;
 
@@ -1091,7 +1240,7 @@ void SkeletalTrapezoidation::generateTransitionEnds(edge_t& edge, coord_t mid_po
 #ifdef DEBUG
         if (! generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_transition_ends))
         {
-            spdlog::warn("There must have been at least one direction in which the bead count is increasing enough for the transition to happen!");
+            spdlog::debug("There must have been at least one direction in which the bead count is increasing enough for the transition to happen!");
         }
 #else
         generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_transition_ends);
@@ -1099,14 +1248,15 @@ void SkeletalTrapezoidation::generateTransitionEnds(edge_t& edge, coord_t mid_po
     }
 }
 
-bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge,
-                                                   coord_t start_pos,
-                                                   coord_t end_pos,
-                                                   coord_t transition_half_length,
-                                                   Ratio start_rest,
-                                                   Ratio end_rest,
-                                                   coord_t lower_bead_count,
-                                                   ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends)
+bool SkeletalTrapezoidation::generateTransitionEnd(
+    edge_t& edge,
+    coord_t start_pos,
+    coord_t end_pos,
+    coord_t transition_half_length,
+    Ratio start_rest,
+    Ratio end_rest,
+    coord_t lower_bead_count,
+    ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends)
 {
     Point a = edge.from->p;
     Point b = edge.to->p;
@@ -1298,7 +1448,11 @@ void SkeletalTrapezoidation::applyTransitions(ptr_vector_t<std::list<TransitionE
         assert(edge.data.isCentral());
 
         auto& transitions = *edge.data.getTransitionEnds();
-        transitions.sort([](const TransitionEnd& a, const TransitionEnd& b) { return a.pos < b.pos; });
+        transitions.sort(
+            [](const TransitionEnd& a, const TransitionEnd& b)
+            {
+                return a.pos < b.pos;
+            });
 
         node_t* from = edge.from;
         node_t* to = edge.to;
@@ -1357,7 +1511,8 @@ void SkeletalTrapezoidation::generateExtraRibs()
     //       The code was equivalent to a full loop over all the edges though, unless there was one edge or less, in which case it would produce undefined behaviour.
     for (auto& edge : graph.edges)
     {
-        if (! edge.data.isCentral() || shorterThen(edge.to->p - edge.from->p, discretization_step_size) || edge.from->data.distance_to_boundary >= edge.to->data.distance_to_boundary)
+        if (! edge.data.isCentral() || shorterThen(edge.to->p - edge.from->p, discretization_step_size)
+            || edge.from->data.distance_to_boundary >= edge.to->data.distance_to_boundary)
         {
             continue;
         }
@@ -1432,34 +1587,35 @@ void SkeletalTrapezoidation::generateSegments()
         }
     }
 
-    std::sort(upward_quad_mids.begin(),
-              upward_quad_mids.end(),
-              [this](edge_t* a, edge_t* b)
-              {
-                  if (a->to->data.distance_to_boundary == b->to->data.distance_to_boundary)
-                  { // PathOrdering between two 'upward' edges of the same distance is important when one of the edges is flat and connected to the other
-                      if (a->from->data.distance_to_boundary == a->to->data.distance_to_boundary && b->from->data.distance_to_boundary == b->to->data.distance_to_boundary)
-                      {
-                          coord_t max = std::numeric_limits<coord_t>::max();
-                          coord_t a_dist_from_up = std::min(a->distToGoUp().value_or(max), a->twin->distToGoUp().value_or(max)) - vSize(a->to->p - a->from->p);
-                          coord_t b_dist_from_up = std::min(b->distToGoUp().value_or(max), b->twin->distToGoUp().value_or(max)) - vSize(b->to->p - b->from->p);
-                          return a_dist_from_up < b_dist_from_up;
-                      }
-                      else if (a->from->data.distance_to_boundary == a->to->data.distance_to_boundary)
-                      {
-                          return true; // Edge a might be 'above' edge b
-                      }
-                      else if (b->from->data.distance_to_boundary == b->to->data.distance_to_boundary)
-                      {
-                          return false; // Edge b might be 'above' edge a
-                      }
-                      else
-                      {
-                          // PathOrdering is not important
-                      }
-                  }
-                  return a->to->data.distance_to_boundary > b->to->data.distance_to_boundary;
-              });
+    std::sort(
+        upward_quad_mids.begin(),
+        upward_quad_mids.end(),
+        [this](edge_t* a, edge_t* b)
+        {
+            if (a->to->data.distance_to_boundary == b->to->data.distance_to_boundary)
+            { // PathOrdering between two 'upward' edges of the same distance is important when one of the edges is flat and connected to the other
+                if (a->from->data.distance_to_boundary == a->to->data.distance_to_boundary && b->from->data.distance_to_boundary == b->to->data.distance_to_boundary)
+                {
+                    coord_t max = std::numeric_limits<coord_t>::max();
+                    coord_t a_dist_from_up = std::min(a->distToGoUp().value_or(max), a->twin->distToGoUp().value_or(max)) - vSize(a->to->p - a->from->p);
+                    coord_t b_dist_from_up = std::min(b->distToGoUp().value_or(max), b->twin->distToGoUp().value_or(max)) - vSize(b->to->p - b->from->p);
+                    return a_dist_from_up < b_dist_from_up;
+                }
+                else if (a->from->data.distance_to_boundary == a->to->data.distance_to_boundary)
+                {
+                    return true; // Edge a might be 'above' edge b
+                }
+                else if (b->from->data.distance_to_boundary == b->to->data.distance_to_boundary)
+                {
+                    return false; // Edge b might be 'above' edge a
+                }
+                else
+                {
+                    // PathOrdering is not important
+                }
+            }
+            return a->to->data.distance_to_boundary > b->to->data.distance_to_boundary;
+        });
 
     ptr_vector_t<BeadingPropagation> node_beadings;
     { // Store beading
@@ -1549,8 +1705,10 @@ void SkeletalTrapezoidation::propagateBeadingsUpward(std::vector<edge_t*>& upwar
         { // Only propagate to places where there is place
             continue;
         }
-        assert((upward_edge->from->data.distance_to_boundary != upward_edge->to->data.distance_to_boundary || shorterThen(upward_edge->to->p - upward_edge->from->p, central_filter_dist))
-               && "zero difference R edges should always be central");
+        assert(
+            (upward_edge->from->data.distance_to_boundary != upward_edge->to->data.distance_to_boundary
+             || shorterThen(upward_edge->to->p - upward_edge->from->p, central_filter_dist))
+            && "zero difference R edges should always be central");
         coord_t length = vSize(upward_edge->to->p - upward_edge->from->p);
         BeadingPropagation upper_beading = lower_beading;
         upper_beading.dist_to_bottom_source += length;
@@ -1569,7 +1727,8 @@ void SkeletalTrapezoidation::propagateBeadingsDownward(std::vector<edge_t*>& upw
         if (! upward_quad_mid->data.isCentral())
         {
             // for equidistant edge: propagate from known beading to node with unknown beading
-            if (upward_quad_mid->from->data.distance_to_boundary == upward_quad_mid->to->data.distance_to_boundary && upward_quad_mid->from->data.hasBeading() && ! upward_quad_mid->to->data.hasBeading())
+            if (upward_quad_mid->from->data.distance_to_boundary == upward_quad_mid->to->data.distance_to_boundary && upward_quad_mid->from->data.hasBeading()
+                && ! upward_quad_mid->to->data.hasBeading())
             {
                 propagateBeadingsDownward(upward_quad_mid->twin, node_beadings);
             }
@@ -1638,7 +1797,7 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
     // TODO: don't use toolpath locations past the middle!
     // TODO: stretch bead widths and locations of the higher bead count beading to fit in the left over space
     coord_t next_inset_idx;
-    for (next_inset_idx = left.toolpath_locations.size() - 1; next_inset_idx >= 0; next_inset_idx--)
+    for (next_inset_idx = static_cast<coord_t>(left.toolpath_locations.size()) - 1; next_inset_idx >= 0; next_inset_idx--)
     {
         if (switching_radius > left.toolpath_locations[next_inset_idx])
         {
@@ -1665,7 +1824,8 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
         // f*(l-r) + r = s
         // f*(l-r) = s - r
         // f = (s-r) / (l-r)
-        float new_ratio = static_cast<float>(switching_radius - right.toolpath_locations[next_inset_idx]) / static_cast<float>(left.toolpath_locations[next_inset_idx] - right.toolpath_locations[next_inset_idx]);
+        float new_ratio = static_cast<float>(switching_radius - right.toolpath_locations[next_inset_idx])
+                        / static_cast<float>(left.toolpath_locations[next_inset_idx] - right.toolpath_locations[next_inset_idx]);
         new_ratio = std::min(1.0, new_ratio + 0.1);
         return interpolate(left, new_ratio, right);
     }
@@ -1813,12 +1973,17 @@ std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezo
     {
         edge_t* edge_to;
         coord_t dist;
-        DistEdge(edge_t* edge_to, coord_t dist) : edge_to(edge_to), dist(dist)
+        DistEdge(edge_t* edge_to, coord_t dist)
+            : edge_to(edge_to)
+            , dist(dist)
         {
         }
     };
 
-    auto compare = [](const DistEdge& l, const DistEdge& r) -> bool { return l.dist > r.dist; };
+    auto compare = [](const DistEdge& l, const DistEdge& r) -> bool
+    {
+        return l.dist > r.dist;
+    };
     std::priority_queue<DistEdge, std::vector<DistEdge>, decltype(compare)> further_edges(compare);
     bool first = true;
     for (edge_t* outgoing = node->incident_edge; outgoing && (first || outgoing != node->incident_edge); outgoing = outgoing->twin->next)
@@ -1863,19 +2028,21 @@ void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, c
         generated_toolpaths.resize(inset_idx + 1);
     }
     assert((generated_toolpaths[inset_idx].empty() || ! generated_toolpaths[inset_idx].back().junctions.empty()) && "empty extrusion lines should never have been generated");
-    if (generated_toolpaths[inset_idx].empty() || generated_toolpaths[inset_idx].back().is_odd != is_odd || generated_toolpaths[inset_idx].back().junctions.back().perimeter_index != inset_idx // inset_idx should always be consistent
+    if (generated_toolpaths[inset_idx].empty() || generated_toolpaths[inset_idx].back().is_odd != is_odd
+        || generated_toolpaths[inset_idx].back().junctions.back().perimeter_index != inset_idx // inset_idx should always be consistent
     )
     {
         force_new_path = true;
     }
-    if (! force_new_path && shorterThen(generated_toolpaths[inset_idx].back().junctions.back().p - from.p, 10) && std::abs(generated_toolpaths[inset_idx].back().junctions.back().w - from.w) < 10
-        && ! from_is_3way // force new path at 3way intersection
+    if (! force_new_path && shorterThen(generated_toolpaths[inset_idx].back().junctions.back().p - from.p, 10)
+        && std::abs(generated_toolpaths[inset_idx].back().junctions.back().w - from.w) < 10 && ! from_is_3way // force new path at 3way intersection
     )
     {
         generated_toolpaths[inset_idx].back().junctions.push_back(to);
     }
-    else if (! force_new_path && shorterThen(generated_toolpaths[inset_idx].back().junctions.back().p - to.p, 10) && std::abs(generated_toolpaths[inset_idx].back().junctions.back().w - to.w) < 10
-             && ! to_is_3way // force new path at 3way intersection
+    else if (
+        ! force_new_path && shorterThen(generated_toolpaths[inset_idx].back().junctions.back().p - to.p, 10)
+        && std::abs(generated_toolpaths[inset_idx].back().junctions.back().w - to.w) < 10 && ! to_is_3way // force new path at 3way intersection
     )
     {
         if (! is_odd)
@@ -1972,7 +2139,10 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
             assert(std::abs(int(from_junctions.size()) - int(to_junctions.size())) <= 1); // at transitions one end has more beads
             if (std::abs(int(from_junctions.size()) - int(to_junctions.size())) > 1)
             {
-                spdlog::warn("Can't create a transition when connecting two perimeters where the number of beads differs too much! {} vs. {}", from_junctions.size(), to_junctions.size());
+                spdlog::warn(
+                    "Can't create a transition when connecting two perimeters where the number of beads differs too much! {} vs. {}",
+                    from_junctions.size(),
+                    to_junctions.size());
             }
 
             size_t segment_count = std::min(from_junctions.size(), to_junctions.size());

@@ -1,14 +1,15 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
+
+#include "Mold.h"
 
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
-#include "Mold.h"
 #include "Scene.h"
 #include "Slice.h"
+#include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "slicer.h"
-#include "settings/types/Ratio.h"
 #include "utils/IntPoint.h"
 
 namespace cura
@@ -28,18 +29,18 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
                 mesh.expandXY(mesh.settings.get<coord_t>("mold_width"));
             }
         }
-        if (!has_any_mold)
+        if (! has_any_mold)
         {
             return;
         }
     }
 
-    unsigned int layer_count = 0;
+    LayerIndex layer_count = 0;
     { // compute layer_count
         for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
         {
             Slicer& slicer = *slicer_list[mesh_idx];
-            unsigned int layer_count_here = slicer.layers.size();
+            LayerIndex layer_count_here = slicer.layers.size();
             layer_count = std::max(layer_count, layer_count_here);
         }
     }
@@ -56,7 +57,7 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
         {
             const Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
             Slicer& slicer = *slicer_list[mesh_idx];
-            if (!mesh.settings.get<bool>("mold_enabled") || layer_nr >= static_cast<int>(slicer.layers.size()))
+            if (! mesh.settings.get<bool>("mold_enabled") || layer_nr >= static_cast<int>(slicer.layers.size()))
             {
                 continue;
             }
@@ -92,7 +93,7 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
             // add roofs
             if (roof_layer_count > 0 && layer_nr > 0)
             {
-                unsigned int layer_nr_below = std::max(0, static_cast<int>(layer_nr - roof_layer_count));
+                LayerIndex layer_nr_below = std::max(0, static_cast<int>(layer_nr - roof_layer_count));
                 Polygons roofs = slicer.layers[layer_nr_below].polygons.offset(width, ClipperLib::jtRound); // TODO: don't compute offset twice!
                 layer.polygons = layer.polygons.unionPolygons(roofs);
             }
@@ -107,7 +108,7 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
         for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
         {
             const Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
-            if (!mesh.settings.get<bool>("mold_enabled"))
+            if (! mesh.settings.get<bool>("mold_enabled"))
             {
                 continue; // only cut original models out of all molds
             }
@@ -116,8 +117,7 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
             layer.polygons = layer.polygons.difference(all_original_mold_outlines);
         }
     }
-
 }
 
 
-}//namespace cura
+} // namespace cura
