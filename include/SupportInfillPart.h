@@ -38,7 +38,7 @@ public:
     bool use_fractional_config; //!< Request to use the configuration used to fill a partial layer height here, instead of the normal full layer height configuration.
     EFillMethod custom_line_pattern;
 
-    SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, bool use_fractional_config,int inset_count_to_generate = 0, coord_t custom_line_distance = 0, EFillMethod custom_line_pattern = EFillMethod::NONE );
+    SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, bool use_fractional_config, int inset_count_to_generate = 0, coord_t custom_line_distance = 0, EFillMethod custom_line_pattern = EFillMethod::NONE );
 
     const Polygons& getInfillArea() const;
 };

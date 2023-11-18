@@ -721,7 +721,9 @@ void SupportLayer::fillInfillParts(
     const coord_t support_line_width,
     const coord_t wall_line_count,
     const coord_t grow_layer_above /*has default 0*/,
-    const bool unionAll /*has default false*/)
+    const bool unionAll /*has default false*/,
+    const coord_t custom_line_distance /*has default false*/,
+    const EFillMethod custom_pattern /*has default None*/)
 {
     const Polygons& support_this_layer = support_fill_per_layer[layer_nr];
     const Polygons& support_layer_above
@@ -732,7 +734,7 @@ void SupportLayer::fillInfillParts(
     {
         for (const PolygonsPart& island_outline : support_areas.splitIntoParts(unionAll))
         {
-            support_infill_parts.emplace_back(island_outline, support_line_width, use_fractional_config, wall_line_count);
+            support_infill_parts.emplace_back(island_outline, support_line_width, use_fractional_config, wall_line_count, custom_line_distance, custom_pattern);
         }
         use_fractional_config = false;
     }

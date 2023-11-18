@@ -1821,7 +1821,7 @@ void TreeSupportTipGenerator::generateTips(
                 if (use_fake_roof)
                 {
                     storage.support.supportLayers[layer_idx]
-                        .fillInfillParts(layer_idx, support_roof_drawn, config.support_line_width, support_roof_line_distance, config.maximum_move_distance);
+                        .fillInfillParts(layer_idx, support_roof_drawn, config.support_line_width, 0, config.maximum_move_distance, false, support_roof_line_distance);
                     placed_fake_roof_areas[layer_idx].add(support_roof_drawn[layer_idx]);
                     placed_support_lines_support_areas[layer_idx].add( // todo Only save the area and add to storage at the end to enable correct handling of Support Interface Priority of fake roofs.
                         TreeSupportUtils::generateSupportInfillLines(support_roof_drawn[layer_idx], config, false, layer_idx, support_roof_line_distance, cross_fill_provider, false).offsetPolyLine(config.support_line_width / 2));

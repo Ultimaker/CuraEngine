@@ -243,7 +243,9 @@ public:
         const coord_t support_line_width,
         const coord_t wall_line_count,
         const coord_t grow_layer_above = 0,
-        const bool unionAll = false);
+        const bool unionAll = false,
+        const coord_t custom_line_distance = 0,
+        EFillMethod custom_pattern = EFillMethod::NONE);
 };
 
 class SupportStorage
