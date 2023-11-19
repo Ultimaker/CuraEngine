@@ -406,6 +406,10 @@ private:
      */
     bool large_cradle_line_tips;
 
+    /*!
+     * \brief Distance the cradle lines should be from the model.
+     */
+    coord_t cradle_xy_distance;
 
     std::mutex critical_cradle;
     std::mutex critical_move_bounds;
