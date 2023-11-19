@@ -1,5 +1,6 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+
 #ifndef TREESUPPORTSETTINGS_H
 #define TREESUPPORTSETTINGS_H
 
@@ -14,6 +15,26 @@
 
 namespace cura
 {
+
+template<typename A>
+static A retrieveSetting(const Settings& settings, const std::string& key)
+{
+    if(settings.has(key))
+    {
+        return settings.get<A>(key);
+    }
+    else
+    {
+        for(std::string setting_key:settings.getKeys())
+        {
+            if(setting_key.find(key) != std::string::npos)
+            {
+                return  settings.get<A>(setting_key);
+            }
+        }
+        return settings.get<A>(key); // this will cause a crash, but that's the expected behaviour in this case anyway
+    }
+}
 
 /*!
  * \brief This struct contains settings used in the tree support. Thanks to this most functions do not need to know of meshes etc. Also makes the code shorter.
@@ -69,13 +90,12 @@ struct TreeSupportSettings
         min_feature_size(mesh_group_settings.get<coord_t>("min_feature_size")),
         min_wall_line_width(settings.get<coord_t>("min_wall_line_width")),
         fill_outline_gaps(settings.get<bool>("fill_outline_gaps")),
-        support_skin_layers(settings.get<coord_t>("support_tree_support_skin_height")/layer_height),
-        support_skin_line_distance(settings.get<coord_t>("support_tree_support_skin_line_distance")),
-        support_tree_skin_for_large_tips_radius_threshold(settings.get<coord_t>("support_tree_skin_for_large_tips_threshold") / 2),
+        support_skin_layers(retrieveSetting<coord_t>(mesh_group_settings,"support_tree_support_skin_height")/layer_height),
+        support_skin_line_distance(retrieveSetting<coord_t>(mesh_group_settings,"support_tree_support_skin_line_distance")),
+        support_tree_skin_for_large_tips_radius_threshold(retrieveSetting<coord_t>(mesh_group_settings,"support_tree_skin_for_large_tips_threshold") / 2),
         simplifier(Simplify(mesh_group_settings))
     {
         layer_start_bp_radius = (bp_radius - branch_radius) / (branch_radius * diameter_scale_bp_radius);
-
         // safeOffsetInc can only work in steps of the size xy_min_distance in the worst case => xy_min_distance has to be a bit larger than 0 in this worst case and should be large enough for performance to not suffer extremely
         // When for all meshes the z bottom and top distance is more than one layer though the worst case is xy_min_distance + min_feature_size
         // This is not the best solution, but the only one to ensure areas can not lag though walls at high maximum_move_distance.

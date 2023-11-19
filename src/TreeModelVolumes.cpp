@@ -78,8 +78,8 @@ TreeModelVolumes::TreeModelVolumes(
         min_maximum_deviation = std::min(min_maximum_deviation, data_pair.first.get<coord_t>("meshfix_maximum_deviation"));
         min_maximum_resolution = std::min(min_maximum_resolution, data_pair.first.get<coord_t>("meshfix_maximum_resolution"));
         min_maximum_area_deviation = std::min(min_maximum_area_deviation, data_pair.first.get<coord_t>("meshfix_maximum_extrusion_area_deviation"));
-        max_cradle_layers = std::max(coord_t(max_cradle_layers), data_pair.first.get<coord_t>("support_tree_cradle_height") / config.layer_height);
-        max_cradle_dtt = std::max(max_cradle_dtt, size_t(config.tip_layers * data_pair.first.get<double>("support_tree_cradle_base_tip_percentage") / 100.0));
+        max_cradle_layers = std::max(coord_t(max_cradle_layers), retrieveSetting<coord_t>(data_pair.first,"support_tree_cradle_height") / config.layer_height);
+        max_cradle_dtt = std::max(max_cradle_dtt, size_t(config.tip_layers * retrieveSetting<double>(data_pair.first,"support_tree_cradle_base_tip_percentage") / 100.0));
     }
 
 
