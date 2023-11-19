@@ -98,7 +98,10 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
         mesh.first.setActualZ(known_z);
     }
 
-    placed_support_lines_support_areas = std::vector<Polygons>(storage.support.supportLayers.size(), Polygons());
+    placed_support_lines_support_areas = std::vector<Polygons>(storage.support.supportLayers.size(),Polygons());
+    placed_fake_roof_areas = std::vector<Polygons>(storage.support.supportLayers.size(),Polygons());
+    support_free_areas = std::vector<Polygons>(storage.support.supportLayers.size(), Polygons());
+
 }
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
@@ -122,7 +125,6 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 .size()); // Value is the area where support may be placed. As this is calculated in CreateLayerPathing it is saved and reused in drawAreas.
 
         additional_required_support_area = std::vector<Polygons>(storage.support.supportLayers.size(), Polygons());
-
 
         spdlog::info("Processing support tree mesh group {} of {} containing {} meshes.", counter + 1, grouped_meshes.size(), grouped_meshes[counter].second.size());
         std::vector<Polygons> exclude(storage.support.supportLayers.size());
@@ -189,7 +191,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         const auto dur_total = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_draw - t_start).count();
         spdlog::info(
             "Total time used creating Tree support for the currently grouped meshes: {} ms. Different subtasks:\n"
-            "Calculating Avoidance: {} ms Creating inital influence areas: {} ms Influence area creation: {} ms Placement of Points in InfluenceAreas: {} ms Drawing result as "
+            "Calculating Avoidance: {} ms Creating initial influence areas: {} ms Influence area creation: {} ms Placement of Points in InfluenceAreas: {} ms Drawing result as "
             "support {} ms",
             dur_total,
             dur_pre_gen,
@@ -251,7 +253,7 @@ void TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size
 void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage)
 {
     TreeSupportTipGenerator tip_gen(storage, mesh, volumes_);
-    tip_gen.generateTips(storage, mesh, move_bounds, additional_required_support_area, placed_support_lines_support_areas);
+    tip_gen.generateTips(storage, mesh, move_bounds, additional_required_support_area, placed_support_lines_support_areas, placed_fake_roof_areas , support_free_areas);
 }
 
 void TreeSupport::mergeHelper(
@@ -687,6 +689,17 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
             current_elem.to_buildplate = true; // sometimes nodes that can reach the buildplate are marked as cant reach, tainting subtrees. This corrects it.
             spdlog::debug("Corrected taint leading to a wrong to model value on layer {} targeting {} with radius {}", layer_idx - 1, current_elem.target_height, radius);
         }
+
+        // Sometimes the avoidance can contain holes that are smaller than 1, so in that case increase the area slightly,
+        // technically this makes the influence area is larger than it should be (as it overlaps with the avoidance slightly),
+        // but everything compensates for small rounding errors already, so it will be fine.
+        // Other solution would be to apply a morphological closure for the avoidances, but as this issue occurs very rarely it may not be worth the performance impact.
+        if(! settings.no_error && ! to_bp_data.empty() && to_bp_data.area()<1)
+        {
+            to_bp_data = to_bp_data.unionPolygons(to_bp_data.offsetPolyLine(1));
+            spdlog::warn("Detected very small influence area, possible caused by a small hole in the avoidance. Compensating.");
+        }
+
     }
     if (config.support_rests_on_model)
     {
@@ -708,6 +721,17 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
                     = TreeSupportUtils::safeUnion(increased.difference(volumes_.getAvoidance(radius, layer_idx - 1, AvoidanceType::COLLISION, true, settings.use_min_distance)));
             }
         }
+
+        // Sometimes the avoidance can contain holes that are smaller than 1, so in that case increase the area slightly,
+        // technically this makes the influence area is larger than it should be (as it overlaps with the avoidance slightly),
+        // but everything compensates for small rounding errors already, so it will be fine.
+        // Other solution would be to apply a morphological closure for the avoidances, but as this issue occurs very rarely it may not be worth the performance impact.
+        if(! settings.no_error && ! to_model_data.empty() && to_model_data.area()<1)
+        {
+            to_model_data = to_model_data.unionPolygons(to_model_data.offsetPolyLine(1));
+            spdlog::warn("Detected very small influence area, possible caused by a small hole in the avoidance. Compensating.");
+        }
+
     }
 
     check_layer_data = current_elem.to_buildplate ? to_bp_data : to_model_data;
@@ -879,6 +903,37 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
                 current_elem.RecreateInfluenceLimitArea();
             }
         }
+    }
+
+    const Polygons& anti_preferred = volumes_.getAntiPreferredAreas(layer_idx - 1);
+
+
+    // Remove areas where the branch should not be if possible.
+    // Has to be also subtracted from increased, as otherwise a merge directly below the anti-preferred area may force a branch inside it.
+    if(!anti_preferred.empty() && check_layer_data.area() > 1)
+    {
+
+        if (current_elem.to_buildplate)
+        {
+            Polygons to_bp_without_anti = to_bp_data.difference(anti_preferred);
+            if (to_bp_without_anti.area() > 1)
+            {
+                to_bp_data = to_bp_without_anti;
+                to_model_data = to_model_data.difference(anti_preferred);
+                increased = increased.difference(anti_preferred);
+            }
+        }
+        else
+        {
+            Polygons to_model_data_without_anti  = to_model_data.difference(anti_preferred);
+            if (to_model_data_without_anti.area() > 1)
+            {
+                to_bp_data = to_bp_data.difference(anti_preferred);
+                to_model_data = to_model_data_without_anti;
+                increased = increased.difference(anti_preferred);
+            }
+        }
+
     }
 
     return check_layer_data.area() > 1 ? std::optional<TreeSupportElement>(current_elem) : std::optional<TreeSupportElement>();
@@ -1498,7 +1553,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement*>>& 
     {
         Point best = first_elem->next_position;
         Polygons valid_place_area
-            = first_elem->area->difference(volumes_.getAvoidance(config.getCollisionRadius(first_elem), layer_idx, AvoidanceType::COLLISION, first_elem->use_min_xy_dist));
+            = first_elem->area->difference(volumes_.getAvoidance(config.getCollisionRadius(*first_elem), layer_idx, AvoidanceType::COLLISION, first_elem->use_min_xy_dist));
 
         if (! valid_place_area.inside(best, true))
         {
@@ -1509,8 +1564,8 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement*>>& 
             else
             {
                 bool found_partial_placement;
-                for (coord_t radius_offset : { -config.getCollisionRadius(first_elem),
-                                               -config.getCollisionRadius(first_elem) / 2,
+                for (coord_t radius_offset : { -config.getCollisionRadius(*first_elem),
+                                               -config.getCollisionRadius(*first_elem) / 2,
                                                coord_t(0) }) // Interestingly the first radius is working most of the time, even though it seems like it shouldn't.
                 {
                     valid_place_area = first_elem->area->intersection(volumes_.getAccumulatedPlaceable0(layer_idx).offset(radius_offset));
@@ -1521,7 +1576,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement*>>& 
                             "Not able to place branch fully on non support blocker at layer {} using offset {} for radius {}",
                             layer_idx,
                             radius_offset,
-                            config.getCollisionRadius(first_elem));
+                            config.getCollisionRadius(*first_elem));
                         found_partial_placement = true;
                         break;
                     }
@@ -1679,7 +1734,7 @@ void TreeSupport::generateBranchAreas(
                 for (TreeSupportElement* parent : elem->parents)
                 {
                     Point movement = (parent->result_on_layer - elem->result_on_layer);
-                    movement_directions.emplace_back(movement, std::max(config.getRadius(parent), config.support_line_width));
+                    movement_directions.emplace_back(movement, std::max(config.getRadius(*parent), config.support_line_width));
                     parent_uses_min |= parent->use_min_xy_dist;
                 }
 
@@ -1942,14 +1997,215 @@ void TreeSupport::dropNonGraciousAreas(
         });
 }
 
-
-void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_storage)
+void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_storage, std::vector<Polygons>& support_skin_storage,  std::vector<Polygons>& support_roof_storage, SliceDataStorage& storage, std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons)
 {
     const auto t_start = std::chrono::high_resolution_clock::now();
-
-    const coord_t closing_dist = config.support_line_width * config.support_wall_count;
-    const coord_t open_close_distance = config.fill_outline_gaps ? config.min_feature_size / 2 - 5 : config.min_wall_line_width / 2 - 5; // based on calculation in WallToolPath
+    const coord_t open_close_distance = config.fill_outline_gaps ? config.min_feature_size/ 2 - 5 : config.min_wall_line_width/ 2 - 5; // based on calculation in WallToolPath
     const double small_area_length = INT2MM(static_cast<double>(config.support_line_width) / 2);
+
+    std::mutex critical_support_layer_storage;
+
+
+    cura::parallel_for<coord_t>
+        (
+            0,
+            support_layer_storage.size(),
+            [&](const LayerIndex layer_idx)
+            {
+                support_layer_storage[layer_idx] = config.simplifier.polygon(PolygonUtils::unionManySmall(support_layer_storage[layer_idx].smooth(FUDGE_LENGTH))).offset(-open_close_distance).offset(open_close_distance * 2).offset(-open_close_distance);
+                support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(placed_support_lines_support_areas[layer_idx]);
+                support_layer_storage[layer_idx].removeSmallAreas(small_area_length * small_area_length, false);
+                placed_fake_roof_areas[layer_idx] = placed_fake_roof_areas[layer_idx].unionPolygons();
+
+                //If areas are overwriting others in can will influence where support skin will be generated. So the differences have to be calculated here.
+                if (!storage.support.supportLayers[layer_idx].support_roof.empty())
+                {
+                    switch (config.interface_preference)
+                    {
+                    case InterfacePreference::INTERFACE_AREA_OVERWRITES_SUPPORT:
+                        support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(storage.support.supportLayers[layer_idx].support_roof);
+                        break;
+
+                    case InterfacePreference::SUPPORT_AREA_OVERWRITES_INTERFACE:
+                        storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.difference(support_layer_storage[layer_idx]).difference(support_skin_storage[layer_idx]);
+                        break;
+
+                    default:
+                        break;
+                    }
+                }
+
+                storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.unionPolygons(support_roof_storage[layer_idx]).difference(support_free_areas[layer_idx]);
+                if(!support_free_areas[layer_idx].empty())
+                {
+                    support_layer_storage[layer_idx] =  support_layer_storage[layer_idx].difference(support_free_areas[layer_idx]);
+                }
+
+            }
+        );
+
+    const auto t_union = std::chrono::high_resolution_clock::now();
+
+
+    if(config.support_skin_layers)
+    {
+
+    cura::parallel_for<coord_t>
+        (
+            0,
+            support_layer_storage.size(),
+            [&](const LayerIndex layer_idx)
+            {
+
+                if(support_layer_storage[layer_idx].empty())
+                {
+                    return;
+                }
+
+                const coord_t roof_stable_range_after_contact = config.support_roof_line_width * config.support_roof_wall_count;
+                Polygons support_shell_capable_of_supporting_roof = support_layer_storage[layer_idx]
+                                                           .getOutsidePolygons()
+                                                           .tubeShape(config.support_line_width * config.support_wall_count + roof_stable_range_after_contact, roof_stable_range_after_contact, ClipperLib::JoinType::jtRound)
+                                                           .unionPolygons()
+                                                           .offset(-config.support_line_width/4).offset(config.support_line_width/4); // Getting rid of small rounding errors. If an area thinner than 1/2 line-width said it needs skin, it is lying.
+                Polygons needs_supporting;
+                if(storage.support.supportLayers.size() > layer_idx + 1)
+                {
+                    needs_supporting.add(storage.support.supportLayers[layer_idx + 1].support_roof.difference(support_shell_capable_of_supporting_roof));
+                    needs_supporting.add(placed_fake_roof_areas[layer_idx + 1].difference(support_shell_capable_of_supporting_roof));
+                    needs_supporting.add(additional_required_support_area[layer_idx + 1]); // E.g. cradle
+
+                    needs_supporting = needs_supporting.unionPolygons();
+                }
+
+                Polygons already_supports;
+                already_supports.add(storage.support.supportLayers[layer_idx].support_roof); // roof
+                already_supports.add(additional_required_support_area[layer_idx]); // E.g. cradle
+                already_supports.add(placed_fake_roof_areas[layer_idx]);
+                already_supports = already_supports.unionPolygons();
+
+                Polygons may_need_skin_area_topmost = needs_supporting.difference(already_supports);
+
+                for (std::pair<TreeSupportElement*, Polygons> data_pair : layer_tree_polygons[layer_idx])
+                {
+                    bool has_parent_roof = false;
+
+                    if (data_pair.first->supports_roof)
+                    {
+                        for (auto parent : data_pair.first->parents)
+                        {
+                            has_parent_roof |= (data_pair.first->missing_roof_layers > data_pair.first->distance_to_top);
+                        }
+                    }
+
+                    bool element_viable_for_skin = has_parent_roof;
+                    element_viable_for_skin |= data_pair.first->parents.empty() && (config.getRadius(*data_pair.first) >= config.support_tree_skin_for_large_tips_radius_threshold);
+
+                    if (element_viable_for_skin)
+                    {
+                        may_need_skin_area_topmost.add(data_pair.second);
+                    }
+                }
+                may_need_skin_area_topmost = may_need_skin_area_topmost.unionPolygons();
+
+                Polygons may_need_skin_area = may_need_skin_area_topmost;
+
+                for (LayerIndex support_skin_ctr = 0; support_skin_ctr < std::min(LayerIndex(config.support_skin_layers), layer_idx); support_skin_ctr++)
+                {
+
+                    Polygons next_skin;
+                    Polygons support_on_layer;
+
+                    Polygons remaining_regular_areas;
+
+                    {
+                        std::lock_guard<std::mutex> critical_section_cradle(critical_support_layer_storage);
+                        support_on_layer = support_layer_storage[layer_idx - support_skin_ctr];
+                    }
+
+                    if (support_skin_ctr > 0)
+                    {
+                        may_need_skin_area_topmost = may_need_skin_area_topmost.intersection(support_on_layer);
+                    }
+
+                    for (Polygons part : support_on_layer.splitIntoParts())
+                    {
+                        Polygons part_outline = part.getOutsidePolygons();
+                        if (! PolygonUtils::clipPolygonWithAABB(may_need_skin_area,AABB(part_outline)).empty())
+                        {
+                            // Use line infill to scan which area the line infill has to occupy to reach the outer outline of a branch.
+                            Polygons scan_lines = TreeSupportUtils::generateSupportInfillLines(part_outline, config, false, layer_idx - support_skin_ctr, config.support_skin_line_distance, nullptr, false, EFillMethod::LINES, true);
+
+                            Polygons intersecting_lines;
+
+                            for (auto line : scan_lines)
+                            {
+                                if (PolygonUtils::polygonCollidesWithLineSegment(may_need_skin_area, line.front(), line.back()) && PolygonUtils::polygonCollidesWithLineSegment(may_need_skin_area_topmost, line.front(), line.back()))
+                                {
+                                    intersecting_lines.addLine(line.front(), line.back());
+                                }
+                            }
+
+                            Polygons partial_skin_area = intersecting_lines.offsetPolyLine(config.support_skin_line_distance).unionPolygons().intersection(part_outline);
+
+                            // If a some scan lines had contact with two parts of part_outline, but the second part is outside of may_need_skin_area it could cause a separate skin area, that then cuts a branch in half that could have been completely normal.
+                            // This area that does not need to be skin will be filtered out here.
+                            {
+                                Polygons filtered_partial_skin_area;
+                                for(auto p_skin:partial_skin_area.splitIntoParts())
+                                {
+                                    if(!PolygonUtils::clipPolygonWithAABB(may_need_skin_area,AABB(p_skin)).intersection(p_skin).empty())
+                                    {
+                                        filtered_partial_skin_area.add(p_skin);
+                                    }
+                                }
+                                partial_skin_area = filtered_partial_skin_area;
+                            }
+
+                            double part_area = part.area();
+                            part = part.difference(partial_skin_area);
+                            Polygons remaining_part;
+                            for (auto sub_part : part.splitIntoParts())
+                            {
+                                if (sub_part.area() < part_area / 5 && sub_part.area() * 2 < M_PI * pow(config.branch_radius,2)) // Prevent small slivers of a branch to generate as skin. The heuristic to detect if a part is too small or thin could maybe be improved.
+                                {
+                                    partial_skin_area = partial_skin_area.unionPolygons(sub_part);
+                                }
+                                else
+                                {
+                                    remaining_part.add(sub_part);
+                                }
+                            }
+                            part = remaining_part;
+
+                            next_skin.add(partial_skin_area.intersection(may_need_skin_area_topmost));
+                            std::lock_guard<std::mutex> critical_section_cradle(critical_support_layer_storage);
+                            support_skin_storage[layer_idx - support_skin_ctr].add(partial_skin_area);
+                        }
+
+                        remaining_regular_areas.add(part);
+                    }
+                    may_need_skin_area = next_skin.unionPolygons();
+                }
+            }
+        );
+    }
+
+    cura::parallel_for<coord_t>
+    (
+        0,
+        support_layer_storage.size(),
+        [&](const LayerIndex layer_idx)
+        {
+            support_skin_storage[layer_idx] = support_skin_storage[layer_idx].unionPolygons();
+                support_layer_storage[layer_idx] = support_layer_storage[layer_idx].unionPolygons().difference(support_skin_storage[layer_idx]);
+        }
+    );
+}
+
+void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_storage, std::vector<Polygons>& support_skin_storage)
+{
+    const auto t_start = std::chrono::high_resolution_clock::now();
 
     std::function<void(Polygons&)> reversePolygon = [&](Polygons& poly)
     {
@@ -1960,19 +2216,15 @@ void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_stora
     };
 
 
-    std::vector<Polygons> support_holes(support_layer_storage.size(), Polygons());
-    // Extract all holes as polygon objects
-    cura::parallel_for<coord_t>(
-        0,
-        support_layer_storage.size(),
-        [&](const LayerIndex layer_idx)
-        {
-            support_layer_storage[layer_idx] = config.simplifier.polygon(PolygonUtils::unionManySmall(support_layer_storage[layer_idx].smooth(FUDGE_LENGTH)))
-                                                   .offset(-open_close_distance)
-                                                   .offset(open_close_distance * 2)
-                                                   .offset(-open_close_distance);
-            support_layer_storage[layer_idx].removeSmallAreas(small_area_length * small_area_length, false);
+    std::vector<Polygons> support_holes(support_layer_storage.size(),Polygons());
 
+    //Extract all holes as polygon objects
+    cura::parallel_for<coord_t>(
+
+            0,
+            support_layer_storage.size(),
+            [&](const LayerIndex layer_idx)
+            {
             std::vector<Polygons> parts = support_layer_storage[layer_idx].sortByNesting();
 
             if (parts.size() <= 1)
@@ -1990,7 +2242,7 @@ void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_stora
             support_holes[layer_idx] = holes_original;
         });
 
-    const auto t_union = std::chrono::high_resolution_clock::now();
+
 
     std::vector<std::vector<Polygons>> holeparts(support_layer_storage.size());
     // Split all holes into parts
@@ -2021,7 +2273,7 @@ void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_stora
 
             Polygons outer_walls
                 = TreeSupportUtils::toPolylines(support_layer_storage[layer_idx - 1].getOutsidePolygons())
-                      .tubeShape(closing_dist, 0); //.unionPolygons(volumes_.getCollision(0, layer_idx - 1, true).offset(-(config.support_line_width+config.xy_min_distance)));
+                      .tubeShape(config.support_line_width*config.support_wall_count,0);
 
             Polygons holes_below;
 
@@ -2038,7 +2290,11 @@ void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_stora
                 {
                     holes_resting_outside[layer_idx].emplace(idx);
                 }
-                else
+                else if(!hole.intersection(PolygonUtils::clipPolygonWithAABB(support_skin_storage[layer_idx-1],hole_aabb)).empty())
+                    {
+                        holes_resting_outside[layer_idx].emplace(idx); //technically not resting outside, but valid the same
+                    }
+                    else
                 {
                     for (auto [idx2, hole2] : holeparts[layer_idx - 1] | ranges::views::enumerate)
                     {
@@ -2116,21 +2372,19 @@ void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_stora
 
     const auto t_end = std::chrono::high_resolution_clock::now();
 
-    const auto dur_union = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_union - t_start).count();
-    const auto dur_hole_rest_ordering = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_hole_rest_ordering - t_union).count();
+    const auto dur_hole_rest_ordering = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_hole_rest_ordering - t_start).count();
     const auto dur_hole_removal_tagging = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_hole_removal_tagging - t_hole_rest_ordering).count();
 
     const auto dur_hole_removal = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_hole_removal_tagging).count();
     spdlog::debug(
-        "Time to union areas: {} ms Time to evaluate which hole rest on which other hole: {} ms Time to see which holes are not resting on anything valid: {} ms remove all holes "
+        "Time to evaluate which hole rest on which other hole: {} ms Time to see which holes are not resting on anything valid: {} ms remove all holes "
         "that are invalid and not close enough to a valid hole: {} ms",
-        dur_union,
         dur_hole_rest_ordering,
         dur_hole_removal_tagging,
         dur_hole_removal);
 }
 
-void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& support_layer_storage, std::vector<Polygons>& support_roof_storage, SliceDataStorage& storage)
+void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& support_layer_storage, std::vector<Polygons>& support_skin_storage, std::vector<Polygons>& support_roof_storage, SliceDataStorage& storage)
 {
     InterfacePreference interface_pref = config.interface_preference; // InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE;
     double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES + TREE_PROGRESS_AREA_CALC + TREE_PROGRESS_GENERATE_BRANCH_AREAS
@@ -2143,54 +2397,54 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
         {
-            support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(placed_support_lines_support_areas[layer_idx]);
+            support_skin_storage[layer_idx] = support_skin_storage[layer_idx].difference(placed_support_lines_support_areas[layer_idx]);
 
-            // Subtract support lines of the branches from the roof
-            storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.unionPolygons(support_roof_storage[layer_idx]);
-            if (! storage.support.supportLayers[layer_idx].support_roof.empty()
-                && support_layer_storage[layer_idx].intersection(storage.support.supportLayers[layer_idx].support_roof).area() > 1)
+            if (!storage.support.supportLayers[layer_idx].support_roof.empty())
             {
                 switch (interface_pref)
                 {
                 case InterfacePreference::INTERFACE_AREA_OVERWRITES_SUPPORT:
                     support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(storage.support.supportLayers[layer_idx].support_roof);
-                    break;
+                    support_skin_storage[layer_idx] = support_skin_storage[layer_idx].difference(storage.support.supportLayers[layer_idx].support_roof);
+                        break;
 
                 case InterfacePreference::SUPPORT_AREA_OVERWRITES_INTERFACE:
-                    storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.difference(support_layer_storage[layer_idx]);
+                    storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.difference(support_layer_storage[layer_idx]).difference(support_skin_storage[layer_idx]);
                     break;
 
-                case InterfacePreference::INTERFACE_LINES_OVERWRITE_SUPPORT:
-                {
-                    Polygons interface_lines = TreeSupportUtils::generateSupportInfillLines(
-                                                   storage.support.supportLayers[layer_idx].support_roof,
-                                                   config,
-                                                   true,
-                                                   layer_idx,
-                                                   config.support_roof_line_distance,
-                                                   storage.support.cross_fill_provider,
-                                                   true)
-                                                   .offsetPolyLine(config.support_roof_line_width / 2);
-                    support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(interface_lines);
-                }
-                break;
+                    case InterfacePreference::INTERFACE_LINES_OVERWRITE_SUPPORT:
+                    {
+                        Polygons interface_lines =
+                            TreeSupportUtils::generateSupportInfillLines(storage.support.supportLayers[layer_idx].support_roof, config, true, layer_idx, config.support_roof_line_distance, storage.support.cross_fill_provider, true)
+                            .offsetPolyLine(config.support_roof_line_width / 2);
+                        support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(interface_lines);
+                        support_skin_storage[layer_idx] = support_skin_storage[layer_idx].difference(interface_lines);
+                    }
+                    break;
 
-                case InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE:
-                {
-                    Polygons tree_lines;
-                    tree_lines = tree_lines.unionPolygons(TreeSupportUtils::generateSupportInfillLines(
-                                                              support_layer_storage[layer_idx],
-                                                              config,
-                                                              false,
-                                                              layer_idx,
-                                                              config.support_line_distance,
-                                                              storage.support.cross_fill_provider,
-                                                              true)
-                                                              .offsetPolyLine(config.support_line_width / 2));
-                    storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.difference(tree_lines);
-                    // Do not draw roof where the tree is. I prefer it this way as otherwise the roof may cut of a branch from its support below.
-                }
-                break;
+                    case InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE:
+                    {
+                        Polygons tree_lines;
+                        tree_lines =
+                            tree_lines.unionPolygons
+                            (
+                                TreeSupportUtils::generateSupportInfillLines(support_layer_storage[layer_idx], config, false, layer_idx, config.support_line_distance, storage.support.cross_fill_provider, true)
+                                .offsetPolyLine(config.support_line_width / 2)
+                            );
+                        storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.difference(tree_lines);
+
+                        Polygons support_skin_lines;
+                        support_skin_lines =
+                            support_skin_lines.unionPolygons
+                            (
+                                TreeSupportUtils::generateSupportInfillLines(support_skin_storage[layer_idx], config, false, layer_idx, config.support_skin_line_distance, storage.support.cross_fill_provider, true, EFillMethod::LINES)
+                                    .offsetPolyLine(config.support_line_width / 2)
+                            );
+                        storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.difference(support_skin_lines);
+
+                        // Do not draw roof where the tree is. I prefer it this way as otherwise the roof may cut of a branch from its support below.
+                    }
+                    break;
 
                 case InterfacePreference::NOTHING:
                     break;
@@ -2198,10 +2452,10 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
             }
 
             // Subtract support floors from the support area and add them to the support floor instead.
-            if (config.support_bottom_layers > 0 && ! support_layer_storage[layer_idx].empty())
+            if (config.support_bottom_layers > 0 && ! (support_layer_storage[layer_idx].empty() || support_skin_storage[layer_idx].empty()))
             {
                 Polygons floor_layer = storage.support.supportLayers[layer_idx].support_bottom;
-                Polygons layer_outset = support_layer_storage[layer_idx].offset(config.support_bottom_offset).difference(volumes_.getCollision(0, layer_idx, false));
+                Polygons layer_outset = support_layer_storage[layer_idx].unionPolygons(support_skin_storage[layer_idx]).offset(config.support_bottom_offset).difference(volumes_.getCollision(0, layer_idx, false));
                 size_t layers_below = 0;
                 while (layers_below <= config.support_bottom_layers)
                 {
@@ -2224,11 +2478,16 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
                 floor_layer = floor_layer.unionPolygons();
                 storage.support.supportLayers[layer_idx].support_bottom = storage.support.supportLayers[layer_idx].support_bottom.unionPolygons(floor_layer);
                 support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(floor_layer.offset(10)); // Subtract the support floor from the normal support.
+                support_skin_storage[layer_idx] = support_skin_storage[layer_idx].difference(floor_layer.offset(10)); // Subtract the support floor from the normal support.
+
             }
 
             constexpr bool convert_every_part = true; // Convert every part into a PolygonsPart for the support.
             storage.support.supportLayers[layer_idx]
                 .fillInfillParts(layer_idx, support_layer_storage, config.support_line_width, config.support_wall_count, config.maximum_move_distance, convert_every_part);
+
+            storage.support.supportLayers[layer_idx]
+                .fillInfillParts(layer_idx, support_skin_storage, config.support_line_width, config.support_wall_count, config.maximum_move_distance, convert_every_part,  config.support_skin_line_distance, EFillMethod::LINES);
 
             {
                 std::lock_guard<std::mutex> critical_section_progress(critical_sections);
@@ -2249,6 +2508,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
 void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage)
 {
     std::vector<Polygons> support_layer_storage(move_bounds.size());
+    std::vector<Polygons> support_skin_storage(move_bounds.size());
     std::vector<Polygons> support_roof_storage(move_bounds.size());
     std::map<TreeSupportElement*, TreeSupportElement*>
         inverse_tree_order; // In the tree structure only the parents can be accessed. Inverse this to be able to access the children.
@@ -2337,8 +2597,6 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
             }
         });
 
-    // Single threaded combining all support areas to the right layers.
-    // Only copies data!
     for (const auto layer_idx : ranges::views::iota(0UL, layer_tree_polygons.size()))
     {
         for (std::pair<TreeSupportElement*, Polygons> data_pair : layer_tree_polygons[layer_idx])
@@ -2356,24 +2614,23 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
         scripta::log("tree_support_layer_storage", support_layer_storage[layer_idx], SectionType::SUPPORT, layer_idx);
     }
 
-    filterFloatingLines(support_layer_storage);
+    generateSupportSkin(support_layer_storage,support_skin_storage,support_roof_storage,storage,layer_tree_polygons);
+    const auto t_skin = std::chrono::high_resolution_clock::now();
+    filterFloatingLines(support_layer_storage,support_skin_storage);
     const auto t_filter = std::chrono::high_resolution_clock::now();
 
-    finalizeInterfaceAndSupportAreas(support_layer_storage, support_roof_storage, storage);
+    finalizeInterfaceAndSupportAreas(support_layer_storage, support_skin_storage, support_roof_storage, storage);
     const auto t_end = std::chrono::high_resolution_clock::now();
 
     const auto dur_gen_tips = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_generate - t_start).count();
     const auto dur_smooth = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_smooth - t_generate).count();
     const auto dur_drop = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_drop - t_smooth).count();
-    const auto dur_filter = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_filter - t_drop).count();
+    const auto dur_skin = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_skin - t_drop).count();
+    const auto dur_filter = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_filter - t_skin).count();
     const auto dur_finalize = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_filter).count();
     spdlog::info(
-        "Time used for drawing subfuctions: generateBranchAreas: {} ms smoothBranchAreas: {} ms dropNonGraciousAreas: {} ms filterFloatingLines: {} ms "
-        "finalizeInterfaceAndSupportAreas {} ms",
-        dur_gen_tips,
-        dur_smooth,
-        dur_drop,
-        dur_filter,
+        "Time used for drawing subfuctions: generateBranchAreas: {} ms smoothBranchAreas: {} ms dropNonGraciousAreas: {} ms generateSupportSkin {} ms filterFloatingLines: {} ms "
+        "finalizeInterfaceAndSupportAreas {} ms", dur_gen_tips, dur_smooth, dur_drop, dur_skin, dur_filter,
         dur_finalize);
 }
 

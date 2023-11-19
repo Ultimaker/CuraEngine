@@ -8,13 +8,16 @@
 using namespace cura;
 
 
-SupportInfillPart::SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, bool use_fractional_config, int inset_count_to_generate, coord_t custom_line_distance)
+SupportInfillPart::SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, bool use_fractional_config,  int inset_count_to_generate, coord_t custom_line_distance, EFillMethod custom_line_pattern)
     : outline(outline)
     , outline_boundary_box(outline)
     , support_line_width(support_line_width)
     , inset_count_to_generate(inset_count_to_generate)
     , custom_line_distance(custom_line_distance)
+    , custom_line_pattern(custom_line_pattern)
     , use_fractional_config(use_fractional_config)
+
+
 {
     infill_area_per_combine_per_density.clear();
 }

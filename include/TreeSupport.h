@@ -260,8 +260,23 @@ private:
         std::vector<std::vector<std::pair<LayerIndex, Polygons>>>& dropped_down_areas,
         const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order);
 
+    /*!
+     * \brief Generates support areas with high density infill to support interface above. Also unions the Polygons in support_layer_storage. Has to be called even if no support skin will generate.
+     *
+     * \param support_layer_storage[in,out] Areas where support should be generated.
+     * \param support_skin_storage[out] Areas where high density support should be generated.
+     * \param support_roof_storage[in,out] Areas where support was replaced with roof.
+     * \param storage[in] The storage where the support should be stored.
+     * \param layer_tree_polygons[in] Resulting branch areas with the layerindex they appear on.
+     */
+    void generateSupportSkin(std::vector<Polygons>& support_layer_storage, std::vector<Polygons>& support_skin_storage,  std::vector<Polygons>& support_roof_storage, SliceDataStorage& storage, std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons);
 
-    void filterFloatingLines(std::vector<Polygons>& support_layer_storage);
+    /*!
+     * \brief Filters out holses that would cause support to be printed mid-air.
+     * \param support_layer_storage[in,out] Areas where support should be generated.
+     * \param support_skin_storage[out] Areas where high density support should be generated.
+     */
+    void filterFloatingLines(std::vector<Polygons>& support_layer_storage, std::vector<Polygons>& support_skin_storage);
 
     /*!
      * \brief Generates Support Floor, ensures Support Roof can not cut of branches, and saves the branches as support to storage
@@ -270,7 +285,7 @@ private:
      * \param support_roof_storage[in] Areas where support was replaced with roof.
      * \param storage[in,out] The storage where the support should be stored.
      */
-    void finalizeInterfaceAndSupportAreas(std::vector<Polygons>& support_layer_storage, std::vector<Polygons>& support_roof_storage, SliceDataStorage& storage);
+    void finalizeInterfaceAndSupportAreas(std::vector<Polygons>& support_layer_storage, std::vector<Polygons>& support_skin_storage, std::vector<Polygons>& support_roof_storage, SliceDataStorage& storage);
 
     /*!
      * \brief Draws circles around result_on_layer points of the influence areas and applies some post processing.
@@ -286,7 +301,7 @@ private:
     std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> grouped_meshes;
 
     /*!
-     * \brief Areas that should have been support roof, but where the roof settings would not allow any lines to be generated.
+     * \brief Areas that should have been support roof, but where the roof settings would not allow any lines to be generated. Can also be other placed lines, e.g. Cradles
      */
     std::vector<Polygons> additional_required_support_area;
 
@@ -296,8 +311,18 @@ private:
     std::vector<Polygons> placed_support_lines_support_areas;
 
     /*!
+     * \brief Areas that use a higher density pattern of regular support to support the model (fake_roof).
+     *  placed_support_lines_support_areas contains the lines placed inside of placed_fake_roof_areas.
+     */
+    std::vector<Polygons> placed_fake_roof_areas;
+
+    /*!
+     * \brief Areas where no support may be. Areas will be subtracted from support areas.
+     */
+    std::vector<Polygons> support_free_areas;
+
+    /*!
      * \brief Generator for model collision, avoidance and internal guide volumes.
-     *
      */
     TreeModelVolumes volumes_;
 

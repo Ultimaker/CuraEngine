@@ -3305,7 +3305,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 constexpr bool skip_stitching = false;
                 const bool fill_gaps = density_idx == 0; // Only fill gaps for one of the densities.
                 Infill infill_comp(
-                    support_pattern,
+                    part.custom_line_pattern == EFillMethod::NONE ? support_pattern : part.custom_line_pattern,
                     zig_zaggify_infill,
                     connect_polygons,
                     area,
