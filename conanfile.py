@@ -98,6 +98,7 @@ class CuraEngineConan(ConanFile):
         self.requires("protobuf/3.21.9")
         self.requires("zlib/1.2.12")
         self.requires("openssl/1.1.1l")
+        self.requires("sentry-native/0.6.5")
 
     def generate(self):
         deps = CMakeDeps(self)
