@@ -109,7 +109,7 @@ public:
      */
     bool empty() const;
 
-    const Point& operator[](unsigned int index) const
+    const Point& operator[](size_t index) const
     {
         POLY_ASSERT(index < size());
         return (*path)[index];
@@ -177,7 +177,7 @@ public:
     {
         coord_t length = 0;
         Point p0 = path->front();
-        for (unsigned int n = 1; n < path->size(); n++)
+        for (size_t n = 1; n < path->size(); n++)
         {
             Point p1 = (*path)[n];
             length += vSize(p0 - p1);
@@ -231,24 +231,38 @@ public:
 
     Point centerOfMass() const
     {
-        double x = 0, y = 0;
-        Point p0 = (*path)[path->size() - 1];
-        for (unsigned int n = 0; n < path->size(); n++)
+        if (path->size() > 0)
         {
-            Point p1 = (*path)[n];
-            double second_factor = static_cast<double>((p0.X * p1.Y) - (p1.X * p0.Y));
+            Point p0 = (*path)[0];
+            if (path->size() > 1)
+            {
+                double x = 0, y = 0;
+                for (size_t n = 1; n <= path->size(); n++)
+                {
+                    Point p1 = (*path)[n % path->size()];
+                    double second_factor = static_cast<double>((p0.X * p1.Y) - (p1.X * p0.Y));
 
-            x += double(p0.X + p1.X) * second_factor;
-            y += double(p0.Y + p1.Y) * second_factor;
-            p0 = p1;
+                    x += double(p0.X + p1.X) * second_factor;
+                    y += double(p0.Y + p1.Y) * second_factor;
+                    p0 = p1;
+                }
+
+                double area = Area(*path);
+
+                x = x / 6 / area;
+                y = y / 6 / area;
+
+                return Point(std::llrint(x), std::llrint(y));
+            }
+            else
+            {
+                return p0;
+            }
         }
-
-        double area = Area(*path);
-
-        x = x / 6 / area;
-        y = y / 6 / area;
-
-        return Point(std::llrint(x), std::llrint(y));
+        else
+        {
+            return Point();
+        }
     }
 
     Point closestPointTo(Point p) const
@@ -545,7 +559,7 @@ public:
     void insert(size_t index, Point p)
     {
         POLY_ASSERT(index < size() && index <= static_cast<size_t>(std::numeric_limits<int>::max()));
-        path->insert(path->begin() + index, p);
+        path->insert(path->begin() + static_cast<long>(index), p);
     }
 
     void clear()
@@ -803,7 +817,7 @@ class Polygons
 public:
     ClipperLib::Paths paths;
 
-    unsigned int size() const
+    size_t size() const
     {
         return paths.size();
     }
@@ -822,14 +836,14 @@ public:
 
     unsigned int pointCount() const; //!< Return the amount of points in all polygons
 
-    PolygonRef operator[](unsigned int index)
+    PolygonRef operator[](size_t index)
     {
-        POLY_ASSERT(index < size() && index <= static_cast<unsigned int>(std::numeric_limits<int>::max()));
+        POLY_ASSERT(index < size());
         return paths[index];
     }
-    ConstPolygonRef operator[](unsigned int index) const
+    ConstPolygonRef operator[](size_t index) const
     {
-        POLY_ASSERT(index < size() && index <= static_cast<unsigned int>(std::numeric_limits<int>::max()));
+        POLY_ASSERT(index < size());
         return paths[index];
     }
     ClipperLib::Paths::iterator begin()
@@ -853,9 +867,9 @@ public:
      *
      * \warning changes the order of the polygons!
      */
-    void remove(unsigned int index)
+    void remove(size_t index)
     {
-        POLY_ASSERT(index < size() && index <= static_cast<unsigned int>(std::numeric_limits<int>::max()));
+        POLY_ASSERT(index < size());
         if (index < paths.size() - 1)
         {
             paths[index] = std::move(paths.back());
@@ -1377,7 +1391,7 @@ public:
     Polygons remove(const Polygons& to_be_removed, int same_distance = 0) const
     {
         Polygons result;
-        for (unsigned int poly_keep_idx = 0; poly_keep_idx < size(); poly_keep_idx++)
+        for (size_t poly_keep_idx = 0; poly_keep_idx < size(); poly_keep_idx++)
         {
             ConstPolygonRef poly_keep = (*this)[poly_keep_idx];
             bool should_be_removed = false;
@@ -1390,9 +1404,9 @@ public:
                         continue;
 
                     // find closest point, supposing this point aligns the two shapes in the best way
-                    int closest_point_idx = 0;
+                    size_t closest_point_idx = 0;
                     int smallestDist2 = -1;
-                    for (unsigned int point_rem_idx = 0; point_rem_idx < poly_rem.size(); point_rem_idx++)
+                    for (size_t point_rem_idx = 0; point_rem_idx < poly_rem.size(); point_rem_idx++)
                     {
                         int dist2 = vSize2(poly_rem[point_rem_idx] - poly_keep[0]);
                         if (dist2 < smallestDist2 || smallestDist2 < 0)
