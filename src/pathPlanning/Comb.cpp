@@ -3,6 +3,10 @@
 
 #include "pathPlanning/Comb.h"
 
+#include <algorithm>
+#include <functional> // function
+#include <unordered_set>
+
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
@@ -12,10 +16,6 @@
 #include "utils/PolygonsPointIndex.h"
 #include "utils/SVG.h"
 #include "utils/linearAlg2D.h"
-
-#include <algorithm>
-#include <functional> // function
-#include <unordered_set>
 
 namespace cura
 {

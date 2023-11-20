@@ -4,11 +4,11 @@
 #ifndef SUPPORT_H
 #define SUPPORT_H
 
-#include "settings/types/LayerIndex.h"
-#include "utils/polygon.h"
-
 #include <cstddef>
 #include <vector>
+
+#include "settings/types/LayerIndex.h"
+#include "utils/polygon.h"
 
 namespace cura
 {

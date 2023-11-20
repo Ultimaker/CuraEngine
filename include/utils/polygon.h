@@ -4,10 +4,6 @@
 #ifndef UTILS_POLYGON_H
 #define UTILS_POLYGON_H
 
-#include "../settings/types/Angle.h" //For angles between vertices.
-#include "../settings/types/Ratio.h"
-#include "IntPoint.h"
-
 #include <algorithm>
 #include <algorithm> // std::reverse, fill_n array
 #include <assert.h>
@@ -19,6 +15,10 @@
 #include <polyclipping/clipper.hpp>
 #include <unordered_map>
 #include <vector>
+
+#include "../settings/types/Angle.h" //For angles between vertices.
+#include "../settings/types/Ratio.h"
+#include "IntPoint.h"
 
 #define CHECK_POLY_ACCESS
 #ifdef CHECK_POLY_ACCESS

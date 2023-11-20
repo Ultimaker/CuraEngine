@@ -3,11 +3,8 @@
 
 #include "InsetOrderOptimizer.h"
 
-#include "ExtruderTrain.h"
-#include "FffGcodeWriter.h"
-#include "LayerPlan.h"
-#include "utils/views/convert.h"
-#include "utils/views/dfs.h"
+#include <iterator>
+#include <tuple>
 
 #include <range/v3/algorithm/max.hpp>
 #include <range/v3/algorithm/sort.hpp>
@@ -25,8 +22,11 @@
 #include <range/v3/view/zip.hpp>
 #include <spdlog/spdlog.h>
 
-#include <iterator>
-#include <tuple>
+#include "ExtruderTrain.h"
+#include "FffGcodeWriter.h"
+#include "LayerPlan.h"
+#include "utils/views/convert.h"
+#include "utils/views/dfs.h"
 
 namespace rg = ranges;
 namespace rv = ranges::views;

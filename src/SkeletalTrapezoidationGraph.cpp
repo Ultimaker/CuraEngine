@@ -3,12 +3,12 @@
 
 #include "SkeletalTrapezoidationGraph.h"
 
-#include "utils/linearAlg2D.h"
-#include "utils/macros.h"
+#include <unordered_map>
 
 #include <spdlog/spdlog.h>
 
-#include <unordered_map>
+#include "utils/linearAlg2D.h"
+#include "utils/macros.h"
 
 namespace cura
 {
@@ -283,7 +283,8 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
 
             nodes.erase(node_locator[quad_mid->to]);
 
-            if (!quad_mid->prev || !quad_mid->prev->next || !quad_mid->next || !quad_mid->next->prev || !quad_mid->twin || !quad_mid->twin->prev || !quad_mid->twin->next || !quad_mid->twin->next->prev || !quad_mid->twin->prev->next)
+            if (! quad_mid->prev || ! quad_mid->prev->next || ! quad_mid->next || ! quad_mid->next->prev || ! quad_mid->twin || ! quad_mid->twin->prev || ! quad_mid->twin->next
+                || ! quad_mid->twin->next->prev || ! quad_mid->twin->prev->next)
             {
                 spdlog::warn("Missing edge in quad collapse.");
                 drawGraph();
@@ -356,8 +357,9 @@ void SkeletalTrapezoidationGraph::drawGraph() const
 
     for (auto& edge : edges)
     {
-//        spdlog::info("edge.from->p ({}, {}), edge.to->p ({}, {})", edge.from->p.X, edge.from->p.Y, edge.to->p.X, edge.to->p.Y);
-        if (!edge.twin) {
+        //        spdlog::info("edge.from->p ({}, {}), edge.to->p ({}, {})", edge.from->p.X, edge.from->p.Y, edge.to->p.X, edge.to->p.Y);
+        if (! edge.twin)
+        {
             spdlog::info("WRONG edge.from->p ({}, {}), edge.to->p ({}, {})", edge.from->p.X, edge.from->p.Y, edge.to->p.X, edge.to->p.Y);
             svg.writeLine(edge.from->p, edge.to->p, SVG::Color::RED, 0.2);
             svg.writePoint(edge.from->p, false, 100.0, SVG::Color::BLUE);
@@ -377,7 +379,7 @@ void SkeletalTrapezoidationGraph::makeRib(edge_t*& prev_edge, Point start_source
     Point p = LinearAlg2D::getClosestOnLine(prev_edge->to->p, start_source_point, end_source_point);
     coord_t dist = vSize(prev_edge->to->p - p);
     prev_edge->to->data.distance_to_boundary = dist;
-//    assert(dist >= 0);
+    //    assert(dist >= 0);
 
     nodes.emplace_front(SkeletalTrapezoidationJoint(), p);
     node_t* node = &nodes.front();

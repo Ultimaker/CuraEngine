@@ -8,15 +8,15 @@
 #ifndef UTILS_TYPES_GEOMETRY_H
 #define UTILS_TYPES_GEOMETRY_H
 
-#include "utils/types/generic.h"
-
-#include <range/v3/range/concepts.hpp>
-#include <range/v3/range/operations.hpp>
-
 #include <concepts>
 #include <string>
 #include <tuple>
 #include <type_traits>
+
+#include <range/v3/range/concepts.hpp>
+#include <range/v3/range/operations.hpp>
+
+#include "utils/types/generic.h"
 
 namespace cura::utils
 {

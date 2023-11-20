@@ -3,11 +3,11 @@
 
 #include "utils/linearAlg2D.h"
 
-#include "utils/IntPoint.h" // dot
-
 #include <algorithm> // swap
 #include <cassert>
 #include <cmath> // atan2
+
+#include "utils/IntPoint.h" // dot
 
 namespace cura
 {

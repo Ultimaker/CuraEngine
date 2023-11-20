@@ -4,11 +4,11 @@
 #ifndef CURAENGINE_GENERIC_H
 #define CURAENGINE_GENERIC_H
 
-#include <range/v3/range/concepts.hpp>
-
 #include <concepts>
 #include <functional>
 #include <type_traits>
+
+#include <range/v3/range/concepts.hpp>
 
 namespace cura::utils
 {

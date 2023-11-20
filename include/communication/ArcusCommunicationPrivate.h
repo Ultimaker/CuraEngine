@@ -5,11 +5,11 @@
 #define ARCUSCOMMUNICATIONPRIVATE_H
 #ifdef ARCUS
 
+#include <sstream> //For ostringstream.
+
 #include "ArcusCommunication.h" //We're adding a subclass to this.
 #include "SliceDataStruct.h"
 #include "settings/types/LayerIndex.h"
-
-#include <sstream> //For ostringstream.
 
 namespace cura
 {

@@ -4,14 +4,14 @@
 #ifndef CURAENGINE_INCLUDE_PLUGINS_METADATA_H
 #define CURAENGINE_INCLUDE_PLUGINS_METADATA_H
 
-#include "cura/plugins/v0/slot_id.pb.h"
-#include "plugins/types.h"
-
 #include <grpcpp/client_context.h>
 #include <grpcpp/support/string_ref.h>
 #include <map>
 #include <string>
 #include <string_view>
+
+#include "cura/plugins/v0/slot_id.pb.h"
+#include "plugins/types.h"
 
 namespace cura::plugins
 {

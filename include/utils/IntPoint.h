@@ -11,15 +11,15 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #define INLINE static inline
 
 // Include Clipper to get the ClipperLib::IntPoint definition, which we reuse as Point definition.
-#include "../utils/math.h" // for M_PI. Use relative path to avoid pulling <math.h>
-#include "Point3.h" //For applying Point3Matrices.
-
 #include <cmath>
 #include <functional> // for hash function object
 #include <iostream> // auto-serialization / auto-toString()
 #include <limits>
 #include <polyclipping/clipper.hpp>
 #include <stdint.h>
+
+#include "../utils/math.h" // for M_PI. Use relative path to avoid pulling <math.h>
+#include "Point3.h" //For applying Point3Matrices.
 
 #ifdef __GNUC__
 #define DEPRECATED(func) func __attribute__((deprecated))

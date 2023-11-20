@@ -4,11 +4,11 @@
 #ifndef SKELETAL_TRAPEZOIDATION_EDGE_H
 #define SKELETAL_TRAPEZOIDATION_EDGE_H
 
-#include "utils/ExtrusionJunction.h"
-
 #include <list>
 #include <memory> // smart pointers
 #include <vector>
+
+#include "utils/ExtrusionJunction.h"
 
 namespace cura
 {

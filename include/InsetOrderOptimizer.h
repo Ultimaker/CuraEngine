@@ -4,10 +4,10 @@
 #ifndef INSET_ORDER_OPTIMIZER_H
 #define INSET_ORDER_OPTIMIZER_H
 
+#include <unordered_set>
+
 #include "settings/ZSeamConfig.h"
 #include "sliceDataStorage.h"
-
-#include <unordered_set>
 
 namespace cura
 {

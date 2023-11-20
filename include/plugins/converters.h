@@ -4,6 +4,14 @@
 #ifndef PLUGINS_CONVERTERS_H
 #define PLUGINS_CONVERTERS_H
 
+#include <google/protobuf/empty.pb.h>
+#include <string>
+#include <tuple>
+
+#include <range/v3/range/operations.hpp>
+#include <range/v3/view/drop.hpp>
+#include <spdlog/spdlog.h>
+
 #include "Cura.pb.h"
 #include "WallToolPaths.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
@@ -25,14 +33,6 @@
 #include "settings/Settings.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/polygon.h"
-
-#include <range/v3/range/operations.hpp>
-#include <range/v3/view/drop.hpp>
-#include <spdlog/spdlog.h>
-
-#include <google/protobuf/empty.pb.h>
-#include <string>
-#include <tuple>
 
 
 namespace cura::plugins

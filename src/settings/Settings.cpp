@@ -3,6 +3,17 @@
 
 #include "settings/Settings.h"
 
+#include <cctype>
+#include <fstream>
+#include <regex> // regex parsing for temp flow graph
+#include <sstream> // ostringstream
+#include <stdio.h>
+#include <string> //Parsing strings (stod, stoul).
+
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/map.hpp>
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To get the extruders.
 #include "BeadingStrategy/BeadingStrategyFactory.h"
 #include "ExtruderTrain.h"
@@ -19,17 +30,6 @@
 #include "utils/polygon.h"
 #include "utils/string.h" //For Escaped.
 #include "utils/types/string_switch.h" //For string switch.
-
-#include <range/v3/range/conversion.hpp>
-#include <range/v3/view/map.hpp>
-#include <spdlog/spdlog.h>
-
-#include <cctype>
-#include <fstream>
-#include <regex> // regex parsing for temp flow graph
-#include <sstream> // ostringstream
-#include <stdio.h>
-#include <string> //Parsing strings (stod, stoul).
 
 namespace cura
 {

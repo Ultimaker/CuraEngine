@@ -2,28 +2,38 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "utils/AABB.h"
+
+#include <limits>
+
 #include "utils/linearAlg2D.h"
 #include "utils/polygon.h" //To create the AABB of a polygon.
-#include <limits>
 
 namespace cura
 {
 
 
-AABB::AABB() : min(POINT_MAX, POINT_MAX), max(POINT_MIN, POINT_MIN)
+AABB::AABB()
+    : min(POINT_MAX, POINT_MAX)
+    , max(POINT_MIN, POINT_MIN)
 {
 }
 
-AABB::AABB(const Point& min, const Point& max) : min(min), max(max)
+AABB::AABB(const Point& min, const Point& max)
+    : min(min)
+    , max(max)
 {
 }
 
-AABB::AABB(const Polygons& polys) : min(POINT_MAX, POINT_MAX), max(POINT_MIN, POINT_MIN)
+AABB::AABB(const Polygons& polys)
+    : min(POINT_MAX, POINT_MAX)
+    , max(POINT_MIN, POINT_MIN)
 {
     calculate(polys);
 }
 
-AABB::AABB(ConstPolygonRef poly) : min(POINT_MAX, POINT_MAX), max(POINT_MIN, POINT_MIN)
+AABB::AABB(ConstPolygonRef poly)
+    : min(POINT_MAX, POINT_MAX)
+    , max(POINT_MIN, POINT_MIN)
 {
     calculate(poly);
 }
@@ -38,7 +48,10 @@ coord_t AABB::distanceSquared(const Point& p) const
     const Point a = Point(max.X, min.Y);
     const Point b = Point(min.X, max.Y);
     return (contains(p) ? -1 : 1)
-         * std::min({ LinearAlg2D::getDist2FromLineSegment(min, a, p), LinearAlg2D::getDist2FromLineSegment(a, max, p), LinearAlg2D::getDist2FromLineSegment(max, b, p), LinearAlg2D::getDist2FromLineSegment(b, min, p) });
+         * std::min({ LinearAlg2D::getDist2FromLineSegment(min, a, p),
+                      LinearAlg2D::getDist2FromLineSegment(a, max, p),
+                      LinearAlg2D::getDist2FromLineSegment(max, b, p),
+                      LinearAlg2D::getDist2FromLineSegment(b, min, p) });
 }
 
 coord_t AABB::distanceSquared(const AABB& other) const

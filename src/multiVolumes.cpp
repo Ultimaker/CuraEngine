@@ -3,14 +3,14 @@
 
 #include "multiVolumes.h"
 
+#include <algorithm>
+
 #include "Application.h"
 #include "Slice.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/LayerIndex.h"
 #include "slicer.h"
 #include "utils/PolylineStitcher.h"
-
-#include <algorithm>
 
 namespace cura
 {

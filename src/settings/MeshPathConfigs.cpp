@@ -3,10 +3,10 @@
 
 #include "settings/MeshPathConfigs.h"
 
+#include <range/v3/view/iota.hpp>
+
 #include "ExtruderTrain.h"
 #include "PrintFeature.h"
-
-#include <range/v3/view/iota.hpp>
 
 namespace cura
 {

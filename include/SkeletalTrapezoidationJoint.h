@@ -4,10 +4,10 @@
 #ifndef SKELETAL_TRAPEZOIDATION_JOINT_H
 #define SKELETAL_TRAPEZOIDATION_JOINT_H
 
+#include <memory> // smart pointers
+
 #include "BeadingStrategy/BeadingStrategy.h"
 #include "utils/IntPoint.h"
-
-#include <memory> // smart pointers
 
 namespace cura
 {

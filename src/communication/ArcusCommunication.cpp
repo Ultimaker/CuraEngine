@@ -5,6 +5,13 @@
 
 #include "communication/ArcusCommunication.h"
 
+#include <thread> //To sleep while waiting for the connection.
+#include <unordered_map> //To map settings to their extruder numbers for limit_to_extruder.
+
+#include <Arcus/Socket.h> //The socket to communicate to.
+#include <fmt/format.h>
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To get and set the current slice command.
 #include "ExtruderTrain.h"
 #include "FffProcessor.h" //To start a slice.
@@ -18,13 +25,6 @@
 #include "settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
 #include "utils/channel.h"
 #include "utils/polygon.h"
-
-#include <Arcus/Socket.h> //The socket to communicate to.
-#include <fmt/format.h>
-#include <spdlog/spdlog.h>
-
-#include <thread> //To sleep while waiting for the connection.
-#include <unordered_map> //To map settings to their extruder numbers for limit_to_extruder.
 
 namespace cura
 {

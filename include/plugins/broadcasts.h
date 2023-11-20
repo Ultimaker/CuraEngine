@@ -4,14 +4,14 @@
 #ifndef PLUGINS_BROADCAST_H
 #define PLUGINS_BROADCAST_H
 
-#include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
-#include "cura/plugins/v0/slot_id.pb.h"
-#include "plugins/converters.h"
+#include <type_traits>
 
 #include <agrpc/asio_grpc.hpp>
 #include <range/v3/utility/semiregular_box.hpp>
 
-#include <type_traits>
+#include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
+#include "cura/plugins/v0/slot_id.pb.h"
+#include "plugins/converters.h"
 
 namespace cura::plugins::details
 {

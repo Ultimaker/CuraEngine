@@ -3,14 +3,6 @@
 
 #include "communication/CommandLine.h"
 
-#include "Application.h" //To get the extruders for material estimates.
-#include "ExtruderTrain.h"
-#include "FffProcessor.h" //To start a slice and get time estimates.
-#include "Slice.h"
-#include "utils/FMatrix4x3.h" //For the mesh_rotation_matrix setting.
-
-#include <spdlog/spdlog.h>
-
 #include <cstring> //For strtok and strcopy.
 #include <errno.h> // error number when trying to read file
 #include <filesystem>
@@ -20,6 +12,14 @@
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/rapidjson.h>
 #include <unordered_set>
+
+#include <spdlog/spdlog.h>
+
+#include "Application.h" //To get the extruders for material estimates.
+#include "ExtruderTrain.h"
+#include "FffProcessor.h" //To start a slice and get time estimates.
+#include "Slice.h"
+#include "utils/FMatrix4x3.h" //For the mesh_rotation_matrix setting.
 
 namespace cura
 {

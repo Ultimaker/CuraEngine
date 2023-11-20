@@ -8,10 +8,10 @@
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h>
 #endif
+#include <memory> //For unique_ptr and shared_ptr.
+
 #include "Communication.h" //The class we're implementing.
 #include "Cura.pb.h" //To create Protobuf messages for Cura's front-end.
-
-#include <memory> //For unique_ptr and shared_ptr.
 
 // Forward declarations to speed up compilation.
 namespace Arcus

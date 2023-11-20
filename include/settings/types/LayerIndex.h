@@ -4,9 +4,9 @@
 #ifndef LAYERINDEX_H
 #define LAYERINDEX_H
 
-#include "utils/types/generic.h"
-
 #include <functional>
+
+#include "utils/types/generic.h"
 
 namespace cura
 {

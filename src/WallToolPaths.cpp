@@ -3,6 +3,14 @@
 
 #include "WallToolPaths.h"
 
+#include <algorithm> //For std::partition_copy and std::min_element.
+#include <unordered_set>
+
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/filter.hpp>
+#include <range/v3/view/transform.hpp>
+#include <scripta/logger.h>
+
 #include "ExtruderTrain.h"
 #include "SkeletalTrapezoidation.h"
 #include "utils/PolylineStitcher.h"
@@ -10,14 +18,6 @@
 #include "utils/SparsePointGrid.h" //To stitch the inner contour.
 #include "utils/actions/smooth.h"
 #include "utils/polygonUtils.h"
-
-#include <range/v3/range/conversion.hpp>
-#include <range/v3/view/filter.hpp>
-#include <range/v3/view/transform.hpp>
-#include <scripta/logger.h>
-
-#include <algorithm> //For std::partition_copy and std::min_element.
-#include <unordered_set>
 
 namespace cura
 {
@@ -376,7 +376,7 @@ void WallToolPaths::separateOutInnerContour()
             {
                 for (const ExtrusionJunction& j : line)
                 {
-//                    assert(j.w == 0);
+                    //                    assert(j.w == 0);
                 }
             }
 #endif // DEBUG

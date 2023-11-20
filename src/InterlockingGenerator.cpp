@@ -3,19 +3,19 @@
 
 #include "InterlockingGenerator.h"
 
-#include "Application.h"
-#include "Slice.h"
-#include "settings/types/LayerIndex.h"
-#include "slicer.h"
-#include "utils/VoxelUtils.h"
-#include "utils/polygonUtils.h"
+#include <algorithm> // max
 
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/iota.hpp>
 #include <range/v3/view/view.hpp>
 #include <range/v3/view/zip.hpp>
 
-#include <algorithm> // max
+#include "Application.h"
+#include "Slice.h"
+#include "settings/types/LayerIndex.h"
+#include "slicer.h"
+#include "utils/VoxelUtils.h"
+#include "utils/polygonUtils.h"
 
 namespace cura
 {

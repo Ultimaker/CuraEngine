@@ -4,14 +4,14 @@
 #ifndef TIME_ESTIMATE_H
 #define TIME_ESTIMATE_H
 
+#include <stdint.h>
+#include <unordered_map>
+#include <vector>
+
 #include "PrintFeature.h"
 #include "settings/types/Duration.h" //Print time estimates.
 #include "settings/types/Ratio.h"
 #include "settings/types/Velocity.h" //Speeds and accelerations at which we print.
-
-#include <stdint.h>
-#include <unordered_map>
-#include <vector>
 
 namespace cura
 {

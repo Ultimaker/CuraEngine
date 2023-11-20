@@ -4,13 +4,13 @@
 #ifndef PLUGINS_VALIDATOR_H
 #define PLUGINS_VALIDATOR_H
 
-#include "plugins/metadata.h"
-#include "plugins/types.h"
+#include <semver.hpp>
 
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
-#include <semver.hpp>
+#include "plugins/metadata.h"
+#include "plugins/types.h"
 
 namespace cura::plugins
 {

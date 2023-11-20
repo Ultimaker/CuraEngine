@@ -4,6 +4,10 @@
 #ifndef INFILL_H
 #define INFILL_H
 
+#include <numbers>
+
+#include <range/v3/range/concepts.hpp>
+
 #include "infill/LightningGenerator.h"
 #include "infill/ZigzagConnectorProcessor.h"
 #include "settings/EnumSettings.h" //For infill types.
@@ -13,10 +17,6 @@
 #include "utils/ExtrusionLine.h"
 #include "utils/IntPoint.h"
 #include "utils/section_type.h"
-
-#include <range/v3/range/concepts.hpp>
-
-#include <numbers>
 
 namespace cura
 {

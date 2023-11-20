@@ -4,12 +4,10 @@
 #ifndef UTILS_VIEWS_SMOOTH_H
 #define UTILS_VIEWS_SMOOTH_H
 
-#include "settings/Settings.h"
-#include "settings/types/Angle.h"
-#include "utils/types/arachne.h"
-#include "utils/types/generic.h"
-#include "utils/types/geometry.h"
-#include "utils/types/get.h"
+#include <functional>
+#include <limits>
+#include <numbers>
+#include <set>
 
 #include <range/v3/action/remove_if.hpp>
 #include <range/v3/functional/bind_back.hpp>
@@ -22,10 +20,12 @@
 #include <range/v3/view/take.hpp>
 #include <spdlog/spdlog.h>
 
-#include <functional>
-#include <limits>
-#include <numbers>
-#include <set>
+#include "settings/Settings.h"
+#include "settings/types/Angle.h"
+#include "utils/types/arachne.h"
+#include "utils/types/generic.h"
+#include "utils/types/geometry.h"
+#include "utils/types/get.h"
 
 namespace cura
 {

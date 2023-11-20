@@ -1,9 +1,10 @@
 // Copyright (c) 2023 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include <sstream>
+
 #include "AABB.h"
 #include "utils/IntPoint.h"
-#include <sstream>
 
 #ifndef CURAENGINE_BOUNDEDAREAHIERARCHY_H
 #define CURAENGINE_BOUNDEDAREAHIERARCHY_H
@@ -18,7 +19,9 @@ class BoundedAreaHierarchy
         const Point start;
         const Point end;
 
-        Edge(const Point start, const Point end) : start(start), end(end)
+        Edge(const Point start, const Point end)
+            : start(start)
+            , end(end)
         {
         }
 
@@ -62,14 +65,18 @@ class BoundedAreaHierarchy
     }
 
     // Quicksort algorithm based on https://www.geeksforgeeks.org/cpp-program-for-quicksort/
-    void quick_sort_primitives(const int axis, const int first, const int last) {
-        if (first < last) {
+    void quick_sort_primitives(const int axis, const int first, const int last)
+    {
+        if (first < last)
+        {
             float pivot = get_axis(axis, vertices[indices[(first + last) / 2] * 3]);
 
             int i = first - 1;
 
-            for (int j = first; j <= last - 1; j ++) {
-                if (get_axis(axis, centroids[indices[j]]) <= pivot) {
+            for (int j = first; j <= last - 1; j++)
+            {
+                if (get_axis(axis, centroids[indices[j]]) <= pivot)
+                {
                     i++;
                     Swap(&indices[i], &indices[j]);
                 }
@@ -92,9 +99,13 @@ class BoundedAreaHierarchy
             return;
         }
 
-        edges.sort(start, end, [](const std::pair<Edge, edge_data>& a, const std::pair<Edge, edge_data>& b) {
-            return a.first.getAABB().getCenter().x < b.first.getAABB().getCenter().x;
-        });
+        edges.sort(
+            start,
+            end,
+            [](const std::pair<Edge, edge_data>& a, const std::pair<Edge, edge_data>& b)
+            {
+                return a.first.getAABB().getCenter().x < b.first.getAABB().getCenter().x;
+            });
 
 
         const int middle = (start + end) / 2;
@@ -121,7 +132,8 @@ public:
 
     void draw_debug_svg(const std::string file_name)
     {
-        if (! bounded_area_hierarchy.empty()) return;
+        if (! bounded_area_hierarchy.empty())
+            return;
 
         AABB outer_aabb = bounded_area_hierarchy[0].aabb;
         outer_aabb.expand(1000);
@@ -129,7 +141,7 @@ public:
 
         std::vector<int> stack;
         stack.push_back(0);
-        while (!stack.empty())
+        while (! stack.empty())
         {
             const int node_index = stack.back();
             stack.pop_back();

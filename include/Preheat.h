@@ -4,12 +4,12 @@
 #ifndef PREHEAT_H
 #define PREHEAT_H
 
+#include <algorithm> // max
+#include <cassert>
+
 #include "settings/types/Duration.h"
 #include "settings/types/Ratio.h"
 #include "settings/types/Temperature.h"
-
-#include <algorithm> // max
-#include <cassert>
 
 namespace cura
 {

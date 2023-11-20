@@ -4,11 +4,11 @@
 #ifndef UTILS_FORMAT_THREAD_ID_H
 #define UTILS_FORMAT_THREAD_ID_H
 
-#include <fmt/core.h>
-
 #include <sstream>
 #include <string_view>
 #include <thread>
+
+#include <fmt/core.h>
 
 namespace fmt
 {

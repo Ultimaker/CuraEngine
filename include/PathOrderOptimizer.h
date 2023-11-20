@@ -4,15 +4,7 @@
 #ifndef PATHORDEROPTIMIZER_H
 #define PATHORDEROPTIMIZER_H
 
-#include "InsetOrderOptimizer.h" // for makeOrderIncludeTransitive
-#include "PathOrdering.h"
-#include "pathPlanning/CombPath.h" //To calculate the combing distance if we want to use combing.
-#include "pathPlanning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
-#include "settings/EnumSettings.h" //To get the seam settings.
-#include "settings/ZSeamConfig.h" //To read the seam configuration.
-#include "utils/linearAlg2D.h" //To find the angle of corners to hide seams.
-#include "utils/polygonUtils.h"
-#include "utils/views/dfs.h"
+#include <unordered_set>
 
 #include <range/v3/algorithm/partition_copy.hpp>
 #include <range/v3/iterator/insert_iterators.hpp>
@@ -23,7 +15,15 @@
 #include <range/v3/view/reverse.hpp>
 #include <spdlog/spdlog.h>
 
-#include <unordered_set>
+#include "InsetOrderOptimizer.h" // for makeOrderIncludeTransitive
+#include "PathOrdering.h"
+#include "pathPlanning/CombPath.h" //To calculate the combing distance if we want to use combing.
+#include "pathPlanning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
+#include "settings/EnumSettings.h" //To get the seam settings.
+#include "settings/ZSeamConfig.h" //To read the seam configuration.
+#include "utils/linearAlg2D.h" //To find the angle of corners to hide seams.
+#include "utils/polygonUtils.h"
+#include "utils/views/dfs.h"
 
 namespace cura
 {

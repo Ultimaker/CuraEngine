@@ -5,14 +5,14 @@
 
 #include "communication/ArcusCommunicationPrivate.h"
 
+#include <spdlog/spdlog.h>
+
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/FMatrix4x3.h" //To convert vertices to integer-points.
 #include "utils/floatpoint.h" //To accept vertices (which are provided in floating point).
-
-#include <spdlog/spdlog.h>
 
 namespace cura
 {

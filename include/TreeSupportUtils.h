@@ -4,6 +4,8 @@
 #ifndef TREESUPPORTTUTILS_H
 #define TREESUPPORTTUTILS_H
 
+#include <spdlog/spdlog.h>
+
 #include "TreeModelVolumes.h"
 #include "TreeSupportBaseCircle.h"
 #include "TreeSupportElement.h"
@@ -16,8 +18,6 @@
 #include "sliceDataStorage.h"
 #include "utils/Coord_t.h"
 #include "utils/polygon.h"
-
-#include <spdlog/spdlog.h>
 
 namespace cura
 {

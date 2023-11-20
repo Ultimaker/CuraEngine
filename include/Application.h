@@ -4,11 +4,11 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#include "utils/NoCopy.h"
-
 #include <cassert>
 #include <cstddef>
 #include <string>
+
+#include "utils/NoCopy.h"
 
 
 namespace cura

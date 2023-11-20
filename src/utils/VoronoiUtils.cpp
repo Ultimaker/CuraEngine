@@ -3,13 +3,13 @@
 
 #include "utils/VoronoiUtils.h"
 
-#include "utils/linearAlg2D.h"
-#include "utils/macros.h"
+#include <optional>
+#include <stack>
 
 #include <spdlog/spdlog.h>
 
-#include <optional>
-#include <stack>
+#include "utils/linearAlg2D.h"
+#include "utils/macros.h"
 
 namespace cura
 {

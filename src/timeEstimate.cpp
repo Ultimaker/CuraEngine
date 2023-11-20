@@ -3,13 +3,13 @@
 
 #include "timeEstimate.h"
 
-#include "settings/Settings.h"
-#include "utils/math.h"
-
 #include <algorithm>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "settings/Settings.h"
+#include "utils/math.h"
 
 namespace cura
 {

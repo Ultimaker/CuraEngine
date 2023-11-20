@@ -4,19 +4,19 @@
 #ifndef PLUGINS_SLOTPROXY_H
 #define PLUGINS_SLOTPROXY_H
 
-#include "plugins/converters.h"
-#include "plugins/pluginproxy.h"
-#include "plugins/types.h"
-#include "plugins/validator.h"
-#include "utils/types/char_range_literal.h"
-
-#include <boost/asio/use_awaitable.hpp>
-
 #include <concepts>
 #include <functional>
 #include <grpcpp/channel.h>
 #include <memory>
 #include <optional>
+
+#include <boost/asio/use_awaitable.hpp>
+
+#include "plugins/converters.h"
+#include "plugins/pluginproxy.h"
+#include "plugins/types.h"
+#include "plugins/validator.h"
+#include "utils/types/char_range_literal.h"
 
 namespace cura::plugins
 {

@@ -4,10 +4,10 @@
 #ifndef UTILS_CONCEPTS_GRAPH_H
 #define UTILS_CONCEPTS_GRAPH_H
 
-#include "utils/types/generic.h"
-
 #include <concepts>
 #include <type_traits>
+
+#include "utils/types/generic.h"
 
 namespace cura::utils
 {

@@ -2,6 +2,12 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "WallsComputation.h"
+
+#include <fstream>
+#include <iostream>
+
+#include <fmt/format.h>
+
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
@@ -9,14 +15,13 @@
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "utils/Simplify.h" // We're simplifying the spiralized insets.
-#include <iostream>
-#include <fstream>
-#include <fmt/format.h>
 
 namespace cura
 {
 
-WallsComputation::WallsComputation(const Settings& settings, const LayerIndex layer_nr) : settings(settings), layer_nr(layer_nr)
+WallsComputation::WallsComputation(const Settings& settings, const LayerIndex layer_nr)
+    : settings(settings)
+    , layer_nr(layer_nr)
 {
 }
 
@@ -38,7 +43,8 @@ void WallsComputation::generateWalls(SliceLayerPart* part, SectionType section_t
 
     const bool spiralize = settings.get<bool>("magic_spiralize");
     const size_t alternate = ((layer_nr % 2) + 2) % 2;
-    if (spiralize && layer_nr < LayerIndex(settings.get<size_t>("initial_bottom_layers")) && alternate == 1) //Add extra insets every 2 layers when spiralizing. This makes bottoms of cups watertight.
+    if (spiralize && layer_nr < LayerIndex(settings.get<size_t>("initial_bottom_layers"))
+        && alternate == 1) // Add extra insets every 2 layers when spiralizing. This makes bottoms of cups watertight.
     {
         wall_count += 5;
     }
@@ -58,8 +64,7 @@ void WallsComputation::generateWalls(SliceLayerPart* part, SectionType section_t
     // When spiralizing, generate the spiral insets using simple offsets instead of generating toolpaths
     if (spiralize)
     {
-        const bool recompute_outline_based_on_outer_wall =
-                settings.get<bool>("support_enable") && !settings.get<bool>("fill_outline_gaps");
+        const bool recompute_outline_based_on_outer_wall = settings.get<bool>("support_enable") && ! settings.get<bool>("fill_outline_gaps");
 
         generateSpiralInsets(part, line_width_0, wall_0_inset, recompute_outline_based_on_outer_wall);
         if (layer_nr <= static_cast<LayerIndex>(settings.get<size_t>("initial_bottom_layers")))
@@ -75,7 +80,7 @@ void WallsComputation::generateWalls(SliceLayerPart* part, SectionType section_t
         part->wall_toolpaths = wall_tool_paths.getToolPaths();
         part->inner_area = wall_tool_paths.getInnerContour();
     }
-    part->outline = PolygonsPart { Simplify(settings).polygon(part->outline) };
+    part->outline = PolygonsPart{ Simplify(settings).polygon(part->outline) };
     part->print_outline = part->outline;
 }
 
@@ -100,13 +105,15 @@ void WallsComputation::generateWalls(SliceLayer* layer, SectionType section)
         bool first_poly = true;
         for (const auto& part : layer->parts)
         {
-            if (!first_poly) PolygonFile << "&\n";
+            if (! first_poly)
+                PolygonFile << "&\n";
             first_poly = false;
 
             bool first_poly = true;
             for (const auto& poly : part.outline)
             {
-                if (!first_poly) PolygonFile << "x\n";
+                if (! first_poly)
+                    PolygonFile << "x\n";
                 first_poly = false;
 
                 for (const Point& p : poly)
@@ -118,16 +125,16 @@ void WallsComputation::generateWalls(SliceLayer* layer, SectionType section)
         PolygonFile.close();
     }
 
-    for(SliceLayerPart& part : layer->parts)
+    for (SliceLayerPart& part : layer->parts)
     {
         generateWalls(&part, section);
     }
 
-    //Remove the parts which did not generate a wall. As these parts are too small to print,
-    // and later code can now assume that there is always minimal 1 wall line.
-    if(settings.get<size_t>("wall_line_count") >= 1 && !settings.get<bool>("fill_outline_gaps"))
+    // Remove the parts which did not generate a wall. As these parts are too small to print,
+    //  and later code can now assume that there is always minimal 1 wall line.
+    if (settings.get<size_t>("wall_line_count") >= 1 && ! settings.get<bool>("fill_outline_gaps"))
     {
-        for(size_t part_idx = 0; part_idx < layer->parts.size(); part_idx++)
+        for (size_t part_idx = 0; part_idx < layer->parts.size(); part_idx++)
         {
             if (layer->parts[part_idx].wall_toolpaths.empty() && layer->parts[part_idx].spiral_wall.empty())
             {
@@ -142,11 +149,11 @@ void WallsComputation::generateWalls(SliceLayer* layer, SectionType section)
     }
 }
 
-void WallsComputation::generateSpiralInsets(SliceLayerPart *part, coord_t line_width_0, coord_t wall_0_inset, bool recompute_outline_based_on_outer_wall)
+void WallsComputation::generateSpiralInsets(SliceLayerPart* part, coord_t line_width_0, coord_t wall_0_inset, bool recompute_outline_based_on_outer_wall)
 {
     part->spiral_wall = part->outline.offset(-line_width_0 / 2 - wall_0_inset);
 
-    //Optimize the wall. This prevents buffer underruns in the printer firmware, and reduces processing time in CuraEngine.
+    // Optimize the wall. This prevents buffer underruns in the printer firmware, and reduces processing time in CuraEngine.
     const ExtruderTrain& train_wall = settings.get<ExtruderTrain&>("wall_0_extruder_nr");
     part->spiral_wall = Simplify(train_wall.settings).polygon(part->spiral_wall);
     part->spiral_wall.removeDegenerateVerts();
@@ -160,4 +167,4 @@ void WallsComputation::generateSpiralInsets(SliceLayerPart *part, coord_t line_w
     }
 }
 
-}//namespace cura
+} // namespace cura

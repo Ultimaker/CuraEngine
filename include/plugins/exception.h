@@ -4,16 +4,16 @@
 #ifndef PLUGINS_EXCEPTION_H
 #define PLUGINS_EXCEPTION_H
 
-#include "plugins/metadata.h"
-#include "plugins/types.h"
-#include "plugins/validator.h"
-
-#include <fmt/format.h>
-
 #include <exception>
 #include <string>
 #include <string_view>
 #include <utility>
+
+#include <fmt/format.h>
+
+#include "plugins/metadata.h"
+#include "plugins/types.h"
+#include "plugins/validator.h"
 
 namespace cura::plugins::exceptions
 {
