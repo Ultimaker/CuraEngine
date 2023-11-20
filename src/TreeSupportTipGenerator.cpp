@@ -175,7 +175,7 @@ Polygons TreeSupportTipGenerator::convertInternalToLines(std::vector<TreeSupport
 
 std::function<bool(std::pair<Point, TreeSupportTipGenerator::LineStatus>)> TreeSupportTipGenerator::getEvaluatePointForNextLayerFunction(size_t current_layer)
 {
-    std::function<bool(std::pair<Point, LineStatus>)> evaluatePoint = [=](std::pair<Point, LineStatus> p)
+    std::function<bool(std::pair<Point, LineStatus>)> evaluatePoint = [this, current_layer](std::pair<Point, LineStatus> p)
     {
         if (config.support_rest_preference != RestPreference::GRACEFUL
             && ! volumes_

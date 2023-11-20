@@ -4,9 +4,11 @@
 #ifndef LAYERINDEX_H
 #define LAYERINDEX_H
 
-#include "utils/types/generic.h"
-
 #include <functional>
+
+#include <fmt/format.h>
+
+#include "utils/types/generic.h"
 
 namespace cura
 {
@@ -191,6 +193,11 @@ struct LayerIndex
         return tmp;
     }
 };
+
+constexpr auto format_as(LayerIndex index)
+{
+    return index.value;
+}
 
 } // namespace cura
 

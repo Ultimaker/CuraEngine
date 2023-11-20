@@ -76,13 +76,13 @@ void Progress::messageProgressLayer(LayerIndex layer_nr, size_t total_layers, do
     {
         if (first_skipped_layer)
         {
-            spdlog::info("Skipped time reporting for layers [{}...{}]", first_skipped_layer.value().value, layer_nr.value);
+            spdlog::info("Skipped time reporting for layers [{}...{}]", first_skipped_layer.value(), layer_nr);
             first_skipped_layer.reset();
         }
 
         messageProgress(Stage::EXPORT, std::max(layer_nr.value, LayerIndex::value_type(0)) + 1, total_layers);
 
-        spdlog::info("┌ Layer export [{}] accomplished in {:03.3f}s", layer_nr.value, total_time);
+        spdlog::info("┌ Layer export [{}] accomplished in {:03.3f}s", layer_nr, total_time);
 
         size_t padding = 0;
         auto iterator_max_size = std::max_element(
