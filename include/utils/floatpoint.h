@@ -21,15 +21,18 @@ class FPoint3
 {
 public:
     float x, y, z;
+
     FPoint3()
     {
     }
+
     FPoint3(float _x, float _y, float _z)
         : x(_x)
         , y(_y)
         , z(_z)
     {
     }
+
     FPoint3(const Point3& p)
         : x(static_cast<float>(p.x_) * .001f)
         , y(static_cast<float>(p.y_) * .001f)

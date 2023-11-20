@@ -1405,10 +1405,10 @@ public:
 
                     // find closest point, supposing this point aligns the two shapes in the best way
                     size_t closest_point_idx = 0;
-                    int smallestDist2 = -1;
+                    coord_t smallestDist2 = -1;
                     for (size_t point_rem_idx = 0; point_rem_idx < poly_rem.size(); point_rem_idx++)
                     {
-                        int dist2 = vSize2(poly_rem[point_rem_idx] - poly_keep[0]);
+                        coord_t dist2 = vSize2(poly_rem[point_rem_idx] - poly_keep[0]);
                         if (dist2 < smallestDist2 || smallestDist2 < 0)
                         {
                             smallestDist2 = dist2;
@@ -1419,9 +1419,9 @@ public:
                     // compare the two polygons on all points
                     if (smallestDist2 > same_distance * same_distance)
                         continue;
-                    for (unsigned int point_idx = 0; point_idx < poly_rem.size(); point_idx++)
+                    for (size_t point_idx = 0; point_idx < poly_rem.size(); point_idx++)
                     {
-                        int dist2 = vSize2(poly_rem[(closest_point_idx + point_idx) % poly_rem.size()] - poly_keep[point_idx]);
+                        coord_t dist2 = vSize2(poly_rem[(closest_point_idx + point_idx) % poly_rem.size()] - poly_keep[point_idx]);
                         if (dist2 > same_distance * same_distance)
                         {
                             poly_rem_is_poly_keep = false;
@@ -1558,9 +1558,9 @@ public:
 class PartsView : public std::vector<std::vector<unsigned int>>
 {
 public:
-    Polygons& polygons;
+    Polygons& polygons_;
     PartsView(Polygons& polygons)
-        : polygons(polygons)
+        : polygons_(polygons)
     {
     }
     /*!

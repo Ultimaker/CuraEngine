@@ -84,7 +84,7 @@ inline std::ostream& operator<<(std::ostream& out, const Duration seconds)
     double s = seconds;
     if (pretty_print && seconds > 60)
     {
-        int min = seconds / 60;
+        int min = static_cast<int>(seconds) / 60;
         s -= min * 60;
         if (min > 60)
         {
