@@ -7,8 +7,10 @@
 #include <sys/resource.h> //For setpriority.
 #endif
 
-#include <spdlog/spdlog.h>
 #include <sentry.h>
+
+#include <spdlog/spdlog.h>
+
 #include "Application.h"
 
 namespace cura
@@ -38,7 +40,7 @@ int main(int argc, char** argv)
     std::cerr << std::boolalpha;
 
     // Setup sentry error handling.
-    sentry_options_t *options = sentry_options_new();
+    sentry_options_t* options = sentry_options_new();
     // TODO: Right now we just hardcode the key. We should probably get that from some kind of secret for release builds
     sentry_options_set_dsn(options, "https://734f9ec9024f73e53701d59c3ffddfe3@o323038.ingest.sentry.io/4506257745510401");
     // This is also the default-path. For further information and recommendations:
@@ -48,7 +50,7 @@ int main(int argc, char** argv)
     sentry_options_set_release(options, "curaengine@1.0.0");
     sentry_options_set_debug(options, 1);
     sentry_init(options);
-    
+
     cura::Application::getInstance().run(argc, argv);
 
     sentry_close();
