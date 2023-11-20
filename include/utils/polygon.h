@@ -1509,6 +1509,21 @@ public:
     }
 
     Polygons offset(const std::vector<coord_t>& offset_dists) const;
+
+    /*!
+     * @brief Export the polygon to a WKT string
+     *
+     * @param stream The stream to write to
+     */
+    void writeWkt(std::ostream& stream) const;
+
+    /*!
+     * @brief Import the polygon from a WKT string
+     *
+     * @param wkt The WKT string to read from
+     * @return Polygons The polygons read from the stream
+     */
+    static Polygons fromWkt(const std::string& wkt);
 };
 
 /*!
