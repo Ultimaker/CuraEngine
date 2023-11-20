@@ -25,17 +25,18 @@ namespace cura
 class SupportInfillPart
 {
 public:
-    PolygonsPart outline;  //!< The outline of the support infill area
-    AABB outline_boundary_box;  //!< The boundary box for the infill area
-    coord_t support_line_width;  //!< The support line width
-    int inset_count_to_generate;  //!< The number of insets need to be generated from the outline. This is not the actual insets that will be generated.
-    std::vector<std::vector<Polygons>> infill_area_per_combine_per_density;  //!< a list of separated sub-areas which requires different infill densities and combined thicknesses
-                                                                              //   for infill_areas[x][n], x means the density level and n means the thickness
+    PolygonsPart outline; //!< The outline of the support infill area
+    AABB outline_boundary_box; //!< The boundary box for the infill area
+    coord_t support_line_width; //!< The support line width
+    int inset_count_to_generate; //!< The number of insets need to be generated from the outline. This is not the actual insets that will be generated.
+    std::vector<std::vector<Polygons>> infill_area_per_combine_per_density; //!< a list of separated sub-areas which requires different infill densities and combined thicknesses
+                                                                            //   for infill_areas[x][n], x means the density level and n means the thickness
     std::vector<VariableWidthLines> wall_toolpaths; //!< Any walls go here, not in the areas, where they could be combined vertically (don't combine walls). Binned by inset_idx.
 
     coord_t custom_line_distance;
+    bool use_fractional_config; //!< Request to use the configuration used to fill a partial layer height here, instead of the normal full layer height configuration.
 
-    SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, int inset_count_to_generate = 0, coord_t custom_line_distance = 0 );
+    SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, bool use_fractional_config, int inset_count_to_generate = 0, coord_t custom_line_distance = 0);
 
     const Polygons& getInfillArea() const;
 };

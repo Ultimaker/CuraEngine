@@ -1,26 +1,30 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifdef ARCUS
 
-#include <Arcus/Socket.h> //The socket to communicate to.
-#include <thread> //To sleep while waiting for the connection.
-#include <unordered_map> //To map settings to their extruder numbers for limit_to_extruder.
-
-#include <spdlog/spdlog.h>
+#include "communication/ArcusCommunication.h"
 
 #include "Application.h" //To get and set the current slice command.
 #include "ExtruderTrain.h"
 #include "FffProcessor.h" //To start a slice.
 #include "PrintFeature.h"
 #include "Slice.h" //To process slices.
-#include "communication/ArcusCommunication.h"
 #include "communication/ArcusCommunicationPrivate.h" //Our PIMPL.
 #include "communication/Listener.h" //To listen to the Arcus socket.
 #include "communication/SliceDataStruct.h" //To store sliced layer data.
+#include "plugins/slots.h"
 #include "settings/types/LayerIndex.h" //To point to layers.
 #include "settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
+#include "utils/channel.h"
 #include "utils/polygon.h"
+
+#include <Arcus/Socket.h> //The socket to communicate to.
+#include <fmt/format.h>
+#include <spdlog/spdlog.h>
+
+#include <thread> //To sleep while waiting for the connection.
+#include <unordered_map> //To map settings to their extruder numbers for limit_to_extruder.
 
 namespace cura
 {
@@ -47,7 +51,8 @@ class ArcusCommunication::PathCompiler
     std::vector<float> line_widths; //!< Line widths for the line segments stored, the size of this vector is N.
     std::vector<float> line_thicknesses; //!< Line thicknesses for the line segments stored, the size of this vector is N.
     std::vector<float> line_velocities; //!< Line feedrates for the line segments stored, the size of this vector is N.
-    std::vector<float> points; //!< The points used to define the line segments, the size of this vector is D*(N+1) as each line segment is defined from one point to the next. D is the dimensionality of the point.
+    std::vector<float> points; //!< The points used to define the line segments, the size of this vector is D*(N+1) as each line segment is defined from one point to the next. D is
+                               //!< the dimensionality of the point.
 
     Point last_point;
 
@@ -133,7 +138,7 @@ public:
         }
         else if (initial_point != last_point)
         {
-            addLineSegment(PrintFeatureType::NoneType, initial_point, 1, 0, 0);
+            addLineSegment(PrintFeatureType::NoneType, initial_point, 1, 0, 0.0);
         }
     }
 
@@ -281,7 +286,9 @@ private:
     }
 };
 
-ArcusCommunication::ArcusCommunication() : private_data(new Private), path_compiler(new PathCompiler(*private_data))
+ArcusCommunication::ArcusCommunication()
+    : private_data(new Private)
+    , path_compiler(new PathCompiler(*private_data))
 {
 }
 
@@ -316,7 +323,7 @@ void ArcusCommunication::connect(const std::string& ip, const uint16_t port)
         std::this_thread::sleep_for(std::chrono::milliseconds(private_data->millisecUntilNextTry)); // Wait until we're connected. Check every XXXms.
         socket_state = private_data->socket->getState();
     }
-    if (socket_state != Arcus::SocketState::Connected)
+    if (socket_state == Arcus::SocketState::Connected)
     {
         spdlog::info("Connected to {}:{}", ip, port);
     }
@@ -335,7 +342,8 @@ void ArcusCommunication::beginGCode()
 
 void ArcusCommunication::flushGCode()
 {
-    const std::string& message_str = private_data->gcode_output_stream.str();
+    std::string gcode_output_stream = private_data->gcode_output_stream.str();
+    auto message_str = slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(gcode_output_stream);
     if (message_str.size() == 0)
     {
         return;
@@ -368,7 +376,8 @@ void ArcusCommunication::sendCurrentPosition(const Point& position)
 void ArcusCommunication::sendGCodePrefix(const std::string& prefix) const
 {
     std::shared_ptr<proto::GCodePrefix> message = std::make_shared<proto::GCodePrefix>();
-    message->set_data(prefix);
+    std::string message_str = prefix;
+    message->set_data(slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(message_str));
     private_data->socket->sendMessage(message);
 }
 
@@ -386,7 +395,7 @@ void ArcusCommunication::sendFinishedSlicing() const
     spdlog::debug("Sent slicing finished message.");
 }
 
-void ArcusCommunication::sendLayerComplete(const LayerIndex& layer_nr, const coord_t& z, const coord_t& thickness)
+void ArcusCommunication::sendLayerComplete(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness)
 {
     std::shared_ptr<proto::LayerOptimized> layer = private_data->getOptimizedLayerById(layer_nr);
     layer->set_height(z);
@@ -411,7 +420,7 @@ void ArcusCommunication::sendOptimizedLayerData()
     }
     spdlog::info("Sending {} layers.", data.current_layer_count);
 
-    for (std::pair<const int, std::shared_ptr<proto::LayerOptimized>> entry : data.slice_data) // Note: This is in no particular order!
+    for (const auto& entry : data.slice_data) // Note: This is in no particular order!
     {
         spdlog::debug("Sending layer data for layer {} of {}.", entry.first, data.slice_data.size());
         private_data->socket->sendMessage(entry.second); // Send the actual layers.
@@ -422,7 +431,12 @@ void ArcusCommunication::sendOptimizedLayerData()
     data.slice_data.clear();
 }
 
-void ArcusCommunication::sendPolygon(const PrintFeatureType& type, const ConstPolygonRef& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
+void ArcusCommunication::sendPolygon(
+    const PrintFeatureType& type,
+    const ConstPolygonRef& polygon,
+    const coord_t& line_width,
+    const coord_t& line_thickness,
+    const Velocity& velocity)
 {
     path_compiler->sendPolygon(type, polygon, line_width, line_thickness, velocity);
 }
@@ -482,7 +496,7 @@ void ArcusCommunication::sendProgress(const float& progress) const
     private_data->last_sent_progress = rounded_amount;
 }
 
-void ArcusCommunication::setLayerForSend(const LayerIndex& layer_nr)
+void ArcusCommunication::setLayerForSend(const LayerIndex::value_type& layer_nr)
 {
     path_compiler->setLayer(layer_nr);
 }
@@ -504,11 +518,22 @@ void ArcusCommunication::sliceNext()
     }
     spdlog::debug("Received a Slice message.");
 
+#ifdef ENABLE_PLUGINS
+    for (const auto& plugin : slice_message->engine_plugins())
+    {
+        const auto slot_id = static_cast<plugins::v0::SlotID>(plugin.id());
+        slots::instance().connect(slot_id, plugin.plugin_name(), plugin.plugin_version(), utils::createChannel({ plugin.address(), plugin.port() }));
+    }
+#endif // ENABLE_PLUGINS
+
     Slice slice(slice_message->object_lists().size());
     Application::getInstance().current_slice = &slice;
 
     private_data->readGlobalSettingsMessage(slice_message->global_settings());
     private_data->readExtruderSettingsMessage(slice_message->extruders());
+
+    // Broadcast the settings to the plugins
+    slots::instance().broadcast<plugins::v0::SlotID::SETTINGS_BROADCAST>(*slice_message);
     const size_t extruder_count = slice.scene.extruders.size();
 
     // For each setting, register what extruder it should be obtained from (if this is limited to an extruder).

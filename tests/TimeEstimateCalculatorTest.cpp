@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "PrintFeature.h" //We get time estimates per print feature.
 #include "settings/Settings.h" //To set firmware settings.
@@ -144,7 +144,7 @@ TEST_F(TimeEstimateCalculatorTest, MoveToCurrentLocation)
     Duration estimate = std::accumulate(result.begin(), result.end(), Duration(0.0));
     EXPECT_NEAR(Duration(0.0), estimate, EPSILON) << "setPosition should not add any time to the estimate.";
 
-    calculator.plan(position, Velocity(10), PrintFeatureType::Infill);
+    calculator.plan(position, Velocity { 10.0 }, PrintFeatureType::Infill);
 
     result = calculator.calculate();
     estimate = std::accumulate(result.begin(), result.end(), Duration(0.0));

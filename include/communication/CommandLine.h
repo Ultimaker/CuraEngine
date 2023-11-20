@@ -4,12 +4,12 @@
 #ifndef COMMANDLINE_H
 #define COMMANDLINE_H
 
+#include "Communication.h" //The class we're implementing.
+
 #include <rapidjson/document.h> //Loading JSON documents to get settings from them.
 #include <string> //To store the command line arguments.
 #include <unordered_set>
 #include <vector> //To store the command line arguments.
-
-#include "Communication.h" //The class we're implementing.
 
 namespace cura
 {
@@ -86,7 +86,7 @@ public:
      * The command line doesn't do anything with that information so this is
      * ignored.
      */
-    void sendLayerComplete(const LayerIndex&, const coord_t&, const coord_t&) override;
+    void sendLayerComplete(const LayerIndex::value_type&, const coord_t&, const coord_t&) override;
 
     /*
      * \brief Send a line for display.
@@ -143,7 +143,7 @@ public:
      * This has no effect though because we don't shwo these three functions
      * because the command line doesn't show layer view.
      */
-    void setLayerForSend(const LayerIndex&) override;
+    void setLayerForSend(const LayerIndex::value_type&) override;
 
     /*
      * \brief Slice the next scene that the command line commands us to slice.
@@ -188,14 +188,12 @@ private:
      * \return Error code. If it's 0, the document was successfully loaded. If
      * it's 1, some inheriting file could not be opened.
      */
-    int loadJSON
-    (
+    int loadJSON(
         const rapidjson::Document& document,
         const std::unordered_set<std::string>& search_directories,
         Settings& settings,
         bool force_read_parent = false,
-        bool force_read_nondefault = false
-    );
+        bool force_read_nondefault = false);
 
     /*
      * \brief Load an element containing a list of settings.
@@ -216,6 +214,6 @@ private:
     const std::string findDefinitionFile(const std::string& definition_id, const std::unordered_set<std::string>& search_directories);
 };
 
-} //namespace cura
+} // namespace cura
 
-#endif //COMMANDLINE_H
+#endif // COMMANDLINE_H

@@ -1,0 +1,107 @@
+name: lint-tidier
+
+on:
+  workflow_dispatch:
+
+  pull_request:
+    paths:
+      - 'include/**/*.h*'
+      - 'src/**/*.c*'
+
+jobs:
+  lint-tidier-job:
+    name: Auto-apply clang-tidy
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - uses: technote-space/get-diff-action@v6
+        with:
+          PATTERNS: |
+            include/**/*.h*
+            src/**/*.c*
+
+      - name: Setup Python and pip
+        if: env.GIT_DIFF && !env.MATCHED_FILES  # If nothing happens with python and/or pip after, the clean-up crashes.
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11.x
+          cache: "pip"
+          cache-dependency-path: .github/workflows/requirements-linter.txt
+
+      - name: Install Python requirements for runner
+        if: env.GIT_DIFF && !env.MATCHED_FILES
+        run: pip install -r .github/workflows/requirements-linter.txt
+
+      # NOTE: Due to what are probably github issues, we have to remove the cache and reconfigure before the rest.
+      #       This is maybe because grub caches the disk it uses last time, which is recreated each time.
+      - name: Install Linux system requirements
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          sudo rm /var/cache/debconf/config.dat
+          sudo dpkg --configure -a
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          sudo apt update
+          sudo apt upgrade
+          sudo apt install build-essential checkinstall libegl-dev zlib1g-dev libssl-dev ninja-build autoconf libx11-dev libx11-xcb-dev libfontenc-dev libice-dev libsm-dev libxau-dev libxaw7-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxdmcp-dev libxext-dev libxfixes-dev libxi-dev libxinerama-dev libxkbfile-dev libxmu-dev libxmuu-dev libxpm-dev libxrandr-dev libxrender-dev libxres-dev libxss-dev libxt-dev libxtst-dev libxv-dev libxvmc-dev libxxf86vm-dev xtrans-dev libxcb-render0-dev libxcb-render-util0-dev libxcb-xkb-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev libxcb-shape0-dev libxcb-sync-dev libxcb-xfixes0-dev libxcb-xinerama0-dev xkb-data libxcb-dri3-dev uuid-dev libxcb-util-dev libxkbcommon-x11-dev pkg-config -y
+
+      - name: Install GCC-132 on ubuntu
+        run: |
+          sudo apt install g++-13 gcc-13 -y
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 13
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 13
+
+      - name: Create the default Conan profile
+        run: conan profile new default --detect
+
+      - name: Get Conan configuration
+        run: |
+          conan config install https://github.com/Ultimaker/conan-config.git
+          conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
+
+      - name: Install dependencies
+        run: conan install . ${{ needs.conan-recipe-version.outputs.recipe_id_full }} -o enable_testing=True -s build_type=Release --build=missing --update -g GitHubActionsRunEnv -g GitHubActionsBuildEnv
+
+      - name: Set Environment variables from Conan install (bash)
+        if: ${{ runner.os != 'Windows' }}
+        run: |
+          . ./activate_github_actions_runenv.sh
+          . ./activate_github_actions_buildenv.sh
+        working-directory: build/Release/generators
+
+      - name: Build CuraEngine and tests
+        run: |
+          cmake --preset release
+          cmake --build --preset release
+
+      - name: Create results directory
+        run: mkdir linter-result
+
+      - name: Diagnose file(s)
+        if: env.GIT_DIFF && !env.MATCHED_FILES
+        continue-on-error: true
+        run: |
+          clang-tidy -p ./build/Release/ --config-file=.clang-tidy ${{ env.GIT_DIFF_FILTERED }} --export-fixes=linter-result/fixes.yml
+
+      - name: Save PR metadata
+        run: |
+          echo ${{ github.event.number }} > linter-result/pr-id.txt
+          echo ${{ github.event.pull_request.head.repo.full_name }} > linter-result/pr-head-repo.txt
+          echo ${{ github.event.pull_request.head.ref }} > linter-result/pr-head-ref.txt
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: linter-result
+          path: linter-result/
+
+      - name: Run clang-tidy-pr-comments action
+        uses: platisd/clang-tidy-pr-comments@1.4.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          clang_tidy_fixes: linter-result/fixes.yml
+          request_changes: true
+          suggestions_per_comment: 30

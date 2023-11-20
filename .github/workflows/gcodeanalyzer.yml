@@ -1,0 +1,312 @@
+name: GcodeAnalyzer
+on:
+  push:
+    paths:
+      - 'include/**'
+      - 'src/**'
+      - '.github/workflows/gcodeanalyzer.yml'
+      - '.github/workflows/requirements-conan-package.txt'
+    branches:
+      - main
+  pull_request:
+    types: [ opened, reopened, synchronize ]
+    paths:
+      - 'include/**'
+      - 'src/**'
+      - '.github/workflows/gcodeanalyzer.yml'
+      - '.github/workflows/requirements-conan-package.txt'
+    branches:
+      - main
+      - 'CURA-*'
+      - '[0-9]+.[0-9]+'
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+  deployments: write
+
+env:
+  CONAN_LOGIN_USERNAME_CURA: ${{ secrets.CONAN_USER }}
+  CONAN_PASSWORD_CURA: ${{ secrets.CONAN_PASS }}
+  CONAN_LOGIN_USERNAME_CURA_CE: ${{ secrets.CONAN_USER }}
+  CONAN_PASSWORD_CURA_CE: ${{ secrets.CONAN_PASS }}
+  CONAN_LOG_RUN_TO_OUTPUT: 1
+  CONAN_LOGGING_LEVEL: info
+  CONAN_NON_INTERACTIVE: 1
+
+jobs:
+  check_actor:
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.skip_check.outputs.proceed }}
+    steps:
+      - id: skip_check
+        run: |
+          if [[ "${{ github.actor }}" == *"[bot]"* ]]; then
+            echo "proceed=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.pull_request }}" == "" ]]; then 
+            echo "proceed=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.pull_request.head.repo.fork }}" == "false" ]]; then 
+            echo "proceed=true" >> $GITHUB_OUTPUT
+          else
+            echo "proceed=false" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
+  conan-recipe-version:
+    needs: [ check_actor ]
+    if: ${{ needs.check_actor.outputs.proceed == 'true' }}
+    uses: ultimaker/cura/.github/workflows/conan-recipe-version.yml@main
+    with:
+      project_name: curaengine
+
+  gcodeanalyzer:
+    needs: [ conan-recipe-version ]
+    name: Run GCodeAnalyzer on the engine
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout CuraEngine
+        uses: actions/checkout@v3
+        with:
+          path: 'CuraEngine'
+
+      - name: Checkout GCodeAnalyzer
+        uses: actions/checkout@v3
+        with:
+          repository: 'Ultimaker/GCodeAnalyzer'
+          ref: 'main'
+          path: 'GCodeAnalyzer'
+          token: ${{ secrets.CURA_BENCHMARK_PAT }}
+
+      - name: Checkout Test Models
+        uses: actions/checkout@v3
+        with:
+          repository: 'Ultimaker/NightlyTestModels'
+          ref: 'main'
+          path: 'NightlyTestModels'
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine the corresponding Cura branch
+        id: curabranch
+        run: |
+          status_code=$(curl -s -o /dev/null -w "%{http_code}" "https://api.github.com/repos/ultimaker/cura/branches/${{ github.head_ref }}")
+          if [ "$status_code" -eq 200 ]; then
+            echo "The branch exists in Cura"
+            echo "branch=${{ github.head_ref }}" >> $GITHUB_OUTPUT
+          else
+            echo "branch=main" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout Cura
+        uses: actions/checkout@v3
+        with:
+          repository: 'Ultimaker/Cura'
+          ref: ${{ steps.curabranch.outputs.branch}}
+          path: 'Cura'
+          sparse-checkout: |
+            resources/definitions
+            resources/extruders
+
+      - name: Setup Python and pip
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10.x'
+          architecture: 'x64'
+          cache: 'pip'
+          cache-dependency-path: CuraEngine/.github/workflows/requirements-conan-package.txt
+
+      - name: Install Python requirements and Create default Conan profile
+        run: |
+          pip install -r CuraEngine/.github/workflows/requirements-conan-package.txt
+          pip install wheel numpy pandas python-dateutil pytz six
+          pip install git+https://github.com/ultimaker/libcharon@CURA-9495_analyzer_requisites#egg=charon
+          pip install pytest pytest-benchmark
+
+      # NOTE: Due to what are probably github issues, we have to remove the cache and reconfigure before the rest.
+      #       This is maybe because grub caches the disk it uses last time, which is recreated each time.
+      - name: Install Linux system requirements
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          sudo rm /var/cache/debconf/config.dat
+          sudo dpkg --configure -a
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          sudo apt update
+          sudo apt upgrade
+          sudo apt install build-essential checkinstall libegl-dev zlib1g-dev libssl-dev ninja-build autoconf libx11-dev libx11-xcb-dev libfontenc-dev libice-dev libsm-dev libxau-dev libxaw7-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxdmcp-dev libxext-dev libxfixes-dev libxi-dev libxinerama-dev libxkbfile-dev libxmu-dev libxmuu-dev libxpm-dev libxrandr-dev libxrender-dev libxres-dev libxss-dev libxt-dev libxtst-dev libxv-dev libxvmc-dev libxxf86vm-dev xtrans-dev libxcb-render0-dev libxcb-render-util0-dev libxcb-xkb-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev libxcb-shape0-dev libxcb-sync-dev libxcb-xfixes0-dev libxcb-xinerama0-dev xkb-data libxcb-dri3-dev uuid-dev libxcb-util-dev libxkbcommon-x11-dev pkg-config -y
+
+      - name: Install GCC-132 on ubuntu
+        run: |
+          sudo apt install g++-13 gcc-13 -y
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 13
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 13
+
+      - name: Create the default Conan profile
+        run: conan profile new default --detect
+
+      - name: Get Conan configuration
+        run: |
+          conan config install https://github.com/Ultimaker/conan-config.git
+          conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
+
+      - name: Use Conan download cache (Bash)
+        run: conan config set storage.download_cache="$HOME/.conan/conan_download_cache"
+
+      - name: Install dependencies
+        run: conan install . ${{ needs.conan-recipe-version.outputs.recipe_id_full }} -o enable_benchmarks=False -s build_type=Release --build=missing --update -g GitHubActionsRunEnv -g GitHubActionsBuildEnv -c tools.build:skip_test=True
+        working-directory: CuraEngine
+
+      - name: Upload the Dependency package(s)
+        run: conan upload "*" -r cura --all -c
+
+      - name: Set Environment variables from Conan install (bash)
+        if: ${{ runner.os != 'Windows' }}
+        run: |
+          . ./activate_github_actions_runenv.sh
+          . ./activate_github_actions_buildenv.sh
+        working-directory: CuraEngine/build/Release/generators
+
+      - name: Build CuraEngine and tests
+        run: |
+          cmake --preset release
+          cmake --build --preset release
+        working-directory: CuraEngine
+
+      - name: Collect STL-files, run CuraEngine, output GCode-files
+        run: |
+          export CURA_ENGINE_SEARCH_PATH=../Cura/resources/definitions:../Cura/resources/extruders
+          for file in `ls ../NightlyTestModels/*.stl`;
+          do
+              ./build/Release/CuraEngine slice --force-read-parent --force-read-nondefault -v -p -j ../Cura/resources/definitions/ultimaker_s3.def.json -l $file -o ../`basename $file .stl`.gcode
+          done
+        working-directory: CuraEngine
+
+      - name: Run GCodeAnalyzer on generated GCode files
+        id: gcode_out
+        run: |
+          import sys
+          import os
+          import json
+          from Charon.filetypes.GCodeFile import GCodeFile
+          
+          sys.path.append(".")
+          import GCodeAnalyzer
+          GCodeFile.SkipHeaderValidation = True
+          
+          folder_path = ".."
+          jzon = []
+          for filename in os.listdir(folder_path):
+              basename = os.path.basename(filename)
+              _base, ext = os.path.splitext(basename)
+              if ext.lower() != ".gcode":
+                  continue
+              infilename = os.path.join(folder_path, filename)
+          
+              frame = GCodeAnalyzer.DataFrame(infilename)
+          
+              line_lengths = frame.gc.extrusions['length'].describe()
+              all_lengths = frame.gc.travels['length'].describe()
+              extrusion_values = frame.gc.extrusions['E'].describe()
+              temperatures = frame['T_0_nozzle'].describe()
+              print_time = frame.time.max()
+              no_retractions = len(frame.gc.retractions)
+              total_travel_length = frame.gc.travels.length.sum()
+          
+              # microsegments violations
+              queue = 16
+              seg_sec = 80
+              violation_threshold = queue / seg_sec
+              microsegments_wall_skin = frame.gc.extrusions.duration[(frame.type == 'WALL-OUTER') | (frame.type == 'WALL-INNER') | (frame.type == 'SKIN')].rolling(queue).sum()
+              no_violations_wall_skin = microsegments_wall_skin[microsegments_wall_skin < violation_threshold].count()
+          
+              microsegments_infill = frame.gc.extrusions.duration[frame.type == 'FILL'].rolling(queue).sum()
+              no_violations_infill = microsegments_infill[microsegments_infill < violation_threshold].count()
+          
+              jzon += [
+                  {
+                      "name": f"Print time {basename}",
+                      "unit": "s",
+                      "value": print_time,
+                  },
+                  {
+                      "name": f"Microsegment violations in wall-skin {basename}",
+                      "unit": "-",
+                      "value": int(no_violations_wall_skin),
+                  },
+                  {
+                      "name": f"Microsegment violations in infill {basename}",
+                      "unit": "-",
+                      "value": int(no_violations_infill),
+                  },
+                  {
+                      "name": f"Number of retractions {basename}",
+                      "unit": "-",
+                      "value": no_retractions,
+                  },
+                  {
+                      "name": f"Total travel length {basename}",
+                      "unit": "mm",
+                      "value": total_travel_length,
+                  },
+                  {
+                      "name": f"Minimum Line Length {basename}",
+                      "unit": "mm",
+                      "value": line_lengths["min"],
+                  },
+                  {
+                      "name": f"Line Lengths 25 Percentile {basename}",
+                      "unit": "mm",
+                      "value": line_lengths["25%"],
+                  },
+                  {
+                      "name": f"Minimum All Distances {basename}",
+                      "unit": "mm",
+                      "value": all_lengths["min"],
+                  },
+                  {
+                      "name": f"All Distances 25 Percentile {basename}",
+                      "unit": "mm",
+                      "value": all_lengths["25%"],
+                  },
+                  {
+                      "name": f"Extrusion-Axis {basename}",
+                      "unit": "mm",
+                      "value": extrusion_values["min"],
+                  },
+                  {
+                      "name": f"Extrusion Lengths 25 Percentile {basename}",
+                      "unit": "mm",
+                      "value": extrusion_values["25%"],
+                  },
+                  {
+                      "name": f"Number Of Temperature Commands {basename}",
+                      "unit": "#",
+                      "value": temperatures["count"],
+                  },
+                  {
+                      "name": f"Mean Temperature {basename}",
+                      "unit": "Celcius",
+                      "value": temperatures["50%"],
+                  },
+              ]
+          
+          with open("../output.json", "w") as outfile:
+              outfile.write(json.dumps(jzon))
+        shell: python
+        working-directory: GCodeAnalyzer
+
+      - name: Store benchmark result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: CGcodeAnalyzer
+          output-file-path: output.json
+          gh-repository: github.com/Ultimaker/CuraEngineBenchmarks
+          gh-pages-branch: main
+          benchmark-data-dir-path: dev/gcodeanalyzer
+          tool: customBiggerIsBetter
+          github-token: ${{ secrets.CURA_BENCHMARK_PAT }}
+          auto-push: true
+          #          alert-threshold: '110%'
+          #          summary-always: true
+          #          comment-on-alert: true
+          max-items-in-chart: 250

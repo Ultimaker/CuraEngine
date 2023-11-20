@@ -73,6 +73,7 @@ public:
         settings.add("magic_spiralize", "false");
         settings.add("meshfix_maximum_deviation", "0.1");
         settings.add("meshfix_maximum_extrusion_area_deviation", "0.01");
+        settings.add("meshfix_fluid_motion_enabled", "false");
         settings.add("meshfix_maximum_resolution", "0.01");
         settings.add("min_wall_line_width", "0.3");
         settings.add("min_bead_width", "0");

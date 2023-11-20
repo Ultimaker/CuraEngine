@@ -1,105 +1,76 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef G_CODE_PATH_CONFIG_H
 #define G_CODE_PATH_CONFIG_H
 
 #include "PrintFeature.h"
-#include "settings/types/Ratio.h" //For flow rate.
+#include "pathPlanning/SpeedDerivatives.h"
+#include "settings/types/Ratio.h"
 #include "settings/types/Velocity.h"
 #include "utils/Coord_t.h"
 
-namespace cura 
+namespace cura
 {
-
-struct LayerIndex;
 
 /*!
  * The GCodePathConfig is the configuration for moves/extrusion actions. This defines at which width the line is printed and at which speed.
  */
-class GCodePathConfig
+struct GCodePathConfig
 {
-public:
-    /*!
-     * A simple wrapper class for all derivatives of position which are used when printing a line
-     */
-    struct SpeedDerivatives
-    {
-        Velocity speed; //!< movement speed (mm/s)
-        Acceleration acceleration; //!< acceleration of head movement (mm/s^2)
-        Velocity jerk; //!< jerk of the head movement (around stand still) as instantaneous speed change (mm/s)
-        SpeedDerivatives(Velocity speed, Acceleration acceleration, Velocity jerk) : speed(speed), acceleration(acceleration), jerk(jerk) {}
-    };
-    const PrintFeatureType type; //!< name of the feature type
+    coord_t z_offset{}; //<! vertical offset from 'full' layer height
+    PrintFeatureType type{}; //!< name of the feature type
+    coord_t line_width{}; //!< width of the line extruded
+    coord_t layer_thickness{}; //!< current layer height in micron
+    Ratio flow{}; //!< extrusion flow modifier.
+    SpeedDerivatives speed_derivatives{}; //!< The speed settings (and acceleration and jerk) of the extruded line. May be changed when smoothSpeed is called.
+    bool is_bridge_path{ false }; //!< whether current config is used when bridging
+    double fan_speed{ FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
+    double extrusion_mm3_per_mm{ calculateExtrusion() }; //!< current mm^3 filament moved per mm line traversed
     static constexpr double FAN_SPEED_DEFAULT = -1;
-private:
-    SpeedDerivatives speed_derivatives; //!< The speed settings (and acceleration and jerk) of the extruded line. May be changed when smoothSpeed is called.
-    const coord_t line_width; //!< width of the line extruded
-    const coord_t layer_thickness; //!< current layer height in micron
-    const Ratio flow; //!< extrusion flow modifier.
-    const double extrusion_mm3_per_mm;//!< current mm^3 filament moved per mm line traversed
-    const bool is_bridge_path; //!< whether current config is used when bridging
-    const double fan_speed; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
-public:
-    GCodePathConfig(const PrintFeatureType& type, const coord_t line_width, const coord_t layer_height, const Ratio& flow, const SpeedDerivatives speed_derivatives, const bool is_bridge_path = false, const double fan_speed = FAN_SPEED_DEFAULT);
 
-    /*!
-     * copy constructor
-     */
-    GCodePathConfig(const GCodePathConfig& other);
-
-    /*!
-     * Set the speed to somewhere between the speed of @p first_layer_config and the iconic speed.
-     * 
-     * \warning This functions should not be called with @p layer_nr > @p max_speed_layer !
-     * 
-     * \warning Calling this function twice will smooth the speed more toward \p first_layer_config
-     * 
-     * \param first_layer_config The speed settings at layer zero
-     * \param layer_nr The layer number 
-     * \param max_speed_layer The layer number for which the speed_iconic should be used.
-     */
-    void smoothSpeed(SpeedDerivatives first_layer_config, const LayerIndex& layer_nr, const LayerIndex& max_speed_layer);
+    [[nodiscard]] constexpr bool operator==(const GCodePathConfig& other) const noexcept = default;
+    [[nodiscard]] constexpr auto operator<=>(const GCodePathConfig& other) const = default;
 
     /*!
      * Can only be called after the layer height has been set (which is done while writing the gcode!)
      */
-    double getExtrusionMM3perMM() const;
+    [[nodiscard]] double getExtrusionMM3perMM() const noexcept;
 
     /*!
      * Get the movement speed in mm/s
      */
-    Velocity getSpeed() const;
+    [[nodiscard]] Velocity getSpeed() const noexcept;
 
     /*!
      * Get the current acceleration of this config
      */
-    Acceleration getAcceleration() const;
+    [[nodiscard]] Acceleration getAcceleration() const noexcept;
 
     /*!
      * Get the current jerk of this config
      */
-    Velocity getJerk() const;
+    [[nodiscard]] Velocity getJerk() const noexcept;
 
-    coord_t getLineWidth() const;
+    [[nodiscard]] coord_t getLineWidth() const noexcept;
 
-    bool isTravelPath() const;
+    [[nodiscard]] bool isTravelPath() const noexcept;
 
-    bool isBridgePath() const;
+    [[nodiscard]] bool isBridgePath() const noexcept;
 
-    double getFanSpeed() const;
+    [[nodiscard]] double getFanSpeed() const noexcept;
 
-    Ratio getFlowRatio() const;
+    [[nodiscard]] Ratio getFlowRatio() const noexcept;
 
-    coord_t getLayerThickness() const;
+    [[nodiscard]] coord_t getLayerThickness() const noexcept;
 
-    const PrintFeatureType& getPrintFeatureType() const;
+    [[nodiscard]] PrintFeatureType getPrintFeatureType() const noexcept;
 
 private:
-    double calculateExtrusion() const;
+    [[nodiscard]] double calculateExtrusion() const noexcept;
 };
 
 
-}//namespace cura
+} // namespace cura
 
 #endif // G_CODE_PATH_CONFIG_H
