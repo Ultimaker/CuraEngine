@@ -9,6 +9,7 @@
 
 #include <spdlog/spdlog.h>
 #include <sentry.h>
+#include <string>
 #include "Application.h"
 
 namespace cura
@@ -44,11 +45,11 @@ int main(int argc, char** argv)
     // This is also the default-path. For further information and recommendations:
     // https://docs.sentry.io/platforms/native/configuration/options/#database-path
     sentry_options_set_database_path(options, ".sentry-native");
-    // TODO: Hardcoded the version number, we should also get that from somewhere. Can't be bothered to figure that out now
-    sentry_options_set_release(options, "curaengine@1.0.0");
-    sentry_options_set_debug(options, 1);
+    std::string version = "curaengine@";
+    version += std::string(CURA_ENGINE_VERSION);
+    sentry_options_set_release(options, version.c_str());
     sentry_init(options);
-    
+
     cura::Application::getInstance().run(argc, argv);
 
     sentry_close();
