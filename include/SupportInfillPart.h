@@ -33,7 +33,7 @@ public:
                                                                             //   for infill_areas[x][n], x means the density level and n means the thickness
     std::vector<VariableWidthLines> wall_toolpaths; //!< Any walls go here, not in the areas, where they could be combined vertically (don't combine walls). Binned by inset_idx.
 
-    coord_t custom_line_distance;
+    coord_t custom_line_distance;//!< The distance between support infill lines. 0 means use the default line distance instead.
     bool use_fractional_config; //!< Request to use the configuration used to fill a partial layer height here, instead of the normal full layer height configuration.
 
     SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, bool use_fractional_config, int inset_count_to_generate = 0, coord_t custom_line_distance = 0);
