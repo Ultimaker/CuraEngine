@@ -4,10 +4,6 @@
 #ifndef UTILS_POLYGON_H
 #define UTILS_POLYGON_H
 
-#include "../settings/types/Angle.h" //For angles between vertices.
-#include "../settings/types/Ratio.h"
-#include "IntPoint.h"
-
 #include <algorithm>
 #include <algorithm> // std::reverse, fill_n array
 #include <assert.h>
@@ -19,6 +15,10 @@
 #include <polyclipping/clipper.hpp>
 #include <unordered_map>
 #include <vector>
+
+#include "../settings/types/Angle.h" //For angles between vertices.
+#include "../settings/types/Ratio.h"
+#include "IntPoint.h"
 
 #define CHECK_POLY_ACCESS
 #ifdef CHECK_POLY_ACCESS
@@ -236,7 +236,7 @@ public:
         for (unsigned int n = 0; n < path->size(); n++)
         {
             Point p1 = (*path)[n];
-            double second_factor = (p0.X * p1.Y) - (p1.X * p0.Y);
+            double second_factor = static_cast<double>((p0.X * p1.Y) - (p1.X * p0.Y));
 
             x += double(p0.X + p1.X) * second_factor;
             y += double(p0.Y + p1.Y) * second_factor;
@@ -248,7 +248,7 @@ public:
         x = x / 6 / area;
         y = y / 6 / area;
 
-        return Point(x, y);
+        return Point(std::llrint(x), std::llrint(y));
     }
 
     Point closestPointTo(Point p) const
