@@ -201,6 +201,7 @@ find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
 find_package(neargye-semver REQUIRED)
+find_package(sentry REQUIRED)
 
 if (ENABLE_TESTING)
     find_package(GTest REQUIRED)
@@ -221,6 +222,7 @@ target_link_libraries(_CuraEngine
         asio-grpc::asio-grpc
         grpc::grpc
         protobuf::libprotobuf
+        sentry::sentry
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
 
 if (NOT WIN32)

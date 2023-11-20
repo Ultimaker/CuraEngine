@@ -48,7 +48,7 @@ int main(int argc, char** argv)
     sentry_options_set_release(options, "curaengine@1.0.0");
     sentry_options_set_debug(options, 1);
     sentry_init(options);
-
+    
     cura::Application::getInstance().run(argc, argv);
 
     sentry_close();
