@@ -244,7 +244,7 @@ target_compile_definitions(CuraEngine PRIVATE VERSION=\"${CURA_ENGINE_VERSION}\"
 
 # Compiling the test environment.
 if (ENABLE_TESTING OR ENABLE_BENCHMARKS)
-    set(TESTS_HELPERS_SRC tests/ReadTestPolygons.cpp)
+    set(TESTS_HELPERS_SRC tests/ReadTestPolygons.cpp tests/ReadTestSettings.cpp)
 
     set(TESTS_SRC_ARCUS)
     if (ENABLE_ARCUS)

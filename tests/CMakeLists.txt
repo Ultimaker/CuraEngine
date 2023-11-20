@@ -14,6 +14,7 @@ set(TESTS_SRC_BASE
         PathOrderMonotonicTest
         TimeEstimateCalculatorTest
         WallsComputationTest
+        VoronoiCrashTest
         )
 
 set(TESTS_SRC_INTEGRATION
