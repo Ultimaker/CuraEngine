@@ -3,6 +3,10 @@
 
 #include "pathPlanning/Comb.h"
 
+#include <algorithm>
+#include <functional> // function
+#include <unordered_set>
+
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
@@ -12,10 +16,6 @@
 #include "utils/PolygonsPointIndex.h"
 #include "utils/SVG.h"
 #include "utils/linearAlg2D.h"
-
-#include <algorithm>
-#include <functional> // function
-#include <unordered_set>
 
 namespace cura
 {
@@ -435,7 +435,7 @@ bool Comb::moveInside(Polygons& boundary_inside, bool is_inside, LocToLineGrid* 
         }
         else
         {
-            inside_poly = cpp.poly_idx;
+            inside_poly = cpp.poly_idx_;
             return true;
         }
     }
@@ -498,7 +498,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
             close_towards_start_penalty_function);
         if (crossing_1_in_cp.isValid())
         {
-            dest_crossing_poly = crossing_1_in_cp.poly;
+            dest_crossing_poly = crossing_1_in_cp.poly_;
             in_or_mid = result;
         }
         else
@@ -569,14 +569,14 @@ std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Cross
     bool seen_close_enough_connection = false;
     for (std::pair<ClosestPolygonPoint, ClosestPolygonPoint>& crossing_candidate : crossing_out_candidates)
     {
-        const coord_t crossing_dist2 = vSize2(crossing_candidate.first.location - crossing_candidate.second.location);
+        const coord_t crossing_dist2 = vSize2(crossing_candidate.first.location_ - crossing_candidate.second.location_);
         if (crossing_dist2 > comber.max_crossing_dist2 * 2)
         { // preliminary filtering
             continue;
         }
 
-        const coord_t dist_to_start = vSize(crossing_candidate.second.location - estimated_start); // use outside location, so that the crossing direction is taken into account
-        const coord_t dist_to_end = vSize(crossing_candidate.second.location - estimated_end);
+        const coord_t dist_to_start = vSize(crossing_candidate.second.location_ - estimated_start); // use outside location, so that the crossing direction is taken into account
+        const coord_t dist_to_end = vSize(crossing_candidate.second.location_ - estimated_end);
         const coord_t detour_dist = dist_to_start + dist_to_end;
         const coord_t detour_score = crossing_dist2 + detour_dist * detour_dist / 1000; // prefer a closest connection over a detour
         // The detour distance is generally large compared to the crossing distance.
@@ -607,7 +607,7 @@ std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Cross
     if (best_crossing_dist2 > comber.max_crossing_dist2)
     { // find closer point on line segments, rather than moving between vertices of the polygons only
         PolygonUtils::walkToNearestSmallestConnection(*best_in, *best_out);
-        best_crossing_dist2 = vSize2(best_in->location - best_out->location);
+        best_crossing_dist2 = vSize2(best_in->location_ - best_out->location_);
         if (best_crossing_dist2 > comber.max_crossing_dist2)
         {
             return std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>>();

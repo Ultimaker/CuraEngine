@@ -183,7 +183,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper);
 
     // Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
-    max_object_height = std::max(max_object_height, storage.model_max.z);
+    max_object_height = std::max(max_object_height, storage.model_max.z_);
 
 
     constexpr bool force = true;
@@ -205,7 +205,7 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
         {
             seam_pos = mesh.getZSeamHint();
         }
-        return PolygonUtils::findClosest(seam_pos, layer.parts[0].spiral_wall[0]).point_idx;
+        return PolygonUtils::findClosest(seam_pos, layer.parts[0].spiral_wall[0]).point_idx_;
     }
     else
     {
@@ -238,7 +238,7 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
             // now test the vertex following the candidate seam vertex and if it lies to the left of the vector, it's good to use
             float a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
 
-            if (a <= 0 || a >= M_PI)
+            if (a <= 0 || a >= std::numbers::pi)
             {
                 // the vertex was not on the left of the vector so move the seam vertex on
                 seam_vertex_idx = (seam_vertex_idx + 1) % n_points;
@@ -546,7 +546,7 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
 
     Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
     gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice->scene.extruders[gcode.getExtruderNr()].settings.get<Velocity>("speed_travel"));
-    Point start_pos(storage.model_min.x, storage.model_min.y);
+    Point start_pos(storage.model_min.x_, storage.model_min.y_);
     gcode.writeTravel(start_pos, Application::getInstance().current_slice->scene.extruders[gcode.getExtruderNr()].settings.get<Velocity>("speed_travel"));
 
     gcode.processInitialLayerTemperature(storage, gcode.getExtruderNr());
@@ -1458,7 +1458,7 @@ std::vector<size_t> FffGcodeWriter::calculateMeshOrder(const SliceDataStorage& s
         {
             const Mesh& mesh_data = mesh_group->meshes[mesh_idx];
             const Point3 middle = (mesh_data.getAABB().min + mesh_data.getAABB().max) / 2;
-            mesh_idx_order_optimizer.addItem(Point(middle.x, middle.y), mesh_idx);
+            mesh_idx_order_optimizer.addItem(Point(middle.x_, middle.y_), mesh_idx);
         }
     }
     const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
@@ -1662,7 +1662,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
         infill_angle = mesh.infill_angles.at((gcode_layer.getLayerNr() / combined_infill_layers) % mesh.infill_angles.size());
     }
     const Point3 mesh_middle = mesh.bounding_box.getMiddle();
-    const Point infill_origin(mesh_middle.x + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y + mesh.settings.get<coord_t>("infill_offset_y"));
+    const Point infill_origin(mesh_middle.x_ + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y_ + mesh.settings.get<coord_t>("infill_offset_y"));
 
     // Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
     bool added_something = false;
@@ -1814,7 +1814,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
         infill_angle = mesh.infill_angles.at((static_cast<size_t>(gcode_layer.getLayerNr()) / combined_infill_layers) % mesh.infill_angles.size());
     }
     const Point3 mesh_middle = mesh.bounding_box.getMiddle();
-    const Point infill_origin(mesh_middle.x + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y + mesh.settings.get<coord_t>("infill_offset_y"));
+    const Point infill_origin(mesh_middle.x_ + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y_ + mesh.settings.get<coord_t>("infill_offset_y"));
 
     auto get_cut_offset = [](const bool zig_zaggify, const coord_t line_width, const size_t line_count)
     {
@@ -2425,7 +2425,7 @@ bool FffGcodeWriter::processInsets(
             // the supported region is made up of those areas that really are supported by either model or support on the layer below
             // expanded to take into account the overhang angle, the greater the overhang angle, the larger the supported area is
             // considered to be
-            const coord_t overhang_width = layer_height * std::tan(overhang_angle / (180 / M_PI));
+            const coord_t overhang_width = layer_height * std::tan(overhang_angle / (180 / std::numbers::pi));
             Polygons overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10 + overhang_width - half_outer_wall_width)).offset(10);
             gcode_layer.setOverhangMask(overhang_region);
         }

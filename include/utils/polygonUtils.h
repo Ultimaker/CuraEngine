@@ -22,40 +22,55 @@ namespace cura
  */
 struct ClosestPolygonPoint
 {
-    Point location; //!< Result location
-    ConstPolygonPointer poly; //!< Polygon in which the result was found (or nullptr if no result was found)
-    unsigned int poly_idx; //!< The index of the polygon in some Polygons where ClosestPolygonPoint::poly can be found
-    unsigned int point_idx; //!< Index to the first point in the polygon of the line segment on which the result was found
-    ClosestPolygonPoint(Point p, int pos, ConstPolygonRef poly)
-        : location(p)
-        , poly(poly)
-        , poly_idx(NO_INDEX)
-        , point_idx(pos){};
-    ClosestPolygonPoint(Point p, int pos, ConstPolygonRef poly, int poly_idx)
-        : location(p)
-        , poly(poly)
-        , poly_idx(poly_idx)
-        , point_idx(pos){};
+    Point location_; //!< Result location
+    ConstPolygonPointer poly_; //!< Polygon in which the result was found (or nullptr if no result was found)
+    size_t poly_idx_; //!< The index of the polygon in some Polygons where ClosestPolygonPoint::poly can be found
+    size_t point_idx_; //!< Index to the first point in the polygon of the line segment on which the result was found
+
+    ClosestPolygonPoint(Point p, size_t pos, ConstPolygonRef poly)
+        : location_(p)
+        , poly_(poly)
+        , poly_idx_(NO_INDEX)
+        , point_idx_(pos)
+    {
+    }
+
+    ClosestPolygonPoint(Point p, size_t pos, ConstPolygonRef poly, size_t poly_idx)
+        : location_(p)
+        , poly_(poly)
+        , poly_idx_(poly_idx)
+        , point_idx_(pos)
+    {
+    }
+
     ClosestPolygonPoint(ConstPolygonRef poly)
-        : poly(poly)
-        , poly_idx(NO_INDEX)
-        , point_idx(NO_INDEX){};
+        : poly_(poly)
+        , poly_idx_(NO_INDEX)
+        , point_idx_(NO_INDEX)
+    {
+    }
+
     ClosestPolygonPoint()
-        : poly_idx(NO_INDEX)
-        , point_idx(NO_INDEX){};
+        : poly_idx_(NO_INDEX)
+        , point_idx_(NO_INDEX)
+    {
+    }
+
     Point p() const
     { // conformity with other classes
-        return location;
+        return location_;
     }
+
     bool isValid() const
     {
-        return point_idx != NO_INDEX;
+        return point_idx_ != NO_INDEX;
     }
+
     bool operator==(const ClosestPolygonPoint& rhs) const
     {
         // no need to compare on poy_idx
         // it's sometimes unused while poly is always initialized
-        return poly == rhs.poly && point_idx == rhs.point_idx && location == rhs.location;
+        return poly_ == rhs.poly_ && point_idx_ == rhs.point_idx_ && location_ == rhs.location_;
     }
 };
 

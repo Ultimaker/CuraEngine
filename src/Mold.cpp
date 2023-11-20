@@ -71,7 +71,7 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
             const AngleDegrees angle = mesh.settings.get<AngleDegrees>("mold_angle");
             const coord_t roof_height = mesh.settings.get<coord_t>("mold_roof_height");
 
-            const coord_t inset = tan(angle / 180 * M_PI) * layer_height;
+            const coord_t inset = tan(angle / 180 * std::numbers::pi) * layer_height;
             const size_t roof_layer_count = roof_height / layer_height;
 
 

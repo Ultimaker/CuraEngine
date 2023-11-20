@@ -305,8 +305,8 @@ void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const int extruder_nr
     const coord_t inward_dist = train.settings.get<coord_t>("machine_nozzle_size") * 3 / 2;
     const coord_t start_dist = train.settings.get<coord_t>("machine_nozzle_size") * 2;
     const Point prime_end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
-    const Point outward_dir = wipe_location.location - prime_end;
-    const Point prime_start = wipe_location.location + normal(outward_dir, start_dist);
+    const Point outward_dir = wipe_location.location_ - prime_end;
+    const Point prime_start = wipe_location.location_ + normal(outward_dir, start_dist);
 
     gcode_layer.addTravel(prime_start);
 }

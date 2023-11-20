@@ -485,16 +485,16 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
         case BuildPlateShape::ELLIPTIC:
         {
             // Construct an ellipse to approximate the build volume.
-            const coord_t width = storage.machine_size.max.x - storage.machine_size.min.x;
-            const coord_t depth = storage.machine_size.max.y - storage.machine_size.min.y;
+            const coord_t width = storage.machine_size.max.x_ - storage.machine_size.min.x_;
+            const coord_t depth = storage.machine_size.max.y_ - storage.machine_size.min.y_;
             Polygon border_circle;
             constexpr unsigned int circle_resolution = 50;
             for (unsigned int i = 0; i < circle_resolution; i++)
             {
                 const AngleRadians angle = TAU * i / circle_resolution;
                 const Point3 machine_middle = storage.machine_size.getMiddle();
-                const coord_t x = machine_middle.x + cos(angle) * width / 2;
-                const coord_t y = machine_middle.y + sin(angle) * depth / 2;
+                const coord_t x = machine_middle.x_ + cos(angle) * width / 2;
+                const coord_t y = machine_middle.y_ + sin(angle) * depth / 2;
                 border_circle.emplace_back(x, y);
             }
             machine_volume_border.add(border_circle);

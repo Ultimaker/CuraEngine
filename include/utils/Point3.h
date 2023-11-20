@@ -1,15 +1,15 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_POINT3_H
 #define UTILS_POINT3_H
 
+#include <cassert>
 #include <cmath> //For sqrt.
 #include <iostream> //Auto-serialization.
 #include <limits> //For numeric_limits::min and max.
 #include <stdint.h> //For int32_t and int64_t.
 #include <type_traits> // for operations on any arithmetic number type
-#include <cassert>
 
 #include "Coord_t.h"
 
@@ -20,49 +20,56 @@ namespace cura
 class Point3
 {
 public:
-    coord_t x,y,z;
-    Point3() {}
-    Point3(const coord_t _x, const coord_t _y, const coord_t _z): x(_x), y(_y), z(_z) {}
-
-    Point3 operator +(const Point3& p) const;
-    Point3 operator -() const;
-    Point3 operator -(const Point3& p) const;
-    Point3 operator *(const Point3& p) const; //!< Element-wise multiplication. For dot product, use .dot()!
-    Point3 operator /(const Point3& p) const;
-    template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
-    Point3 operator *(const num_t i) const
+    coord_t x_, y_, z_;
+    Point3()
     {
-        return Point3(x * i, y * i, z * i);
     }
-    template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
-    Point3 operator /(const num_t i) const
+    Point3(const coord_t x, const coord_t y, const coord_t z)
+        : x_(x)
+        , y_(y)
+        , z_(z)
     {
-        return Point3(x / i, y / i, z / i);
-    }
-    template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
-    Point3 operator %(const num_t i) const
-    {
-        return Point3(x % i, y % i, z % i);
     }
 
-    Point3& operator +=(const Point3& p);
-    Point3& operator -=(const Point3& p);
-    Point3& operator *=(const Point3& p);
-    Point3& operator /=(const Point3& p);
+    Point3 operator+(const Point3& p) const;
+    Point3 operator-() const;
+    Point3 operator-(const Point3& p) const;
+    Point3 operator*(const Point3& p) const; //!< Element-wise multiplication. For dot product, use .dot()!
+    Point3 operator/(const Point3& p) const;
     template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
-    Point3& operator *=(const num_t i)
+    Point3 operator*(const num_t i) const
     {
-        x *= i;
-        y *= i;
-        z *= i;
+        return Point3(std::llround(static_cast<num_t>(x_) * i), std::llround(static_cast<num_t>(y_) * i), std::llround(static_cast<num_t>(z_) * i));
+    }
+    template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
+    Point3 operator/(const num_t i) const
+    {
+        return Point3(x_ / i, y_ / i, z_ / i);
+    }
+    template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
+    Point3 operator%(const num_t i) const
+    {
+        return Point3(x_ % i, y_ % i, z_ % i);
+    }
+
+    Point3& operator+=(const Point3& p);
+    Point3& operator-=(const Point3& p);
+    Point3& operator*=(const Point3& p);
+    Point3& operator/=(const Point3& p);
+    template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
+    Point3& operator*=(const num_t i)
+    {
+        x_ *= i;
+        y_ *= i;
+        z_ *= i;
         return *this;
     }
     template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
-    Point3& operator /=(const num_t i)
+    Point3& operator/=(const num_t i)
     {
-        x /= i;
-        y /= i;
-        z /= i;
+        x_ /= i;
+        y_ /= i;
+        z_ /= i;
         return *this;
     }
 
@@ -71,68 +78,71 @@ public:
 
 
     template<class CharT, class TraitsT>
-    friend
-    std::basic_ostream<CharT, TraitsT>&
-    operator <<(std::basic_ostream<CharT, TraitsT>& os, const Point3& p)
+    friend std::basic_ostream<CharT, TraitsT>& operator<<(std::basic_ostream<CharT, TraitsT>& os, const Point3& p)
     {
-        return os << "(" << p.x << ", " << p.y << ", " << p.z << ")";
+        return os << "(" << p.x_ << ", " << p.y_ << ", " << p.z_ << ")";
     }
 
 
     coord_t max() const
     {
-        if (x > y && x > z) return x;
-        if (y > z) return y;
-        return z;
+        if (x_ > y_ && x_ > z_)
+            return x_;
+        if (y_ > z_)
+            return y_;
+        return z_;
     }
 
     bool testLength(coord_t len) const
     {
-        if (x > len || x < -len)
+        if (x_ > len || x_ < -len)
             return false;
-        if (y > len || y < -len)
+        if (y_ > len || y_ < -len)
             return false;
-        if (z > len || z < -len)
+        if (z_ > len || z_ < -len)
             return false;
-        return vSize2() <= len*len;
+        return vSize2() <= len * len;
     }
 
     coord_t vSize2() const
     {
-        return x * x + y * y + z * z;
+        return x_ * x_ + y_ * y_ + z_ * z_;
     }
 
     coord_t vSize() const
     {
-        return sqrt(vSize2());
+        return std::llrint(sqrt(static_cast<double>(vSize2())));
     }
-    
+
     double vSizeMM() const
     {
-        double fx = INT2MM(x);
-        double fy = INT2MM(y);
-        double fz = INT2MM(z);
-        return sqrt(fx*fx+fy*fy+fz*fz);
+        double fx = INT2MM(x_);
+        double fy = INT2MM(y_);
+        double fz = INT2MM(z_);
+        return sqrt(fx * fx + fy * fy + fz * fz);
     }
 
     coord_t dot(const Point3& p) const
     {
-        return x*p.x + y*p.y + z*p.z;
+        return x_ * p.x_ + y_ * p.y_ + z_ * p.z_;
     }
 
-    coord_t& operator[] (const size_t index)
+    coord_t& operator[](const size_t index)
     {
         assert(index < 3);
-        switch(index)
+        switch (index)
         {
-            case 0: return x;
-            case 1: return y;
-            default: return z;
+        case 0:
+            return x_;
+        case 1:
+            return y_;
+        default:
+            return z_;
         }
     }
-    const coord_t& operator[] (const size_t index) const
+    const coord_t& operator[](const size_t index) const
     {
-        return const_cast<Point3*>(this)->operator[] (index);
+        return const_cast<Point3*>(this)->operator[](index);
     }
 };
 
@@ -152,20 +162,22 @@ inline Point3 operator*(const num_t i, const Point3& rhs)
 } // namespace cura
 
 
-namespace std {
-    template <>
-    struct hash<cura::Point3> {
-        size_t operator()(const cura::Point3 & pp) const
-        {
-            static int prime = 31;
-            int result = 89;
-            result = result * prime + pp.x;
-            result = result * prime + pp.y;
-            result = result * prime + pp.z;
-            return result;
-        }
-    };
-}
+namespace std
+{
+template<>
+struct hash<cura::Point3>
+{
+    size_t operator()(const cura::Point3& pp) const
+    {
+        static int prime = 31;
+        int result = 89;
+        result = static_cast<int>(result * prime + pp.x_);
+        result = static_cast<int>(result * prime + pp.y_);
+        result = static_cast<int>(result * prime + pp.z_);
+        return static_cast<size_t>(result);
+    }
+};
+} // namespace std
 
 
-#endif //UTILS_POINT3_H
+#endif // UTILS_POINT3_H

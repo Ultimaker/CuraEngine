@@ -3,12 +3,12 @@
 
 #include "infill/SubDivCube.h"
 
+#include <functional>
+
 #include "settings/types/Angle.h" //For the infill angle.
 #include "sliceDataStorage.h"
 #include "utils/math.h"
 #include "utils/polygonUtils.h"
-
-#include <functional>
 
 #define ONE_OVER_SQRT_2 0.7071067811865475244008443621048490392848359376884740 // 1 / sqrt(2)
 #define ONE_OVER_SQRT_3 0.577350269189625764509148780501957455647601751270126876018 // 1 / sqrt(3)
@@ -107,7 +107,7 @@ void SubDivCube::generateSubdivisionLines(const coord_t z, Polygons (&directiona
 {
     CubeProperties cube_properties = cube_properties_per_recursion_step[depth];
 
-    const coord_t z_diff = std::abs(z - center.z); //!< the difference between the cube center and the target layer.
+    const coord_t z_diff = std::abs(z - center.z_); //!< the difference between the cube center and the target layer.
     if (z_diff > cube_properties.height / 2) //!< this cube does not touch the target layer. Early exit.
     {
         return;
@@ -118,16 +118,16 @@ void SubDivCube::generateSubdivisionLines(const coord_t z, Polygons (&directiona
         Point a, b; //!< absolute coordinates of line endpoints
         relative_a.X = (cube_properties.square_height / 2) * (cube_properties.max_draw_z_diff - z_diff) / cube_properties.max_draw_z_diff;
         relative_b.X = -relative_a.X;
-        relative_a.Y = cube_properties.max_line_offset - ((z - (center.z - cube_properties.max_draw_z_diff)) * ONE_OVER_SQRT_2);
+        relative_a.Y = cube_properties.max_line_offset - ((z - (center.z_ - cube_properties.max_draw_z_diff)) * ONE_OVER_SQRT_2);
         relative_b.Y = relative_a.Y;
         rotatePointInitial(relative_a);
         rotatePointInitial(relative_b);
         for (int dir_idx = 0; dir_idx < 3; dir_idx++) //!< draw the line, then rotate 120 degrees.
         {
-            a.X = center.x + relative_a.X;
-            a.Y = center.y + relative_a.Y;
-            b.X = center.x + relative_b.X;
-            b.Y = center.y + relative_b.Y;
+            a.X = center.x_ + relative_a.X;
+            a.Y = center.y_ + relative_a.Y;
+            b.X = center.x_ + relative_b.X;
+            b.Y = center.y_ + relative_b.Y;
             addLineAndCombine(directional_line_groups[dir_idx], a, b);
             if (dir_idx < 2)
             {
@@ -193,13 +193,13 @@ bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, coor
     int inside;
     Ratio part_dist; // what percentage of the radius the target layer is away from the center along the z axis. 0 - 1
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
-    int bottom_layer = (center.z - radius) / layer_height;
-    int top_layer = (center.z + radius) / layer_height;
+    int bottom_layer = (center.z_ - radius) / layer_height;
+    int top_layer = (center.z_ + radius) / layer_height;
     for (int test_layer = bottom_layer; test_layer <= top_layer; test_layer += 3) // steps of three. Low-hanging speed gain.
     {
-        part_dist = Ratio{ static_cast<Ratio::value_type>(test_layer * layer_height - center.z) } / radius;
+        part_dist = Ratio{ static_cast<Ratio::value_type>(test_layer * layer_height - center.z_) } / radius;
         sphere_slice_radius2 = radius * radius * (1.0 - (part_dist * part_dist));
-        Point loc(center.x, center.y);
+        Point loc(center.x_, center.y_);
 
         inside = distanceFromPointToMesh(mesh, test_layer, loc, &distance2);
         if (inside == 1)
@@ -238,7 +238,7 @@ coord_t SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, const LayerI
     Point centerpoint = location;
     bool inside = collide.inside(centerpoint);
     ClosestPolygonPoint border_point = PolygonUtils::moveInside2(collide, centerpoint);
-    Point diff = border_point.location - location;
+    Point diff = border_point.location_ - location;
     *distance2 = vSize2(diff);
     if (inside)
     {

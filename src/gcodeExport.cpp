@@ -3,6 +3,13 @@
 
 #include "gcodeExport.h"
 
+#include <assert.h>
+#include <cmath>
+#include <iomanip>
+#include <stdarg.h>
+
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To send layer view data.
 #include "ExtruderTrain.h"
 #include "PrintFeature.h"
@@ -13,13 +20,6 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/Date.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
-
-#include <spdlog/spdlog.h>
-
-#include <assert.h>
-#include <cmath>
-#include <iomanip>
-#include <stdarg.h>
 
 namespace cura
 {
@@ -249,18 +249,18 @@ std::string GCodeExport::getFileHeader(
 
         prefix << ";PRINT.GROUPS:" << Application::getInstance().current_slice->scene.mesh_groups.size() << new_line;
 
-        if (total_bounding_box.min.x > total_bounding_box.max.x) // We haven't encountered any movement (yet). This probably means we're command-line slicing.
+        if (total_bounding_box.min.x_ > total_bounding_box.max.x_) // We haven't encountered any movement (yet). This probably means we're command-line slicing.
         {
             // Put some small default in there.
             total_bounding_box.min = Point3(0, 0, 0);
             total_bounding_box.max = Point3(10, 10, 10);
         }
-        prefix << ";PRINT.SIZE.MIN.X:" << INT2MM(total_bounding_box.min.x) << new_line;
-        prefix << ";PRINT.SIZE.MIN.Y:" << INT2MM(total_bounding_box.min.y) << new_line;
-        prefix << ";PRINT.SIZE.MIN.Z:" << INT2MM(total_bounding_box.min.z) << new_line;
-        prefix << ";PRINT.SIZE.MAX.X:" << INT2MM(total_bounding_box.max.x) << new_line;
-        prefix << ";PRINT.SIZE.MAX.Y:" << INT2MM(total_bounding_box.max.y) << new_line;
-        prefix << ";PRINT.SIZE.MAX.Z:" << INT2MM(total_bounding_box.max.z) << new_line;
+        prefix << ";PRINT.SIZE.MIN.X:" << INT2MM(total_bounding_box.min.x_) << new_line;
+        prefix << ";PRINT.SIZE.MIN.Y:" << INT2MM(total_bounding_box.min.y_) << new_line;
+        prefix << ";PRINT.SIZE.MIN.Z:" << INT2MM(total_bounding_box.min.z_) << new_line;
+        prefix << ";PRINT.SIZE.MAX.X:" << INT2MM(total_bounding_box.max.x_) << new_line;
+        prefix << ";PRINT.SIZE.MAX.Y:" << INT2MM(total_bounding_box.max.y_) << new_line;
+        prefix << ";PRINT.SIZE.MAX.Z:" << INT2MM(total_bounding_box.max.z_) << new_line;
         prefix << ";SLICE_UUID:" << slice_uuid_ << new_line;
         prefix << ";END_OF_HEADER" << new_line;
         break;
@@ -302,12 +302,12 @@ std::string GCodeExport::getFileHeader(
             prefix << new_line;
             prefix << ";Layer height: " << Application::getInstance().current_slice->scene.current_mesh_group->settings.get<double>("layer_height") << new_line;
         }
-        prefix << ";MINX:" << INT2MM(total_bounding_box.min.x) << new_line;
-        prefix << ";MINY:" << INT2MM(total_bounding_box.min.y) << new_line;
-        prefix << ";MINZ:" << INT2MM(total_bounding_box.min.z) << new_line;
-        prefix << ";MAXX:" << INT2MM(total_bounding_box.max.x) << new_line;
-        prefix << ";MAXY:" << INT2MM(total_bounding_box.max.y) << new_line;
-        prefix << ";MAXZ:" << INT2MM(total_bounding_box.max.z) << new_line;
+        prefix << ";MINX:" << INT2MM(total_bounding_box.min.x_) << new_line;
+        prefix << ";MINY:" << INT2MM(total_bounding_box.min.y_) << new_line;
+        prefix << ";MINZ:" << INT2MM(total_bounding_box.min.z_) << new_line;
+        prefix << ";MAXX:" << INT2MM(total_bounding_box.max.x_) << new_line;
+        prefix << ";MAXY:" << INT2MM(total_bounding_box.max.y_) << new_line;
+        prefix << ";MAXZ:" << INT2MM(total_bounding_box.max.z_) << new_line;
         prefix << ";TARGET_MACHINE.NAME:" << transliterate(machine_name) << new_line;
     }
 
@@ -392,12 +392,12 @@ Point3 GCodeExport::getPosition() const
 }
 Point GCodeExport::getPositionXY() const
 {
-    return Point(currentPosition.x, currentPosition.y);
+    return Point(currentPosition.x_, currentPosition.y_);
 }
 
 int GCodeExport::getPositionZ() const
 {
-    return currentPosition.z;
+    return currentPosition.z_;
 }
 
 int GCodeExport::getExtruderNr() const
@@ -408,7 +408,7 @@ int GCodeExport::getExtruderNr() const
 void GCodeExport::setFilamentDiameter(const size_t extruder, const coord_t diameter)
 {
     const double r = INT2MM(diameter) / 2.0;
-    const double area = M_PI * r * r;
+    const double area = std::numbers::pi * r * r;
     extruder_attr[extruder].filament_area = area;
 }
 
@@ -839,20 +839,20 @@ void GCodeExport::writeTravel(const Point3& p, const Velocity& speed)
 {
     if (flavor == EGCodeFlavor::BFB)
     {
-        writeMoveBFB(p.x, p.y, p.z + is_z_hopped, speed, 0.0, PrintFeatureType::MoveCombing);
+        writeMoveBFB(p.x_, p.y_, p.z_ + is_z_hopped, speed, 0.0, PrintFeatureType::MoveCombing);
         return;
     }
-    writeTravel(p.x, p.y, p.z + is_z_hopped, speed);
+    writeTravel(p.x_, p.y_, p.z_ + is_z_hopped, speed);
 }
 
 void GCodeExport::writeExtrusion(const Point3& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
 {
     if (flavor == EGCodeFlavor::BFB)
     {
-        writeMoveBFB(p.x, p.y, p.z, speed, extrusion_mm3_per_mm, feature);
+        writeMoveBFB(p.x_, p.y_, p.z_, speed, extrusion_mm3_per_mm, feature);
         return;
     }
-    writeExtrusion(p.x, p.y, p.z, speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
+    writeExtrusion(p.x_, p.y_, p.z_, speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
 }
 
 void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
@@ -918,14 +918,14 @@ void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Velo
 
     currentPosition = Point3(x, y, z);
     estimateCalculator.plan(
-        TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)),
+        TimeEstimateCalculator::Position(INT2MM(currentPosition.x_), INT2MM(currentPosition.y_), INT2MM(currentPosition.z_), eToMm(current_e_value)),
         speed,
         feature);
 }
 
 void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed)
 {
-    if (currentPosition.x == x && currentPosition.y == y && currentPosition.z == z)
+    if (currentPosition.x_ == x && currentPosition.y_ == y && currentPosition.z_ == z)
     {
         return;
     }
@@ -955,7 +955,7 @@ void GCodeExport::writeExtrusion(
     const PrintFeatureType& feature,
     const bool update_extrusion_offset)
 {
-    if (currentPosition.x == x && currentPosition.y == y && currentPosition.z == z)
+    if (currentPosition.x_ == x && currentPosition.y_ == y && currentPosition.z_ == z)
     {
         return;
     }
@@ -1036,7 +1036,7 @@ void GCodeExport::writeFXYZE(const Velocity& speed, const coord_t x, const coord
     total_bounding_box.include(Point3(gcode_pos.X, gcode_pos.Y, z));
 
     *output_stream << " X" << MMtoStream{ gcode_pos.X } << " Y" << MMtoStream{ gcode_pos.Y };
-    if (z != currentPosition.z)
+    if (z != currentPosition.z_)
     {
         *output_stream << " Z" << MMtoStream{ z };
     }
@@ -1071,7 +1071,7 @@ void GCodeExport::writeUnretractionAndPrime()
                 currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
             }
             estimateCalculator.plan(
-                TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)),
+                TimeEstimateCalculator::Position(INT2MM(currentPosition.x_), INT2MM(currentPosition.y_), INT2MM(currentPosition.z_), eToMm(current_e_value)),
                 25.0,
                 PrintFeatureType::MoveRetraction);
         }
@@ -1083,7 +1083,7 @@ void GCodeExport::writeUnretractionAndPrime()
                            << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{ 5, output_e } << new_line;
             currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
             estimateCalculator.plan(
-                TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)),
+                TimeEstimateCalculator::Position(INT2MM(currentPosition.x_), INT2MM(currentPosition.y_), INT2MM(currentPosition.z_), eToMm(current_e_value)),
                 currentSpeed,
                 PrintFeatureType::MoveRetraction);
         }
@@ -1096,7 +1096,7 @@ void GCodeExport::writeUnretractionAndPrime()
         *output_stream << PrecisionedDouble{ 5, output_e } << new_line;
         currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
         estimateCalculator.plan(
-            TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)),
+            TimeEstimateCalculator::Position(INT2MM(currentPosition.x_), INT2MM(currentPosition.y_), INT2MM(currentPosition.z_), eToMm(current_e_value)),
             currentSpeed,
             PrintFeatureType::NoneType);
     }
@@ -1178,7 +1178,7 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         *output_stream << new_line;
         // Assume default UM2 retraction settings.
         estimateCalculator.plan(
-            TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value + retraction_diff_e_amount)),
+            TimeEstimateCalculator::Position(INT2MM(currentPosition.x_), INT2MM(currentPosition.y_), INT2MM(currentPosition.z_), eToMm(current_e_value + retraction_diff_e_amount)),
             25.0,
             PrintFeatureType::MoveRetraction); // TODO: hardcoded values!
     }
@@ -1190,7 +1190,7 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         *output_stream << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " " << extr_attr.extruderCharacter << PrecisionedDouble{ 5, output_e } << new_line;
         currentSpeed = speed;
         estimateCalculator.plan(
-            TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)),
+            TimeEstimateCalculator::Position(INT2MM(currentPosition.x_), INT2MM(currentPosition.y_), INT2MM(currentPosition.z_), eToMm(current_e_value)),
             currentSpeed,
             PrintFeatureType::MoveRetraction);
         extr_attr.last_retraction_prime_speed = config.primeSpeed;
@@ -1227,7 +1227,7 @@ void GCodeExport::writeZhopEnd(Velocity speed /*= 0*/)
             speed = extruder.settings.get<Velocity>("speed_z_hop");
         }
         is_z_hopped = 0;
-        currentPosition.z = current_layer_z;
+        currentPosition.z_ = current_layer_z;
         currentSpeed = speed;
         *output_stream << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " Z" << MMtoStream{ current_layer_z } << new_line;
         assert(speed > 0.0 && "Z hop speed should be positive.");
@@ -1275,7 +1275,7 @@ void GCodeExport::startExtruder(const size_t new_extruder)
     Application::getInstance().communication->sendCurrentPosition(getPositionXY());
 
     // Change the Z position so it gets re-written again. We do not know if the switch code modified the Z position.
-    currentPosition.z += 1;
+    currentPosition.z_ += 1;
 
     setExtruderFanNumber(new_extruder);
 }
@@ -1353,7 +1353,7 @@ void GCodeExport::writePrimeTrain(const Velocity& travel_speed)
         if (! extruder_settings.get<bool>("extruder_prime_pos_abs"))
         {
             // currentPosition.z can be already z hopped
-            prime_pos += Point3(currentPosition.x, currentPosition.y, current_layer_z);
+            prime_pos += Point3(currentPosition.x_, currentPosition.y_, current_layer_z);
         }
         writeTravel(prime_pos, travel_speed);
     }
@@ -1676,11 +1676,11 @@ void GCodeExport::insertWipeScript(const WipeScriptConfig& wipe_config)
         writeZhopStart(wipe_config.hop_amount, wipe_config.hop_speed);
     }
 
-    writeTravel(Point(wipe_config.brush_pos_x, currentPosition.y), wipe_config.move_speed);
+    writeTravel(Point(wipe_config.brush_pos_x, currentPosition.y_), wipe_config.move_speed);
     for (size_t i = 0; i < wipe_config.repeat_count; ++i)
     {
-        coord_t x = currentPosition.x + (i % 2 ? -wipe_config.move_distance : wipe_config.move_distance);
-        writeTravel(Point(x, currentPosition.y), wipe_config.move_speed);
+        coord_t x = currentPosition.x_ + (i % 2 ? -wipe_config.move_distance : wipe_config.move_distance);
+        writeTravel(Point(x, currentPosition.y_), wipe_config.move_speed);
     }
 
     writeTravel(prev_position, wipe_config.move_speed);

@@ -26,7 +26,7 @@ float LinearAlg2D::getAngleLeft(const Point& a, const Point& b, const Point& c)
         }
         else
         {
-            return M_PI; // straight bit
+            return std::numbers::pi; // straight bit
         }
     }
     const float angle = -atan2(det, dott); // from -pi to pi
@@ -36,7 +36,7 @@ float LinearAlg2D::getAngleLeft(const Point& a, const Point& b, const Point& c)
     }
     else
     {
-        return M_PI * 2 + angle;
+        return std::numbers::pi * 2 + angle;
     }
 }
 

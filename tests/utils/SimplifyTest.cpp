@@ -83,7 +83,7 @@ public:
         constexpr coord_t amplitude = 45;
         constexpr coord_t y_step = 100;
         constexpr size_t periods = 10; // How many waves of the sine to construct.
-        for (double current_sine = 0; current_sine < M_PI * periods; current_sine += sine_step)
+        for (double current_sine = 0; current_sine < std::numbers::pi * periods; current_sine += sine_step)
         {
             sine.add(Point(std::sin(current_sine) * amplitude, y_step * sine.size()));
         }

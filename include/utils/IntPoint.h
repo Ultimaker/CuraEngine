@@ -11,15 +11,15 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #define INLINE static inline
 
 // Include Clipper to get the ClipperLib::IntPoint definition, which we reuse as Point definition.
-#include "../utils/math.h" // for M_PI. Use relative path to avoid pulling <math.h>
-#include "Point3.h" //For applying Point3Matrices.
-
 #include <cmath>
 #include <functional> // for hash function object
 #include <iostream> // auto-serialization / auto-toString()
 #include <limits>
 #include <polyclipping/clipper.hpp>
 #include <stdint.h>
+
+#include "../utils/math.h" // for M_PI. Use relative path to avoid pulling <math.h>
+#include "Point3.h" //For applying Point3Matrices.
 
 #ifdef __GNUC__
 #define DEPRECATED(func) func __attribute__((deprecated))
@@ -62,7 +62,7 @@ INLINE Point operator*(const Point& p0, const coord_t i)
 template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type> // Use only for numeric types.
 INLINE Point operator*(const Point& p0, const T i)
 {
-    return Point(std::llrint(p0.X * i), std::llrint(p0.Y * i));
+    return Point(std::llrint(static_cast<T>(p0.X) * i), std::llrint(static_cast<T>(p0.Y) * i));
 }
 template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type> // Use only for numeric types.
 INLINE Point operator*(const T i, const Point& p0)
@@ -141,7 +141,7 @@ INLINE bool shorterThan(const Point& p0, const coord_t len)
 
 INLINE coord_t vSize(const Point& p0)
 {
-    return sqrt(vSize2(p0));
+    return std::llrint(sqrt(static_cast<double>(vSize2(p0))));
 }
 
 INLINE double vSizeMM(const Point& p0)
@@ -168,7 +168,9 @@ INLINE Point rotate(const Point& p0, double angle)
 {
     const double cos_component = std::cos(angle);
     const double sin_component = std::sin(angle);
-    return Point(cos_component * p0.X - sin_component * p0.Y, sin_component * p0.X + cos_component * p0.Y);
+    const double x = static_cast<double>(p0.X);
+    const double y = static_cast<double>(p0.Y);
+    return Point(std::llrint(cos_component * x - sin_component * y), std::llrint(sin_component * x + cos_component * y));
 }
 
 INLINE coord_t dot(const Point& p0, const Point& p1)
@@ -186,7 +188,7 @@ INLINE int angle(const Point& p)
     double angle = std::atan2(p.X, p.Y) / M_PI * 180.0;
     if (angle < 0.0)
         angle += 360.0;
-    return angle;
+    return static_cast<int>(std::lrint(angle));
 }
 
 // Identity function, used to be able to make templated algorithms where the input is sometimes points, sometimes things that contain or can be converted to points.
@@ -206,9 +208,9 @@ struct hash<cura::Point>
     {
         static int prime = 31;
         int result = 89;
-        result = result * prime + pp.X;
-        result = result * prime + pp.Y;
-        return result;
+        result = static_cast<int>(result * prime + pp.X);
+        result = static_cast<int>(result * prime + pp.Y);
+        return static_cast<size_t>(result);
     }
 };
 } // namespace std
@@ -240,8 +242,8 @@ public:
 
     PointMatrix(const Point p)
     {
-        matrix[0] = p.X;
-        matrix[1] = p.Y;
+        matrix[0] = static_cast<double>(p.X);
+        matrix[1] = static_cast<double>(p.Y);
         double f = sqrt((matrix[0] * matrix[0]) + (matrix[1] * matrix[1]));
         matrix[0] /= f;
         matrix[1] /= f;
@@ -259,7 +261,9 @@ public:
 
     Point apply(const Point p) const
     {
-        return Point(p.X * matrix[0] + p.Y * matrix[1], p.X * matrix[2] + p.Y * matrix[3]);
+        const double x = static_cast<double>(p.X);
+        const double y = static_cast<double>(p.Y);
+        return Point(std::llrint(x * matrix[0] + y * matrix[1]), std::llrint(x * matrix[2] + y * matrix[3]));
     }
 
     /*!
@@ -267,7 +271,9 @@ public:
      */
     Point unapply(const Point p) const
     {
-        return Point(p.X * matrix[0] + p.Y * matrix[2], p.X * matrix[1] + p.Y * matrix[3]);
+        const double x = static_cast<double>(p.X);
+        const double y = static_cast<double>(p.Y);
+        return Point(std::llrint(x * matrix[0] + y * matrix[2]), std::llrint(x * matrix[1] + y * matrix[3]));
     }
 
     PointMatrix inverse() const
@@ -319,10 +325,13 @@ public:
 
     Point3 apply(const Point3 p) const
     {
+        const double x = static_cast<double>(p.x_);
+        const double y = static_cast<double>(p.y_);
+        const double z = static_cast<double>(p.z_);
         return Point3(
-            std::llrint(p.x * matrix[0] + p.y * matrix[1] + p.z * matrix[2]),
-            std::llrint(p.x * matrix[3] + p.y * matrix[4] + p.z * matrix[5]),
-            std::llrint(p.x * matrix[6] + p.y * matrix[7] + p.z * matrix[8]));
+            std::llrint(x * matrix[0] + y * matrix[1] + z * matrix[2]),
+            std::llrint(x * matrix[3] + y * matrix[4] + z * matrix[5]),
+            std::llrint(x * matrix[6] + y * matrix[7] + z * matrix[8]));
     }
 
     /*!
@@ -331,14 +340,14 @@ public:
     Point apply(const Point p) const
     {
         Point3 result = apply(Point3(p.X, p.Y, 1));
-        return Point(result.x / result.z, result.y / result.z);
+        return Point(result.x_ / result.z_, result.y_ / result.z_);
     }
 
     static Point3Matrix translate(const Point p)
     {
         Point3Matrix ret; // uniform matrix
-        ret.matrix[2] = p.X;
-        ret.matrix[5] = p.Y;
+        ret.matrix[2] = static_cast<double>(p.X);
+        ret.matrix[5] = static_cast<double>(p.Y);
         return ret;
     }
 
@@ -363,35 +372,35 @@ public:
 
 inline Point3 operator+(const Point3& p3, const Point& p2)
 {
-    return Point3(p3.x + p2.X, p3.y + p2.Y, p3.z);
+    return Point3(p3.x_ + p2.X, p3.y_ + p2.Y, p3.z_);
 }
 inline Point3& operator+=(Point3& p3, const Point& p2)
 {
-    p3.x += p2.X;
-    p3.y += p2.Y;
+    p3.x_ += p2.X;
+    p3.y_ += p2.Y;
     return p3;
 }
 
 inline Point operator+(const Point& p2, const Point3& p3)
 {
-    return Point(p3.x + p2.X, p3.y + p2.Y);
+    return Point(p3.x_ + p2.X, p3.y_ + p2.Y);
 }
 
 
 inline Point3 operator-(const Point3& p3, const Point& p2)
 {
-    return Point3(p3.x - p2.X, p3.y - p2.Y, p3.z);
+    return Point3(p3.x_ - p2.X, p3.y_ - p2.Y, p3.z_);
 }
 inline Point3& operator-=(Point3& p3, const Point& p2)
 {
-    p3.x -= p2.X;
-    p3.y -= p2.Y;
+    p3.x_ -= p2.X;
+    p3.y_ -= p2.Y;
     return p3;
 }
 
 inline Point operator-(const Point& p2, const Point3& p3)
 {
-    return Point(p2.X - p3.x, p2.Y - p3.y);
+    return Point(p2.X - p3.x_, p2.Y - p3.y_);
 }
 
 } // namespace cura

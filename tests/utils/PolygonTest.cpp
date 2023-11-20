@@ -269,7 +269,7 @@ TEST_F(PolygonTest, convexHullStar)
     const int num_points = 10;
     const int outer_radius = 20;
     const int inner_radius = 10;
-    const double angle_step = M_PI * 2.0 / num_points;
+    const double angle_step = std::numbers::pi * 2.0 / num_points;
     for (int i = 0; i < num_points; ++i)
     {
         coord_t x_outer = -std::cos(angle_step * i) * outer_radius;

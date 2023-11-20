@@ -19,7 +19,7 @@ TEST(SmoothTest, TestSmooth)
     // test isSmooth utility function
     cura::actions::smooth_fn smooth;
     const auto FLUID_ANGLE = 15.;
-    const auto COS_FLUID_ANGLE = std::cos(FLUID_ANGLE * M_PI / 180.);
+    const auto COS_FLUID_ANGLE = std::cos(FLUID_ANGLE * std::numbers::pi / 180.);
 
     {
         /*

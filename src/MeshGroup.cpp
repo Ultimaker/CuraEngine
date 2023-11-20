@@ -55,9 +55,9 @@ Point3 MeshGroup::min() const
             continue;
         }
         Point3 v = mesh.min();
-        ret.x = std::min(ret.x, v.x);
-        ret.y = std::min(ret.y, v.y);
-        ret.z = std::min(ret.z, v.z);
+        ret.x_ = std::min(ret.x_, v.x_);
+        ret.y_ = std::min(ret.y_, v.y_);
+        ret.z_ = std::min(ret.z_, v.z_);
     }
     return ret;
 }
@@ -77,9 +77,9 @@ Point3 MeshGroup::max() const
             continue;
         }
         Point3 v = mesh.max();
-        ret.x = std::max(ret.x, v.x);
-        ret.y = std::max(ret.y, v.y);
-        ret.z = std::max(ret.z, v.z);
+        ret.x_ = std::max(ret.x_, v.x_);
+        ret.y_ = std::max(ret.y_, v.y_);
+        ret.z_ = std::max(ret.z_, v.z_);
     }
     return ret;
 }
@@ -98,8 +98,8 @@ void MeshGroup::finalize()
     Point3 meshgroup_offset(0, 0, 0);
     if (! settings.get<bool>("machine_center_is_zero"))
     {
-        meshgroup_offset.x = settings.get<coord_t>("machine_width") / 2;
-        meshgroup_offset.y = settings.get<coord_t>("machine_depth") / 2;
+        meshgroup_offset.x_ = settings.get<coord_t>("machine_width") / 2;
+        meshgroup_offset.y_ = settings.get<coord_t>("machine_depth") / 2;
     }
 
     // If a mesh position was given, put the mesh at this position in 3D space.
@@ -111,7 +111,7 @@ void MeshGroup::finalize()
             Point3 object_min = mesh.min();
             Point3 object_max = mesh.max();
             Point3 object_size = object_max - object_min;
-            mesh_offset += Point3(-object_min.x - object_size.x / 2, -object_min.y - object_size.y / 2, -object_min.z);
+            mesh_offset += Point3(-object_min.x_ - object_size.x_ / 2, -object_min.y_ - object_size.y_ / 2, -object_min.z_);
         }
         mesh.translate(mesh_offset + meshgroup_offset);
     }
@@ -127,7 +127,7 @@ void MeshGroup::finalize()
 void MeshGroup::scaleFromBottom(const Ratio factor_xy, const Ratio factor_z)
 {
     const Point3 center = (max() + min()) / 2;
-    const Point3 origin(center.x, center.y, 0);
+    const Point3 origin(center.x_, center.y_, 0);
 
     const FMatrix4x3 transformation = FMatrix4x3::scale(factor_xy, factor_xy, factor_z, origin);
     for (Mesh& mesh : meshes)

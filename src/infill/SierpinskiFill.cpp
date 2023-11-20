@@ -42,12 +42,13 @@ SierpinskiFill::SierpinskiFill(const DensityProvider& density_provider, const AA
     {
         if (node->getValueError() < -allowed_length_error)
         {
-            spdlog::error("Node is subdivided without the appropriate value! value_error: {} from base {} el: {} er: {}, while the realized_length = {}",
-                          node->getValueError(),
-                          node->requested_length,
-                          node->error_left,
-                          node->error_right,
-                          node->realized_length);
+            spdlog::error(
+                "Node is subdivided without the appropriate value! value_error: {} from base {} el: {} er: {}, while the realized_length = {}",
+                node->getValueError(),
+                node->requested_length,
+                node->error_left,
+                node->error_right,
+                node->realized_length);
             assert(false);
         }
     }
@@ -296,7 +297,8 @@ bool SierpinskiFill::bubbleUpConstraintErrors()
 }
 
 
-std::list<SierpinskiFill::SierpinskiTriangle*>::iterator SierpinskiFill::subdivide(std::list<SierpinskiTriangle*>::iterator begin, std::list<SierpinskiTriangle*>::iterator end, bool redistribute_errors)
+std::list<SierpinskiFill::SierpinskiTriangle*>::iterator
+    SierpinskiFill::subdivide(std::list<SierpinskiTriangle*>::iterator begin, std::list<SierpinskiTriangle*>::iterator end, bool redistribute_errors)
 {
     if (redistribute_errors && deep_debug_checking)
         debugCheck();
@@ -429,7 +431,13 @@ void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*
     {
         order.emplace_back(node_idx);
     }
-    std::sort(order.begin(), order.end(), [&nodes](int a, int b) { return nodes[a]->getValueError() < nodes[b]->getValueError(); });
+    std::sort(
+        order.begin(),
+        order.end(),
+        [&nodes](int a, int b)
+        {
+            return nodes[a]->getValueError() < nodes[b]->getValueError();
+        });
 
     // add error to children with too low value
     float added = 0;
@@ -573,7 +581,12 @@ void SierpinskiFill::diffuseError()
                 error += nodal_value - triangle.realized_length;
         }
     }
-    spdlog::debug("pair_constrained_nodes: {}, constrained_nodes: {}, unconstrained_nodes: {}, subdivided_nodes: {}", pair_constrained_nodes, constrained_nodes, unconstrained_nodes, subdivided_nodes);
+    spdlog::debug(
+        "pair_constrained_nodes: {}, constrained_nodes: {}, unconstrained_nodes: {}, subdivided_nodes: {}",
+        pair_constrained_nodes,
+        constrained_nodes,
+        unconstrained_nodes,
+        subdivided_nodes);
 }
 
 bool SierpinskiFill::isConstrainedBackward(std::list<SierpinskiTriangle*>::iterator it)
@@ -761,7 +774,7 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
         //  \    /  ==>  \____/
         //   \  /}\       ^^^^--pocket_size / 2
         //    \/} / pocket_size_side
-        coord_t pocket_size_side = pocket_size * sqrt2 / 2;
+        coord_t pocket_size_side = pocket_size * std::numbers::sqrt2 / 2;
 
         Polygon pocketed;
         pocketed.reserve(ret.size() * 3 / 2);
@@ -778,7 +791,8 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
             bool is_straight_corner = prod < sqrt(vSize(v0) * vSize(v1)) * min_dist_to_side; // allow for rounding errors of up to min_dist_to_side
             if (is_straight_corner)
             {
-                coord_t pocket_rounding = std::min(std::min(pocket_size_side, vSize(v0) / 3), vSize(v1) / 3); // a third so that if a line segment is shortened on both sides the middle remains
+                coord_t pocket_rounding
+                    = std::min(std::min(pocket_size_side, vSize(v0) / 3), vSize(v1) / 3); // a third so that if a line segment is shortened on both sides the middle remains
                 pocketed.add(p1 + normal(v0, pocket_rounding));
                 pocketed.add(p1 + normal(v1, pocket_rounding));
             }

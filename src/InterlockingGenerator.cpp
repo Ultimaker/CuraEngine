@@ -3,19 +3,19 @@
 
 #include "InterlockingGenerator.h"
 
-#include "Application.h"
-#include "Slice.h"
-#include "settings/types/LayerIndex.h"
-#include "slicer.h"
-#include "utils/VoxelUtils.h"
-#include "utils/polygonUtils.h"
+#include <algorithm> // max
 
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/iota.hpp>
 #include <range/v3/view/view.hpp>
 #include <range/v3/view/zip.hpp>
 
-#include <algorithm> // max
+#include "Application.h"
+#include "Slice.h"
+#include "settings/types/LayerIndex.h"
+#include "slicer.h"
+#include "utils/VoxelUtils.h"
+#include "utils/polygonUtils.h"
 
 namespace cura
 {
@@ -109,7 +109,7 @@ void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>
     for (const auto& cell : has_all_meshes)
     {
         const Point3 bottom_corner = vu.toLowerCorner(cell);
-        for (int layer_nr = bottom_corner.z; layer_nr < bottom_corner.z + cell_size.z && layer_nr < near_interlock_per_layer.size(); ++layer_nr)
+        for (int layer_nr = bottom_corner.z_; layer_nr < bottom_corner.z_ + cell_size.z_ && layer_nr < near_interlock_per_layer.size(); ++layer_nr)
         {
             near_interlock_per_layer[layer_nr].add(vu.toPolygon(cell));
         }
@@ -214,7 +214,7 @@ void InterlockingGenerator::addBoundaryCells(const std::vector<Polygons>& layers
         {
             skin = skin.xorPolygons(layers[layer_nr - 1]);
         }
-        skin = skin.offset(-cell_size.x / 2).offset(cell_size.x / 2); // remove superfluous small areas, which would anyway be included because of walkPolygons
+        skin = skin.offset(-cell_size.x_ / 2).offset(cell_size.x_ / 2); // remove superfluous small areas, which would anyway be included because of walkPolygons
         vu.walkDilatedAreas(skin, z, kernel, voxel_emplacer);
     }
 }
@@ -248,12 +248,12 @@ std::vector<std::vector<Polygons>> InterlockingGenerator::generateMicrostructure
     cell_area_per_mesh_per_layer.resize(2);
     cell_area_per_mesh_per_layer[0].resize(2);
     const coord_t beam_w_sum = beam_width_a + beam_width_b;
-    const coord_t middle = cell_size.x * beam_width_a / beam_w_sum;
-    const coord_t width[2] = { middle, cell_size.x - middle };
+    const coord_t middle = cell_size.x_ * beam_width_a / beam_w_sum;
+    const coord_t width[2] = { middle, cell_size.x_ - middle };
     for (size_t mesh_idx : { 0, 1 })
     {
         Point offset(mesh_idx ? middle : 0, 0);
-        Point area_size(width[mesh_idx], cell_size.y);
+        Point area_size(width[mesh_idx], cell_size.y_);
 
         PolygonRef poly = cell_area_per_mesh_per_layer[0][mesh_idx].newPoly();
         poly.emplace_back(offset);
@@ -297,10 +297,10 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
         Point3 bottom_corner = vu.toLowerCorner(grid_loc);
         for (size_t mesh_idx = 0; mesh_idx < 2; mesh_idx++)
         {
-            for (LayerIndex layer_nr = bottom_corner.z; layer_nr < bottom_corner.z + cell_size.z && layer_nr < max_layer_count; layer_nr += beam_layer_count)
+            for (LayerIndex layer_nr = bottom_corner.z_; layer_nr < bottom_corner.z_ + cell_size.z_ && layer_nr < max_layer_count; layer_nr += beam_layer_count)
             {
                 Polygons areas_here = cell_area_per_mesh_per_layer[(layer_nr / beam_layer_count) % cell_area_per_mesh_per_layer.size()][mesh_idx];
-                areas_here.translate(Point(bottom_corner.x, bottom_corner.y));
+                areas_here.translate(Point(bottom_corner.x_, bottom_corner.y_));
                 structure_per_layer[mesh_idx][layer_nr / beam_layer_count].add(areas_here);
             }
         }

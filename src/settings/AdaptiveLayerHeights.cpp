@@ -1,13 +1,14 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include "settings/AdaptiveLayerHeights.h"
+
 #include <algorithm>
 #include <cmath>
 #include <limits>
 
 #include "Application.h"
 #include "Slice.h"
-#include "settings/AdaptiveLayerHeights.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/Angle.h"
 #include "utils/floatpoint.h"
@@ -15,7 +16,8 @@
 namespace cura
 {
 
-AdaptiveLayer::AdaptiveLayer(const coord_t layer_height) : layer_height{ layer_height }
+AdaptiveLayer::AdaptiveLayer(const coord_t layer_height)
+    : layer_height{ layer_height }
 {
 }
 
@@ -62,7 +64,7 @@ void AdaptiveLayerHeights::calculateLayers()
     Settings const& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     auto slicing_tolerance = mesh_group_settings.get<SlicingTolerance>("slicing_tolerance");
     std::vector<size_t> triangles_of_interest;
-    const coord_t model_max_z = meshgroup->max().z;
+    const coord_t model_max_z = meshgroup->max().z_;
     coord_t z_level = 0;
     coord_t previous_layer_height = 0;
 
@@ -218,7 +220,7 @@ void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
             // prevent flat surfaces from influencing the algorithm
             if (z_angle == 0)
             {
-                z_angle = M_PI;
+                z_angle = std::numbers::pi;
             }
 
             face_min_z_values.push_back(MM2INT(min_z));

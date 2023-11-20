@@ -48,12 +48,12 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceDataStorage& storage
     support_outset(0)
     , // Since we disable support offset when tree support is enabled we use an offset of 0 rather than the setting value mesh.settings.get<coord_t>("support_offset")
     roof_outset(use_fake_roof ? support_outset : mesh.settings.get<coord_t>("support_roof_offset"))
-    , force_tip_to_roof((config.min_radius * config.min_radius * M_PI > minimum_roof_area * (1000 * 1000)) && support_roof_layers && ! use_fake_roof)
+    , force_tip_to_roof((config.min_radius * config.min_radius * std::numbers::pi > minimum_roof_area * (1000 * 1000)) && support_roof_layers && ! use_fake_roof)
     , support_tree_limit_branch_reach(mesh.settings.get<bool>("support_tree_limit_branch_reach"))
     , support_tree_branch_reach_limit(support_tree_limit_branch_reach ? mesh.settings.get<coord_t>("support_tree_branch_reach_limit") : 0)
     , z_distance_delta(std::min(config.z_distance_top_layers + 1, mesh.overhang_areas.size()))
     , xy_overrides(config.support_overrides == SupportDistPriority::XY_OVERRIDES_Z)
-    , tip_roof_size(force_tip_to_roof ? config.min_radius * config.min_radius * M_PI : 0)
+    , tip_roof_size(force_tip_to_roof ? config.min_radius * config.min_radius * std::numbers::pi : 0)
     , already_inserted(mesh.overhang_areas.size())
     , support_roof_drawn(mesh.overhang_areas.size(), Polygons())
     , roof_tips_drawn(mesh.overhang_areas.size(), Polygons())
@@ -266,7 +266,7 @@ Polygons TreeSupportTipGenerator::ensureMaximumDistancePolyline(const Polygons& 
         {
             ClosestPolygonPoint middle_point(part[0], 0, part);
             middle_point = PolygonUtils::walk(middle_point, coord_t(length / 2));
-            line.add(middle_point.location);
+            line.add(middle_point.location_);
         }
         else
         {

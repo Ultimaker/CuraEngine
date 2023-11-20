@@ -17,7 +17,7 @@
 #include "utils/Coord_t.h"
 #include "utils/FMatrix4x3.h" //Testing matrix transformation settings.
 
-#include <cmath> //For M_PI.
+#include <cmath> //For std::numbers::pi.
 #include <gtest/gtest.h>
 #include <memory> //For shared_ptr.
 
@@ -121,10 +121,10 @@ TEST_F(SettingsTest, AddSettingCoordT)
 TEST_F(SettingsTest, AddSettingAngleRadians)
 {
     settings.add("test_setting", "180");
-    EXPECT_DOUBLE_EQ(AngleRadians(M_PI), settings.get<AngleRadians>("test_setting")) << "180 degrees is 1 pi radians.";
+    EXPECT_DOUBLE_EQ(AngleRadians(std::numbers::pi), settings.get<AngleRadians>("test_setting")) << "180 degrees is 1 pi radians.";
 
     settings.add("test_setting", "810");
-    EXPECT_NEAR(AngleRadians(M_PI / 2.0), settings.get<AngleRadians>("test_setting"), 0.00000001) << "810 degrees in clock arithmetic is 90 degrees, which is 0.5 pi radians.";
+    EXPECT_NEAR(AngleRadians(std::numbers::pi / 2.0), settings.get<AngleRadians>("test_setting"), 0.00000001) << "810 degrees in clock arithmetic is 90 degrees, which is 0.5 pi radians.";
 }
 
 TEST_F(SettingsTest, AddSettingAngleDegrees)

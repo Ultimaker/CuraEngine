@@ -1,9 +1,10 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include "mesh.h"
+
 #include <spdlog/spdlog.h>
 
-#include "mesh.h"
 #include "utils/floatpoint.h"
 
 namespace cura
@@ -16,14 +17,21 @@ const int vertex_meld_distance = MM2INT(0.03);
  */
 static inline uint32_t pointHash(const Point3& p)
 {
-    return ((p.x + vertex_meld_distance / 2) / vertex_meld_distance) ^ (((p.y + vertex_meld_distance / 2) / vertex_meld_distance) << 10) ^ (((p.z + vertex_meld_distance / 2) / vertex_meld_distance) << 20);
+    return ((p.x_ + vertex_meld_distance / 2) / vertex_meld_distance) ^ (((p.y_ + vertex_meld_distance / 2) / vertex_meld_distance) << 10)
+         ^ (((p.z_ + vertex_meld_distance / 2) / vertex_meld_distance) << 20);
 }
 
-Mesh::Mesh(Settings& parent) : settings(parent), has_disconnected_faces(false), has_overlapping_faces(false)
+Mesh::Mesh(Settings& parent)
+    : settings(parent)
+    , has_disconnected_faces(false)
+    , has_overlapping_faces(false)
 {
 }
 
-Mesh::Mesh() : settings(), has_disconnected_faces(false), has_overlapping_faces(false)
+Mesh::Mesh()
+    : settings()
+    , has_disconnected_faces(false)
+    , has_overlapping_faces(false)
 {
 }
 
@@ -226,7 +234,7 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
         double det = n * n0.cross(n1);
         double angle = std::atan2(det, dot);
         if (angle < 0)
-            angle += 2 * M_PI; // 0 <= angle < 2* M_PI
+            angle += 2 * std::numbers::pi; // 0 <= angle < 2* std::numbers::pi
 
         if (angle == 0)
         {

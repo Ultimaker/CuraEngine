@@ -590,7 +590,7 @@ coord_t Infill::getShiftOffsetFromInfillOriginAndRotation(const double& infill_r
 {
     if (infill_origin.X != 0 || infill_origin.Y != 0)
     {
-        const double rotation_rads = infill_rotation * M_PI / 180;
+        const double rotation_rads = infill_rotation * std::numbers::pi / 180;
         return infill_origin.X * std::cos(rotation_rads) - infill_origin.Y * std::sin(rotation_rads);
     }
     return 0;

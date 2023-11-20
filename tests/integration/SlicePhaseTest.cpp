@@ -152,8 +152,8 @@ TEST_F(SlicePhaseTest, Cylinder1000)
     circle.reserve(num_vertices);
     for (size_t i = 0; i < 1000; i++)
     {
-        const coord_t x = std::cos(M_PI * 2 / num_vertices * i) * radius;
-        const coord_t y = std::sin(M_PI * 2 / num_vertices * i) * radius;
+        const coord_t x = std::cos(std::numbers::pi * 2 / num_vertices * i) * radius;
+        const coord_t y = std::sin(std::numbers::pi * 2 / num_vertices * i) * radius;
         circle.emplace_back(x, y);
     }
     Polygons circles;

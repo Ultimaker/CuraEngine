@@ -237,7 +237,7 @@ Point SliceMeshStorage::getZSeamHint() const
     if (settings.get<bool>("z_seam_relative"))
     {
         Point3 middle = bounding_box.getMiddle();
-        pos += Point(middle.x, middle.y);
+        pos += Point(middle.x_, middle.y_);
     }
     return pos;
 }
@@ -542,13 +542,13 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
     case BuildPlateShape::ELLIPTIC:
     {
         // Construct an ellipse to approximate the build volume.
-        const coord_t width = machine_size.max.x - machine_size.min.x;
-        const coord_t depth = machine_size.max.y - machine_size.min.y;
+        const coord_t width = machine_size.max.x_ - machine_size.min.x_;
+        const coord_t depth = machine_size.max.y_ - machine_size.min.y_;
         constexpr unsigned int circle_resolution = 50;
         for (unsigned int i = 0; i < circle_resolution; i++)
         {
-            const double angle = M_PI * 2 * i / circle_resolution;
-            outline.emplace_back(machine_size.getMiddle().x + std::cos(angle) * width / 2, machine_size.getMiddle().y + std::sin(angle) * depth / 2);
+            const double angle = std::numbers::pi * 2 * i / circle_resolution;
+            outline.emplace_back(machine_size.getMiddle().x_ + std::cos(angle) * width / 2, machine_size.getMiddle().y_ + std::sin(angle) * depth / 2);
         }
         break;
     }
@@ -569,7 +569,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
         {
             for (Point& p : poly)
             {
-                p = Point(machine_size.max.x / 2 + p.X, machine_size.max.y / 2 - p.Y);
+                p = Point(machine_size.max.x_ / 2 + p.X, machine_size.max.y_ / 2 - p.Y);
             }
         }
     }
@@ -596,7 +596,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
         Point translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
         prime_pos -= translation;
         Polygons prime_polygons;
-        prime_polygons.emplace_back(PolygonUtils::makeCircle(prime_pos, prime_clearance, M_PI / 32));
+        prime_polygons.emplace_back(PolygonUtils::makeCircle(prime_pos, prime_clearance, std::numbers::pi / 32));
         disallowed_areas = disallowed_areas.unionPolygons(prime_polygons);
     }
 

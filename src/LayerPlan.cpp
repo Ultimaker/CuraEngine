@@ -1491,10 +1491,10 @@ void LayerPlan::spiralizeWallSlice(
             ClosestPolygonPoint cpp = PolygonUtils::findClosest(p, last_wall_polygons);
 
             // if we found a point and it's not further away than max_dist2, use it
-            if (cpp.isValid() && vSize2(cpp.location - p) <= max_dist2)
+            if (cpp.isValid() && vSize2(cpp.location_ - p) <= max_dist2)
             {
                 // interpolate between cpp.location and p depending on how far we have progressed along wall
-                addExtrusionMove(cpp.location + (p - cpp.location) * (wall_length / total_length), config, SpaceFillType::Polygons, flow, width_factor, spiralize, speed_factor);
+                addExtrusionMove(cpp.location_ + (p - cpp.location_) * (wall_length / total_length), config, SpaceFillType::Polygons, flow, width_factor, spiralize, speed_factor);
             }
             else
             {
@@ -2073,7 +2073,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 {
                     // Before the final travel, move up to the next layer height, on the current spot, with a sensible speed.
                     Point3 current_position = gcode.getPosition();
-                    current_position.z = final_travel_z;
+                    current_position.z_ = final_travel_z;
                     gcode.writeTravel(current_position, extruder.settings.get<Velocity>("speed_z_hop"));
 
                     // Prevent the final travel(s) from resetting to the 'previous' layer height.

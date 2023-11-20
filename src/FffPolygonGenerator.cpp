@@ -145,11 +145,11 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             {
                 continue;
             }
-            const coord_t mesh_height = mesh.max().z;
+            const coord_t mesh_height = mesh.max().z_;
             switch (mesh.settings.get<SlicingTolerance>("slicing_tolerance"))
             {
             case SlicingTolerance::MIDDLE:
-                if (storage.model_max.z < initial_layer_thickness)
+                if (storage.model_max.z_ < initial_layer_thickness)
                 {
                     slice_layer_count = std::max(slice_layer_count, (mesh_height > initial_layer_thickness / 2) ? 1 : 0); // One layer if higher than half initial layer height.
                 }
@@ -673,7 +673,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     if (mesh.settings.get<coord_t>("infill_line_distance") > 0 && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CUBICSUBDIV)
     {
         const Point3 mesh_middle = mesh.bounding_box.getMiddle();
-        const Point infill_origin(mesh_middle.x + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y + mesh.settings.get<coord_t>("infill_offset_y"));
+        const Point infill_origin(mesh_middle.x_ + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y_ + mesh.settings.get<coord_t>("infill_offset_y"));
         SubDivCube::precomputeOctree(mesh, infill_origin);
     }
 
