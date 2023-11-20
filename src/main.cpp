@@ -8,9 +8,10 @@
 #endif
 
 #include <sentry.h>
+#include <string>
 
 #include <spdlog/spdlog.h>
-#include <string>
+
 #include "Application.h"
 
 namespace cura
