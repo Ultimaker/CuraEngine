@@ -43,31 +43,31 @@ public:
     void SetUp() override
     {
         output << std::fixed;
-        gcode.output_stream = &output;
+        gcode.output_stream_ = &output;
 
         // Since GCodeExport doesn't support copying, we have to reset everything in-place.
-        gcode.currentPosition = Point3(0, 0, MM2INT(20));
-        gcode.layer_nr = 0;
-        gcode.current_e_value = 0;
-        gcode.current_e_offset = 0;
-        gcode.current_extruder = 0;
-        gcode.current_fan_speed = -1;
-        gcode.total_print_times = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
-        gcode.currentSpeed = 1.0;
-        gcode.current_print_acceleration = -1.0;
-        gcode.current_travel_acceleration = -1.0;
-        gcode.current_jerk = -1.0;
-        gcode.is_z_hopped = 0;
+        gcode.current_position_ = Point3(0, 0, MM2INT(20));
+        gcode.layer_nr_ = 0;
+        gcode.current_e_value_ = 0;
+        gcode.current_e_offset_ = 0;
+        gcode.current_extruder_ = 0;
+        gcode.current_fan_speed_ = -1;
+        gcode.total_print_times_ = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
+        gcode.current_speed_ = 1.0;
+        gcode.current_print_acceleration_ = -1.0;
+        gcode.current_travel_acceleration_ = -1.0;
+        gcode.current_jerk_ = -1.0;
+        gcode.is_z_hopped_ = 0;
         gcode.setFlavor(EGCodeFlavor::MARLIN);
-        gcode.bed_temperature = 0;
-        gcode.initial_bed_temp = 0;
-        gcode.fan_number = 0;
-        gcode.total_bounding_box = AABB3D();
-        gcode.current_layer_z = 0;
-        gcode.relative_extrusion = false;
+        gcode.bed_temperature_ = 0;
+        gcode.initial_bed_temp_ = 0;
+        gcode.fan_number_ = 0;
+        gcode.total_bounding_box_ = AABB3D();
+        gcode.current_layer_z_ = 0;
+        gcode.relative_extrusion_ = false;
 
-        gcode.new_line = "\n"; // Not BFB flavour by default.
-        gcode.machine_name = "Your favourite 3D printer";
+        gcode.new_line_ = "\n"; // Not BFB flavour by default.
+        gcode.machine_name_ = "Your favourite 3D printer";
 
         // Set up a scene so that we may request settings.
         Application::getInstance().current_slice_ = new Slice(1);
@@ -204,28 +204,28 @@ public:
     void SetUp() override
     {
         output << std::fixed;
-        gcode.output_stream = &output;
+        gcode.output_stream_ = &output;
 
         // Since GCodeExport doesn't support copying, we have to reset everything in-place.
-        gcode.currentPosition = Point3(0, 0, MM2INT(20));
-        gcode.layer_nr = 0;
-        gcode.current_e_value = 0;
-        gcode.current_extruder = 0;
-        gcode.current_fan_speed = -1;
-        gcode.total_print_times = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
-        gcode.currentSpeed = 1.0;
-        gcode.current_print_acceleration = -1.0;
-        gcode.current_travel_acceleration = -1.0;
-        gcode.current_jerk = -1.0;
-        gcode.is_z_hopped = 0;
+        gcode.current_position_ = Point3(0, 0, MM2INT(20));
+        gcode.layer_nr_ = 0;
+        gcode.current_e_value_ = 0;
+        gcode.current_extruder_ = 0;
+        gcode.current_fan_speed_ = -1;
+        gcode.total_print_times_ = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
+        gcode.current_speed_ = 1.0;
+        gcode.current_print_acceleration_ = -1.0;
+        gcode.current_travel_acceleration_ = -1.0;
+        gcode.current_jerk_ = -1.0;
+        gcode.is_z_hopped_ = 0;
         gcode.setFlavor(EGCodeFlavor::MARLIN);
-        gcode.initial_bed_temp = 0;
-        gcode.bed_temperature = 0;
-        gcode.fan_number = 0;
-        gcode.total_bounding_box = AABB3D();
+        gcode.initial_bed_temp_ = 0;
+        gcode.bed_temperature_ = 0;
+        gcode.fan_number_ = 0;
+        gcode.total_bounding_box_ = AABB3D();
 
-        gcode.new_line = "\n"; // Not BFB flavour by default.
-        gcode.machine_name = "Your favourite 3D printer";
+        gcode.new_line_ = "\n"; // Not BFB flavour by default.
+        gcode.machine_name_ = "Your favourite 3D printer";
 
         // Set up a scene so that we may request settings.
         Application::getInstance().current_slice_ = new Slice(0);

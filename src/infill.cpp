@@ -675,16 +675,20 @@ void Infill::generateLinearBasedInfill(
     // Then we can later join two crossings together to form lines and still know what polygon line segments that infill line connected to.
     struct Crossing
     {
+        Point coordinate_;
+        size_t polygon_index_;
+        size_t vertex_index_;
+
         Crossing(Point coordinate, size_t polygon_index, size_t vertex_index)
-            : coordinate(coordinate)
-            , polygon_index(polygon_index)
-            , vertex_index(vertex_index){};
-        Point coordinate;
-        size_t polygon_index;
-        size_t vertex_index;
+            : coordinate_(coordinate)
+            , polygon_index_(polygon_index)
+            , vertex_index_(vertex_index)
+        {
+        }
+
         bool operator<(const Crossing& other) const // Crossings will be ordered by their Y coordinate so that they get ordered along the scanline.
         {
-            return coordinate.Y < other.coordinate.Y;
+            return coordinate_.Y < other.coordinate_.Y;
         }
     };
     std::vector<std::vector<Crossing>> crossings_per_scanline; // For each scanline, a list of crossings.
@@ -768,17 +772,17 @@ void Infill::generateLinearBasedInfill(
                 const Crossing& first = crossings[crossing_index];
                 const Crossing& second = crossings[crossing_index + 1];
                 // Avoid creating zero length crossing lines
-                const Point unrotated_first = rotation_matrix.unapply(first.coordinate);
-                const Point unrotated_second = rotation_matrix.unapply(second.coordinate);
+                const Point unrotated_first = rotation_matrix.unapply(first.coordinate_);
+                const Point unrotated_second = rotation_matrix.unapply(second.coordinate_);
                 if (unrotated_first == unrotated_second)
                 {
                     continue;
                 }
                 InfillLineSegment* new_segment
-                    = new InfillLineSegment(unrotated_first, first.vertex_index, first.polygon_index, unrotated_second, second.vertex_index, second.polygon_index);
+                    = new InfillLineSegment(unrotated_first, first.vertex_index_, first.polygon_index_, unrotated_second, second.vertex_index_, second.polygon_index_);
                 // Put the same line segment in the data structure twice: Once for each of the polygon line segment that it crosses.
-                crossings_on_line_[first.polygon_index][first.vertex_index].push_back(new_segment);
-                crossings_on_line_[second.polygon_index][second.vertex_index].push_back(new_segment);
+                crossings_on_line_[first.polygon_index_][first.vertex_index_].push_back(new_segment);
+                crossings_on_line_[second.polygon_index_][second.vertex_index_].push_back(new_segment);
             }
         }
     }

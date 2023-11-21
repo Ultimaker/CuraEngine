@@ -34,18 +34,18 @@ coord_t SkinInfillAreaComputation::getSkinLineWidth(const SliceMeshStorage& mesh
 }
 
 SkinInfillAreaComputation::SkinInfillAreaComputation(const LayerIndex& layer_nr, SliceMeshStorage& mesh, bool process_infill)
-    : layer_nr(layer_nr)
-    , mesh(mesh)
-    , bottom_layer_count(mesh.settings.get<size_t>("bottom_layers"))
-    , initial_bottom_layer_count(mesh.settings.get<size_t>("initial_bottom_layers"))
-    , top_layer_count(mesh.settings.get<size_t>("top_layers"))
-    , skin_line_width(getSkinLineWidth(mesh, layer_nr))
-    , no_small_gaps_heuristic(mesh.settings.get<bool>("skin_no_small_gaps_heuristic"))
-    , process_infill(process_infill)
-    , top_skin_preshrink(mesh.settings.get<coord_t>("top_skin_preshrink"))
-    , bottom_skin_preshrink(mesh.settings.get<coord_t>("bottom_skin_preshrink"))
-    , top_skin_expand_distance(mesh.settings.get<coord_t>("top_skin_expand_distance"))
-    , bottom_skin_expand_distance(mesh.settings.get<coord_t>("bottom_skin_expand_distance"))
+    : layer_nr_(layer_nr)
+    , mesh_(mesh)
+    , bottom_layer_count_(mesh.settings.get<size_t>("bottom_layers"))
+    , initial_bottom_layer_count_(mesh.settings.get<size_t>("initial_bottom_layers"))
+    , top_layer_count_(mesh.settings.get<size_t>("top_layers"))
+    , skin_line_width_(getSkinLineWidth(mesh, layer_nr))
+    , no_small_gaps_heuristic_(mesh.settings.get<bool>("skin_no_small_gaps_heuristic"))
+    , process_infill_(process_infill)
+    , top_skin_preshrink_(mesh.settings.get<coord_t>("top_skin_preshrink"))
+    , bottom_skin_preshrink_(mesh.settings.get<coord_t>("bottom_skin_preshrink"))
+    , top_skin_expand_distance_(mesh.settings.get<coord_t>("top_skin_expand_distance"))
+    , bottom_skin_expand_distance_(mesh.settings.get<coord_t>("bottom_skin_expand_distance"))
 {
 }
 
@@ -58,11 +58,11 @@ SkinInfillAreaComputation::SkinInfillAreaComputation(const LayerIndex& layer_nr,
 Polygons SkinInfillAreaComputation::getOutlineOnLayer(const SliceLayerPart& part_here, const LayerIndex layer2_nr)
 {
     Polygons result;
-    if (layer2_nr >= static_cast<int>(mesh.layers.size()))
+    if (layer2_nr >= static_cast<int>(mesh_.layers.size()))
     {
         return result;
     }
-    const SliceLayer& layer2 = mesh.layers[layer2_nr];
+    const SliceLayer& layer2 = mesh_.layers[layer2_nr];
     for (const SliceLayerPart& part2 : layer2.parts)
     {
         if (part_here.boundaryBox.hit(part2.boundaryBox))
@@ -86,7 +86,7 @@ void SkinInfillAreaComputation::generateSkinsAndInfill()
 {
     generateSkinAndInfillAreas();
 
-    SliceLayer* layer = &mesh.layers[layer_nr];
+    SliceLayer* layer = &mesh_.layers[layer_nr_];
 
     for (SliceLayerPart& part : layer->parts)
     {
@@ -104,9 +104,9 @@ void SkinInfillAreaComputation::generateSkinsAndInfill()
  */
 void SkinInfillAreaComputation::generateSkinAndInfillAreas()
 {
-    SliceLayer& layer = mesh.layers[layer_nr];
+    SliceLayer& layer = mesh_.layers[layer_nr_];
 
-    if (! process_infill && bottom_layer_count == 0 && top_layer_count == 0)
+    if (! process_infill_ && bottom_layer_count_ == 0 && top_layer_count_ == 0)
     {
         return;
     }
@@ -127,12 +127,12 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
 {
     // Make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
     Polygons top_skin;
-    if (top_layer_count > 0)
+    if (top_layer_count_ > 0)
     {
         top_skin = Polygons(part.inner_area);
     }
     Polygons bottom_skin;
-    if (bottom_layer_count > 0 || layer_nr < LayerIndex(initial_bottom_layer_count))
+    if (bottom_layer_count_ > 0 || layer_nr_ < LayerIndex(initial_bottom_layer_count_))
     {
         bottom_skin = Polygons(part.inner_area);
     }
@@ -148,7 +148,7 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
     skin.removeSmallAreas(MIN_AREA_SIZE);
     // Create infill area irrespective if the infill is to be generated or not(would be used for bridging).
     part.infill_area = part.inner_area.difference(skin);
-    if (process_infill)
+    if (process_infill_)
     { // process infill when infill density > 0
         // or when other infill meshes want to modify this infill
         generateInfill(part);
@@ -169,24 +169,24 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
  */
 void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, Polygons& downskin)
 {
-    if (bottom_layer_count == 0 && initial_bottom_layer_count == 0)
+    if (bottom_layer_count_ == 0 && initial_bottom_layer_count_ == 0)
     {
         return; // downskin remains empty
     }
-    if (layer_nr < LayerIndex(initial_bottom_layer_count))
+    if (layer_nr_ < LayerIndex(initial_bottom_layer_count_))
     {
         return; // don't subtract anything form the downskin
     }
-    LayerIndex bottom_check_start_layer_idx{ std::max(LayerIndex{ 0 }, LayerIndex{ layer_nr - bottom_layer_count }) };
+    LayerIndex bottom_check_start_layer_idx{ std::max(LayerIndex{ 0 }, LayerIndex{ layer_nr_ - bottom_layer_count_ }) };
     Polygons not_air = getOutlineOnLayer(part, bottom_check_start_layer_idx);
-    if (! no_small_gaps_heuristic)
+    if (! no_small_gaps_heuristic_)
     {
-        for (int downskin_layer_nr = bottom_check_start_layer_idx + 1; downskin_layer_nr < layer_nr; downskin_layer_nr++)
+        for (int downskin_layer_nr = bottom_check_start_layer_idx + 1; downskin_layer_nr < layer_nr_; downskin_layer_nr++)
         {
             not_air = not_air.intersection(getOutlineOnLayer(part, downskin_layer_nr));
         }
     }
-    const double min_infill_area = mesh.settings.get<double>("min_infill_area");
+    const double min_infill_area = mesh_.settings.get<double>("min_infill_area");
     if (min_infill_area > 0.0)
     {
         not_air.removeSmallAreas(min_infill_area);
@@ -196,23 +196,23 @@ void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, 
 
 void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Polygons& upskin)
 {
-    if (layer_nr > LayerIndex(mesh.layers.size()) - top_layer_count || top_layer_count <= 0)
+    if (layer_nr_ > LayerIndex(mesh_.layers.size()) - top_layer_count_ || top_layer_count_ <= 0)
     {
         // If we're in the very top layers (less than top_layer_count from the top of the mesh) everything will be top skin anyway, so no need to generate infill. Just take the
         // original inner contour. If top_layer_count is 0, no need to calculate anything either.
         return;
     }
 
-    Polygons not_air = getOutlineOnLayer(part, layer_nr + top_layer_count);
-    if (! no_small_gaps_heuristic)
+    Polygons not_air = getOutlineOnLayer(part, layer_nr_ + top_layer_count_);
+    if (! no_small_gaps_heuristic_)
     {
-        for (int upskin_layer_nr = layer_nr + 1; upskin_layer_nr < layer_nr + top_layer_count; upskin_layer_nr++)
+        for (int upskin_layer_nr = layer_nr_ + 1; upskin_layer_nr < layer_nr_ + top_layer_count_; upskin_layer_nr++)
         {
             not_air = not_air.intersection(getOutlineOnLayer(part, upskin_layer_nr));
         }
     }
 
-    const double min_infill_area = mesh.settings.get<double>("min_infill_area");
+    const double min_infill_area = mesh_.settings.get<double>("min_infill_area");
     if (min_infill_area > 0.0)
     {
         not_air.removeSmallAreas(min_infill_area);
@@ -229,39 +229,39 @@ void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Pol
  */
 void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outline, Polygons& upskin, Polygons& downskin)
 {
-    const coord_t min_width = mesh.settings.get<coord_t>("min_skin_width_for_expansion") / 2;
+    const coord_t min_width = mesh_.settings.get<coord_t>("min_skin_width_for_expansion") / 2;
 
     // Expand some areas of the skin for Skin Expand Distance.
     if (min_width > 0)
     {
         // This performs an opening operation by first insetting by the minimum width, then offsetting with the same width.
         // The expansion is only applied to that opened shape.
-        if (bottom_skin_expand_distance != 0)
+        if (bottom_skin_expand_distance_ != 0)
         {
-            const Polygons expanded = downskin.offset(-min_width).offset(min_width + bottom_skin_expand_distance);
+            const Polygons expanded = downskin.offset(-min_width).offset(min_width + bottom_skin_expand_distance_);
             // And then re-joined with the original part that was not offset, to retain parts smaller than min_width.
             downskin = downskin.unionPolygons(expanded);
         }
-        if (top_skin_expand_distance != 0)
+        if (top_skin_expand_distance_ != 0)
         {
-            const Polygons expanded = upskin.offset(-min_width).offset(min_width + top_skin_expand_distance);
+            const Polygons expanded = upskin.offset(-min_width).offset(min_width + top_skin_expand_distance_);
             upskin = upskin.unionPolygons(expanded);
         }
     }
     else // No need to pay attention to minimum width. Just expand.
     {
-        if (bottom_skin_expand_distance != 0)
+        if (bottom_skin_expand_distance_ != 0)
         {
-            downskin = downskin.offset(bottom_skin_expand_distance);
+            downskin = downskin.offset(bottom_skin_expand_distance_);
         }
-        if (top_skin_expand_distance != 0)
+        if (top_skin_expand_distance_ != 0)
         {
-            upskin = upskin.offset(top_skin_expand_distance);
+            upskin = upskin.offset(top_skin_expand_distance_);
         }
     }
 
-    bool should_bottom_be_clipped = bottom_skin_expand_distance > 0;
-    bool should_top_be_clipped = top_skin_expand_distance > 0;
+    bool should_bottom_be_clipped = bottom_skin_expand_distance_ > 0;
+    bool should_top_be_clipped = top_skin_expand_distance_ > 0;
 
     // Set miter limit for morphological open in order to fill in
     // "narrow point" features of polygons due to offsetting artifacts.
@@ -278,16 +278,16 @@ void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outl
     // as the final polygon is limited (intersected) with the original polygon.
     constexpr double MITER_LIMIT = 10000000.0;
     // Remove thin pieces of support for Skin Removal Width.
-    if (bottom_skin_preshrink > 0 || (min_width == 0 && bottom_skin_expand_distance != 0))
+    if (bottom_skin_preshrink_ > 0 || (min_width == 0 && bottom_skin_expand_distance_ != 0))
     {
-        downskin = downskin.offset(-bottom_skin_preshrink / 2, ClipperLib::jtMiter, MITER_LIMIT)
-                       .offset(bottom_skin_preshrink / 2, ClipperLib::jtMiter, MITER_LIMIT)
+        downskin = downskin.offset(-bottom_skin_preshrink_ / 2, ClipperLib::jtMiter, MITER_LIMIT)
+                       .offset(bottom_skin_preshrink_ / 2, ClipperLib::jtMiter, MITER_LIMIT)
                        .intersection(downskin);
         should_bottom_be_clipped = true; // Rounding errors can lead to propagation of errors. This could mean that skin goes beyond the original outline
     }
-    if (top_skin_preshrink > 0 || (min_width == 0 && top_skin_expand_distance != 0))
+    if (top_skin_preshrink_ > 0 || (min_width == 0 && top_skin_expand_distance_ != 0))
     {
-        upskin = upskin.offset(-top_skin_preshrink / 2, ClipperLib::jtMiter, MITER_LIMIT).offset(top_skin_preshrink / 2, ClipperLib::jtMiter, MITER_LIMIT);
+        upskin = upskin.offset(-top_skin_preshrink_ / 2, ClipperLib::jtMiter, MITER_LIMIT).offset(top_skin_preshrink_ / 2, ClipperLib::jtMiter, MITER_LIMIT);
         should_top_be_clipped = true; // Rounding errors can lead to propagation of errors. This could mean that skin goes beyond the original outline
     }
 
@@ -323,8 +323,8 @@ void SkinInfillAreaComputation::generateRoofingFillAndSkinFill(SliceLayerPart& p
 {
     for (SkinPart& skin_part : part.skin_parts)
     {
-        const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
-        const coord_t skin_overlap = mesh.settings.get<coord_t>("skin_overlap_mm");
+        const size_t roofing_layer_count = std::min(mesh_.settings.get<size_t>("roofing_layer_count"), mesh_.settings.get<size_t>("top_layers"));
+        const coord_t skin_overlap = mesh_.settings.get<coord_t>("skin_overlap_mm");
 
         Polygons filled_area_above = generateFilledAreaAbove(part, roofing_layer_count);
 
@@ -346,16 +346,16 @@ void SkinInfillAreaComputation::generateRoofingFillAndSkinFill(SliceLayerPart& p
  */
 Polygons SkinInfillAreaComputation::generateFilledAreaAbove(SliceLayerPart& part, size_t roofing_layer_count)
 {
-    Polygons filled_area_above = getOutlineOnLayer(part, layer_nr + roofing_layer_count);
-    if (! no_small_gaps_heuristic)
+    Polygons filled_area_above = getOutlineOnLayer(part, layer_nr_ + roofing_layer_count);
+    if (! no_small_gaps_heuristic_)
     {
-        for (int layer_nr_above = layer_nr + 1; layer_nr_above < layer_nr + roofing_layer_count; layer_nr_above++)
+        for (int layer_nr_above = layer_nr_ + 1; layer_nr_above < layer_nr_ + roofing_layer_count; layer_nr_above++)
         {
             Polygons outlines_above = getOutlineOnLayer(part, layer_nr_above);
             filled_area_above = filled_area_above.intersection(outlines_above);
         }
     }
-    if (layer_nr > 0)
+    if (layer_nr_ > 0)
     {
         // if the skin has air below it then cutting it into regions could cause a region
         // to be wholely or partly above air and it may not be printable so restrict
@@ -363,7 +363,7 @@ Polygons SkinInfillAreaComputation::generateFilledAreaAbove(SliceLayerPart& part
         // has air below (fixes https://github.com/Ultimaker/Cura/issues/2656)
 
         // set air_below to the skin area for the current layer that has air below it
-        Polygons air_below = getOutlineOnLayer(part, layer_nr).difference(getOutlineOnLayer(part, layer_nr - 1));
+        Polygons air_below = getOutlineOnLayer(part, layer_nr_).difference(getOutlineOnLayer(part, layer_nr_ - 1));
 
         if (! air_below.empty())
         {
@@ -382,18 +382,18 @@ Polygons SkinInfillAreaComputation::generateFilledAreaAbove(SliceLayerPart& part
  */
 Polygons SkinInfillAreaComputation::generateFilledAreaBelow(SliceLayerPart& part, size_t flooring_layer_count)
 {
-    if (layer_nr < flooring_layer_count)
+    if (layer_nr_ < flooring_layer_count)
     {
         return {};
     }
     constexpr size_t min_wall_line_count = 2;
-    const int lowest_flooring_layer = layer_nr - flooring_layer_count;
+    const int lowest_flooring_layer = layer_nr_ - flooring_layer_count;
     Polygons filled_area_below = getOutlineOnLayer(part, lowest_flooring_layer);
 
-    if (! no_small_gaps_heuristic)
+    if (! no_small_gaps_heuristic_)
     {
         const int next_lowest_flooring_layer = lowest_flooring_layer + 1;
-        for (int layer_nr_below = next_lowest_flooring_layer; layer_nr_below < layer_nr; layer_nr_below++)
+        for (int layer_nr_below = next_lowest_flooring_layer; layer_nr_below < layer_nr_; layer_nr_below++)
         {
             Polygons outlines_below = getOutlineOnLayer(part, layer_nr_below);
             filled_area_below = filled_area_below.intersection(outlines_below);
@@ -459,8 +459,8 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
     layer_skip_count = gradual_infill_step_layer_count / n_skip_steps_per_gradual_step;
     const size_t max_infill_steps = mesh.settings.get<size_t>("gradual_infill_steps");
 
-    const LayerIndex min_layer = mesh.settings.get<size_t>("initial_bottom_layers");
-    const LayerIndex max_layer = mesh.layers.size() - 1 - mesh.settings.get<size_t>("top_layers");
+    const LayerIndex mesh_min_layer = mesh.settings.get<size_t>("initial_bottom_layers");
+    const LayerIndex mesh_max_layer = mesh.layers.size() - 1 - mesh.settings.get<size_t>("top_layers");
 
     const auto infill_wall_count = mesh.settings.get<size_t>("infill_wall_line_count");
     const auto infill_wall_width = mesh.settings.get<coord_t>("infill_line_width");
@@ -483,7 +483,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                 layer_idx,
                 SectionType::SKIN);
 
-            if (infill_area.empty() || layer_idx < min_layer || layer_idx > max_layer)
+            if (infill_area.empty() || layer_idx < mesh_min_layer || layer_idx > mesh_max_layer)
             { // initialize infill_area_per_combine_per_density empty
                 part.infill_area_per_combine_per_density.emplace_back(); // create a new infill_area_per_combine
                 part.infill_area_per_combine_per_density.back().emplace_back(); // put empty infill area in the newly constructed infill_area_per_combine

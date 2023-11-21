@@ -118,7 +118,7 @@ void SkirtBrim::generate()
     constexpr LayerIndex layer_nr = 0;
     constexpr bool include_support = true;
     const bool include_prime_tower = adhesion_type_ == EPlatformAdhesion::SKIRT;
-    const bool has_prime_tower = storage_.primeTower.enabled;
+    const bool has_prime_tower = storage_.primeTower.enabled_;
     Polygons covered_area = storage_.getLayerOutlines(layer_nr, include_support, include_prime_tower, /*external_polys_only*/ false);
 
     std::vector<Polygons> allowed_areas_per_extruder(extruder_count_);
@@ -350,7 +350,7 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
     const int primary_line_count = line_count_[reference_extruder_nr];
     const bool external_only
         = adhesion_type_ == EPlatformAdhesion::SKIRT || external_polys_only_[reference_extruder_nr]; // Whether to include holes or not. Skirt doesn't have any holes.
-    const bool has_prime_tower = storage_.primeTower.enabled;
+    const bool has_prime_tower = storage_.primeTower.enabled_;
     const LayerIndex layer_nr = 0;
     if (adhesion_type_ == EPlatformAdhesion::SKIRT)
     {

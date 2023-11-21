@@ -51,7 +51,7 @@ void Raft::generate(SliceDataStorage& storage)
         storage.raftOutline = storage.raftOutline.offset(smoothing, ClipperLib::jtRound).offset(-smoothing, ClipperLib::jtRound); // remove small holes and smooth inward corners
     }
 
-    if (storage.primeTower.enabled && ! storage.primeTower.would_have_actual_tower)
+    if (storage.primeTower.enabled_ && ! storage.primeTower.would_have_actual_tower_)
     {
         // Find out if the prime-tower part of the raft still needs to be printed, even if there is no actual tower.
         // This will only happen if the different raft layers are printed by different extruders.

@@ -16,22 +16,23 @@ class HalfEdgeNode
 {
     using edge_t = derived_edge_t;
     using node_t = derived_node_t;
+
 public:
-    node_data_t data;
-    Point p;
-    edge_t* incident_edge = nullptr;
+    node_data_t data_;
+    Point p_;
+    edge_t* incident_edge_ = nullptr;
+
     HalfEdgeNode(node_data_t data, Point p)
-    : data(data)
-    , p(p)
-    {}
+        : data_(data)
+        , p_(p)
+    {
+    }
 
     bool operator==(const node_t& other)
     {
         return this == &other;
     }
 };
-
-
 
 
 } // namespace cura

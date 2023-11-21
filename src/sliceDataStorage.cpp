@@ -328,10 +328,10 @@ Polygons
                 total.add(support_layer.support_roof);
             }
         }
-        int prime_tower_outer_extruder_nr = primeTower.extruder_order[0];
+        int prime_tower_outer_extruder_nr = primeTower.extruder_order_[0];
         if (include_prime_tower && (extruder_nr == -1 || extruder_nr == prime_tower_outer_extruder_nr))
         {
-            if (primeTower.enabled)
+            if (primeTower.enabled_)
             {
                 total.add(primeTower.getOuterPoly(layer_nr));
             }

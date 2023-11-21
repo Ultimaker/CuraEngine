@@ -148,7 +148,7 @@ TreeModelVolumes::TreeModelVolumes(
                 anti_overhang_[layer_idx].add(storage.support.supportLayers[layer_idx].anti_overhang);
             }
 
-            if (storage.primeTower.enabled)
+            if (storage.primeTower.enabled_)
             {
                 anti_overhang_[layer_idx].add(storage.primeTower.getGroundPoly());
             }

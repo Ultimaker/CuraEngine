@@ -425,7 +425,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     // This catches a special case in which the models are in the air, and then
     // the adhesion mustn't be calculated.
-    if (! isEmptyLayer(storage, 0) || storage.primeTower.enabled)
+    if (! isEmptyLayer(storage, 0) || storage.primeTower.enabled_)
     {
         spdlog::debug("Processing platform adhesion");
         processPlatformAdhesion(storage);
