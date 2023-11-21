@@ -8,8 +8,9 @@
 #endif
 
 #ifdef SENTRY_URL
-#include <fmt/format.h>
 #include <sentry.h>
+
+#include <fmt/format.h>
 #endif
 
 #include <string>
