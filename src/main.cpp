@@ -9,8 +9,10 @@
 
 #ifdef SENTRY_URL
 #include <filesystem>
-#include <sentry.h>
 #include <string>
+
+#include <fmt/format.h>
+#include <sentry.h>
 
 #include <fmt/format.h>
 #endif
@@ -65,13 +67,13 @@ int main(int argc, char** argv)
         // This is also the default-path. For further information and recommendations:
         // https://docs.sentry.io/platforms/native/configuration/options/#database-path
 #if defined(__linux__)
-        const auto config_path = std::filesystem::path(std::getenv("HOME")).append("/.local/share/cura/.sentry-native");
+        const auto config_path =  std::filesystem::path(fmt::format("{}/.local/share/cura/.sentry-native", std::getenv("HOME")));
 #elif defined(__APPLE__) && defined(__MACH__)
-        const auto config_path = std::filesystem::path(std::getenv("HOME")).append("/Library/Application Support/cura/.sentry-native");
+        const auto config_path = std::filesystem::path(fmt::format("{}/Library/Application Support/cura/.sentry-native", std::getenv("HOME")));
 #elif defined(_WIN64)
-        const auto config_path = std::filesystem::path(std::getenv("APPDATA")).append("/cura/.sentry-native");
+        const auto config_path = std::filesystem::path(fmt::format("{}/cura/.sentry-native", std::getenv("APPDATA")));
 #endif
-        sentry_options_set_database_path(options, config_path.c_str());
+        sentry_options_set_database_path(options, config_path.native().c_str());
         sentry_options_set_release(options, fmt::format("curaengine@{}", CURA_ENGINE_VERSION).c_str());
         sentry_init(options);
     }
