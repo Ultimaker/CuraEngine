@@ -62,7 +62,7 @@ public:
         //Get the vertex data and store it in the paths.
         for(Path& path : this->paths)
         {
-            path.converted = path.getVertexData();
+            path.converted_ = path.getVertexData();
         }
 
         std::vector<Path> reordered; //To store the result in. At the end, we'll std::swap with the real paths.
@@ -73,7 +73,7 @@ public:
         this->detectLoops(); //Always filter out loops. We don't specifically want to print those in monotonic order.
         for(Path& path : this->paths)
         {
-            if(path.is_closed || path.vertices->size() <= 1)
+            if(path.is_closed_ || path.vertices_->size() <= 1)
             {
                 reordered.push_back(path);
             }
@@ -81,18 +81,18 @@ public:
             {
                 polylines.push_back(&path);
                 // Assign an invalid starting vertex to indicate we don't know the starting point yet.
-                polylines.back()->start_vertex = polylines.back()->converted->size();
+                polylines.back()->start_vertex_ = polylines.back()->converted_->size();
             }
         }
 
         //Sort the polylines by their projection on the monotonic vector. This helps find adjacent lines quickly.
         std::sort(polylines.begin(), polylines.end(), [this](Path* a, Path* b) {
-            const coord_t a_start_projection = dot(a->converted->front(), monotonic_vector);
-            const coord_t a_end_projection = dot(a->converted->back(), monotonic_vector);
+            const coord_t a_start_projection = dot(a->converted_->front(), monotonic_vector);
+            const coord_t a_end_projection = dot(a->converted_->back(), monotonic_vector);
             const coord_t a_projection = std::min(a_start_projection, a_end_projection); //The projection of a path is the endpoint furthest back of the two endpoints.
 
-            const coord_t b_start_projection = dot(b->converted->front(), monotonic_vector);
-            const coord_t b_end_projection = dot(b->converted->back(), monotonic_vector);
+            const coord_t b_start_projection = dot(b->converted_->front(), monotonic_vector);
+            const coord_t b_end_projection = dot(b->converted_->back(), monotonic_vector);
             const coord_t b_projection = std::min(b_start_projection, b_end_projection);
 
             return a_projection < b_projection;
@@ -101,10 +101,10 @@ public:
         SparsePointGridInclusive<Path*> line_bucket_grid(MM2INT(2)); //Grid size of 2mm.
         for(Path* polyline : polylines)
         {
-            if(! polyline->converted->empty())
+            if(! polyline->converted_->empty())
             {
-                line_bucket_grid.insert(polyline->converted->front(), polyline);
-                line_bucket_grid.insert(polyline->converted->back(), polyline);
+                line_bucket_grid.insert(polyline->converted_->front(), polyline);
+                line_bucket_grid.insert(polyline->converted_->back(), polyline);
             }
         }
 
@@ -191,13 +191,13 @@ public:
         std::vector<Path*> starting_lines_monotonic;
         starting_lines_monotonic.resize(starting_lines.size());
         std::partial_sort_copy(starting_lines.begin(), starting_lines.end(), starting_lines_monotonic.begin(), starting_lines_monotonic.end(), [this](Path* a, Path* b) {
-            const coord_t a_start_projection = dot(a->converted->front(), monotonic_vector);
-            const coord_t a_end_projection = dot(a->converted->back(), monotonic_vector);
+            const coord_t a_start_projection = dot(a->converted_->front(), monotonic_vector);
+            const coord_t a_end_projection = dot(a->converted_->back(), monotonic_vector);
             const coord_t a_projection_min = std::min(a_start_projection, a_end_projection); //The projection of a path is the endpoint furthest back of the two endpoints.
             const coord_t a_projection_max = std::max(a_start_projection, a_end_projection); //But in case of ties, the other endpoint counts too. Important for polylines where multiple endpoints have the same position!
 
-            const coord_t b_start_projection = dot(b->converted->front(), monotonic_vector);
-            const coord_t b_end_projection = dot(b->converted->back(), monotonic_vector);
+            const coord_t b_start_projection = dot(b->converted_->front(), monotonic_vector);
+            const coord_t b_end_projection = dot(b->converted_->back(), monotonic_vector);
             const coord_t b_projection_min = std::min(b_start_projection, b_end_projection);
             const coord_t b_projection_max = std::max(b_start_projection, b_end_projection);
 
@@ -266,22 +266,22 @@ protected:
      */
     void optimizeClosestStartPoint(Path& path, Point& current_pos)
     {
-        if(path.start_vertex == path.converted->size())
+        if(path.start_vertex_ == path.converted_->size())
         {
-            const coord_t dist_start = vSize2(current_pos - path.converted->front());
-            const coord_t dist_end = vSize2(current_pos - path.converted->back());
+            const coord_t dist_start = vSize2(current_pos - path.converted_->front());
+            const coord_t dist_end = vSize2(current_pos - path.converted_->back());
             if(dist_start < dist_end)
             {
-                path.start_vertex = 0;
-                path.backwards = false;
+                path.start_vertex_ = 0;
+                path.backwards_ = false;
             }
             else
             {
-                path.start_vertex = path.converted->size() - 1;
-                path.backwards = true;
+                path.start_vertex_ = path.converted_->size() - 1;
+                path.backwards_ = true;
             }
         }
-        current_pos = (*path.converted)[path.converted->size() - 1 - path.start_vertex]; //Opposite of the start vertex.
+        current_pos = (*path.converted_)[path.converted_->size() - 1 - path.start_vertex_]; //Opposite of the start vertex.
     }
 
     /*!
@@ -298,16 +298,16 @@ protected:
     std::deque<Path*> findPolylineString(Path* polyline, const SparsePointGridInclusive<Path*>& line_bucket_grid, const Point monotonic_vector)
     {
         std::deque<Path*> result;
-        if(polyline->converted->empty())
+        if(polyline->converted_->empty())
         {
             return result;
         }
 
         //Find the two endpoints of the polyline string, on either side.
         result.push_back(polyline);
-        polyline->start_vertex = 0;
-        Point first_endpoint = polyline->converted->front();
-        Point last_endpoint = polyline->converted->back();
+        polyline->start_vertex_ = 0;
+        Point first_endpoint = polyline->converted_->front();
+        Point last_endpoint = polyline->converted_->back();
         std::vector<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*>> lines_before = line_bucket_grid.getNearby(first_endpoint, coincident_point_distance);
         auto close_line_before = std::find_if(lines_before.begin(), lines_before.end(), [first_endpoint](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
             return canConnectToPolyline(first_endpoint, found_path);
@@ -322,9 +322,9 @@ protected:
             Path* first = close_line_before->val;
             result.push_front(first); //Store this one in the sequence. It's a good one.
             size_t farthest_vertex = getFarthestEndpoint(first, close_line_before->point); //Get to the opposite side.
-            first->start_vertex = farthest_vertex;
-            first->backwards = farthest_vertex != 0;
-            first_endpoint = (*first->converted)[farthest_vertex];
+            first->start_vertex_ = farthest_vertex;
+            first->backwards_ = farthest_vertex != 0;
+            first_endpoint = (*first->converted_)[farthest_vertex];
             lines_before = line_bucket_grid.getNearby(first_endpoint, coincident_point_distance);
             close_line_before = std::find_if(lines_before.begin(), lines_before.end(), [first_endpoint](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
                 return canConnectToPolyline(first_endpoint, found_path);
@@ -335,9 +335,9 @@ protected:
             Path* last = close_line_after->val;
             result.push_back(last);
             size_t farthest_vertex = getFarthestEndpoint(last, close_line_after->point); //Get to the opposite side.
-            last->start_vertex = (farthest_vertex == 0) ? last->converted->size() - 1 : 0;
-            last->backwards = farthest_vertex != 0;
-            last_endpoint = (*last->converted)[farthest_vertex];
+            last->start_vertex_ = (farthest_vertex == 0) ? last->converted_->size() - 1 : 0;
+            last->backwards_ = farthest_vertex != 0;
+            last_endpoint = (*last->converted_)[farthest_vertex];
             lines_after = line_bucket_grid.getNearby(last_endpoint, coincident_point_distance);
             close_line_after = std::find_if(lines_after.begin(), lines_after.end(), [last_endpoint](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
                 return canConnectToPolyline(last_endpoint, found_path);
@@ -353,14 +353,14 @@ protected:
             std::reverse(result.begin(), result.end());
             for(Path* path : result) //Also reverse their start_vertex.
             {
-                path->start_vertex = (path->start_vertex == 0) ? path->converted->size() - 1 : 0;
-                path->backwards = !path->backwards;
+                path->start_vertex_ = (path->start_vertex_ == 0) ? path->converted_->size() - 1 : 0;
+                path->backwards_ = !path->backwards_;
             }
         }
 
         if(result.size() == 1)
         {
-            result[0]->start_vertex = result[0]->converted->size(); //Reset start vertex as "unknown" again if it's not a string of polylines.
+            result[0]->start_vertex_ = result[0]->converted_->size(); //Reset start vertex as "unknown" again if it's not a string of polylines.
         }
         return result;
     }
@@ -374,11 +374,11 @@ protected:
      */
     size_t getFarthestEndpoint(Path* polyline, const Point point)
     {
-        const coord_t front_dist = vSize2(polyline->converted->front() - point);
-        const coord_t back_dist = vSize2(polyline->converted->back() - point);
+        const coord_t front_dist = vSize2(polyline->converted_->front() - point);
+        const coord_t back_dist = vSize2(polyline->converted_->back() - point);
         if(front_dist < back_dist)
         {
-            return polyline->converted->size() - 1;
+            return polyline->converted_->size() - 1;
         }
         else
         {
@@ -400,15 +400,15 @@ protected:
     {
         const coord_t max_adjacent_projected_distance = max_adjacent_distance * monotonic_vector_resolution;
         //How far this extends in the monotonic direction, to make sure we only go up to max_adjacent_distance in that direction.
-        const coord_t start_monotonic = dot((*polyline_it)->converted->front(), monotonic_vector);
-        const coord_t end_monotonic = dot((*polyline_it)->converted->back(), monotonic_vector);
+        const coord_t start_monotonic = dot((*polyline_it)->converted_->front(), monotonic_vector);
+        const coord_t end_monotonic = dot((*polyline_it)->converted_->back(), monotonic_vector);
         const coord_t my_farthest_monotonic = std::max(start_monotonic, end_monotonic);
         const coord_t my_closest_monotonic  = std::min(start_monotonic, end_monotonic);
         const coord_t my_farthest_monotonic_padded = my_farthest_monotonic + max_adjacent_projected_distance;
         const coord_t my_closest_monotonic_padded  = my_closest_monotonic  - max_adjacent_projected_distance;
         //How far this line reaches in the perpendicular direction -- the range at which the line overlaps other lines.
-        const coord_t my_start = dot((*polyline_it)->converted->front(), perpendicular);
-        const coord_t my_end   = dot((*polyline_it)->converted->back(),  perpendicular);
+        const coord_t my_start = dot((*polyline_it)->converted_->front(), perpendicular);
+        const coord_t my_end   = dot((*polyline_it)->converted_->back(),  perpendicular);
         const coord_t my_farthest = std::max(my_start, my_end);
         const coord_t my_closest  = std::min(my_start, my_end);
         const coord_t my_farthest_padded = my_farthest + max_adjacent_projected_distance;
@@ -418,8 +418,8 @@ protected:
         for(auto overlapping_line = polyline_it + 1; overlapping_line != polylines.end(); overlapping_line++)
         {
             //Don't go beyond the maximum adjacent distance.
-            const coord_t start_their_projection = dot((*overlapping_line)->converted->front(), monotonic_vector);
-            const coord_t end_their_projection = dot((*overlapping_line)->converted->back(), monotonic_vector);
+            const coord_t start_their_projection = dot((*overlapping_line)->converted_->front(), monotonic_vector);
+            const coord_t end_their_projection = dot((*overlapping_line)->converted_->back(), monotonic_vector);
             const coord_t their_farthest_projection = std::max(start_their_projection, end_their_projection);
             const coord_t their_closest_projection = std::min(start_their_projection, end_their_projection);
             // Multiply by the length of the vector since we need to compare actual distances here.
@@ -429,8 +429,8 @@ protected:
             }
 
             //Does this one overlap?
-            const coord_t their_start = dot((*overlapping_line)->converted->front(), perpendicular);
-            const coord_t their_end = dot((*overlapping_line)->converted->back(), perpendicular);
+            const coord_t their_start = dot((*overlapping_line)->converted_->front(), perpendicular);
+            const coord_t their_end = dot((*overlapping_line)->converted_->back(), perpendicular);
             const coord_t their_farthest = std::max(their_start, their_end);
             const coord_t their_closest  = std::min(their_start, their_end);
             /*There are 5 possible cases of overlapping:
@@ -476,7 +476,7 @@ protected:
      */
     static bool canConnectToPolyline(const Point nearby_endpoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path)
     {
-        return found_path.val->start_vertex == found_path.val->converted->size() //Don't find any line already in the string.
+        return found_path.val->start_vertex_ == found_path.val->converted_->size() //Don't find any line already in the string.
                && vSize2(found_path.point - nearby_endpoint) < coincident_point_distance * coincident_point_distance; //And only find close lines.
     }
 };

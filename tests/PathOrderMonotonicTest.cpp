@@ -32,12 +32,12 @@ class PathOrderMonotonicTest : public testing::TestWithParam<std::tuple<std::str
 
 inline Point startVertex(const PathOrdering<ConstPolygonPointer>& path)
 {
-    return (*path.vertices)[path.start_vertex];
+    return (*path.vertices_)[path.start_vertex_];
 }
 
 inline Point endVertex(const PathOrdering<ConstPolygonPointer>& path)
 {
-    return (*path.vertices)[path.vertices->size() - (1 + path.start_vertex)];
+    return (*path.vertices_)[path.vertices_->size() - (1 + path.start_vertex_)];
 }
 
 coord_t projectPathAlongAxis(const PathOrdering<ConstPolygonPointer>& path, const Point& vector)

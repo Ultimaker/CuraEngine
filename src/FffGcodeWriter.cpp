@@ -1562,7 +1562,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
     part_order_optimizer.optimize(false);
     for (const PathOrdering<const SliceLayerPart*>& path : part_order_optimizer.paths)
     {
-        addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *path.vertices, gcode_layer);
+        addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *path.vertices_, gcode_layer);
     }
 
     const std::string extruder_identifier = (mesh.settings.get<size_t>("roofing_layer_count") > 0) ? "roofing_extruder_nr" : "top_bottom_extruder_nr";
@@ -2642,7 +2642,7 @@ bool FffGcodeWriter::processSkin(
 
     for (const PathOrdering<const SkinPart*>& path : part_order_optimizer.paths)
     {
-        const SkinPart& skin_part = *path.vertices;
+        const SkinPart& skin_part = *path.vertices_;
 
         added_something = added_something | processSkinPart(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part);
     }
@@ -3233,7 +3233,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     // Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
     for (const PathOrdering<const SupportInfillPart*>& path : ranges::views::concat(island_order_optimizer_initial.paths, island_order_optimizer.paths))
     {
-        const SupportInfillPart& part = *path.vertices;
+        const SupportInfillPart& part = *path.vertices_;
         const auto& configs = part.use_fractional_config ? gcode_layer.configs_storage.support_fractional_infill_config : gcode_layer.configs_storage.support_infill_config;
 
         // always process the wall overlap if walls are generated

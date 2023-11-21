@@ -8,6 +8,9 @@
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //To allow tests to use protected members.
 #endif
+#include <sstream> // for stream.str()
+#include <stdio.h>
+
 #include "settings/EnumSettings.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
 #include "settings/types/LayerIndex.h"
@@ -18,9 +21,6 @@
 #include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
 #include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
-
-#include <sstream> // for stream.str()
-#include <stdio.h>
 
 namespace cura
 {
@@ -223,7 +223,7 @@ public:
      * \param flavor The g-code flavor to print.
      * \return A serialized form of this flavor.
      */
-    const std::string flavorToString(const EGCodeFlavor& flavor) const;
+    static std::string flavorToString(const EGCodeFlavor& flavor);
 
     /*!
      * Get the gcode file header (e.g. ";FLAVOR:UltiGCode\n")

@@ -110,18 +110,18 @@ protected:
     {
         for(PathOrdering<PathType>& path : paths)
         {
-            if(path.is_closed) //Already a polygon. No need to detect loops.
+            if(path.is_closed_) //Already a polygon. No need to detect loops.
             {
                 continue;
             }
-            if(path.converted->size() < 3) //Not enough vertices to really be a closed loop.
+            if(path.converted_->size() < 3) //Not enough vertices to really be a closed loop.
             {
                 continue;
             }
-            if(vSize2(path.converted->back() - path.converted->front()) < coincident_point_distance * coincident_point_distance)
+            if(vSize2(path.converted_->back() - path.converted_->front()) < coincident_point_distance * coincident_point_distance)
             {
                 //Endpoints are really close to one another. Consider it a closed loop.
-                path.is_closed = true;
+                path.is_closed_ = true;
             }
         }
     }

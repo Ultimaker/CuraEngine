@@ -115,24 +115,24 @@ bool InsetOrderOptimizer::addToLayer()
 
     for (const PathOrdering<const ExtrusionLine*>& path : order_optimizer.paths)
     {
-        if (path.vertices->empty())
+        if (path.vertices_->empty())
             continue;
 
-        const bool is_outer_wall = path.vertices->inset_idx == 0; // or thin wall 'gap filler'
-        const bool is_gap_filler = path.vertices->is_odd;
+        const bool is_outer_wall = path.vertices_->inset_idx == 0; // or thin wall 'gap filler'
+        const bool is_gap_filler = path.vertices_->is_odd;
         const GCodePathConfig& non_bridge_config = is_outer_wall ? inset_0_non_bridge_config : inset_X_non_bridge_config;
         const GCodePathConfig& bridge_config = is_outer_wall ? inset_0_bridge_config : inset_X_bridge_config;
         const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist : wall_x_wipe_dist;
         const bool retract_before = is_outer_wall ? retract_before_outer_wall : false;
 
-        const bool revert_inset = alternate_walls && (path.vertices->inset_idx % 2);
+        const bool revert_inset = alternate_walls && (path.vertices_->inset_idx % 2);
         const bool revert_layer = alternate_walls && (layer_nr % 2);
-        const bool backwards = path.backwards != (revert_inset != revert_layer);
-        const size_t start_index = (backwards != path.backwards) ? path.vertices->size() - (path.start_vertex + 1) : path.start_vertex;
-        const bool linked_path = ! path.is_closed;
+        const bool backwards = path.backwards_ != (revert_inset != revert_layer);
+        const size_t start_index = (backwards != path.backwards_) ? path.vertices_->size() - (path.start_vertex_ + 1) : path.start_vertex_;
+        const bool linked_path = ! path.is_closed_;
 
         gcode_layer.setIsInside(true); // Going to print walls, which are always inside.
-        gcode_layer.addWall(*path.vertices, start_index, settings, non_bridge_config, bridge_config, wipe_dist, flow, retract_before, path.is_closed, backwards, linked_path);
+        gcode_layer.addWall(*path.vertices_, start_index, settings, non_bridge_config, bridge_config, wipe_dist, flow, retract_before, path.is_closed_, backwards, linked_path);
         added_something = true;
     }
     return added_something;

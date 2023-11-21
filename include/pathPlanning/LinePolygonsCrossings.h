@@ -33,9 +33,9 @@ private:
      */
     struct Crossing
     {
-        size_t poly_idx; //!< The index of the polygon which crosses the scanline
-        coord_t x; //!< x coordinate of crossings between the polygon and the scanline.
-        size_t point_idx; //!< The index of the first point of the line segment which crosses the scanline
+        size_t poly_idx_; //!< The index of the polygon which crosses the scanline
+        coord_t x_; //!< x coordinate of crossings between the polygon and the scanline.
+        size_t point_idx_; //!< The index of the first point of the line segment which crosses the scanline
         
         /*!
          * Creates a Crossing with minimal initialization
@@ -46,18 +46,18 @@ private:
         Crossing(const size_t poly_idx, const coord_t x, const size_t point_idx);
     };
     
-    std::vector<Crossing> crossings; //!< All crossings of polygons in the LinePolygonsCrossings::boundary with the scanline.
+    std::vector<Crossing> crossings_; //!< All crossings of polygons in the LinePolygonsCrossings::boundary with the scanline.
     
-    const Polygons& boundary; //!< The boundary not to cross during combing.
-    LocToLineGrid& loc_to_line_grid; //!< Mapping from locations to line segments of \ref LinePolygonsCrossings::boundary
-    Point startPoint; //!< The start point of the scanline.
-    Point endPoint; //!< The end point of the scanline.
+    const Polygons& boundary_; //!< The boundary not to cross during combing.
+    LocToLineGrid& loc_to_line_grid_; //!< Mapping from locations to line segments of \ref LinePolygonsCrossings::boundary
+    Point start_point_; //!< The start point of the scanline.
+    Point end_point_; //!< The end point of the scanline.
     
-    int64_t dist_to_move_boundary_point_outside; //!< The distance used to move outside or inside so that a boundary point doesn't intersect with the boundary anymore. Neccesary due to computational rounding problems. Use negative value for insicde combing.
+    int64_t dist_to_move_boundary_point_outside_; //!< The distance used to move outside or inside so that a boundary point doesn't intersect with the boundary anymore. Neccesary due to computational rounding problems. Use negative value for insicde combing.
     
-    PointMatrix transformation_matrix; //!< The transformation which rotates everything such that the scanline is aligned with the x-axis.
-    Point transformed_startPoint; //!< The LinePolygonsCrossings::startPoint as transformed by Comb::transformation_matrix such that it has (roughly) the same Y as transformed_endPoint
-    Point transformed_endPoint; //!< The LinePolygonsCrossings::endPoint as transformed by Comb::transformation_matrix such that it has (roughly) the same Y as transformed_startPoint
+    PointMatrix transformation_matrix_; //!< The transformation which rotates everything such that the scanline is aligned with the x-axis.
+    Point transformed_start_point_; //!< The LinePolygonsCrossings::startPoint as transformed by Comb::transformation_matrix such that it has (roughly) the same Y as transformed_endPoint
+    Point transformed_end_point_; //!< The LinePolygonsCrossings::endPoint as transformed by Comb::transformation_matrix such that it has (roughly) the same Y as transformed_startPoint
 
     
     /*!
@@ -123,11 +123,11 @@ private:
      * \param dist_to_move_boundary_point_outside Distance used to move a point from a boundary so that it doesn't intersect with it anymore. (Precision issue)
      */
     LinePolygonsCrossings(const Polygons& boundary, LocToLineGrid& loc_to_line_grid, Point& start, Point& end, int64_t dist_to_move_boundary_point_outside)
-    : boundary(boundary)
-    , loc_to_line_grid(loc_to_line_grid)
-    , startPoint(start)
-    , endPoint(end)
-    , dist_to_move_boundary_point_outside(dist_to_move_boundary_point_outside)
+    : boundary_(boundary)
+    , loc_to_line_grid_(loc_to_line_grid)
+    , start_point_(start)
+    , end_point_(end)
+    , dist_to_move_boundary_point_outside_(dist_to_move_boundary_point_outside)
     {
     }
     

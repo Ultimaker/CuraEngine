@@ -11,40 +11,40 @@ namespace cura
     template<>
     ConstPolygonRef PathOrdering<ConstPolygonPointer>::getVertexData()
     {
-        return *vertices;
+        return *vertices_;
     }
 
     template<>
     ConstPolygonRef PathOrdering<PolygonPointer>::getVertexData()
     {
-        return *vertices;
+        return *vertices_;
     }
 
     template<>
     ConstPolygonRef PathOrdering<const SkinPart*>::getVertexData()
     {
-        return vertices->outline.outerPolygon();
+        return vertices_->outline.outerPolygon();
     }
 
     template<>
     ConstPolygonRef PathOrdering<const SliceLayerPart*>::getVertexData()
     {
-        return vertices->outline.outerPolygon();
+        return vertices_->outline.outerPolygon();
     }
 
     template<>
     ConstPolygonRef PathOrdering<const SupportInfillPart*>::getVertexData()
     {
-        return vertices->outline.outerPolygon();
+        return vertices_->outline.outerPolygon();
     }
     template<>
     ConstPolygonRef PathOrdering<const ExtrusionLine*>::getVertexData()
     {
-        if ( ! cached_vertices)
+        if ( ! cached_vertices_)
         {
-            cached_vertices = vertices->toPolygon();
+            cached_vertices_ = vertices_->toPolygon();
         }
-        return ConstPolygonRef(*cached_vertices);
+        return ConstPolygonRef(*cached_vertices_);
     }
 
 }

@@ -170,7 +170,7 @@ void GCodeExport::setInitialTemp(int extruder_nr, double temp)
     }
 }
 
-const std::string GCodeExport::flavorToString(const EGCodeFlavor& flavor) const
+std::string GCodeExport::flavorToString(const EGCodeFlavor& flavor)
 {
     switch (flavor)
     {

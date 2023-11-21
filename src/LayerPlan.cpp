@@ -610,7 +610,7 @@ void LayerPlan::addPolygonsByOptimizer(
     {
         for (const PathOrdering<ConstPolygonPointer>& path : orderOptimizer.paths)
         {
-            addPolygon(*path.vertices, path.start_vertex, path.backwards, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+            addPolygon(*path.vertices_, path.start_vertex_, path.backwards_, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
     }
     else
@@ -618,7 +618,7 @@ void LayerPlan::addPolygonsByOptimizer(
         for (int index = orderOptimizer.paths.size() - 1; index >= 0; --index)
         {
             const PathOrdering<ConstPolygonPointer>& path = orderOptimizer.paths[index];
-            addPolygon(**path.vertices, path.start_vertex, path.backwards, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+            addPolygon(**path.vertices_, path.start_vertex_, path.backwards_, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
     }
 }
@@ -1166,7 +1166,7 @@ void LayerPlan::addWalls(
     orderOptimizer.optimize();
     for (const PathOrdering<ConstPolygonPointer>& path : orderOptimizer.paths)
     {
-        addWall(**path.vertices, path.start_vertex, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
+        addWall(**path.vertices_, path.start_vertex_, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
     }
 }
 
@@ -1236,9 +1236,9 @@ void LayerPlan::addLinesInGivenOrder(
     for (size_t order_idx = 0; order_idx < paths.size(); order_idx++)
     {
         const PathOrdering<ConstPolygonPointer>& path = paths[order_idx];
-        ConstPolygonRef polyline = *path.vertices;
-        const size_t start_idx = path.start_vertex;
-        assert(start_idx == 0 || start_idx == polyline.size() - 1 || path.is_closed);
+        ConstPolygonRef polyline = *path.vertices_;
+        const size_t start_idx = path.start_vertex_;
+        assert(start_idx == 0 || start_idx == polyline.size() - 1 || path.is_closed_);
         const Point start = polyline[start_idx];
 
         if (vSize2(getLastPlannedPositionOrStartingPosition() - start) < line_width_2)
@@ -1260,7 +1260,7 @@ void LayerPlan::addLinesInGivenOrder(
         for (size_t idx = 0; idx < polyline.size(); idx++)
         {
             size_t point_idx;
-            if (path.is_closed)
+            if (path.is_closed_)
             {
                 point_idx = (start_idx + idx + 1) % polyline.size();
             }
@@ -1305,8 +1305,8 @@ void LayerPlan::addLinesInGivenOrder(
             if (wipe && (order_idx < paths.size() - 1))
             {
                 const PathOrdering<ConstPolygonPointer>& next_path = paths[order_idx + 1];
-                ConstPolygonRef next_polygon = *next_path.vertices;
-                const size_t next_start = next_path.start_vertex;
+                ConstPolygonRef next_polygon = *next_path.vertices_;
+                const size_t next_start = next_path.start_vertex_;
                 const Point& next_p0 = next_polygon[next_start];
                 if (vSize2(next_p0 - p1) <= line_width * line_width * 4)
                 {
@@ -1361,9 +1361,9 @@ void LayerPlan::addLinesMonotonic(
     bool last_would_have_been_excluded = false;
     for (size_t line_idx = 0; line_idx < line_order.paths.size(); ++line_idx)
     {
-        const ConstPolygonRef polyline = *line_order.paths[line_idx].vertices;
+        const ConstPolygonRef polyline = *line_order.paths[line_idx].vertices_;
         const bool inside_exclusion = is_inside_exclusion(polyline);
-        const bool next_would_have_been_included = inside_exclusion && (line_idx < line_order.paths.size() - 1 && is_inside_exclusion(*line_order.paths[line_idx + 1].vertices));
+        const bool next_would_have_been_included = inside_exclusion && (line_idx < line_order.paths.size() - 1 && is_inside_exclusion(*line_order.paths[line_idx + 1].vertices_));
         if (inside_exclusion && last_would_have_been_excluded && next_would_have_been_included)
         {
             left_over.add(polyline);

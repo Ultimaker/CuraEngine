@@ -34,22 +34,22 @@ struct PathOrdering
      * invalidating the pointers.
      */
     PathOrdering(const PathType& vertices, const bool is_closed = false, const size_t start_vertex = 0, const bool backwards = false)
-        : vertices(vertices)
-        , start_vertex(start_vertex)
-        , is_closed(is_closed)
-        , backwards(backwards)
+        : vertices_(vertices)
+        , start_vertex_(start_vertex)
+        , is_closed_(is_closed)
+        , backwards_(backwards)
     {}
 
     /*!
      * The vertex data of the path.
      */
-    PathType vertices;
+    PathType vertices_;
 
     /*!
      * Vertex data, converted into a Polygon so that the orderer knows how
      * to deal with this data.
      */
-    ConstPolygonPointer converted;
+    ConstPolygonPointer converted_;
 
     /*!
      * Which vertex along the path to start printing with.
@@ -57,7 +57,7 @@ struct PathOrdering
      * If this path represents a polyline, this will always be one of the
      * endpoints of the path; either 0 or ``vertices->size() - 1``.
      */
-    size_t start_vertex;
+    size_t start_vertex_;
 
     /*!
         * Whether the path should be closed at the ends or not.
@@ -65,7 +65,7 @@ struct PathOrdering
         * If this path should be closed, it represents a polygon. If it should
         * not be closed, it represents a polyline.
         */
-    bool is_closed;
+    bool is_closed_;
 
     /*!
      * Whether the path should be traversed in backwards direction.
@@ -73,7 +73,7 @@ struct PathOrdering
      * For a polyline it may be more efficient to print the path in
      * backwards direction, if the last vertex is closer than the first.
      */
-    bool backwards;
+    bool backwards_;
     
     
     /*!
@@ -99,7 +99,7 @@ protected:
      * For example, if the ``PathType`` is a list of ``ExtrusionJunction``s,
      * this will store the coordinates of those junctions.
      */
-    std::optional<Polygon> cached_vertices;
+    std::optional<Polygon> cached_vertices_;
 };
 
 }
