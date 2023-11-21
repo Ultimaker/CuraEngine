@@ -45,7 +45,7 @@ int main(int argc, char** argv)
     signal(SIGFPE, cura::signal_FPE);
 #endif
     std::cerr << std::boolalpha;
-
+// Want to set the sentry URL? Use '-c user.curaengine:sentry_url=<url> -o curaengine:enable_sentry=True' with conan install
 #ifdef SENTRY_URL
     // Setup sentry error handling.
     sentry_options_t* options = sentry_options_new();
