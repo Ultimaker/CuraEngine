@@ -8,6 +8,7 @@
 #endif
 
 #ifdef SENTRY_URL
+#include <fmt/format.h>
 #include <sentry.h>
 #endif
 
@@ -62,8 +63,7 @@ int main(int argc, char** argv)
 #endif
     config_path += ".sentry-native";
     sentry_options_set_database_path(options, config_path.c_str());
-    std::string version = "curaengine@";
-    version += std::string(CURA_ENGINE_VERSION);
+    std::string version = fmt::format("curaengine@{}", CURA_ENGINE_VERSION);
     sentry_options_set_release(options, version.c_str());
     sentry_init(options);
 #endif
