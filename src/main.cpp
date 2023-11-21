@@ -10,11 +10,10 @@
 #ifdef SENTRY_URL
 #include <filesystem>
 #include <sentry.h>
-
+#include <string>
 #include <fmt/format.h>
 #endif
-
-#include <string>
+#include <cstdlib>
 
 #include <spdlog/spdlog.h>
 
@@ -45,29 +44,46 @@ int main(int argc, char** argv)
     signal(SIGFPE, cura::signal_FPE);
 #endif
     std::cerr << std::boolalpha;
+
+
+
 // Want to set the sentry URL? Use '-c user.curaengine:sentry_url=<url> -o curaengine:enable_sentry=True' with conan install
 #ifdef SENTRY_URL
-    // Setup sentry error handling.
-    sentry_options_t* options = sentry_options_new();
-    sentry_options_set_dsn(options, std::string(SENTRY_URL).c_str());
-    // This is also the default-path. For further information and recommendations:
-    // https://docs.sentry.io/platforms/native/configuration/options/#database-path
+    bool use_sentry = true;
+    if (const char* use_sentry_env = std::getenv("use_sentry"))
+    {
+        if(std::strcmp(use_sentry_env, "0") == 0)
+        {
+            use_sentry = false;
+        }
+    }
+    if(use_sentry)
+    {
+        // Setup sentry error handling.
+        sentry_options_t* options = sentry_options_new();
+        sentry_options_set_dsn(options, std::string(SENTRY_URL).c_str());
+        // This is also the default-path. For further information and recommendations:
+        // https://docs.sentry.io/platforms/native/configuration/options/#database-path
 #if defined(__linux__)
-    const auto config_path = std::filesystem::path(std::getenv("HOME")).append("/.local/share/cura/.sentry-native");
+        const auto config_path = std::filesystem::path(std::getenv("HOME")).append("/.local/share/cura/.sentry-native");
 #elif defined(__APPLE__) && defined(__MACH__)
-    const auto config_path = std::filesystem::path(std::getenv("HOME")).append("/Library/Application Support/cura/.sentry-native");
+        const auto config_path = std::filesystem::path(std::getenv("HOME")).append("/Library/Application Support/cura/.sentry-native");
 #elif defined(_WIN64)
-    const auto config_path = std::filesystem::path(std::getenv("APPDATA")).append("/cura/.sentry-native");
+        const auto config_path = std::filesystem::path(std::getenv("APPDATA")).append("/cura/.sentry-native");
 #endif
-    sentry_options_set_database_path(options, config_path.c_str());
-    sentry_options_set_release(options, fmt::format("curaengine@{}", CURA_ENGINE_VERSION).c_str());
-    sentry_init(options);
+        sentry_options_set_database_path(options, config_path.c_str());
+        sentry_options_set_release(options, fmt::format("curaengine@{}", CURA_ENGINE_VERSION).c_str());
+        sentry_init(options);
+    }
 #endif
 
     cura::Application::getInstance().run(argc, argv);
 
 #ifdef SENTRY_URL
-    sentry_close();
+    if(use_sentry)
+    {
+        sentry_close();
+    }
 #endif
 
     return 0;
