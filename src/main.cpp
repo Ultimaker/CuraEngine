@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <sentry.h>
 #include <string>
+
 #include <fmt/format.h>
 #endif
 #include <cstdlib>
@@ -46,18 +47,17 @@ int main(int argc, char** argv)
     std::cerr << std::boolalpha;
 
 
-
 // Want to set the sentry URL? Use '-c user.curaengine:sentry_url=<url> -o curaengine:enable_sentry=True' with conan install
 #ifdef SENTRY_URL
     bool use_sentry = true;
     if (const char* use_sentry_env = std::getenv("use_sentry"))
     {
-        if(std::strcmp(use_sentry_env, "0") == 0)
+        if (std::strcmp(use_sentry_env, "0") == 0)
         {
             use_sentry = false;
         }
     }
-    if(use_sentry)
+    if (use_sentry)
     {
         // Setup sentry error handling.
         sentry_options_t* options = sentry_options_new();
@@ -80,7 +80,7 @@ int main(int argc, char** argv)
     cura::Application::getInstance().run(argc, argv);
 
 #ifdef SENTRY_URL
-    if(use_sentry)
+    if (use_sentry)
     {
         sentry_close();
     }
