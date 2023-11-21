@@ -136,11 +136,11 @@ protected:
      */
     struct TransitionMidRef
     {
-        edge_t* edge;
-        std::list<TransitionMiddle>::iterator transition_it;
+        edge_t* edge_;
+        std::list<TransitionMiddle>::iterator transition_it_;
         TransitionMidRef(edge_t* edge, std::list<TransitionMiddle>::iterator transition_it)
-            : edge(edge)
-            , transition_it(transition_it)
+            : edge_(edge)
+            , transition_it_(transition_it)
         {}
     };
 

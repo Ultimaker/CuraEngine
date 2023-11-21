@@ -1021,7 +1021,7 @@ void SkeletalTrapezoidation::filterTransitionMids()
         for (TransitionMidRef& ref : to_be_dissolved_back)
         {
             dissolveBeadCountRegion(&edge, transitions.back().lower_bead_count_ + 1, transitions.back().lower_bead_count_);
-            ref.edge->data.getTransitions()->erase(ref.transition_it);
+            ref.edge_->data.getTransitions()->erase(ref.transition_it_);
         }
 
         {
@@ -1045,7 +1045,7 @@ void SkeletalTrapezoidation::filterTransitionMids()
         for (TransitionMidRef& ref : to_be_dissolved_front)
         {
             dissolveBeadCountRegion(edge.twin, transitions.front().lower_bead_count_, transitions.front().lower_bead_count_ + 1);
-            ref.edge->data.getTransitions()->erase(ref.transition_it);
+            ref.edge_->data.getTransitions()->erase(ref.transition_it_);
         }
 
         {
