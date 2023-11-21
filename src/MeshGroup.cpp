@@ -49,8 +49,8 @@ Point3 MeshGroup::min() const
     Point3 ret(std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max());
     for (const Mesh& mesh : meshes)
     {
-        if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("cutting_mesh")
-            || mesh.settings.get<bool>("anti_overhang_mesh")) // Don't count pieces that are not printed.
+        if (mesh.settings_.get<bool>("infill_mesh") || mesh.settings_.get<bool>("cutting_mesh")
+            || mesh.settings_.get<bool>("anti_overhang_mesh")) // Don't count pieces that are not printed.
         {
             continue;
         }
@@ -71,8 +71,8 @@ Point3 MeshGroup::max() const
     Point3 ret(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min());
     for (const Mesh& mesh : meshes)
     {
-        if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("cutting_mesh")
-            || mesh.settings.get<bool>("anti_overhang_mesh")) // Don't count pieces that are not printed.
+        if (mesh.settings_.get<bool>("infill_mesh") || mesh.settings_.get<bool>("cutting_mesh")
+            || mesh.settings_.get<bool>("anti_overhang_mesh")) // Don't count pieces that are not printed.
         {
             continue;
         }
@@ -105,8 +105,8 @@ void MeshGroup::finalize()
     // If a mesh position was given, put the mesh at this position in 3D space.
     for (Mesh& mesh : meshes)
     {
-        Point3 mesh_offset(mesh.settings.get<coord_t>("mesh_position_x"), mesh.settings.get<coord_t>("mesh_position_y"), mesh.settings.get<coord_t>("mesh_position_z"));
-        if (mesh.settings.get<bool>("center_object"))
+        Point3 mesh_offset(mesh.settings_.get<coord_t>("mesh_position_x"), mesh.settings_.get<coord_t>("mesh_position_y"), mesh.settings_.get<coord_t>("mesh_position_z"));
+        if (mesh.settings_.get<bool>("center_object"))
         {
             Point3 object_min = mesh.min();
             Point3 object_max = mesh.max();
@@ -201,8 +201,8 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const FMatrix4x3& matr
     // For each face read:
     // float(x,y,z) = normal, float(X,Y,Z)*3 = vertexes, uint16_t = flags
     //  Every Face is 50 Bytes: Normal(3*float), Vertices(9*float), 2 Bytes Spacer
-    mesh->faces.reserve(face_count);
-    mesh->vertices.reserve(face_count);
+    mesh->faces_.reserve(face_count);
+    mesh->vertices_.reserve(face_count);
     for (unsigned int i = 0; i < face_count; i++)
     {
         if (fread(buffer, 50, 1, f) != 1)
@@ -231,7 +231,7 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix4x3& matrix)
     }
 
     // assign filename to mesh_name
-    mesh->mesh_name = filename;
+    mesh->mesh_name_ = filename;
 
     // Skip any whitespace at the beginning of the file.
     unsigned long long num_whitespace = 0; // Number of whitespace characters.
@@ -269,7 +269,7 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix4x3& matrix)
 
         // This logic is used to handle the case where the file starts with
         // "solid" but is a binary file.
-        if (mesh->faces.size() < 1)
+        if (mesh->faces_.size() < 1)
         {
             mesh->clear();
             return loadMeshSTL_binary(mesh, filename, matrix);

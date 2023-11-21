@@ -190,20 +190,20 @@ void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
     for (const Mesh& mesh : Application::getInstance().current_slice->scene.current_mesh_group->meshes)
     {
         // Skip meshes that are not printable
-        if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("cutting_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
+        if (mesh.settings_.get<bool>("infill_mesh") || mesh.settings_.get<bool>("cutting_mesh") || mesh.settings_.get<bool>("anti_overhang_mesh"))
         {
             continue;
         }
 
-        for (const MeshFace& face : mesh.faces)
+        for (const MeshFace& face : mesh.faces_)
         {
-            const MeshVertex& v0 = mesh.vertices[face.vertex_index[0]];
-            const MeshVertex& v1 = mesh.vertices[face.vertex_index[1]];
-            const MeshVertex& v2 = mesh.vertices[face.vertex_index[2]];
+            const MeshVertex& v0 = mesh.vertices_[face.vertex_index_[0]];
+            const MeshVertex& v1 = mesh.vertices_[face.vertex_index_[1]];
+            const MeshVertex& v2 = mesh.vertices_[face.vertex_index_[2]];
 
-            const FPoint3 p0 = v0.p;
-            const FPoint3 p1 = v1.p;
-            const FPoint3 p2 = v2.p;
+            const FPoint3 p0 = v0.p_;
+            const FPoint3 p1 = v1.p_;
+            const FPoint3 p2 = v2.p_;
 
             float min_z = p0.z;
             min_z = std::min(min_z, p1.z);

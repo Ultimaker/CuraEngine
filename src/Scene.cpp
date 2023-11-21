@@ -54,7 +54,7 @@ const std::string Scene::getAllSettingsString() const
         for (size_t mesh_index = 0; mesh_index < mesh_group.meshes.size(); mesh_index++)
         {
             const Mesh& mesh = mesh_group.meshes[mesh_index];
-            output << " -e" << mesh.settings.get<size_t>("extruder_nr") << " -l \"" << mesh_index << "\"" << mesh.settings.getAllSettingsString();
+            output << " -e" << mesh.settings_.get<size_t>("extruder_nr") << " -l \"" << mesh_index << "\"" << mesh.settings_.getAllSettingsString();
         }
     }
     output << "\n";
@@ -72,7 +72,7 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     bool empty = true;
     for (Mesh& mesh : mesh_group.meshes)
     {
-        if (! mesh.settings.get<bool>("infill_mesh") && ! mesh.settings.get<bool>("anti_overhang_mesh"))
+        if (! mesh.settings_.get<bool>("infill_mesh") && ! mesh.settings_.get<bool>("anti_overhang_mesh"))
         {
             empty = false;
             break;

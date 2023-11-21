@@ -108,7 +108,7 @@ int SlicerLayer::getNextSegmentIdx(const SlicerSegment& segment, const size_t st
     {
         // segment ended at vertex
 
-        const std::vector<uint32_t>& faces_to_try = segment.endVertex->connected_faces;
+        const std::vector<uint32_t>& faces_to_try = segment.endVertex->connected_faces_;
         for (int face_to_try : faces_to_try)
         {
             const int result_segment_idx = tryFaceNextSegmentIdx(segment, face_to_try, start_segment_idx);
@@ -743,18 +743,18 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     // TODO: (?) for mesh surface mode: connect open polygons. Maybe the above algorithm can create two open polygons which are actually connected when the starting segment is in
     // the middle between the two open polygons.
 
-    if (mesh->settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::NORMAL)
+    if (mesh->settings_.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::NORMAL)
     { // don't stitch when using (any) mesh surface mode, i.e. also don't stitch when using mixed mesh surface and closed polygons, because then polylines which are supposed to be
       // open will be closed
         stitch(open_polylines);
     }
 
-    if (mesh->settings.get<bool>("meshfix_extensive_stitching"))
+    if (mesh->settings_.get<bool>("meshfix_extensive_stitching"))
     {
         stitch_extensive(open_polylines);
     }
 
-    if (mesh->settings.get<bool>("meshfix_keep_open_polygons"))
+    if (mesh->settings_.get<bool>("meshfix_keep_open_polygons"))
     {
         for (PolygonRef polyline : open_polylines)
         {
@@ -772,7 +772,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     }
 
     // Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.
-    const coord_t snap_distance = std::max(mesh->settings.get<coord_t>("minimum_polygon_circumference"), static_cast<coord_t>(1));
+    const coord_t snap_distance = std::max(mesh->settings_.get<coord_t>("minimum_polygon_circumference"), static_cast<coord_t>(1));
     auto it = std::remove_if(
         polygons.begin(),
         polygons.end(),
@@ -786,9 +786,9 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     //    polygons = Simplify(mesh->settings).polygon(polygons);
     polygons = slots::instance().modify<plugins::v0::SlotID::SIMPLIFY_MODIFY>(
         polygons,
-        mesh->settings.get<coord_t>("meshfix_maximum_resolution"),
-        mesh->settings.get<coord_t>("meshfix_maximum_deviation"),
-        static_cast<coord_t>(mesh->settings.get<size_t>("meshfix_maximum_extrusion_area_deviation")));
+        mesh->settings_.get<coord_t>("meshfix_maximum_resolution"),
+        mesh->settings_.get<coord_t>("meshfix_maximum_deviation"),
+        static_cast<coord_t>(mesh->settings_.get<size_t>("meshfix_maximum_extrusion_area_deviation")));
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 
     // Clean up polylines for Surface Mode printing
@@ -807,7 +807,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
 Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_count, bool use_variable_layer_heights, std::vector<AdaptiveLayer>* adaptive_layers)
     : mesh(i_mesh)
 {
-    const SlicingTolerance slicing_tolerance = mesh->settings.get<SlicingTolerance>("slicing_tolerance");
+    const SlicingTolerance slicing_tolerance = mesh->settings_.get<SlicingTolerance>("slicing_tolerance");
     const coord_t initial_layer_thickness = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height_0");
 
     assert(slice_layer_count > 0);
@@ -817,14 +817,14 @@ Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_c
     layers = buildLayersWithHeight(slice_layer_count, slicing_tolerance, initial_layer_thickness, thickness, use_variable_layer_heights, adaptive_layers);
     scripta::setAll(
         layers,
-        static_cast<int>(mesh->settings.get<EPlatformAdhesion>("adhesion_type")),
-        mesh->settings.get<int>("raft_surface_layers"),
-        mesh->settings.get<coord_t>("raft_surface_thickness"),
-        mesh->settings.get<int>("raft_interface_layers"),
-        mesh->settings.get<coord_t>("raft_interface_thickness"),
-        mesh->settings.get<coord_t>("raft_base_thickness"),
-        mesh->settings.get<coord_t>("raft_airgap"),
-        mesh->settings.get<coord_t>("layer_0_z_overlap"));
+        static_cast<int>(mesh->settings_.get<EPlatformAdhesion>("adhesion_type")),
+        mesh->settings_.get<int>("raft_surface_layers"),
+        mesh->settings_.get<coord_t>("raft_surface_thickness"),
+        mesh->settings_.get<int>("raft_interface_layers"),
+        mesh->settings_.get<coord_t>("raft_interface_thickness"),
+        mesh->settings_.get<coord_t>("raft_base_thickness"),
+        mesh->settings_.get<coord_t>("raft_airgap"),
+        mesh->settings_.get<coord_t>("layer_0_z_overlap"));
 
     std::vector<std::pair<int32_t, int32_t>> zbbox = buildZHeightsForFaces(*mesh);
 
@@ -848,7 +848,7 @@ void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t
             layer.segments.reserve(100);
 
             // loop over all mesh faces
-            for (unsigned int mesh_idx = 0; mesh_idx < mesh.faces.size(); mesh_idx++)
+            for (unsigned int mesh_idx = 0; mesh_idx < mesh.faces_.size(); mesh_idx++)
             {
                 if ((z < zbbox[mesh_idx].first) || (z > zbbox[mesh_idx].second))
                 {
@@ -856,15 +856,15 @@ void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t
                 }
 
                 // get all vertices per face
-                const MeshFace& face = mesh.faces[mesh_idx];
-                const MeshVertex& v0 = mesh.vertices[face.vertex_index[0]];
-                const MeshVertex& v1 = mesh.vertices[face.vertex_index[1]];
-                const MeshVertex& v2 = mesh.vertices[face.vertex_index[2]];
+                const MeshFace& face = mesh.faces_[mesh_idx];
+                const MeshVertex& v0 = mesh.vertices_[face.vertex_index_[0]];
+                const MeshVertex& v1 = mesh.vertices_[face.vertex_index_[1]];
+                const MeshVertex& v2 = mesh.vertices_[face.vertex_index_[2]];
 
                 // get all vertices represented as 3D point
-                Point3 p0 = v0.p;
-                Point3 p1 = v1.p;
-                Point3 p2 = v2.p;
+                Point3 p0 = v0.p_;
+                Point3 p1 = v1.p_;
+                Point3 p2 = v2.p_;
 
                 // Compensate for points exactly on the slice-boundary, except for 'inclusive', which already handles this correctly.
                 if (slicing_tolerance != SlicingTolerance::INCLUSIVE)
@@ -962,7 +962,7 @@ void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t
                 // store the segments per layer
                 layer.face_idx_to_segment_idx.insert(std::make_pair(mesh_idx, layer.segments.size()));
                 s.faceIndex = mesh_idx;
-                s.endOtherFaceIdx = face.connected_face_index[end_edge_idx];
+                s.endOtherFaceIdx = face.connected_face_index_[end_edge_idx];
                 s.addedToPolygon = false;
                 layer.segments.push_back(s);
             }
@@ -1041,17 +1041,17 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
     }
 
     size_t layer_apply_initial_xy_offset = 0;
-    if (layers.size() > 0 && layers[0].polygons.size() == 0 && ! mesh.settings.get<bool>("support_mesh") && ! mesh.settings.get<bool>("anti_overhang_mesh")
-        && ! mesh.settings.get<bool>("cutting_mesh") && ! mesh.settings.get<bool>("infill_mesh"))
+    if (layers.size() > 0 && layers[0].polygons.size() == 0 && ! mesh.settings_.get<bool>("support_mesh") && ! mesh.settings_.get<bool>("anti_overhang_mesh")
+        && ! mesh.settings_.get<bool>("cutting_mesh") && ! mesh.settings_.get<bool>("infill_mesh"))
     {
         layer_apply_initial_xy_offset = 1;
     }
 
 
-    const coord_t xy_offset = mesh.settings.get<coord_t>("xy_offset");
-    const coord_t xy_offset_0 = mesh.settings.get<coord_t>("xy_offset_layer_0");
-    const coord_t xy_offset_hole = mesh.settings.get<coord_t>("hole_xy_offset");
-    const coord_t hole_offset_max_diameter = mesh.settings.get<coord_t>("hole_xy_offset_max_diameter");
+    const coord_t xy_offset = mesh.settings_.get<coord_t>("xy_offset");
+    const coord_t xy_offset_0 = mesh.settings_.get<coord_t>("xy_offset_layer_0");
+    const coord_t xy_offset_hole = mesh.settings_.get<coord_t>("hole_xy_offset");
+    const coord_t hole_offset_max_diameter = mesh.settings_.get<coord_t>("hole_xy_offset_max_diameter");
 
     const auto max_hole_area = std::numbers::pi / 4 * static_cast<double>(hole_offset_max_diameter * hole_offset_max_diameter);
 
@@ -1113,18 +1113,18 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
 std::vector<std::pair<int32_t, int32_t>> Slicer::buildZHeightsForFaces(const Mesh& mesh)
 {
     std::vector<std::pair<int32_t, int32_t>> zHeights;
-    zHeights.reserve(mesh.faces.size());
-    for (const auto& face : mesh.faces)
+    zHeights.reserve(mesh.faces_.size());
+    for (const auto& face : mesh.faces_)
     {
         // const MeshFace& face = mesh.faces[mesh_idx];
-        const MeshVertex& v0 = mesh.vertices[face.vertex_index[0]];
-        const MeshVertex& v1 = mesh.vertices[face.vertex_index[1]];
-        const MeshVertex& v2 = mesh.vertices[face.vertex_index[2]];
+        const MeshVertex& v0 = mesh.vertices_[face.vertex_index_[0]];
+        const MeshVertex& v1 = mesh.vertices_[face.vertex_index_[1]];
+        const MeshVertex& v2 = mesh.vertices_[face.vertex_index_[2]];
 
         // get all vertices represented as 3D point
-        Point3 p0 = v0.p;
-        Point3 p1 = v1.p;
-        Point3 p2 = v2.p;
+        Point3 p0 = v0.p_;
+        Point3 p1 = v1.p_;
+        Point3 p2 = v2.p_;
 
         // find the minimum and maximum z point
         int32_t minZ = p0.z_;

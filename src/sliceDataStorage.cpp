@@ -91,8 +91,8 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
 }
 
 SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
-    : settings(mesh->settings)
-    , mesh_name(mesh->mesh_name)
+    : settings(mesh->settings_)
+    , mesh_name(mesh->mesh_name_)
     , layer_nr_max_filled_layer(0)
     , bounding_box(mesh->getAABB())
     , base_subdiv_cube(nullptr)

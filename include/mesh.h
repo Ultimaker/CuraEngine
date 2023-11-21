@@ -19,10 +19,10 @@ Keeps track of which faces connect to it.
 class MeshVertex
 {
 public:
-    Point3 p; //!< location of the vertex
-    std::vector<uint32_t> connected_faces; //!< list of the indices of connected faces
+    Point3 p_; //!< location of the vertex
+    std::vector<uint32_t> connected_faces_; //!< list of the indices of connected faces
 
-    MeshVertex(Point3 p) : p(p) {connected_faces.reserve(8);} //!< doesn't set connected_faces
+    MeshVertex(Point3 p) : p_(p) {connected_faces_.reserve(8);} //!< doesn't set connected_faces
 };
 
 /*! A MeshFace is a 3 dimensional model triangle with 3 points. These points are already converted to integers
@@ -49,8 +49,8 @@ In such a case the face_index stored in connected_face_index is the one connecte
 class MeshFace
 {
 public:
-    int vertex_index[3] = {-1}; //!< counter-clockwise ordering
-    int connected_face_index[3]; //!< same ordering as vertex_index (connected_face 0 is connected via vertex 0 and 1, etc.)
+    int vertex_index_[3] = {-1}; //!< counter-clockwise ordering
+    int connected_face_index_[3]; //!< same ordering as vertex_index (connected_face 0 is connected via vertex 0 and 1, etc.)
 };
 
 
@@ -62,13 +62,13 @@ See MeshFace for the specifics of how/when faces are connected.
 class Mesh
 {
     //! The vertex_hash_map stores a index reference of each vertex for the hash of that location. Allows for quick retrieval of points with the same location.
-    std::unordered_map<uint32_t, std::vector<uint32_t> > vertex_hash_map;
-    AABB3D aabb;
+    std::unordered_map<uint32_t, std::vector<uint32_t> > vertex_hash_map_;
+    AABB3D aabb_;
 public:
-    std::vector<MeshVertex> vertices;//!< list of all vertices in the mesh
-    std::vector<MeshFace> faces; //!< list of all faces in the mesh
-    Settings settings;
-    std::string mesh_name;
+    std::vector<MeshVertex> vertices_;//!< list of all vertices in the mesh
+    std::vector<MeshFace> faces_; //!< list of all faces in the mesh
+    Settings settings_;
+    std::string mesh_name_;
 
     Mesh(Settings& parent);
     Mesh();
@@ -89,9 +89,9 @@ public:
     void translate(Point3 offset)
     {
         if (offset == Point3(0,0,0)) { return; }
-        for(MeshVertex& v : vertices)
-            v.p += offset;
-        aabb.translate(offset);
+        for(MeshVertex& v : vertices_)
+            v.p_ += offset;
+        aabb_.translate(offset);
     }
 
     /*!

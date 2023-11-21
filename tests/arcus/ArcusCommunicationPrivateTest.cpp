@@ -212,10 +212,10 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
     auto& meshes = scene.mesh_groups[0].meshes;
     ASSERT_FALSE(meshes.empty());
 
-    auto& vertices = meshes[0].vertices;
+    auto& vertices = meshes[0].vertices_;
     ASSERT_FALSE(vertices.empty());
     ASSERT_EQ(vertices.size(), size_t(8)); // A cube should have 8 unique vertices.
-    ASSERT_EQ(meshes[0].faces.size(), size_t(12)); // A cube should have 12 tri-s (2 for each 6 sides of the dice).
+    ASSERT_EQ(meshes[0].faces_.size(), size_t(12)); // A cube should have 12 tri-s (2 for each 6 sides of the dice).
 
     // Distances should be the same:
 
@@ -234,12 +234,12 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
     std::array<coord_t, 3> max_coords = { std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min() };
     for (const auto& vertex : vertices)
     {
-        min_coords[0] = std::min(vertex.p.x, min_coords[0]);
-        min_coords[1] = std::min(vertex.p.y, min_coords[1]);
-        min_coords[2] = std::min(vertex.p.z, min_coords[2]);
-        max_coords[0] = std::max(vertex.p.x, max_coords[0]);
-        max_coords[1] = std::max(vertex.p.y, max_coords[1]);
-        max_coords[2] = std::max(vertex.p.z, max_coords[2]);
+        min_coords[0] = std::min(vertex.p_.x, min_coords[0]);
+        min_coords[1] = std::min(vertex.p_.y, min_coords[1]);
+        min_coords[2] = std::min(vertex.p_.z, min_coords[2]);
+        max_coords[0] = std::max(vertex.p_.x, max_coords[0]);
+        max_coords[1] = std::max(vertex.p_.y, max_coords[1]);
+        max_coords[2] = std::max(vertex.p_.z, max_coords[2]);
     }
 
     // - Then, just compare:

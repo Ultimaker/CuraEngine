@@ -117,10 +117,10 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
         // Load the settings for the mesh.
         for (const cura::proto::Setting& setting : object.settings())
         {
-            mesh.settings.add(setting.name(), setting.value());
+            mesh.settings_.add(setting.name(), setting.value());
         }
-        ExtruderTrain& extruder = mesh.settings.get<ExtruderTrain&>("extruder_nr"); // Set the parent setting to the correct extruder.
-        mesh.settings.setParent(&extruder.settings);
+        ExtruderTrain& extruder = mesh.settings_.get<ExtruderTrain&>("extruder_nr"); // Set the parent setting to the correct extruder.
+        mesh.settings_.setParent(&extruder.settings);
 
         for (size_t face = 0; face < face_count; face++)
         {
@@ -134,7 +134,7 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
             mesh.addFace(verts[0], verts[1], verts[2]);
         }
 
-        mesh.mesh_name = object.name();
+        mesh.mesh_name_ = object.name();
         mesh.finish();
     }
     object_count++;

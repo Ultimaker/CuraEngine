@@ -266,7 +266,7 @@ void CommandLine::sliceNext()
                     }
                     else
                     {
-                        last_settings = &slice.scene.mesh_groups[mesh_group_index].meshes.back().settings;
+                        last_settings = &slice.scene.mesh_groups[mesh_group_index].meshes.back().settings_;
                     }
                     break;
                 }

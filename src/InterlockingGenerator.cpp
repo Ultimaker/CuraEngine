@@ -33,11 +33,11 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     for (size_t mesh_a_idx = 0; mesh_a_idx < volumes.size(); mesh_a_idx++)
     {
         Slicer& mesh_a = *volumes[mesh_a_idx];
-        size_t extruder_nr_a = mesh_a.mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr;
+        size_t extruder_nr_a = mesh_a.mesh->settings_.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr;
         for (size_t mesh_b_idx = mesh_a_idx + 1; mesh_b_idx < volumes.size(); mesh_b_idx++)
         {
             Slicer& mesh_b = *volumes[mesh_b_idx];
-            size_t extruder_nr_b = mesh_b.mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr;
+            size_t extruder_nr_b = mesh_b.mesh->settings_.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr;
 
             if (! mesh_a.mesh->canInterlock() || ! mesh_b.mesh->canInterlock())
             {
@@ -50,8 +50,8 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
                 continue;
             }
 
-            coord_t beam_width_a = mesh_a.mesh->settings.get<coord_t>("interlocking_beam_width");
-            coord_t beam_width_b = mesh_b.mesh->settings.get<coord_t>("interlocking_beam_width");
+            coord_t beam_width_a = mesh_a.mesh->settings_.get<coord_t>("interlocking_beam_width");
+            coord_t beam_width_b = mesh_b.mesh->settings_.get<coord_t>("interlocking_beam_width");
 
             // TODO: why are these two kernels different kernel types?!
             const DilationKernel interface_dilation(GridPoint3(interface_depth, interface_depth, interface_depth), DilationKernel::Type::PRISM);
@@ -70,7 +70,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
 
 std::pair<Polygons, Polygons> InterlockingGenerator::growBorderAreasPerpendicular(const Polygons& a, const Polygons& b, const coord_t& detect) const
 {
-    const coord_t min_line = std::min(mesh_a.mesh->settings.get<coord_t>("min_wall_line_width"), mesh_b.mesh->settings.get<coord_t>("min_wall_line_width"));
+    const coord_t min_line = std::min(mesh_a.mesh->settings_.get<coord_t>("min_wall_line_width"), mesh_b.mesh->settings_.get<coord_t>("min_wall_line_width"));
 
     const Polygons total_shrunk = a.offset(min_line).unionPolygons(b.offset(min_line)).offset(2 * -min_line);
 
@@ -101,7 +101,7 @@ void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>
     const coord_t max_beam_width = std::max(beam_width_a, beam_width_b);
     const coord_t detect = (max_beam_width * number_of_beams_detect) + rounding_errors;
     const coord_t expand = (max_beam_width * number_of_beams_expand) + rounding_errors;
-    const coord_t close_gaps = std::min(mesh_a.mesh->settings.get<coord_t>("line_width"), mesh_b.mesh->settings.get<coord_t>("line_width")) / 4;
+    const coord_t close_gaps = std::min(mesh_a.mesh->settings_.get<coord_t>("line_width"), mesh_b.mesh->settings_.get<coord_t>("line_width")) / 4;
 
     // Make an inclusionary polygon, to only actually handle thin areas near actual microstructures (so not in skin for example).
     std::vector<Polygons> near_interlock_per_layer;
