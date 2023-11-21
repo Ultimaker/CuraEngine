@@ -530,7 +530,7 @@ public:
         const std::optional<Point> near_start_location = std::optional<Point>(),
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
         const bool reverse_print_direction = false,
-        const std::unordered_multimap<ConstPolygonPointer, ConstPolygonPointer>& order_requirements = PathOrderOptimizer<ConstPolygonPointer>::no_order_requirements);
+        const std::unordered_multimap<ConstPolygonPointer, ConstPolygonPointer>& order_requirements = PathOrderOptimizer<ConstPolygonPointer>::no_order_requirements_);
 
     /*!
      * Add polygons to the g-code with monotonic order.

@@ -113,7 +113,7 @@ bool InsetOrderOptimizer::addToLayer()
 
     order_optimizer.optimize();
 
-    for (const PathOrdering<const ExtrusionLine*>& path : order_optimizer.paths)
+    for (const PathOrdering<const ExtrusionLine*>& path : order_optimizer.paths_)
     {
         if (path.vertices_->empty())
             continue;

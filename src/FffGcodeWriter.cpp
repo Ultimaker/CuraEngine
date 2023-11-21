@@ -1560,7 +1560,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
         part_order_optimizer.addPolygon(&part);
     }
     part_order_optimizer.optimize(false);
-    for (const PathOrdering<const SliceLayerPart*>& path : part_order_optimizer.paths)
+    for (const PathOrdering<const SliceLayerPart*>& path : part_order_optimizer.paths_)
     {
         addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *path.vertices_, gcode_layer);
     }
@@ -2640,7 +2640,7 @@ bool FffGcodeWriter::processSkin(
     }
     part_order_optimizer.optimize();
 
-    for (const PathOrdering<const SkinPart*>& path : part_order_optimizer.paths)
+    for (const PathOrdering<const SkinPart*>& path : part_order_optimizer.paths_)
     {
         const SkinPart& skin_part = *path.vertices_;
 
@@ -3231,7 +3231,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     bool need_travel_to_end_of_last_spiral = true;
 
     // Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
-    for (const PathOrdering<const SupportInfillPart*>& path : ranges::views::concat(island_order_optimizer_initial.paths, island_order_optimizer.paths))
+    for (const PathOrdering<const SupportInfillPart*>& path : ranges::views::concat(island_order_optimizer_initial.paths_, island_order_optimizer.paths_))
     {
         const SupportInfillPart& part = *path.vertices_;
         const auto& configs = part.use_fractional_config ? gcode_layer.configs_storage.support_fractional_infill_config : gcode_layer.configs_storage.support_infill_config;

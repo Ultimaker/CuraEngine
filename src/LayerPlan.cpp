@@ -608,16 +608,16 @@ void LayerPlan::addPolygonsByOptimizer(
 
     if (! reverse_order)
     {
-        for (const PathOrdering<ConstPolygonPointer>& path : orderOptimizer.paths)
+        for (const PathOrdering<ConstPolygonPointer>& path : orderOptimizer.paths_)
         {
             addPolygon(*path.vertices_, path.start_vertex_, path.backwards_, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
     }
     else
     {
-        for (int index = orderOptimizer.paths.size() - 1; index >= 0; --index)
+        for (int index = orderOptimizer.paths_.size() - 1; index >= 0; --index)
         {
-            const PathOrdering<ConstPolygonPointer>& path = orderOptimizer.paths[index];
+            const PathOrdering<ConstPolygonPointer>& path = orderOptimizer.paths_[index];
             addPolygon(**path.vertices_, path.start_vertex_, path.backwards_, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
     }
@@ -1164,7 +1164,7 @@ void LayerPlan::addWalls(
         orderOptimizer.addPolygon(walls[poly_idx]);
     }
     orderOptimizer.optimize();
-    for (const PathOrdering<ConstPolygonPointer>& path : orderOptimizer.paths)
+    for (const PathOrdering<ConstPolygonPointer>& path : orderOptimizer.paths_)
     {
         addWall(**path.vertices_, path.start_vertex_, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
     }
@@ -1219,7 +1219,7 @@ void LayerPlan::addLinesByOptimizer(
     }
     order_optimizer.optimize();
 
-    addLinesInGivenOrder(order_optimizer.paths, config, space_fill_type, wipe_dist, flow_ratio, fan_speed);
+    addLinesInGivenOrder(order_optimizer.paths_, config, space_fill_type, wipe_dist, flow_ratio, fan_speed);
 }
 
 
@@ -1359,11 +1359,11 @@ void LayerPlan::addLinesMonotonic(
     PathOrderMonotonic<ConstPolygonPointer> order(monotonic_direction, max_adjacent_distance, last_position);
     Polygons left_over;
     bool last_would_have_been_excluded = false;
-    for (size_t line_idx = 0; line_idx < line_order.paths.size(); ++line_idx)
+    for (size_t line_idx = 0; line_idx < line_order.paths_.size(); ++line_idx)
     {
-        const ConstPolygonRef polyline = *line_order.paths[line_idx].vertices_;
+        const ConstPolygonRef polyline = *line_order.paths_[line_idx].vertices_;
         const bool inside_exclusion = is_inside_exclusion(polyline);
-        const bool next_would_have_been_included = inside_exclusion && (line_idx < line_order.paths.size() - 1 && is_inside_exclusion(*line_order.paths[line_idx + 1].vertices_));
+        const bool next_would_have_been_included = inside_exclusion && (line_idx < line_order.paths_.size() - 1 && is_inside_exclusion(*line_order.paths_[line_idx + 1].vertices_));
         if (inside_exclusion && last_would_have_been_excluded && next_would_have_been_included)
         {
             left_over.add(polyline);

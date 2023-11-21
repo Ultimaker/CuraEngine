@@ -69,23 +69,25 @@ public:
      * pointer to the vertex data, whether or not to close the loop, the
      * direction in which to print the path and where to start the path.
      */
-    std::vector<OrderablePath> paths;
+    std::vector<OrderablePath> paths_;
 
     /*!
      * Maps the path implementation to it's orderable path container
      */
-    std::unordered_map<Path, OrderablePath*> vertices_to_paths;
+    std::unordered_map<Path, OrderablePath*> vertices_to_paths_;
 
     /*!
      * The location where the nozzle is assumed to start from before printing
      * these parts.
      */
-    Point start_point;
+    const Point start_point_;
 
     /*!
      * Seam settings.
      */
-    ZSeamConfig seam_config;
+    const ZSeamConfig seam_config_;
+
+    static const std::unordered_multimap<Path, Path> no_order_requirements_;
 
     /*!
      * Construct a new optimizer.
@@ -107,15 +109,15 @@ public:
         const bool detect_loops = false,
         const Polygons* combing_boundary = nullptr,
         const bool reverse_direction = false,
-        const std::unordered_multimap<Path, Path>& order_requirements = no_order_requirements,
+        const std::unordered_multimap<Path, Path>& order_requirements = no_order_requirements_,
         const bool group_outer_walls = false)
-        : start_point(start_point)
-        , seam_config(seam_config)
-        , combing_boundary((combing_boundary != nullptr && ! combing_boundary->empty()) ? combing_boundary : nullptr)
-        , detect_loops(detect_loops)
-        , reverse_direction(reverse_direction)
-        , order_requirements(&order_requirements)
-        , group_outer_walls(group_outer_walls)
+        : start_point_(start_point)
+        , seam_config_(seam_config)
+        , combing_boundary_((combing_boundary != nullptr && ! combing_boundary->empty()) ? combing_boundary : nullptr)
+        , detect_loops_(detect_loops)
+        , reverse_direction_(reverse_direction)
+        , order_requirements_(&order_requirements)
+        , _group_outer_walls(group_outer_walls)
     {
     }
 
@@ -126,7 +128,7 @@ public:
     void addPolygon(const Path& polygon)
     {
         constexpr bool is_closed = true;
-        paths.emplace_back(polygon, is_closed);
+        paths_.emplace_back(polygon, is_closed);
     }
 
     /*!
@@ -136,7 +138,7 @@ public:
     void addPolyline(const Path& polyline)
     {
         constexpr bool is_closed = false;
-        paths.emplace_back(polyline, is_closed);
+        paths_.emplace_back(polyline, is_closed);
     }
 
     /*!
@@ -147,22 +149,22 @@ public:
      */
     void optimize(bool precompute_start = true)
     {
-        if (paths.empty())
+        if (paths_.empty())
         {
             return;
         }
 
         // Get the vertex data and store it in the paths.
-        for (auto& path : paths)
+        for (auto& path : paths_)
         {
             path.converted_ = path.getVertexData();
-            vertices_to_paths.emplace(path.vertices_, &path);
+            vertices_to_paths_.emplace(path.vertices_, &path);
         }
 
         // If necessary, check polylines to see if they are actually polygons.
-        if (detect_loops)
+        if (detect_loops_)
         {
-            for (auto& path : paths)
+            for (auto& path : paths_)
             {
                 if (! path.is_closed_)
                 {
@@ -175,7 +177,7 @@ public:
         // Add all vertices to a bucket grid so that we can find nearby endpoints quickly.
         const coord_t snap_radius = 10_mu; // 0.01mm grid cells. Chaining only needs to consider polylines which are next to each other.
         SparsePointGridInclusive<size_t> line_bucket_grid(snap_radius);
-        for (const auto& [i, path] : paths | ranges::views::enumerate)
+        for (const auto& [i, path] : paths_ | ranges::views::enumerate)
         {
             if (path.converted_->empty())
             {
@@ -197,42 +199,42 @@ public:
 
         // For some Z seam types the start position can be pre-computed.
         // This is faster since we don't need to re-compute the start position at each step then.
-        precompute_start &= seam_config.type == EZSeamType::RANDOM || seam_config.type == EZSeamType::USER_SPECIFIED || seam_config.type == EZSeamType::SHARPEST_CORNER;
+        precompute_start &= seam_config_.type == EZSeamType::RANDOM || seam_config_.type == EZSeamType::USER_SPECIFIED || seam_config_.type == EZSeamType::SHARPEST_CORNER;
         if (precompute_start)
         {
-            for (auto& path : paths)
+            for (auto& path : paths_)
             {
                 if (! path.is_closed_ || path.converted_->empty())
                 {
                     continue; // Can't pre-compute the seam for open polylines since they're at the endpoint nearest to the current position.
                 }
-                path.start_vertex_ = findStartLocation(path, seam_config.pos);
+                path.start_vertex_ = findStartLocation(path, seam_config_.pos);
             }
         }
 
         std::vector<OrderablePath> optimized_order; // To store our result in. At the end we'll std::swap.
 
-        if (order_requirements->empty())
+        if (order_requirements_->empty())
         {
             optimized_order = getOptimizedOrder(line_bucket_grid, snap_radius);
         }
         else
         {
-            optimized_order = getOptimizerOrderWithConstraints(line_bucket_grid, snap_radius, *order_requirements);
+            optimized_order = getOptimizerOrderWithConstraints(line_bucket_grid, snap_radius, *order_requirements_);
         }
 
 
-        if (reverse_direction && order_requirements->empty())
+        if (reverse_direction_ && order_requirements_->empty())
         {
             std::vector<OrderablePath> reversed = reverseOrderPaths(optimized_order); // Reverse-insert the optimized order, to invert the ordering.
-            std::swap(reversed, paths);
+            std::swap(reversed, paths_);
         }
         else
         {
-            std::swap(optimized_order, paths);
+            std::swap(optimized_order, paths_);
         }
 
-        combing_grid.reset();
+        combing_grid_.reset();
     }
 
 protected:
@@ -241,7 +243,7 @@ protected:
      * than this distance together will be considered to be coincident, closing
      * that polyline into a polygon.
      */
-    constexpr static coord_t coincident_point_distance = 10;
+    constexpr static coord_t _coincident_point_distance = 10;
 
     /*!
      * Bucket grid to store the locations of the combing boundary.
@@ -250,12 +252,12 @@ protected:
      * combing boundary. We only need to generate this mapping once for the
      * combing boundary, since the combing boundary can't change.
      */
-    std::unique_ptr<LocToLineGrid> combing_grid;
+    std::unique_ptr<LocToLineGrid> combing_grid_;
 
     /*!
      * Boundary to avoid when making travel moves.
      */
-    const Polygons* combing_boundary;
+    const Polygons* combing_boundary_;
 
     /*!
      * Whether to check polylines to see if they are closed, before optimizing.
@@ -266,7 +268,7 @@ protected:
      * polygons. This then allows the optimizer to decide on a seam location
      * that is not one of the endpoints of the polyline.
      */
-    bool detect_loops;
+    const bool detect_loops_;
 
     /*!
      * Whether to reverse the ordering completely.
@@ -274,7 +276,7 @@ protected:
      * This reverses the order in which parts are printed, and inverts the
      * direction of each path as well.
      */
-    bool reverse_direction;
+    const bool reverse_direction_;
 
     /*
      * Whether to print all outer walls in a group, one after another.
@@ -282,15 +284,21 @@ protected:
      * If this is enabled outer walls will be printed first and then all other
      * walls will be printed. If reversed they will be printed last.
      */
-    bool group_outer_walls;
+    const bool _group_outer_walls;
+
+    /*!
+     * Order requirements on the paths.
+     * For each pair the first needs to be printe before the second.
+     */
+    const std::unordered_multimap<Path, Path>* order_requirements_;
 
     std::vector<OrderablePath> getOptimizedOrder(SparsePointGridInclusive<size_t> line_bucket_grid, size_t snap_radius)
     {
         std::vector<OrderablePath> optimized_order; // To store our result in.
 
-        Point current_position = start_point;
+        Point current_position = start_point_;
 
-        std::unordered_map<OrderablePath*, bool> picked(paths.size()); // Fixed size boolean flag for whether each path is already in the optimized vector.
+        std::unordered_map<OrderablePath*, bool> picked(paths_.size()); // Fixed size boolean flag for whether each path is already in the optimized vector.
 
         auto isPicked = [&picked](OrderablePath* c)
         {
@@ -301,13 +309,13 @@ protected:
             return ! picked[c];
         };
 
-        while (optimized_order.size() < paths.size())
+        while (optimized_order.size() < paths_.size())
         {
             // Use bucket grid to find paths within snap_radius
             std::vector<OrderablePath*> nearby_candidates;
             for (const auto i : line_bucket_grid.getNearbyVals(current_position, snap_radius))
             {
-                nearby_candidates.push_back(&paths[i]); // Convert bucket indexes to corresponding paths
+                nearby_candidates.push_back(&paths_[i]); // Convert bucket indexes to corresponding paths
             }
 
             std::vector<OrderablePath*> available_candidates;
@@ -319,7 +327,7 @@ protected:
 
             if (available_candidates.empty()) // We need to broaden our search through all candidates
             {
-                for (auto path : paths | ranges::views::addressof | ranges::views::filter(notPicked))
+                for (auto path : paths_ | ranges::views::addressof | ranges::views::filter(notPicked))
                 {
                     available_candidates.push_back(path);
                 }
@@ -356,7 +364,7 @@ protected:
         // initialize the roots set with all possible nodes
         std::unordered_set<Path> roots;
         std::unordered_set<Path> leaves;
-        for (const auto& path : paths)
+        for (const auto& path : paths_)
         {
             roots.insert(path.vertices_);
             leaves.insert(path.vertices_);
@@ -373,7 +381,7 @@ protected:
         // We used a shared visited set between runs of dfs. This is for the case when we reverse the ordering tree.
         // In this case two roots can share the same children nodes, but we don't want to print them twice.
         std::unordered_set<Path> visited;
-        Point current_position = start_point;
+        Point current_position = start_point_;
 
         std::function<std::vector<Path>(const Path, const std::unordered_multimap<Path, Path>&)> get_neighbours
             = [current_position, this](const Path current_node, const std::unordered_multimap<Path, Path>& graph)
@@ -397,7 +405,7 @@ protected:
                 order.push_back(best_candidate);
 
                 // update local_current_position
-                auto path = vertices_to_paths[best_candidate];
+                auto path = vertices_to_paths_[best_candidate];
 
                 if (path->is_closed_)
                 {
@@ -417,7 +425,7 @@ protected:
             = [&current_position, &optimized_order, this](const Path current_node, const std::nullptr_t _state)
         {
             // We should make map from node <-> path for this stuff
-            for (auto& path : paths)
+            for (auto& path : paths_)
             {
                 if (path.vertices_ == current_node)
                 {
@@ -441,9 +449,9 @@ protected:
             return nullptr;
         };
 
-        if (group_outer_walls)
+        if (_group_outer_walls)
         {
-            if (reverse_direction)
+            if (reverse_direction_)
             {
                 // When the order is reverse the leaves of the order requirement are the outer walls
                 std::unordered_set<Path> outer_walls = leaves;
@@ -534,7 +542,7 @@ protected:
 
         for (auto& path : candidate_paths)
         {
-            candidate_orderable_paths.push_back(vertices_to_paths.at(path));
+            candidate_orderable_paths.push_back(vertices_to_paths_.at(path));
         }
 
         OrderablePath* best_candidate = findClosestPath(start_position, candidate_orderable_paths);
@@ -558,7 +566,7 @@ protected:
             }
 
             const bool precompute_start
-                = seam_config.type == EZSeamType::RANDOM || seam_config.type == EZSeamType::USER_SPECIFIED || seam_config.type == EZSeamType::SHARPEST_CORNER;
+                = seam_config_.type == EZSeamType::RANDOM || seam_config_.type == EZSeamType::USER_SPECIFIED || seam_config_.type == EZSeamType::SHARPEST_CORNER;
             if (! path->is_closed_ || ! precompute_start) // Find the start location unless we've already precomputed it.
             {
                 path->start_vertex_ = findStartLocation(*path, start_position);
@@ -570,7 +578,7 @@ protected:
             const Point candidate_position = (*path->converted_)[path->start_vertex_];
             coord_t distance2 = getDirectDistance(start_position, candidate_position);
             if (distance2 < best_distance2
-                && combing_boundary) // If direct distance is longer than best combing distance, the combing distance can never be better, so only compute combing if necessary.
+                && combing_boundary_) // If direct distance is longer than best combing distance, the combing distance can never be better, so only compute combing if necessary.
             {
                 distance2 = getCombingDistance(start_position, candidate_position);
             }
@@ -583,16 +591,6 @@ protected:
 
         return best_candidate;
     }
-
-public:
-    static const std::unordered_multimap<Path, Path> no_order_requirements;
-
-protected:
-    /*!
-     * Order requirements on the paths.
-     * For each pair the first needs to be printe before the second.
-     */
-    const std::unordered_multimap<Path, Path>* order_requirements;
 
     /*!
      * Find the vertex which will be the starting point of printing a polygon or
@@ -616,9 +614,9 @@ protected:
         {
             // For polylines, the seam settings are not applicable. Simply choose the position closest to target_pos then.
             const coord_t back_distance
-                = (combing_boundary == nullptr) ? getDirectDistance(path.converted_->back(), target_pos) : getCombingDistance(path.converted_->back(), target_pos);
+                = (combing_boundary_ == nullptr) ? getDirectDistance(path.converted_->back(), target_pos) : getCombingDistance(path.converted_->back(), target_pos);
             if (back_distance < getDirectDistance(path.converted_->front(), target_pos)
-                || (combing_boundary
+                || (combing_boundary_
                     && back_distance < getCombingDistance(path.converted_->front(), target_pos))) // Lazy or: Only compute combing distance if direct distance is closer.
             {
                 return path.converted_->size() - 1; // Back end is closer.
@@ -631,7 +629,7 @@ protected:
 
         // Rest of the function only deals with (closed) polygons. We need to be able to find the seam location of those polygons.
 
-        if (seam_config.type == EZSeamType::RANDOM)
+        if (seam_config_.type == EZSeamType::RANDOM)
         {
             size_t vert = getRandomPointInPolygon(*path.converted_);
             return vert;
@@ -654,8 +652,8 @@ protected:
         {
             // For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
             // For SHARPEST_CORNER, use a fixed starting score of 0.
-            const coord_t distance = (combing_boundary == nullptr) ? getDirectDistance(here, target_pos) : getCombingDistance(here, target_pos);
-            const float score_distance = (seam_config.type == EZSeamType::SHARPEST_CORNER && seam_config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
+            const coord_t distance = (combing_boundary_ == nullptr) ? getDirectDistance(here, target_pos) : getCombingDistance(here, target_pos);
+            const float score_distance = (seam_config_.type == EZSeamType::SHARPEST_CORNER && seam_config_.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
                                            ? MM2INT(10)
                                            : vSize2(here - target_pos);
 
@@ -664,7 +662,7 @@ protected:
             // angles > 0 are convex (right turning)
 
             float corner_shift;
-            if (seam_config.type == EZSeamType::SHORTEST)
+            if (seam_config_.type == EZSeamType::SHORTEST)
             {
                 // the more a corner satisfies our criteria, the closer it appears to be
                 // shift 10mm for a very acute corner
@@ -680,7 +678,7 @@ protected:
             }
 
             float score = score_distance;
-            switch (seam_config.corner_pref)
+            switch (seam_config_.corner_pref)
             {
             default:
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
@@ -835,11 +833,11 @@ protected:
      */
     coord_t getCombingDistance(const Point& a, const Point& b)
     {
-        if (! PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary, a, b))
+        if (! PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary_, a, b))
         {
             return getDirectDistance(a, b); // No collision with any line. Just compute the direct distance then.
         }
-        if (paths.size() > 100)
+        if (paths_.size() > 100)
         {
             /* If we have many paths to optimize the order for, this combing
             calculation can become very expensive. Instead, penalize travels
@@ -847,17 +845,17 @@ protected:
             return getDirectDistance(a, b) * 5;
         }
 
-        if (combing_grid == nullptr)
+        if (combing_grid_ == nullptr)
         {
             constexpr coord_t grid_size = 2000; // 2mm grid cells. Smaller will use more memory, but reduce chance of unnecessary collision checks.
-            combing_grid = PolygonUtils::createLocToLineGrid(*combing_boundary, grid_size);
+            combing_grid_ = PolygonUtils::createLocToLineGrid(*combing_boundary_, grid_size);
         }
 
         CombPath comb_path; // Output variable.
         constexpr coord_t rounding_error = -25;
         constexpr coord_t tiny_travel_threshold = 0;
         constexpr bool fail_on_unavoidable_obstacles = false;
-        LinePolygonsCrossings::comb(*combing_boundary, *combing_grid, a, b, comb_path, rounding_error, tiny_travel_threshold, fail_on_unavoidable_obstacles);
+        LinePolygonsCrossings::comb(*combing_boundary_, *combing_grid_, a, b, comb_path, rounding_error, tiny_travel_threshold, fail_on_unavoidable_obstacles);
 
         coord_t sum = 0;
         Point last_point = a;
@@ -885,12 +883,12 @@ protected:
         {
             return false;
         }
-        return vSize2(path.converted_->back() - path.converted_->front()) < coincident_point_distance * coincident_point_distance;
+        return vSize2(path.converted_->back() - path.converted_->front()) < _coincident_point_distance * _coincident_point_distance;
     }
 };
 
 template<typename Path>
-const std::unordered_multimap<Path, Path> PathOrderOptimizer<Path>::no_order_requirements;
+const std::unordered_multimap<Path, Path> PathOrderOptimizer<Path>::no_order_requirements_;
 
 } // namespace cura
 
