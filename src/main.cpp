@@ -45,7 +45,19 @@ int main(int argc, char** argv)
     sentry_options_set_dsn(options, "https://734f9ec9024f73e53701d59c3ffddfe3@o323038.ingest.sentry.io/4506257745510401");
     // This is also the default-path. For further information and recommendations:
     // https://docs.sentry.io/platforms/native/configuration/options/#database-path
-    sentry_options_set_database_path(options, ".sentry-native");
+    std::string config_path = "";
+
+#if defined(__linux__)
+    config_path += getenv("HOME");
+    config_path += "/.local/share/cura/";
+#elif defined(__APPLE__) && defined(__MACH__)
+    config_path += getenv("HOME");
+    config_path += "/Library/Application Support/cura/";
+#elif defined(_WIN64)
+    config_path = "%APPDATA%\\cura\\";
+#endif
+    config_path += ".sentry-native";
+    sentry_options_set_database_path(options, config_path.c_str());
     std::string version = "curaengine@";
     version += std::string(CURA_ENGINE_VERSION);
     sentry_options_set_release(options, version.c_str());
