@@ -14,15 +14,15 @@ namespace cura
 
 class ProgressEstimatorLinear : public ProgressEstimator
 {
-    unsigned int total_steps;
+    unsigned int total_steps_;
 public:
     ProgressEstimatorLinear(unsigned int total_steps)
-    : total_steps(total_steps)
+    : total_steps_(total_steps)
     {
     }
     double progress(int current_step)
     {
-        return double(current_step) / double(total_steps);
+        return double(current_step) / double(total_steps_);
     }
 };
 

@@ -3216,7 +3216,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     PathOrderOptimizer<const SupportInfillPart*> island_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
     for (const SupportInfillPart& part : support_layer.support_infill_parts)
     {
-        (part.use_fractional_config ? island_order_optimizer_initial : island_order_optimizer).addPolygon(&part);
+        (part.use_fractional_config_ ? island_order_optimizer_initial : island_order_optimizer).addPolygon(&part);
     }
     island_order_optimizer_initial.optimize();
     island_order_optimizer.optimize();
@@ -3234,13 +3234,13 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     for (const PathOrdering<const SupportInfillPart*>& path : ranges::views::concat(island_order_optimizer_initial.paths_, island_order_optimizer.paths_))
     {
         const SupportInfillPart& part = *path.vertices_;
-        const auto& configs = part.use_fractional_config ? gcode_layer.configs_storage.support_fractional_infill_config : gcode_layer.configs_storage.support_infill_config;
+        const auto& configs = part.use_fractional_config_ ? gcode_layer.configs_storage.support_fractional_infill_config : gcode_layer.configs_storage.support_infill_config;
 
         // always process the wall overlap if walls are generated
-        const int current_support_infill_overlap = (part.inset_count_to_generate > 0) ? default_support_infill_overlap : 0;
+        const int current_support_infill_overlap = (part.inset_count_to_generate_ > 0) ? default_support_infill_overlap : 0;
 
         // The support infill walls were generated separately, first. Always add them, regardless of how many densities we have.
-        std::vector<VariableWidthLines> wall_toolpaths = part.wall_toolpaths;
+        std::vector<VariableWidthLines> wall_toolpaths = part.wall_toolpaths_;
 
         if (! wall_toolpaths.empty())
         {
@@ -3268,37 +3268,37 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             added_something |= wall_orderer.addToLayer();
         }
 
-        if ((default_support_line_distance <= 0 && support_structure != ESupportStructure::TREE) || part.infill_area_per_combine_per_density.empty())
+        if ((default_support_line_distance <= 0 && support_structure != ESupportStructure::TREE) || part.infill_area_per_combine_per_density_.empty())
         {
             continue;
         }
 
-        for (unsigned int combine_idx = 0; combine_idx < part.infill_area_per_combine_per_density[0].size(); ++combine_idx)
+        for (unsigned int combine_idx = 0; combine_idx < part.infill_area_per_combine_per_density_[0].size(); ++combine_idx)
         {
             const coord_t support_line_width = default_support_line_width * (combine_idx + 1);
 
             Polygons support_polygons;
             std::vector<VariableWidthLines> wall_toolpaths_here;
             Polygons support_lines;
-            const size_t max_density_idx = part.infill_area_per_combine_per_density.size() - 1;
+            const size_t max_density_idx = part.infill_area_per_combine_per_density_.size() - 1;
             for (size_t density_idx = max_density_idx; (density_idx + 1) > 0; --density_idx)
             {
-                if (combine_idx >= part.infill_area_per_combine_per_density[density_idx].size())
+                if (combine_idx >= part.infill_area_per_combine_per_density_[density_idx].size())
                 {
                     continue;
                 }
 
                 const unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
                 int support_line_distance_here
-                    = (part.custom_line_distance > 0
-                           ? part.custom_line_distance
+                    = (part.custom_line_distance_ > 0
+                           ? part.custom_line_distance_
                            : default_support_line_distance * density_factor); // the highest density infill combines with the next to create a grid with density_factor 1
                 const int support_shift = support_line_distance_here / 2;
-                if (part.custom_line_distance == 0 && (density_idx == max_density_idx || support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D))
+                if (part.custom_line_distance_ == 0 && (density_idx == max_density_idx || support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D))
                 {
                     support_line_distance_here /= 2;
                 }
-                const Polygons& area = Simplify(infill_extruder.settings_).polygon(part.infill_area_per_combine_per_density[density_idx][combine_idx]);
+                const Polygons& area = Simplify(infill_extruder.settings_).polygon(part.infill_area_per_combine_per_density_[density_idx][combine_idx]);
 
                 constexpr size_t wall_count = 0; // Walls are generated somewhere else, so their layers aren't vertically combined.
                 const coord_t small_area_width = 0;

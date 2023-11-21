@@ -139,7 +139,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 exlude_at_layer.add(storage.support.supportLayers[layer_idx].support_roof);
                 for (auto part : storage.support.supportLayers[layer_idx].support_infill_parts)
                 {
-                    exlude_at_layer.add(part.outline);
+                    exlude_at_layer.add(part.outline_);
                 }
                 exclude[layer_idx] = exlude_at_layer.unionPolygons();
                 scripta::log("tree_support_exclude", exclude[layer_idx], SectionType::SUPPORT, layer_idx);

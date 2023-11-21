@@ -21,15 +21,15 @@ class FlowTempGraph
 public:
     struct Datum
     {
-        const double flow; //!< The flow in mm^3/s
-        const Temperature temp; //!< The temperature in *C
+        const double flow_; //!< The flow in mm^3/s
+        const Temperature temp_; //!< The temperature in *C
         Datum(const double flow, const Temperature temp)
-        : flow(flow)
-        , temp(temp)
+        : flow_(flow)
+        , temp_(temp)
         {}
     };
 
-    std::vector<Datum> data; //!< The points of the graph between which the graph is linearly interpolated
+    std::vector<Datum> data_; //!< The points of the graph between which the graph is linearly interpolated
 
     /*!
      * Get the temperature corresponding to a specific flow.

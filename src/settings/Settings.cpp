@@ -245,7 +245,7 @@ FlowTempGraph Settings::get<FlowTempGraph>(const std::string& key) const
         {
             double first = std::stod(first_substring);
             double second = std::stod(second_substring);
-            result.data.emplace_back(first, second);
+            result.data_.emplace_back(first, second);
         }
         catch (const std::invalid_argument& e)
         {

@@ -443,7 +443,7 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
             }
             for (const SupportInfillPart& support_infill_part : support_layer.support_infill_parts)
             {
-                first_layer_outline.add(support_infill_part.outline);
+                first_layer_outline.add(support_infill_part.outline_);
             }
             first_layer_outline.add(support_layer.support_bottom);
             first_layer_outline.add(support_layer.support_roof);
@@ -608,7 +608,7 @@ void SkirtBrim::generateSupportBrim()
     Polygons support_outline;
     for (SupportInfillPart& part : support_layer.support_infill_parts)
     {
-        support_outline.add(part.outline);
+        support_outline.add(part.outline_);
     }
     const Polygons brim_area = support_outline.difference(support_outline.offset(-brim_width));
     support_layer.excludeAreasFromSupportInfillAreas(brim_area, AABB(brim_area));

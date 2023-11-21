@@ -35,7 +35,7 @@ namespace cura
     template<>
     ConstPolygonRef PathOrdering<const SupportInfillPart*>::getVertexData()
     {
-        return vertices_->outline.outerPolygon();
+        return vertices_->outline_.outerPolygon();
     }
     template<>
     ConstPolygonRef PathOrdering<const ExtrusionLine*>::getVertexData()

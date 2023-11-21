@@ -15,7 +15,7 @@ class UniformDensityProvider : public DensityProvider
 {
 public:
     UniformDensityProvider(float density)
-    : density(density)
+    : density_(density)
     {
     };
 
@@ -25,10 +25,10 @@ public:
 
     virtual float operator()(const AABB3D&) const
     {
-        return density;
+        return density_;
     };
 protected:
-    float density;
+    float density_;
 };
 
 } // namespace cura
