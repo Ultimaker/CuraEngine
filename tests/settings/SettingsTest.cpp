@@ -86,7 +86,7 @@ TEST_F(SettingsTest, AddSettingExtruderTrain)
 {
     // Add a slice with some extruder trains.
     std::shared_ptr<Slice> current_slice = std::make_shared<Slice>(0);
-    Application::getInstance().current_slice = current_slice.get();
+    Application::getInstance().current_slice_ = current_slice.get();
     current_slice->scene.extruders.emplace_back(0, nullptr);
     current_slice->scene.extruders.emplace_back(1, nullptr);
     current_slice->scene.extruders.emplace_back(2, nullptr);
@@ -220,7 +220,7 @@ TEST_F(SettingsTest, OverwriteSetting)
 TEST_F(SettingsTest, Inheritance)
 {
     std::shared_ptr<Slice> current_slice = std::make_shared<Slice>(0);
-    Application::getInstance().current_slice = current_slice.get();
+    Application::getInstance().current_slice_ = current_slice.get();
 
     const std::string value = "To be frank, I'd have to change my name.";
     Settings parent;
@@ -237,7 +237,7 @@ TEST_F(SettingsTest, Inheritance)
 TEST_F(SettingsTest, LimitToExtruder)
 {
     std::shared_ptr<Slice> current_slice = std::make_shared<Slice>(0);
-    Application::getInstance().current_slice = current_slice.get();
+    Application::getInstance().current_slice_ = current_slice.get();
     current_slice->scene.extruders.emplace_back(0, nullptr);
     current_slice->scene.extruders.emplace_back(1, nullptr);
     current_slice->scene.extruders.emplace_back(2, nullptr);

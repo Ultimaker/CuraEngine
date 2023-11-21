@@ -76,10 +76,10 @@ public:
     SliceDataStorage* setUpStorage()
     {
         constexpr size_t num_mesh_groups = 1;
-        Application::getInstance().current_slice = new Slice(num_mesh_groups);
+        Application::getInstance().current_slice_ = new Slice(num_mesh_groups);
 
         // Define all settings in the mesh group. The extruder train and model settings will fall back on that then.
-        settings = &Application::getInstance().current_slice->scene.current_mesh_group->settings;
+        settings = &Application::getInstance().current_slice_->scene.current_mesh_group->settings;
         // Default settings. These are not (always) the FDM printer defaults, but sometimes just setting values that can be recognised
         // uniquely as much as possible.
         settings->add("acceleration_prime_tower", "5008");
@@ -176,7 +176,7 @@ public:
         settings->add("travel_avoid_other_parts", "true");
         settings->add("travel_avoid_supports", "true");
 
-        Application::getInstance().current_slice->scene.extruders.emplace_back(0, settings); // Add an extruder train.
+        Application::getInstance().current_slice_->scene.extruders.emplace_back(0, settings); // Add an extruder train.
 
         // Set the fan speed layer time settings (since the LayerPlan constructor copies these).
         FanSpeedLayerTimeSettings fan_settings;
@@ -216,7 +216,7 @@ public:
     void TearDown() override
     {
         delete storage;
-        delete Application::getInstance().current_slice;
+        delete Application::getInstance().current_slice_;
     }
 };
 

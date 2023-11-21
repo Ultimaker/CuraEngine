@@ -30,10 +30,10 @@ class SlicePhaseTest : public testing::Test
         Application::getInstance().startThreadPool();
 
         // Set up a scene so that we may request settings.
-        Application::getInstance().current_slice = new Slice(1);
+        Application::getInstance().current_slice_ = new Slice(1);
 
         // And a few settings that we want to default.
-        Scene& scene = Application::getInstance().current_slice->scene;
+        Scene& scene = Application::getInstance().current_slice_->scene;
         scene.settings.add("slicing_tolerance", "middle");
         scene.settings.add("layer_height_0", "0.2");
         scene.settings.add("layer_height", "0.1");
@@ -66,7 +66,7 @@ class SlicePhaseTest : public testing::Test
 
 TEST_F(SlicePhaseTest, Cube)
 {
-    Scene& scene = Application::getInstance().current_slice->scene;
+    Scene& scene = Application::getInstance().current_slice_->scene;
     MeshGroup& mesh_group = scene.mesh_groups.back();
 
     const FMatrix4x3 transformation;
@@ -126,7 +126,7 @@ TEST_F(SlicePhaseTest, Cube)
 
 TEST_F(SlicePhaseTest, Cylinder1000)
 {
-    Scene& scene = Application::getInstance().current_slice->scene;
+    Scene& scene = Application::getInstance().current_slice_->scene;
     MeshGroup& mesh_group = scene.mesh_groups.back();
 
     const FMatrix4x3 transformation;

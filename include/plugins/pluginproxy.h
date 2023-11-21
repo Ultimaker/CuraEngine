@@ -341,7 +341,7 @@ private:
     rsp_converter_type rsp_{}; ///< The Invoke response converter object.
     slot_metadata slot_info_{ .slot_id = SlotID,
                               .version = SlotVersion.value,
-                              .engine_uuid = Application::getInstance().instance_uuid }; ///< Holds information about the plugin slot.
+                              .engine_uuid = Application::getInstance().instance_uuid_ }; ///< Holds information about the plugin slot.
     std::optional<plugin_metadata> plugin_info_{ std::optional<plugin_metadata>(std::nullopt) }; ///< Optional object that holds the plugin metadata, set after handshake
 };
 

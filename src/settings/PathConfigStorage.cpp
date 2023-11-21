@@ -17,7 +17,7 @@ namespace cura
 std::vector<Ratio> PathConfigStorage::getLineWidthFactorPerExtruder(const LayerIndex& layer_nr)
 {
     std::vector<Ratio> ret;
-    for (const ExtruderTrain& train : Application::getInstance().current_slice->scene.extruders)
+    for (const ExtruderTrain& train : Application::getInstance().current_slice_->scene.extruders)
     {
         if (layer_nr <= 0)
         {
@@ -33,15 +33,15 @@ std::vector<Ratio> PathConfigStorage::getLineWidthFactorPerExtruder(const LayerI
 }
 
 PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const LayerIndex& layer_nr, const coord_t layer_thickness)
-    : support_infill_extruder_nr(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_)
-    , support_roof_extruder_nr(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr_)
-    , support_bottom_extruder_nr(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr_)
-    , raft_base_train(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_base_extruder_nr"))
-    , raft_interface_train(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_interface_extruder_nr"))
-    , raft_surface_train(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_surface_extruder_nr"))
-    , support_infill_train(Application::getInstance().current_slice->scene.extruders[support_infill_extruder_nr])
-    , support_roof_train(Application::getInstance().current_slice->scene.extruders[support_roof_extruder_nr])
-    , support_bottom_train(Application::getInstance().current_slice->scene.extruders[support_bottom_extruder_nr])
+    : support_infill_extruder_nr(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_)
+    , support_roof_extruder_nr(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr_)
+    , support_bottom_extruder_nr(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr_)
+    , raft_base_train(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_base_extruder_nr"))
+    , raft_interface_train(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_interface_extruder_nr"))
+    , raft_surface_train(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_surface_extruder_nr"))
+    , support_infill_train(Application::getInstance().current_slice_->scene.extruders[support_infill_extruder_nr])
+    , support_roof_train(Application::getInstance().current_slice_->scene.extruders[support_roof_extruder_nr])
+    , support_bottom_train(Application::getInstance().current_slice_->scene.extruders[support_bottom_extruder_nr])
     , line_width_factor_per_extruder(PathConfigStorage::getLineWidthFactorPerExtruder(layer_nr))
     , raft_base_config(GCodePathConfig{ .type = PrintFeatureType::SupportInterface,
                                         .line_width = raft_base_train.settings_.get<coord_t>("raft_base_line_width"),
@@ -83,14 +83,14 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
                                                  .acceleration = support_bottom_train.settings_.get<Acceleration>("acceleration_support_bottom"),
                                                  .jerk = support_bottom_train.settings_.get<Velocity>("jerk_support_bottom") } })
 {
-    const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
+    const size_t extruder_count = Application::getInstance().current_slice_->scene.extruders.size();
     travel_config_per_extruder.reserve(extruder_count);
     skirt_brim_config_per_extruder.reserve(extruder_count);
     prime_tower_config_per_extruder.reserve(extruder_count);
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
-        const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
+        const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
         travel_config_per_extruder.emplace_back(GCodePathConfig{ .type = PrintFeatureType::MoveCombing,
                                                                  .line_width = 0,
                                                                  .layer_thickness = 0,
@@ -151,8 +151,8 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
         handleInitialLayerSpeedup(storage, layer_nr, initial_speedup_layer_count);
     }
 
-    const auto layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height");
-    const auto support_top_distance = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("support_top_distance");
+    const auto layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<coord_t>("layer_height");
+    const auto support_top_distance = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<coord_t>("support_top_distance");
     const coord_t leftover_support_distance = support_top_distance % layer_height;
 
     support_fractional_infill_config = support_infill_config; // copy
@@ -183,8 +183,8 @@ void MeshPathConfigs::smoothAllSpeeds(const SpeedDerivatives& first_layer_config
 void PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& storage, const LayerIndex& layer_nr, const size_t initial_speedup_layer_count)
 {
     std::vector<SpeedDerivatives> global_first_layer_config_per_extruder;
-    global_first_layer_config_per_extruder.reserve(Application::getInstance().current_slice->scene.extruders.size());
-    for (const ExtruderTrain& extruder : Application::getInstance().current_slice->scene.extruders)
+    global_first_layer_config_per_extruder.reserve(Application::getInstance().current_slice_->scene.extruders.size());
+    for (const ExtruderTrain& extruder : Application::getInstance().current_slice_->scene.extruders)
     {
         global_first_layer_config_per_extruder.emplace_back(SpeedDerivatives{ .speed = extruder.settings_.get<Velocity>("speed_print_layer_0"),
                                                                               .acceleration = extruder.settings_.get<Acceleration>("acceleration_print_layer_0"),
@@ -194,7 +194,7 @@ void PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& storag
     { // support
         if (layer_nr < static_cast<LayerIndex>(initial_speedup_layer_count))
         {
-            const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+            const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
             const size_t extruder_nr_support_infill
                 = mesh_group_settings.get<ExtruderTrain&>((layer_nr <= 0) ? "support_extruder_nr_layer_0" : "support_infill_extruder_nr").extruder_nr_;
             for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
@@ -218,9 +218,9 @@ void PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& storag
     }
 
     { // extruder configs: travel, skirt/brim (= shield)
-        for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
+        for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
         {
-            const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
+            const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
             const SpeedDerivatives initial_layer_travel_speed_config{ .speed = train.settings_.get<Velocity>("speed_travel_layer_0"),
                                                                       .acceleration = train.settings_.get<Acceleration>("acceleration_travel_layer_0"),
                                                                       .jerk = train.settings_.get<Velocity>("jerk_travel_layer_0") };

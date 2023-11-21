@@ -70,7 +70,7 @@ bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* me
 
 size_t FffPolygonGenerator::getDraftShieldLayerCount(const size_t total_layers) const
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     if (! mesh_group_settings.get<bool>("draft_shield_enabled"))
     {
         return 0;
@@ -99,7 +99,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
     spdlog::info("Slicing model...");
 
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
 
     // regular layers
     int slice_layer_count = 0; // Use signed int because we need to subtract the initial layer in a calculation temporarily.
@@ -228,7 +228,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
     Mold::process(slicerList);
 
-    Scene& scene = Application::getInstance().current_slice->scene;
+    Scene& scene = Application::getInstance().current_slice_->scene;
     for (unsigned int mesh_idx = 0; mesh_idx < slicerList.size(); mesh_idx++)
     {
         Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
@@ -250,7 +250,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     generateMultipleVolumesOverlap(slicerList);
 
 
-    if (Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("interlocking_enable"))
+    if (Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("interlocking_enable"))
     {
         InterlockingGenerator::generateInterlockingStructure(slicerList);
     }
@@ -383,7 +383,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_order_idx + 1, storage.meshes.size());
     }
 
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
 
     // we need to remove empty layers after we have processed the insets
     // processInsets might throw away parts if they have no wall at all (cause it doesn't fit)
@@ -510,7 +510,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
     bool process_infill = mesh.settings.get<coord_t>("infill_line_distance") > 0;
     if (! process_infill)
     { // do process infill anyway if it's modified by modifier meshes
-        const Scene& scene = Application::getInstance().current_slice->scene;
+        const Scene& scene = Application::getInstance().current_slice_->scene;
         for (size_t other_mesh_order_idx = mesh_order_idx + 1; other_mesh_order_idx < mesh_order.size(); ++other_mesh_order_idx)
         {
             const size_t other_mesh_idx = mesh_order[other_mesh_order_idx];
@@ -528,7 +528,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
     }
 
     // skin & infill
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     bool magic_spiralize = mesh_group_settings.get<bool>("magic_spiralize");
     size_t mesh_max_initial_bottom_layer_count = 0;
     if (magic_spiralize)
@@ -783,7 +783,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size
     if (n_empty_first_layers > 0)
     {
         spdlog::info("Removing {} layers because they are empty", n_empty_first_layers);
-        const coord_t layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height");
+        const coord_t layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<coord_t>("layer_height");
         for (auto& mesh_ptr : storage.meshes)
         {
             auto& mesh = *mesh_ptr;
@@ -847,7 +847,7 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, const La
 
 void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage)
 {
-    const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
+    const size_t extruder_count = Application::getInstance().current_slice_->scene.extruders.size();
 
     std::vector<int>& max_print_height_per_extruder = storage.max_print_height_per_extruder;
     assert(max_print_height_per_extruder.size() == 0 && "storage.max_print_height_per_extruder shouldn't have been initialized yet!");
@@ -876,7 +876,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
         }
 
         // Height of where the support reaches.
-        Scene& scene = Application::getInstance().current_slice->scene;
+        Scene& scene = Application::getInstance().current_slice_->scene;
         const Settings& mesh_group_settings = scene.current_mesh_group->settings;
         const size_t support_infill_extruder_nr
             = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_; // TODO: Support extruder should be configurable per object.
@@ -935,7 +935,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
 
 void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     if (! mesh_group_settings.get<bool>("ooze_shield_enabled"))
     {
         return;
@@ -975,7 +975,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
         coord_t max_line_width = 0;
         { // compute max_line_width
             const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
-            const auto& extruders = Application::getInstance().current_slice->scene.extruders;
+            const auto& extruders = Application::getInstance().current_slice_->scene.extruders;
             for (int extruder_nr = 0; extruder_nr < int(extruders.size()); extruder_nr++)
             {
                 if (! extruder_is_used[extruder_nr])
@@ -997,7 +997,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
     {
         return;
     }
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
 
     const LayerIndex layer_skip{ 500 / layer_height + 1 };
@@ -1016,7 +1016,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
     // Extra offset has rounded joints, so simplify again.
     coord_t maximum_resolution = 0; // Draft shield is printed with every extruder, so resolve with the max() or min() of them to meet the requirements of all extruders.
     coord_t maximum_deviation = std::numeric_limits<coord_t>::max();
-    for (const ExtruderTrain& extruder : Application::getInstance().current_slice->scene.extruders)
+    for (const ExtruderTrain& extruder : Application::getInstance().current_slice_->scene.extruders)
     {
         maximum_resolution = std::max(maximum_resolution, extruder.settings_.get<coord_t>("meshfix_maximum_resolution"));
         maximum_deviation = std::min(maximum_deviation, extruder.settings_.get<coord_t>("meshfix_maximum_deviation"));
@@ -1027,7 +1027,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
         coord_t max_line_width = 0;
         { // compute max_line_width
             const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
-            const auto& extruders = Application::getInstance().current_slice->scene.extruders;
+            const auto& extruders = Application::getInstance().current_slice_->scene.extruders;
             for (int extruder_nr = 0; extruder_nr < int(extruders.size()); extruder_nr++)
             {
                 if (! extruder_is_used[extruder_nr])
@@ -1041,7 +1041,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
 
 void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
 
     if (adhesion_type == EPlatformAdhesion::RAFT)
@@ -1061,7 +1061,7 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
         skirt_brim.generateSupportBrim();
     }
 
-    for (const auto& extruder : Application::getInstance().current_slice->scene.extruders)
+    for (const auto& extruder : Application::getInstance().current_slice_->scene.extruders)
     {
         Simplify simplifier(extruder.settings_);
         for (auto skirt_brim_line : storage.skirt_brim[extruder.extruder_nr_])

@@ -61,7 +61,7 @@ void AdaptiveLayerHeights::calculateAllowedLayerHeights()
 void AdaptiveLayerHeights::calculateLayers()
 {
     const coord_t minimum_layer_height = *std::min_element(allowed_layer_heights.begin(), allowed_layer_heights.end());
-    Settings const& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    Settings const& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     auto slicing_tolerance = mesh_group_settings.get<SlicingTolerance>("slicing_tolerance");
     std::vector<size_t> triangles_of_interest;
     const coord_t model_max_z = meshgroup->max().z_;
@@ -187,7 +187,7 @@ void AdaptiveLayerHeights::calculateLayers()
 void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
 {
     // loop over all mesh faces (triangles) and find their slopes
-    for (const Mesh& mesh : Application::getInstance().current_slice->scene.current_mesh_group->meshes)
+    for (const Mesh& mesh : Application::getInstance().current_slice_->scene.current_mesh_group->meshes)
     {
         // Skip meshes that are not printable
         if (mesh.settings_.get<bool>("infill_mesh") || mesh.settings_.get<bool>("cutting_mesh") || mesh.settings_.get<bool>("anti_overhang_mesh"))

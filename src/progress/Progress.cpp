@@ -40,7 +40,7 @@ void Progress::init()
 void Progress::messageProgress(Progress::Stage stage, int progress_in_stage, int progress_in_stage_max)
 {
     double percentage = calcOverallProgress(stage, static_cast<double>(progress_in_stage / static_cast<double>(progress_in_stage_max)));
-    Application::getInstance().communication->sendProgress(static_cast<float>(percentage));
+    Application::getInstance().communication_->sendProgress(static_cast<float>(percentage));
 }
 
 void Progress::messageProgressStage(Progress::Stage stage, TimeKeeper* time_keeper)

@@ -47,7 +47,7 @@ std::shared_ptr<proto::LayerOptimized> ArcusCommunication::Private::getOptimized
 
 void ArcusCommunication::Private::readGlobalSettingsMessage(const proto::SettingList& global_settings_message)
 {
-    Slice* slice = Application::getInstance().current_slice;
+    Slice* slice = Application::getInstance().current_slice_;
     for (const cura::proto::Setting& setting_message : global_settings_message.settings())
     {
         slice->scene.settings.add(setting_message.name(), setting_message.value());
@@ -57,7 +57,7 @@ void ArcusCommunication::Private::readGlobalSettingsMessage(const proto::Setting
 void ArcusCommunication::Private::readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<proto::Extruder>& extruder_messages)
 {
     // Make sure we have enough extruders added currently.
-    Slice* slice = Application::getInstance().current_slice;
+    Slice* slice = Application::getInstance().current_slice_;
     const size_t extruder_count = slice->scene.settings.get<size_t>("machine_extruder_count");
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
@@ -90,7 +90,7 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
         return; // Don't slice empty mesh groups.
     }
 
-    Scene& scene = Application::getInstance().current_slice->scene;
+    Scene& scene = Application::getInstance().current_slice_->scene;
     MeshGroup& mesh_group = scene.mesh_groups.at(object_count);
 
     // Load the settings in the mesh group.

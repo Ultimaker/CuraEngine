@@ -31,7 +31,7 @@ public:
     {
         instance = new ArcusCommunication::Private();
         instance->socket = new MockSocket();
-        Application::getInstance().current_slice = new Slice(GK_TEST_NUM_MESH_GROUPS);
+        Application::getInstance().current_slice_ = new Slice(GK_TEST_NUM_MESH_GROUPS);
     }
 
     void TearDown() override
@@ -39,7 +39,7 @@ public:
         delete instance->socket;
         delete instance;
 
-        delete Application::getInstance().current_slice;
+        delete Application::getInstance().current_slice_;
     }
 
     /*
@@ -92,7 +92,7 @@ TEST_F(ArcusCommunicationPrivateTest, ReadGlobalSettingsMessage)
     instance->readGlobalSettingsMessage(global_settings);
 
     // Check if they are equal in general:
-    const auto& settings = Application::getInstance().current_slice->scene.settings;
+    const auto& settings = Application::getInstance().current_slice_->scene.settings;
     for (const auto& entry : raw_settings)
     {
         EXPECT_EQ(settings.get<std::string>(entry.first), entry.second);
@@ -114,12 +114,12 @@ TEST_F(ArcusCommunicationPrivateTest, ReadSingleExtruderSettingsMessage)
     const std::string setting_value = "You put the 'sexy' in 'dyslexic'.";
     setting->set_value(setting_value);
 
-    Application::getInstance().current_slice->scene.settings.add("machine_extruder_count", "1");
+    Application::getInstance().current_slice_->scene.settings.add("machine_extruder_count", "1");
     // Run the call that we're testing.
     instance->readExtruderSettingsMessage(messages);
 
-    ASSERT_EQ(size_t(1), Application::getInstance().current_slice->scene.extruders.size()) << "Reading the extruders must construct the correct amount of extruders in the scene.";
-    EXPECT_EQ(setting_value, Application::getInstance().current_slice->scene.extruders[0].settings_.get<std::string>("test_setting"));
+    ASSERT_EQ(size_t(1), Application::getInstance().current_slice_->scene.extruders.size()) << "Reading the extruders must construct the correct amount of extruders in the scene.";
+    EXPECT_EQ(setting_value, Application::getInstance().current_slice_->scene.extruders[0].settings_.get<std::string>("test_setting"));
 }
 
 TEST_F(ArcusCommunicationPrivateTest, ReadMultiExtruderSettingsMessage)
@@ -142,13 +142,13 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMultiExtruderSettingsMessage)
     second_setting->set_name("What extruder are you?");
     second_setting->set_value("Second");
 
-    Application::getInstance().current_slice->scene.settings.add("machine_extruder_count", "2");
+    Application::getInstance().current_slice_->scene.settings.add("machine_extruder_count", "2");
     // Run the call that we're testing.
     instance->readExtruderSettingsMessage(messages);
 
-    ASSERT_EQ(size_t(2), Application::getInstance().current_slice->scene.extruders.size()) << "Reading the extruders must construct the correct amount of extruders in the scene.";
-    EXPECT_EQ(std::string("First"), Application::getInstance().current_slice->scene.extruders[0].settings_.get<std::string>("What extruder are you?"));
-    EXPECT_EQ(std::string("Second"), Application::getInstance().current_slice->scene.extruders[1].settings_.get<std::string>("What extruder are you?"));
+    ASSERT_EQ(size_t(2), Application::getInstance().current_slice_->scene.extruders.size()) << "Reading the extruders must construct the correct amount of extruders in the scene.";
+    EXPECT_EQ(std::string("First"), Application::getInstance().current_slice_->scene.extruders[0].settings_.get<std::string>("What extruder are you?"));
+    EXPECT_EQ(std::string("Second"), Application::getInstance().current_slice_->scene.extruders[1].settings_.get<std::string>("What extruder are you?"));
 }
 
 TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
@@ -206,7 +206,7 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
     instance->readMeshGroupMessage(mesh_message);
 
     // Checks:
-    auto& scene = Application::getInstance().current_slice->scene;
+    auto& scene = Application::getInstance().current_slice_->scene;
     ASSERT_FALSE(scene.mesh_groups.empty());
 
     auto& meshes = scene.mesh_groups[0].meshes;

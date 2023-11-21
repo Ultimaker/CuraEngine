@@ -26,7 +26,7 @@ namespace cura
 PrimeTower::PrimeTower()
     : wipe_from_middle(false)
 {
-    const Scene& scene = Application::getInstance().current_slice->scene;
+    const Scene& scene = Application::getInstance().current_slice_->scene;
 
     {
         EPlatformAdhesion adhesion_type = scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type");
@@ -87,7 +87,7 @@ void PrimeTower::generateGroundpoly()
         return;
     }
 
-    const Scene& scene = Application::getInstance().current_slice->scene;
+    const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const coord_t tower_size = mesh_group_settings.get<coord_t>("prime_tower_size");
 
@@ -114,7 +114,7 @@ void PrimeTower::generatePaths(const SliceDataStorage& storage)
 
 void PrimeTower::generatePaths_denseInfill()
 {
-    const Scene& scene = Application::getInstance().current_slice->scene;
+    const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
     const bool base_enabled = mesh_group_settings.get<bool>("prime_tower_brim_enable");
@@ -210,7 +210,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
         return;
     }
 
-    bool post_wipe = Application::getInstance().current_slice->scene.extruders[prev_extruder].settings_.get<bool>("prime_tower_wipe_enabled");
+    bool post_wipe = Application::getInstance().current_slice_->scene.extruders[prev_extruder].settings_.get<bool>("prime_tower_wipe_enabled");
 
     // Do not wipe on the first layer, we will generate non-hollow prime tower there for better bed adhesion.
     if (prev_extruder == new_extruder || layer_nr == 0)
@@ -230,9 +230,9 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
     if (post_wipe)
     {
         // Make sure we wipe the old extruder on the prime tower.
-        const Settings& previous_settings = Application::getInstance().current_slice->scene.extruders[prev_extruder].settings_;
+        const Settings& previous_settings = Application::getInstance().current_slice_->scene.extruders[prev_extruder].settings_;
         const Point previous_nozzle_offset = Point(previous_settings.get<coord_t>("machine_nozzle_offset_x"), previous_settings.get<coord_t>("machine_nozzle_offset_y"));
-        const Settings& new_settings = Application::getInstance().current_slice->scene.extruders[new_extruder].settings_;
+        const Settings& new_settings = Application::getInstance().current_slice_->scene.extruders[new_extruder].settings_;
         const Point new_nozzle_offset = Point(new_settings.get<coord_t>("machine_nozzle_offset_x"), new_settings.get<coord_t>("machine_nozzle_offset_y"));
         gcode_layer.addTravel(post_wipe_point - previous_nozzle_offset + new_nozzle_offset);
     }
@@ -301,7 +301,7 @@ void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const int extruder_nr
 
     const ClosestPolygonPoint wipe_location = prime_tower_start_locations[current_start_location_idx];
 
-    const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
+    const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
     const coord_t inward_dist = train.settings_.get<coord_t>("machine_nozzle_size") * 3 / 2;
     const coord_t start_dist = train.settings_.get<coord_t>("machine_nozzle_size") * 2;
     const Point prime_end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);

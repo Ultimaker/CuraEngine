@@ -90,7 +90,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(
     size_t min_layer = 0;
     size_t max_layer = total_layer_count - 1;
 
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const ExtruderTrain& infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     const EFillMethod support_pattern = infill_extruder.settings_.get<EFillMethod>("support_pattern");
     const coord_t support_line_width = infill_extruder.settings_.get<coord_t>("support_line_width");
@@ -180,7 +180,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
     //  -> Note that this function only does the above, which is identifying and storing support infill areas with densities.
     //     The actual printing part is done in FffGcodeWriter.
     //
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const size_t total_layer_count = storage.print_layer_count;
     const ExtruderTrain& infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     const coord_t gradual_support_step_height = infill_extruder.settings_.get<coord_t>("gradual_support_infill_step_height");
@@ -314,7 +314,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
 
 void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const unsigned int total_layer_count = storage.print_layer_count;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
     // How many support infill layers to combine to obtain the requested sparse thickness.
@@ -417,7 +417,7 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
 
 void AreaSupport::cleanup(SliceDataStorage& storage)
 {
-    const coord_t support_line_width = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("support_line_width");
+    const coord_t support_line_width = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<coord_t>("support_line_width");
     for (LayerIndex layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
     {
         SupportLayer& layer = storage.support.supportLayers[layer_nr];
@@ -462,7 +462,7 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
 {
     Polygons joined;
 
-    const Settings& infill_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings_;
+    const Settings& infill_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings_;
     const AngleRadians conical_support_angle = infill_settings.get<AngleRadians>("support_conical_angle");
     const coord_t layer_thickness = infill_settings.get<coord_t>("layer_height");
     coord_t conical_support_offset;
@@ -477,7 +477,7 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
     const bool conical_support = infill_settings.get<bool>("support_conical_enabled") && conical_support_angle != 0;
     if (conical_support)
     {
-        const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+        const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
         // Don't go outside the build volume.
         Polygons machine_volume_border;
         switch (mesh_group_settings.get<BuildPlateShape>("machine_shape"))
@@ -508,13 +508,13 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
         coord_t adhesion_size = 0; // Make sure there is enough room for the platform adhesion around support.
         coord_t extra_skirt_line_width = 0;
         const std::vector<bool> is_extruder_used = storage.getExtrudersUsed();
-        for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
+        for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
         {
             if (! is_extruder_used[extruder_nr]) // Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
             {
                 continue;
             }
-            const ExtruderTrain& other_extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
+            const ExtruderTrain& other_extruder = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
             extra_skirt_line_width += other_extruder.settings_.get<coord_t>("skirt_brim_line_width") * other_extruder.settings_.get<Ratio>("initial_layer_line_width_factor");
         }
         const std::vector<ExtruderTrain*> skirt_brim_extruders = mesh_group_settings.get<std::vector<ExtruderTrain*>>("skirt_brim_extruder_nr");
@@ -636,7 +636,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
     // generate support areas
     bool support_meshes_drop_down_handled = false;
     bool support_meshes_handled = false;
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
         SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
@@ -709,7 +709,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
 
 void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const ExtruderTrain& infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     const EFillMethod& support_pattern = infill_extruder.settings_.get<EFillMethod>("support_pattern");
     if ((support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D) && infill_extruder.settings_.get<coord_t>("support_line_distance") > 0)
@@ -783,7 +783,7 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
     }
 
     // Don't generate overhang areas if the Z distance is higher than the objects we're generating support for.
-    const coord_t layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height");
+    const coord_t layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<coord_t>("layer_height");
     const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
     const size_t z_distance_top_layers = (z_distance_top / layer_height) + 1;
     if (z_distance_top_layers + 1 > storage.print_layer_count)
@@ -815,7 +815,7 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
 
 Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& storage, const Settings& infill_settings, const LayerIndex layer_idx)
 {
-    const auto& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const auto& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const Simplify simplify{ mesh_group_settings };
     const auto layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
     const auto support_distance_top = static_cast<double>(mesh_group_settings.get<coord_t>("support_top_distance"));
@@ -1040,7 +1040,7 @@ void AreaSupport::generateSupportAreasForMesh(
     {
         return;
     }
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const ESupportType support_type = mesh_group_settings.get<ESupportType>("support_type");
     if (support_type == ESupportType::NONE && ! is_support_mesh_place_holder)
     {
@@ -1739,7 +1739,7 @@ void AreaSupport::handleWallStruts(const Settings& settings, Polygons& supportLa
 
 void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer)
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
     const size_t bottom_layer_count = round_divide(mesh.settings.get<coord_t>("support_bottom_height"), layer_height); // Number of layers in support bottom.
     if (bottom_layer_count <= 0)
@@ -1776,7 +1776,7 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
 
 void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer)
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
     const size_t roof_layer_count = round_divide(mesh.settings.get<coord_t>("support_roof_height"), layer_height); // Number of layers in support roof.
     if (roof_layer_count <= 0)

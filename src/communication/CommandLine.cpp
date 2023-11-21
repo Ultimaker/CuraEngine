@@ -92,7 +92,7 @@ void CommandLine::sendPrintTimeMaterialEstimates() const
     spdlog::info("Total print time: {:3}", sum);
 
     sum = 0.0;
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
     {
         sum += FffProcessor::getInstance()->getTotalFilamentUsed(extruder_nr);
     }
@@ -123,7 +123,7 @@ void CommandLine::sliceNext()
     }
     Slice slice(num_mesh_groups);
 
-    Application::getInstance().current_slice = &slice;
+    Application::getInstance().current_slice_ = &slice;
 
     size_t mesh_group_index = 0;
     Settings* last_settings = &slice.scene.settings;
@@ -437,7 +437,7 @@ int CommandLine::loadJSON(
     // Extruders defined from here, if any.
     // Note that this always puts the extruder settings in the slice of the current extruder. It doesn't keep the nested structure of the JSON files, if extruders would have their
     // own sub-extruders.
-    Scene& scene = Application::getInstance().current_slice->scene;
+    Scene& scene = Application::getInstance().current_slice_->scene;
     if (document.HasMember("metadata") && document["metadata"].IsObject())
     {
         const rapidjson::Value& metadata = document["metadata"];

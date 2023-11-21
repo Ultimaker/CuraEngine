@@ -97,10 +97,10 @@ LayerPlan::LayerPlan(
     , is_initial_layer(layer_nr == 0 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
     , is_raft_layer(layer_nr < 0 - static_cast<LayerIndex>(Raft::getFillerLayerCount()))
     , layer_thickness(layer_thickness)
-    , has_prime_tower_planned_per_extruder(Application::getInstance().current_slice->scene.extruders.size(), false)
+    , has_prime_tower_planned_per_extruder(Application::getInstance().current_slice_->scene.extruders.size(), false)
     , current_mesh(nullptr)
     , last_extruder_previous_layer(start_extruder)
-    , last_planned_extruder(&Application::getInstance().current_slice->scene.extruders[start_extruder])
+    , last_planned_extruder(&Application::getInstance().current_slice_->scene.extruders[start_extruder])
     , first_travel_destination_is_inside(false)
     , // set properly when addTravel is called for the first time (otherwise not set properly)
     comb_boundary_minimum(computeCombBoundary(CombBoundary::MINIMUM))
@@ -111,7 +111,7 @@ LayerPlan::LayerPlan(
     size_t current_extruder = start_extruder;
     was_inside = true; // not used, because the first travel move is bogus
     is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
-    if (Application::getInstance().current_slice->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing") != CombingMode::OFF)
+    if (Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing") != CombingMode::OFF)
     {
         comb = new Comb(storage, layer_nr, comb_boundary_minimum, comb_boundary_preferred, comb_boundary_offset, travel_avoid_distance, comb_move_inside_distance);
     }
@@ -119,11 +119,11 @@ LayerPlan::LayerPlan(
     {
         comb = nullptr;
     }
-    for (const ExtruderTrain& extruder : Application::getInstance().current_slice->scene.extruders)
+    for (const ExtruderTrain& extruder : Application::getInstance().current_slice_->scene.extruders)
     {
         layer_start_pos_per_extruder.emplace_back(extruder.settings_.get<coord_t>("layer_start_x"), extruder.settings_.get<coord_t>("layer_start_y"));
     }
-    extruder_plans.reserve(Application::getInstance().current_slice->scene.extruders.size());
+    extruder_plans.reserve(Application::getInstance().current_slice_->scene.extruders.size());
     extruder_plans.emplace_back(
         current_extruder,
         layer_nr,
@@ -133,7 +133,7 @@ LayerPlan::LayerPlan(
         fan_speed_layer_time_settings_per_extruder[current_extruder],
         storage.retraction_wipe_config_per_extruder[current_extruder].retraction_config);
 
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
     { // Skirt and brim.
         skirt_brim_is_processed[extruder_nr] = false;
     }
@@ -153,7 +153,7 @@ ExtruderTrain* LayerPlan::getLastPlannedExtruderTrain()
 Polygons LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
 {
     Polygons comb_boundary;
-    const CombingMode mesh_combing_mode = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing");
+    const CombingMode mesh_combing_mode = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing");
     if (mesh_combing_mode != CombingMode::OFF && (layer_nr >= 0 || mesh_combing_mode != CombingMode::NO_SKIN))
     {
         if (layer_nr < 0)
@@ -263,8 +263,8 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
         layer_thickness,
         fan_speed_layer_time_settings_per_extruder[extruder_nr],
         storage.retraction_wipe_config_per_extruder[extruder_nr].retraction_config);
-    assert(extruder_plans.size() <= Application::getInstance().current_slice->scene.extruders.size() && "Never use the same extruder twice on one layer!");
-    last_planned_extruder = &Application::getInstance().current_slice->scene.extruders[extruder_nr];
+    assert(extruder_plans.size() <= Application::getInstance().current_slice_->scene.extruders.size() && "Never use the same extruder twice on one layer!");
+    last_planned_extruder = &Application::getInstance().current_slice_->scene.extruders[extruder_nr];
 
     { // handle starting pos of the new extruder
         ExtruderTrain* extruder = getLastPlannedExtruderTrain();
@@ -1392,7 +1392,7 @@ void LayerPlan::spiralizeWallSlice(
     const bool is_top_layer,
     const bool is_bottom_layer)
 {
-    const bool smooth_contours = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("smooth_spiralized_contours");
+    const bool smooth_contours = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("smooth_spiralized_contours");
     constexpr bool spiralize = true; // In addExtrusionMove calls, enable spiralize and use nominal line width.
     constexpr Ratio width_factor = 1.0_r;
 
@@ -1821,7 +1821,7 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
 
 void LayerPlan::writeGCode(GCodeExport& gcode)
 {
-    Communication* communication = Application::getInstance().communication;
+    Communication* communication = Application::getInstance().communication_;
     communication->setLayerForSend(layer_nr);
     communication->sendCurrentPosition(gcode.getPositionXY());
     gcode.setLayerNr(layer_nr);
@@ -1829,7 +1829,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     gcode.writeLayerComment(layer_nr);
 
     // flow-rate compensation
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     gcode.setFlowRateExtrusionSettings(
         mesh_group_settings.get<double>("flow_rate_max_extrusion_offset"),
         mesh_group_settings.get<Ratio>("flow_rate_extrusion_offset_factor")); // Offset is in mm.
@@ -1911,7 +1911,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.insertWipeScript(wipe_config);
                 gcode.ResetLastEValueAfterWipe(extruder_nr);
             }
-            else if (layer_nr != 0 && Application::getInstance().current_slice->scene.extruders[extruder_nr].settings_.get<bool>("retract_at_layer_change"))
+            else if (layer_nr != 0 && Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_.get<bool>("retract_at_layer_change"))
             {
                 // only do the retract if the paths are not spiralized
                 if (! mesh_group_settings.get<bool>("magic_spiralize"))
@@ -1925,7 +1925,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
         extruder_plan.inserts_.sort();
 
-        const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
+        const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
 
         bool update_extrusion_offset = true;
 
@@ -2249,7 +2249,7 @@ bool LayerPlan::writePathWithCoasting(
     const std::function<void(const double, const int64_t)> insertTempOnTime)
 {
     ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
-    const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr_];
+    const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[extruder_plan.extruder_nr_];
     const double coasting_volume = extruder.settings_.get<double>("coasting_volume");
     if (coasting_volume <= 0)
     {
@@ -2341,7 +2341,7 @@ bool LayerPlan::writePathWithCoasting(
 
     Point prev_pt = gcode.getPositionXY();
     { // write normal extrude path:
-        Communication* communication = Application::getInstance().communication;
+        Communication* communication = Application::getInstance().communication_;
         for (size_t point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
         {
             auto [_, time] = extruder_plan.getPointToPointTime(prev_pt, path.points[point_idx], path);
@@ -2420,7 +2420,7 @@ void LayerPlan::applyBackPressureCompensation()
     for (auto& extruder_plan : extruder_plans)
     {
         const Ratio back_pressure_compensation
-            = Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr_].settings_.get<Ratio>("speed_equalize_flow_width_factor");
+            = Application::getInstance().current_slice_->scene.extruders[extruder_plan.extruder_nr_].settings_.get<Ratio>("speed_equalize_flow_width_factor");
         if (back_pressure_compensation != 0.0)
         {
             extruder_plan.applyBackPressureCompensation(back_pressure_compensation);

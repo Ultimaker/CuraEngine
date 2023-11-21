@@ -18,7 +18,7 @@ namespace cura
 void Raft::generate(SliceDataStorage& storage)
 {
     assert(storage.raftOutline.size() == 0 && "Raft polygon isn't generated yet, so should be empty!");
-    const Settings& settings = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_;
+    const Settings& settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_;
     const coord_t distance = settings.get<coord_t>("raft_margin");
     constexpr bool include_support = true;
     constexpr bool dont_include_prime_tower = false; // Prime tower raft will be handled separately in 'storage.primeRaftOutline'; see below.
@@ -55,7 +55,7 @@ void Raft::generate(SliceDataStorage& storage)
     {
         // Find out if the prime-tower part of the raft still needs to be printed, even if there is no actual tower.
         // This will only happen if the different raft layers are printed by different extruders.
-        const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+        const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
         const size_t base_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_;
         const size_t interface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr_;
         const size_t surface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr_;
@@ -68,7 +68,7 @@ void Raft::generate(SliceDataStorage& storage)
 
 coord_t Raft::getTotalThickness()
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const ExtruderTrain& base_train = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr");
     const ExtruderTrain& interface_train = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr");
     const ExtruderTrain& surface_train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
@@ -79,7 +79,7 @@ coord_t Raft::getTotalThickness()
 
 coord_t Raft::getZdiffBetweenRaftAndLayer0()
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
     if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
     {
@@ -91,13 +91,13 @@ coord_t Raft::getZdiffBetweenRaftAndLayer0()
 
 size_t Raft::getFillerLayerCount()
 {
-    const coord_t normal_layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height");
+    const coord_t normal_layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<coord_t>("layer_height");
     return round_divide(getZdiffBetweenRaftAndLayer0(), normal_layer_height);
 }
 
 coord_t Raft::getFillerLayerHeight()
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
     {
         const coord_t normal_layer_height = mesh_group_settings.get<coord_t>("layer_height");
@@ -110,7 +110,7 @@ coord_t Raft::getFillerLayerHeight()
 
 size_t Raft::getTotalExtraLayers()
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const ExtruderTrain& base_train = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr");
     const ExtruderTrain& interface_train = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr");
     const ExtruderTrain& surface_train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");

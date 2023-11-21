@@ -95,8 +95,8 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     fff_processor->gcode_writer.writeGCode(storage, fff_processor->time_keeper);
 
     Progress::messageProgress(Progress::Stage::FINISH, 1, 1); // 100% on this meshgroup
-    Application::getInstance().communication->flushGCode();
-    Application::getInstance().communication->sendOptimizedLayerData();
+    Application::getInstance().communication_->flushGCode();
+    Application::getInstance().communication_->sendOptimizedLayerData();
     spdlog::info("Total time elapsed {:03.3f}s\n", time_keeper_total.restart());
 }
 

@@ -24,7 +24,7 @@ namespace cura
 
 void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& volumes)
 {
-    Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    Settings& global_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const PointMatrix rotation(global_settings.get<AngleDegrees>("interlocking_orientation"));
     const coord_t beam_layer_count = global_settings.get<int>("interlocking_beam_layer_count");
     const int interface_depth = global_settings.get<int>("interlocking_depth");
@@ -91,7 +91,7 @@ std::pair<Polygons, Polygons> InterlockingGenerator::growBorderAreasPerpendicula
 
 void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>& has_all_meshes) const
 {
-    Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    Settings& global_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const coord_t boundary_avoidance = global_settings.get<int>("interlocking_boundary_avoidance");
 
     const coord_t number_of_beams_detect = boundary_avoidance;

@@ -4,11 +4,11 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#include "utils/NoCopy.h"
-
 #include <cassert>
 #include <cstddef>
 #include <string>
+
+#include "utils/NoCopy.h"
 
 
 namespace cura
@@ -38,19 +38,21 @@ public:
      * can assume that it is safe to access this without checking whether it is
      * initialised.
      */
-    Communication* communication = nullptr;
+    Communication* communication_ = nullptr;
 
     /*
      * \brief The slice that is currently ongoing.
      *
      * If no slice has started yet, this will be a nullptr.
      */
-    Slice* current_slice = nullptr;
+    Slice* current_slice_ = nullptr;
 
     /*!
      * \brief ThreadPool with lifetime tied to Application
      */
-    ThreadPool* thread_pool = nullptr;
+    ThreadPool* thread_pool_ = nullptr;
+
+    std::string instance_uuid_;
 
     /*!
      * Gets the instance of this application class.
@@ -92,8 +94,6 @@ public:
      */
     void startThreadPool(int nworkers = 0);
 
-    std::string instance_uuid;
-
 protected:
 #ifdef ARCUS
     /*!
@@ -120,13 +120,13 @@ private:
     /*
      * \brief The number of arguments that the application was called with.
      */
-    size_t argc;
+    size_t argc_;
 
     /*
      * \brief An array of C strings containing the arguments that the
      * application was called with.
      */
-    char** argv;
+    char** argv_;
 
     /*!
      * \brief Constructs a new Application instance.

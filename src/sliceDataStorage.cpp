@@ -245,7 +245,7 @@ Point SliceMeshStorage::getZSeamHint() const
 std::vector<RetractionAndWipeConfig> SliceDataStorage::initializeRetractionAndWipeConfigs()
 {
     std::vector<RetractionAndWipeConfig> ret;
-    ret.resize(Application::getInstance().current_slice->scene.extruders.size()); // initializes with constructor RetractionConfig()
+    ret.resize(Application::getInstance().current_slice_->scene.extruders.size()); // initializes with constructor RetractionConfig()
     return ret;
 }
 
@@ -254,7 +254,7 @@ SliceDataStorage::SliceDataStorage()
     , retraction_wipe_config_per_extruder(initializeRetractionAndWipeConfigs())
     , max_print_height_second_to_last_extruder(-1)
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     Point3 machine_max(mesh_group_settings.get<coord_t>("machine_width"), mesh_group_settings.get<coord_t>("machine_depth"), mesh_group_settings.get<coord_t>("machine_height"));
     Point3 machine_min(0, 0, 0);
     if (mesh_group_settings.get<bool>("machine_center_is_zero"))
@@ -270,7 +270,7 @@ Polygons
     SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only, const int extruder_nr)
         const
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     if (layer_nr < 0 && layer_nr < -static_cast<LayerIndex>(Raft::getFillerLayerCount()))
     { // when processing raft
         if (include_support && (extruder_nr == -1 || extruder_nr == int(mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr_)))
@@ -343,13 +343,13 @@ Polygons
 std::vector<bool> SliceDataStorage::getExtrudersUsed() const
 {
     std::vector<bool> ret;
-    ret.resize(Application::getInstance().current_slice->scene.extruders.size(), false);
+    ret.resize(Application::getInstance().current_slice_->scene.extruders.size(), false);
 
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
     if (adhesion_type == EPlatformAdhesion::SKIRT || adhesion_type == EPlatformAdhesion::BRIM)
     {
-        for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
+        for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
         {
             if (! skirt_brim[extruder_nr].empty())
             {
@@ -411,10 +411,10 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
 
 std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) const
 {
-    const std::vector<ExtruderTrain>& extruders = Application::getInstance().current_slice->scene.extruders;
+    const std::vector<ExtruderTrain>& extruders = Application::getInstance().current_slice_->scene.extruders;
     std::vector<bool> ret;
     ret.resize(extruders.size(), false);
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
 
     bool include_adhesion = true;
@@ -521,18 +521,18 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) 
 
 bool SliceDataStorage::getExtruderPrimeBlobEnabled(const size_t extruder_nr) const
 {
-    if (extruder_nr >= Application::getInstance().current_slice->scene.extruders.size())
+    if (extruder_nr >= Application::getInstance().current_slice_->scene.extruders.size())
     {
         return false;
     }
 
-    const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
+    const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
     return train.settings_.get<bool>("prime_blob_enable");
 }
 
 Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
 
     Polygons border;
     border.emplace_back();
@@ -583,7 +583,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
         {
             continue;
         }
-        Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings_;
+        Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_;
         if (! (extruder_settings.get<bool>("prime_blob_enable") && mesh_group_settings.get<bool>("extruder_prime_pos_abs")))
         {
             continue;
@@ -608,7 +608,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
         {
             continue;
         }
-        Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings_;
+        Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_;
         Point translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
         Polygons extruder_border = disallowed_areas;
         extruder_border.translate(translation);
@@ -633,7 +633,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
             {
                 continue;
             }
-            Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings_;
+            Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_;
             Point translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
             for (size_t other_extruder_nr = 0; other_extruder_nr < extruder_is_used.size(); other_extruder_nr++)
             {
@@ -642,7 +642,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
                 {
                     continue;
                 }
-                Settings& other_extruder_settings = Application::getInstance().current_slice->scene.extruders[other_extruder_nr].settings_;
+                Settings& other_extruder_settings = Application::getInstance().current_slice_->scene.extruders[other_extruder_nr].settings_;
                 Point other_translation(other_extruder_settings.get<coord_t>("machine_nozzle_offset_x"), other_extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
                 Polygons translated_border = border;
                 translated_border.translate(translation - other_translation);

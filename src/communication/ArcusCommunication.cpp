@@ -468,7 +468,7 @@ void ArcusCommunication::sendPrintTimeMaterialEstimates() const
     message->set_time_travel(time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveCombing)]);
     message->set_time_prime_tower(time_estimates[static_cast<unsigned char>(PrintFeatureType::PrimeTower)]);
 
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
     {
         proto::MaterialEstimates* material_message = message->add_materialestimates();
         material_message->set_id(extruder_nr);
@@ -527,7 +527,7 @@ void ArcusCommunication::sliceNext()
 #endif // ENABLE_PLUGINS
 
     Slice slice(slice_message->object_lists().size());
-    Application::getInstance().current_slice = &slice;
+    Application::getInstance().current_slice_ = &slice;
 
     private_data->readGlobalSettingsMessage(slice_message->global_settings());
     private_data->readExtruderSettingsMessage(slice_message->extruders());
