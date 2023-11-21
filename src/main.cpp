@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <iostream> //To change the formatting of std::cerr.
@@ -8,9 +8,9 @@
 #endif
 
 #ifdef SENTRY_URL
-#include <sentry.h>
-
+#include <filesystem>
 #include <fmt/format.h>
+#include <sentry.h>
 #endif
 
 #include <string>
@@ -48,24 +48,18 @@ int main(int argc, char** argv)
 #ifdef SENTRY_URL
     // Setup sentry error handling.
     sentry_options_t* options = sentry_options_new();
-    sentry_options_set_dsn(options, std::string(SENTRY_URL));
+    sentry_options_set_dsn(options, std::string(SENTRY_URL).c_str());
     // This is also the default-path. For further information and recommendations:
     // https://docs.sentry.io/platforms/native/configuration/options/#database-path
-    std::string config_path = "";
-
 #if defined(__linux__)
-    config_path += getenv("HOME");
-    config_path += "/.local/share/cura/";
+    const auto config_path = std::filesystem::path(std::getenv("HOME")).append( "/.local/share/cura/.sentry-native" );
 #elif defined(__APPLE__) && defined(__MACH__)
-    config_path += getenv("HOME");
-    config_path += "/Library/Application Support/cura/";
+    const auto config_path = std::filesystem::path(std::getenv("HOME")).append( "/Library/Application Support/cura/.sentry-native" );
 #elif defined(_WIN64)
-    config_path = "%APPDATA%\\cura\\";
+    const auto config_path = std::filesystem::path(std::getenv("APPDATA")).append( "/cura/.sentry-native" );
 #endif
-    config_path += ".sentry-native";
     sentry_options_set_database_path(options, config_path.c_str());
-    std::string version = fmt::format("curaengine@{}", CURA_ENGINE_VERSION);
-    sentry_options_set_release(options, version.c_str());
+    sentry_options_set_release(options, fmt::format("curaengine@{}", CURA_ENGINE_VERSION).c_str());
     sentry_init(options);
 #endif
 

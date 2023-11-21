@@ -174,7 +174,6 @@ target_compile_definitions(_CuraEngine
         CURA_ENGINE_VERSION=\"${CURA_ENGINE_VERSION}\"
         $<$<BOOL:${ENABLE_TESTING}>:BUILD_TESTS>
         PRIVATE
-        $<$<BOOL:${ENABLE_SENTRY}>:SENTRY_URL=\"${SENTRY_URL}\">
         $<$<BOOL:${WIN32}>:NOMINMAX>
         $<$<CONFIG:Debug>:ASSERT_INSANE_OUTPUT>
         $<$<CONFIG:Debug>:USE_CPU_TIME>
@@ -227,7 +226,6 @@ target_link_libraries(_CuraEngine
         asio-grpc::asio-grpc
         grpc::grpc
         protobuf::libprotobuf
-        $<$<BOOL:${ENABLE_SENTRY}>:sentry::sentry>
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
 
 if (NOT WIN32)
@@ -246,8 +244,14 @@ else ()
 endif (NOT WIN32)
 
 use_threads(CuraEngine)
-target_link_libraries(CuraEngine PRIVATE _CuraEngine)
-target_compile_definitions(CuraEngine PRIVATE VERSION=\"${CURA_ENGINE_VERSION}\")
+target_link_libraries(CuraEngine PRIVATE
+        _CuraEngine
+        $<$<BOOL:${ENABLE_SENTRY}>:sentry::sentry>
+)
+target_compile_definitions(CuraEngine PRIVATE
+        $<$<BOOL:${ENABLE_SENTRY}>:SENTRY_URL=\"${SENTRY_URL}\">
+        VERSION=\"${CURA_ENGINE_VERSION}\"
+)
 
 # Compiling the test environment.
 if (ENABLE_TESTING OR ENABLE_BENCHMARKS)
