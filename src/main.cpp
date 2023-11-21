@@ -7,7 +7,10 @@
 #include <sys/resource.h> //For setpriority.
 #endif
 
+#ifdef SENTRY_URL
 #include <sentry.h>
+#endif
+
 #include <string>
 
 #include <spdlog/spdlog.h>
@@ -40,10 +43,10 @@ int main(int argc, char** argv)
 #endif
     std::cerr << std::boolalpha;
 
+#ifdef SENTRY_URL
     // Setup sentry error handling.
     sentry_options_t* options = sentry_options_new();
-    // TODO: Right now we just hardcode the key. We should probably get that from some kind of secret for release builds
-    sentry_options_set_dsn(options, "https://734f9ec9024f73e53701d59c3ffddfe3@o323038.ingest.sentry.io/4506257745510401");
+    sentry_options_set_dsn(options, std::string(SENTRY_URL));
     // This is also the default-path. For further information and recommendations:
     // https://docs.sentry.io/platforms/native/configuration/options/#database-path
     std::string config_path = "";
@@ -63,10 +66,13 @@ int main(int argc, char** argv)
     version += std::string(CURA_ENGINE_VERSION);
     sentry_options_set_release(options, version.c_str());
     sentry_init(options);
+#endif
 
     cura::Application::getInstance().run(argc, argv);
 
+#ifdef SENTRY_URL
     sentry_close();
+#endif
 
     return 0;
 }

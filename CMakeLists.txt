@@ -12,6 +12,7 @@ option(ENABLE_TESTING "Build with unit tests" OFF)
 option(EXTENSIVE_WARNINGS "Build with all warnings" ON)
 option(ENABLE_PLUGINS "Build with plugins" ON)
 option(ENABLE_REMOTE_PLUGINS "Build with all warnings" OFF)
+option(ENABLE_SENTRY "Send crash data via Sentry" OFF)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
@@ -173,6 +174,7 @@ target_compile_definitions(_CuraEngine
         CURA_ENGINE_VERSION=\"${CURA_ENGINE_VERSION}\"
         $<$<BOOL:${ENABLE_TESTING}>:BUILD_TESTS>
         PRIVATE
+        $<$<BOOL:${ENABLE_SENTRY}>:SENTRY_URL=\"${SENTRY_URL}\">
         $<$<BOOL:${WIN32}>:NOMINMAX>
         $<$<CONFIG:Debug>:ASSERT_INSANE_OUTPUT>
         $<$<CONFIG:Debug>:USE_CPU_TIME>
@@ -201,7 +203,10 @@ find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
 find_package(neargye-semver REQUIRED)
-find_package(sentry REQUIRED)
+
+if (ENABLE_SENTRY)
+    find_package(sentry REQUIRED)
+endif ()
 
 if (ENABLE_TESTING)
     find_package(GTest REQUIRED)
@@ -222,7 +227,7 @@ target_link_libraries(_CuraEngine
         asio-grpc::asio-grpc
         grpc::grpc
         protobuf::libprotobuf
-        sentry::sentry
+        $<$<BOOL:${ENABLE_SENTRY}>:sentry::sentry>
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
 
 if (NOT WIN32)
