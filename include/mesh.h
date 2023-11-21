@@ -6,7 +6,7 @@
 
 #include "settings/Settings.h"
 #include "utils/AABB3D.h"
-#include "utils/FMatrix4x3.h"
+#include "utils/Matrix4x3D.h"
 
 namespace cura
 {
@@ -105,7 +105,7 @@ public:
      * Apply an affine transformation to this mesh's 3D data.
      * \param transformation The transformation to apply.
      */
-    void transform(const FMatrix4x3& transformation);
+    void transform(const Matrix4x3D& transformation);
 
     /*!
      * Gets whether this is a printable mesh (not an infill mesh, slicing mesh,

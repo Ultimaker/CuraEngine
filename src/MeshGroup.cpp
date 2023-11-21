@@ -13,8 +13,8 @@
 #include <spdlog/spdlog.h>
 
 #include "settings/types/Ratio.h" //For the shrinkage percentage and scale factor.
-#include "utils/FMatrix4x3.h" //To transform the input meshes for shrinkage compensation and to align in command line mode.
-#include "utils/Point3f.h" //To accept incoming meshes with floating point vertices.
+#include "utils/Matrix4x3D.h" //To transform the input meshes for shrinkage compensation and to align in command line mode.
+#include "utils/Point3F.h" //To accept incoming meshes with floating point vertices.
 #include "utils/gettime.h"
 #include "utils/section_type.h"
 #include "utils/string.h"
@@ -129,18 +129,18 @@ void MeshGroup::scaleFromBottom(const Ratio factor_xy, const Ratio factor_z)
     const Point3 center = (max() + min()) / 2;
     const Point3 origin(center.x_, center.y_, 0);
 
-    const FMatrix4x3 transformation = FMatrix4x3::scale(factor_xy, factor_xy, factor_z, origin);
+    const Matrix4x3D transformation = Matrix4x3D::scale(factor_xy, factor_xy, factor_z, origin);
     for (Mesh& mesh : meshes)
     {
         mesh.transform(transformation);
     }
 }
 
-bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const FMatrix4x3& matrix)
+bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const Matrix4x3D& matrix)
 {
     FILE* f = fopen(filename, "rt");
     char buffer[1024];
-    Point3f vertex;
+    Point3F vertex;
     int n = 0;
     Point3 v0(0, 0, 0), v1(0, 0, 0), v2(0, 0, 0);
     while (fgets_(buffer, sizeof(buffer), f))
@@ -169,7 +169,7 @@ bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const FMatrix4x3& matri
     return true;
 }
 
-bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const FMatrix4x3& matrix)
+bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const Matrix4x3D& matrix)
 {
     FILE* f = fopen(filename, "rb");
 
@@ -212,9 +212,9 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const FMatrix4x3& matr
         }
         float* v = ((float*)buffer) + 3;
 
-        Point3 v0 = matrix.apply(Point3f(v[0], v[1], v[2]).toPoint3d());
-        Point3 v1 = matrix.apply(Point3f(v[3], v[4], v[5]).toPoint3d());
-        Point3 v2 = matrix.apply(Point3f(v[6], v[7], v[8]).toPoint3d());
+        Point3 v0 = matrix.apply(Point3F(v[0], v[1], v[2]).toPoint3d());
+        Point3 v1 = matrix.apply(Point3F(v[3], v[4], v[5]).toPoint3d());
+        Point3 v2 = matrix.apply(Point3F(v[6], v[7], v[8]).toPoint3d());
         mesh->addFace(v0, v1, v2);
     }
     fclose(f);
@@ -222,7 +222,7 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const FMatrix4x3& matr
     return true;
 }
 
-bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix4x3& matrix)
+bool loadMeshSTL(Mesh* mesh, const char* filename, const Matrix4x3D& matrix)
 {
     FILE* f = fopen(filename, "rb");
     if (f == nullptr)
@@ -279,7 +279,7 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix4x3& matrix)
     return loadMeshSTL_binary(mesh, filename, matrix);
 }
 
-bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix4x3& transformation, Settings& object_parent_settings)
+bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const Matrix4x3D& transformation, Settings& object_parent_settings)
 {
     TimeKeeper load_timer;
 

@@ -10,7 +10,7 @@
 namespace cura
 {
 
-class FMatrix4x3;
+class Matrix4x3D;
 
 /*!
  * A MeshGroup is a collection with 1 or more 3D meshes.
@@ -50,7 +50,7 @@ public:
  * \param object_parent_settings (optional) The parent settings object of the new mesh. Defaults to \p meshgroup if none is given.
  * \return whether the file could be loaded
  */
-bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix4x3& transformation, Settings& object_parent_settings);
+bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const Matrix4x3D& transformation, Settings& object_parent_settings);
 
 } //namespace cura
 

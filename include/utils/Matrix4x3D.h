@@ -1,15 +1,15 @@
 // Copyright (c) 2020 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef FMATRIX4X3_H
-#define FMATRIX4X3_H
+#ifndef MATRIX4X3D_H
+#define MATRIX4X3D_H
 
 #include "settings/types/Ratio.h"
 
 namespace cura
 {
 
-class Point3d;
+class Point3D;
 class Point3;
 
 /*!
@@ -18,7 +18,7 @@ class Point3;
  * This matrix behaves as if it's a 4x4 transformation matrix, but the bottom
  * row is always identity.
  */
-class FMatrix4x3
+class Matrix4x3D
 {
 public:
     /*!
@@ -28,8 +28,8 @@ public:
      * is reduced, all coordinates will go towards this origin. If the scale is
      * increased, all coordinates will go away from this origin.
      */
-    static FMatrix4x3 scale(const Ratio scale, const Point3 origin);
-    static FMatrix4x3 scale(const Ratio scale_x, const Ratio scale_y, const Ratio scale_z, const Point3 origin);
+    static Matrix4x3D scale(const Ratio scale, const Point3 origin);
+    static Matrix4x3D scale(const Ratio scale_x, const Ratio scale_y, const Ratio scale_z, const Point3 origin);
 
     /*!
      * The matrix data, row-endian.
@@ -41,7 +41,7 @@ public:
     /*!
      * Construct an identity matrix.
      */
-    FMatrix4x3();
+    Matrix4x3D();
 
     /*!
      * Apply this transformation to a coordinate.
@@ -51,7 +51,7 @@ public:
      * \param p The coordinate to transform.
      * \return A transformed coordinate.
      */
-    Point3 apply(const Point3d& p) const;
+    Point3 apply(const Point3D& p) const;
 
     /*!
      * Apply this transformation to a coordinate.
@@ -62,4 +62,4 @@ public:
 };
 
 } // namespace cura
-#endif // FMATRIX4X3_H
+#endif // MATRIX4X3D_H

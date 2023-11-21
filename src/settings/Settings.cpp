@@ -26,7 +26,7 @@
 #include "settings/types/Ratio.h" //For ratio settings and percentages.
 #include "settings/types/Temperature.h" //For temperature settings.
 #include "settings/types/Velocity.h" //For velocity settings.
-#include "utils/FMatrix4x3.h"
+#include "utils/Matrix4x3D.h"
 #include "utils/polygon.h"
 #include "utils/string.h" //For Escaped.
 #include "utils/types/string_switch.h" //For string switch.
@@ -319,11 +319,11 @@ Polygons Settings::get<Polygons>(const std::string& key) const
 }
 
 template<>
-FMatrix4x3 Settings::get<FMatrix4x3>(const std::string& key) const
+Matrix4x3D Settings::get<Matrix4x3D>(const std::string& key) const
 {
     const std::string value_string = get<std::string>(key);
 
-    FMatrix4x3 result;
+    Matrix4x3D result;
     if (value_string.empty())
     {
         return result; // Standard matrix ([[1,0,0], [0,1,0], [0,0,1]]).

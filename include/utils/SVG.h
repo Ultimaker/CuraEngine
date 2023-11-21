@@ -14,7 +14,7 @@
 namespace cura
 {
 
-class Point3d;
+class Point3D;
 
 class SVG : NoCopy
 {
@@ -92,7 +92,7 @@ public:
     /*!
      * transform a point in real space to canvas space with more precision
      */
-    Point3d transformF(const Point& p) const;
+    Point3D transformF(const Point& p) const;
 
     void writeComment(const std::string& comment) const;
 

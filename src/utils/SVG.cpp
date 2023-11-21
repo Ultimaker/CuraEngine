@@ -8,7 +8,7 @@
 #include <spdlog/spdlog.h>
 
 #include "utils/ExtrusionLine.h"
-#include "utils/Point3d.h"
+#include "utils/Point3D.h"
 #include "utils/polygon.h"
 
 namespace cura
@@ -145,9 +145,9 @@ Point SVG::transform(const Point& p) const
     return Point(std::llrint(static_cast<double>(p.X - aabb_.min.X) * scale_), std::llrint(static_cast<double>(p.Y - aabb_.min.Y) * scale_));
 }
 
-Point3d SVG::transformF(const Point& p) const
+Point3D SVG::transformF(const Point& p) const
 {
-    return Point3d(static_cast<double>(p.X - aabb_.min.X) * scale_, static_cast<double>(p.Y - aabb_.min.Y) * scale_, 0.0);
+    return Point3D(static_cast<double>(p.X - aabb_.min.X) * scale_, static_cast<double>(p.Y - aabb_.min.Y) * scale_, 0.0);
 }
 
 void SVG::writeComment(const std::string& comment) const
@@ -166,7 +166,7 @@ void SVG::writeAreas(const Polygons& polygons, const ColorObject color, const Co
             fprintf(out_, "<polygon points=\"");
             for (Point& p : part[j])
             {
-                Point3d fp = transformF(p);
+                Point3D fp = transformF(p);
                 fprintf(out_, "%f,%f ", static_cast<double>(fp.x), static_cast<double>(fp.y));
             }
             if (j == 0)
@@ -187,7 +187,7 @@ void SVG::writeAreas(ConstPolygonRef polygon, const ColorObject color, const Col
         static_cast<double>(stroke_width)); // The beginning of the polygon tag.
     for (const Point& point : polygon) // Add every point to the list of points.
     {
-        Point3d transformed = transformF(point);
+        Point3D transformed = transformF(point);
         fprintf(out_, "%f,%f ", static_cast<double>(transformed.x), static_cast<double>(transformed.y));
     }
     fprintf(out_, "\" />\n"); // The end of the polygon tag.
@@ -195,7 +195,7 @@ void SVG::writeAreas(ConstPolygonRef polygon, const ColorObject color, const Col
 
 void SVG::writePoint(const Point& p, const bool write_coords, const double size, const ColorObject color) const
 {
-    Point3d pf = transformF(p);
+    Point3D pf = transformF(p);
     fprintf(
         out_,
         "<circle cx=\"%f\" cy=\"%f\" r=\"%f\" stroke-width=\"0\" fill=\"%s\" />\n",
@@ -233,7 +233,7 @@ void SVG::writeLines(const std::vector<Point>& polyline, const ColorObject color
         return;
     }
 
-    Point3d transformed = transformF(polyline[0]); // Element 0 must exist due to the check above.
+    Point3D transformed = transformF(polyline[0]); // Element 0 must exist due to the check above.
     fprintf(
         out_,
         "<path fill=\"none\" stroke=\"%s\" stroke-width=\"1\" d=\"M%f,%f",
@@ -250,8 +250,8 @@ void SVG::writeLines(const std::vector<Point>& polyline, const ColorObject color
 
 void SVG::writeLine(const Point& a, const Point& b, const ColorObject color, const double stroke_width) const
 {
-    Point3d fa = transformF(a);
-    Point3d fb = transformF(b);
+    Point3D fa = transformF(a);
+    Point3D fb = transformF(b);
     fprintf(
         out_,
         "<line x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" style=\"stroke:%s;stroke-width:%f\" />\n",
@@ -265,15 +265,15 @@ void SVG::writeLine(const Point& a, const Point& b, const ColorObject color, con
 
 void SVG::writeArrow(const Point& a, const Point& b, const ColorObject color, const double stroke_width, const double head_size) const
 {
-    Point3d fa = transformF(a);
-    Point3d fb = transformF(b);
-    Point3d ab = fb - fa;
-    Point3d normal = Point3d(ab.y, -ab.x, 0.0).normalized();
-    Point3d direction = ab.normalized();
+    Point3D fa = transformF(a);
+    Point3D fb = transformF(b);
+    Point3D ab = fb - fa;
+    Point3D normal = Point3D(ab.y, -ab.x, 0.0).normalized();
+    Point3D direction = ab.normalized();
 
-    Point3d tip = fb + normal * head_size - direction * head_size;
-    Point3d b_base = fb + normal * stroke_width - direction * stroke_width * 2.41f;
-    Point3d a_base = fa + normal * stroke_width;
+    Point3D tip = fb + normal * head_size - direction * head_size;
+    Point3D b_base = fb + normal * stroke_width - direction * stroke_width * 2.41f;
+    Point3D a_base = fa + normal * stroke_width;
     fprintf(
         out_,
         "<polygon fill=\"%s\" points=\"%f,%f %f,%f %f,%f %f,%f %f,%f\" />",
@@ -292,8 +292,8 @@ void SVG::writeArrow(const Point& a, const Point& b, const ColorObject color, co
 
 void SVG::writeLineRGB(const Point& from, const Point& to, const int r, const int g, const int b, const double stroke_width) const
 {
-    Point3d fa = transformF(from);
-    Point3d fb = transformF(to);
+    Point3D fa = transformF(from);
+    Point3D fb = transformF(to);
     fprintf(
         out_,
         "<line x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" style=\"stroke:rgb(%i,%i,%i);stroke-width:%f\" />\n",
@@ -309,8 +309,8 @@ void SVG::writeLineRGB(const Point& from, const Point& to, const int r, const in
 
 void SVG::writeDashedLine(const Point& a, const Point& b, ColorObject color) const
 {
-    Point3d fa = transformF(a);
-    Point3d fb = transformF(b);
+    Point3D fa = transformF(a);
+    Point3D fb = transformF(b);
     fprintf(
         out_,
         "<line x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" stroke=\"%s\" stroke-width=\"1\" stroke-dasharray=\"5,5\" />\n",
@@ -323,7 +323,7 @@ void SVG::writeDashedLine(const Point& a, const Point& b, ColorObject color) con
 
 void SVG::writeText(const Point& p, const std::string& txt, const ColorObject color, const double font_size) const
 {
-    Point3d pf = transformF(p);
+    Point3D pf = transformF(p);
     fprintf(
         out_,
         "<text x=\"%f\" y=\"%f\" style=\"font-size: %fpx;\" fill=\"%s\">%s</text>\n",
@@ -448,12 +448,12 @@ void SVG::writeLine(const ExtrusionLine& line, const ColorObject color, const do
         const Point direction_vector = end_vertex.p - start_vertex.p;
         const Point direction_left = turn90CCW(direction_vector);
         const Point direction_right = -direction_left; // Opposite of left.
-        const Point3d start_left
+        const Point3D start_left
             = transformF(start_vertex.p + normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w) * width_factor))));
-        const Point3d start_right
+        const Point3D start_right
             = transformF(start_vertex.p + normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w) * width_factor))));
-        const Point3d end_left = transformF(end_vertex.p + normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w) * width_factor))));
-        const Point3d end_right = transformF(end_vertex.p + normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w) * width_factor))));
+        const Point3D end_left = transformF(end_vertex.p + normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w) * width_factor))));
+        const Point3D end_right = transformF(end_vertex.p + normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w) * width_factor))));
 
         fprintf(
             out_,

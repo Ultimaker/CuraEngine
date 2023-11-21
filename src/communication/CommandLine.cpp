@@ -7,7 +7,7 @@
 #include "ExtruderTrain.h"
 #include "FffProcessor.h" //To start a slice and get time estimates.
 #include "Slice.h"
-#include "utils/FMatrix4x3.h" //For the mesh_rotation_matrix setting.
+#include "utils/Matrix4x3D.h" //For the mesh_rotation_matrix setting.
 
 #include <spdlog/spdlog.h>
 
@@ -257,7 +257,7 @@ void CommandLine::sliceNext()
                     }
                     argument = arguments[argument_index];
 
-                    const FMatrix4x3 transformation = last_settings->get<FMatrix4x3>("mesh_rotation_matrix"); // The transformation applied to the model when loaded.
+                    const Matrix4x3D transformation = last_settings->get<Matrix4x3D>("mesh_rotation_matrix"); // The transformation applied to the model when loaded.
 
                     if (! loadMeshIntoMeshGroup(&slice.scene.mesh_groups[mesh_group_index], argument.c_str(), transformation, last_extruder->settings_))
                     {

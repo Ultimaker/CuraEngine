@@ -15,7 +15,7 @@
 #include "settings/types/Temperature.h"
 #include "settings/types/Velocity.h"
 #include "utils/Coord_t.h"
-#include "utils/FMatrix4x3.h" //Testing matrix transformation settings.
+#include "utils/Matrix4x3D.h" //Testing matrix transformation settings.
 
 #include <cmath> //For std::numbers::pi.
 #include <gtest/gtest.h>
@@ -184,7 +184,7 @@ TEST_F(SettingsTest, AddSettingFlowTempGraph)
 TEST_F(SettingsTest, AddSettingFMatrix3x3)
 {
     settings.add("test_setting", "[[1.0, 2.0, 3.3],[ 2 , 3.0 , 1.0],[3.0 ,1.0,2.0 ]]"); // Try various spacing and radixes.
-    auto float_matrix = settings.get<FMatrix4x3>("test_setting");
+    auto float_matrix = settings.get<Matrix4x3D>("test_setting");
 
     EXPECT_DOUBLE_EQ(1.0, float_matrix.m[0][0]);
     EXPECT_DOUBLE_EQ(2.0, float_matrix.m[1][0]);

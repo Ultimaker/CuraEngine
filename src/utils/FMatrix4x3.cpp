@@ -1,23 +1,23 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/FMatrix4x3.h" //The definitions we're implementing.
+#include "utils/Matrix4x3D.h" //The definitions we're implementing.
 
 #include "settings/types/Ratio.h" //Scale factor.
 #include "utils/IntPoint.h" //Conversion directly into integer-based coordinates.
-#include "utils/Point3d.h" //This matrix gets applied to floating point coordinates.
+#include "utils/Point3D.h" //This matrix gets applied to floating point coordinates.
 
 namespace cura
 {
 
-FMatrix4x3 FMatrix4x3::scale(const Ratio scale, const Point3 origin)
+Matrix4x3D Matrix4x3D::scale(const Ratio scale, const Point3 origin)
 {
-    return FMatrix4x3::scale(scale, scale, scale, origin);
+    return Matrix4x3D::scale(scale, scale, scale, origin);
 }
 
-FMatrix4x3 FMatrix4x3::scale(const Ratio scale_x, const Ratio scale_y, const Ratio scale_z, const Point3 origin)
+Matrix4x3D Matrix4x3D::scale(const Ratio scale_x, const Ratio scale_y, const Ratio scale_z, const Point3 origin)
 {
-    FMatrix4x3 result;
+    Matrix4x3D result;
     result.m[0][0] = scale_x; // X scale.
     result.m[1][1] = scale_y; // Y scale.
     result.m[2][2] = scale_z; // Z scale.
@@ -30,7 +30,7 @@ FMatrix4x3 FMatrix4x3::scale(const Ratio scale_x, const Ratio scale_y, const Rat
     return result;
 }
 
-FMatrix4x3::FMatrix4x3()
+Matrix4x3D::Matrix4x3D()
 {
     m[0][0] = 1.0;
     m[1][0] = 0.0;
@@ -46,7 +46,7 @@ FMatrix4x3::FMatrix4x3()
     m[3][2] = 0.0;
 }
 
-Point3 FMatrix4x3::apply(const Point3d& p) const
+Point3 Matrix4x3D::apply(const Point3D& p) const
 {
     return Point3(
         MM2INT(p.x * m[0][0] + p.y * m[1][0] + p.z * m[2][0] + m[3][0]),
@@ -54,7 +54,7 @@ Point3 FMatrix4x3::apply(const Point3d& p) const
         MM2INT(p.x * m[0][2] + p.y * m[1][2] + p.z * m[2][2] + m[3][2]));
 }
 
-Point3 FMatrix4x3::apply(const Point3& p) const
+Point3 Matrix4x3D::apply(const Point3& p) const
 {
     return Point3(
         m[0][0] * p.x_ + m[1][0] * p.y_ + m[2][0] * p.z_ + m[3][0],
