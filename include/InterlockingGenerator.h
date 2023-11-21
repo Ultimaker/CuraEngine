@@ -74,17 +74,17 @@ protected:
      * \param air_filtering Whether to fully remove all of the interlocking cells which would be visible on the outside (i.e. touching air). If no air filtering then those cells will be cut off in the middle of a beam.
      */
     InterlockingGenerator(Slicer& mesh_a, Slicer& mesh_b, coord_t beam_width_a, coord_t beam_width_b, const PointMatrix& rotation, Point3 cell_size, coord_t beam_layer_count, DilationKernel interface_dilation, DilationKernel air_dilation, bool air_filtering)
-    : mesh_a(mesh_a)
-    , mesh_b(mesh_b)
-    , beam_width_a(beam_width_a)
-    , beam_width_b(beam_width_b)
-    , vu(cell_size)
-    , rotation(rotation)
-    , cell_size(cell_size)
-    , beam_layer_count(beam_layer_count)
-    , interface_dilation(interface_dilation)
-    , air_dilation(air_dilation)
-    , air_filtering(air_filtering)
+    : mesh_a_(mesh_a)
+    , mesh_b_(mesh_b)
+    , beam_width_a_(beam_width_a)
+    , beam_width_b_(beam_width_b)
+    , vu_(cell_size)
+    , rotation_(rotation)
+    , cell_size_(cell_size)
+    , beam_layer_count_(beam_layer_count)
+    , interface_dilation_(interface_dilation)
+    , air_dilation_(air_dilation)
+    , air_filtering_(air_filtering)
     {}
 
     /*! Given two polygons, return the parts that border on air, and grow 'perpendicular' up to 'detect' distance.
@@ -144,21 +144,21 @@ protected:
      */
     void applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, const std::vector<Polygons>& layer_regions) const;
 
-    static const coord_t ignored_gap = 100u; //!< Distance between models to be considered next to each other so that an interlocking structure will be generated there
+    static const coord_t ignored_gap_ = 100u; //!< Distance between models to be considered next to each other so that an interlocking structure will be generated there
 
-    Slicer& mesh_a;
-    Slicer& mesh_b;
-    coord_t beam_width_a;
-    coord_t beam_width_b;
+    Slicer& mesh_a_;
+    Slicer& mesh_b_;
+    coord_t beam_width_a_;
+    coord_t beam_width_b_;
 
-    const VoxelUtils vu;
+    const VoxelUtils vu_;
 
-    const PointMatrix rotation;
-    const Point3 cell_size;
-    const coord_t beam_layer_count;
-    const DilationKernel interface_dilation;
-    const DilationKernel air_dilation;
-    const bool air_filtering; //!< Whether to fully remove all of the interlocking cells which would be visible on the outside. If no air filtering then those cells will be cut off midway in a beam.
+    const PointMatrix rotation_;
+    const Point3 cell_size_;
+    const coord_t beam_layer_count_;
+    const DilationKernel interface_dilation_;
+    const DilationKernel air_dilation_;
+    const bool air_filtering_; //!< Whether to fully remove all of the interlocking cells which would be visible on the outside. If no air filtering then those cells will be cut off midway in a beam.
 };
 
 }//namespace cura
