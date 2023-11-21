@@ -654,7 +654,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 zig_zaggify_infill,
                 connect_polygons,
                 raft_outline_path.outline,
-                gcode_layer.configs_storage.raft_base_config.getLineWidth(),
+                gcode_layer.configs_storage_.raft_base_config.getLineWidth(),
                 raft_outline_path.line_spacing,
                 fill_overlap,
                 infill_multiplier,
@@ -677,7 +677,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             infill_comp.generate(raft_paths, raft_polygons, raftLines, base_settings, layer_nr, SectionType::ADHESION);
             if (! raft_paths.empty())
             {
-                const GCodePathConfig& config = gcode_layer.configs_storage.raft_base_config;
+                const GCodePathConfig& config = gcode_layer.configs_storage_.raft_base_config;
                 const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
                 InsetOrderOptimizer wall_orderer(
                     *this,
@@ -698,7 +698,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                     raft_paths);
                 wall_orderer.addToLayer();
             }
-            gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_base_config, SpaceFillType::Lines);
+            gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage_.raft_base_config, SpaceFillType::Lines);
 
             raft_polygons.clear();
             raftLines.clear();
@@ -759,11 +759,11 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         Application::getInstance().communication_->sendLayerComplete(layer_nr, z, interface_layer_height);
 
         Polygons raft_outline_path;
-        const coord_t small_offset = gcode_layer.configs_storage.raft_interface_config.getLineWidth()
+        const coord_t small_offset = gcode_layer.configs_storage_.raft_interface_config.getLineWidth()
                                    / 2; // Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
         raft_outline_path = storage.raftOutline.offset(-small_offset);
         raft_outline_path = Simplify(interface_settings).polygon(raft_outline_path); // Remove those micron-movements.
-        const coord_t infill_outline_width = gcode_layer.configs_storage.raft_interface_config.getLineWidth();
+        const coord_t infill_outline_width = gcode_layer.configs_storage_.raft_interface_config.getLineWidth();
         Polygons raft_lines;
         AngleDegrees fill_angle = (num_surface_layers + num_interface_layers - raft_interface_layer) % 2 ? 45 : 135; // 90 degrees rotated from the first top layer.
         constexpr bool zig_zaggify_infill = true;
@@ -811,7 +811,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             pocket_size);
         std::vector<VariableWidthLines> raft_paths; // Should remain empty, since we have no walls.
         infill_comp.generate(raft_paths, raft_polygons, raft_lines, interface_settings, layer_nr, SectionType::ADHESION);
-        gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_interface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
+        gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage_.raft_interface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
 
         raft_polygons.clear();
         raft_lines.clear();
@@ -878,11 +878,11 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         Application::getInstance().communication_->sendLayerComplete(layer_nr, z, surface_layer_height);
 
         Polygons raft_outline_path;
-        const coord_t small_offset = gcode_layer.configs_storage.raft_interface_config.getLineWidth()
+        const coord_t small_offset = gcode_layer.configs_storage_.raft_interface_config.getLineWidth()
                                    / 2; // Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
         raft_outline_path = storage.raftOutline.offset(-small_offset);
         raft_outline_path = Simplify(interface_settings).polygon(raft_outline_path); // Remove those micron-movements.
-        const coord_t infill_outline_width = gcode_layer.configs_storage.raft_interface_config.getLineWidth();
+        const coord_t infill_outline_width = gcode_layer.configs_storage_.raft_interface_config.getLineWidth();
         Polygons raft_lines;
         AngleDegrees fill_angle
             = (num_surface_layers - raft_surface_layer) % 2 ? 45 : 135; // Alternate between -45 and +45 degrees, ending up 90 degrees rotated from the default skin angle.
@@ -931,7 +931,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             pocket_size);
         std::vector<VariableWidthLines> raft_paths; // Should remain empty, since we have no walls.
         infill_comp.generate(raft_paths, raft_polygons, raft_lines, surface_settings, layer_nr, SectionType::ADHESION);
-        gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
+        gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage_.raft_surface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
 
         raft_polygons.clear();
         raft_lines.clear();
@@ -1086,7 +1086,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
             for (size_t mesh_idx : mesh_order)
             {
                 const std::shared_ptr<SliceMeshStorage>& mesh = storage.meshes[mesh_idx];
-                const MeshPathConfigs& mesh_config = gcode_layer.configs_storage.mesh_configs[mesh_idx];
+                const MeshPathConfigs& mesh_config = gcode_layer.configs_storage_.mesh_configs[mesh_idx];
                 if (mesh->settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE
                     && extruder_nr
                            == mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ // mesh surface mode should always only be printed with the outer wall extruder!
@@ -1285,7 +1285,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
 
         gcode_layer.addLinesByOptimizer(
             layer_nr == 0 ? all_brim_lines : inner_brim_line,
-            gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
+            gcode_layer.configs_storage_.skirt_brim_config_per_extruder[extruder_nr],
             SpaceFillType::PolyLines,
             enable_travel_optimization,
             wipe_dist,
@@ -1308,7 +1308,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         support_brim_lines.toPolylines();
         gcode_layer.addLinesByOptimizer(
             support_brim_lines,
-            gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
+            gcode_layer.configs_storage_.skirt_brim_config_per_extruder[extruder_nr],
             SpaceFillType::PolyLines,
             enable_travel_optimization,
             wipe_dist,
@@ -1329,7 +1329,7 @@ void FffGcodeWriter::processOozeShield(const SliceDataStorage& storage, LayerPla
     }
     if (storage.oozeShield.size() > 0 && layer_nr < storage.oozeShield.size())
     {
-        gcode_layer.addPolygonsByOptimizer(storage.oozeShield[layer_nr], gcode_layer.configs_storage.skirt_brim_config_per_extruder[0]);
+        gcode_layer.addPolygonsByOptimizer(storage.oozeShield[layer_nr], gcode_layer.configs_storage_.skirt_brim_config_per_extruder[0]);
     }
 }
 
@@ -1362,7 +1362,7 @@ void FffGcodeWriter::processDraftShield(const SliceDataStorage& storage, LayerPl
         }
     }
 
-    gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, gcode_layer.configs_storage.skirt_brim_config_per_extruder[0]);
+    gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, gcode_layer.configs_storage_.skirt_brim_config_per_extruder[0]);
 }
 
 void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& storage)
@@ -1711,7 +1711,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
                 infill_overlap,
                 infill_multiplier,
                 infill_angle,
-                gcode_layer.z,
+                gcode_layer.z_,
                 infill_shift,
                 max_resolution,
                 max_deviation,
@@ -1917,7 +1917,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
                 overlap,
                 infill_multiplier,
                 infill_angle,
-                gcode_layer.z,
+                gcode_layer.z_,
                 infill_shift,
                 max_resolution,
                 max_deviation,
@@ -1982,7 +1982,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
             overlap,
             infill_multiplier,
             infill_angle,
-            gcode_layer.z,
+            gcode_layer.z_,
             infill_shift,
             max_resolution,
             max_deviation,
@@ -2660,12 +2660,12 @@ bool FffGcodeWriter::processSkinPart(
 {
     bool added_something = false;
 
-    gcode_layer.mode_skip_agressive_merge = true;
+    gcode_layer.mode_skip_agressive_merge_ = true;
 
     processRoofing(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, added_something);
     processTopBottom(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, added_something);
 
-    gcode_layer.mode_skip_agressive_merge = false;
+    gcode_layer.mode_skip_agressive_merge_ = false;
     return added_something;
 }
 
@@ -2942,7 +2942,7 @@ void FffGcodeWriter::processSkinPrintFeature(
         skin_overlap,
         infill_multiplier,
         skin_angle,
-        gcode_layer.z,
+        gcode_layer.z_,
         extra_infill_shift,
         max_resolution,
         max_deviation,
@@ -3125,7 +3125,7 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
 
     if (extruder_nr == support_roof_extruder_nr)
     {
-        support_added |= addSupportRoofsToGCode(storage, support_layer.support_fractional_roof, gcode_layer.configs_storage.support_fractional_roof_config, gcode_layer);
+        support_added |= addSupportRoofsToGCode(storage, support_layer.support_fractional_roof, gcode_layer.configs_storage_.support_fractional_roof_config, gcode_layer);
     }
     if (extruder_nr == support_infill_extruder_nr)
     {
@@ -3136,7 +3136,7 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
         support_added |= addSupportRoofsToGCode(
             storage,
             support_layer.support_roof.difference(support_layer.support_fractional_roof),
-            gcode_layer.configs_storage.support_roof_config,
+            gcode_layer.configs_storage_.support_roof_config,
             gcode_layer);
     }
     if (extruder_nr == support_bottom_extruder_nr)
@@ -3235,7 +3235,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     for (const PathOrdering<const SupportInfillPart*>& path : ranges::views::concat(island_order_optimizer_initial.paths_, island_order_optimizer.paths_))
     {
         const SupportInfillPart& part = *path.vertices_;
-        const auto& configs = part.use_fractional_config_ ? gcode_layer.configs_storage.support_fractional_infill_config : gcode_layer.configs_storage.support_infill_config;
+        const auto& configs = part.use_fractional_config_ ? gcode_layer.configs_storage_.support_fractional_infill_config : gcode_layer.configs_storage_.support_infill_config;
 
         // always process the wall overlap if walls are generated
         const int current_support_infill_overlap = (part.inset_count_to_generate_ > 0) ? default_support_infill_overlap : 0;
@@ -3315,7 +3315,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     current_support_infill_overlap - (density_idx == max_density_idx ? 0 : wall_line_count * support_line_width),
                     infill_multiplier,
                     support_infill_angle,
-                    gcode_layer.z + configs[combine_idx].z_offset,
+                    gcode_layer.z_ + configs[combine_idx].z_offset,
                     support_shift,
                     max_resolution,
                     max_deviation,
@@ -3521,7 +3521,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(
         support_roof_overlap,
         infill_multiplier,
         fill_angle,
-        gcode_layer.z + current_roof_config.z_offset,
+        gcode_layer.z_ + current_roof_config.z_offset,
         extra_infill_shift,
         max_resolution,
         max_deviation,
@@ -3631,12 +3631,12 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
         zig_zaggify_infill,
         connect_polygons,
         support_layer.support_bottom,
-        gcode_layer.configs_storage.support_bottom_config.getLineWidth(),
+        gcode_layer.configs_storage_.support_bottom_config.getLineWidth(),
         support_bottom_line_distance,
         support_bottom_overlap,
         infill_multiplier,
         fill_angle,
-        gcode_layer.z,
+        gcode_layer.z_,
         extra_infill_shift,
         max_resolution,
         max_deviation,
@@ -3663,11 +3663,11 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     {
         constexpr bool force_comb_retract = false;
         gcode_layer.addTravel(bottom_polygons[0][0], force_comb_retract);
-        gcode_layer.addPolygonsByOptimizer(bottom_polygons, gcode_layer.configs_storage.support_bottom_config);
+        gcode_layer.addPolygonsByOptimizer(bottom_polygons, gcode_layer.configs_storage_.support_bottom_config);
     }
     if (! bottom_paths.empty())
     {
-        const GCodePathConfig& config = gcode_layer.configs_storage.support_bottom_config;
+        const GCodePathConfig& config = gcode_layer.configs_storage_.support_bottom_config;
         constexpr bool retract_before_outer_wall = false;
         constexpr coord_t wipe_dist = 0;
         const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
@@ -3693,7 +3693,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     }
     gcode_layer.addLinesByOptimizer(
         bottom_lines,
-        gcode_layer.configs_storage.support_bottom_config,
+        gcode_layer.configs_storage_.support_bottom_config,
         (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
     return true;
 }

@@ -237,10 +237,10 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
             Polygons less_dense_support = infill_area; // one step less dense with each density_step
             for (unsigned int density_step = 0; density_step < max_density_steps; ++density_step)
             {
-                LayerIndex min_layer{ layer_nr + density_step * gradual_support_step_layer_count + static_cast<LayerIndex::value_type>(layer_skip_count) };
-                LayerIndex max_layer{ layer_nr + (density_step + 1) * gradual_support_step_layer_count };
+                LayerIndex actual_min_layer{ layer_nr + density_step * gradual_support_step_layer_count + static_cast<LayerIndex::value_type>(layer_skip_count) };
+                LayerIndex actual_max_layer{ layer_nr + (density_step + 1) * gradual_support_step_layer_count };
 
-                for (double upper_layer_idx = min_layer; upper_layer_idx <= max_layer; upper_layer_idx += layer_skip_count)
+                for (double upper_layer_idx = actual_min_layer; upper_layer_idx <= actual_max_layer; upper_layer_idx += layer_skip_count)
                 {
                     if (static_cast<unsigned int>(upper_layer_idx) >= total_layer_count)
                     {
@@ -573,8 +573,6 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
         // first offset the layer a little inwards; this way tiny area's will not be joined
         // (narrow areas; ergo small areas will be removed in a later step using this same offset)
         // this inwards offset is later reversed by increasing the outwards offset
-        const coord_t join_distance = infill_settings.get<coord_t>("support_join_distance");
-        const coord_t support_line_width = infill_settings.get<coord_t>("support_line_width");
         const coord_t min_even_wall_line_width = infill_settings.get<coord_t>("min_even_wall_line_width");
         auto half_min_feature_width = min_even_wall_line_width + 10;
 
@@ -1360,9 +1358,10 @@ void AreaSupport::generateSupportAreasForMesh(
             max_checking_layer_idx,
             [&](const size_t layer_idx)
             {
-                constexpr bool no_support = false;
-                constexpr bool no_prime_tower = false;
-                support_areas[layer_idx] = support_areas[layer_idx].difference(storage.getLayerOutlines(layer_idx + layer_z_distance_top - 1, no_support, no_prime_tower));
+                constexpr bool no_support_here = false;
+                constexpr bool no_prime_tower_here = false;
+                support_areas[layer_idx]
+                    = support_areas[layer_idx].difference(storage.getLayerOutlines(layer_idx + layer_z_distance_top - 1, no_support_here, no_prime_tower_here));
             });
     }
 
@@ -1700,7 +1699,6 @@ void AreaSupport::handleWallStruts(const Settings& settings, Polygons& supportLa
         PolygonRef poly = supportLayer_this[p];
         if (poly.size() < 6) // might be a single wall
         {
-            PolygonRef poly = supportLayer_this[p];
             int best = -1;
             int best_length2 = -1;
             for (unsigned int i = 0; i < poly.size(); i++)

@@ -104,21 +104,21 @@ public:
     AngleRadians getTransitioningAngle() const;
 
 protected:
-    std::string name;
+    std::string name_;
 
-    coord_t optimal_width; //! Optimal bead width, nominal width off the walls in 'ideal' circumstances.
+    coord_t optimal_width_; //! Optimal bead width, nominal width off the walls in 'ideal' circumstances.
 
-    Ratio wall_split_middle_threshold; //! Threshold when a middle wall should be split into two, as a ratio of the optimal wall width.
+    Ratio wall_split_middle_threshold_; //! Threshold when a middle wall should be split into two, as a ratio of the optimal wall width.
 
-    Ratio wall_add_middle_threshold; //! Threshold when a new middle wall should be added between an even number of walls, as a ratio of the optimal wall width.
+    Ratio wall_add_middle_threshold_; //! Threshold when a new middle wall should be added between an even number of walls, as a ratio of the optimal wall width.
 
-    coord_t default_transition_length; //! The length of the region to smoothly transfer between bead counts
+    coord_t default_transition_length_; //! The length of the region to smoothly transfer between bead counts
 
     /*!
      * The maximum angle between outline segments smaller than which we are going to add transitions
      * Equals 180 - the "limit bisector angle" from the paper
      */
-    AngleRadians transitioning_angle;
+    AngleRadians transitioning_angle_;
 };
 
 using BeadingStrategyPtr = std::unique_ptr<BeadingStrategy>;

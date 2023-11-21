@@ -98,7 +98,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
         infill_overlap,
         infill_multiplier,
         direction,
-        layer.z - 10,
+        layer.z_ - 10,
         shift,
         max_resolution,
         max_deviation,
@@ -116,7 +116,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
         return false; // Nothing to do.
     }
 
-    layer.mode_skip_agressive_merge = true;
+    layer.mode_skip_agressive_merge_ = true;
 
     bool added = false;
     if (! ironing_polygons.empty())
@@ -187,7 +187,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
         added = true;
     }
 
-    layer.mode_skip_agressive_merge = false;
+    layer.mode_skip_agressive_merge_ = false;
     return added;
 }
 

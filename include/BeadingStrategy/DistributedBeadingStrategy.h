@@ -18,7 +18,7 @@ namespace cura
 class DistributedBeadingStrategy : public BeadingStrategy
 {
 protected:
-    double one_over_distribution_radius_squared; // (1 / distribution_radius)^2
+    double one_over_distribution_radius_squared_; // (1 / distribution_radius)^2
 
 public:
     /*!

@@ -372,59 +372,59 @@ private:
     /*!
      * \brief Whether the precalculate was called, meaning every required value should be cached.
      */
-    bool precalculated = false;
+    bool precalculated_ = false;
 
     /*!
      * \brief Whether the precalculate was called and finished, meaning every required value should be cached.
      */
-    bool precalculationFinished = false;
+    bool precalculation_finished_ = false;
 
     /*!
      * \brief The index to access the outline corresponding with the currently processing mesh
      */
-    size_t current_outline_idx;
+    size_t current_outline_idx_;
 
     /*!
      * \brief The minimum required clearance between the model and the tree branches
      */
-    coord_t current_min_xy_dist;
+    coord_t current_min_xy_dist_;
 
     /*!
      * \brief The difference between the minimum required clearance between the model and the tree branches and the regular one.
      */
-    coord_t current_min_xy_dist_delta;
+    coord_t current_min_xy_dist_delta_;
 
     /*!
      * \brief The top most layer where there is no anti_overhang on any layer below
      */
-    LayerIndex max_layer_idx_without_blocker;
+    LayerIndex max_layer_idx_without_blocker_;
 
     /*!
      * \brief Does at least one mesh allow support to rest on a model.
      */
-    bool support_rests_on_model;
+    bool support_rests_on_model_;
 
     /*!
      * \brief The progress of the precalculate function for communicating it to the progress bar.
      */
-    coord_t precalculation_progress = 0;
+    coord_t precalculation_progress_ = 0;
 
     /*!
      * \brief The progress multiplier of all values added progress bar.
      * Required for the progress bar the behave as expected when areas have to be calculated multiple times
      */
-    double progress_multiplier;
+    double progress_multiplier_;
 
     /*!
      * \brief The progress offset added to all values communicated to the progress bar.
      * Required for the progress bar the behave as expected when areas have to be calculated multiple times
      */
-    double progress_offset;
+    double progress_offset_;
 
     /*!
      * \brief Increase radius in the resulting drawn branches, even if the avoidance does not allow it. Will be cut later to still fit.
      */
-    coord_t increase_until_radius;
+    coord_t increase_until_radius_;
 
     /*!
      * \brief Polygons representing the limits of the printable area of the
@@ -455,12 +455,12 @@ private:
     /*!
      * \brief Smallest radius a branch can have. This is the radius of a SupportElement with DTT=0.
      */
-    coord_t radius_0;
+    coord_t radius_0_;
 
     /*!
      * \brief Does the main model require regular avoidance, or only avoidance to model.
      */
-    RestPreference support_rest_preference;
+    RestPreference support_rest_preference_;
 
     /*!
      * \brief Caches for the collision, avoidance and areas on the model where support can be placed safely
@@ -517,9 +517,9 @@ private:
     mutable std::unordered_map<RadiusLayerPair, Polygons> wall_restrictions_cache_min_;
     std::unique_ptr<std::mutex> critical_wall_restrictions_cache_min_ = std::make_unique<std::mutex>();
 
-    std::unique_ptr<std::mutex> critical_progress = std::make_unique<std::mutex>();
+    std::unique_ptr<std::mutex> critical_progress_ = std::make_unique<std::mutex>();
 
-    Simplify simplifier = Simplify(0, 0, 0); // a simplifier to simplify polygons. Will be properly initialised in the constructor.
+    Simplify simplifier_ = Simplify(0, 0, 0); // a simplifier to simplify polygons. Will be properly initialised in the constructor.
 };
 
 }

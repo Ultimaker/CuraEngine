@@ -63,7 +63,8 @@ LayerPlan* LayerPlanBuffer::processBuffer()
 
 void LayerPlanBuffer::flush()
 {
-    Application::getInstance().communication_->flushGCode(); // If there was still g-code in a layer, flush that as a separate layer. Don't want to group them together accidentally.
+    Application::getInstance()
+        .communication_->flushGCode(); // If there was still g-code in a layer, flush that as a separate layer. Don't want to group them together accidentally.
     if (buffer_.size() > 0)
     {
         insertTempCommands(); // insert preheat commands of the very last layer
@@ -83,26 +84,26 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
 
     if (! new_layer_destination_state)
     {
-        spdlog::warn("Layer {} is empty (or it has empty extruder plans). Temperature control and cross layer travel moves might suffer!", newest_layer->layer_nr);
+        spdlog::warn("Layer {} is empty (or it has empty extruder plans). Temperature control and cross layer travel moves might suffer!", newest_layer->layer_nr_);
         return;
     }
 
     Point first_location_new_layer = new_layer_destination_state->first;
 
-    assert(newest_layer->extruder_plans.front().paths_[0].points.size() == 1);
-    assert(newest_layer->extruder_plans.front().paths_[0].points[0] == first_location_new_layer);
+    assert(newest_layer->extruder_plans_.front().paths_[0].points.size() == 1);
+    assert(newest_layer->extruder_plans_.front().paths_[0].points[0] == first_location_new_layer);
 
     // if the last planned position in the previous layer isn't the same as the first location of the new layer, travel to the new location
-    if (! prev_layer->last_planned_position || *prev_layer->last_planned_position != first_location_new_layer)
+    if (! prev_layer->last_planned_position_ || *prev_layer->last_planned_position_ != first_location_new_layer)
     {
         const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-        const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[prev_layer->extruder_plans.back().extruder_nr_].settings_;
+        const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[prev_layer->extruder_plans_.back().extruder_nr_].settings_;
         prev_layer->setIsInside(new_layer_destination_state->second);
         const bool force_retract = extruder_settings.get<bool>("retract_at_layer_change")
                                 || (mesh_group_settings.get<bool>("travel_retract_before_outer_wall")
                                     && (mesh_group_settings.get<InsetDirection>("inset_direction") == InsetDirection::OUTSIDE_IN
                                         || mesh_group_settings.get<size_t>("wall_line_count") == 1)); // Moving towards an outer wall.
-        prev_layer->final_travel_z = newest_layer->z;
+        prev_layer->final_travel_z_ = newest_layer->z_;
         GCodePath& path = prev_layer->addTravel(first_location_new_layer, force_retract);
         if (force_retract && ! path.retract)
         {
@@ -114,7 +115,7 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
     }
 
     // If not using travel-specific jerk and acceleration, the layer plan needs to know the jerk/acc of the first extrusion move of the next layer.
-    prev_layer->next_layer_acc_jerk = newest_layer->first_extrusion_acc_jerk;
+    prev_layer->next_layer_acc_jerk_ = newest_layer->first_extrusion_acc_jerk_;
 }
 
 void LayerPlanBuffer::processFanSpeedLayerTime()
@@ -492,7 +493,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
 
 void LayerPlanBuffer::insertTempCommands()
 {
-    if (buffer_.back()->extruder_plans.size() == 0 || (buffer_.back()->extruder_plans.size() == 1 && buffer_.back()->extruder_plans[0].paths_.size() == 0))
+    if (buffer_.back()->extruder_plans_.size() == 0 || (buffer_.back()->extruder_plans_.size() == 1 && buffer_.back()->extruder_plans_[0].paths_.size() == 0))
     { // disregard empty layer
         buffer_.pop_back();
         return;
@@ -502,7 +503,7 @@ void LayerPlanBuffer::insertTempCommands()
     extruder_plans.reserve(buffer_.size() * 2);
     for (LayerPlan* layer_plan : buffer_)
     {
-        for (ExtruderPlan& extr_plan : layer_plan->extruder_plans)
+        for (ExtruderPlan& extr_plan : layer_plan->extruder_plans_)
         {
             extruder_plans.push_back(&extr_plan);
         }
@@ -511,10 +512,10 @@ void LayerPlanBuffer::insertTempCommands()
     // insert commands for all extruder plans on this layer
     Scene& scene = Application::getInstance().current_slice_->scene;
     LayerPlan& layer_plan = *buffer_.back();
-    for (size_t extruder_plan_idx = 0; extruder_plan_idx < layer_plan.extruder_plans.size(); extruder_plan_idx++)
+    for (size_t extruder_plan_idx = 0; extruder_plan_idx < layer_plan.extruder_plans_.size(); extruder_plan_idx++)
     {
-        const size_t overall_extruder_plan_idx = extruder_plans.size() - layer_plan.extruder_plans.size() + extruder_plan_idx;
-        ExtruderPlan& extruder_plan = layer_plan.extruder_plans[extruder_plan_idx];
+        const size_t overall_extruder_plan_idx = extruder_plans.size() - layer_plan.extruder_plans_.size() + extruder_plan_idx;
+        ExtruderPlan& extruder_plan = layer_plan.extruder_plans_[extruder_plan_idx];
         size_t extruder = extruder_plan.extruder_nr_;
         const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder].settings_;
         Duration time = extruder_plan.estimates_.getTotalUnretractedTime();
@@ -557,7 +558,6 @@ void LayerPlanBuffer::insertTempCommands()
 
         if (buffer_.size() == 1 && extruder_plan_idx == 0)
         { // the very first extruder plan of the current meshgroup
-            size_t extruder = extruder_plan.extruder_nr_;
             for (size_t extruder_idx = 0; extruder_idx < scene.extruders.size(); extruder_idx++)
             { // set temperature of the first nozzle, turn other nozzles down
                 const Settings& other_extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder_idx].settings_;

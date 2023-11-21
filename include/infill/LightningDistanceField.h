@@ -1,11 +1,11 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2021 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef LIGHTNING_DISTANCE_FIELD_H
 #define LIGHTNING_DISTANCE_FIELD_H
 
-#include "../utils/polygon.h" //Using outlines to fill and tracking overhang.
 #include "../utils/SquareGrid.h" //Tracking for each location the distance to overhang.
+#include "../utils/polygon.h" //Using outlines to fill and tracking overhang.
 
 namespace cura
 {
@@ -30,7 +30,7 @@ public:
      * layer.
      */
     LightningDistanceField(const coord_t& radius, const Polygons& current_outline, const Polygons& current_overhang);
-    
+
     /*!
      * Gets the next unsupported location to be supported by a new branch.
      * \param p Output variable for the next point to support.
@@ -59,65 +59,66 @@ protected:
     /*!
      * Spacing between grid points to consider supporting.
      */
-    coord_t cell_size;
+    coord_t cell_size_;
 
     /*!
      * Grid points to consider supporting, with each point maintaining its
      * distance to the nearest support point.
      */
-    SquareGrid grid;
+    SquareGrid grid_;
 
     /*!
      * The radius of the area of the layer above supported by a point on a
      * branch of a tree.
      */
-    coord_t supporting_radius;
+    coord_t supporting_radius_;
 
     /*!
      * The total infill area on the current layer.
      */
-    const Polygons& current_outline;
+    const Polygons& current_outline_;
 
     /*!
      * The overhang that gets introduced on this layer, which the infill will
      * need to support.
      */
-    const Polygons& current_overhang;
+    const Polygons& current_overhang_;
 
     /*!
      * Represents a small discrete area of infill that needs to be supported.
      */
     struct UnsupCell
     {
-        UnsupCell(SquareGrid::GridPoint loc, coord_t dist_to_boundary)
-        : loc(loc)
-        , dist_to_boundary(dist_to_boundary)
-        {}
-
         /*!
          * The position of the center of this cell.
          */
-        Point loc;
+        Point loc_;
 
         /*!
          * How far this cell is removed from the ``current_outline`` polygon,
          * the edge of the infill area.
          */
-        coord_t dist_to_boundary;
+        coord_t dist_to_boundary_;
+
+        UnsupCell(SquareGrid::GridPoint loc, coord_t dist_to_boundary)
+            : loc_(loc)
+            , dist_to_boundary_(dist_to_boundary)
+        {
+        }
     };
 
     /*!
      * Cells which still need to be supported at some point.
      */
-    std::list<UnsupCell> unsupported_points;
+    std::list<UnsupCell> unsupported_points_;
 
     /*!
      * Links the unsupported points to a grid point, so that we can quickly look
      * up the cell belonging to a certain position in the grid.
      */
-    std::unordered_map<SquareGrid::GridPoint, std::list<UnsupCell>::iterator> unsupported_points_grid;
+    std::unordered_map<SquareGrid::GridPoint, std::list<UnsupCell>::iterator> unsupported_points_grid_;
 };
 
-}
+} // namespace cura
 
-#endif //LIGHTNING_DISTANCE_FIELD_H
+#endif // LIGHTNING_DISTANCE_FIELD_H

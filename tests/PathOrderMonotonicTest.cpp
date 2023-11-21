@@ -156,8 +156,8 @@ TEST_P(PathOrderMonotonicTest, SectionsTest)
     // Collect sections:
     std::vector<std::vector<PathOrdering<ConstPolygonPointer>>> sections;
     sections.emplace_back();
-    coord_t last_path_mono_projection = projectPathAlongAxis(object_under_test.paths.front(), monotonic_axis);
-    for (const auto& path : object_under_test.paths)
+    coord_t last_path_mono_projection = projectPathAlongAxis(object_under_test.paths_.front(), monotonic_axis);
+    for (const auto& path : object_under_test.paths_)
     {
         const coord_t path_mono_projection{ projectPathAlongAxis(path, monotonic_axis) };
         if (path_mono_projection < last_path_mono_projection && ! sections.back().empty())

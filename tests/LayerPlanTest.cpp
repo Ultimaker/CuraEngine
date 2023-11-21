@@ -357,40 +357,40 @@ public:
         {
         case OPEN:
             layer_plan.setIsInside(false);
-            layer_plan.was_inside = false;
+            layer_plan.was_inside_ = false;
             break;
         case INSIDE:
             slice_data.add(around_start_end);
             layer_plan.setIsInside(true);
-            layer_plan.was_inside = true;
+            layer_plan.was_inside_ = true;
             break;
         case OBSTRUCTION:
             slice_data.add(between);
             layer_plan.setIsInside(false);
-            layer_plan.was_inside = false;
+            layer_plan.was_inside_ = false;
             break;
         case INSIDE_OBSTRUCTION:
             slice_data.add(around_start_end);
             slice_data.add(between_hole);
             layer_plan.setIsInside(true);
-            layer_plan.was_inside = true;
+            layer_plan.was_inside_ = true;
             break;
         case OTHER_PART:
             slice_data.add(around_start);
             slice_data.add(around_end);
             layer_plan.setIsInside(true);
-            layer_plan.was_inside = true;
+            layer_plan.was_inside_ = true;
             break;
         }
-        layer_plan.comb_boundary_minimum = slice_data;
-        layer_plan.comb_boundary_preferred = slice_data; // We don't care about the combing accuracy itself, so just use the same for both.
+        layer_plan.comb_boundary_minimum_ = slice_data;
+        layer_plan.comb_boundary_preferred_ = slice_data; // We don't care about the combing accuracy itself, so just use the same for both.
         if (parameters.combing != "off")
         {
-            layer_plan.comb = new Comb(
+            layer_plan.comb_ = new Comb(
                 *storage,
                 100, // layer_nr
-                layer_plan.comb_boundary_minimum,
-                layer_plan.comb_boundary_preferred,
+                layer_plan.comb_boundary_minimum_,
+                layer_plan.comb_boundary_preferred_,
                 20, // comb_boundary_offset
                 5000, // travel_avoid_distance
                 10 // comb_move_inside_distance
@@ -398,7 +398,7 @@ public:
         }
         else
         {
-            layer_plan.comb = nullptr;
+            layer_plan.comb_ = nullptr;
         }
 
         const Point destination(500000, 500000);

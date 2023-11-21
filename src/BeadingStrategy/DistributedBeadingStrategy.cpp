@@ -18,13 +18,13 @@ DistributedBeadingStrategy::DistributedBeadingStrategy(
 {
     if (distribution_radius >= 2)
     {
-        one_over_distribution_radius_squared = 1.0f / (distribution_radius - 1) * 1.0f / (distribution_radius - 1);
+        one_over_distribution_radius_squared_ = 1.0f / (distribution_radius - 1) * 1.0f / (distribution_radius - 1);
     }
     else
     {
-        one_over_distribution_radius_squared = 1.0f / 1 * 1.0f / 1;
+        one_over_distribution_radius_squared_ = 1.0f / 1 * 1.0f / 1;
     }
-    name = "DistributedBeadingStrategy";
+    name_ = "DistributedBeadingStrategy";
 }
 
 DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
@@ -34,13 +34,13 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(coord_t 
     ret.total_thickness = thickness;
     if (bead_count > 2)
     {
-        const coord_t to_be_divided = thickness - bead_count * optimal_width;
+        const coord_t to_be_divided = thickness - bead_count * optimal_width_;
         const double middle = static_cast<double>(bead_count - 1) / 2;
 
         const auto getWeight = [middle, this](coord_t bead_idx)
         {
             const double dev_from_middle = bead_idx - middle;
-            return std::max(0.0, 1.0 - one_over_distribution_radius_squared * dev_from_middle * dev_from_middle);
+            return std::max(0.0, 1.0 - one_over_distribution_radius_squared_ * dev_from_middle * dev_from_middle);
         };
 
         std::vector<double> weights;
@@ -55,7 +55,7 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(coord_t 
         {
             const double weight_fraction = weights[bead_idx] / total_weight;
             const coord_t splitup_left_over_weight = to_be_divided * weight_fraction;
-            const coord_t width = optimal_width + splitup_left_over_weight;
+            const coord_t width = optimal_width_ + splitup_left_over_weight;
             if (bead_idx == 0)
             {
                 ret.toolpath_locations.emplace_back(width / 2);
@@ -94,9 +94,9 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(coord_t 
 
 coord_t DistributedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
-    const coord_t naive_count = thickness / optimal_width; // How many lines we can fit in for sure.
-    const coord_t remainder = thickness - naive_count * optimal_width; // Space left after fitting that many lines.
-    const coord_t minimum_line_width = optimal_width * (naive_count % 2 == 1 ? wall_split_middle_threshold : wall_add_middle_threshold);
+    const coord_t naive_count = thickness / optimal_width_; // How many lines we can fit in for sure.
+    const coord_t remainder = thickness - naive_count * optimal_width_; // Space left after fitting that many lines.
+    const coord_t minimum_line_width = optimal_width_ * (naive_count % 2 == 1 ? wall_split_middle_threshold_ : wall_add_middle_threshold_);
     return naive_count + (remainder >= minimum_line_width); // If there's enough space, fit an extra one.
 }
 

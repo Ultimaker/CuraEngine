@@ -45,12 +45,12 @@ private:
      *
      * Normally this is a mesh's settings.
      */
-    const Settings& settings;
+    const Settings& settings_;
 
     /*!
      * \brief The layer that these walls are generated for.
      */
-    const LayerIndex layer_nr;
+    const LayerIndex layer_nr_;
 
     /*!
      * Generates the walls / inner area for a single layer part.

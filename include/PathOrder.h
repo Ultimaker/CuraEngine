@@ -37,18 +37,18 @@ public:
      * pointer to the vertex data, whether to close the loop or not, the
      * direction in which to print the path and where to start the path.
      */
-    std::vector<PathOrdering<PathType>> paths;
+    std::vector<PathOrdering<PathType>> paths_;
 
     /*!
      * The location where the nozzle is assumed to start from before printing
      * these parts.
      */
-    Point start_point;
+    Point start_point_;
 
     /*!
      * Seam settings.
      */
-    ZSeamConfig seam_config;
+    ZSeamConfig seam_config_;
 
     /*!
      * Add a new polygon to be planned.
@@ -59,7 +59,7 @@ public:
     void addPolygon(const PathType& polygon)
     {
         constexpr bool is_closed = true;
-        paths.emplace_back(polygon, is_closed);
+        paths_.emplace_back(polygon, is_closed);
     }
 
     /*!
@@ -71,7 +71,7 @@ public:
     void addPolyline(const PathType& polyline)
     {
         constexpr bool is_closed = false;
-        paths.emplace_back(polyline, is_closed);
+        paths_.emplace_back(polyline, is_closed);
     }
 
     /*!
@@ -96,7 +96,7 @@ protected:
      * pretend they are the same point.
      * This is used for detecting loops and chaining lines together.
      */
-    constexpr static coord_t coincident_point_distance = 10;
+    constexpr static coord_t coincident_point_distance_ = 10;
 
 
     /*!
@@ -108,7 +108,7 @@ protected:
      */
     void detectLoops()
     {
-        for(PathOrdering<PathType>& path : paths)
+        for(PathOrdering<PathType>& path : paths_)
         {
             if(path.is_closed_) //Already a polygon. No need to detect loops.
             {
@@ -118,7 +118,7 @@ protected:
             {
                 continue;
             }
-            if(vSize2(path.converted_->back() - path.converted_->front()) < coincident_point_distance * coincident_point_distance)
+            if(vSize2(path.converted_->back() - path.converted_->front()) < coincident_point_distance_ * coincident_point_distance_)
             {
                 //Endpoints are really close to one another. Consider it a closed loop.
                 path.is_closed_ = true;

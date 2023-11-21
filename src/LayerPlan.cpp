@@ -45,16 +45,16 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     const bool spiralize,
     const Ratio speed_factor)
 {
-    std::vector<GCodePath>& paths = extruder_plans.back().paths_;
+    std::vector<GCodePath>& paths = extruder_plans_.back().paths_;
     if (paths.size() > 0 && paths.back().config == config && ! paths.back().done && paths.back().flow == flow && paths.back().width_factor == width_factor
         && paths.back().speed_factor == speed_factor && paths.back().z_offset == z_offset
-        && paths.back().mesh == current_mesh) // spiralize can only change when a travel path is in between
+        && paths.back().mesh == current_mesh_) // spiralize can only change when a travel path is in between
     {
         return &paths.back();
     }
     paths.emplace_back(GCodePath{ .z_offset = z_offset,
                                   .config = config,
-                                  .mesh = current_mesh,
+                                  .mesh = current_mesh_,
                                   .space_fill_type = space_fill_type,
                                   .flow = flow,
                                   .width_factor = width_factor,
@@ -62,18 +62,18 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
                                   .speed_factor = speed_factor });
 
     GCodePath* ret = &paths.back();
-    ret->skip_agressive_merge_hint = mode_skip_agressive_merge;
+    ret->skip_agressive_merge_hint = mode_skip_agressive_merge_;
     return ret;
 }
 
 const Polygons* LayerPlan::getCombBoundaryInside() const
 {
-    return &comb_boundary_preferred;
+    return &comb_boundary_preferred_;
 }
 
 void LayerPlan::forceNewPathStart()
 {
-    std::vector<GCodePath>& paths = extruder_plans.back().paths_;
+    std::vector<GCodePath>& paths = extruder_plans_.back().paths_;
     if (paths.size() > 0)
         paths[paths.size() - 1].done = true;
 }
@@ -88,84 +88,84 @@ LayerPlan::LayerPlan(
     coord_t comb_boundary_offset,
     coord_t comb_move_inside_distance,
     coord_t travel_avoid_distance)
-    : configs_storage(storage, layer_nr, layer_thickness)
-    , z(z)
-    , final_travel_z(z)
-    , mode_skip_agressive_merge(false)
-    , storage(storage)
-    , layer_nr(layer_nr)
-    , is_initial_layer(layer_nr == 0 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
-    , is_raft_layer(layer_nr < 0 - static_cast<LayerIndex>(Raft::getFillerLayerCount()))
-    , layer_thickness(layer_thickness)
-    , has_prime_tower_planned_per_extruder(Application::getInstance().current_slice_->scene.extruders.size(), false)
-    , current_mesh(nullptr)
-    , last_extruder_previous_layer(start_extruder)
-    , last_planned_extruder(&Application::getInstance().current_slice_->scene.extruders[start_extruder])
-    , first_travel_destination_is_inside(false)
+    : configs_storage_(storage, layer_nr, layer_thickness)
+    , z_(z)
+    , final_travel_z_(z)
+    , mode_skip_agressive_merge_(false)
+    , storage_(storage)
+    , layer_nr_(layer_nr)
+    , is_initial_layer_(layer_nr == 0 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
+    , is_raft_layer_(layer_nr < 0 - static_cast<LayerIndex>(Raft::getFillerLayerCount()))
+    , layer_thickness_(layer_thickness)
+    , has_prime_tower_planned_per_extruder_(Application::getInstance().current_slice_->scene.extruders.size(), false)
+    , current_mesh_(nullptr)
+    , last_extruder_previous_layer_(start_extruder)
+    , last_planned_extruder_(&Application::getInstance().current_slice_->scene.extruders[start_extruder])
+    , first_travel_destination_is_inside_(false)
     , // set properly when addTravel is called for the first time (otherwise not set properly)
-    comb_boundary_minimum(computeCombBoundary(CombBoundary::MINIMUM))
-    , comb_boundary_preferred(computeCombBoundary(CombBoundary::PREFERRED))
-    , comb_move_inside_distance(comb_move_inside_distance)
-    , fan_speed_layer_time_settings_per_extruder(fan_speed_layer_time_settings_per_extruder)
+    comb_boundary_minimum_(computeCombBoundary(CombBoundary::MINIMUM))
+    , comb_boundary_preferred_(computeCombBoundary(CombBoundary::PREFERRED))
+    , comb_move_inside_distance_(comb_move_inside_distance)
+    , fan_speed_layer_time_settings_per_extruder_(fan_speed_layer_time_settings_per_extruder)
 {
     size_t current_extruder = start_extruder;
-    was_inside = true; // not used, because the first travel move is bogus
-    is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
+    was_inside_ = true; // not used, because the first travel move is bogus
+    is_inside_ = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
     if (Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing") != CombingMode::OFF)
     {
-        comb = new Comb(storage, layer_nr, comb_boundary_minimum, comb_boundary_preferred, comb_boundary_offset, travel_avoid_distance, comb_move_inside_distance);
+        comb_ = new Comb(storage, layer_nr, comb_boundary_minimum_, comb_boundary_preferred_, comb_boundary_offset, travel_avoid_distance, comb_move_inside_distance);
     }
     else
     {
-        comb = nullptr;
+        comb_ = nullptr;
     }
     for (const ExtruderTrain& extruder : Application::getInstance().current_slice_->scene.extruders)
     {
-        layer_start_pos_per_extruder.emplace_back(extruder.settings_.get<coord_t>("layer_start_x"), extruder.settings_.get<coord_t>("layer_start_y"));
+        layer_start_pos_per_extruder_.emplace_back(extruder.settings_.get<coord_t>("layer_start_x"), extruder.settings_.get<coord_t>("layer_start_y"));
     }
-    extruder_plans.reserve(Application::getInstance().current_slice_->scene.extruders.size());
-    extruder_plans.emplace_back(
+    extruder_plans_.reserve(Application::getInstance().current_slice_->scene.extruders.size());
+    extruder_plans_.emplace_back(
         current_extruder,
         layer_nr,
-        is_initial_layer,
-        is_raft_layer,
+        is_initial_layer_,
+        is_raft_layer_,
         layer_thickness,
         fan_speed_layer_time_settings_per_extruder[current_extruder],
         storage.retraction_wipe_config_per_extruder[current_extruder].retraction_config);
 
     for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
     { // Skirt and brim.
-        skirt_brim_is_processed[extruder_nr] = false;
+        skirt_brim_is_processed_[extruder_nr] = false;
     }
 }
 
 LayerPlan::~LayerPlan()
 {
-    if (comb)
-        delete comb;
+    if (comb_)
+        delete comb_;
 }
 
 ExtruderTrain* LayerPlan::getLastPlannedExtruderTrain()
 {
-    return last_planned_extruder;
+    return last_planned_extruder_;
 }
 
 Polygons LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
 {
     Polygons comb_boundary;
     const CombingMode mesh_combing_mode = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing");
-    if (mesh_combing_mode != CombingMode::OFF && (layer_nr >= 0 || mesh_combing_mode != CombingMode::NO_SKIN))
+    if (mesh_combing_mode != CombingMode::OFF && (layer_nr_ >= 0 || mesh_combing_mode != CombingMode::NO_SKIN))
     {
-        if (layer_nr < 0)
+        if (layer_nr_ < 0)
         {
-            comb_boundary = storage.raftOutline.offset(MM2INT(0.1));
+            comb_boundary = storage_.raftOutline.offset(MM2INT(0.1));
         }
         else
         {
-            for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
+            for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage_.meshes)
             {
                 const auto& mesh = *mesh_ptr;
-                const SliceLayer& layer = mesh.layers[static_cast<size_t>(layer_nr)];
+                const SliceLayer& layer = mesh.layers[static_cast<size_t>(layer_nr_)];
                 // don't process infill_mesh or anti_overhang_mesh
                 if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
                 {
@@ -200,9 +200,9 @@ Polygons LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                     else if (combing_mode == CombingMode::NO_OUTER_SURFACES)
                     {
                         Polygons top_and_bottom_most_fill;
-                        for (const SliceLayerPart& part : layer.parts)
+                        for (const SliceLayerPart& outer_surface_part : layer.parts)
                         {
-                            for (const SkinPart& skin_part : part.skin_parts)
+                            for (const SkinPart& skin_part : outer_surface_part.skin_parts)
                             {
                                 top_and_bottom_most_fill.add(skin_part.top_most_surface_fill);
                                 top_and_bottom_most_fill.add(skin_part.bottom_most_surface_fill);
@@ -223,7 +223,7 @@ Polygons LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
 
 void LayerPlan::setIsInside(bool _is_inside)
 {
-    is_inside = _is_inside;
+    is_inside_ = _is_inside;
 }
 
 bool LayerPlan::setExtruder(const size_t extruder_nr)
@@ -246,25 +246,25 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
             const Point extruder_offset(extruder->settings_.get<coord_t>("machine_nozzle_offset_x"), extruder->settings_.get<coord_t>("machine_nozzle_offset_y"));
             end_pos += extruder_offset; // absolute end pos is given as a head position
         }
-        if (end_pos_absolute || last_planned_position)
+        if (end_pos_absolute || last_planned_position_)
         {
             addTravel(end_pos); //  + extruder_offset cause it
         }
     }
-    if (extruder_plans.back().paths_.empty() && extruder_plans.back().inserts_.empty())
+    if (extruder_plans_.back().paths_.empty() && extruder_plans_.back().inserts_.empty())
     { // first extruder plan in a layer might be empty, cause it is made with the last extruder planned in the previous layer
-        extruder_plans.back().extruder_nr_ = extruder_nr;
+        extruder_plans_.back().extruder_nr_ = extruder_nr;
     }
-    extruder_plans.emplace_back(
+    extruder_plans_.emplace_back(
         extruder_nr,
-        layer_nr,
-        is_initial_layer,
-        is_raft_layer,
-        layer_thickness,
-        fan_speed_layer_time_settings_per_extruder[extruder_nr],
-        storage.retraction_wipe_config_per_extruder[extruder_nr].retraction_config);
-    assert(extruder_plans.size() <= Application::getInstance().current_slice_->scene.extruders.size() && "Never use the same extruder twice on one layer!");
-    last_planned_extruder = &Application::getInstance().current_slice_->scene.extruders[extruder_nr];
+        layer_nr_,
+        is_initial_layer_,
+        is_raft_layer_,
+        layer_thickness_,
+        fan_speed_layer_time_settings_per_extruder_[extruder_nr],
+        storage_.retraction_wipe_config_per_extruder[extruder_nr].retraction_config);
+    assert(extruder_plans_.size() <= Application::getInstance().current_slice_->scene.extruders.size() && "Never use the same extruder twice on one layer!");
+    last_planned_extruder_ = &Application::getInstance().current_slice_->scene.extruders[extruder_nr];
 
     { // handle starting pos of the new extruder
         ExtruderTrain* extruder = getLastPlannedExtruderTrain();
@@ -279,16 +279,16 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
             Point extruder_offset(extruder->settings_.get<coord_t>("machine_nozzle_offset_x"), extruder->settings_.get<coord_t>("machine_nozzle_offset_y"));
             start_pos += extruder_offset; // absolute start pos is given as a head position
         }
-        if (start_pos_absolute || last_planned_position)
+        if (start_pos_absolute || last_planned_position_)
         {
-            last_planned_position = start_pos;
+            last_planned_position_ = start_pos;
         }
     }
     return true;
 }
 void LayerPlan::setMesh(const std::shared_ptr<const SliceMeshStorage>& mesh)
 {
-    current_mesh = mesh;
+    current_mesh_ = mesh;
 }
 
 void LayerPlan::moveInsideCombBoundary(const coord_t distance, const std::optional<SliceLayerPart>& part)
@@ -296,11 +296,11 @@ void LayerPlan::moveInsideCombBoundary(const coord_t distance, const std::option
     constexpr coord_t max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
     // this function is to be used to move from the boundary of a part to inside the part
     Point p = getLastPlannedPositionOrStartingPosition(); // copy, since we are going to move p
-    if (PolygonUtils::moveInside(comb_boundary_preferred, p, distance, max_dist2) != NO_INDEX)
+    if (PolygonUtils::moveInside(comb_boundary_preferred_, p, distance, max_dist2) != NO_INDEX)
     {
         // Move inside again, so we move out of tight 90deg corners
-        PolygonUtils::moveInside(comb_boundary_preferred, p, distance, max_dist2);
-        if (comb_boundary_preferred.inside(p) && (part == std::nullopt || part->outline.inside(p)))
+        PolygonUtils::moveInside(comb_boundary_preferred_, p, distance, max_dist2);
+        if (comb_boundary_preferred_.inside(p) && (part == std::nullopt || part->outline.inside(p)))
         {
             addTravel_simple(p);
             // Make sure the that any retraction happens after this move, not before it by starting a new move path.
@@ -311,67 +311,68 @@ void LayerPlan::moveInsideCombBoundary(const coord_t distance, const std::option
 
 bool LayerPlan::getPrimeTowerIsPlanned(unsigned int extruder_nr) const
 {
-    return has_prime_tower_planned_per_extruder[extruder_nr];
+    return has_prime_tower_planned_per_extruder_[extruder_nr];
 }
 
 void LayerPlan::setPrimeTowerIsPlanned(unsigned int extruder_nr)
 {
-    has_prime_tower_planned_per_extruder[extruder_nr] = true;
+    has_prime_tower_planned_per_extruder_[extruder_nr] = true;
 }
 
 std::optional<std::pair<Point, bool>> LayerPlan::getFirstTravelDestinationState() const
 {
     std::optional<std::pair<Point, bool>> ret;
-    if (first_travel_destination)
+    if (first_travel_destination_)
     {
-        ret = std::make_pair(*first_travel_destination, first_travel_destination_is_inside);
+        ret = std::make_pair(*first_travel_destination_, first_travel_destination_is_inside_);
     }
     return ret;
 }
 
 GCodePath& LayerPlan::addTravel(const Point& p, const bool force_retract, const coord_t z_offset)
 {
-    const GCodePathConfig& travel_config = configs_storage.travel_config_per_extruder[getExtruder()];
+    const GCodePathConfig& travel_config = configs_storage_.travel_config_per_extruder[getExtruder()];
 
     const RetractionConfig& retraction_config
-        = current_mesh ? current_mesh->retraction_wipe_config.retraction_config : storage.retraction_wipe_config_per_extruder[getExtruder()].retraction_config;
+        = current_mesh_ ? current_mesh_->retraction_wipe_config.retraction_config : storage_.retraction_wipe_config_per_extruder[getExtruder()].retraction_config;
 
     GCodePath* path = getLatestPathWithConfig(travel_config, SpaceFillType::None, z_offset);
 
     bool combed = false;
 
     const ExtruderTrain* extruder = getLastPlannedExtruderTrain();
-    const Settings& mesh_or_extruder_settings = current_mesh ? current_mesh->settings : extruder->settings_;
+    const Settings& mesh_or_extruder_settings = current_mesh_ ? current_mesh_->settings : extruder->settings_;
 
 
-    const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths_.size() == 1 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
+    const bool is_first_travel_of_extruder_after_switch
+        = extruder_plans_.back().paths_.size() == 1 && (extruder_plans_.size() > 1 || last_extruder_previous_layer_ != getExtruder());
     bool bypass_combing = is_first_travel_of_extruder_after_switch && mesh_or_extruder_settings.get<bool>("retraction_hop_after_extruder_switch");
 
-    const bool is_first_travel_of_layer = ! static_cast<bool>(last_planned_position);
+    const bool is_first_travel_of_layer = ! static_cast<bool>(last_planned_position_);
     const bool retraction_enable = mesh_or_extruder_settings.get<bool>("retraction_enable");
     if (is_first_travel_of_layer)
     {
         bypass_combing = true; // first travel move is bogus; it is added after this and the previous layer have been planned in LayerPlanBuffer::addConnectingTravelMove
-        first_travel_destination = p;
-        first_travel_destination_is_inside = is_inside;
-        if (layer_nr == 0 && retraction_enable && mesh_or_extruder_settings.get<bool>("retraction_hop_enabled"))
+        first_travel_destination_ = p;
+        first_travel_destination_is_inside_ = is_inside_;
+        if (layer_nr_ == 0 && retraction_enable && mesh_or_extruder_settings.get<bool>("retraction_hop_enabled"))
         {
             path->retract = true;
             path->perform_z_hop = true;
         }
         forceNewPathStart(); // force a new travel path after this first bogus move
     }
-    else if (force_retract && last_planned_position && ! shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
+    else if (force_retract && last_planned_position_ && ! shorterThen(*last_planned_position_ - p, retraction_config.retraction_min_travel_distance))
     {
         // path is not shorter than min travel distance, force a retraction
         path->retract = true;
-        if (comb == nullptr)
+        if (comb_ == nullptr)
         {
             path->perform_z_hop = mesh_or_extruder_settings.get<bool>("retraction_hop_enabled");
         }
     }
 
-    if (comb != nullptr && ! bypass_combing)
+    if (comb_ != nullptr && ! bypass_combing)
     {
         CombPaths combPaths;
 
@@ -382,15 +383,15 @@ GCodePath& LayerPlan::addTravel(const Point& p, const bool force_retract, const 
         bool unretract_before_last_travel_move = false; // Decided when calculating the combing
         const bool perform_z_hops = mesh_or_extruder_settings.get<bool>("retraction_hop_enabled");
         const bool perform_z_hops_only_when_collides = mesh_or_extruder_settings.get<bool>("retraction_hop_only_when_collides");
-        combed = comb->calc(
+        combed = comb_->calc(
             perform_z_hops,
             perform_z_hops_only_when_collides,
             *extruder,
-            *last_planned_position,
+            *last_planned_position_,
             p,
             combPaths,
-            was_inside,
-            is_inside,
+            was_inside_,
+            is_inside_,
             max_distance_ignored,
             unretract_before_last_travel_move);
         if (combed)
@@ -417,7 +418,7 @@ GCodePath& LayerPlan::addTravel(const Point& p, const bool force_retract, const 
 
             const coord_t maximum_travel_resolution = mesh_or_extruder_settings.get<coord_t>("meshfix_maximum_travel_resolution");
             coord_t distance = 0;
-            Point last_point((last_planned_position) ? *last_planned_position : Point(0, 0));
+            Point last_point((last_planned_position_) ? *last_planned_position_ : Point(0, 0));
             for (CombPath& combPath : combPaths)
             { // add all comb paths (don't do anything special for paths which are moving through air)
                 if (combPath.empty())
@@ -449,21 +450,21 @@ GCodePath& LayerPlan::addTravel(const Point& p, const bool force_retract, const 
     // CURA-6675:
     // Retraction Minimal Travel Distance should work for all travel moves. If the travel move is shorter than the
     // Retraction Minimal Travel Distance, retraction should be disabled.
-    if (! is_first_travel_of_layer && last_planned_position && shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
+    if (! is_first_travel_of_layer && last_planned_position_ && shorterThen(*last_planned_position_ - p, retraction_config.retraction_min_travel_distance))
     {
         path->retract = false;
         path->perform_z_hop = false;
     }
 
     // no combing? retract only when path is not shorter than minimum travel distance
-    if (! combed && ! is_first_travel_of_layer && last_planned_position && ! shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
+    if (! combed && ! is_first_travel_of_layer && last_planned_position_ && ! shorterThen(*last_planned_position_ - p, retraction_config.retraction_min_travel_distance))
     {
-        if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
+        if (was_inside_) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
         { // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
             assert(extruder != nullptr);
             coord_t innermost_wall_line_width
                 = mesh_or_extruder_settings.get<coord_t>((mesh_or_extruder_settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
-            if (layer_nr == 0)
+            if (layer_nr_ == 0)
             {
                 innermost_wall_line_width *= mesh_or_extruder_settings.get<Ratio>("initial_layer_line_width_factor");
             }
@@ -477,24 +478,24 @@ GCodePath& LayerPlan::addTravel(const Point& p, const bool force_retract, const 
     forceNewPathStart();
 
     GCodePath& ret = addTravel_simple(p, path);
-    was_inside = is_inside;
+    was_inside_ = is_inside_;
     return ret;
 }
 
 GCodePath& LayerPlan::addTravel_simple(const Point& p, GCodePath* path)
 {
-    bool is_first_travel_of_layer = ! static_cast<bool>(last_planned_position);
+    bool is_first_travel_of_layer = ! static_cast<bool>(last_planned_position_);
     if (is_first_travel_of_layer)
     { // spiralize calls addTravel_simple directly as the first travel move in a layer
-        first_travel_destination = p;
-        first_travel_destination_is_inside = is_inside;
+        first_travel_destination_ = p;
+        first_travel_destination_is_inside_ = is_inside_;
     }
     if (path == nullptr)
     {
-        path = getLatestPathWithConfig(configs_storage.travel_config_per_extruder[getExtruder()], SpaceFillType::None);
+        path = getLatestPathWithConfig(configs_storage_.travel_config_per_extruder[getExtruder()], SpaceFillType::None);
     }
     path->points.push_back(p);
-    last_planned_position = p;
+    last_planned_position_ = p;
     return *path;
 }
 
@@ -521,11 +522,11 @@ void LayerPlan::addExtrusionMove(
     GCodePath* path = getLatestPathWithConfig(config, space_fill_type, config.z_offset, flow, width_factor, spiralize, speed_factor);
     path->points.push_back(p);
     path->setFanSpeed(fan_speed);
-    if (! static_cast<bool>(first_extrusion_acc_jerk))
+    if (! static_cast<bool>(first_extrusion_acc_jerk_))
     {
-        first_extrusion_acc_jerk = std::make_pair(path->config.getAcceleration(), path->config.getJerk());
+        first_extrusion_acc_jerk_ = std::make_pair(path->config.getAcceleration(), path->config.getJerk());
     }
-    last_planned_position = p;
+    last_planned_position_ = p;
 }
 
 void LayerPlan::addPolygon(
@@ -550,8 +551,7 @@ void LayerPlan::addPolygon(
     }
     if (polygon.size() > 2)
     {
-        const Point& p1 = polygon[start_idx];
-        addExtrusionMove(p1, config, SpaceFillType::Polygons, flow_ratio, width_ratio, spiralize);
+        addExtrusionMove(polygon[start_idx], config, SpaceFillType::Polygons, flow_ratio, width_ratio, spiralize);
 
         if (wall_0_wipe_dist > 0)
         { // apply outer wall wipe
@@ -702,8 +702,8 @@ void LayerPlan::addWallLine(
                             speed_factor);
                     }
                     // then coast to start of bridge segment
-                    constexpr Ratio flow = 0.0_r; // Coasting has no flow rate.
-                    addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, flow, width_factor, spiralize, speed_factor);
+                    constexpr Ratio no_flow = 0.0_r; // Coasting has no flow rate.
+                    addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, no_flow, width_factor, spiralize, speed_factor);
                 }
                 else
                 {
@@ -715,7 +715,7 @@ void LayerPlan::addWallLine(
                         segment_flow,
                         width_factor,
                         spiralize,
-                        (overhang_mask.empty() || (! overhang_mask.inside(p0, true) && ! overhang_mask.inside(p1, true))) ? speed_factor : overhang_speed_factor);
+                        (overhang_mask_.empty() || (! overhang_mask_.inside(p0, true) && ! overhang_mask_.inside(p1, true))) ? speed_factor : overhang_speed_factor);
                 }
 
                 distance_to_bridge_start -= len;
@@ -730,7 +730,7 @@ void LayerPlan::addWallLine(
                     segment_flow,
                     width_factor,
                     spiralize,
-                    (overhang_mask.empty() || (! overhang_mask.inside(p0, true) && ! overhang_mask.inside(p1, true))) ? speed_factor : overhang_speed_factor);
+                    (overhang_mask_.empty() || (! overhang_mask_.inside(p0, true) && ! overhang_mask_.inside(p1, true))) ? speed_factor : overhang_speed_factor);
             }
             non_bridge_line_volume += vSize(cur_point - segment_end) * segment_flow * width_factor * speed_factor * non_bridge_config.getSpeed();
             cur_point = segment_end;
@@ -743,7 +743,7 @@ void LayerPlan::addWallLine(
         }
     };
 
-    if (bridge_wall_mask.empty())
+    if (bridge_wall_mask_.empty())
     {
         // no bridges required
         addExtrusionMove(
@@ -753,12 +753,12 @@ void LayerPlan::addWallLine(
             flow,
             width_factor,
             spiralize,
-            (overhang_mask.empty() || (! overhang_mask.inside(p0, true) && ! overhang_mask.inside(p1, true))) ? 1.0_r : overhang_speed_factor);
+            (overhang_mask_.empty() || (! overhang_mask_.inside(p0, true) && ! overhang_mask_.inside(p1, true))) ? 1.0_r : overhang_speed_factor);
     }
     else
     {
         // bridges may be required
-        if (PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask, p0, p1))
+        if (PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0, p1))
         {
             // the line crosses the boundary between supported and non-supported regions so one or more bridges are required
 
@@ -767,7 +767,7 @@ void LayerPlan::addWallLine(
             Polygons line_polys;
             line_polys.addLine(p0, p1);
             constexpr bool restitch = false; // only a single line doesn't need stitching
-            line_polys = bridge_wall_mask.intersectionPolyLines(line_polys, restitch);
+            line_polys = bridge_wall_mask_.intersectionPolyLines(line_polys, restitch);
 
             // line_polys now contains the wall lines that need to be printed using bridge_config
 
@@ -831,7 +831,7 @@ void LayerPlan::addWallLine(
             // if we haven't yet reached p1, fill the gap with non_bridge_config line
             addNonBridgeLine(p1);
         }
-        else if (bridge_wall_mask.inside(p0, true) && vSize(p0 - p1) >= min_bridge_line_len)
+        else if (bridge_wall_mask_.inside(p0, true) && vSize(p0 - p1) >= min_bridge_line_len)
         {
             // both p0 and p1 must be above air (the result will be ugly!)
             addExtrusionMove(p1, bridge_config, SpaceFillType::Polygons, flow, width_factor);
@@ -920,7 +920,7 @@ void LayerPlan::addWall(
     {
         distance_to_bridge_start = 0;
 
-        if (! bridge_wall_mask.empty())
+        if (! bridge_wall_mask_.empty())
         {
             // there is air below the part so iterate through the lines that have not yet been output accumulating the total distance to the first bridge segment
             for (unsigned point_idx = current_index; point_idx < wall.size(); ++point_idx)
@@ -928,7 +928,7 @@ void LayerPlan::addWall(
                 const ExtrusionJunction& p0 = wall[point_idx];
                 const ExtrusionJunction& p1 = wall[(point_idx + 1) % wall.size()];
 
-                if (PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask, p0.p, p1.p))
+                if (PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.p, p1.p))
                 {
                     // the line crosses the boundary between supported and non-supported regions so it will contain one or more bridge segments
 
@@ -937,7 +937,7 @@ void LayerPlan::addWall(
                     Polygons line_polys;
                     line_polys.addLine(p0.p, p1.p);
                     constexpr bool restitch = false; // only a single line doesn't need stitching
-                    line_polys = bridge_wall_mask.intersectionPolyLines(line_polys, restitch);
+                    line_polys = bridge_wall_mask_.intersectionPolyLines(line_polys, restitch);
 
                     while (line_polys.size() > 0)
                     {
@@ -982,7 +982,7 @@ void LayerPlan::addWall(
                         line_polys.remove(nearest);
                     }
                 }
-                else if (! bridge_wall_mask.inside(p0.p, true))
+                else if (! bridge_wall_mask_.inside(p0.p, true))
                 {
                     // none of the line is over air
                     distance_to_bridge_start += vSize(p1.p - p0.p);
@@ -997,9 +997,9 @@ void LayerPlan::addWall(
 
     bool first_line = true;
     const coord_t small_feature_max_length = settings.get<coord_t>("small_feature_max_length");
-    const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr == 0 || wall.inset_idx == 0) && cura::shorterThan(wall, small_feature_max_length);
-    Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
-    const Velocity min_speed = fan_speed_layer_time_settings_per_extruder[getLastPlannedExtruderTrain()->extruder_nr_].cool_min_speed;
+    const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr_ == 0 || wall.inset_idx == 0) && cura::shorterThan(wall, small_feature_max_length);
+    Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr_ == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
+    const Velocity min_speed = fan_speed_layer_time_settings_per_extruder_[getLastPlannedExtruderTrain()->extruder_nr_].cool_min_speed;
     small_feature_speed_factor = std::max((double)small_feature_speed_factor, (double)(min_speed / non_bridge_config.getSpeed()));
     const coord_t max_area_deviation = std::max(settings.get<int>("meshfix_maximum_extrusion_area_deviation"), 1); // Square micrometres!
     const coord_t max_resolution = std::max(settings.get<coord_t>("meshfix_maximum_resolution"), coord_t(1));
@@ -1012,7 +1012,7 @@ void LayerPlan::addWall(
     {
         const ExtrusionJunction& p1 = wall[(wall.size() + start_idx + point_idx * direction) % wall.size()];
 
-        if (! bridge_wall_mask.empty())
+        if (! bridge_wall_mask_.empty())
         {
             computeDistanceToBridgeStart((wall.size() + start_idx + point_idx * direction - 1) % wall.size());
         }
@@ -1091,7 +1091,7 @@ void LayerPlan::addWall(
 
     if (wall.size() >= 2)
     {
-        if (! bridge_wall_mask.empty())
+        if (! bridge_wall_mask_.empty())
         {
             computeDistanceToBridgeStart((start_idx + wall.size() - 1) % wall.size());
         }
@@ -1184,14 +1184,14 @@ void LayerPlan::addLinesByOptimizer(
     const std::unordered_multimap<ConstPolygonPointer, ConstPolygonPointer>& order_requirements)
 {
     Polygons boundary;
-    if (enable_travel_optimization && ! comb_boundary_minimum.empty())
+    if (enable_travel_optimization && ! comb_boundary_minimum_.empty())
     {
         // use the combing boundary inflated so that all infill lines are inside the boundary
         int dist = 0;
-        if (layer_nr >= 0)
+        if (layer_nr_ >= 0)
         {
             // determine how much the skin/infill lines overlap the combing boundary
-            for (const std::shared_ptr<SliceMeshStorage>& mesh : storage.meshes)
+            for (const std::shared_ptr<SliceMeshStorage>& mesh : storage_.meshes)
             {
                 const coord_t overlap = std::max(mesh->settings.get<coord_t>("skin_overlap_mm"), mesh->settings.get<coord_t>("infill_overlap_mm"));
                 if (overlap > dist)
@@ -1201,7 +1201,7 @@ void LayerPlan::addLinesByOptimizer(
             }
             dist += 100; // ensure boundary is slightly outside all skin/infill lines
         }
-        boundary.add(comb_boundary_minimum.offset(dist));
+        boundary.add(comb_boundary_minimum_.offset(dist));
         // simplify boundary to cut down processing time
         boundary = Simplify(MM2INT(0.1), MM2INT(0.1), 0).polygon(boundary);
     }
@@ -1377,7 +1377,7 @@ void LayerPlan::addLinesMonotonic(
     order.optimize();
 
     // Read out and process the monotonically ordered lines.
-    addLinesInGivenOrder(order.paths, config, space_fill_type, wipe_dist, flow_ratio, fan_speed);
+    addLinesInGivenOrder(order.paths_, config, space_fill_type, wipe_dist, flow_ratio, fan_speed);
 
     // Add all lines in the excluded areas the 'normal' way.
     addLinesByOptimizer(left_over, config, space_fill_type, true, wipe_dist, flow_ratio, getLastPlannedPositionOrStartingPosition(), fan_speed);
@@ -1454,7 +1454,7 @@ void LayerPlan::spiralizeWallSlice(
         // normal slow down for quick layers mechanism can kick in and speed this layer up (because it is longer) but we prefer
         // the layer to be printed at a similar speed to the previous layer to avoid abrupt changes in extrusion rate so we slow it down
 
-        const FanSpeedLayerTimeSettings& layer_time_settings = extruder_plans.back().fan_speed_layer_time_settings_;
+        const FanSpeedLayerTimeSettings& layer_time_settings = extruder_plans_.back().fan_speed_layer_time_settings_;
         const double min_time = layer_time_settings.cool_min_layer_time;
         const double normal_layer_time = total_length / config.getSpeed();
 
@@ -1556,7 +1556,6 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
     {
         const double minExtrudeTime = minTime - (totalTime - extrudeTime);
 
-        double factor = 0.0;
         double target_speed = 0.0;
         std::function<double(const GCodePath&)> slow_down_func{ [&target_speed](const GCodePath& path)
                                                                 {
@@ -1592,11 +1591,11 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
         {
             // Slowing down to the slowest_speed is sufficient to respect the minimum layer time.
             // Linear interpolate between extrudeTime and total_extrude_time_at_slowest_speed
-            factor = (1 / total_extrude_time_at_slowest_speed - 1 / minExtrudeTime) / (1 / total_extrude_time_at_slowest_speed - 1 / extrudeTime);
+            const double factor = (1 / total_extrude_time_at_slowest_speed - 1 / minExtrudeTime) / (1 / total_extrude_time_at_slowest_speed - 1 / extrudeTime);
             slow_down_func = [&slowest_path_speed = slowest_path_speed_, &factor](const GCodePath& path)
             {
-                const double target_speed = slowest_path_speed * (1.0 - factor) + (path.config.getSpeed() * path.speed_factor) * factor;
-                return std::min(target_speed / (path.config.getSpeed() * path.speed_factor), 1.0);
+                const double actual_target_speed = slowest_path_speed * (1.0 - factor) + (path.config.getSpeed() * path.speed_factor) * factor;
+                return std::min(actual_target_speed / (path.config.getSpeed() * path.speed_factor), 1.0);
             };
 
             // Update stored naive time estimates
@@ -1773,7 +1772,7 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
 {
     // the minimum layer time behaviour is only applied to the last extruder.
     const size_t last_extruder_nr = ranges::max_element(
-                                        extruder_plans,
+                                        extruder_plans_,
                                         [](const ExtruderPlan& a, const ExtruderPlan& b)
                                         {
                                             return a.extruder_nr_ < b.extruder_nr_;
@@ -1784,10 +1783,10 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
     double other_extr_plan_time = 0.0;
     Duration maximum_cool_min_layer_time;
 
-    for (unsigned int extr_plan_idx = 0; extr_plan_idx < extruder_plans.size(); extr_plan_idx++)
+    for (unsigned int extr_plan_idx = 0; extr_plan_idx < extruder_plans_.size(); extr_plan_idx++)
     {
         {
-            ExtruderPlan& extruder_plan = extruder_plans[extr_plan_idx];
+            ExtruderPlan& extruder_plan = extruder_plans_[extr_plan_idx];
 
             // Precalculate the time estimates. Don't call this function twice, since it is works cumulative.
             extruder_plan.computeNaiveTimeEstimates(starting_position);
@@ -1813,7 +1812,7 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
     }
 
     // apply minimum layer time behaviour
-    ExtruderPlan& last_extruder_plan = extruder_plans[last_extruder_idx];
+    ExtruderPlan& last_extruder_plan = extruder_plans_[last_extruder_idx];
     last_extruder_plan.forceMinimalLayerTime(maximum_cool_min_layer_time, other_extr_plan_time);
     last_extruder_plan.processFanSpeedForMinimalLayerTime(starting_position_last_extruder, maximum_cool_min_layer_time, other_extr_plan_time);
 }
@@ -1822,11 +1821,11 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
 void LayerPlan::writeGCode(GCodeExport& gcode)
 {
     Communication* communication = Application::getInstance().communication_;
-    communication->setLayerForSend(layer_nr);
+    communication->setLayerForSend(layer_nr_);
     communication->sendCurrentPosition(gcode.getPositionXY());
-    gcode.setLayerNr(layer_nr);
+    gcode.setLayerNr(layer_nr_);
 
-    gcode.writeLayerComment(layer_nr);
+    gcode.writeLayerComment(layer_nr_);
 
     // flow-rate compensation
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
@@ -1835,13 +1834,13 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         mesh_group_settings.get<Ratio>("flow_rate_extrusion_offset_factor")); // Offset is in mm.
 
     static LayerIndex layer_1{ 1 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()) };
-    if (layer_nr == layer_1 && mesh_group_settings.get<bool>("machine_heated_bed"))
+    if (layer_nr_ == layer_1 && mesh_group_settings.get<bool>("machine_heated_bed"))
     {
         constexpr bool wait = false;
         gcode.writeBedTemperatureCommand(mesh_group_settings.get<Temperature>("material_bed_temperature"), wait);
     }
 
-    gcode.setZ(z);
+    gcode.setZ(z_);
 
     std::optional<GCodePathConfig> last_extrusion_config = std::nullopt; // used to check whether we need to insert a TYPE comment in the gcode.
 
@@ -1852,12 +1851,12 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     const bool jerk_travel_enabled = mesh_group_settings.get<bool>("jerk_travel_enabled");
     std::shared_ptr<const SliceMeshStorage> current_mesh;
 
-    for (size_t extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
+    for (size_t extruder_plan_idx = 0; extruder_plan_idx < extruder_plans_.size(); extruder_plan_idx++)
     {
-        ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
+        ExtruderPlan& extruder_plan = extruder_plans_[extruder_plan_idx];
 
         const RetractionAndWipeConfig* retraction_config
-            = current_mesh ? &current_mesh->retraction_wipe_config : &storage.retraction_wipe_config_per_extruder[extruder_plan.extruder_nr_];
+            = current_mesh ? &current_mesh->retraction_wipe_config : &storage_.retraction_wipe_config_per_extruder[extruder_plan.extruder_nr_];
         coord_t z_hop_height = retraction_config->retraction_config.zHop;
 
         if (extruder_nr != extruder_plan.extruder_nr_)
@@ -1867,7 +1866,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             gcode.ResetLastEValueAfterWipe(prev_extruder);
 
-            const RetractionAndWipeConfig& prev_retraction_config = storage.retraction_wipe_config_per_extruder[prev_extruder];
+            const RetractionAndWipeConfig& prev_retraction_config = storage_.retraction_wipe_config_per_extruder[prev_extruder];
             if (prev_retraction_config.retraction_hop_after_extruder_switch)
             {
                 z_hop_height = prev_retraction_config.extruder_switch_retraction_config.zHop;
@@ -1887,8 +1886,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             { // turn off previous extruder
                 constexpr bool wait = false;
                 Temperature prev_extruder_temp = *extruder_plan.prev_extruder_standby_temp_;
-                const LayerIndex prev_layer_nr = (extruder_plan_idx == 0) ? layer_nr - 1 : layer_nr;
-                if (prev_layer_nr == storage.max_print_height_per_extruder[prev_extruder])
+                const LayerIndex prev_layer_nr = (extruder_plan_idx == 0) ? layer_nr_ - 1 : layer_nr_;
+                if (prev_layer_nr == storage_.max_print_height_per_extruder[prev_extruder])
                 {
                     prev_extruder_temp = 0; // TODO ? should there be a setting for extruder_off_temperature ?
                 }
@@ -1905,13 +1904,13 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         }
         else if (extruder_plan_idx == 0)
         {
-            const WipeScriptConfig& wipe_config = storage.retraction_wipe_config_per_extruder[extruder_plan.extruder_nr_].wipe_config;
+            const WipeScriptConfig& wipe_config = storage_.retraction_wipe_config_per_extruder[extruder_plan.extruder_nr_].wipe_config;
             if (wipe_config.clean_between_layers && gcode.getExtrudedVolumeAfterLastWipe(extruder_nr) > wipe_config.max_extrusion_mm3)
             {
                 gcode.insertWipeScript(wipe_config);
                 gcode.ResetLastEValueAfterWipe(extruder_nr);
             }
-            else if (layer_nr != 0 && Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_.get<bool>("retract_at_layer_change"))
+            else if (layer_nr_ != 0 && Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_.get<bool>("retract_at_layer_change"))
             {
                 // only do the retract if the paths are not spiralized
                 if (! mesh_group_settings.get<bool>("magic_spiralize"))
@@ -1950,12 +1949,12 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.writeRetraction(retraction_config->retraction_config);
             }
 
-            if (z > 0)
+            if (z_ > 0)
             {
-                gcode.setZ(z + path.z_offset);
+                gcode.setZ(z_ + path.z_offset);
             }
 
-            if (! path.retract && path.config.isTravelPath() && path.points.size() == 1 && path.points[0] == gcode.getPositionXY() && (z + path.z_offset) == gcode.getPositionZ())
+            if (! path.retract && path.config.isTravelPath() && path.points.size() == 1 && path.points[0] == gcode.getPositionXY() && (z_ + path.z_offset) == gcode.getPositionZ())
             {
                 // ignore travel moves to the current location to avoid needless change of acceleration/jerk
                 continue;
@@ -1984,9 +1983,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         // Use the acceleration of the first non-travel move *after* the travel.
                         if (next_extrusion_idx >= paths.size()) // Only travel moves for the remainder of the layer.
                         {
-                            if (static_cast<bool>(next_layer_acc_jerk))
+                            if (static_cast<bool>(next_layer_acc_jerk_))
                             {
-                                gcode.writeTravelAcceleration(next_layer_acc_jerk->first);
+                                gcode.writeTravelAcceleration(next_layer_acc_jerk_->first);
                             } // If the next layer has no extruded move, just keep the old acceleration. Should be very rare to have an empty layer.
                         }
                         else
@@ -2011,9 +2010,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     // Use the jerk of the first non-travel move *after* the travel.
                     if (next_extrusion_idx >= paths.size()) // Only travel moves for the remainder of the layer.
                     {
-                        if (static_cast<bool>(next_layer_acc_jerk))
+                        if (static_cast<bool>(next_layer_acc_jerk_))
                         {
-                            gcode.writeJerk(next_layer_acc_jerk->second);
+                            gcode.writeJerk(next_layer_acc_jerk_->second);
                         } // If the next layer has no extruded move, just keep the old jerk. Should be very rare to have an empty layer.
                     }
                     else
@@ -2069,21 +2068,21 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             }
             if (path.config.isTravelPath())
             { // early comp for travel paths, which are handled more simply
-                if (! path.perform_z_hop && final_travel_z != z && extruder_plan_idx == (extruder_plans.size() - 1) && path_idx == (paths.size() - 1))
+                if (! path.perform_z_hop && final_travel_z_ != z_ && extruder_plan_idx == (extruder_plans_.size() - 1) && path_idx == (paths.size() - 1))
                 {
                     // Before the final travel, move up to the next layer height, on the current spot, with a sensible speed.
                     Point3 current_position = gcode.getPosition();
-                    current_position.z_ = final_travel_z;
+                    current_position.z_ = final_travel_z_;
                     gcode.writeTravel(current_position, extruder.settings_.get<Velocity>("speed_z_hop"));
 
                     // Prevent the final travel(s) from resetting to the 'previous' layer height.
-                    gcode.setZ(final_travel_z);
+                    gcode.setZ(final_travel_z_);
                 }
                 for (size_t point_idx = 0; point_idx + 1 < path.points.size(); point_idx++)
                 {
                     gcode.writeTravel(path.points[point_idx], speed);
                 }
-                if (path.unretract_before_last_travel_move && final_travel_z == z)
+                if (path.unretract_before_last_travel_move && final_travel_z_ == z_)
                 {
                     // We need to unretract before the last travel move of the path if the next path is an outer wall.
                     gcode.writeUnretractionAndPrime();
@@ -2102,7 +2101,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 bool coasting = extruder.settings_.get<bool>("coasting_enable");
                 if (coasting)
                 {
-                    coasting = writePathWithCoasting(gcode, extruder_plan_idx, path_idx, layer_thickness, insertTempOnTime);
+                    coasting = writePathWithCoasting(gcode, extruder_plan_idx, path_idx, layer_thickness_, insertTempOnTime);
                 }
                 if (! coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
                 { // normal path to gcode algorithm
@@ -2140,18 +2139,23 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 p0 = gcode.getPositionXY();
                 for (; path_idx < paths.size() && paths[path_idx].spiralize; path_idx++)
                 { // handle all consecutive spiralized paths > CHANGES path_idx!
-                    GCodePath& path = paths[path_idx];
+                    GCodePath& spiral_path = paths[path_idx];
 
-                    for (unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
+                    for (unsigned int point_idx = 0; point_idx < spiral_path.points.size(); point_idx++)
                     {
-                        const Point p1 = path.points[point_idx];
+                        const Point p1 = spiral_path.points[point_idx];
                         length += vSizeMM(p0 - p1);
                         p0 = p1;
-                        gcode.setZ(std::round(z + layer_thickness * length / totalLength));
+                        gcode.setZ(std::round(z_ + layer_thickness_ * length / totalLength));
 
-                        const double extrude_speed = speed * path.speed_back_pressure_factor;
-                        communication->sendLineTo(path.config.type, path.points[point_idx], path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
-                        gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config.type, update_extrusion_offset);
+                        const double extrude_speed = speed * spiral_path.speed_back_pressure_factor;
+                        communication->sendLineTo(
+                            spiral_path.config.type,
+                            spiral_path.points[point_idx],
+                            spiral_path.getLineWidthForLayerView(),
+                            spiral_path.config.getLayerThickness(),
+                            extrude_speed);
+                        gcode.writeExtrusion(spiral_path.points[point_idx], extrude_speed, spiral_path.getExtrusionMM3perMM(), spiral_path.config.type, update_extrusion_offset);
                     }
                     // for layer display only - the loop finished at the seam vertex but as we started from
                     // the location of the previous layer's seam vertex the loop may have a gap if this layer's
@@ -2162,7 +2166,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     // vertex would not be shifted (as it's the last vertex in the sequence). The smoother the model,
                     // the less the vertices are shifted and the less obvious is the ridge. If the layer display
                     // really displayed a spiral rather than slices of a spiral, this would not be required.
-                    communication->sendLineTo(path.config.type, path.points[0], path.getLineWidthForLayerView(), path.config.getLayerThickness(), speed);
+                    communication
+                        ->sendLineTo(spiral_path.config.type, spiral_path.points[0], spiral_path.getLineWidthForLayerView(), spiral_path.config.getLayerThickness(), speed);
                 }
                 path_idx--; // the last path_idx didnt spiralize, so it's not part of the current spiralize path
             }
@@ -2172,9 +2177,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         {
             gcode.writeComment("Small layer, adding delay");
             const RetractionAndWipeConfig& retraction_config
-                = current_mesh ? current_mesh->retraction_wipe_config : storage.retraction_wipe_config_per_extruder[gcode.getExtruderNr()];
+                = current_mesh ? current_mesh->retraction_wipe_config : storage_.retraction_wipe_config_per_extruder[gcode.getExtruderNr()];
             gcode.writeRetraction(retraction_config.retraction_config);
-            if (extruder_plan_idx == extruder_plans.size() - 1 || ! extruder.settings_.get<bool>("machine_extruder_end_pos_abs"))
+            if (extruder_plan_idx == extruder_plans_.size() - 1 || ! extruder.settings_.get<bool>("machine_extruder_end_pos_abs"))
             { // only do the z-hop if it's the last extruder plan; otherwise it's already at the switching bay area
                 // or do it anyway when we switch extruder in-place
                 gcode.writeZhopStart(MM2INT(3.0));
@@ -2187,7 +2192,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             "extruder_plan_2",
             extruder_plan.paths_,
             SectionType::NA,
-            layer_nr,
+            layer_nr_,
             scripta::CellVDI{ "flow", &GCodePath::flow },
             scripta::CellVDI{ "width_factor", &GCodePath::width_factor },
             scripta::CellVDI{ "spiralize", &GCodePath::spiralize },
@@ -2202,13 +2207,13 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             scripta::CellVDI{ "extrusion_mm3_per_mm", &GCodePath::getExtrusionMM3perMM });
     } // extruder plans /\  .
 
-    communication->sendLayerComplete(layer_nr, z, layer_thickness);
+    communication->sendLayerComplete(layer_nr_, z_, layer_thickness_);
     gcode.updateTotalPrintTime();
 }
 
 void LayerPlan::overrideFanSpeeds(double speed)
 {
-    for (ExtruderPlan& extruder_plan : extruder_plans)
+    for (ExtruderPlan& extruder_plan : extruder_plans_)
     {
         extruder_plan.setFanSpeed(speed);
     }
@@ -2217,7 +2222,7 @@ void LayerPlan::overrideFanSpeeds(double speed)
 
 bool LayerPlan::makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigned int path_idx)
 {
-    std::vector<GCodePath>& paths = extruder_plans[extruder_plan_idx].paths_;
+    std::vector<GCodePath>& paths = extruder_plans_[extruder_plan_idx].paths_;
     for (unsigned int path_idx2 = path_idx + 1; path_idx2 < paths.size(); path_idx2++)
     {
         if (paths[path_idx2].getExtrusionMM3perMM() > 0)
@@ -2226,12 +2231,12 @@ bool LayerPlan::makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigne
         }
     }
 
-    if (extruder_plans.size() <= extruder_plan_idx + 1)
+    if (extruder_plans_.size() <= extruder_plan_idx + 1)
     {
         return false; // TODO: check first extruder of the next layer! (generally only on the last layer of the second extruder)
     }
 
-    if (extruder_plans[extruder_plan_idx + 1].extruder_nr_ != extruder_plans[extruder_plan_idx].extruder_nr_)
+    if (extruder_plans_[extruder_plan_idx + 1].extruder_nr_ != extruder_plans_[extruder_plan_idx].extruder_nr_)
     {
         return true;
     }
@@ -2248,7 +2253,7 @@ bool LayerPlan::writePathWithCoasting(
     const coord_t layer_thickness,
     const std::function<void(const double, const int64_t)> insertTempOnTime)
 {
-    ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
+    ExtruderPlan& extruder_plan = extruder_plans_[extruder_plan_idx];
     const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[extruder_plan.extruder_nr_];
     const double coasting_volume = extruder.settings_.get<double>("coasting_volume");
     if (coasting_volume <= 0)
@@ -2373,13 +2378,13 @@ bool LayerPlan::writePathWithCoasting(
 
 void LayerPlan::applyModifyPlugin()
 {
-    for (auto& extruder_plan : extruder_plans)
+    for (auto& extruder_plan : extruder_plans_)
     {
         scripta::log(
             "extruder_plan_0",
             extruder_plan.paths_,
             SectionType::NA,
-            layer_nr,
+            layer_nr_,
             scripta::CellVDI{ "flow", &GCodePath::flow },
             scripta::CellVDI{ "width_factor", &GCodePath::width_factor },
             scripta::CellVDI{ "spiralize", &GCodePath::spiralize },
@@ -2393,13 +2398,13 @@ void LayerPlan::applyModifyPlugin()
             scripta::CellVDI{ "is_travel_path", &GCodePath::isTravelPath },
             scripta::CellVDI{ "extrusion_mm3_per_mm", &GCodePath::getExtrusionMM3perMM });
 
-        extruder_plan.paths_ = slots::instance().modify<plugins::v0::SlotID::GCODE_PATHS_MODIFY>(extruder_plan.paths_, extruder_plan.extruder_nr_, layer_nr);
+        extruder_plan.paths_ = slots::instance().modify<plugins::v0::SlotID::GCODE_PATHS_MODIFY>(extruder_plan.paths_, extruder_plan.extruder_nr_, layer_nr_);
 
         scripta::log(
             "extruder_plan_1",
             extruder_plan.paths_,
             SectionType::NA,
-            layer_nr,
+            layer_nr_,
             scripta::CellVDI{ "flow", &GCodePath::flow },
             scripta::CellVDI{ "width_factor", &GCodePath::width_factor },
             scripta::CellVDI{ "spiralize", &GCodePath::spiralize },
@@ -2417,7 +2422,7 @@ void LayerPlan::applyModifyPlugin()
 
 void LayerPlan::applyBackPressureCompensation()
 {
-    for (auto& extruder_plan : extruder_plans)
+    for (auto& extruder_plan : extruder_plans_)
     {
         const Ratio back_pressure_compensation
             = Application::getInstance().current_slice_->scene.extruders[extruder_plan.extruder_nr_].settings_.get<Ratio>("speed_equalize_flow_width_factor");
@@ -2430,42 +2435,42 @@ void LayerPlan::applyBackPressureCompensation()
 
 LayerIndex LayerPlan::getLayerNr() const
 {
-    return layer_nr;
+    return layer_nr_;
 }
 
 Point LayerPlan::getLastPlannedPositionOrStartingPosition() const
 {
-    return last_planned_position.value_or(layer_start_pos_per_extruder[getExtruder()]);
+    return last_planned_position_.value_or(layer_start_pos_per_extruder_[getExtruder()]);
 }
 
 bool LayerPlan::getIsInsideMesh() const
 {
-    return was_inside;
+    return was_inside_;
 }
 
 bool LayerPlan::getSkirtBrimIsPlanned(unsigned int extruder_nr) const
 {
-    return skirt_brim_is_processed[extruder_nr];
+    return skirt_brim_is_processed_[extruder_nr];
 }
 
 void LayerPlan::setSkirtBrimIsPlanned(unsigned int extruder_nr)
 {
-    skirt_brim_is_processed[extruder_nr] = true;
+    skirt_brim_is_processed_[extruder_nr] = true;
 }
 
 size_t LayerPlan::getExtruder() const
 {
-    return extruder_plans.back().extruder_nr_;
+    return extruder_plans_.back().extruder_nr_;
 }
 
 void LayerPlan::setBridgeWallMask(const Polygons& polys)
 {
-    bridge_wall_mask = polys;
+    bridge_wall_mask_ = polys;
 }
 
 void LayerPlan::setOverhangMask(const Polygons& polys)
 {
-    overhang_mask = polys;
+    overhang_mask_ = polys;
 }
 
 } // namespace cura

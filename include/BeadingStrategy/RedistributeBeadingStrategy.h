@@ -83,9 +83,9 @@ protected:
      */
     static bool validateInnerBeadWidths(Beading& beading, coord_t minimum_width_inner);
 
-    BeadingStrategyPtr parent;
-    coord_t optimal_width_outer;
-    Ratio minimum_variable_line_ratio;
+    BeadingStrategyPtr parent_;
+    coord_t optimal_width_outer_;
+    Ratio minimum_variable_line_ratio_;
 };
 
 } // namespace cura

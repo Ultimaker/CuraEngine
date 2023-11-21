@@ -248,7 +248,7 @@ void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t ext
     if (! adhesion_raft || absolute_layer_number > 0)
     {
         // Actual prime pattern
-        const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
+        const GCodePathConfig& config = gcode_layer.configs_storage_.prime_tower_config_per_extruder[extruder_nr];
         const Polygons& pattern = prime_moves_[extruder_nr];
         gcode_layer.addPolygonsByOptimizer(pattern, config);
     }
@@ -257,7 +257,7 @@ void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t ext
     if (absolute_layer_number < pattern_extra_brim.size())
     {
         // Extra rings for stronger base
-        const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
+        const GCodePathConfig& config = gcode_layer.configs_storage_.prime_tower_config_per_extruder[extruder_nr];
         const Polygons& pattern = pattern_extra_brim[absolute_layer_number];
         gcode_layer.addPolygonsByOptimizer(pattern, config);
     }

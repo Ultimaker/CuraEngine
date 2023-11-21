@@ -37,9 +37,9 @@ public:
     virtual std::string toString() const override;
 
 protected:
-    BeadingStrategyPtr parent;
-    const coord_t min_input_width;
-    const coord_t min_output_width;
+    BeadingStrategyPtr parent_;
+    const coord_t min_input_width_;
+    const coord_t min_output_width_;
 };
 
 } // namespace cura

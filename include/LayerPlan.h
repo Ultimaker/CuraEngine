@@ -54,49 +54,49 @@ class LayerPlan : public NoCopy
 #endif
 
 public:
-    const PathConfigStorage configs_storage; //!< The line configs for this layer for each feature type
-    coord_t z;
-    coord_t final_travel_z;
-    bool mode_skip_agressive_merge; //!< Whether to give every new path the 'skip_agressive_merge_hint' property (see GCodePath); default is false.
+    const PathConfigStorage configs_storage_; //!< The line configs for this layer for each feature type
+    coord_t z_;
+    coord_t final_travel_z_;
+    bool mode_skip_agressive_merge_; //!< Whether to give every new path the 'skip_agressive_merge_hint' property (see GCodePath); default is false.
 
 private:
-    const SliceDataStorage& storage; //!< The polygon data obtained from FffPolygonProcessor
-    const LayerIndex layer_nr; //!< The layer number of this layer plan
-    const bool is_initial_layer; //!< Whether this is the first layer (which might be raft)
-    const bool is_raft_layer; //!< Whether this is a layer which is part of the raft
-    coord_t layer_thickness;
+    const SliceDataStorage& storage_; //!< The polygon data obtained from FffPolygonProcessor
+    const LayerIndex layer_nr_; //!< The layer number of this layer plan
+    const bool is_initial_layer_; //!< Whether this is the first layer (which might be raft)
+    const bool is_raft_layer_; //!< Whether this is a layer which is part of the raft
+    coord_t layer_thickness_;
 
-    std::vector<Point> layer_start_pos_per_extruder; //!< The starting position of a layer for each extruder
-    std::vector<bool> has_prime_tower_planned_per_extruder; //!< For each extruder, whether the prime tower is planned yet or not.
-    std::optional<Point> last_planned_position; //!< The last planned XY position of the print head (if known)
+    std::vector<Point> layer_start_pos_per_extruder_; //!< The starting position of a layer for each extruder
+    std::vector<bool> has_prime_tower_planned_per_extruder_; //!< For each extruder, whether the prime tower is planned yet or not.
+    std::optional<Point> last_planned_position_; //!< The last planned XY position of the print head (if known)
 
-    std::shared_ptr<const SliceMeshStorage> current_mesh; //!< The mesh of the last planned move.
+    std::shared_ptr<const SliceMeshStorage> current_mesh_; //!< The mesh of the last planned move.
 
     /*!
      * Whether the skirt or brim polygons have been processed into planned paths
      * for each extruder train.
      */
-    bool skirt_brim_is_processed[MAX_EXTRUDERS];
+    bool skirt_brim_is_processed_[MAX_EXTRUDERS];
 
-    std::vector<ExtruderPlan> extruder_plans; //!< should always contain at least one ExtruderPlan
+    std::vector<ExtruderPlan> extruder_plans_; //!< should always contain at least one ExtruderPlan
 
-    size_t last_extruder_previous_layer; //!< The last id of the extruder with which was printed in the previous layer
-    ExtruderTrain* last_planned_extruder; //!< The extruder for which a move has most recently been planned.
+    size_t last_extruder_previous_layer_; //!< The last id of the extruder with which was printed in the previous layer
+    ExtruderTrain* last_planned_extruder_; //!< The extruder for which a move has most recently been planned.
 
-    std::optional<Point> first_travel_destination; //!< The destination of the first (travel) move (if this layer is not empty)
-    bool first_travel_destination_is_inside; //!< Whether the destination of the first planned travel move is inside a layer part
-    std::optional<std::pair<Acceleration, Velocity>> first_extrusion_acc_jerk; //!< The acceleration and jerk rates of the first extruded move (if this layer is not empty).
-    std::optional<std::pair<Acceleration, Velocity>> next_layer_acc_jerk; //!< If there is a next layer, the first acceleration and jerk it starts with.
-    bool was_inside; //!< Whether the last planned (extrusion) move was inside a layer part
-    bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
-    Polygons comb_boundary_minimum; //!< The minimum boundary within which to comb, or to move into when performing a retraction.
-    Polygons comb_boundary_preferred; //!< The boundary preferably within which to comb, or to move into when performing a retraction.
-    Comb* comb;
-    coord_t comb_move_inside_distance; //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
-    Polygons bridge_wall_mask; //!< The regions of a layer part that are not supported, used for bridging
-    Polygons overhang_mask; //!< The regions of a layer part where the walls overhang
+    std::optional<Point> first_travel_destination_; //!< The destination of the first (travel) move (if this layer is not empty)
+    bool first_travel_destination_is_inside_; //!< Whether the destination of the first planned travel move is inside a layer part
+    std::optional<std::pair<Acceleration, Velocity>> first_extrusion_acc_jerk_; //!< The acceleration and jerk rates of the first extruded move (if this layer is not empty).
+    std::optional<std::pair<Acceleration, Velocity>> next_layer_acc_jerk_; //!< If there is a next layer, the first acceleration and jerk it starts with.
+    bool was_inside_; //!< Whether the last planned (extrusion) move was inside a layer part
+    bool is_inside_; //!< Whether the destination of the next planned travel move is inside a layer part
+    Polygons comb_boundary_minimum_; //!< The minimum boundary within which to comb, or to move into when performing a retraction.
+    Polygons comb_boundary_preferred_; //!< The boundary preferably within which to comb, or to move into when performing a retraction.
+    Comb* comb_;
+    coord_t comb_move_inside_distance_; //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
+    Polygons bridge_wall_mask_; //!< The regions of a layer part that are not supported, used for bridging
+    Polygons overhang_mask_; //!< The regions of a layer part where the walls overhang
 
-    const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder;
+    const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_;
 
     enum CombBoundary
     {
@@ -619,12 +619,12 @@ public:
     template<typename T>
     unsigned locateFirstSupportedVertex(const T& wall, const unsigned start_idx) const
     {
-        if (bridge_wall_mask.empty() && overhang_mask.empty())
+        if (bridge_wall_mask_.empty() && overhang_mask_.empty())
         {
             return start_idx;
         }
 
-        Polygons air_below(bridge_wall_mask.unionPolygons(overhang_mask));
+        Polygons air_below(bridge_wall_mask_.unionPolygons(overhang_mask_));
 
         unsigned curr_idx = start_idx;
 
