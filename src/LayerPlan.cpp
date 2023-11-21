@@ -121,7 +121,7 @@ LayerPlan::LayerPlan(
     }
     for (const ExtruderTrain& extruder : Application::getInstance().current_slice->scene.extruders)
     {
-        layer_start_pos_per_extruder.emplace_back(extruder.settings.get<coord_t>("layer_start_x"), extruder.settings.get<coord_t>("layer_start_y"));
+        layer_start_pos_per_extruder.emplace_back(extruder.settings_.get<coord_t>("layer_start_x"), extruder.settings_.get<coord_t>("layer_start_y"));
     }
     extruder_plans.reserve(Application::getInstance().current_slice->scene.extruders.size());
     extruder_plans.emplace_back(
@@ -235,15 +235,15 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
     setIsInside(false);
     { // handle end position of the prev extruder
         ExtruderTrain* extruder = getLastPlannedExtruderTrain();
-        const bool end_pos_absolute = extruder->settings.get<bool>("machine_extruder_end_pos_abs");
-        Point end_pos(extruder->settings.get<coord_t>("machine_extruder_end_pos_x"), extruder->settings.get<coord_t>("machine_extruder_end_pos_y"));
+        const bool end_pos_absolute = extruder->settings_.get<bool>("machine_extruder_end_pos_abs");
+        Point end_pos(extruder->settings_.get<coord_t>("machine_extruder_end_pos_x"), extruder->settings_.get<coord_t>("machine_extruder_end_pos_y"));
         if (! end_pos_absolute)
         {
             end_pos += getLastPlannedPositionOrStartingPosition();
         }
         else
         {
-            const Point extruder_offset(extruder->settings.get<coord_t>("machine_nozzle_offset_x"), extruder->settings.get<coord_t>("machine_nozzle_offset_y"));
+            const Point extruder_offset(extruder->settings_.get<coord_t>("machine_nozzle_offset_x"), extruder->settings_.get<coord_t>("machine_nozzle_offset_y"));
             end_pos += extruder_offset; // absolute end pos is given as a head position
         }
         if (end_pos_absolute || last_planned_position)
@@ -268,15 +268,15 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
 
     { // handle starting pos of the new extruder
         ExtruderTrain* extruder = getLastPlannedExtruderTrain();
-        const bool start_pos_absolute = extruder->settings.get<bool>("machine_extruder_start_pos_abs");
-        Point start_pos(extruder->settings.get<coord_t>("machine_extruder_start_pos_x"), extruder->settings.get<coord_t>("machine_extruder_start_pos_y"));
+        const bool start_pos_absolute = extruder->settings_.get<bool>("machine_extruder_start_pos_abs");
+        Point start_pos(extruder->settings_.get<coord_t>("machine_extruder_start_pos_x"), extruder->settings_.get<coord_t>("machine_extruder_start_pos_y"));
         if (! start_pos_absolute)
         {
             start_pos += getLastPlannedPositionOrStartingPosition();
         }
         else
         {
-            Point extruder_offset(extruder->settings.get<coord_t>("machine_nozzle_offset_x"), extruder->settings.get<coord_t>("machine_nozzle_offset_y"));
+            Point extruder_offset(extruder->settings_.get<coord_t>("machine_nozzle_offset_x"), extruder->settings_.get<coord_t>("machine_nozzle_offset_y"));
             start_pos += extruder_offset; // absolute start pos is given as a head position
         }
         if (start_pos_absolute || last_planned_position)
@@ -341,7 +341,7 @@ GCodePath& LayerPlan::addTravel(const Point& p, const bool force_retract, const 
     bool combed = false;
 
     const ExtruderTrain* extruder = getLastPlannedExtruderTrain();
-    const Settings& mesh_or_extruder_settings = current_mesh ? current_mesh->settings : extruder->settings;
+    const Settings& mesh_or_extruder_settings = current_mesh ? current_mesh->settings : extruder->settings_;
 
 
     const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths_.size() == 1 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
@@ -999,7 +999,7 @@ void LayerPlan::addWall(
     const coord_t small_feature_max_length = settings.get<coord_t>("small_feature_max_length");
     const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr == 0 || wall.inset_idx == 0) && cura::shorterThan(wall, small_feature_max_length);
     Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
-    const Velocity min_speed = fan_speed_layer_time_settings_per_extruder[getLastPlannedExtruderTrain()->extruder_nr].cool_min_speed;
+    const Velocity min_speed = fan_speed_layer_time_settings_per_extruder[getLastPlannedExtruderTrain()->extruder_nr_].cool_min_speed;
     small_feature_speed_factor = std::max((double)small_feature_speed_factor, (double)(min_speed / non_bridge_config.getSpeed()));
     const coord_t max_area_deviation = std::max(settings.get<int>("meshfix_maximum_extrusion_area_deviation"), 1); // Square micrometres!
     const coord_t max_resolution = std::max(settings.get<coord_t>("meshfix_maximum_resolution"), coord_t(1));
@@ -1911,7 +1911,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.insertWipeScript(wipe_config);
                 gcode.ResetLastEValueAfterWipe(extruder_nr);
             }
-            else if (layer_nr != 0 && Application::getInstance().current_slice->scene.extruders[extruder_nr].settings.get<bool>("retract_at_layer_change"))
+            else if (layer_nr != 0 && Application::getInstance().current_slice->scene.extruders[extruder_nr].settings_.get<bool>("retract_at_layer_change"))
             {
                 // only do the retract if the paths are not spiralized
                 if (! mesh_group_settings.get<bool>("magic_spiralize"))
@@ -1945,7 +1945,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             if (path.perform_prime)
             {
-                gcode.writePrimeTrain(extruder.settings.get<Velocity>("speed_travel"));
+                gcode.writePrimeTrain(extruder.settings_.get<Velocity>("speed_travel"));
                 // Don't update cumulative path time, as ComputeNaiveTimeEstimates also doesn't.
                 gcode.writeRetraction(retraction_config->retraction_config);
             }
@@ -2074,7 +2074,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     // Before the final travel, move up to the next layer height, on the current spot, with a sensible speed.
                     Point3 current_position = gcode.getPosition();
                     current_position.z_ = final_travel_z;
-                    gcode.writeTravel(current_position, extruder.settings.get<Velocity>("speed_z_hop"));
+                    gcode.writeTravel(current_position, extruder.settings_.get<Velocity>("speed_z_hop"));
 
                     // Prevent the final travel(s) from resetting to the 'previous' layer height.
                     gcode.setZ(final_travel_z);
@@ -2099,7 +2099,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 const double path_fan_speed = path.getFanSpeed();
                 gcode.writeFanCommand(path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : extruder_plan.getFanSpeed());
 
-                bool coasting = extruder.settings.get<bool>("coasting_enable");
+                bool coasting = extruder.settings_.get<bool>("coasting_enable");
                 if (coasting)
                 {
                     coasting = writePathWithCoasting(gcode, extruder_plan_idx, path_idx, layer_thickness, insertTempOnTime);
@@ -2168,13 +2168,13 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             }
         } // paths for this extruder /\  .
 
-        if (extruder.settings.get<bool>("cool_lift_head") && extruder_plan.extra_time_ > 0.0)
+        if (extruder.settings_.get<bool>("cool_lift_head") && extruder_plan.extra_time_ > 0.0)
         {
             gcode.writeComment("Small layer, adding delay");
             const RetractionAndWipeConfig& retraction_config
                 = current_mesh ? current_mesh->retraction_wipe_config : storage.retraction_wipe_config_per_extruder[gcode.getExtruderNr()];
             gcode.writeRetraction(retraction_config.retraction_config);
-            if (extruder_plan_idx == extruder_plans.size() - 1 || ! extruder.settings.get<bool>("machine_extruder_end_pos_abs"))
+            if (extruder_plan_idx == extruder_plans.size() - 1 || ! extruder.settings_.get<bool>("machine_extruder_end_pos_abs"))
             { // only do the z-hop if it's the last extruder plan; otherwise it's already at the switching bay area
                 // or do it anyway when we switch extruder in-place
                 gcode.writeZhopStart(MM2INT(3.0));
@@ -2250,7 +2250,7 @@ bool LayerPlan::writePathWithCoasting(
 {
     ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
     const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr_];
-    const double coasting_volume = extruder.settings.get<double>("coasting_volume");
+    const double coasting_volume = extruder.settings_.get<double>("coasting_volume");
     if (coasting_volume <= 0)
     {
         return false;
@@ -2268,7 +2268,7 @@ bool LayerPlan::writePathWithCoasting(
 
     const coord_t coasting_dist
         = MM2INT(MM2_2INT(coasting_volume) / layer_thickness) / path.config.getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
-    const double coasting_min_volume = extruder.settings.get<double>("coasting_min_volume");
+    const double coasting_min_volume = extruder.settings_.get<double>("coasting_min_volume");
     const coord_t coasting_min_dist
         = MM2INT(MM2_2INT(coasting_min_volume + coasting_volume) / layer_thickness) / path.config.getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
     //           /\ the minimal distance when coasting will coast the full coasting volume instead of linearly less with linearly smaller paths
@@ -2362,7 +2362,7 @@ bool LayerPlan::writePathWithCoasting(
         auto [_, time] = extruder_plan.getPointToPointTime(prev_pt, path.points[point_idx], path);
         insertTempOnTime(time, path_idx);
 
-        const Ratio coasting_speed_modifier = extruder.settings.get<Ratio>("coasting_speed");
+        const Ratio coasting_speed_modifier = extruder.settings_.get<Ratio>("coasting_speed");
         const Velocity speed = Velocity(coasting_speed_modifier * path.config.getSpeed());
         gcode.writeTravel(path.points[point_idx], speed);
 
@@ -2420,7 +2420,7 @@ void LayerPlan::applyBackPressureCompensation()
     for (auto& extruder_plan : extruder_plans)
     {
         const Ratio back_pressure_compensation
-            = Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr_].settings.get<Ratio>("speed_equalize_flow_width_factor");
+            = Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr_].settings_.get<Ratio>("speed_equalize_flow_width_factor");
         if (back_pressure_compensation != 0.0)
         {
             extruder_plan.applyBackPressureCompensation(back_pressure_compensation);

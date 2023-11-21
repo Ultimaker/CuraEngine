@@ -21,7 +21,7 @@ public:
     /*
      * \brief The settings that this extruder overwrites.
      */
-    Settings settings;
+    Settings settings_;
 
     /*
      * \brief The position of this extruder.
@@ -29,7 +29,7 @@ public:
      * This may be used by g-code commands such as T to indicate to which
      * tool we must switch.
      */
-    const size_t extruder_nr;
+    const size_t extruder_nr_;
 };
 
 }//namespace cura

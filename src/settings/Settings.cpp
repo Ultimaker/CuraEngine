@@ -3,6 +3,17 @@
 
 #include "settings/Settings.h"
 
+#include <cctype>
+#include <fstream>
+#include <regex> // regex parsing for temp flow graph
+#include <sstream> // ostringstream
+#include <stdio.h>
+#include <string> //Parsing strings (stod, stoul).
+
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/map.hpp>
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To get the extruders.
 #include "BeadingStrategy/BeadingStrategyFactory.h"
 #include "ExtruderTrain.h"
@@ -19,17 +30,6 @@
 #include "utils/polygon.h"
 #include "utils/string.h" //For Escaped.
 #include "utils/types/string_switch.h" //For string switch.
-
-#include <range/v3/range/conversion.hpp>
-#include <range/v3/view/map.hpp>
-#include <spdlog/spdlog.h>
-
-#include <cctype>
-#include <fstream>
-#include <regex> // regex parsing for temp flow graph
-#include <sstream> // ostringstream
-#include <stdio.h>
-#include <string> //Parsing strings (stod, stoul).
 
 namespace cura
 {
@@ -63,7 +63,7 @@ std::string Settings::get<std::string>(const std::string& key) const
     const std::unordered_map<std::string, ExtruderTrain*>& limit_to_extruder = Application::getInstance().current_slice->scene.limit_to_extruder;
     if (limit_to_extruder.find(key) != limit_to_extruder.end())
     {
-        return limit_to_extruder.at(key)->settings.getWithoutLimiting(key);
+        return limit_to_extruder.at(key)->settings_.getWithoutLimiting(key);
     }
 
     if (parent)

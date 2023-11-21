@@ -18,7 +18,7 @@ namespace cura
 void Raft::generate(SliceDataStorage& storage)
 {
     assert(storage.raftOutline.size() == 0 && "Raft polygon isn't generated yet, so should be empty!");
-    const Settings& settings = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings;
+    const Settings& settings = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_;
     const coord_t distance = settings.get<coord_t>("raft_margin");
     constexpr bool include_support = true;
     constexpr bool dont_include_prime_tower = false; // Prime tower raft will be handled separately in 'storage.primeRaftOutline'; see below.
@@ -56,9 +56,9 @@ void Raft::generate(SliceDataStorage& storage)
         // Find out if the prime-tower part of the raft still needs to be printed, even if there is no actual tower.
         // This will only happen if the different raft layers are printed by different extruders.
         const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-        const size_t base_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr;
-        const size_t interface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr;
-        const size_t surface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr;
+        const size_t base_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_;
+        const size_t interface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr_;
+        const size_t surface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr_;
         if (base_extruder_nr == interface_extruder_nr && base_extruder_nr == surface_extruder_nr)
         {
             return;
@@ -72,9 +72,9 @@ coord_t Raft::getTotalThickness()
     const ExtruderTrain& base_train = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr");
     const ExtruderTrain& interface_train = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr");
     const ExtruderTrain& surface_train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
-    return base_train.settings.get<coord_t>("raft_base_thickness")
-         + interface_train.settings.get<size_t>("raft_interface_layers") * interface_train.settings.get<coord_t>("raft_interface_thickness")
-         + surface_train.settings.get<size_t>("raft_surface_layers") * surface_train.settings.get<coord_t>("raft_surface_thickness");
+    return base_train.settings_.get<coord_t>("raft_base_thickness")
+         + interface_train.settings_.get<size_t>("raft_interface_layers") * interface_train.settings_.get<coord_t>("raft_interface_thickness")
+         + surface_train.settings_.get<size_t>("raft_surface_layers") * surface_train.settings_.get<coord_t>("raft_surface_thickness");
 }
 
 coord_t Raft::getZdiffBetweenRaftAndLayer0()
@@ -85,7 +85,7 @@ coord_t Raft::getZdiffBetweenRaftAndLayer0()
     {
         return 0;
     }
-    const coord_t airgap = std::max(coord_t(0), train.settings.get<coord_t>("raft_airgap"));
+    const coord_t airgap = std::max(coord_t(0), train.settings_.get<coord_t>("raft_airgap"));
     return airgap;
 }
 
@@ -114,11 +114,11 @@ size_t Raft::getTotalExtraLayers()
     const ExtruderTrain& base_train = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr");
     const ExtruderTrain& interface_train = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr");
     const ExtruderTrain& surface_train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
-    if (base_train.settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
+    if (base_train.settings_.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
     {
         return 0;
     }
-    return 1 + interface_train.settings.get<size_t>("raft_interface_layers") + surface_train.settings.get<size_t>("raft_surface_layers") + getFillerLayerCount();
+    return 1 + interface_train.settings_.get<size_t>("raft_interface_layers") + surface_train.settings_.get<size_t>("raft_surface_layers") + getFillerLayerCount();
 }
 
 

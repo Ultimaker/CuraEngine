@@ -229,9 +229,9 @@ void CommandLine::sliceNext()
                         }
                     }
                     // If this was an extruder stack, make sure that the extruder_nr setting is correct.
-                    if (last_settings == &last_extruder->settings)
+                    if (last_settings == &last_extruder->settings_)
                     {
-                        last_extruder->settings.add("extruder_nr", std::to_string(last_extruder->extruder_nr));
+                        last_extruder->settings_.add("extruder_nr", std::to_string(last_extruder->extruder_nr_));
                     }
                     break;
                 }
@@ -242,7 +242,7 @@ void CommandLine::sliceNext()
                     {
                         slice.scene.extruders.emplace_back(extruder_nr, &slice.scene.settings);
                     }
-                    last_settings = &slice.scene.extruders[extruder_nr].settings;
+                    last_settings = &slice.scene.extruders[extruder_nr].settings_;
                     last_settings->add("extruder_nr", argument.substr(2));
                     last_extruder = &slice.scene.extruders[extruder_nr];
                     break;
@@ -259,7 +259,7 @@ void CommandLine::sliceNext()
 
                     const FMatrix4x3 transformation = last_settings->get<FMatrix4x3>("mesh_rotation_matrix"); // The transformation applied to the model when loaded.
 
-                    if (! loadMeshIntoMeshGroup(&slice.scene.mesh_groups[mesh_group_index], argument.c_str(), transformation, last_extruder->settings))
+                    if (! loadMeshIntoMeshGroup(&slice.scene.mesh_groups[mesh_group_index], argument.c_str(), transformation, last_extruder->settings_))
                     {
                         spdlog::error("Failed to load model: {}. (error number {})", argument, errno);
                         exit(1);
@@ -462,7 +462,7 @@ int CommandLine::loadJSON(
                 }
                 const std::string extruder_definition_id(extruder_id.GetString());
                 const std::string extruder_file = findDefinitionFile(extruder_definition_id, search_directories);
-                loadJSON(extruder_file, scene.extruders[extruder_nr].settings, force_read_parent, force_read_nondefault);
+                loadJSON(extruder_file, scene.extruders[extruder_nr].settings_, force_read_parent, force_read_nondefault);
             }
         }
     }

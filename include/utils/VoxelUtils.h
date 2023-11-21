@@ -63,11 +63,13 @@ class VoxelUtils
 {
 public:
     using grid_coord_t = coord_t;
+
+    Point3 cell_size_;
+
     VoxelUtils(Point3 cell_size)
-        : cell_size(cell_size)
+        : cell_size_(cell_size)
     {
     }
-    Point3 cell_size;
 
     /*!
      * Process voxels which a line segment crosses.
@@ -156,7 +158,7 @@ public:
     grid_coord_t toGridCoord(const coord_t& coord, const size_t dim) const
     {
         assert(dim < 3);
-        return coord / cell_size[dim] - (coord < 0);
+        return coord / cell_size_[dim] - (coord < 0);
     }
 
     Point3 toLowerCorner(const GridPoint3& location) const
@@ -167,7 +169,7 @@ public:
     coord_t toLowerCoord(const grid_coord_t& grid_coord, const size_t dim) const
     {
         assert(dim < 3);
-        return grid_coord * cell_size[dim];
+        return grid_coord * cell_size_[dim];
     }
 
     /*!
@@ -178,9 +180,9 @@ public:
         Polygon ret;
         Point3 c = toLowerCorner(p);
         ret.emplace_back(c.x_, c.y_);
-        ret.emplace_back(c.x_ + cell_size.x_, c.y_);
-        ret.emplace_back(c.x_ + cell_size.x_, c.y_ + cell_size.y_);
-        ret.emplace_back(c.x_, c.y_ + cell_size.y_);
+        ret.emplace_back(c.x_ + cell_size_.x_, c.y_);
+        ret.emplace_back(c.x_ + cell_size_.x_, c.y_ + cell_size_.y_);
+        ret.emplace_back(c.x_, c.y_ + cell_size_.y_);
         return ret;
     }
 };

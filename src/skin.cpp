@@ -28,7 +28,7 @@ coord_t SkinInfillAreaComputation::getSkinLineWidth(const SliceMeshStorage& mesh
     if (layer_nr == 0)
     {
         const ExtruderTrain& train_skin = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr");
-        skin_line_width *= train_skin.settings.get<Ratio>("initial_layer_line_width_factor");
+        skin_line_width *= train_skin.settings_.get<Ratio>("initial_layer_line_width_factor");
     }
     return skin_line_width;
 }

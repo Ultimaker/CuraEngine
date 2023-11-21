@@ -246,8 +246,8 @@ TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
     {
         Application::getInstance().current_slice->scene.extruders.emplace_back(extruder_index, nullptr);
         ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders.back();
-        train.settings.add("machine_nozzle_size", "0.4");
-        train.settings.add("machine_nozzle_id", "TestNozzle");
+        train.settings_.add("machine_nozzle_size", "0.4");
+        train.settings_.add("machine_nozzle_id", "TestNozzle");
     }
 
     const std::vector<bool> extruder_is_used(num_extruders, true);
@@ -326,7 +326,7 @@ TEST_F(GCodeExportTest, HeaderUltiGCode)
     {
         Application::getInstance().current_slice->scene.extruders.emplace_back(extruder_index, nullptr);
         ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders.back();
-        train.settings.add("machine_nozzle_size", "0.4");
+        train.settings_.add("machine_nozzle_size", "0.4");
     }
     gcode.total_bounding_box = AABB3D(Point3(0, 0, 0), Point3(1000, 1000, 1000));
 
@@ -459,16 +459,16 @@ TEST_F(GCodeExportTest, SwitchExtruderSimple)
 
     scene.extruders.emplace_back(0, nullptr);
     ExtruderTrain& train1 = scene.extruders.back();
-    train1.settings.add("machine_extruder_start_code", ";FIRST EXTRUDER START G-CODE!");
-    train1.settings.add("machine_extruder_end_code", ";FIRST EXTRUDER END G-CODE!");
-    train1.settings.add("machine_firmware_retract", "True");
-    train1.settings.add("retraction_enable", "True");
+    train1.settings_.add("machine_extruder_start_code", ";FIRST EXTRUDER START G-CODE!");
+    train1.settings_.add("machine_extruder_end_code", ";FIRST EXTRUDER END G-CODE!");
+    train1.settings_.add("machine_firmware_retract", "True");
+    train1.settings_.add("retraction_enable", "True");
     scene.extruders.emplace_back(1, nullptr);
     ExtruderTrain& train2 = scene.extruders.back();
-    train2.settings.add("machine_extruder_start_code", ";SECOND EXTRUDER START G-CODE!");
-    train2.settings.add("machine_extruder_end_code", ";SECOND EXTRUDER END G-CODE!");
-    train2.settings.add("machine_firmware_retract", "True");
-    train2.settings.add("retraction_enable", "True");
+    train2.settings_.add("machine_extruder_start_code", ";SECOND EXTRUDER START G-CODE!");
+    train2.settings_.add("machine_extruder_end_code", ";SECOND EXTRUDER END G-CODE!");
+    train2.settings_.add("machine_firmware_retract", "True");
+    train2.settings_.add("retraction_enable", "True");
 
     RetractionConfig no_retraction;
     no_retraction.distance = 0;
@@ -489,7 +489,7 @@ TEST_F(GCodeExportTest, WriteZHopStartZero)
 TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
 {
     Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
-    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); // 60mm/min.
+    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings_.add("speed_z_hop", "1"); // 60mm/min.
     gcode.current_layer_z = 2000;
     constexpr coord_t hop_height = 3000;
     gcode.writeZhopStart(hop_height);
@@ -499,7 +499,7 @@ TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
 TEST_F(GCodeExportTest, WriteZHopStartCustomSpeed)
 {
     Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
-    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); // 60mm/min.
+    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings_.add("speed_z_hop", "1"); // 60mm/min.
     gcode.current_layer_z = 2000;
     constexpr coord_t hop_height = 3000;
     constexpr Velocity speed{ 4.0 }; // 240 mm/min.
@@ -517,7 +517,7 @@ TEST_F(GCodeExportTest, WriteZHopEndZero)
 TEST_F(GCodeExportTest, WriteZHopEndDefaultSpeed)
 {
     Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
-    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); // 60mm/min.
+    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings_.add("speed_z_hop", "1"); // 60mm/min.
     gcode.current_layer_z = 2000;
     gcode.is_z_hopped = 3000;
     gcode.writeZhopEnd();
@@ -527,7 +527,7 @@ TEST_F(GCodeExportTest, WriteZHopEndDefaultSpeed)
 TEST_F(GCodeExportTest, WriteZHopEndCustomSpeed)
 {
     Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
-    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1");
+    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings_.add("speed_z_hop", "1");
     gcode.current_layer_z = 2000;
     gcode.is_z_hopped = 3000;
     constexpr Velocity speed{ 4.0 }; // 240 mm/min.
@@ -649,7 +649,7 @@ TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
     gcode.currentSpeed = 1.0;
     Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
     Application::getInstance().current_slice->scene.extruders.emplace_back(0, &Application::getInstance().current_slice->scene.current_mesh_group->settings);
-    Application::getInstance().current_slice->scene.extruders.back().settings.add("machine_firmware_retract", "false");
+    Application::getInstance().current_slice->scene.extruders.back().settings_.add("machine_firmware_retract", "false");
 
     WipeScriptConfig config;
     config.retraction_enable = true;

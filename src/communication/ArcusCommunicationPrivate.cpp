@@ -78,7 +78,7 @@ void ArcusCommunication::Private::readExtruderSettingsMessage(const google::prot
                   .extruders[extruder_nr]; // Extruder messages may arrive out of order, so don't iteratively get the next extruder but take the extruder_nr from this message.
         for (const cura::proto::Setting& setting_message : extruder_message.settings().settings())
         {
-            extruder.settings.add(setting_message.name(), setting_message.value());
+            extruder.settings_.add(setting_message.name(), setting_message.value());
         }
     }
 }
@@ -120,7 +120,7 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
             mesh.settings_.add(setting.name(), setting.value());
         }
         ExtruderTrain& extruder = mesh.settings_.get<ExtruderTrain&>("extruder_nr"); // Set the parent setting to the correct extruder.
-        mesh.settings_.setParent(&extruder.settings);
+        mesh.settings_.setParent(&extruder.settings_);
 
         for (size_t face = 0; face < face_count; face++)
         {

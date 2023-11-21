@@ -21,7 +21,7 @@ void Slice::compute()
         scene.current_mesh_group = mesh_group;
         for (ExtruderTrain& extruder : scene.extruders)
         {
-            extruder.settings.setParent(&scene.current_mesh_group->settings);
+            extruder.settings_.setParent(&scene.current_mesh_group->settings);
         }
         scene.processMeshGroup(*mesh_group);
     }

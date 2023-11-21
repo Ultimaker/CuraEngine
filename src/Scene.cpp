@@ -32,7 +32,7 @@ const std::string Scene::getAllSettingsString() const
     // Per-extruder settings.
     for (size_t extruder_nr = 0; extruder_nr < extruders.size(); extruder_nr++)
     {
-        output << " -e" << extruder_nr << extruders[extruder_nr].settings.getAllSettingsString();
+        output << " -e" << extruder_nr << extruders[extruder_nr].settings_.getAllSettingsString();
     }
 
     for (size_t mesh_group_index = 0; mesh_group_index < mesh_groups.size(); mesh_group_index++)

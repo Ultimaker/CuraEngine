@@ -22,40 +22,40 @@ namespace cura
 
 LocToLineGrid& Comb::getOutsideLocToLine(const ExtruderTrain& train)
 {
-    if (outside_loc_to_line[train.extruder_nr] == nullptr)
+    if (outside_loc_to_line[train.extruder_nr_] == nullptr)
     {
-        outside_loc_to_line[train.extruder_nr] = PolygonUtils::createLocToLineGrid(getBoundaryOutside(train), offset_from_inside_to_outside * 3 / 2);
+        outside_loc_to_line[train.extruder_nr_] = PolygonUtils::createLocToLineGrid(getBoundaryOutside(train), offset_from_inside_to_outside * 3 / 2);
     }
-    return *outside_loc_to_line[train.extruder_nr];
+    return *outside_loc_to_line[train.extruder_nr_];
 }
 
 Polygons& Comb::getBoundaryOutside(const ExtruderTrain& train)
 {
-    if (boundary_outside[train.extruder_nr].empty())
+    if (boundary_outside[train.extruder_nr_].empty())
     {
-        bool travel_avoid_supports = train.settings.get<bool>("travel_avoid_supports");
-        boundary_outside[train.extruder_nr] = storage.getLayerOutlines(layer_nr, travel_avoid_supports, travel_avoid_supports).offset(travel_avoid_distance);
+        bool travel_avoid_supports = train.settings_.get<bool>("travel_avoid_supports");
+        boundary_outside[train.extruder_nr_] = storage.getLayerOutlines(layer_nr, travel_avoid_supports, travel_avoid_supports).offset(travel_avoid_distance);
     }
-    return boundary_outside[train.extruder_nr];
+    return boundary_outside[train.extruder_nr_];
 }
 
 Polygons& Comb::getModelBoundary(const ExtruderTrain& train)
 {
-    if (model_boundary[train.extruder_nr].empty())
+    if (model_boundary[train.extruder_nr_].empty())
     {
-        bool travel_avoid_supports = train.settings.get<bool>("travel_avoid_supports");
-        model_boundary[train.extruder_nr] = storage.getLayerOutlines(layer_nr, travel_avoid_supports, travel_avoid_supports);
+        bool travel_avoid_supports = train.settings_.get<bool>("travel_avoid_supports");
+        model_boundary[train.extruder_nr_] = storage.getLayerOutlines(layer_nr, travel_avoid_supports, travel_avoid_supports);
     }
-    return boundary_outside[train.extruder_nr];
+    return boundary_outside[train.extruder_nr_];
 }
 
 LocToLineGrid& Comb::getModelBoundaryLocToLine(const ExtruderTrain& train)
 {
-    if (model_boundary_loc_to_line[train.extruder_nr] == nullptr)
+    if (model_boundary_loc_to_line[train.extruder_nr_] == nullptr)
     {
-        model_boundary_loc_to_line[train.extruder_nr] = PolygonUtils::createLocToLineGrid(getModelBoundary(train), offset_from_inside_to_outside * 3 / 2);
+        model_boundary_loc_to_line[train.extruder_nr_] = PolygonUtils::createLocToLineGrid(getModelBoundary(train), offset_from_inside_to_outside * 3 / 2);
     }
-    return *model_boundary_loc_to_line[train.extruder_nr];
+    return *model_boundary_loc_to_line[train.extruder_nr_];
 }
 
 Comb::Comb(
@@ -202,7 +202,7 @@ bool Comb::calc(
         skip_avoid_other_parts_path = true;
     }
 
-    const bool travel_avoid_other_parts = train.settings.get<bool>("travel_avoid_other_parts");
+    const bool travel_avoid_other_parts = train.settings_.get<bool>("travel_avoid_other_parts");
 
     if (travel_avoid_other_parts && ! skip_avoid_other_parts_path)
     { // compute the crossing points when moving through air

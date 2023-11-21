@@ -116,10 +116,10 @@ public:
      */
     void setExtruder(const ExtruderTrain& new_extruder)
     {
-        if (extruder != new_extruder.extruder_nr)
+        if (extruder != new_extruder.extruder_nr_)
         {
             flushPathSegments();
-            extruder = new_extruder.extruder_nr;
+            extruder = new_extruder.extruder_nr_;
         }
     }
 

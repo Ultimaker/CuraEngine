@@ -8,7 +8,7 @@
 using namespace cura;
 
 
-SquareGrid::SquareGrid(coord_t cell_size) : cell_size(cell_size)
+SquareGrid::SquareGrid(coord_t cell_size) : cell_size_(cell_size)
 {
     assert(cell_size > 0U);
 }
@@ -28,7 +28,7 @@ SquareGrid::grid_coord_t SquareGrid::toGridCoord(const coord_t& coord)  const
     // just changes the running time slightly.  The change in running
     // time from this is probably not worth doing a proper floor
     // operation.
-    return coord / cell_size;
+    return coord / cell_size_;
 }
 
 
@@ -46,7 +46,7 @@ cura::coord_t SquareGrid::toLowerCoord(const grid_coord_t& grid_coord)  const
     // just changes the running time slightly.  The change in running
     // time from this is probably not worth doing a proper floor
     // operation.
-    return grid_coord * cell_size;
+    return grid_coord * cell_size_;
 }
 
 
@@ -199,5 +199,5 @@ SquareGrid::grid_coord_t SquareGrid::nonzeroSign(const grid_coord_t z) const
 
 coord_t SquareGrid::getCellSize() const
 {
-    return cell_size;
+    return cell_size_;
 }

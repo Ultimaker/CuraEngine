@@ -33,11 +33,11 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     for (size_t mesh_a_idx = 0; mesh_a_idx < volumes.size(); mesh_a_idx++)
     {
         Slicer& mesh_a = *volumes[mesh_a_idx];
-        size_t extruder_nr_a = mesh_a.mesh->settings_.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr;
+        size_t extruder_nr_a = mesh_a.mesh->settings_.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_;
         for (size_t mesh_b_idx = mesh_a_idx + 1; mesh_b_idx < volumes.size(); mesh_b_idx++)
         {
             Slicer& mesh_b = *volumes[mesh_b_idx];
-            size_t extruder_nr_b = mesh_b.mesh->settings_.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr;
+            size_t extruder_nr_b = mesh_b.mesh->settings_.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_;
 
             if (! mesh_a.mesh->canInterlock() || ! mesh_b.mesh->canInterlock())
             {

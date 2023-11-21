@@ -66,7 +66,7 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
             if (layer_nr == 0)
             {
                 const ExtruderTrain& train_wall_0 = mesh.settings_.get<ExtruderTrain&>("wall_0_extruder_nr");
-                open_polyline_width *= train_wall_0.settings.get<Ratio>("initial_layer_line_width_factor");
+                open_polyline_width *= train_wall_0.settings_.get<Ratio>("initial_layer_line_width_factor");
             }
             const AngleDegrees angle = mesh.settings_.get<AngleDegrees>("mold_angle");
             const coord_t roof_height = mesh.settings_.get<coord_t>("mold_roof_height");

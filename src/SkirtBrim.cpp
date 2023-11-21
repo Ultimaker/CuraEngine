@@ -56,11 +56,11 @@ SkirtBrim::SkirtBrim(SliceDataStorage& storage)
         }
         const ExtruderTrain& extruder = extruders[extruder_nr];
 
-        line_widths[extruder_nr] = extruder.settings.get<coord_t>("skirt_brim_line_width") * extruder.settings.get<Ratio>("initial_layer_line_width_factor");
-        skirt_brim_minimal_length[extruder_nr] = extruder.settings.get<coord_t>("skirt_brim_minimal_length");
-        external_polys_only[extruder_nr] = adhesion_type == EPlatformAdhesion::SKIRT || extruder.settings.get<bool>("brim_outside_only");
-        line_count[extruder_nr] = extruder.settings.get<int>(adhesion_type == EPlatformAdhesion::BRIM ? "brim_line_count" : "skirt_line_count");
-        gap[extruder_nr] = extruder.settings.get<coord_t>(adhesion_type == EPlatformAdhesion::BRIM ? "brim_gap" : "skirt_gap");
+        line_widths[extruder_nr] = extruder.settings_.get<coord_t>("skirt_brim_line_width") * extruder.settings_.get<Ratio>("initial_layer_line_width_factor");
+        skirt_brim_minimal_length[extruder_nr] = extruder.settings_.get<coord_t>("skirt_brim_minimal_length");
+        external_polys_only[extruder_nr] = adhesion_type == EPlatformAdhesion::SKIRT || extruder.settings_.get<bool>("brim_outside_only");
+        line_count[extruder_nr] = extruder.settings_.get<int>(adhesion_type == EPlatformAdhesion::BRIM ? "brim_line_count" : "skirt_line_count");
+        gap[extruder_nr] = extruder.settings_.get<coord_t>(adhesion_type == EPlatformAdhesion::BRIM ? "brim_gap" : "skirt_gap");
     }
 }
 
@@ -226,7 +226,7 @@ std::vector<coord_t> SkirtBrim::generatePrimaryBrim(std::vector<Offset>& all_bri
 Polygons SkirtBrim::getInternalHoleExclusionArea(const Polygons& outline, const int extruder_nr)
 {
     assert(extruder_nr >= 0);
-    const Settings& settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
+    const Settings& settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings_;
     // If brim is external_only, the distance between the external brim of a part inside a hole and the inside hole of the outer part.
     const coord_t hole_brim_distance = settings.get<coord_t>("brim_inside_margin");
 
@@ -300,7 +300,7 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Polygons& covered_area, 
     }
 
     { // limit brim lines to allowed areas, stitch them and store them in the result
-        brim = Simplify(Application::getInstance().current_slice->scene.extruders[offset.extruder_nr].settings).polygon(brim);
+        brim = Simplify(Application::getInstance().current_slice->scene.extruders[offset.extruder_nr].settings_).polygon(brim);
         brim.toPolylines();
         Polygons brim_lines = allowed_areas_per_extruder[offset.extruder_nr].intersectionPolyLines(brim, false);
         length_added = brim_lines.polyLineLength();
@@ -361,9 +361,9 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
         int skirt_height = 0;
         for (const auto& extruder : Application::getInstance().current_slice->scene.extruders)
         {
-            if (extruder_nr == -1 || extruder_nr == extruder.extruder_nr)
+            if (extruder_nr == -1 || extruder_nr == extruder.extruder_nr_)
             {
-                skirt_height = std::max(skirt_height, extruder.settings.get<int>("skirt_height"));
+                skirt_height = std::max(skirt_height, extruder.settings_.get<int>("skirt_height"));
             }
         }
         skirt_height = std::min(skirt_height, static_cast<int>(storage.print_layer_count));
@@ -373,7 +373,7 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
             for (const auto& extruder : Application::getInstance().current_slice->scene.extruders)
             {
                 first_layer_outline
-                    = first_layer_outline.unionPolygons(storage.getLayerOutlines(i_layer, include_support, include_prime_tower, external_only, extruder.extruder_nr));
+                    = first_layer_outline.unionPolygons(storage.getLayerOutlines(i_layer, include_support, include_prime_tower, external_only, extruder.extruder_nr_));
             }
         }
 
@@ -418,7 +418,7 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
         { // remove model-brim from support
             SupportLayer& support_layer = storage.support.supportLayers[0];
             const ExtruderTrain& support_infill_extruder = global_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
-            if (support_infill_extruder.settings.get<bool>("brim_replaces_support"))
+            if (support_infill_extruder.settings_.get<bool>("brim_replaces_support"))
             {
                 // avoid gap in the middle
                 //    V
@@ -581,9 +581,9 @@ void SkirtBrim::generateSupportBrim()
     Scene& scene = Application::getInstance().current_slice->scene;
     const ExtruderTrain& support_infill_extruder = scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     const coord_t brim_line_width
-        = support_infill_extruder.settings.get<coord_t>("skirt_brim_line_width") * support_infill_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
-    size_t line_count = support_infill_extruder.settings.get<size_t>("support_brim_line_count");
-    const coord_t minimal_length = support_infill_extruder.settings.get<coord_t>("skirt_brim_minimal_length");
+        = support_infill_extruder.settings_.get<coord_t>("skirt_brim_line_width") * support_infill_extruder.settings_.get<Ratio>("initial_layer_line_width_factor");
+    size_t line_count = support_infill_extruder.settings_.get<size_t>("support_brim_line_count");
+    const coord_t minimal_length = support_infill_extruder.settings_.get<coord_t>("skirt_brim_minimal_length");
     if (! storage.support.generated || line_count <= 0 || storage.support.supportLayers.empty())
     {
         return;
@@ -592,12 +592,12 @@ void SkirtBrim::generateSupportBrim()
     const coord_t brim_width = brim_line_width * line_count;
     coord_t skirt_brim_length = 0;
 
-    if (storage.skirt_brim[support_infill_extruder.extruder_nr].empty())
+    if (storage.skirt_brim[support_infill_extruder.extruder_nr_].empty())
     {
-        storage.skirt_brim[support_infill_extruder.extruder_nr].emplace_back();
+        storage.skirt_brim[support_infill_extruder.extruder_nr_].emplace_back();
     }
 
-    for (const SkirtBrimLine& brim_line : storage.skirt_brim[support_infill_extruder.extruder_nr])
+    for (const SkirtBrimLine& brim_line : storage.skirt_brim[support_infill_extruder.extruder_nr_])
     {
         skirt_brim_length += brim_line.closed_polygons.polygonLength();
         skirt_brim_length += brim_line.open_polylines.polyLineLength();
