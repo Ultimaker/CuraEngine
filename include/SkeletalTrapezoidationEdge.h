@@ -29,13 +29,13 @@ public:
      */
     struct TransitionMiddle
     {
-        coord_t pos; // Position along edge as measure from edge.from.p
-        int lower_bead_count;
-        coord_t feature_radius; // The feature radius at which this transition is placed
+        coord_t pos_; // Position along edge as measure from edge.from.p
+        int lower_bead_count_;
+        coord_t feature_radius_; // The feature radius at which this transition is placed
         TransitionMiddle(coord_t pos, int lower_bead_count, coord_t feature_radius)
-            : pos(pos)
-            , lower_bead_count(lower_bead_count)
-            , feature_radius(feature_radius)
+            : pos_(pos)
+            , lower_bead_count_(lower_bead_count)
+            , feature_radius_(feature_radius)
         {
         }
     };
@@ -45,13 +45,13 @@ public:
      */
     struct TransitionEnd
     {
-        coord_t pos; // Position along edge as measure from edge.from.p, where the edge is always the half edge oriented from lower to higher R
-        int lower_bead_count;
-        bool is_lower_end; // Whether this is the ed of the transition with lower bead count
+        coord_t pos_; // Position along edge as measure from edge.from.p, where the edge is always the half edge oriented from lower to higher R
+        int lower_bead_count_;
+        bool is_lower_end_; // Whether this is the ed of the transition with lower bead count
         TransitionEnd(coord_t pos, int lower_bead_count, bool is_lower_end)
-            : pos(pos)
-            , lower_bead_count(lower_bead_count)
-            , is_lower_end(is_lower_end)
+            : pos_(pos)
+            , lower_bead_count_(lower_bead_count)
+            , is_lower_end_(is_lower_end)
         {
         }
     };
@@ -62,14 +62,14 @@ public:
         EXTRA_VD = 1, // introduced to voronoi diagram in order to make the gMAT
         TRANSITION_END = 2 // introduced to voronoi diagram in order to make the gMAT
     };
-    EdgeType type;
+    EdgeType type_;
 
     SkeletalTrapezoidationEdge()
         : SkeletalTrapezoidationEdge(EdgeType::NORMAL)
     {
     }
     SkeletalTrapezoidationEdge(const EdgeType& type)
-        : type(type)
+        : type_(type)
         , is_central(Central::UNKNOWN)
     {
     }
@@ -90,49 +90,49 @@ public:
 
     bool hasTransitions(bool ignore_empty = false) const
     {
-        return transitions.use_count() > 0 && (ignore_empty || ! transitions.lock()->empty());
+        return transitions_.use_count() > 0 && (ignore_empty || ! transitions_.lock()->empty());
     }
     void setTransitions(std::shared_ptr<std::list<TransitionMiddle>>& storage)
     {
-        transitions = storage;
+        transitions_ = storage;
     }
     std::shared_ptr<std::list<TransitionMiddle>> getTransitions()
     {
-        return transitions.lock();
+        return transitions_.lock();
     }
 
     bool hasTransitionEnds(bool ignore_empty = false) const
     {
-        return transition_ends.use_count() > 0 && (ignore_empty || ! transition_ends.lock()->empty());
+        return transition_ends_.use_count() > 0 && (ignore_empty || ! transition_ends_.lock()->empty());
     }
     void setTransitionEnds(std::shared_ptr<std::list<TransitionEnd>>& storage)
     {
-        transition_ends = storage;
+        transition_ends_ = storage;
     }
     std::shared_ptr<std::list<TransitionEnd>> getTransitionEnds()
     {
-        return transition_ends.lock();
+        return transition_ends_.lock();
     }
 
     bool hasExtrusionJunctions(bool ignore_empty = false) const
     {
-        return extrusion_junctions.use_count() > 0 && (ignore_empty || ! extrusion_junctions.lock()->empty());
+        return extrusion_junctions_.use_count() > 0 && (ignore_empty || ! extrusion_junctions_.lock()->empty());
     }
     void setExtrusionJunctions(std::shared_ptr<LineJunctions>& storage)
     {
-        extrusion_junctions = storage;
+        extrusion_junctions_ = storage;
     }
     std::shared_ptr<LineJunctions> getExtrusionJunctions()
     {
-        return extrusion_junctions.lock();
+        return extrusion_junctions_.lock();
     }
 
     Central is_central; //! whether the edge is significant; whether the source segments have a sharp angle; -1 is unknown
 
 private:
-    std::weak_ptr<std::list<TransitionMiddle>> transitions;
-    std::weak_ptr<std::list<TransitionEnd>> transition_ends;
-    std::weak_ptr<LineJunctions> extrusion_junctions;
+    std::weak_ptr<std::list<TransitionMiddle>> transitions_;
+    std::weak_ptr<std::list<TransitionEnd>> transition_ends_;
+    std::weak_ptr<LineJunctions> extrusion_junctions_;
 };
 
 

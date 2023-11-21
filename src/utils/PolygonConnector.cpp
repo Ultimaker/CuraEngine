@@ -10,14 +10,14 @@ namespace cura
 {
 
 PolygonConnector::PolygonConnector(const coord_t line_width)
-: line_width(line_width)
+: line_width_(line_width)
 {}
 
 void PolygonConnector::add(const Polygons& input)
 {
     for (ConstPolygonRef poly : input)
     {
-        input_polygons.push_back(poly);
+        input_polygons_.push_back(poly);
     }
 }
 
@@ -27,20 +27,20 @@ void PolygonConnector::add(const std::vector<VariableWidthLines>& input)
     {
         for(const ExtrusionLine& line : lines)
         {
-            input_paths.push_back(line);
+            input_paths_.push_back(line);
         }
     }
 }
 
 void PolygonConnector::connect(Polygons& output_polygons, std::vector<VariableWidthLines>& output_paths)
 {
-    std::vector<Polygon> result_polygons = connectGroup(input_polygons);
+    std::vector<Polygon> result_polygons = connectGroup(input_polygons_);
     for(Polygon& polygon : result_polygons)
     {
         output_polygons.add(polygon);
     }
 
-    std::vector<ExtrusionLine> result_paths = connectGroup(input_paths);
+    std::vector<ExtrusionLine> result_paths = connectGroup(input_paths_);
     output_paths.push_back(result_paths);
 }
 
@@ -56,7 +56,7 @@ Point PolygonConnector::getPosition(const ExtrusionJunction& junction) const
 
 coord_t PolygonConnector::getWidth(const Point&) const
 {
-    return line_width;
+    return line_width_;
 }
 
 coord_t PolygonConnector::getWidth(const ExtrusionJunction& junction) const

@@ -3,12 +3,12 @@
 
 #include "SkeletalTrapezoidationGraph.h"
 
-#include "utils/linearAlg2D.h"
-#include "utils/macros.h"
+#include <unordered_map>
 
 #include <spdlog/spdlog.h>
 
-#include <unordered_map>
+#include "utils/linearAlg2D.h"
+#include "utils/macros.h"
 
 namespace cura
 {
@@ -20,11 +20,11 @@ STHalfEdge::STHalfEdge(SkeletalTrapezoidationEdge data)
 
 bool STHalfEdge::canGoUp(bool strict) const
 {
-    if (to->data.distance_to_boundary > from->data.distance_to_boundary)
+    if (to->data.distance_to_boundary_ > from->data.distance_to_boundary_)
     {
         return true;
     }
-    if (to->data.distance_to_boundary < from->data.distance_to_boundary || strict)
+    if (to->data.distance_to_boundary_ < from->data.distance_to_boundary_ || strict)
     {
         return false;
     }
@@ -48,11 +48,11 @@ bool STHalfEdge::canGoUp(bool strict) const
 
 bool STHalfEdge::isUpward() const
 {
-    if (to->data.distance_to_boundary > from->data.distance_to_boundary)
+    if (to->data.distance_to_boundary_ > from->data.distance_to_boundary_)
     {
         return true;
     }
-    if (to->data.distance_to_boundary < from->data.distance_to_boundary)
+    if (to->data.distance_to_boundary_ < from->data.distance_to_boundary_)
     {
         return false;
     }
@@ -79,11 +79,11 @@ bool STHalfEdge::isUpward() const
 
 std::optional<cura::coord_t> STHalfEdge::distToGoUp() const
 {
-    if (to->data.distance_to_boundary > from->data.distance_to_boundary)
+    if (to->data.distance_to_boundary_ > from->data.distance_to_boundary_)
     {
         return 0;
     }
-    if (to->data.distance_to_boundary < from->data.distance_to_boundary)
+    if (to->data.distance_to_boundary_ < from->data.distance_to_boundary_)
     {
         return std::optional<cura::coord_t>();
     }
@@ -173,7 +173,7 @@ bool STHalfEdgeNode::isCentral() const
 
 bool STHalfEdgeNode::isLocalMaximum(bool strict) const
 {
-    if (data.distance_to_boundary == 0)
+    if (data.distance_to_boundary_ == 0)
     {
         return false;
     }
@@ -333,12 +333,12 @@ void SkeletalTrapezoidationGraph::makeRib(edge_t*& prev_edge, Point start_source
 {
     Point p = LinearAlg2D::getClosestOnLine(prev_edge->to->p, start_source_point, end_source_point);
     coord_t dist = vSize(prev_edge->to->p - p);
-    prev_edge->to->data.distance_to_boundary = dist;
+    prev_edge->to->data.distance_to_boundary_ = dist;
     assert(dist >= 0);
 
     nodes.emplace_front(SkeletalTrapezoidationJoint(), p);
     node_t* node = &nodes.front();
-    node->data.distance_to_boundary = 0;
+    node->data.distance_to_boundary_ = 0;
 
     edges.emplace_front(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD));
     edge_t* forth_edge = &edges.front();
@@ -371,12 +371,12 @@ std::pair<SkeletalTrapezoidationGraph::edge_t*, SkeletalTrapezoidationGraph::edg
     Point px = LinearAlg2D::getClosestOnLineSegment(p, source_segment.first, source_segment.second);
     coord_t dist = vSize(p - px);
     assert(dist > 0);
-    mid_node->data.distance_to_boundary = dist;
-    mid_node->data.transition_ratio = 0; // Both transition end should have rest = 0, because at the ends a whole number of beads fits without rest
+    mid_node->data.distance_to_boundary_ = dist;
+    mid_node->data.transition_ratio_ = 0; // Both transition end should have rest = 0, because at the ends a whole number of beads fits without rest
 
     nodes.emplace_back(SkeletalTrapezoidationJoint(), px);
     node_t* source_node = &nodes.back();
-    source_node->data.distance_to_boundary = 0;
+    source_node->data.distance_to_boundary_ = 0;
 
     edge_t* first = &edge;
     edges.emplace_back(SkeletalTrapezoidationEdge());
@@ -433,7 +433,7 @@ std::pair<SkeletalTrapezoidationGraph::edge_t*, SkeletalTrapezoidationGraph::edg
     first->twin = nullptr; // we don't know these yet!
     second->twin = nullptr;
 
-    assert(second->prev->from->data.distance_to_boundary == 0);
+    assert(second->prev->from->data.distance_to_boundary_ == 0);
 
     return std::make_pair(first, second);
 }
@@ -460,7 +460,7 @@ SkeletalTrapezoidationGraph::edge_t* SkeletalTrapezoidationGraph::insertNode(edg
     last_edge_replacing_input->twin = first_edge_replacing_twin;
     first_edge_replacing_twin->twin = last_edge_replacing_input;
 
-    mid_node->data.bead_count = mide_node_bead_count;
+    mid_node->data.bead_count_ = mide_node_bead_count;
 
     return last_edge_replacing_input;
 }

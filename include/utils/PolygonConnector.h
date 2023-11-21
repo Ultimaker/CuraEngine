@@ -101,11 +101,11 @@ public:
     void connect(Polygons& output_polygons, std::vector<VariableWidthLines>& output_paths);
 
 protected:
-    coord_t line_width; //!< The distance between the line segments which connect two polygons.
-    std::vector<Polygon> input_polygons; //!< The polygons assembled by calls to \ref PolygonConnector::add.
-    std::vector<ExtrusionLine> input_paths; //!< The paths assembled by calls to \ref PolygonConnector::add.
+    coord_t line_width_; //!< The distance between the line segments which connect two polygons.
+    std::vector<Polygon> input_polygons_; //!< The polygons assembled by calls to \ref PolygonConnector::add.
+    std::vector<ExtrusionLine> input_paths_; //!< The paths assembled by calls to \ref PolygonConnector::add.
 
-    constexpr static Ratio max_gap = 0.5; //!< The maximum allowed gap between lines that get connected, in multiples of the local line width. Allows connections inside corners where the endpoints are slightly apart.
+    constexpr static Ratio max_gap_ = 0.5; //!< The maximum allowed gap between lines that get connected, in multiples of the local line width. Allows connections inside corners where the endpoints are slightly apart.
 
     /*!
      * Line segment to connect two polygons, with all the necessary information
@@ -121,36 +121,36 @@ protected:
         /*!
          * The polygon at the source of the connection.
          */
-        Polygonal* from_poly;
+        Polygonal* from_poly_;
 
         /*!
          * The index of the line segment at the source of the connection.
          *
          * This line segment is the one after the vertex with the same index.
          */
-        size_t from_segment;
+        size_t from_segment_;
 
         /*!
          * The precise location of the source of the connection.
          */
-        Point from_point;
+        Point from_point_;
 
         /*!
          * The polygon at the destination of the connection.
          */
-        Polygonal* to_poly;
+        Polygonal* to_poly_;
 
         /*!
          * The index of the line segment at the destination of the connection.
          *
          * This line segment is the one after the vertex with the same index.
          */
-        size_t to_segment;
+        size_t to_segment_;
 
         /*!
          * The precise location of the destination of the connection.
          */
-        Point to_point;
+        Point to_point_;
 
         /*!
          * Create a new connection.
@@ -166,12 +166,12 @@ protected:
          * connection.
          */
         PolygonConnection(Polygonal* from_poly, const size_t from_segment, const Point from_point, Polygonal* to_poly, const size_t to_segment, const Point to_point)
-        : from_poly(from_poly)
-        , from_segment(from_segment)
-        , from_point(from_point)
-        , to_poly(to_poly)
-        , to_segment(to_segment)
-        , to_point(to_point)
+        : from_poly_(from_poly)
+        , from_segment_(from_segment)
+        , from_point_(from_point)
+        , to_poly_(to_poly)
+        , to_segment_(to_segment)
+        , to_point_(to_point)
         {
         }
 
@@ -183,7 +183,7 @@ protected:
          */
         coord_t getDistance2() const
         {
-            return vSize2(from_point - to_point);
+            return vSize2(from_point_ - to_point_);
         }
     };
 
@@ -201,10 +201,10 @@ protected:
     template<typename Polygonal>
     struct PolygonBridge
     {
-        PolygonConnection<Polygonal> a; //!< first connection
-        PolygonConnection<Polygonal> b; //!< second connection
+        PolygonConnection<Polygonal> a_; //!< first connection
+        PolygonConnection<Polygonal> b_; //!< second connection
         PolygonBridge(const PolygonConnection<Polygonal>& a, const PolygonConnection<Polygonal>& b)
-        : a(a), b(b)
+        : a_(a), b_(b)
         {}
     };
 
@@ -240,7 +240,7 @@ protected:
             std::optional<PolygonBridge<Polygonal>> bridge = getBridge(current, to_connect);
             if(bridge)
             {
-                connectPolygonsAlongBridge(*bridge, *bridge->a.to_poly); //Connect the polygons, and store the result in the to_poly.
+                connectPolygonsAlongBridge(*bridge, *bridge->a_.to_poly_); //Connect the polygons, and store the result in the to_poly.
                 //Don't store the current polygon. It has just been merged into the other one.
             }
             else //Can't connect this to anything. Leave it as-is.
@@ -371,9 +371,9 @@ protected:
     template<typename Polygonal>
     coord_t getSpace(const PolygonConnection<Polygonal>& connection) const
     {
-        const coord_t from_width = interpolateWidth(connection.from_point, (*connection.from_poly)[connection.from_segment], (*connection.from_poly)[(connection.from_segment + 1) % connection.from_poly->size()]);
-        const coord_t to_width = interpolateWidth(connection.to_point, (*connection.to_poly)[connection.to_segment], (*connection.to_poly)[(connection.to_segment + 1) % connection.to_poly->size()]);
-        return vSize(connection.to_point - connection.from_point) - from_width / 2 - to_width / 2;
+        const coord_t from_width = interpolateWidth(connection.from_point_, (*connection.from_poly_)[connection.from_segment_], (*connection.from_poly_)[(connection.from_segment_ + 1) % connection.from_poly_->size()]);
+        const coord_t to_width = interpolateWidth(connection.to_point_, (*connection.to_poly_)[connection.to_segment_], (*connection.to_poly_)[(connection.to_segment_ + 1) % connection.to_poly_->size()]);
+        return vSize(connection.to_point_ - connection.from_point_) - from_width / 2 - to_width / 2;
     }
 
     /*!
@@ -406,7 +406,7 @@ protected:
     std::optional<PolygonBridge<Polygonal>> findConnection(Polygonal& from_poly, std::vector<Polygonal>& to_polygons)
     {
         //Optimise for finding the best connection.
-        coord_t best_distance = line_width * max_gap; //Allow up to the max_gap.
+        coord_t best_distance = line_width_ * max_gap_; //Allow up to the max_gap.
         std::optional<PolygonConnection<Polygonal>> best_connection;
         std::optional<PolygonConnection<Polygonal>> best_second_connection;
 
@@ -435,7 +435,7 @@ protected:
 
                     //Try a naive distance first. Faster to compute, but it may estimate the distance too small.
                     coord_t naive_dist = LinearAlg2D::getDistFromLine(from_pos1, to_pos1, to_pos2);
-                    if(naive_dist - from_width1 - smallest_to_width < line_width * max_gap)
+                    if(naive_dist - from_width1 - smallest_to_width < line_width_ * max_gap_)
                     {
                         const Point closest_point = LinearAlg2D::getClosestOnLineSegment(from_pos1, to_pos1, to_pos2);
                         if(closest_point == to_pos2) //The last endpoint of a vertex is considered to be part of the next segment. Let that one handle it.
@@ -459,7 +459,7 @@ protected:
 
                     //Also try the other way around: From the line segment of the from_poly to a vertex in the to_polygons.
                     naive_dist = LinearAlg2D::getDistFromLine(to_pos1, from_pos1, from_pos2);
-                    if(naive_dist - smallest_from_width - to_width1 < line_width * max_gap)
+                    if(naive_dist - smallest_from_width - to_width1 < line_width_ * max_gap_)
                     {
                         const Point closest_point = LinearAlg2D::getClosestOnLineSegment(to_pos1, from_pos1, from_pos2);
                         if(closest_point == from_pos2) //The last endpoint of a vertex is considered to be part of the next segment. Let that one handle it.
@@ -518,9 +518,9 @@ protected:
         }
 
         //Ensure that B is always the right connection and A the left.
-        if(LinearAlg2D::pointIsLeftOfLine(connection->b.from_point, connection->a.from_point, connection->a.to_point) > 0)
+        if(LinearAlg2D::pointIsLeftOfLine(connection->b_.from_point_, connection->a_.from_point_, connection->a_.to_point_) > 0)
         {
-            std::swap(connection->a, connection->b);
+            std::swap(connection->a_, connection->b_);
         }
         return connection;
     }
@@ -609,10 +609,10 @@ protected:
         coord_t best_connection_length = std::numeric_limits<coord_t>::max();
 
         //Find the four intersections, on both sides of the initial connection, and on both polygons.
-        std::optional<std::pair<Point, size_t>> from_forward_intersection = walkUntilDistanceFromLine(*first.from_poly, first.from_segment, adjacent_distance, first.from_point, first.to_point, +1);
-        std::optional<std::pair<Point, size_t>> from_backward_intersection = walkUntilDistanceFromLine(*first.from_poly, first.from_segment, adjacent_distance, first.from_point, first.to_point, -1);
-        std::optional<std::pair<Point, size_t>> to_forward_intersection = walkUntilDistanceFromLine(*first.to_poly, first.to_segment, adjacent_distance, first.from_point, first.to_point, +1);
-        std::optional<std::pair<Point, size_t>> to_backward_intersection = walkUntilDistanceFromLine(*first.to_poly, first.to_segment, adjacent_distance, first.from_point, first.to_point, -1);
+        std::optional<std::pair<Point, size_t>> from_forward_intersection = walkUntilDistanceFromLine(*first.from_poly_, first.from_segment_, adjacent_distance, first.from_point_, first.to_point_, +1);
+        std::optional<std::pair<Point, size_t>> from_backward_intersection = walkUntilDistanceFromLine(*first.from_poly_, first.from_segment_, adjacent_distance, first.from_point_, first.to_point_, -1);
+        std::optional<std::pair<Point, size_t>> to_forward_intersection = walkUntilDistanceFromLine(*first.to_poly_, first.to_segment_, adjacent_distance, first.from_point_, first.to_point_, +1);
+        std::optional<std::pair<Point, size_t>> to_backward_intersection = walkUntilDistanceFromLine(*first.to_poly_, first.to_segment_, adjacent_distance, first.from_point_, first.to_point_, -1);
 
         for(const std::optional<std::pair<Point, size_t>>& from_intersection : {from_forward_intersection, from_backward_intersection})
         {
@@ -621,21 +621,21 @@ protected:
                 continue;
             }
             //Find the shortest of the connections in the to_poly.
-            const bool original_side = LinearAlg2D::pointIsLeftOfLine(first.to_point, first.from_point, from_intersection->first) > 0;
+            const bool original_side = LinearAlg2D::pointIsLeftOfLine(first.to_point_, first.from_point_, from_intersection->first) > 0;
             for(const std::optional<std::pair<Point, size_t>>& to_intersection : {to_forward_intersection, to_backward_intersection})
             {
                 if(!to_intersection)
                 {
                     continue;
                 }
-                const bool current_side = LinearAlg2D::pointIsLeftOfLine(to_intersection->first, first.from_point, from_intersection->first) > 0;
+                const bool current_side = LinearAlg2D::pointIsLeftOfLine(to_intersection->first, first.from_point_, from_intersection->first) > 0;
                 if (original_side != current_side)
                 {
                     continue;
                 }
-                PolygonConnection<Polygonal> connection(first.from_poly, from_intersection->second, from_intersection->first, first.to_poly, to_intersection->second, to_intersection->first);
+                PolygonConnection<Polygonal> connection(first.from_poly_, from_intersection->second, from_intersection->first, first.to_poly_, to_intersection->second, to_intersection->first);
                 const coord_t connection_length = getSpace(connection);
-                if(connection_length < max_gap * line_width && connection_length < best_connection_length) //Connection is allowed.
+                if(connection_length < max_gap_ * line_width_ && connection_length < best_connection_length) //Connection is allowed.
                 {
                     result = connection;
                     best_connection_length = connection_length;
@@ -661,72 +661,72 @@ protected:
 
         Polygonal ret = createEmpty<Polygonal>(); //Create a temporary result that we'll move into the result.
 
-        const size_t from_size = bridge.b.from_poly->size();
+        const size_t from_size = bridge.b_.from_poly_->size();
         //Add the from-endpoint of B.
-        const coord_t b_from_width = interpolateWidth(bridge.b.from_point, (*bridge.b.from_poly)[bridge.b.from_segment], (*bridge.b.from_poly)[(bridge.b.from_segment + 1) % from_size]);
-        addVertex(ret, bridge.b.from_point, b_from_width);
+        const coord_t b_from_width = interpolateWidth(bridge.b_.from_point_, (*bridge.b_.from_poly_)[bridge.b_.from_segment_], (*bridge.b_.from_poly_)[(bridge.b_.from_segment_ + 1) % from_size]);
+        addVertex(ret, bridge.b_.from_point_, b_from_width);
 
         //Add the from-polygonal from B to A.
         short forwards;
-        if(bridge.a.from_segment == bridge.b.from_segment) //If we start and end on the same segment, iterate in the direction from A to B.
+        if(bridge.a_.from_segment_ == bridge.b_.from_segment_) //If we start and end on the same segment, iterate in the direction from A to B.
         {
-            const Point vertex = getPosition((*bridge.b.from_poly)[bridge.b.from_segment]); //Same vertex for A and B.
-            const Point next_vertex = getPosition((*bridge.b.from_poly)[(bridge.b.from_segment + 1) % from_size]);
+            const Point vertex = getPosition((*bridge.b_.from_poly_)[bridge.b_.from_segment_]); //Same vertex for A and B.
+            const Point next_vertex = getPosition((*bridge.b_.from_poly_)[(bridge.b_.from_segment_ + 1) % from_size]);
             const Point direction = next_vertex - vertex; //Direction we'd go into when forward iterating.
-            const Point a_to_b = bridge.b.from_point - bridge.a.from_point;
+            const Point a_to_b = bridge.b_.from_point_ - bridge.a_.from_point_;
             forwards = vSize2(direction - a_to_b) < vSize2(-direction - a_to_b);
         }
         else
         {
             //If not the same segment, traverse in whichever direction is the long way around.
-            forwards = ((bridge.b.from_segment + from_size - bridge.a.from_segment) % from_size) < ((bridge.a.from_segment + from_size - bridge.b.from_segment) % from_size);
+            forwards = ((bridge.b_.from_segment_ + from_size - bridge.a_.from_segment_) % from_size) < ((bridge.a_.from_segment_ + from_size - bridge.b_.from_segment_) % from_size);
         }
-        size_t first_segment = forwards ? (bridge.b.from_segment + 1) % from_size : (bridge.b.from_segment + from_size) % from_size;
-        size_t last_segment = forwards ? bridge.a.from_segment : bridge.a.from_segment;
+        size_t first_segment = forwards ? (bridge.b_.from_segment_ + 1) % from_size : (bridge.b_.from_segment_ + from_size) % from_size;
+        size_t last_segment = forwards ? bridge.a_.from_segment_ : bridge.a_.from_segment_;
         if(first_segment == last_segment) last_segment = (last_segment + from_size - 2 * forwards + 1) % from_size;
         size_t i = first_segment;
         do //Since we might start and end on the same segment, do a do_while loop to iterate at least once.
         {
-            addVertex(ret, (*bridge.b.from_poly)[i]);
+            addVertex(ret, (*bridge.b_.from_poly_)[i]);
             i = (i + 2 * forwards - 1 + from_size) % from_size;
         }
         while(i != (last_segment + from_size + 2 * forwards - 1) % from_size);
 
         //Add the from-endpoint of A.
-        const coord_t a_from_width = interpolateWidth(bridge.a.from_point, (*bridge.b.from_poly)[bridge.a.from_segment], (*bridge.b.from_poly)[(bridge.a.from_segment + 1) % from_size]);
-        addVertex(ret, bridge.a.from_point, a_from_width);
+        const coord_t a_from_width = interpolateWidth(bridge.a_.from_point_, (*bridge.b_.from_poly_)[bridge.a_.from_segment_], (*bridge.b_.from_poly_)[(bridge.a_.from_segment_ + 1) % from_size]);
+        addVertex(ret, bridge.a_.from_point_, a_from_width);
 
-        const size_t to_size = bridge.b.to_poly->size();
+        const size_t to_size = bridge.b_.to_poly_->size();
         //Add the to-endpoint of A.
-        const coord_t a_to_width = interpolateWidth(bridge.a.to_point, (*bridge.a.to_poly)[bridge.a.to_segment], (*bridge.a.to_poly)[(bridge.a.to_segment + 1) % to_size]);
-        addVertex(ret, bridge.a.to_point, a_to_width);
+        const coord_t a_to_width = interpolateWidth(bridge.a_.to_point_, (*bridge.a_.to_poly_)[bridge.a_.to_segment_], (*bridge.a_.to_poly_)[(bridge.a_.to_segment_ + 1) % to_size]);
+        addVertex(ret, bridge.a_.to_point_, a_to_width);
 
         //Add the to_polygonal from A to B.
-        if(bridge.a.to_segment == bridge.b.to_segment)
+        if(bridge.a_.to_segment_ == bridge.b_.to_segment_)
         {
-            const Point vertex = getPosition((*bridge.b.to_poly)[bridge.b.to_segment]); //Same vertex for A and B.
-            const Point next_vertex = getPosition((*bridge.b.to_poly)[(bridge.b.to_segment + 1) % to_size]);
+            const Point vertex = getPosition((*bridge.b_.to_poly_)[bridge.b_.to_segment_]); //Same vertex for A and B.
+            const Point next_vertex = getPosition((*bridge.b_.to_poly_)[(bridge.b_.to_segment_ + 1) % to_size]);
             const Point direction = next_vertex - vertex;
-            const Point a_to_b = bridge.b.to_point - bridge.a.to_point;
+            const Point a_to_b = bridge.b_.to_point_ - bridge.a_.to_point_;
             forwards = vSize2(direction - a_to_b) > vSize2(-direction - a_to_b);
         }
         else
         {
-            forwards = ((bridge.a.to_segment + to_size - bridge.b.to_segment) % to_size) < ((bridge.b.to_segment + to_size - bridge.a.to_segment) % to_size);
+            forwards = ((bridge.a_.to_segment_ + to_size - bridge.b_.to_segment_) % to_size) < ((bridge.b_.to_segment_ + to_size - bridge.a_.to_segment_) % to_size);
         }
-        first_segment = forwards ? (bridge.a.to_segment + 1) % to_size : bridge.a.to_segment;
-        size_t end_segment = forwards ? (bridge.b.to_segment + 1) % to_size : bridge.b.to_segment;
+        first_segment = forwards ? (bridge.a_.to_segment_ + 1) % to_size : bridge.a_.to_segment_;
+        size_t end_segment = forwards ? (bridge.b_.to_segment_ + 1) % to_size : bridge.b_.to_segment_;
         i = first_segment;
         do
         {
-            addVertex(ret, (*bridge.b.to_poly)[i]);
+            addVertex(ret, (*bridge.b_.to_poly_)[i]);
             i = (i + 2 * forwards - 1 + to_size) % to_size;
         }
         while(i != end_segment);
 
         //Add the to-endpoint of B.
-        const coord_t b_to_width = interpolateWidth(bridge.b.to_point, (*bridge.b.to_poly)[bridge.b.to_segment], (*bridge.b.to_poly)[(bridge.b.to_segment + 1) % to_size]);
-        addVertex(ret, bridge.b.to_point, b_to_width);
+        const coord_t b_to_width = interpolateWidth(bridge.b_.to_point_, (*bridge.b_.to_poly_)[bridge.b_.to_segment_], (*bridge.b_.to_poly_)[(bridge.b_.to_segment_ + 1) % to_size]);
+        addVertex(ret, bridge.b_.to_point_, b_to_width);
 
         if(getPosition(ret.back()) != getPosition(ret.front()))
         {
