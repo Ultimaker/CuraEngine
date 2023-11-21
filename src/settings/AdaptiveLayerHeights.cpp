@@ -205,17 +205,17 @@ void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
             const Point3D p1 = v1.p_;
             const Point3D p2 = v2.p_;
 
-            double min_z = p0.z;
-            min_z = std::min(min_z, p1.z);
-            min_z = std::min(min_z, p2.z);
-            double max_z = p0.z;
-            max_z = std::max(max_z, p1.z);
-            max_z = std::max(max_z, p2.z);
+            double min_z = p0.z_;
+            min_z = std::min(min_z, p1.z_);
+            min_z = std::min(min_z, p2.z_);
+            double max_z = p0.z_;
+            max_z = std::max(max_z, p1.z_);
+            max_z = std::max(max_z, p2.z_);
 
             // calculate the angle of this triangle in the z direction
             const Point3D n = (p1 - p0).cross(p2 - p0);
             const Point3D normal = n.normalized();
-            AngleRadians z_angle = std::acos(std::abs(normal.z));
+            AngleRadians z_angle = std::acos(std::abs(normal.z_));
 
             // prevent flat surfaces from influencing the algorithm
             if (z_angle == 0)

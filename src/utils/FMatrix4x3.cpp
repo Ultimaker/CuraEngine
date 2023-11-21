@@ -49,9 +49,9 @@ Matrix4x3D::Matrix4x3D()
 Point3 Matrix4x3D::apply(const Point3D& p) const
 {
     return Point3(
-        MM2INT(p.x * m[0][0] + p.y * m[1][0] + p.z * m[2][0] + m[3][0]),
-        MM2INT(p.x * m[0][1] + p.y * m[1][1] + p.z * m[2][1] + m[3][1]),
-        MM2INT(p.x * m[0][2] + p.y * m[1][2] + p.z * m[2][2] + m[3][2]));
+        MM2INT(p.x_ * m[0][0] + p.y_ * m[1][0] + p.z_ * m[2][0] + m[3][0]),
+        MM2INT(p.x_ * m[0][1] + p.y_ * m[1][1] + p.z_ * m[2][1] + m[3][1]),
+        MM2INT(p.x_ * m[0][2] + p.y_ * m[1][2] + p.z_ * m[2][2] + m[3][2]));
 }
 
 Point3 Matrix4x3D::apply(const Point3& p) const

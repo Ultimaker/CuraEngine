@@ -145,7 +145,7 @@ bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const Matrix4x3D& matri
     Point3 v0(0, 0, 0), v1(0, 0, 0), v2(0, 0, 0);
     while (fgets_(buffer, sizeof(buffer), f))
     {
-        if (sscanf(buffer, " vertex %f %f %f", &vertex.x, &vertex.y, &vertex.z) == 3)
+        if (sscanf(buffer, " vertex %f %f %f", &vertex.x_, &vertex.y_, &vertex.z_) == 3)
         {
             n++;
             switch (n)

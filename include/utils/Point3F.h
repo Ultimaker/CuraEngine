@@ -22,22 +22,22 @@ This class should not be used for geometric computation. Use Point3d for this pu
 class Point3F
 {
 public:
-    float x, y, z;
+    float x_, y_, z_;
 
     Point3F()
     {
     }
 
-    Point3F(double _x, double _y, double _z)
-        : x(_x)
-        , y(_y)
-        , z(_z)
+    Point3F(float x, float y, float z)
+        : x_(x)
+        , y_(y)
+        , z_(z)
     {
     }
 
     Point3D toPoint3d() const
     {
-        return Point3D(static_cast<double>(x), static_cast<double>(y), static_cast<double>(z));
+        return Point3D(static_cast<double>(x_), static_cast<double>(y_), static_cast<double>(z_));
     }
 };
 

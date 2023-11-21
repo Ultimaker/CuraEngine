@@ -20,81 +20,81 @@ They represent millimeters in 3D space.
 class Point3D
 {
 public:
-    double x, y, z;
+    double x_, y_, z_;
 
     Point3D()
     {
     }
 
-    Point3D(double _x, double _y, double _z)
-        : x(_x)
-        , y(_y)
-        , z(_z)
+    Point3D(double x, double y, double z)
+        : x_(x)
+        , y_(y)
+        , z_(z)
     {
     }
 
     Point3D(const Point3& p)
-        : x(static_cast<double>(p.x_) * .001)
-        , y(static_cast<double>(p.y_) * .001)
-        , z(static_cast<double>(p.z_) * .001)
+        : x_(static_cast<double>(p.x_) * .001)
+        , y_(static_cast<double>(p.y_) * .001)
+        , z_(static_cast<double>(p.z_) * .001)
     {
     }
 
     Point3D operator+(const Point3D& p) const
     {
-        return Point3D(x + p.x, y + p.y, z + p.z);
+        return Point3D(x_ + p.x_, y_ + p.y_, z_ + p.z_);
     }
     Point3D operator-(const Point3D& p) const
     {
-        return Point3D(x - p.x, y - p.y, z - p.z);
+        return Point3D(x_ - p.x_, y_ - p.y_, z_ - p.z_);
     }
     Point3D operator*(const double f) const
     {
-        return Point3D(x * f, y * f, z * f);
+        return Point3D(x_ * f, y_ * f, z_ * f);
     }
     Point3D operator/(const double f) const
     {
-        return Point3D(x / f, y / f, z / f);
+        return Point3D(x_ / f, y_ / f, z_ / f);
     }
 
     Point3D& operator+=(const Point3D& p)
     {
-        x += p.x;
-        y += p.y;
-        z += p.z;
+        x_ += p.x_;
+        y_ += p.y_;
+        z_ += p.z_;
         return *this;
     }
     Point3D& operator-=(const Point3D& p)
     {
-        x -= p.x;
-        y -= p.y;
-        z -= p.z;
+        x_ -= p.x_;
+        y_ -= p.y_;
+        z_ -= p.z_;
         return *this;
     }
     Point3D& operator*=(const double f)
     {
-        x *= f;
-        y *= f;
-        z *= f;
+        x_ *= f;
+        y_ *= f;
+        z_ *= f;
         return *this;
     }
 
     bool operator==(Point3D& p) const
     {
-        return x == p.x && y == p.y && z == p.z;
+        return x_ == p.x_ && y_ == p.y_ && z_ == p.z_;
     }
     bool operator!=(Point3D& p) const
     {
-        return x != p.x || y != p.y || z != p.z;
+        return x_ != p.x_ || y_ != p.y_ || z_ != p.z_;
     }
 
     double max() const
     {
-        if (x > y && x > z)
-            return x;
-        if (y > z)
-            return y;
-        return z;
+        if (x_ > y_ && x_ > z_)
+            return x_;
+        if (y_ > z_)
+            return y_;
+        return z_;
     }
 
     bool testLength(double len) const
@@ -104,7 +104,7 @@ public:
 
     double vSize2() const
     {
-        return x * x + y * y + z * z;
+        return x_ * x_ + y_ * y_ + z_ * z_;
     }
 
     double vSize() const
@@ -119,7 +119,7 @@ public:
 
     Point3D cross(const Point3D& p) const
     {
-        return Point3D(y * p.z - z * p.y, z * p.x - x * p.z, x * p.y - y * p.x);
+        return Point3D(y_ * p.z_ - z_ * p.y_, z_ * p.x_ - x_ * p.z_, x_ * p.y_ - y_ * p.x_);
     }
 
     static Point3D cross(const Point3& a, const Point3& b)
@@ -129,13 +129,13 @@ public:
 
     Point3 toPoint3()
     {
-        return Point3(MM2INT(x), MM2INT(y), MM2INT(z));
+        return Point3(MM2INT(x_), MM2INT(y_), MM2INT(z_));
     }
 };
 
 inline double operator*(Point3D lhs, const Point3D& rhs)
 {
-    return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
+    return lhs.x_ * rhs.x_ + lhs.y_ * rhs.y_ + lhs.z_ * rhs.z_;
 }
 
 } // namespace cura
