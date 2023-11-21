@@ -11,7 +11,7 @@
 #include "Slice.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/Angle.h"
-#include "utils/floatpoint.h"
+#include "utils/Point3d.h"
 
 namespace cura
 {
@@ -201,20 +201,20 @@ void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
             const MeshVertex& v1 = mesh.vertices_[face.vertex_index_[1]];
             const MeshVertex& v2 = mesh.vertices_[face.vertex_index_[2]];
 
-            const FPoint3 p0 = v0.p_;
-            const FPoint3 p1 = v1.p_;
-            const FPoint3 p2 = v2.p_;
+            const Point3d p0 = v0.p_;
+            const Point3d p1 = v1.p_;
+            const Point3d p2 = v2.p_;
 
-            float min_z = p0.z;
+            double min_z = p0.z;
             min_z = std::min(min_z, p1.z);
             min_z = std::min(min_z, p2.z);
-            float max_z = p0.z;
+            double max_z = p0.z;
             max_z = std::max(max_z, p1.z);
             max_z = std::max(max_z, p2.z);
 
             // calculate the angle of this triangle in the z direction
-            const FPoint3 n = (p1 - p0).cross(p2 - p0);
-            const FPoint3 normal = n.normalized();
+            const Point3d n = (p1 - p0).cross(p2 - p0);
+            const Point3d normal = n.normalized();
             AngleRadians z_angle = std::acos(std::abs(normal.z));
 
             // prevent flat surfaces from influencing the algorithm

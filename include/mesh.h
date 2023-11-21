@@ -1,12 +1,11 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef MESH_H
 #define MESH_H
 
 #include "settings/Settings.h"
 #include "utils/AABB3D.h"
-#include "utils/floatpoint.h"
 #include "utils/FMatrix4x3.h"
 
 namespace cura
@@ -22,7 +21,11 @@ public:
     Point3 p_; //!< location of the vertex
     std::vector<uint32_t> connected_faces_; //!< list of the indices of connected faces
 
-    MeshVertex(Point3 p) : p_(p) {connected_faces_.reserve(8);} //!< doesn't set connected_faces
+    MeshVertex(Point3 p)
+        : p_(p)
+    {
+        connected_faces_.reserve(8);
+    } //!< doesn't set connected_faces
 };
 
 /*! A MeshFace is a 3 dimensional model triangle with 3 points. These points are already converted to integers
@@ -49,7 +52,7 @@ In such a case the face_index stored in connected_face_index is the one connecte
 class MeshFace
 {
 public:
-    int vertex_index_[3] = {-1}; //!< counter-clockwise ordering
+    int vertex_index_[3] = { -1 }; //!< counter-clockwise ordering
     int connected_face_index_[3]; //!< same ordering as vertex_index (connected_face 0 is connected via vertex 0 and 1, etc.)
 };
 
@@ -62,10 +65,11 @@ See MeshFace for the specifics of how/when faces are connected.
 class Mesh
 {
     //! The vertex_hash_map stores a index reference of each vertex for the hash of that location. Allows for quick retrieval of points with the same location.
-    std::unordered_map<uint32_t, std::vector<uint32_t> > vertex_hash_map_;
+    std::unordered_map<uint32_t, std::vector<uint32_t>> vertex_hash_map_;
     AABB3D aabb_;
+
 public:
-    std::vector<MeshVertex> vertices_;//!< list of all vertices in the mesh
+    std::vector<MeshVertex> vertices_; //!< list of all vertices in the mesh
     std::vector<MeshFace> faces_; //!< list of all faces in the mesh
     Settings settings_;
     std::string mesh_name_;
@@ -81,15 +85,18 @@ public:
     Point3 max() const; //!< max (in x,y and z) vertex of the bounding box
     AABB3D getAABB() const; //!< Get the axis aligned bounding box
     void expandXY(int64_t offset); //!< Register applied horizontal expansion in the AABB
-    
+
     /*!
      * Offset the whole mesh (all vertices and the bounding box).
      * \param offset The offset byu which to offset the whole mesh.
      */
     void translate(Point3 offset)
     {
-        if (offset == Point3(0,0,0)) { return; }
-        for(MeshVertex& v : vertices_)
+        if (offset == Point3(0, 0, 0))
+        {
+            return;
+        }
+        for (MeshVertex& v : vertices_)
             v.p_ += offset;
         aabb_.translate(offset);
     }
@@ -115,6 +122,7 @@ public:
      * \return True if an interface of the mesh could be interlocking with another mesh
      */
     bool canInterlock() const;
+
 private:
     mutable bool has_disconnected_faces; //!< Whether it has been logged that this mesh contains disconnected faces
     mutable bool has_overlapping_faces; //!< Whether it has been logged that this mesh contains overlapping faces
@@ -122,18 +130,17 @@ private:
 
     /*!
      * Get the index of the face connected to the face with index \p notFaceIdx, via vertices \p idx0 and \p idx1.
-     * 
+     *
      * In case multiple faces connect with the same edge, return the next counter-clockwise face when viewing from \p idx1 to \p idx0.
-     * 
+     *
      * \param idx0 the first vertex index
      * \param idx1 the second vertex index
      * \param notFaceIdx the index of a face which shouldn't be returned
      * \param notFaceVertexIdx should be the third vertex of face \p notFaceIdx.
      * \return the face index of a face sharing the edge from \p idx0 to \p idx1
-    */
+     */
     int getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVertexIdx) const;
 };
 
-}//namespace cura
-#endif//MESH_H
-
+} // namespace cura
+#endif // MESH_H

@@ -1,17 +1,21 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "infill/GyroidInfill.h"
+
 #include "utils/AABB.h"
 #include "utils/linearAlg2D.h"
 #include "utils/polygon.h"
 
-namespace cura {
+namespace cura
+{
 
-GyroidInfill::GyroidInfill() {
+GyroidInfill::GyroidInfill()
+{
 }
 
-GyroidInfill::~GyroidInfill() {
+GyroidInfill::~GyroidInfill()
+{
 }
 
 void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_zaggify, coord_t line_distance, const Polygons& in_outline, coord_t z)
@@ -51,14 +55,14 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
             const double odd_c = sin_z * std::cos(y_rads + phase_offset);
             const double even_c = sin_z * std::cos(y_rads + phase_offset + std::numbers::pi);
             const double h = std::sqrt(a * a + b * b);
-            const double odd_x_rads = ((h != 0) ? std::asin(odd_c / h) + std::asin(b / h) : 0) - std::numbers::pi/2;
-            const double even_x_rads = ((h != 0) ? std::asin(even_c / h) + std::asin(b / h) : 0) - std::numbers::pi/2;
+            const double odd_x_rads = ((h != 0) ? std::asin(odd_c / h) + std::asin(b / h) : 0) - std::numbers::pi / 2;
+            const double even_x_rads = ((h != 0) ? std::asin(even_c / h) + std::asin(b / h) : 0) - std::numbers::pi / 2;
             odd_line_coords.push_back(odd_x_rads / std::numbers::pi * pitch);
             even_line_coords.push_back(even_x_rads / std::numbers::pi * pitch);
         }
         const unsigned num_coords = odd_line_coords.size();
         unsigned num_columns = 0;
-        for (coord_t x = (std::floor(aabb.min.X / pitch) - 2.25) * pitch; x <= aabb.max.X + pitch/2; x += pitch/2)
+        for (coord_t x = (std::floor(aabb.min.X / pitch) - 2.25) * pitch; x <= aabb.max.X + pitch / 2; x += pitch / 2)
         {
             bool is_first_point = true;
             Point last;
@@ -69,9 +73,9 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
             {
                 for (unsigned i = 0; i < num_coords; ++i)
                 {
-                    Point current(x + ((num_columns & 1) ? odd_line_coords[i] : even_line_coords[i])/2 + pitch, y + (coord_t)(i * step));
+                    Point current(x + ((num_columns & 1) ? odd_line_coords[i] : even_line_coords[i]) / 2 + pitch, y + (coord_t)(i * step));
                     bool current_inside = in_outline.inside(current, true);
-                    if (!is_first_point)
+                    if (! is_first_point)
                     {
                         if (last_inside && current_inside)
                         {
@@ -143,14 +147,14 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
             const double odd_c = cos_z * std::sin(x_rads + phase_offset + std::numbers::pi);
             const double even_c = cos_z * std::sin(x_rads + phase_offset);
             const double h = std::sqrt(a * a + b * b);
-            const double odd_y_rads = ((h != 0) ? std::asin(odd_c / h) + std::asin(b / h) : 0) + std::numbers::pi/2;
-            const double even_y_rads = ((h != 0) ? std::asin(even_c / h) + std::asin(b / h) : 0) + std::numbers::pi/2;
+            const double odd_y_rads = ((h != 0) ? std::asin(odd_c / h) + std::asin(b / h) : 0) + std::numbers::pi / 2;
+            const double even_y_rads = ((h != 0) ? std::asin(even_c / h) + std::asin(b / h) : 0) + std::numbers::pi / 2;
             odd_line_coords.push_back(odd_y_rads / std::numbers::pi * pitch);
             even_line_coords.push_back(even_y_rads / std::numbers::pi * pitch);
         }
         const unsigned num_coords = odd_line_coords.size();
         unsigned num_rows = 0;
-        for (coord_t y = (std::floor(aabb.min.Y / pitch) - 1) * pitch; y <= aabb.max.Y + pitch/2; y += pitch/2)
+        for (coord_t y = (std::floor(aabb.min.Y / pitch) - 1) * pitch; y <= aabb.max.Y + pitch / 2; y += pitch / 2)
         {
             bool is_first_point = true;
             Point last;
@@ -161,9 +165,9 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
             {
                 for (unsigned i = 0; i < num_coords; ++i)
                 {
-                    Point current(x + (coord_t)(i * step), y + ((num_rows & 1) ? odd_line_coords[i] : even_line_coords[i])/2);
+                    Point current(x + (coord_t)(i * step), y + ((num_rows & 1) ? odd_line_coords[i] : even_line_coords[i]) / 2);
                     bool current_inside = in_outline.inside(current, true);
-                    if (!is_first_point)
+                    if (! is_first_point)
                     {
                         if (last_inside && current_inside)
                         {
@@ -267,7 +271,7 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
                     {
                         // don't include chain ends that are close to the segment but are beyond the segment ends
                         short beyond = 0;
-                        if (LinearAlg2D::getDist2FromLineSegment(op0, chains[point_index][chain_index], op1, &beyond) < 10 && !beyond)
+                        if (LinearAlg2D::getDist2FromLineSegment(op0, chains[point_index][chain_index], op1, &beyond) < 10 && ! beyond)
                         {
                             points_on_outline_point_index.push_back(point_index);
                             points_on_outline_chain_index.push_back(chain_index);
@@ -298,10 +302,10 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
                 {
                     // find the nearest chain end to the current point
                     unsigned nearest_point_index = 0;
-                    float nearest_point_dist2 = std::numeric_limits<float>::infinity();
+                    double nearest_point_dist2 = std::numeric_limits<float>::infinity();
                     for (unsigned pi = 0; pi < points_on_outline_chain_index.size(); ++pi)
                     {
-                        float dist2 = vSize2f(chains[points_on_outline_point_index[pi]][points_on_outline_chain_index[pi]] - cur_point);
+                        double dist2 = vSize2f(chains[points_on_outline_point_index[pi]][points_on_outline_chain_index[pi]] - cur_point);
                         if (dist2 < nearest_point_dist2)
                         {
                             nearest_point_dist2 = dist2;
@@ -380,10 +384,8 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
             // we have now visited all the points in the outline, if a connector was (potentially) being drawn
             // check whether the first chain is already connected to the last chain and, if not, draw the
             // connector between
-            if (drawing && first_chain_chain_index != std::numeric_limits<unsigned>::max()
-                && first_chain_chain_index != connector_start_chain_index
-                && connected_to[0][first_chain_chain_index] != connector_start_chain_index
-                && connected_to[1][first_chain_chain_index] != connector_start_chain_index)
+            if (drawing && first_chain_chain_index != std::numeric_limits<unsigned>::max() && first_chain_chain_index != connector_start_chain_index
+                && connected_to[0][first_chain_chain_index] != connector_start_chain_index && connected_to[1][first_chain_chain_index] != connector_start_chain_index)
             {
                 // output the connector line segments from the last chain to the first point in the outline
                 connector_points.push_back(outline_poly[0]);

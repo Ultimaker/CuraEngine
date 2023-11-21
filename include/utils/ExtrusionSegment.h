@@ -23,15 +23,16 @@ namespace cura
  */
 class ExtrusionSegment
 {
-    static constexpr float a_step = 15 / 180.0 * std::numbers::pi; //!< In the calculation of the area covered by this line, the angle between line segments of the round endcaps.
+    static constexpr double a_step = 15 / 180.0 * std::numbers::pi; //!< In the calculation of the area covered by this line, the angle between line segments of the round endcaps.
+
 public:
-    ExtrusionJunction from;
-    ExtrusionJunction to;
+    ExtrusionJunction from_;
+    ExtrusionJunction to_;
 
     /*!
      * Whether this is a polyline segment rather than a polygonal segment.
      */
-    bool is_odd;
+    bool is_odd_;
 
     /*!
      * In the \ref toPolygons function, should the endcap at the to-location be
@@ -40,13 +41,13 @@ public:
      * If the segment is reduced, a circle is removed from the to-location
      * because it will be included in the next extrusion move's covered area.
      */
-    bool is_reduced;
+    bool is_reduced_;
 
     ExtrusionSegment(ExtrusionJunction from, ExtrusionJunction to, bool is_odd, bool is_reduced)
-        : from(from)
-        , to(to)
-        , is_odd(is_odd)
-        , is_reduced(is_reduced)
+        : from_(from)
+        , to_(to)
+        , is_odd_(is_odd)
+        , is_reduced_(is_reduced)
     {
     }
 

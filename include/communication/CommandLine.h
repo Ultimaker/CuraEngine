@@ -4,12 +4,12 @@
 #ifndef COMMANDLINE_H
 #define COMMANDLINE_H
 
-#include "Communication.h" //The class we're implementing.
-
 #include <rapidjson/document.h> //Loading JSON documents to get settings from them.
 #include <string> //To store the command line arguments.
 #include <unordered_set>
 #include <vector> //To store the command line arguments.
+
+#include "Communication.h" //The class we're implementing.
 
 namespace cura
 {
@@ -125,7 +125,7 @@ public:
     /*
      * \brief Show an update of our slicing progress.
      */
-    void sendProgress(const float& progress) const override;
+    void sendProgress(double progress) const override;
 
     /*
      * \brief Set which extruder is being used for the following calls to

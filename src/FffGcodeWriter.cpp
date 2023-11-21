@@ -236,7 +236,7 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
             Point last_wall_seam_vertex_vector = last_wall_seam_vertex + last_wall_seam_vertex_inward_normal;
 
             // now test the vertex following the candidate seam vertex and if it lies to the left of the vector, it's good to use
-            float a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
+            double a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
 
             if (a <= 0 || a >= std::numbers::pi)
             {
@@ -2764,7 +2764,7 @@ void FffGcodeWriter::processTopBottom(
 
     // helper function that detects skin regions that have no support and modifies their print settings (config, line angle, density, etc.)
 
-    auto handle_bridge_skin = [&](const int bridge_layer, const GCodePathConfig* config, const float density) // bridge_layer = 1, 2 or 3
+    auto handle_bridge_skin = [&](const int bridge_layer, const GCodePathConfig* config, const double density) // bridge_layer = 1, 2 or 3
     {
         if (support_layer_nr >= (bridge_layer - 1))
         {
@@ -3055,7 +3055,7 @@ void FffGcodeWriter::processSkinPrintFeature(
             }
 
             constexpr bool enable_travel_optimization = false;
-            constexpr float flow = 1.0;
+            constexpr double flow = 1.0;
             if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC
                 || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV || pattern == EFillMethod::LIGHTNING)
             {

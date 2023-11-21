@@ -498,7 +498,7 @@ GCodePath& LayerPlan::addTravel_simple(const Point& p, GCodePath* path)
     return *path;
 }
 
-void LayerPlan::planPrime(const float& prime_blob_wipe_length)
+void LayerPlan::planPrime(double prime_blob_wipe_length)
 {
     forceNewPathStart();
     GCodePath& prime_travel = addTravel_simple(getLastPlannedPositionOrStartingPosition() + Point(0, MM2INT(prime_blob_wipe_length)));
@@ -623,7 +623,7 @@ void LayerPlan::addPolygonsByOptimizer(
     }
 }
 
-static constexpr float max_non_bridge_line_volume = MM2INT(100); // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
+static constexpr double max_non_bridge_line_volume = MM2INT(100); // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
 
 void LayerPlan::addWallLine(
     const Point& p0,
@@ -631,9 +631,9 @@ void LayerPlan::addWallLine(
     const Settings& settings,
     const GCodePathConfig& non_bridge_config,
     const GCodePathConfig& bridge_config,
-    float flow,
+    double flow,
     const Ratio width_factor,
-    float& non_bridge_line_volume,
+    double& non_bridge_line_volume,
     Ratio speed_factor,
     double distance_to_bridge_start)
 {
@@ -667,7 +667,7 @@ void LayerPlan::addWallLine(
 
             // flow required for the next line segment - when accelerating after a bridge segment, the flow is increased in inverse proportion to the speed_factor
             // so the slower the feedrate, the greater the flow - the idea is to get the extruder back to normal pressure as quickly as possible
-            const float segment_flow = (speed_factor > 1) ? flow * (1 / speed_factor) : flow;
+            const double segment_flow = (speed_factor > 1) ? flow * (1 / speed_factor) : flow;
 
             // if a bridge is present in this wall, this particular segment may need to be partially or wholely coasted
             if (distance_to_bridge_start > 0)
@@ -775,10 +775,10 @@ void LayerPlan::addWallLine(
             {
                 // find the bridge line segment that's nearest to the current point
                 int nearest = 0;
-                float smallest_dist2 = vSize2f(cur_point - line_polys[0][0]);
+                double smallest_dist2 = vSize2f(cur_point - line_polys[0][0]);
                 for (unsigned i = 1; i < line_polys.size(); ++i)
                 {
-                    float dist2 = vSize2f(cur_point - line_polys[i][0]);
+                    double dist2 = vSize2f(cur_point - line_polys[i][0]);
                     if (dist2 < smallest_dist2)
                     {
                         nearest = i;
@@ -852,7 +852,7 @@ void LayerPlan::addWall(
     const GCodePathConfig& non_bridge_config,
     const GCodePathConfig& bridge_config,
     coord_t wall_0_wipe_dist,
-    float flow_ratio,
+    double flow_ratio,
     bool always_retract)
 {
     // TODO: Deprecated in favor of ExtrusionJunction version below.
@@ -888,7 +888,7 @@ void LayerPlan::addWall(
     const GCodePathConfig& non_bridge_config,
     const GCodePathConfig& bridge_config,
     coord_t wall_0_wipe_dist,
-    float flow_ratio,
+    double flow_ratio,
     bool always_retract,
     const bool is_closed,
     const bool is_reversed,
@@ -904,7 +904,7 @@ void LayerPlan::addWall(
         start_idx = locateFirstSupportedVertex(wall, start_idx);
     }
 
-    float non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
+    double non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
     double speed_factor = 1.0; // start first line at normal speed
     coord_t distance_to_bridge_start = 0; // will be updated before each line is processed
 
@@ -943,10 +943,10 @@ void LayerPlan::addWall(
                     {
                         // find the bridge line segment that's nearest to p0
                         int nearest = 0;
-                        float smallest_dist2 = vSize2f(p0.p - line_polys[0][0]);
+                        double smallest_dist2 = vSize2f(p0.p - line_polys[0][0]);
                         for (unsigned i = 1; i < line_polys.size(); ++i)
                         {
-                            float dist2 = vSize2f(p0.p - line_polys[i][0]);
+                            double dist2 = vSize2f(p0.p - line_polys[i][0]);
                             if (dist2 < smallest_dist2)
                             {
                                 nearest = i;
@@ -1054,7 +1054,7 @@ void LayerPlan::addWall(
 
         for (size_t piece = 0; piece < pieces; ++piece)
         {
-            const float average_progress = (float(piece) + 0.5) / pieces; // How far along this line to sample the line width in the middle of this piece.
+            const double average_progress = (double(piece) + 0.5) / pieces; // How far along this line to sample the line width in the middle of this piece.
             const coord_t line_width = p0.w + average_progress * delta_line_width;
             const Point destination = p0.p + normal(line_vector, piece_length * (piece + 1));
             if (is_small_feature)
@@ -1154,7 +1154,7 @@ void LayerPlan::addWalls(
     const GCodePathConfig& bridge_config,
     const ZSeamConfig& z_seam_config,
     coord_t wall_0_wipe_dist,
-    float flow_ratio,
+    double flow_ratio,
     bool always_retract)
 {
     // TODO: Deprecated in favor of ExtrusionJunction version below.
@@ -2123,7 +2123,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             else
             { // SPIRALIZE
                 // If we need to spiralize then raise the head slowly by 1 layer as this path progresses.
-                float totalLength = 0.0;
+                double totalLength = 0.0;
                 Point p0 = gcode.getPositionXY();
                 for (unsigned int _path_idx = path_idx; _path_idx < paths.size() && ! paths[_path_idx].isTravelPath(); _path_idx++)
                 {
@@ -2136,7 +2136,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     }
                 }
 
-                float length = 0.0;
+                double length = 0.0;
                 p0 = gcode.getPositionXY();
                 for (; path_idx < paths.size() && paths[path_idx].spiralize; path_idx++)
                 { // handle all consecutive spiralized paths > CHANGES path_idx!

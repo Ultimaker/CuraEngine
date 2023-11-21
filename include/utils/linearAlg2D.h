@@ -325,7 +325,7 @@ public:
      * \param c end of second line segment
      * \return the angle in radians between 0 and 2 * pi of the corner in \p b
      */
-    static float getAngleLeft(const Point& a, const Point& b, const Point& c);
+    static double getAngleLeft(const Point& a, const Point& b, const Point& c);
 
     /*!
      * Returns the determinant of the 2D matrix defined by the the vectors ab and ap as rows.

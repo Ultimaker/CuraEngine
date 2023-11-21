@@ -98,7 +98,7 @@ void CommandLine::sendPrintTimeMaterialEstimates() const
     }
 }
 
-void CommandLine::sendProgress(const float& progress) const
+void CommandLine::sendProgress(double progress) const
 {
     const unsigned int rounded_amount = 100 * progress;
     if (last_shown_progress == rounded_amount) // No need to send another tiny update step.

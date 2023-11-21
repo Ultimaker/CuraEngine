@@ -298,7 +298,7 @@ public:
     /*!
      * Plan a prime blob at the current location.
      */
-    void planPrime(const float& prime_blob_wipe_length = 10.0);
+    void planPrime(double prime_blob_wipe_length = 10.0);
 
     /*!
      * Add an extrusion move to a certain point, optionally with a different flow than the one in the \p config.
@@ -414,9 +414,9 @@ public:
         const Settings& settings,
         const GCodePathConfig& non_bridge_config,
         const GCodePathConfig& bridge_config,
-        float flow,
+        double flow,
         const Ratio width_factor,
-        float& non_bridge_line_volume,
+        double& non_bridge_line_volume,
         Ratio speed_factor,
         double distance_to_bridge_start);
 
@@ -442,7 +442,7 @@ public:
         const GCodePathConfig& non_bridge_config,
         const GCodePathConfig& bridge_config,
         coord_t wall_0_wipe_dist,
-        float flow_ratio,
+        double flow_ratio,
         bool always_retract);
 
     /*!
@@ -471,7 +471,7 @@ public:
         const GCodePathConfig& non_bridge_config,
         const GCodePathConfig& bridge_config,
         coord_t wall_0_wipe_dist,
-        float flow_ratio,
+        double flow_ratio,
         bool always_retract,
         const bool is_closed,
         const bool is_reversed,
@@ -504,7 +504,7 @@ public:
         const GCodePathConfig& bridge_config,
         const ZSeamConfig& z_seam_config = ZSeamConfig(),
         coord_t wall_0_wipe_dist = 0,
-        float flow_ratio = 1.0,
+        double flow_ratio = 1.0,
         bool always_retract = false);
 
     /*!

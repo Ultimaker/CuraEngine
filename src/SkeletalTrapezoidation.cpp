@@ -207,7 +207,7 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
         coord_t end_x = projected_x(end);
 
         // Part of the edge will be bound to the markings on the endpoints of the edge. Calculate how far that is.
-        float bound = 0.5 / tan((std::numbers::pi - transitioning_angle) * 0.5);
+        double bound = 0.5 / tan((std::numbers::pi - transitioning_angle) * 0.5);
         coord_t marking_start_x = -d * bound;
         coord_t marking_end_x = d * bound;
         Point marking_start = middle + x_axis_dir * marking_start_x / x_axis_length;
@@ -717,7 +717,7 @@ void SkeletalTrapezoidation::updateIsCentral()
 
     coord_t outer_edge_filter_length = beading_strategy.getTransitionThickness(0) / 2;
 
-    float cap = sin(beading_strategy.getTransitioningAngle() * 0.5); // = cos(bisector_angle / 2)
+    double cap = sin(beading_strategy.getTransitioningAngle() * 0.5); // = cos(bisector_angle / 2)
     for (edge_t& edge : graph.edges)
     {
         assert(edge.twin);
@@ -1220,12 +1220,12 @@ void SkeletalTrapezoidation::generateTransitionEnds(edge_t& edge, coord_t mid_po
     const coord_t ab_size = vSize(ab);
 
     const coord_t transition_length = beading_strategy.getTransitioningLength(lower_bead_count);
-    const float transition_mid_position = beading_strategy.getTransitionAnchorPos(lower_bead_count);
-    constexpr float inner_bead_width_ratio_after_transition = 1.0;
+    const double transition_mid_position = beading_strategy.getTransitionAnchorPos(lower_bead_count);
+    constexpr double inner_bead_width_ratio_after_transition = 1.0;
 
     constexpr Ratio start_rest{ 0.0 };
-    const float mid_rest = transition_mid_position * inner_bead_width_ratio_after_transition;
-    constexpr float end_rest = inner_bead_width_ratio_after_transition;
+    const double mid_rest = transition_mid_position * inner_bead_width_ratio_after_transition;
+    constexpr double end_rest = inner_bead_width_ratio_after_transition;
 
     { // Lower bead count transition end
         const coord_t start_pos = ab_size - mid_pos;
@@ -1281,7 +1281,7 @@ bool SkeletalTrapezoidation::generateTransitionEnd(
 
     if (end_pos > ab_size)
     { // Recurse on all further edges
-        float rest = end_rest - (start_rest - end_rest) * (end_pos - ab_size) / (start_pos - end_pos);
+        double rest = end_rest - (start_rest - end_rest) * (end_pos - ab_size) / (start_pos - end_pos);
         assert(rest >= 0);
         assert(rest <= std::max(end_rest, start_rest));
         assert(rest >= std::min(end_rest, start_rest));
@@ -1768,7 +1768,7 @@ void SkeletalTrapezoidation::propagateBeadingsDownward(edge_t* edge_to_peak, ptr
     {
         BeadingPropagation& bottom_beading = *edge_to_peak->from->data.getBeading();
         coord_t total_dist = top_beading.dist_from_top_source_ + length + bottom_beading.dist_to_bottom_source_;
-        Ratio ratio_of_top = static_cast<float>(bottom_beading.dist_to_bottom_source_) / std::min(total_dist, beading_propagation_transition_dist);
+        Ratio ratio_of_top = static_cast<double>(bottom_beading.dist_to_bottom_source_) / std::min(total_dist, beading_propagation_transition_dist);
         ratio_of_top = std::max(0.0_r, ratio_of_top);
         if (ratio_of_top >= 1.0)
         {
@@ -1825,8 +1825,8 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
         // f*(l-r) + r = s
         // f*(l-r) = s - r
         // f = (s-r) / (l-r)
-        float new_ratio = static_cast<float>(switching_radius - right.toolpath_locations[next_inset_idx])
-                        / static_cast<float>(left.toolpath_locations[next_inset_idx] - right.toolpath_locations[next_inset_idx]);
+        double new_ratio = static_cast<double>(switching_radius - right.toolpath_locations[next_inset_idx])
+                         / static_cast<double>(left.toolpath_locations[next_inset_idx] - right.toolpath_locations[next_inset_idx]);
         new_ratio = std::min(1.0, new_ratio + 0.1);
         return interpolate(left, new_ratio, right);
     }
@@ -1837,7 +1837,7 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
 SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beading& left, Ratio ratio_left_to_whole, const Beading& right) const
 {
     assert(ratio_left_to_whole >= 0.0 && ratio_left_to_whole <= 1.0);
-    float ratio_right_to_whole = 1.0 - ratio_left_to_whole;
+    double ratio_right_to_whole = 1.0 - ratio_left_to_whole;
 
     Beading ret = (left.total_thickness > right.total_thickness) ? left : right;
     for (size_t inset_idx = 0; inset_idx < std::min(left.bead_widths.size(), right.bead_widths.size()); inset_idx++)
@@ -2213,7 +2213,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             constexpr coord_t n_segments = 6;
             for (coord_t segment = 0; segment < n_segments; segment++)
             {
-                float a = 2.0 * std::numbers::pi / n_segments * segment;
+                double a = 2.0 * std::numbers::pi / n_segments * segment;
                 line.junctions.emplace_back(node.p + Point(r * cos(a), r * sin(a)), width, inset_index);
             }
         }

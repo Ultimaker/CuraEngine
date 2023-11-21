@@ -9,7 +9,7 @@
 namespace cura
 {
 
-class FPoint3;
+class Point3d;
 class Point3;
 
 /*!
@@ -51,7 +51,7 @@ public:
      * \param p The coordinate to transform.
      * \return A transformed coordinate.
      */
-    Point3 apply(const FPoint3& p) const;
+    Point3 apply(const Point3d& p) const;
 
     /*!
      * Apply this transformation to a coordinate.

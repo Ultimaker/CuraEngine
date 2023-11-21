@@ -240,7 +240,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
                 LayerIndex min_layer{ layer_nr + density_step * gradual_support_step_layer_count + static_cast<LayerIndex::value_type>(layer_skip_count) };
                 LayerIndex max_layer{ layer_nr + (density_step + 1) * gradual_support_step_layer_count };
 
-                for (float upper_layer_idx = min_layer; upper_layer_idx <= max_layer; upper_layer_idx += layer_skip_count)
+                for (double upper_layer_idx = min_layer; upper_layer_idx <= max_layer; upper_layer_idx += layer_skip_count)
                 {
                     if (static_cast<unsigned int>(upper_layer_idx) >= total_layer_count)
                     {
@@ -1753,9 +1753,9 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
     const coord_t bottom_outline_offset = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").settings_.get<coord_t>("support_bottom_offset");
 
     const size_t scan_count = std::max(size_t(1), (bottom_layer_count - 1) / skip_layer_count); // How many measurements to take to generate bottom areas.
-    const float z_skip = std::max(
-        1.0f,
-        float(bottom_layer_count - 1) / float(scan_count)); // How many layers to skip between measurements. Using float for better spread, but this is later rounded.
+    const double z_skip = std::max(
+        1.0,
+        double(bottom_layer_count - 1) / double(scan_count)); // How many layers to skip between measurements. Using float for better spread, but this is later rounded.
     const double minimum_bottom_area = mesh.settings.get<double>("minimum_bottom_area");
 
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
@@ -1763,7 +1763,7 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
     {
         const unsigned int bottom_layer_idx_below = std::max(0, int(layer_idx) - int(bottom_layer_count) - int(z_distance_bottom));
         Polygons mesh_outlines;
-        for (float layer_idx_below = bottom_layer_idx_below; std::round(layer_idx_below) < (int)(layer_idx - z_distance_bottom); layer_idx_below += z_skip)
+        for (double layer_idx_below = bottom_layer_idx_below; std::round(layer_idx_below) < (int)(layer_idx - z_distance_bottom); layer_idx_below += z_skip)
         {
             mesh_outlines.add(mesh.layers[std::round(layer_idx_below)].getOutlines());
         }
@@ -1790,9 +1790,9 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     const coord_t roof_outline_offset = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings_.get<coord_t>("support_roof_offset");
 
     const size_t scan_count = std::max(size_t(1), (roof_layer_count - 1) / skip_layer_count); // How many measurements to take to generate roof areas.
-    const float z_skip = std::max(
-        1.0f,
-        float(roof_layer_count - 1) / float(scan_count)); // How many layers to skip between measurements. Using float for better spread, but this is later rounded.
+    const double z_skip = std::max(
+        1.0,
+        double(roof_layer_count - 1) / double(scan_count)); // How many layers to skip between measurements. Using float for better spread, but this is later rounded.
     const double minimum_roof_area = mesh.settings.get<double>("minimum_roof_area");
 
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
@@ -1802,7 +1802,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
             std::min(LayerIndex{ support_layers.size() - 1 }, LayerIndex{ layer_idx + roof_layer_count + z_distance_top })
         }; // Maximum layer of the model that generates support roof.
         Polygons mesh_outlines;
-        for (float layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top; layer_idx_above -= z_skip)
+        for (double layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top; layer_idx_above -= z_skip)
         {
             mesh_outlines.add(mesh.layers[std::round(layer_idx_above)].getOutlines());
         }

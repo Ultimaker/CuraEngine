@@ -4,10 +4,10 @@
 #ifndef SKELETAL_TRAPEZOIDATION_JOINT_H
 #define SKELETAL_TRAPEZOIDATION_JOINT_H
 
+#include <memory> // smart pointers
+
 #include "BeadingStrategy/BeadingStrategy.h"
 #include "utils/IntPoint.h"
-
-#include <memory> // smart pointers
 
 namespace cura
 {
@@ -34,8 +34,8 @@ public:
 
     coord_t distance_to_boundary_;
     coord_t bead_count_;
-    float transition_ratio_; //! The distance near the skeleton to leave free because this joint is in the middle of a transition, as a fraction of the inner bead width of the bead
-                            //! at the higher transition.
+    double transition_ratio_; //! The distance near the skeleton to leave free because this joint is in the middle of a transition, as a fraction of the inner bead width of the
+                              //! bead at the higher transition.
     SkeletalTrapezoidationJoint()
         : distance_to_boundary_(-1)
         , bead_count_(-1)

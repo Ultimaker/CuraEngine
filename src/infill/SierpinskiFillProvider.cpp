@@ -20,7 +20,7 @@ constexpr bool SierpinskiFillProvider::use_dithering;
 
 SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width)
     : fractal_config(getFractalConfig(aabb_3d, min_line_distance))
-    , density_provider(new UniformDensityProvider((float)line_width / min_line_distance))
+    , density_provider(new UniformDensityProvider((double)line_width / min_line_distance))
     , fill_pattern_for_all_layers(std::in_place, *density_provider, fractal_config.aabb, fractal_config.depth, line_width, use_dithering)
 {
 }
@@ -76,7 +76,7 @@ SierpinskiFillProvider::FractalConfig SierpinskiFillProvider::getFractalConfig(c
         aabb_size *= 2;
         depth += 2;
     }
-    const float half_sqrt2 = .5 * std::numbers::pi;
+    const double half_sqrt2 = 0.5 * std::numbers::sqrt2;
     if (depth > 0 && aabb_size * half_sqrt2 >= max_side_length)
     {
         aabb_size *= half_sqrt2;

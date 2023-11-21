@@ -39,7 +39,7 @@ int bridgeAngle(
         {
             const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
             const coord_t infill_line_width = mesh.settings.get<coord_t>("infill_line_width");
-            const bool part_has_sparse_infill = (infill_line_distance == 0) || ((float)infill_line_width / infill_line_distance) <= sparse_infill_max_density;
+            const bool part_has_sparse_infill = (infill_line_distance == 0) || ((double)infill_line_width / infill_line_distance) <= sparse_infill_max_density;
 
             for (const SliceLayerPart& prev_layer_part : mesh.layers[layer_nr - bridge_layer].parts)
             {

@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "BeadingStrategy/RedistributeBeadingStrategy.h"
 
@@ -9,16 +9,11 @@
 namespace cura
 {
 
-RedistributeBeadingStrategy::RedistributeBeadingStrategy
-(
-    const coord_t optimal_width_outer,
-    const Ratio minimum_variable_line_ratio,
-    BeadingStrategyPtr parent
-) :
-    BeadingStrategy(*parent),
-    parent(std::move(parent)),
-    optimal_width_outer(optimal_width_outer),
-    minimum_variable_line_ratio(minimum_variable_line_ratio)
+RedistributeBeadingStrategy::RedistributeBeadingStrategy(const coord_t optimal_width_outer, const Ratio minimum_variable_line_ratio, BeadingStrategyPtr parent)
+    : BeadingStrategy(*parent)
+    , parent(std::move(parent))
+    , optimal_width_outer(optimal_width_outer)
+    , minimum_variable_line_ratio(minimum_variable_line_ratio)
 {
     name = "RedistributeBeadingStrategy";
 }
@@ -34,9 +29,12 @@ coord_t RedistributeBeadingStrategy::getTransitionThickness(coord_t lower_bead_c
 {
     switch (lower_bead_count)
     {
-        case 0: return minimum_variable_line_ratio * optimal_width_outer;
-        case 1: return (1.0 + parent->getSplitMiddleThreshold()) * optimal_width_outer;
-        default: return parent->getTransitionThickness(lower_bead_count - 2) + 2 * optimal_width_outer;
+    case 0:
+        return minimum_variable_line_ratio * optimal_width_outer;
+    case 1:
+        return (1.0 + parent->getSplitMiddleThreshold()) * optimal_width_outer;
+    default:
+        return parent->getTransitionThickness(lower_bead_count - 2) + 2 * optimal_width_outer;
     }
 }
 
@@ -58,7 +56,7 @@ coord_t RedistributeBeadingStrategy::getTransitioningLength(coord_t lower_bead_c
     return parent->getTransitioningLength(lower_bead_count);
 }
 
-float RedistributeBeadingStrategy::getTransitionAnchorPos(coord_t lower_bead_count) const
+double RedistributeBeadingStrategy::getTransitionAnchorPos(coord_t lower_bead_count) const
 {
     return parent->getTransitionAnchorPos(lower_bead_count);
 }

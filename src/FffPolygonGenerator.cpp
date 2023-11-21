@@ -965,7 +965,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
         }
     }
 
-    const float largest_printed_area = 1.0; // TODO: make var a parameter, and perhaps even a setting?
+    const double largest_printed_area = 1.0; // TODO: make var a parameter, and perhaps even a setting?
     for (LayerIndex layer_nr = 0; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
     {
         storage.oozeShield[layer_nr].removeSmallAreas(largest_printed_area);

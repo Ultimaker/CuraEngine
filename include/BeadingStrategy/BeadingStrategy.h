@@ -41,7 +41,7 @@ public:
         Ratio wall_split_middle_threshold,
         Ratio wall_add_middle_threshold,
         coord_t default_transition_length,
-        float transitioning_angle = std::numbers::pi_v<float> / 3.0);
+        double transitioning_angle = std::numbers::pi / 3.0);
 
     BeadingStrategy(const BeadingStrategy& other);
 
@@ -85,7 +85,7 @@ public:
      *
      * Transitions are used to smooth out the jumps in integer bead count; the jumps turn into ramps which could be positioned relative to the jump location.
      */
-    virtual float getTransitionAnchorPos(coord_t lower_bead_count) const;
+    virtual double getTransitionAnchorPos(coord_t lower_bead_count) const;
 
     /*!
      * Get the locations in a bead count region where \ref BeadingStrategy::compute exhibits a bend in the widths.

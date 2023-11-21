@@ -447,7 +447,7 @@ private:
      * \param angle_shift The angle to add to the infill_angle
      * \param[out] result (output) The resulting lines
      */
-    void generateHalfTetrahedralInfill(float pattern_z_shift, int angle_shift, Polygons& result);
+    void generateHalfTetrahedralInfill(double pattern_z_shift, int angle_shift, Polygons& result);
 
     /*!
      * Generate a triangular grid of infill lines

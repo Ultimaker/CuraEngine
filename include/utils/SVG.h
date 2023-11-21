@@ -14,7 +14,7 @@
 namespace cura
 {
 
-class FPoint3;
+class Point3d;
 
 class SVG : NoCopy
 {
@@ -92,19 +92,19 @@ public:
     /*!
      * transform a point in real space to canvas space with more precision
      */
-    FPoint3 transformF(const Point& p) const;
+    Point3d transformF(const Point& p) const;
 
     void writeComment(const std::string& comment) const;
 
-    void writeAreas(const Polygons& polygons, const ColorObject color = Color::GRAY, const ColorObject outline_color = Color::BLACK, const float stroke_width = 1.0f) const;
+    void writeAreas(const Polygons& polygons, const ColorObject color = Color::GRAY, const ColorObject outline_color = Color::BLACK, const double stroke_width = 1.0) const;
 
-    void writeAreas(ConstPolygonRef polygon, const ColorObject color = Color::GRAY, const ColorObject outline_color = Color::BLACK, const float stroke_width = 1.0f) const;
+    void writeAreas(ConstPolygonRef polygon, const ColorObject color = Color::GRAY, const ColorObject outline_color = Color::BLACK, const double stroke_width = 1.0) const;
 
-    void writePoint(const Point& p, const bool write_coords = false, const float size = 5.0f, const ColorObject color = Color::BLACK) const;
+    void writePoint(const Point& p, const bool write_coords = false, const double size = 5.0, const ColorObject color = Color::BLACK) const;
 
-    void writePoints(ConstPolygonRef poly, const bool write_coords = false, const float size = 5.0f, const ColorObject color = Color::BLACK) const;
+    void writePoints(ConstPolygonRef poly, const bool write_coords = false, const double size = 5.0, const ColorObject color = Color::BLACK) const;
 
-    void writePoints(const Polygons& polygons, const bool write_coords = false, const float size = 5.0f, const ColorObject color = Color::BLACK) const;
+    void writePoints(const Polygons& polygons, const bool write_coords = false, const double size = 5.0, const ColorObject color = Color::BLACK) const;
 
     /*!
      * \brief Draws a polyline on the canvas.
@@ -119,11 +119,11 @@ public:
      */
     void writeLines(const std::vector<Point>& polyline, const ColorObject color = Color::BLACK) const;
 
-    void writeLine(const Point& a, const Point& b, const ColorObject color = Color::BLACK, const float stroke_width = 1.0f) const;
+    void writeLine(const Point& a, const Point& b, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
 
-    void writeArrow(const Point& a, const Point& b, const ColorObject color = Color::BLACK, const float stroke_width = 1.0f, const float head_size = 5.0f) const;
+    void writeArrow(const Point& a, const Point& b, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const double head_size = 5.0) const;
 
-    void writeLineRGB(const Point& from, const Point& to, const int r = 0, const int g = 0, const int b = 0, const float stroke_width = 1.0f) const;
+    void writeLineRGB(const Point& from, const Point& to, const int r = 0, const int g = 0, const int b = 0, const double stroke_width = 1.0) const;
 
     /*!
      * \brief Draws a dashed line on the canvas from point A to point B.
@@ -139,15 +139,15 @@ public:
     template<typename... Args>
     void printf(const char* txt, Args&&... args) const;
 
-    void writeText(const Point& p, const std::string& txt, const ColorObject color = Color::BLACK, const float font_size = 10.0f) const;
+    void writeText(const Point& p, const std::string& txt, const ColorObject color = Color::BLACK, const double font_size = 10.0) const;
 
-    void writePolygons(const Polygons& polys, const ColorObject color = Color::BLACK, const float stroke_width = 1.0f) const;
+    void writePolygons(const Polygons& polys, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
 
-    void writePolygon(ConstPolygonRef poly, const ColorObject color = Color::BLACK, const float stroke_width = 1.0f) const;
+    void writePolygon(ConstPolygonRef poly, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
 
-    void writePolylines(const Polygons& polys, const ColorObject color = Color::BLACK, const float stroke_width = 1.0f) const;
+    void writePolylines(const Polygons& polys, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
 
-    void writePolyline(ConstPolygonRef poly, const ColorObject color = Color::BLACK, const float stroke_width = 1.0f) const;
+    void writePolyline(ConstPolygonRef poly, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
 
     /*!
      * Draw variable-width paths into the image.
@@ -158,7 +158,7 @@ public:
      * \param color The color to draw the paths with.
      * \param width_factor A multiplicative factor on the line widths.
      */
-    void writePaths(const std::vector<VariableWidthLines>& paths, const ColorObject color = Color::BLACK, const float width_factor = 1.0f) const;
+    void writePaths(const std::vector<VariableWidthLines>& paths, const ColorObject color = Color::BLACK, const double width_factor = 1.0) const;
 
     /*!
      * Draw variable-width lines into the image.
@@ -169,7 +169,7 @@ public:
      * \param color The color to draw the lines with.
      * \param width_factor A multiplicative factor on the line widths.
      */
-    void writeLines(const VariableWidthLines& lines, const ColorObject color = Color::BLACK, const float width_factor = 1.0f) const;
+    void writeLines(const VariableWidthLines& lines, const ColorObject color = Color::BLACK, const double width_factor = 1.0) const;
 
     /*!
      * Draw a variable-width line into the image.
@@ -180,7 +180,7 @@ public:
      * \param color The color to draw the line with.
      * \param width_factor A multiplicative factor on the line width.
      */
-    void writeLine(const ExtrusionLine& line, const ColorObject color = Color::BLACK, const float width_factor = 1.0f) const;
+    void writeLine(const ExtrusionLine& line, const ColorObject color = Color::BLACK, const double width_factor = 1.0) const;
 
     /*!
      * Draws a grid across the image and writes down coordinates.
@@ -191,7 +191,7 @@ public:
      * \param stroke_width The width of the grid lines.
      * \param font_size The size of the font to write the coordinates with.
      */
-    void writeCoordinateGrid(const coord_t grid_size = MM2INT(1), const Color color = Color::BLACK, const float stroke_width = 0.1f, const float font_size = 10) const;
+    void writeCoordinateGrid(const coord_t grid_size = MM2INT(1), const Color color = Color::BLACK, const double stroke_width = 0.1, const double font_size = 10.0) const;
 };
 
 template<typename... Args>

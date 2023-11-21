@@ -5,6 +5,13 @@
 
 #include "communication/ArcusCommunication.h"
 
+#include <thread> //To sleep while waiting for the connection.
+#include <unordered_map> //To map settings to their extruder numbers for limit_to_extruder.
+
+#include <Arcus/Socket.h> //The socket to communicate to.
+#include <fmt/format.h>
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To get and set the current slice command.
 #include "ExtruderTrain.h"
 #include "FffProcessor.h" //To start a slice.
@@ -18,13 +25,6 @@
 #include "settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
 #include "utils/channel.h"
 #include "utils/polygon.h"
-
-#include <Arcus/Socket.h> //The socket to communicate to.
-#include <fmt/format.h>
-#include <spdlog/spdlog.h>
-
-#include <thread> //To sleep while waiting for the connection.
-#include <unordered_map> //To map settings to their extruder numbers for limit_to_extruder.
 
 namespace cura
 {
@@ -479,7 +479,7 @@ void ArcusCommunication::sendPrintTimeMaterialEstimates() const
     spdlog::debug("Done sending print time and material estimates.");
 }
 
-void ArcusCommunication::sendProgress(const float& progress) const
+void ArcusCommunication::sendProgress(double progress) const
 {
     const int rounded_amount = 1000 * progress;
     if (private_data->last_sent_progress == rounded_amount) // No need to send another tiny update step.
@@ -488,7 +488,7 @@ void ArcusCommunication::sendProgress(const float& progress) const
     }
 
     std::shared_ptr<proto::Progress> message = std::make_shared<cura::proto::Progress>();
-    float progress_all_objects = progress / private_data->object_count;
+    double progress_all_objects = progress / private_data->object_count;
     progress_all_objects += private_data->optimized_layers.sliced_objects * (1.0 / private_data->object_count);
     message->set_amount(progress_all_objects);
     private_data->socket->sendMessage(message);

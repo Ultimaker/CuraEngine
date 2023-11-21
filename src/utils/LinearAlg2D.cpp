@@ -3,16 +3,16 @@
 
 #include "utils/linearAlg2D.h"
 
-#include "utils/IntPoint.h" // dot
-
 #include <algorithm> // swap
 #include <cassert>
 #include <cmath> // atan2
 
+#include "utils/IntPoint.h" // dot
+
 namespace cura
 {
 
-float LinearAlg2D::getAngleLeft(const Point& a, const Point& b, const Point& c)
+double LinearAlg2D::getAngleLeft(const Point& a, const Point& b, const Point& c)
 {
     const Point ba = a - b;
     const Point bc = c - b;
@@ -29,7 +29,7 @@ float LinearAlg2D::getAngleLeft(const Point& a, const Point& b, const Point& c)
             return std::numbers::pi; // straight bit
         }
     }
-    const float angle = -atan2(det, dott); // from -pi to pi
+    const double angle = -atan2(det, dott); // from -pi to pi
     if (angle >= 0)
     {
         return angle;

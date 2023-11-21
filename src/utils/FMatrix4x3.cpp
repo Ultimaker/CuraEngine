@@ -5,7 +5,7 @@
 
 #include "settings/types/Ratio.h" //Scale factor.
 #include "utils/IntPoint.h" //Conversion directly into integer-based coordinates.
-#include "utils/floatpoint.h" //This matrix gets applied to floating point coordinates.
+#include "utils/Point3d.h" //This matrix gets applied to floating point coordinates.
 
 namespace cura
 {
@@ -46,7 +46,7 @@ FMatrix4x3::FMatrix4x3()
     m[3][2] = 0.0;
 }
 
-Point3 FMatrix4x3::apply(const FPoint3& p) const
+Point3 FMatrix4x3::apply(const Point3d& p) const
 {
     return Point3(
         MM2INT(p.x * m[0][0] + p.y * m[1][0] + p.z * m[2][0] + m[3][0]),

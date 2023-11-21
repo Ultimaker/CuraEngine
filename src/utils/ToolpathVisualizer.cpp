@@ -10,20 +10,20 @@ namespace cura
 
 void ToolpathVisualizer::outline(const Polygons& input)
 {
-    svg.writeAreas(input, SVG::Color::GRAY, SVG::Color::NONE, 2);
-    svg.nextLayer();
+    svg_.writeAreas(input, SVG::Color::GRAY, SVG::Color::NONE, 2);
+    svg_.nextLayer();
 }
 
 void ToolpathVisualizer::toolpaths(const std::vector<ExtrusionSegment>& all_segments, bool rounded_visualization)
 {
-    for (float w = .9; w > .25; w = 1.0 - (1.0 - w) * 1.2)
+    for (double w = .9; w > .25; w = 1.0 - (1.0 - w) * 1.2)
     {
         Polygons polys;
         for (size_t segment_idx = 0; segment_idx < all_segments.size(); segment_idx++)
         {
             ExtrusionSegment s = all_segments[segment_idx];
-            s.from.w *= w / .9;
-            s.to.w *= w / .9;
+            s.from_.w *= w / .9;
+            s.to_.w *= w / .9;
             Polygons covered = s.toPolygons(false);
             polys.add(covered);
         }
@@ -32,33 +32,33 @@ void ToolpathVisualizer::toolpaths(const std::vector<ExtrusionSegment>& all_segm
         polys = polys.execute(ClipperLib::pftNonZero);
         polys = PolygonUtils::connect(polys);
         for (PolygonRef connected : polys)
-            svg.writeAreas(connected, clr, SVG::Color::NONE);
+            svg_.writeAreas(connected, clr, SVG::Color::NONE);
         if (! rounded_visualization)
             break;
     }
-    svg.nextLayer();
+    svg_.nextLayer();
 }
 
 
 void ToolpathVisualizer::underfill(const Polygons& underfills)
 {
-    svg.writeAreas(underfills, SVG::ColorObject(0, 128, 255), SVG::Color::NONE);
-    svg.nextLayer();
+    svg_.writeAreas(underfills, SVG::ColorObject(0, 128, 255), SVG::Color::NONE);
+    svg_.nextLayer();
 }
 void ToolpathVisualizer::overfill(const Polygons& overfills, const Polygons& double_overfills)
 {
-    svg.writeAreas(overfills, SVG::ColorObject(255, 128, 0), SVG::Color::NONE);
-    svg.nextLayer();
-    svg.writeAreas(double_overfills, SVG::ColorObject(255, 100, 0), SVG::Color::NONE);
+    svg_.writeAreas(overfills, SVG::ColorObject(255, 128, 0), SVG::Color::NONE);
+    svg_.nextLayer();
+    svg_.writeAreas(double_overfills, SVG::ColorObject(255, 100, 0), SVG::Color::NONE);
     if (! double_overfills.empty())
     {
-        svg.nextLayer();
+        svg_.nextLayer();
     }
 }
 
 void ToolpathVisualizer::width_legend(const Polygons& input, coord_t nozzle_size, coord_t max_dev, coord_t min_w, bool rounded_visualization)
 {
-    auto to_string = [](float v)
+    auto to_string = [](double v)
     {
         std::ostringstream ss;
         ss << v;
@@ -71,17 +71,17 @@ void ToolpathVisualizer::width_legend(const Polygons& input, coord_t nozzle_size
     legend_btm.p += (legend_mid.p - legend_btm.p) / 4;
     legend_top.p += (legend_mid.p - legend_top.p) / 4;
     ExtrusionSegment legend_segment(legend_btm, legend_top, true, false);
-    svg.writeAreas(legend_segment.toPolygons(false), SVG::ColorObject(200, 200, 200), SVG::Color::NONE); // real outline
+    svg_.writeAreas(legend_segment.toPolygons(false), SVG::ColorObject(200, 200, 200), SVG::Color::NONE); // real outline
     std::vector<ExtrusionSegment> all_segments_plus;
     all_segments_plus.emplace_back(legend_segment); // colored
 
     Point legend_text_offset(nozzle_size, 0);
-    svg.writeText(legend_top.p + legend_text_offset, to_string(INT2MM(legend_top.w)));
-    svg.writeText(legend_btm.p + legend_text_offset, to_string(INT2MM(legend_btm.w)));
-    svg.writeText(legend_mid.p + legend_text_offset, to_string(INT2MM(legend_mid.w)));
-    svg.writeLine(legend_top.p, legend_top.p + legend_text_offset);
-    svg.writeLine(legend_btm.p, legend_btm.p + legend_text_offset);
-    svg.writeLine(legend_mid.p, legend_mid.p + legend_text_offset);
+    svg_.writeText(legend_top.p + legend_text_offset, to_string(INT2MM(legend_top.w)));
+    svg_.writeText(legend_btm.p + legend_text_offset, to_string(INT2MM(legend_btm.w)));
+    svg_.writeText(legend_mid.p + legend_text_offset, to_string(INT2MM(legend_mid.w)));
+    svg_.writeLine(legend_top.p, legend_top.p + legend_text_offset);
+    svg_.writeLine(legend_btm.p, legend_btm.p + legend_text_offset);
+    svg_.writeLine(legend_mid.p, legend_mid.p + legend_text_offset);
 
     widths(all_segments_plus, nozzle_size, max_dev, min_w, rounded_visualization);
 }
@@ -103,7 +103,7 @@ void ToolpathVisualizer::widths(
     //     for (PolygonRef connected : connecteds)
     //         svg.writeAreas(connected, SVG::Color::BLACK, SVG::Color::NONE);
 
-    for (float w = .9; w > .25; w = 1.0 - (1.0 - w) * 1.2)
+    for (double w = 0.9; w > 0.25; w = 1.0 - (1.0 - w) * 1.2)
     {
         int brightness = rounded_visualization ? 255 - 200 * (w - .25) : 192;
         for (size_t segment_idx = 0; segment_idx < all_segments.size(); segment_idx++)
@@ -113,9 +113,9 @@ void ToolpathVisualizer::widths(
             //             ss.to.w *= w;
             for (ExtrusionSegment s : ss.discretize(MM2INT(0.1)))
             {
-                coord_t avg_w = (s.from.w + s.to.w) / 2;
+                coord_t avg_w = (s.from_.w + s.to_.w) / 2;
                 Point3 clr;
-                float color_ratio = std::min(1.0, double(std::abs(avg_w - nozzle_size)) / max_dev);
+                double color_ratio = std::min(1.0, double(std::abs(avg_w - nozzle_size)) / max_dev);
                 color_ratio = color_ratio * .5 + .5 * sqrt(color_ratio);
                 if (avg_w > nozzle_size)
                 {
@@ -133,23 +133,23 @@ void ToolpathVisualizer::widths(
                 //                 clr.y = clr.y * (255 - 92 * clr.dot(green) / green.vSize() / 255) / 255;
                 if (exaggerate_widths)
                 {
-                    s.from.w = std::max(min_w, min_w + (s.from.w - (nozzle_size - max_dev)) * 5 / 4);
-                    s.to.w = std::max(min_w, min_w + (s.to.w - (nozzle_size - max_dev)) * 5 / 4);
+                    s.from_.w = std::max(min_w, min_w + (s.from_.w - (nozzle_size - max_dev)) * 5 / 4);
+                    s.to_.w = std::max(min_w, min_w + (s.to_.w - (nozzle_size - max_dev)) * 5 / 4);
                 }
                 //                 else
                 //                 {
                 //                     s.from.w *= 0.9;
                 //                     s.to.w *= 0.9;
                 //                 }
-                s.from.w *= w / .9;
-                s.to.w *= w / .9;
+                s.from_.w *= w / .9;
+                s.to_.w *= w / .9;
                 Polygons covered = s.toPolygons();
-                svg.writeAreas(covered, SVG::ColorObject(clr.x_, clr.y_, clr.z_), SVG::Color::NONE);
+                svg_.writeAreas(covered, SVG::ColorObject(clr.x_, clr.y_, clr.z_), SVG::Color::NONE);
             }
         }
         if (! rounded_visualization)
             break;
-        svg.nextLayer();
+        svg_.nextLayer();
     }
 }
 

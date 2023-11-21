@@ -14,7 +14,7 @@
 
 #include "settings/types/Ratio.h" //For the shrinkage percentage and scale factor.
 #include "utils/FMatrix4x3.h" //To transform the input meshes for shrinkage compensation and to align in command line mode.
-#include "utils/floatpoint.h" //To accept incoming meshes with floating point vertices.
+#include "utils/Point3f.h" //To accept incoming meshes with floating point vertices.
 #include "utils/gettime.h"
 #include "utils/section_type.h"
 #include "utils/string.h"
@@ -140,7 +140,7 @@ bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const FMatrix4x3& matri
 {
     FILE* f = fopen(filename, "rt");
     char buffer[1024];
-    FPoint3 vertex;
+    Point3f vertex;
     int n = 0;
     Point3 v0(0, 0, 0), v1(0, 0, 0), v2(0, 0, 0);
     while (fgets_(buffer, sizeof(buffer), f))
@@ -151,13 +151,13 @@ bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const FMatrix4x3& matri
             switch (n)
             {
             case 1:
-                v0 = matrix.apply(vertex);
+                v0 = matrix.apply(vertex.toPoint3d());
                 break;
             case 2:
-                v1 = matrix.apply(vertex);
+                v1 = matrix.apply(vertex.toPoint3d());
                 break;
             case 3:
-                v2 = matrix.apply(vertex);
+                v2 = matrix.apply(vertex.toPoint3d());
                 mesh->addFace(v0, v1, v2);
                 n = 0;
                 break;
@@ -203,7 +203,7 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const FMatrix4x3& matr
     //  Every Face is 50 Bytes: Normal(3*float), Vertices(9*float), 2 Bytes Spacer
     mesh->faces_.reserve(face_count);
     mesh->vertices_.reserve(face_count);
-    for (unsigned int i = 0; i < face_count; i++)
+    for (size_t i = 0; i < face_count; i++)
     {
         if (fread(buffer, 50, 1, f) != 1)
         {
@@ -212,9 +212,9 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const FMatrix4x3& matr
         }
         float* v = ((float*)buffer) + 3;
 
-        Point3 v0 = matrix.apply(FPoint3(v[0], v[1], v[2]));
-        Point3 v1 = matrix.apply(FPoint3(v[3], v[4], v[5]));
-        Point3 v2 = matrix.apply(FPoint3(v[6], v[7], v[8]));
+        Point3 v0 = matrix.apply(Point3f(v[0], v[1], v[2]).toPoint3d());
+        Point3 v1 = matrix.apply(Point3f(v[3], v[4], v[5]).toPoint3d());
+        Point3 v2 = matrix.apply(Point3f(v[6], v[7], v[8]).toPoint3d());
         mesh->addFace(v0, v1, v2);
     }
     fclose(f);

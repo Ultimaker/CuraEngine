@@ -68,7 +68,7 @@ bool VoxelUtils::walkLine(Point3 start, Point3 end, const std::function<bool(Gri
         }
 
         int stepping_dim = -1; // dimension in which the line next exits the current cell
-        float percentage_along_line = std::numeric_limits<float>::max();
+        double percentage_along_line = std::numeric_limits<double>::max();
         for (int dim = 0; dim < 3; dim++)
         {
             if (diff[dim] == 0)
@@ -76,7 +76,7 @@ bool VoxelUtils::walkLine(Point3 start, Point3 end, const std::function<bool(Gri
                 continue;
             }
             coord_t crossing_boundary = toLowerCoord(current_cell[dim], dim) + (diff[dim] > 0) * cell_size_[dim];
-            float percentage_along_line_here = (crossing_boundary - start[dim]) / static_cast<float>(diff[dim]);
+            double percentage_along_line_here = (crossing_boundary - start[dim]) / static_cast<double>(diff[dim]);
             if (percentage_along_line_here < percentage_along_line)
             {
                 percentage_along_line = percentage_along_line_here;

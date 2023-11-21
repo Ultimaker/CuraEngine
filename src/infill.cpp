@@ -3,6 +3,13 @@
 
 #include "infill.h"
 
+#include <algorithm> //For std::sort.
+#include <functional>
+#include <unordered_set>
+
+#include <scripta/logger.h>
+#include <spdlog/spdlog.h>
+
 #include "WallToolPaths.h"
 #include "infill/GyroidInfill.h"
 #include "infill/ImageBasedDensityProvider.h"
@@ -20,13 +27,6 @@
 #include "utils/UnionFind.h"
 #include "utils/linearAlg2D.h"
 #include "utils/polygonUtils.h"
-
-#include <scripta/logger.h>
-#include <spdlog/spdlog.h>
-
-#include <algorithm> //For std::sort.
-#include <functional>
-#include <unordered_set>
 
 /*!
  * Function which returns the scanline_idx for a given x coordinate
@@ -460,7 +460,7 @@ void Infill::generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths
         constexpr size_t inset_wall_count = 1; // 1 wall at a time.
         constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
         WallToolPaths wall_toolpaths(current_inset, infill_line_width_, inset_wall_count, wall_0_inset, settings, 0, SectionType::CONCENTRIC_INFILL); // FIXME: @jellespijker pass
-                                                                                                                                                     // the correct layer
+                                                                                                                                                      // the correct layer
         const std::vector<VariableWidthLines> inset_paths = wall_toolpaths.getToolPaths();
         toolpaths.insert(toolpaths.end(), inset_paths.begin(), inset_paths.end());
 
@@ -494,7 +494,7 @@ void Infill::generateQuarterCubicInfill(Polygons& result)
     generateHalfTetrahedralInfill(0.5, 90, result);
 }
 
-void Infill::generateHalfTetrahedralInfill(float pattern_z_shift, int angle_shift, Polygons& result)
+void Infill::generateHalfTetrahedralInfill(double pattern_z_shift, int angle_shift, Polygons& result)
 {
     const coord_t period = line_distance_ * 2;
     coord_t shift = coord_t(one_over_sqrt_2 * (z_ + pattern_z_shift * period * 2)) % period;

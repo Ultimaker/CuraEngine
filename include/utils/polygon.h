@@ -8,7 +8,6 @@
 #include <algorithm> // std::reverse, fill_n array
 #include <assert.h>
 #include <cmath> // fabs
-#include <float.h>
 #include <initializer_list>
 #include <limits> // int64_t.min
 #include <list>
@@ -268,10 +267,10 @@ public:
     Point closestPointTo(Point p) const
     {
         Point ret = p;
-        float bestDist = FLT_MAX;
-        for (unsigned int n = 0; n < path->size(); n++)
+        double bestDist = std::numeric_limits<double>::max();
+        for (size_t n = 0; n < path->size(); n++)
         {
-            float dist = vSize2f(p - (*path)[n]);
+            double dist = vSize2f(p - (*path)[n]);
             if (dist < bestDist)
             {
                 ret = (*path)[n];
@@ -400,7 +399,7 @@ private:
         const Point v12,
         const Point v02,
         const int64_t shortcut_length,
-        float cos_angle);
+        double cos_angle);
 
     /*!
      * Smooth out a complex corner where the shortcut bypasses more than two line segments

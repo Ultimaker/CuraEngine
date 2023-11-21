@@ -5,7 +5,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include "utils/floatpoint.h"
+#include "utils/Point3d.h"
 
 namespace cura
 {
@@ -203,12 +203,12 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
         has_disconnected_faces = true;
     }
 
-    FPoint3 vn = vertices_[idx1].p_ - vertices_[idx0].p_;
-    FPoint3 n = vn / vn.vSize(); // the normal of the plane in which all normals of faces connected to the edge lie => the normalized normal
-    FPoint3 v0 = vertices_[idx1].p_ - vertices_[idx0].p_;
+    Point3d vn = vertices_[idx1].p_ - vertices_[idx0].p_;
+    Point3d n = vn / vn.vSize(); // the normal of the plane in which all normals of faces connected to the edge lie => the normalized normal
+    Point3d v0 = vertices_[idx1].p_ - vertices_[idx0].p_;
 
     // the normals below are abnormally directed! : these normals all point counterclockwise (viewed from idx1 to idx0) from the face, irrespective of the direction of the face.
-    FPoint3 n0 = FPoint3(vertices_[notFaceVertexIdx].p_ - vertices_[idx0].p_).cross(v0);
+    Point3d n0 = Point3d(vertices_[notFaceVertexIdx].p_ - vertices_[idx0].p_).cross(v0);
 
     if (n0.vSize() <= 0)
     {
@@ -227,8 +227,8 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
                     break;
         }
 
-        FPoint3 v1 = vertices_[faces_[candidateFace].vertex_index_[candidateVertex]].p_ - vertices_[idx0].p_;
-        FPoint3 n1 = v0.cross(v1);
+        Point3d v1 = vertices_[faces_[candidateFace].vertex_index_[candidateVertex]].p_ - vertices_[idx0].p_;
+        Point3d n1 = v0.cross(v1);
 
         double dot = n0 * n1;
         double det = n * n0.cross(n1);

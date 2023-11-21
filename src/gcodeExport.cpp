@@ -649,7 +649,7 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
 
     if (Application::getInstance().communication_->isSequential()) // If we must output the g-code sequentially, we must already place the g-code header here even if we don't know
-                                                                  // the exact time/material usages yet.
+                                                                   // the exact time/material usages yet.
     {
         std::string prefix = getFileHeader(storage.getExtrudersUsed());
         writeCode(prefix.c_str());
@@ -875,9 +875,9 @@ void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Velo
     Point gcode_pos = getGcodePos(x, y, current_extruder);
 
     // For Bits From Bytes machines, we need to handle this completely differently. As they do not use E values but RPM values.
-    float fspeed = speed * 60;
-    float rpm = extrusion_per_mm * speed * 60;
-    const float mm_per_rpm = 4.0; // All BFB machines have 4mm per RPM extrusion.
+    double fspeed = speed * 60;
+    double rpm = extrusion_per_mm * speed * 60;
+    const double mm_per_rpm = 4.0; // All BFB machines have 4mm per RPM extrusion.
     rpm /= mm_per_rpm;
     if (rpm > 0)
     {

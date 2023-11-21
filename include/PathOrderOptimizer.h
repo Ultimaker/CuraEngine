@@ -647,21 +647,21 @@ protected:
         }
 
         size_t best_i;
-        float best_score = std::numeric_limits<float>::infinity();
+        double best_score = std::numeric_limits<double>::infinity();
         for (const auto& [i, here] : **path.converted_ | ranges::views::drop_last(1) | ranges::views::enumerate)
         {
             // For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
             // For SHARPEST_CORNER, use a fixed starting score of 0.
             const coord_t distance = (combing_boundary_ == nullptr) ? getDirectDistance(here, target_pos) : getCombingDistance(here, target_pos);
-            const float score_distance = (seam_config_.type == EZSeamType::SHARPEST_CORNER && seam_config_.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
-                                           ? MM2INT(10)
-                                           : vSize2(here - target_pos);
+            const double score_distance = (seam_config_.type == EZSeamType::SHARPEST_CORNER && seam_config_.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
+                                            ? MM2INT(10)
+                                            : vSize2(here - target_pos);
 
-            float corner_angle = cornerAngle(path, i, segments_sizes, total_length);
+            double corner_angle = cornerAngle(path, i, segments_sizes, total_length);
             // angles < 0 are concave (left turning)
             // angles > 0 are convex (right turning)
 
-            float corner_shift;
+            double corner_shift;
             if (seam_config_.type == EZSeamType::SHORTEST)
             {
                 // the more a corner satisfies our criteria, the closer it appears to be
@@ -677,7 +677,7 @@ protected:
                 corner_shift = score_distance / 50;
             }
 
-            float score = score_distance;
+            double score = score_distance;
             switch (seam_config_.corner_pref)
             {
             default:
@@ -696,7 +696,7 @@ protected:
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED: // Give sharper corners some advantage, but sharper concave corners even more.
             {
-                float score_corner = std::abs(corner_angle) * corner_shift;
+                double score_corner = std::abs(corner_angle) * corner_shift;
                 if (corner_angle < 0) // Concave corner.
                 {
                     score_corner *= 2;
@@ -706,7 +706,7 @@ protected:
             }
             }
 
-            constexpr float EPSILON = 5.0;
+            constexpr double EPSILON = 5.0;
             if (std::abs(best_score - score) <= EPSILON)
             {
                 // add breaker for two candidate starting location with similar score
@@ -797,16 +797,16 @@ protected:
      * \param angle_query_distance query range (default to 1mm)
      * \return angle between the reference point and the two sibling points, weighed to [-1.0 ; 1.0]
      */
-    static float cornerAngle(const OrderablePath& path, int i, const std::vector<coord_t>& segments_sizes, coord_t total_length, const coord_t angle_query_distance = 1000)
+    static double cornerAngle(const OrderablePath& path, int i, const std::vector<coord_t>& segments_sizes, coord_t total_length, const coord_t angle_query_distance = 1000)
     {
         const coord_t bounded_distance = std::min(angle_query_distance, total_length / 2);
         const Point& here = (*path.converted_)[i];
         const Point next = findNeighbourPoint(path, i, bounded_distance, segments_sizes);
         const Point previous = findNeighbourPoint(path, i, -bounded_distance, segments_sizes);
 
-        float angle = LinearAlg2D::getAngleLeft(previous, here, next) - std::numbers::pi_v<float>;
+        double angle = LinearAlg2D::getAngleLeft(previous, here, next) - std::numbers::pi;
 
-        return angle / std::numbers::pi_v<float>;
+        return angle / std::numbers::pi;
     }
 
     /*!

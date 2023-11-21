@@ -38,8 +38,8 @@ ImageBasedDensityProvider::ImageBasedDensityProvider(const std::string filename,
         Point middle = model_aabb.getMiddle();
         Point model_aabb_size = model_aabb.max - model_aabb.min;
         Point image_size2 = Point(image_size.x_, image_size.y_);
-        float aabb_aspect_ratio = float(model_aabb_size.X) / float(model_aabb_size.Y);
-        float image_aspect_ratio = float(image_size.x_) / float(image_size.y_);
+        double aabb_aspect_ratio = double(model_aabb_size.X) / double(model_aabb_size.Y);
+        double image_aspect_ratio = double(image_size.x_) / double(image_size.y_);
         Point aabb_size;
         if (image_aspect_ratio < aabb_aspect_ratio)
         {
@@ -63,7 +63,7 @@ ImageBasedDensityProvider::~ImageBasedDensityProvider()
     }
 }
 
-float ImageBasedDensityProvider::operator()(const AABB3D& query_cube) const
+double ImageBasedDensityProvider::operator()(const AABB3D& query_cube) const
 {
     AABB query_box(Point(query_cube.min.x_, query_cube.min.y_), Point(query_cube.max.x_, query_cube.max.y_));
     Point img_min = (query_box.min - print_aabb.min - Point(1, 1)) * image_size.x_ / (print_aabb.max.X - print_aabb.min.X);
@@ -93,7 +93,7 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube) const
             value_count++;
         }
     }
-    return 1.0f - ((float)total_lightness) / value_count / 255.0f;
+    return 1.0 - ((double)total_lightness) / value_count / 255.0;
 }
 
 } // namespace cura

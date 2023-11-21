@@ -1,38 +1,37 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
-
-#include <cassert>
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "BeadingStrategy/BeadingStrategy.h"
+
+#include <cassert>
 
 namespace cura
 {
 
-BeadingStrategy::BeadingStrategy
-(
+BeadingStrategy::BeadingStrategy(
     coord_t optimal_width,
     Ratio wall_split_middle_threshold,
     Ratio wall_add_middle_threshold,
     coord_t default_transition_length,
-    float transitioning_angle
-) :
-    optimal_width(optimal_width),
-    wall_split_middle_threshold(wall_split_middle_threshold),
-    wall_add_middle_threshold(wall_add_middle_threshold),
-    default_transition_length(default_transition_length),
-    transitioning_angle(transitioning_angle)
+    double transitioning_angle)
+    : optimal_width(optimal_width)
+    , wall_split_middle_threshold(wall_split_middle_threshold)
+    , wall_add_middle_threshold(wall_add_middle_threshold)
+    , default_transition_length(default_transition_length)
+    , transitioning_angle(transitioning_angle)
 {
     name = "Unknown";
 }
 
-BeadingStrategy::BeadingStrategy(const BeadingStrategy& other) :
-    optimal_width(other.optimal_width),
-    wall_split_middle_threshold(other.wall_split_middle_threshold),
-    wall_add_middle_threshold(other.wall_add_middle_threshold),
-    default_transition_length(other.default_transition_length),
-    transitioning_angle(other.transitioning_angle),
-    name(other.name)
-{}
+BeadingStrategy::BeadingStrategy(const BeadingStrategy& other)
+    : optimal_width(other.optimal_width)
+    , wall_split_middle_threshold(other.wall_split_middle_threshold)
+    , wall_add_middle_threshold(other.wall_add_middle_threshold)
+    , default_transition_length(other.default_transition_length)
+    , transitioning_angle(other.transitioning_angle)
+    , name(other.name)
+{
+}
 
 coord_t BeadingStrategy::getTransitioningLength(coord_t lower_bead_count) const
 {
@@ -43,12 +42,12 @@ coord_t BeadingStrategy::getTransitioningLength(coord_t lower_bead_count) const
     return default_transition_length;
 }
 
-float BeadingStrategy::getTransitionAnchorPos(coord_t lower_bead_count) const
+double BeadingStrategy::getTransitionAnchorPos(coord_t lower_bead_count) const
 {
     coord_t lower_optimum = getOptimalThickness(lower_bead_count);
     coord_t transition_point = getTransitionThickness(lower_bead_count);
     coord_t upper_optimum = getOptimalThickness(lower_bead_count + 1);
-    return 1.0 - float(transition_point - lower_optimum) / float(upper_optimum - lower_optimum);
+    return 1.0 - static_cast<double>(transition_point - lower_optimum) / static_cast<double>(upper_optimum - lower_optimum);
 }
 
 std::vector<coord_t> BeadingStrategy::getNonlinearThicknesses(coord_t lower_bead_count) const

@@ -3,13 +3,13 @@
 
 #include "utils/VoronoiUtils.h"
 
-#include "utils/linearAlg2D.h"
-#include "utils/macros.h"
+#include <optional>
+#include <stack>
 
 #include <spdlog/spdlog.h>
 
-#include <optional>
-#include <stack>
+#include "utils/linearAlg2D.h"
+#include "utils/macros.h"
 
 namespace cura
 {
@@ -117,7 +117,7 @@ const VoronoiUtils::Segment& VoronoiUtils::getSourceSegment(const vd_t::cell_typ
 }
 
 
-std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segment& segment, Point s, Point e, coord_t approximate_step_size, float transitioning_angle)
+std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segment& segment, Point s, Point e, coord_t approximate_step_size, double transitioning_angle)
 {
     std::vector<Point> discretized;
     // x is distance of point projected on the segment ab
@@ -147,7 +147,7 @@ std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segmen
         return discretized;
     }
 
-    const float marking_bound = atan(transitioning_angle * 0.5);
+    const double marking_bound = atan(transitioning_angle * 0.5);
     coord_t msx = -marking_bound * d; // projected marking_start
     coord_t mex = marking_bound * d; // projected marking_end
     const coord_t marking_start_end_h = msx * msx / (2 * d) + d / 2;
@@ -174,7 +174,7 @@ std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segmen
         RUN_ONCE(spdlog::warn("Failing to discretize parabola! Must add an apex or one of the endpoints."));
     }
 
-    const coord_t step_count = static_cast<coord_t>(static_cast<float>(std::abs(ex - sx)) / approximate_step_size + 0.5);
+    const coord_t step_count = static_cast<coord_t>(static_cast<double>(std::abs(ex - sx)) / approximate_step_size + 0.5);
 
     discretized.emplace_back(s);
     for (coord_t step = 1; step < step_count; step++)

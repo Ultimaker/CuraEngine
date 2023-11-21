@@ -8,10 +8,10 @@
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h>
 #endif
+#include <memory> //For unique_ptr and shared_ptr.
+
 #include "Communication.h" //The class we're implementing.
 #include "Cura.pb.h" //To create Protobuf messages for Cura's front-end.
-
-#include <memory> //For unique_ptr and shared_ptr.
 
 // Forward declarations to speed up compilation.
 namespace Arcus
@@ -177,7 +177,7 @@ public:
     /*
      * \brief Communicate to Arcus what our progress is.
      */
-    void sendProgress(const float& progress) const override;
+    void sendProgress(double progress) const override;
 
     /*
      * \brief Set which extruder is being used for the following calls to

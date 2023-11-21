@@ -116,9 +116,9 @@ INLINE coord_t vSize2(const Point& p0)
 {
     return p0.X * p0.X + p0.Y * p0.Y;
 }
-INLINE float vSize2f(const Point& p0)
+INLINE double vSize2f(const Point& p0)
 {
-    return static_cast<float>(p0.X) * static_cast<float>(p0.X) + static_cast<float>(p0.Y) * static_cast<float>(p0.Y);
+    return static_cast<double>(p0.X) * static_cast<double>(p0.X) + static_cast<double>(p0.Y) * static_cast<double>(p0.Y);
 }
 
 INLINE bool shorterThen(const Point& p0, const coord_t len)

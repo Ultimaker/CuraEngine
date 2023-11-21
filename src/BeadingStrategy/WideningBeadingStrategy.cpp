@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "BeadingStrategy/WideningBeadingStrategy.h"
 
@@ -61,18 +61,20 @@ coord_t WideningBeadingStrategy::getTransitionThickness(coord_t lower_bead_count
 
 coord_t WideningBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
-    if (thickness < min_input_width) return 0;
+    if (thickness < min_input_width)
+        return 0;
     coord_t ret = parent->getOptimalBeadCount(thickness);
-    if (thickness >= min_input_width && ret < 1) return 1;
+    if (thickness >= min_input_width && ret < 1)
+        return 1;
     return ret;
 }
 
-coord_t WideningBeadingStrategy::getTransitioningLength(coord_t lower_bead_count) const 
+coord_t WideningBeadingStrategy::getTransitioningLength(coord_t lower_bead_count) const
 {
     return parent->getTransitioningLength(lower_bead_count);
 }
 
-float WideningBeadingStrategy::getTransitionAnchorPos(coord_t lower_bead_count) const
+double WideningBeadingStrategy::getTransitionAnchorPos(coord_t lower_bead_count) const
 {
     return parent->getTransitionAnchorPos(lower_bead_count);
 }

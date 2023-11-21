@@ -20,12 +20,15 @@ coord_t LimitedBeadingStrategy::getTransitioningLength(coord_t lower_bead_count)
     return parent->getTransitioningLength(lower_bead_count);
 }
 
-float LimitedBeadingStrategy::getTransitionAnchorPos(coord_t lower_bead_count) const
+double LimitedBeadingStrategy::getTransitionAnchorPos(coord_t lower_bead_count) const
 {
     return parent->getTransitionAnchorPos(lower_bead_count);
 }
 
-LimitedBeadingStrategy::LimitedBeadingStrategy(const coord_t max_bead_count, BeadingStrategyPtr parent) : BeadingStrategy(*parent), max_bead_count(max_bead_count), parent(std::move(parent))
+LimitedBeadingStrategy::LimitedBeadingStrategy(const coord_t max_bead_count, BeadingStrategyPtr parent)
+    : BeadingStrategy(*parent)
+    , max_bead_count(max_bead_count)
+    , parent(std::move(parent))
 {
     if (max_bead_count % 2 == 1)
     {

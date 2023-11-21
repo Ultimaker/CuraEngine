@@ -257,12 +257,12 @@ protected:
         const bool straight_corner_is_left_; //!< Whether the \ref straight_corner is left of the curve, rather than right. I.e. whether triangle ABC is counter-clockwise
         const int depth_; //!< The recursion depth at which this triangle is generated. Root is zero.
 
-        float area_; //!< The area of the triangle in mm^2
-        float requested_length_; //!< The polyline length corresponding to the average density requested by the volumetric density specification.
-        float realized_length_; //!< The polyline length of the Cross Fractal line segment which would cross this triangle.
-        float total_child_realized_length_; //!< The total of the \ref realized_length of all children.
-        float error_left_; //!< Extra value modulating the \ref requested_length obtained from the triangle on the left / obtained by giving value to the triangle to the left.
-        float error_right_; //!< Extra value modulating the \ref requested_length obtained from the triangle on the right / obtained by giving value to the triangle to the right.
+        double area_; //!< The area of the triangle in mm^2
+        double requested_length_; //!< The polyline length corresponding to the average density requested by the volumetric density specification.
+        double realized_length_; //!< The polyline length of the Cross Fractal line segment which would cross this triangle.
+        double total_child_realized_length_; //!< The total of the \ref realized_length of all children.
+        double error_left_; //!< Extra value modulating the \ref requested_length obtained from the triangle on the left / obtained by giving value to the triangle to the left.
+        double error_right_; //!< Extra value modulating the \ref requested_length obtained from the triangle on the right / obtained by giving value to the triangle to the right.
 
         SierpinskiTriangle(Point straight_corner, Point a, Point b, SierpinskiDirection dir, bool straight_corner_is_left, int depth)
             : straight_corner_(straight_corner)
@@ -296,13 +296,13 @@ protected:
         //! Get the second edge of this triangle crossed by the Sierpinski and/or Cross Fractal curve.
         Edge getToEdge();
         //! Get the total error value modulating the \ref requested_length
-        float getTotalError();
+        double getTotalError();
         //! Get the total modulated \ref requested_length
-        float getErroredValue();
+        double getErroredValue();
         //! Get the error induced by subdividing this triangle.
-        float getSubdivisionError();
+        double getSubdivisionError();
         //! Get the total error currently acting on this traingle.
-        float getValueError();
+        double getValueError();
         //! The children into which this triangle would be subdivided. Empty if this is a leaf node.
         std::vector<SierpinskiTriangle> children;
     };
@@ -447,7 +447,7 @@ protected:
     /*!
      * \return the requested value left over if we would subdivide all nodes in the sequence from \p begin to \p end
      */
-    float getSubdivisionError(std::list<SierpinskiTriangle*>::iterator begin, std::list<SierpinskiTriangle*>::iterator end);
+    double getSubdivisionError(std::list<SierpinskiTriangle*>::iterator begin, std::list<SierpinskiTriangle*>::iterator end);
 
     /*!
      * Check whether all properties which should hold at any time during the algorithm hold for the current sequence.

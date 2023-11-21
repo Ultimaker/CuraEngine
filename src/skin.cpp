@@ -3,6 +3,8 @@
 
 #include "skin.h"
 
+#include <cmath> // std::ceil
+
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "Slice.h"
@@ -14,8 +16,6 @@
 #include "sliceDataStorage.h"
 #include "utils/math.h"
 #include "utils/polygonUtils.h"
-
-#include <cmath> // std::ceil
 
 #define MIN_AREA_SIZE (0.4 * 0.4)
 
@@ -444,7 +444,7 @@ void SkinInfillAreaComputation::generateInfillSupport(SliceMeshStorage& mesh)
 void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
 {
     // no early-out for this function; it needs to initialize the [infill_area_per_combine_per_density]
-    float layer_skip_count = 8; // skip every so many layers as to ignore small gaps in the model making computation more easy
+    double layer_skip_count = 8; // skip every so many layers as to ignore small gaps in the model making computation more easy
     if (! mesh.settings.get<bool>("skin_no_small_gaps_heuristic"))
     {
         layer_skip_count = 1;
@@ -454,8 +454,8 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
         = round_divide(gradual_infill_step_height, mesh.settings.get<coord_t>("layer_height")); // The difference in layer count between consecutive density infill areas
 
     // make gradual_infill_step_height divisible by layer_skip_count
-    float n_skip_steps_per_gradual_step
-        = std::max(1.0f, std::ceil(gradual_infill_step_layer_count / layer_skip_count)); // only decrease layer_skip_count to make it a divisor of gradual_infill_step_layer_count
+    double n_skip_steps_per_gradual_step
+        = std::max(1.0, std::ceil(gradual_infill_step_layer_count / layer_skip_count)); // only decrease layer_skip_count to make it a divisor of gradual_infill_step_layer_count
     layer_skip_count = gradual_infill_step_layer_count / n_skip_steps_per_gradual_step;
     const size_t max_infill_steps = mesh.settings.get<size_t>("gradual_infill_steps");
 
@@ -496,7 +496,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                 LayerIndex min_layer = layer_idx + infill_step * gradual_infill_step_layer_count + static_cast<size_t>(layer_skip_count);
                 LayerIndex max_layer = layer_idx + (infill_step + 1) * gradual_infill_step_layer_count;
 
-                for (float upper_layer_idx = min_layer; upper_layer_idx <= max_layer; upper_layer_idx += layer_skip_count)
+                for (double upper_layer_idx = min_layer; upper_layer_idx <= max_layer; upper_layer_idx += layer_skip_count)
                 {
                     if (upper_layer_idx >= mesh.layers.size())
                     {

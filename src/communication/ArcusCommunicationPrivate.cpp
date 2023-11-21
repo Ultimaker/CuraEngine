@@ -5,14 +5,14 @@
 
 #include "communication/ArcusCommunicationPrivate.h"
 
+#include <spdlog/spdlog.h>
+
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/FMatrix4x3.h" //To convert vertices to integer-points.
-#include "utils/floatpoint.h" //To accept vertices (which are provided in floating point).
-
-#include <spdlog/spdlog.h>
+#include "utils/Point3f.h" //To accept vertices (which are provided in floating point).
 
 namespace cura
 {
@@ -102,7 +102,7 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
     FMatrix4x3 matrix;
     for (const cura::proto::Object& object : mesh_group_message.objects())
     {
-        const size_t bytes_per_face = sizeof(FPoint3) * 3; // 3 vectors per face.
+        const size_t bytes_per_face = sizeof(Point3f) * 3; // 3 vectors per face.
         const size_t face_count = object.vertices().size() / bytes_per_face;
 
         if (face_count <= 0)
@@ -125,12 +125,12 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
         for (size_t face = 0; face < face_count; face++)
         {
             const std::string data = object.vertices().substr(face * bytes_per_face, bytes_per_face);
-            const FPoint3* float_vertices = reinterpret_cast<const FPoint3*>(data.data());
+            const Point3f* float_vertices = reinterpret_cast<const Point3f*>(data.data());
 
             Point3 verts[3];
-            verts[0] = matrix.apply(float_vertices[0]);
-            verts[1] = matrix.apply(float_vertices[1]);
-            verts[2] = matrix.apply(float_vertices[2]);
+            verts[0] = matrix.apply(float_vertices[0].toPoint3d());
+            verts[1] = matrix.apply(float_vertices[1].toPoint3d());
+            verts[2] = matrix.apply(float_vertices[2].toPoint3d());
             mesh.addFace(verts[0], verts[1], verts[2]);
         }
 
