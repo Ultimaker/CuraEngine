@@ -128,17 +128,17 @@ public:
                                     //Continue to see if closing segment is also the closest.
                                 }
                             }
-                            else if (processed[nearby.poly_idx])
+                            else if (processed[nearby.poly_idx_])
                             { // it was already moved to output
                                 return true; // keep looking for a connection
                             }
-                            bool nearby_would_be_reversed = nearby.point_idx != 0;
+                            bool nearby_would_be_reversed = nearby.point_idx_ != 0;
                             nearby_would_be_reversed = nearby_would_be_reversed != go_in_reverse_direction; // flip nearby_would_be_reversed when searching in the reverse direction
                             if ( ! canReverse(nearby) && nearby_would_be_reversed)
                             { // connecting the segment would reverse the polygon direction
                                 return true; // keep looking for a connection
                             }
-                            if ( ! canConnect(chain, (*nearby.polygons)[nearby.poly_idx]))
+                            if ( ! canConnect(chain, (*nearby.polygons_)[nearby.poly_idx_]))
                             {
                                 return true; // keep looking for a connection
                             }
@@ -167,31 +167,31 @@ public:
                     coord_t segment_dist = vSize(make_point(chain.back()) - closest.p());
                     assert(segment_dist <= max_stitch_distance + 10);
                     const size_t old_size = chain.size();
-                    if (closest.point_idx == 0)
+                    if (closest.point_idx_ == 0)
                     {
-                        auto start_pos = (*closest.polygons)[closest.poly_idx].begin();
+                        auto start_pos = (*closest.polygons_)[closest.poly_idx_].begin();
                         if (segment_dist < snap_distance)
                         {
                             ++start_pos;
                         }
-                        chain.insert(chain.end(), start_pos, (*closest.polygons)[closest.poly_idx].end());
+                        chain.insert(chain.end(), start_pos, (*closest.polygons_)[closest.poly_idx_].end());
                     }
                     else
                     {
-                        auto start_pos = (*closest.polygons)[closest.poly_idx].rbegin();
+                        auto start_pos = (*closest.polygons_)[closest.poly_idx_].rbegin();
                         if (segment_dist < snap_distance)
                         {
                             ++start_pos;
                         }
-                        chain.insert(chain.end(), start_pos, (*closest.polygons)[closest.poly_idx].rend());
+                        chain.insert(chain.end(), start_pos, (*closest.polygons_)[closest.poly_idx_].rend());
                     }
                     for(size_t i = old_size; i < chain.size(); ++i) //Update chain length.
                     {
                         chain_length += vSize(chain[i] - chain[i - 1]);
                     }
-                    should_close = should_close & !isOdd((*closest.polygons)[closest.poly_idx]); //If we connect an even to an odd line, we should no longer try to close it.
-                    assert( ! processed[closest.poly_idx]);
-                    processed[closest.poly_idx] = true;
+                    should_close = should_close & !isOdd((*closest.polygons_)[closest.poly_idx_]); //If we connect an even to an odd line, we should no longer try to close it.
+                    assert( ! processed[closest.poly_idx_]);
+                    processed[closest.poly_idx_] = true;
                 }
 
                 if (closest_is_closing_polygon)

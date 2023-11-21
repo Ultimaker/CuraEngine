@@ -466,7 +466,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
             std::function<bool(const PolygonsPointIndex&)> line_processor
                 = [close_to, _dest_point, &boundary_crossing_point, &dist2_score, &dest_part_poly_indices](const PolygonsPointIndex& boundary_segment)
             {
-                if (dest_part_poly_indices.find(boundary_segment.poly_idx) == dest_part_poly_indices.end())
+                if (dest_part_poly_indices.find(boundary_segment.poly_idx_) == dest_part_poly_indices.end())
                 { // we're not looking at a polygon from the dest_part
                     return true; // a.k.a. continue;
                 }
@@ -475,7 +475,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
                 if (dist2_score_here < dist2_score)
                 {
                     dist2_score = dist2_score_here;
-                    boundary_crossing_point = ClosestPolygonPoint(closest_here, boundary_segment.point_idx, boundary_segment.getPolygon(), boundary_segment.poly_idx);
+                    boundary_crossing_point = ClosestPolygonPoint(closest_here, boundary_segment.point_idx_, boundary_segment.getPolygon(), boundary_segment.poly_idx_);
                 }
                 return true;
             };

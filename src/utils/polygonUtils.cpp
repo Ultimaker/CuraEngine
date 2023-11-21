@@ -31,17 +31,17 @@ const std::function<int(Point)> PolygonUtils::no_penalty_function = [](Point)
 
 int64_t PolygonUtils::segmentLength(PolygonsPointIndex start, PolygonsPointIndex end)
 {
-    assert(start.poly_idx == end.poly_idx);
+    assert(start.poly_idx_ == end.poly_idx_);
     int64_t segment_length = 0;
     Point prev_vert = start.p();
-    ConstPolygonRef poly = (*start.polygons)[start.poly_idx];
+    ConstPolygonRef poly = (*start.polygons_)[start.poly_idx_];
     for (unsigned int point_idx = 1; point_idx <= poly.size(); point_idx++)
     {
-        unsigned int vert_idx = (start.point_idx + point_idx) % poly.size();
+        unsigned int vert_idx = (start.point_idx_ + point_idx) % poly.size();
         Point vert = poly[vert_idx];
         segment_length += vSize(vert - prev_vert);
 
-        if (vert_idx == end.point_idx)
+        if (vert_idx == end.point_idx_)
         { // break at the end of the loop, so that [end] and [start] may be the same
             return segment_length;
         }
@@ -53,14 +53,14 @@ int64_t PolygonUtils::segmentLength(PolygonsPointIndex start, PolygonsPointIndex
 
 void PolygonUtils::spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, unsigned int n_dots, std::vector<ClosestPolygonPoint>& result)
 {
-    assert(start.poly_idx == end.poly_idx);
+    assert(start.poly_idx_ == end.poly_idx_);
     int64_t segment_length = segmentLength(start, end);
 
-    ConstPolygonRef poly = (*start.polygons)[start.poly_idx];
+    ConstPolygonRef poly = (*start.polygons_)[start.poly_idx_];
     unsigned int n_dots_in_between = n_dots;
     if (start == end)
     {
-        result.emplace_back(start.p(), start.point_idx, poly);
+        result.emplace_back(start.p(), start.point_idx_, poly);
         n_dots_in_between--; // generate one less below, because we already pushed a point to the result
     }
 
@@ -78,7 +78,7 @@ void PolygonUtils::spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, 
 
         for (; dist_past_vert_to_insert_point < p0p1_length && n_points_generated < n_dots_in_between; dist_past_vert_to_insert_point += wipe_point_dist)
         {
-            result.emplace_back(p0 + normal(p0p1, dist_past_vert_to_insert_point), vert.point_idx, poly);
+            result.emplace_back(p0 + normal(p0p1, dist_past_vert_to_insert_point), vert.point_idx_, poly);
             n_points_generated++;
         }
         dist_past_vert_to_insert_point -= p0p1_length;
@@ -1013,9 +1013,9 @@ std::optional<ClosestPolygonPoint>
     PolygonsPointIndex best_point_poly_idx(nullptr, NO_INDEX, NO_INDEX);
     for (PolygonsPointIndex& point_poly_index : near_lines)
     {
-        ConstPolygonRef poly = polygons[point_poly_index.poly_idx];
-        const Point& p1 = poly[point_poly_index.point_idx];
-        const Point& p2 = poly[(point_poly_index.point_idx + 1) % poly.size()];
+        ConstPolygonRef poly = polygons[point_poly_index.poly_idx_];
+        const Point& p1 = poly[point_poly_index.point_idx_];
+        const Point& p2 = poly[(point_poly_index.point_idx_ + 1) % poly.size()];
 
         Point closest_here = LinearAlg2D::getClosestOnLineSegment(from, p1, p2);
         int64_t dist2_score = vSize2(from - closest_here) + penalty_function(closest_here);
@@ -1026,13 +1026,13 @@ std::optional<ClosestPolygonPoint>
             best_point_poly_idx = point_poly_index;
         }
     }
-    if (best_point_poly_idx.poly_idx == NO_INDEX)
+    if (best_point_poly_idx.poly_idx_ == NO_INDEX)
     {
         return std::optional<ClosestPolygonPoint>();
     }
     else
     {
-        return std::optional<ClosestPolygonPoint>(std::in_place, best, best_point_poly_idx.point_idx, polygons[best_point_poly_idx.poly_idx], best_point_poly_idx.poly_idx);
+        return std::optional<ClosestPolygonPoint>(std::in_place, best, best_point_poly_idx.point_idx_, polygons[best_point_poly_idx.poly_idx_], best_point_poly_idx.poly_idx_);
     }
 }
 
@@ -1497,14 +1497,14 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Polygons& thiss)
             Point& pt = thiss[poly_idx][point_idx];
             for (const auto& line : query_grid->getNearby(pt, epsilon * 2))
             {
-                const size_t line_next_idx = (line.point_idx + 1) % thiss[line.poly_idx].size();
-                if (poly_idx == line.poly_idx && (point_idx == line.point_idx || point_idx == line_next_idx))
+                const size_t line_next_idx = (line.point_idx_ + 1) % thiss[line.poly_idx_].size();
+                if (poly_idx == line.poly_idx_ && (point_idx == line.point_idx_ || point_idx == line_next_idx))
                 {
                     continue;
                 }
 
-                const Point& a = thiss[line.poly_idx][line.point_idx];
-                const Point& b = thiss[line.poly_idx][line_next_idx];
+                const Point& a = thiss[line.poly_idx_][line.point_idx_];
+                const Point& b = thiss[line.poly_idx_][line_next_idx];
 
                 if (half_epsilon_sqrd >= vSize2(pt - LinearAlg2D::getClosestOnLineSegment(pt, a, b)))
                 {

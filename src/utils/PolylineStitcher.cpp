@@ -12,7 +12,7 @@ namespace cura
 template<>
 bool PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::canReverse(const PathsPointIndex<VariableWidthLines>& ppi)
 {
-    if ((*ppi.polygons)[ppi.poly_idx].is_odd)
+    if ((*ppi.polygons_)[ppi.poly_idx_].is_odd)
     {
         return true;
     }

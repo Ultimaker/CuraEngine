@@ -45,7 +45,7 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     const bool spiralize,
     const Ratio speed_factor)
 {
-    std::vector<GCodePath>& paths = extruder_plans.back().paths;
+    std::vector<GCodePath>& paths = extruder_plans.back().paths_;
     if (paths.size() > 0 && paths.back().config == config && ! paths.back().done && paths.back().flow == flow && paths.back().width_factor == width_factor
         && paths.back().speed_factor == speed_factor && paths.back().z_offset == z_offset
         && paths.back().mesh == current_mesh) // spiralize can only change when a travel path is in between
@@ -73,7 +73,7 @@ const Polygons* LayerPlan::getCombBoundaryInside() const
 
 void LayerPlan::forceNewPathStart()
 {
-    std::vector<GCodePath>& paths = extruder_plans.back().paths;
+    std::vector<GCodePath>& paths = extruder_plans.back().paths_;
     if (paths.size() > 0)
         paths[paths.size() - 1].done = true;
 }
@@ -251,9 +251,9 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
             addTravel(end_pos); //  + extruder_offset cause it
         }
     }
-    if (extruder_plans.back().paths.empty() && extruder_plans.back().inserts.empty())
+    if (extruder_plans.back().paths_.empty() && extruder_plans.back().inserts_.empty())
     { // first extruder plan in a layer might be empty, cause it is made with the last extruder planned in the previous layer
-        extruder_plans.back().extruder_nr = extruder_nr;
+        extruder_plans.back().extruder_nr_ = extruder_nr;
     }
     extruder_plans.emplace_back(
         extruder_nr,
@@ -344,7 +344,7 @@ GCodePath& LayerPlan::addTravel(const Point& p, const bool force_retract, const 
     const Settings& mesh_or_extruder_settings = current_mesh ? current_mesh->settings : extruder->settings;
 
 
-    const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 1 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
+    const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths_.size() == 1 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
     bool bypass_combing = is_first_travel_of_extruder_after_switch && mesh_or_extruder_settings.get<bool>("retraction_hop_after_extruder_switch");
 
     const bool is_first_travel_of_layer = ! static_cast<bool>(last_planned_position);
@@ -1454,7 +1454,7 @@ void LayerPlan::spiralizeWallSlice(
         // normal slow down for quick layers mechanism can kick in and speed this layer up (because it is longer) but we prefer
         // the layer to be printed at a similar speed to the previous layer to avoid abrupt changes in extrusion rate so we slow it down
 
-        const FanSpeedLayerTimeSettings& layer_time_settings = extruder_plans.back().fan_speed_layer_time_settings;
+        const FanSpeedLayerTimeSettings& layer_time_settings = extruder_plans.back().fan_speed_layer_time_settings_;
         const double min_time = layer_time_settings.cool_min_layer_time;
         const double normal_layer_time = total_length / config.getSpeed();
 
@@ -1537,16 +1537,16 @@ void LayerPlan::spiralizeWallSlice(
 
 void ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_plans)
 {
-    const double minimalSpeed = fan_speed_layer_time_settings.cool_min_speed;
-    const double travelTime = estimates.getTravelTime();
-    const double extrudeTime = estimates.extrude_time;
+    const double minimalSpeed = fan_speed_layer_time_settings_.cool_min_speed;
+    const double travelTime = estimates_.getTravelTime();
+    const double extrudeTime = estimates_.extrude_time;
 
     const double totalTime = travelTime + extrudeTime + time_other_extr_plans;
     constexpr double epsilon = 0.01;
 
     double total_extrude_time_at_minimum_speed = 0.0;
     double total_extrude_time_at_slowest_speed = 0.0;
-    for (GCodePath& path : paths)
+    for (GCodePath& path : paths_)
     {
         total_extrude_time_at_minimum_speed += path.estimates.extrude_time_at_minimum_speed;
         total_extrude_time_at_slowest_speed += path.estimates.extrude_time_at_slowest_path_speed;
@@ -1567,13 +1567,13 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
         {
             // Even at cool min speed extrusion is not taken enough time. So speed is set to cool min speed.
             target_speed = minimalSpeed;
-            temperatureFactor = 1.0;
+            temperature_factor_ = 1.0;
 
             // Update stored naive time estimates
-            estimates.extrude_time = total_extrude_time_at_minimum_speed;
+            estimates_.extrude_time = total_extrude_time_at_minimum_speed;
             if (minTime - total_extrude_time_at_minimum_speed - travelTime > epsilon)
             {
-                extraTime = minTime - total_extrude_time_at_minimum_speed - travelTime;
+                extra_time_ = minTime - total_extrude_time_at_minimum_speed - travelTime;
             }
         }
         else if (minExtrudeTime >= total_extrude_time_at_slowest_speed && std::abs(total_extrude_time_at_minimum_speed - total_extrude_time_at_slowest_speed) >= epsilon)
@@ -1582,28 +1582,28 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
             // Linear interpolate between total_extrude_time_at_slowest_speed and total_extrude_time_at_minimum_speed
             const double factor
                 = (1 / total_extrude_time_at_minimum_speed - 1 / minExtrudeTime) / (1 / total_extrude_time_at_minimum_speed - 1 / total_extrude_time_at_slowest_speed);
-            target_speed = minimalSpeed * (1.0 - factor) + slowest_path_speed * factor;
-            temperatureFactor = 1.0 - factor;
+            target_speed = minimalSpeed * (1.0 - factor) + slowest_path_speed_ * factor;
+            temperature_factor_ = 1.0 - factor;
 
             // Update stored naive time estimates
-            estimates.extrude_time = minExtrudeTime;
+            estimates_.extrude_time = minExtrudeTime;
         }
         else
         {
             // Slowing down to the slowest_speed is sufficient to respect the minimum layer time.
             // Linear interpolate between extrudeTime and total_extrude_time_at_slowest_speed
             factor = (1 / total_extrude_time_at_slowest_speed - 1 / minExtrudeTime) / (1 / total_extrude_time_at_slowest_speed - 1 / extrudeTime);
-            slow_down_func = [&slowest_path_speed = slowest_path_speed, &factor](const GCodePath& path)
+            slow_down_func = [&slowest_path_speed = slowest_path_speed_, &factor](const GCodePath& path)
             {
                 const double target_speed = slowest_path_speed * (1.0 - factor) + (path.config.getSpeed() * path.speed_factor) * factor;
                 return std::min(target_speed / (path.config.getSpeed() * path.speed_factor), 1.0);
             };
 
             // Update stored naive time estimates
-            estimates.extrude_time = minExtrudeTime;
+            estimates_.extrude_time = minExtrudeTime;
         }
 
-        for (GCodePath& path : paths)
+        for (GCodePath& path : paths_)
         {
             if (path.isTravelPath())
             {
@@ -1618,7 +1618,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
 
 double ExtruderPlan::getRetractTime(const GCodePath& path)
 {
-    return retraction_config.distance / (path.retract ? retraction_config.speed : retraction_config.primeSpeed);
+    return retraction_config_.distance / (path.retract ? retraction_config_.speed : retraction_config_.primeSpeed);
 }
 
 std::pair<double, double> ExtruderPlan::getPointToPointTime(const Point& p0, const Point& p1, const GCodePath& path)
@@ -1631,10 +1631,10 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
 {
     Point p0 = starting_position;
 
-    const double min_path_speed = fan_speed_layer_time_settings.cool_min_speed;
-    slowest_path_speed = std::accumulate(
-        paths.begin(),
-        paths.end(),
+    const double min_path_speed = fan_speed_layer_time_settings_.cool_min_speed;
+    slowest_path_speed_ = std::accumulate(
+        paths_.begin(),
+        paths_.end(),
         std::numeric_limits<double>::max(),
         [](double value, const GCodePath& path)
         {
@@ -1642,7 +1642,7 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
         });
 
     bool was_retracted = false; // wrong assumption; won't matter that much. (TODO)
-    for (GCodePath& path : paths)
+    for (GCodePath& path : paths_)
     {
         bool is_extrusion_path = false;
         double* path_time_estimate;
@@ -1671,11 +1671,11 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
                 double retract_unretract_time;
                 if (path.retract)
                 {
-                    retract_unretract_time = retraction_config.distance / retraction_config.speed;
+                    retract_unretract_time = retraction_config_.distance / retraction_config_.speed;
                 }
                 else
                 {
-                    retract_unretract_time = retraction_config.distance / retraction_config.primeSpeed;
+                    retract_unretract_time = retraction_config_.distance / retraction_config_.primeSpeed;
                 }
                 path.estimates.retracted_travel_time += 0.5 * retract_unretract_time;
                 path.estimates.unretracted_travel_time += 0.5 * retract_unretract_time;
@@ -1689,17 +1689,17 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
                 if (length > 0)
                 {
                     path.estimates.extrude_time_at_minimum_speed += length / min_path_speed;
-                    path.estimates.extrude_time_at_slowest_path_speed += length / slowest_path_speed;
+                    path.estimates.extrude_time_at_slowest_path_speed += length / slowest_path_speed_;
                 }
-                material_estimate += length * INT2MM(layer_thickness) * INT2MM(path.config.getLineWidth());
+                material_estimate += length * INT2MM(layer_thickness_) * INT2MM(path.config.getLineWidth());
             }
             double thisTime = length / (path.config.getSpeed() * path.speed_factor);
             *path_time_estimate += thisTime;
             p0 = p1;
         }
-        estimates += path.estimates;
+        estimates_ += path.estimates;
     }
-    return estimates;
+    return estimates_;
 }
 
 void ExtruderPlan::processFanSpeedForMinimalLayerTime(Point starting_position, Duration minTime, double time_other_extr_plans)
@@ -1719,23 +1719,23 @@ void ExtruderPlan::processFanSpeedForMinimalLayerTime(Point starting_position, D
 
     */
     // interpolate fan speed (for cool_fan_full_layer and for cool_min_layer_time_fan_speed_max)
-    double totalLayerTime = estimates.getTotalTime() + time_other_extr_plans;
+    double totalLayerTime = estimates_.getTotalTime() + time_other_extr_plans;
     if (totalLayerTime < minTime)
     {
-        fan_speed = fan_speed_layer_time_settings.cool_fan_speed_max;
+        fan_speed = fan_speed_layer_time_settings_.cool_fan_speed_max;
     }
-    else if (minTime >= fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max)
+    else if (minTime >= fan_speed_layer_time_settings_.cool_min_layer_time_fan_speed_max)
     {
         // ignore gradual increase of fan speed
         return;
     }
-    else if (totalLayerTime < fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max)
+    else if (totalLayerTime < fan_speed_layer_time_settings_.cool_min_layer_time_fan_speed_max)
     {
         // when forceMinimalLayerTime didn't change the extrusionSpeedFactor, we adjust the fan speed
-        double fan_speed_diff = fan_speed_layer_time_settings.cool_fan_speed_max - fan_speed;
-        double layer_time_diff = fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max - minTime;
+        double fan_speed_diff = fan_speed_layer_time_settings_.cool_fan_speed_max - fan_speed;
+        double layer_time_diff = fan_speed_layer_time_settings_.cool_min_layer_time_fan_speed_max - minTime;
         double fraction_of_slope = (totalLayerTime - minTime) / layer_time_diff;
-        fan_speed = fan_speed_layer_time_settings.cool_fan_speed_max - fan_speed_diff * fraction_of_slope;
+        fan_speed = fan_speed_layer_time_settings_.cool_fan_speed_max - fan_speed_diff * fraction_of_slope;
     }
 }
 
@@ -1757,15 +1757,15 @@ void ExtruderPlan::processFanSpeedForFirstLayers()
                      layer nr >
 
     */
-    fan_speed = fan_speed_layer_time_settings.cool_fan_speed_min;
-    if (layer_nr < fan_speed_layer_time_settings.cool_fan_full_layer
-        && fan_speed_layer_time_settings.cool_fan_full_layer > 0 // don't apply initial layer fan speed speedup if disabled.
-        && ! is_raft_layer // don't apply initial layer fan speed speedup to raft, but to model layers
+    fan_speed = fan_speed_layer_time_settings_.cool_fan_speed_min;
+    if (layer_nr_ < fan_speed_layer_time_settings_.cool_fan_full_layer
+        && fan_speed_layer_time_settings_.cool_fan_full_layer > 0 // don't apply initial layer fan speed speedup if disabled.
+        && ! is_raft_layer_ // don't apply initial layer fan speed speedup to raft, but to model layers
     )
     {
         // Slow down the fan on the layers below the [cool_fan_full_layer], where layer 0 is speed 0.
-        fan_speed = fan_speed_layer_time_settings.cool_fan_speed_0
-                  + (fan_speed - fan_speed_layer_time_settings.cool_fan_speed_0) * std::max(LayerIndex(0), layer_nr) / fan_speed_layer_time_settings.cool_fan_full_layer;
+        fan_speed = fan_speed_layer_time_settings_.cool_fan_speed_0
+                  + (fan_speed - fan_speed_layer_time_settings_.cool_fan_speed_0) * std::max(LayerIndex(0), layer_nr_) / fan_speed_layer_time_settings_.cool_fan_full_layer;
     }
 }
 
@@ -1776,9 +1776,9 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
                                         extruder_plans,
                                         [](const ExtruderPlan& a, const ExtruderPlan& b)
                                         {
-                                            return a.extruder_nr < b.extruder_nr;
+                                            return a.extruder_nr_ < b.extruder_nr_;
                                         })
-                                        ->extruder_nr;
+                                        ->extruder_nr_;
     Point starting_position_last_extruder;
     unsigned int last_extruder_idx;
     double other_extr_plan_time = 0.0;
@@ -1791,23 +1791,23 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
 
             // Precalculate the time estimates. Don't call this function twice, since it is works cumulative.
             extruder_plan.computeNaiveTimeEstimates(starting_position);
-            if (extruder_plan.extruder_nr == last_extruder_nr)
+            if (extruder_plan.extruder_nr_ == last_extruder_nr)
             {
                 starting_position_last_extruder = starting_position;
                 last_extruder_idx = extr_plan_idx;
             }
             else
             {
-                other_extr_plan_time += extruder_plan.estimates.getTotalTime();
+                other_extr_plan_time += extruder_plan.estimates_.getTotalTime();
             }
-            maximum_cool_min_layer_time = std::max(maximum_cool_min_layer_time, extruder_plan.fan_speed_layer_time_settings.cool_min_layer_time);
+            maximum_cool_min_layer_time = std::max(maximum_cool_min_layer_time, extruder_plan.fan_speed_layer_time_settings_.cool_min_layer_time);
 
             // Modify fan speeds for the first layer(s)
             extruder_plan.processFanSpeedForFirstLayers();
 
-            if (! extruder_plan.paths.empty() && ! extruder_plan.paths.back().points.empty())
+            if (! extruder_plan.paths_.empty() && ! extruder_plan.paths_.back().points.empty())
             {
-                starting_position = extruder_plan.paths.back().points.back();
+                starting_position = extruder_plan.paths_.back().points.back();
             }
         }
     }
@@ -1857,13 +1857,13 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
 
         const RetractionAndWipeConfig* retraction_config
-            = current_mesh ? &current_mesh->retraction_wipe_config : &storage.retraction_wipe_config_per_extruder[extruder_plan.extruder_nr];
+            = current_mesh ? &current_mesh->retraction_wipe_config : &storage.retraction_wipe_config_per_extruder[extruder_plan.extruder_nr_];
         coord_t z_hop_height = retraction_config->retraction_config.zHop;
 
-        if (extruder_nr != extruder_plan.extruder_nr)
+        if (extruder_nr != extruder_plan.extruder_nr_)
         {
             int prev_extruder = extruder_nr;
-            extruder_nr = extruder_plan.extruder_nr;
+            extruder_nr = extruder_plan.extruder_nr_;
 
             gcode.ResetLastEValueAfterWipe(prev_extruder);
 
@@ -1880,13 +1880,13 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             { // require printing temperature to be met
                 constexpr bool wait = true;
-                gcode.writeTemperatureCommand(extruder_nr, extruder_plan.required_start_temperature, wait);
+                gcode.writeTemperatureCommand(extruder_nr, extruder_plan.required_start_temperature_, wait);
             }
 
-            if (extruder_plan.prev_extruder_standby_temp)
+            if (extruder_plan.prev_extruder_standby_temp_)
             { // turn off previous extruder
                 constexpr bool wait = false;
-                Temperature prev_extruder_temp = *extruder_plan.prev_extruder_standby_temp;
+                Temperature prev_extruder_temp = *extruder_plan.prev_extruder_standby_temp_;
                 const LayerIndex prev_layer_nr = (extruder_plan_idx == 0) ? layer_nr - 1 : layer_nr;
                 if (prev_layer_nr == storage.max_print_height_per_extruder[prev_extruder])
                 {
@@ -1897,7 +1897,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             { // require printing temperature to be met
                 constexpr bool wait = true;
-                gcode.writeTemperatureCommand(extruder_nr, extruder_plan.required_start_temperature, wait);
+                gcode.writeTemperatureCommand(extruder_nr, extruder_plan.required_start_temperature_, wait);
             }
 
             const double extra_prime_amount = retraction_config->retraction_config.distance ? retraction_config->switch_extruder_extra_prime_amount : 0;
@@ -1905,7 +1905,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         }
         else if (extruder_plan_idx == 0)
         {
-            const WipeScriptConfig& wipe_config = storage.retraction_wipe_config_per_extruder[extruder_plan.extruder_nr].wipe_config;
+            const WipeScriptConfig& wipe_config = storage.retraction_wipe_config_per_extruder[extruder_plan.extruder_nr_].wipe_config;
             if (wipe_config.clean_between_layers && gcode.getExtrudedVolumeAfterLastWipe(extruder_nr) > wipe_config.max_extrusion_mm3)
             {
                 gcode.insertWipeScript(wipe_config);
@@ -1921,9 +1921,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             }
         }
         gcode.writeFanCommand(extruder_plan.getFanSpeed());
-        std::vector<GCodePath>& paths = extruder_plan.paths;
+        std::vector<GCodePath>& paths = extruder_plan.paths_;
 
-        extruder_plan.inserts.sort();
+        extruder_plan.inserts_.sort();
 
         const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
 
@@ -2168,7 +2168,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             }
         } // paths for this extruder /\  .
 
-        if (extruder.settings.get<bool>("cool_lift_head") && extruder_plan.extraTime > 0.0)
+        if (extruder.settings.get<bool>("cool_lift_head") && extruder_plan.extra_time_ > 0.0)
         {
             gcode.writeComment("Small layer, adding delay");
             const RetractionAndWipeConfig& retraction_config
@@ -2179,13 +2179,13 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 // or do it anyway when we switch extruder in-place
                 gcode.writeZhopStart(MM2INT(3.0));
             }
-            gcode.writeDelay(extruder_plan.extraTime);
+            gcode.writeDelay(extruder_plan.extra_time_);
         }
 
         extruder_plan.handleAllRemainingInserts(gcode);
         scripta::log(
             "extruder_plan_2",
-            extruder_plan.paths,
+            extruder_plan.paths_,
             SectionType::NA,
             layer_nr,
             scripta::CellVDI{ "flow", &GCodePath::flow },
@@ -2217,7 +2217,7 @@ void LayerPlan::overrideFanSpeeds(double speed)
 
 bool LayerPlan::makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigned int path_idx)
 {
-    std::vector<GCodePath>& paths = extruder_plans[extruder_plan_idx].paths;
+    std::vector<GCodePath>& paths = extruder_plans[extruder_plan_idx].paths_;
     for (unsigned int path_idx2 = path_idx + 1; path_idx2 < paths.size(); path_idx2++)
     {
         if (paths[path_idx2].getExtrusionMM3perMM() > 0)
@@ -2231,7 +2231,7 @@ bool LayerPlan::makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigne
         return false; // TODO: check first extruder of the next layer! (generally only on the last layer of the second extruder)
     }
 
-    if (extruder_plans[extruder_plan_idx + 1].extruder_nr != extruder_plans[extruder_plan_idx].extruder_nr)
+    if (extruder_plans[extruder_plan_idx + 1].extruder_nr_ != extruder_plans[extruder_plan_idx].extruder_nr_)
     {
         return true;
     }
@@ -2249,13 +2249,13 @@ bool LayerPlan::writePathWithCoasting(
     const std::function<void(const double, const int64_t)> insertTempOnTime)
 {
     ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
-    const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr];
+    const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr_];
     const double coasting_volume = extruder.settings.get<double>("coasting_volume");
     if (coasting_volume <= 0)
     {
         return false;
     }
-    const std::vector<GCodePath>& paths = extruder_plan.paths;
+    const std::vector<GCodePath>& paths = extruder_plan.paths_;
     const GCodePath& path = paths[path_idx];
     if (path_idx + 1 >= paths.size() || (path.isTravelPath() || ! paths[path_idx + 1].config.isTravelPath()) || path.points.size() < 2)
     {
@@ -2377,7 +2377,7 @@ void LayerPlan::applyModifyPlugin()
     {
         scripta::log(
             "extruder_plan_0",
-            extruder_plan.paths,
+            extruder_plan.paths_,
             SectionType::NA,
             layer_nr,
             scripta::CellVDI{ "flow", &GCodePath::flow },
@@ -2393,11 +2393,11 @@ void LayerPlan::applyModifyPlugin()
             scripta::CellVDI{ "is_travel_path", &GCodePath::isTravelPath },
             scripta::CellVDI{ "extrusion_mm3_per_mm", &GCodePath::getExtrusionMM3perMM });
 
-        extruder_plan.paths = slots::instance().modify<plugins::v0::SlotID::GCODE_PATHS_MODIFY>(extruder_plan.paths, extruder_plan.extruder_nr, layer_nr);
+        extruder_plan.paths_ = slots::instance().modify<plugins::v0::SlotID::GCODE_PATHS_MODIFY>(extruder_plan.paths_, extruder_plan.extruder_nr_, layer_nr);
 
         scripta::log(
             "extruder_plan_1",
-            extruder_plan.paths,
+            extruder_plan.paths_,
             SectionType::NA,
             layer_nr,
             scripta::CellVDI{ "flow", &GCodePath::flow },
@@ -2420,7 +2420,7 @@ void LayerPlan::applyBackPressureCompensation()
     for (auto& extruder_plan : extruder_plans)
     {
         const Ratio back_pressure_compensation
-            = Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr].settings.get<Ratio>("speed_equalize_flow_width_factor");
+            = Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr_].settings.get<Ratio>("speed_equalize_flow_width_factor");
         if (back_pressure_compensation != 0.0)
         {
             extruder_plan.applyBackPressureCompensation(back_pressure_compensation);
@@ -2455,7 +2455,7 @@ void LayerPlan::setSkirtBrimIsPlanned(unsigned int extruder_nr)
 
 size_t LayerPlan::getExtruder() const
 {
-    return extruder_plans.back().extruder_nr;
+    return extruder_plans.back().extruder_nr_;
 }
 
 void LayerPlan::setBridgeWallMask(const Polygons& polys)
