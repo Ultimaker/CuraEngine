@@ -804,9 +804,9 @@ protected:
         const Point next = findNeighbourPoint(path, i, bounded_distance, segments_sizes);
         const Point previous = findNeighbourPoint(path, i, -bounded_distance, segments_sizes);
 
-        float angle = LinearAlg2D::getAngleLeft(previous, here, next) - M_PI;
+        float angle = LinearAlg2D::getAngleLeft(previous, here, next) - std::numbers::pi_v<float>;
 
-        return angle / M_PI;
+        return angle / std::numbers::pi_v<float>;
     }
 
     /*!

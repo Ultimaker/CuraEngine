@@ -671,7 +671,7 @@ public:
      * \param a_step The angle between segments of the circle.
      * \return A new Polygon containing the circle.
      */
-    static Polygon makeCircle(const Point mid, const coord_t radius, const AngleRadians a_step = M_PI / 8);
+    static Polygon makeCircle(const Point mid, const coord_t radius, const AngleRadians a_step = std::numbers::pi / 8);
 
     /*!
      * Connect all polygons to their holes using zero widths hole channels, so that the polygons and their outlines are connected together

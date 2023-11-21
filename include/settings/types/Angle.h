@@ -6,9 +6,9 @@
 
 #include <cmath> //For fmod.
 
-#include "../../utils/math.h" //For M_PI.
+#include "../../utils/math.h" //For PI.
 
-#define TAU (2.0 * M_PI)
+#define TAU (2.0 * std::numbers::pi)
 
 namespace cura
 {
