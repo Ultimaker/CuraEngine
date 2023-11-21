@@ -8,7 +8,8 @@ from conan.errors import ConanInvalidConfiguration
 from conan.tools.files import copy, mkdir
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
-from conan.tools.scm import Version
+from conan.tools.scm import Version, Git
+
 
 required_conan_version = ">=1.58.0 <2.0.0"
 
@@ -42,7 +43,8 @@ class CuraEngineConan(ConanFile):
 
     def set_version(self):
         if not self.version:
-            self.version = "5.7.0-alpha"
+            git = Git(self)
+            self.version = f"5.7.0-alpha+{git.get_commit()[:6]}"
 
     def export_sources(self):
         copy(self, "CMakeLists.txt", self.recipe_folder, self.export_sources_folder)

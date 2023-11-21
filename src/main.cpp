@@ -9,10 +9,13 @@
 
 #ifdef SENTRY_URL
 #include <filesystem>
+#include <semver.hpp>
 #include <sentry.h>
 #include <string>
 
-#include <fmt/format.h>
+#include <range/v3/algorithm/contains.hpp>
+#include <range/v3/to_container.hpp>
+#include <range/v3/view/take_while.hpp>
 
 #include "utils/format/filesystem_path.h"
 #endif
@@ -72,11 +75,39 @@ int main(int argc, char** argv)
 #elif defined(__APPLE__) && defined(__MACH__)
         const auto config_path = std::filesystem::path(fmt::format("{}/Library/Application Support/cura/.sentry-native", std::getenv("HOME")));
 #elif defined(_WIN64)
-        const auto config_path = std::filesystem::path(fmt::format("{}/cura/.sentry-native", std::getenv("APPDATA")));
+        const auto config_path = std::filesystem::path(fmt::format("{}\\cura\\.sentry-native", std::getenv("APPDATA")));
 #endif
         spdlog::info("Sentry config path: {}", config_path);
-        sentry_options_set_database_path(options, config_path.native().c_str());
-        sentry_options_set_release(options, fmt::format("curaengine@{}", CURA_ENGINE_VERSION).c_str());
+        sentry_options_set_database_path(options, static_cast<const char*>(std::filesystem::absolute(config_path).native().c_str()));
+        constexpr std::string_view cura_engine_version{ CURA_ENGINE_VERSION };
+        const auto version = semver::from_string(
+            cura_engine_version
+            | ranges::views::take_while(
+                [](const auto& c)
+                {
+                    return c != '+';
+                })
+            | ranges::to<std::string>);
+        if (ranges::contains(cura_engine_version, '+') || version.prerelease_type == semver::prerelease::alpha)
+        {
+            // Not a production build
+            sentry_options_set_environment(options, "development");
+            sentry_options_set_release(
+                options,
+                fmt::format(
+                    "curaengine@{}.{}.{}-{}.{}",
+                    version.major,
+                    version.minor,
+                    version.patch,
+                    version.prerelease_type == semver::prerelease::alpha ? "alpha" : "beta",
+                    version.prerelease_number)
+                    .c_str());
+        }
+        else
+        {
+            sentry_options_set_environment(options, "production");
+            sentry_options_set_release(options, fmt::format("curaengine@{}", version.to_string()).c_str());
+        }
         sentry_init(options);
     }
 #endif
