@@ -449,9 +449,9 @@ public:
     [[nodiscard]] inline size_t getEffectiveDTT(const TreeSupportElement& elem) const
     {
         return
-            elem.effective_radius_height < increase_radius_until_dtt ?
-            (elem.distance_to_top < increase_radius_until_dtt ? elem.distance_to_top : increase_radius_until_dtt) :
-            elem.effective_radius_height;
+            elem.effective_radius_height_ < increase_radius_until_dtt ?
+            (elem.distance_to_top_ < increase_radius_until_dtt ? elem.distance_to_top_ : increase_radius_until_dtt) :
+            elem.effective_radius_height_;
     }
 
     /*!
@@ -480,7 +480,7 @@ public:
      */
     [[nodiscard]] inline coord_t getRadius(const TreeSupportElement& elem) const
     {
-        return getRadius(getEffectiveDTT(elem), (elem.isResultOnLayerSet() || !support_rests_on_model) && elem.to_buildplate ? elem.buildplate_radius_increases : 0);
+        return getRadius(getEffectiveDTT(elem), (elem.isResultOnLayerSet() || !support_rests_on_model) && elem.to_buildplate_ ? elem.buildplate_radius_increases_ : 0);
     }
 
     /*!
@@ -490,7 +490,7 @@ public:
      */
     [[nodiscard]] inline coord_t getCollisionRadius(const TreeSupportElement& elem) const
     {
-        return getRadius(elem.effective_radius_height, elem.buildplate_radius_increases);
+        return getRadius(elem.effective_radius_height_, elem.buildplate_radius_increases_);
     }
 
     /*!

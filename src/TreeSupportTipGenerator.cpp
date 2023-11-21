@@ -662,11 +662,11 @@ void TreeSupportTipGenerator::addPointAsInfluenceArea(
                 skip_ovalisation,
                 support_tree_limit_branch_reach,
                 support_tree_branch_reach_limit);
-            elem->area = new Polygons(area);
+            elem->area_ = new Polygons(area);
 
             for (Point p : additional_ovalization_targets)
             {
-                elem->additional_ovalization_targets.emplace_back(p);
+                elem->additional_ovalization_targets_.emplace_back(p);
             }
 
             move_bounds[insert_layer].emplace(elem);
@@ -803,18 +803,18 @@ void TreeSupportTipGenerator::removeUselessAddedPoints(
 
                 for (TreeSupportElement* elem : move_bounds[layer_idx])
                 {
-                    if (roof_on_layer.inside(elem->result_on_layer)) // Remove branches that start inside of support interface
+                    if (roof_on_layer.inside(elem->result_on_layer_)) // Remove branches that start inside of support interface
                     {
                         to_be_removed.emplace_back(elem);
                     }
-                    else if (elem->supports_roof)
+                    else if (elem->supports_roof_)
                     {
-                        Point from = elem->result_on_layer;
+                        Point from = elem->result_on_layer_;
                         PolygonUtils::moveInside(roof_on_layer_above, from);
                         // Remove branches should have interface above them, but dont. Should never happen.
                         if (roof_on_layer_above.empty()
-                            || (! roof_on_layer_above.inside(elem->result_on_layer)
-                                && vSize2(from - elem->result_on_layer) > config.getRadius(0) * config.getRadius(0) + FUDGE_LENGTH * FUDGE_LENGTH))
+                            || (! roof_on_layer_above.inside(elem->result_on_layer_)
+                                && vSize2(from - elem->result_on_layer_) > config.getRadius(0) * config.getRadius(0) + FUDGE_LENGTH * FUDGE_LENGTH))
                         {
                             to_be_removed.emplace_back(elem);
                             spdlog::warn("Removing already placed tip that should have roof above it?");
@@ -825,7 +825,7 @@ void TreeSupportTipGenerator::removeUselessAddedPoints(
                 for (auto elem : to_be_removed)
                 {
                     move_bounds[layer_idx].erase(elem);
-                    delete elem->area;
+                    delete elem->area_;
                     delete elem;
                 }
             }
