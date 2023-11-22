@@ -5,9 +5,9 @@
 #define PROGRESS_H
 
 #include <array>
+#include <optional>
 #include <string>
 #include <string_view>
-#include <optional>
 
 #include "utils/gettime.h"
 

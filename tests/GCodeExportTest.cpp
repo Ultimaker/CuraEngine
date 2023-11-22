@@ -3,6 +3,8 @@
 
 #include "gcodeExport.h" // The unit under test.
 
+#include <gtest/gtest.h>
+
 #include "Application.h" // To set up a slice with settings.
 #include "RetractionConfig.h" // For extruder switch tests.
 #include "Slice.h" // To set up a slice with settings.
@@ -10,8 +12,6 @@
 #include "arcus/MockCommunication.h" // To prevent calls to any missing Communication class.
 #include "utils/Coord_t.h"
 #include "utils/Date.h" // To check the Griffin header.
-
-#include <gtest/gtest.h>
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
@@ -459,16 +459,23 @@ TEST_F(GCodeExportTest, SwitchExtruderSimple)
 
     scene.extruders.emplace_back(0, nullptr);
     ExtruderTrain& train1 = scene.extruders.back();
-    train1.settings_.add("machine_extruder_start_code", ";FIRST EXTRUDER START G-CODE!");
-    train1.settings_.add("machine_extruder_end_code", ";FIRST EXTRUDER END G-CODE!");
-    train1.settings_.add("machine_firmware_retract", "True");
-    train1.settings_.add("retraction_enable", "True");
+
+    train1.settings.add("machine_extruder_start_code", ";FIRST EXTRUDER START G-CODE!");
+    train1.settings.add("machine_extruder_end_code", ";FIRST EXTRUDER END G-CODE!");
+    train1.settings.add("machine_extruder_start_code_duration", "0.0");
+    train1.settings.add("machine_extruder_end_code_duration", "0.0");
+    train1.settings.add("machine_firmware_retract", "True");
+    train1.settings.add("retraction_enable", "True");
+
     scene.extruders.emplace_back(1, nullptr);
     ExtruderTrain& train2 = scene.extruders.back();
-    train2.settings_.add("machine_extruder_start_code", ";SECOND EXTRUDER START G-CODE!");
-    train2.settings_.add("machine_extruder_end_code", ";SECOND EXTRUDER END G-CODE!");
-    train2.settings_.add("machine_firmware_retract", "True");
-    train2.settings_.add("retraction_enable", "True");
+
+    train2.settings.add("machine_extruder_start_code", ";SECOND EXTRUDER START G-CODE!");
+    train2.settings.add("machine_extruder_end_code", ";SECOND EXTRUDER END G-CODE!");
+    train2.settings.add("machine_extruder_start_code_duration", "0.0");
+    train2.settings.add("machine_extruder_end_code_duration", "0.0");
+    train2.settings.add("machine_firmware_retract", "True");
+    train2.settings.add("retraction_enable", "True");
 
     RetractionConfig no_retraction;
     no_retraction.distance = 0;
