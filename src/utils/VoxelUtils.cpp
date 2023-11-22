@@ -9,11 +9,11 @@ namespace cura
 {
 
 DilationKernel::DilationKernel(GridPoint3 kernel_size, DilationKernel::Type type)
-    : kernel_size(kernel_size)
-    , type(type)
+    : kernel_size_(kernel_size)
+    , type_(type)
 {
     coord_t mult = kernel_size.x_ * kernel_size.y_ * kernel_size.z_; // multiplier for division to avoid rounding and to avoid use of floating point numbers
-    relative_cells.reserve(mult);
+    relative_cells_.reserve(mult);
     GridPoint3 half_kernel = kernel_size / 2;
 
     GridPoint3 start = -half_kernel;
@@ -40,7 +40,7 @@ DilationKernel::DilationKernel(GridPoint3 kernel_size, DilationKernel::Type type
                         continue; // don't consider this cell
                     }
                 }
-                relative_cells.emplace_back(x, y, z);
+                relative_cells_.emplace_back(x, y, z);
             }
         }
     }
@@ -116,7 +116,7 @@ bool VoxelUtils::walkPolygons(const Polygons& polys, coord_t z, const std::funct
 bool VoxelUtils::walkDilatedPolygons(const Polygons& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
     Polygons translated = polys;
-    const Point3 translation = (Point3(1, 1, 1) - kernel.kernel_size % 2) * cell_size_ / 2;
+    const Point3 translation = (Point3(1, 1, 1) - kernel.kernel_size_ % 2) * cell_size_ / 2;
     if (translation.x_ && translation.y_)
     {
         translated.translate(Point(translation.x_, translation.y_));
@@ -152,7 +152,7 @@ bool VoxelUtils::_walkAreas(const Polygons& polys, coord_t z, const std::functio
 bool VoxelUtils::walkDilatedAreas(const Polygons& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
     Polygons translated = polys;
-    const Point3 translation = (Point3(1, 1, 1) - kernel.kernel_size % 2) * cell_size_ / 2 // offset half a cell when using a n even kernel
+    const Point3 translation = (Point3(1, 1, 1) - kernel.kernel_size_ % 2) * cell_size_ / 2 // offset half a cell when using a n even kernel
                              - cell_size_ / 2; // offset half a cell so that the dots of spreadDotsArea are centered on the middle of the cell isntead of the lower corners.
     if (translation.x_ && translation.y_)
     {
@@ -165,7 +165,7 @@ std::function<bool(GridPoint3)> VoxelUtils::dilate(const DilationKernel& kernel,
 {
     return [&process_cell_func, &kernel](GridPoint3 loc)
     {
-        for (const GridPoint3& rel : kernel.relative_cells)
+        for (const GridPoint3& rel : kernel.relative_cells_)
         {
             bool continue_ = process_cell_func(loc + rel);
             if (! continue_)

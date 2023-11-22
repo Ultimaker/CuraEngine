@@ -25,8 +25,8 @@ namespace cura
 {
 
 CommandLine::CommandLine(const std::vector<std::string>& arguments)
-    : arguments(arguments)
-    , last_shown_progress(0)
+    : arguments_(arguments)
+    , last_shown_progress_(0)
 {
 }
 
@@ -67,7 +67,7 @@ void CommandLine::setLayerForSend(const LayerIndex::value_type&)
 
 bool CommandLine::hasSlice() const
 {
-    return ! arguments.empty();
+    return ! arguments_.empty();
 }
 
 bool CommandLine::isSequential() const
@@ -101,7 +101,7 @@ void CommandLine::sendPrintTimeMaterialEstimates() const
 void CommandLine::sendProgress(double progress) const
 {
     const unsigned int rounded_amount = 100 * progress;
-    if (last_shown_progress == rounded_amount) // No need to send another tiny update step.
+    if (last_shown_progress_ == rounded_amount) // No need to send another tiny update step.
     {
         return;
     }
@@ -114,9 +114,9 @@ void CommandLine::sliceNext()
 
     // Count the number of mesh groups to slice for.
     size_t num_mesh_groups = 1;
-    for (size_t argument_index = 2; argument_index < arguments.size(); argument_index++)
+    for (size_t argument_index = 2; argument_index < arguments_.size(); argument_index++)
     {
-        if (arguments[argument_index].find("--next") == 0) // Starts with "--next".
+        if (arguments_[argument_index].find("--next") == 0) // Starts with "--next".
         {
             num_mesh_groups++;
         }
@@ -128,16 +128,16 @@ void CommandLine::sliceNext()
     size_t mesh_group_index = 0;
     Settings* last_settings = &slice.scene.settings;
 
-    slice.scene.extruders.reserve(arguments.size() >> 1); // Allocate enough memory to prevent moves.
+    slice.scene.extruders.reserve(arguments_.size() >> 1); // Allocate enough memory to prevent moves.
     slice.scene.extruders.emplace_back(0, &slice.scene.settings); // Always have one extruder.
     ExtruderTrain* last_extruder = &slice.scene.extruders[0];
 
     bool force_read_parent = false;
     bool force_read_nondefault = false;
 
-    for (size_t argument_index = 2; argument_index < arguments.size(); argument_index++)
+    for (size_t argument_index = 2; argument_index < arguments_.size(); argument_index++)
     {
-        std::string argument = arguments[argument_index];
+        std::string argument = arguments_[argument_index];
         if (argument[0] == '-') // Starts with "-".
         {
             if (argument[1] == '-') // Starts with "--".
@@ -185,7 +185,7 @@ void CommandLine::sliceNext()
             }
             else // Starts with "-" but not with "--".
             {
-                argument = arguments[argument_index];
+                argument = arguments_[argument_index];
                 switch (argument[1])
                 {
                 case 'v':
@@ -207,12 +207,12 @@ void CommandLine::sliceNext()
                 case 'j':
                 {
                     argument_index++;
-                    if (argument_index >= arguments.size())
+                    if (argument_index >= arguments_.size())
                     {
                         spdlog::error("Missing JSON file with -j argument.");
                         exit(1);
                     }
-                    argument = arguments[argument_index];
+                    argument = arguments_[argument_index];
                     if (loadJSON(argument, *last_settings, force_read_parent, force_read_nondefault))
                     {
                         spdlog::error("Failed to load JSON file: {}", argument);
@@ -250,12 +250,12 @@ void CommandLine::sliceNext()
                 case 'l':
                 {
                     argument_index++;
-                    if (argument_index >= arguments.size())
+                    if (argument_index >= arguments_.size())
                     {
                         spdlog::error("Missing model file with -l argument.");
                         exit(1);
                     }
-                    argument = arguments[argument_index];
+                    argument = arguments_[argument_index];
 
                     const Matrix4x3D transformation = last_settings->get<Matrix4x3D>("mesh_rotation_matrix"); // The transformation applied to the model when loaded.
 
@@ -273,12 +273,12 @@ void CommandLine::sliceNext()
                 case 'o':
                 {
                     argument_index++;
-                    if (argument_index >= arguments.size())
+                    if (argument_index >= arguments_.size())
                     {
                         spdlog::error("Missing output file with -o argument.");
                         exit(1);
                     }
-                    argument = arguments[argument_index];
+                    argument = arguments_[argument_index];
                     if (! FffProcessor::getInstance()->setTargetFile(argument.c_str()))
                     {
                         spdlog::error("Failed to open {} for output.", argument.c_str());
@@ -296,12 +296,12 @@ void CommandLine::sliceNext()
                 {
                     // Parse the given setting and store it.
                     argument_index++;
-                    if (argument_index >= arguments.size())
+                    if (argument_index >= arguments_.size())
                     {
                         spdlog::error("Missing setting name and value with -s argument.");
                         exit(1);
                     }
-                    argument = arguments[argument_index];
+                    argument = arguments_[argument_index];
                     const size_t value_position = argument.find("=");
                     std::string key = argument.substr(0, value_position);
                     if (value_position == std::string::npos)
@@ -333,7 +333,7 @@ void CommandLine::sliceNext()
         }
     }
 
-    arguments.clear(); // We've processed all arguments now.
+    arguments_.clear(); // We've processed all arguments now.
 
 #ifndef DEBUG
     try

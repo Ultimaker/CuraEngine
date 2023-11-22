@@ -986,7 +986,7 @@ std::vector<SlicerLayer> Slicer::buildLayersWithHeight(
     coord_t adjusted_layer_offset = initial_layer_thickness;
     if (use_variable_layer_heights)
     {
-        layers_res[0].z = (*adaptive_layers)[0].z_position;
+        layers_res[0].z = (*adaptive_layers)[0].z_position_;
     }
     else if (slicing_tolerance == SlicingTolerance::MIDDLE)
     {
@@ -999,7 +999,7 @@ std::vector<SlicerLayer> Slicer::buildLayersWithHeight(
     {
         if (use_variable_layer_heights)
         {
-            layers_res[layer_nr].z = (*adaptive_layers)[layer_nr].z_position;
+            layers_res[layer_nr].z = (*adaptive_layers)[layer_nr].z_position_;
         }
         else
         {

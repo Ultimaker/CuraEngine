@@ -68,12 +68,12 @@ public:
                 Polygon result_line;
                 for (ExtrusionJunction junction : line)
                 {
-                    result_line.add(junction.p);
+                    result_line.add(junction.p_);
                 }
 
-                if (line.is_closed)
+                if (line.is_closed_)
                 {
-                    result_line.add(line[0].p);
+                    result_line.add(line[0].p_);
                 }
 
                 result.add(result_line);

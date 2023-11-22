@@ -47,22 +47,22 @@ public:
 
     iterator begin()
     {
-        return m_grid.begin();
+        return grid_.begin();
     }
 
     iterator end()
     {
-        return m_grid.end();
+        return grid_.end();
     }
 
     const_iterator begin() const
     {
-        return m_grid.begin();
+        return grid_.begin();
     }
 
     const_iterator end() const
     {
-        return m_grid.end();
+        return grid_.end();
     }
 
     /*! \brief Returns all data within radius of query_pt.
@@ -134,7 +134,7 @@ protected:
     bool processFromCell(const GridPoint& grid_pt, const std::function<bool(const Elem&)>& process_func) const;
 
     /*! \brief Map from grid locations (GridPoint) to elements (Elem). */
-    GridMap m_grid;
+    GridMap grid_;
 };
 
 
@@ -146,17 +146,17 @@ SGI_THIS::SparseGrid(coord_t cell_size, size_t elem_reserve, double max_load_fac
     : SquareGrid(cell_size)
 {
     // Must be before the reserve call.
-    m_grid.max_load_factor(max_load_factor);
+    grid_.max_load_factor(max_load_factor);
     if (elem_reserve != 0U)
     {
-        m_grid.reserve(elem_reserve);
+        grid_.reserve(elem_reserve);
     }
 }
 
 SGI_TEMPLATE
 bool SGI_THIS::processFromCell(const GridPoint& grid_pt, const std::function<bool(const Elem&)>& process_func) const
 {
-    auto grid_range = m_grid.equal_range(grid_pt);
+    auto grid_range = grid_.equal_range(grid_pt);
     for (auto iter = grid_range.first; iter != grid_range.second; ++iter)
     {
         if (! process_func(iter->second))

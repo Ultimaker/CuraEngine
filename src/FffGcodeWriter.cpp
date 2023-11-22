@@ -1457,7 +1457,7 @@ std::vector<size_t> FffGcodeWriter::calculateMeshOrder(const SliceDataStorage& s
         if (mesh.getExtruderIsUsed(extruder_nr))
         {
             const Mesh& mesh_data = mesh_group->meshes[mesh_idx];
-            const Point3 middle = (mesh_data.getAABB().min + mesh_data.getAABB().max) / 2;
+            const Point3 middle = (mesh_data.getAABB().min_ + mesh_data.getAABB().max_) / 2;
             mesh_idx_order_optimizer.addItem(Point(middle.x_, middle.y_), mesh_idx);
         }
     }
@@ -2057,7 +2057,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
                 {
                     start_paths = &wall_tool_paths[rand() % wall_tool_paths.size()];
                 }
-                near_start_location = (*start_paths)[0][0].junctions[0].p;
+                near_start_location = (*start_paths)[0][0].junctions_[0].p_;
             }
         }
         if (walls_generated)
@@ -2521,7 +2521,7 @@ bool FffGcodeWriter::processInsets(
             const auto point_view = ranges::views::transform(
                 [](auto extrusion_junction)
                 {
-                    return extrusion_junction.p;
+                    return extrusion_junction.p_;
                 });
 
             for (const auto& path : part.wall_toolpaths)
@@ -2595,7 +2595,7 @@ std::optional<Point> FffGcodeWriter::getSeamAvoidingLocation(const Polygons& fil
     // create a vector from the middle of the BB whose length is such that it can be rotated
     // around the middle of the BB and the end will always be a long way outside of the part's outline
     // and rotate the vector so that it is normal to the skin angle
-    const Point vec = rot.apply(Point(0, vSize(skin_part_bb.max - bb_middle) * 100));
+    const Point vec = rot.apply(Point(0, vSize(skin_part_bb.max_ - bb_middle) * 100));
     // find the vertex in the outline that is closest to the end of the rotated vector
     const PolygonsPointIndex pa = PolygonUtils::findNearestVert(bb_middle + vec, filling_part);
     // and find another outline vertex, this time using the vector + 180 deg

@@ -112,8 +112,8 @@ TEST(AABB3DTest, TestInclude)
     AABB3D empty;
     box2.include(empty);
 
-    EXPECT_EQ(box2.min, a) << "Inclusion of an 'empty' or negative box should not change the minimum of the original.";
-    EXPECT_EQ(box2.max, b) << "Inclusion of an 'empty' or negative box should not change the maximum of the original.";
+    EXPECT_EQ(box2.min_, a) << "Inclusion of an 'empty' or negative box should not change the minimum of the original.";
+    EXPECT_EQ(box2.max_, b) << "Inclusion of an 'empty' or negative box should not change the maximum of the original.";
 }
 
 TEST(AABB3DTest, TestTranslate)

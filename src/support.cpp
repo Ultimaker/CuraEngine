@@ -485,8 +485,8 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
         case BuildPlateShape::ELLIPTIC:
         {
             // Construct an ellipse to approximate the build volume.
-            const coord_t width = storage.machine_size.max.x_ - storage.machine_size.min.x_;
-            const coord_t depth = storage.machine_size.max.y_ - storage.machine_size.min.y_;
+            const coord_t width = storage.machine_size.max_.x_ - storage.machine_size.min_.x_;
+            const coord_t depth = storage.machine_size.max_.y_ - storage.machine_size.min_.y_;
             Polygon border_circle;
             constexpr unsigned int circle_resolution = 50;
             for (unsigned int i = 0; i < circle_resolution; i++)
@@ -730,8 +730,8 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
             }
             const coord_t aabb_expansion = infill_settings.get<coord_t>("support_offset");
             AABB3D aabb_here(mesh.bounding_box);
-            aabb_here.include(aabb_here.min - Point3(-aabb_expansion, -aabb_expansion, 0));
-            aabb_here.include(aabb_here.max + Point3(-aabb_expansion, -aabb_expansion, 0));
+            aabb_here.include(aabb_here.min_ - Point3(-aabb_expansion, -aabb_expansion, 0));
+            aabb_here.include(aabb_here.max_ + Point3(-aabb_expansion, -aabb_expansion, 0));
             aabb.include(aabb_here);
         }
 

@@ -7,10 +7,10 @@ namespace cura
 {
 
 ZSeamConfig::ZSeamConfig(const EZSeamType type, const Point pos, const EZSeamCornerPrefType corner_pref, const coord_t simplify_curvature)
-: type(type)
-, pos(pos)
-, corner_pref(corner_pref)
-, simplify_curvature(simplify_curvature)
+: type_(type)
+, pos_(pos)
+, corner_pref_(corner_pref)
+, simplify_curvature_(simplify_curvature)
 {
 }
 

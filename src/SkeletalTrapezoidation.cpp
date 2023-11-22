@@ -2024,40 +2024,40 @@ void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, c
 
     std::vector<VariableWidthLines>& generated_toolpaths = *p_generated_toolpaths;
 
-    size_t inset_idx = from.perimeter_index;
+    size_t inset_idx = from.perimeter_index_;
     if (inset_idx >= generated_toolpaths.size())
     {
         generated_toolpaths.resize(inset_idx + 1);
     }
-    assert((generated_toolpaths[inset_idx].empty() || ! generated_toolpaths[inset_idx].back().junctions.empty()) && "empty extrusion lines should never have been generated");
-    if (generated_toolpaths[inset_idx].empty() || generated_toolpaths[inset_idx].back().is_odd != is_odd
-        || generated_toolpaths[inset_idx].back().junctions.back().perimeter_index != inset_idx // inset_idx should always be consistent
+    assert((generated_toolpaths[inset_idx].empty() || ! generated_toolpaths[inset_idx].back().junctions_.empty()) && "empty extrusion lines should never have been generated");
+    if (generated_toolpaths[inset_idx].empty() || generated_toolpaths[inset_idx].back().is_odd_ != is_odd
+        || generated_toolpaths[inset_idx].back().junctions_.back().perimeter_index_ != inset_idx // inset_idx should always be consistent
     )
     {
         force_new_path = true;
     }
-    if (! force_new_path && shorterThen(generated_toolpaths[inset_idx].back().junctions.back().p - from.p, 10)
-        && std::abs(generated_toolpaths[inset_idx].back().junctions.back().w - from.w) < 10 && ! from_is_3way // force new path at 3way intersection
+    if (! force_new_path && shorterThen(generated_toolpaths[inset_idx].back().junctions_.back().p_ - from.p_, 10)
+        && std::abs(generated_toolpaths[inset_idx].back().junctions_.back().w_ - from.w_) < 10 && ! from_is_3way // force new path at 3way intersection
     )
     {
-        generated_toolpaths[inset_idx].back().junctions.push_back(to);
+        generated_toolpaths[inset_idx].back().junctions_.push_back(to);
     }
     else if (
-        ! force_new_path && shorterThen(generated_toolpaths[inset_idx].back().junctions.back().p - to.p, 10)
-        && std::abs(generated_toolpaths[inset_idx].back().junctions.back().w - to.w) < 10 && ! to_is_3way // force new path at 3way intersection
+        ! force_new_path && shorterThen(generated_toolpaths[inset_idx].back().junctions_.back().p_ - to.p_, 10)
+        && std::abs(generated_toolpaths[inset_idx].back().junctions_.back().w_ - to.w_) < 10 && ! to_is_3way // force new path at 3way intersection
     )
     {
         if (! is_odd)
         {
             spdlog::error("Reversing even wall line causes it to be printed CCW instead of CW!");
         }
-        generated_toolpaths[inset_idx].back().junctions.push_back(from);
+        generated_toolpaths[inset_idx].back().junctions_.push_back(from);
     }
     else
     {
         generated_toolpaths[inset_idx].emplace_back(inset_idx, is_odd);
-        generated_toolpaths[inset_idx].back().junctions.push_back(from);
-        generated_toolpaths[inset_idx].back().junctions.push_back(to);
+        generated_toolpaths[inset_idx].back().junctions_.push_back(from);
+        generated_toolpaths[inset_idx].back().junctions_.push_back(to);
     }
 };
 
@@ -2111,7 +2111,7 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
             if (edge_to_peak->prev_)
             {
                 LineJunctions from_prev_junctions = *edge_to_peak->prev_->data_.getExtrusionJunctions();
-                while (! from_junctions.empty() && ! from_prev_junctions.empty() && from_junctions.back().perimeter_index <= from_prev_junctions.front().perimeter_index)
+                while (! from_junctions.empty() && ! from_prev_junctions.empty() && from_junctions.back().perimeter_index_ <= from_prev_junctions.front().perimeter_index_)
                 {
                     from_junctions.pop_back();
                 }
@@ -2126,7 +2126,7 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
             if (edge_from_peak->next_)
             {
                 LineJunctions to_next_junctions = *edge_from_peak->next_->twin_->data_.getExtrusionJunctions();
-                while (! to_junctions.empty() && ! to_next_junctions.empty() && to_junctions.back().perimeter_index <= to_next_junctions.front().perimeter_index)
+                while (! to_junctions.empty() && ! to_next_junctions.empty() && to_junctions.back().perimeter_index_ <= to_next_junctions.front().perimeter_index_)
                 {
                     to_junctions.pop_back();
                 }
@@ -2152,19 +2152,19 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
             {
                 ExtrusionJunction& from = from_junctions[from_junctions.size() - 1 - junction_rev_idx];
                 ExtrusionJunction& to = to_junctions[to_junctions.size() - 1 - junction_rev_idx];
-                assert(from.perimeter_index == to.perimeter_index);
-                if (from.perimeter_index != to.perimeter_index)
+                assert(from.perimeter_index_ == to.perimeter_index_);
+                if (from.perimeter_index_ != to.perimeter_index_)
                 {
-                    spdlog::warn("Connecting two perimeters with different indices! Perimeter {} and {}", from.perimeter_index, to.perimeter_index);
+                    spdlog::warn("Connecting two perimeters with different indices! Perimeter {} and {}", from.perimeter_index_, to.perimeter_index_);
                 }
                 const bool from_is_odd = quad_start->to_->data_.bead_count_ > 0 && quad_start->to_->data_.bead_count_ % 2 == 1 // quad contains single bead segment
                                       && quad_start->to_->data_.transition_ratio_ == 0 // We're not in a transition
                                       && junction_rev_idx == segment_count - 1 // Is single bead segment
-                                      && shorterThen(from.p - quad_start->to_->p_, 5);
+                                      && shorterThen(from.p_ - quad_start->to_->p_, 5);
                 const bool to_is_odd = quad_end->from_->data_.bead_count_ > 0 && quad_end->from_->data_.bead_count_ % 2 == 1 // quad contains single bead segment
                                     && quad_end->from_->data_.transition_ratio_ == 0 // We're not in a transition
                                     && junction_rev_idx == segment_count - 1 // Is single bead segment
-                                    && shorterThen(to.p - quad_end->from_->p_, 5);
+                                    && shorterThen(to.p_ - quad_end->from_->p_, 5);
                 const bool is_odd_segment = from_is_odd && to_is_odd;
 
                 if (is_odd_segment && passed_odd_edges.count(quad_start->next_->twin_) > 0) // Only generate toolpath for odd segments once
@@ -2215,7 +2215,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             for (coord_t segment = 0; segment < n_segments; segment++)
             {
                 double a = 2.0 * std::numbers::pi / n_segments * segment;
-                line.junctions.emplace_back(node.p_ + Point(r * cos(a), r * sin(a)), width, inset_index);
+                line.junctions_.emplace_back(node.p_ + Point(r * cos(a), r * sin(a)), width, inset_index);
             }
         }
     }

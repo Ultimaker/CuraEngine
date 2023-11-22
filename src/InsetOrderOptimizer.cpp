@@ -3,11 +3,8 @@
 
 #include "InsetOrderOptimizer.h"
 
-#include "ExtruderTrain.h"
-#include "FffGcodeWriter.h"
-#include "LayerPlan.h"
-#include "utils/views/convert.h"
-#include "utils/views/dfs.h"
+#include <iterator>
+#include <tuple>
 
 #include <range/v3/algorithm/max.hpp>
 #include <range/v3/algorithm/sort.hpp>
@@ -25,8 +22,11 @@
 #include <range/v3/view/zip.hpp>
 #include <spdlog/spdlog.h>
 
-#include <iterator>
-#include <tuple>
+#include "ExtruderTrain.h"
+#include "FffGcodeWriter.h"
+#include "LayerPlan.h"
+#include "utils/views/convert.h"
+#include "utils/views/dfs.h"
 
 namespace rg = ranges;
 namespace rv = ranges::views;
@@ -101,7 +101,7 @@ bool InsetOrderOptimizer::addToLayer()
 
     for (const auto& line : walls_to_be_added)
     {
-        if (line.is_closed)
+        if (line.is_closed_)
         {
             order_optimizer.addPolygon(&line);
         }
@@ -118,14 +118,14 @@ bool InsetOrderOptimizer::addToLayer()
         if (path.vertices_->empty())
             continue;
 
-        const bool is_outer_wall = path.vertices_->inset_idx == 0; // or thin wall 'gap filler'
-        const bool is_gap_filler = path.vertices_->is_odd;
+        const bool is_outer_wall = path.vertices_->inset_idx_ == 0; // or thin wall 'gap filler'
+        const bool is_gap_filler = path.vertices_->is_odd_;
         const GCodePathConfig& non_bridge_config = is_outer_wall ? inset_0_non_bridge_config_ : inset_X_non_bridge_config_;
         const GCodePathConfig& bridge_config = is_outer_wall ? inset_0_bridge_config_ : inset_X_bridge_config_;
         const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist_ : wall_x_wipe_dist_;
         const bool retract_before = is_outer_wall ? retract_before_outer_wall_ : false;
 
-        const bool revert_inset = alternate_walls && (path.vertices_->inset_idx % 2);
+        const bool revert_inset = alternate_walls && (path.vertices_->inset_idx_ % 2);
         const bool revert_layer = alternate_walls && (layer_nr_ % 2);
         const bool backwards = path.backwards_ != (revert_inset != revert_layer);
         const size_t start_index = (backwards != path.backwards_) ? path.vertices_->size() - (path.start_vertex_ + 1) : path.start_vertex_;
@@ -163,7 +163,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                                 return LineLoc{
                                     .line = line,
                                     .poly = poly,
-                                    .area = line->is_closed ? poly.area() : 0.0,
+                                    .area = line->is_closed_ ? poly.area() : 0.0,
                                 };
                             })
                       | rg::to_vector;
@@ -226,7 +226,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
 
                 // find hole roots (defined by a positive area in clipper1), these are leaves of the tree structure
                 // as odd walls are also leaves we filter them out by adding a non-zero area check
-                if (current_node != root && graph.count(current_node) == 1 && current_node->line->is_closed && current_node->area > 0)
+                if (current_node != root && graph.count(current_node) == 1 && current_node->line->is_closed_ && current_node->area > 0)
                 {
                     hole_roots.push_back(current_node);
                 }
@@ -297,21 +297,21 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getInsetOrder(const auto& i
 
     for (const auto& line : input)
     {
-        if (line.is_odd)
+        if (line.is_odd_)
         {
-            if (line.inset_idx >= fillers_by_inset.size())
+            if (line.inset_idx_ >= fillers_by_inset.size())
             {
-                fillers_by_inset.resize(line.inset_idx + 1);
+                fillers_by_inset.resize(line.inset_idx_ + 1);
             }
-            fillers_by_inset[line.inset_idx].emplace_back(&line);
+            fillers_by_inset[line.inset_idx_].emplace_back(&line);
         }
         else
         {
-            if (line.inset_idx >= walls_by_inset.size())
+            if (line.inset_idx_ >= walls_by_inset.size())
             {
-                walls_by_inset.resize(line.inset_idx + 1);
+                walls_by_inset.resize(line.inset_idx_ + 1);
             }
-            walls_by_inset[line.inset_idx].emplace_back(&line);
+            walls_by_inset[line.inset_idx_].emplace_back(&line);
         }
     }
     for (size_t inset_idx = 0; inset_idx + 1 < walls_by_inset.size(); inset_idx++)

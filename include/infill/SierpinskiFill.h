@@ -308,7 +308,7 @@ protected:
     };
 
 
-    bool dithering; //!< Whether to oscilate between neighboring realizable density values when the requested density lies in between two possible density values.
+    bool dithering_; //!< Whether to oscilate between neighboring realizable density values when the requested density lies in between two possible density values.
     /*!
      * Whether to diffuse errors caused by constraints between consecutive cells.
      * Whether to center a stairway of depths around the contrast edge,
@@ -321,24 +321,24 @@ protected:
      * no constraint error        constraint error
      * diffusion                  diffusion
      */
-    bool constraint_error_diffusion;
+    bool constraint_error_diffusion_;
 
     //! Whether to use the constraint errors when performing dithering.
-    bool use_errors_in_dithering = true;
+    bool use_errors_in_dithering_ = true;
 
 
-    const DensityProvider& density_provider; //!< function which determines the requested infill density of a triangle defined by two consecutive edges.
-    AABB aabb; //!< The square which is the basis of the subdivision of the area on which the curve is based.
-    coord_t line_width; //!< The line width of the fill lines
-    int max_depth; //!< Maximum recursion depth of the fractal
+    const DensityProvider& density_provider_; //!< function which determines the requested infill density of a triangle defined by two consecutive edges.
+    AABB aabb_; //!< The square which is the basis of the subdivision of the area on which the curve is based.
+    coord_t line_width_; //!< The line width of the fill lines
+    int max_depth_; //!< Maximum recursion depth of the fractal
 
-    SierpinskiTriangle root; //! The (root of the) tree containing all possible triangles of the subdivision.
+    SierpinskiTriangle root_; //! The (root of the) tree containing all possible triangles of the subdivision.
 
     /*!
      * The triangles of the subdivision which are crossed by the fractal.
      * This sequence is created by \ref createLowerBoundSequence and updated by \ref diffuseError
      */
-    std::list<SierpinskiTriangle*> sequence;
+    std::list<SierpinskiTriangle*> sequence_;
 
 
     /*!

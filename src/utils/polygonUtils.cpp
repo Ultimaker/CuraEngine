@@ -655,17 +655,19 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(
     }
 
     // try once more with half the preferred distance inside
-    int64_t max_dist2_here = std::numeric_limits<int64_t>::max(); // we already concluded we are close enough to the closest_poly when we obtained the closest_polygon_point
-    moveInside2(*loc_to_line_polygons, closest_poly, from, preferred_dist_inside / 2, max_dist2_here, loc_to_line_grid, penalty_function);
-    bool is_inside = closest_poly.inside(from) == is_outside_boundary; // inside a hole is outside the part
-    if (is_inside == (preferred_dist_inside > 0))
-    { // we ended up on the right side of the polygon
-        // assume we didn't overshoot another polygon in [polygons]
-        return closest_polygon_point;
+    {
+        int64_t max_dist2_here = std::numeric_limits<int64_t>::max(); // we already concluded we are close enough to the closest_poly when we obtained the closest_polygon_point
+        moveInside2(*loc_to_line_polygons, closest_poly, from, preferred_dist_inside / 2, max_dist2_here, loc_to_line_grid, penalty_function);
+        bool is_inside = closest_poly.inside(from) == is_outside_boundary; // inside a hole is outside the part
+        if (is_inside == (preferred_dist_inside > 0))
+        { // we ended up on the right side of the polygon
+            // assume we didn't overshoot another polygon in [polygons]
+            return closest_polygon_point;
+        }
     }
+
     // if above fails, we perform an offset and sit directly on the offsetted polygon (and keep the result from the above moveInside)
     // The offset is performed on the closest reference polygon in order to save computation time
-    else
     {
         const coord_t offset = (is_outside_boundary) ? -preferred_dist_inside : preferred_dist_inside; // perform inset on outer boundary and outset on holes
         Polygons insetted
@@ -1058,7 +1060,7 @@ std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>>
             Point x = p0 + normal(p0p1, middle_point_nr * grid_size);
             dist_to_p1 -= grid_size;
 
-            std::optional<ClosestPolygonPoint> best_here = findClose(x, destination, destination_loc_to_line, penalty_function);
+            best_here = findClose(x, destination, destination_loc_to_line, penalty_function);
             if (best_here)
             {
                 ret.push_back(std::make_pair(ClosestPolygonPoint(x, p0_idx, from), *best_here));
@@ -1336,8 +1338,8 @@ bool PolygonUtils::polygonOutlinesAdjacent(const ConstPolygonRef inner_poly, con
     // Heuristic check if their AABBs are near first.
     AABB inner_aabb(inner_poly);
     AABB outer_aabb(outer_poly);
-    inner_aabb.max += Point(max_gap, max_gap); // Expand one of them by way of a "distance" by checking intersection with the expanded rectangle.
-    inner_aabb.min -= Point(max_gap, max_gap);
+    inner_aabb.max_ += Point(max_gap, max_gap); // Expand one of them by way of a "distance" by checking intersection with the expanded rectangle.
+    inner_aabb.min_ -= Point(max_gap, max_gap);
     if (! inner_aabb.hit(outer_aabb))
     {
         return false;
@@ -1562,8 +1564,8 @@ Polygons PolygonUtils::clipPolygonWithAABB(const Polygons& src, const AABB& aabb
 
         auto sides = [aabb](const Point& p)
         {
-            return int(p.X < aabb.min.X) * int(Side::Left) + int(p.X > aabb.max.X) * int(Side::Right) + int(p.Y < aabb.min.Y) * int(Side::Bottom)
-                 + int(p.Y > aabb.max.Y) * int(Side::Top);
+            return int(p.X < aabb.min_.X) * int(Side::Left) + int(p.X > aabb.max_.X) * int(Side::Right) + int(p.Y < aabb.min_.Y) * int(Side::Bottom)
+                 + int(p.Y > aabb.max_.Y) * int(Side::Top);
         };
 
         int sides_prev = sides(path.back());

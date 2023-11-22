@@ -117,7 +117,7 @@ int bridgeAngle(
         // It needs to be shrunk slightly so that the vertices of the skin polygon that would otherwise fall exactly on
         // the air boundary do appear to be supported
 
-        const int bb_max_dim = std::max(boundary_box.max.X - boundary_box.min.X, boundary_box.max.Y - boundary_box.min.Y);
+        const int bb_max_dim = std::max(boundary_box.max_.X - boundary_box.min_.X, boundary_box.max_.Y - boundary_box.min_.Y);
         const Polygons air_below(bb_poly.offset(bb_max_dim).difference(prev_layer_outline).offset(-10));
 
         Polygons skin_perimeter_lines;

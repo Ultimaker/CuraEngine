@@ -51,7 +51,7 @@ Point PolygonConnector::getPosition(const Point& vertex) const
 
 Point PolygonConnector::getPosition(const ExtrusionJunction& junction) const
 {
-    return junction.p;
+    return junction.p_;
 }
 
 coord_t PolygonConnector::getWidth(const Point&) const
@@ -61,7 +61,7 @@ coord_t PolygonConnector::getWidth(const Point&) const
 
 coord_t PolygonConnector::getWidth(const ExtrusionJunction& junction) const
 {
-    return junction.w;
+    return junction.w_;
 }
 
 void PolygonConnector::addVertex(Polygon& polygonal, const Point& position, const coord_t) const
@@ -100,7 +100,7 @@ ExtrusionLine PolygonConnector::createEmpty<ExtrusionLine>() const
     constexpr size_t inset_index = 1; //Specialising to set inset_index to 1 instead of maximum int. Connected polys are not specific to any inset.
     constexpr bool is_odd = false;
     ExtrusionLine result(inset_index, is_odd);
-    result.is_closed = true;
+    result.is_closed_ = true;
     return result; //No copy, via RVO.
 }
 

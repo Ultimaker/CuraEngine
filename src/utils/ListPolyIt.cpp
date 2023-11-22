@@ -70,8 +70,8 @@ ListPolyIt ListPolyIt::insertPointNonDuplicate(const ListPolyIt before, const Li
     }
     else
     {
-        ListPolygon& poly = *after.poly;
-        return ListPolyIt(poly, poly.insert(after.it, to_insert));
+        ListPolygon& poly = *after.poly_;
+        return ListPolyIt(poly, poly.insert(after.it_, to_insert));
     }
 }
 

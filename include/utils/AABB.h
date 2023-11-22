@@ -17,7 +17,7 @@ class Polygons;
 class AABB
 {
 public:
-    Point min, max;
+    Point min_, max_;
 
     AABB(); //!< initializes with invalid min and max
     AABB(const Point& min, const Point& max); //!< initializes with given min and max

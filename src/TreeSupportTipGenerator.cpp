@@ -391,8 +391,8 @@ std::shared_ptr<SierpinskiFillProvider> TreeSupportTipGenerator::generateCrossFi
 
         const coord_t aabb_expansion = mesh.settings.get<coord_t>("support_offset");
         AABB3D aabb_here(mesh.bounding_box);
-        aabb_here.include(aabb_here.min - Point3(-aabb_expansion, -aabb_expansion, 0));
-        aabb_here.include(aabb_here.max + Point3(-aabb_expansion, -aabb_expansion, 0));
+        aabb_here.include(aabb_here.min_ - Point3(-aabb_expansion, -aabb_expansion, 0));
+        aabb_here.include(aabb_here.max_ + Point3(-aabb_expansion, -aabb_expansion, 0));
         aabb.include(aabb_here);
 
         const std::string cross_subdisivion_spec_image_file = mesh.settings.get<std::string>("cross_support_density_image");
@@ -664,9 +664,9 @@ void TreeSupportTipGenerator::addPointAsInfluenceArea(
                 support_tree_branch_reach_limit);
             elem->area_ = new Polygons(area);
 
-            for (Point p : additional_ovalization_targets)
+            for (Point target : additional_ovalization_targets)
             {
-                elem->additional_ovalization_targets_.emplace_back(p);
+                elem->additional_ovalization_targets_.emplace_back(target);
             }
 
             move_bounds[insert_layer].emplace(elem);
@@ -879,17 +879,16 @@ void TreeSupportTipGenerator::generateTips(
                 = relevant_forbidden.offset(EPSILON)
                       .unionPolygons(); // Prevent rounding errors down the line, points placed directly on the line of the forbidden area may not be added otherwise.
 
-            std::function<Polygons(const Polygons&, bool, LayerIndex)> generateLines = [&](const Polygons& area, bool roof, LayerIndex layer_idx)
+            std::function<Polygons(const Polygons&, bool, LayerIndex)> generateLines = [&](const Polygons& area, bool roof, LayerIndex generate_layer_idx)
             {
                 coord_t upper_line_distance = support_supporting_branch_distance;
                 coord_t line_distance = std::max(roof ? support_roof_line_distance : support_tree_branch_distance, upper_line_distance);
-
 
                 return TreeSupportUtils::generateSupportInfillLines(
                     area,
                     config,
                     roof && ! use_fake_roof,
-                    layer_idx,
+                    generate_layer_idx,
                     line_distance,
                     cross_fill_provider,
                     roof && ! use_fake_roof,

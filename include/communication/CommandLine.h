@@ -154,12 +154,12 @@ private:
     /*
      * \brief The command line arguments that the application was called with.
      */
-    std::vector<std::string> arguments;
+    std::vector<std::string> arguments_;
 
     /*
      * The last progress update that we output to stdcerr.
      */
-    unsigned int last_shown_progress;
+    unsigned int last_shown_progress_;
 
     /*
      * \brief Get the default search directories to search for definition files.

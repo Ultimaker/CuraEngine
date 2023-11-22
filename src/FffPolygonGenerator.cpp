@@ -304,8 +304,8 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
             if (use_variable_layer_heights)
             {
-                meshStorage.layers[layer_nr].printZ = adaptive_layer_heights->getLayers()->at(layer_nr).z_position;
-                meshStorage.layers[layer_nr].thickness = adaptive_layer_heights->getLayers()->at(layer_nr).layer_height;
+                meshStorage.layers[layer_nr].printZ = adaptive_layer_heights->getLayers()->at(layer_nr).z_position_;
+                meshStorage.layers[layer_nr].thickness = adaptive_layer_heights->getLayers()->at(layer_nr).layer_height_;
             }
             else
             {
@@ -1103,7 +1103,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
             std::vector<VariableWidthLines> result_paths;
             for (auto& toolpath : part.wall_toolpaths)
             {
-                if (toolpath.front().inset_idx != 0)
+                if (toolpath.front().inset_idx_ != 0)
                 {
                     result_paths.push_back(toolpath);
                     continue;
@@ -1116,7 +1116,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                     hole_area = part.print_outline.getOutsidePolygons().offset(-line_width);
                     accumulate_is_in_hole = [&hole_area](const bool& prev_result, const ExtrusionJunction& junction)
                     {
-                        return prev_result || hole_area.inside(junction.p);
+                        return prev_result || hole_area.inside(junction.p_);
                     };
                 }
                 for (auto& line : toolpath)
@@ -1128,9 +1128,9 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                     }
 
                     auto& result = result_lines.emplace_back();
-                    result.inset_idx = line.inset_idx;
-                    result.is_odd = line.is_odd;
-                    result.is_closed = line.is_closed;
+                    result.inset_idx_ = line.inset_idx_;
+                    result.is_odd_ = line.is_odd_;
+                    result.is_closed_ = line.is_closed_;
 
                     // generate points in between p0 and p1
                     int64_t dist_left_over
@@ -1138,30 +1138,30 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                     auto* p0 = &line.front();
                     for (auto& p1 : line)
                     {
-                        if (p0->p == p1.p) // avoid seams
+                        if (p0->p_ == p1.p_) // avoid seams
                         {
-                            result.emplace_back(p1.p, p1.w, p1.perimeter_index);
+                            result.emplace_back(p1.p_, p1.w_, p1.perimeter_index_);
                             continue;
                         }
 
                         // 'a' is the (next) new point between p0 and p1
-                        const Point p0p1 = p1.p - p0->p;
+                        const Point p0p1 = p1.p_ - p0->p_;
                         const int64_t p0p1_size = vSize(p0p1);
                         int64_t p0pa_dist = dist_left_over;
                         if (p0pa_dist >= p0p1_size)
                         {
-                            const Point p = p1.p - (p0p1 / 2);
-                            const double width = (p1.w * vSize(p1.p - p) + p0->w * vSize(p0->p - p)) / p0p1_size;
-                            result.emplace_back(p, width, p1.perimeter_index);
+                            const Point p = p1.p_ - (p0p1 / 2);
+                            const double width = (p1.w_ * vSize(p1.p_ - p) + p0->w_ * vSize(p0->p_ - p)) / p0p1_size;
+                            result.emplace_back(p, width, p1.perimeter_index_);
                         }
                         for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
                         {
                             const int r = rand() % (fuzziness * 2) - fuzziness;
                             const Point perp_to_p0p1 = turn90CCW(p0p1);
                             const Point fuzz = normal(perp_to_p0p1, r);
-                            const Point pa = p0->p + normal(p0p1, p0pa_dist);
-                            const double width = (p1.w * vSize(p1.p - pa) + p0->w * vSize(p0->p - pa)) / p0p1_size;
-                            result.emplace_back(pa + fuzz, width, p1.perimeter_index);
+                            const Point pa = p0->p_ + normal(p0p1, p0pa_dist);
+                            const double width = (p1.w_ * vSize(p1.p_ - pa) + p0->w_ * vSize(p0->p_ - pa)) / p0p1_size;
+                            result.emplace_back(pa + fuzz, width, p1.perimeter_index_);
                         }
                         // p0pa_dist > p0p1_size now because we broke out of the for-loop
                         dist_left_over = p0pa_dist - p0p1_size;
@@ -1171,7 +1171,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                     while (result.size() < 3)
                     {
                         size_t point_idx = line.size() - 2;
-                        result.emplace_back(line[point_idx].p, line[point_idx].w, line[point_idx].perimeter_index);
+                        result.emplace_back(line[point_idx].p_, line[point_idx].w_, line[point_idx].perimeter_index_);
                         if (point_idx == 0)
                         {
                             break;
@@ -1183,12 +1183,12 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                         result.clear();
                         for (auto& p : line)
                         {
-                            result.emplace_back(p.p, p.w, p.perimeter_index);
+                            result.emplace_back(p.p_, p.w_, p.perimeter_index_);
                         }
                     }
-                    if (line.back().p == line.front().p) // avoid seams
+                    if (line.back().p_ == line.front().p_) // avoid seams
                     {
-                        result.back().p = result.front().p;
+                        result.back().p_ = result.front().p_;
                     }
                 }
             }

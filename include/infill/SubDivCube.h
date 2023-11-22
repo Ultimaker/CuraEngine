@@ -94,14 +94,14 @@ private:
      */
     void addLineAndCombine(Polygons& group, Point from, Point to);
 
-    size_t depth; //!< the recursion depth of the cube (0 is most recursed)
-    Point3 center; //!< center location of the cube in absolute coordinates
-    std::array<std::shared_ptr<SubDivCube>, 8> children; //!< pointers to this cube's eight octree children
-    static std::vector<CubeProperties> cube_properties_per_recursion_step; //!< precomputed array of basic properties of cubes based on recursion depth.
-    static Ratio radius_multiplier; //!< multiplier for the bounding radius when determining if a cube should be subdivided
-    static Point3Matrix rotation_matrix; //!< The rotation matrix to get from axis aligned cubes to cubes standing on a corner point aligned with the infill_angle
-    static PointMatrix infill_rotation_matrix; //!< Horizontal rotation applied to infill
-    static coord_t radius_addition; //!< addition to the bounding radius when determining if a cube should be subdivided
+    size_t depth_; //!< the recursion depth of the cube (0 is most recursed)
+    Point3 center_; //!< center location of the cube in absolute coordinates
+    std::array<std::shared_ptr<SubDivCube>, 8> children_; //!< pointers to this cube's eight octree children
+    static std::vector<CubeProperties> cube_properties_per_recursion_step_; //!< precomputed array of basic properties of cubes based on recursion depth.
+    static Ratio radius_multiplier_; //!< multiplier for the bounding radius when determining if a cube should be subdivided
+    static Point3Matrix rotation_matrix_; //!< The rotation matrix to get from axis aligned cubes to cubes standing on a corner point aligned with the infill_angle
+    static PointMatrix infill_rotation_matrix_; //!< Horizontal rotation applied to infill
+    static coord_t radius_addition_; //!< addition to the bounding radius when determining if a cube should be subdivided
 };
 
 } // namespace cura

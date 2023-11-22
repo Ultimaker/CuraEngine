@@ -149,7 +149,7 @@ public:
      */
     bool isRoot() const
     {
-        return is_root;
+        return is_root_;
     }
 
     /*!
@@ -262,12 +262,12 @@ protected:
 
     void removeJunctionOverlap(Polygons& polylines, const coord_t line_width) const;
 
-    bool is_root;
-    Point p;
-    std::weak_ptr<LightningTreeNode> parent;
-    std::vector<LightningTreeNodeSPtr> children;
+    bool is_root_;
+    Point p_;
+    std::weak_ptr<LightningTreeNode> parent_;
+    std::vector<LightningTreeNodeSPtr> children_;
 
-    std::optional<Point> last_grounding_location; //<! The last known grounding location, see 'getLastGroundingLocation()'.
+    std::optional<Point> last_grounding_location_; //<! The last known grounding location, see 'getLastGroundingLocation()'.
 };
 
 } // namespace cura

@@ -928,14 +928,14 @@ void LayerPlan::addWall(
                 const ExtrusionJunction& p0 = wall[point_idx];
                 const ExtrusionJunction& p1 = wall[(point_idx + 1) % wall.size()];
 
-                if (PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.p, p1.p))
+                if (PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.p_, p1.p_))
                 {
                     // the line crosses the boundary between supported and non-supported regions so it will contain one or more bridge segments
 
                     // determine which segments of the line are bridges
 
                     Polygons line_polys;
-                    line_polys.addLine(p0.p, p1.p);
+                    line_polys.addLine(p0.p_, p1.p_);
                     constexpr bool restitch = false; // only a single line doesn't need stitching
                     line_polys = bridge_wall_mask_.intersectionPolyLines(line_polys, restitch);
 
@@ -943,10 +943,10 @@ void LayerPlan::addWall(
                     {
                         // find the bridge line segment that's nearest to p0
                         int nearest = 0;
-                        double smallest_dist2 = vSize2f(p0.p - line_polys[0][0]);
+                        double smallest_dist2 = vSize2f(p0.p_ - line_polys[0][0]);
                         for (unsigned i = 1; i < line_polys.size(); ++i)
                         {
-                            double dist2 = vSize2f(p0.p - line_polys[i][0]);
+                            double dist2 = vSize2f(p0.p_ - line_polys[i][0]);
                             if (dist2 < smallest_dist2)
                             {
                                 nearest = i;
@@ -959,14 +959,14 @@ void LayerPlan::addWall(
                         Point b0 = bridge[0];
                         Point b1 = bridge[1];
 
-                        if (vSize2f(p0.p - b1) < vSize2f(p0.p - b0))
+                        if (vSize2f(p0.p_ - b1) < vSize2f(p0.p_ - b0))
                         {
                             // swap vertex order
                             b0 = bridge[1];
                             b1 = bridge[0];
                         }
 
-                        distance_to_bridge_start += vSize(b0 - p0.p);
+                        distance_to_bridge_start += vSize(b0 - p0.p_);
 
                         const double bridge_line_len = vSize(b1 - b0);
 
@@ -982,10 +982,10 @@ void LayerPlan::addWall(
                         line_polys.remove(nearest);
                     }
                 }
-                else if (! bridge_wall_mask_.inside(p0.p, true))
+                else if (! bridge_wall_mask_.inside(p0.p_, true))
                 {
                     // none of the line is over air
-                    distance_to_bridge_start += vSize(p1.p - p0.p);
+                    distance_to_bridge_start += vSize(p1.p_ - p0.p_);
                 }
             }
 
@@ -997,7 +997,7 @@ void LayerPlan::addWall(
 
     bool first_line = true;
     const coord_t small_feature_max_length = settings.get<coord_t>("small_feature_max_length");
-    const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr_ == 0 || wall.inset_idx == 0) && cura::shorterThan(wall, small_feature_max_length);
+    const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr_ == 0 || wall.inset_idx_ == 0) && cura::shorterThan(wall, small_feature_max_length);
     Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr_ == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
     const Velocity min_speed = fan_speed_layer_time_settings_per_extruder_[getLastPlannedExtruderTrain()->extruder_nr_].cool_min_speed;
     small_feature_speed_factor = std::max((double)small_feature_speed_factor, (double)(min_speed / non_bridge_config.getSpeed()));
@@ -1019,7 +1019,7 @@ void LayerPlan::addWall(
 
         if (first_line)
         {
-            addTravel(p0.p, always_retract);
+            addTravel(p0.p_, always_retract);
             first_line = false;
         }
 
@@ -1035,8 +1035,8 @@ void LayerPlan::addWall(
         pieces we'd want to get low enough deviation, then check if each piece
         is not too short at the end.
         */
-        const coord_t delta_line_width = p1.w - p0.w;
-        const Point line_vector = p1.p - p0.p;
+        const coord_t delta_line_width = p1.w_ - p0.w_;
+        const Point line_vector = p1.p_ - p0.p_;
         const coord_t line_length = vSize(line_vector);
         /*
         Calculate how much the line would deviate from the trapezoidal shape if printed at average width.
@@ -1055,8 +1055,8 @@ void LayerPlan::addWall(
         for (size_t piece = 0; piece < pieces; ++piece)
         {
             const double average_progress = (double(piece) + 0.5) / pieces; // How far along this line to sample the line width in the middle of this piece.
-            const coord_t line_width = p0.w + average_progress * delta_line_width;
-            const Point destination = p0.p + normal(line_vector, piece_length * (piece + 1));
+            const coord_t line_width = p0.w_ + average_progress * delta_line_width;
+            const Point destination = p0.p_ + normal(line_vector, piece_length * (piece + 1));
             if (is_small_feature)
             {
                 constexpr bool spiralize = false;
@@ -1071,7 +1071,7 @@ void LayerPlan::addWall(
             }
             else
             {
-                const Point origin = p0.p + normal(line_vector, piece_length * piece);
+                const Point origin = p0.p_ + normal(line_vector, piece_length * piece);
                 addWallLine(
                     origin,
                     destination,
@@ -1110,14 +1110,14 @@ void LayerPlan::addWall(
                 int p0p1_dist = vSize(p1 - p0);
                 if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
                 {
-                    Point vector = p1.p - p0.p;
-                    Point half_way = p0.p + normal(vector, wall_0_wipe_dist - distance_traversed);
+                    Point vector = p1.p_ - p0.p_;
+                    Point half_way = p0.p_ + normal(vector, wall_0_wipe_dist - distance_traversed);
                     addTravel_simple(half_way);
                     break;
                 }
                 else
                 {
-                    addTravel_simple(p1.p);
+                    addTravel_simple(p1.p_);
                     distance_traversed += p0p1_dist;
                 }
                 p0 = p1;
@@ -1135,14 +1135,14 @@ void LayerPlan::addInfillWall(const ExtrusionLine& wall, const GCodePathConfig& 
 {
     assert(("All empty walls should have been filtered at this stage", ! wall.empty()));
     ExtrusionJunction junction{ *wall.begin() };
-    addTravel(junction.p, force_retract);
+    addTravel(junction.p_, force_retract);
 
     for (const auto& junction_n : wall)
     {
-        const Ratio width_factor{ static_cast<Ratio::value_type>(junction_n.w) / Ratio{ static_cast<Ratio::value_type>(path_config.getLineWidth()) } };
+        const Ratio width_factor{ static_cast<Ratio::value_type>(junction_n.w_) / Ratio{ static_cast<Ratio::value_type>(path_config.getLineWidth()) } };
         constexpr SpaceFillType space_fill_type = SpaceFillType::Polygons;
         constexpr Ratio flow = 1.0_r;
-        addExtrusionMove(junction_n.p, path_config, space_fill_type, flow, width_factor);
+        addExtrusionMove(junction_n.p_, path_config, space_fill_type, flow, width_factor);
         junction = junction_n;
     }
 }
@@ -2176,9 +2176,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         if (extruder.settings_.get<bool>("cool_lift_head") && extruder_plan.extra_time_ > 0.0)
         {
             gcode.writeComment("Small layer, adding delay");
-            const RetractionAndWipeConfig& retraction_config
+            const RetractionAndWipeConfig& actual_retraction_config
                 = current_mesh ? current_mesh->retraction_wipe_config : storage_.retraction_wipe_config_per_extruder[gcode.getExtruderNr()];
-            gcode.writeRetraction(retraction_config.retraction_config);
+            gcode.writeRetraction(actual_retraction_config.retraction_config);
             if (extruder_plan_idx == extruder_plans_.size() - 1 || ! extruder.settings_.get<bool>("machine_extruder_end_pos_abs"))
             { // only do the z-hop if it's the last extruder plan; otherwise it's already at the switching bay area
                 // or do it anyway when we switch extruder in-place

@@ -76,7 +76,7 @@ void SGI_THIS::insert(const Elem& elem)
     Point loc = m_locator(elem);
     GridPoint grid_loc = SparseGrid<ElemT>::toGridPoint(loc);
 
-    SparseGrid<ElemT>::m_grid.emplace(grid_loc, elem);
+    SparseGrid<ElemT>::grid_.emplace(grid_loc, elem);
 }
 
 SGI_TEMPLATE

@@ -144,11 +144,11 @@ void Infill::generate(
             small_infill_paths,
             section_type,
             layer_idx,
-            scripta::CellVDI{ "is_closed", &ExtrusionLine::is_closed },
-            scripta::CellVDI{ "is_odd", &ExtrusionLine::is_odd },
-            scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx },
-            scripta::PointVDI{ "width", &ExtrusionJunction::w },
-            scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index });
+            scripta::CellVDI{ "is_closed", &ExtrusionLine::is_closed_ },
+            scripta::CellVDI{ "is_odd", &ExtrusionLine::is_odd_ },
+            scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx_ },
+            scripta::PointVDI{ "width", &ExtrusionJunction::w_ },
+            scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index_ });
         for (const auto& small_infill_path : small_infill_paths)
         {
             toolpaths.emplace_back(small_infill_path);
@@ -207,11 +207,11 @@ void Infill::generate(
         toolpaths,
         section_type,
         layer_idx,
-        scripta::CellVDI{ "is_closed", &ExtrusionLine::is_closed },
-        scripta::CellVDI{ "is_odd", &ExtrusionLine::is_odd },
-        scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx },
-        scripta::PointVDI{ "width", &ExtrusionJunction::w },
-        scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index });
+        scripta::CellVDI{ "is_closed", &ExtrusionLine::is_closed_ },
+        scripta::CellVDI{ "is_odd", &ExtrusionLine::is_odd_ },
+        scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx_ },
+        scripta::PointVDI{ "width", &ExtrusionJunction::w_ },
+        scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index_ });
     if (connect_polygons_)
     {
         // remove too small polygons
@@ -240,11 +240,11 @@ void Infill::generate(
             toolpaths,
             section_type,
             layer_idx,
-            scripta::CellVDI{ "is_closed", &ExtrusionLine::is_closed },
-            scripta::CellVDI{ "is_odd", &ExtrusionLine::is_odd },
-            scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx },
-            scripta::PointVDI{ "width", &ExtrusionJunction::w },
-            scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index });
+            scripta::CellVDI{ "is_closed", &ExtrusionLine::is_closed_ },
+            scripta::CellVDI{ "is_odd", &ExtrusionLine::is_odd_ },
+            scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx_ },
+            scripta::PointVDI{ "width", &ExtrusionJunction::w_ },
+            scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index_ });
     }
 }
 
@@ -566,7 +566,7 @@ void Infill::addLineInfill(
     assert(! connect_lines_ && "connectLines() should add the infill lines, not addLineInfill");
 
     unsigned int scanline_idx = 0;
-    for (coord_t x = scanline_min_idx * line_distance + shift; x < boundary.max.X; x += line_distance)
+    for (coord_t x = scanline_min_idx * line_distance + shift; x < boundary.max_.X; x += line_distance)
     {
         if (scanline_idx >= cut_list.size())
         {
@@ -666,8 +666,8 @@ void Infill::generateLinearBasedInfill(
 
     AABB boundary(outline);
 
-    int scanline_min_idx = computeScanSegmentIdx(boundary.min.X - shift, line_distance);
-    int line_count = computeScanSegmentIdx(boundary.max.X - shift, line_distance) + 1 - scanline_min_idx;
+    int scanline_min_idx = computeScanSegmentIdx(boundary.min_.X - shift, line_distance);
+    int line_count = computeScanSegmentIdx(boundary.max_.X - shift, line_distance) + 1 - scanline_min_idx;
 
     std::vector<std::vector<coord_t>> cut_list(line_count); // mapping from scanline to all intersections with polygon segments
 
@@ -692,8 +692,8 @@ void Infill::generateLinearBasedInfill(
         }
     };
     std::vector<std::vector<Crossing>> crossings_per_scanline; // For each scanline, a list of crossings.
-    const int min_scanline_index = computeScanSegmentIdx(boundary.min.X - shift, line_distance) + 1;
-    const int max_scanline_index = computeScanSegmentIdx(boundary.max.X - shift, line_distance) + 1;
+    const int min_scanline_index = computeScanSegmentIdx(boundary.min_.X - shift, line_distance) + 1;
+    const int max_scanline_index = computeScanSegmentIdx(boundary.max_.X - shift, line_distance) + 1;
     crossings_per_scanline.resize(max_scanline_index - min_scanline_index);
     if (connect_lines_)
     {

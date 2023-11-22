@@ -249,18 +249,18 @@ std::string GCodeExport::getFileHeader(
 
         prefix << ";PRINT.GROUPS:" << Application::getInstance().current_slice_->scene.mesh_groups.size() << new_line_;
 
-        if (total_bounding_box_.min.x_ > total_bounding_box_.max.x_) // We haven't encountered any movement (yet). This probably means we're command-line slicing.
+        if (total_bounding_box_.min_.x_ > total_bounding_box_.max_.x_) // We haven't encountered any movement (yet). This probably means we're command-line slicing.
         {
             // Put some small default in there.
-            total_bounding_box_.min = Point3(0, 0, 0);
-            total_bounding_box_.max = Point3(10, 10, 10);
+            total_bounding_box_.min_ = Point3(0, 0, 0);
+            total_bounding_box_.max_ = Point3(10, 10, 10);
         }
-        prefix << ";PRINT.SIZE.MIN.X:" << INT2MM(total_bounding_box_.min.x_) << new_line_;
-        prefix << ";PRINT.SIZE.MIN.Y:" << INT2MM(total_bounding_box_.min.y_) << new_line_;
-        prefix << ";PRINT.SIZE.MIN.Z:" << INT2MM(total_bounding_box_.min.z_) << new_line_;
-        prefix << ";PRINT.SIZE.MAX.X:" << INT2MM(total_bounding_box_.max.x_) << new_line_;
-        prefix << ";PRINT.SIZE.MAX.Y:" << INT2MM(total_bounding_box_.max.y_) << new_line_;
-        prefix << ";PRINT.SIZE.MAX.Z:" << INT2MM(total_bounding_box_.max.z_) << new_line_;
+        prefix << ";PRINT.SIZE.MIN.X:" << INT2MM(total_bounding_box_.min_.x_) << new_line_;
+        prefix << ";PRINT.SIZE.MIN.Y:" << INT2MM(total_bounding_box_.min_.y_) << new_line_;
+        prefix << ";PRINT.SIZE.MIN.Z:" << INT2MM(total_bounding_box_.min_.z_) << new_line_;
+        prefix << ";PRINT.SIZE.MAX.X:" << INT2MM(total_bounding_box_.max_.x_) << new_line_;
+        prefix << ";PRINT.SIZE.MAX.Y:" << INT2MM(total_bounding_box_.max_.y_) << new_line_;
+        prefix << ";PRINT.SIZE.MAX.Z:" << INT2MM(total_bounding_box_.max_.z_) << new_line_;
         prefix << ";SLICE_UUID:" << slice_uuid_ << new_line_;
         prefix << ";END_OF_HEADER" << new_line_;
         break;
@@ -302,12 +302,12 @@ std::string GCodeExport::getFileHeader(
             prefix << new_line_;
             prefix << ";Layer height: " << Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<double>("layer_height") << new_line_;
         }
-        prefix << ";MINX:" << INT2MM(total_bounding_box_.min.x_) << new_line_;
-        prefix << ";MINY:" << INT2MM(total_bounding_box_.min.y_) << new_line_;
-        prefix << ";MINZ:" << INT2MM(total_bounding_box_.min.z_) << new_line_;
-        prefix << ";MAXX:" << INT2MM(total_bounding_box_.max.x_) << new_line_;
-        prefix << ";MAXY:" << INT2MM(total_bounding_box_.max.y_) << new_line_;
-        prefix << ";MAXZ:" << INT2MM(total_bounding_box_.max.z_) << new_line_;
+        prefix << ";MINX:" << INT2MM(total_bounding_box_.min_.x_) << new_line_;
+        prefix << ";MINY:" << INT2MM(total_bounding_box_.min_.y_) << new_line_;
+        prefix << ";MINZ:" << INT2MM(total_bounding_box_.min_.z_) << new_line_;
+        prefix << ";MAXX:" << INT2MM(total_bounding_box_.max_.x_) << new_line_;
+        prefix << ";MAXY:" << INT2MM(total_bounding_box_.max_.y_) << new_line_;
+        prefix << ";MAXZ:" << INT2MM(total_bounding_box_.max_.z_) << new_line_;
         prefix << ";TARGET_MACHINE.NAME:" << transliterate(machine_name_) << new_line_;
     }
 

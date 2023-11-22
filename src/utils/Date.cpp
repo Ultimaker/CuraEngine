@@ -12,25 +12,25 @@ namespace cura
 {
 
 Date::Date(int year, int month, int day)
-: year(year)
-, month(month)
-, day(day)
+: year_(year)
+, month_(month)
+, day_(day)
 {
 }
 
 std::string Date::toStringDashed()
 {
     std::ostringstream str;
-    str << std::setfill('0') << std::setw(4) << year << "-" 
-        << std::setfill('0') << std::setw(2) << month << "-" 
-        << std::setfill('0') << std::setw(2) << day; 
+    str << std::setfill('0') << std::setw(4) << year_ << "-"
+        << std::setfill('0') << std::setw(2) << month_ << "-"
+        << std::setfill('0') << std::setw(2) << day_;
     return str.str();
 }
 
 Date::Date()
-: year(-1)
-, month(-1)
-, day(-1)
+: year_(-1)
+, month_(-1)
+, day_(-1)
 {
 }
 
@@ -42,11 +42,11 @@ Date Date::getDate()
     char s_month[5];
     static const char month_names[] = "JanFebMarAprMayJunJulAugSepOctNovDec";
 
-    std::sscanf(build_date, "%s %d %d", s_month, &ret.day, &ret.year);
+    std::sscanf(build_date, "%s %d %d", s_month, &ret.day_, &ret.year_);
 
-    ret.month = (strstr(month_names, s_month) - month_names) / 3;
+    ret.month_ = (strstr(month_names, s_month) - month_names) / 3;
 
-    ret.month++; // humans count Jan as month 1, not zero
+    ret.month_++; // humans count Jan as month 1, not zero
     return ret;
 }
 

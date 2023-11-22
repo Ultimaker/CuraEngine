@@ -64,21 +64,21 @@ SVG::SVG(std::string filename, AABB aabb, Point canvas_size, ColorObject backgro
         filename,
         aabb,
         std::min(
-            static_cast<double>(canvas_size.X - canvas_size.X / 5 * 2) / static_cast<double>(aabb.max.X - aabb.min.X),
-            static_cast<double>(canvas_size.Y - canvas_size.Y / 5) / static_cast<double>(aabb.max.Y - aabb.min.Y)),
+            static_cast<double>(canvas_size.X - canvas_size.X / 5 * 2) / static_cast<double>(aabb.max_.X - aabb.min_.X),
+            static_cast<double>(canvas_size.Y - canvas_size.Y / 5) / static_cast<double>(aabb.max_.Y - aabb.min_.Y)),
         canvas_size,
         background)
 {
 }
 
 SVG::SVG(std::string filename, AABB aabb, double scale, ColorObject background)
-    : SVG(filename, aabb, scale, (aabb.max - aabb.min) * scale, background)
+    : SVG(filename, aabb, scale, (aabb.max_ - aabb.min_) * scale, background)
 {
 }
 
 SVG::SVG(std::string filename, AABB aabb, double scale, Point canvas_size, ColorObject background)
     : aabb_(aabb)
-    , aabb_size_(aabb.max - aabb.min)
+    , aabb_size_(aabb.max_ - aabb.min_)
     , canvas_size_(canvas_size)
     , scale_(scale)
     , background_(background)
@@ -100,8 +100,8 @@ SVG::SVG(std::string filename, AABB aabb, double scale, Point canvas_size, Color
     fprintf(out_, "<svg \n");
     fprintf(out_, "   xmlns=\"http://www.w3.org/2000/svg\"\n");
     fprintf(out_, "   xmlns:inkscape=\"http://www.inkscape.org/namespaces/inkscape\"\n");
-    fprintf(out_, "   height=\"%f\"\n", scale_ * static_cast<double>(aabb_.max.Y - aabb_.min.Y));
-    fprintf(out_, "   width=\"%f\"\n", scale_ * static_cast<double>(aabb_.max.X - aabb_.min.X));
+    fprintf(out_, "   height=\"%f\"\n", scale_ * static_cast<double>(aabb_.max_.Y - aabb_.min_.Y));
+    fprintf(out_, "   width=\"%f\"\n", scale_ * static_cast<double>(aabb_.max_.X - aabb_.min_.X));
     fprintf(out_, "   version=\"1.1\">\n");
     fprintf(out_, "  <g\n");
     fprintf(out_, "    inkscape:groupmode=\"layer\"\n");
@@ -142,12 +142,12 @@ void SVG::nextLayer()
 
 Point SVG::transform(const Point& p) const
 {
-    return Point(std::llrint(static_cast<double>(p.X - aabb_.min.X) * scale_), std::llrint(static_cast<double>(p.Y - aabb_.min.Y) * scale_));
+    return Point(std::llrint(static_cast<double>(p.X - aabb_.min_.X) * scale_), std::llrint(static_cast<double>(p.Y - aabb_.min_.Y) * scale_));
 }
 
 Point3D SVG::transformF(const Point& p) const
 {
-    return Point3D(static_cast<double>(p.X - aabb_.min.X) * scale_, static_cast<double>(p.Y - aabb_.min.Y) * scale_, 0.0);
+    return Point3D(static_cast<double>(p.X - aabb_.min_.X) * scale_, static_cast<double>(p.Y - aabb_.min_.Y) * scale_, 0.0);
 }
 
 void SVG::writeComment(const std::string& comment) const
@@ -435,25 +435,25 @@ void SVG::writeLines(const VariableWidthLines& lines, const ColorObject color, c
 void SVG::writeLine(const ExtrusionLine& line, const ColorObject color, const double width_factor) const
 {
     constexpr double minimum_line_width = 10; // Always have some width, otherwise some lines become completely invisible.
-    if (line.junctions.empty()) // Only draw lines that have at least 2 junctions, otherwise they are degenerate.
+    if (line.junctions_.empty()) // Only draw lines that have at least 2 junctions, otherwise they are degenerate.
     {
         return;
     }
-    ExtrusionJunction start_vertex = line.junctions[0];
-    for (size_t index = 1; index < line.junctions.size(); ++index)
+    ExtrusionJunction start_vertex = line.junctions_[0];
+    for (size_t index = 1; index < line.junctions_.size(); ++index)
     {
-        ExtrusionJunction end_vertex = line.junctions[index];
+        ExtrusionJunction end_vertex = line.junctions_[index];
 
         // Compute the corners of the trapezoid for this variable-width line segment.
-        const Point direction_vector = end_vertex.p - start_vertex.p;
+        const Point direction_vector = end_vertex.p_ - start_vertex.p_;
         const Point direction_left = turn90CCW(direction_vector);
         const Point direction_right = -direction_left; // Opposite of left.
         const Point3D start_left
-            = transformF(start_vertex.p + normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w) * width_factor))));
+            = transformF(start_vertex.p_ + normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) * width_factor))));
         const Point3D start_right
-            = transformF(start_vertex.p + normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w) * width_factor))));
-        const Point3D end_left = transformF(end_vertex.p + normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w) * width_factor))));
-        const Point3D end_right = transformF(end_vertex.p + normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w) * width_factor))));
+            = transformF(start_vertex.p_ + normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) * width_factor))));
+        const Point3D end_left = transformF(end_vertex.p_ + normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) * width_factor))));
+        const Point3D end_right = transformF(end_vertex.p_ + normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) * width_factor))));
 
         fprintf(
             out_,
@@ -475,22 +475,22 @@ void SVG::writeLine(const ExtrusionLine& line, const ColorObject color, const do
 void SVG::writeCoordinateGrid(const coord_t grid_size, const Color color, const double stroke_width, const double font_size) const
 {
     constexpr double dist_from_edge = 0.05; // As fraction of image width or height.
-    const coord_t min_x = aabb_.min.X - (aabb_.min.X % grid_size);
-    const coord_t min_y = aabb_.min.Y - (aabb_.min.Y % grid_size);
+    const coord_t min_x = aabb_.min_.X - (aabb_.min_.X % grid_size);
+    const coord_t min_y = aabb_.min_.Y - (aabb_.min_.Y % grid_size);
 
-    for (coord_t x = min_x; x < aabb_.max.X; x += grid_size)
+    for (coord_t x = min_x; x < aabb_.max_.X; x += grid_size)
     {
-        writeLine(Point(x, aabb_.min.Y), Point(x, aabb_.max.Y), color, stroke_width);
+        writeLine(Point(x, aabb_.min_.Y), Point(x, aabb_.max_.Y), color, stroke_width);
         std::stringstream ss;
         ss << INT2MM(x);
-        writeText(Point(x, std::llrint(static_cast<double>(aabb_.min.Y) + static_cast<double>(aabb_.max.Y - aabb_.min.Y) * dist_from_edge)), ss.str(), color, font_size);
+        writeText(Point(x, std::llrint(static_cast<double>(aabb_.min_.Y) + static_cast<double>(aabb_.max_.Y - aabb_.min_.Y) * dist_from_edge)), ss.str(), color, font_size);
     }
-    for (coord_t y = min_y; y < aabb_.max.Y; y += grid_size)
+    for (coord_t y = min_y; y < aabb_.max_.Y; y += grid_size)
     {
-        writeLine(Point(aabb_.min.X, y), Point(aabb_.max.Y, y), color, stroke_width);
+        writeLine(Point(aabb_.min_.X, y), Point(aabb_.max_.Y, y), color, stroke_width);
         std::stringstream ss;
         ss << INT2MM(y);
-        writeText(Point(std::llrint(static_cast<double>(aabb_.min.X) + static_cast<double>(aabb_.max.X - aabb_.min.X) * dist_from_edge), y), ss.str(), color, font_size);
+        writeText(Point(std::llrint(static_cast<double>(aabb_.min_.X) + static_cast<double>(aabb_.max_.X - aabb_.min_.X) * dist_from_edge), y), ss.str(), color, font_size);
     }
 }
 

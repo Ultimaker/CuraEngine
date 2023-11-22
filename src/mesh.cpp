@@ -79,11 +79,11 @@ void Mesh::finish()
 
 Point3 Mesh::min() const
 {
-    return aabb_.min;
+    return aabb_.min_;
 }
 Point3 Mesh::max() const
 {
-    return aabb_.max;
+    return aabb_.max_;
 }
 AABB3D Mesh::getAABB() const
 {
@@ -103,8 +103,8 @@ void Mesh::transform(const Matrix4x3D& transformation)
     {
         v.p_ = transformation.apply(v.p_);
     }
-    aabb_.min = transformation.apply(aabb_.min);
-    aabb_.max = transformation.apply(aabb_.max);
+    aabb_.min_ = transformation.apply(aabb_.min_);
+    aabb_.max_ = transformation.apply(aabb_.max_);
 }
 
 

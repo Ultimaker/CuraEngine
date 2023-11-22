@@ -48,10 +48,11 @@ struct DilationKernel
         DIAMOND,
         PRISM
     };
+    GridPoint3 kernel_size_; //!< Size of the kernel in number of voxel cells
+    Type type_;
+    std::vector<GridPoint3> relative_cells_; //!< All offset positions relative to some reference cell which is to be dilated
+
     DilationKernel(GridPoint3 kernel_size, Type type);
-    GridPoint3 kernel_size; //!< Size of the kernel in number of voxel cells
-    Type type;
-    std::vector<GridPoint3> relative_cells; //!< All offset positions relative to some reference cell which is to be dilated
 };
 
 /*!

@@ -29,6 +29,7 @@ class SparseLineGrid : public SparseGrid<ElemT>
 {
 public:
     using Elem = ElemT;
+    using typename SparseGrid<ElemT>::GridMap;
 
     /*! \brief Constructs a sparse grid with the specified cell size.
      *
@@ -71,17 +72,16 @@ SGI_TEMPLATE
 void SGI_THIS::insert(const Elem& elem)
 {
     const std::pair<Point, Point> line = m_locator(elem);
-    using GridMap = std::unordered_multimap<GridPoint, Elem>;
     // below is a workaround for the fact that lambda functions cannot access private or protected members
     // first we define a lambda which works on any GridMap and then we bind it to the actual protected GridMap of the parent class
-    std::function<bool(GridMap*, const GridPoint)> process_cell_func_ = [&elem, this](GridMap* m_grid, const GridPoint grid_loc)
+    std::function<bool(GridMap*, const GridPoint)> process_cell_func_ = [&elem, this](GridMap* grid, const GridPoint grid_loc)
     {
-        m_grid->emplace(grid_loc, elem);
+        grid->emplace(grid_loc, elem);
         return true;
     };
     using namespace std::placeholders; // for _1, _2, _3...
-    GridMap* m_grid = &(this->m_grid);
-    std::function<bool(const GridPoint)> process_cell_func(std::bind(process_cell_func_, m_grid, _1));
+    GridMap* grid = &(this->grid_);
+    std::function<bool(const GridPoint)> process_cell_func(std::bind(process_cell_func_, grid, _1));
 
     SparseGrid<ElemT>::processLineCells(line, process_cell_func);
 }
@@ -90,13 +90,13 @@ SGI_TEMPLATE
 void SGI_THIS::debugHTML(std::string filename)
 {
     AABB aabb;
-    for (std::pair<GridPoint, ElemT> cell : SparseGrid<ElemT>::m_grid)
+    for (std::pair<GridPoint, ElemT> cell : SparseGrid<ElemT>::grid_)
     {
         aabb.include(SparseGrid<ElemT>::toLowerCorner(cell.first));
         aabb.include(SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(SparseGrid<ElemT>::nonzero_sign(cell.first.X), SparseGrid<ElemT>::nonzero_sign(cell.first.Y))));
     }
     SVG svg(filename.c_str(), aabb);
-    for (std::pair<GridPoint, ElemT> cell : SparseGrid<ElemT>::m_grid)
+    for (std::pair<GridPoint, ElemT> cell : SparseGrid<ElemT>::grid_)
     {
         // doesn't draw cells at x = 0 or y = 0 correctly (should be double size)
         Point lb = SparseGrid<ElemT>::toLowerCorner(cell.first);

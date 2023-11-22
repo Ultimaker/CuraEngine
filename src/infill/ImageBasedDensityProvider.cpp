@@ -36,7 +36,7 @@ ImageBasedDensityProvider::ImageBasedDensityProvider(const std::string filename,
     }
     { // compute aabb
         Point middle = model_aabb.getMiddle();
-        Point model_aabb_size = model_aabb.max - model_aabb.min;
+        Point model_aabb_size = model_aabb.max_ - model_aabb.min_;
         Point image_size2 = Point(image_size.x_, image_size.y_);
         double aabb_aspect_ratio = double(model_aabb_size.X) / double(model_aabb_size.Y);
         double image_aspect_ratio = double(image_size.x_) / double(image_size.y_);
@@ -65,9 +65,9 @@ ImageBasedDensityProvider::~ImageBasedDensityProvider()
 
 double ImageBasedDensityProvider::operator()(const AABB3D& query_cube) const
 {
-    AABB query_box(Point(query_cube.min.x_, query_cube.min.y_), Point(query_cube.max.x_, query_cube.max.y_));
-    Point img_min = (query_box.min - print_aabb.min - Point(1, 1)) * image_size.x_ / (print_aabb.max.X - print_aabb.min.X);
-    Point img_max = (query_box.max - print_aabb.min + Point(1, 1)) * image_size.y_ / (print_aabb.max.Y - print_aabb.min.Y);
+    AABB query_box(Point(query_cube.min_.x_, query_cube.min_.y_), Point(query_cube.max_.x_, query_cube.max_.y_));
+    Point img_min = (query_box.min_ - print_aabb.min_ - Point(1, 1)) * image_size.x_ / (print_aabb.max_.X - print_aabb.min_.X);
+    Point img_max = (query_box.max_ - print_aabb.min_ + Point(1, 1)) * image_size.y_ / (print_aabb.max_.Y - print_aabb.min_.Y);
     long total_lightness = 0;
     int value_count = 0;
     for (int x = std::max((coord_t)0, img_min.X); x <= std::min((coord_t)image_size.x_ - 1, img_max.X); x++)

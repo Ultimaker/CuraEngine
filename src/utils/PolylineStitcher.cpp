@@ -12,7 +12,7 @@ namespace cura
 template<>
 bool PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::canReverse(const PathsPointIndex<VariableWidthLines>& ppi)
 {
-    if ((*ppi.polygons_)[ppi.poly_idx_].is_odd)
+    if ((*ppi.polygons_)[ppi.poly_idx_].is_odd_)
     {
         return true;
     }
@@ -31,7 +31,7 @@ bool PolylineStitcher<Polygons, Polygon, Point>::canReverse(const PathsPointInde
 template<>
 bool PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::canConnect(const ExtrusionLine& a, const ExtrusionLine& b)
 {
-    return a.is_odd == b.is_odd;
+    return a.is_odd_ == b.is_odd_;
 }
 
 template<>
@@ -43,7 +43,7 @@ bool PolylineStitcher<Polygons, Polygon, Point>::canConnect(const Polygon&, cons
 template<>
 bool PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::isOdd(const ExtrusionLine& line)
 {
-    return line.is_odd;
+    return line.is_odd_;
 }
 
 template<>

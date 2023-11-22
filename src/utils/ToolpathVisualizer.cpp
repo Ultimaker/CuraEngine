@@ -22,8 +22,8 @@ void ToolpathVisualizer::toolpaths(const std::vector<ExtrusionSegment>& all_segm
         for (size_t segment_idx = 0; segment_idx < all_segments.size(); segment_idx++)
         {
             ExtrusionSegment s = all_segments[segment_idx];
-            s.from_.w *= w / .9;
-            s.to_.w *= w / .9;
+            s.from_.w_ *= w / .9;
+            s.to_.w_ *= w / .9;
             Polygons covered = s.toPolygons(false);
             polys.add(covered);
         }
@@ -65,23 +65,23 @@ void ToolpathVisualizer::width_legend(const Polygons& input, coord_t nozzle_size
         return ss.str();
     };
     AABB aabb(input);
-    ExtrusionJunction legend_btm(Point(aabb.max.X + nozzle_size + max_dev, aabb.max.Y), nozzle_size - max_dev, 0);
-    ExtrusionJunction legend_top(Point(aabb.max.X + nozzle_size + max_dev, aabb.min.Y), nozzle_size + max_dev, 0);
-    ExtrusionJunction legend_mid((legend_top.p + legend_btm.p) / 2, (legend_top.w + legend_btm.w) / 2, 0);
-    legend_btm.p += (legend_mid.p - legend_btm.p) / 4;
-    legend_top.p += (legend_mid.p - legend_top.p) / 4;
+    ExtrusionJunction legend_btm(Point(aabb.max_.X + nozzle_size + max_dev, aabb.max_.Y), nozzle_size - max_dev, 0);
+    ExtrusionJunction legend_top(Point(aabb.max_.X + nozzle_size + max_dev, aabb.min_.Y), nozzle_size + max_dev, 0);
+    ExtrusionJunction legend_mid((legend_top.p_ + legend_btm.p_) / 2, (legend_top.w_ + legend_btm.w_) / 2, 0);
+    legend_btm.p_ += (legend_mid.p_ - legend_btm.p_) / 4;
+    legend_top.p_ += (legend_mid.p_ - legend_top.p_) / 4;
     ExtrusionSegment legend_segment(legend_btm, legend_top, true, false);
     svg_.writeAreas(legend_segment.toPolygons(false), SVG::ColorObject(200, 200, 200), SVG::Color::NONE); // real outline
     std::vector<ExtrusionSegment> all_segments_plus;
     all_segments_plus.emplace_back(legend_segment); // colored
 
     Point legend_text_offset(nozzle_size, 0);
-    svg_.writeText(legend_top.p + legend_text_offset, to_string(INT2MM(legend_top.w)));
-    svg_.writeText(legend_btm.p + legend_text_offset, to_string(INT2MM(legend_btm.w)));
-    svg_.writeText(legend_mid.p + legend_text_offset, to_string(INT2MM(legend_mid.w)));
-    svg_.writeLine(legend_top.p, legend_top.p + legend_text_offset);
-    svg_.writeLine(legend_btm.p, legend_btm.p + legend_text_offset);
-    svg_.writeLine(legend_mid.p, legend_mid.p + legend_text_offset);
+    svg_.writeText(legend_top.p_ + legend_text_offset, to_string(INT2MM(legend_top.w_)));
+    svg_.writeText(legend_btm.p_ + legend_text_offset, to_string(INT2MM(legend_btm.w_)));
+    svg_.writeText(legend_mid.p_ + legend_text_offset, to_string(INT2MM(legend_mid.w_)));
+    svg_.writeLine(legend_top.p_, legend_top.p_ + legend_text_offset);
+    svg_.writeLine(legend_btm.p_, legend_btm.p_ + legend_text_offset);
+    svg_.writeLine(legend_mid.p_, legend_mid.p_ + legend_text_offset);
 
     widths(all_segments_plus, nozzle_size, max_dev, min_w, rounded_visualization);
 }
@@ -113,7 +113,7 @@ void ToolpathVisualizer::widths(
             //             ss.to.w *= w;
             for (ExtrusionSegment s : ss.discretize(MM2INT(0.1)))
             {
-                coord_t avg_w = (s.from_.w + s.to_.w) / 2;
+                coord_t avg_w = (s.from_.w_ + s.to_.w_) / 2;
                 Point3 clr;
                 double color_ratio = std::min(1.0, double(std::abs(avg_w - nozzle_size)) / max_dev);
                 color_ratio = color_ratio * .5 + .5 * sqrt(color_ratio);
@@ -133,16 +133,16 @@ void ToolpathVisualizer::widths(
                 //                 clr.y = clr.y * (255 - 92 * clr.dot(green) / green.vSize() / 255) / 255;
                 if (exaggerate_widths)
                 {
-                    s.from_.w = std::max(min_w, min_w + (s.from_.w - (nozzle_size - max_dev)) * 5 / 4);
-                    s.to_.w = std::max(min_w, min_w + (s.to_.w - (nozzle_size - max_dev)) * 5 / 4);
+                    s.from_.w_ = std::max(min_w, min_w + (s.from_.w_ - (nozzle_size - max_dev)) * 5 / 4);
+                    s.to_.w_ = std::max(min_w, min_w + (s.to_.w_ - (nozzle_size - max_dev)) * 5 / 4);
                 }
                 //                 else
                 //                 {
                 //                     s.from.w *= 0.9;
                 //                     s.to.w *= 0.9;
                 //                 }
-                s.from_.w *= w / .9;
-                s.to_.w *= w / .9;
+                s.from_.w_ *= w / .9;
+                s.to_.w_ *= w / .9;
                 Polygons covered = s.toPolygons();
                 svg_.writeAreas(covered, SVG::ColorObject(clr.x_, clr.y_, clr.z_), SVG::Color::NONE);
             }

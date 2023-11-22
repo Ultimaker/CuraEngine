@@ -79,7 +79,7 @@ TEST_F(SlicePhaseTest, Cube)
     const auto initial_layer_thickness = scene.settings.get<coord_t>("layer_height_0");
     constexpr bool variable_layer_height = false;
     constexpr std::vector<AdaptiveLayer>* variable_layer_height_values = nullptr;
-    const size_t num_layers = (cube_mesh.getAABB().max.z - initial_layer_thickness) / layer_thickness + 1;
+    const size_t num_layers = (cube_mesh.getAABB().max_.z - initial_layer_thickness) / layer_thickness + 1;
     Slicer slicer(&cube_mesh, layer_thickness, num_layers, variable_layer_height, variable_layer_height_values);
 
     ASSERT_EQ(slicer.layers.size(), num_layers) << "The number of layers in the output must equal the requested number of layers.";
@@ -140,7 +140,7 @@ TEST_F(SlicePhaseTest, Cylinder1000)
     const auto initial_layer_thickness = scene.settings.get<coord_t>("layer_height_0");
     constexpr bool variable_layer_height = false;
     constexpr std::vector<AdaptiveLayer>* variable_layer_height_values = nullptr;
-    const size_t num_layers = (cylinder_mesh.getAABB().max.z - initial_layer_thickness) / layer_thickness + 1;
+    const size_t num_layers = (cylinder_mesh.getAABB().max_.z - initial_layer_thickness) / layer_thickness + 1;
     Slicer slicer(&cylinder_mesh, layer_thickness, num_layers, variable_layer_height, variable_layer_height_values);
 
     ASSERT_EQ(slicer.layers.size(), num_layers) << "The number of layers in the output must equal the requested number of layers.";

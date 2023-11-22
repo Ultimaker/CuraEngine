@@ -15,8 +15,8 @@ An Axis Aligned Bounding Box. Has a min and max vector, representing minimal and
 */
 struct AABB3D
 {
-    Point3 min; //!< The minimal coordinates in x, y and z direction
-    Point3 max; //!< The maximal coordinates in x, y and z direction
+    Point3 min_; //!< The minimal coordinates in x, y and z direction
+    Point3 max_; //!< The maximal coordinates in x, y and z direction
 
     /*!
      * Create an AABB3D with coordinates at the numeric limits.

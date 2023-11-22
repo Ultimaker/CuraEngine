@@ -55,7 +55,7 @@ bool SliceLayerPart::hasWallAtInsetIndex(size_t inset_idx) const
     {
         for (const ExtrusionLine& line : lines)
         {
-            if (line.inset_idx == inset_idx)
+            if (line.inset_idx_ == inset_idx)
             {
                 return true;
             }
@@ -542,8 +542,8 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
     case BuildPlateShape::ELLIPTIC:
     {
         // Construct an ellipse to approximate the build volume.
-        const coord_t width = machine_size.max.x_ - machine_size.min.x_;
-        const coord_t depth = machine_size.max.y_ - machine_size.min.y_;
+        const coord_t width = machine_size.max_.x_ - machine_size.min_.x_;
+        const coord_t depth = machine_size.max_.y_ - machine_size.min_.y_;
         constexpr unsigned int circle_resolution = 50;
         for (unsigned int i = 0; i < circle_resolution; i++)
         {
@@ -569,7 +569,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
         {
             for (Point& p : poly)
             {
-                p = Point(machine_size.max.x_ / 2 + p.X, machine_size.max.y_ / 2 - p.Y);
+                p = Point(machine_size.max_.x_ / 2 + p.X, machine_size.max_.y_ / 2 - p.Y);
             }
         }
     }

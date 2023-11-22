@@ -199,7 +199,7 @@ public:
 
         // For some Z seam types the start position can be pre-computed.
         // This is faster since we don't need to re-compute the start position at each step then.
-        precompute_start &= seam_config_.type == EZSeamType::RANDOM || seam_config_.type == EZSeamType::USER_SPECIFIED || seam_config_.type == EZSeamType::SHARPEST_CORNER;
+        precompute_start &= seam_config_.type_ == EZSeamType::RANDOM || seam_config_.type_ == EZSeamType::USER_SPECIFIED || seam_config_.type_ == EZSeamType::SHARPEST_CORNER;
         if (precompute_start)
         {
             for (auto& path : paths_)
@@ -208,7 +208,7 @@ public:
                 {
                     continue; // Can't pre-compute the seam for open polylines since they're at the endpoint nearest to the current position.
                 }
-                path.start_vertex_ = findStartLocation(path, seam_config_.pos);
+                path.start_vertex_ = findStartLocation(path, seam_config_.pos_);
             }
         }
 
@@ -566,7 +566,7 @@ protected:
             }
 
             const bool precompute_start
-                = seam_config_.type == EZSeamType::RANDOM || seam_config_.type == EZSeamType::USER_SPECIFIED || seam_config_.type == EZSeamType::SHARPEST_CORNER;
+                = seam_config_.type_ == EZSeamType::RANDOM || seam_config_.type_ == EZSeamType::USER_SPECIFIED || seam_config_.type_ == EZSeamType::SHARPEST_CORNER;
             if (! path->is_closed_ || ! precompute_start) // Find the start location unless we've already precomputed it.
             {
                 path->start_vertex_ = findStartLocation(*path, start_position);
@@ -629,7 +629,7 @@ protected:
 
         // Rest of the function only deals with (closed) polygons. We need to be able to find the seam location of those polygons.
 
-        if (seam_config_.type == EZSeamType::RANDOM)
+        if (seam_config_.type_ == EZSeamType::RANDOM)
         {
             size_t vert = getRandomPointInPolygon(*path.converted_);
             return vert;
@@ -653,7 +653,7 @@ protected:
             // For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
             // For SHARPEST_CORNER, use a fixed starting score of 0.
             const coord_t distance = (combing_boundary_ == nullptr) ? getDirectDistance(here, target_pos) : getCombingDistance(here, target_pos);
-            const double score_distance = (seam_config_.type == EZSeamType::SHARPEST_CORNER && seam_config_.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
+            const double score_distance = (seam_config_.type_ == EZSeamType::SHARPEST_CORNER && seam_config_.corner_pref_ != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
                                             ? MM2INT(10)
                                             : vSize2(here - target_pos);
 
@@ -662,7 +662,7 @@ protected:
             // angles > 0 are convex (right turning)
 
             double corner_shift;
-            if (seam_config_.type == EZSeamType::SHORTEST)
+            if (seam_config_.type_ == EZSeamType::SHORTEST)
             {
                 // the more a corner satisfies our criteria, the closer it appears to be
                 // shift 10mm for a very acute corner
@@ -678,7 +678,7 @@ protected:
             }
 
             double score = score_distance;
-            switch (seam_config_.corner_pref)
+            switch (seam_config_.corner_pref_)
             {
             default:
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:

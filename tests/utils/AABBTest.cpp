@@ -131,8 +131,8 @@ TEST(AABBTest, TestInclude)
     AABB empty;
     box2.include(empty);
 
-    EXPECT_EQ(box2.min, a) << "Inclusion of an 'empty' or negative box should not change the minimum of the original.";
-    EXPECT_EQ(box2.max, b) << "Inclusion of an 'empty' or negative box should not change the maximum of the original.";
+    EXPECT_EQ(box2.min_, a) << "Inclusion of an 'empty' or negative box should not change the minimum of the original.";
+    EXPECT_EQ(box2.max_, b) << "Inclusion of an 'empty' or negative box should not change the maximum of the original.";
 }
 
 TEST(AABBTest, TestExpand)
@@ -156,7 +156,7 @@ TEST(AABBTest, TestToPolygon)
 
     Polygon polygon = box.toPolygon();
 
-    EXPECT_EQ(polygon.area(), (box.max.X - box.min.X) * (box.max.Y - box.min.Y)) << "The polygon from the bounding box should have the same area.";
+    EXPECT_EQ(polygon.area(), (box.max_.X - box.min_.X) * (box.max_.Y - box.min_.Y)) << "The polygon from the bounding box should have the same area.";
     EXPECT_EQ(polygon.centerOfMass(), box.getMiddle()) << "The center of mass of an (AA) rectangle is its middle.";
 }
 // NOLINTEND(*-magic-numbers)
