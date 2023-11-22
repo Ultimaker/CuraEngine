@@ -116,8 +116,8 @@ public:
         , combing_boundary_((combing_boundary != nullptr && ! combing_boundary->empty()) ? combing_boundary : nullptr)
         , detect_loops_(detect_loops)
         , reverse_direction_(reverse_direction)
-        , order_requirements_(&order_requirements)
         , _group_outer_walls(group_outer_walls)
+        , order_requirements_(&order_requirements)
     {
     }
 

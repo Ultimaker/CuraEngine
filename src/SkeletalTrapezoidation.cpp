@@ -387,9 +387,9 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(
     , transition_filter_dist_(transition_filter_dist)
     , allowed_filter_deviation_(allowed_filter_deviation)
     , beading_propagation_transition_dist_(beading_propagation_transition_dist)
-    , beading_strategy_(beading_strategy)
     , layer_idx_(layer_idx)
     , section_type_(section_type)
+    , beading_strategy_(beading_strategy)
 {
     scripta::log("skeletal_trapezoidation_0", polys, section_type, layer_idx);
     constructFromPolygons(polys);

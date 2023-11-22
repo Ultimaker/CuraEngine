@@ -14,22 +14,22 @@ BeadingStrategy::BeadingStrategy(
     Ratio wall_add_middle_threshold,
     coord_t default_transition_length,
     double transitioning_angle)
-    : optimal_width_(optimal_width)
+    : name_("Unknown")
+    , optimal_width_(optimal_width)
     , wall_split_middle_threshold_(wall_split_middle_threshold)
     , wall_add_middle_threshold_(wall_add_middle_threshold)
     , default_transition_length_(default_transition_length)
     , transitioning_angle_(transitioning_angle)
 {
-    name_ = "Unknown";
 }
 
 BeadingStrategy::BeadingStrategy(const BeadingStrategy& other)
-    : optimal_width_(other.optimal_width_)
+    : name_(other.name_)
+    , optimal_width_(other.optimal_width_)
     , wall_split_middle_threshold_(other.wall_split_middle_threshold_)
     , wall_add_middle_threshold_(other.wall_add_middle_threshold_)
     , default_transition_length_(other.default_transition_length_)
     , transitioning_angle_(other.transitioning_angle_)
-    , name_(other.name_)
 {
 }
 

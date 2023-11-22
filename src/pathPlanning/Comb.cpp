@@ -68,6 +68,7 @@ Comb::Comb(
     coord_t move_inside_distance)
     : storage_(storage)
     , layer_nr_(layer_nr)
+    , travel_avoid_distance_(travel_avoid_distance)
     , offset_from_outlines_(comb_boundary_offset) // between second wall and infill / other walls
     , max_moveInside_distance2_(offset_from_outlines_ * offset_from_outlines_)
     , offset_from_inside_to_outside_(offset_from_outlines_ + travel_avoid_distance)
@@ -81,7 +82,6 @@ Comb::Comb(
     , inside_loc_to_line_minimum_(PolygonUtils::createLocToLineGrid(boundary_inside_minimum_, comb_boundary_offset))
     , inside_loc_to_line_optimal_(PolygonUtils::createLocToLineGrid(boundary_inside_optimal_, comb_boundary_offset))
     , move_inside_distance_(move_inside_distance)
-    , travel_avoid_distance_(travel_avoid_distance)
 {
 }
 

@@ -117,9 +117,9 @@ struct TreeSupportElement
         , missing_roof_layers_(elem.missing_roof_layers_)
         , skip_ovalisation_(elem.skip_ovalisation_)
         , all_tips_(elem.all_tips_)
-        , influence_area_limit_area_(elem.influence_area_limit_area_)
-        , influence_area_limit_range_(elem.influence_area_limit_range_)
         , influence_area_limit_active_(elem.influence_area_limit_active_)
+        , influence_area_limit_range_(elem.influence_area_limit_range_)
+        , influence_area_limit_area_(elem.influence_area_limit_area_)
     {
         parents_.insert(parents_.begin(), elem.parents_.begin(), elem.parents_.end());
     }
@@ -149,9 +149,9 @@ struct TreeSupportElement
         , missing_roof_layers_(element_above->missing_roof_layers_)
         , skip_ovalisation_(false)
         , all_tips_(element_above->all_tips_)
-        , influence_area_limit_area_(element_above->influence_area_limit_area_)
-        , influence_area_limit_range_(element_above->influence_area_limit_range_)
         , influence_area_limit_active_(element_above->influence_area_limit_active_)
+        , influence_area_limit_range_(element_above->influence_area_limit_range_)
+        , influence_area_limit_area_(element_above->influence_area_limit_area_)
     {
         parents_ = { element_above };
     }
