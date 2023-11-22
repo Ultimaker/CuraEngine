@@ -25,7 +25,7 @@ class MeshVertex;
 class SlicerSegment
 {
 public:
-    Point start, end;
+    Point2LL start, end;
     int faceIndex = -1;
     // The index of the other face connected via the edge that created end
     int endOtherFaceIdx = -1;
@@ -115,9 +115,9 @@ protected:
      */
     void stitch(Polygons& open_polylines);
 
-    std::optional<GapCloserResult> findPolygonGapCloser(Point ip0, Point ip1);
+    std::optional<GapCloserResult> findPolygonGapCloser(Point2LL ip0, Point2LL ip1);
 
-    std::optional<ClosePolygonResult> findPolygonPointClosestTo(Point input);
+    std::optional<ClosePolygonResult> findPolygonPointClosestTo(Point2LL input);
 
     /*!
      * Try to close up polylines into polygons while they have large gaps in them.
@@ -513,7 +513,7 @@ private:
      * \param z The Z coordinate of the layer to intersect with.
      * \return A slicer segment.
      */
-    static SlicerSegment project2D(const Point3& p0, const Point3& p1, const Point3& p2, const coord_t z);
+    static SlicerSegment project2D(const Point3LL& p0, const Point3LL& p1, const Point3LL& p2, const coord_t z);
 
     /*! Creates an array of "z bounding boxes" for each face.
      * \param[in] mesh The mesh which is analyzed.

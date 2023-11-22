@@ -23,10 +23,10 @@ bool LinePolygonsCrossings::calcScanlineCrossings(bool fail_on_unavoidable_obsta
     for (unsigned int poly_idx = 0; poly_idx < boundary_.size(); poly_idx++)
     {
         ConstPolygonRef poly = boundary_[poly_idx];
-        Point p0 = transformation_matrix_.apply(poly[poly.size() - 1]);
+        Point2LL p0 = transformation_matrix_.apply(poly[poly.size() - 1]);
         for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
-            Point p1 = transformation_matrix_.apply(poly[point_idx]);
+            Point2LL p1 = transformation_matrix_.apply(poly[point_idx]);
             if ((p0.Y >= transformed_start_point_.Y && p1.Y <= transformed_start_point_.Y) || (p1.Y >= transformed_start_point_.Y && p0.Y <= transformed_start_point_.Y))
             { // if line segment crosses the line through the transformed start and end point (aka scanline)
                 if (p1.Y == p0.Y) // Line segment is parallel with the scanline. That means that both endpoints lie on the scanline, so they will have intersected with the adjacent
@@ -68,7 +68,7 @@ bool LinePolygonsCrossings::calcScanlineCrossings(bool fail_on_unavoidable_obsta
 
 bool LinePolygonsCrossings::lineSegmentCollidesWithBoundary()
 {
-    Point diff = end_point_ - start_point_;
+    Point2LL diff = end_point_ - start_point_;
 
     transformation_matrix_ = PointMatrix(diff);
     transformed_start_point_ = transformation_matrix_.apply(start_point_);
@@ -76,10 +76,10 @@ bool LinePolygonsCrossings::lineSegmentCollidesWithBoundary()
 
     for (ConstPolygonRef poly : boundary_)
     {
-        Point p0 = transformation_matrix_.apply(poly.back());
-        for (Point p1_ : poly)
+        Point2LL p0 = transformation_matrix_.apply(poly.back());
+        for (Point2LL p1_ : poly)
         {
-            Point p1 = transformation_matrix_.apply(p1_);
+            Point2LL p1 = transformation_matrix_.apply(p1_);
             // when the boundary just touches the line don't disambiguate between the boundary moving on to actually cross the line
             // and the boundary bouncing back, resulting in not a real collision - to keep the algorithm simple.
             //
@@ -153,21 +153,21 @@ void LinePolygonsCrossings::generateBasicCombingPath(const Crossing& min, const 
     // minimise the path length by measuring the length of both paths around the polygon so we can determine the shorter path
 
     ConstPolygonRef poly = boundary_[min.poly_idx_];
-    combPath.push_back(transformation_matrix_.unapply(Point(min.x_ - std::abs(dist_to_move_boundary_point_outside_), transformed_start_point_.Y)));
+    combPath.push_back(transformation_matrix_.unapply(Point2LL(min.x_ - std::abs(dist_to_move_boundary_point_outside_), transformed_start_point_.Y)));
 
     // follow the path in the same direction as the winding order of the boundary polygon
-    std::vector<Point> fwd_points;
-    Point prev = combPath.back();
+    std::vector<Point2LL> fwd_points;
+    Point2LL prev = combPath.back();
     coord_t fwd_len = 0;
     for (unsigned int point_idx = min.point_idx_; point_idx != max.point_idx_; point_idx = (point_idx < poly.size() - 1) ? (point_idx + 1) : (0))
     {
-        const Point p = PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside_);
+        const Point2LL p = PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside_);
         fwd_points.push_back(p);
         fwd_len += vSize(p - prev);
         prev = p;
     }
 
-    const Point last = transformation_matrix_.unapply(Point(max.x_ + std::abs(dist_to_move_boundary_point_outside_), transformed_start_point_.Y));
+    const Point2LL last = transformation_matrix_.unapply(Point2LL(max.x_ + std::abs(dist_to_move_boundary_point_outside_), transformed_start_point_.Y));
 
     if (fwd_points.size() > 0)
     {
@@ -175,14 +175,14 @@ void LinePolygonsCrossings::generateBasicCombingPath(const Crossing& min, const 
     }
 
     // follow the path in the opposite direction of the winding order of the boundary polygon
-    std::vector<Point> rev_points;
+    std::vector<Point2LL> rev_points;
     prev = combPath.back();
     coord_t rev_len = 0;
     unsigned int min_idx = (min.point_idx_ == 0) ? poly.size() - 1 : min.point_idx_ - 1;
     unsigned int max_idx = (max.point_idx_ == 0) ? poly.size() - 1 : max.point_idx_ - 1;
     for (unsigned int point_idx = min_idx; point_idx != max_idx; point_idx = (point_idx > 0) ? (point_idx - 1) : (poly.size() - 1))
     {
-        const Point p = PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside_);
+        const Point2LL p = PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside_);
         rev_points.push_back(p);
         rev_len += vSize(p - prev);
         prev = p;
@@ -215,7 +215,7 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
         {
             continue;
         }
-        Point& current_point = optimized_comb_path.back();
+        Point2LL& current_point = optimized_comb_path.back();
         if (PolygonUtils::polygonCollidesWithLineSegment(current_point, comb_path[point_idx], loc_to_line_grid_))
         {
             if (PolygonUtils::polygonCollidesWithLineSegment(current_point, comb_path[point_idx - 1], loc_to_line_grid_))
@@ -255,7 +255,7 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
                 //         2----3 ...            2----3 ...
                 //
 
-                Point p = optimized_comb_path.back();
+                Point2LL p = optimized_comb_path.back();
                 for (double frac : { 0.9, 0.9, 0.7, 0.5 })
                 {
                     // slide p towards the second point in the comb path
@@ -307,7 +307,7 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
             for (double frac : { 0.9, 0.9, 0.7, 0.5 })
             {
                 // make a new point between the penultimate corner and the corner before that
-                Point p = optimized_comb_path[n - 2] + (optimized_comb_path[n - 1] - optimized_comb_path[n - 2]) * frac;
+                Point2LL p = optimized_comb_path[n - 2] + (optimized_comb_path[n - 1] - optimized_comb_path[n - 2]) * frac;
                 if (! PolygonUtils::polygonCollidesWithLineSegment(p, comb_path.back(), loc_to_line_grid_))
                 {
                     // using the new corner doesn't cause a conflict

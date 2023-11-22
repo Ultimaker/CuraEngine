@@ -306,7 +306,7 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Polygons& covered_area, 
         length_added = brim_lines.polyLineLength();
 
         const coord_t max_stitch_distance = line_widths_[offset.extruder_nr_];
-        PolylineStitcher<Polygons, Polygon, Point>::stitch(brim_lines, result.open_polylines, result.closed_polygons, max_stitch_distance);
+        PolylineStitcher<Polygons, Polygon, Point2LL>::stitch(brim_lines, result.open_polylines, result.closed_polygons, max_stitch_distance);
 
         // clean up too small lines
         for (size_t line_idx = 0; line_idx < result.open_polylines.size();)

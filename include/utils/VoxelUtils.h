@@ -7,13 +7,13 @@
 #include <functional>
 #include <unordered_set>
 
-#include "utils/IntPoint.h"
+#include "utils/Point2LL.h"
 #include "utils/polygon.h"
 
 namespace cura
 {
 
-using GridPoint3 = Point3;
+using GridPoint3 = Point3LL;
 
 /*!
  * Class for holding the relative positiongs wrt a reference cell on which to perform a dilation.
@@ -65,9 +65,9 @@ class VoxelUtils
 public:
     using grid_coord_t = coord_t;
 
-    Point3 cell_size_;
+    Point3LL cell_size_;
 
-    VoxelUtils(Point3 cell_size)
+    VoxelUtils(Point3LL cell_size)
         : cell_size_(cell_size)
     {
     }
@@ -80,7 +80,7 @@ public:
      * \param process_cell_func Function to perform on each cell the line crosses
      * \return Whether executing was stopped short as indicated by the \p cell_processing_function
      */
-    bool walkLine(Point3 start, Point3 end, const std::function<bool(GridPoint3)>& process_cell_func) const;
+    bool walkLine(Point3LL start, Point3LL end, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
     /*!
      * Process voxels which the line segments of a polygon crosses.
@@ -151,7 +151,7 @@ public:
      */
     std::function<bool(GridPoint3)> dilate(const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
-    GridPoint3 toGridPoint(const Point3& point) const
+    GridPoint3 toGridPoint(const Point3LL& point) const
     {
         return GridPoint3(toGridCoord(point.x_, 0), toGridCoord(point.y_, 1), toGridCoord(point.z_, 2));
     }
@@ -162,9 +162,9 @@ public:
         return coord / cell_size_[dim] - (coord < 0);
     }
 
-    Point3 toLowerCorner(const GridPoint3& location) const
+    Point3LL toLowerCorner(const GridPoint3& location) const
     {
-        return cura::Point3(toLowerCoord(location.x_, 0), toLowerCoord(location.y_, 1), toLowerCoord(location.z_, 2));
+        return cura::Point3LL(toLowerCoord(location.x_, 0), toLowerCoord(location.y_, 1), toLowerCoord(location.z_, 2));
     }
 
     coord_t toLowerCoord(const grid_coord_t& grid_coord, const size_t dim) const
@@ -179,7 +179,7 @@ public:
     Polygon toPolygon(const GridPoint3 p) const
     {
         Polygon ret;
-        Point3 c = toLowerCorner(p);
+        Point3LL c = toLowerCorner(p);
         ret.emplace_back(c.x_, c.y_);
         ret.emplace_back(c.x_ + cell_size_.x_, c.y_);
         ret.emplace_back(c.x_ + cell_size_.x_, c.y_ + cell_size_.y_);

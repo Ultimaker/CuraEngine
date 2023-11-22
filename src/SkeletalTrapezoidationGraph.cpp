@@ -132,7 +132,7 @@ STHalfEdge* STHalfEdge::getNextUnconnected()
     return result->twin_;
 }
 
-STHalfEdgeNode::STHalfEdgeNode(SkeletalTrapezoidationJoint data, Point p)
+STHalfEdgeNode::STHalfEdgeNode(SkeletalTrapezoidationJoint data, Point2LL p)
     : HalfEdgeNode(data, p)
 {
 }
@@ -329,9 +329,9 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
     }
 }
 
-void SkeletalTrapezoidationGraph::makeRib(edge_t*& prev_edge, Point start_source_point, Point end_source_point, bool is_next_to_start_or_end)
+void SkeletalTrapezoidationGraph::makeRib(edge_t*& prev_edge, Point2LL start_source_point, Point2LL end_source_point, bool is_next_to_start_or_end)
 {
-    Point p = LinearAlg2D::getClosestOnLine(prev_edge->to_->p_, start_source_point, end_source_point);
+    Point2LL p = LinearAlg2D::getClosestOnLine(prev_edge->to_->p_, start_source_point, end_source_point);
     coord_t dist = vSize(prev_edge->to_->p_ - p);
     prev_edge->to_->data_.distance_to_boundary_ = dist;
     assert(dist >= 0);
@@ -365,10 +365,10 @@ std::pair<SkeletalTrapezoidationGraph::edge_t*, SkeletalTrapezoidationGraph::edg
     node_t* node_before = edge.from_;
     node_t* node_after = edge.to_;
 
-    Point p = mid_node->p_;
+    Point2LL p = mid_node->p_;
 
-    std::pair<Point, Point> source_segment = getSource(edge);
-    Point px = LinearAlg2D::getClosestOnLineSegment(p, source_segment.first, source_segment.second);
+    std::pair<Point2LL, Point2LL> source_segment = getSource(edge);
+    Point2LL px = LinearAlg2D::getClosestOnLineSegment(p, source_segment.first, source_segment.second);
     coord_t dist = vSize(p - px);
     assert(dist > 0);
     mid_node->data_.distance_to_boundary_ = dist;
@@ -438,7 +438,7 @@ std::pair<SkeletalTrapezoidationGraph::edge_t*, SkeletalTrapezoidationGraph::edg
     return std::make_pair(first, second);
 }
 
-SkeletalTrapezoidationGraph::edge_t* SkeletalTrapezoidationGraph::insertNode(edge_t* edge, Point mid, coord_t mide_node_bead_count)
+SkeletalTrapezoidationGraph::edge_t* SkeletalTrapezoidationGraph::insertNode(edge_t* edge, Point2LL mid, coord_t mide_node_bead_count)
 {
     edge_t* last_edge_replacing_input = edge;
 
@@ -465,7 +465,7 @@ SkeletalTrapezoidationGraph::edge_t* SkeletalTrapezoidationGraph::insertNode(edg
     return last_edge_replacing_input;
 }
 
-std::pair<Point, Point> SkeletalTrapezoidationGraph::getSource(const edge_t& edge)
+std::pair<Point2LL, Point2LL> SkeletalTrapezoidationGraph::getSource(const edge_t& edge)
 {
     const edge_t* from_edge = &edge;
     while (from_edge->prev_)

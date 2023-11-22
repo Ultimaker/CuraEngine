@@ -138,10 +138,10 @@ int bridgeAngle(
             double line_angle = -1;
             for (PolygonRef air_line : skin_perimeter_lines_over_air)
             {
-                Point p0 = air_line[0];
+                Point2LL p0 = air_line[0];
                 for (unsigned i = 1; i < air_line.size(); ++i)
                 {
-                    const Point& p1(air_line[i]);
+                    const Point2LL& p1(air_line[i]);
                     double dist2 = vSize2(p0 - p1);
                     if (dist2 > max_dist2)
                     {
@@ -197,8 +197,8 @@ int bridgeAngle(
     if (idx1 < 0 || idx2 < 0)
         return -1;
 
-    Point center1 = islands[idx1].centerOfMass();
-    Point center2 = islands[idx2].centerOfMass();
+    Point2LL center1 = islands[idx1].centerOfMass();
+    Point2LL center2 = islands[idx2].centerOfMass();
 
     return angle(center2 - center1);
 }

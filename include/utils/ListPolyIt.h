@@ -7,7 +7,7 @@
 #include <list>
 #include <vector>
 
-#include "IntPoint.h"
+#include "Point2LL.h"
 #include "polygon.h"
 
 
@@ -32,7 +32,7 @@ public:
     {
     }
 
-    Point& p() const
+    Point2LL& p() const
     {
         return *it_;
     }
@@ -144,7 +144,7 @@ public:
      * \param to_insert The point to insert into the ListPolygon in between \p before and \p after
      * \return Iterator to the newly inserted point, or \p before or \p after in case to_insert was already in the polygon
      */
-    static ListPolyIt insertPointNonDuplicate(const ListPolyIt before, const ListPolyIt after, const Point to_insert);
+    static ListPolyIt insertPointNonDuplicate(const ListPolyIt before, const ListPolyIt after, const Point2LL to_insert);
 
 private:
     ListPolygon* poly_; //!< The polygon
@@ -164,7 +164,7 @@ struct hash<cura::ListPolyIt>
 {
     size_t operator()(const cura::ListPolyIt& lpi) const
     {
-        return std::hash<cura::Point>()(lpi.p());
+        return std::hash<cura::Point2LL>()(lpi.p());
     }
 };
 } // namespace std

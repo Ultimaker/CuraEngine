@@ -65,9 +65,9 @@ SierpinskiFillProvider::~SierpinskiFillProvider()
 SierpinskiFillProvider::FractalConfig SierpinskiFillProvider::getFractalConfig(const AABB3D aabb_3d, coord_t min_line_distance)
 {
     AABB model_aabb = aabb_3d.flatten();
-    Point model_aabb_size = model_aabb.max_ - model_aabb.min_;
+    Point2LL model_aabb_size = model_aabb.max_ - model_aabb.min_;
     coord_t max_side_length = std::max(model_aabb_size.X, model_aabb_size.Y);
-    Point model_middle = model_aabb.getMiddle();
+    Point2LL model_middle = model_aabb.getMiddle();
 
     int depth = 0;
     coord_t aabb_size = min_line_distance;
@@ -83,7 +83,7 @@ SierpinskiFillProvider::FractalConfig SierpinskiFillProvider::getFractalConfig(c
         depth--;
     }
 
-    Point radius(aabb_size / 2, aabb_size / 2);
+    Point2LL radius(aabb_size / 2, aabb_size / 2);
     AABB aabb(model_middle - radius, model_middle + radius);
 
     return FractalConfig{ depth, aabb };

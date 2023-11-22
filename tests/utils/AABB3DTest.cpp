@@ -13,7 +13,7 @@ namespace cura
 {
 inline AABB3D toBox(const coord_t& x, const coord_t& y, const coord_t& z)
 {
-    const Point3 pt(x, y, z);
+    const Point3LL pt(x, y, z);
     return { pt, pt };
 }
 
@@ -24,8 +24,8 @@ TEST(AABB3DTest, TestConstructEmpty)
     EXPECT_FALSE(empty_box.hit(toBox(0, 0, 0))) << "Empty box shouldn't contain anything.";
     EXPECT_FALSE(empty_box.hit(empty_box)) << "Empty boxes shouldn't intersect.";
 
-    empty_box.include(Point3(-10, -5, -2));
-    empty_box.include(Point3(5, 10, 2));
+    empty_box.include(Point3LL(-10, -5, -2));
+    empty_box.include(Point3LL(5, 10, 2));
 
     EXPECT_TRUE(empty_box.hit(toBox(0, 0, 0))) << "The previously empty box should now contain this point.";
     EXPECT_FALSE(empty_box.hit(toBox(11, 5, 0))) << "The previously empty box should now still not contain this point.";
@@ -33,7 +33,7 @@ TEST(AABB3DTest, TestConstructEmpty)
 
 TEST(AABB3DTest, TestConstructPoint)
 {
-    AABB3D point_box(Point3(-10, -5, -2), Point3(5, 10, 2));
+    AABB3D point_box(Point3LL(-10, -5, -2), Point3LL(5, 10, 2));
 
     EXPECT_TRUE(point_box.hit(toBox(0, 0, 0))) << "Box constructed from points around the origin should contain it.";
     EXPECT_FALSE(point_box.hit(toBox(11, 5, 0))) << "The box shouldn't contain a point outside of it.";
@@ -41,13 +41,13 @@ TEST(AABB3DTest, TestConstructPoint)
 
 TEST(AABB3DTest, TestConstructInverse)
 {
-    AABB3D inverse_box(Point3(5, 10, 2), Point3(-10, -5, -2));
+    AABB3D inverse_box(Point3LL(5, 10, 2), Point3LL(-10, -5, -2));
 
     EXPECT_FALSE(inverse_box.hit(toBox(0, 0, 0))) << "'Inverse' box shouldn't contain anything.";
     EXPECT_FALSE(inverse_box.hit(inverse_box)) << "'Inverse' boxes shouldn't intersect.";
 
-    inverse_box.include(Point3(-5, -2, -1));
-    inverse_box.include(Point3(2, 5, 1));
+    inverse_box.include(Point3LL(-5, -2, -1));
+    inverse_box.include(Point3LL(2, 5, 1));
 
     EXPECT_TRUE(inverse_box.hit(toBox(0, 0, 0))) << "The previously 'inverse' box should now contain this point.";
     EXPECT_FALSE(inverse_box.hit(toBox(4, 8, -1))) << "The previously 'inverse' box should now still not contain this point.";
@@ -55,9 +55,9 @@ TEST(AABB3DTest, TestConstructInverse)
 
 TEST(AABB3DTest, TestHit)
 {
-    AABB3D box_a(Point3(-10, -5, -2), Point3(5, 10, 2));
-    AABB3D box_b(Point3(4, 9, 0), Point3(12, 12, 12));
-    AABB3D box_c(Point3(11, 11, 11), Point3(14, 14, 14));
+    AABB3D box_a(Point3LL(-10, -5, -2), Point3LL(5, 10, 2));
+    AABB3D box_b(Point3LL(4, 9, 0), Point3LL(12, 12, 12));
+    AABB3D box_c(Point3LL(11, 11, 11), Point3LL(14, 14, 14));
 
     EXPECT_TRUE(box_a.hit(box_a)) << "Box should overlap itself.";
 
@@ -69,8 +69,8 @@ TEST(AABB3DTest, TestHit)
     EXPECT_FALSE(box_a.hit(box_c)) << "These boxes should not overlap (case AC).";
     EXPECT_FALSE(box_c.hit(box_a)) << "These boxes should not overlap (case CA).";
 
-    AABB3D box_d(Point3(3, 10, 2), Point3(12, 12, 12));
-    AABB3D box_e(Point3(5, 10, 2), Point3(12, 12, 12));
+    AABB3D box_d(Point3LL(3, 10, 2), Point3LL(12, 12, 12));
+    AABB3D box_e(Point3LL(5, 10, 2), Point3LL(12, 12, 12));
 
     EXPECT_TRUE(box_a.hit(box_d)) << "Overlap-check is inclusive (case AD).";
     EXPECT_TRUE(box_d.hit(box_a)) << "Overlap-check is inclusive (case DA).";
@@ -80,25 +80,25 @@ TEST(AABB3DTest, TestHit)
 
 TEST(AABB3DTest, TestGetMiddle)
 {
-    AABB3D box_a(Point3(-10, -6, -5), Point3(6, 10, 3));
-    AABB3D box_b(Point3(4, 10, 2), Point3(12, 12, 12));
+    AABB3D box_a(Point3LL(-10, -6, -5), Point3LL(6, 10, 3));
+    AABB3D box_b(Point3LL(4, 10, 2), Point3LL(12, 12, 12));
 
-    EXPECT_EQ(box_a.getMiddle(), Point3(-2, 2, -1)) << "The middle of the AABB should be this point (case A).";
-    EXPECT_EQ(box_b.getMiddle(), Point3(8, 11, 7)) << "The middle of the AABB should be this point (case B).";
+    EXPECT_EQ(box_a.getMiddle(), Point3LL(-2, 2, -1)) << "The middle of the AABB should be this point (case A).";
+    EXPECT_EQ(box_b.getMiddle(), Point3LL(8, 11, 7)) << "The middle of the AABB should be this point (case B).";
 }
 
 TEST(AABB3DTest, TestInclude)
 {
-    AABB3D box(Point3(2, 2, 2), Point3(5, 10, 3));
+    AABB3D box(Point3LL(2, 2, 2), Point3LL(5, 10, 3));
 
     EXPECT_FALSE(box.hit(toBox(1, 1, 1))) << "The unexpanded (via include/point) box should not contain a point in the (future) expanded area.";
 
-    box.include(Point3(0, 0, 0));
+    box.include(Point3LL(0, 0, 0));
 
     EXPECT_TRUE(box.hit(toBox(1, 1, 1))) << "The expanded (via include/point) box should contain a point in the expanded area.";
     EXPECT_FALSE(box.hit(toBox(6, 9, -1))) << "The unexpanded (via include/other) box should not contain a point in the (future) expanded area.";
 
-    box.include(AABB3D(Point3(7, 9, -2), Point3(8, 10, 0)));
+    box.include(AABB3D(Point3LL(7, 9, -2), Point3LL(8, 10, 0)));
 
     EXPECT_TRUE(box.hit(toBox(6, 9, -1))) << "The expanded (via include/other) box should contain a point in the expanded area.";
 
@@ -106,8 +106,8 @@ TEST(AABB3DTest, TestInclude)
 
     EXPECT_TRUE(box.hit(toBox(6, 9, -3))) << "The expanded (via includeZ/scalar) box should contain a point in the expanded area.";
 
-    const Point3 a(2, 2, 2);
-    const Point3 b(5, 10, 15);
+    const Point3LL a(2, 2, 2);
+    const Point3LL b(5, 10, 15);
     AABB3D box2(a, b);
     AABB3D empty;
     box2.include(empty);
@@ -118,23 +118,23 @@ TEST(AABB3DTest, TestInclude)
 
 TEST(AABB3DTest, TestTranslate)
 {
-    AABB3D box(Point3(2, 2, 2), Point3(5, 10, 3));
+    AABB3D box(Point3LL(2, 2, 2), Point3LL(5, 10, 3));
 
     EXPECT_FALSE(box.hit(toBox(1, 1, 1))) << "The unexpanded (via offset-3D) box should not contain a point in the (future) expanded area.";
 
-    box.translate(Point3(-2, -2, -2));
+    box.translate(Point3LL(-2, -2, -2));
 
     EXPECT_TRUE(box.hit(toBox(1, 1, 1))) << "The expanded (via offset-3D) box should contain a point in the expanded area.";
     EXPECT_FALSE(box.hit(toBox(6, 9, -1))) << "The unexpanded (via offset-3D) box should not contain a point in the (future) expanded area.";
 
-    box.translate(Point(-2, -2));
+    box.translate(Point2LL(-2, -2));
 
     EXPECT_TRUE(box.hit(toBox(-1, -1, 0))) << "The expanded (via offset-2D) box should contain a point in the expanded area.";
 }
 
 TEST(AABB3DTest, TestExpand)
 {
-    AABB3D box(Point3(-10, -5, -2), Point3(5, 10, 2));
+    AABB3D box(Point3LL(-10, -5, -2), Point3LL(5, 10, 2));
 
     EXPECT_FALSE(box.hit(toBox(6, 11, 3))) << "Before expanding, the box shouldn't contain this point.";
 
@@ -149,12 +149,12 @@ TEST(AABB3DTest, TestExpand)
 
 TEST(AABB3DTest, TestFlatten)
 {
-    AABB3D box(Point3(-10, -5, -2), Point3(5, 10, 2));
+    AABB3D box(Point3LL(-10, -5, -2), Point3LL(5, 10, 2));
 
     AABB flat = box.flatten();
 
-    EXPECT_TRUE(flat.contains(Point(1, 1))) << "The flattened box should contain this point.";
-    EXPECT_FALSE(flat.contains(Point(-11, 3))) << "The flattened box shouldn't contain this point.";
+    EXPECT_TRUE(flat.contains(Point2LL(1, 1))) << "The flattened box should contain this point.";
+    EXPECT_FALSE(flat.contains(Point2LL(-11, 3))) << "The flattened box shouldn't contain this point.";
 }
 } // namespace cura
 // NOLINTEND(*-magic-numbers)

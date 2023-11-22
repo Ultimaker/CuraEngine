@@ -60,7 +60,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
             const DilationKernel air_dilation(GridPoint3(boundary_avoidance, boundary_avoidance, boundary_avoidance), DilationKernel::Type::PRISM);
 
             const coord_t cell_width = beam_width_a + beam_width_b;
-            const Point3 cell_size(cell_width, cell_width, 2 * beam_layer_count);
+            const Point3LL cell_size(cell_width, cell_width, 2 * beam_layer_count);
 
             InterlockingGenerator gen(mesh_a, mesh_b, beam_width_a, beam_width_b, rotation, cell_size, beam_layer_count, interface_dilation, air_dilation, air_filtering);
             gen.generateInterlockingStructure();
@@ -108,7 +108,7 @@ void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>
     near_interlock_per_layer.assign(std::min(mesh_a_.layers.size(), mesh_b_.layers.size()), Polygons());
     for (const auto& cell : has_all_meshes)
     {
-        const Point3 bottom_corner = vu_.toLowerCorner(cell);
+        const Point3LL bottom_corner = vu_.toLowerCorner(cell);
         for (int layer_nr = bottom_corner.z_; layer_nr < bottom_corner.z_ + cell_size_.z_ && layer_nr < near_interlock_per_layer.size(); ++layer_nr)
         {
             near_interlock_per_layer[layer_nr].add(vu_.toPolygon(cell));
@@ -252,21 +252,21 @@ std::vector<std::vector<Polygons>> InterlockingGenerator::generateMicrostructure
     const coord_t width[2] = { middle, cell_size_.x_ - middle };
     for (size_t mesh_idx : { 0, 1 })
     {
-        Point offset(mesh_idx ? middle : 0, 0);
-        Point area_size(width[mesh_idx], cell_size_.y_);
+        Point2LL offset(mesh_idx ? middle : 0, 0);
+        Point2LL area_size(width[mesh_idx], cell_size_.y_);
 
         PolygonRef poly = cell_area_per_mesh_per_layer[0][mesh_idx].newPoly();
         poly.emplace_back(offset);
-        poly.emplace_back(offset + Point(area_size.X, 0));
+        poly.emplace_back(offset + Point2LL(area_size.X, 0));
         poly.emplace_back(offset + area_size);
-        poly.emplace_back(offset + Point(0, area_size.Y));
+        poly.emplace_back(offset + Point2LL(0, area_size.Y));
     }
     cell_area_per_mesh_per_layer[1] = cell_area_per_mesh_per_layer[0];
     for (Polygons& polys : cell_area_per_mesh_per_layer[1])
     {
         for (PolygonRef poly : polys)
         {
-            for (Point& p : poly)
+            for (Point2LL& p : poly)
             {
                 std::swap(p.X, p.Y);
             }
@@ -294,13 +294,13 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
     // Only compute cell structure for half the layers, because since our beams are two layers high, every odd layer of the structure will be the same as the layer below.
     for (const GridPoint3& grid_loc : cells)
     {
-        Point3 bottom_corner = vu_.toLowerCorner(grid_loc);
+        Point3LL bottom_corner = vu_.toLowerCorner(grid_loc);
         for (size_t mesh_idx = 0; mesh_idx < 2; mesh_idx++)
         {
             for (LayerIndex layer_nr = bottom_corner.z_; layer_nr < bottom_corner.z_ + cell_size_.z_ && layer_nr < max_layer_count; layer_nr += beam_layer_count_)
             {
                 Polygons areas_here = cell_area_per_mesh_per_layer[(layer_nr / beam_layer_count_) % cell_area_per_mesh_per_layer.size()][mesh_idx];
-                areas_here.translate(Point(bottom_corner.x_, bottom_corner.y_));
+                areas_here.translate(Point2LL(bottom_corner.x_, bottom_corner.y_));
                 structure_per_layer[mesh_idx][layer_nr / beam_layer_count_].add(areas_here);
             }
         }

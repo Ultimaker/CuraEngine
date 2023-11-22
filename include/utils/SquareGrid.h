@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "IntPoint.h"
+#include "Point2LL.h"
 
 namespace cura
 {
@@ -36,7 +36,7 @@ public:
      */
     coord_t getCellSize() const;
 
-    using GridPoint = Point;
+    using GridPoint = Point2LL;
     using grid_coord_t = coord_t;
 
     /*! \brief Process cells along a line indicated by \p line.
@@ -46,7 +46,7 @@ public:
      * for each cell. Processing stops if function returns false.
      * \return Whether we need to continue processing after this function.
      */
-    bool processLineCells(const std::pair<Point, Point> line, const std::function<bool(GridPoint)>& process_cell_func);
+    bool processLineCells(const std::pair<Point2LL, Point2LL> line, const std::function<bool(GridPoint)>& process_cell_func);
 
     /*! \brief Process cells along a line indicated by \p line.
      *
@@ -55,7 +55,7 @@ public:
      * for each cell. Processing stops if function returns false.
      * \return Whether we need to continue processing after this function.
      */
-    bool processLineCells(const std::pair<Point, Point> line, const std::function<bool(GridPoint)>& process_cell_func) const;
+    bool processLineCells(const std::pair<Point2LL, Point2LL> line, const std::function<bool(GridPoint)>& process_cell_func) const;
 
     /*!
      * Process all cells in an axis-aligned right triangle.
@@ -90,8 +90,8 @@ public:
      * good candidate has been found.
      * \return Whether we need to continue processing after this function.
      */
-    bool processAxisAlignedTriangle(const Point from, const Point to, const std::function<bool(GridPoint)>& process_cell_func) const;
-    bool processAxisAlignedTriangle(const Point from, const Point to, bool to_the_right, const std::function<bool(GridPoint)>& process_cell_func) const;
+    bool processAxisAlignedTriangle(const Point2LL from, const Point2LL to, const std::function<bool(GridPoint)>& process_cell_func) const;
+    bool processAxisAlignedTriangle(const Point2LL from, const Point2LL to, bool to_the_right, const std::function<bool(GridPoint)>& process_cell_func) const;
 
     /*! \brief Process cells that might contain sought after points.
      *
@@ -105,13 +105,13 @@ public:
      * ``false``.
      * \return Whether we need to continue processing after this function.
      */
-    bool processNearby(const Point& query_pt, coord_t radius, const std::function<bool(const GridPoint&)>& process_func) const;
+    bool processNearby(const Point2LL& query_pt, coord_t radius, const std::function<bool(const GridPoint&)>& process_func) const;
 
     /*! \brief Compute the grid coordinates of a point.
      * \param point The actual location.
      * \return The grid coordinates that correspond to \p point.
      */
-    GridPoint toGridPoint(const Point& point) const;
+    GridPoint toGridPoint(const Point2LL& point) const;
 
     /*! \brief Compute the grid coordinate of a real space coordinate.
      * \param coord The actual location.
@@ -125,7 +125,7 @@ public:
      * \param location The grid location.
      * \return The print space coordinates that correspond to \p location.
      */
-    Point toLowerCorner(const GridPoint& location) const;
+    Point2LL toLowerCorner(const GridPoint& location) const;
 
     /*! \brief Compute the lowest coord in a grid cell.
      * The lowest point is the point in the grid cell closest to the origin.

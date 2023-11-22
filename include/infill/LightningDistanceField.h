@@ -37,7 +37,7 @@ public:
      * \return ``true`` if successful, or ``false`` if there are no more points
      * to consider.
      */
-    bool tryGetNextPoint(Point* p) const;
+    bool tryGetNextPoint(Point2LL* p) const;
 
     /*!
      * Update the distance field with a newly added branch.
@@ -51,7 +51,7 @@ public:
      * \param added_leaf The location of the leaf of the newly added branch,
      * drawing a straight line to the node.
      */
-    void update(const Point& to_node, const Point& added_leaf);
+    void update(const Point2LL& to_node, const Point2LL& added_leaf);
 
 protected:
     using GridPoint = SquareGrid::GridPoint;
@@ -92,7 +92,7 @@ protected:
         /*!
          * The position of the center of this cell.
          */
-        Point loc_;
+        Point2LL loc_;
 
         /*!
          * How far this cell is removed from the ``current_outline`` polygon,

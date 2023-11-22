@@ -118,7 +118,7 @@ public:
         const int support_shift = roof ? 0 : support_infill_distance / 2;
         const size_t wall_line_count = include_walls ? (! roof ? config.support_wall_count : config.support_roof_wall_count) : 0;
         constexpr coord_t narrow_area_width = 0;
-        const Point infill_origin;
+        const Point2LL infill_origin;
         constexpr bool skip_stitching = false;
         constexpr bool fill_gaps = true;
         constexpr bool use_endpieces = true;
@@ -298,11 +298,11 @@ public:
         for (auto line : polylines)
         {
             Polygon next_line;
-            for (Point p : line)
+            for (Point2LL p : line)
             {
                 if (area.inside(p))
                 {
-                    Point next_outside = p;
+                    Point2LL next_outside = p;
                     PolygonUtils::moveOutside(area, next_outside);
                     if (vSize2(p - next_outside) < max_allowed_distance * max_allowed_distance)
                     {
@@ -336,7 +336,7 @@ public:
         {
             ExtrusionLine vwl_line(1, true);
 
-            for (Point p : path)
+            for (Point2LL p : path)
             {
                 vwl_line.emplace_back(p, line_width, 1);
             }

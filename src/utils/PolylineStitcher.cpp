@@ -23,7 +23,7 @@ bool PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::can
 }
 
 template<>
-bool PolylineStitcher<Polygons, Polygon, Point>::canReverse(const PathsPointIndex<Polygons>&)
+bool PolylineStitcher<Polygons, Polygon, Point2LL>::canReverse(const PathsPointIndex<Polygons>&)
 {
     return true;
 }
@@ -35,7 +35,7 @@ bool PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::can
 }
 
 template<>
-bool PolylineStitcher<Polygons, Polygon, Point>::canConnect(const Polygon&, const Polygon&)
+bool PolylineStitcher<Polygons, Polygon, Point2LL>::canConnect(const Polygon&, const Polygon&)
 {
     return true;
 }
@@ -47,7 +47,7 @@ bool PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::isO
 }
 
 template<>
-bool PolylineStitcher<Polygons, Polygon, Point>::isOdd(const Polygon&)
+bool PolylineStitcher<Polygons, Polygon, Point2LL>::isOdd(const Polygon&)
 {
     return false;
 }

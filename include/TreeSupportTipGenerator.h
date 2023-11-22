@@ -54,7 +54,7 @@ private:
         TO_BP_SAFE
     };
 
-    using LineInformation = std::vector<std::pair<Point, TreeSupportTipGenerator::LineStatus>>;
+    using LineInformation = std::vector<std::pair<Point2LL, TreeSupportTipGenerator::LineStatus>>;
 
     /*!
      * \brief Converts a Polygons object representing a line into the internal format.
@@ -79,7 +79,7 @@ private:
      * \param current_layer[in] The layer on which the point lies
      * \return A function that can be called to evaluate a point.
      */
-    std::function<bool(std::pair<Point, TreeSupportTipGenerator::LineStatus>)> getEvaluatePointForNextLayerFunction(size_t current_layer);
+    std::function<bool(std::pair<Point2LL, TreeSupportTipGenerator::LineStatus>)> getEvaluatePointForNextLayerFunction(size_t current_layer);
 
     /*!
      * \brief Evaluates which points of some lines are not valid one layer below and which are. Assumes all points are valid on the current layer. Validity is evaluated using
@@ -91,7 +91,7 @@ private:
      */
     std::pair<std::vector<LineInformation>, std::vector<LineInformation>> splitLines(
         std::vector<LineInformation> lines,
-        std::function<bool(std::pair<Point, TreeSupportTipGenerator::LineStatus>)> evaluatePoint); // assumes all Points on the current line are valid
+        std::function<bool(std::pair<Point2LL, TreeSupportTipGenerator::LineStatus>)> evaluatePoint); // assumes all Points on the current line are valid
 
     /*!
      * \brief Ensures that every line segment is about distance in length. The resulting lines may differ from the original but all points are on the original
@@ -141,13 +141,13 @@ private:
      */
     void addPointAsInfluenceArea(
         std::vector<std::set<TreeSupportElement*>>& move_bounds,
-        std::pair<Point, LineStatus> p,
+        std::pair<Point2LL, LineStatus> p,
         size_t dtt,
         LayerIndex insert_layer,
         size_t dont_move_until,
         bool roof,
         bool skip_ovalisation,
-        std::vector<Point> additional_ovalization_targets = std::vector<Point>());
+        std::vector<Point2LL> additional_ovalization_targets = std::vector<Point2LL>());
 
 
     /*!
@@ -293,7 +293,7 @@ private:
     /*!
      * \brief Map that saves locations of already inserted tips. Used to prevent tips far to close together from being added.
      */
-    std::vector<std::unordered_set<Point>> already_inserted;
+    std::vector<std::unordered_set<Point2LL>> already_inserted;
 
     /*!
      * \brief Areas that will be saved as support roof

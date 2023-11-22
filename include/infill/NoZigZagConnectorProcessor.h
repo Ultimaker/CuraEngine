@@ -24,8 +24,8 @@ public:
     {
     }
 
-    void registerVertex(const Point& vertex);
-    void registerScanlineSegmentIntersection(const Point& intersection, int scanline_index);
+    void registerVertex(const Point2LL& vertex);
+    void registerScanlineSegmentIntersection(const Point2LL& intersection, int scanline_index);
     void registerPolyFinished();
 };
 

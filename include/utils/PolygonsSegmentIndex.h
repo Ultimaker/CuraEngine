@@ -20,9 +20,9 @@ public:
     PolygonsSegmentIndex();
     PolygonsSegmentIndex(const Polygons* polygons, unsigned int poly_idx, unsigned int point_idx);
 
-    Point from() const;
+    Point2LL from() const;
 
-    Point to() const;
+    Point2LL to() const;
 };
 
 

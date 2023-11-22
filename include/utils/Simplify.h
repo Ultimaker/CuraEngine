@@ -240,7 +240,7 @@ protected:
         }
         // From here on out we can safely look at the vertex neighbors and assume it's a polygon. We won't go out of bounds of the polyline.
 
-        const Point& vertex = getPosition(polygon[index]);
+        const Point2LL& vertex = getPosition(polygon[index]);
         const size_t before_index = previousNotDeleted(index, to_delete);
         const size_t after_index = nextNotDeleted(index, to_delete);
 
@@ -250,8 +250,8 @@ protected:
             return std::numeric_limits<coord_t>::max();
         }
 
-        const Point& before = getPosition(polygon[before_index]);
-        const Point& after = getPosition(polygon[after_index]);
+        const Point2LL& before = getPosition(polygon[before_index]);
+        const Point2LL& after = getPosition(polygon[after_index]);
         const coord_t deviation2 = LinearAlg2D::getDist2FromLine(vertex, before, after);
         if (deviation2 <= min_resolution * min_resolution) // Deviation so small that it's always desired to remove them.
         {
@@ -293,9 +293,9 @@ protected:
 
         const size_t before = previousNotDeleted(vertex, to_delete);
         const size_t after = nextNotDeleted(vertex, to_delete);
-        const Point& vertex_position = getPosition(polygon[vertex]);
-        const Point& before_position = getPosition(polygon[before]);
-        const Point& after_position = getPosition(polygon[after]);
+        const Point2LL& vertex_position = getPosition(polygon[vertex]);
+        const Point2LL& before_position = getPosition(polygon[before]);
+        const Point2LL& after_position = getPosition(polygon[after]);
         const coord_t length2_before = vSize2(vertex_position - before_position);
         const coord_t length2_after = vSize2(vertex_position - after_position);
 
@@ -309,7 +309,7 @@ protected:
         // Otherwise, one edge next to this vertex is longer than max_resolution. The other is shorter.
         // In this case we want to remove the short edge by replacing it with a vertex where the two surrounding edges intersect.
         // Find the two line segments surrounding the short edge here ("before" and "after" edges).
-        Point before_from, before_to, after_from, after_to;
+        Point2LL before_from, before_to, after_from, after_to;
         if (length2_before <= length2_after) // Before is the shorter line.
         {
             if (! is_closed && before == 0) // No edge before the short edge.
@@ -334,7 +334,7 @@ protected:
             after_from = getPosition(polygon[after]);
             after_to = getPosition(polygon[after_after]);
         }
-        Point intersection;
+        Point2LL intersection;
         const bool did_intersect = LinearAlg2D::lineLineIntersection(before_from, before_to, after_from, after_to, intersection);
         if (! did_intersect) // Lines are parallel.
         {
@@ -399,7 +399,7 @@ protected:
      * \param polygon The polygon to add to.
      * \param vertex The vertex to add.
      */
-    void appendVertex(Polygon& polygon, const Point& vertex) const;
+    void appendVertex(Polygon& polygon, const Point2LL& vertex) const;
 
     /*!
      * Append a vertex to this extrusion line.
@@ -418,7 +418,7 @@ protected:
      * \param vertex A vertex to get the coordinates of.
      * \return The coordinates of that vertex.
      */
-    const Point& getPosition(const Point& vertex) const;
+    const Point2LL& getPosition(const Point2LL& vertex) const;
 
     /*!
      * Get the coordinates of a vertex.
@@ -427,7 +427,7 @@ protected:
      * \param vertex A vertex to get the coordinates of.
      * \return The coordinates of that vertex.
      */
-    const Point& getPosition(const ExtrusionJunction& vertex) const;
+    const Point2LL& getPosition(const ExtrusionJunction& vertex) const;
 
     /*!
      * Create an intersection vertex that can be placed in a polygon.
@@ -437,7 +437,7 @@ protected:
      * \param after One of the vertices of a removed edge. Unused in this
      * overload.
      */
-    Point createIntersection(const Point& before, const Point intersection, const Point& after) const;
+    Point2LL createIntersection(const Point2LL& before, const Point2LL intersection, const Point2LL& after) const;
 
     /*!
      * Create an intersection vertex that can be placed in an ExtrusionLine.
@@ -447,7 +447,7 @@ protected:
      * \param after One of the vertices of the edge that gets replaced by an
      * intersection vertex.
      */
-    ExtrusionJunction createIntersection(const ExtrusionJunction& before, const Point intersection, const ExtrusionJunction& after) const;
+    ExtrusionJunction createIntersection(const ExtrusionJunction& before, const Point2LL intersection, const ExtrusionJunction& after) const;
 
     /*!
      * Get the extrusion area deviation that would be caused by removing this
@@ -460,7 +460,7 @@ protected:
      * \param after The vertex after the one that is to be removed.
      * \return The area deviation that would be caused by removing the vertex.
      */
-    coord_t getAreaDeviation(const Point& before, const Point& vertex, const Point& after) const;
+    coord_t getAreaDeviation(const Point2LL& before, const Point2LL& vertex, const Point2LL& after) const;
 
     /*!
      * Get the extrusion area deviation that would be caused by removing this

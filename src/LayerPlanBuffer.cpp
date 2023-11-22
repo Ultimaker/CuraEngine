@@ -80,7 +80,7 @@ void LayerPlanBuffer::flush()
 
 void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const LayerPlan* newest_layer)
 {
-    std::optional<std::pair<Point, bool>> new_layer_destination_state = newest_layer->getFirstTravelDestinationState();
+    std::optional<std::pair<Point2LL, bool>> new_layer_destination_state = newest_layer->getFirstTravelDestinationState();
 
     if (! new_layer_destination_state)
     {
@@ -88,7 +88,7 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
         return;
     }
 
-    Point first_location_new_layer = new_layer_destination_state->first;
+    Point2LL first_location_new_layer = new_layer_destination_state->first;
 
     assert(newest_layer->extruder_plans_.front().paths_[0].points.size() == 1);
     assert(newest_layer->extruder_plans_.front().paths_[0].points[0] == first_location_new_layer);
@@ -125,7 +125,7 @@ void LayerPlanBuffer::processFanSpeedLayerTime()
     // Assume the print head is homed at the start of a mesh group.
     // This introduces small inaccuracies for the naive layer time estimates of the first layer of the second mesh group.
     // It's not that bad, though. They are naive estimates any way.
-    Point starting_position(0, 0);
+    Point2LL starting_position(0, 0);
     if (buffer_.size() >= 2)
     {
         auto prev_layer_it = newest_layer_it;

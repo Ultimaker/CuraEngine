@@ -47,7 +47,7 @@ public:
         const double increment = segment_length / radius; // Segments of 990 units.
         for (double angle = 0; angle < tau; angle += increment)
         {
-            circle.add(Point(std::cos(angle) * radius, std::sin(angle) * radius));
+            circle.add(Point2LL(std::cos(angle) * radius, std::sin(angle) * radius));
         }
 
         square_collinear.clear();
@@ -63,16 +63,16 @@ public:
                 switch (side)
                 {
                 case 0:
-                    square_collinear.add(Point(longitude, latitude));
+                    square_collinear.add(Point2LL(longitude, latitude));
                     break;
                 case 1:
-                    square_collinear.add(Point(width + latitude, longitude));
+                    square_collinear.add(Point2LL(width + latitude, longitude));
                     break;
                 case 2:
-                    square_collinear.add(Point(width - longitude, width + latitude));
+                    square_collinear.add(Point2LL(width - longitude, width + latitude));
                     break;
                 case 3:
-                    square_collinear.add(Point(latitude, width - longitude));
+                    square_collinear.add(Point2LL(latitude, width - longitude));
                     break;
                 }
             }
@@ -85,7 +85,7 @@ public:
         constexpr size_t periods = 10; // How many waves of the sine to construct.
         for (double current_sine = 0; current_sine < std::numbers::pi * periods; current_sine += sine_step)
         {
-            sine.add(Point(std::sin(current_sine) * amplitude, y_step * sine.size()));
+            sine.add(Point2LL(std::sin(current_sine) * amplitude, y_step * sine.size()));
         }
 
         spiral.clear();
@@ -96,7 +96,7 @@ public:
         radius = 0;
         for (size_t i = 0; i < vertex_count; ++i)
         {
-            spiral.add(Point(std::cos(angle) * radius, std::sin(angle) * radius));
+            spiral.add(Point2LL(std::cos(angle) * radius, std::sin(angle) * radius));
             angle += angle_step;
             radius += radius_step;
         }
@@ -105,7 +105,7 @@ public:
         constexpr coord_t invfreq = 30;
         for (size_t i = 0; i < vertex_count; ++i)
         {
-            zigzag.add(Point(-amplitude + (i % 2) * 2 * amplitude, i * invfreq));
+            zigzag.add(Point2LL(-amplitude + (i % 2) * 2 * amplitude, i * invfreq));
         }
     }
 };
@@ -142,17 +142,17 @@ TEST_F(SimplifyTest, CircleMaxDeviation)
     Polygon simplified = simplifier.polygon(circle);
 
     // Check on each vertex if it didn't deviate too much.
-    for (Point v : circle)
+    for (Point2LL v : circle)
     {
-        Point moved_point = v;
+        Point2LL moved_point = v;
         PolygonUtils::moveInside(simplified, moved_point);
         const coord_t deviation = vSize(moved_point - v);
         EXPECT_LE(deviation, simplifier.max_deviation);
     }
     // Also check the other way around, since the longest distance may also be on a vertex of the new polygon.
-    for (Point v : simplified)
+    for (Point2LL v : simplified)
     {
-        Point moved_point = v;
+        Point2LL moved_point = v;
         PolygonUtils::moveInside(circle, moved_point);
         const coord_t deviation = vSize(moved_point - v);
         EXPECT_LE(deviation, simplifier.max_deviation);
@@ -221,14 +221,14 @@ TEST_F(SimplifyTest, LimitedError)
 
     // Generate a zig-zag with gradually increasing deviation.
     Polygon increasing_zigzag;
-    increasing_zigzag.add(Point(0, 0));
+    increasing_zigzag.add(Point2LL(0, 0));
     constexpr coord_t amplitude_step = 1; // Every 2 vertices, the amplitude increases by this much.
     constexpr coord_t y_step = 100;
     const coord_t amplitude_limit = simplifier.max_deviation * 2; // Increase amplitude up to this point. About half of the vertices should get removed.
     for (coord_t amplitude = 0; amplitude < amplitude_limit; amplitude += amplitude_step)
     {
-        increasing_zigzag.add(Point(amplitude, increasing_zigzag.size() * y_step));
-        increasing_zigzag.add(Point(0, increasing_zigzag.size() * y_step));
+        increasing_zigzag.add(Point2LL(amplitude, increasing_zigzag.size() * y_step));
+        increasing_zigzag.add(Point2LL(0, increasing_zigzag.size() * y_step));
     }
 
     size_t limit_vertex = 2 * simplifier.max_deviation / amplitude_step + 3; // 2 vertices per zag. Deviation/step zags. Add 3 since deviation equal to max +- epsilon is allowed.
@@ -257,10 +257,10 @@ TEST_F(SimplifyTest, LimitedError)
 TEST_F(SimplifyTest, LongEdgesNotMoved)
 {
     Polygon polyline;
-    polyline.add(Point(0, 0));
-    polyline.add(Point(10000, 10000)); // Long edge.
-    polyline.add(Point(10010, 10000)); // Short edge.
-    polyline.add(Point(21010, 0)); // Long edge.
+    polyline.add(Point2LL(0, 0));
+    polyline.add(Point2LL(10000, 10000)); // Long edge.
+    polyline.add(Point2LL(10010, 10000)); // Short edge.
+    polyline.add(Point2LL(21010, 0)); // Long edge.
 
     Polygon simplified = simplifier.polyline(polyline);
 
@@ -277,7 +277,7 @@ TEST_F(SimplifyTest, LongEdgesNotMoved)
         {
             // Both endpoints of this line segment must have a distance to the simplified polygon of 0, theoretically.
             // Due to rounding errors we'll allow up to 1 unit.
-            Point moved_point = polyline[i];
+            Point2LL moved_point = polyline[i];
             PolygonUtils::moveInside(simplified, moved_point);
             const coord_t deviation = vSize(moved_point - polyline[i]);
             EXPECT_LE(deviation, 1) << "The endpoints of long segments must still be in the simplified result.";
@@ -294,10 +294,10 @@ TEST_F(SimplifyTest, LongEdgesNotMoved)
 TEST_F(SimplifyTest, LongEdgesButTooMuchDeviation)
 {
     Polygon polyline;
-    polyline.add(Point(0, 0));
-    polyline.add(Point(0, 10000)); // Long edge.
-    polyline.add(Point(10, 10000)); // Short edge.
-    polyline.add(Point(20, 0)); // Long edge. Intersection with previous long edge is at 0,20000, which is too far.
+    polyline.add(Point2LL(0, 0));
+    polyline.add(Point2LL(0, 10000)); // Long edge.
+    polyline.add(Point2LL(10, 10000)); // Short edge.
+    polyline.add(Point2LL(20, 0)); // Long edge. Intersection with previous long edge is at 0,20000, which is too far.
 
     Polygon simplified = simplifier.polyline(polyline);
 
@@ -309,7 +309,7 @@ TEST_F(SimplifyTest, LongEdgesButTooMuchDeviation)
     }
 
     polyline.pop_back();
-    polyline.add(Point(10, 0)); // Replace last vertex with one that makes the two long edges exactly parallel.
+    polyline.add(Point2LL(10, 0)); // Replace last vertex with one that makes the two long edges exactly parallel.
 
     simplified = simplifier.polyline(polyline);
 
@@ -361,13 +361,13 @@ TEST_F(SimplifyTest, IdenticalVertices)
             switch (vertex)
             {
             case 0:
-                polygon.add(Point(0, 0));
+                polygon.add(Point2LL(0, 0));
                 break;
             case 1:
-                polygon.add(Point(10000, 0));
+                polygon.add(Point2LL(10000, 0));
                 break;
             case 2:
-                polygon.add(Point(5000, 10000));
+                polygon.add(Point2LL(5000, 10000));
                 break;
             }
         }
@@ -384,17 +384,17 @@ TEST_F(SimplifyTest, ToDegenerate)
 {
     // Create a triangle where one of the vertices could be removed.
     Polygon triangle;
-    triangle.add(Point(0, 0));
-    triangle.add(Point(1100, 0));
-    triangle.add(Point(550, 50)); // Deviates by 50, and both adjacent edges are just over 550 long. Could be removed.
+    triangle.add(Point2LL(0, 0));
+    triangle.add(Point2LL(1100, 0));
+    triangle.add(Point2LL(550, 50)); // Deviates by 50, and both adjacent edges are just over 550 long. Could be removed.
 
     triangle = simplifier.polygon(triangle);
     EXPECT_EQ(triangle.size(), 3) << "The triangle did not get simplified because that would reduce its vertices to less than 3, making it degenerate.";
 
     // Create a polyline that is shorter than the minimum resolution.
     Polygon segment;
-    segment.add(Point(0, 0));
-    segment.add(Point(4, 0)); // Less than 5 micron long, so vertices would always be removed.
+    segment.add(Point2LL(0, 0));
+    segment.add(Point2LL(4, 0)); // Less than 5 micron long, so vertices would always be removed.
 
     segment = simplifier.polyline(segment);
     EXPECT_EQ(segment.size(), 0) << "The segment got removed entirely, because simplification would reduce its vertices to less than 2, making it degenerate.";

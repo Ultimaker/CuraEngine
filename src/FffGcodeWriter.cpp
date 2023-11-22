@@ -200,7 +200,7 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
         // If the user has specified a z-seam location, use the vertex closest to that location for the seam vertex
         // in the first layer that has a part with insets. This allows the user to alter the seam start location which
         // could be useful if the spiralization has a problem with a particular seam path.
-        Point seam_pos(0, 0);
+        Point2LL seam_pos(0, 0);
         if (mesh.settings.get<EZSeamType>("z_seam_type") == EZSeamType::USER_SPECIFIED)
         {
             seam_pos = mesh.getZSeamHint();
@@ -217,7 +217,7 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
         // This case is so rare that we don't bother with finding the best polygon to start with. Just start with the first polygon (`spiral_wall[0]`).
         ConstPolygonRef wall = layer.parts[0].spiral_wall[0];
         const size_t n_points = wall.size();
-        const Point last_wall_seam_vertex = last_wall[storage.spiralize_seam_vertex_indices[last_layer_nr]];
+        const Point2LL last_wall_seam_vertex = last_wall[storage.spiralize_seam_vertex_indices[last_layer_nr]];
 
         // seam_vertex_idx is going to be the index of the seam vertex in the current wall polygon
         // initially we choose the vertex that is closest to the seam vertex in the last spiralized layer processed
@@ -230,10 +230,10 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
         if (vSize(last_wall_seam_vertex - wall[seam_vertex_idx]) >= mesh.settings.get<coord_t>("meshfix_maximum_resolution"))
         {
             // get the inward normal of the last layer seam vertex
-            Point last_wall_seam_vertex_inward_normal = PolygonUtils::getVertexInwardNormal(last_wall, storage.spiralize_seam_vertex_indices[last_layer_nr]);
+            Point2LL last_wall_seam_vertex_inward_normal = PolygonUtils::getVertexInwardNormal(last_wall, storage.spiralize_seam_vertex_indices[last_layer_nr]);
 
             // create a vector from the normal so that we can then test the vertex following the candidate seam vertex to make sure it is on the correct side
-            Point last_wall_seam_vertex_vector = last_wall_seam_vertex + last_wall_seam_vertex_inward_normal;
+            Point2LL last_wall_seam_vertex_vector = last_wall_seam_vertex + last_wall_seam_vertex_inward_normal;
 
             // now test the vertex following the candidate seam vertex and if it lies to the left of the vector, it's good to use
             double a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
@@ -546,7 +546,7 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
 
     Application::getInstance().communication_->sendCurrentPosition(gcode.getPositionXY());
     gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_travel"));
-    Point start_pos(storage.model_min.x_, storage.model_min.y_);
+    Point2LL start_pos(storage.model_min.x_, storage.model_min.y_);
     gcode.writeTravel(start_pos, Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_travel"));
 
     gcode.processInitialLayerTemperature(storage, gcode.getExtruderNr());
@@ -574,7 +574,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     constexpr bool fill_gaps = true;
 
     Polygons raft_polygons; // should remain empty, since we only have the lines pattern for the raft...
-    std::optional<Point> last_planned_position = std::optional<Point>();
+    std::optional<Point2LL> last_planned_position = std::optional<Point2LL>();
 
     unsigned int current_extruder_nr = base_extruder_nr;
 
@@ -613,7 +613,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         const coord_t small_area_width = 0; // A raft never has a small region due to the large horizontal expansion.
         const coord_t line_spacing = base_settings.get<coord_t>("raft_base_line_spacing");
         const coord_t line_spacing_prime_tower = base_settings.get<coord_t>("prime_tower_raft_base_line_spacing");
-        const Point& infill_origin = Point();
+        const Point2LL& infill_origin = Point2LL();
         constexpr bool skip_stitching = false;
         constexpr bool connected_zigzags = false;
         constexpr bool use_endpieces = true;
@@ -771,7 +771,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         constexpr int wall_line_count = 0;
         const coord_t small_area_width = 0; // A raft never has a small region due to the large horizontal expansion.
-        const Point infill_origin = Point();
+        const Point2LL infill_origin = Point2LL();
         constexpr bool skip_stitching = false;
         constexpr bool connected_zigzags = false;
         constexpr bool use_endpieces = true;
@@ -890,7 +890,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         constexpr size_t wall_line_count = 0;
         const coord_t small_area_width = 0; // A raft never has a small region due to the large horizontal expansion.
-        const Point& infill_origin = Point();
+        const Point2LL& infill_origin = Point2LL();
         constexpr bool skip_stitching = false;
         constexpr bool connected_zigzags = false;
         constexpr bool connect_polygons = false; // midway connections between polygons can make the surface less smooth
@@ -1159,11 +1159,11 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     }
 
     // Start brim close to the prime location
-    Point start_close_to;
+    Point2LL start_close_to;
     if (train.settings_.get<bool>("prime_blob_enable"))
     {
         const auto prime_pos_is_abs = train.settings_.get<bool>("extruder_prime_pos_abs");
-        const auto prime_pos = Point(train.settings_.get<coord_t>("extruder_prime_pos_x"), train.settings_.get<coord_t>("extruder_prime_pos_y"));
+        const auto prime_pos = Point2LL(train.settings_.get<coord_t>("extruder_prime_pos_x"), train.settings_.get<coord_t>("extruder_prime_pos_y"));
         start_close_to = prime_pos_is_abs ? prime_pos : gcode_layer.getLastPlannedPositionOrStartingPosition() + prime_pos;
     }
     else
@@ -1214,7 +1214,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
                     all_brim_lines.back().add(line.front());
                 }
                 ConstPolygonPointer pp(all_brim_lines.back());
-                for (Point p : line)
+                for (Point2LL p : line)
                 {
                     grid.insert(p, BrimLineReference{ inset_idx, pp });
                 }
@@ -1227,7 +1227,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     for (const std::pair<SquareGrid::GridPoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<BrimLineReference>>& p : grid)
     {
         const BrimLineReference& here = p.second.val;
-        Point loc_here = p.second.point;
+        Point2LL loc_here = p.second.point;
         std::vector<BrimLineReference> nearby_verts = grid.getNearbyVals(loc_here, searching_radius);
         for (const BrimLineReference& nearby : nearby_verts)
         {
@@ -1457,12 +1457,12 @@ std::vector<size_t> FffGcodeWriter::calculateMeshOrder(const SliceDataStorage& s
         if (mesh.getExtruderIsUsed(extruder_nr))
         {
             const Mesh& mesh_data = mesh_group->meshes[mesh_idx];
-            const Point3 middle = (mesh_data.getAABB().min_ + mesh_data.getAABB().max_) / 2;
-            mesh_idx_order_optimizer.addItem(Point(middle.x_, middle.y_), mesh_idx);
+            const Point3LL middle = (mesh_data.getAABB().min_ + mesh_data.getAABB().max_) / 2;
+            mesh_idx_order_optimizer.addItem(Point2LL(middle.x_, middle.y_), mesh_idx);
         }
     }
     const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
-    const Point layer_start_position(train.settings_.get<coord_t>("layer_start_x"), train.settings_.get<coord_t>("layer_start_y"));
+    const Point2LL layer_start_position(train.settings_.get<coord_t>("layer_start_x"), train.settings_.get<coord_t>("layer_start_y"));
     std::list<size_t> mesh_indices_order = mesh_idx_order_optimizer.optimize(layer_start_position);
 
     std::vector<size_t> ret;
@@ -1661,8 +1661,8 @@ bool FffGcodeWriter::processMultiLayerInfill(
             = std::max(uint64_t(1), round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<coord_t>("layer_height"), coord_t(1))));
         infill_angle = mesh.infill_angles.at((gcode_layer.getLayerNr() / combined_infill_layers) % mesh.infill_angles.size());
     }
-    const Point3 mesh_middle = mesh.bounding_box.getMiddle();
-    const Point infill_origin(mesh_middle.x_ + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y_ + mesh.settings.get<coord_t>("infill_offset_y"));
+    const Point3LL mesh_middle = mesh.bounding_box.getMiddle();
+    const Point2LL infill_origin(mesh_middle.x_ + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y_ + mesh.settings.get<coord_t>("infill_offset_y"));
 
     // Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
     bool added_something = false;
@@ -1750,7 +1750,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
 
             if (! infill_lines.empty())
             {
-                std::optional<Point> near_start_location;
+                std::optional<Point2LL> near_start_location;
                 if (mesh.settings.get<bool>("infill_randomize_start_location"))
                 {
                     srand(gcode_layer.getLayerNr());
@@ -1813,8 +1813,8 @@ bool FffGcodeWriter::processSingleLayerInfill(
             = std::max(uint64_t(1), round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<coord_t>("layer_height"), coord_t(1))));
         infill_angle = mesh.infill_angles.at((static_cast<size_t>(gcode_layer.getLayerNr()) / combined_infill_layers) % mesh.infill_angles.size());
     }
-    const Point3 mesh_middle = mesh.bounding_box.getMiddle();
-    const Point infill_origin(mesh_middle.x_ + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y_ + mesh.settings.get<coord_t>("infill_offset_y"));
+    const Point3LL mesh_middle = mesh.bounding_box.getMiddle();
+    const Point2LL infill_origin(mesh_middle.x_ + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y_ + mesh.settings.get<coord_t>("infill_offset_y"));
 
     auto get_cut_offset = [](const bool zig_zaggify, const coord_t line_width, const size_t line_count)
     {
@@ -2036,7 +2036,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
     {
         added_something = true;
         gcode_layer.setIsInside(true); // going to print stuff inside print object
-        std::optional<Point> near_start_location;
+        std::optional<Point2LL> near_start_location;
         if (mesh.settings.get<bool>("infill_randomize_start_location"))
         {
             srand(gcode_layer.getLayerNr());
@@ -2582,36 +2582,36 @@ bool FffGcodeWriter::processInsets(
     return added_something;
 }
 
-std::optional<Point> FffGcodeWriter::getSeamAvoidingLocation(const Polygons& filling_part, int filling_angle, Point last_position) const
+std::optional<Point2LL> FffGcodeWriter::getSeamAvoidingLocation(const Polygons& filling_part, int filling_angle, Point2LL last_position) const
 {
     if (filling_part.empty())
     {
-        return std::optional<Point>();
+        return std::optional<Point2LL>();
     }
     // start with the BB of the outline
     AABB skin_part_bb(filling_part);
     PointMatrix rot((double)((-filling_angle + 90) % 360)); // create a matrix to rotate a vector so that it is normal to the skin angle
-    const Point bb_middle = skin_part_bb.getMiddle();
+    const Point2LL bb_middle = skin_part_bb.getMiddle();
     // create a vector from the middle of the BB whose length is such that it can be rotated
     // around the middle of the BB and the end will always be a long way outside of the part's outline
     // and rotate the vector so that it is normal to the skin angle
-    const Point vec = rot.apply(Point(0, vSize(skin_part_bb.max_ - bb_middle) * 100));
+    const Point2LL vec = rot.apply(Point2LL(0, vSize(skin_part_bb.max_ - bb_middle) * 100));
     // find the vertex in the outline that is closest to the end of the rotated vector
     const PolygonsPointIndex pa = PolygonUtils::findNearestVert(bb_middle + vec, filling_part);
     // and find another outline vertex, this time using the vector + 180 deg
     const PolygonsPointIndex pb = PolygonUtils::findNearestVert(bb_middle - vec, filling_part);
     if (! pa.initialized() || ! pb.initialized())
     {
-        return std::optional<Point>();
+        return std::optional<Point2LL>();
     }
     // now go to whichever of those vertices that is closest to where we are now
     if (vSize2(pa.p() - last_position) < vSize2(pb.p() - last_position))
     {
-        return std::optional<Point>(std::in_place, pa.p());
+        return std::optional<Point2LL>(std::in_place, pa.p());
     }
     else
     {
-        return std::optional<Point>(std::in_place, pb.p());
+        return std::optional<Point2LL>(std::in_place, pb.p());
     }
 }
 
@@ -2920,7 +2920,7 @@ void FffGcodeWriter::processSkinPrintFeature(
     const bool connect_polygons = mesh.settings.get<bool>("connect_skin_polygons");
     coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
     coord_t max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
-    const Point infill_origin;
+    const Point2LL infill_origin;
     const bool skip_line_stitching = monotonic;
     constexpr bool fill_gaps = true;
     constexpr bool connected_zigzags = false;
@@ -3046,7 +3046,7 @@ void FffGcodeWriter::processSkinPrintFeature(
         }
         else
         {
-            std::optional<Point> near_start_location;
+            std::optional<Point2LL> near_start_location;
             const EFillMethod actual_pattern
                 = (gcode_layer.getLayerNr() == 0) ? mesh.settings.get<EFillMethod>("top_bottom_pattern_0") : mesh.settings.get<EFillMethod>("top_bottom_pattern");
             if (actual_pattern == EFillMethod::LINES || actual_pattern == EFillMethod::ZIG_ZAG)
@@ -3224,7 +3224,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
     const auto support_connect_zigzags = infill_extruder.settings_.get<bool>("support_connect_zigzags");
     const auto support_structure = infill_extruder.settings_.get<ESupportStructure>("support_structure");
-    const Point infill_origin;
+    const Point2LL infill_origin;
 
     constexpr bool use_endpieces = true;
     constexpr coord_t pocket_size = 0;
@@ -3375,7 +3375,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 constexpr bool spiralize = false;
                 constexpr Ratio flow_ratio = 1.0_r;
                 constexpr bool always_retract = false;
-                const std::optional<Point> start_near_location = std::optional<Point>();
+                const std::optional<Point2LL> start_near_location = std::optional<Point2LL>();
 
                 gcode_layer.addPolygonsByOptimizer(
                     support_polygons,
@@ -3395,7 +3395,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 constexpr bool enable_travel_optimization = false;
                 constexpr coord_t wipe_dist = 0;
                 constexpr Ratio flow_ratio = 1.0;
-                const std::optional<Point> near_start_location = std::optional<Point>();
+                const std::optional<Point2LL> near_start_location = std::optional<Point2LL>();
                 constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
 
                 gcode_layer.addLinesByOptimizer(
@@ -3483,7 +3483,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(
     constexpr coord_t extra_infill_shift = 0;
     const auto wall_line_count = roof_extruder.settings_.get<size_t>("support_roof_wall_count");
     const coord_t small_area_width = roof_extruder.settings_.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
-    const Point infill_origin;
+    const Point2LL infill_origin;
     constexpr bool skip_stitching = false;
     constexpr bool fill_gaps = true;
     constexpr bool use_endpieces = true;
@@ -3613,7 +3613,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     const auto wall_line_count = bottom_extruder.settings_.get<size_t>("support_bottom_wall_count");
     const coord_t small_area_width = bottom_extruder.settings_.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
 
-    const Point infill_origin;
+    const Point2LL infill_origin;
     constexpr bool skip_stitching = false;
     constexpr bool fill_gaps = true;
     constexpr bool use_endpieces = true;
@@ -3714,7 +3714,7 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
             if (train.settings_.get<bool>("prime_blob_enable")) // Don't travel to the prime-blob position if not enabled though.
             {
                 bool prime_pos_is_abs = train.settings_.get<bool>("extruder_prime_pos_abs");
-                Point prime_pos = Point(train.settings_.get<coord_t>("extruder_prime_pos_x"), train.settings_.get<coord_t>("extruder_prime_pos_y"));
+                Point2LL prime_pos = Point2LL(train.settings_.get<coord_t>("extruder_prime_pos_x"), train.settings_.get<coord_t>("extruder_prime_pos_y"));
                 gcode_layer.addTravel(prime_pos_is_abs ? prime_pos : gcode_layer.getLastPlannedPositionOrStartingPosition() + prime_pos);
                 gcode_layer.planPrime();
             }

@@ -30,22 +30,22 @@ class PathOrderMonotonicTest : public testing::TestWithParam<std::tuple<std::str
 {
 };
 
-inline Point startVertex(const PathOrdering<ConstPolygonPointer>& path)
+inline Point2LL startVertex(const PathOrdering<ConstPolygonPointer>& path)
 {
     return (*path.vertices_)[path.start_vertex_];
 }
 
-inline Point endVertex(const PathOrdering<ConstPolygonPointer>& path)
+inline Point2LL endVertex(const PathOrdering<ConstPolygonPointer>& path)
 {
     return (*path.vertices_)[path.vertices_->size() - (1 + path.start_vertex_)];
 }
 
-coord_t projectPathAlongAxis(const PathOrdering<ConstPolygonPointer>& path, const Point& vector)
+coord_t projectPathAlongAxis(const PathOrdering<ConstPolygonPointer>& path, const Point2LL& vector)
 {
     return dot(startVertex(path), vector);
 }
 
-coord_t projectEndAlongAxis(const PathOrdering<ConstPolygonPointer>& path, const Point& vector)
+coord_t projectEndAlongAxis(const PathOrdering<ConstPolygonPointer>& path, const Point2LL& vector)
 {
     return dot(endVertex(path), vector);
 }
@@ -139,11 +139,11 @@ TEST_P(PathOrderMonotonicTest, SectionsTest)
     Polygons polylines;
     ASSERT_TRUE(getInfillLines(filename, angle_radians, polylines)) << "Input test-file could not be read, check setup.";
 
-    const Point& pt_r = polylines.begin()->at(0);
-    const Point& pt_s = polylines.begin()->at(1);
+    const Point2LL& pt_r = polylines.begin()->at(0);
+    const Point2LL& pt_s = polylines.begin()->at(1);
     const double angle_from_first_line = std::atan2(pt_s.Y - pt_r.Y, pt_s.X - pt_r.X) + 0.5 * std::numbers::pi;
-    const Point monotonic_axis(static_cast<coord_t>(std::cos(angle_from_first_line)) * 1000, static_cast<coord_t>(std::sin(angle_from_first_line)) * 1000);
-    const Point perpendicular_axis{ turn90CCW(monotonic_axis) };
+    const Point2LL monotonic_axis(static_cast<coord_t>(std::cos(angle_from_first_line)) * 1000, static_cast<coord_t>(std::sin(angle_from_first_line)) * 1000);
+    const Point2LL perpendicular_axis{ turn90CCW(monotonic_axis) };
 
     constexpr coord_t max_adjacent_distance = line_distance + 1;
     PathOrderMonotonic<ConstPolygonPointer> object_under_test(angle_from_first_line, max_adjacent_distance, monotonic_axis * -1000);

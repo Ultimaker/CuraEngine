@@ -89,8 +89,8 @@ bool Comb::calc(
     bool perform_z_hops,
     bool perform_z_hops_only_when_collides,
     const ExtruderTrain& train, // NOTE: USe for travel settings and 'extruder-nr' only, don't use for z-hop/retraction/wipe settings, as that should also be settable per mesh!
-    Point start_point,
-    Point end_point,
+    Point2LL start_point,
+    Point2LL end_point,
     CombPaths& comb_paths,
     bool _start_inside,
     bool _end_inside,
@@ -101,7 +101,7 @@ bool Comb::calc(
     {
         return true;
     }
-    const Point travel_end_point_before_combing = end_point;
+    const Point2LL travel_end_point_before_combing = end_point;
     // Move start and end point inside the optimal comb boundary
     unsigned int start_inside_poly = NO_INDEX;
     const bool start_inside = moveInside(boundary_inside_optimal_, _start_inside, inside_loc_to_line_optimal_.get(), start_point, start_inside_poly);
@@ -387,7 +387,7 @@ void Comb::moveCombPathInside(Polygons& boundary_inside, Polygons& boundary_insi
     comb_path_output.push_back(comb_path_input[0]);
     for (unsigned int point_idx = 1; point_idx < comb_path_input.size() - 1; point_idx++)
     {
-        Point new_point = Point(comb_path_input[point_idx]);
+        Point2LL new_point = Point2LL(comb_path_input[point_idx]);
         PolygonUtils::moveInside(boundary_inside, new_point, dist, dist2);
 
         if (boundary_inside_optimal.inside(new_point))
@@ -406,7 +406,7 @@ void Comb::moveCombPathInside(Polygons& boundary_inside, Polygons& boundary_insi
 }
 
 Comb::Crossing::Crossing(
-    const Point& dest_point,
+    const Point2LL& dest_point,
     const bool dest_is_inside,
     const unsigned int dest_part_idx,
     const unsigned int dest_part_boundary_crossing_poly_idx,
@@ -425,7 +425,7 @@ Comb::Crossing::Crossing(
     }
 }
 
-bool Comb::moveInside(Polygons& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point& dest_point, unsigned int& inside_poly)
+bool Comb::moveInside(Polygons& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point2LL& dest_point, unsigned int& inside_poly)
 {
     if (is_inside)
     {
@@ -444,14 +444,14 @@ bool Comb::moveInside(Polygons& boundary_inside, bool is_inside, LocToLineGrid* 
     return false;
 }
 
-void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, const Point close_to)
+void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, const Point2LL close_to)
 {
     if (dest_is_inside_)
     { // in-case
         // find the point on the start inside-polygon closest to the endpoint, but also kind of close to the start point
-        Point _dest_point(dest_point_); // copy to local variable for lambda capture
-        std::function<int(Point)> close_towards_start_penalty_function(
-            [_dest_point](Point candidate)
+        Point2LL _dest_point(dest_point_); // copy to local variable for lambda capture
+        std::function<int(Point2LL)> close_towards_start_penalty_function(
+            [_dest_point](Point2LL candidate)
             {
                 return vSize2((candidate - _dest_point) / 10);
             });
@@ -472,7 +472,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
                 { // we're not looking at a polygon from the dest_part
                     return true; // a.k.a. continue;
                 }
-                Point closest_here = LinearAlg2D::getClosestOnLineSegment(close_to, boundary_segment.p(), boundary_segment.next().p());
+                Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(close_to, boundary_segment.p(), boundary_segment.next().p());
                 coord_t dist2_score_here = vSize2(close_to - closest_here) + vSize2(_dest_point - closest_here) / 10;
                 if (dist2_score_here < dist2_score)
                 {
@@ -484,7 +484,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
             inside_loc_to_line_.processLine(std::make_pair(dest_point_, close_to), line_processor);
         }
 
-        Point result(boundary_crossing_point.p()); // the inside point of the crossing
+        Point2LL result(boundary_crossing_point.p()); // the inside point of the crossing
         if (! boundary_crossing_point.isValid())
         { // no point has been found in the sparse grid
             result = dest_point_;
@@ -514,14 +514,14 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
     }
 }
 
-bool Comb::Crossing::findOutside(const ExtruderTrain& train, const Polygons& outside, const Point close_to, const bool fail_on_unavoidable_obstacles, Comb& comber)
+bool Comb::Crossing::findOutside(const ExtruderTrain& train, const Polygons& outside, const Point2LL close_to, const bool fail_on_unavoidable_obstacles, Comb& comber)
 {
     out_ = in_or_mid_;
     if (dest_is_inside_ || outside.inside(in_or_mid_, true)) // start in_between
     { // move outside
-        Point preferred_crossing_1_out = in_or_mid_ + normal(close_to - in_or_mid_, comber.offset_from_inside_to_outside_);
-        std::function<int(Point)> close_to_penalty_function(
-            [preferred_crossing_1_out](Point candidate)
+        Point2LL preferred_crossing_1_out = in_or_mid_ + normal(close_to - in_or_mid_, comber.offset_from_inside_to_outside_);
+        std::function<int(Point2LL)> close_to_penalty_function(
+            [preferred_crossing_1_out](Point2LL candidate)
             {
                 return vSize2((candidate - preferred_crossing_1_out) / 2);
             });
@@ -559,8 +559,8 @@ std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Cross
     const ExtruderTrain& train,
     const Polygons& outside,
     ConstPolygonRef from,
-    const Point estimated_start,
-    const Point estimated_end,
+    const Point2LL estimated_start,
+    const Point2LL estimated_end,
     Comb& comber)
 {
     ClosestPolygonPoint* best_in = nullptr;

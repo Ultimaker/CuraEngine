@@ -17,7 +17,7 @@ LightningDistanceField::LightningDistanceField(const coord_t& radius, const Poly
     , current_outline_(current_outline)
     , current_overhang_(current_overhang)
 {
-    std::vector<Point> regular_dots = PolygonUtils::spreadDotsArea(current_overhang, cell_size_);
+    std::vector<Point2LL> regular_dots = PolygonUtils::spreadDotsArea(current_overhang, cell_size_);
     for (const auto& p : regular_dots)
     {
         const ClosestPolygonPoint cpp = PolygonUtils::findClosest(p, current_outline);
@@ -29,7 +29,7 @@ LightningDistanceField::LightningDistanceField(const coord_t& radius, const Poly
         {
             constexpr coord_t prime_for_hash = 191;
             return std::abs(b.dist_to_boundary_ - a.dist_to_boundary_) > radius ? a.dist_to_boundary_ < b.dist_to_boundary_
-                                                                                : (std::hash<Point>{}(a.loc_) % prime_for_hash) < (std::hash<Point>{}(b.loc_) % prime_for_hash);
+                                                                                : (std::hash<Point2LL>{}(a.loc_) % prime_for_hash) < (std::hash<Point2LL>{}(b.loc_) % prime_for_hash);
         });
     for (auto it = unsupported_points_.begin(); it != unsupported_points_.end(); ++it)
     {
@@ -38,7 +38,7 @@ LightningDistanceField::LightningDistanceField(const coord_t& radius, const Poly
     }
 }
 
-bool LightningDistanceField::tryGetNextPoint(Point* p) const
+bool LightningDistanceField::tryGetNextPoint(Point2LL* p) const
 {
     if (unsupported_points_.empty())
     {
@@ -48,7 +48,7 @@ bool LightningDistanceField::tryGetNextPoint(Point* p) const
     return true;
 }
 
-void LightningDistanceField::update(const Point& to_node, const Point& added_leaf)
+void LightningDistanceField::update(const Point2LL& to_node, const Point2LL& added_leaf)
 {
     auto process_func = [added_leaf, this](const SquareGrid::GridPoint& grid_loc)
     {
@@ -65,11 +65,11 @@ void LightningDistanceField::update(const Point& to_node, const Point& added_lea
         }
         return true;
     };
-    const Point a = to_node;
-    const Point b = added_leaf;
-    Point ab = b - a;
-    Point ab_T = turn90CCW(ab);
-    Point extent = normal(ab_T, supporting_radius_);
+    const Point2LL a = to_node;
+    const Point2LL b = added_leaf;
+    Point2LL ab = b - a;
+    Point2LL ab_T = turn90CCW(ab);
+    Point2LL extent = normal(ab_T, supporting_radius_);
     // TODO: process cells only once; make use of PolygonUtils::spreadDotsArea
     grid_.processLineCells(
         std::make_pair(a + extent, a - extent),

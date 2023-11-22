@@ -167,7 +167,7 @@ protected:
      */
     void constructFromPolygons(const Polygons& polys);
 
-    node_t& makeNode(vd_t::vertex_type& vd_node, Point p); //!< Get the node which the VD node maps to, or create a new mapping if there wasn't any yet.
+    node_t& makeNode(vd_t::vertex_type& vd_node, Point2LL p); //!< Get the node which the VD node maps to, or create a new mapping if there wasn't any yet.
 
     /*!
      * (Eventual) returned 'polylines per index' result (from generateToolpaths):
@@ -181,13 +181,13 @@ protected:
      * \p prev_edge serves as input and output. May be null as input.
      */
     void transferEdge(
-        Point from,
-        Point to,
+        Point2LL from,
+        Point2LL to,
         vd_t::edge_type& vd_edge,
         edge_t*& prev_edge,
-        Point& start_source_point,
-        Point& end_source_point,
-        const std::vector<Point>& points,
+        Point2LL& start_source_point,
+        Point2LL& end_source_point,
+        const std::vector<Point2LL>& points,
         const std::vector<Segment>& segments);
 
     /*!
@@ -215,7 +215,7 @@ protected:
      * \return A number of coordinates along the edge where the edge is broken
      * up into discrete pieces.
      */
-    std::vector<Point> discretize(const vd_t::edge_type& segment, const std::vector<Point>& points, const std::vector<Segment>& segments);
+    std::vector<Point2LL> discretize(const vd_t::edge_type& segment, const std::vector<Point2LL>& points, const std::vector<Segment>& segments);
 
     /*!
      * Compute the range of line segments that surround a cell of the skeletal
@@ -243,11 +243,11 @@ protected:
      */
     bool computePointCellRange(
         vd_t::cell_type& cell,
-        Point& start_source_point,
-        Point& end_source_point,
+        Point2LL& start_source_point,
+        Point2LL& end_source_point,
         vd_t::edge_type*& starting_vd_edge,
         vd_t::edge_type*& ending_vd_edge,
-        const std::vector<Point>& points,
+        const std::vector<Point2LL>& points,
         const std::vector<Segment>& segments);
 
     /*!
@@ -276,11 +276,11 @@ protected:
      */
     void computeSegmentCellRange(
         vd_t::cell_type& cell,
-        Point& start_source_point,
-        Point& end_source_point,
+        Point2LL& start_source_point,
+        Point2LL& end_source_point,
         vd_t::edge_type*& starting_vd_edge,
         vd_t::edge_type*& ending_vd_edge,
-        const std::vector<Point>& points,
+        const std::vector<Point2LL>& points,
         const std::vector<Segment>& segments);
 
     /*!

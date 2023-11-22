@@ -40,7 +40,7 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
     std::vector<coord_t> odd_line_coords;
     std::vector<coord_t> even_line_coords;
     Polygons result;
-    std::vector<Point> chains[2]; // [start_points[], end_points[]]
+    std::vector<Point2LL> chains[2]; // [start_points[], end_points[]]
     std::vector<unsigned> connected_to[2]; // [chain_indices[], chain_indices[]]
     std::vector<int> line_numbers; // which row/column line a chain is part of
     if (std::abs(sin_z) <= std::abs(cos_z))
@@ -65,15 +65,15 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
         for (coord_t x = (std::floor(aabb.min_.X / pitch) - 2.25) * pitch; x <= aabb.max_.X + pitch / 2; x += pitch / 2)
         {
             bool is_first_point = true;
-            Point last;
+            Point2LL last;
             bool last_inside = false;
             unsigned chain_end_index = 0;
-            Point chain_end[2];
+            Point2LL chain_end[2];
             for (coord_t y = (std::floor(aabb.min_.Y / pitch) - 1) * pitch; y <= aabb.max_.Y + pitch; y += pitch)
             {
                 for (unsigned i = 0; i < num_coords; ++i)
                 {
-                    Point current(x + ((num_columns & 1) ? odd_line_coords[i] : even_line_coords[i]) / 2 + pitch, y + (coord_t)(i * step));
+                    Point2LL current(x + ((num_columns & 1) ? odd_line_coords[i] : even_line_coords[i]) / 2 + pitch, y + (coord_t)(i * step));
                     bool current_inside = in_outline.inside(current, true);
                     if (! is_first_point)
                     {
@@ -157,15 +157,15 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
         for (coord_t y = (std::floor(aabb.min_.Y / pitch) - 1) * pitch; y <= aabb.max_.Y + pitch / 2; y += pitch / 2)
         {
             bool is_first_point = true;
-            Point last;
+            Point2LL last;
             bool last_inside = false;
             unsigned chain_end_index = 0;
-            Point chain_end[2];
+            Point2LL chain_end[2];
             for (coord_t x = (std::floor(aabb.min_.X / pitch) - 1) * pitch; x <= aabb.max_.X + pitch; x += pitch)
             {
                 for (unsigned i = 0; i < num_coords; ++i)
                 {
-                    Point current(x + (coord_t)(i * step), y + ((num_rows & 1) ? odd_line_coords[i] : even_line_coords[i]) / 2);
+                    Point2LL current(x + (coord_t)(i * step), y + ((num_rows & 1) ? odd_line_coords[i] : even_line_coords[i]) / 2);
                     bool current_inside = in_outline.inside(current, true);
                     if (! is_first_point)
                     {
@@ -240,12 +240,12 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
 
         for (ConstPolygonRef outline_poly : in_outline)
         {
-            std::vector<Point> connector_points; // the points that make up a connector line
+            std::vector<Point2LL> connector_points; // the points that make up a connector line
 
             // we need to remember the first chain processed and the path to it from the first outline point
             // so that later we can possibly connect to it from the last chain processed
             unsigned first_chain_chain_index = std::numeric_limits<unsigned>::max();
-            std::vector<Point> path_to_first_chain;
+            std::vector<Point2LL> path_to_first_chain;
 
             bool drawing = false; // true when a connector line is being (potentially) created
 
@@ -253,14 +253,14 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
             unsigned connector_start_chain_index = std::numeric_limits<unsigned>::max();
             unsigned connector_start_point_index = std::numeric_limits<unsigned>::max();
 
-            Point cur_point; // current point of interest - either an outline point or a chain end
+            Point2LL cur_point; // current point of interest - either an outline point or a chain end
 
             // go round all of the region's outline and find the chain ends that meet it
             // quit the loop early if we have seen all the chain ends and are not currently drawing a connector
             for (unsigned outline_point_index = 0; (chain_ends_remaining > 0 || drawing) && outline_point_index < outline_poly.size(); ++outline_point_index)
             {
-                Point op0 = outline_poly[outline_point_index];
-                Point op1 = outline_poly[(outline_point_index + 1) % outline_poly.size()];
+                Point2LL op0 = outline_poly[outline_point_index];
+                Point2LL op1 = outline_poly[(outline_point_index + 1) % outline_poly.size()];
                 std::vector<unsigned> points_on_outline_chain_index;
                 std::vector<unsigned> points_on_outline_point_index;
 

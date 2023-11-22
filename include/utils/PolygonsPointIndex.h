@@ -6,7 +6,7 @@
 
 #include <vector>
 
-#include "IntPoint.h"
+#include "Point2LL.h"
 #include "polygon.h"
 
 
@@ -59,11 +59,11 @@ public:
      */
     PathsPointIndex(const PathsPointIndex& original) = default;
 
-    Point p() const
+    Point2LL p() const
     {
         if (! polygons_)
         {
-            return Point(0, 0);
+            return Point2LL(0, 0);
         }
         return make_point((*polygons_)[poly_idx_][point_idx_]);
     }
@@ -153,13 +153,13 @@ using PolygonsPointIndex = PathsPointIndex<Polygons>;
  */
 struct PolygonsPointIndexSegmentLocator
 {
-    std::pair<Point, Point> operator()(const PolygonsPointIndex& val) const
+    std::pair<Point2LL, Point2LL> operator()(const PolygonsPointIndex& val) const
     {
         ConstPolygonRef poly = (*val.polygons_)[val.poly_idx_];
-        Point start = poly[val.point_idx_];
+        Point2LL start = poly[val.point_idx_];
         unsigned int next_point_idx = (val.point_idx_ + 1) % poly.size();
-        Point end = poly[next_point_idx];
-        return std::pair<Point, Point>(start, end);
+        Point2LL end = poly[next_point_idx];
+        return std::pair<Point2LL, Point2LL>(start, end);
     }
 };
 
@@ -170,7 +170,7 @@ struct PolygonsPointIndexSegmentLocator
 template<typename Paths>
 struct PathsPointIndexLocator
 {
-    Point operator()(const PathsPointIndex<Paths>& val) const
+    Point2LL operator()(const PathsPointIndex<Paths>& val) const
     {
         return make_point(val.p());
     }
@@ -190,7 +190,7 @@ struct hash<cura::PolygonsPointIndex>
 {
     size_t operator()(const cura::PolygonsPointIndex& lpi) const
     {
-        return std::hash<cura::Point>()(lpi.p());
+        return std::hash<cura::Point2LL>()(lpi.p());
     }
 };
 } // namespace std

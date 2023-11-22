@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "IntPoint.h"
+#include "Point2LL.h"
 #include "SVG.h" // debug
 #include "SparseGrid.h"
 
@@ -71,7 +71,7 @@ SGI_THIS::SparseLineGrid(coord_t cell_size, size_t elem_reserve, double max_load
 SGI_TEMPLATE
 void SGI_THIS::insert(const Elem& elem)
 {
-    const std::pair<Point, Point> line = m_locator(elem);
+    const std::pair<Point2LL, Point2LL> line = m_locator(elem);
     // below is a workaround for the fact that lambda functions cannot access private or protected members
     // first we define a lambda which works on any GridMap and then we bind it to the actual protected GridMap of the parent class
     std::function<bool(GridMap*, const GridPoint)> process_cell_func_ = [&elem, this](GridMap* grid, const GridPoint grid_loc)
@@ -99,10 +99,10 @@ void SGI_THIS::debugHTML(std::string filename)
     for (std::pair<GridPoint, ElemT> cell : SparseGrid<ElemT>::grid_)
     {
         // doesn't draw cells at x = 0 or y = 0 correctly (should be double size)
-        Point lb = SparseGrid<ElemT>::toLowerCorner(cell.first);
-        Point lt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(0, SparseGrid<ElemT>::nonzero_sign(cell.first.Y)));
-        Point rt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(SparseGrid<ElemT>::nonzero_sign(cell.first.X), SparseGrid<ElemT>::nonzero_sign(cell.first.Y)));
-        Point rb = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(SparseGrid<ElemT>::nonzero_sign(cell.first.X), 0));
+        Point2LL lb = SparseGrid<ElemT>::toLowerCorner(cell.first);
+        Point2LL lt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(0, SparseGrid<ElemT>::nonzero_sign(cell.first.Y)));
+        Point2LL rt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(SparseGrid<ElemT>::nonzero_sign(cell.first.X), SparseGrid<ElemT>::nonzero_sign(cell.first.Y)));
+        Point2LL rb = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(SparseGrid<ElemT>::nonzero_sign(cell.first.X), 0));
         if (lb.X == 0)
         {
             lb.X = -SparseGrid<ElemT>::cell_size_;
@@ -119,7 +119,7 @@ void SGI_THIS::debugHTML(std::string filename)
         svg.writeLine(rt, rb, SVG::Color::GRAY);
         svg.writeLine(rb, lb, SVG::Color::GRAY);
 
-        std::pair<Point, Point> line = m_locator(cell.second);
+        std::pair<Point2LL, Point2LL> line = m_locator(cell.second);
         svg.writePoint(line.first, true);
         svg.writePoint(line.second, true);
         svg.writeLine(line.first, line.second, SVG::Color::BLACK);
@@ -131,53 +131,53 @@ void SGI_THIS::debugTest()
 {
     struct PairLocator
     {
-        std::pair<Point, Point> operator()(const std::pair<Point, Point>& val) const
+        std::pair<Point2LL, Point2LL> operator()(const std::pair<Point2LL, Point2LL>& val) const
         {
             return val;
         }
     };
-    SparseLineGrid<std::pair<Point, Point>, PairLocator> line_grid(10);
+    SparseLineGrid<std::pair<Point2LL, Point2LL>, PairLocator> line_grid(10);
 
     // straight lines
-    line_grid.insert(std::make_pair<Point, Point>(Point(50, 0), Point(50, 70)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(0, 90), Point(50, 90)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(253, 103), Point(253, 173)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(203, 193), Point(253, 193)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(-50, 0), Point(-50, -70)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(0, -90), Point(-50, -90)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(-253, -103), Point(-253, -173)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(-203, -193), Point(-253, -193)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(50, 0), Point2LL(50, 70)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(0, 90), Point2LL(50, 90)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(253, 103), Point2LL(253, 173)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(203, 193), Point2LL(253, 193)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(-50, 0), Point2LL(-50, -70)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(0, -90), Point2LL(-50, -90)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(-253, -103), Point2LL(-253, -173)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(-203, -193), Point2LL(-253, -193)));
 
     // diagonal lines
-    line_grid.insert(std::make_pair<Point, Point>(Point(113, 133), Point(166, 125)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(13, 73), Point(26, 25)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(166, 33), Point(113, 25)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(26, 173), Point(13, 125)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(-24, -18), Point(-19, -64)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(-113, -133), Point(-166, -125)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(-166, -33), Point(-113, -25)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(-26, -173), Point(-13, -125)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(113, 133), Point2LL(166, 125)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(13, 73), Point2LL(26, 25)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(166, 33), Point2LL(113, 25)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(26, 173), Point2LL(13, 125)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(-24, -18), Point2LL(-19, -64)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(-113, -133), Point2LL(-166, -125)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(-166, -33), Point2LL(-113, -25)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(-26, -173), Point2LL(-13, -125)));
 
     // diagonal lines exactly crossing cell corners
-    line_grid.insert(std::make_pair<Point, Point>(Point(160, 190), Point(220, 170)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(60, 130), Point(80, 70)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(220, 90), Point(160, 70)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(80, 220), Point(60, 160)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(-160, -190), Point(-220, -170)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(-60, -130), Point(-80, -70)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(-220, -90), Point(-160, -70)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(-80, -220), Point(-60, -160)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(160, 190), Point2LL(220, 170)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(60, 130), Point2LL(80, 70)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(220, 90), Point2LL(160, 70)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(80, 220), Point2LL(60, 160)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(-160, -190), Point2LL(-220, -170)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(-60, -130), Point2LL(-80, -70)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(-220, -90), Point2LL(-160, -70)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(-80, -220), Point2LL(-60, -160)));
 
     // single cell
-    line_grid.insert(std::make_pair<Point, Point>(Point(203, 213), Point(203, 213)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(223, 213), Point(223, 215)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(243, 213), Point(245, 213)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(263, 213), Point(265, 215)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(283, 215), Point(285, 213)));
-    line_grid.insert(std::make_pair<Point, Point>(Point(-203, -213), Point(-203, -213)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(203, 213), Point2LL(203, 213)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(223, 213), Point2LL(223, 215)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(243, 213), Point2LL(245, 213)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(263, 213), Point2LL(265, 215)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(283, 215), Point2LL(285, 213)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(-203, -213), Point2LL(-203, -213)));
 
     // around origin
-    line_grid.insert(std::make_pair<Point, Point>(Point(20, -20), Point(-20, 20)));
+    line_grid.insert(std::make_pair<Point2LL, Point2LL>(Point2LL(20, -20), Point2LL(-20, 20)));
 
     line_grid.debugHTML("line_grid.html");
 }

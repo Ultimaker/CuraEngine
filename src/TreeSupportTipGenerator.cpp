@@ -117,7 +117,7 @@ std::vector<TreeSupportTipGenerator::LineInformation> TreeSupportTipGenerator::c
     for (const auto& line : polylines)
     {
         LineInformation res_line;
-        for (const Point& p : line)
+        for (const Point2LL& p : line)
         {
             if (config.support_rest_preference == RestPreference::BUILDPLATE
                 && ! volumes_.getAvoidance(config.getRadius(0), layer_idx, AvoidanceType::FAST_SAFE, false, ! xy_overrides).inside(p, true))
@@ -173,9 +173,9 @@ Polygons TreeSupportTipGenerator::convertInternalToLines(std::vector<TreeSupport
     return result;
 }
 
-std::function<bool(std::pair<Point, TreeSupportTipGenerator::LineStatus>)> TreeSupportTipGenerator::getEvaluatePointForNextLayerFunction(size_t current_layer)
+std::function<bool(std::pair<Point2LL, TreeSupportTipGenerator::LineStatus>)> TreeSupportTipGenerator::getEvaluatePointForNextLayerFunction(size_t current_layer)
 {
-    std::function<bool(std::pair<Point, LineStatus>)> evaluatePoint = [this, current_layer](std::pair<Point, LineStatus> p)
+    std::function<bool(std::pair<Point2LL, LineStatus>)> evaluatePoint = [this, current_layer](std::pair<Point2LL, LineStatus> p)
     {
         if (config.support_rest_preference != RestPreference::GRACEFUL
             && ! volumes_
@@ -214,7 +214,7 @@ std::function<bool(std::pair<Point, TreeSupportTipGenerator::LineStatus>)> TreeS
 
 std::pair<std::vector<TreeSupportTipGenerator::LineInformation>, std::vector<TreeSupportTipGenerator::LineInformation>> TreeSupportTipGenerator::splitLines(
     std::vector<TreeSupportTipGenerator::LineInformation> lines,
-    std::function<bool(std::pair<Point, TreeSupportTipGenerator::LineStatus>)> evaluatePoint)
+    std::function<bool(std::pair<Point2LL, TreeSupportTipGenerator::LineStatus>)> evaluatePoint)
 {
     // Assumes all Points on the current line are valid.
 
@@ -223,11 +223,11 @@ std::pair<std::vector<TreeSupportTipGenerator::LineInformation>, std::vector<Tre
     std::vector<LineInformation> keep(1);
     std::vector<LineInformation> set_free(1);
 
-    for (const std::vector<std::pair<Point, LineStatus>>& line : lines)
+    for (const std::vector<std::pair<Point2LL, LineStatus>>& line : lines)
     {
         auto current = KEEPING;
         LineInformation resulting_line;
-        for (const std::pair<Point, LineStatus>& me : line)
+        for (const std::pair<Point2LL, LineStatus>& me : line)
         {
             if (evaluatePoint(me) == (current == FREEING))
             {
@@ -246,8 +246,8 @@ std::pair<std::vector<TreeSupportTipGenerator::LineInformation>, std::vector<Tre
         }
     }
     return std::pair<
-        std::vector<std::vector<std::pair<Point, TreeSupportTipGenerator::LineStatus>>>,
-        std::vector<std::vector<std::pair<Point, TreeSupportTipGenerator::LineStatus>>>>(keep, set_free);
+        std::vector<std::vector<std::pair<Point2LL, TreeSupportTipGenerator::LineStatus>>>,
+        std::vector<std::vector<std::pair<Point2LL, TreeSupportTipGenerator::LineStatus>>>>(keep, set_free);
 }
 
 Polygons TreeSupportTipGenerator::ensureMaximumDistancePolyline(const Polygons& input, coord_t distance, size_t min_points, bool enforce_distance) const
@@ -299,7 +299,7 @@ Polygons TreeSupportTipGenerator::ensureMaximumDistancePolyline(const Polygons& 
             while (line.size() < min_points && current_distance >= coord_t(FUDGE_LENGTH * 2))
             {
                 line.clear();
-                Point current_point = part[0];
+                Point2LL current_point = part[0];
                 line.add(part[0]);
 
                 bool should_add_endpoint = min_points > 1 || vSize2(part[0] - part[optimal_end_index]) > (current_distance * current_distance);
@@ -328,7 +328,7 @@ Polygons TreeSupportTipGenerator::ensureMaximumDistancePolyline(const Polygons& 
                     coord_t min_distance_to_existing_point_sqd = std::numeric_limits<coord_t>::max();
                     if (enforce_distance)
                     {
-                        for (Point p : line)
+                        for (Point2LL p : line)
                         {
                             min_distance_to_existing_point_sqd = std::min(min_distance_to_existing_point_sqd, vSize2(p - next_point.location));
                         }
@@ -391,8 +391,8 @@ std::shared_ptr<SierpinskiFillProvider> TreeSupportTipGenerator::generateCrossFi
 
         const coord_t aabb_expansion = mesh.settings.get<coord_t>("support_offset");
         AABB3D aabb_here(mesh.bounding_box);
-        aabb_here.include(aabb_here.min_ - Point3(-aabb_expansion, -aabb_expansion, 0));
-        aabb_here.include(aabb_here.max_ + Point3(-aabb_expansion, -aabb_expansion, 0));
+        aabb_here.include(aabb_here.min_ - Point3LL(-aabb_expansion, -aabb_expansion, 0));
+        aabb_here.include(aabb_here.max_ + Point3LL(-aabb_expansion, -aabb_expansion, 0));
         aabb.include(aabb_here);
 
         const std::string cross_subdisivion_spec_image_file = mesh.settings.get<std::string>("cross_support_density_image");
@@ -619,13 +619,13 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
 
 void TreeSupportTipGenerator::addPointAsInfluenceArea(
     std::vector<std::set<TreeSupportElement*>>& move_bounds,
-    std::pair<Point, TreeSupportTipGenerator::LineStatus> p,
+    std::pair<Point2LL, TreeSupportTipGenerator::LineStatus> p,
     size_t dtt,
     LayerIndex insert_layer,
     size_t dont_move_until,
     bool roof,
     bool skip_ovalisation,
-    std::vector<Point> additional_ovalization_targets)
+    std::vector<Point2LL> additional_ovalization_targets)
 {
     const bool to_bp = p.second == LineStatus::TO_BP || p.second == LineStatus::TO_BP_SAFE;
     const bool gracious = to_bp || p.second == LineStatus::TO_MODEL_GRACIOUS || p.second == LineStatus::TO_MODEL_GRACIOUS_SAFE;
@@ -637,7 +637,7 @@ void TreeSupportTipGenerator::addPointAsInfluenceArea(
     }
     Polygon circle;
     Polygon base_circle = TreeSupportBaseCircle::getBaseCircle();
-    for (Point corner : base_circle)
+    for (Point2LL corner : base_circle)
     {
         circle.add(p.first + corner);
     }
@@ -664,7 +664,7 @@ void TreeSupportTipGenerator::addPointAsInfluenceArea(
                 support_tree_branch_reach_limit);
             elem->area_ = new Polygons(area);
 
-            for (Point target : additional_ovalization_targets)
+            for (Point2LL target : additional_ovalization_targets)
             {
                 elem->additional_ovalization_targets_.emplace_back(target);
             }
@@ -691,10 +691,10 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
     {
         for (dtt_roof_tip = 0; dtt_roof_tip < roof_tip_layers && insert_layer_idx - dtt_roof_tip >= 1; dtt_roof_tip++)
         {
-            std::function<bool(std::pair<Point, LineStatus>)> evaluateRoofWillGenerate = [&](std::pair<Point, LineStatus> p)
+            std::function<bool(std::pair<Point2LL, LineStatus>)> evaluateRoofWillGenerate = [&](std::pair<Point2LL, LineStatus> p)
             {
                 Polygon roof_circle;
-                for (Point corner : TreeSupportBaseCircle::getBaseCircle())
+                for (Point2LL corner : TreeSupportBaseCircle::getBaseCircle())
                 {
                     roof_circle.add(p.first + corner * std::max(config.min_radius / TreeSupportBaseCircle::base_radius, coord_t(1)));
                 }
@@ -708,7 +708,7 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
 
             for (LineInformation line : split.second) // Add all points that would not be valid.
             {
-                for (std::pair<Point, TreeSupportTipGenerator::LineStatus> point_data : line)
+                for (std::pair<Point2LL, TreeSupportTipGenerator::LineStatus> point_data : line)
                 {
                     addPointAsInfluenceArea(move_bounds, point_data, 0, insert_layer_idx - dtt_roof_tip, roof_tip_layers - dtt_roof_tip, dtt_roof_tip != 0, false);
                 }
@@ -720,7 +720,7 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
 
             for (LineInformation line : split.second)
             {
-                for (std::pair<Point, TreeSupportTipGenerator::LineStatus> point_data : line)
+                for (std::pair<Point2LL, TreeSupportTipGenerator::LineStatus> point_data : line)
                 {
                     addPointAsInfluenceArea(move_bounds, point_data, 0, insert_layer_idx - dtt_roof_tip, roof_tip_layers - dtt_roof_tip, dtt_roof_tip != 0, false);
                 }
@@ -730,10 +730,10 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
             Polygons added_roofs;
             for (LineInformation line : lines)
             {
-                for (std::pair<Point, TreeSupportTipGenerator::LineStatus> p : line)
+                for (std::pair<Point2LL, TreeSupportTipGenerator::LineStatus> p : line)
                 {
                     Polygon roof_circle;
-                    for (Point corner : TreeSupportBaseCircle::getBaseCircle())
+                    for (Point2LL corner : TreeSupportBaseCircle::getBaseCircle())
                     {
                         roof_circle.add(p.first + corner * std::max(config.min_radius / TreeSupportBaseCircle::base_radius, coord_t(1)));
                     }
@@ -757,7 +757,7 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
         const bool disable_ovalization = ! connect_points && config.min_radius < 3 * config.support_line_width && roof_tip_layers == 0 && dtt_roof_tip == 0;
         for (auto [idx, point_data] : line | ranges::views::enumerate)
         {
-            std::vector<Point> additional_ovalization_targets;
+            std::vector<Point2LL> additional_ovalization_targets;
             if (connect_points) // If the radius is to large then the ovalization would cause the area to float in the air.
             {
                 if (idx != 0)
@@ -809,7 +809,7 @@ void TreeSupportTipGenerator::removeUselessAddedPoints(
                     }
                     else if (elem->supports_roof_)
                     {
-                        Point from = elem->result_on_layer_;
+                        Point2LL from = elem->result_on_layer_;
                         PolygonUtils::moveInside(roof_on_layer_above, from);
                         // Remove branches should have interface above them, but dont. Should never happen.
                         if (roof_on_layer_above.empty()
@@ -992,7 +992,7 @@ void TreeSupportTipGenerator::generateTips(
                     for (auto line : polylines)
                     {
                         LineInformation res_line;
-                        for (Point p : line)
+                        for (Point2LL p : line)
                         {
                             res_line.emplace_back(p, LineStatus::INVALID);
                         }
@@ -1010,7 +1010,7 @@ void TreeSupportTipGenerator::generateTips(
                             ! xy_overrides);
                         // It is not required to offset the forbidden area here as the points won't change:
                         // If points here are not inside the forbidden area neither will they be later when placing these points, as these are the same points.
-                        std::function<bool(std::pair<Point, LineStatus>)> evaluatePoint = [&](std::pair<Point, LineStatus> p)
+                        std::function<bool(std::pair<Point2LL, LineStatus>)> evaluatePoint = [&](std::pair<Point2LL, LineStatus> p)
                         {
                             return relevant_forbidden_below.inside(p.first, true);
                         };
@@ -1018,7 +1018,7 @@ void TreeSupportTipGenerator::generateTips(
                         if (support_roof_layers)
                         {
                             // Remove all points that are for some reason part of a roof area, as the point is already supported by roof
-                            std::function<bool(std::pair<Point, LineStatus>)> evaluatePartOfRoof = [&](std::pair<Point, LineStatus> p)
+                            std::function<bool(std::pair<Point2LL, LineStatus>)> evaluatePartOfRoof = [&](std::pair<Point2LL, LineStatus> p)
                             {
                                 return support_roof_drawn[layer_idx - lag_ctr].inside(p.first, true);
                             };

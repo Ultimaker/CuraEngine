@@ -12,7 +12,7 @@
 #include "pathPlanning/TimeMaterialEstimates.h"
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Ratio.h"
-#include "utils/IntPoint.h"
+#include "utils/Point2LL.h"
 
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
@@ -97,7 +97,7 @@ public:
      * \param minTime Maximum minimum layer time for all extruders in this layer
      * \param time_other_extr_plans The time spent on the other extruder plans in this layer
      */
-    void processFanSpeedForMinimalLayerTime(Point starting_position, Duration maximum_cool_min_layer_time, double time_other_extr_plans);
+    void processFanSpeedForMinimalLayerTime(Point2LL starting_position, Duration maximum_cool_min_layer_time, double time_other_extr_plans);
 
     /*!
      * Applying fan speed changes for the first layers.
@@ -191,7 +191,7 @@ private:
     /*!
      * @return distance between p0 and p1 as well as the time spend on the segment
      */
-    std::pair<double, double> getPointToPointTime(const Point& p0, const Point& p1, const GCodePath& path);
+    std::pair<double, double> getPointToPointTime(const Point2LL& p0, const Point2LL& p1, const GCodePath& path);
 
     /*!
      * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates.
@@ -200,7 +200,7 @@ private:
      * \param starting_position The position the head was in before starting this layer
      * \return the total estimates of this layer
      */
-    TimeMaterialEstimates computeNaiveTimeEstimates(Point starting_position);
+    TimeMaterialEstimates computeNaiveTimeEstimates(Point2LL starting_position);
 };
 
 } // namespace cura

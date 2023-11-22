@@ -7,7 +7,7 @@
 
 #include <range/v3/all.hpp>
 
-#include "utils/IntPoint.h"
+#include "utils/Point2LL.h"
 #include "utils/actions/smooth.h"
 #include "utils/polygon.h"
 
@@ -30,10 +30,10 @@ TEST(SmoothTest, TestSmooth)
          *
          */
 
-        auto A = cura::Point { 0, 0 };
-        auto B = cura::Point { 0, 100 };
-        auto C = cura::Point { 1, 100 };
-        auto D = cura::Point { 1, 200 };
+        auto A = cura::Point2LL { 0, 0 };
+        auto B = cura::Point2LL { 0, 100 };
+        auto C = cura::Point2LL { 1, 100 };
+        auto D = cura::Point2LL { 1, 200 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, false);
@@ -51,10 +51,10 @@ TEST(SmoothTest, TestSmooth)
          *                  D
          *
          */
-        auto A = cura::Point { 0, 0 };
-        auto B = cura::Point { 100, 0 };
-        auto C = cura::Point { 101, 1 };
-        auto D = cura::Point { 101, 101 };
+        auto A = cura::Point2LL { 0, 0 };
+        auto B = cura::Point2LL { 100, 0 };
+        auto C = cura::Point2LL { 101, 1 };
+        auto D = cura::Point2LL { 101, 101 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, true);
@@ -66,10 +66,10 @@ TEST(SmoothTest, TestSmooth)
          *  A ----------- B - C -------------D
          *
          */
-        auto A = cura::Point { 0, 0 };
-        auto B = cura::Point { 100, 0 };
-        auto C = cura::Point { 101, 0 };
-        auto D = cura::Point { 201, 0 };
+        auto A = cura::Point2LL { 0, 0 };
+        auto B = cura::Point2LL { 100, 0 };
+        auto C = cura::Point2LL { 101, 0 };
+        auto D = cura::Point2LL { 201, 0 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, true);
@@ -81,10 +81,10 @@ TEST(SmoothTest, TestSmooth)
          *  D ----------- C - B -------------A
          *
          */
-        auto A = cura::Point { 201, 0 };
-        auto B = cura::Point { 101, 0 };
-        auto C = cura::Point { 100, 0 };
-        auto D = cura::Point { 0, 0 };
+        auto A = cura::Point2LL { 201, 0 };
+        auto B = cura::Point2LL { 101, 0 };
+        auto C = cura::Point2LL { 100, 0 };
+        auto D = cura::Point2LL { 0, 0 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, true);
@@ -105,10 +105,10 @@ TEST(SmoothTest, TestSmooth)
          *                      D
          *
          */
-        auto A = cura::Point { 0, 0 };
-        auto B = cura::Point { 100, 0 };
-        auto C = cura::Point { 99, -1 };
-        auto D = cura::Point { 199, 99 };
+        auto A = cura::Point2LL { 0, 0 };
+        auto B = cura::Point2LL { 100, 0 };
+        auto C = cura::Point2LL { 99, -1 };
+        auto D = cura::Point2LL { 199, 99 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, false);
@@ -127,10 +127,10 @@ TEST(SmoothTest, TestSmooth)
          *                       D
          *
          */
-        auto A = cura::Point { 0, 0 };
-        auto B = cura::Point { 100, 0 };
-        auto C = cura::Point { 101, 1 };
-        auto D = cura::Point { 201, 101 };
+        auto A = cura::Point2LL { 0, 0 };
+        auto B = cura::Point2LL { 100, 0 };
+        auto C = cura::Point2LL { 101, 1 };
+        auto D = cura::Point2LL { 201, 101 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, true);
@@ -147,10 +147,10 @@ TEST(SmoothTest, TestSmooth)
          *                    D
          *
          */
-        cura::Point A = { 0, 0 };
-        cura::Point B = { 100, 0 };
-        cura::Point C = { 101, 0 };
-        cura::Point D = { 101, 100 };
+        cura::Point2LL A = { 0, 0 };
+        cura::Point2LL B = { 100, 0 };
+        cura::Point2LL C = { 101, 0 };
+        cura::Point2LL D = { 101, 100 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, true);
@@ -158,10 +158,10 @@ TEST(SmoothTest, TestSmooth)
 
     {
         // real life example of a line that is clearly not smooth
-        auto A = cura::Point{ 148451, 162177 };
-        auto B = cura::Point{ 148854, 162229 };
-        auto C = cura::Point{ 148866, 162244 };
-        auto D = cura::Point{ 149772, 162297 };
+        auto A = cura::Point2LL{ 148451, 162177 };
+        auto B = cura::Point2LL{ 148854, 162229 };
+        auto C = cura::Point2LL{ 148866, 162244 };
+        auto D = cura::Point2LL{ 149772, 162297 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, false);

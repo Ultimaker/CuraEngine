@@ -8,7 +8,7 @@
 
 #include "AABB.h"
 #include "ExtrusionLine.h" //To accept variable-width paths.
-#include "IntPoint.h"
+#include "Point2LL.h"
 #include "NoCopy.h"
 
 namespace cura
@@ -62,8 +62,8 @@ private:
 
     FILE* out_; // the output file
     const AABB aabb_; // the boundary box to display
-    const Point aabb_size_;
-    const Point canvas_size_;
+    const Point2LL aabb_size_;
+    const Point2LL canvas_size_;
     const double scale_;
     ColorObject background_;
     size_t layer_nr_ = 1;
@@ -71,9 +71,9 @@ private:
     bool output_is_html_;
 
 public:
-    SVG(std::string filename, const AABB aabb, const Point canvas_size = Point(1024, 1024), const ColorObject background = Color::NONE);
+    SVG(std::string filename, const AABB aabb, const Point2LL canvas_size = Point2LL(1024, 1024), const ColorObject background = Color::NONE);
     SVG(std::string filename, const AABB aabb, const double scale, const ColorObject background = Color::NONE);
-    SVG(std::string filename, const AABB aabb, const double scale, const Point canvas_size, const ColorObject background = Color::NONE);
+    SVG(std::string filename, const AABB aabb, const double scale, const Point2LL canvas_size, const ColorObject background = Color::NONE);
 
     ~SVG();
 
@@ -87,12 +87,12 @@ public:
     /*!
      * transform a point in real space to canvas space
      */
-    Point transform(const Point& p) const;
+    Point2LL transform(const Point2LL& p) const;
 
     /*!
      * transform a point in real space to canvas space with more precision
      */
-    Point3D transformF(const Point& p) const;
+    Point3D transformF(const Point2LL& p) const;
 
     void writeComment(const std::string& comment) const;
 
@@ -100,7 +100,7 @@ public:
 
     void writeAreas(ConstPolygonRef polygon, const ColorObject color = Color::GRAY, const ColorObject outline_color = Color::BLACK, const double stroke_width = 1.0) const;
 
-    void writePoint(const Point& p, const bool write_coords = false, const double size = 5.0, const ColorObject color = Color::BLACK) const;
+    void writePoint(const Point2LL& p, const bool write_coords = false, const double size = 5.0, const ColorObject color = Color::BLACK) const;
 
     void writePoints(ConstPolygonRef poly, const bool write_coords = false, const double size = 5.0, const ColorObject color = Color::BLACK) const;
 
@@ -117,13 +117,13 @@ public:
      * \param color The colour of the line segments. If this is not specified,
      * black will be used.
      */
-    void writeLines(const std::vector<Point>& polyline, const ColorObject color = Color::BLACK) const;
+    void writeLines(const std::vector<Point2LL>& polyline, const ColorObject color = Color::BLACK) const;
 
-    void writeLine(const Point& a, const Point& b, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
+    void writeLine(const Point2LL& a, const Point2LL& b, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
 
-    void writeArrow(const Point& a, const Point& b, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const double head_size = 5.0) const;
+    void writeArrow(const Point2LL& a, const Point2LL& b, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const double head_size = 5.0) const;
 
-    void writeLineRGB(const Point& from, const Point& to, const int r = 0, const int g = 0, const int b = 0, const double stroke_width = 1.0) const;
+    void writeLineRGB(const Point2LL& from, const Point2LL& to, const int r = 0, const int g = 0, const int b = 0, const double stroke_width = 1.0) const;
 
     /*!
      * \brief Draws a dashed line on the canvas from point A to point B.
@@ -134,12 +134,12 @@ public:
      * \param b The ending endpoint of the line.
      * \param color The stroke colour of the line.
      */
-    void writeDashedLine(const Point& a, const Point& b, ColorObject color = Color::BLACK) const;
+    void writeDashedLine(const Point2LL& a, const Point2LL& b, ColorObject color = Color::BLACK) const;
 
     template<typename... Args>
     void printf(const char* txt, Args&&... args) const;
 
-    void writeText(const Point& p, const std::string& txt, const ColorObject color = Color::BLACK, const double font_size = 10.0) const;
+    void writeText(const Point2LL& p, const std::string& txt, const ColorObject color = Color::BLACK, const double font_size = 10.0) const;
 
     void writePolygons(const Polygons& polys, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
 

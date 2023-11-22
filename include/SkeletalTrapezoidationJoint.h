@@ -7,7 +7,7 @@
 #include <memory> // smart pointers
 
 #include "BeadingStrategy/BeadingStrategy.h"
-#include "utils/IntPoint.h"
+#include "utils/Point2LL.h"
 
 namespace cura
 {

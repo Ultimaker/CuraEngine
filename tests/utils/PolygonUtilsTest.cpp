@@ -3,7 +3,7 @@
 
 #include "utils/polygonUtils.h" // The class under test.
 #include "utils/Coord_t.h"
-#include "utils/IntPoint.h" // Creating and testing with points.
+#include "utils/Point2LL.h" // Creating and testing with points.
 #include "utils/polygon.h" // Creating polygons to test with.
 #include <gtest/gtest.h>
 
@@ -13,11 +13,11 @@ namespace cura
 
 struct MoveInsideParameters
 {
-    Point close_to;
+    Point2LL close_to;
     coord_t distance;
-    Point supposed;
+    Point2LL supposed;
 
-    MoveInsideParameters(Point close_to, const coord_t distance, Point supposed) : close_to(close_to), distance(distance), supposed(supposed)
+    MoveInsideParameters(Point2LL close_to, const coord_t distance, Point2LL supposed) : close_to(close_to), distance(distance), supposed(supposed)
     {
     }
 };
@@ -52,7 +52,7 @@ TEST_P(MoveInsideTest, MoveInside)
 {
     const MoveInsideParameters parameters = GetParam();
     const ClosestPolygonPoint cpp = PolygonUtils::findClosest(parameters.close_to, test_square);
-    Point result = PolygonUtils::moveInside(cpp, parameters.distance);
+    Point2LL result = PolygonUtils::moveInside(cpp, parameters.distance);
 
     // FIXME: Clean-up message with ftm when CURA-8258 is implemented or when we use C++20
     ASSERT_LE(vSize(result - parameters.supposed), 10) << parameters.close_to << " moved with " << parameters.distance << " micron inside to " << result << " rather than " << parameters.supposed << ".\n"
@@ -65,32 +65,32 @@ TEST_P(MoveInsideTest, MoveInside2)
     const MoveInsideParameters parameters = GetParam();
     Polygons polys;
     polys.add(test_square);
-    Point result = parameters.close_to;
+    Point2LL result = parameters.close_to;
     PolygonUtils::moveInside2(polys, result, parameters.distance);
     ASSERT_LE(vSize(result - parameters.supposed), 10) << parameters.close_to << " moved with " << parameters.distance << " micron inside to " << result << "rather than " << parameters.supposed << ".";
 }
 
 INSTANTIATE_TEST_SUITE_P(MoveInsideInstantiation,
                          MoveInsideTest,
-                         testing::Values(MoveInsideParameters(Point(110, 110), 28, Point(80, 80)), // Near a corner, moving inside.
-                                         MoveInsideParameters(Point(50, 110), 20, Point(50, 80)), // Near an edge, moving inside.
-                                         MoveInsideParameters(Point(110, 110), -28, Point(120, 120)), // Near a corner, moving outside.
-                                         MoveInsideParameters(Point(50, 110), -20, Point(50, 120)), // Near an edge, moving outside.
-                                         MoveInsideParameters(Point(110, 105), 28, Point(80, 80)), // Near a corner but not exactly diagonal.
-                                         MoveInsideParameters(Point(100, 50), 20, Point(80, 50)), // Starting on the border.
-                                         MoveInsideParameters(Point(80, 50), 20, Point(80, 50)), // Already inside.
-                                         MoveInsideParameters(Point(110, 50), 0, Point(100, 50)), // Not keeping any distance from the border.
-                                         MoveInsideParameters(Point(110, 50), 100000, Point(-99900, 50)) // A very far move.
+                         testing::Values(MoveInsideParameters(Point2LL(110, 110), 28, Point2LL(80, 80)), // Near a corner, moving inside.
+                                         MoveInsideParameters(Point2LL(50, 110), 20, Point2LL(50, 80)), // Near an edge, moving inside.
+                                         MoveInsideParameters(Point2LL(110, 110), -28, Point2LL(120, 120)), // Near a corner, moving outside.
+                                         MoveInsideParameters(Point2LL(50, 110), -20, Point2LL(50, 120)), // Near an edge, moving outside.
+                                         MoveInsideParameters(Point2LL(110, 105), 28, Point2LL(80, 80)), // Near a corner but not exactly diagonal.
+                                         MoveInsideParameters(Point2LL(100, 50), 20, Point2LL(80, 50)), // Starting on the border.
+                                         MoveInsideParameters(Point2LL(80, 50), 20, Point2LL(80, 50)), // Already inside.
+                                         MoveInsideParameters(Point2LL(110, 50), 0, Point2LL(100, 50)), // Not keeping any distance from the border.
+                                         MoveInsideParameters(Point2LL(110, 50), 100000, Point2LL(-99900, 50)) // A very far move.
                                          ));
 
 TEST_F(MoveInsideTest, cornerEdgeTest)
 {
-    const Point close_to(110, 100);
-    const Point supposed1(80, 80); // Allow two possible values here, since the behaviour for this edge case is not specified.
-    const Point supposed2(72, 100);
+    const Point2LL close_to(110, 100);
+    const Point2LL supposed1(80, 80); // Allow two possible values here, since the behaviour for this edge case is not specified.
+    const Point2LL supposed2(72, 100);
     constexpr coord_t distance = 28;
     const ClosestPolygonPoint cpp = PolygonUtils::findClosest(close_to, test_square);
-    const Point result = PolygonUtils::moveInside(cpp, distance);
+    const Point2LL result = PolygonUtils::moveInside(cpp, distance);
 
     constexpr coord_t maximum_error = 10;
 
@@ -103,14 +103,14 @@ TEST_F(MoveInsideTest, cornerEdgeTest)
 
 TEST_F(MoveInsideTest, middleTest)
 {
-    const Point close_to(50, 50);
-    const Point supposed1(80, 50); // Allow four possible values here, since the behaviour for this edge case is not specified.
-    const Point supposed2(50, 80);
-    const Point supposed3(20, 50);
-    const Point supposed4(50, 20);
+    const Point2LL close_to(50, 50);
+    const Point2LL supposed1(80, 50); // Allow four possible values here, since the behaviour for this edge case is not specified.
+    const Point2LL supposed2(50, 80);
+    const Point2LL supposed3(20, 50);
+    const Point2LL supposed4(50, 20);
     constexpr coord_t distance = 20;
     const ClosestPolygonPoint cpp = PolygonUtils::findClosest(close_to, test_square);
-    const Point result = PolygonUtils::moveInside(cpp, distance);
+    const Point2LL result = PolygonUtils::moveInside(cpp, distance);
 
     constexpr coord_t maximum_error = 10;
 
@@ -124,12 +124,12 @@ TEST_F(MoveInsideTest, middleTest)
 
 TEST_F(MoveInsideTest, middleTestPenalty)
 {
-    const Point close_to(50, 50);
-    const Point supposed(80, 50);
-    const Point preferred_dir(120, 60);
+    const Point2LL close_to(50, 50);
+    const Point2LL supposed(80, 50);
+    const Point2LL preferred_dir(120, 60);
     constexpr coord_t distance = 20;
-    const ClosestPolygonPoint cpp = PolygonUtils::findClosest(close_to, test_square, [preferred_dir](Point candidate) { return vSize2(candidate - preferred_dir); });
-    const Point result = PolygonUtils::moveInside(cpp, distance);
+    const ClosestPolygonPoint cpp = PolygonUtils::findClosest(close_to, test_square, [preferred_dir](Point2LL candidate) { return vSize2(candidate - preferred_dir); });
+    const Point2LL result = PolygonUtils::moveInside(cpp, distance);
 
     // FIXME: Clean-up message with ftm when CURA-8258 is implemented or when we use C++20
     ASSERT_LE(vSize(result - supposed), 10) << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed << ".\n"
@@ -139,13 +139,13 @@ TEST_F(MoveInsideTest, middleTestPenalty)
 
 TEST_F(MoveInsideTest, cornerEdgeTest2)
 {
-    const Point close_to(110, 100);
-    const Point supposed1(80, 80); // Allow two possible values here, since the behaviour for this edge case is not specified.
-    const Point supposed2(72, 100);
+    const Point2LL close_to(110, 100);
+    const Point2LL supposed1(80, 80); // Allow two possible values here, since the behaviour for this edge case is not specified.
+    const Point2LL supposed2(72, 100);
     constexpr coord_t distance = 28;
     Polygons polys;
     polys.add(test_square);
-    Point result = close_to;
+    Point2LL result = close_to;
     PolygonUtils::moveInside2(polys, result, distance);
 
     constexpr coord_t maximum_error = 10;
@@ -155,8 +155,8 @@ TEST_F(MoveInsideTest, cornerEdgeTest2)
 
 TEST_F(MoveInsideTest, pointyCorner)
 {
-    const Point from(55, 100); // Above pointy bit.
-    Point result(from);
+    const Point2LL from(55, 100); // Above pointy bit.
+    Point2LL result(from);
     Polygons inside;
     inside.add(pointy_square);
     ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(inside, result, 10);
@@ -169,8 +169,8 @@ TEST_F(MoveInsideTest, pointyCorner)
 TEST_F(MoveInsideTest, pointyCornerFail)
 {
     // Should fail with normal moveInside2 (and the like).
-    const Point from(55, 170); // Above pointy bit.
-    Point result(from);
+    const Point2LL from(55, 170); // Above pointy bit.
+    Point2LL result(from);
     Polygons inside;
     inside.add(pointy_square);
 
@@ -182,9 +182,9 @@ TEST_F(MoveInsideTest, pointyCornerFail)
 
 TEST_F(MoveInsideTest, outsidePointyCorner)
 {
-    const Point from(60, 70); // Above pointy bit.
-    Point result(from);
-    const Point supposed(50, 70); // 10 below pointy bit.
+    const Point2LL from(60, 70); // Above pointy bit.
+    Point2LL result(from);
+    const Point2LL supposed(50, 70); // 10 below pointy bit.
     Polygons inside;
     inside.add(pointy_square);
 
@@ -197,9 +197,9 @@ TEST_F(MoveInsideTest, outsidePointyCorner)
 TEST_F(MoveInsideTest, outsidePointyCornerFail)
 {
     // Should fail with normal moveInside2 (and the like).
-    const Point from(60, 70); // Above pointy bit.
-    Point result(from);
-    const Point supposed(50, 70); // 10 below pointy bit.
+    const Point2LL from(60, 70); // Above pointy bit.
+    Point2LL result(from);
+    const Point2LL supposed(50, 70); // 10 below pointy bit.
     Polygons inside;
     inside.add(pointy_square);
 
@@ -211,12 +211,12 @@ TEST_F(MoveInsideTest, outsidePointyCornerFail)
 
 struct FindCloseParameters
 {
-    Point close_to;
-    Point supposed;
+    Point2LL close_to;
+    Point2LL supposed;
     coord_t cell_size;
     std::function<int(Point)>* penalty_function;
 
-    FindCloseParameters(const Point close_to, const Point supposed, const coord_t cell_size, std::function<int(Point)>* penalty_function = nullptr)
+    FindCloseParameters(const Point2LL close_to, const Point2LL supposed, const coord_t cell_size, std::function<int(Point)>* penalty_function = nullptr)
         : close_to(close_to)
         , supposed(supposed)
         , cell_size(cell_size)
@@ -260,7 +260,7 @@ TEST_P(FindCloseTest, FindClose)
 
     if (cpp)
     {
-        const Point result = cpp->location;
+        const Point2LL result = cpp->location;
         ASSERT_LE(vSize(result - parameters.supposed), 10) << "Close to " << parameters.close_to << " we found " << result << " rather than " << parameters.supposed << ".\n";
     }
     else
@@ -273,16 +273,16 @@ TEST_P(FindCloseTest, FindClose)
  * Test penalty function to use with findClose.
  */
 std::function<int(Point)> testPenalty(
-    [](Point candidate)
+    [](Point2LL candidate)
     {
-        return -vSize2(candidate - Point(50, 100)); // The further from 50, 100, the lower the penalty.
+        return -vSize2(candidate - Point2LL(50, 100)); // The further from 50, 100, the lower the penalty.
     });
 
 INSTANTIATE_TEST_SUITE_P(FindCloseInstantiation,
                          FindCloseTest,
-                         testing::Values(FindCloseParameters(Point(110, 110), Point(100, 100), 15), // Near a corner.
-                                         FindCloseParameters(Point(50, 110), Point(50, 100), 15), // Near a side.
-                                         FindCloseParameters(Point(50, 50), Point(50, 0), 60, &testPenalty) // Using a penalty function.
+                         testing::Values(FindCloseParameters(Point2LL(110, 110), Point2LL(100, 100), 15), // Near a corner.
+                                         FindCloseParameters(Point2LL(50, 110), Point2LL(50, 100), 15), // Near a side.
+                                         FindCloseParameters(Point2LL(50, 50), Point2LL(50, 0), 60, &testPenalty) // Using a penalty function.
                                          ));
 
 // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
@@ -319,9 +319,9 @@ public:
 TEST_F(PolygonUtilsTest, spreadDotsSegment)
 {
     std::vector<ClosestPolygonPoint> supposed;
-    supposed.emplace_back(Point(50, 0), 0, test_squares[0], 0);
-    supposed.emplace_back(Point(100, 0), 1, test_squares[0], 0);
-    supposed.emplace_back(Point(100, 50), 1, test_squares[0], 0);
+    supposed.emplace_back(Point2LL(50, 0), 0, test_squares[0], 0);
+    supposed.emplace_back(Point2LL(100, 0), 1, test_squares[0], 0);
+    supposed.emplace_back(Point2LL(100, 50), 1, test_squares[0], 0);
 
     std::vector<ClosestPolygonPoint> result;
     PolygonUtils::spreadDots(PolygonsPointIndex(&test_squares, 0, 0), PolygonsPointIndex(&test_squares, 0, 2), 3, result);
@@ -336,14 +336,14 @@ TEST_F(PolygonUtilsTest, spreadDotsSegment)
 TEST_F(PolygonUtilsTest, spreadDotsFull)
 {
     std::vector<ClosestPolygonPoint> supposed;
-    supposed.emplace_back(Point(0, 0), 0, test_squares[0], 0);
-    supposed.emplace_back(Point(50, 0), 0, test_squares[0], 0);
-    supposed.emplace_back(Point(100, 0), 1, test_squares[0], 0);
-    supposed.emplace_back(Point(100, 50), 1, test_squares[0], 0);
-    supposed.emplace_back(Point(100, 100), 2, test_squares[0], 0);
-    supposed.emplace_back(Point(50, 100), 2, test_squares[0], 0);
-    supposed.emplace_back(Point(0, 100), 3, test_squares[0], 0);
-    supposed.emplace_back(Point(0, 50), 3, test_squares[0], 0);
+    supposed.emplace_back(Point2LL(0, 0), 0, test_squares[0], 0);
+    supposed.emplace_back(Point2LL(50, 0), 0, test_squares[0], 0);
+    supposed.emplace_back(Point2LL(100, 0), 1, test_squares[0], 0);
+    supposed.emplace_back(Point2LL(100, 50), 1, test_squares[0], 0);
+    supposed.emplace_back(Point2LL(100, 100), 2, test_squares[0], 0);
+    supposed.emplace_back(Point2LL(50, 100), 2, test_squares[0], 0);
+    supposed.emplace_back(Point2LL(0, 100), 3, test_squares[0], 0);
+    supposed.emplace_back(Point2LL(0, 50), 3, test_squares[0], 0);
 
     std::vector<ClosestPolygonPoint> result;
     PolygonUtils::spreadDots(PolygonsPointIndex(&test_squares, 0, 0), PolygonsPointIndex(&test_squares, 0, 0), 8, result);
@@ -357,13 +357,13 @@ TEST_F(PolygonUtilsTest, spreadDotsFull)
 
 struct GetNextParallelIntersectionParameters
 {
-    std::optional<Point> predicted;
-    Point start_point;
-    Point line_to;
+    std::optional<Point2LL> predicted;
+    Point2LL start_point;
+    Point2LL line_to;
     bool forward;
     coord_t dist;
 
-    GetNextParallelIntersectionParameters(const std::optional<Point> predicted, const Point start_point, const Point line_to, const bool forward, const coord_t dist)
+    GetNextParallelIntersectionParameters(const std::optional<Point2LL> predicted, const Point2LL start_point, const Point2LL line_to, const bool forward, const coord_t dist)
         : predicted(predicted)
         , start_point(start_point)
         , line_to(line_to)
@@ -405,16 +405,16 @@ TEST_P(GetNextParallelIntersectionTest, GetNextParallelIntersection)
 
 INSTANTIATE_TEST_SUITE_P(GetNextParallelIntersectionInstantiation,
                          GetNextParallelIntersectionTest,
-                         testing::Values(GetNextParallelIntersectionParameters(Point(0, 40), Point(20, 100), Point(150, 200), true, 35),
-                                         GetNextParallelIntersectionParameters(Point(37, 100), Point(80, 100), Point(150, 200), true, 35),
-                                         GetNextParallelIntersectionParameters(Point(70, 100), Point(20, 100), Point(120, 200), false, 35),
-                                         GetNextParallelIntersectionParameters(Point(0, 0), Point(50, 100), Point(150, 200), true, 35),
-                                         GetNextParallelIntersectionParameters(Point(60, 0), Point(10, 0), Point(-90, -100), true, 35),
-                                         GetNextParallelIntersectionParameters(Point(0, 40), Point(10, 0), Point(-90, -100), false, 35),
-                                         GetNextParallelIntersectionParameters(Point(0, 75), Point(50, 100), Point(150, 100), true, 25),
-                                         GetNextParallelIntersectionParameters(Point(25, 100), Point(50, 100), Point(50, 200), true, 25),
-                                         GetNextParallelIntersectionParameters(std::optional<Point>(), Point(100, 100), Point(200, 200), true, 80),
-                                         GetNextParallelIntersectionParameters(Point(0, 45), Point(5, 100), Point(105, 200), true, 35)));
+                         testing::Values(GetNextParallelIntersectionParameters(Point2LL(0, 40), Point2LL(20, 100), Point2LL(150, 200), true, 35),
+                                         GetNextParallelIntersectionParameters(Point2LL(37, 100), Point2LL(80, 100), Point2LL(150, 200), true, 35),
+                                         GetNextParallelIntersectionParameters(Point2LL(70, 100), Point2LL(20, 100), Point2LL(120, 200), false, 35),
+                                         GetNextParallelIntersectionParameters(Point2LL(0, 0), Point2LL(50, 100), Point2LL(150, 200), true, 35),
+                                         GetNextParallelIntersectionParameters(Point2LL(60, 0), Point2LL(10, 0), Point2LL(-90, -100), true, 35),
+                                         GetNextParallelIntersectionParameters(Point2LL(0, 40), Point2LL(10, 0), Point2LL(-90, -100), false, 35),
+                                         GetNextParallelIntersectionParameters(Point2LL(0, 75), Point2LL(50, 100), Point2LL(150, 100), true, 25),
+                                         GetNextParallelIntersectionParameters(Point2LL(25, 100), Point2LL(50, 100), Point2LL(50, 200), true, 25),
+                                         GetNextParallelIntersectionParameters(std::optional<Point2LL>(), Point2LL(100, 100), Point2LL(200, 200), true, 80),
+                                         GetNextParallelIntersectionParameters(Point2LL(0, 45), Point2LL(5, 100), Point2LL(105, 200), true, 35)));
 
 TEST_F(PolygonUtilsTest, RelativeHammingSquaresOverlap)
 {
@@ -424,7 +424,7 @@ TEST_F(PolygonUtilsTest, RelativeHammingSquaresOverlap)
 TEST_F(PolygonUtilsTest, RelativeHammingDisjunct)
 {
     Polygons shifted_polys = test_squares; // Make a copy.
-    shifted_polys[0].translate(Point(200, 0));
+    shifted_polys[0].translate(Point2LL(200, 0));
 
     ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, shifted_polys), 1.0);
 }
@@ -432,7 +432,7 @@ TEST_F(PolygonUtilsTest, RelativeHammingDisjunct)
 TEST_F(PolygonUtilsTest, RelativeHammingHalfOverlap)
 {
     Polygons shifted_polys = test_squares; // Make a copy.
-    shifted_polys[0].translate(Point(50, 0));
+    shifted_polys[0].translate(Point2LL(50, 0));
 
     ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, shifted_polys), 0.5);
 }
@@ -445,7 +445,7 @@ TEST_F(PolygonUtilsTest, RelativeHammingHalfOverlap)
 TEST_F(PolygonUtilsTest, RelativeHammingQuarterOverlap)
 {
     Polygons shifted_polys = test_squares; // Make a copy.
-    shifted_polys[0].translate(Point(50, 50));
+    shifted_polys[0].translate(Point2LL(50, 50));
 
     ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, shifted_polys), 0.75);
 }
@@ -467,7 +467,7 @@ TEST_F(PolygonUtilsTest, RelativeHammingLineSquare)
  */
 TEST_F(PolygonUtilsTest, RelativeHammingLineSquareDisjunct)
 {
-    test_line[0].translate(Point(0, 200));
+    test_line[0].translate(Point2LL(0, 200));
 
     ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, test_line), 1.0);
 }
@@ -481,7 +481,7 @@ TEST_F(PolygonUtilsTest,
 TEST_F(PolygonUtilsTest, RelativeHammingLineLineDisjunct)
 {
     Polygons shifted_line = test_line; // Make a copy.
-    shifted_line[0].translate(Point(0, 1));
+    shifted_line[0].translate(Point2LL(0, 1));
 
     ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_line, test_line), 1.0);
 }

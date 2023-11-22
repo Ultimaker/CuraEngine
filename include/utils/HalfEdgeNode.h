@@ -6,7 +6,7 @@
 
 #include <list>
 
-#include "IntPoint.h"
+#include "Point2LL.h"
 
 namespace cura
 {
@@ -19,10 +19,10 @@ class HalfEdgeNode
 
 public:
     node_data_t data_;
-    Point p_;
+    Point2LL p_;
     edge_t* incident_edge_ = nullptr;
 
-    HalfEdgeNode(node_data_t data, Point p)
+    HalfEdgeNode(node_data_t data, Point2LL p)
         : data_(data)
         , p_(p)
     {

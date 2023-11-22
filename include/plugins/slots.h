@@ -16,7 +16,7 @@
 #include "plugins/slotproxy.h"
 #include "plugins/types.h"
 #include "plugins/validator.h"
-#include "utils/IntPoint.h"
+#include "utils/Point2LL.h"
 #include "utils/Simplify.h" // TODO: Remove once the simplify slot has been removed
 #include "utils/polygon.h"
 #include "utils/types/char_range_literal.h"

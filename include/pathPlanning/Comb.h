@@ -54,8 +54,8 @@ private:
     {
     public:
         bool dest_is_inside_; //!< Whether the startPoint or endPoint is inside the inside boundary
-        Point in_or_mid_; //!< The point on the inside boundary, or in between the inside and outside boundary if the start/end point isn't inside the inside boudary
-        Point out_; //!< The point on the outside boundary
+        Point2LL in_or_mid_; //!< The point on the inside boundary, or in between the inside and outside boundary if the start/end point isn't inside the inside boudary
+        Point2LL out_; //!< The point on the outside boundary
         PolygonsPart dest_part_; //!< The assembled inside-boundary PolygonsPart in which the dest_point lies. (will only be initialized when Crossing::dest_is_inside holds)
         std::optional<ConstPolygonPointer> dest_crossing_poly_; //!< The polygon of the part in which dest_point lies, which will be crossed (often will be the outside polygon)
         const Polygons& boundary_inside_; //!< The inside boundary as in \ref Comb::boundary_inside
@@ -71,7 +71,7 @@ private:
          * outside polygon). \param boundary_inside The boundary within which to comb.
          */
         Crossing(
-            const Point& dest_point,
+            const Point2LL& dest_point,
             const bool dest_is_inside,
             const unsigned int dest_part_idx,
             const unsigned int dest_part_boundary_crossing_poly_idx,
@@ -84,7 +84,7 @@ private:
          * \param partsView_inside Structured indices onto Comb::boundary_inside which shows which polygons belong to which part.
          * \param close_to[in] Try to get a crossing close to this point
          */
-        void findCrossingInOrMid(const PartsView& partsView_inside, const Point close_to);
+        void findCrossingInOrMid(const PartsView& partsView_inside, const Point2LL close_to);
 
         /*!
          * Find the outside location (Combing::out)
@@ -98,10 +98,10 @@ private:
          * \param comber[in] The combing calculator which has references to the
          * offsets and boundaries to use in combing.
          */
-        bool findOutside(const ExtruderTrain& train, const Polygons& outside, const Point close_to, const bool fail_on_unavoidable_obstacles, Comb& comber);
+        bool findOutside(const ExtruderTrain& train, const Polygons& outside, const Point2LL close_to, const bool fail_on_unavoidable_obstacles, Comb& comber);
 
     private:
-        const Point dest_point_; //!< Either the eventual startPoint or the eventual endPoint of this combing move
+        const Point2LL dest_point_; //!< Either the eventual startPoint or the eventual endPoint of this combing move
         unsigned int dest_part_idx_; //!< The index into Comb:partsView_inside of the part in which the \p dest_point is.
 
         /*!
@@ -117,7 +117,7 @@ private:
          * \return A pair of which the first is the crossing point on the inside boundary and the second the crossing point on the outside boundary
          */
         std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>>
-            findBestCrossing(const ExtruderTrain& train, const Polygons& outside, ConstPolygonRef from, const Point estimated_start, const Point estimated_end, Comb& comber);
+            findBestCrossing(const ExtruderTrain& train, const Polygons& outside, ConstPolygonRef from, const Point2LL estimated_start, const Point2LL estimated_end, Comb& comber);
     };
 
 
@@ -177,7 +177,7 @@ private:
      * \param start_inside_poly[out] The polygon in which the point has been moved
      * \return Whether we have moved the point inside
      */
-    bool moveInside(Polygons& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point& dest_point, unsigned int& start_inside_poly);
+    bool moveInside(Polygons& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point2LL& dest_point, unsigned int& start_inside_poly);
 
     void moveCombPathInside(Polygons& boundary_inside, Polygons& boundary_inside_optimal, CombPath& comb_path_input, CombPath& comb_path_output);
 
@@ -230,8 +230,8 @@ public:
         bool perform_z_hops,
         bool perform_z_hops_only_when_collides,
         const ExtruderTrain& train,
-        Point startPoint,
-        Point endPoint,
+        Point2LL startPoint,
+        Point2LL endPoint,
         CombPaths& combPaths,
         bool startInside,
         bool endInside,

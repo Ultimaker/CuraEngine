@@ -59,7 +59,7 @@ public:
      * The command line doesn't do anything with the current position so this is
      * ignored.
      */
-    void sendCurrentPosition(const Point&) override;
+    void sendCurrentPosition(const Point2LL&) override;
 
     /*
      * \brief Indicate to the command line that we finished slicing.
@@ -93,7 +93,7 @@ public:
      *
      * The command line doesn't show any layer view so this is ignored.
      */
-    void sendLineTo(const PrintFeatureType&, const Point&, const coord_t&, const coord_t&, const Velocity&) override;
+    void sendLineTo(const PrintFeatureType&, const Point2LL&, const coord_t&, const coord_t&, const Velocity&) override;
 
     /*
      * \brief Complete a layer to show it in layer view.

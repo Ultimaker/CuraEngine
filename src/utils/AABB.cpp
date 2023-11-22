@@ -18,7 +18,7 @@ AABB::AABB()
 {
 }
 
-AABB::AABB(const Point& min, const Point& max)
+AABB::AABB(const Point2LL& min, const Point2LL& max)
     : min_(min)
     , max_(max)
 {
@@ -38,15 +38,15 @@ AABB::AABB(ConstPolygonRef poly)
     calculate(poly);
 }
 
-Point AABB::getMiddle() const
+Point2LL AABB::getMiddle() const
 {
     return (min_ + max_) / 2;
 }
 
-coord_t AABB::distanceSquared(const Point& p) const
+coord_t AABB::distanceSquared(const Point2LL& p) const
 {
-    const Point a = Point(max_.X, min_.Y);
-    const Point b = Point(min_.X, max_.Y);
+    const Point2LL a = Point2LL(max_.X, min_.Y);
+    const Point2LL b = Point2LL(min_.X, max_.Y);
     return (contains(p) ? -1 : 1)
          * std::min({ LinearAlg2D::getDist2FromLineSegment(min_, a, p),
                       LinearAlg2D::getDist2FromLineSegment(a, max_, p),
@@ -61,17 +61,17 @@ coord_t AABB::distanceSquared(const AABB& other) const
         other.distanceSquared(min_),
         distanceSquared(other.max_),
         other.distanceSquared(max_),
-        distanceSquared(Point(other.max_.X, other.min_.Y)),
-        other.distanceSquared(Point(max_.X, min_.Y)),
-        distanceSquared(Point(other.min_.X, other.max_.Y)),
-        other.distanceSquared(Point(min_.X, max_.Y)),
+        distanceSquared(Point2LL(other.max_.X, other.min_.Y)),
+        other.distanceSquared(Point2LL(max_.X, min_.Y)),
+        distanceSquared(Point2LL(other.min_.X, other.max_.Y)),
+        other.distanceSquared(Point2LL(min_.X, max_.Y)),
     });
 }
 
 void AABB::calculate(const Polygons& polys)
 {
-    min_ = Point(POINT_MAX, POINT_MAX);
-    max_ = Point(POINT_MIN, POINT_MIN);
+    min_ = Point2LL(POINT_MAX, POINT_MAX);
+    max_ = Point2LL(POINT_MIN, POINT_MIN);
     for (unsigned int i = 0; i < polys.size(); i++)
     {
         for (unsigned int j = 0; j < polys[i].size(); j++)
@@ -83,15 +83,15 @@ void AABB::calculate(const Polygons& polys)
 
 void AABB::calculate(ConstPolygonRef poly)
 {
-    min_ = Point(POINT_MAX, POINT_MAX);
-    max_ = Point(POINT_MIN, POINT_MIN);
-    for (const Point& p : poly)
+    min_ = Point2LL(POINT_MAX, POINT_MAX);
+    max_ = Point2LL(POINT_MIN, POINT_MIN);
+    for (const Point2LL& p : poly)
     {
         include(p);
     }
 }
 
-bool AABB::contains(const Point& point) const
+bool AABB::contains(const Point2LL& point) const
 {
     return point.X >= min_.X && point.X <= max_.X && point.Y >= min_.Y && point.Y <= max_.Y;
 }
@@ -131,7 +131,7 @@ bool AABB::hit(const AABB& other) const
     return true;
 }
 
-void AABB::include(Point point)
+void AABB::include(Point2LL point)
 {
     min_.X = std::min(min_.X, point.X);
     min_.Y = std::min(min_.Y, point.Y);
@@ -150,7 +150,7 @@ void AABB::include(const AABB other)
 
 void AABB::expand(int dist)
 {
-    if (min_ == Point(POINT_MAX, POINT_MAX) || max_ == Point(POINT_MIN, POINT_MIN))
+    if (min_ == Point2LL(POINT_MAX, POINT_MAX) || max_ == Point2LL(POINT_MIN, POINT_MIN))
     {
         return;
     }
@@ -164,9 +164,9 @@ Polygon AABB::toPolygon() const
 {
     Polygon ret;
     ret.add(min_);
-    ret.add(Point(max_.X, min_.Y));
+    ret.add(Point2LL(max_.X, min_.Y));
     ret.add(max_);
-    ret.add(Point(min_.X, max_.Y));
+    ret.add(Point2LL(min_.X, max_.Y));
     return ret;
 }
 

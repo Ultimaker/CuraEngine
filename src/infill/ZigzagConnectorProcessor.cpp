@@ -8,7 +8,7 @@
 using namespace cura;
 
 
-void ZigzagConnectorProcessor::registerVertex(const Point& vertex)
+void ZigzagConnectorProcessor::registerVertex(const Point2LL& vertex)
 {
     if (is_first_connector_)
     {
@@ -84,7 +84,7 @@ bool ZigzagConnectorProcessor::shouldAddCurrentConnector(int start_scanline_idx,
 }
 
 
-void ZigzagConnectorProcessor::registerScanlineSegmentIntersection(const Point& intersection, int scanline_index)
+void ZigzagConnectorProcessor::registerScanlineSegmentIntersection(const Point2LL& intersection, int scanline_index)
 {
     if (is_first_connector_)
     {
@@ -122,7 +122,7 @@ void ZigzagConnectorProcessor::registerPolyFinished()
     if ((is_endpiece && use_endpieces_) || (! is_endpiece && shouldAddCurrentConnector(scanline_start_index, scanline_end_index)))
     {
         // for convenience, put every point in one vector
-        for (const Point& point : first_connector_)
+        for (const Point2LL& point : first_connector_)
         {
             current_connector_.push_back(point);
         }
@@ -136,7 +136,7 @@ void ZigzagConnectorProcessor::registerPolyFinished()
 }
 
 
-void ZigzagConnectorProcessor::addZagConnector(std::vector<Point>& points, bool is_endpiece)
+void ZigzagConnectorProcessor::addZagConnector(std::vector<Point2LL>& points, bool is_endpiece)
 {
     // don't include the last line yet
     if (points.size() < 2)

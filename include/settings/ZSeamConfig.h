@@ -4,7 +4,7 @@
 #ifndef ZSEAMCONFIG_H
 #define ZSEAMCONFIG_H
 
-#include "../utils/IntPoint.h" //To store the preferred seam position.
+#include "../utils/Point2LL.h" //To store the preferred seam position.
 #include "EnumSettings.h" //For EZSeamType and EZSeamCornerPrefType.
 
 namespace cura
@@ -28,7 +28,7 @@ struct ZSeamConfig
      * When using a user-specified position for the seam, this is the position
      * that the user specified.
      */
-    Point pos_;
+    Point2LL pos_;
 
     /*!
      * Corner preference type, if using the sharpest corner strategy.
@@ -51,7 +51,7 @@ struct ZSeamConfig
      */
     ZSeamConfig(
         const EZSeamType type = EZSeamType::SHORTEST,
-        const Point pos = Point(0, 0),
+        const Point2LL pos = Point2LL(0, 0),
         const EZSeamCornerPrefType corner_pref = EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE,
         const coord_t simplify_curvature = 0);
 };

@@ -113,8 +113,8 @@ TEST_F(PolygonConnectorTest, getBridgeClosest)
 
     ASSERT_NE(bridge, std::nullopt) << "The two polygons are adjacent and spaced closely enough to bridge along their entire side, even with the slant.";
 
-    EXPECT_EQ(bridge->b_.from_point_, Point(1000, 200)) << "The closest connection is [1000,200] -> [1100,200]. There is no space to the right of that, so bridge B should be there.";
-    EXPECT_EQ(bridge->b_.to_point_, Point(1100, 200)) << "The closest connection is [1000,200] -> [1100,200]. There is no space to the right of that, so bridge B should be there.";
+    EXPECT_EQ(bridge->b_.from_point_, Point2LL(1000, 200)) << "The closest connection is [1000,200] -> [1100,200]. There is no space to the right of that, so bridge B should be there.";
+    EXPECT_EQ(bridge->b_.to_point_, Point2LL(1100, 200)) << "The closest connection is [1000,200] -> [1100,200]. There is no space to the right of that, so bridge B should be there.";
     EXPECT_GT(LinearAlg2D::pointIsLeftOfLine(bridge->a_.from_point_, bridge->b_.from_point_, bridge->b_.to_point_), 0) << "Connection A should be to the left of connection B.";
     EXPECT_GT(LinearAlg2D::pointIsLeftOfLine(bridge->a_.to_point_, bridge->b_.from_point_, bridge->b_.to_point_), 0) << "Connection A should be to the left of connection B.";
 }

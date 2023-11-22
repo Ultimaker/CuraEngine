@@ -127,7 +127,7 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
             const std::string data = object.vertices().substr(face * bytes_per_face, bytes_per_face);
             const Point3F* float_vertices = reinterpret_cast<const Point3F*>(data.data());
 
-            Point3 verts[3];
+            Point3LL verts[3];
             verts[0] = matrix.apply(float_vertices[0].toPoint3d());
             verts[1] = matrix.apply(float_vertices[1].toPoint3d());
             verts[2] = matrix.apply(float_vertices[2].toPoint3d());

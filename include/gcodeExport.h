@@ -19,7 +19,7 @@
 #include "sliceDataStorage.h"
 #include "timeEstimate.h"
 #include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
-#include "utils/IntPoint.h"
+#include "utils/Point2LL.h"
 #include "utils/NoCopy.h"
 
 namespace cura
@@ -90,7 +90,7 @@ private:
         double last_e_value_after_wipe_; //!< The current material amount extruded since last wipe
 
         unsigned fan_number_; // nozzle print cooling fan number
-        Point nozzle_offset_; //!< Cache of setting machine_nozzle_offset_[xy]
+        Point2LL nozzle_offset_; //!< Cache of setting machine_nozzle_offset_[xy]
         bool machine_firmware_retract_; //!< Cache of setting machine_firmware_retract
 
         std::deque<double> extruded_volume_at_previous_n_retractions_; // in mm^3
@@ -127,7 +127,7 @@ private:
     double max_extrusion_offset_; //!< 0 to turn it off, normally 4
     double extrusion_offset_factor_; //!< default 1
 
-    Point3 current_position_; //!< The last build plate coordinates written to gcode (which might be different from actually written gcode coordinates when the extruder offset is
+    Point3LL current_position_; //!< The last build plate coordinates written to gcode (which might be different from actually written gcode coordinates when the extruder offset is
                               //!< encoded in the gcode)
     Velocity current_speed_; //!< The current speed (F values / 60) in mm/s
     Acceleration current_print_acceleration_; //!< The current acceleration (in mm/s^2) used for print moves (and also for travel moves if the gcode flavor doesn't have separate
@@ -249,7 +249,7 @@ public:
 
     bool getExtruderIsUsed(const int extruder_nr) const; //!< return whether the extruder has been used throughout printing all meshgroup up till now
 
-    Point getGcodePos(const coord_t x, const coord_t y, const int extruder_train) const;
+    Point2LL getGcodePos(const coord_t x, const coord_t y, const int extruder_train) const;
 
     void setFlavor(EGCodeFlavor flavor);
     EGCodeFlavor getFlavor() const;
@@ -265,9 +265,9 @@ public:
      */
     void addExtraPrimeAmount(double extra_prime_volume);
 
-    Point3 getPosition() const;
+    Point3LL getPosition() const;
 
-    Point getPositionXY() const;
+    Point2LL getPositionXY() const;
 
     int getPositionZ() const;
 
@@ -348,7 +348,7 @@ public:
      * \param p location to go to
      * \param speed movement speed
      */
-    void writeTravel(const Point& p, const Velocity& speed);
+    void writeTravel(const Point2LL& p, const Velocity& speed);
 
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
@@ -358,7 +358,7 @@ public:
      * \param feature the feature that's currently printing
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
-    void writeExtrusion(const Point& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false);
+    void writeExtrusion(const Point2LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false);
 
     /*!
      * Go to a X/Y location with the z-hopped Z value
@@ -367,7 +367,7 @@ public:
      * \param p location to go to
      * \param speed movement speed
      */
-    void writeTravel(const Point3& p, const Velocity& speed);
+    void writeTravel(const Point3LL& p, const Velocity& speed);
 
     /*!
      * Go to a X/Y location with the extrusion Z
@@ -381,7 +381,7 @@ public:
      * \param feature the feature that's currently printing
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
-    void writeExtrusion(const Point3& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false);
+    void writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false);
 
     /*!
      * Initialize the extruder trains.

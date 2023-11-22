@@ -42,7 +42,7 @@ public:
      * The location where the nozzle is assumed to start from before printing
      * these parts.
      */
-    Point start_point_;
+    Point2LL start_point_;
 
     /*!
      * Seam settings.

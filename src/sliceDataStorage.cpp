@@ -231,13 +231,13 @@ bool SliceMeshStorage::isPrinted() const
     return ! settings.get<bool>("infill_mesh") && ! settings.get<bool>("cutting_mesh") && ! settings.get<bool>("anti_overhang_mesh");
 }
 
-Point SliceMeshStorage::getZSeamHint() const
+Point2LL SliceMeshStorage::getZSeamHint() const
 {
-    Point pos(settings.get<coord_t>("z_seam_x"), settings.get<coord_t>("z_seam_y"));
+    Point2LL pos(settings.get<coord_t>("z_seam_x"), settings.get<coord_t>("z_seam_y"));
     if (settings.get<bool>("z_seam_relative"))
     {
-        Point3 middle = bounding_box.getMiddle();
-        pos += Point(middle.x_, middle.y_);
+        Point3LL middle = bounding_box.getMiddle();
+        pos += Point2LL(middle.x_, middle.y_);
     }
     return pos;
 }
@@ -255,8 +255,8 @@ SliceDataStorage::SliceDataStorage()
     , max_print_height_second_to_last_extruder(-1)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    Point3 machine_max(mesh_group_settings.get<coord_t>("machine_width"), mesh_group_settings.get<coord_t>("machine_depth"), mesh_group_settings.get<coord_t>("machine_height"));
-    Point3 machine_min(0, 0, 0);
+    Point3LL machine_max(mesh_group_settings.get<coord_t>("machine_width"), mesh_group_settings.get<coord_t>("machine_depth"), mesh_group_settings.get<coord_t>("machine_height"));
+    Point3LL machine_min(0, 0, 0);
     if (mesh_group_settings.get<bool>("machine_center_is_zero"))
     {
         machine_max /= 2;
@@ -567,9 +567,9 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
     {
         for (PolygonRef poly : disallowed_areas)
         {
-            for (Point& p : poly)
+            for (Point2LL& p : poly)
             {
-                p = Point(machine_size.max_.x_ / 2 + p.X, machine_size.max_.y_ / 2 - p.Y);
+                p = Point2LL(machine_size.max_.x_ / 2 + p.X, machine_size.max_.y_ / 2 - p.Y);
             }
         }
     }
@@ -588,12 +588,12 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
         {
             continue;
         }
-        Point prime_pos(extruder_settings.get<coord_t>("extruder_prime_pos_x"), extruder_settings.get<coord_t>("extruder_prime_pos_y"));
-        if (prime_pos == Point(0, 0))
+        Point2LL prime_pos(extruder_settings.get<coord_t>("extruder_prime_pos_x"), extruder_settings.get<coord_t>("extruder_prime_pos_y"));
+        if (prime_pos == Point2LL(0, 0))
         {
             continue; // Ignore extruder prime position if it is not set.
         }
-        Point translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
+        Point2LL translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
         prime_pos -= translation;
         Polygons prime_polygons;
         prime_polygons.emplace_back(PolygonUtils::makeCircle(prime_pos, prime_clearance, std::numbers::pi / 32));
@@ -609,7 +609,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
             continue;
         }
         Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_;
-        Point translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
+        Point2LL translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
         Polygons extruder_border = disallowed_areas;
         extruder_border.translate(translation);
         if (first)
@@ -634,7 +634,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
                 continue;
             }
             Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_;
-            Point translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
+            Point2LL translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
             for (size_t other_extruder_nr = 0; other_extruder_nr < extruder_is_used.size(); other_extruder_nr++)
             {
                 // NOTE: the other extruder doesn't have to be used. Since the global border is the union of all extruders borders also unused extruders must be taken into account.
@@ -643,7 +643,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
                     continue;
                 }
                 Settings& other_extruder_settings = Application::getInstance().current_slice_->scene.extruders[other_extruder_nr].settings_;
-                Point other_translation(other_extruder_settings.get<coord_t>("machine_nozzle_offset_x"), other_extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
+                Point2LL other_translation(other_extruder_settings.get<coord_t>("machine_nozzle_offset_x"), other_extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
                 Polygons translated_border = border;
                 translated_border.translate(translation - other_translation);
                 border_all_extruders = border_all_extruders.intersection(translated_border);

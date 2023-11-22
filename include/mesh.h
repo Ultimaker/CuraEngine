@@ -18,10 +18,10 @@ Keeps track of which faces connect to it.
 class MeshVertex
 {
 public:
-    Point3 p_; //!< location of the vertex
+    Point3LL p_; //!< location of the vertex
     std::vector<uint32_t> connected_faces_; //!< list of the indices of connected faces
 
-    MeshVertex(Point3 p)
+    MeshVertex(Point3LL p)
         : p_(p)
     {
         connected_faces_.reserve(8);
@@ -77,12 +77,12 @@ public:
     Mesh(Settings& parent);
     Mesh();
 
-    void addFace(Point3& v0, Point3& v1, Point3& v2); //!< add a face to the mesh without settings it's connected_faces.
+    void addFace(Point3LL& v0, Point3LL& v1, Point3LL& v2); //!< add a face to the mesh without settings it's connected_faces.
     void clear(); //!< clears all data
     void finish(); //!< complete the model : set the connected_face_index fields of the faces.
 
-    Point3 min() const; //!< min (in x,y and z) vertex of the bounding box
-    Point3 max() const; //!< max (in x,y and z) vertex of the bounding box
+    Point3LL min() const; //!< min (in x,y and z) vertex of the bounding box
+    Point3LL max() const; //!< max (in x,y and z) vertex of the bounding box
     AABB3D getAABB() const; //!< Get the axis aligned bounding box
     void expandXY(int64_t offset); //!< Register applied horizontal expansion in the AABB
 
@@ -90,9 +90,9 @@ public:
      * Offset the whole mesh (all vertices and the bounding box).
      * \param offset The offset byu which to offset the whole mesh.
      */
-    void translate(Point3 offset)
+    void translate(Point3LL offset)
     {
-        if (offset == Point3(0, 0, 0))
+        if (offset == Point3LL(0, 0, 0))
         {
             return;
         }
@@ -126,7 +126,7 @@ public:
 private:
     mutable bool has_disconnected_faces; //!< Whether it has been logged that this mesh contains disconnected faces
     mutable bool has_overlapping_faces; //!< Whether it has been logged that this mesh contains overlapping faces
-    int findIndexOfVertex(const Point3& v); //!< find index of vertex close to the given point, or create a new vertex and return its index.
+    int findIndexOfVertex(const Point3LL& v); //!< find index of vertex close to the given point, or create a new vertex and return its index.
 
     /*!
      * Get the index of the face connected to the face with index \p notFaceIdx, via vertices \p idx0 and \p idx1.

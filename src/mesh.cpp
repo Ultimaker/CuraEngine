@@ -15,7 +15,7 @@ const int vertex_meld_distance = MM2INT(0.03);
  * returns a hash for the location, but first divides by the vertex_meld_distance,
  * so that any point within a box of vertex_meld_distance by vertex_meld_distance would get mapped to the same hash.
  */
-static inline uint32_t pointHash(const Point3& p)
+static inline uint32_t pointHash(const Point3LL& p)
 {
     return ((p.x_ + vertex_meld_distance / 2) / vertex_meld_distance) ^ (((p.y_ + vertex_meld_distance / 2) / vertex_meld_distance) << 10)
          ^ (((p.z_ + vertex_meld_distance / 2) / vertex_meld_distance) << 20);
@@ -35,7 +35,7 @@ Mesh::Mesh()
 {
 }
 
-void Mesh::addFace(Point3& v0, Point3& v1, Point3& v2)
+void Mesh::addFace(Point3LL& v0, Point3LL& v1, Point3LL& v2)
 {
     int vi0 = findIndexOfVertex(v0);
     int vi1 = findIndexOfVertex(v1);
@@ -77,11 +77,11 @@ void Mesh::finish()
     }
 }
 
-Point3 Mesh::min() const
+Point3LL Mesh::min() const
 {
     return aabb_.min_;
 }
-Point3 Mesh::max() const
+Point3LL Mesh::max() const
 {
     return aabb_.max_;
 }
@@ -118,7 +118,7 @@ bool Mesh::canInterlock() const
     return ! settings_.get<bool>("infill_mesh") && ! settings_.get<bool>("anti_overhang_mesh");
 }
 
-int Mesh::findIndexOfVertex(const Point3& v)
+int Mesh::findIndexOfVertex(const Point3LL& v)
 {
     uint32_t hash = pointHash(v);
 

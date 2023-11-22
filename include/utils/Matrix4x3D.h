@@ -10,7 +10,7 @@ namespace cura
 {
 
 class Point3D;
-class Point3;
+class Point3LL;
 
 /*!
  * A 4x3 affine transformation matrix.
@@ -28,8 +28,8 @@ public:
      * is reduced, all coordinates will go towards this origin. If the scale is
      * increased, all coordinates will go away from this origin.
      */
-    static Matrix4x3D scale(const Ratio scale, const Point3 origin);
-    static Matrix4x3D scale(const Ratio scale_x, const Ratio scale_y, const Ratio scale_z, const Point3 origin);
+    static Matrix4x3D scale(const Ratio scale, const Point3LL origin);
+    static Matrix4x3D scale(const Ratio scale_x, const Ratio scale_y, const Ratio scale_z, const Point3LL origin);
 
     /*!
      * The matrix data, row-endian.
@@ -51,14 +51,14 @@ public:
      * \param p The coordinate to transform.
      * \return A transformed coordinate.
      */
-    Point3 apply(const Point3D& p) const;
+    Point3LL apply(const Point3D& p) const;
 
     /*!
      * Apply this transformation to a coordinate.
      * \param p The coordinate to transform.
      * \return A transformed coordinate.
      */
-    Point3 apply(const Point3& p) const;
+    Point3LL apply(const Point3LL& p) const;
 };
 
 } // namespace cura

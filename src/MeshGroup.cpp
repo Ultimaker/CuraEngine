@@ -40,13 +40,13 @@ void* fgets_(char* ptr, size_t len, FILE* f)
     return nullptr;
 }
 
-Point3 MeshGroup::min() const
+Point3LL MeshGroup::min() const
 {
     if (meshes.size() < 1)
     {
-        return Point3(0, 0, 0);
+        return Point3LL(0, 0, 0);
     }
-    Point3 ret(std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max());
+    Point3LL ret(std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max());
     for (const Mesh& mesh : meshes)
     {
         if (mesh.settings_.get<bool>("infill_mesh") || mesh.settings_.get<bool>("cutting_mesh")
@@ -54,7 +54,7 @@ Point3 MeshGroup::min() const
         {
             continue;
         }
-        Point3 v = mesh.min();
+        Point3LL v = mesh.min();
         ret.x_ = std::min(ret.x_, v.x_);
         ret.y_ = std::min(ret.y_, v.y_);
         ret.z_ = std::min(ret.z_, v.z_);
@@ -62,13 +62,13 @@ Point3 MeshGroup::min() const
     return ret;
 }
 
-Point3 MeshGroup::max() const
+Point3LL MeshGroup::max() const
 {
     if (meshes.size() < 1)
     {
-        return Point3(0, 0, 0);
+        return Point3LL(0, 0, 0);
     }
-    Point3 ret(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min());
+    Point3LL ret(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min());
     for (const Mesh& mesh : meshes)
     {
         if (mesh.settings_.get<bool>("infill_mesh") || mesh.settings_.get<bool>("cutting_mesh")
@@ -76,7 +76,7 @@ Point3 MeshGroup::max() const
         {
             continue;
         }
-        Point3 v = mesh.max();
+        Point3LL v = mesh.max();
         ret.x_ = std::max(ret.x_, v.x_);
         ret.y_ = std::max(ret.y_, v.y_);
         ret.z_ = std::max(ret.z_, v.z_);
@@ -95,7 +95,7 @@ void MeshGroup::clear()
 void MeshGroup::finalize()
 {
     // If the machine settings have been supplied, offset the given position vertices to the center of vertices (0,0,0) is at the bed center.
-    Point3 meshgroup_offset(0, 0, 0);
+    Point3LL meshgroup_offset(0, 0, 0);
     if (! settings.get<bool>("machine_center_is_zero"))
     {
         meshgroup_offset.x_ = settings.get<coord_t>("machine_width") / 2;
@@ -105,13 +105,13 @@ void MeshGroup::finalize()
     // If a mesh position was given, put the mesh at this position in 3D space.
     for (Mesh& mesh : meshes)
     {
-        Point3 mesh_offset(mesh.settings_.get<coord_t>("mesh_position_x"), mesh.settings_.get<coord_t>("mesh_position_y"), mesh.settings_.get<coord_t>("mesh_position_z"));
+        Point3LL mesh_offset(mesh.settings_.get<coord_t>("mesh_position_x"), mesh.settings_.get<coord_t>("mesh_position_y"), mesh.settings_.get<coord_t>("mesh_position_z"));
         if (mesh.settings_.get<bool>("center_object"))
         {
-            Point3 object_min = mesh.min();
-            Point3 object_max = mesh.max();
-            Point3 object_size = object_max - object_min;
-            mesh_offset += Point3(-object_min.x_ - object_size.x_ / 2, -object_min.y_ - object_size.y_ / 2, -object_min.z_);
+            Point3LL object_min = mesh.min();
+            Point3LL object_max = mesh.max();
+            Point3LL object_size = object_max - object_min;
+            mesh_offset += Point3LL(-object_min.x_ - object_size.x_ / 2, -object_min.y_ - object_size.y_ / 2, -object_min.z_);
         }
         mesh.translate(mesh_offset + meshgroup_offset);
     }
@@ -126,8 +126,8 @@ void MeshGroup::finalize()
 
 void MeshGroup::scaleFromBottom(const Ratio factor_xy, const Ratio factor_z)
 {
-    const Point3 center = (max() + min()) / 2;
-    const Point3 origin(center.x_, center.y_, 0);
+    const Point3LL center = (max() + min()) / 2;
+    const Point3LL origin(center.x_, center.y_, 0);
 
     const Matrix4x3D transformation = Matrix4x3D::scale(factor_xy, factor_xy, factor_z, origin);
     for (Mesh& mesh : meshes)
@@ -142,7 +142,7 @@ bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const Matrix4x3D& matri
     char buffer[1024];
     Point3F vertex;
     int n = 0;
-    Point3 v0(0, 0, 0), v1(0, 0, 0), v2(0, 0, 0);
+    Point3LL v0(0, 0, 0), v1(0, 0, 0), v2(0, 0, 0);
     while (fgets_(buffer, sizeof(buffer), f))
     {
         if (sscanf(buffer, " vertex %f %f %f", &vertex.x_, &vertex.y_, &vertex.z_) == 3)
@@ -212,9 +212,9 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const Matrix4x3D& matr
         }
         float* v = ((float*)buffer) + 3;
 
-        Point3 v0 = matrix.apply(Point3F(v[0], v[1], v[2]).toPoint3d());
-        Point3 v1 = matrix.apply(Point3F(v[3], v[4], v[5]).toPoint3d());
-        Point3 v2 = matrix.apply(Point3F(v[6], v[7], v[8]).toPoint3d());
+        Point3LL v0 = matrix.apply(Point3F(v[0], v[1], v[2]).toPoint3d());
+        Point3LL v1 = matrix.apply(Point3F(v[3], v[4], v[5]).toPoint3d());
+        Point3LL v2 = matrix.apply(Point3F(v[6], v[7], v[8]).toPoint3d());
         mesh->addFace(v0, v1, v2);
     }
     fclose(f);

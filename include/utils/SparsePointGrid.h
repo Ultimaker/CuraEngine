@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "IntPoint.h"
+#include "Point2LL.h"
 #include "SparseGrid.h"
 
 namespace cura
@@ -51,7 +51,7 @@ public:
      * \param query_pt The point to query for an object nearby.
      * \param radius The radius of what is considered "nearby".
      */
-    const ElemT* getAnyNearby(const Point& query_pt, coord_t radius);
+    const ElemT* getAnyNearby(const Point2LL& query_pt, coord_t radius);
 
 protected:
     using GridPoint = typename SparseGrid<ElemT>::GridPoint;
@@ -73,14 +73,14 @@ SGI_THIS::SparsePointGrid(coord_t cell_size, size_t elem_reserve, double max_loa
 SGI_TEMPLATE
 void SGI_THIS::insert(const Elem& elem)
 {
-    Point loc = m_locator(elem);
+    Point2LL loc = m_locator(elem);
     GridPoint grid_loc = SparseGrid<ElemT>::toGridPoint(loc);
 
     SparseGrid<ElemT>::grid_.emplace(grid_loc, elem);
 }
 
 SGI_TEMPLATE
-const ElemT* SGI_THIS::getAnyNearby(const Point& query_pt, coord_t radius)
+const ElemT* SGI_THIS::getAnyNearby(const Point2LL& query_pt, coord_t radius)
 {
     const ElemT* ret = nullptr;
     const std::function<bool(const ElemT&)>& process_func = [&ret, query_pt, radius, this](const ElemT& maybe_nearby)

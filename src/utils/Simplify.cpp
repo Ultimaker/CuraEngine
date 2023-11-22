@@ -95,7 +95,7 @@ ExtrusionLine Simplify::createEmpty(const ExtrusionLine& original) const
     return result;
 }
 
-void Simplify::appendVertex(Polygon& polygon, const Point& vertex) const
+void Simplify::appendVertex(Polygon& polygon, const Point2LL& vertex) const
 {
     polygon.add(vertex);
 }
@@ -105,22 +105,22 @@ void Simplify::appendVertex(ExtrusionLine& extrusion_line, const ExtrusionJuncti
     extrusion_line.junctions_.push_back(vertex);
 }
 
-const Point& Simplify::getPosition(const Point& vertex) const
+const Point2LL& Simplify::getPosition(const Point2LL& vertex) const
 {
     return vertex;
 }
 
-const Point& Simplify::getPosition(const ExtrusionJunction& vertex) const
+const Point2LL& Simplify::getPosition(const ExtrusionJunction& vertex) const
 {
     return vertex.p_;
 }
 
-Point Simplify::createIntersection(const Point& before, const Point intersection, const Point& after) const
+Point2LL Simplify::createIntersection(const Point2LL& before, const Point2LL intersection, const Point2LL& after) const
 {
     return intersection;
 }
 
-ExtrusionJunction Simplify::createIntersection(const ExtrusionJunction& before, const Point intersection, const ExtrusionJunction& after) const
+ExtrusionJunction Simplify::createIntersection(const ExtrusionJunction& before, const Point2LL intersection, const ExtrusionJunction& after) const
 {
     // Average the extrusion width of the line.
     // More correct would be to see where along the line the intersection occurs with a projection or something.
@@ -128,7 +128,7 @@ ExtrusionJunction Simplify::createIntersection(const ExtrusionJunction& before, 
     return ExtrusionJunction(intersection, (before.w_ + after.w_) / 2, before.perimeter_index_);
 }
 
-coord_t Simplify::getAreaDeviation(const Point& before, const Point& vertex, const Point& after) const
+coord_t Simplify::getAreaDeviation(const Point2LL& before, const Point2LL& vertex, const Point2LL& after) const
 {
     return 0; // Fixed-width polygons don't have any deviation.
 }

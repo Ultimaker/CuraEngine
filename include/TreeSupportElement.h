@@ -58,7 +58,7 @@ struct TreeSupportElement
     TreeSupportElement(
         coord_t distance_to_top,
         size_t target_height,
-        Point target_position,
+        Point2LL target_position,
         bool to_buildplate,
         bool to_model_gracious,
         bool use_min_xy_dist,
@@ -136,7 +136,7 @@ struct TreeSupportElement
         , to_buildplate_(element_above->to_buildplate_)
         , distance_to_top_(element_above->distance_to_top_ + 1)
         , area_(element_above->area_)
-        , result_on_layer_(Point(-1, -1))
+        , result_on_layer_(Point2LL(-1, -1))
         , // set to invalid as we are a new node on a new layer
         increased_to_model_radius_(element_above->increased_to_model_radius_)
         , to_model_gracious_(element_above->to_model_gracious_)
@@ -161,7 +161,7 @@ struct TreeSupportElement
         const TreeSupportElement& first,
         const TreeSupportElement& second,
         size_t next_height,
-        Point next_position,
+        Point2LL next_position,
         coord_t increased_to_model_radius,
         const std::function<coord_t(size_t, double)>& getRadius,
         double diameter_scale_bp_radius,
@@ -238,12 +238,12 @@ struct TreeSupportElement
     /*!
      * \brief The position this support elements wants to support on layer=target_height
      */
-    Point target_position_;
+    Point2LL target_position_;
 
     /*!
      * \brief The next position this support elements wants to reach. NOTE: This is mainly a suggestion regarding direction inside the influence area.
      */
-    Point next_position_;
+    Point2LL next_position_;
 
 
     /*!
@@ -283,7 +283,7 @@ struct TreeSupportElement
      * \brief The resulting center point around which a circle will be drawn later.
      * Will be set by setPointsOnAreas
      */
-    Point result_on_layer_ = Point(-1, -1);
+    Point2LL result_on_layer_ = Point2LL(-1, -1);
     /*!
      * \brief The amount of extra radius we got from merging branches that could have reached the buildplate, but merged with ones that can not.
      */
@@ -336,7 +336,7 @@ struct TreeSupportElement
     /*!
      * \brief The coordinates of all tips supported by this branch.
      */
-    std::vector<Point> all_tips_;
+    std::vector<Point2LL> all_tips_;
 
     /*!
      * \brief Whether the range of an influence area is limited
@@ -356,7 +356,7 @@ struct TreeSupportElement
     /*!
      * \brief Additional locations that the tip should reach
      */
-    std::vector<Point> additional_ovalization_targets_;
+    std::vector<Point2LL> additional_ovalization_targets_;
 
 
     bool operator==(const TreeSupportElement& other) const
@@ -397,10 +397,10 @@ struct TreeSupportElement
         {
             influence_area_limit_area_.clear();
 
-            for (Point p : all_tips_)
+            for (Point2LL p : all_tips_)
             {
                 Polygon circle;
-                for (Point corner : TreeSupportBaseCircle::getBaseCircle())
+                for (Point2LL corner : TreeSupportBaseCircle::getBaseCircle())
                 {
                     circle.add(p + corner * influence_area_limit_range_ / double(TreeSupportBaseCircle::base_radius));
                 }
@@ -433,7 +433,7 @@ struct TreeSupportElement
 
     inline bool isResultOnLayerSet() const
     {
-        return result_on_layer_ != Point(-1, -1);
+        return result_on_layer_ != Point2LL(-1, -1);
     }
 };
 
@@ -446,7 +446,7 @@ struct hash<cura::TreeSupportElement>
 {
     size_t operator()(const cura::TreeSupportElement& node) const
     {
-        size_t hash_node = hash<cura::Point>()(node.target_position_);
+        size_t hash_node = hash<cura::Point2LL>()(node.target_position_);
         boost::hash_combine(hash_node, size_t(node.target_height_));
         return hash_node;
     }

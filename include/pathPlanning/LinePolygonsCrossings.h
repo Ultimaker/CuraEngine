@@ -49,16 +49,16 @@ private:
 
     const Polygons& boundary_; //!< The boundary not to cross during combing.
     LocToLineGrid& loc_to_line_grid_; //!< Mapping from locations to line segments of \ref LinePolygonsCrossings::boundary
-    Point start_point_; //!< The start point of the scanline.
-    Point end_point_; //!< The end point of the scanline.
+    Point2LL start_point_; //!< The start point of the scanline.
+    Point2LL end_point_; //!< The end point of the scanline.
 
     int64_t dist_to_move_boundary_point_outside_; //!< The distance used to move outside or inside so that a boundary point doesn't intersect with the boundary anymore. Neccesary
                                                   //!< due to computational rounding problems. Use negative value for insicde combing.
 
     PointMatrix transformation_matrix_; //!< The transformation which rotates everything such that the scanline is aligned with the x-axis.
-    Point transformed_start_point_; //!< The LinePolygonsCrossings::startPoint as transformed by Comb::transformation_matrix such that it has (roughly) the same Y as
+    Point2LL transformed_start_point_; //!< The LinePolygonsCrossings::startPoint as transformed by Comb::transformation_matrix such that it has (roughly) the same Y as
                                     //!< transformed_endPoint
-    Point transformed_end_point_; //!< The LinePolygonsCrossings::endPoint as transformed by Comb::transformation_matrix such that it has (roughly) the same Y as
+    Point2LL transformed_end_point_; //!< The LinePolygonsCrossings::endPoint as transformed by Comb::transformation_matrix such that it has (roughly) the same Y as
                                   //!< transformed_startPoint
 
 
@@ -124,7 +124,7 @@ private:
      * \param end the end point
      * \param dist_to_move_boundary_point_outside Distance used to move a point from a boundary so that it doesn't intersect with it anymore. (Precision issue)
      */
-    LinePolygonsCrossings(const Polygons& boundary, LocToLineGrid& loc_to_line_grid, Point& start, Point& end, int64_t dist_to_move_boundary_point_outside)
+    LinePolygonsCrossings(const Polygons& boundary, LocToLineGrid& loc_to_line_grid, Point2LL& start, Point2LL& end, int64_t dist_to_move_boundary_point_outside)
         : boundary_(boundary)
         , loc_to_line_grid_(loc_to_line_grid)
         , start_point_(start)
@@ -147,8 +147,8 @@ public:
     static bool comb(
         const Polygons& boundary,
         LocToLineGrid& loc_to_line_grid,
-        Point startPoint,
-        Point endPoint,
+        Point2LL startPoint,
+        Point2LL endPoint,
         CombPath& combPath,
         int64_t dist_to_move_boundary_point_outside,
         int64_t max_comb_distance_ignored,

@@ -186,7 +186,7 @@ private:
     requires utils::point2d<Vector> || utils::junction<Vector>
     inline constexpr auto cosAngle(Vector& a, Vector& b) const noexcept
     {
-        return cosAngle<Point>(a, b, magnitude(a), magnitude(b));
+        return cosAngle<Point2LL>(a, b, magnitude(a), magnitude(b));
     }
 
     template<class Vector>

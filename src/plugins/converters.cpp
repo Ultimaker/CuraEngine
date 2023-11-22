@@ -133,7 +133,7 @@ simplify_response::native_value_type
         Polygon o{};
         for (const auto& point : paths.outline().path())
         {
-            o.add(Point{ point.x(), point.y() });
+            o.add(Point2LL{ point.x(), point.y() });
         }
         poly.add(o);
 
@@ -142,7 +142,7 @@ simplify_response::native_value_type
             Polygon h{};
             for (const auto& point : hole.path())
             {
-                h.add(Point{ point.x(), point.y() });
+                h.add(Point2LL{ point.x(), point.y() });
             }
             poly.add(h);
         }
@@ -234,7 +234,7 @@ infill_generate_response::native_value_type infill_generate_response::operator()
         Polygon outline{};
         for (auto& path_msg : polygon_msg.outline().path())
         {
-            outline.add(Point{ path_msg.x(), path_msg.y() });
+            outline.add(Point2LL{ path_msg.x(), path_msg.y() });
         }
         polygon.add(outline);
 
@@ -244,7 +244,7 @@ infill_generate_response::native_value_type infill_generate_response::operator()
             Polygon hole{};
             for (auto& path_msg : hole_msg.path())
             {
-                hole.add(Point{ path_msg.x(), path_msg.y() });
+                hole.add(Point2LL{ path_msg.x(), path_msg.y() });
             }
             polygon.add(hole);
         }
@@ -257,7 +257,7 @@ infill_generate_response::native_value_type infill_generate_response::operator()
         Polygon poly_line;
         for (auto& p : polygon.path())
         {
-            poly_line.emplace_back(Point{ p.x(), p.y() });
+            poly_line.emplace_back(Point2LL{ p.x(), p.y() });
         }
         result_lines.emplace_back(poly_line);
     }
@@ -469,7 +469,7 @@ gcode_paths_modify_response::native_value_type
                     | ranges::views::transform(
                           [](const auto& point_msg)
                           {
-                              return Point{ point_msg.x(), point_msg.y() };
+                              return Point2LL{ point_msg.x(), point_msg.y() };
                           })
                     | ranges::to_vector;
 

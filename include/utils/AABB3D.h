@@ -4,7 +4,7 @@
 #ifndef UTILS_AABB3D_H
 #define UTILS_AABB3D_H
 
-#include "IntPoint.h"
+#include "Point2LL.h"
 #include "utils/AABB.h"
 
 namespace cura
@@ -15,8 +15,8 @@ An Axis Aligned Bounding Box. Has a min and max vector, representing minimal and
 */
 struct AABB3D
 {
-    Point3 min_; //!< The minimal coordinates in x, y and z direction
-    Point3 max_; //!< The maximal coordinates in x, y and z direction
+    Point3LL min_; //!< The minimal coordinates in x, y and z direction
+    Point3LL max_; //!< The maximal coordinates in x, y and z direction
 
     /*!
      * Create an AABB3D with coordinates at the numeric limits.
@@ -26,12 +26,12 @@ struct AABB3D
     /*!
      * Create an AABB3D with given limits
      */
-    AABB3D(Point3 min, Point3 max);
+    AABB3D(Point3LL min, Point3LL max);
 
     /*!
      * Get the middle of the bounding box
      */
-    Point3 getMiddle() const;
+    Point3LL getMiddle() const;
 
     /*!
      * Creates a 2D version of this bounding box by leaving away the Z
@@ -56,7 +56,7 @@ struct AABB3D
      * \param p The point to include with the bounding box.
      * \return this object (which has changed)
      */
-    AABB3D include(Point3 p);
+    AABB3D include(Point3LL p);
 
     /*!
      * Expand the AABB3D to include the bounding box \p aabb.
@@ -79,14 +79,14 @@ struct AABB3D
      * \param offset The offset with which to offset the AABB3D.
      * \return this object (which has changed)
      */
-    AABB3D translate(Point3 offset);
+    AABB3D translate(Point3LL offset);
 
     /*!
      * Offset the coordinates of the bounding box.
      * \param offset The offset with which to offset the AABB3D.
      * \return this object (which has changed)
      */
-    AABB3D translate(Point offset);
+    AABB3D translate(Point2LL offset);
 
     /*!
      * Offset the bounding box in the horizontal direction; outward or inward.

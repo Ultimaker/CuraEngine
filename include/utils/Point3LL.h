@@ -17,47 +17,47 @@
 namespace cura
 {
 
-class Point3
+class Point3LL
 {
 public:
     coord_t x_, y_, z_;
-    Point3()
+    Point3LL()
     {
     }
-    Point3(const coord_t x, const coord_t y, const coord_t z)
+    Point3LL(const coord_t x, const coord_t y, const coord_t z)
         : x_(x)
         , y_(y)
         , z_(z)
     {
     }
 
-    Point3 operator+(const Point3& p) const;
-    Point3 operator-() const;
-    Point3 operator-(const Point3& p) const;
-    Point3 operator*(const Point3& p) const; //!< Element-wise multiplication. For dot product, use .dot()!
-    Point3 operator/(const Point3& p) const;
+    Point3LL operator+(const Point3LL& p) const;
+    Point3LL operator-() const;
+    Point3LL operator-(const Point3LL& p) const;
+    Point3LL operator*(const Point3LL& p) const; //!< Element-wise multiplication. For dot product, use .dot()!
+    Point3LL operator/(const Point3LL& p) const;
     template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
-    Point3 operator*(const num_t i) const
+    Point3LL operator*(const num_t i) const
     {
-        return Point3(std::llround(static_cast<num_t>(x_) * i), std::llround(static_cast<num_t>(y_) * i), std::llround(static_cast<num_t>(z_) * i));
+        return Point3LL(std::llround(static_cast<num_t>(x_) * i), std::llround(static_cast<num_t>(y_) * i), std::llround(static_cast<num_t>(z_) * i));
     }
     template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
-    Point3 operator/(const num_t i) const
+    Point3LL operator/(const num_t i) const
     {
-        return Point3(x_ / i, y_ / i, z_ / i);
+        return Point3LL(x_ / i, y_ / i, z_ / i);
     }
     template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
-    Point3 operator%(const num_t i) const
+    Point3LL operator%(const num_t i) const
     {
-        return Point3(x_ % i, y_ % i, z_ % i);
+        return Point3LL(x_ % i, y_ % i, z_ % i);
     }
 
-    Point3& operator+=(const Point3& p);
-    Point3& operator-=(const Point3& p);
-    Point3& operator*=(const Point3& p);
-    Point3& operator/=(const Point3& p);
+    Point3LL& operator+=(const Point3LL& p);
+    Point3LL& operator-=(const Point3LL& p);
+    Point3LL& operator*=(const Point3LL& p);
+    Point3LL& operator/=(const Point3LL& p);
     template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
-    Point3& operator*=(const num_t i)
+    Point3LL& operator*=(const num_t i)
     {
         x_ *= i;
         y_ *= i;
@@ -65,7 +65,7 @@ public:
         return *this;
     }
     template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
-    Point3& operator/=(const num_t i)
+    Point3LL& operator/=(const num_t i)
     {
         x_ /= i;
         y_ /= i;
@@ -73,12 +73,12 @@ public:
         return *this;
     }
 
-    bool operator==(const Point3& p) const;
-    bool operator!=(const Point3& p) const;
+    bool operator==(const Point3LL& p) const;
+    bool operator!=(const Point3LL& p) const;
 
 
     template<class CharT, class TraitsT>
-    friend std::basic_ostream<CharT, TraitsT>& operator<<(std::basic_ostream<CharT, TraitsT>& os, const Point3& p)
+    friend std::basic_ostream<CharT, TraitsT>& operator<<(std::basic_ostream<CharT, TraitsT>& os, const Point3LL& p)
     {
         return os << "(" << p.x_ << ", " << p.y_ << ", " << p.z_ << ")";
     }
@@ -122,7 +122,7 @@ public:
         return sqrt(fx * fx + fy * fy + fz * fz);
     }
 
-    coord_t dot(const Point3& p) const
+    coord_t dot(const Point3LL& p) const
     {
         return x_ * p.x_ + y_ * p.y_ + z_ * p.z_;
     }
@@ -142,7 +142,7 @@ public:
     }
     const coord_t& operator[](const size_t index) const
     {
-        return const_cast<Point3*>(this)->operator[](index);
+        return const_cast<Point3LL*>(this)->operator[](index);
     }
 };
 
@@ -151,10 +151,10 @@ public:
  *
  * Its value is something that is rarely used.
  */
-static Point3 no_point3(std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min());
+static Point3LL no_point3(std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min());
 
 template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
-inline Point3 operator*(const num_t i, const Point3& rhs)
+inline Point3LL operator*(const num_t i, const Point3LL& rhs)
 {
     return rhs * i;
 }
@@ -165,9 +165,9 @@ inline Point3 operator*(const num_t i, const Point3& rhs)
 namespace std
 {
 template<>
-struct hash<cura::Point3>
+struct hash<cura::Point3LL>
 {
-    size_t operator()(const cura::Point3& pp) const
+    size_t operator()(const cura::Point3LL& pp) const
     {
         static int prime = 31;
         int result = 89;

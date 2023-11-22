@@ -4,7 +4,7 @@
 #ifndef UTILS_AABB_H
 #define UTILS_AABB_H
 
-#include "IntPoint.h"
+#include "Point2LL.h"
 
 namespace cura
 {
@@ -17,10 +17,10 @@ class Polygons;
 class AABB
 {
 public:
-    Point min_, max_;
+    Point2LL min_, max_;
 
     AABB(); //!< initializes with invalid min and max
-    AABB(const Point& min, const Point& max); //!< initializes with given min and max
+    AABB(const Point2LL& min, const Point2LL& max); //!< initializes with given min and max
     AABB(const Polygons& polys); //!< Computes the boundary box for the given polygons
     AABB(ConstPolygonRef poly); //!< Computes the boundary box for the given polygons
 
@@ -33,7 +33,7 @@ public:
      * \return ``true`` if the bounding box contains the specified point, or
      * ``false`` otherwise.
      */
-    bool contains(const Point& point) const;
+    bool contains(const Point2LL& point) const;
 
     /*!
      * Whether this bounding box contains the other bounding box.
@@ -49,12 +49,12 @@ public:
     /*!
      * Get the middle of the bounding box.
      */
-    Point getMiddle() const;
+    Point2LL getMiddle() const;
 
     /*!
      * If point outside of bounding box: positive distance-squared to the bounding box edges, otherwise negative.
      */
-    coord_t distanceSquared(const Point& p) const;
+    coord_t distanceSquared(const Point2LL& p) const;
 
     /*!
      * If other aabb outside of this bounding box: positive distance-squared to the bounding box edges,
@@ -79,7 +79,7 @@ public:
      *
      * \param point The point to include in the bounding box.
      */
-    void include(Point point);
+    void include(Point2LL point);
 
     /*!
      * \brief Includes the specified bounding box in the bounding box.

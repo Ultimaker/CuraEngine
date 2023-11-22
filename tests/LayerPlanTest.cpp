@@ -207,7 +207,7 @@ public:
 
     void SetUp() override
     {
-        layer_plan.addTravel_simple(Point(0, 0)); // Make sure that it appears as if we have already done things in this layer plan. Just the standard case.
+        layer_plan.addTravel_simple(Point2LL(0, 0)); // Make sure that it appears as if we have already done things in this layer plan. Just the standard case.
     }
 
     /*!
@@ -310,30 +310,30 @@ public:
 
     AddTravelTest() : parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>("false", "false", "off", false, false, AddTravelTestScene::OPEN))
     {
-        around_start_end.add(Point(-100, -100));
-        around_start_end.add(Point(500100, -100));
-        around_start_end.add(Point(500100, 500100));
-        around_start_end.add(Point(-100, 500100));
+        around_start_end.add(Point2LL(-100, -100));
+        around_start_end.add(Point2LL(500100, -100));
+        around_start_end.add(Point2LL(500100, 500100));
+        around_start_end.add(Point2LL(-100, 500100));
 
-        around_start.add(Point(-100, -100));
-        around_start.add(Point(100, -100));
-        around_start.add(Point(100, 100));
-        around_start.add(Point(-100, 100));
+        around_start.add(Point2LL(-100, -100));
+        around_start.add(Point2LL(100, -100));
+        around_start.add(Point2LL(100, 100));
+        around_start.add(Point2LL(-100, 100));
 
-        around_end.add(Point(249900, 249900));
-        around_end.add(Point(250100, 249900));
-        around_end.add(Point(250100, 250100));
-        around_end.add(Point(249900, 249900));
+        around_end.add(Point2LL(249900, 249900));
+        around_end.add(Point2LL(250100, 249900));
+        around_end.add(Point2LL(250100, 250100));
+        around_end.add(Point2LL(249900, 249900));
 
-        between.add(Point(250000, 240000));
-        between.add(Point(260000, 240000));
-        between.add(Point(260000, 300000));
-        between.add(Point(250000, 300000));
+        between.add(Point2LL(250000, 240000));
+        between.add(Point2LL(260000, 240000));
+        between.add(Point2LL(260000, 300000));
+        between.add(Point2LL(250000, 300000));
 
-        between_hole.add(Point(250000, 240000));
-        between_hole.add(Point(250000, 300000));
-        between_hole.add(Point(260000, 300000));
-        between_hole.add(Point(260000, 240000));
+        between_hole.add(Point2LL(250000, 240000));
+        between_hole.add(Point2LL(250000, 300000));
+        between_hole.add(Point2LL(260000, 300000));
+        between_hole.add(Point2LL(260000, 240000));
     }
 
     /*!
@@ -401,7 +401,7 @@ public:
             layer_plan.comb_ = nullptr;
         }
 
-        const Point destination(500000, 500000);
+        const Point2LL destination(500000, 500000);
         return layer_plan.addTravel(destination);
     }
 };

@@ -5,7 +5,7 @@
 #ifndef UTILS_EXTRUSION_JUNCTION_H
 #define UTILS_EXTRUSION_JUNCTION_H
 
-#include "IntPoint.h"
+#include "Point2LL.h"
 
 namespace cura
 {
@@ -22,7 +22,7 @@ struct ExtrusionJunction
      * The position of the centreline of the path when it reaches this junction.
      * This is the position that should end up in the g-code eventually.
      */
-    Point p_;
+    Point2LL p_;
 
     /*!
      * The width of the extruded path at this junction.
@@ -37,18 +37,18 @@ struct ExtrusionJunction
      */
     size_t perimeter_index_;
 
-    ExtrusionJunction(const Point p, const coord_t w, const coord_t perimeter_index);
+    ExtrusionJunction(const Point2LL p, const coord_t w, const coord_t perimeter_index);
 
     bool operator==(const ExtrusionJunction& other) const;
 };
 
-inline Point operator-(const ExtrusionJunction& a, const ExtrusionJunction& b)
+inline Point2LL operator-(const ExtrusionJunction& a, const ExtrusionJunction& b)
 {
     return a.p_ - b.p_;
 }
 
 // Identity function, used to be able to make templated algorithms that do their operations on 'point-like' input.
-inline const Point& make_point(const ExtrusionJunction& ej)
+inline const Point2LL& make_point(const ExtrusionJunction& ej)
 {
     return ej.p_;
 }

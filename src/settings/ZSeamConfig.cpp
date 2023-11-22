@@ -6,7 +6,7 @@
 namespace cura
 {
 
-ZSeamConfig::ZSeamConfig(const EZSeamType type, const Point pos, const EZSeamCornerPrefType corner_pref, const coord_t simplify_curvature)
+ZSeamConfig::ZSeamConfig(const EZSeamType type, const Point2LL pos, const EZSeamCornerPrefType corner_pref, const coord_t simplify_curvature)
     : type_(type)
     , pos_(pos)
     , corner_pref_(corner_pref)

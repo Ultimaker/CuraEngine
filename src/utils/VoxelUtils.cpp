@@ -46,9 +46,9 @@ DilationKernel::DilationKernel(GridPoint3 kernel_size, DilationKernel::Type type
     }
 }
 
-bool VoxelUtils::walkLine(Point3 start, Point3 end, const std::function<bool(GridPoint3)>& process_cell_func) const
+bool VoxelUtils::walkLine(Point3LL start, Point3LL end, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
-    Point3 diff = end - start;
+    Point3LL diff = end - start;
 
     const GridPoint3 start_cell = toGridPoint(start);
     const GridPoint3 end_cell = toGridPoint(end);
@@ -57,7 +57,7 @@ bool VoxelUtils::walkLine(Point3 start, Point3 end, const std::function<bool(Gri
         return process_cell_func(start_cell);
     }
 
-    Point3 current_cell = start_cell;
+    Point3LL current_cell = start_cell;
     while (true)
     {
         bool continue_ = process_cell_func(current_cell);
@@ -99,10 +99,10 @@ bool VoxelUtils::walkPolygons(const Polygons& polys, coord_t z, const std::funct
 {
     for (ConstPolygonRef poly : polys)
     {
-        Point last = poly.back();
-        for (Point p : poly)
+        Point2LL last = poly.back();
+        for (Point2LL p : poly)
         {
-            bool continue_ = walkLine(Point3(last.X, last.Y, z), Point3(p.X, p.Y, z), process_cell_func);
+            bool continue_ = walkLine(Point3LL(last.X, last.Y, z), Point3LL(p.X, p.Y, z), process_cell_func);
             if (! continue_)
             {
                 return false;
@@ -116,10 +116,10 @@ bool VoxelUtils::walkPolygons(const Polygons& polys, coord_t z, const std::funct
 bool VoxelUtils::walkDilatedPolygons(const Polygons& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
     Polygons translated = polys;
-    const Point3 translation = (Point3(1, 1, 1) - kernel.kernel_size_ % 2) * cell_size_ / 2;
+    const Point3LL translation = (Point3LL(1, 1, 1) - kernel.kernel_size_ % 2) * cell_size_ / 2;
     if (translation.x_ && translation.y_)
     {
-        translated.translate(Point(translation.x_, translation.y_));
+        translated.translate(Point2LL(translation.x_, translation.y_));
     }
     return walkPolygons(translated, z + translation.z_, dilate(kernel, process_cell_func));
 }
@@ -127,20 +127,20 @@ bool VoxelUtils::walkDilatedPolygons(const Polygons& polys, coord_t z, const Dil
 bool VoxelUtils::walkAreas(const Polygons& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
     Polygons translated = polys;
-    const Point3 translation = -cell_size_ / 2; // offset half a cell so that the dots of spreadDotsArea are centered on the middle of the cell isntead of the lower corners.
+    const Point3LL translation = -cell_size_ / 2; // offset half a cell so that the dots of spreadDotsArea are centered on the middle of the cell isntead of the lower corners.
     if (translation.x_ && translation.y_)
     {
-        translated.translate(Point(translation.x_, translation.y_));
+        translated.translate(Point2LL(translation.x_, translation.y_));
     }
     return _walkAreas(translated, z, process_cell_func);
 }
 
 bool VoxelUtils::_walkAreas(const Polygons& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
-    std::vector<Point> skin_points = PolygonUtils::spreadDotsArea(polys, Point(cell_size_.x_, cell_size_.y_));
-    for (Point p : skin_points)
+    std::vector<Point2LL> skin_points = PolygonUtils::spreadDotsArea(polys, Point2LL(cell_size_.x_, cell_size_.y_));
+    for (Point2LL p : skin_points)
     {
-        bool continue_ = process_cell_func(toGridPoint(Point3(p.X + cell_size_.x_ / 2, p.Y + cell_size_.y_ / 2, z)));
+        bool continue_ = process_cell_func(toGridPoint(Point3LL(p.X + cell_size_.x_ / 2, p.Y + cell_size_.y_ / 2, z)));
         if (! continue_)
         {
             return false;
@@ -152,11 +152,11 @@ bool VoxelUtils::_walkAreas(const Polygons& polys, coord_t z, const std::functio
 bool VoxelUtils::walkDilatedAreas(const Polygons& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
     Polygons translated = polys;
-    const Point3 translation = (Point3(1, 1, 1) - kernel.kernel_size_ % 2) * cell_size_ / 2 // offset half a cell when using a n even kernel
+    const Point3LL translation = (Point3LL(1, 1, 1) - kernel.kernel_size_ % 2) * cell_size_ / 2 // offset half a cell when using a n even kernel
                              - cell_size_ / 2; // offset half a cell so that the dots of spreadDotsArea are centered on the middle of the cell isntead of the lower corners.
     if (translation.x_ && translation.y_)
     {
-        translated.translate(Point(translation.x_, translation.y_));
+        translated.translate(Point2LL(translation.x_, translation.y_));
     }
     return _walkAreas(translated, z + translation.z_, dilate(kernel, process_cell_func));
 }

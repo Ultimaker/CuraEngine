@@ -14,12 +14,12 @@
 
 using namespace cura;
 
-coord_t LightningLayer::getWeightedDistance(const Point& boundary_loc, const Point& unsupported_location)
+coord_t LightningLayer::getWeightedDistance(const Point2LL& boundary_loc, const Point2LL& unsupported_location)
 {
     return vSize(boundary_loc - unsupported_location);
 }
 
-Point GroundingLocation::p() const
+Point2LL GroundingLocation::p() const
 {
     if (tree_node != nullptr)
     {
@@ -61,7 +61,7 @@ void LightningLayer::generateNewTrees
 
     // Until no more points need to be added to support all:
     // Determine next point from tree/outline areas via distance-field
-    Point unsupported_location;
+    Point2LL unsupported_location;
     while (distance_field.tryGetNextPoint(&unsupported_location))
     {
         GroundingLocation grounding_loc =
@@ -91,7 +91,7 @@ void LightningLayer::generateNewTrees
 
 GroundingLocation LightningLayer::getBestGroundingLocation
 (
-    const Point& unsupported_location,
+    const Point2LL& unsupported_location,
     const Polygons& current_outlines,
     const LocToLineGrid& outline_locator,
     const coord_t supporting_radius,
@@ -101,7 +101,7 @@ GroundingLocation LightningLayer::getBestGroundingLocation
 )
 {
     ClosestPolygonPoint cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
-    Point node_location = cpp.p();
+    Point2LL node_location = cpp.p();
     const coord_t within_dist = vSize(node_location - unsupported_location);
 
     PolygonsPointIndex dummy;
@@ -143,7 +143,7 @@ GroundingLocation LightningLayer::getBestGroundingLocation
 
 bool LightningLayer::attach
 (
-    const Point& unsupported_location,
+    const Point2LL& unsupported_location,
     const GroundingLocation& grounding_loc,
     LightningTreeNodeSPtr& new_child,
     LightningTreeNodeSPtr& new_root
@@ -185,10 +185,10 @@ void LightningLayer::reconnectRoots
 
         if (root_ptr->getLastGroundingLocation())
         {
-            const Point& ground_loc = root_ptr->getLastGroundingLocation().value();
+            const Point2LL& ground_loc = root_ptr->getLastGroundingLocation().value();
             if (ground_loc != root_ptr->getLocation())
             {
-                Point new_root_pt;
+                Point2LL new_root_pt;
                 if (PolygonUtils::lineSegmentPolygonsIntersection(root_ptr->getLocation(), ground_loc, current_outlines, outline_locator, new_root_pt, within_max_dist))
                 {
                     auto new_root = LightningTreeNode::create(new_root_pt, new_root_pt);

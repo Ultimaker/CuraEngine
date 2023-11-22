@@ -45,17 +45,17 @@ void PolygonConnector::connect(Polygons& output_polygons, std::vector<VariableWi
     output_paths.push_back(result_paths);
 }
 
-Point PolygonConnector::getPosition(const Point& vertex) const
+Point2LL PolygonConnector::getPosition(const Point2LL& vertex) const
 {
     return vertex;
 }
 
-Point PolygonConnector::getPosition(const ExtrusionJunction& junction) const
+Point2LL PolygonConnector::getPosition(const ExtrusionJunction& junction) const
 {
     return junction.p_;
 }
 
-coord_t PolygonConnector::getWidth(const Point&) const
+coord_t PolygonConnector::getWidth(const Point2LL&) const
 {
     return line_width_;
 }
@@ -65,17 +65,17 @@ coord_t PolygonConnector::getWidth(const ExtrusionJunction& junction) const
     return junction.w_;
 }
 
-void PolygonConnector::addVertex(Polygon& polygonal, const Point& position, const coord_t) const
+void PolygonConnector::addVertex(Polygon& polygonal, const Point2LL& position, const coord_t) const
 {
     polygonal.add(position);
 }
 
-void PolygonConnector::addVertex(Polygon& polygonal, const Point& vertex) const
+void PolygonConnector::addVertex(Polygon& polygonal, const Point2LL& vertex) const
 {
     polygonal.add(vertex);
 }
 
-void PolygonConnector::addVertex(ExtrusionLine& polygonal, const Point& position, const coord_t width) const
+void PolygonConnector::addVertex(ExtrusionLine& polygonal, const Point2LL& position, const coord_t width) const
 {
     polygonal.emplace_back(position, width, 1); // Perimeter indices don't make sense any more once perimeters are merged. Use 1 as placeholder, being the first "normal" wall.
 }

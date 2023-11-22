@@ -8,7 +8,7 @@
 #include <vector>
 #include <list>
 #include <utility> // pair
-#include "IntPoint.h"
+#include "Point2LL.h"
 
 namespace cura {
  
@@ -23,29 +23,29 @@ template <typename T>
 class OrderOptimizer
 {
 public:
-    std::vector<std::pair<const Point, T>> items; //!< the items in arbitrary order
+    std::vector<std::pair<const Point2LL, T>> items; //!< the items in arbitrary order
 
     OrderOptimizer()
     {
     }
 
-    void addItem(const Point location, const T item);
+    void addItem(const Point2LL location, const T item);
 
     /*!
      * Optimize the order of \ref OrderOptimizer::items
      * \return A vector of the ordered indices into \ref OrderOptimizer::items
      */
-    std::list<size_t> optimize(const Point& start_position);
+    std::list<size_t> optimize(const Point2LL& start_position);
 };
 
 template <typename T>
-void OrderOptimizer<T>::addItem(const Point location, const T item)
+void OrderOptimizer<T>::addItem(const Point2LL location, const T item)
 {
     items.emplace_back(location, item);
 }
 
 template <typename T>
-std::list<size_t> OrderOptimizer<T>::optimize(const Point& start_position)
+std::list<size_t> OrderOptimizer<T>::optimize(const Point2LL& start_position)
 {
     // Use the nearest mesh ordering
     std::list<size_t> order;
@@ -60,7 +60,7 @@ std::list<size_t> OrderOptimizer<T>::optimize(const Point& start_position)
     {
         item_idx_list.emplace_back(i);
     }
-    const Point* last_item_position = &start_position;
+    const Point2LL* last_item_position = &start_position;
 
     while (!item_idx_list.empty())
     {
@@ -71,7 +71,7 @@ std::list<size_t> OrderOptimizer<T>::optimize(const Point& start_position)
         for (size_t idx = 0; idx < item_idx_list.size(); idx++)
         {
             const size_t item_idx = item_idx_list[idx];
-            const Point& position = items[item_idx].first;
+            const Point2LL& position = items[item_idx].first;
             const coord_t distance = vSize(position - *last_item_position);
             if (distance < shortest_distance)
             {

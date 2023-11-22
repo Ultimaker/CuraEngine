@@ -225,7 +225,7 @@ protected:
      */
     struct Edge
     {
-        Point l, r; //!< The points left, resp. right of the curve.
+        Point2LL l, r; //!< The points left, resp. right of the curve.
     };
     /*!
      * A node in the tree of all triangles.
@@ -250,9 +250,9 @@ protected:
             AC_TO_BC,
             AB_TO_BC
         };
-        const Point straight_corner_; //!< C, the 90* corner of the triangle
-        const Point a_; //!< The corner closer to the start of the space filling curve
-        const Point b_; //!< The corner closer to the end of the space filling curve
+        const Point2LL straight_corner_; //!< C, the 90* corner of the triangle
+        const Point2LL a_; //!< The corner closer to the start of the space filling curve
+        const Point2LL b_; //!< The corner closer to the end of the space filling curve
         const SierpinskiDirection dir_; //!< The (order in which) edges being crossed by the Sierpinski curve.
         const bool straight_corner_is_left_; //!< Whether the \ref straight_corner is left of the curve, rather than right. I.e. whether triangle ABC is counter-clockwise
         const int depth_; //!< The recursion depth at which this triangle is generated. Root is zero.
@@ -264,7 +264,7 @@ protected:
         double error_left_; //!< Extra value modulating the \ref requested_length obtained from the triangle on the left / obtained by giving value to the triangle to the left.
         double error_right_; //!< Extra value modulating the \ref requested_length obtained from the triangle on the right / obtained by giving value to the triangle to the right.
 
-        SierpinskiTriangle(Point straight_corner, Point a, Point b, SierpinskiDirection dir, bool straight_corner_is_left, int depth)
+        SierpinskiTriangle(Point2LL straight_corner, Point2LL a, Point2LL b, SierpinskiDirection dir, bool straight_corner_is_left, int depth)
             : straight_corner_(straight_corner)
             , a_(a)
             , b_(b)

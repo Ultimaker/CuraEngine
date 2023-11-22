@@ -66,9 +66,9 @@ private:
     const bool is_raft_layer_; //!< Whether this is a layer which is part of the raft
     coord_t layer_thickness_;
 
-    std::vector<Point> layer_start_pos_per_extruder_; //!< The starting position of a layer for each extruder
+    std::vector<Point2LL> layer_start_pos_per_extruder_; //!< The starting position of a layer for each extruder
     std::vector<bool> has_prime_tower_planned_per_extruder_; //!< For each extruder, whether the prime tower is planned yet or not.
-    std::optional<Point> last_planned_position_; //!< The last planned XY position of the print head (if known)
+    std::optional<Point2LL> last_planned_position_; //!< The last planned XY position of the print head (if known)
 
     std::shared_ptr<const SliceMeshStorage> current_mesh_; //!< The mesh of the last planned move.
 
@@ -83,7 +83,7 @@ private:
     size_t last_extruder_previous_layer_; //!< The last id of the extruder with which was printed in the previous layer
     ExtruderTrain* last_planned_extruder_; //!< The extruder for which a move has most recently been planned.
 
-    std::optional<Point> first_travel_destination_; //!< The destination of the first (travel) move (if this layer is not empty)
+    std::optional<Point2LL> first_travel_destination_; //!< The destination of the first (travel) move (if this layer is not empty)
     bool first_travel_destination_is_inside_; //!< Whether the destination of the first planned travel move is inside a layer part
     std::optional<std::pair<Acceleration, Velocity>> first_extrusion_acc_jerk_; //!< The acceleration and jerk rates of the first extruded move (if this layer is not empty).
     std::optional<std::pair<Acceleration, Velocity>> next_layer_acc_jerk_; //!< If there is a next layer, the first acceleration and jerk it starts with.
@@ -183,7 +183,7 @@ public:
      *
      * \warning The layer start position might be outside of the build plate!
      */
-    Point getLastPlannedPositionOrStartingPosition() const;
+    Point2LL getLastPlannedPositionOrStartingPosition() const;
 
     /*!
      * return whether the last position planned was inside the mesh (used in combing)
@@ -213,7 +213,7 @@ public:
      *
      * Returns nothing if the layer is empty and no travel move was ever made.
      */
-    std::optional<std::pair<Point, bool>> getFirstTravelDestinationState() const;
+    std::optional<std::pair<Point2LL, bool>> getFirstTravelDestinationState() const;
 
     /*!
      * Set whether the next destination is inside a layer part or not.
@@ -283,7 +283,7 @@ public:
      * \param p The point to travel to.
      * \param force_retract Whether to force a retraction to occur.
      */
-    GCodePath& addTravel(const Point& p, const bool force_retract = false, const coord_t z_offset = 0);
+    GCodePath& addTravel(const Point2LL& p, const bool force_retract = false, const coord_t z_offset = 0);
 
     /*!
      * Add a travel path to a certain point and retract if needed.
@@ -293,7 +293,7 @@ public:
      * \param p The point to travel to
      * \param path (optional) The travel path to which to add the point \p p
      */
-    GCodePath& addTravel_simple(const Point& p, GCodePath* path = nullptr);
+    GCodePath& addTravel_simple(const Point2LL& p, GCodePath* path = nullptr);
 
     /*!
      * Plan a prime blob at the current location.
@@ -319,7 +319,7 @@ public:
      * \param fan_speed Fan speed override for this path.
      */
     void addExtrusionMove(
-        const Point p,
+        const Point2LL p,
         const GCodePathConfig& config,
         const SpaceFillType space_fill_type,
         const Ratio& flow = 1.0_r,
@@ -386,7 +386,7 @@ public:
         const Ratio flow_ratio = 1.0_r,
         bool always_retract = false,
         bool reverse_order = false,
-        const std::optional<Point> start_near_location = std::optional<Point>());
+        const std::optional<Point2LL> start_near_location = std::optional<Point2LL>());
 
     /*!
      * Add a single line that is part of a wall to the gcode.
@@ -409,8 +409,8 @@ public:
      * the first bridge segment.
      */
     void addWallLine(
-        const Point& p0,
-        const Point& p1,
+        const Point2LL& p0,
+        const Point2LL& p1,
         const Settings& settings,
         const GCodePathConfig& non_bridge_config,
         const GCodePathConfig& bridge_config,
@@ -527,7 +527,7 @@ public:
         const bool enable_travel_optimization = false,
         const coord_t wipe_dist = 0,
         const Ratio flow_ratio = 1.0,
-        const std::optional<Point> near_start_location = std::optional<Point>(),
+        const std::optional<Point2LL> near_start_location = std::optional<Point2LL>(),
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
         const bool reverse_print_direction = false,
         const std::unordered_multimap<ConstPolygonPointer, ConstPolygonPointer>& order_requirements = PathOrderOptimizer<ConstPolygonPointer>::no_order_requirements_);
@@ -630,7 +630,7 @@ public:
 
         while (true)
         {
-            const Point& vertex = cura::make_point(wall[curr_idx]);
+            const Point2LL& vertex = cura::make_point(wall[curr_idx]);
             if (! air_below.inside(vertex, true))
             {
                 // vertex isn't above air so it's OK to use
@@ -691,7 +691,7 @@ public:
      *
      * \param starting_position The position of the print head when the first extruder plan of this layer starts
      */
-    void processFanSpeedAndMinimalLayerTime(Point starting_position);
+    void processFanSpeedAndMinimalLayerTime(Point2LL starting_position);
 
     /*!
      * Add a travel move to the layer plan to move inside the current layer part

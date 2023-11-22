@@ -99,11 +99,11 @@ void GCodeExport::preSetup(const size_t start_extruder)
         if (use_extruder_offset_to_offset_coords_)
         {
             extruder_attr_[extruder_nr].nozzle_offset_
-                = Point(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
+                = Point2LL(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
         }
         else
         {
-            extruder_attr_[extruder_nr].nozzle_offset_ = Point(0, 0);
+            extruder_attr_[extruder_nr].nozzle_offset_ = Point2LL(0, 0);
         }
         extruder_attr_[extruder_nr].machine_firmware_retract_ = extruder_settings.get<bool>("machine_firmware_retract");
     }
@@ -253,8 +253,8 @@ std::string GCodeExport::getFileHeader(
         if (total_bounding_box_.min_.x_ > total_bounding_box_.max_.x_) // We haven't encountered any movement (yet). This probably means we're command-line slicing.
         {
             // Put some small default in there.
-            total_bounding_box_.min_ = Point3(0, 0, 0);
-            total_bounding_box_.max_ = Point3(10, 10, 10);
+            total_bounding_box_.min_ = Point3LL(0, 0, 0);
+            total_bounding_box_.max_ = Point3LL(10, 10, 10);
         }
         prefix << ";PRINT.SIZE.MIN.X:" << INT2MM(total_bounding_box_.min_.x_) << new_line_;
         prefix << ";PRINT.SIZE.MIN.Y:" << INT2MM(total_bounding_box_.min_.y_) << new_line_;
@@ -334,9 +334,9 @@ bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
     return extruder_attr_[extruder_nr].is_used_;
 }
 
-Point GCodeExport::getGcodePos(const coord_t x, const coord_t y, const int extruder_train) const
+Point2LL GCodeExport::getGcodePos(const coord_t x, const coord_t y, const int extruder_train) const
 {
-    return Point(x, y) - extruder_attr_[extruder_train].nozzle_offset_;
+    return Point2LL(x, y) - extruder_attr_[extruder_train].nozzle_offset_;
 }
 
 void GCodeExport::setFlavor(EGCodeFlavor flavor)
@@ -387,13 +387,13 @@ void GCodeExport::setFlowRateExtrusionSettings(double max_extrusion_offset, doub
     this->extrusion_offset_factor_ = extrusion_offset_factor;
 }
 
-Point3 GCodeExport::getPosition() const
+Point3LL GCodeExport::getPosition() const
 {
     return current_position_;
 }
-Point GCodeExport::getPositionXY() const
+Point2LL GCodeExport::getPositionXY() const
 {
-    return Point(current_position_.x_, current_position_.y_);
+    return Point2LL(current_position_.x_, current_position_.y_);
 }
 
 int GCodeExport::getPositionZ() const
@@ -827,16 +827,16 @@ void GCodeExport::writeDelay(const Duration& time_amount)
     estimate_calculator_.addTime(time_amount);
 }
 
-void GCodeExport::writeTravel(const Point& p, const Velocity& speed)
+void GCodeExport::writeTravel(const Point2LL& p, const Velocity& speed)
 {
-    writeTravel(Point3(p.X, p.Y, current_layer_z_), speed);
+    writeTravel(Point3LL(p.X, p.Y, current_layer_z_), speed);
 }
-void GCodeExport::writeExtrusion(const Point& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
+void GCodeExport::writeExtrusion(const Point2LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
 {
-    writeExtrusion(Point3(p.X, p.Y, current_layer_z_), speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
+    writeExtrusion(Point3LL(p.X, p.Y, current_layer_z_), speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
 }
 
-void GCodeExport::writeTravel(const Point3& p, const Velocity& speed)
+void GCodeExport::writeTravel(const Point3LL& p, const Velocity& speed)
 {
     if (flavor_ == EGCodeFlavor::BFB)
     {
@@ -846,7 +846,7 @@ void GCodeExport::writeTravel(const Point3& p, const Velocity& speed)
     writeTravel(p.x_, p.y_, p.z_ + is_z_hopped_, speed);
 }
 
-void GCodeExport::writeExtrusion(const Point3& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
+void GCodeExport::writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
 {
     if (flavor_ == EGCodeFlavor::BFB)
     {
@@ -873,7 +873,7 @@ void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Velo
 
     double extrusion_per_mm = mm3ToE(extrusion_mm3_per_mm);
 
-    Point gcode_pos = getGcodePos(x, y, current_extruder_);
+    Point2LL gcode_pos = getGcodePos(x, y, current_extruder_);
 
     // For Bits From Bytes machines, we need to handle this completely differently. As they do not use E values but RPM values.
     double fspeed = speed * 60;
@@ -900,7 +900,7 @@ void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Velo
         fspeed *= (rpm / (roundf(rpm * 100) / 100));
 
         // Increase the extrusion amount to calculate the amount of filament used.
-        Point3 diff = Point3(x, y, z) - getPosition();
+        Point3LL diff = Point3LL(x, y, z) - getPosition();
 
         current_e_value_ += extrusion_per_mm * diff.vSizeMM();
     }
@@ -917,7 +917,7 @@ void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Velo
     *output_stream_ << "G1 X" << MMtoStream{ gcode_pos.X } << " Y" << MMtoStream{ gcode_pos.Y } << " Z" << MMtoStream{ z };
     *output_stream_ << " F" << PrecisionedDouble{ 1, fspeed } << new_line_;
 
-    current_position_ = Point3(x, y, z);
+    current_position_ = Point3LL(x, y, z);
     estimate_calculator_.plan(
         TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
         speed,
@@ -934,14 +934,14 @@ void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z,
 #ifdef ASSERT_INSANE_OUTPUT
     assert(speed < 1000 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
     assert(current_position_ != no_point3);
-    assert(Point3(x, y, z) != no_point3);
-    assert((Point3(x, y, z) - current_position_).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
+    assert(Point3LL(x, y, z) != no_point3);
+    assert((Point3LL(x, y, z) - current_position_).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
 #endif // ASSERT_INSANE_OUTPUT
 
     const PrintFeatureType travel_move_type = extruder_attr_[current_extruder_].retraction_e_amount_current_ ? PrintFeatureType::MoveRetraction : PrintFeatureType::MoveCombing;
     const int display_width = extruder_attr_[current_extruder_].retraction_e_amount_current_ ? MM2INT(0.2) : MM2INT(0.1);
     const double layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<double>("layer_height");
-    Application::getInstance().communication_->sendLineTo(travel_move_type, Point(x, y), display_width, layer_height, speed);
+    Application::getInstance().communication_->sendLineTo(travel_move_type, Point2LL(x, y), display_width, layer_height, speed);
 
     *output_stream_ << "G0";
     writeFXYZE(speed, x, y, z, current_e_value_, travel_move_type);
@@ -964,8 +964,8 @@ void GCodeExport::writeExtrusion(
 #ifdef ASSERT_INSANE_OUTPUT
     assert(speed < 1000 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
     assert(current_position_ != no_point3);
-    assert(Point3(x, y, z) != no_point3);
-    assert((Point3(x, y, z) - current_position_).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
+    assert(Point3LL(x, y, z) != no_point3);
+    assert((Point3LL(x, y, z) - current_position_).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
     assert(extrusion_mm3_per_mm >= 0.0);
 #endif // ASSERT_INSANE_OUTPUT
 #ifdef DEBUG
@@ -996,7 +996,7 @@ void GCodeExport::writeExtrusion(
         writeZhopEnd();
     }
 
-    const Point3 diff = Point3(x, y, z) - current_position_;
+    const Point3LL diff = Point3LL(x, y, z) - current_position_;
     const double diff_length = diff.vSizeMM();
 
     writeUnretractionAndPrime();
@@ -1033,8 +1033,8 @@ void GCodeExport::writeFXYZE(const Velocity& speed, const coord_t x, const coord
         current_speed_ = speed;
     }
 
-    Point gcode_pos = getGcodePos(x, y, current_extruder_);
-    total_bounding_box_.include(Point3(gcode_pos.X, gcode_pos.Y, z));
+    Point2LL gcode_pos = getGcodePos(x, y, current_extruder_);
+    total_bounding_box_.include(Point3LL(gcode_pos.X, gcode_pos.Y, z));
 
     *output_stream_ << " X" << MMtoStream{ gcode_pos.X } << " Y" << MMtoStream{ gcode_pos.Y };
     if (z != current_position_.z_)
@@ -1048,7 +1048,7 @@ void GCodeExport::writeFXYZE(const Velocity& speed, const coord_t x, const coord
     }
     *output_stream_ << new_line_;
 
-    current_position_ = Point3(x, y, z);
+    current_position_ = Point3LL(x, y, z);
     current_e_value_ = e;
     estimate_calculator_.plan(TimeEstimateCalculator::Position(INT2MM(x), INT2MM(y), INT2MM(z), eToMm(e)), speed, feature);
 }
@@ -1357,14 +1357,14 @@ void GCodeExport::writePrimeTrain(const Velocity& travel_speed)
         // ideally the prime position would be respected whether we do a blob or not,
         // but the frontend currently doesn't support a value function of an extruder setting depending on an fdmprinter setting,
         // which is needed to automatically ignore the prime position for the printer when blob is disabled
-        Point3 prime_pos(
+        Point3LL prime_pos(
             extruder_settings.get<coord_t>("extruder_prime_pos_x"),
             extruder_settings.get<coord_t>("extruder_prime_pos_y"),
             extruder_settings.get<coord_t>("extruder_prime_pos_z"));
         if (! extruder_settings.get<bool>("extruder_prime_pos_abs"))
         {
             // currentPosition.z can be already z hopped
-            prime_pos += Point3(current_position_.x_, current_position_.y_, current_layer_z_);
+            prime_pos += Point3LL(current_position_.x_, current_position_.y_, current_layer_z_);
         }
         writeTravel(prime_pos, travel_speed);
     }
@@ -1674,7 +1674,7 @@ void GCodeExport::ResetLastEValueAfterWipe(size_t extruder)
 
 void GCodeExport::insertWipeScript(const WipeScriptConfig& wipe_config)
 {
-    const Point3 prev_position = current_position_;
+    const Point3LL prev_position = current_position_;
     writeComment("WIPE_SCRIPT_BEGIN");
 
     if (wipe_config.retraction_enable)
@@ -1687,11 +1687,11 @@ void GCodeExport::insertWipeScript(const WipeScriptConfig& wipe_config)
         writeZhopStart(wipe_config.hop_amount, wipe_config.hop_speed);
     }
 
-    writeTravel(Point(wipe_config.brush_pos_x, current_position_.y_), wipe_config.move_speed);
+    writeTravel(Point2LL(wipe_config.brush_pos_x, current_position_.y_), wipe_config.move_speed);
     for (size_t i = 0; i < wipe_config.repeat_count; ++i)
     {
         coord_t x = current_position_.x_ + (i % 2 ? -wipe_config.move_distance : wipe_config.move_distance);
-        writeTravel(Point(x, current_position_.y_), wipe_config.move_speed);
+        writeTravel(Point2LL(x, current_position_.y_), wipe_config.move_speed);
     }
 
     writeTravel(prev_position, wipe_config.move_speed);

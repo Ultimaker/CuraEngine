@@ -9,12 +9,12 @@
 namespace cura 
 {
 
-void NoZigZagConnectorProcessor::registerVertex(const Point&)
+void NoZigZagConnectorProcessor::registerVertex(const Point2LL&)
 {
     //No need to add anything.
 }
 
-void NoZigZagConnectorProcessor::registerScanlineSegmentIntersection(const Point&, int)
+void NoZigZagConnectorProcessor::registerScanlineSegmentIntersection(const Point2LL&, int)
 {
     //No need to add anything.
 }

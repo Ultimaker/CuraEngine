@@ -7,7 +7,7 @@
 #include <math.h>
 #include <stdint.h>
 
-#include "IntPoint.h"
+#include "Point2LL.h"
 
 
 namespace cura
@@ -33,7 +33,7 @@ public:
     {
     }
 
-    Point3D(const Point3& p)
+    Point3D(const Point3LL& p)
         : x_(static_cast<double>(p.x_) * .001)
         , y_(static_cast<double>(p.y_) * .001)
         , z_(static_cast<double>(p.z_) * .001)
@@ -122,14 +122,14 @@ public:
         return Point3D(y_ * p.z_ - z_ * p.y_, z_ * p.x_ - x_ * p.z_, x_ * p.y_ - y_ * p.x_);
     }
 
-    static Point3D cross(const Point3& a, const Point3& b)
+    static Point3D cross(const Point3LL& a, const Point3LL& b)
     {
         return Point3D(a).cross(Point3D(b));
     }
 
-    Point3 toPoint3()
+    Point3LL toPoint3()
     {
-        return Point3(MM2INT(x_), MM2INT(y_), MM2INT(z_));
+        return Point3LL(MM2INT(x_), MM2INT(y_), MM2INT(z_));
     }
 };
 

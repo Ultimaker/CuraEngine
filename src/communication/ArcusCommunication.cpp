@@ -54,7 +54,7 @@ class ArcusCommunication::PathCompiler
     std::vector<float> points; //!< The points used to define the line segments, the size of this vector is D*(N+1) as each line segment is defined from one point to the next. D is
                                //!< the dimensionality of the point.
 
-    Point last_point;
+    Point2LL last_point;
 
     PathCompiler(const PathCompiler&) = delete;
     PathCompiler& operator=(const PathCompiler&) = delete;
@@ -130,7 +130,7 @@ public:
      * of the path this jump is marked as `PrintFeatureType::NoneType`.
      * \param from The initial point of a polygon.
      */
-    void handleInitialPoint(const Point& initial_point)
+    void handleInitialPoint(const Point2LL& initial_point)
     {
         if (points.size() == 0)
         {
@@ -188,7 +188,7 @@ public:
     /*!
      * \brief Move the current point of this path to \p position.
      */
-    void setCurrentPosition(const Point& position)
+    void setCurrentPosition(const Point2LL& position)
     {
         handleInitialPoint(position);
     }
@@ -204,7 +204,7 @@ public:
      * \param line_thickness The thickness (in the Z direction) of the line.
      * \param velocity The velocity of printing this polygon.
      */
-    void sendLineTo(const PrintFeatureType& print_feature_type, const Point& to, const coord_t& width, const coord_t& thickness, const Velocity& feedrate)
+    void sendLineTo(const PrintFeatureType& print_feature_type, const Point2LL& to, const coord_t& width, const coord_t& thickness, const Velocity& feedrate)
     {
         assert(! points.empty() && "A point must already be in the buffer for sendLineTo(.) to function properly.");
 
@@ -257,7 +257,7 @@ private:
      * Each point is represented as two consecutive floats. All members adding a
      * 2D point to the data should use this function.
      */
-    void addPoint2D(const Point& point)
+    void addPoint2D(const Point2LL& point)
     {
         points.push_back(INT2MM(point.X));
         points.push_back(INT2MM(point.Y));
@@ -276,7 +276,7 @@ private:
      * \param thickness The layer thickness of the polygon.
      * \param velocity How fast the polygon is printed.
      */
-    void addLineSegment(const PrintFeatureType& print_feature_type, const Point& point, const coord_t& width, const coord_t& thickness, const Velocity& velocity)
+    void addLineSegment(const PrintFeatureType& print_feature_type, const Point2LL& point, const coord_t& width, const coord_t& thickness, const Velocity& velocity)
     {
         addPoint2D(point);
         line_types.push_back(print_feature_type);
@@ -368,7 +368,7 @@ bool ArcusCommunication::hasSlice() const
         && private_data->slice_count < 1; // Only slice once per run of CuraEngine. See documentation of slice_count.
 }
 
-void ArcusCommunication::sendCurrentPosition(const Point& position)
+void ArcusCommunication::sendCurrentPosition(const Point2LL& position)
 {
     path_compiler->setCurrentPosition(position);
 }
@@ -402,7 +402,7 @@ void ArcusCommunication::sendLayerComplete(const LayerIndex::value_type& layer_n
     layer->set_thickness(thickness);
 }
 
-void ArcusCommunication::sendLineTo(const PrintFeatureType& type, const Point& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
+void ArcusCommunication::sendLineTo(const PrintFeatureType& type, const Point2LL& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
 {
     path_compiler->sendLineTo(type, to, line_width, line_thickness, velocity);
 }
@@ -443,7 +443,7 @@ void ArcusCommunication::sendPolygon(
 
 void ArcusCommunication::sendPolygons(const PrintFeatureType& type, const Polygons& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
 {
-    for (const std::vector<Point>& polygon : polygons)
+    for (const std::vector<Point2LL>& polygon : polygons)
     {
         path_compiler->sendPolygon(type, polygon, line_width, line_thickness, velocity);
     }

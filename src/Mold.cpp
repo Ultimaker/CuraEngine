@@ -10,7 +10,7 @@
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "slicer.h"
-#include "utils/IntPoint.h"
+#include "utils/Point2LL.h"
 
 namespace cura
 {

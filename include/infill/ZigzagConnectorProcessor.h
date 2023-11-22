@@ -129,7 +129,7 @@ public:
      * Handle the next vertex on the outer boundary.
      * \param vertex The vertex
      */
-    virtual void registerVertex(const Point& vertex);
+    virtual void registerVertex(const Point2LL& vertex);
 
     /*!
      * Handle the next intersection between a scanline and the outer boundary.
@@ -137,7 +137,7 @@ public:
      * \param intersection The intersection
      * \param scanline_index Index of the current scanline
      */
-    virtual void registerScanlineSegmentIntersection(const Point& intersection, int scanline_index);
+    virtual void registerScanlineSegmentIntersection(const Point2LL& intersection, int scanline_index);
 
     /*!
      * Handle the end of a polygon and prepare for the next.
@@ -175,7 +175,7 @@ protected:
      * \param first_point The first of the points
      * \param second_point The second of the points
      */
-    void checkAndAddZagConnectorLine(Point* first_point, Point* second_point);
+    void checkAndAddZagConnectorLine(Point2LL* first_point, Point2LL* second_point);
 
     /*!
      * Adds a Zag connector represented by the given points. The last line of the connector will not be
@@ -184,7 +184,7 @@ protected:
      * \param points All the points on this connector
      * \param is_endpiece Whether this connector is an end piece
      */
-    void addZagConnector(std::vector<Point>& points, bool is_endpiece);
+    void addZagConnector(std::vector<Point2LL>& points, bool is_endpiece);
 
 protected:
     const PointMatrix& rotation_matrix_; //!< The rotation matrix used to enforce the infill angle
@@ -205,11 +205,11 @@ protected:
      *
      * Because the boundary polygon may start in in the middle of a zigzag connector,
      */
-    std::vector<Point> first_connector_;
+    std::vector<Point2LL> first_connector_;
     /*!
      * The currently built up zigzag connector (not the first/last) or end piece or discarded boundary segment
      */
-    std::vector<Point> current_connector_;
+    std::vector<Point2LL> current_connector_;
 };
 
 //
@@ -228,7 +228,7 @@ inline void ZigzagConnectorProcessor::reset()
 inline void ZigzagConnectorProcessor::addPolyline(PolygonRef polyline)
 {
     result_.emplace_back(polyline);
-    for (Point& p : result_.back())
+    for (Point2LL& p : result_.back())
     {
         p = rotation_matrix_.unapply(p);
     }

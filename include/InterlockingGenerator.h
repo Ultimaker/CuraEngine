@@ -80,7 +80,7 @@ protected:
         coord_t beam_width_a,
         coord_t beam_width_b,
         const PointMatrix& rotation,
-        Point3 cell_size,
+        Point3LL cell_size,
         coord_t beam_layer_count,
         DilationKernel interface_dilation,
         DilationKernel air_dilation,
@@ -166,7 +166,7 @@ protected:
     const VoxelUtils vu_;
 
     const PointMatrix rotation_;
-    const Point3 cell_size_;
+    const Point3LL cell_size_;
     const coord_t beam_layer_count_;
     const DilationKernel interface_dilation_;
     const DilationKernel air_dilation_;

@@ -25,9 +25,9 @@ void ListPolyIt::convertPolygonsToLists(const Polygons& polys, ListPolygons& res
 void ListPolyIt::convertPolygonToList(ConstPolygonRef poly, ListPolygon& result)
 {
 #ifdef DEBUG
-    Point last = poly.back();
+    Point2LL last = poly.back();
 #endif // DEBUG
-    for (const Point& p : poly)
+    for (const Point2LL& p : poly)
     {
         result.push_back(p);
 #ifdef DEBUG
@@ -52,13 +52,13 @@ void ListPolyIt::convertListPolygonsToPolygons(const ListPolygons& list_polygons
 
 void ListPolyIt::convertListPolygonToPolygon(const ListPolygon& list_polygon, PolygonRef polygon)
 {
-    for (const Point& p : list_polygon)
+    for (const Point2LL& p : list_polygon)
     {
         polygon.add(p);
     }
 }
 
-ListPolyIt ListPolyIt::insertPointNonDuplicate(const ListPolyIt before, const ListPolyIt after, const Point to_insert)
+ListPolyIt ListPolyIt::insertPointNonDuplicate(const ListPolyIt before, const ListPolyIt after, const Point2LL to_insert)
 {
     if (to_insert == before.p())
     {

@@ -94,10 +94,10 @@ void PrimeTower::generateGroundpoly()
     const coord_t x = mesh_group_settings.get<coord_t>("prime_tower_position_x");
     const coord_t y = mesh_group_settings.get<coord_t>("prime_tower_position_y");
     const coord_t tower_radius = tower_size / 2;
-    outer_poly_.add(PolygonUtils::makeCircle(Point(x - tower_radius, y + tower_radius), tower_radius, TAU / CIRCLE_RESOLUTION));
-    middle_ = Point(x - tower_size / 2, y + tower_size / 2);
+    outer_poly_.add(PolygonUtils::makeCircle(Point2LL(x - tower_radius, y + tower_radius), tower_radius, TAU / CIRCLE_RESOLUTION));
+    middle_ = Point2LL(x - tower_size / 2, y + tower_size / 2);
 
-    post_wipe_point_ = Point(x - tower_size / 2, y + tower_size / 2);
+    post_wipe_point_ = Point2LL(x - tower_size / 2, y + tower_size / 2);
 }
 
 void PrimeTower::generatePaths(const SliceDataStorage& storage)
@@ -230,9 +230,9 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
     {
         // Make sure we wipe the old extruder on the prime tower.
         const Settings& previous_settings = Application::getInstance().current_slice_->scene.extruders[prev_extruder].settings_;
-        const Point previous_nozzle_offset = Point(previous_settings.get<coord_t>("machine_nozzle_offset_x"), previous_settings.get<coord_t>("machine_nozzle_offset_y"));
+        const Point2LL previous_nozzle_offset = Point2LL(previous_settings.get<coord_t>("machine_nozzle_offset_x"), previous_settings.get<coord_t>("machine_nozzle_offset_y"));
         const Settings& new_settings = Application::getInstance().current_slice_->scene.extruders[new_extruder].settings_;
-        const Point new_nozzle_offset = Point(new_settings.get<coord_t>("machine_nozzle_offset_x"), new_settings.get<coord_t>("machine_nozzle_offset_y"));
+        const Point2LL new_nozzle_offset = Point2LL(new_settings.get<coord_t>("machine_nozzle_offset_x"), new_settings.get<coord_t>("machine_nozzle_offset_y"));
         gcode_layer.addTravel(post_wipe_point_ - previous_nozzle_offset + new_nozzle_offset);
     }
 
@@ -303,9 +303,9 @@ void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const int extruder_nr
     const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
     const coord_t inward_dist = train.settings_.get<coord_t>("machine_nozzle_size") * 3 / 2;
     const coord_t start_dist = train.settings_.get<coord_t>("machine_nozzle_size") * 2;
-    const Point prime_end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
-    const Point outward_dir = wipe_location.location_ - prime_end;
-    const Point prime_start = wipe_location.location_ + normal(outward_dir, start_dist);
+    const Point2LL prime_end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
+    const Point2LL outward_dir = wipe_location.location_ - prime_end;
+    const Point2LL prime_start = wipe_location.location_ + normal(outward_dir, start_dist);
 
     gcode_layer.addTravel(prime_start);
 }

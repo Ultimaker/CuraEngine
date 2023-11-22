@@ -65,8 +65,8 @@ void ToolpathVisualizer::width_legend(const Polygons& input, coord_t nozzle_size
         return ss.str();
     };
     AABB aabb(input);
-    ExtrusionJunction legend_btm(Point(aabb.max_.X + nozzle_size + max_dev, aabb.max_.Y), nozzle_size - max_dev, 0);
-    ExtrusionJunction legend_top(Point(aabb.max_.X + nozzle_size + max_dev, aabb.min_.Y), nozzle_size + max_dev, 0);
+    ExtrusionJunction legend_btm(Point2LL(aabb.max_.X + nozzle_size + max_dev, aabb.max_.Y), nozzle_size - max_dev, 0);
+    ExtrusionJunction legend_top(Point2LL(aabb.max_.X + nozzle_size + max_dev, aabb.min_.Y), nozzle_size + max_dev, 0);
     ExtrusionJunction legend_mid((legend_top.p_ + legend_btm.p_) / 2, (legend_top.w_ + legend_btm.w_) / 2, 0);
     legend_btm.p_ += (legend_mid.p_ - legend_btm.p_) / 4;
     legend_top.p_ += (legend_mid.p_ - legend_top.p_) / 4;
@@ -75,7 +75,7 @@ void ToolpathVisualizer::width_legend(const Polygons& input, coord_t nozzle_size
     std::vector<ExtrusionSegment> all_segments_plus;
     all_segments_plus.emplace_back(legend_segment); // colored
 
-    Point legend_text_offset(nozzle_size, 0);
+    Point2LL legend_text_offset(nozzle_size, 0);
     svg_.writeText(legend_top.p_ + legend_text_offset, to_string(INT2MM(legend_top.w_)));
     svg_.writeText(legend_btm.p_ + legend_text_offset, to_string(INT2MM(legend_btm.w_)));
     svg_.writeText(legend_mid.p_ + legend_text_offset, to_string(INT2MM(legend_mid.w_)));
@@ -95,9 +95,9 @@ void ToolpathVisualizer::widths(
     bool exaggerate_widths)
 {
     //     Point3 middle = rounded_visualization? Point3(255,255,255) : Point3(192,192,192);
-    Point3 middle(255, 255, 255);
-    Point3 wide(255, 0, 0);
-    Point3 narrow(0, 0, 255);
+    Point3LL middle(255, 255, 255);
+    Point3LL wide(255, 0, 0);
+    Point3LL narrow(0, 0, 255);
 
     //     Polygons connecteds = PolygonUtils::connect(area_covered);
     //     for (PolygonRef connected : connecteds)
@@ -114,7 +114,7 @@ void ToolpathVisualizer::widths(
             for (ExtrusionSegment s : ss.discretize(MM2INT(0.1)))
             {
                 coord_t avg_w = (s.from_.w_ + s.to_.w_) / 2;
-                Point3 clr;
+                Point3LL clr;
                 double color_ratio = std::min(1.0, double(std::abs(avg_w - nozzle_size)) / max_dev);
                 color_ratio = color_ratio * .5 + .5 * sqrt(color_ratio);
                 if (avg_w > nozzle_size)

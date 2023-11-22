@@ -80,7 +80,7 @@ public:
      * The location where the nozzle is assumed to start from before printing
      * these parts.
      */
-    const Point start_point_;
+    const Point2LL start_point_;
 
     /*!
      * Seam settings.
@@ -104,7 +104,7 @@ public:
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
     PathOrderOptimizer(
-        const Point start_point,
+        const Point2LL start_point,
         const ZSeamConfig seam_config = ZSeamConfig(),
         const bool detect_loops = false,
         const Polygons* combing_boundary = nullptr,
@@ -185,7 +185,7 @@ public:
             }
             if (path.is_closed_)
             {
-                for (const Point& point : *path.converted_)
+                for (const Point2LL& point : *path.converted_)
                 {
                     line_bucket_grid.insert(point, i); // Store by index so that we can also mark them down in the `picked` vector.
                 }
@@ -296,7 +296,7 @@ protected:
     {
         std::vector<OrderablePath> optimized_order; // To store our result in.
 
-        Point current_position = start_point_;
+        Point2LL current_position = start_point_;
 
         std::unordered_map<OrderablePath*, bool> picked(paths_.size()); // Fixed size boolean flag for whether each path is already in the optimized vector.
 
@@ -381,7 +381,7 @@ protected:
         // We used a shared visited set between runs of dfs. This is for the case when we reverse the ordering tree.
         // In this case two roots can share the same children nodes, but we don't want to print them twice.
         std::unordered_set<Path> visited;
-        Point current_position = start_point_;
+        Point2LL current_position = start_point_;
 
         std::function<std::vector<Path>(const Path, const std::unordered_multimap<Path, Path>&)> get_neighbours
             = [current_position, this](const Path current_node, const std::unordered_multimap<Path, Path>& graph)
@@ -536,7 +536,7 @@ protected:
         return reversed;
     }
 
-    Path findClosestPathVertices(Point start_position, std::unordered_set<Path> candidate_paths)
+    Path findClosestPathVertices(Point2LL start_position, std::unordered_set<Path> candidate_paths)
     {
         std::vector<OrderablePath*> candidate_orderable_paths;
 
@@ -549,7 +549,7 @@ protected:
         return best_candidate->vertices_;
     }
 
-    OrderablePath* findClosestPath(Point start_position, std::vector<OrderablePath*> candidate_paths)
+    OrderablePath* findClosestPath(Point2LL start_position, std::vector<OrderablePath*> candidate_paths)
     {
         coord_t best_distance2 = std::numeric_limits<coord_t>::max();
         OrderablePath* best_candidate = 0;
@@ -575,7 +575,7 @@ protected:
                     path->backwards_ = path->start_vertex_ > 0;
                 }
             }
-            const Point candidate_position = (*path->converted_)[path->start_vertex_];
+            const Point2LL candidate_position = (*path->converted_)[path->start_vertex_];
             coord_t distance2 = getDirectDistance(start_position, candidate_position);
             if (distance2 < best_distance2
                 && combing_boundary_) // If direct distance is longer than best combing distance, the combing distance can never be better, so only compute combing if necessary.
@@ -608,7 +608,7 @@ protected:
      * endpoints rather than
      * \return An index to a vertex in that path where printing must start.
      */
-    size_t findStartLocation(const OrderablePath& path, const Point& target_pos)
+    size_t findStartLocation(const OrderablePath& path, const Point2LL& target_pos)
     {
         if (! path.is_closed_)
         {
@@ -640,7 +640,7 @@ protected:
         coord_t total_length = 0;
         for (const auto& [i, here] : **path.converted_ | ranges::views::enumerate)
         {
-            const Point& next = (*path.converted_)[(i + 1) % path.converted_->size()];
+            const Point2LL& next = (*path.converted_)[(i + 1) % path.converted_->size()];
             const coord_t segment_size = vSize(next - here);
             segments_sizes[i] = segment_size;
             total_length += segment_size;
@@ -714,7 +714,7 @@ protected:
                 // ties are broken by favouring points with lower x-coord
                 // if x-coord for both points are equal then break ties by
                 // favouring points with lower y-coord
-                const Point& best_point = (*path.converted_)[best_i];
+                const Point2LL& best_point = (*path.converted_)[best_i];
                 if (std::abs(here.Y - best_point.Y) <= EPSILON ? best_point.X < here.X : best_point.Y < here.Y)
                 {
                     best_score = std::min(best_score, score);
@@ -747,7 +747,7 @@ protected:
      * \param segments_sizes The pre-computed sizes of the segments
      * \return The position of the path a the given distance from the reference point
      */
-    static Point findNeighbourPoint(const OrderablePath& path, int here, coord_t distance, const std::vector<coord_t>& segments_sizes)
+    static Point2LL findNeighbourPoint(const OrderablePath& path, int here, coord_t distance, const std::vector<coord_t>& segments_sizes)
     {
         const int direction = distance > 0 ? 1 : -1;
         const int size_delta = distance > 0 ? -1 : 0;
@@ -764,17 +764,17 @@ protected:
             travelled_distance += segment_size;
         }
 
-        const Point& next_pos = (*path.converted_)[(here + actual_delta + path.converted_->size()) % path.converted_->size()];
+        const Point2LL& next_pos = (*path.converted_)[(here + actual_delta + path.converted_->size()) % path.converted_->size()];
 
         if (travelled_distance > distance) [[likely]]
         {
             // We have overtaken the required distance, go backward on the last segment
             int prev = (here + actual_delta - direction + path.converted_->size()) % path.converted_->size();
-            const Point& prev_pos = (*path.converted_)[prev];
+            const Point2LL& prev_pos = (*path.converted_)[prev];
 
-            const Point vector = next_pos - prev_pos;
-            const Point unit_vector = (vector * 1000) / segment_size;
-            const Point vector_delta = unit_vector * (segment_size - (travelled_distance - distance));
+            const Point2LL vector = next_pos - prev_pos;
+            const Point2LL unit_vector = (vector * 1000) / segment_size;
+            const Point2LL vector_delta = unit_vector * (segment_size - (travelled_distance - distance));
             return prev_pos + vector_delta / 1000;
         }
         else
@@ -800,9 +800,9 @@ protected:
     static double cornerAngle(const OrderablePath& path, int i, const std::vector<coord_t>& segments_sizes, coord_t total_length, const coord_t angle_query_distance = 1000)
     {
         const coord_t bounded_distance = std::min(angle_query_distance, total_length / 2);
-        const Point& here = (*path.converted_)[i];
-        const Point next = findNeighbourPoint(path, i, bounded_distance, segments_sizes);
-        const Point previous = findNeighbourPoint(path, i, -bounded_distance, segments_sizes);
+        const Point2LL& here = (*path.converted_)[i];
+        const Point2LL next = findNeighbourPoint(path, i, bounded_distance, segments_sizes);
+        const Point2LL previous = findNeighbourPoint(path, i, -bounded_distance, segments_sizes);
 
         double angle = LinearAlg2D::getAngleLeft(previous, here, next) - std::numbers::pi;
 
@@ -816,7 +816,7 @@ protected:
      * \param b Another point, to compute distance to \ref a.
      * \return The distance between the two points.
      */
-    coord_t getDirectDistance(const Point& a, const Point& b) const
+    coord_t getDirectDistance(const Point2LL& a, const Point2LL& b) const
     {
         return vSize2(a - b);
     }
@@ -831,7 +831,7 @@ protected:
      * \param b Another point, to compute distance to \ref a.
      * \return The combing distance between the two points.
      */
-    coord_t getCombingDistance(const Point& a, const Point& b)
+    coord_t getCombingDistance(const Point2LL& a, const Point2LL& b)
     {
         if (! PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary_, a, b))
         {
@@ -858,8 +858,8 @@ protected:
         LinePolygonsCrossings::comb(*combing_boundary_, *combing_grid_, a, b, comb_path, rounding_error, tiny_travel_threshold, fail_on_unavoidable_obstacles);
 
         coord_t sum = 0;
-        Point last_point = a;
-        for (const Point& point : comb_path)
+        Point2LL last_point = a;
+        for (const Point2LL& point : comb_path)
         {
             sum += vSize(point - last_point);
             last_point = point;

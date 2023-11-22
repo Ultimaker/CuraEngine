@@ -492,7 +492,7 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
             for (unsigned int i = 0; i < circle_resolution; i++)
             {
                 const AngleRadians angle = TAU * i / circle_resolution;
-                const Point3 machine_middle = storage.machine_size.getMiddle();
+                const Point3LL machine_middle = storage.machine_size.getMiddle();
                 const coord_t x = machine_middle.x_ + cos(angle) * width / 2;
                 const coord_t y = machine_middle.y_ + sin(angle) * depth / 2;
                 border_circle.emplace_back(x, y);
@@ -730,8 +730,8 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
             }
             const coord_t aabb_expansion = infill_settings.get<coord_t>("support_offset");
             AABB3D aabb_here(mesh.bounding_box);
-            aabb_here.include(aabb_here.min_ - Point3(-aabb_expansion, -aabb_expansion, 0));
-            aabb_here.include(aabb_here.max_ + Point3(-aabb_expansion, -aabb_expansion, 0));
+            aabb_here.include(aabb_here.min_ - Point3LL(-aabb_expansion, -aabb_expansion, 0));
+            aabb_here.include(aabb_here.max_ + Point3LL(-aabb_expansion, -aabb_expansion, 0));
             aabb.include(aabb_here);
         }
 
@@ -1722,13 +1722,13 @@ void AreaSupport::handleWallStruts(const Settings& settings, Polygons& supportLa
             // add square tower (strut) in the middle of the wall
             if (width < max_tower_supported_diameter)
             {
-                Point mid = (poly[best] + poly[(best + 1) % poly.size()]) / 2;
+                Point2LL mid = (poly[best] + poly[(best + 1) % poly.size()]) / 2;
                 Polygons struts;
                 PolygonRef strut = struts.newPoly();
-                strut.add(mid + Point(tower_diameter / 2, tower_diameter / 2));
-                strut.add(mid + Point(-tower_diameter / 2, tower_diameter / 2));
-                strut.add(mid + Point(-tower_diameter / 2, -tower_diameter / 2));
-                strut.add(mid + Point(tower_diameter / 2, -tower_diameter / 2));
+                strut.add(mid + Point2LL(tower_diameter / 2, tower_diameter / 2));
+                strut.add(mid + Point2LL(-tower_diameter / 2, tower_diameter / 2));
+                strut.add(mid + Point2LL(-tower_diameter / 2, -tower_diameter / 2));
+                strut.add(mid + Point2LL(tower_diameter / 2, -tower_diameter / 2));
                 supportLayer_this = supportLayer_this.unionPolygons(struts);
             }
         }

@@ -130,12 +130,12 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ExtrusionJunction.cpp
         src/utils/ExtrusionLine.cpp
         src/utils/ExtrusionSegment.cpp
-        src/utils/FMatrix4x3.cpp
         src/utils/gettime.cpp
         src/utils/LinearAlg2D.cpp
         src/utils/ListPolyIt.cpp
+        src/utils/Matrix4x3D.cpp
         src/utils/MinimumSpanningTree.cpp
-        src/utils/Point3.cpp
+        src/utils/Point3LL.cpp
         src/utils/PolygonConnector.cpp
         src/utils/PolygonsPointIndex.cpp
         src/utils/PolygonsSegmentIndex.cpp

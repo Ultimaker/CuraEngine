@@ -18,7 +18,7 @@ Polygons ExtrusionSegment::toPolygons()
 Polygons ExtrusionSegment::toPolygons(bool reduced)
 {
     Polygons ret;
-    const Point vec = to_.p_ - from_.p_;
+    const Point2LL vec = to_.p_ - from_.p_;
     const coord_t vec_length = vSize(vec);
 
     if (vec_length <= 0) // Don't even output the endcaps.
@@ -49,7 +49,7 @@ Polygons ExtrusionSegment::toPolygons(bool reduced)
 
     // Draw the endcap on the "from" vertex's end.
     {
-        poly.emplace_back(from_.p_ + Point(from_.w_ / 2 * cos(alpha + dir), from_.w_ / 2 * sin(alpha + dir)));
+        poly.emplace_back(from_.p_ + Point2LL(from_.w_ / 2 * cos(alpha + dir), from_.w_ / 2 * sin(alpha + dir)));
 
         double start_a = 2 * std::numbers::pi;
         while (start_a > alpha + dir)
@@ -67,16 +67,16 @@ Polygons ExtrusionSegment::toPolygons(bool reduced)
         // Draw the endcap.
         for (double a = start_a; a <= end_a; a += a_step)
         {
-            poly.emplace_back(from_.p_ + Point(from_.w_ / 2 * cos(a), from_.w_ / 2 * sin(a)));
+            poly.emplace_back(from_.p_ + Point2LL(from_.w_ / 2 * cos(a), from_.w_ / 2 * sin(a)));
         }
-        poly.emplace_back(from_.p_ + Point(from_.w_ / 2 * cos(2 * std::numbers::pi - alpha + dir), from_.w_ / 2 * sin(2 * std::numbers::pi - alpha + dir)));
+        poly.emplace_back(from_.p_ + Point2LL(from_.w_ / 2 * cos(2 * std::numbers::pi - alpha + dir), from_.w_ / 2 * sin(2 * std::numbers::pi - alpha + dir)));
     }
 
     // Draw the endcap on the "to" vertex's end.
     {
         poly.emplace_back(
             to_.p_
-            + Point(
+            + Point2LL(
                 to_.w_ / 2 * cos(2 * std::numbers::pi - alpha + dir),
                 to_.w_ / 2 * sin(2 * std::numbers::pi - alpha + dir))); // Also draws the main diagonal from the "from" vertex to the "to" vertex!
 
@@ -109,23 +109,23 @@ Polygons ExtrusionSegment::toPolygons(bool reduced)
         {
             for (double a = end_a; a >= start_a; a -= a_step) // Go in the opposite direction.
             {
-                poly.emplace_back(to_.p_ + Point(to_.w_ / 2 * cos(a), to_.w_ / 2 * sin(a)));
+                poly.emplace_back(to_.p_ + Point2LL(to_.w_ / 2 * cos(a), to_.w_ / 2 * sin(a)));
             }
         }
         else
         {
             for (double a = end_a; a <= start_a; a += a_step)
             {
-                poly.emplace_back(to_.p_ + Point(to_.w_ / 2 * cos(a), to_.w_ / 2 * sin(a)));
+                poly.emplace_back(to_.p_ + Point2LL(to_.w_ / 2 * cos(a), to_.w_ / 2 * sin(a)));
             }
         }
 
-        poly.emplace_back(to_.p_ + Point(to_.w_ / 2 * cos(alpha + dir), to_.w_ / 2 * sin(alpha + dir)));
+        poly.emplace_back(to_.p_ + Point2LL(to_.w_ / 2 * cos(alpha + dir), to_.w_ / 2 * sin(alpha + dir)));
         // The other main diagonal from the "to" vertex to the "from" vertex is implicit in the closing of the polygon.
     }
 
 #ifdef DEBUG
-    for (Point p : poly)
+    for (Point2LL p : poly)
     {
         assert(p.X < 0x3FFFFFFFFFFFFFFFLL);
         assert(p.Y < 0x3FFFFFFFFFFFFFFFLL);
@@ -138,9 +138,9 @@ Polygons ExtrusionSegment::toPolygons(bool reduced)
 
 std::vector<ExtrusionSegment> ExtrusionSegment::discretize(coord_t step_size)
 {
-    Point a = from_.p_;
-    Point b = to_.p_;
-    Point ab = b - a;
+    Point2LL a = from_.p_;
+    Point2LL b = to_.p_;
+    Point2LL ab = b - a;
     coord_t ab_length = vSize(ab);
     coord_t step_count = std::max(static_cast<coord_t>(1), (ab_length + step_size / 2) / step_size);
     std::vector<ExtrusionSegment> discretized;

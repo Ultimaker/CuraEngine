@@ -93,7 +93,7 @@ public:
 
                 while (true)
                 {
-                    Point from = make_point(chain.back());
+                    Point2LL from = make_point(chain.back());
 
                     PathsPointIndex<Paths> closest;
                     coord_t closest_distance = std::numeric_limits<coord_t>::max();

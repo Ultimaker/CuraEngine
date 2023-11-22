@@ -25,7 +25,7 @@
 namespace cura
 {
 
-SkeletalTrapezoidation::node_t& SkeletalTrapezoidation::makeNode(vd_t::vertex_type& vd_node, Point p)
+SkeletalTrapezoidation::node_t& SkeletalTrapezoidation::makeNode(vd_t::vertex_type& vd_node, Point2LL p)
 {
     auto he_node_it = vd_node_to_he_node_.find(&vd_node);
     if (he_node_it == vd_node_to_he_node_.end())
@@ -42,13 +42,13 @@ SkeletalTrapezoidation::node_t& SkeletalTrapezoidation::makeNode(vd_t::vertex_ty
 }
 
 void SkeletalTrapezoidation::transferEdge(
-    Point from,
-    Point to,
+    Point2LL from,
+    Point2LL to,
     vd_t::edge_type& vd_edge,
     edge_t*& prev_edge,
-    Point& start_source_point,
-    Point& end_source_point,
-    const std::vector<Point>& points,
+    Point2LL& start_source_point,
+    Point2LL& end_source_point,
+    const std::vector<Point2LL>& points,
     const std::vector<Segment>& segments)
 {
     auto he_edge_it = vd_edge_to_he_edge_.find(vd_edge.twin());
@@ -105,7 +105,7 @@ void SkeletalTrapezoidation::transferEdge(
     }
     else
     {
-        std::vector<Point> discretized = discretize(vd_edge, points, segments);
+        std::vector<Point2LL> discretized = discretize(vd_edge, points, segments);
         assert(discretized.size() >= 2);
         if (discretized.size() < 2)
         {
@@ -119,10 +119,10 @@ void SkeletalTrapezoidation::transferEdge(
         }
         node_t* v0
             = (prev_edge) ? prev_edge->to_ : &makeNode(*vd_edge.vertex0(), from); // TODO: investigate whether boost:voronoi can produce multiple verts and violates consistency
-        Point p0 = discretized.front();
+        Point2LL p0 = discretized.front();
         for (size_t p1_idx = 1; p1_idx < discretized.size(); p1_idx++)
         {
-            Point p1 = discretized[p1_idx];
+            Point2LL p1 = discretized[p1_idx];
             node_t* v1;
             if (p1_idx < discretized.size() - 1)
             {
@@ -161,7 +161,7 @@ void SkeletalTrapezoidation::transferEdge(
     }
 }
 
-std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments)
+std::vector<Point2LL> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_edge, const std::vector<Point2LL>& points, const std::vector<Segment>& segments)
 {
     /*Terminology in this function assumes that the edge moves horizontally from
     left to right. This is not necessarily the case; the edge can go in any
@@ -169,18 +169,18 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
 
     const vd_t::cell_type* left_cell = vd_edge.cell();
     const vd_t::cell_type* right_cell = vd_edge.twin()->cell();
-    Point start = VoronoiUtils::p(vd_edge.vertex0());
-    Point end = VoronoiUtils::p(vd_edge.vertex1());
+    Point2LL start = VoronoiUtils::p(vd_edge.vertex0());
+    Point2LL end = VoronoiUtils::p(vd_edge.vertex1());
 
     bool point_left = left_cell->contains_point();
     bool point_right = right_cell->contains_point();
     if ((! point_left && ! point_right) || vd_edge.is_secondary()) // Source vert is directly connected to source segment
     {
-        return std::vector<Point>({ start, end });
+        return std::vector<Point2LL>({ start, end });
     }
     else if (point_left != point_right) // This is a parabolic edge between a point and a line.
     {
-        Point p = VoronoiUtils::getSourcePoint(*(point_left ? left_cell : right_cell), points, segments);
+        Point2LL p = VoronoiUtils::getSourcePoint(*(point_left ? left_cell : right_cell), points, segments);
         const Segment& s = VoronoiUtils::getSourceSegment(*(point_left ? right_cell : left_cell), points, segments);
         return VoronoiUtils::discretizeParabola(p, s, start, end, discretization_step_size_, transitioning_angle_);
     }
@@ -189,16 +189,16 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
         /*While the edge is straight, it is still discretized since the part
         becomes narrower between the two points. As such it may need different
         beadings along the way.*/
-        Point left_point = VoronoiUtils::getSourcePoint(*left_cell, points, segments);
-        Point right_point = VoronoiUtils::getSourcePoint(*right_cell, points, segments);
+        Point2LL left_point = VoronoiUtils::getSourcePoint(*left_cell, points, segments);
+        Point2LL right_point = VoronoiUtils::getSourcePoint(*right_cell, points, segments);
         coord_t d = vSize(right_point - left_point);
-        Point middle = (left_point + right_point) / 2;
-        Point x_axis_dir = turn90CCW(right_point - left_point);
+        Point2LL middle = (left_point + right_point) / 2;
+        Point2LL x_axis_dir = turn90CCW(right_point - left_point);
         coord_t x_axis_length = vSize(x_axis_dir);
 
-        const auto projected_x = [x_axis_dir, x_axis_length, middle](Point from) // Project a point on the edge.
+        const auto projected_x = [x_axis_dir, x_axis_length, middle](Point2LL from) // Project a point on the edge.
         {
-            Point vec = from - middle;
+            Point2LL vec = from - middle;
             coord_t x = dot(vec, x_axis_dir) / x_axis_length;
             return x;
         };
@@ -210,8 +210,8 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
         double bound = 0.5 / tan((std::numbers::pi - transitioning_angle_) * 0.5);
         coord_t marking_start_x = -d * bound;
         coord_t marking_end_x = d * bound;
-        Point marking_start = middle + x_axis_dir * marking_start_x / x_axis_length;
-        Point marking_end = middle + x_axis_dir * marking_end_x / x_axis_length;
+        Point2LL marking_start = middle + x_axis_dir * marking_start_x / x_axis_length;
+        Point2LL marking_end = middle + x_axis_dir * marking_end_x / x_axis_length;
         int direction = 1;
 
         if (start_x > end_x) // Oops, the Voronoi edge is the other way around.
@@ -222,9 +222,9 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
         }
 
         // Start generating points along the edge.
-        Point a = start;
-        Point b = end;
-        std::vector<Point> ret;
+        Point2LL a = start;
+        Point2LL b = end;
+        std::vector<Point2LL> ret;
         ret.emplace_back(a);
 
         // Introduce an extra edge at the borders of the markings?
@@ -232,7 +232,7 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
         bool add_marking_end = marking_end_x * direction > start_x * direction;
 
         // The edge's length may not be divisible by the step size, so calculate an integer step count and evenly distribute the vertices among those.
-        Point ab = b - a;
+        Point2LL ab = b - a;
         coord_t ab_size = vSize(ab);
         coord_t step_count = (ab_size + discretization_step_size_ / 2) / discretization_step_size_;
         if (step_count % 2 == 1)
@@ -241,7 +241,7 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
         }
         for (coord_t step = 1; step < step_count; step++)
         {
-            Point here = a + ab * step / step_count; // Now simply interpolate the coordinates to get the new vertices!
+            Point2LL here = a + ab * step / step_count; // Now simply interpolate the coordinates to get the new vertices!
             coord_t x_here = projected_x(here); // If we've surpassed the position of the extra markings, we may need to insert them first.
             if (add_marking_start && marking_start_x * direction < x_here * direction)
             {
@@ -267,11 +267,11 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
 
 bool SkeletalTrapezoidation::computePointCellRange(
     vd_t::cell_type& cell,
-    Point& start_source_point,
-    Point& end_source_point,
+    Point2LL& start_source_point,
+    Point2LL& end_source_point,
     vd_t::edge_type*& starting_vd_edge,
     vd_t::edge_type*& ending_vd_edge,
-    const std::vector<Point>& points,
+    const std::vector<Point2LL>& points,
     const std::vector<Segment>& segments)
 {
     if (cell.incident_edge()->is_infinite())
@@ -281,9 +281,9 @@ bool SkeletalTrapezoidation::computePointCellRange(
     // Check if any point of the cell is inside or outside polygon
     // Copy whole cell into graph or not at all
 
-    const Point source_point = VoronoiUtils::getSourcePoint(cell, points, segments);
+    const Point2LL source_point = VoronoiUtils::getSourcePoint(cell, points, segments);
     const PolygonsPointIndex source_point_index = VoronoiUtils::getSourcePointIndex(cell, points, segments);
-    Point some_point = VoronoiUtils::p(cell.incident_edge()->vertex0());
+    Point2LL some_point = VoronoiUtils::p(cell.incident_edge()->vertex0());
     if (some_point == source_point)
     {
         some_point = VoronoiUtils::p(cell.incident_edge()->vertex1());
@@ -300,7 +300,7 @@ bool SkeletalTrapezoidation::computePointCellRange(
     do
     {
         assert(vd_edge->is_finite());
-        Point p1 = VoronoiUtils::p(vd_edge->vertex1());
+        Point2LL p1 = VoronoiUtils::p(vd_edge->vertex1());
         if (p1 == source_point)
         {
             start_source_point = source_point;
@@ -322,16 +322,16 @@ bool SkeletalTrapezoidation::computePointCellRange(
 
 void SkeletalTrapezoidation::computeSegmentCellRange(
     vd_t::cell_type& cell,
-    Point& start_source_point,
-    Point& end_source_point,
+    Point2LL& start_source_point,
+    Point2LL& end_source_point,
     vd_t::edge_type*& starting_vd_edge,
     vd_t::edge_type*& ending_vd_edge,
-    const std::vector<Point>& points,
+    const std::vector<Point2LL>& points,
     const std::vector<Segment>& segments)
 {
     const Segment& source_segment = VoronoiUtils::getSourceSegment(cell, points, segments);
-    Point from = source_segment.from();
-    Point to = source_segment.to();
+    Point2LL from = source_segment.from();
+    Point2LL to = source_segment.to();
 
     // Find starting edge
     // Find end edge
@@ -345,8 +345,8 @@ void SkeletalTrapezoidation::computeSegmentCellRange(
         {
             continue;
         }
-        Point v0 = VoronoiUtils::p(edge->vertex0());
-        Point v1 = VoronoiUtils::p(edge->vertex1());
+        Point2LL v0 = VoronoiUtils::p(edge->vertex0());
+        Point2LL v1 = VoronoiUtils::p(edge->vertex1());
         assert(! (v0 == to && v1 == from));
         if (v0 == to && ! after_start) // Use the last edge which starts in source_segment.to
         {
@@ -400,7 +400,7 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
     vd_edge_to_he_edge_.clear();
     vd_node_to_he_node_.clear();
 
-    std::vector<Point> points; // Remains empty
+    std::vector<Point2LL> points; // Remains empty
 
     std::vector<Segment> segments;
     for (size_t poly_idx = 0; poly_idx < polys.size(); poly_idx++)
@@ -421,8 +421,8 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
         { // There is no spoon
             continue;
         }
-        Point start_source_point;
-        Point end_source_point;
+        Point2LL start_source_point;
+        Point2LL end_source_point;
         vd_t::edge_type* starting_vonoroi_edge = nullptr;
         vd_t::edge_type* ending_vonoroi_edge = nullptr;
         // Compute and store result in above variables
@@ -465,8 +465,8 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
         for (vd_t::edge_type* vd_edge = starting_vonoroi_edge->next(); vd_edge != ending_vonoroi_edge; vd_edge = vd_edge->next())
         {
             assert(vd_edge->is_finite());
-            Point v1 = VoronoiUtils::p(vd_edge->vertex0());
-            Point v2 = VoronoiUtils::p(vd_edge->vertex1());
+            Point2LL v1 = VoronoiUtils::p(vd_edge->vertex0());
+            Point2LL v2 = VoronoiUtils::p(vd_edge->vertex1());
             transferEdge(v1, v2, *vd_edge, prev_edge, start_source_point, end_source_point, points, segments);
 
             graph_.makeRib(prev_edge, start_source_point, end_source_point, vd_edge->next() == ending_vonoroi_edge);
@@ -740,9 +740,9 @@ void SkeletalTrapezoidation::updateIsCentral()
         }
         else
         {
-            Point a = edge.from_->p_;
-            Point b = edge.to_->p_;
-            Point ab = b - a;
+            Point2LL a = edge.from_->p_;
+            Point2LL b = edge.to_->p_;
+            Point2LL ab = b - a;
             coord_t dR = std::abs(edge.to_->data_.distance_to_boundary_ - edge.from_->data_.distance_to_boundary_);
             coord_t dD = vSize(ab);
             edge.data_.setIsCentral(dR < dD * cap);
@@ -1009,9 +1009,9 @@ void SkeletalTrapezoidation::filterTransitionMids()
         assert(transitions.front().lower_bead_count_ <= transitions.back().lower_bead_count_);
         assert(edge.from_->data_.distance_to_boundary_ <= edge.to_->data_.distance_to_boundary_);
 
-        const Point a = edge.from_->p_;
-        const Point b = edge.to_->p_;
-        Point ab = b - a;
+        const Point2LL a = edge.from_->p_;
+        const Point2LL b = edge.to_->p_;
+        Point2LL ab = b - a;
         coord_t ab_size = vSize(ab);
 
         bool going_up = true;
@@ -1081,9 +1081,9 @@ std::list<SkeletalTrapezoidation::TransitionMidRef>
             continue;
         }
 
-        Point a = edge->from_->p_;
-        Point b = edge->to_->p_;
-        Point ab = b - a;
+        Point2LL a = edge->from_->p_;
+        Point2LL b = edge->to_->p_;
+        Point2LL ab = b - a;
         coord_t ab_size = vSize(ab);
         bool is_aligned = edge->isUpward();
         edge_t* aligned_edge = is_aligned ? edge : edge->twin_;
@@ -1214,9 +1214,9 @@ void SkeletalTrapezoidation::generateAllTransitionEnds(ptr_vector_t<std::list<Tr
 
 void SkeletalTrapezoidation::generateTransitionEnds(edge_t& edge, coord_t mid_pos, coord_t lower_bead_count, ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends)
 {
-    const Point a = edge.from_->p_;
-    const Point b = edge.to_->p_;
-    const Point ab = b - a;
+    const Point2LL a = edge.from_->p_;
+    const Point2LL b = edge.to_->p_;
+    const Point2LL ab = b - a;
     const coord_t ab_size = vSize(ab);
 
     const coord_t transition_length = beading_strategy_.getTransitioningLength(lower_bead_count);
@@ -1259,9 +1259,9 @@ bool SkeletalTrapezoidation::generateTransitionEnd(
     coord_t lower_bead_count,
     ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends)
 {
-    Point a = edge.from_->p_;
-    Point b = edge.to_->p_;
-    Point ab = b - a;
+    Point2LL a = edge.from_->p_;
+    Point2LL b = edge.to_->p_;
+    Point2LL ab = b - a;
     coord_t ab_size = vSize(ab); // TODO: prevent recalculation of these values
 
     assert(start_pos <= ab_size);
@@ -1457,9 +1457,9 @@ void SkeletalTrapezoidation::applyTransitions(ptr_vector_t<std::list<TransitionE
 
         node_t* from = edge.from_;
         node_t* to = edge.to_;
-        Point a = from->p_;
-        Point b = to->p_;
-        Point ab = b - a;
+        Point2LL a = from->p_;
+        Point2LL b = to->p_;
+        Point2LL ab = b - a;
         coord_t ab_size = vSize(ab);
 
         edge_t* last_edge_replacing_input = &edge;
@@ -1474,7 +1474,7 @@ void SkeletalTrapezoidation::applyTransitions(ptr_vector_t<std::list<TransitionE
                 close_node->data_.transition_ratio_ = 0;
                 continue;
             }
-            Point mid = a + normal(ab, end_pos);
+            Point2LL mid = a + normal(ab, end_pos);
 
             assert(last_edge_replacing_input->data_.isCentral());
             assert(last_edge_replacing_input->data_.type_ != SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD);
@@ -1528,9 +1528,9 @@ void SkeletalTrapezoidation::generateExtraRibs()
         // Preload some variables before [edge] gets changed
         node_t* from = edge.from_;
         node_t* to = edge.to_;
-        Point a = from->p_;
-        Point b = to->p_;
-        Point ab = b - a;
+        Point2LL a = from->p_;
+        Point2LL b = to->p_;
+        Point2LL ab = b - a;
         coord_t ab_size = vSize(ab);
         coord_t a_R = edge.from_->data_.distance_to_boundary_;
         coord_t b_R = edge.to_->data_.distance_to_boundary_;
@@ -1558,7 +1558,7 @@ void SkeletalTrapezoidation::generateExtraRibs()
                 close_node->data_.transition_ratio_ = 0;
                 continue;
             }
-            Point mid = a + normal(ab, end_pos);
+            Point2LL mid = a + normal(ab, end_pos);
 
             assert(last_edge_replacing_input->data_.isCentral());
             assert(last_edge_replacing_input->data_.type_ != SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD);
@@ -1884,9 +1884,9 @@ void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>&
             spdlog::warn("Generated junction is beyond the center of total width.");
         }
 
-        Point a = edge->to_->p_;
-        Point b = edge->from_->p_;
-        Point ab = b - a;
+        Point2LL a = edge->to_->p_;
+        Point2LL b = edge->from_->p_;
+        Point2LL ab = b - a;
 
         const size_t num_junctions = beading->toolpath_locations.size();
         size_t junction_idx;
@@ -1916,7 +1916,7 @@ void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>&
             { // Junction coinciding with a node is handled by the next segment
                 break;
             }
-            Point junction(a + ab * (bead_R - start_R) / (end_R - start_R));
+            Point2LL junction(a + ab * (bead_R - start_R) / (end_R - start_R));
             if (bead_R > start_R - 5)
             { // Snap to start node if it is really close, in order to be able to see 3-way intersection later on more robustly
                 junction = a;
@@ -2215,7 +2215,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             for (coord_t segment = 0; segment < n_segments; segment++)
             {
                 double a = 2.0 * std::numbers::pi / n_segments * segment;
-                line.junctions_.emplace_back(node.p_ + Point(r * cos(a), r * sin(a)), width, inset_index);
+                line.junctions_.emplace_back(node.p_ + Point2LL(r * cos(a), r * sin(a)), width, inset_index);
             }
         }
     }

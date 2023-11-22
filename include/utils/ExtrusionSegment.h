@@ -8,7 +8,7 @@
 #include <utility>
 
 #include "ExtrusionJunction.h"
-#include "IntPoint.h"
+#include "Point2LL.h"
 #include "polygon.h"
 #include "polygonUtils.h"
 

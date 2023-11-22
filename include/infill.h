@@ -15,7 +15,7 @@
 #include "settings/types/Angle.h"
 #include "utils/AABB.h"
 #include "utils/ExtrusionLine.h"
-#include "utils/IntPoint.h"
+#include "utils/Point2LL.h"
 #include "utils/section_type.h"
 
 namespace cura
@@ -48,7 +48,7 @@ class Infill
     coord_t max_deviation_{}; //!< Max deviation fro the original poly when enforcing max_resolution
     size_t wall_line_count_{}; //!< Number of walls to generate at the boundary of the infill region, spaced \ref infill_line_width apart
     coord_t small_area_width_{}; //!< Maximum width of a small infill region to be filled with walls
-    Point infill_origin_{}; //!< origin of the infill pattern
+    Point2LL infill_origin_{}; //!< origin of the infill pattern
     bool skip_line_stitching_{ false }; //!< Whether to bypass the line stitching normally performed for polyline type infills
     bool fill_gaps_{ true }; //!< Whether to fill gaps in strips of infill that would be too thin to fit the infill lines. If disabled, those areas are left empty.
     bool connected_zigzags_{ false }; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
@@ -116,7 +116,7 @@ public:
         coord_t max_deviation,
         size_t wall_line_count,
         coord_t small_area_width,
-        Point infill_origin,
+        Point2LL infill_origin,
         bool skip_line_stitching) noexcept
         : pattern_{ pattern }
         , zig_zaggify_{ zig_zaggify }
@@ -154,7 +154,7 @@ public:
         coord_t max_deviation,
         size_t wall_line_count,
         coord_t small_area_width,
-        Point infill_origin,
+        Point2LL infill_origin,
         bool skip_line_stitching,
         bool fill_gaps,
         bool connected_zigzags,
@@ -245,7 +245,7 @@ private:
          * \param start Where the line segment starts.
          * \param end Where the line segment ends.
          */
-        InfillLineSegment(const Point start, const size_t start_segment, const size_t start_polygon, const Point end, const size_t end_segment, const size_t end_polygon)
+        InfillLineSegment(const Point2LL start, const size_t start_segment, const size_t start_polygon, const Point2LL end, const size_t end_segment, const size_t end_polygon)
             : start_(start)
             , altered_start_(start)
             , start_segment_(start_segment)
@@ -262,14 +262,14 @@ private:
         /*!
          * Where the line segment starts.
          */
-        Point start_;
+        Point2LL start_;
 
         /*!
          * If the line-segment starts at a different point due to prevention of crossing near the boundary, it gets saved here.
          *
          * The original start-point is still used to determine ordering then, so it can't just be overwritten.
          */
-        Point altered_start_;
+        Point2LL altered_start_;
 
         /*!
          * Which polygon line segment the start of this infill line belongs to.
@@ -291,19 +291,19 @@ private:
         /*!
          * If the line-segment needs to prevent crossing with another line near its start, a point is inserted near the start.
          */
-        std::optional<Point> start_bend_;
+        std::optional<Point2LL> start_bend_;
 
         /*!
          * Where the line segment ends.
          */
-        Point end_;
+        Point2LL end_;
 
         /*!
          * If the line-segment ends at a different point due to prevention of crossing near the boundary, it gets saved here.
          *
          * The original end-point is still used to determine ordering then, so it can't just be overwritten.
          */
-        Point altered_end_;
+        Point2LL altered_end_;
 
         /*!
          * Which polygon line segment the end of this infill line belongs to.
@@ -325,7 +325,7 @@ private:
         /*!
          * If the line-segment needs to prevent crossing with another line near its end, a point is inserted near the end.
          */
-        std::optional<Point> end_bend_;
+        std::optional<Point2LL> end_bend_;
 
         /*!
          * The previous line segment that this line segment is connected to, if
@@ -610,7 +610,7 @@ private:
      * \param a The first line-segment.
      * \param b The second line-segment.
      */
-    void resolveIntersection(const coord_t at_distance, const Point& intersect, Point& connect_start, Point& connect_end, InfillLineSegment* a, InfillLineSegment* b);
+    void resolveIntersection(const coord_t at_distance, const Point2LL& intersect, Point2LL& connect_start, Point2LL& connect_end, InfillLineSegment* a, InfillLineSegment* b);
 
     /*!
      * Connects infill lines together so that they form polylines.

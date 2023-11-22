@@ -66,8 +66,8 @@ SierpinskiFill::~SierpinskiFill()
 
 void SierpinskiFill::createTree()
 {
-    Point lt = Point(aabb_.min_.X, aabb_.max_.Y);
-    Point rb = Point(aabb_.max_.X, aabb_.min_.Y);
+    Point2LL lt = Point2LL(aabb_.min_.X, aabb_.max_.Y);
+    Point2LL rb = Point2LL(aabb_.max_.X, aabb_.min_.Y);
 
     bool root_straight_corner_is_left = false;
     int root_depth = 1;
@@ -89,7 +89,7 @@ void SierpinskiFill::createTree(SierpinskiTriangle& sub_root)
     if (sub_root.depth_ < max_depth_) // We need to subdivide.
     {
         SierpinskiTriangle& t = sub_root;
-        Point middle = (t.a_ + t.b_) / 2;
+        Point2LL middle = (t.a_ + t.b_) / 2;
         // At each subdivision we divide the triangle in two.
         // Figure out which sort of triangle each child will be:
         SierpinskiTriangle::SierpinskiDirection first_dir, second_dir;
@@ -119,7 +119,7 @@ void SierpinskiFill::createTree(SierpinskiTriangle& sub_root)
 }
 void SierpinskiFill::createTreeStatistics(SierpinskiTriangle& triangle)
 {
-    Point ac = triangle.straight_corner_ - triangle.a_;
+    Point2LL ac = triangle.straight_corner_ - triangle.a_;
     double area = 0.5 * INT2MM2(vSize2(ac));
     double short_length = .5 * vSizeMM(ac);
     double long_length = .5 * vSizeMM(triangle.b_ - triangle.a_);
@@ -140,7 +140,7 @@ void SierpinskiFill::createTreeRequestedLengths(SierpinskiTriangle& triangle)
         triangle_aabb.include(triangle.a_);
         triangle_aabb.include(triangle.b_);
         triangle_aabb.include(triangle.straight_corner_);
-        AABB3D triangle_aabb3d(Point3(triangle_aabb.min_.X, triangle_aabb.min_.Y, 0), Point3(triangle_aabb.max_.X, triangle_aabb.max_.Y, 1));
+        AABB3D triangle_aabb3d(Point3LL(triangle_aabb.min_.X, triangle_aabb.min_.Y, 0), Point3LL(triangle_aabb.max_.X, triangle_aabb.max_.Y, 1));
         double density = density_provider_(triangle_aabb3d); // The density of the square around the triangle is a rough estimate of the density of the triangle.
         triangle.requested_length_ = density * triangle.area_ / INT2MM(line_width_);
     }
@@ -705,7 +705,7 @@ Polygon SierpinskiFill::generateCross() const
     for (SierpinskiTriangle* max_level_it : sequence_)
     {
         SierpinskiTriangle& triangle = *max_level_it;
-        Point edge_middle = triangle.a_ + triangle.b_ + triangle.straight_corner_;
+        Point2LL edge_middle = triangle.a_ + triangle.b_ + triangle.straight_corner_;
         switch (triangle.dir_)
         {
         case SierpinskiTriangle::SierpinskiDirection::AB_TO_BC:
@@ -732,7 +732,7 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
 {
     Polygon ret;
 
-    std::function<Point(int, Edge)> get_edge_crossing_location = [z, min_dist_to_side](const coord_t period, const Edge e)
+    std::function<Point2LL(int, Edge)> get_edge_crossing_location = [z, min_dist_to_side](const coord_t period, const Edge e)
     {
         coord_t from_l = z % (period * 2);
         if (from_l > period)
@@ -779,13 +779,13 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
         Polygon pocketed;
         pocketed.reserve(ret.size() * 3 / 2);
 
-        Point p0 = ret.back();
+        Point2LL p0 = ret.back();
         for (size_t poly_idx = 0; poly_idx < ret.size(); poly_idx++)
         {
-            Point p1 = ret[poly_idx];
-            Point p2 = ret[(poly_idx + 1) % ret.size()];
-            Point v0 = p0 - p1;
-            Point v1 = p2 - p1;
+            Point2LL p1 = ret[poly_idx];
+            Point2LL p2 = ret[(poly_idx + 1) % ret.size()];
+            Point2LL v0 = p0 - p1;
+            Point2LL v1 = p2 - p1;
 
             coord_t prod = std::abs(dot(v0, v1));
             bool is_straight_corner = prod < sqrt(vSize(v0) * vSize(v1)) * min_dist_to_side; // allow for rounding errors of up to min_dist_to_side

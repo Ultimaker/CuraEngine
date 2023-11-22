@@ -2,19 +2,19 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "settings/types/Ratio.h" //Scale factor.
-#include "utils/IntPoint.h" //Conversion directly into integer-based coordinates.
+#include "utils/Point2LL.h" //Conversion directly into integer-based coordinates.
 #include "utils/Matrix4x3D.h" //The definitions we're implementing.
 #include "utils/Point3D.h" //This matrix gets applied to floating point coordinates.
 
 namespace cura
 {
 
-Matrix4x3D Matrix4x3D::scale(const Ratio scale, const Point3 origin)
+Matrix4x3D Matrix4x3D::scale(const Ratio scale, const Point3LL origin)
 {
     return Matrix4x3D::scale(scale, scale, scale, origin);
 }
 
-Matrix4x3D Matrix4x3D::scale(const Ratio scale_x, const Ratio scale_y, const Ratio scale_z, const Point3 origin)
+Matrix4x3D Matrix4x3D::scale(const Ratio scale_x, const Ratio scale_y, const Ratio scale_z, const Point3LL origin)
 {
     Matrix4x3D result;
     result.m[0][0] = scale_x; // X scale.
@@ -45,17 +45,17 @@ Matrix4x3D::Matrix4x3D()
     m[3][2] = 0.0;
 }
 
-Point3 Matrix4x3D::apply(const Point3D& p) const
+Point3LL Matrix4x3D::apply(const Point3D& p) const
 {
-    return Point3(
+    return Point3LL(
         MM2INT(p.x_ * m[0][0] + p.y_ * m[1][0] + p.z_ * m[2][0] + m[3][0]),
         MM2INT(p.x_ * m[0][1] + p.y_ * m[1][1] + p.z_ * m[2][1] + m[3][1]),
         MM2INT(p.x_ * m[0][2] + p.y_ * m[1][2] + p.z_ * m[2][2] + m[3][2]));
 }
 
-Point3 Matrix4x3D::apply(const Point3& p) const
+Point3LL Matrix4x3D::apply(const Point3LL& p) const
 {
-    return Point3(
+    return Point3LL(
         m[0][0] * p.x_ + m[1][0] * p.y_ + m[2][0] * p.z_ + m[3][0],
         m[0][1] * p.x_ + m[1][1] * p.y_ + m[2][1] * p.z_ + m[3][1],
         m[0][2] * p.x_ + m[1][2] * p.y_ + m[2][2] * p.z_ + m[3][2]);

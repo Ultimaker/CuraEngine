@@ -399,7 +399,7 @@ void TreeSupport::mergeHelper(
                     // Calculate which point is closest to the point of the last merge (or tip center if no merge above it has happened)
                     // Used at the end to estimate where to best place the branch on the bottom most layer
                     // Could be replaced with a random point inside the new area
-                    Point new_pos = reduced_check.first.next_position_;
+                    Point2LL new_pos = reduced_check.first.next_position_;
                     if (! intersect.inside(new_pos, true))
                     {
                         PolygonUtils::moveInside(intersect, new_pos);
@@ -1269,7 +1269,7 @@ void TreeSupport::increaseAreas(
                 // If the bottom most point of a branch is set, later functions will assume that the position is valid, and ignore it.
                 // But as branches connecting with the model that are to small have to be culled, the bottom most point has to be not set.
                 // A point can be set on the top most tip layer (maybe more if it should not move for a few layers).
-                parent->result_on_layer_ = Point(-1, -1);
+                parent->result_on_layer_ = Point2LL(-1, -1);
             }
         });
 }
@@ -1377,7 +1377,7 @@ void TreeSupport::setPointsOnAreas(const TreeSupportElement* elem)
 {
     // Based on the branch center point of the current layer, the point on the next (further up) layer is calculated.
 
-    if (elem->result_on_layer_ == Point(-1, -1))
+    if (elem->result_on_layer_ == Point2LL(-1, -1))
     {
         spdlog::error("Uninitialized support element");
         return;
@@ -1386,12 +1386,12 @@ void TreeSupport::setPointsOnAreas(const TreeSupportElement* elem)
     for (TreeSupportElement* next_elem : elem->parents_)
     {
         if (next_elem->result_on_layer_
-            != Point(-1, -1)) // If the value was set somewhere else it it kept. This happens when a branch tries not to move after being unable to create a roof.
+            != Point2LL(-1, -1)) // If the value was set somewhere else it it kept. This happens when a branch tries not to move after being unable to create a roof.
         {
             continue;
         }
 
-        Point from = elem->result_on_layer_;
+        Point2LL from = elem->result_on_layer_;
         if (! (next_elem->area_->inside(from, true)))
         {
             PolygonUtils::moveInside(
@@ -1483,7 +1483,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement*>>& 
         }
 
         // Guess a point inside the influence area, in which the branch will be placed in.
-        Point best = checked[last_successfull_layer - layer_idx]->next_position_;
+        Point2LL best = checked[last_successfull_layer - layer_idx]->next_position_;
 
         if (! valid_place_area.inside(best, true))
         {
@@ -1497,7 +1497,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement*>>& 
     }
     else // can not add graceful => just place it here and hope for the best
     {
-        Point best = first_elem->next_position_;
+        Point2LL best = first_elem->next_position_;
         Polygons valid_place_area
             = first_elem->area_->difference(volumes_.getAvoidance(config.getCollisionRadius(first_elem), layer_idx, AvoidanceType::COLLISION, first_elem->use_min_xy_dist_));
 
@@ -1548,7 +1548,7 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<TreeSupportElement*>>
     std::unordered_set<TreeSupportElement*> remove;
     for (TreeSupportElement* init : move_bounds[0])
     {
-        Point p = init->next_position_;
+        Point2LL p = init->next_position_;
         if (! (init->area_->inside(p, true)))
         {
             PolygonUtils::moveInside(*init->area_, p, 0);
@@ -1585,7 +1585,7 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<TreeSupportElement*>>
         for (TreeSupportElement* elem : move_bounds[layer_idx])
         {
             bool removed = false;
-            if (elem->result_on_layer_ == Point(-1, -1)) // Check if the resulting center point is not yet set.
+            if (elem->result_on_layer_ == Point2LL(-1, -1)) // Check if the resulting center point is not yet set.
             {
                 if (elem->to_buildplate_ || (! elem->to_buildplate_ && elem->distance_to_top_ < config.min_dtt_to_model && ! elem->supports_roof_))
                 {
@@ -1604,7 +1604,7 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<TreeSupportElement*>>
                     {
                         // When the roof was not able to generate downwards enough, the top elements may have not moved, and have result_on_layer already set. As this branch needs
                         // to be removed => all parents result_on_layer have to be invalidated.
-                        parent->result_on_layer_ = Point(-1, -1);
+                        parent->result_on_layer_ = Point2LL(-1, -1);
                     }
                     continue;
                 }
@@ -1647,9 +1647,9 @@ void TreeSupport::generateBranchAreas(
 
     {
         Polygon base_circle = TreeSupportBaseCircle::getBaseCircle();
-        for (Point vertex : base_circle)
+        for (Point2LL vertex : base_circle)
         {
-            vertex = Point(vertex.X * config.branch_radius / TreeSupportBaseCircle::base_radius, vertex.Y * config.branch_radius / TreeSupportBaseCircle::base_radius);
+            vertex = Point2LL(vertex.X * config.branch_radius / TreeSupportBaseCircle::base_radius, vertex.Y * config.branch_radius / TreeSupportBaseCircle::base_radius);
             branch_circle.add(vertex);
         }
     }
@@ -1669,24 +1669,24 @@ void TreeSupport::generateBranchAreas(
             TreeSupportElement* child_elem = inverse_tree_order.count(elem) ? inverse_tree_order.at(elem) : nullptr;
 
             // Calculate multiple ovalized circles, to connect with every parent and child. Also generate regular circle for the current layer. Merge all these into one area.
-            std::vector<std::pair<Point, coord_t>> movement_directions{ std::pair<Point, coord_t>(Point(0, 0), radius) };
+            std::vector<std::pair<Point2LL, coord_t>> movement_directions{ std::pair<Point2LL, coord_t>(Point2LL(0, 0), radius) };
             if (! elem->skip_ovalisation_)
             {
                 if (child_elem != nullptr)
                 {
-                    Point movement = (child_elem->result_on_layer_ - elem->result_on_layer_);
+                    Point2LL movement = (child_elem->result_on_layer_ - elem->result_on_layer_);
                     movement_directions.emplace_back(movement, radius);
                 }
                 for (TreeSupportElement* parent : elem->parents_)
                 {
-                    Point movement = (parent->result_on_layer_ - elem->result_on_layer_);
+                    Point2LL movement = (parent->result_on_layer_ - elem->result_on_layer_);
                     movement_directions.emplace_back(movement, std::max(config.getRadius(parent), config.support_line_width));
                     parent_uses_min |= parent->use_min_xy_dist_;
                 }
 
-                for (Point target : elem->additional_ovalization_targets_)
+                for (Point2LL target : elem->additional_ovalization_targets_)
                 {
-                    Point movement = (target - elem->result_on_layer_);
+                    Point2LL movement = (target - elem->result_on_layer_);
                     movement_directions.emplace_back(movement, std::max(radius, config.support_line_width));
                 }
             }
@@ -1696,14 +1696,14 @@ void TreeSupport::generateBranchAreas(
             {
                 Polygons poly;
 
-                for (std::pair<Point, coord_t> movement : movement_directions)
+                for (std::pair<Point2LL, coord_t> movement : movement_directions)
                 {
                     max_speed_sqd = std::max(max_speed_sqd, vSize2(movement.first));
 
                     // Visualization: https://jsfiddle.net/0zvcq39L/2/
                     // Ovalizes the circle to an ellipse, that contains both old center and new target position.
                     double used_scale = (movement.second + offset) / (1.0 * config.branch_radius);
-                    Point center_position = elem->result_on_layer_ + movement.first / 2;
+                    Point2LL center_position = elem->result_on_layer_ + movement.first / 2;
                     const double moveX = movement.first.X / (used_scale * config.branch_radius);
                     const double moveY = movement.first.Y / (used_scale * config.branch_radius);
                     const double vsize_inv = 0.5 / (0.01 + std::sqrt(moveX * moveX + moveY * moveY));
@@ -1715,9 +1715,9 @@ void TreeSupport::generateBranchAreas(
                         used_scale * (1 + moveY * moveY * vsize_inv),
                     };
                     Polygon circle;
-                    for (Point vertex : branch_circle)
+                    for (Point2LL vertex : branch_circle)
                     {
-                        vertex = Point(matrix[0] * vertex.X + matrix[1] * vertex.Y, matrix[2] * vertex.X + matrix[3] * vertex.Y);
+                        vertex = Point2LL(matrix[0] * vertex.X + matrix[1] * vertex.Y, matrix[2] * vertex.X + matrix[3] * vertex.Y);
                         circle.add(center_position + vertex);
                     }
                     poly.add(circle.offset(0));
@@ -1762,7 +1762,7 @@ void TreeSupport::generateBranchAreas(
                             else
                             {
                                 // Try a fuzzy inside as sometimes the point should be on the border, but is not because of rounding errors...
-                                Point from = elem->result_on_layer_;
+                                Point2LL from = elem->result_on_layer_;
                                 PolygonUtils::moveInside(part, from, 0);
                                 if (vSize2(elem->result_on_layer_ - from) < (FUDGE_LENGTH * FUDGE_LENGTH) / 4)
                                 {
@@ -1878,11 +1878,11 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
                     TreeSupportElement* parent = data_pair.first->parents_[idx];
                     const coord_t max_outer_line_increase = max_radius_change_per_layer;
                     Polygons result = layer_tree_polygons[layer_idx + 1][parent].offset(max_outer_line_increase);
-                    const Point direction = data_pair.first->result_on_layer_ - parent->result_on_layer_;
+                    const Point2LL direction = data_pair.first->result_on_layer_ - parent->result_on_layer_;
                     // Move the polygons object.
                     for (auto& outer : result)
                     {
-                        for (Point& p : outer)
+                        for (Point2LL& p : outer)
                         {
                             p += direction;
                         }
@@ -2263,14 +2263,14 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
             // (Check if) We either come from nowhere at the final layer or we had invalid parents 2. should never happen but just to be sure:
             if ((layer_idx > 0
                  && ((! inverse_tree_order.count(elem) && elem->target_height_ == layer_idx && config.min_dtt_to_model > 0 && ! elem->to_buildplate_)
-                     || (inverse_tree_order.count(elem) && inverse_tree_order[elem]->result_on_layer_ == Point(-1, -1)))))
+                     || (inverse_tree_order.count(elem) && inverse_tree_order[elem]->result_on_layer_ == Point2LL(-1, -1)))))
             {
                 continue;
             }
 
             for (TreeSupportElement* par : elem->parents_)
             {
-                if (par->result_on_layer_ == Point(-1, -1))
+                if (par->result_on_layer_ == Point2LL(-1, -1))
                 {
                     continue;
                 }

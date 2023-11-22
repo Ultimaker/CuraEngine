@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "IntPoint.h"
+#include "Point2LL.h"
 #include "SparsePointGrid.h"
 
 namespace cura
@@ -26,20 +26,20 @@ struct SparsePointGridInclusiveElem
     {
     }
 
-    SparsePointGridInclusiveElem(const Point& point_, const Val& val_)
+    SparsePointGridInclusiveElem(const Point2LL& point_, const Val& val_)
         : point(point_)
         , val(val_)
     {
     }
 
-    Point point;
+    Point2LL point;
     Val val;
 };
 
 template<class T>
 struct Locatoror
 {
-    Point operator()(const SparsePointGridInclusiveElem<T>& elem)
+    Point2LL operator()(const SparsePointGridInclusiveElem<T>& elem)
     {
         return elem.point;
     }
@@ -73,7 +73,7 @@ public:
      * \param[in] point The location for the element.
      * \param[in] val The value for the element.
      */
-    void insert(const Point& point, const Val& val);
+    void insert(const Point2LL& point, const Val& val);
 
     /*! \brief Returns all values within radius of query_pt.
      *
@@ -86,7 +86,7 @@ public:
      * \param[in] radius The search radius.
      * \return Vector of values found
      */
-    std::vector<Val> getNearbyVals(const Point& query_pt, coord_t radius) const;
+    std::vector<Val> getNearbyVals(const Point2LL& query_pt, coord_t radius) const;
 };
 
 #define SG_TEMPLATE template<class Val>
@@ -99,14 +99,14 @@ SG_THIS::SparsePointGridInclusive(coord_t cell_size, size_t elem_reserve, double
 }
 
 SG_TEMPLATE
-void SG_THIS::insert(const Point& point, const Val& val)
+void SG_THIS::insert(const Point2LL& point, const Val& val)
 {
     typename SG_THIS::Elem elem(point, val);
     Base::insert(elem);
 }
 
 SG_TEMPLATE
-std::vector<Val> SG_THIS::getNearbyVals(const Point& query_pt, coord_t radius) const
+std::vector<Val> SG_THIS::getNearbyVals(const Point2LL& query_pt, coord_t radius) const
 {
     std::vector<Val> ret;
     std::function<bool(const SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Val>&)> process_func = [&ret](const typename SG_THIS::Elem& elem)

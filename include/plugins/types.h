@@ -5,7 +5,7 @@
 #define PLUGINS_TYPES_H
 
 #include "cura/plugins/v0/slot_id.pb.h"
-#include "utils/IntPoint.h"
+#include "utils/Point2LL.h"
 #include "utils/polygon.h"
 
 #include <fmt/format.h>

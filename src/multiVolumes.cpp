@@ -174,7 +174,7 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
             if (cutting_mesh.settings_.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
             {
                 cutting_mesh_polylines.clear();
-                PolylineStitcher<Polygons, Polygon, Point>::stitch(new_polylines, cutting_mesh_polylines, cutting_mesh_polygons, surface_line_width);
+                PolylineStitcher<Polygons, Polygon, Point2LL>::stitch(new_polylines, cutting_mesh_polylines, cutting_mesh_polygons, surface_line_width);
             }
         }
     }

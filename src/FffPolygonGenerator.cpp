@@ -672,8 +672,8 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     // SubDivCube Pre-compute Octree
     if (mesh.settings.get<coord_t>("infill_line_distance") > 0 && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CUBICSUBDIV)
     {
-        const Point3 mesh_middle = mesh.bounding_box.getMiddle();
-        const Point infill_origin(mesh_middle.x_ + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y_ + mesh.settings.get<coord_t>("infill_offset_y"));
+        const Point3LL mesh_middle = mesh.bounding_box.getMiddle();
+        const Point2LL infill_origin(mesh_middle.x_ + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y_ + mesh.settings.get<coord_t>("infill_offset_y"));
         SubDivCube::precomputeOctree(mesh, infill_origin);
     }
 
@@ -1145,21 +1145,21 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                         }
 
                         // 'a' is the (next) new point between p0 and p1
-                        const Point p0p1 = p1.p_ - p0->p_;
+                        const Point2LL p0p1 = p1.p_ - p0->p_;
                         const int64_t p0p1_size = vSize(p0p1);
                         int64_t p0pa_dist = dist_left_over;
                         if (p0pa_dist >= p0p1_size)
                         {
-                            const Point p = p1.p_ - (p0p1 / 2);
+                            const Point2LL p = p1.p_ - (p0p1 / 2);
                             const double width = (p1.w_ * vSize(p1.p_ - p) + p0->w_ * vSize(p0->p_ - p)) / p0p1_size;
                             result.emplace_back(p, width, p1.perimeter_index_);
                         }
                         for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
                         {
                             const int r = rand() % (fuzziness * 2) - fuzziness;
-                            const Point perp_to_p0p1 = turn90CCW(p0p1);
-                            const Point fuzz = normal(perp_to_p0p1, r);
-                            const Point pa = p0->p_ + normal(p0p1, p0pa_dist);
+                            const Point2LL perp_to_p0p1 = turn90CCW(p0p1);
+                            const Point2LL fuzz = normal(perp_to_p0p1, r);
+                            const Point2LL pa = p0->p_ + normal(p0p1, p0pa_dist);
                             const double width = (p1.w_ * vSize(p1.p_ - pa) + p0->w_ * vSize(p0->p_ - pa)) / p0p1_size;
                             result.emplace_back(pa + fuzz, width, p1.perimeter_index_);
                         }

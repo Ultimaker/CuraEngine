@@ -9,7 +9,7 @@
 #endif
 #include <vector>
 
-#include "IntPoint.h"
+#include "Point2LL.h"
 #include "linearAlg2D.h"
 #include "polygon.h"
 #include "polygonUtils.h"
@@ -134,7 +134,7 @@ protected:
         /*!
          * The precise location of the source of the connection.
          */
-        Point from_point_;
+        Point2LL from_point_;
 
         /*!
          * The polygon at the destination of the connection.
@@ -151,7 +151,7 @@ protected:
         /*!
          * The precise location of the destination of the connection.
          */
-        Point to_point_;
+        Point2LL to_point_;
 
         /*!
          * Create a new connection.
@@ -166,7 +166,7 @@ protected:
          * \param to_point The precise location at the destination of the
          * connection.
          */
-        PolygonConnection(Polygonal* from_poly, const size_t from_segment, const Point from_point, Polygonal* to_poly, const size_t to_segment, const Point to_point)
+        PolygonConnection(Polygonal* from_poly, const size_t from_segment, const Point2LL from_point, Polygonal* to_poly, const size_t to_segment, const Point2LL to_point)
             : from_poly_(from_poly)
             , from_segment_(from_segment)
             , from_point_(from_point)
@@ -263,7 +263,7 @@ protected:
      * \param vertex The vertex to get the position of.
      * \return The position of that vertex.
      */
-    Point getPosition(const Point& vertex) const;
+    Point2LL getPosition(const Point2LL& vertex) const;
 
     /*!
      * Get the position of a vertex, if the vertex is a junction.
@@ -272,7 +272,7 @@ protected:
      * \param vertex The vertex to get the position of.
      * \return The position of that vertex.
      */
-    Point getPosition(const ExtrusionJunction& vertex) const;
+    Point2LL getPosition(const ExtrusionJunction& vertex) const;
 
     /*!
      * Get the width at a certain vertex.
@@ -282,7 +282,7 @@ protected:
      * \param vertex The vertex to get the width of.
      * \return The line width of the polygon.
      */
-    coord_t getWidth(const Point& vertex) const;
+    coord_t getWidth(const Point2LL& vertex) const;
 
     /*!
      * Get the width at a certain junction.
@@ -302,7 +302,7 @@ protected:
      * \param position The position of the vertex to add.
      * \param width The width of the vertex to add, ignored in this overload.
      */
-    void addVertex(Polygon& polygonal, const Point& position, const coord_t width) const;
+    void addVertex(Polygon& polygonal, const Point2LL& position, const coord_t width) const;
 
     /*!
      * Add a vertex at the end of the polygonal object.
@@ -311,7 +311,7 @@ protected:
      * \param polygonal The polygon to add a vertex to.
      * \param vertex The vertex to add.
      */
-    void addVertex(Polygon& polygonal, const Point& vertex) const;
+    void addVertex(Polygon& polygonal, const Point2LL& vertex) const;
 
     /*!
      * Add a vertex at the end of the polygonal object.
@@ -321,7 +321,7 @@ protected:
      * \param position The position of the vertex to add.
      * \param width The width of the vertex to add.
      */
-    void addVertex(ExtrusionLine& polygonal, const Point& position, const coord_t width) const;
+    void addVertex(ExtrusionLine& polygonal, const Point2LL& position, const coord_t width) const;
 
     /*!
      * Add a vertex at the end of the polygonal object.
@@ -396,7 +396,7 @@ protected:
      * \param b The other vertex between which to interpolate.
      */
     template<typename Vertex>
-    coord_t interpolateWidth(const Point position, Vertex a, Vertex b) const
+    coord_t interpolateWidth(const Point2LL position, Vertex a, Vertex b) const
     {
         const coord_t total_length = vSize(getPosition(a) - getPosition(b));
         if (total_length == 0) // Prevent division by 0 when the vertices are on top of each other.
@@ -428,17 +428,17 @@ protected:
             }
             for (size_t to_index = 0; to_index < to_polygons[poly_index].size(); ++to_index)
             {
-                const Point to_pos1 = getPosition(to_polygons[poly_index][to_index]);
+                const Point2LL to_pos1 = getPosition(to_polygons[poly_index][to_index]);
                 const coord_t to_width1 = getWidth(to_polygons[poly_index][to_index]);
-                const Point to_pos2 = getPosition(to_polygons[poly_index][(to_index + 1) % to_polygons[poly_index].size()]);
+                const Point2LL to_pos2 = getPosition(to_polygons[poly_index][(to_index + 1) % to_polygons[poly_index].size()]);
                 const coord_t to_width2 = getWidth(to_polygons[poly_index][(to_index + 1) % to_polygons[poly_index].size()]);
                 const coord_t smallest_to_width = std::min(to_width1, to_width2);
 
                 for (size_t from_index = 0; from_index < from_poly.size(); ++from_index)
                 {
-                    const Point from_pos1 = getPosition(from_poly[from_index]);
+                    const Point2LL from_pos1 = getPosition(from_poly[from_index]);
                     const coord_t from_width1 = getWidth(from_poly[from_index]);
-                    const Point from_pos2 = getPosition(from_poly[(from_index + 1) % from_poly.size()]);
+                    const Point2LL from_pos2 = getPosition(from_poly[(from_index + 1) % from_poly.size()]);
                     const coord_t from_width2 = getWidth(from_poly[(from_index + 1) % from_poly.size()]);
                     const coord_t smallest_from_width = std::min(from_width1, from_width2);
 
@@ -446,7 +446,7 @@ protected:
                     coord_t naive_dist = LinearAlg2D::getDistFromLine(from_pos1, to_pos1, to_pos2);
                     if (naive_dist - from_width1 - smallest_to_width < line_width_ * max_gap_)
                     {
-                        const Point closest_point = LinearAlg2D::getClosestOnLineSegment(from_pos1, to_pos1, to_pos2);
+                        const Point2LL closest_point = LinearAlg2D::getClosestOnLineSegment(from_pos1, to_pos1, to_pos2);
                         if (closest_point == to_pos2) // The last endpoint of a vertex is considered to be part of the next segment. Let that one handle it.
                         {
                             continue;
@@ -472,7 +472,7 @@ protected:
                     naive_dist = LinearAlg2D::getDistFromLine(to_pos1, from_pos1, from_pos2);
                     if (naive_dist - smallest_from_width - to_width1 < line_width_ * max_gap_)
                     {
-                        const Point closest_point = LinearAlg2D::getClosestOnLineSegment(to_pos1, from_pos1, from_pos2);
+                        const Point2LL closest_point = LinearAlg2D::getClosestOnLineSegment(to_pos1, from_pos1, from_pos2);
                         if (closest_point == from_pos2) // The last endpoint of a vertex is considered to be part of the next segment. Let that one handle it.
                         {
                             continue;
@@ -558,8 +558,8 @@ protected:
      * ``std::nullopt``.
      */
     template<typename Polygonal>
-    std::optional<std::pair<Point, size_t>>
-        walkUntilDistanceFromLine(const Polygonal& poly, const size_t start_index, const coord_t distance, const Point& line_a, const Point& line_b, const short direction)
+    std::optional<std::pair<Point2LL, size_t>>
+        walkUntilDistanceFromLine(const Polygonal& poly, const size_t start_index, const coord_t distance, const Point2LL& line_a, const Point2LL& line_b, const short direction)
     {
         const size_t poly_size = poly.size();
         const coord_t line_magnitude = vSize(line_b - line_a); // Pre-compute, used for line distance calculation.
@@ -570,13 +570,13 @@ protected:
 
         for (size_t index = (start_index + direction + poly_size) % poly_size; index != start_index; index = (index + direction + poly_size) % poly_size)
         {
-            const Point vertex_pos = getPosition(poly[index]);
+            const Point2LL vertex_pos = getPosition(poly[index]);
             const coord_t vertex_distance = cross(line_a - line_b, line_a - vertex_pos) / line_magnitude; // Signed distance!
             if (std::abs(vertex_distance) >= distance) // Further away from the line than the threshold.
             {
                 // Interpolate over that last line segment to find the point at exactly the right distance.
                 const size_t previous_index = (index - direction + poly_size) % poly_size;
-                const Point previous_pos = getPosition(poly[previous_index]);
+                const Point2LL previous_pos = getPosition(poly[previous_index]);
                 const coord_t previous_distance = cross(line_a - line_b, line_a - previous_pos) / line_magnitude;
                 if (previous_distance == vertex_distance) // 0-length line segment, or parallel to line.
                 {
@@ -597,7 +597,7 @@ protected:
                 {
                     continue;
                 }
-                const Point interpolated_point = previous_pos + (vertex_pos - previous_pos) * interpolation;
+                const Point2LL interpolated_point = previous_pos + (vertex_pos - previous_pos) * interpolation;
                 return std::make_pair(interpolated_point, (direction == +1) ? previous_index : index); // Choose the "earlier" index of the two, regardless of direction.
             }
         }
@@ -622,16 +622,16 @@ protected:
         coord_t best_connection_length = std::numeric_limits<coord_t>::max();
 
         // Find the four intersections, on both sides of the initial connection, and on both polygons.
-        std::optional<std::pair<Point, size_t>> from_forward_intersection
+        std::optional<std::pair<Point2LL, size_t>> from_forward_intersection
             = walkUntilDistanceFromLine(*first.from_poly_, first.from_segment_, adjacent_distance, first.from_point_, first.to_point_, +1);
-        std::optional<std::pair<Point, size_t>> from_backward_intersection
+        std::optional<std::pair<Point2LL, size_t>> from_backward_intersection
             = walkUntilDistanceFromLine(*first.from_poly_, first.from_segment_, adjacent_distance, first.from_point_, first.to_point_, -1);
-        std::optional<std::pair<Point, size_t>> to_forward_intersection
+        std::optional<std::pair<Point2LL, size_t>> to_forward_intersection
             = walkUntilDistanceFromLine(*first.to_poly_, first.to_segment_, adjacent_distance, first.from_point_, first.to_point_, +1);
-        std::optional<std::pair<Point, size_t>> to_backward_intersection
+        std::optional<std::pair<Point2LL, size_t>> to_backward_intersection
             = walkUntilDistanceFromLine(*first.to_poly_, first.to_segment_, adjacent_distance, first.from_point_, first.to_point_, -1);
 
-        for (const std::optional<std::pair<Point, size_t>>& from_intersection : { from_forward_intersection, from_backward_intersection })
+        for (const std::optional<std::pair<Point2LL, size_t>>& from_intersection : { from_forward_intersection, from_backward_intersection })
         {
             if (! from_intersection)
             {
@@ -639,7 +639,7 @@ protected:
             }
             // Find the shortest of the connections in the to_poly.
             const bool original_side = LinearAlg2D::pointIsLeftOfLine(first.to_point_, first.from_point_, from_intersection->first) > 0;
-            for (const std::optional<std::pair<Point, size_t>>& to_intersection : { to_forward_intersection, to_backward_intersection })
+            for (const std::optional<std::pair<Point2LL, size_t>>& to_intersection : { to_forward_intersection, to_backward_intersection })
             {
                 if (! to_intersection)
                 {
@@ -689,10 +689,10 @@ protected:
         short forwards;
         if (bridge.a_.from_segment_ == bridge.b_.from_segment_) // If we start and end on the same segment, iterate in the direction from A to B.
         {
-            const Point vertex = getPosition((*bridge.b_.from_poly_)[bridge.b_.from_segment_]); // Same vertex for A and B.
-            const Point next_vertex = getPosition((*bridge.b_.from_poly_)[(bridge.b_.from_segment_ + 1) % from_size]);
-            const Point direction = next_vertex - vertex; // Direction we'd go into when forward iterating.
-            const Point a_to_b = bridge.b_.from_point_ - bridge.a_.from_point_;
+            const Point2LL vertex = getPosition((*bridge.b_.from_poly_)[bridge.b_.from_segment_]); // Same vertex for A and B.
+            const Point2LL next_vertex = getPosition((*bridge.b_.from_poly_)[(bridge.b_.from_segment_ + 1) % from_size]);
+            const Point2LL direction = next_vertex - vertex; // Direction we'd go into when forward iterating.
+            const Point2LL a_to_b = bridge.b_.from_point_ - bridge.a_.from_point_;
             forwards = vSize2(direction - a_to_b) < vSize2(-direction - a_to_b);
         }
         else
@@ -726,10 +726,10 @@ protected:
         // Add the to_polygonal from A to B.
         if (bridge.a_.to_segment_ == bridge.b_.to_segment_)
         {
-            const Point vertex = getPosition((*bridge.b_.to_poly_)[bridge.b_.to_segment_]); // Same vertex for A and B.
-            const Point next_vertex = getPosition((*bridge.b_.to_poly_)[(bridge.b_.to_segment_ + 1) % to_size]);
-            const Point direction = next_vertex - vertex;
-            const Point a_to_b = bridge.b_.to_point_ - bridge.a_.to_point_;
+            const Point2LL vertex = getPosition((*bridge.b_.to_poly_)[bridge.b_.to_segment_]); // Same vertex for A and B.
+            const Point2LL next_vertex = getPosition((*bridge.b_.to_poly_)[(bridge.b_.to_segment_ + 1) % to_size]);
+            const Point2LL direction = next_vertex - vertex;
+            const Point2LL a_to_b = bridge.b_.to_point_ - bridge.a_.to_point_;
             forwards = vSize2(direction - a_to_b) > vSize2(-direction - a_to_b);
         }
         else

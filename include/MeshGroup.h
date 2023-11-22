@@ -24,8 +24,8 @@ public:
     std::vector<Mesh> meshes;
     Settings settings;
 
-    Point3 min() const; //! minimal corner of bounding box
-    Point3 max() const; //! maximal corner of bounding box
+    Point3LL min() const; //! minimal corner of bounding box
+    Point3LL max() const; //! maximal corner of bounding box
 
     void clear();
 
