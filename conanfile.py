@@ -51,6 +51,7 @@ class CuraEngineConan(ConanFile):
         copy(self, "*", path.join(self.recipe_folder, "src"), path.join(self.export_sources_folder, "src"))
         copy(self, "*", path.join(self.recipe_folder, "include"), path.join(self.export_sources_folder, "include"))
         copy(self, "*", path.join(self.recipe_folder, "benchmark"), path.join(self.export_sources_folder, "benchmark"))
+        copy(self, "*", path.join(self.recipe_folder, "stress_benchmark"), path.join(self.export_sources_folder, "benchmark"))
         copy(self, "*", path.join(self.recipe_folder, "tests"), path.join(self.export_sources_folder, "tests"))
 
     def config_options(self):

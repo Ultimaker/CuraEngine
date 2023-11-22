@@ -9,6 +9,7 @@ AssureOutOfSourceBuilds()
 
 option(ENABLE_ARCUS "Enable support for ARCUS" ON)
 option(ENABLE_TESTING "Build with unit tests" OFF)
+option(ENABLE_BENCHMARKS "Build with Benchmarks" OFF)
 option(EXTENSIVE_WARNINGS "Build with all warnings" ON)
 option(ENABLE_PLUGINS "Build with plugins" ON)
 option(ENABLE_REMOTE_PLUGINS "Build with all warnings" OFF)
@@ -270,6 +271,8 @@ if (ENABLE_TESTING OR ENABLE_BENCHMARKS)
         target_link_libraries(test_helpers PUBLIC arcus::arcus)
     endif ()
 endif ()
+
+add_subdirectory(stress_benchmark)
 
 if (ENABLE_TESTING)
     enable_testing()
