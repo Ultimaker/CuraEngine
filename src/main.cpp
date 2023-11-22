@@ -14,7 +14,7 @@
 #include <string>
 
 #include <range/v3/algorithm/contains.hpp>
-#include <range/v3/to_container.hpp>
+#include <range/v3/range/conversion.hpp>
 #include <range/v3/view/take_while.hpp>
 
 #include "utils/format/filesystem_path.h"
@@ -78,7 +78,7 @@ int main(int argc, char** argv)
         const auto config_path = std::filesystem::path(fmt::format("{}\\cura\\.sentry-native", std::getenv("APPDATA")));
 #endif
         spdlog::info("Sentry config path: {}", config_path);
-        sentry_options_set_database_path(options, static_cast<const char*>(std::filesystem::absolute(config_path).native().c_str()));
+        sentry_options_set_database_path(options, std::filesystem::absolute(config_path).generic_string().c_str());
         constexpr std::string_view cura_engine_version{ CURA_ENGINE_VERSION };
         const auto version = semver::from_string(
             cura_engine_version
