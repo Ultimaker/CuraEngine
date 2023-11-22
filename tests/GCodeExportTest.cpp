@@ -652,11 +652,10 @@ TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
     gcode.is_volumetric_ = false;
     gcode.current_extruder_ = 0;
     gcode.extruder_attr_[0].filament_area_ = 10.0;
+    gcode.extruder_attr_[0].machine_firmware_retract_ = false;
     gcode.relative_extrusion_ = false;
     gcode.current_speed_ = 1.0;
     Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
-    Application::getInstance().current_slice_->scene.extruders.emplace_back(0, &Application::getInstance().current_slice_->scene.current_mesh_group->settings);
-    Application::getInstance().current_slice_->scene.extruders.back().settings_.add("machine_firmware_retract", "false");
 
     WipeScriptConfig config;
     config.retraction_enable = true;
