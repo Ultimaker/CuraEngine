@@ -125,7 +125,7 @@ private:
     const Polygons& outline_; //<! A reference to the outline polygon that is the designated area
     coord_t bead_width_0_; //<! The nominal or first extrusion line width with which libArachne generates its walls
     coord_t bead_width_x_; //<! The subsequently extrusion line width with which libArachne generates its walls if WallToolPaths was called with the nominal_bead_width Constructor
-                           //this is the same as bead_width_0
+                           // this is the same as bead_width_0
     size_t inset_count_; //<! The maximum number of walls to generate
     coord_t wall_0_inset_; //<! How far to inset the outer wall. Should only be applied when printing the actual walls, not extra infill/skin/support walls.
     bool print_thin_walls_; //<! Whether to enable the widening beading meta-strategy for thin features
