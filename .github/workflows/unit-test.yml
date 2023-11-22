@@ -143,10 +143,11 @@ jobs:
 
       - name: Upload the detailed tests report
         uses: actions/upload-artifact@v3
+        if: ${{ runner.os == 'Linux' }}
         with:
           name: LastTest.log
           path: |
-            /home/runner/work/CuraEngine/CuraEngine/build/Release/Testing/Temporary/LastTest.log
+            build/Release/Testing/Temporary/LastTest.log
           retention-days: 5
 
       - name: Conclusion
