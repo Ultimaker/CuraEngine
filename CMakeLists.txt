@@ -144,7 +144,6 @@ set(engine_SRCS # Except main.cpp.
         src/utils/PolylineStitcher.cpp
         src/utils/Simplify.cpp
         src/utils/SVG.cpp
-        src/utils/socket.cpp
         src/utils/SquareGrid.cpp
         src/utils/ThreadPool.cpp
         src/utils/ToolpathVisualizer.cpp
