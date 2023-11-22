@@ -29,7 +29,7 @@
 #include <range/v3/view/drop.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <fmt/format.h>
-
+#include "mapbox/geometry/wagyu/wagyu.hpp"
 
 
 
@@ -133,14 +133,108 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
 
 
     { // begin: debug
+
+
+            //if (layer_idx == 153)
+    //{
+        std::fprintf(stderr, "!!!\n");
+
+        using map_pt = mapbox::geometry::point<coord_t>;
+        using map_ring = mapbox::geometry::linear_ring<coord_t>; //map_pt>;
+        using map_poly = mapbox::geometry::polygon<coord_t>; //map_ring>;
+        using map_mpoly = mapbox::geometry::multi_polygon<coord_t>; //map_poly>;
+
+        map_mpoly mwpoly;
+
+        mapbox::geometry::wagyu::wagyu<coord_t> wagyu;
+
+        const auto& parts = prepared_outline.splitIntoParts();
+        for (const auto& polygon : parts)
+        {
+            mwpoly.emplace_back();
+            map_poly& wpoly = mwpoly.back();
+            for (const auto& path : polygon)
+            {
+                wpoly.emplace_back();
+                map_ring& wring = wpoly.back();
+                for (const auto& point : path)
+                {
+                    wring.emplace_back(point.X / 4, point.Y / 4);
+                }
+
+                wagyu.add_ring(wring);
+            }
+        }
+
+        map_mpoly sln;
+
+        wagyu.execute(mapbox::geometry::wagyu::clip_type_union, sln, mapbox::geometry::wagyu::fill_type_even_odd, mapbox::geometry::wagyu::fill_type_even_odd);
+
+        Polygons polys;
+
+        {
+            int randi = std::rand() % 9999;
+            const std::string filename(fmt::format("C:/tmp_/wgu_out/{}_{}.svg", layer_idx, randi));
+            SVG svg(filename, AABB(prepared_outline), 1.0);
+            SVG::Color col = SVG::Color::RED;
+            const std::vector<SVG::Color> arr = { SVG::Color::RED, SVG::Color::ORANGE, SVG::Color::MAGENTA, SVG::Color::GRAY };
+            for (const auto& poly : sln)
+            {
+                //polys.emplace_back();
+
+
+                col = arr[std::rand() % 4];
+                for (const auto& ring : poly)
+                {
+                    Polygon npoly;
+                    //polys.back().emplace_back();
+
+                    auto last = ring.back();
+                    bool first = true;
+                    for (const auto& pt : ring)
+                    {
+                        //polys.back().back().emplace_back(pt.x * 5, pt.y * 5);
+                        if (first || pt != ring.back())
+                        {
+                            npoly.emplace_back(pt.x * 4, pt.y * 4);
+                            first = false;
+                        }
+
+                        svg.writeLine({ last.x * 4, last.y * 4 }, { pt.x * 4, pt.y * 4 }, col);
+                        last = pt;
+                    }
+                    col = SVG::Color::GREEN;
+
+                    polys.add(npoly);
+                }
+
+
+            }
+
+
+            polys = polys.unionPolygons();
+            polys.removeColinearEdges();
+
+            svg.writePolygons(polys);
+
+        }
+
+
+        //mapbox::geometry::wagyu::correct_topology()
+    //}
+
+
+
+
+
         namespace bg = boost::geometry;
 
-        const AABB aabb(prepared_outline);
+        const AABB aabb(polys); //prepared_outline);
         const int randi = std::rand() % 9999;
 
         bg::model::multi_polygon<bg::model::polygon<bg::model::d2::point_xy<double>>> bmpoly;
 
-        const auto polyvec = prepared_outline.splitIntoParts();
+        const auto polyvec = polys.splitIntoParts(); //prepared_outline.splitIntoParts();
         //const auto polyvec = polys.splitByOuter();
         for (const auto& [i, poly_] : polyvec | ranges::views::enumerate)
         {
@@ -247,6 +341,9 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
 
             return {};  // NOTE! REMOVES POLYGONS!
         }
+
+        prepared_outline = polys;
+
     } // end: debug
 
 

@@ -251,7 +251,7 @@ void Application::startThreadPool(int nworkers)
         return; // Keep the previous ThreadPool
     }
     delete thread_pool;
-    thread_pool = new ThreadPool(nthreads);
+    thread_pool = new ThreadPool(1); // (nthreads);
 }
 
 } // namespace cura
