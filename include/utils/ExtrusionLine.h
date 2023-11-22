@@ -65,12 +65,10 @@ struct ExtrusionLine
         return junctions_.empty();
     }
 
-    ExtrusionLine(const size_t inset_idx, const bool is_odd);
-
-    ExtrusionLine()
-        : inset_idx_(-1)
-        , is_odd_(true)
-        , is_closed_(false)
+    ExtrusionLine(size_t inset_idx = std::numeric_limits<size_t>::max(), bool is_odd = false, bool is_closed = false)
+        : inset_idx_(inset_idx)
+        , is_odd_(is_odd)
+        , is_closed_(is_closed)
     {
     }
 
@@ -174,7 +172,7 @@ struct ExtrusionLine
 
     void insert(size_t index, const ExtrusionJunction& p)
     {
-        junctions_.insert(junctions_.begin() + index, p);
+        junctions_.insert(junctions_.begin() + static_cast<long>(index), p);
     }
 
     template<class iterator>

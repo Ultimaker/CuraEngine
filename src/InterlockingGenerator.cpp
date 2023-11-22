@@ -109,9 +109,9 @@ void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>
     for (const auto& cell : has_all_meshes)
     {
         const Point3LL bottom_corner = vu_.toLowerCorner(cell);
-        for (int layer_nr = bottom_corner.z_; layer_nr < bottom_corner.z_ + cell_size_.z_ && layer_nr < near_interlock_per_layer.size(); ++layer_nr)
+        for (coord_t layer_nr = bottom_corner.z_; layer_nr < bottom_corner.z_ + cell_size_.z_ && layer_nr < static_cast<coord_t>(near_interlock_per_layer.size()); ++layer_nr)
         {
-            near_interlock_per_layer[layer_nr].add(vu_.toPolygon(cell));
+            near_interlock_per_layer[static_cast<size_t>(layer_nr)].add(vu_.toPolygon(cell));
         }
     }
     for (auto& near_interlock : near_interlock_per_layer)
@@ -207,7 +207,7 @@ void InterlockingGenerator::addBoundaryCells(const std::vector<Polygons>& layers
 
     for (size_t layer_nr = 0; layer_nr < layers.size(); layer_nr++)
     {
-        const coord_t z = layer_nr;
+        const coord_t z = static_cast<coord_t>(layer_nr);
         vu_.walkDilatedPolygons(layers[layer_nr], z, kernel, voxel_emplacer);
         Polygons skin = layers[layer_nr];
         if (layer_nr > 0)
@@ -226,14 +226,14 @@ std::vector<Polygons> InterlockingGenerator::computeUnionedVolumeRegions() const
 
     for (LayerIndex layer_nr = 0; layer_nr < max_layer_count; layer_nr++)
     {
-        Polygons& layer_region = layer_regions[layer_nr];
+        Polygons& layer_region = layer_regions[static_cast<size_t>(layer_nr)];
         for (Slicer* mesh : { &mesh_a_, &mesh_b_ })
         {
             if (layer_nr >= mesh->layers.size())
             {
                 break;
             }
-            const SlicerLayer& layer = mesh->layers[layer_nr];
+            const SlicerLayer& layer = mesh->layers[static_cast<size_t>(layer_nr)];
             layer_region.add(layer.polygons);
         }
         layer_region = layer_region.offset(ignored_gap_).offset(-ignored_gap_); // Morphological close to merge meshes into single volume
@@ -250,7 +250,7 @@ std::vector<std::vector<Polygons>> InterlockingGenerator::generateMicrostructure
     const coord_t beam_w_sum = beam_width_a_ + beam_width_b_;
     const coord_t middle = cell_size_.x_ * beam_width_a_ / beam_w_sum;
     const coord_t width[2] = { middle, cell_size_.x_ - middle };
-    for (size_t mesh_idx : { 0, 1 })
+    for (size_t mesh_idx : { 0ul, 1ul })
     {
         Point2LL offset(mesh_idx ? middle : 0, 0);
         Point2LL area_size(width[mesh_idx], cell_size_.y_);
@@ -287,7 +287,7 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
     // Every `beam_layer_count` number of layers are combined to an interlocking beam layer
     // to store these we need ceil(max_layer_count / beam_layer_count) of these layers
     // the formula is rewritten as (max_layer_count + beam_layer_count - 1) / beam_layer_count, so it works for integer division
-    size_t num_interlocking_layers = (max_layer_count + beam_layer_count_ - 1) / beam_layer_count_;
+    size_t num_interlocking_layers = (max_layer_count + static_cast<size_t>(beam_layer_count_) - 1ul) / static_cast<size_t>(beam_layer_count_);
     structure_per_layer[0].resize(num_interlocking_layers);
     structure_per_layer[1].resize(num_interlocking_layers);
 
@@ -299,9 +299,9 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
         {
             for (LayerIndex layer_nr = bottom_corner.z_; layer_nr < bottom_corner.z_ + cell_size_.z_ && layer_nr < max_layer_count; layer_nr += beam_layer_count_)
             {
-                Polygons areas_here = cell_area_per_mesh_per_layer[(layer_nr / beam_layer_count_) % cell_area_per_mesh_per_layer.size()][mesh_idx];
+                Polygons areas_here = cell_area_per_mesh_per_layer[static_cast<size_t>(layer_nr / beam_layer_count_) % cell_area_per_mesh_per_layer.size()][mesh_idx];
                 areas_here.translate(Point2LL(bottom_corner.x_, bottom_corner.y_));
-                structure_per_layer[mesh_idx][layer_nr / beam_layer_count_].add(areas_here);
+                structure_per_layer[mesh_idx][static_cast<size_t>(layer_nr / beam_layer_count_)].add(areas_here);
             }
         }
     }
@@ -329,8 +329,8 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
             Polygons layer_outlines = layer_regions[layer_nr];
             layer_outlines.applyMatrix(unapply_rotation);
 
-            const Polygons areas_here = structure_per_layer[mesh_idx][layer_nr / beam_layer_count_].intersection(layer_outlines);
-            const Polygons& areas_other = structure_per_layer[! mesh_idx][layer_nr / beam_layer_count_];
+            const Polygons areas_here = structure_per_layer[mesh_idx][layer_nr / static_cast<size_t>(beam_layer_count_)].intersection(layer_outlines);
+            const Polygons& areas_other = structure_per_layer[! mesh_idx][layer_nr / static_cast<size_t>(beam_layer_count_)];
 
             SlicerLayer& layer = mesh->layers[layer_nr];
             layer.polygons = layer.polygons

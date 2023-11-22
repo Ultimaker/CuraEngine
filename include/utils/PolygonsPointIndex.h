@@ -24,8 +24,8 @@ public:
      * The polygons into which this index is indexing.
      */
     const Paths* polygons_; // (pointer to const polygons)
-    unsigned int poly_idx_; //!< The index of the polygon in \ref PolygonsPointIndex::polygons
-    unsigned int point_idx_; //!< The index of the point in the polygon in \ref PolygonsPointIndex::polygons
+    size_t poly_idx_; //!< The index of the polygon in \ref PolygonsPointIndex::polygons
+    size_t point_idx_; //!< The index of the point in the polygon in \ref PolygonsPointIndex::polygons
 
     /*!
      * Constructs an empty point index to no polygon.
@@ -157,7 +157,7 @@ struct PolygonsPointIndexSegmentLocator
     {
         ConstPolygonRef poly = (*val.polygons_)[val.poly_idx_];
         Point2LL start = poly[val.point_idx_];
-        unsigned int next_point_idx = (val.point_idx_ + 1) % poly.size();
+        size_t next_point_idx = (val.point_idx_ + 1ul) % poly.size();
         Point2LL end = poly[next_point_idx];
         return std::pair<Point2LL, Point2LL>(start, end);
     }

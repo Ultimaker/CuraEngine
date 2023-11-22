@@ -550,13 +550,13 @@ public:
 
     void remove(size_t index)
     {
-        POLY_ASSERT(index < size() && index <= static_cast<size_t>(std::numeric_limits<int>::max()));
-        path->erase(path->begin() + index);
+        POLY_ASSERT(index < size() && index <= static_cast<size_t>(std::numeric_limits<long>::max()));
+        path->erase(path->begin() + static_cast<long>(index));
     }
 
     void insert(size_t index, Point2LL p)
     {
-        POLY_ASSERT(index < size() && index <= static_cast<size_t>(std::numeric_limits<int>::max()));
+        POLY_ASSERT(index < size() && index <= static_cast<size_t>(std::numeric_limits<long>::max()));
         path->insert(path->begin() + static_cast<long>(index), p);
     }
 
@@ -1099,7 +1099,7 @@ public:
         return ret;
     }
 
-    Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
+    Polygons offset(coord_t distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
     Polygons offsetPolyLine(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, bool inputPolyIsClosed = false) const
     {

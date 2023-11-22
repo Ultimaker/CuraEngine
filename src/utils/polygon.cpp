@@ -359,7 +359,7 @@ coord_t Polygons::polyLineLength() const
     return length;
 }
 
-Polygons Polygons::offset(int distance, ClipperLib::JoinType join_type, double miter_limit) const
+Polygons Polygons::offset(coord_t distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
     if (distance == 0)
     {

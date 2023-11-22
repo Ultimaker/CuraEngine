@@ -26,10 +26,14 @@ struct LayerIndex
     constexpr LayerIndex(LayerIndex&& other) noexcept = default;
 
     constexpr explicit LayerIndex(const utils::floating_point auto val) noexcept
-        : value{ static_cast<value_type>(val) } {};
+        : value{ static_cast<value_type>(val) }
+    {
+    }
 
     constexpr LayerIndex(const utils::integral auto val) noexcept
-        : value{ static_cast<value_type>(val) } {};
+        : value{ static_cast<value_type>(val) }
+    {
+    }
 
     constexpr LayerIndex& operator=(const LayerIndex& other) noexcept = default;
 

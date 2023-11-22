@@ -1128,10 +1128,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                         continue;
                     }
 
-                    auto& result = result_lines.emplace_back();
-                    result.inset_idx_ = line.inset_idx_;
-                    result.is_odd_ = line.is_odd_;
-                    result.is_closed_ = line.is_closed_;
+                    auto& result = result_lines.emplace_back(line.inset_idx_, line.is_odd_, line.is_closed_);
 
                     // generate points in between p0 and p1
                     int64_t dist_left_over

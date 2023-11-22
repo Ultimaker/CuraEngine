@@ -393,7 +393,7 @@ public:
      * \param c end of second line segment
      * \return positive if acute, negative if obtuse, zero if 90 degree corner
      */
-    static inline int isAcuteCorner(const Point2LL& a, const Point2LL& b, const Point2LL& c)
+    static inline coord_t isAcuteCorner(const Point2LL& a, const Point2LL& b, const Point2LL& c)
     {
         const Point2LL ba = a - b;
         const Point2LL bc = c - b;

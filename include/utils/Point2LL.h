@@ -183,12 +183,12 @@ INLINE coord_t cross(const Point2LL& p0, const Point2LL& p1)
     return p0.X * p1.Y - p0.Y * p1.X;
 }
 
-INLINE int angle(const Point2LL& p)
+INLINE double angle(const Point2LL& p)
 {
     double angle = std::atan2(p.X, p.Y) / std::numbers::pi * 180.0;
     if (angle < 0.0)
         angle += 360.0;
-    return static_cast<int>(std::lrint(angle));
+    return angle;
 }
 
 // Identity function, used to be able to make templated algorithms where the input is sometimes points, sometimes things that contain or can be converted to points.

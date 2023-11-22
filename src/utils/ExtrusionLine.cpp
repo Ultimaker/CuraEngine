@@ -11,12 +11,12 @@
 namespace cura
 {
 
-ExtrusionLine::ExtrusionLine(const size_t inset_idx, const bool is_odd)
+/*ExtrusionLine::ExtrusionLine(const size_t inset_idx, const bool is_odd)
     : inset_idx_(inset_idx)
     , is_odd_(is_odd)
     , is_closed_(false)
 {
-}
+}*/
 
 coord_t ExtrusionLine::getLength() const
 {
