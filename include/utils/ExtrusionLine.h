@@ -129,12 +129,12 @@ struct ExtrusionLine
         return junctions_.back();
     }
 
-    const ExtrusionJunction& operator[](unsigned int index) const
+    const ExtrusionJunction& operator[](size_t index) const
     {
         return junctions_[index];
     }
 
-    ExtrusionJunction& operator[](unsigned int index)
+    ExtrusionJunction& operator[](size_t index)
     {
         return junctions_[index];
     }

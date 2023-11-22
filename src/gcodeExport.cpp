@@ -31,7 +31,7 @@ std::string transliterate(const std::string& text)
     std::ostringstream stream;
     for (const char& c : text)
     {
-        stream << static_cast<char>((c >= 0) ? c : '?');
+        stream << ((c >= 0) ? c : '?');
     }
     return stream.str();
 }
@@ -1165,7 +1165,7 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         }
     }
 
-    if (extruder_attr_[current_extruder_].machine_firmware_retract_)
+    if (extr_attr.machine_firmware_retract_)
     {
         if (extruder_switch && extr_attr.retraction_e_amount_current_)
         {

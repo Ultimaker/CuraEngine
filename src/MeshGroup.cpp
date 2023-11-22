@@ -210,7 +210,7 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const Matrix4x3D& matr
             fclose(f);
             return false;
         }
-        float* v = ((float*)buffer) + 3;
+        float* v = reinterpret_cast<float*>(buffer) + 3;
 
         Point3LL v0 = matrix.apply(Point3F(v[0], v[1], v[2]).toPoint3d());
         Point3LL v1 = matrix.apply(Point3F(v[3], v[4], v[5]).toPoint3d());
