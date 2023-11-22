@@ -175,7 +175,7 @@ Polygons LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                 switch (boundary_type)
                 {
                 case CombBoundary::MINIMUM:
-                    offset = -mesh.settings.get<coord_t>("machine_nozzle_size") / 2 - 0.1 - mesh.settings.get<coord_t>("wall_line_width_0") / 2;
+                    offset = -mesh.settings.get<coord_t>("machine_nozzle_size") / 2 - mesh.settings.get<coord_t>("wall_line_width_0") / 2;
                     break;
                 case CombBoundary::PREFERRED:
                     offset = -mesh.settings.get<coord_t>("machine_nozzle_size") * 3 / 2 - mesh.settings.get<coord_t>("wall_line_width_0") / 2;
