@@ -1257,6 +1257,8 @@ public:
      */
     Polygons getOutsidePolygons() const;
 
+    std::vector<Polygons> splitByOuter() const;
+
     /*!
      * Exclude holes which have no parts inside of them.
      * \return the resulting polygons.
