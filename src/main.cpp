@@ -15,7 +15,6 @@
 
 #include <range/v3/algorithm/contains.hpp>
 #include <range/v3/range/conversion.hpp>
-#include <range/v3/view/take_while.hpp>
 
 #include "utils/format/filesystem_path.h"
 #endif
@@ -80,14 +79,7 @@ int main(int argc, char** argv)
         spdlog::info("Sentry config path: {}", config_path);
         sentry_options_set_database_path(options, std::filesystem::absolute(config_path).generic_string().c_str());
         constexpr std::string_view cura_engine_version{ CURA_ENGINE_VERSION };
-        const auto version = semver::from_string(
-            cura_engine_version
-            | ranges::views::take_while(
-                [](const auto& c)
-                {
-                    return c != '+';
-                })
-            | ranges::to<std::string>);
+        const auto version = semver::from_string(cura_engine_version.substr(0, cura_engine_version.find_first_of('+')));
         if (ranges::contains(cura_engine_version, '+') || version.prerelease_type == semver::prerelease::alpha)
         {
             // Not a production build
