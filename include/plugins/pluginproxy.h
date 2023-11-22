@@ -4,18 +4,7 @@
 #ifndef PLUGINS_PLUGINPROXY_H
 #define PLUGINS_PLUGINPROXY_H
 
-#include "Application.h"
-#include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
-#include "cura/plugins/slots/broadcast/v0/broadcast.pb.h"
-#include "cura/plugins/slots/handshake/v0/handshake.grpc.pb.h"
-#include "cura/plugins/slots/handshake/v0/handshake.pb.h"
-#include "cura/plugins/v0/slot_id.pb.h"
-#include "plugins/broadcasts.h"
-#include "plugins/exception.h"
-#include "plugins/metadata.h"
-#include "utils/format/thread_id.h"
-#include "utils/types/char_range_literal.h"
-#include "utils/types/generic.h"
+#include <chrono>
 
 #include <agrpc/asio_grpc.hpp>
 #include <agrpc/client_rpc.hpp>
@@ -30,7 +19,18 @@
 #include <range/v3/utility/semiregular_box.hpp>
 #include <spdlog/spdlog.h>
 
-#include <chrono>
+#include "Application.h"
+#include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
+#include "cura/plugins/slots/broadcast/v0/broadcast.pb.h"
+#include "cura/plugins/slots/handshake/v0/handshake.grpc.pb.h"
+#include "cura/plugins/slots/handshake/v0/handshake.pb.h"
+#include "cura/plugins/v0/slot_id.pb.h"
+#include "plugins/broadcasts.h"
+#include "plugins/exception.h"
+#include "plugins/metadata.h"
+#include "utils/format/thread_id.h"
+#include "utils/types/char_range_literal.h"
+#include "utils/types/generic.h"
 #if __has_include(<coroutine>)
 #include <coroutine>
 #elif __has_include(<experimental/coroutine>)

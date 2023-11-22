@@ -36,7 +36,7 @@ public:
      * Generates walls for all parts, by calling the generateWall for the individual parts.
      *
      * \param layer The layer for which to generate the walls and inner area.
-     */ 
+     */
     void generateWalls(SliceLayer* layer, SectionType section);
 
 private:
@@ -69,8 +69,8 @@ private:
      * \param recompute_outline_based_on_outer_wall Whether we need to recompute the print outline according to the
      *        generated spiral inset.
      */
-    void generateSpiralInsets(SliceLayerPart *part, coord_t line_width_0, coord_t wall_0_inset, bool recompute_outline_based_on_outer_wall);
+    void generateSpiralInsets(SliceLayerPart* part, coord_t line_width_0, coord_t wall_0_inset, bool recompute_outline_based_on_outer_wall);
 };
-}//namespace cura
+} // namespace cura
 
-#endif//WALLS_COMPUTATION_H
+#endif // WALLS_COMPUTATION_H

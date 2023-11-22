@@ -4,10 +4,10 @@
 #ifndef INSET_ORDER_OPTIMIZER_H
 #define INSET_ORDER_OPTIMIZER_H
 
+#include <unordered_set>
+
 #include "settings/ZSeamConfig.h"
 #include "sliceDataStorage.h"
-
-#include <unordered_set>
 
 namespace cura
 {
@@ -105,7 +105,7 @@ private:
 
     std::vector<std::vector<ConstPolygonPointer>> inset_polys_; // vector of vectors holding the inset polygons
     Polygons retraction_region_; // After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see
-                                // retraction_region_calculated).
+                                 // retraction_region_calculated).
 
     /*!
      * Determine if the paths should be reversed

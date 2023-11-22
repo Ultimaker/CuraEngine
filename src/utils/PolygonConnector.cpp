@@ -1,17 +1,18 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/PolygonConnector.h"
 
-#include "utils/linearAlg2D.h"
 #include "utils/AABB.h"
+#include "utils/linearAlg2D.h"
 
-namespace cura 
+namespace cura
 {
 
 PolygonConnector::PolygonConnector(const coord_t line_width)
-: line_width_(line_width)
-{}
+    : line_width_(line_width)
+{
+}
 
 void PolygonConnector::add(const Polygons& input)
 {
@@ -23,9 +24,9 @@ void PolygonConnector::add(const Polygons& input)
 
 void PolygonConnector::add(const std::vector<VariableWidthLines>& input)
 {
-    for(const VariableWidthLines& lines : input)
+    for (const VariableWidthLines& lines : input)
     {
-        for(const ExtrusionLine& line : lines)
+        for (const ExtrusionLine& line : lines)
         {
             input_paths_.push_back(line);
         }
@@ -35,7 +36,7 @@ void PolygonConnector::add(const std::vector<VariableWidthLines>& input)
 void PolygonConnector::connect(Polygons& output_polygons, std::vector<VariableWidthLines>& output_paths)
 {
     std::vector<Polygon> result_polygons = connectGroup(input_polygons_);
-    for(Polygon& polygon : result_polygons)
+    for (Polygon& polygon : result_polygons)
     {
         output_polygons.add(polygon);
     }
@@ -76,7 +77,7 @@ void PolygonConnector::addVertex(Polygon& polygonal, const Point& vertex) const
 
 void PolygonConnector::addVertex(ExtrusionLine& polygonal, const Point& position, const coord_t width) const
 {
-    polygonal.emplace_back(position, width, 1); //Perimeter indices don't make sense any more once perimeters are merged. Use 1 as placeholder, being the first "normal" wall.
+    polygonal.emplace_back(position, width, 1); // Perimeter indices don't make sense any more once perimeters are merged. Use 1 as placeholder, being the first "normal" wall.
 }
 
 void PolygonConnector::addVertex(ExtrusionLine& polygonal, const ExtrusionJunction& vertex) const
@@ -97,12 +98,11 @@ bool PolygonConnector::isClosed(ExtrusionLine& polygonal) const
 template<>
 ExtrusionLine PolygonConnector::createEmpty<ExtrusionLine>() const
 {
-    constexpr size_t inset_index = 1; //Specialising to set inset_index to 1 instead of maximum int. Connected polys are not specific to any inset.
+    constexpr size_t inset_index = 1; // Specialising to set inset_index to 1 instead of maximum int. Connected polys are not specific to any inset.
     constexpr bool is_odd = false;
     ExtrusionLine result(inset_index, is_odd);
     result.is_closed_ = true;
-    return result; //No copy, via RVO.
+    return result; // No copy, via RVO.
 }
 
-}//namespace cura
-
+} // namespace cura

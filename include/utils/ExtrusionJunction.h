@@ -1,5 +1,5 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2021 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 
 #ifndef UTILS_EXTRUSION_JUNCTION_H
@@ -55,5 +55,5 @@ inline const Point& make_point(const ExtrusionJunction& ej)
 
 using LineJunctions = std::vector<ExtrusionJunction>; //<! The junctions along a line without further information. See \ref ExtrusionLine for a more extensive class.
 
-}
+} // namespace cura
 #endif // UTILS_EXTRUSION_JUNCTION_H

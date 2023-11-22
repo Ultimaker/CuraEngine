@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_AABB_H
 #define UTILS_AABB_H
@@ -64,9 +64,9 @@ public:
 
     /*!
      * Check whether this aabb overlaps with another.
-     * 
+     *
      * In the boundary case false is returned.
-     * 
+     *
      * \param other the aabb to check for overlaps with
      * \return Whether the two aabbs overlap
      */
@@ -74,27 +74,27 @@ public:
 
     /*!
      * \brief Includes the specified point in the bounding box.
-     * 
+     *
      * The bounding box is expanded if the point is not within the bounding box.
-     * 
+     *
      * \param point The point to include in the bounding box.
      */
     void include(Point point);
 
     /*!
      * \brief Includes the specified bounding box in the bounding box.
-     * 
+     *
      * The bounding box is expanded to include the other bounding box.
-     * 
+     *
      * This performs a union on two bounding boxes.
-     * 
+     *
      * \param other The bounding box to include in this one.
      */
     void include(const AABB other);
 
     /*!
      * Expand the borders of the bounding box in each direction with the given amount
-     * 
+     *
      * \param dist The distance by which to expand the borders of the bounding box
      */
     void expand(int dist);
@@ -106,6 +106,5 @@ public:
     Polygon toPolygon() const;
 };
 
-}//namespace cura
-#endif//UTILS_AABB_H
-
+} // namespace cura
+#endif // UTILS_AABB_H

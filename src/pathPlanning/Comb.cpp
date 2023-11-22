@@ -147,7 +147,8 @@ bool Comb::calc(
     unsigned int end_part_boundary_poly_idx_min{};
     unsigned int start_part_idx_min
         = (start_inside_poly_min == NO_INDEX) ? NO_INDEX : parts_view_inside_minimum_.getPartContaining(start_inside_poly_min, &start_part_boundary_poly_idx_min);
-    unsigned int end_part_idx_min = (end_inside_poly_min == NO_INDEX) ? NO_INDEX : parts_view_inside_minimum_.getPartContaining(end_inside_poly_min, &end_part_boundary_poly_idx_min);
+    unsigned int end_part_idx_min
+        = (end_inside_poly_min == NO_INDEX) ? NO_INDEX : parts_view_inside_minimum_.getPartContaining(end_inside_poly_min, &end_part_boundary_poly_idx_min);
 
     CombPath result_path;
     bool comb_result;
@@ -262,7 +263,8 @@ bool Comb::calc(
     {
         comb_paths.emplace_back();
         comb_paths.throughAir = true;
-        if (vSize(start_crossing.in_or_mid_ - end_crossing.in_or_mid_) < vSize(start_crossing.in_or_mid_ - start_crossing.out_) + vSize(end_crossing.in_or_mid_ - end_crossing.out_))
+        if (vSize(start_crossing.in_or_mid_ - end_crossing.in_or_mid_)
+            < vSize(start_crossing.in_or_mid_ - start_crossing.out_) + vSize(end_crossing.in_or_mid_ - end_crossing.out_))
         { // via outside is moving more over the in-between zone
             comb_paths.back().push_back(start_crossing.in_or_mid_);
             comb_paths.back().push_back(end_crossing.in_or_mid_);
@@ -419,7 +421,7 @@ Comb::Crossing::Crossing(
     if (dest_is_inside)
     {
         dest_crossing_poly_.emplace(boundary_inside[dest_part_boundary_crossing_poly_idx]); // initialize with most obvious poly, cause mostly a combing move will move outside the
-                                                                                           // part, rather than inside a hole in the part
+                                                                                            // part, rather than inside a hole in the part
     }
 }
 

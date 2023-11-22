@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/ListPolyIt.h"
 
@@ -9,7 +9,7 @@
 #include "utils/AABB.h" // for debug output svg html
 #include "utils/SVG.h"
 
-namespace cura 
+namespace cura
 {
 
 
@@ -76,5 +76,4 @@ ListPolyIt ListPolyIt::insertPointNonDuplicate(const ListPolyIt before, const Li
 }
 
 
-
-}//namespace cura 
+} // namespace cura

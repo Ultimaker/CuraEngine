@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/SquareGrid.h"
 
@@ -8,19 +8,20 @@
 using namespace cura;
 
 
-SquareGrid::SquareGrid(coord_t cell_size) : cell_size_(cell_size)
+SquareGrid::SquareGrid(coord_t cell_size)
+    : cell_size_(cell_size)
 {
     assert(cell_size > 0U);
 }
 
 
-SquareGrid::GridPoint SquareGrid::toGridPoint(const Point &point)  const
+SquareGrid::GridPoint SquareGrid::toGridPoint(const Point& point) const
 {
     return Point(toGridCoord(point.X), toGridCoord(point.Y));
 }
 
 
-SquareGrid::grid_coord_t SquareGrid::toGridCoord(const coord_t& coord)  const
+SquareGrid::grid_coord_t SquareGrid::toGridCoord(const coord_t& coord) const
 {
     // This mapping via truncation results in the cells with
     // GridPoint.x==0 being twice as large and similarly for
@@ -32,13 +33,13 @@ SquareGrid::grid_coord_t SquareGrid::toGridCoord(const coord_t& coord)  const
 }
 
 
-cura::Point SquareGrid::toLowerCorner(const GridPoint& location)  const
+cura::Point SquareGrid::toLowerCorner(const GridPoint& location) const
 {
     return cura::Point(toLowerCoord(location.X), toLowerCoord(location.Y));
 }
 
 
-cura::coord_t SquareGrid::toLowerCoord(const grid_coord_t& grid_coord)  const
+cura::coord_t SquareGrid::toLowerCoord(const grid_coord_t& grid_coord) const
 {
     // This mapping via truncation results in the cells with
     // GridPoint.x==0 being twice as large and similarly for
@@ -50,13 +51,13 @@ cura::coord_t SquareGrid::toLowerCoord(const grid_coord_t& grid_coord)  const
 }
 
 
-bool SquareGrid::processLineCells(const std::pair<Point, Point> line, const std::function<bool (GridPoint)>& process_cell_func)
+bool SquareGrid::processLineCells(const std::pair<Point, Point> line, const std::function<bool(GridPoint)>& process_cell_func)
 {
     return static_cast<const SquareGrid*>(this)->processLineCells(line, process_cell_func);
 }
 
 
-bool SquareGrid::processLineCells(const std::pair<Point, Point> line, const std::function<bool (GridPoint)>& process_cell_func) const
+bool SquareGrid::processLineCells(const std::pair<Point, Point> line, const std::function<bool(GridPoint)>& process_cell_func) const
 {
     Point start = line.first;
     Point end = line.second;
@@ -117,13 +118,7 @@ bool SquareGrid::processLineCells(const std::pair<Point, Point> line, const std:
     return false;
 }
 
-bool SquareGrid::processAxisAlignedTriangle
-(
-    const Point from,
-    const Point to,
-    bool to_the_right,
-    const std::function<bool (GridPoint)>& process_cell_func
-) const
+bool SquareGrid::processAxisAlignedTriangle(const Point from, const Point to, bool to_the_right, const std::function<bool(GridPoint)>& process_cell_func) const
 {
     Point a = from;
     Point b = to;
@@ -134,12 +129,13 @@ bool SquareGrid::processAxisAlignedTriangle
     return processAxisAlignedTriangle(a, b, process_cell_func);
 }
 
-bool SquareGrid::processAxisAlignedTriangle(const Point from, const Point to, const std::function<bool (GridPoint)>& process_cell_func) const
+bool SquareGrid::processAxisAlignedTriangle(const Point from, const Point to, const std::function<bool(GridPoint)>& process_cell_func) const
 {
     GridPoint last;
     GridPoint grid_to = toGridPoint(to);
-    return processLineCells(std::make_pair(from, to),
-        [grid_to, &last, &process_cell_func, this] (const GridPoint grid_loc)
+    return processLineCells(
+        std::make_pair(from, to),
+        [grid_to, &last, &process_cell_func, this](const GridPoint grid_loc)
         {
             if (grid_loc.Y != last.Y)
             {
@@ -161,16 +157,10 @@ bool SquareGrid::processAxisAlignedTriangle(const Point from, const Point to, co
             }
             last = grid_loc;
             return true;
-        }
-    );
+        });
 }
 
-bool SquareGrid::processNearby
-(
-    const Point &query_pt,
-    coord_t radius,
-    const std::function<bool (const GridPoint&)>& process_func
-) const
+bool SquareGrid::processNearby(const Point& query_pt, coord_t radius, const std::function<bool(const GridPoint&)>& process_func) const
 {
     const Point min_loc(query_pt.X - radius, query_pt.Y - radius);
     const Point max_loc(query_pt.X + radius, query_pt.Y + radius);
@@ -182,8 +172,8 @@ bool SquareGrid::processNearby
     {
         for (coord_t grid_x = min_grid.X; grid_x <= max_grid.X; ++grid_x)
         {
-            GridPoint grid_pt(grid_x,grid_y);
-            if (!process_func(grid_pt))
+            GridPoint grid_pt(grid_x, grid_y);
+            if (! process_func(grid_pt))
             {
                 return false;
             }

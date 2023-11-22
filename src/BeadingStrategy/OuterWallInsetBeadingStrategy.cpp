@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "BeadingStrategy/OuterWallInsetBeadingStrategy.h"
 
@@ -7,10 +7,10 @@
 
 namespace cura
 {
-OuterWallInsetBeadingStrategy::OuterWallInsetBeadingStrategy(coord_t outer_wall_offset, BeadingStrategyPtr parent) :
-    BeadingStrategy(*parent),
-    parent_(std::move(parent)),
-    outer_wall_offset_(outer_wall_offset)
+OuterWallInsetBeadingStrategy::OuterWallInsetBeadingStrategy(coord_t outer_wall_offset, BeadingStrategyPtr parent)
+    : BeadingStrategy(*parent)
+    , parent_(std::move(parent))
+    , outer_wall_offset_(outer_wall_offset)
 {
     name_ = "OuterWallOfsetBeadingStrategy";
 }
@@ -46,7 +46,13 @@ BeadingStrategy::Beading OuterWallInsetBeadingStrategy::compute(coord_t thicknes
     Beading ret = parent_->compute(thickness, bead_count);
 
     // Actual count and thickness as represented by extant walls. Don't count any potential zero-width 'signaling' walls.
-    bead_count = std::count_if(ret.bead_widths.begin(), ret.bead_widths.end(), [](const coord_t width) { return width > 0; });
+    bead_count = std::count_if(
+        ret.bead_widths.begin(),
+        ret.bead_widths.end(),
+        [](const coord_t width)
+        {
+            return width > 0;
+        });
 
     // No need to apply any inset if there is just a single wall.
     if (bead_count < 2)

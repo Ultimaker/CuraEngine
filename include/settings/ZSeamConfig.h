@@ -1,11 +1,11 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2020 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef ZSEAMCONFIG_H
 #define ZSEAMCONFIG_H
 
-#include "EnumSettings.h" //For EZSeamType and EZSeamCornerPrefType.
 #include "../utils/IntPoint.h" //To store the preferred seam position.
+#include "EnumSettings.h" //For EZSeamType and EZSeamCornerPrefType.
 
 namespace cura
 {
@@ -49,15 +49,13 @@ struct ZSeamConfig
      * \param corner_pref The corner preference, when using the sharpest corner strategy.
      * \param by how much to simplify the curvature (when detecting corners), as otherwise 'smooth' corners are penalized.
      */
-    ZSeamConfig
-    (
+    ZSeamConfig(
         const EZSeamType type = EZSeamType::SHORTEST,
         const Point pos = Point(0, 0),
         const EZSeamCornerPrefType corner_pref = EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE,
-        const coord_t simplify_curvature = 0
-    );
+        const coord_t simplify_curvature = 0);
 };
 
-} //Cura namespace.
+} // namespace cura
 
-#endif //ZSEAMCONFIG_H
+#endif // ZSEAMCONFIG_H

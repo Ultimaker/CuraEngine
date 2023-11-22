@@ -1,15 +1,17 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include "Slice.h"
+
 #include <spdlog/spdlog.h>
 
 #include "ExtruderTrain.h"
-#include "Slice.h"
 
 namespace cura
 {
 
-Slice::Slice(const size_t num_mesh_groups) : scene(num_mesh_groups)
+Slice::Slice(const size_t num_mesh_groups)
+    : scene(num_mesh_groups)
 {
 }
 

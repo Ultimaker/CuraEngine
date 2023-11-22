@@ -80,9 +80,9 @@ private:
         Temperature initial_temp_; //!< Temperature this nozzle needs to be at the start of the print.
 
         double retraction_e_amount_current_; //!< The current retracted amount (in mm or mm^3), or zero(i.e. false) if it is not currently retracted (positive values mean retracted
-                                            //!< amount, so negative impact on E values)
+                                             //!< amount, so negative impact on E values)
         double retraction_e_amount_at_e_start_; //!< The ExtruderTrainAttributes::retraction_amount_current value at E0, i.e. the offset (in mm or mm^3) from E0 to the situation
-                                               //!< where the filament is at the tip of the nozzle.
+                                                //!< where the filament is at the tip of the nozzle.
 
         double prime_volume_; //!< Amount of material (in mm^3) to be primed after an unretration (due to oozing and/or coasting)
         Velocity last_retraction_prime_speed_; //!< The last prime speed (in mm/s) of the to-be-primed amount

@@ -1,25 +1,21 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "infill/LightningDistanceField.h" //Class we're implementing.
+
 #include "utils/polygonUtils.h" //For spreadDotsArea helper function.
 
 namespace cura
 {
 
-constexpr coord_t radius_per_cell_size = 6;  // The cell-size should be small compared to the radius, but not so small as to be inefficient.
+constexpr coord_t radius_per_cell_size = 6; // The cell-size should be small compared to the radius, but not so small as to be inefficient.
 
-LightningDistanceField::LightningDistanceField
-(
-    const coord_t& radius,
-    const Polygons& current_outline,
-    const Polygons& current_overhang
-)
-: cell_size_(radius / radius_per_cell_size)
-, grid_(cell_size_)
-, supporting_radius_(radius)
-, current_outline_(current_outline)
-, current_overhang_(current_overhang)
+LightningDistanceField::LightningDistanceField(const coord_t& radius, const Polygons& current_outline, const Polygons& current_overhang)
+    : cell_size_(radius / radius_per_cell_size)
+    , grid_(cell_size_)
+    , supporting_radius_(radius)
+    , current_outline_(current_outline)
+    , current_overhang_(current_overhang)
 {
     std::vector<Point> regular_dots = PolygonUtils::spreadDotsArea(current_overhang, cell_size_);
     for (const auto& p : regular_dots)
@@ -28,17 +24,13 @@ LightningDistanceField::LightningDistanceField
         const coord_t dist_to_boundary = vSize(p - cpp.p());
         unsupported_points_.emplace_back(p, dist_to_boundary);
     }
-    unsupported_points_.sort
-    (
+    unsupported_points_.sort(
         [&radius](const UnsupCell& a, const UnsupCell& b)
         {
             constexpr coord_t prime_for_hash = 191;
-            return
-                std::abs(b.dist_to_boundary_ - a.dist_to_boundary_) > radius ?
-                a.dist_to_boundary_ < b.dist_to_boundary_ :
-                (std::hash<Point>{}(a.loc_) % prime_for_hash) < (std::hash<Point>{}(b.loc_) % prime_for_hash);
-        }
-    );
+            return std::abs(b.dist_to_boundary_ - a.dist_to_boundary_) > radius ? a.dist_to_boundary_ < b.dist_to_boundary_
+                                                                                : (std::hash<Point>{}(a.loc_) % prime_for_hash) < (std::hash<Point>{}(b.loc_) % prime_for_hash);
+        });
     for (auto it = unsupported_points_.begin(); it != unsupported_points_.end(); ++it)
     {
         UnsupCell& cell = *it;
@@ -58,36 +50,35 @@ bool LightningDistanceField::tryGetNextPoint(Point* p) const
 
 void LightningDistanceField::update(const Point& to_node, const Point& added_leaf)
 {
-    auto process_func = 
-        [added_leaf, this](const SquareGrid::GridPoint& grid_loc)
+    auto process_func = [added_leaf, this](const SquareGrid::GridPoint& grid_loc)
+    {
+        auto it = unsupported_points_grid_.find(grid_loc);
+        if (it != unsupported_points_grid_.end())
         {
-            auto it = unsupported_points_grid_.find(grid_loc);
-            if (it != unsupported_points_grid_.end())
+            std::list<UnsupCell>::iterator& list_it = it->second;
+            UnsupCell& cell = *list_it;
+            if (shorterThen(cell.loc_ - added_leaf, supporting_radius_))
             {
-                std::list<UnsupCell>::iterator& list_it = it->second;
-                UnsupCell& cell = *list_it;
-                if (shorterThen(cell.loc_ - added_leaf, supporting_radius_))
-                {
-                    unsupported_points_.erase(list_it);
-                    unsupported_points_grid_.erase(it);
-                }
+                unsupported_points_.erase(list_it);
+                unsupported_points_grid_.erase(it);
             }
-            return true;
-        };
+        }
+        return true;
+    };
     const Point a = to_node;
     const Point b = added_leaf;
     Point ab = b - a;
     Point ab_T = turn90CCW(ab);
     Point extent = normal(ab_T, supporting_radius_);
     // TODO: process cells only once; make use of PolygonUtils::spreadDotsArea
-    grid_.processLineCells(std::make_pair(a + extent, a - extent),
-                          [this, ab, extent, &process_func] (const SquareGrid::GridPoint& p)
-                          {
-                              grid_.processLineCells(std::make_pair(p, p + ab), process_func);
-                              return true;
-                          }
-    );
+    grid_.processLineCells(
+        std::make_pair(a + extent, a - extent),
+        [this, ab, extent, &process_func](const SquareGrid::GridPoint& p)
+        {
+            grid_.processLineCells(std::make_pair(p, p + ab), process_func);
+            return true;
+        });
     grid_.processNearby(added_leaf, supporting_radius_, process_func);
 }
 
-}
+} // namespace cura

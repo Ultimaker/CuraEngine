@@ -98,7 +98,8 @@ void GCodeExport::preSetup(const size_t start_extruder)
         const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_;
         if (use_extruder_offset_to_offset_coords_)
         {
-            extruder_attr_[extruder_nr].nozzle_offset_ = Point(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
+            extruder_attr_[extruder_nr].nozzle_offset_
+                = Point(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
         }
         else
         {

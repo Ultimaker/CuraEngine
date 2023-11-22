@@ -4,13 +4,13 @@
 #ifndef LIGHTNING_TREE_NODE_H
 #define LIGHTNING_TREE_NODE_H
 
-#include "../utils/polygon.h"
-#include "../utils/polygonUtils.h"
-
 #include <functional>
 #include <memory>
 #include <optional>
 #include <vector>
+
+#include "../utils/polygon.h"
+#include "../utils/polygonUtils.h"
 
 namespace cura
 {

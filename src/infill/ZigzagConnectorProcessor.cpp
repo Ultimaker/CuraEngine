@@ -1,8 +1,9 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
+
+#include "infill/ZigzagConnectorProcessor.h"
 
 #include <cassert>
-#include "infill/ZigzagConnectorProcessor.h"
 
 using namespace cura;
 
@@ -76,9 +77,8 @@ bool ZigzagConnectorProcessor::shouldAddCurrentConnector(int start_scanline_idx,
         }
     }
 
-    const bool should_add =
-        (is_this_connection_even && !is_this_endpiece && !should_skip_this_connection) // normal connections that should be added
-        || (use_endpieces_ && is_this_endpiece);  // end piece if it is enabled;
+    const bool should_add = (is_this_connection_even && ! is_this_endpiece && ! should_skip_this_connection) // normal connections that should be added
+                         || (use_endpieces_ && is_this_endpiece); // end piece if it is enabled;
 
     return should_add;
 }
@@ -116,11 +116,10 @@ void ZigzagConnectorProcessor::registerPolyFinished()
 {
     int scanline_start_index = last_connector_index_;
     int scanline_end_index = first_connector_end_scanline_index_;
-    const bool is_endpiece = is_first_connector_ || (!is_first_connector_ && scanline_start_index == scanline_end_index);
+    const bool is_endpiece = is_first_connector_ || (! is_first_connector_ && scanline_start_index == scanline_end_index);
 
     // decides whether to add this zag according to the following rules
-    if ((is_endpiece && use_endpieces_)
-        || (!is_endpiece && shouldAddCurrentConnector(scanline_start_index, scanline_end_index)))
+    if ((is_endpiece && use_endpieces_) || (! is_endpiece && shouldAddCurrentConnector(scanline_start_index, scanline_end_index)))
     {
         // for convenience, put every point in one vector
         for (const Point& point : first_connector_)
@@ -145,7 +144,7 @@ void ZigzagConnectorProcessor::addZagConnector(std::vector<Point>& points, bool 
         return;
     }
     Polygon polyline(points);
-    if (is_endpiece && !connected_endpieces_)
+    if (is_endpiece && ! connected_endpieces_)
     {
         polyline.pop_back();
     }
