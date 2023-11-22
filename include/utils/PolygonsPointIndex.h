@@ -47,7 +47,7 @@ public:
      * \param poly_idx The index of the sub-polygon to point to.
      * \param point_idx The index of the vertex in the sub-polygon.
      */
-    PathsPointIndex(const Paths* polygons, unsigned int poly_idx, unsigned int point_idx)
+    PathsPointIndex(const Paths* polygons, size_t poly_idx, size_t point_idx)
         : polygons_(polygons)
         , poly_idx_(poly_idx)
         , point_idx_(point_idx)
