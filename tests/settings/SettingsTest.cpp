@@ -3,6 +3,11 @@
 
 #include "settings/Settings.h" //The class under test.
 
+#include <cmath> //For std::numbers::pi.
+#include <memory> //For shared_ptr.
+
+#include <gtest/gtest.h>
+
 #include "Application.h" //To test extruder train settings.
 #include "ExtruderTrain.h"
 #include "Slice.h"
@@ -16,10 +21,6 @@
 #include "settings/types/Velocity.h"
 #include "utils/Coord_t.h"
 #include "utils/Matrix4x3D.h" //Testing matrix transformation settings.
-
-#include <cmath> //For std::numbers::pi.
-#include <gtest/gtest.h>
-#include <memory> //For shared_ptr.
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
@@ -124,7 +125,8 @@ TEST_F(SettingsTest, AddSettingAngleRadians)
     EXPECT_DOUBLE_EQ(AngleRadians(std::numbers::pi), settings.get<AngleRadians>("test_setting")) << "180 degrees is 1 pi radians.";
 
     settings.add("test_setting", "810");
-    EXPECT_NEAR(AngleRadians(std::numbers::pi / 2.0), settings.get<AngleRadians>("test_setting"), 0.00000001) << "810 degrees in clock arithmetic is 90 degrees, which is 0.5 pi radians.";
+    EXPECT_NEAR(AngleRadians(std::numbers::pi / 2.0), settings.get<AngleRadians>("test_setting"), 0.00000001)
+        << "810 degrees in clock arithmetic is 90 degrees, which is 0.5 pi radians.";
 }
 
 TEST_F(SettingsTest, AddSettingAngleDegrees)
@@ -142,7 +144,7 @@ TEST_F(SettingsTest, AddSettingTemperature)
 TEST_F(SettingsTest, AddSettingVelocity)
 {
     settings.add("test_setting", "12.345");
-    EXPECT_DOUBLE_EQ(Velocity { 12.345 }, settings.get<Velocity>("test_setting"));
+    EXPECT_DOUBLE_EQ(Velocity{ 12.345 }, settings.get<Velocity>("test_setting"));
 
     settings.add("test_setting", "-78");
     EXPECT_DOUBLE_EQ(Velocity{ -78.0 }, settings.get<Velocity>("test_setting"));
@@ -151,16 +153,16 @@ TEST_F(SettingsTest, AddSettingVelocity)
 TEST_F(SettingsTest, AddSettingRatio)
 {
     settings.add("test_setting", "1.618");
-    EXPECT_DOUBLE_EQ(Ratio { 0.01618 }, settings.get<Ratio>("test_setting")) << "With ratios, the input is interpreted in percentages.";
+    EXPECT_DOUBLE_EQ(Ratio{ 0.01618 }, settings.get<Ratio>("test_setting")) << "With ratios, the input is interpreted in percentages.";
 }
 
 TEST_F(SettingsTest, AddSettingDuration)
 {
     settings.add("test_setting", "1234.5678");
-    EXPECT_DOUBLE_EQ(Duration { 1234.5678 }, settings.get<Duration>("test_setting"));
+    EXPECT_DOUBLE_EQ(Duration{ 1234.5678 }, settings.get<Duration>("test_setting"));
 
     settings.add("test_setting", "-1234.5678");
-    EXPECT_DOUBLE_EQ(Duration { 0 }, settings.get<Duration>("test_setting")) << "Negative duration doesn't exist, so it gets rounded to 0.";
+    EXPECT_DOUBLE_EQ(Duration{ 0 }, settings.get<Duration>("test_setting")) << "Negative duration doesn't exist, so it gets rounded to 0.";
 }
 
 TEST_F(SettingsTest, AddSettingFlowTempGraph)
@@ -244,7 +246,7 @@ TEST_F(SettingsTest, LimitToExtruder)
 
     // Add a setting to the extruder this is limiting to.
     const std::string limit_extruder_value = "I was gonna tell a time travelling joke but you didn't like it.";
-    current_slice->scene.extruders[2].settings.add("test_setting", limit_extruder_value);
+    current_slice->scene.extruders[2].settings_.add("test_setting", limit_extruder_value);
     current_slice->scene.limit_to_extruder.emplace("test_setting", &current_slice->scene.extruders[2]);
 
     // Add a decoy setting to the main scene to make sure that we aren't getting the global setting instead.

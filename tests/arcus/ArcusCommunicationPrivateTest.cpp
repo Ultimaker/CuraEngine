@@ -2,16 +2,19 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "communication/ArcusCommunicationPrivate.h" //The class we're testing.
+
+#include <array>
+#include <cmath>
+#include <filesystem>
+#include <fstream>
+
+#include <gtest/gtest.h>
+
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "MockSocket.h"
 #include "Slice.h"
 #include "utils/Coord_t.h"
-#include <array>
-#include <cmath>
-#include <filesystem>
-#include <fstream>
-#include <gtest/gtest.h>
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
@@ -193,7 +196,8 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
 
     // - - Add settings to the mesh:
     std::map<std::string, std::string> mesh_settings = {
-        { "extruder_nr", "0" }, { "center_object", "1" }, { "mesh_position_x", "0" }, { "mesh_position_y", "0" }, { "mesh_position_z", "0" }, { "infill_mesh", "0" }, { "cutting_mesh", "0" }, { "anti_overhang_mesh", "0" },
+        { "extruder_nr", "0" },     { "center_object", "1" }, { "mesh_position_x", "0" }, { "mesh_position_y", "0" },
+        { "mesh_position_z", "0" }, { "infill_mesh", "0" },   { "cutting_mesh", "0" },    { "anti_overhang_mesh", "0" },
     };
     for (std::pair<std::string, std::string> key_value : mesh_settings)
     {
@@ -234,12 +238,12 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
     std::array<coord_t, 3> max_coords = { std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min() };
     for (const auto& vertex : vertices)
     {
-        min_coords[0] = std::min(vertex.p_.x, min_coords[0]);
-        min_coords[1] = std::min(vertex.p_.y, min_coords[1]);
-        min_coords[2] = std::min(vertex.p_.z, min_coords[2]);
-        max_coords[0] = std::max(vertex.p_.x, max_coords[0]);
-        max_coords[1] = std::max(vertex.p_.y, max_coords[1]);
-        max_coords[2] = std::max(vertex.p_.z, max_coords[2]);
+        min_coords[0] = std::min(vertex.p_.x_, min_coords[0]);
+        min_coords[1] = std::min(vertex.p_.y_, min_coords[1]);
+        min_coords[2] = std::min(vertex.p_.z_, min_coords[2]);
+        max_coords[0] = std::max(vertex.p_.x_, max_coords[0]);
+        max_coords[1] = std::max(vertex.p_.y_, max_coords[1]);
+        max_coords[2] = std::max(vertex.p_.z_, max_coords[2]);
     }
 
     // - Then, just compare:

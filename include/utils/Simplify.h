@@ -41,6 +41,23 @@ class Simplify
 {
 public:
     /*!
+     * Line segments shorter than this size should be considered for removal.
+     */
+    coord_t max_resolution_;
+
+    /*!
+     * If removing a vertex causes a deviation further than this, it may not be
+     * removed.
+     */
+    coord_t max_deviation_;
+
+    /*!
+     * If removing a vertex causes the covered area of the line segments to
+     * change by more than this, it may not be removed.
+     */
+    coord_t max_area_deviation_;
+
+    /*!
      * Construct a simplifier, storing the simplification parameters in the
      * instance (as a factory pattern).
      * \param max_resolution Line segments smaller than this are considered for
@@ -471,24 +488,6 @@ protected:
      * \return The area deviation that would be caused by removing the vertex.
      */
     coord_t getAreaDeviation(const ExtrusionJunction& before, const ExtrusionJunction& vertex, const ExtrusionJunction& after) const;
-
-private:
-    /*!
-     * Line segments shorter than this size should be considered for removal.
-     */
-    coord_t max_resolution_;
-
-    /*!
-     * If removing a vertex causes a deviation further than this, it may not be
-     * removed.
-     */
-    coord_t max_deviation_;
-
-    /*!
-     * If removing a vertex causes the covered area of the line segments to
-     * change by more than this, it may not be removed.
-     */
-    coord_t max_area_deviation_;
 };
 
 } // namespace cura

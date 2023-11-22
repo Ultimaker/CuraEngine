@@ -80,12 +80,12 @@ public:
      * The location where the nozzle is assumed to start from before printing
      * these parts.
      */
-    const Point2LL start_point_;
+    Point2LL start_point_;
 
     /*!
      * Seam settings.
      */
-    const ZSeamConfig seam_config_;
+    ZSeamConfig seam_config_;
 
     static const std::unordered_multimap<Path, Path> no_order_requirements_;
 
@@ -104,7 +104,7 @@ public:
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
     PathOrderOptimizer(
-        const Point2LL start_point,
+        const Point2LL& start_point,
         const ZSeamConfig seam_config = ZSeamConfig(),
         const bool detect_loops = false,
         const Polygons* combing_boundary = nullptr,
@@ -268,7 +268,7 @@ protected:
      * polygons. This then allows the optimizer to decide on a seam location
      * that is not one of the endpoints of the polyline.
      */
-    const bool detect_loops_;
+    bool detect_loops_;
 
     /*!
      * Whether to reverse the ordering completely.
@@ -276,7 +276,7 @@ protected:
      * This reverses the order in which parts are printed, and inverts the
      * direction of each path as well.
      */
-    const bool reverse_direction_;
+    bool reverse_direction_;
 
     /*
      * Whether to print all outer walls in a group, one after another.
@@ -284,7 +284,7 @@ protected:
      * If this is enabled outer walls will be printed first and then all other
      * walls will be printed. If reversed they will be printed last.
      */
-    const bool _group_outer_walls;
+    bool _group_outer_walls;
 
     /*!
      * Order requirements on the paths.

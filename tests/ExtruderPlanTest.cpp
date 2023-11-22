@@ -1,11 +1,12 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "LayerPlan.h" //Code under test.
-#include "pathPlanning/SpeedDerivatives.h"
+#include <numeric> //For calculating averages.
 
 #include <gtest/gtest.h>
-#include <numeric> //For calculating averages.
+
+#include "LayerPlan.h" //Code under test.
+#include "pathPlanning/SpeedDerivatives.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
@@ -71,8 +72,16 @@ public:
     GCodePathConfig travel_config;
 
     ExtruderPlanTestPathCollection()
-        : extrusion_config(GCodePathConfig{ .type = PrintFeatureType::OuterWall, .line_width = 400, .layer_thickness = 100, .flow = 1.0_r, .speed_derivatives = SpeedDerivatives { .speed = 50.0, .acceleration = 1000.0, .jerk = 10.0 } })
-        , travel_config(GCodePathConfig{ .type = PrintFeatureType::MoveCombing, .line_width = 0, .layer_thickness = 100, .flow = 0.0_r, .speed_derivatives = SpeedDerivatives { .speed = 120.0, .acceleration = 5000.0, .jerk = 30.0 } })
+        : extrusion_config(GCodePathConfig{ .type = PrintFeatureType::OuterWall,
+                                            .line_width = 400,
+                                            .layer_thickness = 100,
+                                            .flow = 1.0_r,
+                                            .speed_derivatives = SpeedDerivatives{ .speed = 50.0, .acceleration = 1000.0, .jerk = 10.0 } })
+        , travel_config(GCodePathConfig{ .type = PrintFeatureType::MoveCombing,
+                                         .line_width = 0,
+                                         .layer_thickness = 100,
+                                         .flow = 0.0_r,
+                                         .speed_derivatives = SpeedDerivatives{ .speed = 120.0, .acceleration = 5000.0, .jerk = 30.0 } })
     {
         std::shared_ptr<SliceMeshStorage> mesh = nullptr;
         constexpr Ratio flow_1 = 1.0_r;
@@ -363,10 +372,10 @@ public:
  */
 TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompensated)
 {
-    extruder_plan.paths = GetParam();
+    extruder_plan.paths_ = GetParam();
     std::vector<Ratio> original_widths;
     std::vector<Ratio> original_speeds;
-    for (const GCodePath& path : extruder_plan.paths)
+    for (const GCodePath& path : extruder_plan.paths_)
     {
         original_widths.push_back(path.width_factor);
         original_speeds.push_back(path.speed_factor);
@@ -374,11 +383,11 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompe
 
     extruder_plan.applyBackPressureCompensation(0.0_r);
 
-    ASSERT_EQ(extruder_plan.paths.size(), original_widths.size()) << "Number of paths may not have changed.";
-    for (size_t i = 0; i < extruder_plan.paths.size(); ++i)
+    ASSERT_EQ(extruder_plan.paths_.size(), original_widths.size()) << "Number of paths may not have changed.";
+    for (size_t i = 0; i < extruder_plan.paths_.size(); ++i)
     {
-        EXPECT_NEAR(original_widths[i], extruder_plan.paths[i].width_factor, error_margin) << "The width did not change. Back pressure compensation doesn't adjust line width.";
-        EXPECT_NEAR(original_speeds[i], extruder_plan.paths[i].speed_factor, error_margin) << "The speed factor did not change, since the compensation factor was 0.";
+        EXPECT_NEAR(original_widths[i], extruder_plan.paths_[i].width_factor, error_margin) << "The width did not change. Back pressure compensation doesn't adjust line width.";
+        EXPECT_NEAR(original_speeds[i], extruder_plan.paths_[i].speed_factor, error_margin) << "The speed factor did not change, since the compensation factor was 0.";
     }
 }
 
@@ -388,24 +397,24 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompe
  */
 TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
 {
-    extruder_plan.paths = GetParam();
+    extruder_plan.paths_ = GetParam();
     extruder_plan.applyBackPressureCompensation(1.0_r);
 
     auto first_extrusion = std::find_if(
-        extruder_plan.paths.begin(),
-        extruder_plan.paths.end(),
+        extruder_plan.paths_.begin(),
+        extruder_plan.paths_.end(),
         [&](GCodePath& path)
         {
             return shouldCountPath(path);
         });
-    if (first_extrusion == extruder_plan.paths.end()) // Only travel moves in this plan.
+    if (first_extrusion == extruder_plan.paths_.end()) // Only travel moves in this plan.
     {
         return;
     }
     // All flow rates must be equal to this one.
     const double first_flow_mm3_per_sec = calculatePathWidth(*first_extrusion);
 
-    for (GCodePath& path : extruder_plan.paths)
+    for (GCodePath& path : extruder_plan.paths_)
     {
         if (! shouldCountPath(path))
         {
@@ -422,11 +431,11 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
  */
 TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
 {
-    extruder_plan.paths = GetParam();
+    extruder_plan.paths_ = GetParam();
 
     // Calculate what the flow rates were originally.
     std::vector<double> original_flows;
-    for (GCodePath& path : extruder_plan.paths)
+    for (GCodePath& path : extruder_plan.paths_)
     {
         if (! shouldCountPath(path))
         {
@@ -441,7 +450,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
 
     // Calculate the new flow rates.
     std::vector<double> new_flows;
-    for (GCodePath& path : extruder_plan.paths)
+    for (GCodePath& path : extruder_plan.paths_)
     {
         if (! shouldCountPath(path))
         {
@@ -471,7 +480,7 @@ TEST_F(ExtruderPlanTest, BackPressureCompensationEmptyPlan)
     // The extruder plan starts off empty. So immediately try applying back-pressure compensation.
     extruder_plan.applyBackPressureCompensation(0.5_r);
 
-    EXPECT_TRUE(extruder_plan.paths.empty()) << "The paths in the extruder plan should remain empty. Also it shouldn't crash.";
+    EXPECT_TRUE(extruder_plan.paths_.empty()) << "The paths in the extruder plan should remain empty. Also it shouldn't crash.";
 }
 } // namespace cura
 // NOLINTEND(*-magic-numbers)
