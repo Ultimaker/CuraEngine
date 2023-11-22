@@ -18,8 +18,8 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/AABB.h"
 #include "utils/AABB3D.h"
-#include "utils/Point2LL.h"
 #include "utils/NoCopy.h"
+#include "utils/Point2LL.h"
 #include "utils/polygon.h"
 
 // libArachne

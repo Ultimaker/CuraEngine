@@ -4,14 +4,14 @@
 #ifndef LIGHTNING_LAYER_H
 #define LIGHTNING_LAYER_H
 
-#include "../utils/SquareGrid.h"
-#include "../utils/polygonUtils.h"
-#include "infill/LightningTreeNode.h"
-
 #include <list>
 #include <memory>
 #include <unordered_map>
 #include <vector>
+
+#include "../utils/SquareGrid.h"
+#include "../utils/polygonUtils.h"
+#include "infill/LightningTreeNode.h"
 
 namespace cura
 {

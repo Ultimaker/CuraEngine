@@ -662,8 +662,8 @@ void LayerPlan::addWallLine(
         {
             // if we are accelerating after a bridge line, the segment length is less than the whole line length
             Point2LL segment_end = (speed_factor == 1 || distance_to_line_end < acceleration_segment_len)
-                                  ? line_end
-                                  : cur_point + (line_end - cur_point) * acceleration_segment_len / distance_to_line_end;
+                                     ? line_end
+                                     : cur_point + (line_end - cur_point) * acceleration_segment_len / distance_to_line_end;
 
             // flow required for the next line segment - when accelerating after a bridge segment, the flow is increased in inverse proportion to the speed_factor
             // so the slower the feedrate, the greater the flow - the idea is to get the extruder back to normal pressure as quickly as possible

@@ -153,7 +153,7 @@ bool VoxelUtils::walkDilatedAreas(const Polygons& polys, coord_t z, const Dilati
 {
     Polygons translated = polys;
     const Point3LL translation = (Point3LL(1, 1, 1) - kernel.kernel_size_ % 2) * cell_size_ / 2 // offset half a cell when using a n even kernel
-                             - cell_size_ / 2; // offset half a cell so that the dots of spreadDotsArea are centered on the middle of the cell isntead of the lower corners.
+                               - cell_size_ / 2; // offset half a cell so that the dots of spreadDotsArea are centered on the middle of the cell isntead of the lower corners.
     if (translation.x_ && translation.y_)
     {
         translated.translate(Point2LL(translation.x_, translation.y_));

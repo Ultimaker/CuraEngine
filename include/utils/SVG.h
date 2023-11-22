@@ -8,8 +8,8 @@
 
 #include "AABB.h"
 #include "ExtrusionLine.h" //To accept variable-width paths.
-#include "Point2LL.h"
 #include "NoCopy.h"
+#include "Point2LL.h"
 
 namespace cura
 {

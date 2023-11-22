@@ -1,12 +1,12 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef MINIMUMSPANNINGTREE_H
 #define MINIMUMSPANNINGTREE_H
 
-#include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 #include "Point2LL.h"
 
@@ -26,7 +26,8 @@ class MinimumSpanningTree
      * While edges are meant to be undirected, these do have a start and end
      * point.
      */
-    struct Edge {
+    struct Edge
+    {
         /**
          * The point at which this edge starts.
          */
@@ -37,6 +38,7 @@ class MinimumSpanningTree
          */
         const Point2LL end;
     };
+
 public:
     MinimumSpanningTree() = default;
     /*!
@@ -76,7 +78,6 @@ private:
     AdjacencyGraph_t prim(std::vector<Point2LL> vertices) const;
 };
 
-}
+} // namespace cura
 
 #endif /* MINIMUMSPANNINGTREE_H */
-

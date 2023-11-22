@@ -28,8 +28,9 @@ LightningDistanceField::LightningDistanceField(const coord_t& radius, const Poly
         [&radius](const UnsupCell& a, const UnsupCell& b)
         {
             constexpr coord_t prime_for_hash = 191;
-            return std::abs(b.dist_to_boundary_ - a.dist_to_boundary_) > radius ? a.dist_to_boundary_ < b.dist_to_boundary_
-                                                                                : (std::hash<Point2LL>{}(a.loc_) % prime_for_hash) < (std::hash<Point2LL>{}(b.loc_) % prime_for_hash);
+            return std::abs(b.dist_to_boundary_ - a.dist_to_boundary_) > radius
+                     ? a.dist_to_boundary_ < b.dist_to_boundary_
+                     : (std::hash<Point2LL>{}(a.loc_) % prime_for_hash) < (std::hash<Point2LL>{}(b.loc_) % prime_for_hash);
         });
     for (auto it = unsupported_points_.begin(); it != unsupported_points_.end(); ++it)
     {

@@ -19,8 +19,8 @@
 #include "sliceDataStorage.h"
 #include "timeEstimate.h"
 #include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
-#include "utils/Point2LL.h"
 #include "utils/NoCopy.h"
+#include "utils/Point2LL.h"
 
 namespace cura
 {
@@ -128,7 +128,7 @@ private:
     double extrusion_offset_factor_; //!< default 1
 
     Point3LL current_position_; //!< The last build plate coordinates written to gcode (which might be different from actually written gcode coordinates when the extruder offset is
-                              //!< encoded in the gcode)
+                                //!< encoded in the gcode)
     Velocity current_speed_; //!< The current speed (F values / 60) in mm/s
     Acceleration current_print_acceleration_; //!< The current acceleration (in mm/s^2) used for print moves (and also for travel moves if the gcode flavor doesn't have separate
                                               //!< travel acceleration)

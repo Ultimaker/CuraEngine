@@ -57,9 +57,9 @@ private:
 
     PointMatrix transformation_matrix_; //!< The transformation which rotates everything such that the scanline is aligned with the x-axis.
     Point2LL transformed_start_point_; //!< The LinePolygonsCrossings::startPoint as transformed by Comb::transformation_matrix such that it has (roughly) the same Y as
-                                    //!< transformed_endPoint
+                                       //!< transformed_endPoint
     Point2LL transformed_end_point_; //!< The LinePolygonsCrossings::endPoint as transformed by Comb::transformation_matrix such that it has (roughly) the same Y as
-                                  //!< transformed_startPoint
+                                     //!< transformed_startPoint
 
 
     /*!

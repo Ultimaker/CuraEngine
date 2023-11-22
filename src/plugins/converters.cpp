@@ -4,6 +4,10 @@
 
 #include "plugins/converters.h"
 
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/filter.hpp>
+#include <range/v3/view/transform.hpp>
+
 #include "GCodePathConfig.h"
 #include "WallToolPaths.h"
 #include "pathPlanning/GCodePath.h"
@@ -11,10 +15,6 @@
 #include "settings/Settings.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/polygon.h"
-
-#include <range/v3/range/conversion.hpp>
-#include <range/v3/view/filter.hpp>
-#include <range/v3/view/transform.hpp>
 
 namespace cura::plugins
 {

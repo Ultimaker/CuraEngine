@@ -4,6 +4,11 @@
 #ifndef PLUGINS_SLOTS_H
 #define PLUGINS_SLOTS_H
 
+#include <exception>
+#include <memory>
+#include <tuple>
+#include <utility>
+
 #include "WallToolPaths.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
 #include "cura/plugins/slots/gcode_paths/v0/modify.grpc.pb.h"
@@ -20,11 +25,6 @@
 #include "utils/Simplify.h" // TODO: Remove once the simplify slot has been removed
 #include "utils/polygon.h"
 #include "utils/types/char_range_literal.h"
-
-#include <exception>
-#include <memory>
-#include <tuple>
-#include <utility>
 
 namespace cura
 {
