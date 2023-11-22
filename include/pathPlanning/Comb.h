@@ -177,7 +177,7 @@ private:
      * \param start_inside_poly[out] The polygon in which the point has been moved
      * \return Whether we have moved the point inside
      */
-    bool moveInside(Polygons& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point2LL& dest_point, unsigned int& start_inside_poly);
+    bool moveInside(Polygons& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point2LL& dest_point, size_t &start_inside_poly);
 
     void moveCombPathInside(Polygons& boundary_inside, Polygons& boundary_inside_optimal, CombPath& comb_path_input, CombPath& comb_path_output);
 

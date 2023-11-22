@@ -633,9 +633,10 @@ protected:
         // Precompute segments lengths because we are going to need them multiple times
         std::vector<coord_t> segments_sizes(path.converted_->size());
         coord_t total_length = 0;
-        for (const auto& [i, here] : **path.converted_ | ranges::views::enumerate)
+        for (size_t i = 0; i < path.converted_->size(); ++i)
         {
-            const Point2LL& next = (*path.converted_)[(i + 1) % path.converted_->size()];
+            const Point2LL& here = path.converted_->at(i);
+            const Point2LL& next = path.converted_->at((i + 1) % path.converted_->size());
             const coord_t segment_size = vSize(next - here);
             segments_sizes[i] = segment_size;
             total_length += segment_size;
@@ -708,7 +709,7 @@ protected:
                 // ties are broken by favouring points with lower x-coord
                 // if x-coord for both points are equal then break ties by
                 // favouring points with lower y-coord
-                const Point2LL& best_point = (*path.converted_)[best_i];
+                const Point2LL& best_point = path.converted_->at(best_i);
                 if (std::abs(here.Y - best_point.Y) <= EPSILON ? best_point.X < here.X : best_point.Y < here.Y)
                 {
                     best_score = std::min(best_score, score);
@@ -758,13 +759,13 @@ protected:
             travelled_distance += segment_size;
         }
 
-        const Point2LL& next_pos = (*path.converted_)[(here + actual_delta + path.converted_->size()) % path.converted_->size()];
+        const Point2LL& next_pos = path.converted_->at((here + actual_delta + path.converted_->size()) % path.converted_->size());
 
         if (travelled_distance > distance) [[likely]]
         {
             // We have overtaken the required distance, go backward on the last segment
             int prev = (here + actual_delta - direction + path.converted_->size()) % path.converted_->size();
-            const Point2LL& prev_pos = (*path.converted_)[prev];
+            const Point2LL& prev_pos = path.converted_->at(prev);
 
             const Point2LL vector = next_pos - prev_pos;
             const Point2LL unit_vector = (vector * 1000) / segment_size;
@@ -794,7 +795,7 @@ protected:
     static double cornerAngle(const OrderablePath& path, int i, const std::vector<coord_t>& segments_sizes, coord_t total_length, const coord_t angle_query_distance = 1000)
     {
         const coord_t bounded_distance = std::min(angle_query_distance, total_length / 2);
-        const Point2LL& here = (*path.converted_)[i];
+        const Point2LL& here = path.converted_->at(i);
         const Point2LL next = findNeighbourPoint(path, i, bounded_distance, segments_sizes);
         const Point2LL previous = findNeighbourPoint(path, i, -bounded_distance, segments_sizes);
 

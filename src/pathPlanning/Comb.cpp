@@ -103,16 +103,16 @@ bool Comb::calc(
     }
     const Point2LL travel_end_point_before_combing = end_point;
     // Move start and end point inside the optimal comb boundary
-    unsigned int start_inside_poly = NO_INDEX;
+    size_t start_inside_poly = NO_INDEX;
     const bool start_inside = moveInside(boundary_inside_optimal_, _start_inside, inside_loc_to_line_optimal_.get(), start_point, start_inside_poly);
 
-    unsigned int end_inside_poly = NO_INDEX;
+    size_t end_inside_poly = NO_INDEX;
     const bool end_inside = moveInside(boundary_inside_optimal_, _end_inside, inside_loc_to_line_optimal_.get(), end_point, end_inside_poly);
 
-    unsigned int start_part_boundary_poly_idx = NO_INDEX; // Added initial value to stop MSVC throwing an exception in debug mode
-    unsigned int end_part_boundary_poly_idx = NO_INDEX;
-    unsigned int start_part_idx = (start_inside_poly == NO_INDEX) ? NO_INDEX : parts_view_inside_optimal_.getPartContaining(start_inside_poly, &start_part_boundary_poly_idx);
-    unsigned int end_part_idx = (end_inside_poly == NO_INDEX) ? NO_INDEX : parts_view_inside_optimal_.getPartContaining(end_inside_poly, &end_part_boundary_poly_idx);
+    size_t start_part_boundary_poly_idx = NO_INDEX; // Added initial value to stop MSVC throwing an exception in debug mode
+    size_t end_part_boundary_poly_idx = NO_INDEX;
+    size_t start_part_idx = (start_inside_poly == NO_INDEX) ? NO_INDEX : parts_view_inside_optimal_.getPartContaining(start_inside_poly, &start_part_boundary_poly_idx);
+    size_t end_part_idx = (end_inside_poly == NO_INDEX) ? NO_INDEX : parts_view_inside_optimal_.getPartContaining(end_inside_poly, &end_part_boundary_poly_idx);
 
     const bool fail_on_unavoidable_obstacles = perform_z_hops && perform_z_hops_only_when_collides;
 
@@ -137,18 +137,17 @@ bool Comb::calc(
     }
 
     // Move start and end point inside the minimum comb boundary
-    unsigned int start_inside_poly_min = NO_INDEX;
+    size_t start_inside_poly_min = NO_INDEX;
     const bool start_inside_min = moveInside(boundary_inside_minimum_, _start_inside, inside_loc_to_line_minimum_.get(), start_point, start_inside_poly_min);
 
-    unsigned int end_inside_poly_min = NO_INDEX;
+    size_t end_inside_poly_min = NO_INDEX;
     const bool end_inside_min = moveInside(boundary_inside_minimum_, _end_inside, inside_loc_to_line_minimum_.get(), end_point, end_inside_poly_min);
 
-    unsigned int start_part_boundary_poly_idx_min{};
-    unsigned int end_part_boundary_poly_idx_min{};
-    unsigned int start_part_idx_min
+    size_t start_part_boundary_poly_idx_min{};
+    size_t end_part_boundary_poly_idx_min{};
+    size_t start_part_idx_min
         = (start_inside_poly_min == NO_INDEX) ? NO_INDEX : parts_view_inside_minimum_.getPartContaining(start_inside_poly_min, &start_part_boundary_poly_idx_min);
-    unsigned int end_part_idx_min
-        = (end_inside_poly_min == NO_INDEX) ? NO_INDEX : parts_view_inside_minimum_.getPartContaining(end_inside_poly_min, &end_part_boundary_poly_idx_min);
+    size_t end_part_idx_min = (end_inside_poly_min == NO_INDEX) ? NO_INDEX : parts_view_inside_minimum_.getPartContaining(end_inside_poly_min, &end_part_boundary_poly_idx_min);
 
     CombPath result_path;
     bool comb_result;
@@ -425,7 +424,7 @@ Comb::Crossing::Crossing(
     }
 }
 
-bool Comb::moveInside(Polygons& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point2LL& dest_point, unsigned int& inside_poly)
+bool Comb::moveInside(Polygons& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point2LL& dest_point, size_t& inside_poly)
 {
     if (is_inside)
     {

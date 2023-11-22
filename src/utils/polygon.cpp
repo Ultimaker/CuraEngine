@@ -137,9 +137,9 @@ void Polygons::makeConvex()
     }
 }
 
-unsigned int Polygons::pointCount() const
+size_t Polygons::pointCount() const
 {
-    unsigned int count = 0;
+    size_t count = 0;
     for (const ClipperLib::Path& path : paths)
     {
         count += path.size();
@@ -211,7 +211,7 @@ bool Polygons::insideOld(Point2LL p, bool border_result) const
     return (crossings % 2) == 1;
 }
 
-unsigned int Polygons::findInside(Point2LL p, bool border_result)
+size_t Polygons::findInside(Point2LL p, bool border_result)
 {
     Polygons& thiss = *this;
     if (size() < 1)
@@ -223,7 +223,7 @@ unsigned int Polygons::findInside(Point2LL p, bool border_result)
     std::vector<int64_t> min_x(size(), std::numeric_limits<int64_t>::max());
     std::vector<int64_t> crossings(size());
 
-    for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
+    for (size_t poly_idx = 0; poly_idx < size(); poly_idx++)
     {
         PolygonRef poly = thiss[poly_idx];
         Point2LL p0 = poly.back();
@@ -256,9 +256,9 @@ unsigned int Polygons::findInside(Point2LL p, bool border_result)
     }
 
     int64_t min_x_uneven = std::numeric_limits<int64_t>::max();
-    unsigned int ret = NO_INDEX;
-    unsigned int n_unevens = 0;
-    for (unsigned int array_idx = 0; array_idx < size(); array_idx++)
+    size_t ret = NO_INDEX;
+    size_t n_unevens = 0;
+    for (size_t array_idx = 0; array_idx < size(); array_idx++)
     {
         if (crossings[array_idx] % 2 == 1)
         {
@@ -1508,17 +1508,17 @@ Polygons Polygons::tubeShape(const coord_t inner_offset, const coord_t outer_off
     return this->offset(outer_offset).difference(this->offset(-inner_offset));
 }
 
-unsigned int PartsView::getPartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx) const
+size_t PartsView::getPartContaining(size_t poly_idx, size_t* boundary_poly_idx) const
 {
     const PartsView& partsView = *this;
-    for (unsigned int part_idx_now = 0; part_idx_now < partsView.size(); part_idx_now++)
+    for (size_t part_idx_now = 0; part_idx_now < partsView.size(); part_idx_now++)
     {
-        const std::vector<unsigned int>& partView = partsView[part_idx_now];
+        const std::vector<size_t>& partView = partsView[part_idx_now];
         if (partView.size() == 0)
         {
             continue;
         }
-        std::vector<unsigned int>::const_iterator result = std::find(partView.begin(), partView.end(), poly_idx);
+        std::vector<size_t>::const_iterator result = std::find(partView.begin(), partView.end(), poly_idx);
         if (result != partView.end())
         {
             if (boundary_poly_idx)
@@ -1531,13 +1531,13 @@ unsigned int PartsView::getPartContaining(unsigned int poly_idx, unsigned int* b
     return NO_INDEX;
 }
 
-PolygonsPart PartsView::assemblePart(unsigned int part_idx) const
+PolygonsPart PartsView::assemblePart(size_t part_idx) const
 {
     const PartsView& partsView = *this;
     PolygonsPart ret;
     if (part_idx != NO_INDEX)
     {
-        for (unsigned int poly_idx_ff : partsView[part_idx])
+        for (size_t poly_idx_ff : partsView[part_idx])
         {
             ret.add(polygons_[poly_idx_ff]);
         }
@@ -1545,10 +1545,10 @@ PolygonsPart PartsView::assemblePart(unsigned int part_idx) const
     return ret;
 }
 
-PolygonsPart PartsView::assemblePartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx) const
+PolygonsPart PartsView::assemblePartContaining(size_t poly_idx, size_t* boundary_poly_idx) const
 {
     PolygonsPart ret;
-    unsigned int part_idx = getPartContaining(poly_idx, boundary_poly_idx);
+    size_t part_idx = getPartContaining(poly_idx, boundary_poly_idx);
     if (part_idx != NO_INDEX)
     {
         return assemblePart(part_idx);
@@ -1580,7 +1580,7 @@ void Polygons::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Poly
     {
         ClipperLib::PolyNode* child = node->Childs[n];
         partsView.emplace_back();
-        unsigned int pos = partsView.size() - 1;
+        size_t pos = partsView.size() - 1;
         partsView[pos].push_back(reordered.size());
         reordered.add(child->Contour); // TODO: should this steal the internal representation for speed?
         for (int i = 0; i < child->ChildCount(); i++)

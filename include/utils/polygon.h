@@ -60,7 +60,7 @@ typedef std::list<Point2LL> ListPolygon; //!< A polygon represented by a linked 
 typedef std::vector<ListPolygon> ListPolygons; //!< Polygons represented by a vector of linked lists instead of a vector of vectors
 
 const static int clipper_init = (0);
-#define NO_INDEX (std::numeric_limits<unsigned int>::max())
+#define NO_INDEX (std::numeric_limits<size_t>::max())
 
 class ConstPolygonPointer;
 
@@ -496,16 +496,15 @@ public:
         return *this;
     }
 
-    Point2LL& operator[](unsigned int index)
+    Point2LL& operator[](size_t index)
     {
         POLY_ASSERT(index < size());
         return (*path)[index];
     }
 
-    const Point2LL& operator[](unsigned int index) const
+    const Point2LL& operator[](size_t index) const
     {
-        POLY_ASSERT(index < size());
-        return (*path)[index];
+        return ConstPolygonRef::operator[](index);
     }
 
     ClipperLib::Path::iterator begin()
@@ -549,9 +548,9 @@ public:
         path->emplace_back(args...);
     }
 
-    void remove(unsigned int index)
+    void remove(size_t index)
     {
-        POLY_ASSERT(index < size() && index <= static_cast<unsigned int>(std::numeric_limits<int>::max()));
+        POLY_ASSERT(index < size() && index <= static_cast<size_t>(std::numeric_limits<int>::max()));
         path->erase(path->begin() + index);
     }
 
@@ -833,7 +832,7 @@ public:
      */
     bool empty() const;
 
-    unsigned int pointCount() const; //!< Return the amount of points in all polygons
+    size_t pointCount() const; //!< Return the amount of points in all polygons
 
     PolygonRef operator[](size_t index)
     {
@@ -1173,7 +1172,7 @@ public:
      * \param border_result Whether a point exactly on a polygon counts as inside
      * \return The index of the polygon inside which the point \p p resides
      */
-    unsigned int findInside(Point2LL p, bool border_result = false);
+    size_t findInside(Point2LL p, bool border_result = false);
 
     /*!
      * Approximates the convex hull of the polygons.
@@ -1501,9 +1500,9 @@ public:
 
     void applyMatrix(const PointMatrix& matrix)
     {
-        for (unsigned int i = 0; i < paths.size(); i++)
+        for (size_t i = 0; i < paths.size(); i++)
         {
-            for (unsigned int j = 0; j < paths[i].size(); j++)
+            for (size_t j = 0; j < paths[i].size(); j++)
             {
                 paths[i][j] = matrix.apply(paths[i][j]);
             }
@@ -1512,9 +1511,9 @@ public:
 
     void applyMatrix(const Point3Matrix& matrix)
     {
-        for (unsigned int i = 0; i < paths.size(); i++)
+        for (size_t i = 0; i < paths.size(); i++)
         {
-            for (unsigned int j = 0; j < paths[i].size(); j++)
+            for (size_t j = 0; j < paths[i].size(); j++)
             {
                 paths[i][j] = matrix.apply(paths[i][j]);
             }
@@ -1554,7 +1553,7 @@ public:
  * Extension of vector<vector<unsigned int>> which is similar to a vector of PolygonParts, except the base of the container is indices to polygons into the original Polygons,
  * instead of the polygons themselves
  */
-class PartsView : public std::vector<std::vector<unsigned int>>
+class PartsView : public std::vector<std::vector<size_t>>
 {
 public:
     Polygons& polygons_;
@@ -1569,7 +1568,7 @@ public:
      * \param boundary_poly_idx Optional output parameter: The index of the boundary polygon of the part in \p polygons
      * \return The PolygonsPart containing the polygon with index \p poly_idx
      */
-    unsigned int getPartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx = nullptr) const;
+    size_t getPartContaining(size_t poly_idx, size_t* boundary_poly_idx = nullptr) const;
     /*!
      * Assemble the PolygonsPart of which the polygon with index \p poly_idx is part.
      *
@@ -1577,14 +1576,14 @@ public:
      * \param boundary_poly_idx Optional output parameter: The index of the boundary polygon of the part in \p polygons
      * \return The PolygonsPart containing the polygon with index \p poly_idx
      */
-    PolygonsPart assemblePartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx = nullptr) const;
+    PolygonsPart assemblePartContaining(size_t poly_idx, size_t* boundary_poly_idx = nullptr) const;
     /*!
      * Assemble the PolygonsPart of which the polygon with index \p poly_idx is part.
      *
      * \param part_idx The index of the part
      * \return The PolygonsPart with index \p poly_idx
      */
-    PolygonsPart assemblePart(unsigned int part_idx) const;
+    PolygonsPart assemblePart(size_t part_idx) const;
 };
 
 } // namespace cura
