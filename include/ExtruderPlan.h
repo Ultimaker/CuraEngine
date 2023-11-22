@@ -93,11 +93,10 @@ public:
     /*!
      * Applying fan speed changes for minimal layer times.
      *
-     * \param starting_position The position the head was before starting this extruder plan
      * \param minTime Maximum minimum layer time for all extruders in this layer
      * \param time_other_extr_plans The time spent on the other extruder plans in this layer
      */
-    void processFanSpeedForMinimalLayerTime(Point2LL starting_position, Duration maximum_cool_min_layer_time, double time_other_extr_plans);
+    void processFanSpeedForMinimalLayerTime(Duration maximum_cool_min_layer_time, double time_other_extr_plans);
 
     /*!
      * Applying fan speed changes for the first layers.

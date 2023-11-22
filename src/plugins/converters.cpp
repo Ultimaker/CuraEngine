@@ -85,9 +85,11 @@ handshake_response::native_value_type handshake_response::operator()(const hands
              .broadcast_subscriptions = std::set<int>(message.broadcast_subscriptions().begin(), message.broadcast_subscriptions().end()) };
 }
 
-simplify_request::value_type
-    simplify_request::operator()(const simplify_request::native_value_type& polygons, const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation)
-        const
+simplify_request::value_type simplify_request::operator()(
+    const simplify_request::native_value_type& polygons,
+    const coord_t max_resolution,
+    [[maybe_unused]] const coord_t max_deviation,
+    [[maybe_unused]] const coord_t max_area_deviation) const
 {
     value_type message{};
     if (polygons.empty())

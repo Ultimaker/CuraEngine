@@ -519,18 +519,12 @@ void LayerPlanBuffer::insertTempCommands()
         size_t extruder = extruder_plan.extruder_nr_;
         const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder].settings_;
         Duration time = extruder_plan.estimates_.getTotalUnretractedTime();
-        Ratio avg_flow;
-        if (time > 0.0)
-        {
-            avg_flow = extruder_plan.estimates_.material / time;
-        }
-        else
+        if (time <= 0.0)
         {
             assert(extruder_plan.estimates_.material == 0.0 && "No extrusion time should mean no material usage!");
-            avg_flow = 0.0;
         }
 
-        Temperature print_temp = preheat_config_.getTemp(extruder, avg_flow, extruder_plan.is_initial_layer_);
+        Temperature print_temp = preheat_config_.getTemp(extruder, extruder_plan.is_initial_layer_);
         Temperature initial_print_temp = extruder_settings.get<Temperature>("material_initial_print_temperature");
 
         if (extruder_plan.temperature_factor_ > 0) // force lower printing temperatures due to minimum layer time

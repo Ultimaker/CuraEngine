@@ -39,7 +39,7 @@ Duration Preheat::getTimeToGoFromTempToTemp(const size_t extruder, const Tempera
     return std::max(0.0_s, time);
 }
 
-Temperature Preheat::getTemp(const size_t extruder, const Ratio& flow, const bool is_initial_layer)
+Temperature Preheat::getTemp(const size_t extruder, const bool is_initial_layer)
 {
     const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder].settings_;
     if (is_initial_layer && extruder_settings.get<Temperature>("material_print_temperature_layer_0") != 0)

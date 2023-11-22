@@ -220,7 +220,7 @@ public:
         }
         else
         {
-            optimized_order = getOptimizerOrderWithConstraints(line_bucket_grid, snap_radius, *order_requirements_);
+            optimized_order = getOptimizerOrderWithConstraints(*order_requirements_);
         }
 
 
@@ -300,10 +300,6 @@ protected:
 
         std::unordered_map<OrderablePath*, bool> picked(paths_.size()); // Fixed size boolean flag for whether each path is already in the optimized vector.
 
-        auto isPicked = [&picked](OrderablePath* c)
-        {
-            return picked[c];
-        };
         auto notPicked = [&picked](OrderablePath* c)
         {
             return ! picked[c];
@@ -356,8 +352,7 @@ protected:
         return optimized_order;
     }
 
-    std::vector<OrderablePath>
-        getOptimizerOrderWithConstraints(SparsePointGridInclusive<size_t> line_bucket_grid, size_t snap_radius, const std::unordered_multimap<Path, Path>& order_requirements)
+    std::vector<OrderablePath> getOptimizerOrderWithConstraints(const std::unordered_multimap<Path, Path>& order_requirements)
     {
         std::vector<OrderablePath> optimized_order; // To store our result in.
 
@@ -422,7 +417,7 @@ protected:
         };
 
         const std::function<std::nullptr_t(const Path, const std::nullptr_t)> handle_node
-            = [&current_position, &optimized_order, this](const Path current_node, const std::nullptr_t _state)
+            = [&current_position, &optimized_order, this](const Path current_node, [[maybe_unused]] const std::nullptr_t state)
         {
             // We should make map from node <-> path for this stuff
             for (auto& path : paths_)
@@ -652,7 +647,6 @@ protected:
         {
             // For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
             // For SHARPEST_CORNER, use a fixed starting score of 0.
-            const coord_t distance = (combing_boundary_ == nullptr) ? getDirectDistance(here, target_pos) : getCombingDistance(here, target_pos);
             const double score_distance = (seam_config_.type_ == EZSeamType::SHARPEST_CORNER && seam_config_.corner_pref_ != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
                                             ? MM2INT(10)
                                             : vSize2(here - target_pos);

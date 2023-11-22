@@ -80,7 +80,7 @@ void CommandLine::sendGCodePrefix(const std::string&) const
     // TODO: Right now this is done directly in the g-code writer. For consistency it should be moved here?
 }
 
-void CommandLine::sendSliceUUID(const std::string& slice_uuid) const
+void CommandLine::sendSliceUUID([[maybe_unused]] const std::string& slice_uuid) const
 {
     // pass
 }

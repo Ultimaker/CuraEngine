@@ -1133,7 +1133,7 @@ void LayerPlan::addWall(
 
 void LayerPlan::addInfillWall(const ExtrusionLine& wall, const GCodePathConfig& path_config, bool force_retract)
 {
-    assert(("All empty walls should have been filtered at this stage", ! wall.empty()));
+    assert(! wall.empty() && "All empty walls should have been filtered at this stage");
     ExtrusionJunction junction{ *wall.begin() };
     addTravel(junction.p_, force_retract);
 
@@ -1701,7 +1701,7 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point2LL starting_
     return estimates_;
 }
 
-void ExtruderPlan::processFanSpeedForMinimalLayerTime(Point2LL starting_position, Duration minTime, double time_other_extr_plans)
+void ExtruderPlan::processFanSpeedForMinimalLayerTime(Duration minTime, double time_other_extr_plans)
 {
     /*
                    min layer time
@@ -1778,7 +1778,6 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
                                             return a.extruder_nr_ < b.extruder_nr_;
                                         })
                                         ->extruder_nr_;
-    Point2LL starting_position_last_extruder;
     unsigned int last_extruder_idx;
     double other_extr_plan_time = 0.0;
     Duration maximum_cool_min_layer_time;
@@ -1792,7 +1791,6 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
             extruder_plan.computeNaiveTimeEstimates(starting_position);
             if (extruder_plan.extruder_nr_ == last_extruder_nr)
             {
-                starting_position_last_extruder = starting_position;
                 last_extruder_idx = extr_plan_idx;
             }
             else
@@ -1814,7 +1812,7 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
     // apply minimum layer time behaviour
     ExtruderPlan& last_extruder_plan = extruder_plans_[last_extruder_idx];
     last_extruder_plan.forceMinimalLayerTime(maximum_cool_min_layer_time, other_extr_plan_time);
-    last_extruder_plan.processFanSpeedForMinimalLayerTime(starting_position_last_extruder, maximum_cool_min_layer_time, other_extr_plan_time);
+    last_extruder_plan.processFanSpeedForMinimalLayerTime(maximum_cool_min_layer_time, other_extr_plan_time);
 }
 
 

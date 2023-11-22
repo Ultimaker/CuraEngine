@@ -24,7 +24,7 @@ namespace cura
 class TreeSupportTipGenerator
 {
 public:
-    TreeSupportTipGenerator(const SliceDataStorage& storage, const SliceMeshStorage& mesh, TreeModelVolumes& volumes_);
+    TreeSupportTipGenerator(const SliceMeshStorage& mesh, TreeModelVolumes& volumes_);
 
     /*!
      * \brief Generate tips, that will later form branches

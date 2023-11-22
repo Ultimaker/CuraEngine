@@ -28,7 +28,7 @@
 namespace cura
 {
 
-TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceDataStorage& storage, const SliceMeshStorage& mesh, TreeModelVolumes& volumes_s)
+TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, TreeModelVolumes& volumes_s)
     : config_(mesh.settings)
     , use_fake_roof_(! mesh.settings.get<bool>("support_roof_enable"))
     , volumes_(volumes_s)

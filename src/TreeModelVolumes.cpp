@@ -905,7 +905,7 @@ Polygons TreeModelVolumes::safeOffset(const Polygons& me, coord_t distance, Clip
     assert(distance * max_safe_step_distance >= 0);
     Polygons ret = me;
 
-    for (const auto i : ranges::views::iota(0UL, steps))
+    for (size_t i = 0; i < steps; ++i)
     {
         ret = ret.offset(max_safe_step_distance, jt).unionPolygons(collision);
     }
@@ -1254,7 +1254,7 @@ coord_t TreeModelVolumes::ceilRadius(coord_t radius) const
     coord_t exponential_result = SUPPORT_TREE_EXPONENTIAL_THRESHOLD * SUPPORT_TREE_EXPONENTIAL_FACTOR;
     const coord_t stepsize = (exponential_result - radius_0_) / (SUPPORT_TREE_PRE_EXPONENTIAL_STEPS + 1);
     coord_t result = radius_0_;
-    for (const auto step : ranges::views::iota(0UL, SUPPORT_TREE_PRE_EXPONENTIAL_STEPS))
+    for (size_t i = 0; i < SUPPORT_TREE_PRE_EXPONENTIAL_STEPS; ++i)
     {
         result += stepsize;
         if (result >= radius && ! ignorable_radii_.count(result))

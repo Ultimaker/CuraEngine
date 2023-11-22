@@ -386,7 +386,6 @@ Polygons SkinInfillAreaComputation::generateFilledAreaBelow(SliceLayerPart& part
     {
         return {};
     }
-    constexpr size_t min_wall_line_count = 2;
     const int lowest_flooring_layer = layer_nr_ - flooring_layer_count;
     Polygons filled_area_below = getOutlineOnLayer(part, lowest_flooring_layer);
 

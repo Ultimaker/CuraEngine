@@ -250,7 +250,7 @@ void TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size
 
 void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage)
 {
-    TreeSupportTipGenerator tip_gen(storage, mesh, volumes_);
+    TreeSupportTipGenerator tip_gen(mesh, volumes_);
     tip_gen.generateTips(storage, mesh, move_bounds, additional_required_support_area, placed_support_lines_support_areas);
 }
 

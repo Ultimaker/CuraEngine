@@ -97,9 +97,7 @@ void SkeletalTrapezoidation::transferEdge(
             assert(twin->prev_); // Forth rib
             assert(twin->prev_->twin_); // Back rib
             assert(twin->prev_->twin_->prev_); // Prev segment along parabola
-
-            constexpr bool is_not_next_to_start_or_end = false; // Only ribs at the end of a cell should be skipped
-            graph_.makeRib(prev_edge, start_source_point, end_source_point, is_not_next_to_start_or_end);
+            graph_.makeRib(prev_edge, start_source_point, end_source_point);
         }
         assert(prev_edge);
     }
@@ -152,8 +150,7 @@ void SkeletalTrapezoidation::transferEdge(
 
             if (p1_idx < discretized.size() - 1)
             { // Rib for last segment gets introduced outside this function!
-                constexpr bool is_not_next_to_start_or_end = false; // Only ribs at the end of a cell should be skipped
-                graph_.makeRib(prev_edge, start_source_point, end_source_point, is_not_next_to_start_or_end);
+                graph_.makeRib(prev_edge, start_source_point, end_source_point);
             }
         }
         assert(prev_edge);
@@ -460,8 +457,7 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
         node_t* starting_node = vd_node_to_he_node_[starting_vonoroi_edge->vertex0()];
         starting_node->data_.distance_to_boundary_ = 0;
 
-        constexpr bool is_next_to_start_or_end = true;
-        graph_.makeRib(prev_edge, start_source_point, end_source_point, is_next_to_start_or_end);
+        graph_.makeRib(prev_edge, start_source_point, end_source_point);
         for (vd_t::edge_type* vd_edge = starting_vonoroi_edge->next(); vd_edge != ending_vonoroi_edge; vd_edge = vd_edge->next())
         {
             assert(vd_edge->is_finite());
@@ -469,7 +465,7 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
             Point2LL v2 = VoronoiUtils::p(vd_edge->vertex1());
             transferEdge(v1, v2, *vd_edge, prev_edge, start_source_point, end_source_point, points, segments);
 
-            graph_.makeRib(prev_edge, start_source_point, end_source_point, vd_edge->next() == ending_vonoroi_edge);
+            graph_.makeRib(prev_edge, start_source_point, end_source_point);
         }
 
         transferEdge(VoronoiUtils::p(ending_vonoroi_edge->vertex0()), end_source_point, *ending_vonoroi_edge, prev_edge, start_source_point, end_source_point, points, segments);

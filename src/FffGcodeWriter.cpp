@@ -1092,7 +1092,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
                            == mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ // mesh surface mode should always only be printed with the outer wall extruder!
                 )
                 {
-                    addMeshLayerToGCode_meshSurfaceMode(storage, *mesh, mesh_config, gcode_layer);
+                    addMeshLayerToGCode_meshSurfaceMode(*mesh, mesh_config, gcode_layer);
                 }
                 else
                 {
@@ -1476,8 +1476,7 @@ std::vector<size_t> FffGcodeWriter::calculateMeshOrder(const SliceDataStorage& s
     return ret;
 }
 
-void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer)
-    const
+void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const
 {
     if (gcode_layer.getLayerNr() > mesh.layer_nr_max_filled_layer)
     {
@@ -1630,13 +1629,12 @@ bool FffGcodeWriter::processInfill(
     {
         return false;
     }
-    bool added_something = processMultiLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
+    bool added_something = processMultiLayerInfill(gcode_layer, mesh, extruder_nr, mesh_config, part);
     added_something = added_something | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
     return added_something;
 }
 
 bool FffGcodeWriter::processMultiLayerInfill(
-    const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
@@ -2698,7 +2696,6 @@ void FffGcodeWriter::processRoofing(
         storage,
         gcode_layer,
         mesh,
-        mesh_config,
         extruder_nr,
         skin_part.roofing_fill,
         mesh_config.roofing_config,
@@ -2879,7 +2876,6 @@ void FffGcodeWriter::processTopBottom(
         storage,
         gcode_layer,
         mesh,
-        mesh_config,
         extruder_nr,
         skin_part.skin_fill,
         *skin_config,
@@ -2896,7 +2892,6 @@ void FffGcodeWriter::processSkinPrintFeature(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
-    const MeshPathConfigs& mesh_config,
     const size_t extruder_nr,
     const Polygons& area,
     const GCodePathConfig& config,

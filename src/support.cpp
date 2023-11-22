@@ -186,7 +186,6 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
     const coord_t gradual_support_step_height = infill_extruder.settings_.get<coord_t>("gradual_support_infill_step_height");
     const size_t max_density_steps = infill_extruder.settings_.get<size_t>("gradual_support_infill_steps");
 
-    const coord_t wall_count = infill_extruder.settings_.get<size_t>("support_wall_count");
     const coord_t wall_width = infill_extruder.settings_.get<coord_t>("support_line_width");
 
     // no early-out for this function; it needs to initialize the [infill_area_per_combine_per_density]
@@ -458,7 +457,7 @@ void AreaSupport::cleanup(SliceDataStorage& storage)
     }
 }
 
-Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supportLayer_up, Polygons& supportLayer_this, const coord_t smoothing_distance)
+Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supportLayer_up, Polygons& supportLayer_this)
 {
     Polygons joined;
 
@@ -811,7 +810,7 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
         });
 }
 
-Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& storage, const Settings& infill_settings, const LayerIndex layer_idx)
+Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& storage, const LayerIndex layer_idx)
 {
     const auto& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const Simplify simplify{ mesh_group_settings };
@@ -820,7 +819,6 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
     const auto support_distance_bot = static_cast<double>(mesh_group_settings.get<coord_t>("support_bottom_distance"));
     const auto overhang_angle = mesh_group_settings.get<AngleRadians>("support_angle");
     const auto xy_distance = static_cast<double>(mesh_group_settings.get<coord_t>("support_xy_distance"));
-    const auto xy_distance_overhang = infill_settings.get<coord_t>("support_xy_distance_overhang");
 
     constexpr coord_t snap_radius = 10;
     constexpr coord_t close_dist = snap_radius + 5; // needs to be larger than the snap radius!
@@ -1065,8 +1063,6 @@ void AreaSupport::generateSupportAreasForMesh(
     const coord_t xy_distance_overhang = infill_settings.get<coord_t>("support_xy_distance_overhang");
     const bool use_xy_distance_overhang
         = infill_settings.get<SupportDistPriority>("support_xy_overrides_z") == SupportDistPriority::Z_OVERRIDES_XY; // whether to use a different xy distance at overhangs
-    const AngleRadians angle = ((mesh.settings.get<bool>("support_roof_enable")) ? roof_settings : infill_settings).get<AngleRadians>("support_angle");
-    const double tan_angle = tan(angle) - 0.01; // the XY-component of the supportAngle
     constexpr bool no_support = false;
     constexpr bool no_prime_tower = false;
     const coord_t support_line_width = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings_.get<coord_t>("support_line_width");
@@ -1116,7 +1112,7 @@ void AreaSupport::generateSupportAreasForMesh(
                     // layer below that protrudes beyond the current layer's area and combine it with the current layer's overhang disallowed area
 
                     Polygons minimum_xy_disallowed_areas = xy_disallowed_per_layer[layer_idx].offset(xy_distance_overhang);
-                    Polygons varying_xy_disallowed_areas = generateVaryingXYDisallowedArea(mesh, infill_settings, layer_idx);
+                    Polygons varying_xy_disallowed_areas = generateVaryingXYDisallowedArea(mesh, layer_idx);
                     xy_disallowed_per_layer[layer_idx] = minimum_xy_disallowed_areas.unionPolygons(varying_xy_disallowed_areas);
                     scripta::log("support_xy_disallowed_areas", xy_disallowed_per_layer[layer_idx], SectionType::SUPPORT, layer_idx);
                 }
@@ -1138,26 +1134,6 @@ void AreaSupport::generateSupportAreasForMesh(
 
     const coord_t max_tower_supported_diameter = infill_settings.get<coord_t>("support_tower_maximum_supported_diameter");
     const bool use_towers = infill_settings.get<bool>("support_use_towers") && max_tower_supported_diameter > 0;
-
-    coord_t smoothing_distance;
-    { // compute best smoothing_distance
-        const ExtruderTrain& infill_train = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
-        const coord_t infill_line_width = infill_train.settings_.get<coord_t>("support_line_width");
-        smoothing_distance = infill_line_width;
-        if (mesh.settings.get<bool>("support_roof_enable"))
-        {
-            const ExtruderTrain& roof_train = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr");
-            const coord_t roof_line_width = roof_train.settings_.get<coord_t>("support_roof_line_width");
-            smoothing_distance = std::max(smoothing_distance, roof_line_width);
-        }
-
-        if (mesh.settings.get<bool>("support_bottom_enable"))
-        {
-            const ExtruderTrain& bottom_train = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr");
-            const coord_t bottom_line_width = bottom_train.settings_.get<coord_t>("support_bottom_line_width");
-            smoothing_distance = std::max(smoothing_distance, bottom_line_width);
-        }
-    }
 
     const coord_t z_distance_bottom = ((mesh.settings.get<bool>("support_bottom_enable")) ? bottom_settings : infill_settings).get<coord_t>("support_bottom_distance");
     const size_t bottom_empty_layer_count = round_up_divide(z_distance_bottom, layer_thickness); // number of empty layers between support and model
@@ -1234,7 +1210,7 @@ void AreaSupport::generateSupportAreasForMesh(
                 layer_above = &empty;
                 layer_this = layer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
             }
-            layer_this = AreaSupport::join(storage, *layer_above, layer_this, smoothing_distance).difference(model_mesh_on_layer);
+            layer_this = AreaSupport::join(storage, *layer_above, layer_this).difference(model_mesh_on_layer);
         }
 
         // make towers for small support
@@ -1548,7 +1524,6 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
 
 void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMeshStorage& mesh)
 {
-    const ExtruderTrain& infill_extruder = mesh.settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     const coord_t max_tower_supported_diameter = mesh.settings.get<coord_t>("support_tower_maximum_supported_diameter");
     const coord_t max_tower_supported_area = max_tower_supported_diameter * max_tower_supported_diameter;
 
@@ -1652,8 +1627,6 @@ void AreaSupport::handleTowers(
 
         if (tower_roof.area() < tower_diameter * tower_diameter)
         {
-            constexpr bool no_support = false;
-            constexpr bool no_prime_tower = false;
             Polygons model_outline = xy_disallowed_area;
 
             // Rather than offsetting the tower with tower_roof_expansion_distance we do this step wise to achieve two things
