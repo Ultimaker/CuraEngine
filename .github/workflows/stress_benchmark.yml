@@ -157,7 +157,7 @@ jobs:
         uses: benchmark-action/github-action-benchmark@v1
         with:
           name: Stress Benchmark
-          output-file-path: build/Release/benchmark/benchmark_result.json
+          output-file-path: build/Release/stress_benchmark/benchmark_result.json
           gh-repository: github.com/Ultimaker/CuraEngineBenchmarks
           gh-pages-branch: main
           benchmark-data-dir-path: dev/stress_bench
