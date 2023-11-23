@@ -1,11 +1,12 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include <docopt/docopt.h>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <signal.h>
-#include <source_location>
+#include <map>
+#include <string_view>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <vector>
@@ -15,13 +16,31 @@
 #include <boost/geometry/geometries/polygon.hpp>
 #include <boost/geometry/io/wkt/read.hpp>
 #include <fmt/format.h>
-#include <range/v3/view/iota.hpp>
 #include <spdlog/spdlog.h>
 
-#include "WallsComputation.h" //Unit under test.
-#include "settings/Settings.h" //Settings to generate walls with.
-#include "sliceDataStorage.h" //Sl
-#include "utils/polygon.h" //To create example polygons.
+#include "WallsComputation.h"
+#include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
+#include "settings/Settings.h"
+#include "sliceDataStorage.h"
+#include "utils/polygon.h"
+
+
+constexpr std::string_view USAGE = R"(Stress Benchmark.
+
+Executes a Stress Benchmark on CuraEngine.
+
+Usage:
+  stress_benchmark -o FILE
+  stress_benchmark (-h | --help)
+  stress_benchmark --version
+
+Options:
+  -h --help                      Show this screen.
+  --version                      Show version.
+  -o FILE                        Specify the output Json file.
+)";
 
 struct Resource
 {
@@ -106,7 +125,7 @@ struct Resource
 
 std::vector<Resource> getResources()
 {
-    auto resource_path = std::filesystem::path(std::source_location::current().file_name()).parent_path().append("stress_bm_voronoi_resources");
+    auto resource_path = std::filesystem::path(std::source_location::current().file_name()).parent_path().append("resources");
 
     std::vector<Resource> resources;
     for (const auto& p : std::filesystem::recursive_directory_iterator(resource_path))
@@ -122,8 +141,62 @@ std::vector<Resource> getResources()
     return resources;
 };
 
-int main()
+void handleChildProcess(const auto& shapes, const auto& settings)
 {
+    cura::SliceLayer layer;
+    for (const cura::Polygons& shape : shapes)
+    {
+        layer.parts.emplace_back();
+        cura::SliceLayerPart& part = layer.parts.back();
+        part.outline.add(shape);
+    }
+    cura::LayerIndex layer_idx(100);
+    cura::WallsComputation walls_computation(settings, layer_idx);
+    walls_computation.generateWalls(&layer, cura::SectionType::WALL);
+    exit(EXIT_SUCCESS);
+}
+
+size_t checkCrashCount(size_t crashCount, int status, const auto& resource)
+{
+    if (WIFSIGNALED(status))
+    {
+        ++crashCount;
+        spdlog::error("Crash detected for: {}", resource.stem());
+    }
+    return crashCount;
+}
+
+void createAndWriteJson(const std::filesystem::path& out_file, double stress_level)
+{
+    rapidjson::Document doc;
+    doc.SetArray();
+    rapidjson::Document::AllocatorType& allocator = doc.GetAllocator();
+    rapidjson::Value obj(rapidjson::kObjectType);
+    obj.AddMember("name", "General Stress Level", allocator);
+    obj.AddMember("unit", "%", allocator);
+    obj.AddMember("value", stress_level, allocator);
+    doc.PushBack(obj, allocator);
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    doc.Accept(writer);
+
+    spdlog::info("Writing Json results: {}", std::filesystem::absolute(out_file).string());
+    std::ofstream file{ out_file };
+    if (! file)
+    {
+        spdlog::critical("Failed to open the file: {}", out_file.string());
+        exit(EXIT_FAILURE);
+    }
+    file.write(buffer.GetString(), buffer.GetSize());
+    file.close();
+}
+
+int main(int argc, const char** argv)
+{
+    constexpr bool show_help = true;
+    constexpr std::string_view version = "0.1.0";
+    const std::map<std::string, docopt::value> args = docopt::docopt(fmt::format("{}", USAGE), { argv + 1, argv + argc }, show_help, fmt::format("{}", version));
+
     const auto resources = getResources();
     size_t crashCount = 0;
 
@@ -133,41 +206,25 @@ int main()
         const auto& settings = resource.settings();
 
         pid_t pid = fork();
-
         if (pid == -1)
         {
             spdlog::critical("Unable to fork");
-            return 1;
+            return EXIT_FAILURE;
         }
-
         if (pid == 0)
         {
-            cura::SliceLayer layer;
-            for (const cura::Polygons& shape : shapes)
-            {
-                layer.parts.emplace_back();
-                cura::SliceLayerPart& part = layer.parts.back();
-                part.outline.add(shape);
-            }
-
-            cura::LayerIndex layer_idx(100);
-            cura::WallsComputation walls_computation(settings, layer_idx);
-
-            walls_computation.generateWalls(&layer, cura::SectionType::WALL);
-            exit(EXIT_SUCCESS);
+            handleChildProcess(shapes, settings);
         }
         else
         {
             int status;
             waitpid(pid, &status, 0);
-
-            if (WIFSIGNALED(status))
-            {
-                ++crashCount;
-                spdlog::error("Crash detected for: {}", resource.stem());
-            }
+            crashCount = checkCrashCount(crashCount, status, resource);
         }
     }
-    spdlog::info("Total number of crashes: {}", crashCount);
-    return 0;
+    double stress_level = static_cast<double>(crashCount) / static_cast<double>(resources.size()) * 100.0;
+    spdlog::info("Stress level: {:.2f} [%]", stress_level);
+
+    createAndWriteJson(std::filesystem::path{ args.at("-o").asString() }, stress_level);
+    return EXIT_SUCCESS;
 }

@@ -80,6 +80,7 @@ class CuraEngineConan(ConanFile):
             self.test_requires("gtest/1.12.1")
         if self.options.enable_benchmarks:
             self.test_requires("benchmark/1.7.0")
+            self.test_requires("docopt.cpp/0.6.3")
 
     def requirements(self):
         if self.options.enable_arcus:

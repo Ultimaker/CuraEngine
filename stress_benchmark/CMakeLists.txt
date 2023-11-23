@@ -3,7 +3,8 @@
 
 message(STATUS "Building stress benchmarks...")
 
+find_package(docopt REQUIRED)
 
-add_executable(stress_bm_voronoi stress_bm_voronoi.cpp)
-target_link_libraries(stress_bm_voronoi PRIVATE _CuraEngine test_helpers range-v3::range-v3 fmt::fmt spdlog::spdlog boost::boost)
-target_include_directories(stress_bm_voronoi PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${CMAKE_BINARY_DIR}/generated)
+add_executable(stress_benchmark stress_benchmark.cpp)
+target_link_libraries(stress_benchmark PRIVATE _CuraEngine test_helpers spdlog::spdlog boost::boost rapidjson docopt_s)
+target_include_directories(stress_benchmark PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${CMAKE_BINARY_DIR}/generated)
