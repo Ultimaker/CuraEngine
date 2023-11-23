@@ -150,7 +150,7 @@ jobs:
 
       - name: Run Stress Benchmark CuraEngine
         id: run-test
-        run: ./stress_benchmarks -o benchmark_result.json
+        run: ./stress_benchmark -o benchmark_result.json
         working-directory: build/Release/stress_benchmark
 
       - name: Store benchmark result

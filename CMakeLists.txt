@@ -272,13 +272,12 @@ if (ENABLE_TESTING OR ENABLE_BENCHMARKS)
     endif ()
 endif ()
 
-add_subdirectory(stress_benchmark)
+if (ENABLE_BENCHMARKS)
+    add_subdirectory(benchmark)
+    add_subdirectory(stress_benchmark)
+endif ()
 
 if (ENABLE_TESTING)
     enable_testing()
     add_subdirectory(tests)
-endif ()
-
-if (ENABLE_BENCHMARKS)
-    add_subdirectory(benchmark)
 endif ()
