@@ -96,63 +96,6 @@ void WallsComputation::generateWalls(SliceLayerPart* part, SectionType section_t
  */
 void WallsComputation::generateWalls(SliceLayer* layer, SectionType section)
 {
-    // TODO remove this block before merging PR!
-    // This code exists to generate the test wkt, and setting files
-    {
-        std::ofstream SettingsFile("settings.txt");
-        SettingsFile.clear();
-        for (auto [key, value] : settings.getFlattendSettings())
-        {
-            if (value == "")
-            {
-                continue;
-            }
-            if (value.find(' ') != std::string::npos)
-            {
-                continue;
-            }
-            SettingsFile << key << "=" << value << std::endl;
-        }
-        SettingsFile.close();
-
-        std::ofstream PolygonFile("slice_polygon.wkt");
-        PolygonFile.clear();
-
-        std::vector<Polygons> multi_polygons;
-        for (const auto& part : layer->parts)
-        {
-            multi_polygons.push_back(part.outline);
-        }
-
-        PolygonFile << "MULTIPOLYGON (";
-        const auto paths_str = multi_polygons
-                             | ranges::views::transform(
-                                   [](const auto& path)
-                                   {
-                                       const auto path_str = path
-                                                           | ranges::views::transform(
-                                                                 [](const auto& path)
-                                                                 {
-                                                                     const auto path_str = path
-                                                                                         | ranges::views::transform(
-                                                                                               [](const auto& point)
-                                                                                               {
-                                                                                                   return fmt::format("{} {}", point.X, point.Y);
-                                                                                               })
-                                                                                         | ranges::views::join(ranges::views::c_str(", ")) | ranges::to<std::string>();
-                                                                     return "(" + path_str + ")";
-                                                                 })
-                                                           | ranges::views::join(ranges::views::c_str(" ")) | ranges::to<std::string>();
-                                       return "(" + path_str + ")";
-                                   })
-                             | ranges::views::join(ranges::views::c_str(", ")) | ranges::to<std::string>();
-
-        PolygonFile << paths_str;
-        PolygonFile << ")";
-
-        PolygonFile.close();
-    }
-
     for (SliceLayerPart& part : layer->parts)
     {
         generateWalls(&part, section);
