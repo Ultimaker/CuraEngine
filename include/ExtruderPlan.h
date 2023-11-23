@@ -44,7 +44,7 @@ class ExtruderPlan
     FRIEND_TEST(ExtruderPlanTest, BackPressureCompensationEmptyPlan);
 #endif
 public:
-    size_t extruder_nr_; //!< The extruder used for this paths in the current plan.
+    size_t extruder_nr_{ 0 }; //!< The extruder used for this paths in the current plan.
 
     ExtruderPlan() noexcept = default;
 
