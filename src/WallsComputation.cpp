@@ -107,6 +107,10 @@ void WallsComputation::generateWalls(SliceLayer* layer, SectionType section)
             {
                 continue;
             }
+            if (value.find(' ') != std::string::npos)
+            {
+                continue;
+            }
             SettingsFile << key << "=" << value << std::endl;
         }
         SettingsFile.close();
