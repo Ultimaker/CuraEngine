@@ -166,15 +166,27 @@ size_t checkCrashCount(size_t crashCount, int status, const auto& resource)
     return crashCount;
 }
 
-void createAndWriteJson(const std::filesystem::path& out_file, double stress_level)
+void createAndWriteJson(const std::filesystem::path& out_file, double stress_level, const std::string& extra_info)
 {
     rapidjson::Document doc;
     doc.SetArray();
     rapidjson::Document::AllocatorType& allocator = doc.GetAllocator();
     rapidjson::Value obj(rapidjson::kObjectType);
-    obj.AddMember("name", "General Stress Level", allocator);
-    obj.AddMember("unit", "%", allocator);
-    obj.AddMember("value", stress_level, allocator);
+    rapidjson::Value key("name", allocator);
+    rapidjson::Value val1("General Stress Level", allocator);
+    obj.AddMember(key, val1, allocator);
+
+    key.SetString("unit", allocator);
+    rapidjson::Value val2("%", allocator);
+    obj.AddMember(key, val2, allocator);
+
+    key.SetString("value", allocator);
+    rapidjson::Value val3(stress_level);
+    obj.AddMember(key, val3, allocator);
+
+    key.SetString("extra", allocator);
+    rapidjson::Value val4(extra_info.c_str(), extra_info.length(), allocator);
+    obj.AddMember(key, val4, allocator);
     doc.PushBack(obj, allocator);
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
@@ -198,7 +210,8 @@ int main(int argc, const char** argv)
     const std::map<std::string, docopt::value> args = docopt::docopt(fmt::format("{}", USAGE), { argv + 1, argv + argc }, show_help, fmt::format("{}", version));
 
     const auto resources = getResources();
-    size_t crashCount = 0;
+    size_t crash_count = 0;
+    std::vector<std::string> extra_infos;
 
     for (const auto& resource : resources)
     {
@@ -219,12 +232,17 @@ int main(int argc, const char** argv)
         {
             int status;
             waitpid(pid, &status, 0);
-            crashCount = checkCrashCount(crashCount, status, resource);
+            const auto old_crash_count = crash_count;
+            crash_count = checkCrashCount(crash_count, status, resource);
+            if (old_crash_count != crash_count)
+            {
+                extra_infos.emplace_back(resource.stem());
+            }
         }
     }
-    double stress_level = static_cast<double>(crashCount) / static_cast<double>(resources.size()) * 100.0;
+    const double stress_level = static_cast<double>(crash_count) / static_cast<double>(resources.size()) * 100.0;
     spdlog::info("Stress level: {:.2f} [%]", stress_level);
 
-    createAndWriteJson(std::filesystem::path{ args.at("-o").asString() }, stress_level);
+    createAndWriteJson(std::filesystem::path{ args.at("-o").asString() }, stress_level, fmt::format("Crashes in: {}", fmt::join(extra_infos, ", ")));
     return EXIT_SUCCESS;
 }
