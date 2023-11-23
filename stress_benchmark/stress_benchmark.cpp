@@ -1,6 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include <csignal>
 #include <docopt/docopt.h>
 #include <filesystem>
 #include <fstream>
@@ -166,28 +167,36 @@ size_t checkCrashCount(size_t crashCount, int status, const auto& resource)
     return crashCount;
 }
 
-void createAndWriteJson(const std::filesystem::path& out_file, double stress_level, const std::string& extra_info)
+rapidjson::Value
+    createRapidJSONObject(rapidjson::Document::AllocatorType& allocator, const std::string& test_name, const auto value, const std::string& unit, const std::string& extra_info)
+{
+    rapidjson::Value obj(rapidjson::kObjectType);
+    rapidjson::Value key("name", allocator);
+    rapidjson::Value val1(test_name.c_str(), test_name.length(), allocator);
+    obj.AddMember(key, val1, allocator);
+    key.SetString("unit", allocator);
+    rapidjson::Value val2(unit.c_str(), unit.length(), allocator);
+    obj.AddMember(key, val2, allocator);
+    key.SetString("value", allocator);
+    rapidjson::Value val3(value);
+    obj.AddMember(key, val3, allocator);
+    key.SetString("extra", allocator);
+    rapidjson::Value val4(extra_info.c_str(), extra_info.length(), allocator);
+    obj.AddMember(key, val4, allocator);
+    return obj;
+}
+
+void createAndWriteJson(const std::filesystem::path& out_file, double stress_level, const std::string& extra_info, const size_t no_test_cases)
 {
     rapidjson::Document doc;
     doc.SetArray();
     rapidjson::Document::AllocatorType& allocator = doc.GetAllocator();
-    rapidjson::Value obj(rapidjson::kObjectType);
-    rapidjson::Value key("name", allocator);
-    rapidjson::Value val1("General Stress Level", allocator);
-    obj.AddMember(key, val1, allocator);
+    auto no_test_cases_obj = createRapidJSONObject(allocator, "Number of test cases", no_test_cases, "-", "");
+    doc.PushBack(no_test_cases_obj, allocator);
 
-    key.SetString("unit", allocator);
-    rapidjson::Value val2("%", allocator);
-    obj.AddMember(key, val2, allocator);
+    auto stress_obj = createRapidJSONObject(allocator, "General Stress Level", stress_level, "%", extra_info);
+    doc.PushBack(stress_obj, allocator);
 
-    key.SetString("value", allocator);
-    rapidjson::Value val3(stress_level);
-    obj.AddMember(key, val3, allocator);
-
-    key.SetString("extra", allocator);
-    rapidjson::Value val4(extra_info.c_str(), extra_info.length(), allocator);
-    obj.AddMember(key, val4, allocator);
-    doc.PushBack(obj, allocator);
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     doc.Accept(writer);
@@ -243,6 +252,6 @@ int main(int argc, const char** argv)
     const double stress_level = static_cast<double>(crash_count) / static_cast<double>(resources.size()) * 100.0;
     spdlog::info("Stress level: {:.2f} [%]", stress_level);
 
-    createAndWriteJson(std::filesystem::path{ args.at("-o").asString() }, stress_level, fmt::format("Crashes in: {}", fmt::join(extra_infos, ", ")));
+    createAndWriteJson(std::filesystem::path{ args.at("-o").asString() }, stress_level, fmt::format("Crashes in: {}", fmt::join(extra_infos, ", ")), resources.size());
     return EXIT_SUCCESS;
 }
