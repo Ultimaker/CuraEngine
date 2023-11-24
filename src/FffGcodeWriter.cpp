@@ -947,8 +947,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             enable_travel_optimization,
             wipe_dist,
             flow_ratio,
-            last_planned_position
-        );
+            last_planned_position);
         gcode_layer.addPolygonsByOptimizer(
             raft_polygons,
             gcode_layer.configs_storage.raft_surface_config,
@@ -958,8 +957,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             flow_ratio,
             always_retract,
             reverse_order,
-            gcode_layer.getLastPlannedPositionOrStartingPosition()
-        );
+            gcode_layer.getLastPlannedPositionOrStartingPosition());
 
         raft_polygons.clear();
         raft_lines.clear();
