@@ -236,6 +236,7 @@ public:
      * \param wall_line_count Wall-line count around the fill.
      * \param grow_layer_above (optional, default to 0) In cases where support shrinks per layer up, an appropriate offset may be nescesary.
      * \param unionAll (optional, default to false) Wether to 'union all' for the split into parts bit.
+     * \param custom_line_distance (optional, default to 0) Distance between lines of the infill pattern. custom_line_distance of 0 means use the default instead.
      */
     void fillInfillParts(
         const LayerIndex layer_nr,
@@ -243,7 +244,8 @@ public:
         const coord_t support_line_width,
         const coord_t wall_line_count,
         const coord_t grow_layer_above = 0,
-        const bool unionAll = false);
+        const bool unionAll = false,
+        const coord_t custom_line_distance = 0);
 };
 
 class SupportStorage
