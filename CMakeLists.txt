@@ -274,7 +274,9 @@ endif ()
 
 if (ENABLE_BENCHMARKS)
     add_subdirectory(benchmark)
-    add_subdirectory(stress_benchmark)
+    if (NOT WIN32)
+        add_subdirectory(stress_benchmark)
+    endif()
 endif ()
 
 if (ENABLE_TESTING)
