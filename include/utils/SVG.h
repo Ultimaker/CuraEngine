@@ -1,10 +1,13 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SVG_H
 #define SVG_H
 
+#include <concepts>
 #include <stdio.h> // for file output
+
+#include <boost/polygon/voronoi.hpp>
 
 #include "AABB.h"
 #include "ExtrusionLine.h" //To accept variable-width paths.
@@ -19,7 +22,8 @@ class FPoint3;
 class SVG : NoCopy
 {
 public:
-    enum class Color {
+    enum class Color
+    {
         BLACK,
         WHITE,
         GRAY,
@@ -40,18 +44,20 @@ public:
         Color color;
         int r, g, b;
         ColorObject(Color color)
-        : is_enum(true)
-        , color(color)
-        {}
+            : is_enum(true)
+            , color(color)
+        {
+        }
         ColorObject(int r, int g, int b)
-        : is_enum(false)
-        , r(r)
-        , g(g)
-        , b(b)
-        {}
+            : is_enum(false)
+            , r(r)
+            , g(g)
+            , b(b)
+        {
+        }
     };
-private:
 
+private:
     std::string toString(const Color color) const;
     std::string toString(const ColorObject& color) const;
 
@@ -103,10 +109,10 @@ public:
 
     /*!
      * \brief Draws a polyline on the canvas.
-     * 
+     *
      * The polyline is the set of line segments between each pair of consecutive
      * points in the specified vector.
-     * 
+     *
      * \param polyline A set of points between which line segments must be
      * drawn.
      * \param color The colour of the line segments. If this is not specified,
@@ -122,14 +128,14 @@ public:
 
     /*!
      * \brief Draws a dashed line on the canvas from point A to point B.
-     * 
+     *
      * This is useful in the case where multiple lines may overlap each other.
-     * 
+     *
      * \param a The starting endpoint of the line.
      * \param b The ending endpoint of the line.
      * \param color The stroke colour of the line.
      */
-    void writeDashedLine(const Point& a,const Point& b, ColorObject color = Color::BLACK) const;
+    void writeDashedLine(const Point& a, const Point& b, ColorObject color = Color::BLACK) const;
 
     template<typename... Args>
     void printf(const char* txt, Args&&... args) const;
@@ -188,6 +194,35 @@ public:
      */
     void writeCoordinateGrid(const coord_t grid_size = MM2INT(1), const Color color = Color::BLACK, const float stroke_width = 0.1, const float font_size = 10) const;
 
+    /*!
+     * Draws the provided Voronoi diagram.
+     *
+     * @tparam T numeric type
+     * @param voronoi The Voronoi diagram to draw.
+     * @param color  The colour to draw the diagram with.
+     * @param stroke_width The width of the lines.
+     */
+    template<std::floating_point T>
+    void writeVoronoiDiagram(const boost::polygon::voronoi_diagram<T>& voronoi_diagram, const Color color = Color::BLACK, const float stroke_width = 0.1) const
+    {
+        for (const auto& edge : voronoi_diagram.edges())
+        {
+            if (! edge.is_finite())
+            {
+                continue;
+            }
+
+            const auto& v0 = edge.vertex0();
+            const auto& v1 = edge.vertex1();
+
+            if (v0 == nullptr || v1 == nullptr)
+            {
+                continue;
+            }
+
+            writeLine(Point(v0->x(), v0->y()), Point(v1->x(), v1->y()), color, stroke_width);
+        }
+    }
 };
 
 template<typename... Args>
