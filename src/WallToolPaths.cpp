@@ -20,18 +20,10 @@
 #include <unordered_set>
 
 
-
-
-
-#include <boost/geometry.hpp>
-#include <boost/geometry/geometries/point_xy.hpp>
-#include <boost/geometry/geometries/polygon.hpp>
 #include <range/v3/view/drop.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <fmt/format.h>
 #include "mapbox/geometry/wagyu/wagyu.hpp"
-
-
 
 
 namespace cura
@@ -131,18 +123,11 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
         return toolpaths;
     }
 
-
-    { // begin: debug
-
-
-            //if (layer_idx == 153)
-    //{
-        std::fprintf(stderr, "!!!\n");
-
+    { // begin: test fix polygons
         using map_pt = mapbox::geometry::point<coord_t>;
-        using map_ring = mapbox::geometry::linear_ring<coord_t>; //map_pt>;
-        using map_poly = mapbox::geometry::polygon<coord_t>; //map_ring>;
-        using map_mpoly = mapbox::geometry::multi_polygon<coord_t>; //map_poly>;
+        using map_ring = mapbox::geometry::linear_ring<coord_t>;
+        using map_poly = mapbox::geometry::polygon<coord_t>;
+        using map_mpoly = mapbox::geometry::multi_polygon<coord_t>;
 
         map_mpoly mwpoly;
 
@@ -173,181 +158,31 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
         Polygons polys;
 
         {
-            int randi = std::rand() % 9999;
-            const std::string filename(fmt::format("C:/tmp_/wgu_out/{}_{}.svg", layer_idx, randi));
-            SVG svg(filename, AABB(prepared_outline), 1.0);
-            SVG::Color col = SVG::Color::RED;
-            const std::vector<SVG::Color> arr = { SVG::Color::RED, SVG::Color::ORANGE, SVG::Color::MAGENTA, SVG::Color::GRAY };
             for (const auto& poly : sln)
             {
-                //polys.emplace_back();
-
-
-                col = arr[std::rand() % 4];
                 for (const auto& ring : poly)
                 {
                     Polygon npoly;
-                    //polys.back().emplace_back();
-
                     auto last = ring.back();
                     bool first = true;
                     for (const auto& pt : ring)
                     {
-                        //polys.back().back().emplace_back(pt.x * 5, pt.y * 5);
                         if (first || pt != ring.back())
                         {
                             npoly.emplace_back(pt.x * 4, pt.y * 4);
                             first = false;
                         }
-
-                        svg.writeLine({ last.x * 4, last.y * 4 }, { pt.x * 4, pt.y * 4 }, col);
                         last = pt;
                     }
-                    col = SVG::Color::GREEN;
-
                     polys.add(npoly);
                 }
-
-
             }
-
-
             polys = polys.unionPolygons();
             polys.removeColinearEdges();
-
-            svg.writePolygons(polys);
-
-        }
-
-
-        //mapbox::geometry::wagyu::correct_topology()
-    //}
-
-
-
-
-
-        namespace bg = boost::geometry;
-
-        const AABB aabb(polys); //prepared_outline);
-        const int randi = std::rand() % 9999;
-
-        bg::model::multi_polygon<bg::model::polygon<bg::model::d2::point_xy<double>>> bmpoly;
-
-        const auto polyvec = polys.splitIntoParts(); //prepared_outline.splitIntoParts();
-        //const auto polyvec = polys.splitByOuter();
-        for (const auto& [i, poly_] : polyvec | ranges::views::enumerate)
-        {
-            const auto poly = poly_.unionPolygons();
-
-            const std::string filename(fmt::format("C:/tmp_/polyboost/{}__{}_{}.svg", layer_idx, randi, i));
-            SVG svg(filename, aabb, 1.0);
-
-            bg::model::polygon<bg::model::d2::point_xy<double>> bpoly;
-
-            Point last = poly.paths[0].back();
-            //bpoly.outer().emplace_back(static_cast<double>(last.X), static_cast<double>(last.Y));
-            for (const auto& point : poly.paths[0])
-            {
-                bpoly.outer().emplace_back(static_cast<double>(point.X), static_cast<double>(point.Y));
-
-                //svg.writePoint(point, false, 2.0f, SVG::Color::RED);
-                svg.writeLine(last, point, SVG::Color::RED);
-
-                last = point;
-            }
-
-            for (const auto& path : poly.paths | ranges::views::drop(1))
-            {
-                bpoly.inners().emplace_back();
-                last = path.back();
-                //bpoly.inners().back().emplace_back(static_cast<double>(last.X), static_cast<double>(last.Y));
-                for (const auto& point : path)
-                {
-                    bpoly.inners().back().emplace_back(static_cast<double>(point.X), static_cast<double>(point.Y));
-
-                    //svg.writePoint(point, false, 2.0f, SVG::Color::GREEN);
-                    svg.writeLine(last, point, SVG::Color::GREEN);
-
-                    last = point;
-                }
-            }
-
-            const bool check_touch = bg::touches(bpoly);
-            if (check_touch)
-            {
-                const std::string wkt{ bg::to_wkt(bpoly) };
-                std::fprintf(stderr, "\n\n[!] TOUCH-SELF [!]\n%s\n%s\n", filename.c_str(), wkt.c_str());
-
-                //if (layer_idx != 153)
-                //{
-                    return {};  // NOTE! REMOVES POLYGONS!
-                //}
-            }
-            //else
-            //{
-            //    std::fprintf(stderr, "1.\n");
-            //}
-
-            const bool check_intersect = bg::intersects(bpoly);
-            if (check_intersect)
-            {
-                const std::string wkt{ bg::to_wkt(bpoly) };
-                std::fprintf(stderr, "\n\n[!] INTERSECT-SELF [!]\n%s\n%s\n", filename.c_str(), wkt.c_str());
-
-                //if (layer_idx != 153)
-                //{
-                    return {};  // NOTE! REMOVES POLYGONS!
-                //}
-            }
-            //else
-            //{
-            //    std::fprintf(stderr, "2.\n");
-            //}
-
-            /*
-            const bool check_valid = bg::is_valid(bpoly);
-            if (! check_valid)
-            {
-                std::fprintf(stderr, "\n\n[!] INVALID SITUATION [!]\n\n\n");
-            }
-            else
-            {
-                std::fprintf(stderr, "#");
-            }
-            */
-
-            bmpoly.push_back(bpoly);
-        }
-
-        const bool check_touch = bg::touches(bmpoly);
-        if (check_touch)
-        {
-            const std::string wkt{ bg::to_wkt(bmpoly) };
-            std::fprintf(stderr, "\n\n[!!] MULTI: TOUCH-SELF [!!]\n%d\n%s\n", layer_idx, wkt.c_str());
-
-            return {};  // NOTE! REMOVES POLYGONS!
-        }
-        //else
-        //{
-        //    std::fprintf(stderr, "1.\n");
-        //}
-
-        const bool check_intersect = bg::intersects(bmpoly);
-        if (check_intersect)
-        {
-            const std::string wkt{ bg::to_wkt(bmpoly) };
-            std::fprintf(stderr, "\n\n[!!] MULTI: INTERSECT-SELF [!!]\n%d\n%s\n", layer_idx, wkt.c_str());
-
-            return {};  // NOTE! REMOVES POLYGONS!
         }
 
         prepared_outline = polys;
-
-    } // end: debug
-
-
-    std::fprintf(stderr, "START in LAYER %d {\n", layer_idx);
+    } // end: test fix polygons
 
     const coord_t wall_transition_length = settings.get<coord_t>("wall_transition_length");
 
@@ -399,9 +234,6 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
         scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx },
         scripta::PointVDI{ "width", &ExtrusionJunction::w },
         scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index });
-
-    std::fprintf(stderr, "  Z", layer_idx);
-    std::fflush(stderr);
 
     stitchToolPaths(toolpaths, settings);
     scripta::log(
@@ -472,9 +304,6 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
         scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx },
         scripta::PointVDI{ "width", &ExtrusionJunction::w },
         scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index });
-
-    std::fprintf(stderr, "} END in LAYER %d\n", layer_idx);
-
     return toolpaths;
 }
 

@@ -552,29 +552,6 @@ Polygons Polygons::getOutsidePolygons() const
     return ret;
 }
 
-std::vector<Polygons> Polygons::splitByOuter() const
-{
-    std::vector<Polygons> ret;
-    ClipperLib::Clipper clipper(clipper_init);
-    ClipperLib::PolyTree poly_tree;
-    constexpr bool paths_are_closed_polys = true;
-    clipper.AddPaths(paths, ClipperLib::ptSubject, paths_are_closed_polys);
-    clipper.Execute(ClipperLib::ctUnion, poly_tree);
-
-    for (int outer_poly_idx = 0; outer_poly_idx < poly_tree.ChildCount(); outer_poly_idx++)
-    {
-        ClipperLib::PolyNode* child = poly_tree.Childs[outer_poly_idx];
-        ret.emplace_back();
-
-        ret.back().emplace_back(child->Contour);
-        for (const auto& insides : child->Childs)
-        {
-            ret.back().emplace_back(insides->Contour); // FIXME!! This means only 1st level holes will be taken along! Should be enough to debug, but not OK in general.
-        }
-    }
-    return ret;
-}
-
 Polygons Polygons::removeEmptyHoles() const
 {
     Polygons ret;

@@ -412,26 +412,8 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
         }
     }
 
-    std::fprintf(stderr, "  A %ld", layer_idx);
-    std::fflush(stderr);
-
     vd_t vonoroi_diagram;
     construct_voronoi(segments.begin(), segments.end(), &vonoroi_diagram);
-
-    std::fprintf(stderr, "  B %ld", layer_idx);
-    std::fflush(stderr);
-
-    /* BOOKMARK!
-    if 
-
-    for (vd_t::cell_type cell : vonoroi_diagram.cells())
-    {
-        if (!cell.incident_edge())
-        { // There is no spoon
-            continue;
-        }
-    }
-    */
 
     for (vd_t::cell_type cell : vonoroi_diagram.cells())
     {
@@ -494,34 +476,9 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
         prev_edge->to->data.distance_to_boundary = 0;
     }
 
-    std::fprintf(stderr, "  C %ld", layer_idx);
-    std::fflush(stderr);
-
-    //if (layer_idx == 153)
-    //{
-        AABB aabb(polys);
-        const std::string filename(fmt::format("C:/tmp_/polyboost/X_{}_{}.svg", layer_idx, std::rand() % 9999));
-        SVG svg(filename, aabb);
-        svg.writePolygons(polys);
-
-        for (const auto& edge : graph.edges)
-        {
-            if (edge.from && edge.to)
-            {
-                svg.writeLine(edge.from->p, edge.to->p, SVG::Color::RED);
-            }
-        }
-    //}
-
     separatePointyQuadEndNodes();
 
-    std::fprintf(stderr, "  D %ld", layer_idx);
-    std::fflush(stderr);
-
     graph.collapseSmallEdges();
-
-    std::fprintf(stderr, "  E %ld", layer_idx);
-    std::fflush(stderr);
 
     // Set [incident_edge] the the first possible edge that way we can iterate over all reachable edges from node.incident_edge,
     // without needing to iterate backward
@@ -532,9 +489,6 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
             edge.from->incident_edge = &edge;
         }
     }
-
-    std::fprintf(stderr, "  F %ld", layer_idx);
-    std::fflush(stderr);
 }
 
 void SkeletalTrapezoidation::separatePointyQuadEndNodes()
@@ -578,18 +532,12 @@ void SkeletalTrapezoidation::generateToolpaths(std::vector<VariableWidthLines>& 
 
     updateIsCentral();
 
-    std::fprintf(stderr, "  G %ld", layer_idx);
-    std::fflush(stderr);
-
     filterCentral(central_filter_dist);
 
     if (filter_outermost_central_edges)
     {
         filterOuterCentral();
     }
-
-    std::fprintf(stderr, "  H %ld", layer_idx);
-    std::fflush(stderr);
 
     updateBeadCount();
     scripta::log(
@@ -606,7 +554,7 @@ void SkeletalTrapezoidation::generateToolpaths(std::vector<VariableWidthLines>& 
                           [](const auto& edge)
                           {
                               return static_cast<int>(edge.data.type);
-                          } }/*,
+                          } },
         scripta::PointVDI{ "distance_to_boundary",
                            [](const auto& node)
                            {
@@ -621,10 +569,7 @@ void SkeletalTrapezoidation::generateToolpaths(std::vector<VariableWidthLines>& 
                            [](const auto& node)
                            {
                                return node->data.transition_ratio;
-                           } }*/);
-
-    std::fprintf(stderr, "  I", layer_idx);
-    std::fflush(stderr);
+                           } });
 
     filterNoncentralRegions();
     scripta::log(

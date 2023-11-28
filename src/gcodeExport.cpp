@@ -1271,8 +1271,8 @@ void GCodeExport::startExtruder(const size_t new_extruder)
         }
     }
 
-    //const auto start_code_duration = extruder_settings.get<Duration>("machine_extruder_start_code_duration");
-    //estimateCalculator.addTime(start_code_duration);
+    const auto start_code_duration = extruder_settings.get<Duration>("machine_extruder_start_code_duration");
+    estimateCalculator.addTime(start_code_duration);
 
     Application::getInstance().communication->setExtruderForSend(Application::getInstance().current_slice->scene.extruders[new_extruder]);
     Application::getInstance().communication->sendCurrentPosition(getPositionXY());
@@ -1322,8 +1322,8 @@ void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& re
         }
     }
 
-    //const auto end_code_duration = old_extruder_settings.get<Duration>("machine_extruder_end_code_duration");
-    //estimateCalculator.addTime(end_code_duration);
+    const auto end_code_duration = old_extruder_settings.get<Duration>("machine_extruder_end_code_duration");
+    estimateCalculator.addTime(end_code_duration);
 
     startExtruder(new_extruder);
 }
