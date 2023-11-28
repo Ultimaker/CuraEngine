@@ -245,7 +245,7 @@ target_compile_definitions(CuraEngine PRIVATE VERSION=\"${CURA_ENGINE_VERSION}\"
 
 # Compiling the test environment.
 if (ENABLE_TESTING OR ENABLE_BENCHMARKS)
-    set(TESTS_HELPERS_SRC tests/ReadTestPolygons.cpp tests/ReadTestSettings.cpp)
+    set(TESTS_HELPERS_SRC tests/ReadTestPolygons.cpp)
 
     set(TESTS_SRC_ARCUS)
     if (ENABLE_ARCUS)
@@ -272,13 +272,14 @@ if (ENABLE_TESTING OR ENABLE_BENCHMARKS)
     endif ()
 endif ()
 
-add_subdirectory(stress_benchmark)
+if (ENABLE_BENCHMARKS)
+    add_subdirectory(benchmark)
+    if (NOT WIN32)
+        add_subdirectory(stress_benchmark)
+    endif()
+endif ()
 
 if (ENABLE_TESTING)
     enable_testing()
     add_subdirectory(tests)
-endif ()
-
-if (ENABLE_BENCHMARKS)
-    add_subdirectory(benchmark)
 endif ()
