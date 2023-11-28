@@ -19,6 +19,14 @@ concept hashable = requires(T value)
     { std::hash<T>{}(value) } -> concepts::convertible_to<std::size_t>;
 };
 
+template<typename T>
+concept grpc_convertable = requires(T value)
+{
+    requires ranges::semiregular<T>;
+    requires ranges::semiregular<typename T::value_type>;
+    requires ranges::semiregular<typename T::native_value_type>;
+};
+
 #ifdef OLDER_APPLE_CLANG
 
 // std::integral and std::floating_point are not implemented in older Apple Clang versions < 13
@@ -43,10 +51,7 @@ concept integral =
     std::is_same_v<Tp, unsigned long long>;
 
 template<typename Tp>
-concept floating_point =
-    std::is_same_v<Tp, float> ||
-    std::is_same_v<Tp, double> ||
-    std::is_same_v<Tp, long double>;
+concept floating_point = std::is_same_v<Tp, float> || std::is_same_v<Tp, double> || std::is_same_v<Tp, long double>;
 #else
 template<typename Tp>
 concept integral = std::integral<Tp>;

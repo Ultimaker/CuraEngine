@@ -146,11 +146,12 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
     Polygons skin = top_skin.unionPolygons(bottom_skin);
 
     skin.removeSmallAreas(MIN_AREA_SIZE);
-
+    // Create infill area irrespective if the infill is to be generated or not(would be used for bridging).
+    part.infill_area = part.inner_area.difference(skin);
     if (process_infill)
     { // process infill when infill density > 0
         // or when other infill meshes want to modify this infill
-        generateInfill(part, skin);
+        generateInfill(part);
     }
 
     for (PolygonsPart& skin_area_part : skin.splitIntoParts())
@@ -306,9 +307,9 @@ void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outl
  *
  * generateInfill read mesh.layers[n].parts[*].{insets,skin_parts,boundingBox} and write mesh.layers[n].parts[*].infill_area
  */
-void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polygons& skin)
+void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part)
 {
-    part.infill_area = part.inner_area.difference(skin); // Generate infill everywhere where there wasn't any skin.
+    // Generate infill everywhere where there wasn't any skin.
     part.infill_area.removeSmallAreas(MIN_AREA_SIZE);
 }
 
@@ -345,8 +346,6 @@ void SkinInfillAreaComputation::generateRoofingFillAndSkinFill(SliceLayerPart& p
  */
 Polygons SkinInfillAreaComputation::generateFilledAreaAbove(SliceLayerPart& part, size_t roofing_layer_count)
 {
-    const size_t wall_idx = std::min(size_t(2), mesh.settings.get<size_t>("wall_line_count"));
-
     Polygons filled_area_above = getOutlineOnLayer(part, layer_nr + roofing_layer_count);
     if (! no_small_gaps_heuristic)
     {

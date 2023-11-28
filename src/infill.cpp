@@ -12,6 +12,7 @@
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h"
 #include "infill/UniformDensityProvider.h"
+#include "plugins/slots.h"
 #include "sliceDataStorage.h"
 #include "utils/PolygonConnector.h"
 #include "utils/PolylineStitcher.h"
@@ -86,8 +87,8 @@ void Infill::generate(
     const Settings& settings,
     int layer_idx,
     SectionType section_type,
-    const SierpinskiFillProvider* cross_fill_provider,
-    const LightningLayer* lightning_trees,
+    const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
+    const std::shared_ptr<LightningLayer>& lightning_trees,
     const SliceMeshStorage* mesh,
     const Polygons& prevent_small_exposed_to_air)
 {
@@ -181,6 +182,7 @@ void Infill::generate(
         Polygons generated_result_lines;
 
         _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
+
         zig_zaggify = zig_zaggify_real;
         multiplyInfill(generated_result_polygons, generated_result_lines);
         result_polygons.add(generated_result_polygons);
@@ -192,7 +194,9 @@ void Infill::generate(
         // So make sure we provide it with a Polygons that is safe to clear and only add stuff to result_lines.
         Polygons generated_result_polygons;
         Polygons generated_result_lines;
+
         _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
+
         result_polygons.add(generated_result_polygons);
         result_lines.add(generated_result_lines);
     }
@@ -249,8 +253,8 @@ void Infill::_generate(
     Polygons& result_polygons,
     Polygons& result_lines,
     const Settings& settings,
-    const SierpinskiFillProvider* cross_fill_provider,
-    const LightningLayer* lightning_trees,
+    const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
+    const std::shared_ptr<LightningLayer>& lightning_trees,
     const SliceMeshStorage* mesh)
 {
     if (inner_contour.empty())
@@ -311,6 +315,17 @@ void Infill::_generate(
         assert(lightning_trees); // "Cannot generate Lightning infill without a generator!\n"
         generateLightningInfill(lightning_trees, result_lines);
         break;
+    case EFillMethod::PLUGIN:
+    {
+        auto [toolpaths_, generated_result_polygons_, generated_result_lines_] = slots::instance().generate<plugins::v0::SlotID::INFILL_GENERATE>(
+            inner_contour,
+            mesh ? mesh->settings.get<std::string>("infill_pattern") : settings.get<std::string>("infill_pattern"),
+            mesh ? mesh->settings : settings);
+        toolpaths.insert(toolpaths.end(), toolpaths_.begin(), toolpaths_.end());
+        result_polygons.add(generated_result_polygons_);
+        result_lines.add(generated_result_lines_);
+        break;
+    }
     default:
         spdlog::error("Fill pattern has unknown value.\n");
         break;
@@ -318,7 +333,7 @@ void Infill::_generate(
 
     if (connect_lines)
     {
-        // The list should be empty because it will be again filled completely. Otherwise might have double lines.
+        // The list should be empty because it will be again filled completely. Otherwise, might have double lines.
         assert(result_lines.empty());
         result_lines.clear();
         connectLines(result_lines);
@@ -415,7 +430,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines, Polygons& result_polyg
     PolylineStitcher<Polygons, Polygon, Point>::stitch(line_segments, result_lines, result_polygons, infill_line_width);
 }
 
-void Infill::generateLightningInfill(const LightningLayer* trees, Polygons& result_lines)
+void Infill::generateLightningInfill(const std::shared_ptr<LightningLayer>& trees, Polygons& result_lines)
 {
     // Don't need to support areas smaller than line width, as they are always within radius:
     if (std::abs(inner_contour.area()) < infill_line_width || ! trees)
@@ -793,12 +808,14 @@ void Infill::resolveIntersection(const coord_t at_distance, const Point& interse
     auto& end_a = forward_line_a ? a->altered_end : a->altered_start;
     auto& end_b = forward_line_b ? b->altered_start : b->altered_end;
 
-    // Set values ('pre existing' values are needed when feeging these as reference parameters to functions that need a value).
+    // Set values ('pre existing' values are needed when feeding these as reference parameters to functions that need a value).
+    assert(! bend_a.has_value());
+    assert(! bend_b.has_value());
     bend_a.emplace(0, 0);
     bend_b.emplace(0, 0);
 
     // Find a bisector of the intersection; specifically, the one that crosses the connection & offset it by 1/2 distance to each side.
-    constexpr auto large_enough_vec_len = 0xFFFF;
+    constexpr auto large_enough_vec_len = 0xFFFFFFFF;
     const auto bisect = LinearAlg2D::getBisectorVector(intersect, connect_start, connect_end, large_enough_vec_len);
     const auto offset = ((at_distance / 2) * Point(-bisect.Y, bisect.X)) / large_enough_vec_len;
     const auto q = intersect + offset;
@@ -806,17 +823,29 @@ void Infill::resolveIntersection(const coord_t at_distance, const Point& interse
     const auto s = intersect - offset;
     const auto t = s + bisect;
 
+    // In certain rare conditions, the lines do not actually intersect in a way that we can solve with the current algorithm.
+    bool is_resolved = true;
+
     // Use both of the resulting lines to place the 'bends' by intersecting with the original line-segments.
-    LinearAlg2D::lineLineIntersection(q, r, a->start, a->end, bend_a.value());
-    LinearAlg2D::lineLineIntersection(s, t, b->start, b->end, bend_b.value());
+    is_resolved &= LinearAlg2D::lineLineIntersection(q, r, a->start, a->end, bend_a.value()) && LinearAlg2D::pointIsProjectedBeyondLine(bend_a.value(), a->start, a->end) == 0;
+    is_resolved &= LinearAlg2D::lineLineIntersection(s, t, b->start, b->end, bend_b.value()) && LinearAlg2D::pointIsProjectedBeyondLine(bend_b.value(), b->start, b->end) == 0;
 
-    // Also set the new end-points.
-    LinearAlg2D::lineLineIntersection(connect_start, connect_end, q, r, end_a);
-    LinearAlg2D::lineLineIntersection(connect_start, connect_end, s, t, end_b);
+    // Also set the new end-points
+    is_resolved &= LinearAlg2D::lineLineIntersection(connect_start, connect_end, q, r, end_a) && LinearAlg2D::pointIsProjectedBeyondLine(end_a, connect_start, connect_end) == 0;
+    is_resolved &= LinearAlg2D::lineLineIntersection(connect_start, connect_end, s, t, end_b) && LinearAlg2D::pointIsProjectedBeyondLine(end_b, connect_start, connect_end) == 0;
 
-    // The connecting line will be made from the end-points.
-    connect_start = end_a;
-    connect_end = end_b;
+    if (is_resolved)
+    {
+        // The connecting line will be made from the end-points.
+        connect_start = end_a;
+        connect_end = end_b;
+    }
+    else
+    {
+        // Put everything that has now potentially become messed up, back.
+        bend_a.reset();
+        bend_b.reset();
+    }
 }
 
 void Infill::connectLines(Polygons& result_lines)

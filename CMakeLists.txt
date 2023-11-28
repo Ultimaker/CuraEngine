@@ -9,17 +9,29 @@ AssureOutOfSourceBuilds()
 
 option(ENABLE_ARCUS "Enable support for ARCUS" ON)
 option(ENABLE_TESTING "Build with unit tests" OFF)
+option(ENABLE_BENCHMARKS "Build with Benchmarks" OFF)
 option(EXTENSIVE_WARNINGS "Build with all warnings" ON)
+option(ENABLE_PLUGINS "Build with plugins" ON)
+option(ENABLE_REMOTE_PLUGINS "Build with all warnings" OFF)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
 
-# Create Protobuf files if Arcus is used
+# Generate the plugin types
+find_package(protobuf REQUIRED)
+find_package(asio-grpc REQUIRED)
+find_package(gRPC REQUIRED)
+find_package(curaengine_grpc_definitions REQUIRED)
+option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
+
+MESSAGE(STATUS "Compiling with plugins support: ${ENABLE_PLUGINS}")
+if (${ENABLE_PLUGINS})
+    MESSAGE(STATUS "Plugin secure remotes allowed: ${ENABLE_REMOTE_PLUGINS}")
+endif ()
+
 if (ENABLE_ARCUS)
     message(STATUS "Building with Arcus")
-
     find_package(arcus REQUIRED)
-    find_package(protobuf REQUIRED)
     protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 endif ()
 
@@ -30,6 +42,7 @@ set(engine_SRCS # Except main.cpp.
         src/Application.cpp
         src/bridge.cpp
         src/ConicalOverhang.cpp
+        src/ExtruderPlan.cpp
         src/ExtruderTrain.cpp
         src/FffGcodeWriter.cpp
         src/FffPolygonGenerator.cpp
@@ -97,19 +110,23 @@ set(engine_SRCS # Except main.cpp.
         src/pathPlanning/GCodePath.cpp
         src/pathPlanning/LinePolygonsCrossings.cpp
         src/pathPlanning/NozzleTempInsert.cpp
-        src/pathPlanning/TimeMaterialEstimates.cpp
+        src/pathPlanning/SpeedDerivatives.cpp
+
+        src/plugins/converters.cpp
 
         src/progress/Progress.cpp
         src/progress/ProgressStageEstimator.cpp
 
         src/settings/AdaptiveLayerHeights.cpp
         src/settings/FlowTempGraph.cpp
+        src/settings/MeshPathConfigs.cpp
         src/settings/PathConfigStorage.cpp
         src/settings/Settings.cpp
         src/settings/ZSeamConfig.cpp
 
         src/utils/AABB.cpp
         src/utils/AABB3D.cpp
+        src/utils/channel.cpp
         src/utils/Date.cpp
         src/utils/ExtrusionJunction.cpp
         src/utils/ExtrusionLine.cpp
@@ -147,9 +164,12 @@ target_include_directories(_CuraEngine
         PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}> # Include Cura.pb.h
         )
+
 target_compile_definitions(_CuraEngine
         PUBLIC
         $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
+        $<$<BOOL:${ENABLE_PLUGINS}>:ENABLE_PLUGINS>
+        $<$<AND:$<BOOL:${ENABLE_PLUGINS}>,$<BOOL:${ENABLE_REMOTE_PLUGINS}>>:ENABLE_REMOTE_PLUGINS>
         $<$<BOOL:${OLDER_APPLE_CLANG}>:OLDER_APPLE_CLANG>
         CURA_ENGINE_VERSION=\"${CURA_ENGINE_VERSION}\"
         $<$<BOOL:${ENABLE_TESTING}>:BUILD_TESTS>
@@ -170,7 +190,7 @@ if (${EXTENSIVE_WARNINGS})
 endif ()
 
 if (ENABLE_ARCUS)
-    target_link_libraries(_CuraEngine PRIVATE arcus::arcus protobuf::libprotobuf)
+    target_link_libraries(_CuraEngine PUBLIC arcus::arcus )
 endif ()
 
 find_package(clipper REQUIRED)
@@ -181,6 +201,7 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
+find_package(neargye-semver REQUIRED)
 
 if (ENABLE_TESTING)
     find_package(GTest REQUIRED)
@@ -196,6 +217,11 @@ target_link_libraries(_CuraEngine
         stb::stb
         boost::boost
         scripta::scripta
+        neargye-semver::neargye-semver
+        curaengine_grpc_definitions::curaengine_grpc_definitions
+        asio-grpc::asio-grpc
+        grpc::grpc
+        protobuf::libprotobuf
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
 
 if (NOT WIN32)
@@ -218,11 +244,42 @@ target_link_libraries(CuraEngine PRIVATE _CuraEngine)
 target_compile_definitions(CuraEngine PRIVATE VERSION=\"${CURA_ENGINE_VERSION}\")
 
 # Compiling the test environment.
-if (ENABLE_TESTING)
-    enable_testing()
-    add_subdirectory(tests)
+if (ENABLE_TESTING OR ENABLE_BENCHMARKS)
+    set(TESTS_HELPERS_SRC tests/ReadTestPolygons.cpp)
+
+    set(TESTS_SRC_ARCUS)
+    if (ENABLE_ARCUS)
+        list(APPEND TESTS_SRC_ARCUS
+                ArcusCommunicationTest
+                ArcusCommunicationPrivateTest)
+        list(APPEND TESTS_HELPERS_SRC tests/arcus/MockSocket.cpp)
+    endif ()
+
+    add_library(test_helpers ${TESTS_HELPERS_SRC})
+    target_compile_definitions(test_helpers PUBLIC $<$<BOOL:${BUILD_TESTING}>:BUILD_TESTS> $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>)
+    target_include_directories(test_helpers PUBLIC "include" ${CMAKE_BINARY_DIR}/generated)
+    target_link_libraries(test_helpers PRIVATE
+            _CuraEngine
+            GTest::gtest
+            GTest::gmock
+            clipper::clipper
+            curaengine_grpc_definitions::curaengine_grpc_definitions
+            asio-grpc::asio-grpc
+            grpc::grpc
+            protobuf::libprotobuf)
+    if (ENABLE_ARCUS)
+        target_link_libraries(test_helpers PUBLIC arcus::arcus)
+    endif ()
 endif ()
 
 if (ENABLE_BENCHMARKS)
     add_subdirectory(benchmark)
-endif()
+    if (NOT WIN32)
+        add_subdirectory(stress_benchmark)
+    endif()
+endif ()
+
+if (ENABLE_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+endif ()

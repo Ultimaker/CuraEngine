@@ -4,14 +4,7 @@
 #ifndef LAYER_PLAN_H
 #define LAYER_PLAN_H
 
-#include <functional>
-#include <limits>
-#include <optional>
-#include <vector>
-#ifdef BUILD_TESTS
-#include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
-#endif
-
+#include "ExtruderPlan.h"
 #include "FanSpeedLayerTime.h"
 #include "InsetOrderOptimizer.h"
 #include "PathOrderOptimizer.h"
@@ -25,194 +18,22 @@
 #include "utils/ExtrusionJunction.h"
 #include "utils/polygon.h"
 
+#ifdef BUILD_TESTS
+#include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
+#endif
+
+#include <functional>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <vector>
+
 namespace cura
 {
 
 class Comb;
-class LayerPlan; // forward declaration so that ExtruderPlan can be a friend
-class LayerPlanBuffer; // forward declaration so that ExtruderPlan can be a friend
 class SliceDataStorage;
-
-/*!
- * An extruder plan contains all planned paths (GCodePath) pertaining to a single extruder train.
- *
- * It allows for temperature command inserts which can be inserted in between paths.
- */
-class ExtruderPlan
-{
-    friend class LayerPlan; // TODO: LayerPlan still does a lot which should actually be handled in this class.
-    friend class LayerPlanBuffer; // TODO: LayerPlanBuffer handles paths directly
-#ifdef BUILD_TESTS
-    friend class ExtruderPlanPathsParameterizedTest;
-    FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompensated);
-    FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull);
-    FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf);
-    FRIEND_TEST(ExtruderPlanTest, BackPressureCompensationEmptyPlan);
-#endif
-protected:
-    std::vector<GCodePath> paths; //!< The paths planned for this extruder
-    std::list<NozzleTempInsert> inserts; //!< The nozzle temperature command inserts, to be inserted in between segments
-
-    double heated_pre_travel_time; //!< The time at the start of this ExtruderPlan during which the head travels and has a temperature of initial_print_temperature
-
-    /*!
-     * The required temperature at the start of this extruder plan
-     * or the temp to which to heat gradually over the layer change between this plan and the previous with the same extruder.
-     *
-     * In case this extruder plan uses a different extruder than the last extruder plan:
-     * this is the temperature to which to heat and wait before starting this extruder.
-     *
-     * In case this extruder plan uses the same extruder as the previous extruder plan (previous layer):
-     * this is the temperature used to heat to gradually when moving from the previous extruder layer to the next.
-     * In that case no temperature (and wait) command will be inserted from this value, but a NozzleTempInsert is used instead.
-     * In this case this member is only used as a way to convey information between different calls of \ref LayerPlanBuffer::processBuffer
-     */
-    double required_start_temperature;
-    std::optional<double> extrusion_temperature; //!< The normal temperature for printing this extruder plan. That start and end of this extruder plan may deviate because of the
-                                                 //!< initial and final print temp (none if extruder plan has no extrusion moves)
-    std::optional<std::list<NozzleTempInsert>::iterator> extrusion_temperature_command; //!< The command to heat from the printing temperature of this extruder plan to the printing
-                                                                                        //!< temperature of the next extruder plan (if it has the same extruder).
-    std::optional<double> prev_extruder_standby_temp; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
-
-    TimeMaterialEstimates estimates; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
-    double slowest_path_speed;
-
-public:
-    size_t extruder_nr; //!< The extruder used for this paths in the current plan.
-
-    /*!
-     * Simple contructor.
-     *
-     * \warning Doesn't set the required temperature yet.
-     *
-     * \param extruder The extruder number for which this object is a plan.
-     * \param layer_nr The layer index of the layer that this extruder plan is
-     * part of.
-     * \param is_raft_layer Whether this extruder plan is part of a raft layer.
-     */
-    ExtruderPlan(
-        const size_t extruder,
-        const LayerIndex layer_nr,
-        const bool is_initial_layer,
-        const bool is_raft_layer,
-        const coord_t layer_thickness,
-        const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings,
-        const RetractionConfig& retraction_config);
-
-
-    void insertCommand(auto&& insert)
-    {
-        inserts.emplace_back(std::forward<decltype(insert)>(insert));
-    }
-
-    /*!
-     * Insert the inserts into gcode which should be inserted before \p path_idx
-     *
-     * \param path_idx The index into ExtruderPlan::paths which is currently being consider for temperature command insertion
-     * \param gcode The gcode exporter to which to write the temperature command.
-     * \param cumulative_path_time The time spend on this path up to this point.
-     */
-    void handleInserts(const size_t path_idx, GCodeExport& gcode, const double& cumulative_path_time = std::numeric_limits<double>::infinity());
-
-    /*!
-     * Insert all remaining temp inserts into gcode, to be called at the end of an extruder plan
-     *
-     * Inserts temperature commands which should be inserted _after_ the last path.
-     * Also inserts all temperatures which should have been inserted earlier,
-     * but for which ExtruderPlan::handleInserts hasn't been called correctly.
-     *
-     * \param gcode The gcode exporter to which to write the temperature command.
-     */
-    void handleAllRemainingInserts(GCodeExport& gcode);
-
-    /*!
-     * Applying fan speed changes for minimal layer times.
-     *
-     * \param starting_position The position the head was before starting this extruder plan
-     * \param minTime Maximum minimum layer time for all extruders in this layer
-     * \param time_other_extr_plans The time spent on the other extruder plans in this layer
-     */
-    void processFanSpeedForMinimalLayerTime(Point starting_position, Duration maximum_cool_min_layer_time, double time_other_extr_plans);
-
-    /*!
-     * Applying fan speed changes for the first layers.
-     */
-    void processFanSpeedForFirstLayers();
-
-    /*!
-     * Get the fan speed computed for this extruder plan
-     *
-     * \warning assumes ExtruderPlan::processFanSpeedForMinimalLayerTime has already been called
-     *
-     * \return The fan speed computed in processFanSpeedForMinimalLayerTime
-     */
-    double getFanSpeed();
-
-    /*!
-     * Apply back-pressure compensation to this path.
-     * Since the total (filament) pressure in a feeder-system is not only dependent on the pressure that exists between the nozzle and the
-     * feed-mechanism (which should be near-constant on a bowden style setup), but _also_ between the nozzle and the last-printed layer.
-     * This last type is called 'back-pressure'. In this function, properties of the path-outflow are adjusted so that the back-pressure is
-     * compensated for. This is conjectured to be especially important if the printer has a Bowden-tube style setup.
-     *
-     * \param The amount of back-pressure compensation as a ratio. 'Applying' a value of 0 is a no-op.
-     */
-    void applyBackPressureCompensation(const Ratio back_pressure_compensation);
-
-protected:
-    LayerIndex layer_nr; //!< The layer number at which we are currently printing.
-    bool is_initial_layer; //!< Whether this extruder plan is printed on the very first layer (which might be raft)
-    const bool is_raft_layer; //!< Whether this is a layer which is part of the raft
-
-    coord_t layer_thickness; //!< The thickness of this layer in Z-direction
-
-    const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings; //!< The fan speed and layer time settings used to limit this extruder plan
-
-    const RetractionConfig& retraction_config; //!< The retraction settings for the extruder of this plan
-
-    double extraTime; //!< Extra waiting time at the and of this extruder plan, so that the filament can cool
-
-    double fan_speed; //!< The fan speed to be used during this extruder plan
-
-    double temperatureFactor; //!< Temperature reduction factor for small layers
-
-    /*!
-     * Set the fan speed to be used while printing this extruder plan
-     *
-     * \param fan_speed The speed for the fan
-     */
-    void setFanSpeed(double fan_speed);
-
-    /*!
-     * Force the minimal layer time to hold by slowing down and lifting the head if required.
-     *
-     * \param maximum_cool_min_layer_time Maximum minimum layer time for all extruders in this layer
-     * \param time_other_extr_plans Time spend on other extruders in this layer
-     * \return if minimal layer time has indeed been applied
-     */
-    bool forceMinimalLayerTime(double maximum_cool_min_layer_time, double time_other_extr_plans);
-
-    /*!
-     * @return The time needed for (un)retract the path
-     */
-    double getRetractTime(const GCodePath& path);
-
-    /*!
-     * @return distance between p0 and p1 as well as the time spend on the segment
-     */
-    std::pair<double, double> getPointToPointTime(const Point& p0, const Point& p1, const GCodePath& path);
-
-    /*!
-     * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates.
-     * and store them in each ExtruderPlan and each GCodePath.
-     *
-     * \param starting_position The position the head was in before starting this layer
-     * \return the total estimates of this layer
-     */
-    TimeMaterialEstimates computeNaiveTimeEstimates(Point starting_position);
-};
-
-class LayerPlanBuffer; // forward declaration to prevent circular dependency
+class LayerPlanBuffer;
 
 /*!
  * The LayerPlan class stores multiple moves that are planned.
@@ -227,7 +48,9 @@ class LayerPlanBuffer; // forward declaration to prevent circular dependency
 class LayerPlan : public NoCopy
 {
     friend class LayerPlanBuffer;
+#ifdef BUILD_TESTS
     friend class AddTravelTest;
+#endif
 
 public:
     const PathConfigStorage configs_storage; //!< The line configs for this layer for each feature type
@@ -246,7 +69,7 @@ private:
     std::vector<bool> has_prime_tower_planned_per_extruder; //!< For each extruder, whether the prime tower is planned yet or not.
     std::optional<Point> last_planned_position; //!< The last planned XY position of the print head (if known)
 
-    const SliceMeshStorage* current_mesh; //!< The mesh of the last planned move.
+    std::shared_ptr<const SliceMeshStorage> current_mesh; //!< The mesh of the last planned move.
 
     /*!
      * Whether the skirt or brim polygons have been processed into planned paths
@@ -288,6 +111,7 @@ private:
      *
      * \param config The config used for the path returned
      * \param space_fill_type The type of space filling which this path employs
+     * \param z_offset (optional) Vertical offset w.r.t current layer height, defaults to 0
      * \param flow (optional) A ratio for the extrusion speed
      * \param spiralize Whether to gradually increase the z while printing. (Note that this path may be part of a sequence of spiralized paths, forming one polygon)
      * \param speed_factor (optional) a factor which the speed will be multiplied by.
@@ -295,10 +119,11 @@ private:
      */
     GCodePath* getLatestPathWithConfig(
         const GCodePathConfig& config,
-        SpaceFillType space_fill_type,
+        const SpaceFillType space_fill_type,
+        const coord_t z_offset = 0,
         const Ratio flow = 1.0_r,
         const Ratio width_factor = 1.0_r,
-        bool spiralize = false,
+        const bool spiralize = false,
         const Ratio speed_factor = 1.0_r);
 
 public:
@@ -416,7 +241,7 @@ public:
      * Track the currently printing mesh.
      * \param mesh_id A unique ID indicating the current mesh.
      */
-    void setMesh(const SliceMeshStorage* mesh_id);
+    void setMesh(const std::shared_ptr<const SliceMeshStorage>& mesh);
 
     /*!
      * Set bridge_wall_mask.
@@ -459,7 +284,7 @@ public:
      * \param p The point to travel to.
      * \param force_retract Whether to force a retraction to occur.
      */
-    GCodePath& addTravel(const Point p, const bool force_retract = false);
+    GCodePath& addTravel(const Point& p, const bool force_retract = false, const coord_t z_offset = 0);
 
     /*!
      * Add a travel path to a certain point and retract if needed.
@@ -469,7 +294,7 @@ public:
      * \param p The point to travel to
      * \param path (optional) The travel path to which to add the point \p p
      */
-    GCodePath& addTravel_simple(Point p, GCodePath* path = nullptr);
+    GCodePath& addTravel_simple(const Point& p, GCodePath* path = nullptr);
 
     /*!
      * Plan a prime blob at the current location.
@@ -495,14 +320,14 @@ public:
      * \param fan_speed Fan speed override for this path.
      */
     void addExtrusionMove(
-        Point p,
+        const Point p,
         const GCodePathConfig& config,
-        SpaceFillType space_fill_type,
+        const SpaceFillType space_fill_type,
         const Ratio& flow = 1.0_r,
         const Ratio width_factor = 1.0_r,
-        bool spiralize = false,
-        Ratio speed_factor = 1.0_r,
-        double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
+        const bool spiralize = false,
+        const Ratio speed_factor = 1.0_r,
+        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
 
     /*!
      * Add polygon to the gcode starting at vertex \p startIdx
@@ -881,6 +706,11 @@ public:
      * \param part If given, stay within the boundary of this part.
      */
     void moveInsideCombBoundary(const coord_t distance, const std::optional<SliceLayerPart>& part = std::nullopt);
+
+    /*!
+     * If enabled, apply the modify plugin to the layer-plan.
+     */
+    void applyModifyPlugin();
 
     /*!
      * Apply back-pressure compensation to this layer-plan.

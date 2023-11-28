@@ -3,17 +3,17 @@
 
 #include "TreeModelVolumes.h"
 
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/iota.hpp>
+#include <range/v3/view/reverse.hpp>
+#include <spdlog/spdlog.h>
+
 #include "TreeSupport.h"
 #include "TreeSupportEnums.h"
 #include "progress/Progress.h"
 #include "sliceDataStorage.h"
 #include "utils/ThreadPool.h"
 #include "utils/algorithm.h"
-
-#include <range/v3/view/enumerate.hpp>
-#include <range/v3/view/iota.hpp>
-#include <range/v3/view/reverse.hpp>
-#include <spdlog/spdlog.h>
 
 namespace cura
 {
@@ -49,8 +49,9 @@ TreeModelVolumes::TreeModelVolumes(
     coord_t min_maximum_area_deviation = std::numeric_limits<coord_t>::max();
 
     support_rests_on_model = false;
-    for (auto [mesh_idx, mesh] : storage.meshes | ranges::views::enumerate)
+    for (auto [mesh_idx, mesh_ptr] : storage.meshes | ranges::views::enumerate)
     {
+        auto& mesh = *mesh_ptr;
         bool added = false;
         for (auto [idx, layer_outline] : layer_outlines_ | ranges::views::enumerate)
         {
@@ -103,7 +104,7 @@ TreeModelVolumes::TreeModelVolumes(
     {
         // Workaround for compiler bug on apple-clang -- Closure won't properly capture variables in capture lists in outer scope.
         const auto& mesh_idx_l = mesh_idx;
-        const auto& mesh_l = mesh;
+        const auto& mesh_l = *mesh;
         // ^^^ Remove when fixed (and rename accordingly in the below parallel-for).
 
         cura::parallel_for<coord_t>(
@@ -149,7 +150,7 @@ TreeModelVolumes::TreeModelVolumes(
 
             if (storage.primeTower.enabled)
             {
-                anti_overhang_[layer_idx].add(storage.primeTower.outer_poly);
+                anti_overhang_[layer_idx].add(storage.primeTower.getGroundPoly());
             }
             anti_overhang_[layer_idx] = anti_overhang_[layer_idx].unionPolygons();
         });

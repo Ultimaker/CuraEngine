@@ -3,6 +3,21 @@
 
 #include "support.h"
 
+#include <cmath> // sqrt, round
+#include <deque>
+#include <fstream> // ifstream.good()
+#include <utility> // pair
+
+#include <range/v3/numeric/accumulate.hpp>
+#include <range/v3/view/drop.hpp>
+#include <range/v3/view/drop_last.hpp>
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/filter.hpp>
+#include <range/v3/view/slice.hpp>
+#include <range/v3/view/zip.hpp>
+#include <scripta/logger.h>
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To get settings.
 #include "BoostInterface.hpp"
 #include "ExtruderTrain.h"
@@ -23,21 +38,6 @@
 #include "utils/VoronoiUtils.h"
 #include "utils/math.h"
 #include "utils/views/get.h"
-
-#include <range/v3/numeric/accumulate.hpp>
-#include <range/v3/view/drop.hpp>
-#include <range/v3/view/drop_last.hpp>
-#include <range/v3/view/enumerate.hpp>
-#include <range/v3/view/filter.hpp>
-#include <range/v3/view/slice.hpp>
-#include <range/v3/view/zip.hpp>
-#include <scripta/logger.h>
-#include <spdlog/spdlog.h>
-
-#include <cmath> // sqrt, round
-#include <deque>
-#include <fstream> // ifstream.good()
-#include <utility> // pair
 
 namespace cura
 {
@@ -106,7 +106,6 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(
         { // The first layer will be printed with a grid pattern
             wall_line_count_this_layer++;
         }
-        assert(storage.support.supportLayers[layer_nr].support_infill_parts.empty() && "support infill part list is supposed to be uninitialized");
 
         const Polygons& global_support_areas = global_support_areas_per_layer[layer_nr];
         if (global_support_areas.size() == 0 || layer_nr < min_layer || layer_nr > max_layer)
@@ -116,20 +115,14 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(
             continue;
         }
 
-        std::vector<PolygonsPart> support_islands = global_support_areas.splitIntoParts();
-        for (const PolygonsPart& island_outline : support_islands)
+        coord_t support_line_width_here = support_line_width;
+        if (layer_nr == 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
         {
-            coord_t support_line_width_here = support_line_width;
-            if (layer_nr == 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
-            {
-                support_line_width_here *= infill_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
-            }
-            // We don't generate insets and infill area for the parts yet because later the skirt/brim and prime
-            // tower will remove themselves from the support, so the outlines of the parts can be changed.
-            SupportInfillPart support_infill_part(island_outline, support_line_width_here, wall_line_count_this_layer);
-
-            storage.support.supportLayers[layer_nr].support_infill_parts.push_back(support_infill_part);
+            support_line_width_here *= infill_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
         }
+        // We don't generate insets and infill area for the parts yet because later the skirt/brim and prime
+        // tower will remove themselves from the support, so the outlines of the parts can be changed.
+        storage.support.supportLayers[layer_nr].fillInfillParts(layer_nr, global_support_areas_per_layer, support_line_width_here, wall_line_count_this_layer);
     }
 }
 
@@ -599,8 +592,9 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
 
 void AreaSupport::generateOverhangAreas(SliceDataStorage& storage)
 {
-    for (SliceMeshStorage& mesh : storage.meshes)
+    for (std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
     {
+        auto& mesh = *mesh_ptr;
         if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
         {
             continue;
@@ -645,14 +639,14 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
-        SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+        SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
         if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
         {
             continue;
         }
-        Settings* infill_settings = &storage.meshes[mesh_idx].settings;
-        Settings* roof_settings = &storage.meshes[mesh_idx].settings;
-        Settings* bottom_settings = &storage.meshes[mesh_idx].settings;
+        Settings* infill_settings = &storage.meshes[mesh_idx]->settings;
+        Settings* roof_settings = &storage.meshes[mesh_idx]->settings;
+        Settings* bottom_settings = &storage.meshes[mesh_idx]->settings;
         if (mesh.settings.get<bool>("support_mesh"))
         {
             if ((mesh.settings.get<bool>("support_mesh_drop_down") && support_meshes_drop_down_handled)
@@ -685,28 +679,26 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
         }
     }
 
-    for (LayerIndex layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
+    for (Polygons& support_areas : global_support_areas_per_layer)
     {
-        Polygons& support_areas = global_support_areas_per_layer[layer_idx];
         support_areas = support_areas.unionPolygons();
     }
 
     // handle support interface
-    for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
+    for (auto& mesh : storage.meshes)
     {
-        SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-        if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
+        if (mesh->settings.get<bool>("infill_mesh") || mesh->settings.get<bool>("anti_overhang_mesh"))
         {
             continue;
         }
 
-        if (mesh.settings.get<bool>("support_roof_enable"))
+        if (mesh->settings.get<bool>("support_roof_enable"))
         {
-            generateSupportRoof(storage, mesh, global_support_areas_per_layer);
+            generateSupportRoof(storage, *mesh, global_support_areas_per_layer);
         }
-        if (mesh.settings.get<bool>("support_bottom_enable"))
+        if (mesh->settings.get<bool>("support_bottom_enable"))
         {
-            generateSupportBottom(storage, mesh, global_support_areas_per_layer);
+            generateSupportBottom(storage, *mesh, global_support_areas_per_layer);
         }
     }
 
@@ -725,12 +717,12 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
         AABB3D aabb;
         for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
         {
-            const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+            const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
             if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
             {
                 continue;
             }
-            Settings& infill_settings = storage.meshes[mesh_idx].settings;
+            Settings& infill_settings = storage.meshes[mesh_idx]->settings;
             if (mesh.settings.get<bool>("support_mesh"))
             {
                 // use extruder train settings rather than the per-object settings of the first support mesh encountered.
@@ -749,7 +741,7 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
         std::ifstream cross_fs(cross_subdisivion_spec_image_file.c_str());
         if (cross_subdisivion_spec_image_file != "" && cross_fs.good())
         {
-            storage.support.cross_fill_provider = new SierpinskiFillProvider(
+            storage.support.cross_fill_provider = std::make_shared<SierpinskiFillProvider>(
                 aabb,
                 infill_extruder.settings.get<coord_t>("support_line_distance"),
                 infill_extruder.settings.get<coord_t>("support_line_width"),
@@ -761,8 +753,10 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
             {
                 spdlog::error("Cannot find density image: {}.", cross_subdisivion_spec_image_file);
             }
-            storage.support.cross_fill_provider
-                = new SierpinskiFillProvider(aabb, infill_extruder.settings.get<coord_t>("support_line_distance"), infill_extruder.settings.get<coord_t>("support_line_width"));
+            storage.support.cross_fill_provider = std::make_shared<SierpinskiFillProvider>(
+                aabb,
+                infill_extruder.settings.get<coord_t>("support_line_distance"),
+                infill_extruder.settings.get<coord_t>("support_line_width"));
         }
     }
 }
@@ -791,7 +785,7 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
     // Don't generate overhang areas if the Z distance is higher than the objects we're generating support for.
     const coord_t layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height");
     const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
-    const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height) + 1; // Support must always be 1 layer below overhang.
+    const size_t z_distance_top_layers = (z_distance_top / layer_height) + 1;
     if (z_distance_top_layers + 1 > storage.print_layer_count)
     {
         return;
@@ -1037,7 +1031,7 @@ void AreaSupport::generateSupportAreasForMesh(
     const size_t layer_count,
     std::vector<Polygons>& support_areas)
 {
-    SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+    SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
 
     const ESupportStructure support_structure = mesh.settings.get<ESupportStructure>("support_structure");
     const bool is_support_mesh_place_holder
@@ -1056,7 +1050,7 @@ void AreaSupport::generateSupportAreasForMesh(
     // early out
     const coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
     const coord_t z_distance_top = ((mesh.settings.get<bool>("support_roof_enable")) ? roof_settings : infill_settings).get<coord_t>("support_top_distance");
-    const size_t layer_z_distance_top = round_up_divide(z_distance_top, layer_thickness) + 1; // support must always be 1 layer below overhang
+    const size_t layer_z_distance_top = (z_distance_top / layer_thickness) + 1;
     if (layer_z_distance_top + 1 > layer_count)
     {
         return;
@@ -1802,7 +1796,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     const double minimum_roof_area = mesh.settings.get<double>("minimum_roof_area");
 
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
-    for (LayerIndex layer_idx = 0; layer_idx < static_cast<int>(support_layers.size() - z_distance_top); layer_idx++)
+    for (LayerIndex layer_idx = static_cast<int>(support_layers.size() - z_distance_top) - 1; layer_idx >= 0; --layer_idx)
     {
         const LayerIndex top_layer_idx_above{
             std::min(LayerIndex{ support_layers.size() - 1 }, LayerIndex{ layer_idx + roof_layer_count + z_distance_top })
@@ -1815,15 +1809,17 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         Polygons roofs;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roof_outline_offset, minimum_roof_area, roofs);
         support_layers[layer_idx].support_roof.add(roofs);
+        if (layer_idx > 0 && layer_idx < support_layers.size() - 1)
+        {
+            support_layers[layer_idx].support_fractional_roof.add(roofs.difference(support_layers[layer_idx + 1].support_roof));
+        }
         scripta::log("support_interface_roofs", roofs, SectionType::SUPPORT, layer_idx);
     }
 
     // Remove support in between the support roof and the model. Subtracts the roof polygons from the support polygons on the layers above it.
     for (auto [layer_idx, support_layer] : support_layers | ranges::views::enumerate | ranges::views::drop(1) | ranges::views::drop_last(z_distance_top))
     {
-        Polygons roof = support_layer.support_roof;
-
-        if (roof.empty())
+        if (support_layer.support_roof.empty())
         {
             continue;
         }
@@ -1832,7 +1828,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         int upper = std::min(static_cast<int>(layer_idx + roof_layer_count + z_distance_top + 5), static_cast<int>(global_support_areas_per_layer.size()) - 1);
         for (Polygons& global_support : global_support_areas_per_layer | ranges::views::slice(lower, upper))
         {
-            global_support = global_support.difference(roof);
+            global_support = global_support.difference(support_layer.support_roof);
         }
     }
 }

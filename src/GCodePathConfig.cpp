@@ -1,109 +1,72 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "settings/types/LayerIndex.h"
-#include "utils/IntPoint.h" // INT2MM
 #include "GCodePathConfig.h"
 
-namespace cura 
+#include "utils/IntPoint.h" // INT2MM
+
+namespace cura
 {
 
-GCodePathConfig::GCodePathConfig(const GCodePathConfig& other)
-: type(other.type)
-, speed_derivatives(other.speed_derivatives)
-, line_width(other.line_width)
-, layer_thickness(other.layer_thickness)
-, flow(other.flow)
-, extrusion_mm3_per_mm(other.extrusion_mm3_per_mm)
-, is_bridge_path(other.is_bridge_path)
-, fan_speed(other.fan_speed)
-{
-}
-
-
-
-GCodePathConfig::GCodePathConfig(const PrintFeatureType& type, const coord_t line_width, const coord_t layer_height, const Ratio& flow, const GCodePathConfig::SpeedDerivatives speed_derivatives, const bool is_bridge_path, const double fan_speed)
-: type(type)
-, speed_derivatives(speed_derivatives)
-, line_width(line_width)
-, layer_thickness(layer_height)
-, flow(flow)
-, extrusion_mm3_per_mm(calculateExtrusion())
-, is_bridge_path(is_bridge_path)
-, fan_speed(fan_speed)
-{
-}
-
-void GCodePathConfig::smoothSpeed(GCodePathConfig::SpeedDerivatives first_layer_config, const LayerIndex& layer_nr, const LayerIndex& max_speed_layer_nr) 
-{
-    double max_speed_layer = max_speed_layer_nr;
-    double first_layer_speed = std::min(speed_derivatives.speed, first_layer_config.speed);
-    double first_layer_acceleration = std::min(speed_derivatives.acceleration, first_layer_config.acceleration);
-    double first_layer_jerk = std::min(speed_derivatives.jerk, first_layer_config.jerk);
-    speed_derivatives.speed = (speed_derivatives.speed * layer_nr) / max_speed_layer + (first_layer_speed * (max_speed_layer - layer_nr) / max_speed_layer);
-    speed_derivatives.acceleration = (speed_derivatives.acceleration * layer_nr) / max_speed_layer + (first_layer_acceleration * (max_speed_layer - layer_nr) / max_speed_layer);
-    speed_derivatives.jerk = (speed_derivatives.jerk * layer_nr) / max_speed_layer + (first_layer_jerk * (max_speed_layer - layer_nr) / max_speed_layer);
-}
-
-double GCodePathConfig::getExtrusionMM3perMM() const
+[[nodiscard]] double GCodePathConfig::getExtrusionMM3perMM() const noexcept
 {
     return extrusion_mm3_per_mm;
 }
 
-Velocity GCodePathConfig::getSpeed() const
+[[nodiscard]] Velocity GCodePathConfig::getSpeed() const noexcept
 {
     return speed_derivatives.speed;
 }
 
-Acceleration GCodePathConfig::getAcceleration() const
+[[nodiscard]] Acceleration GCodePathConfig::getAcceleration() const noexcept
 {
     return speed_derivatives.acceleration;
 }
 
-Velocity GCodePathConfig::getJerk() const
+[[nodiscard]] Velocity GCodePathConfig::getJerk() const noexcept
 {
     return speed_derivatives.jerk;
 }
 
-coord_t GCodePathConfig::getLineWidth() const
+[[nodiscard]] coord_t GCodePathConfig::getLineWidth() const noexcept
 {
     return line_width;
 }
 
-coord_t GCodePathConfig::getLayerThickness() const
+[[nodiscard]] coord_t GCodePathConfig::getLayerThickness() const noexcept
 {
     return layer_thickness;
 }
 
-const PrintFeatureType& GCodePathConfig::getPrintFeatureType() const
+[[nodiscard]] PrintFeatureType GCodePathConfig::getPrintFeatureType() const noexcept
 {
     return type;
 }
 
-bool GCodePathConfig::isTravelPath() const
+[[nodiscard]] bool GCodePathConfig::isTravelPath() const noexcept
 {
     return line_width == 0;
 }
 
-bool GCodePathConfig::isBridgePath() const
+[[nodiscard]] bool GCodePathConfig::isBridgePath() const noexcept
 {
     return is_bridge_path;
 }
 
-double GCodePathConfig::getFanSpeed() const
+[[nodiscard]] double GCodePathConfig::getFanSpeed() const noexcept
 {
     return fan_speed;
 }
 
-Ratio GCodePathConfig::getFlowRatio() const
+[[nodiscard]] Ratio GCodePathConfig::getFlowRatio() const noexcept
 {
     return flow;
 }
 
-double GCodePathConfig::calculateExtrusion() const
+[[nodiscard]] double GCodePathConfig::calculateExtrusion() const noexcept
 {
     return INT2MM(line_width) * INT2MM(layer_thickness) * double(flow);
 }
 
 
-}//namespace cura
+} // namespace cura

@@ -1,5 +1,5 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2021 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SKIN_H
 #define SKIN_H
@@ -7,7 +7,7 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
 
-namespace cura 
+namespace cura
 {
 
 class Polygons;
@@ -21,10 +21,9 @@ class SliceMeshStorage;
 class SkinInfillAreaComputation
 {
 public:
-
     /*!
      * \brief Initialize the parameters for skin and infill area computation.
-     * 
+     *
      * \param layer_nr The index of the layer for which to generate the skins
      * and infill.
      * \param mesh The storage where the layer outline information (input) is
@@ -41,11 +40,11 @@ public:
 
     /*!
      * \brief Combines the infill of multiple layers for a specified mesh.
-     * 
+     *
      * The infill layers are combined while the thickness of each layer is
      * multiplied such that the infill should fill up again to the full height of
      * all combined layers.
-     * 
+     *
      * \param mesh The mesh to combine the infill layers of.
      */
     static void combineInfillLayers(SliceMeshStorage& mesh);
@@ -69,10 +68,10 @@ public:
 
     /*!
      * Limit the infill areas to places where they support internal overhangs.
-     * 
+     *
      * This function uses the part.infill_area and part.infill_area_own
      * and computes a new part.infill_area_own
-     * 
+     *
      * \param mesh The mesh for which to recalculate the infill areas
      */
     static void generateInfillSupport(SliceMeshStorage& mesh);
@@ -85,7 +84,7 @@ protected:
 
     /*!
      * Generate the skin areas (outlines) of one part in a layer
-     * 
+     *
      * \param part The part for which to generate skins.
      */
     void generateSkinAndInfillAreas(SliceLayerPart& part);
@@ -112,7 +111,7 @@ protected:
      * Apply skin expansion:
      * expand skins into infill area
      * where the skin is broad enough
-     * 
+     *
      * \param original_outline The outline within which skin and infill lie (inner bounds of innermost walls)
      * \param[in,out] upskin The top skin areas to grow
      * \param[in,out] downskin The bottom skin areas to grow
@@ -125,12 +124,12 @@ protected:
      * where the infill areas (output) are stored.
      * \param skin The skin areas on the layer of the \p part
      */
-    void generateInfill(SliceLayerPart& part, const Polygons& skin);
+    void generateInfill(SliceLayerPart& part);
 
     /*!
-     * Remove the areas which are 'directly' under air from the \ref SkinPart::inner_infill and 
+     * Remove the areas which are 'directly' under air from the \ref SkinPart::inner_infill and
      * save them in the \ref SkinPart::roofing_fill of the \p part.
-     * 
+     *
      * \param[in,out] part Where to get the SkinParts to get the outline info from and to store the roofing areas
      */
     void generateRoofingFillAndSkinFill(SliceLayerPart& part);
@@ -194,6 +193,6 @@ private:
     Polygons getOutlineOnLayer(const SliceLayerPart& part_here, const LayerIndex layer2_nr);
 };
 
-}//namespace cura
+} // namespace cura
 
-#endif//SKIN_H
+#endif // SKIN_H

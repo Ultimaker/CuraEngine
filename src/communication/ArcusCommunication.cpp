@@ -13,11 +13,14 @@
 #include "communication/ArcusCommunicationPrivate.h" //Our PIMPL.
 #include "communication/Listener.h" //To listen to the Arcus socket.
 #include "communication/SliceDataStruct.h" //To store sliced layer data.
+#include "plugins/slots.h"
 #include "settings/types/LayerIndex.h" //To point to layers.
 #include "settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
+#include "utils/channel.h"
 #include "utils/polygon.h"
 
 #include <Arcus/Socket.h> //The socket to communicate to.
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 #include <thread> //To sleep while waiting for the connection.
@@ -320,7 +323,7 @@ void ArcusCommunication::connect(const std::string& ip, const uint16_t port)
         std::this_thread::sleep_for(std::chrono::milliseconds(private_data->millisecUntilNextTry)); // Wait until we're connected. Check every XXXms.
         socket_state = private_data->socket->getState();
     }
-    if (socket_state != Arcus::SocketState::Connected)
+    if (socket_state == Arcus::SocketState::Connected)
     {
         spdlog::info("Connected to {}:{}", ip, port);
     }
@@ -339,7 +342,8 @@ void ArcusCommunication::beginGCode()
 
 void ArcusCommunication::flushGCode()
 {
-    const std::string& message_str = private_data->gcode_output_stream.str();
+    std::string gcode_output_stream = private_data->gcode_output_stream.str();
+    auto message_str = slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(gcode_output_stream);
     if (message_str.size() == 0)
     {
         return;
@@ -372,7 +376,8 @@ void ArcusCommunication::sendCurrentPosition(const Point& position)
 void ArcusCommunication::sendGCodePrefix(const std::string& prefix) const
 {
     std::shared_ptr<proto::GCodePrefix> message = std::make_shared<proto::GCodePrefix>();
-    message->set_data(prefix);
+    std::string message_str = prefix;
+    message->set_data(slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(message_str));
     private_data->socket->sendMessage(message);
 }
 
@@ -415,7 +420,7 @@ void ArcusCommunication::sendOptimizedLayerData()
     }
     spdlog::info("Sending {} layers.", data.current_layer_count);
 
-    for (std::pair<const int, std::shared_ptr<proto::LayerOptimized>> entry : data.slice_data) // Note: This is in no particular order!
+    for (const auto& entry : data.slice_data) // Note: This is in no particular order!
     {
         spdlog::debug("Sending layer data for layer {} of {}.", entry.first, data.slice_data.size());
         private_data->socket->sendMessage(entry.second); // Send the actual layers.
@@ -513,11 +518,22 @@ void ArcusCommunication::sliceNext()
     }
     spdlog::debug("Received a Slice message.");
 
+#ifdef ENABLE_PLUGINS
+    for (const auto& plugin : slice_message->engine_plugins())
+    {
+        const auto slot_id = static_cast<plugins::v0::SlotID>(plugin.id());
+        slots::instance().connect(slot_id, plugin.plugin_name(), plugin.plugin_version(), utils::createChannel({ plugin.address(), plugin.port() }));
+    }
+#endif // ENABLE_PLUGINS
+
     Slice slice(slice_message->object_lists().size());
     Application::getInstance().current_slice = &slice;
 
     private_data->readGlobalSettingsMessage(slice_message->global_settings());
     private_data->readExtruderSettingsMessage(slice_message->extruders());
+
+    // Broadcast the settings to the plugins
+    slots::instance().broadcast<plugins::v0::SlotID::SETTINGS_BROADCAST>(*slice_message);
     const size_t extruder_count = slice.scene.extruders.size();
 
     // For each setting, register what extruder it should be obtained from (if this is limited to an extruder).
