@@ -202,7 +202,7 @@ public:
      * @param color  The colour to draw the diagram with.
      * @param stroke_width The width of the lines.
      */
-    template<std::floating_point T>
+    template<typename T> // Currently our compiler for Mac can't handle `template<std::floating_point T>`, since aparently floating_point isn't in std yet.
     void writeVoronoiDiagram(const boost::polygon::voronoi_diagram<T>& voronoi_diagram, const Color color = Color::BLACK, const float stroke_width = 0.1) const
     {
         for (const auto& edge : voronoi_diagram.edges())
