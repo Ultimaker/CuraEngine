@@ -3,27 +3,25 @@
 
 #include "WallToolPaths.h"
 
+#include <algorithm> //For std::partition_copy and std::min_element.
+#include <unordered_set>
+
+#include <fmt/format.h>
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/drop.hpp>
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/filter.hpp>
+#include <range/v3/view/transform.hpp>
+#include <scripta/logger.h>
+
 #include "ExtruderTrain.h"
 #include "SkeletalTrapezoidation.h"
+#include "mapbox/geometry/wagyu/wagyu.hpp"
 #include "utils/PolylineStitcher.h"
 #include "utils/Simplify.h"
 #include "utils/SparsePointGrid.h" //To stitch the inner contour.
 #include "utils/actions/smooth.h"
 #include "utils/polygonUtils.h"
-
-#include <range/v3/range/conversion.hpp>
-#include <range/v3/view/filter.hpp>
-#include <range/v3/view/transform.hpp>
-#include <scripta/logger.h>
-
-#include <algorithm> //For std::partition_copy and std::min_element.
-#include <unordered_set>
-
-
-#include <range/v3/view/drop.hpp>
-#include <range/v3/view/enumerate.hpp>
-#include <fmt/format.h>
-#include "mapbox/geometry/wagyu/wagyu.hpp"
 
 
 namespace cura

@@ -8,24 +8,32 @@
 
 #ifdef USE_WAGYU_INTERRUPT
 
-namespace {
+namespace
+{
 thread_local bool WAGYU_INTERRUPT_REQUESTED = false;
 }
 
-namespace mapbox {
-namespace geometry {
-namespace wagyu {
+namespace mapbox
+{
+namespace geometry
+{
+namespace wagyu
+{
 
-static void interrupt_reset(void) {
+static void interrupt_reset(void)
+{
     WAGYU_INTERRUPT_REQUESTED = false;
 }
 
-static void interrupt_request(void) {
+static void interrupt_request(void)
+{
     WAGYU_INTERRUPT_REQUESTED = true;
 }
 
-static void interrupt_check(void) {
-    if (WAGYU_INTERRUPT_REQUESTED) {
+static void interrupt_check(void)
+{
+    if (WAGYU_INTERRUPT_REQUESTED)
+    {
         interrupt_reset();
         throw std::runtime_error("Wagyu interrupted");
     }
@@ -36,11 +44,15 @@ static void interrupt_check(void) {
 
 #else /* ! USE_WAGYU_INTERRUPT */
 
-namespace mapbox {
-namespace geometry {
-namespace wagyu {
+namespace mapbox
+{
+namespace geometry
+{
+namespace wagyu
+{
 
-static void interrupt_check(void) {
+static void interrupt_check(void)
+{
 }
 
 } // namespace wagyu

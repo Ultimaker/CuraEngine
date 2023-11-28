@@ -2,17 +2,20 @@
 
 #include <mapbox/geometry/point.hpp>
 
-namespace mapbox {
-namespace geometry {
+namespace mapbox
+{
+namespace geometry
+{
 
-template <typename T>
+template<typename T>
 struct box
 {
     using coordinate_type = T;
     using point_type = point<coordinate_type>;
 
     constexpr box(point_type const& min_, point_type const& max_)
-        : min(min_), max(max_)
+        : min(min_)
+        , max(max_)
     {
     }
 
@@ -20,13 +23,13 @@ struct box
     point_type max;
 };
 
-template <typename T>
+template<typename T>
 constexpr bool operator==(box<T> const& lhs, box<T> const& rhs)
 {
     return lhs.min == rhs.min && lhs.max == rhs.max;
 }
 
-template <typename T>
+template<typename T>
 constexpr bool operator!=(box<T> const& lhs, box<T> const& rhs)
 {
     return lhs.min != rhs.min || lhs.max != rhs.max;

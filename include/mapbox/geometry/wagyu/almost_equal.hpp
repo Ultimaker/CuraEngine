@@ -49,13 +49,18 @@
 // For now it only handles UInt (unsigned int) as that's all Google Test
 // needs.  Other types can be easily added in the future if need
 // arises.
-namespace mapbox {
-namespace geometry {
-namespace wagyu {
-namespace util {
+namespace mapbox
+{
+namespace geometry
+{
+namespace wagyu
+{
+namespace util
+{
 
-template <size_t size>
-class TypeWithSize {
+template<size_t size>
+class TypeWithSize
+{
 public:
     // This prevents the user from using TypeWithSize<N> with incorrect
     // values of N.
@@ -63,8 +68,9 @@ public:
 };
 
 // The specialization for size 4.
-template <>
-class TypeWithSize<4> {
+template<>
+class TypeWithSize<4>
+{
 public:
     // unsigned int has size 4 in both gcc and MSVC.
     //
@@ -75,14 +81,15 @@ public:
 };
 
 // The specialization for size 8.
-template <>
-class TypeWithSize<8> {
+template<>
+class TypeWithSize<8>
+{
 public:
 #if GTEST_OS_WINDOWS
     typedef __int64 Int;
     typedef unsigned __int64 UInt;
 #else
-    typedef long long Int;           // NOLINT
+    typedef long long Int; // NOLINT
     typedef unsigned long long UInt; // NOLINT
 #endif // GTEST_OS_WINDOWS
 };
@@ -116,8 +123,9 @@ public:
 // Template parameter:
 //
 //   RawType: the raw floating-point type (either float or double)
-template <typename RawType>
-class FloatingPoint {
+template<typename RawType>
+class FloatingPoint
+{
 public:
     // Defines the unsigned integer type that has the same size as the
     // floating point number.
@@ -163,7 +171,9 @@ public:
     // around may change its bits, although the new value is guaranteed
     // to be also a NAN.  Therefore, don't expect this constructor to
     // preserve the bits in x when x is a NAN.
-    explicit FloatingPoint(const RawType& x) : u_(x) {
+    explicit FloatingPoint(const RawType& x)
+        : u_(x)
+    {
     }
 
     // Static methods
@@ -171,41 +181,48 @@ public:
     // Reinterprets a bit pattern as a floating-point number.
     //
     // This function is needed to test the AlmostEquals() method.
-    static RawType ReinterpretBits(const Bits bits) {
+    static RawType ReinterpretBits(const Bits bits)
+    {
         FloatingPoint fp(0);
         fp.u_.bits_ = bits;
         return fp.u_.value_;
     }
 
     // Returns the floating-point number that represent positive infinity.
-    static RawType Infinity() {
+    static RawType Infinity()
+    {
         return ReinterpretBits(kExponentBitMask);
     }
 
     // Non-static methods
 
     // Returns the bits that represents this number.
-    const Bits& bits() const {
+    const Bits& bits() const
+    {
         return u_.bits_;
     }
 
     // Returns the exponent bits of this number.
-    Bits exponent_bits() const {
+    Bits exponent_bits() const
+    {
         return kExponentBitMask & u_.bits_;
     }
 
     // Returns the fraction bits of this number.
-    Bits fraction_bits() const {
+    Bits fraction_bits() const
+    {
         return kFractionBitMask & u_.bits_;
     }
 
     // Returns the sign bit of this number.
-    Bits sign_bit() const {
+    Bits sign_bit() const
+    {
         return kSignBitMask & u_.bits_;
     }
 
     // Returns true iff this is NAN (not a number).
-    bool is_nan() const {
+    bool is_nan() const
+    {
         // It's a NAN if the exponent bits are all ones and the fraction
         // bits are not entirely zeros.
         return (exponent_bits() == kExponentBitMask) && (fraction_bits() != 0);
@@ -217,7 +234,8 @@ public:
     //   - returns false if either number is (or both are) NAN.
     //   - treats really large numbers as almost equal to infinity.
     //   - thinks +0.0 and -0.0 are 0 DLP's apart.
-    bool AlmostEquals(const FloatingPoint& rhs) const {
+    bool AlmostEquals(const FloatingPoint& rhs) const
+    {
         // The IEEE standard says that any comparison operation involving
         // a NAN must return false.
         if (is_nan() || rhs.is_nan())
@@ -228,11 +246,14 @@ public:
 
 private:
     // The data type used to store the actual floating-point number.
-    union FloatingPointUnion {
-        explicit FloatingPointUnion(RawType val) : value_(val) {
+    union FloatingPointUnion
+    {
+        explicit FloatingPointUnion(RawType val)
+            : value_(val)
+        {
         }
         RawType value_; // The raw floating-point number.
-        Bits bits_;     // The bits that represent the number.
+        Bits bits_; // The bits that represent the number.
     };
 
     // Converts an integer from the sign-and-magnitude representation to
@@ -250,11 +271,15 @@ private:
     //
     // Read http://en.wikipedia.org/wiki/Signed_number_representations
     // for more details on signed number representations.
-    static Bits SignAndMagnitudeToBiased(const Bits& sam) {
-        if (kSignBitMask & sam) {
+    static Bits SignAndMagnitudeToBiased(const Bits& sam)
+    {
+        if (kSignBitMask & sam)
+        {
             // sam represents a negative number.
             return ~sam + 1;
-        } else {
+        }
+        else
+        {
             // sam represents a positive number.
             return kSignBitMask | sam;
         }
@@ -262,7 +287,8 @@ private:
 
     // Given two numbers in the sign-and-magnitude representation,
     // returns the distance between them as an unsigned number.
-    static Bits DistanceBetweenSignAndMagnitudeNumbers(const Bits& sam1, const Bits& sam2) {
+    static Bits DistanceBetweenSignAndMagnitudeNumbers(const Bits& sam1, const Bits& sam2)
+    {
         const Bits biased1 = SignAndMagnitudeToBiased(sam1);
         const Bits biased2 = SignAndMagnitudeToBiased(sam2);
         return (biased1 >= biased2) ? (biased1 - biased2) : (biased2 - biased1);

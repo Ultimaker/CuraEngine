@@ -1,21 +1,29 @@
 #pragma once
 
-namespace mapbox {
-namespace geometry {
-namespace wagyu {
+namespace mapbox
+{
+namespace geometry
+{
+namespace wagyu
+{
 
-template <typename It, class Compare, class MethodOnSwap>
-void bubble_sort(It begin, It end, Compare c, MethodOnSwap m) {
-    if (begin == end) {
+template<typename It, class Compare, class MethodOnSwap>
+void bubble_sort(It begin, It end, Compare c, MethodOnSwap m)
+{
+    if (begin == end)
+    {
         return;
     }
     bool modified = false;
     auto last = end - 1;
-    do {
+    do
+    {
         modified = false;
-        for (auto itr = begin; itr != last; ++itr) {
+        for (auto itr = begin; itr != last; ++itr)
+        {
             auto next = std::next(itr);
-            if (!c(*itr, *next)) {
+            if (! c(*itr, *next))
+            {
                 m(*itr, *next);
                 std::iter_swap(itr, next);
                 modified = true;
