@@ -55,6 +55,7 @@ class CuraEngineConan(ConanFile):
         copy(self, "*", path.join(self.recipe_folder, "src"), path.join(self.export_sources_folder, "src"))
         copy(self, "*", path.join(self.recipe_folder, "include"), path.join(self.export_sources_folder, "include"))
         copy(self, "*", path.join(self.recipe_folder, "benchmark"), path.join(self.export_sources_folder, "benchmark"))
+        copy(self, "*", path.join(self.recipe_folder, "stress_benchmark"), path.join(self.export_sources_folder, "stress_benchmark"))
         copy(self, "*", path.join(self.recipe_folder, "tests"), path.join(self.export_sources_folder, "tests"))
 
     def config_options(self):
@@ -85,6 +86,7 @@ class CuraEngineConan(ConanFile):
             self.test_requires("gtest/1.12.1")
         if self.options.enable_benchmarks:
             self.test_requires("benchmark/1.7.0")
+            self.test_requires("docopt.cpp/0.6.3")
 
     def requirements(self):
         if self.options.enable_arcus:
