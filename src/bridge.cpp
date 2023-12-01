@@ -195,11 +195,11 @@ double bridgeAngle(
         }
     }
 
-    if (! idx1 || ! idx2)
+    if (! idx1.hasValue() || ! idx2.hasValue())
         return -1.0;
 
-    Point2LL center1 = islands[*idx1].centerOfMass();
-    Point2LL center2 = islands[*idx2].centerOfMass();
+    Point2LL center1 = islands[idx1.value()].centerOfMass();
+    Point2LL center2 = islands[idx2.value()].centerOfMass();
 
     return angle(center2 - center1);
 }
