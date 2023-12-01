@@ -195,7 +195,7 @@ double bridgeAngle(
         }
     }
 
-    if (! idx1.hasValue() || ! idx2.hasValue())
+    if (! idx1.has_value() || ! idx2.has_value())
         return -1.0;
 
     Point2LL center1 = islands[idx1.value()].centerOfMass();
