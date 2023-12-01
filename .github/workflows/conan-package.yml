@@ -1,51 +1,10 @@
----
 name: conan-package
 
-# Exports the recipe, sources and binaries for Mac, Windows and Linux and upload these to the server such that these can
-# be used downstream.
-#
-# It should run on pushes against main or CURA-* branches, but it will only create the binaries for main and release branches
-
 on:
-  workflow_dispatch:
-    inputs:
-      # FIXME: Not yet implemented
-      conan_id:
-        required: false
-        type: string
-        description: 'The full conan package ID, e.g. "curaengine/1.2.3@ultimaker/stable"'
-      create_latest_alias:
-        required: true
-        default: false
-        type: boolean
-        description: 'Create latest alias'
-      create_release:
-        required: true
-        default: false
-        type: boolean
-        description: 'Create a conan-package-release'
-      create_binaries_windows:
-        required: true
-        default: false
-        type: boolean
-        description: 'create binaries Windows'
-      create_binaries_linux:
-        required: true
-        default: false
-        type: boolean
-        description: 'create binaries Linux'
-      create_binaries_macos:
-        required: true
-        default: false
-        type: boolean
-        description: 'create binaries Macos'
-
   push:
     paths:
       - 'include/**'
       - 'src/**'
-      - 'cmake/**'
-      - 'tests/**'
       - 'test_package/**'
       - 'conanfile.py'
       - 'conandata.yml'
@@ -66,7 +25,6 @@ jobs:
     uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml@CURA-10831
     with:
       project_name: curaengine
-      release: ${{ github.event.inputs.create_release == 'true' }}
 
   conan-package-export:
     needs: [ conan-recipe-version ]
