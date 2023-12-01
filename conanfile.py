@@ -61,10 +61,11 @@ class CuraEngineConan(ConanFile):
     def configure(self):
         self.options["boost"].header_only = True
         self.options["clipper"].shared = True
-
         self.options["protobuf"].shared = False
         if self.options.enable_arcus:
             self.options["arcus"].shared = True
+        if self.settings.os == "Linux":
+            self.options["openssl"].shared = True
 
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
@@ -100,7 +101,7 @@ class CuraEngineConan(ConanFile):
         self.requires("neargye-semver/0.3.0")
         self.requires("protobuf/3.21.9")
         self.requires("zlib/1.2.12")
-        self.requires("openssl/1.1.1l")
+        self.requires("openssl/3.2.0")
 
     def generate(self):
         deps = CMakeDeps(self)
