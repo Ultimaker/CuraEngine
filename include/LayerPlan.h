@@ -54,49 +54,49 @@ class LayerPlan : public NoCopy
 #endif
 
 public:
-    const PathConfigStorage configs_storage; //!< The line configs for this layer for each feature type
-    coord_t z;
-    coord_t final_travel_z;
-    bool mode_skip_agressive_merge; //!< Whether to give every new path the 'skip_agressive_merge_hint' property (see GCodePath); default is false.
+    const PathConfigStorage configs_storage_; //!< The line configs for this layer for each feature type
+    coord_t z_;
+    coord_t final_travel_z_;
+    bool mode_skip_agressive_merge_; //!< Whether to give every new path the 'skip_agressive_merge_hint' property (see GCodePath); default is false.
 
 private:
-    const SliceDataStorage& storage; //!< The polygon data obtained from FffPolygonProcessor
-    const LayerIndex layer_nr; //!< The layer number of this layer plan
-    const bool is_initial_layer; //!< Whether this is the first layer (which might be raft)
-    const bool is_raft_layer; //!< Whether this is a layer which is part of the raft
-    coord_t layer_thickness;
+    const SliceDataStorage& storage_; //!< The polygon data obtained from FffPolygonProcessor
+    const LayerIndex layer_nr_; //!< The layer number of this layer plan
+    const bool is_initial_layer_; //!< Whether this is the first layer (which might be raft)
+    const bool is_raft_layer_; //!< Whether this is a layer which is part of the raft
+    coord_t layer_thickness_;
 
-    std::vector<Point> layer_start_pos_per_extruder; //!< The starting position of a layer for each extruder
-    std::vector<bool> has_prime_tower_planned_per_extruder; //!< For each extruder, whether the prime tower is planned yet or not.
-    std::optional<Point> last_planned_position; //!< The last planned XY position of the print head (if known)
+    std::vector<Point2LL> layer_start_pos_per_extruder_; //!< The starting position of a layer for each extruder
+    std::vector<bool> has_prime_tower_planned_per_extruder_; //!< For each extruder, whether the prime tower is planned yet or not.
+    std::optional<Point2LL> last_planned_position_; //!< The last planned XY position of the print head (if known)
 
-    std::shared_ptr<const SliceMeshStorage> current_mesh; //!< The mesh of the last planned move.
+    std::shared_ptr<const SliceMeshStorage> current_mesh_; //!< The mesh of the last planned move.
 
     /*!
      * Whether the skirt or brim polygons have been processed into planned paths
      * for each extruder train.
      */
-    bool skirt_brim_is_processed[MAX_EXTRUDERS];
+    bool skirt_brim_is_processed_[MAX_EXTRUDERS];
 
-    std::vector<ExtruderPlan> extruder_plans; //!< should always contain at least one ExtruderPlan
+    std::vector<ExtruderPlan> extruder_plans_; //!< should always contain at least one ExtruderPlan
 
-    size_t last_extruder_previous_layer; //!< The last id of the extruder with which was printed in the previous layer
-    ExtruderTrain* last_planned_extruder; //!< The extruder for which a move has most recently been planned.
+    size_t last_extruder_previous_layer_; //!< The last id of the extruder with which was printed in the previous layer
+    ExtruderTrain* last_planned_extruder_; //!< The extruder for which a move has most recently been planned.
 
-    std::optional<Point> first_travel_destination; //!< The destination of the first (travel) move (if this layer is not empty)
-    bool first_travel_destination_is_inside; //!< Whether the destination of the first planned travel move is inside a layer part
-    std::optional<std::pair<Acceleration, Velocity>> first_extrusion_acc_jerk; //!< The acceleration and jerk rates of the first extruded move (if this layer is not empty).
-    std::optional<std::pair<Acceleration, Velocity>> next_layer_acc_jerk; //!< If there is a next layer, the first acceleration and jerk it starts with.
-    bool was_inside; //!< Whether the last planned (extrusion) move was inside a layer part
-    bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
-    Polygons comb_boundary_minimum; //!< The minimum boundary within which to comb, or to move into when performing a retraction.
-    Polygons comb_boundary_preferred; //!< The boundary preferably within which to comb, or to move into when performing a retraction.
-    Comb* comb;
-    coord_t comb_move_inside_distance; //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
-    Polygons bridge_wall_mask; //!< The regions of a layer part that are not supported, used for bridging
-    Polygons overhang_mask; //!< The regions of a layer part where the walls overhang
+    std::optional<Point2LL> first_travel_destination_; //!< The destination of the first (travel) move (if this layer is not empty)
+    bool first_travel_destination_is_inside_; //!< Whether the destination of the first planned travel move is inside a layer part
+    std::optional<std::pair<Acceleration, Velocity>> first_extrusion_acc_jerk_; //!< The acceleration and jerk rates of the first extruded move (if this layer is not empty).
+    std::optional<std::pair<Acceleration, Velocity>> next_layer_acc_jerk_; //!< If there is a next layer, the first acceleration and jerk it starts with.
+    bool was_inside_; //!< Whether the last planned (extrusion) move was inside a layer part
+    bool is_inside_; //!< Whether the destination of the next planned travel move is inside a layer part
+    Polygons comb_boundary_minimum_; //!< The minimum boundary within which to comb, or to move into when performing a retraction.
+    Polygons comb_boundary_preferred_; //!< The boundary preferably within which to comb, or to move into when performing a retraction.
+    Comb* comb_;
+    coord_t comb_move_inside_distance_; //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
+    Polygons bridge_wall_mask_; //!< The regions of a layer part that are not supported, used for bridging
+    Polygons overhang_mask_; //!< The regions of a layer part where the walls overhang
 
-    const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder;
+    const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_;
 
     enum CombBoundary
     {
@@ -183,7 +183,7 @@ public:
      *
      * \warning The layer start position might be outside of the build plate!
      */
-    Point getLastPlannedPositionOrStartingPosition() const;
+    Point2LL getLastPlannedPositionOrStartingPosition() const;
 
     /*!
      * return whether the last position planned was inside the mesh (used in combing)
@@ -213,7 +213,7 @@ public:
      *
      * Returns nothing if the layer is empty and no travel move was ever made.
      */
-    std::optional<std::pair<Point, bool>> getFirstTravelDestinationState() const;
+    std::optional<std::pair<Point2LL, bool>> getFirstTravelDestinationState() const;
 
     /*!
      * Set whether the next destination is inside a layer part or not.
@@ -283,7 +283,7 @@ public:
      * \param p The point to travel to.
      * \param force_retract Whether to force a retraction to occur.
      */
-    GCodePath& addTravel(const Point& p, const bool force_retract = false, const coord_t z_offset = 0);
+    GCodePath& addTravel(const Point2LL& p, const bool force_retract = false, const coord_t z_offset = 0);
 
     /*!
      * Add a travel path to a certain point and retract if needed.
@@ -293,12 +293,12 @@ public:
      * \param p The point to travel to
      * \param path (optional) The travel path to which to add the point \p p
      */
-    GCodePath& addTravel_simple(const Point& p, GCodePath* path = nullptr);
+    GCodePath& addTravel_simple(const Point2LL& p, GCodePath* path = nullptr);
 
     /*!
      * Plan a prime blob at the current location.
      */
-    void planPrime(const float& prime_blob_wipe_length = 10.0);
+    void planPrime(double prime_blob_wipe_length = 10.0);
 
     /*!
      * Add an extrusion move to a certain point, optionally with a different flow than the one in the \p config.
@@ -319,7 +319,7 @@ public:
      * \param fan_speed Fan speed override for this path.
      */
     void addExtrusionMove(
-        const Point p,
+        const Point2LL p,
         const GCodePathConfig& config,
         const SpaceFillType space_fill_type,
         const Ratio& flow = 1.0_r,
@@ -386,7 +386,7 @@ public:
         const Ratio flow_ratio = 1.0_r,
         bool always_retract = false,
         bool reverse_order = false,
-        const std::optional<Point> start_near_location = std::optional<Point>());
+        const std::optional<Point2LL> start_near_location = std::optional<Point2LL>());
 
     /*!
      * Add a single line that is part of a wall to the gcode.
@@ -409,14 +409,14 @@ public:
      * the first bridge segment.
      */
     void addWallLine(
-        const Point& p0,
-        const Point& p1,
+        const Point2LL& p0,
+        const Point2LL& p1,
         const Settings& settings,
         const GCodePathConfig& non_bridge_config,
         const GCodePathConfig& bridge_config,
-        float flow,
+        double flow,
         const Ratio width_factor,
-        float& non_bridge_line_volume,
+        double& non_bridge_line_volume,
         Ratio speed_factor,
         double distance_to_bridge_start);
 
@@ -442,7 +442,7 @@ public:
         const GCodePathConfig& non_bridge_config,
         const GCodePathConfig& bridge_config,
         coord_t wall_0_wipe_dist,
-        float flow_ratio,
+        double flow_ratio,
         bool always_retract);
 
     /*!
@@ -471,7 +471,7 @@ public:
         const GCodePathConfig& non_bridge_config,
         const GCodePathConfig& bridge_config,
         coord_t wall_0_wipe_dist,
-        float flow_ratio,
+        double flow_ratio,
         bool always_retract,
         const bool is_closed,
         const bool is_reversed,
@@ -504,7 +504,7 @@ public:
         const GCodePathConfig& bridge_config,
         const ZSeamConfig& z_seam_config = ZSeamConfig(),
         coord_t wall_0_wipe_dist = 0,
-        float flow_ratio = 1.0,
+        double flow_ratio = 1.0,
         bool always_retract = false);
 
     /*!
@@ -527,10 +527,10 @@ public:
         const bool enable_travel_optimization = false,
         const coord_t wipe_dist = 0,
         const Ratio flow_ratio = 1.0,
-        const std::optional<Point> near_start_location = std::optional<Point>(),
+        const std::optional<Point2LL> near_start_location = std::optional<Point2LL>(),
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
         const bool reverse_print_direction = false,
-        const std::unordered_multimap<ConstPolygonPointer, ConstPolygonPointer>& order_requirements = PathOrderOptimizer<ConstPolygonPointer>::no_order_requirements);
+        const std::unordered_multimap<ConstPolygonPointer, ConstPolygonPointer>& order_requirements = PathOrderOptimizer<ConstPolygonPointer>::no_order_requirements_);
 
     /*!
      * Add polygons to the g-code with monotonic order.
@@ -619,18 +619,18 @@ public:
     template<typename T>
     unsigned locateFirstSupportedVertex(const T& wall, const unsigned start_idx) const
     {
-        if (bridge_wall_mask.empty() && overhang_mask.empty())
+        if (bridge_wall_mask_.empty() && overhang_mask_.empty())
         {
             return start_idx;
         }
 
-        Polygons air_below(bridge_wall_mask.unionPolygons(overhang_mask));
+        Polygons air_below(bridge_wall_mask_.unionPolygons(overhang_mask_));
 
         unsigned curr_idx = start_idx;
 
         while (true)
         {
-            const Point& vertex = cura::make_point(wall[curr_idx]);
+            const Point2LL& vertex = cura::make_point(wall[curr_idx]);
             if (! air_below.inside(vertex, true))
             {
                 // vertex isn't above air so it's OK to use
@@ -691,7 +691,7 @@ public:
      *
      * \param starting_position The position of the print head when the first extruder plan of this layer starts
      */
-    void processFanSpeedAndMinimalLayerTime(Point starting_position);
+    void processFanSpeedAndMinimalLayerTime(Point2LL starting_position);
 
     /*!
      * Add a travel move to the layer plan to move inside the current layer part

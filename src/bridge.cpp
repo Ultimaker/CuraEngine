@@ -11,7 +11,7 @@
 namespace cura
 {
 
-int bridgeAngle(
+double bridgeAngle(
     const Settings& settings,
     const Polygons& skin_outline,
     const SliceDataStorage& storage,
@@ -39,7 +39,8 @@ int bridgeAngle(
         {
             const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
             const coord_t infill_line_width = mesh.settings.get<coord_t>("infill_line_width");
-            const bool part_has_sparse_infill = (infill_line_distance == 0) || ((float)infill_line_width / infill_line_distance) <= sparse_infill_max_density;
+            double density = static_cast<double>(infill_line_width) / static_cast<double>(infill_line_distance);
+            const bool part_has_sparse_infill = (infill_line_distance == 0) || density <= sparse_infill_max_density;
 
             for (const SliceLayerPart& prev_layer_part : mesh.layers[layer_nr - bridge_layer].parts)
             {
@@ -117,7 +118,7 @@ int bridgeAngle(
         // It needs to be shrunk slightly so that the vertices of the skin polygon that would otherwise fall exactly on
         // the air boundary do appear to be supported
 
-        const int bb_max_dim = std::max(boundary_box.max.X - boundary_box.min.X, boundary_box.max.Y - boundary_box.min.Y);
+        const coord_t bb_max_dim = std::max(boundary_box.max_.X - boundary_box.min_.X, boundary_box.max_.Y - boundary_box.min_.Y);
         const Polygons air_below(bb_poly.offset(bb_max_dim).difference(prev_layer_outline).offset(-10));
 
         Polygons skin_perimeter_lines;
@@ -134,15 +135,15 @@ int bridgeAngle(
         if (skin_perimeter_lines_over_air.size())
         {
             // one or more edges of the skin region are unsupported, determine the longest
-            double max_dist2 = 0;
+            coord_t max_dist2 = 0;
             double line_angle = -1;
             for (PolygonRef air_line : skin_perimeter_lines_over_air)
             {
-                Point p0 = air_line[0];
+                Point2LL p0 = air_line[0];
                 for (unsigned i = 1; i < air_line.size(); ++i)
                 {
-                    const Point& p1(air_line[i]);
-                    double dist2 = vSize2(p0 - p1);
+                    const Point2LL& p1(air_line[i]);
+                    coord_t dist2 = vSize2(p0 - p1);
                     if (dist2 > max_dist2)
                     {
                         max_dist2 = dist2;
@@ -158,20 +159,20 @@ int bridgeAngle(
     {
         // as the proportion of the skin region that is supported is >= supportThreshold, it's not
         // considered to be a bridge and the original bridge detection code below is skipped
-        return -1;
+        return -1.0;
     }
 
     if (islands.size() > 5 || islands.size() < 1)
     {
-        return -1;
+        return -1.0;
     }
 
     // Next find the 2 largest islands that we rest on.
     double area1 = 0;
     double area2 = 0;
-    int idx1 = -1;
-    int idx2 = -1;
-    for (unsigned int n = 0; n < islands.size(); n++)
+    std::optional<size_t> idx1;
+    std::optional<size_t> idx2;
+    for (size_t n = 0; n < islands.size(); n++)
     {
         // Skip internal holes
         if (! islands[n].orientation())
@@ -194,11 +195,11 @@ int bridgeAngle(
         }
     }
 
-    if (idx1 < 0 || idx2 < 0)
-        return -1;
+    if (! idx1.hasValue() || ! idx2.hasValue())
+        return -1.0;
 
-    Point center1 = islands[idx1].centerOfMass();
-    Point center2 = islands[idx2].centerOfMass();
+    Point2LL center1 = islands[idx1.value()].centerOfMass();
+    Point2LL center2 = islands[idx2.value()].centerOfMass();
 
     return angle(center2 - center1);
 }

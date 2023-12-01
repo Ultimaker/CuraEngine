@@ -62,7 +62,7 @@ public:
 
         for (double a = 0; a < 1.0; a += .05)
         {
-            test_circle.add(Point(2050, 2050) + Point(std::cos(a * 2 * M_PI) * 500, std::sin(a * 2 * M_PI) * 500));
+            test_circle.add(Point2LL(2050, 2050) + Point2LL(std::cos(a * 2 * std::numbers::pi) * 500, std::sin(a * 2 * std::numbers::pi) * 500));
         }
         test_shapes.add(test_circle);
 

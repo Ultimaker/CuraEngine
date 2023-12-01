@@ -8,7 +8,6 @@
 #include <algorithm> // std::reverse, fill_n array
 #include <assert.h>
 #include <cmath> // fabs
-#include <float.h>
 #include <initializer_list>
 #include <limits> // int64_t.min
 #include <list>
@@ -18,7 +17,7 @@
 
 #include "../settings/types/Angle.h" //For angles between vertices.
 #include "../settings/types/Ratio.h"
-#include "IntPoint.h"
+#include "Point2LL.h"
 
 #define CHECK_POLY_ACCESS
 #ifdef CHECK_POLY_ACCESS
@@ -57,11 +56,11 @@ class PolygonRef;
 
 class ListPolyIt;
 
-typedef std::list<Point> ListPolygon; //!< A polygon represented by a linked list instead of a vector
+typedef std::list<Point2LL> ListPolygon; //!< A polygon represented by a linked list instead of a vector
 typedef std::vector<ListPolygon> ListPolygons; //!< Polygons represented by a vector of linked lists instead of a vector of vectors
 
 const static int clipper_init = (0);
-#define NO_INDEX (std::numeric_limits<unsigned int>::max())
+#define NO_INDEX (std::numeric_limits<size_t>::max())
 
 class ConstPolygonPointer;
 
@@ -109,7 +108,7 @@ public:
      */
     bool empty() const;
 
-    const Point& operator[](unsigned int index) const
+    const Point2LL& operator[](size_t index) const
     {
         POLY_ASSERT(index < size());
         return (*path)[index];
@@ -176,10 +175,10 @@ public:
     coord_t polylineLength() const
     {
         coord_t length = 0;
-        Point p0 = path->front();
-        for (unsigned int n = 1; n < path->size(); n++)
+        Point2LL p0 = path->front();
+        for (size_t n = 1; n < path->size(); n++)
         {
-            Point p1 = (*path)[n];
+            Point2LL p1 = (*path)[n];
             length += vSize(p0 - p1);
             p0 = p1;
         }
@@ -202,10 +201,10 @@ public:
 
     bool shorterThan(const coord_t check_length) const;
 
-    Point min() const
+    Point2LL min() const
     {
-        Point ret = Point(POINT_MAX, POINT_MAX);
-        for (Point p : *path)
+        Point2LL ret = Point2LL(POINT_MAX, POINT_MAX);
+        for (Point2LL p : *path)
         {
             ret.X = std::min(ret.X, p.X);
             ret.Y = std::min(ret.Y, p.Y);
@@ -213,10 +212,10 @@ public:
         return ret;
     }
 
-    Point max() const
+    Point2LL max() const
     {
-        Point ret = Point(POINT_MIN, POINT_MIN);
-        for (Point p : *path)
+        Point2LL ret = Point2LL(POINT_MIN, POINT_MIN);
+        for (Point2LL p : *path)
         {
             ret.X = std::max(ret.X, p.X);
             ret.Y = std::max(ret.Y, p.Y);
@@ -229,35 +228,49 @@ public:
         return ClipperLib::Area(*path);
     }
 
-    Point centerOfMass() const
+    Point2LL centerOfMass() const
     {
-        double x = 0, y = 0;
-        Point p0 = (*path)[path->size() - 1];
-        for (unsigned int n = 0; n < path->size(); n++)
+        if (path->size() > 0)
         {
-            Point p1 = (*path)[n];
-            double second_factor = (p0.X * p1.Y) - (p1.X * p0.Y);
+            Point2LL p0 = (*path)[0];
+            if (path->size() > 1)
+            {
+                double x = 0, y = 0;
+                for (size_t n = 1; n <= path->size(); n++)
+                {
+                    Point2LL p1 = (*path)[n % path->size()];
+                    double second_factor = static_cast<double>((p0.X * p1.Y) - (p1.X * p0.Y));
 
-            x += double(p0.X + p1.X) * second_factor;
-            y += double(p0.Y + p1.Y) * second_factor;
-            p0 = p1;
+                    x += double(p0.X + p1.X) * second_factor;
+                    y += double(p0.Y + p1.Y) * second_factor;
+                    p0 = p1;
+                }
+
+                double area = Area(*path);
+
+                x = x / 6 / area;
+                y = y / 6 / area;
+
+                return Point2LL(std::llrint(x), std::llrint(y));
+            }
+            else
+            {
+                return p0;
+            }
         }
-
-        double area = Area(*path);
-
-        x = x / 6 / area;
-        y = y / 6 / area;
-
-        return Point(x, y);
+        else
+        {
+            return Point2LL();
+        }
     }
 
-    Point closestPointTo(Point p) const
+    Point2LL closestPointTo(Point2LL p) const
     {
-        Point ret = p;
-        float bestDist = FLT_MAX;
-        for (unsigned int n = 0; n < path->size(); n++)
+        Point2LL ret = p;
+        double bestDist = std::numeric_limits<double>::max();
+        for (size_t n = 0; n < path->size(); n++)
         {
-            float dist = vSize2f(p - (*path)[n]);
+            double dist = vSize2f(p - (*path)[n]);
             if (dist < bestDist)
             {
                 ret = (*path)[n];
@@ -285,7 +298,7 @@ public:
      * \param border_result What to return when the point is exactly on the border
      * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
      */
-    bool _inside(Point p, bool border_result = false) const;
+    bool _inside(Point2LL p, bool border_result = false) const;
 
     /*!
      * Clipper function.
@@ -293,7 +306,7 @@ public:
      *
      * http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Functions/PointInPolygon.htm
      */
-    bool inside(Point p, bool border_result = false) const
+    bool inside(Point2LL p, bool border_result = false) const
     {
         int res = ClipperLib::PointInPolygon(p, *path);
         if (res == -1)
@@ -376,17 +389,17 @@ private:
      * \param cos_angle The cosine on the angle in L 012
      */
     static void smooth_corner_simple(
-        const Point p0,
-        const Point p1,
-        const Point p2,
+        const Point2LL p0,
+        const Point2LL p1,
+        const Point2LL p2,
         const ListPolyIt p0_it,
         const ListPolyIt p1_it,
         const ListPolyIt p2_it,
-        const Point v10,
-        const Point v12,
-        const Point v02,
+        const Point2LL v10,
+        const Point2LL v12,
+        const Point2LL v02,
         const int64_t shortcut_length,
-        float cos_angle);
+        double cos_angle);
 
     /*!
      * Smooth out a complex corner where the shortcut bypasses more than two line segments
@@ -402,7 +415,7 @@ private:
      * \param shortcut_length The desired length ofthe shortcutting line
      * \return Whether this whole polygon whould be removed by the smoothing
      */
-    static bool smooth_corner_complex(const Point p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length);
+    static bool smooth_corner_complex(const Point2LL p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length);
 
     /*!
      * Try to take a step away from the corner point in order to take a bigger shortcut.
@@ -421,7 +434,7 @@ private:
      * \param[in,out] backward_is_too_far Whether trying another step backward is blocked by the shortcut length condition. Updated for the next iteration.
      */
     static void smooth_outward_step(
-        const Point p1,
+        const Point2LL p1,
         const int64_t shortcut_length2,
         ListPolyIt& p0_it,
         ListPolyIt& p2_it,
@@ -483,16 +496,15 @@ public:
         return *this;
     }
 
-    Point& operator[](unsigned int index)
+    Point2LL& operator[](size_t index)
     {
         POLY_ASSERT(index < size());
         return (*path)[index];
     }
 
-    const Point& operator[](unsigned int index) const
+    const Point2LL& operator[](size_t index) const
     {
-        POLY_ASSERT(index < size());
-        return (*path)[index];
+        return ConstPolygonRef::operator[](index);
     }
 
     ClipperLib::Path::iterator begin()
@@ -520,7 +532,7 @@ public:
         return path->data();
     }
 
-    void add(const Point p)
+    void add(const Point2LL p)
     {
         path->push_back(p);
     }
@@ -536,16 +548,16 @@ public:
         path->emplace_back(args...);
     }
 
-    void remove(unsigned int index)
+    void remove(size_t index)
     {
-        POLY_ASSERT(index < size() && index <= static_cast<unsigned int>(std::numeric_limits<int>::max()));
-        path->erase(path->begin() + index);
+        POLY_ASSERT(index < size() && index <= static_cast<size_t>(std::numeric_limits<long>::max()));
+        path->erase(path->begin() + static_cast<long>(index));
     }
 
-    void insert(size_t index, Point p)
+    void insert(size_t index, Point2LL p)
     {
-        POLY_ASSERT(index < size() && index <= static_cast<size_t>(std::numeric_limits<int>::max()));
-        path->insert(path->begin() + index, p);
+        POLY_ASSERT(index < size() && index <= static_cast<size_t>(std::numeric_limits<long>::max()));
+        path->insert(path->begin() + static_cast<long>(index), p);
     }
 
     void clear()
@@ -563,9 +575,9 @@ public:
      *
      * \param translation The direction in which to move the polygon
      */
-    void translate(Point translation)
+    void translate(Point2LL translation)
     {
-        for (Point& p : *this)
+        for (Point2LL& p : *this)
         {
             p += translation;
         }
@@ -803,7 +815,7 @@ class Polygons
 public:
     ClipperLib::Paths paths;
 
-    unsigned int size() const
+    size_t size() const
     {
         return paths.size();
     }
@@ -820,16 +832,16 @@ public:
      */
     bool empty() const;
 
-    unsigned int pointCount() const; //!< Return the amount of points in all polygons
+    size_t pointCount() const; //!< Return the amount of points in all polygons
 
-    PolygonRef operator[](unsigned int index)
+    PolygonRef operator[](size_t index)
     {
-        POLY_ASSERT(index < size() && index <= static_cast<unsigned int>(std::numeric_limits<int>::max()));
+        POLY_ASSERT(index < size());
         return paths[index];
     }
-    ConstPolygonRef operator[](unsigned int index) const
+    ConstPolygonRef operator[](size_t index) const
     {
-        POLY_ASSERT(index < size() && index <= static_cast<unsigned int>(std::numeric_limits<int>::max()));
+        POLY_ASSERT(index < size());
         return paths[index];
     }
     ClipperLib::Paths::iterator begin()
@@ -853,9 +865,9 @@ public:
      *
      * \warning changes the order of the polygons!
      */
-    void remove(unsigned int index)
+    void remove(size_t index)
     {
-        POLY_ASSERT(index < size() && index <= static_cast<unsigned int>(std::numeric_limits<int>::max()));
+        POLY_ASSERT(index < size());
         if (index < paths.size() - 1)
         {
             paths[index] = std::move(paths.back());
@@ -919,7 +931,7 @@ public:
     /*!
      * Add a 'polygon' consisting of two points
      */
-    void addLine(const Point from, const Point to)
+    void addLine(const Point2LL from, const Point2LL to)
     {
         paths.emplace_back(ClipperLib::Path{ from, to });
     }
@@ -1087,7 +1099,7 @@ public:
         return ret;
     }
 
-    Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
+    Polygons offset(coord_t distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
     Polygons offsetPolyLine(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, bool inputPolyIsClosed = false) const
     {
@@ -1125,7 +1137,7 @@ public:
      * \param border_result What to return when the point is exactly on the border
      * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
      */
-    bool inside(Point p, bool border_result = false) const;
+    bool inside(Point2LL p, bool border_result = false) const;
 
     /*!
      * Check if we are inside the polygon. We do this by tracing from the point towards the positive X direction,
@@ -1145,7 +1157,7 @@ public:
      * \param border_result What to return when the point is exactly on the border
      * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
      */
-    bool insideOld(Point p, bool border_result = false) const;
+    bool insideOld(Point2LL p, bool border_result = false) const;
 
     /*!
      * Find the polygon inside which point \p p resides.
@@ -1160,7 +1172,7 @@ public:
      * \param border_result Whether a point exactly on a polygon counts as inside
      * \return The index of the polygon inside which the point \p p resides
      */
-    unsigned int findInside(Point p, bool border_result = false);
+    size_t findInside(Point2LL p, bool border_result = false);
 
     /*!
      * Approximates the convex hull of the polygons.
@@ -1237,7 +1249,7 @@ public:
         }
     }
 
-    void translate(const Point vec)
+    void translate(const Point2LL vec)
     {
         if (vec.X == 0 && vec.Y == 0)
         {
@@ -1377,7 +1389,7 @@ public:
     Polygons remove(const Polygons& to_be_removed, int same_distance = 0) const
     {
         Polygons result;
-        for (unsigned int poly_keep_idx = 0; poly_keep_idx < size(); poly_keep_idx++)
+        for (size_t poly_keep_idx = 0; poly_keep_idx < size(); poly_keep_idx++)
         {
             ConstPolygonRef poly_keep = (*this)[poly_keep_idx];
             bool should_be_removed = false;
@@ -1390,11 +1402,11 @@ public:
                         continue;
 
                     // find closest point, supposing this point aligns the two shapes in the best way
-                    int closest_point_idx = 0;
-                    int smallestDist2 = -1;
-                    for (unsigned int point_rem_idx = 0; point_rem_idx < poly_rem.size(); point_rem_idx++)
+                    size_t closest_point_idx = 0;
+                    coord_t smallestDist2 = -1;
+                    for (size_t point_rem_idx = 0; point_rem_idx < poly_rem.size(); point_rem_idx++)
                     {
-                        int dist2 = vSize2(poly_rem[point_rem_idx] - poly_keep[0]);
+                        coord_t dist2 = vSize2(poly_rem[point_rem_idx] - poly_keep[0]);
                         if (dist2 < smallestDist2 || smallestDist2 < 0)
                         {
                             smallestDist2 = dist2;
@@ -1405,9 +1417,9 @@ public:
                     // compare the two polygons on all points
                     if (smallestDist2 > same_distance * same_distance)
                         continue;
-                    for (unsigned int point_idx = 0; point_idx < poly_rem.size(); point_idx++)
+                    for (size_t point_idx = 0; point_idx < poly_rem.size(); point_idx++)
                     {
-                        int dist2 = vSize2(poly_rem[(closest_point_idx + point_idx) % poly_rem.size()] - poly_keep[point_idx]);
+                        coord_t dist2 = vSize2(poly_rem[(closest_point_idx + point_idx) % poly_rem.size()] - poly_keep[point_idx]);
                         if (dist2 > same_distance * same_distance)
                         {
                             poly_rem_is_poly_keep = false;
@@ -1458,12 +1470,12 @@ public:
 
     coord_t polyLineLength() const;
 
-    Point min() const
+    Point2LL min() const
     {
-        Point ret = Point(POINT_MAX, POINT_MAX);
+        Point2LL ret = Point2LL(POINT_MAX, POINT_MAX);
         for (const ClipperLib::Path& polygon : paths)
         {
-            for (Point p : polygon)
+            for (Point2LL p : polygon)
             {
                 ret.X = std::min(ret.X, p.X);
                 ret.Y = std::min(ret.Y, p.Y);
@@ -1472,12 +1484,12 @@ public:
         return ret;
     }
 
-    Point max() const
+    Point2LL max() const
     {
-        Point ret = Point(POINT_MIN, POINT_MIN);
+        Point2LL ret = Point2LL(POINT_MIN, POINT_MIN);
         for (const ClipperLib::Path& polygon : paths)
         {
-            for (Point p : polygon)
+            for (Point2LL p : polygon)
             {
                 ret.X = std::max(ret.X, p.X);
                 ret.Y = std::max(ret.Y, p.Y);
@@ -1488,9 +1500,9 @@ public:
 
     void applyMatrix(const PointMatrix& matrix)
     {
-        for (unsigned int i = 0; i < paths.size(); i++)
+        for (size_t i = 0; i < paths.size(); i++)
         {
-            for (unsigned int j = 0; j < paths[i].size(); j++)
+            for (size_t j = 0; j < paths[i].size(); j++)
             {
                 paths[i][j] = matrix.apply(paths[i][j]);
             }
@@ -1499,9 +1511,9 @@ public:
 
     void applyMatrix(const Point3Matrix& matrix)
     {
-        for (unsigned int i = 0; i < paths.size(); i++)
+        for (size_t i = 0; i < paths.size(); i++)
         {
-            for (unsigned int j = 0; j < paths[i].size(); j++)
+            for (size_t j = 0; j < paths[i].size(); j++)
             {
                 paths[i][j] = matrix.apply(paths[i][j]);
             }
@@ -1549,19 +1561,19 @@ public:
      * \param border_result If the point is exactly on the border, this will be
      * returned instead.
      */
-    bool inside(Point p, bool border_result = false) const;
+    bool inside(Point2LL p, bool border_result = false) const;
 };
 
 /*!
  * Extension of vector<vector<unsigned int>> which is similar to a vector of PolygonParts, except the base of the container is indices to polygons into the original Polygons,
  * instead of the polygons themselves
  */
-class PartsView : public std::vector<std::vector<unsigned int>>
+class PartsView : public std::vector<std::vector<size_t>>
 {
 public:
-    Polygons& polygons;
+    Polygons& polygons_;
     PartsView(Polygons& polygons)
-        : polygons(polygons)
+        : polygons_(polygons)
     {
     }
     /*!
@@ -1571,7 +1583,7 @@ public:
      * \param boundary_poly_idx Optional output parameter: The index of the boundary polygon of the part in \p polygons
      * \return The PolygonsPart containing the polygon with index \p poly_idx
      */
-    unsigned int getPartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx = nullptr) const;
+    size_t getPartContaining(size_t poly_idx, size_t* boundary_poly_idx = nullptr) const;
     /*!
      * Assemble the PolygonsPart of which the polygon with index \p poly_idx is part.
      *
@@ -1579,14 +1591,14 @@ public:
      * \param boundary_poly_idx Optional output parameter: The index of the boundary polygon of the part in \p polygons
      * \return The PolygonsPart containing the polygon with index \p poly_idx
      */
-    PolygonsPart assemblePartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx = nullptr) const;
+    PolygonsPart assemblePartContaining(size_t poly_idx, size_t* boundary_poly_idx = nullptr) const;
     /*!
      * Assemble the PolygonsPart of which the polygon with index \p poly_idx is part.
      *
      * \param part_idx The index of the part
      * \return The PolygonsPart with index \p poly_idx
      */
-    PolygonsPart assemblePart(unsigned int part_idx) const;
+    PolygonsPart assemblePart(size_t part_idx) const;
 };
 
 } // namespace cura
