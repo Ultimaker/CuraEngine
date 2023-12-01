@@ -51,6 +51,7 @@ class CuraEngineConan(ConanFile):
         copy(self, "*", path.join(self.recipe_folder, "src"), path.join(self.export_sources_folder, "src"))
         copy(self, "*", path.join(self.recipe_folder, "include"), path.join(self.export_sources_folder, "include"))
         copy(self, "*", path.join(self.recipe_folder, "benchmark"), path.join(self.export_sources_folder, "benchmark"))
+        copy(self, "*", path.join(self.recipe_folder, "stress_benchmark"), path.join(self.export_sources_folder, "stress_benchmark"))
         copy(self, "*", path.join(self.recipe_folder, "tests"), path.join(self.export_sources_folder, "tests"))
 
     def config_options(self):
@@ -79,6 +80,7 @@ class CuraEngineConan(ConanFile):
             self.test_requires("gtest/1.12.1")
         if self.options.enable_benchmarks:
             self.test_requires("benchmark/1.7.0")
+            self.test_requires("docopt.cpp/0.6.3")
 
     def requirements(self):
         for req in self.conan_data["requirements"]:
@@ -92,8 +94,8 @@ class CuraEngineConan(ConanFile):
         self.requires("boost/1.82.0")
         self.requires("rapidjson/1.1.0")
         self.requires("stb/20200203")
-        self.requires("spdlog/1.10.0")
-        self.requires("fmt/9.0.0")
+        self.requires("spdlog/1.12.0")
+        self.requires("fmt/10.1.1")
         self.requires("range-v3/0.12.0")
         self.requires("neargye-semver/0.3.0")
         self.requires("protobuf/3.21.9")

@@ -30,22 +30,22 @@ class PathOrderMonotonicTest : public testing::TestWithParam<std::tuple<std::str
 {
 };
 
-inline Point startVertex(const PathOrdering<ConstPolygonPointer>& path)
+inline Point2LL startVertex(const PathOrdering<ConstPolygonPointer>& path)
 {
-    return (*path.vertices)[path.start_vertex];
+    return (*path.vertices_)[path.start_vertex_];
 }
 
-inline Point endVertex(const PathOrdering<ConstPolygonPointer>& path)
+inline Point2LL endVertex(const PathOrdering<ConstPolygonPointer>& path)
 {
-    return (*path.vertices)[path.vertices->size() - (1 + path.start_vertex)];
+    return (*path.vertices_)[path.vertices_->size() - (1 + path.start_vertex_)];
 }
 
-coord_t projectPathAlongAxis(const PathOrdering<ConstPolygonPointer>& path, const Point& vector)
+coord_t projectPathAlongAxis(const PathOrdering<ConstPolygonPointer>& path, const Point2LL& vector)
 {
     return dot(startVertex(path), vector);
 }
 
-coord_t projectEndAlongAxis(const PathOrdering<ConstPolygonPointer>& path, const Point& vector)
+coord_t projectEndAlongAxis(const PathOrdering<ConstPolygonPointer>& path, const Point2LL& vector)
 {
     return dot(endVertex(path), vector);
 }
@@ -139,11 +139,11 @@ TEST_P(PathOrderMonotonicTest, SectionsTest)
     Polygons polylines;
     ASSERT_TRUE(getInfillLines(filename, angle_radians, polylines)) << "Input test-file could not be read, check setup.";
 
-    const Point& pt_r = polylines.begin()->at(0);
-    const Point& pt_s = polylines.begin()->at(1);
-    const double angle_from_first_line = std::atan2(pt_s.Y - pt_r.Y, pt_s.X - pt_r.X) + 0.5 * M_PI;
-    const Point monotonic_axis(static_cast<coord_t>(std::cos(angle_from_first_line)) * 1000, static_cast<coord_t>(std::sin(angle_from_first_line)) * 1000);
-    const Point perpendicular_axis{ turn90CCW(monotonic_axis) };
+    const Point2LL& pt_r = polylines.begin()->at(0);
+    const Point2LL& pt_s = polylines.begin()->at(1);
+    const double angle_from_first_line = std::atan2(pt_s.Y - pt_r.Y, pt_s.X - pt_r.X) + 0.5 * std::numbers::pi;
+    const Point2LL monotonic_axis(static_cast<coord_t>(std::cos(angle_from_first_line)) * 1000, static_cast<coord_t>(std::sin(angle_from_first_line)) * 1000);
+    const Point2LL perpendicular_axis{ turn90CCW(monotonic_axis) };
 
     constexpr coord_t max_adjacent_distance = line_distance + 1;
     PathOrderMonotonic<ConstPolygonPointer> object_under_test(angle_from_first_line, max_adjacent_distance, monotonic_axis * -1000);
@@ -156,8 +156,8 @@ TEST_P(PathOrderMonotonicTest, SectionsTest)
     // Collect sections:
     std::vector<std::vector<PathOrdering<ConstPolygonPointer>>> sections;
     sections.emplace_back();
-    coord_t last_path_mono_projection = projectPathAlongAxis(object_under_test.paths.front(), monotonic_axis);
-    for (const auto& path : object_under_test.paths)
+    coord_t last_path_mono_projection = projectPathAlongAxis(object_under_test.paths_.front(), monotonic_axis);
+    for (const auto& path : object_under_test.paths_)
     {
         const coord_t path_mono_projection{ projectPathAlongAxis(path, monotonic_axis) };
         if (path_mono_projection < last_path_mono_projection && ! sections.back().empty())
@@ -217,7 +217,7 @@ const std::vector<std::string> polygon_filenames = {
     std::filesystem::path(__FILE__).parent_path().append("resources/polygon_slant_gap.txt").string(), std::filesystem::path(__FILE__).parent_path().append("resources/polygon_sawtooth.txt").string(),
     std::filesystem::path(__FILE__).parent_path().append("resources/polygon_letter_y.txt").string()
 };
-const std::vector<AngleRadians> angle_radians = { 0, 0.1, 0.25 * M_PI, 1.0, 0.5 * M_PI, 0.75 * M_PI, M_PI, 1.25 * M_PI, 4.0, 1.5 * M_PI, 1.75 * M_PI, 5.0, (2.0 * M_PI) - 0.1 };
+const std::vector<AngleRadians> angle_radians = { 0, 0.1, 0.25 * std::numbers::pi, 1.0, 0.5 * std::numbers::pi, 0.75 * std::numbers::pi, std::numbers::pi, 1.25 * std::numbers::pi, 4.0, 1.5 * std::numbers::pi, 1.75 * std::numbers::pi, 5.0, (2.0 * std::numbers::pi) - 0.1 };
 
 INSTANTIATE_TEST_SUITE_P(PathOrderMonotonicTestInstantiation, PathOrderMonotonicTest, testing::Combine(testing::ValuesIn(polygon_filenames), testing::ValuesIn(angle_radians)));
 // NOLINTEND(*-magic-numbers)

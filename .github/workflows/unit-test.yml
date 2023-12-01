@@ -141,5 +141,14 @@ jobs:
           files: |
             **/*.xml
 
+      - name: Upload the detailed tests report
+        uses: actions/upload-artifact@v3
+        if: ${{ always() }}
+        with:
+          name: LastTest.log
+          path: |
+            build/Release/Testing/Temporary/LastTest.log
+          retention-days: 5
+
       - name: Conclusion
         run: echo "Conclusion is ${{ fromJSON( steps.test-results.outputs.json ).conclusion }}"

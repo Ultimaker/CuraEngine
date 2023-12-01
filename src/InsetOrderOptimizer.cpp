@@ -3,11 +3,8 @@
 
 #include "InsetOrderOptimizer.h"
 
-#include "ExtruderTrain.h"
-#include "FffGcodeWriter.h"
-#include "LayerPlan.h"
-#include "utils/views/convert.h"
-#include "utils/views/dfs.h"
+#include <iterator>
+#include <tuple>
 
 #include <range/v3/algorithm/max.hpp>
 #include <range/v3/algorithm/sort.hpp>
@@ -25,8 +22,11 @@
 #include <range/v3/view/zip.hpp>
 #include <spdlog/spdlog.h>
 
-#include <iterator>
-#include <tuple>
+#include "ExtruderTrain.h"
+#include "FffGcodeWriter.h"
+#include "LayerPlan.h"
+#include "utils/views/convert.h"
+#include "utils/views/dfs.h"
 
 namespace rg = ranges;
 namespace rv = ranges::views;
@@ -51,36 +51,36 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const size_t wall_x_extruder_nr,
     const ZSeamConfig& z_seam_config,
     const std::vector<VariableWidthLines>& paths)
-    : gcode_writer(gcode_writer)
-    , storage(storage)
-    , gcode_layer(gcode_layer)
-    , settings(settings)
-    , extruder_nr(extruder_nr)
-    , inset_0_non_bridge_config(inset_0_non_bridge_config)
-    , inset_X_non_bridge_config(inset_X_non_bridge_config)
-    , inset_0_bridge_config(inset_0_bridge_config)
-    , inset_X_bridge_config(inset_X_bridge_config)
-    , retract_before_outer_wall(retract_before_outer_wall)
-    , wall_0_wipe_dist(wall_0_wipe_dist)
-    , wall_x_wipe_dist(wall_x_wipe_dist)
-    , wall_0_extruder_nr(wall_0_extruder_nr)
-    , wall_x_extruder_nr(wall_x_extruder_nr)
-    , z_seam_config(z_seam_config)
-    , paths(paths)
-    , layer_nr(gcode_layer.getLayerNr())
+    : gcode_writer_(gcode_writer)
+    , storage_(storage)
+    , gcode_layer_(gcode_layer)
+    , settings_(settings)
+    , extruder_nr_(extruder_nr)
+    , inset_0_non_bridge_config_(inset_0_non_bridge_config)
+    , inset_X_non_bridge_config_(inset_X_non_bridge_config)
+    , inset_0_bridge_config_(inset_0_bridge_config)
+    , inset_X_bridge_config_(inset_X_bridge_config)
+    , retract_before_outer_wall_(retract_before_outer_wall)
+    , wall_0_wipe_dist_(wall_0_wipe_dist)
+    , wall_x_wipe_dist_(wall_x_wipe_dist)
+    , wall_0_extruder_nr_(wall_0_extruder_nr)
+    , wall_x_extruder_nr_(wall_x_extruder_nr)
+    , z_seam_config_(z_seam_config)
+    , paths_(paths)
+    , layer_nr_(gcode_layer.getLayerNr())
 {
 }
 
 bool InsetOrderOptimizer::addToLayer()
 {
     // Settings & configs:
-    const auto pack_by_inset = ! settings.get<bool>("optimize_wall_printing_order");
-    const auto inset_direction = settings.get<InsetDirection>("inset_direction");
-    const auto alternate_walls = settings.get<bool>("material_alternate_walls");
+    const auto pack_by_inset = ! settings_.get<bool>("optimize_wall_printing_order");
+    const auto inset_direction = settings_.get<InsetDirection>("inset_direction");
+    const auto alternate_walls = settings_.get<bool>("material_alternate_walls");
 
     const bool outer_to_inner = inset_direction == InsetDirection::OUTSIDE_IN;
-    const bool use_one_extruder = wall_0_extruder_nr == wall_x_extruder_nr;
-    const bool current_extruder_is_wall_x = wall_x_extruder_nr == extruder_nr;
+    const bool use_one_extruder = wall_0_extruder_nr_ == wall_x_extruder_nr_;
+    const bool current_extruder_is_wall_x = wall_x_extruder_nr_ == extruder_nr_;
 
     const bool reverse = shouldReversePath(use_one_extruder, current_extruder_is_wall_x, outer_to_inner);
     auto walls_to_be_added = getWallsToBeAdded(reverse, use_one_extruder);
@@ -93,15 +93,15 @@ bool InsetOrderOptimizer::addToLayer()
 
     constexpr bool detect_loops = false;
     constexpr Polygons* combing_boundary = nullptr;
-    const auto group_outer_walls = settings.get<bool>("group_outer_walls");
+    const auto group_outer_walls = settings_.get<bool>("group_outer_walls");
     // When we alternate walls, also alternate the direction at which the first wall starts in.
     // On even layers we start with normal direction, on odd layers with inverted direction.
     PathOrderOptimizer<const ExtrusionLine*>
-        order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops, combing_boundary, reverse, order, group_outer_walls);
+        order_optimizer(gcode_layer_.getLastPlannedPositionOrStartingPosition(), z_seam_config_, detect_loops, combing_boundary, reverse, order, group_outer_walls);
 
     for (const auto& line : walls_to_be_added)
     {
-        if (line.is_closed)
+        if (line.is_closed_)
         {
             order_optimizer.addPolygon(&line);
         }
@@ -113,26 +113,26 @@ bool InsetOrderOptimizer::addToLayer()
 
     order_optimizer.optimize();
 
-    for (const PathOrdering<const ExtrusionLine*>& path : order_optimizer.paths)
+    for (const PathOrdering<const ExtrusionLine*>& path : order_optimizer.paths_)
     {
-        if (path.vertices->empty())
+        if (path.vertices_->empty())
             continue;
 
-        const bool is_outer_wall = path.vertices->inset_idx == 0; // or thin wall 'gap filler'
-        const bool is_gap_filler = path.vertices->is_odd;
-        const GCodePathConfig& non_bridge_config = is_outer_wall ? inset_0_non_bridge_config : inset_X_non_bridge_config;
-        const GCodePathConfig& bridge_config = is_outer_wall ? inset_0_bridge_config : inset_X_bridge_config;
-        const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist : wall_x_wipe_dist;
-        const bool retract_before = is_outer_wall ? retract_before_outer_wall : false;
+        const bool is_outer_wall = path.vertices_->inset_idx_ == 0; // or thin wall 'gap filler'
+        const bool is_gap_filler = path.vertices_->is_odd_;
+        const GCodePathConfig& non_bridge_config = is_outer_wall ? inset_0_non_bridge_config_ : inset_X_non_bridge_config_;
+        const GCodePathConfig& bridge_config = is_outer_wall ? inset_0_bridge_config_ : inset_X_bridge_config_;
+        const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist_ : wall_x_wipe_dist_;
+        const bool retract_before = is_outer_wall ? retract_before_outer_wall_ : false;
 
-        const bool revert_inset = alternate_walls && (path.vertices->inset_idx % 2);
-        const bool revert_layer = alternate_walls && (layer_nr % 2);
-        const bool backwards = path.backwards != (revert_inset != revert_layer);
-        const size_t start_index = (backwards != path.backwards) ? path.vertices->size() - (path.start_vertex + 1) : path.start_vertex;
-        const bool linked_path = ! path.is_closed;
+        const bool revert_inset = alternate_walls && (path.vertices_->inset_idx_ % 2);
+        const bool revert_layer = alternate_walls && (layer_nr_ % 2);
+        const bool backwards = path.backwards_ != (revert_inset != revert_layer);
+        const size_t start_index = (backwards != path.backwards_) ? path.vertices_->size() - (path.start_vertex_ + 1) : path.start_vertex_;
+        const bool linked_path = ! path.is_closed_;
 
-        gcode_layer.setIsInside(true); // Going to print walls, which are always inside.
-        gcode_layer.addWall(*path.vertices, start_index, settings, non_bridge_config, bridge_config, wipe_dist, flow, retract_before, path.is_closed, backwards, linked_path);
+        gcode_layer_.setIsInside(true); // Going to print walls, which are always inside.
+        gcode_layer_.addWall(*path.vertices_, start_index, settings_, non_bridge_config, bridge_config, wipe_dist, flow, retract_before, path.is_closed_, backwards, linked_path);
         added_something = true;
     }
     return added_something;
@@ -163,7 +163,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                                 return LineLoc{
                                     .line = line,
                                     .poly = poly,
-                                    .area = line->is_closed ? poly.area() : 0.0,
+                                    .area = line->is_closed_ ? poly.area() : 0.0,
                                 };
                             })
                       | rg::to_vector;
@@ -226,7 +226,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
 
                 // find hole roots (defined by a positive area in clipper1), these are leaves of the tree structure
                 // as odd walls are also leaves we filter them out by adding a non-zero area check
-                if (current_node != root && graph.count(current_node) == 1 && current_node->line->is_closed && current_node->area > 0)
+                if (current_node != root && graph.count(current_node) == 1 && current_node->line->is_closed_ && current_node->area > 0)
                 {
                     hole_roots.push_back(current_node);
                 }
@@ -297,21 +297,21 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getInsetOrder(const auto& i
 
     for (const auto& line : input)
     {
-        if (line.is_odd)
+        if (line.is_odd_)
         {
-            if (line.inset_idx >= fillers_by_inset.size())
+            if (line.inset_idx_ >= fillers_by_inset.size())
             {
-                fillers_by_inset.resize(line.inset_idx + 1);
+                fillers_by_inset.resize(line.inset_idx_ + 1);
             }
-            fillers_by_inset[line.inset_idx].emplace_back(&line);
+            fillers_by_inset[line.inset_idx_].emplace_back(&line);
         }
         else
         {
-            if (line.inset_idx >= walls_by_inset.size())
+            if (line.inset_idx_ >= walls_by_inset.size())
             {
-                walls_by_inset.resize(line.inset_idx + 1);
+                walls_by_inset.resize(line.inset_idx_ + 1);
             }
-            walls_by_inset[line.inset_idx].emplace_back(&line);
+            walls_by_inset[line.inset_idx_].emplace_back(&line);
         }
     }
     for (size_t inset_idx = 0; inset_idx + 1 < walls_by_inset.size(); inset_idx++)
@@ -357,7 +357,7 @@ constexpr bool InsetOrderOptimizer::shouldReversePath(const bool use_one_extrude
 
 std::vector<ExtrusionLine> InsetOrderOptimizer::getWallsToBeAdded(const bool reverse, const bool use_one_extruder)
 {
-    if (paths.empty())
+    if (paths_.empty())
     {
         return {};
     }
@@ -366,22 +366,22 @@ std::vector<ExtrusionLine> InsetOrderOptimizer::getWallsToBeAdded(const bool rev
     {
         if (use_one_extruder)
         {
-            view = paths | rv::reverse;
+            view = paths_ | rv::reverse;
         }
         else
         {
-            view = paths | rv::reverse | rv::drop_last(1);
+            view = paths_ | rv::reverse | rv::drop_last(1);
         }
     }
     else
     {
         if (use_one_extruder)
         {
-            view = paths | rv::all;
+            view = paths_ | rv::all;
         }
         else
         {
-            view = paths | rv::take_exactly(1);
+            view = paths_ | rv::take_exactly(1);
         }
     }
     return view | rv::join | rv::remove_if(rg::empty) | rg::to_vector;

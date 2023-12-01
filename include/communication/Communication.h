@@ -6,7 +6,7 @@
 
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Velocity.h"
-#include "utils/IntPoint.h"
+#include "utils/Point2LL.h"
 
 namespace cura
 {
@@ -49,7 +49,7 @@ public:
      * \brief Indicate to the communication channel what the current progress of
      * slicing the current slice is.
      */
-    virtual void sendProgress(const float& progress) const = 0;
+    virtual void sendProgress(double progress) const = 0;
 
     /*
      * \brief Indicate to the communication channel that a layer is complete and
@@ -104,7 +104,7 @@ public:
      * \param line_thickness The thickness (in the Z direction) of the line.
      * \param velocity The velocity of printing this polygon.
      */
-    virtual void sendLineTo(const PrintFeatureType& type, const Point& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) = 0;
+    virtual void sendLineTo(const PrintFeatureType& type, const Point2LL& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) = 0;
 
     /*
      * \brief Send the current position to visualise.
@@ -112,7 +112,7 @@ public:
      * This may indicate the starting position (or any other jump in the path).
      * \param position The current position to start the next line at.
      */
-    virtual void sendCurrentPosition(const Point& position) = 0;
+    virtual void sendCurrentPosition(const Point2LL& position) = 0;
 
     /*
      * \brief Set which extruder is being used for the following calls to

@@ -10,32 +10,32 @@ namespace cura
 
 double FlowTempGraph::getTemp(const double flow, const Temperature material_print_temperature, const bool flow_dependent_temperature) const
 {
-    if (! flow_dependent_temperature || data.size() == 0)
+    if (! flow_dependent_temperature || data_.size() == 0)
     {
         return material_print_temperature;
     }
-    if (data.size() == 1)
+    if (data_.size() == 1)
     {
-        return data.front().temp;
+        return data_.front().temp_;
     }
-    if (flow < data.front().flow)
+    if (flow < data_.front().flow_)
     {
         spdlog::warn("Warning! Flow too low!");
-        return data.front().temp;
+        return data_.front().temp_;
     }
-    const Datum* last_datum = &data.front();
-    for (unsigned int datum_idx = 1; datum_idx < data.size(); datum_idx++)
+    const Datum* last_datum = &data_.front();
+    for (unsigned int datum_idx = 1; datum_idx < data_.size(); datum_idx++)
     {
-        const Datum& datum = data[datum_idx];
-        if (datum.flow >= flow)
+        const Datum& datum = data_[datum_idx];
+        if (datum.flow_ >= flow)
         {
-            return last_datum->temp + Temperature((datum.temp - last_datum->temp) * (flow - last_datum->flow) / (datum.flow - last_datum->flow));
+            return last_datum->temp_ + Temperature((datum.temp_ - last_datum->temp_) * (flow - last_datum->flow_) / (datum.flow_ - last_datum->flow_));
         }
         last_datum = &datum;
     }
 
     spdlog::warn("Warning! Flow too high!");
-    return data.back().temp;
+    return data_.back().temp_;
 }
 
 } // namespace cura

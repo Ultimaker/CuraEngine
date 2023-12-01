@@ -18,8 +18,8 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/AABB.h"
 #include "utils/AABB3D.h"
-#include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
+#include "utils/Point2LL.h"
 #include "utils/polygon.h"
 
 // libArachne
@@ -236,6 +236,7 @@ public:
      * \param wall_line_count Wall-line count around the fill.
      * \param grow_layer_above (optional, default to 0) In cases where support shrinks per layer up, an appropriate offset may be nescesary.
      * \param unionAll (optional, default to false) Wether to 'union all' for the split into parts bit.
+     * \param custom_line_distance (optional, default to 0) Distance between lines of the infill pattern. custom_line_distance of 0 means use the default instead.
      */
     void fillInfillParts(
         const LayerIndex layer_nr,
@@ -243,7 +244,8 @@ public:
         const coord_t support_line_width,
         const coord_t wall_line_count,
         const coord_t grow_layer_above = 0,
-        const bool unionAll = false);
+        const bool unionAll = false,
+        const coord_t custom_line_distance = 0);
 };
 
 class SupportStorage
@@ -326,7 +328,7 @@ public:
     /*!
      * \return the mesh's user specified z seam hint
      */
-    Point getZSeamHint() const;
+    Point2LL getZSeamHint() const;
 };
 
 /*!
@@ -343,7 +345,7 @@ class SliceDataStorage : public NoCopy
 public:
     size_t print_layer_count; //!< The total number of layers (except the raft and filler layers)
 
-    Point3 model_size, model_min, model_max;
+    Point3LL model_size, model_min, model_max;
     AABB3D machine_size; //!< The bounding box with the width, height and depth of the printer.
     std::vector<std::shared_ptr<SliceMeshStorage>> meshes;
 

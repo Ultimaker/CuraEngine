@@ -1,11 +1,8 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2021 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef THREADPOOL_H
 #define THREADPOOL_H
-
-#include "../Application.h" // accessing singleton's Application::thread_pool
-#include "../utils/math.h" // round_up_divide
 
 #include <cassert>
 #include <condition_variable>
@@ -14,6 +11,9 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+
+#include "../Application.h" // accessing singleton's Application::thread_pool
+#include "../utils/math.h" // round_up_divide
 
 namespace cura
 {
@@ -27,20 +27,29 @@ namespace cura
  */
 class ThreadPool
 {
-  public:
+public:
     using lock_t = std::unique_lock<std::mutex>;
     using task_t = std::function<void(lock_t&)>;
 
     //! Spawns a thread pool with `nthreads` threads
     ThreadPool(size_t nthreads);
 
-    ~ThreadPool() { join(); }
+    ~ThreadPool()
+    {
+        join();
+    }
 
     //! Returns the number of threads
-    size_t thread_count() const { return threads.size(); }
+    size_t thread_count() const
+    {
+        return threads.size();
+    }
 
     //! Gets a lock on the queue, stopping the queuing or execution of new tasks while held
-    lock_t get_lock() { return lock_t(mutex); }
+    lock_t get_lock()
+    {
+        return lock_t(mutex);
+    }
 
     /*!
      * \brief Pushes a new task while the queue is locked.
@@ -58,12 +67,13 @@ class ThreadPool
      * \brief Executes pending tasks while the predicates returns true
      * This method doesn't wait unless predicate does (like implementation of ThreadPool::worker())
      */
-    template<typename P> void work_while(lock_t& lock, P predicate)
+    template<typename P>
+    void work_while(lock_t& lock, P predicate)
     {
         assert(lock);
-        while(predicate() && !tasks.empty()) // Order is important: predicate() might wait on an empty queue
+        while (predicate() && ! tasks.empty()) // Order is important: predicate() might wait on an empty queue
         {
-            assert(!tasks.empty());
+            assert(! tasks.empty());
             task_t task = std::move(tasks.front());
             tasks.pop_front();
 
@@ -72,7 +82,7 @@ class ThreadPool
         }
     }
 
-  private:
+private:
     void worker();
 
     void join();
@@ -86,10 +96,11 @@ class ThreadPool
 
 
 /// `std::make_signed_t` fails for non integral types in a way that doesn't allows SFINAE fallbacks. This alias solves that.
-template<typename T> using make_signed_if_integral_t = typename std::enable_if_t<std::is_integral_v<T>, std::make_signed<T>>::type;
+template<typename T>
+using make_signed_if_integral_t = typename std::enable_if_t<std::is_integral_v<T>, std::make_signed<T>>::type;
 
 /// Overloads `std::distance()` to work on integral types
-template<typename Int, typename Signed=make_signed_if_integral_t<Int>>
+template<typename Int, typename Signed = make_signed_if_integral_t<Int>>
 inline Signed distance(const Int& first, const Int& last)
 {
     return static_cast<Signed>(last) - static_cast<Signed>(first);
@@ -109,7 +120,7 @@ inline Signed distance(const Int& first, const Int& last)
  * \param chunks_per_worker Maximum number of tasks that are queue at once (defaults to 4 times the number of workers).
  */
 template<typename T, typename F>
-void parallel_for(T first, T last, F&& loop_body, size_t chunk_size_factor=1, const size_t chunks_per_worker=8)
+void parallel_for(T first, T last, F&& loop_body, size_t chunk_size_factor = 1, const size_t chunks_per_worker = 8)
 {
     using lock_t = ThreadPool::lock_t;
 
@@ -121,7 +132,7 @@ void parallel_for(T first, T last, F&& loop_body, size_t chunk_size_factor=1, co
     }
     const size_t nitems = dist;
 
-    ThreadPool* const thread_pool = Application::getInstance().thread_pool;
+    ThreadPool* const thread_pool = Application::getInstance().thread_pool_;
     assert(thread_pool);
     const size_t nworkers = thread_pool->thread_count() + 1; // One task per std::thread + 1 for main thread
 
@@ -132,7 +143,7 @@ void parallel_for(T first, T last, F&& loop_body, size_t chunk_size_factor=1, co
         blocks = nitems;
     }
     else
-    {   // User wants to divide the work in blocks of chunk_size_factor items
+    { // User wants to divide the work in blocks of chunk_size_factor items
         blocks = round_up_divide(nitems, chunk_size_factor);
     }
 
@@ -155,21 +166,23 @@ void parallel_for(T first, T last, F&& loop_body, size_t chunk_size_factor=1, co
     // Schedules a task per chunk on the thread pool
     lock_t lock = thread_pool->get_lock();
     T chunk_last;
-    for (T chunk_first = first ; chunk_first < last ; chunk_first = chunk_last)
+    for (T chunk_first = first; chunk_first < last; chunk_first = chunk_last)
     {
         if (distance(chunk_first, last) > chunk_increment)
-        {   // Full size chunk
+        { // Full size chunk
             chunk_last = chunk_first + chunk_increment;
         }
         else
-        {   // Adjust for the size of the last chunk
+        { // Adjust for the size of the last chunk
             chunk_last = last;
         }
 
-        thread_pool->push(lock, [&shared_state, chunk_first, chunk_last](lock_t& th_lock)
+        thread_pool->push(
+            lock,
+            [&shared_state, chunk_first, chunk_last](lock_t& th_lock)
             {
                 th_lock.unlock(); // Enter unsynchronized region
-                for (T i = chunk_first ; i < chunk_last ; ++i)
+                for (T i = chunk_first; i < chunk_last; ++i)
                 {
                     shared_state.loop_body(i);
                 }
@@ -182,8 +195,13 @@ void parallel_for(T first, T last, F&& loop_body, size_t chunk_size_factor=1, co
     }
 
     // Do work while parallel_for's tasks are running
-    thread_pool->work_while(lock, [&]{ return shared_state.chunks_remaining > 0; });
-    while(shared_state.chunks_remaining > 0) // Wait until all the task are completed
+    thread_pool->work_while(
+        lock,
+        [&]
+        {
+            return shared_state.chunks_remaining > 0;
+        });
+    while (shared_state.chunks_remaining > 0) // Wait until all the task are completed
     {
         shared_state.work_done.wait(lock);
     }
@@ -194,15 +212,15 @@ void parallel_for(T first, T last, F&& loop_body, size_t chunk_size_factor=1, co
  *  Overload for iterating over containers with random access iterators.
  */
 template<typename Container, typename F>
-auto parallel_for(Container& container, F&& loop_body, size_t chunk_size_factor=1, size_t chunks_per_worker=8)
-  -> std::void_t<decltype(container.end() - container.begin())>
+auto parallel_for(Container& container, F&& loop_body, size_t chunk_size_factor = 1, size_t chunks_per_worker = 8) -> std::void_t<decltype(container.end() - container.begin())>
 {
     parallel_for(container.begin(), container.end(), std::forward<F>(loop_body), chunk_size_factor, chunks_per_worker);
 }
 
 
 //! \private Internal state for run_multiple_producers_ordered_consumer()
-template<typename Producer, typename Consumer> class MultipleProducersOrderedConsumer;
+template<typename Producer, typename Consumer>
+class MultipleProducersOrderedConsumer;
 
 /*!
  * \brief Runs parallel producers and buffers the results to be consumed serially in indices order.
@@ -223,9 +241,9 @@ template<typename Producer, typename Consumer> class MultipleProducersOrderedCon
  * \param max_pending_per_worker Number of allocated slots per worker for items waiting to be consumed.
  */
 template<typename P, typename C>
-void run_multiple_producers_ordered_consumer(ptrdiff_t first, ptrdiff_t last, P&& producer, C&& consumer, size_t max_pending_per_worker=8)
+void run_multiple_producers_ordered_consumer(ptrdiff_t first, ptrdiff_t last, P&& producer, C&& consumer, size_t max_pending_per_worker = 8)
 {
-    ThreadPool* thread_pool = Application::getInstance().thread_pool;
+    ThreadPool* thread_pool = Application::getInstance().thread_pool_;
     assert(thread_pool);
     assert(max_pending_per_worker > 0);
     const size_t max_pending = max_pending_per_worker * (thread_pool->thread_count() + 1);
@@ -238,59 +256,69 @@ class MultipleProducersOrderedConsumer
     using item_t = std::invoke_result_t<Producer, ptrdiff_t>;
     using lock_t = ThreadPool::lock_t;
 
-  public:
+public:
     /*!
      * \see run_multiple_producers_ordered_consumer
      * \param max_pending Number of allocated slots for items waiting to be consumed.
      */
     template<typename P, typename C>
     MultipleProducersOrderedConsumer(ptrdiff_t first, ptrdiff_t last, P&& producer, C&& consumer, size_t max_pending)
-      : producer(std::forward<P>(producer)), consumer(std::forward<C>(consumer)),
-        max_pending(max_pending),
-        queue(std::make_unique<item_t[]>(max_pending)),
-        last_idx(last), write_idx(first), read_idx(first), consumer_wait_idx(first)
-    {}
+        : producer_(std::forward<P>(producer))
+        , consumer_(std::forward<C>(consumer))
+        , max_pending_(max_pending)
+        , queue_(std::make_unique<item_t[]>(max_pending))
+        , last_idx_(last)
+        , write_idx_(first)
+        , read_idx_(first)
+        , consumer_wait_idx_(first)
+    {
+    }
 
     //! Schedules the tasks on thread_pool, then run one on the main thread until completion.
     void run(ThreadPool& thread_pool)
     {
-        if (write_idx >= last_idx)
+        if (write_idx_ >= last_idx_)
         {
             return;
         }
-        workers_count = thread_pool.thread_count() + 1;
+        workers_count_ = thread_pool.thread_count() + 1;
         // Start thread_pool.thread_count() workers on the thread pool
         auto lock = thread_pool.get_lock();
-        for (size_t i = 1 ; i < workers_count ; i++)
+        for (size_t i = 1; i < workers_count_; i++)
         {
-            thread_pool.push(lock, [this](lock_t& th_lock){ worker(th_lock); });
+            thread_pool.push(
+                lock,
+                [this](lock_t& th_lock)
+                {
+                    worker(th_lock);
+                });
         }
         // Run a worker on the main thread
         worker(lock);
         // Wait for completion of all workers
-        if (workers_count > 0)
+        if (workers_count_ > 0)
         {
-            work_done_cond.wait(lock);
+            work_done_cond_.wait(lock);
         }
     }
 
-  protected:
+protected:
     //! Waits for free space in the ring. Returns false when work is completed.
     bool wait(lock_t& lock)
     {
-        while(true)
+        while (true)
         {
-            if (write_idx >= last_idx)
-            {   // Work completed: stop worker
+            if (write_idx_ >= last_idx_)
+            { // Work completed: stop worker
                 return false;
             }
-            if (write_idx - read_idx < max_pending)
-            {   // Continue as a producer
+            if (write_idx_ - read_idx_ < max_pending_)
+            { // Continue as a producer
                 return true;
             }
             else
-            {   // Queue is full, wait for consumer signal
-                free_slot_cond.wait(lock); // Signaled by consume_many() and worker() completion
+            { // Queue is full, wait for consumer signal
+                free_slot_cond_.wait(lock); // Signaled by consume_many() and worker() completion
             }
         }
     }
@@ -298,16 +326,16 @@ class MultipleProducersOrderedConsumer
     //! Produces an item and store in in the ring buffer. Assumes that there is items to produce and free space in the ring
     ptrdiff_t produce(lock_t& lock)
     {
-        ptrdiff_t produced_idx = write_idx++;
-        item_t* slot = &queue[(produced_idx + max_pending) % max_pending];
-        assert(produced_idx < last_idx);
+        ptrdiff_t produced_idx = write_idx_++;
+        item_t* slot = &queue_[(produced_idx + max_pending_) % max_pending_];
+        assert(produced_idx < last_idx_);
 
         // Unlocks global mutex while producing an item
         lock.unlock();
-        item_t item = producer(produced_idx);
+        item_t item = producer_(produced_idx);
         lock.lock();
 
-        assert(!*slot);
+        assert(! *slot);
         *slot = std::move(item);
         assert(*slot);
 
@@ -317,68 +345,68 @@ class MultipleProducersOrderedConsumer
     //! Consumes items, until an empty slot (not yet produced) is found.
     void consume_many(lock_t& lock)
     {
-        assert(read_idx < write_idx);
-        for (item_t* slot = &queue[(read_idx + max_pending) % max_pending]; *slot ; slot = &queue[(read_idx + max_pending) % max_pending])
+        assert(read_idx_ < write_idx_);
+        for (item_t* slot = &queue_[(read_idx_ + max_pending_) % max_pending_]; *slot; slot = &queue_[(read_idx_ + max_pending_) % max_pending_])
         {
             // Unlocks global mutex while consuming an item
             lock.unlock();
-            consumer(std::move(*slot));
+            consumer_(std::move(*slot));
             *slot = {};
             lock.lock();
 
             // Increment read index and signal a waiting worker if there is one
-            bool queue_was_full = write_idx - read_idx >= max_pending;
-            read_idx++;
+            bool queue_was_full = write_idx_ - read_idx_ >= max_pending_;
+            read_idx_++;
 
             // Notify producers that are waiting for a queue slot
             if (queue_was_full)
             {
-                free_slot_cond.notify_one();
+                free_slot_cond_.notify_one();
             }
         }
-        consumer_wait_idx = read_idx; // The producer filling this slot will resume consumption
+        consumer_wait_idx_ = read_idx_; // The producer filling this slot will resume consumption
     }
 
     //! Task pushed on the ThreadPool
     void worker(lock_t& lock)
     {
-        while(wait(lock)) // While there is work to do
+        while (wait(lock)) // While there is work to do
         {
             ptrdiff_t produced_idx = produce(lock);
-            if (produced_idx == consumer_wait_idx)
-            {   // This thread just produced the item that was waited for by the consumer
+            if (produced_idx == consumer_wait_idx_)
+            { // This thread just produced the item that was waited for by the consumer
                 consume_many(lock); // Consume a contiguous block starting at consumer_wait_idx
             }
         }
 
         // Notify eventual workers waiting for a free slot but never got one during the interval of producing the last items
-        free_slot_cond.notify_all();
+        free_slot_cond_.notify_all();
 
-        if (--workers_count == 0)
-        {   // Last worker exiting: signal run() about workers completion
-            work_done_cond.notify_one();
+        if (--workers_count_ == 0)
+        { // Last worker exiting: signal run() about workers completion
+            work_done_cond_.notify_one();
         }
     }
 
     // Tracks worker completion
-    size_t workers_count;
-    std::condition_variable work_done_cond;
+    size_t workers_count_;
+    std::condition_variable work_done_cond_;
 
-    Producer producer;
-    Consumer consumer;
-    const ptrdiff_t max_pending; // Number of produced items that can wait in the queue
-    const std::unique_ptr<item_t[]> queue; // Ring buffer mapping each intermediary result to a slot
-    const ptrdiff_t last_idx;
+    Producer producer_;
+    Consumer consumer_;
+    const ptrdiff_t max_pending_; // Number of produced items that can wait in the queue
+    const std::unique_ptr<item_t[]> queue_; // Ring buffer mapping each intermediary result to a slot
+    const ptrdiff_t last_idx_;
 
-    ptrdiff_t write_idx; // Next slot to produce
-    ptrdiff_t read_idx; // Next slot to consume
-    ptrdiff_t consumer_wait_idx; // First slot that is waited for by the consumer
-    std::condition_variable free_slot_cond; // Condition to wait for available space in the buffer
+    ptrdiff_t write_idx_; // Next slot to produce
+    ptrdiff_t read_idx_; // Next slot to consume
+    ptrdiff_t consumer_wait_idx_; // First slot that is waited for by the consumer
+    std::condition_variable free_slot_cond_; // Condition to wait for available space in the buffer
 };
 
 //! \private Template deduction guide: defaults to inlining closures into the class layout
 template<typename P, typename C>
-MultipleProducersOrderedConsumer(ptrdiff_t, ptrdiff_t, P , C, size_t) -> MultipleProducersOrderedConsumer<P, C>;
+MultipleProducersOrderedConsumer(ptrdiff_t, ptrdiff_t, P, C, size_t) -> MultipleProducersOrderedConsumer<P, C>;
 
-} //Cura namespace.
+} // namespace cura
 #endif // THREADPOOL_H
