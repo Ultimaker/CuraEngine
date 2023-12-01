@@ -9,6 +9,7 @@ AssureOutOfSourceBuilds()
 
 option(ENABLE_ARCUS "Enable support for ARCUS" ON)
 option(ENABLE_TESTING "Build with unit tests" OFF)
+option(ENABLE_BENCHMARKS "Build with Benchmarks" OFF)
 option(EXTENSIVE_WARNINGS "Build with all warnings" ON)
 option(ENABLE_PLUGINS "Build with plugins" ON)
 option(ENABLE_REMOTE_PLUGINS "Build with all warnings" OFF)
@@ -198,7 +199,7 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
-find_package(neargye-semver REQUIRED)
+find_package(semver REQUIRED)
 
 if (ENABLE_TESTING)
     find_package(GTest REQUIRED)
@@ -214,7 +215,7 @@ target_link_libraries(_CuraEngine
         stb::stb
         boost::boost
         scripta::scripta
-        neargye-semver::neargye-semver
+        semver::semver
         curaengine_grpc_definitions::curaengine_grpc_definitions
         asio-grpc::asio-grpc
         grpc::grpc
@@ -269,11 +270,14 @@ if (ENABLE_TESTING OR ENABLE_BENCHMARKS)
     endif ()
 endif ()
 
+if (ENABLE_BENCHMARKS)
+    add_subdirectory(benchmark)
+    if (NOT WIN32)
+        add_subdirectory(stress_benchmark)
+    endif()
+endif ()
+
 if (ENABLE_TESTING)
     enable_testing()
     add_subdirectory(tests)
-endif ()
-
-if (ENABLE_BENCHMARKS)
-    add_subdirectory(benchmark)
 endif ()

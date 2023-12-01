@@ -9,7 +9,7 @@ namespace cura
 template<>
 ConstPolygonRef PathsPointIndex<Polygons>::getPolygon() const
 {
-    return polygons_->at(poly_idx_);
+    return (*polygons_)[poly_idx_];
 }
 
 } // namespace cura

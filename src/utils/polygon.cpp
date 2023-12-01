@@ -3,11 +3,18 @@
 
 #include "utils/polygon.h"
 
-#include <numeric>
 #include <unordered_set>
 
+#include <boost/geometry/geometries/point_xy.hpp>
+#include <boost/geometry/geometries/polygon.hpp>
+#include <boost/geometry/io/wkt/read.hpp>
+#include <fmt/format.h>
 #include <range/v3/range/primitives.hpp>
+#include <range/v3/to_container.hpp>
+#include <range/v3/view/c_str.hpp>
 #include <range/v3/view/filter.hpp>
+#include <range/v3/view/join.hpp>
+#include <range/v3/view/transform.hpp>
 #include <range/v3/view/zip.hpp>
 
 #include "utils/ListPolyIt.h"
@@ -785,6 +792,58 @@ Polygons Polygons::toPolygons(ClipperLib::PolyTree& poly_tree)
     Polygons ret;
     ClipperLib::PolyTreeToPaths(poly_tree, ret.paths);
     return ret;
+}
+
+Polygons Polygons::fromWkt(const std::string& wkt)
+{
+    typedef boost::geometry::model::d2::point_xy<double> point_type;
+    typedef boost::geometry::model::polygon<point_type> polygon_type;
+
+    polygon_type poly;
+    boost::geometry::read_wkt(wkt, poly);
+
+    Polygons ret;
+
+    Polygon outer;
+    for (const auto& point : poly.outer())
+    {
+        outer.add(Point2LL(point.x(), point.y()));
+    }
+    ret.add(outer);
+
+    for (const auto& hole : poly.inners())
+    {
+        Polygon inner;
+        for (const auto& point : hole)
+        {
+            inner.add(Point2LL(point.x(), point.y()));
+        }
+        ret.add(inner);
+    }
+
+    return ret;
+}
+
+void Polygons::writeWkt(std::ostream& stream) const
+{
+    stream << "POLYGON (";
+    const auto paths_str = paths
+                         | ranges::views::transform(
+                               [](const auto& path)
+                               {
+                                   const auto path_str = path
+                                                       | ranges::views::transform(
+                                                             [](const auto& point)
+                                                             {
+                                                                 return fmt::format("{} {}", point.X, point.Y);
+                                                             })
+                                                       | ranges::views::join(ranges::views::c_str(", ")) | ranges::to<std::string>();
+                                   return "(" + path_str + ")";
+                               })
+                         | ranges::views::join(ranges::views::c_str(" ")) | ranges::to<std::string>();
+
+    stream << paths_str;
+    stream << ")";
 }
 
 bool ConstPolygonRef::smooth_corner_complex(const Point2LL p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length)

@@ -4,7 +4,10 @@
 #ifndef SVG_H
 #define SVG_H
 
+#include <concepts>
 #include <stdio.h> // for file output
+
+#include <boost/polygon/voronoi.hpp>
 
 #include "AABB.h"
 #include "ExtrusionLine.h" //To accept variable-width paths.
@@ -192,6 +195,36 @@ public:
      * \param font_size The size of the font to write the coordinates with.
      */
     void writeCoordinateGrid(const coord_t grid_size = MM2INT(1), const Color color = Color::BLACK, const double stroke_width = 0.1, const double font_size = 10.0) const;
+
+    /*!
+     * Draws the provided Voronoi diagram.
+     *
+     * @tparam T numeric type
+     * @param voronoi The Voronoi diagram to draw.
+     * @param color  The colour to draw the diagram with.
+     * @param stroke_width The width of the lines.
+     */
+    template<typename T> // Currently our compiler for Mac can't handle `template<std::floating_point T>`, since aparently floating_point isn't in std yet.
+    void writeVoronoiDiagram(const boost::polygon::voronoi_diagram<T>& voronoi_diagram, const Color color = Color::BLACK, const double stroke_width = 0.1) const
+    {
+        for (const auto& edge : voronoi_diagram.edges())
+        {
+            if (! edge.is_finite())
+            {
+                continue;
+            }
+
+            const auto& v0 = edge.vertex0();
+            const auto& v1 = edge.vertex1();
+
+            if (v0 == nullptr || v1 == nullptr)
+            {
+                continue;
+            }
+
+            writeLine(Point(v0->x(), v0->y()), Point(v1->x(), v1->y()), color, stroke_width);
+        }
+    }
 };
 
 template<typename... Args>
