@@ -35,7 +35,6 @@ class Comb;
 class SliceDataStorage;
 class LayerPlanBuffer;
 
-
 /*!
  * The LayerPlan class stores multiple moves that are planned.
  *
@@ -95,6 +94,8 @@ private:
     coord_t comb_move_inside_distance; //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
     Polygons bridge_wall_mask; //!< The regions of a layer part that are not supported, used for bridging
     Polygons overhang_mask; //!< The regions of a layer part where the walls overhang
+
+    bool min_layer_time_used = false; //!< Wether or not the minimum layer time (cool_min_layer_time) was actually used in this layerplan.
 
     const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder;
 
