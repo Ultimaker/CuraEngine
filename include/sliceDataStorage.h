@@ -18,8 +18,8 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/AABB.h"
 #include "utils/AABB3D.h"
-#include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
+#include "utils/Point2LL.h"
 #include "utils/polygon.h"
 
 // libArachne
@@ -328,7 +328,7 @@ public:
     /*!
      * \return the mesh's user specified z seam hint
      */
-    Point getZSeamHint() const;
+    Point2LL getZSeamHint() const;
 };
 
 /*!
@@ -345,7 +345,7 @@ class SliceDataStorage : public NoCopy
 public:
     size_t print_layer_count; //!< The total number of layers (except the raft and filler layers)
 
-    Point3 model_size, model_min, model_max;
+    Point3LL model_size, model_min, model_max;
     AABB3D machine_size; //!< The bounding box with the width, height and depth of the printer.
     std::vector<std::shared_ptr<SliceMeshStorage>> meshes;
 

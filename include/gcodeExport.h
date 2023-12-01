@@ -8,6 +8,9 @@
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //To allow tests to use protected members.
 #endif
+#include <sstream> // for stream.str()
+#include <stdio.h>
+
 #include "settings/EnumSettings.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
 #include "settings/types/LayerIndex.h"
@@ -16,11 +19,8 @@
 #include "sliceDataStorage.h"
 #include "timeEstimate.h"
 #include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
-#include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
-
-#include <sstream> // for stream.str()
-#include <stdio.h>
+#include "utils/Point2LL.h"
 
 namespace cura
 {
@@ -67,76 +67,76 @@ class GCodeExport : public NoCopy
 private:
     struct ExtruderTrainAttributes
     {
-        bool is_primed; //!< Whether this extruder has currently already been primed in this print
+        bool is_primed_; //!< Whether this extruder has currently already been primed in this print
 
-        bool is_used; //!< Whether this extruder train is actually used during the printing of all meshgroups
-        char extruderCharacter;
+        bool is_used_; //!< Whether this extruder train is actually used during the printing of all meshgroups
+        char extruder_character_;
 
-        double filament_area; //!< in mm^2 for non-volumetric, cylindrical filament
+        double filament_area_; //!< in mm^2 for non-volumetric, cylindrical filament
 
-        double totalFilament; //!< total filament used per extruder in mm^3
-        Temperature currentTemperature;
-        bool waited_for_temperature; //!< Whether the most recent temperature command has been a heat-and-wait command (M109) or not (M104).
-        Temperature initial_temp; //!< Temperature this nozzle needs to be at the start of the print.
+        double total_filament_; //!< total filament used per extruder in mm^3
+        Temperature current_temperature_;
+        bool waited_for_temperature_; //!< Whether the most recent temperature command has been a heat-and-wait command (M109) or not (M104).
+        Temperature initial_temp_; //!< Temperature this nozzle needs to be at the start of the print.
 
-        double retraction_e_amount_current; //!< The current retracted amount (in mm or mm^3), or zero(i.e. false) if it is not currently retracted (positive values mean retracted
-                                            //!< amount, so negative impact on E values)
-        double retraction_e_amount_at_e_start; //!< The ExtruderTrainAttributes::retraction_amount_current value at E0, i.e. the offset (in mm or mm^3) from E0 to the situation
-                                               //!< where the filament is at the tip of the nozzle.
+        double retraction_e_amount_current_; //!< The current retracted amount (in mm or mm^3), or zero(i.e. false) if it is not currently retracted (positive values mean retracted
+                                             //!< amount, so negative impact on E values)
+        double retraction_e_amount_at_e_start_; //!< The ExtruderTrainAttributes::retraction_amount_current value at E0, i.e. the offset (in mm or mm^3) from E0 to the situation
+                                                //!< where the filament is at the tip of the nozzle.
 
-        double prime_volume; //!< Amount of material (in mm^3) to be primed after an unretration (due to oozing and/or coasting)
-        Velocity last_retraction_prime_speed; //!< The last prime speed (in mm/s) of the to-be-primed amount
+        double prime_volume_; //!< Amount of material (in mm^3) to be primed after an unretration (due to oozing and/or coasting)
+        Velocity last_retraction_prime_speed_; //!< The last prime speed (in mm/s) of the to-be-primed amount
 
-        double last_e_value_after_wipe; //!< The current material amount extruded since last wipe
+        double last_e_value_after_wipe_; //!< The current material amount extruded since last wipe
 
-        unsigned fan_number; // nozzle print cooling fan number
-        Point nozzle_offset; //!< Cache of setting machine_nozzle_offset_[xy]
-        bool machine_firmware_retract; //!< Cache of setting machine_firmware_retract
+        unsigned fan_number_; // nozzle print cooling fan number
+        Point2LL nozzle_offset_; //!< Cache of setting machine_nozzle_offset_[xy]
+        bool machine_firmware_retract_; //!< Cache of setting machine_firmware_retract
 
-        std::deque<double> extruded_volume_at_previous_n_retractions; // in mm^3
+        std::deque<double> extruded_volume_at_previous_n_retractions_; // in mm^3
 
         ExtruderTrainAttributes()
-            : is_primed(false)
-            , is_used(false)
-            , extruderCharacter(0)
-            , filament_area(0)
-            , totalFilament(0)
-            , currentTemperature(0)
-            , waited_for_temperature(false)
-            , initial_temp(0)
-            , retraction_e_amount_current(0.0)
-            , retraction_e_amount_at_e_start(0.0)
-            , prime_volume(0.0)
-            , last_retraction_prime_speed(0.0)
-            , fan_number(0)
+            : is_primed_(false)
+            , is_used_(false)
+            , extruder_character_(0)
+            , filament_area_(0)
+            , total_filament_(0)
+            , current_temperature_(0)
+            , waited_for_temperature_(false)
+            , initial_temp_(0)
+            , retraction_e_amount_current_(0.0)
+            , retraction_e_amount_at_e_start_(0.0)
+            , prime_volume_(0.0)
+            , last_retraction_prime_speed_(0.0)
+            , fan_number_(0)
         {
         }
     };
-    ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
-    bool use_extruder_offset_to_offset_coords;
-    std::string machine_name;
+    ExtruderTrainAttributes extruder_attr_[MAX_EXTRUDERS];
+    bool use_extruder_offset_to_offset_coords_;
+    std::string machine_name_;
     std::string slice_uuid_; //!< The UUID of the current slice.
 
-    std::ostream* output_stream;
-    std::string new_line;
+    std::ostream* output_stream_;
+    std::string new_line_;
 
-    double current_e_value; //!< The last E value written to gcode (in mm or mm^3)
+    double current_e_value_; //!< The last E value written to gcode (in mm or mm^3)
 
     // flow-rate compensation
-    double current_e_offset; //!< Offset to compensate for flow rate (mm or mm^3)
-    double max_extrusion_offset; //!< 0 to turn it off, normally 4
-    double extrusion_offset_factor; //!< default 1
+    double current_e_offset_; //!< Offset to compensate for flow rate (mm or mm^3)
+    double max_extrusion_offset_; //!< 0 to turn it off, normally 4
+    double extrusion_offset_factor_; //!< default 1
 
-    Point3 currentPosition; //!< The last build plate coordinates written to gcode (which might be different from actually written gcode coordinates when the extruder offset is
-                            //!< encoded in the gcode)
-    Velocity currentSpeed; //!< The current speed (F values / 60) in mm/s
-    Acceleration current_print_acceleration; //!< The current acceleration (in mm/s^2) used for print moves (and also for travel moves if the gcode flavor doesn't have separate
-                                             //!< travel acceleration)
+    Point3LL current_position_; //!< The last build plate coordinates written to gcode (which might be different from actually written gcode coordinates when the extruder offset is
+                                //!< encoded in the gcode)
+    Velocity current_speed_; //!< The current speed (F values / 60) in mm/s
+    Acceleration current_print_acceleration_; //!< The current acceleration (in mm/s^2) used for print moves (and also for travel moves if the gcode flavor doesn't have separate
+                                              //!< travel acceleration)
     Acceleration
-        current_travel_acceleration; //!< The current acceleration (in mm/s^2) used for travel moves for those gcode flavors that have separate print and travel accelerations
-    Velocity current_jerk; //!< The current jerk in the XY direction (in mm/s^3)
+        current_travel_acceleration_; //!< The current acceleration (in mm/s^2) used for travel moves for those gcode flavors that have separate print and travel accelerations
+    Velocity current_jerk_; //!< The current jerk in the XY direction (in mm/s^3)
 
-    AABB3D total_bounding_box; //!< The bounding box of all g-code.
+    AABB3D total_bounding_box_; //!< The bounding box of all g-code.
 
     /*!
      * The z position to be used on the next xy move, if the head wasn't in the correct z position yet.
@@ -145,28 +145,29 @@ private:
      *
      * \note After GCodeExport::writeExtrusion(Point, double, double) has been called currentPosition.z coincides with this value
      */
-    coord_t current_layer_z;
-    coord_t is_z_hopped; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid collision with
-                         //!< other layer parts)
+    coord_t current_layer_z_;
+    coord_t is_z_hopped_; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid collision with
+                          //!< other layer parts)
 
-    size_t current_extruder;
-    double current_fan_speed;
-    unsigned fan_number; // current print cooling fan number
-    EGCodeFlavor flavor;
+    size_t current_extruder_;
+    double current_fan_speed_;
+    unsigned fan_number_; // current print cooling fan number
+    EGCodeFlavor flavor_;
 
-    std::vector<Duration> total_print_times; //!< The total estimated print time in seconds for each feature
-    TimeEstimateCalculator estimateCalculator;
+    std::vector<Duration> total_print_times_; //!< The total estimated print time in seconds for each feature
+    TimeEstimateCalculator estimate_calculator_;
 
-    LayerIndex layer_nr; //!< for sending travel data
+    LayerIndex layer_nr_; //!< for sending travel data
 
-    bool is_volumetric;
-    bool relative_extrusion; //!< whether to use relative extrusion distances rather than absolute
-    bool always_write_active_tool; //!< whether to write the active tool after sending commands to inactive tool
+    bool is_volumetric_;
+    bool relative_extrusion_; //!< whether to use relative extrusion distances rather than absolute
+    bool always_write_active_tool_; //!< whether to write the active tool after sending commands to inactive tool
 
-    Temperature initial_bed_temp; //!< bed temperature at the beginning of the print.
-    Temperature bed_temperature; //!< Current build plate temperature.
-    Temperature build_volume_temperature; //!< build volume temperature
-    bool machine_heated_build_volume; //!< does the machine have the ability to control/stabilize build-volume-temperature
+    Temperature initial_bed_temp_; //!< bed temperature at the beginning of the print.
+    Temperature bed_temperature_; //!< Current build plate temperature.
+    Temperature build_volume_temperature_; //!< build volume temperature
+    bool machine_heated_build_volume_; //!< does the machine have the ability to control/stabilize build-volume-temperature
+
 protected:
     /*!
      * Convert an E value to a value in mm (if it wasn't already in mm) for the current extruder.
@@ -223,7 +224,7 @@ public:
      * \param flavor The g-code flavor to print.
      * \return A serialized form of this flavor.
      */
-    const std::string flavorToString(const EGCodeFlavor& flavor) const;
+    static std::string flavorToString(const EGCodeFlavor& flavor);
 
     /*!
      * Get the gcode file header (e.g. ";FLAVOR:UltiGCode\n")
@@ -248,7 +249,7 @@ public:
 
     bool getExtruderIsUsed(const int extruder_nr) const; //!< return whether the extruder has been used throughout printing all meshgroup up till now
 
-    Point getGcodePos(const coord_t x, const coord_t y, const int extruder_train) const;
+    Point2LL getGcodePos(const coord_t x, const coord_t y, const int extruder_train) const;
 
     void setFlavor(EGCodeFlavor flavor);
     EGCodeFlavor getFlavor() const;
@@ -264,9 +265,9 @@ public:
      */
     void addExtraPrimeAmount(double extra_prime_volume);
 
-    Point3 getPosition() const;
+    Point3LL getPosition() const;
 
-    Point getPositionXY() const;
+    Point2LL getPositionXY() const;
 
     int getPositionZ() const;
 
@@ -347,7 +348,7 @@ public:
      * \param p location to go to
      * \param speed movement speed
      */
-    void writeTravel(const Point& p, const Velocity& speed);
+    void writeTravel(const Point2LL& p, const Velocity& speed);
 
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
@@ -357,7 +358,7 @@ public:
      * \param feature the feature that's currently printing
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
-    void writeExtrusion(const Point& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false);
+    void writeExtrusion(const Point2LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false);
 
     /*!
      * Go to a X/Y location with the z-hopped Z value
@@ -366,7 +367,7 @@ public:
      * \param p location to go to
      * \param speed movement speed
      */
-    void writeTravel(const Point3& p, const Velocity& speed);
+    void writeTravel(const Point3LL& p, const Velocity& speed);
 
     /*!
      * Go to a X/Y location with the extrusion Z
@@ -380,7 +381,7 @@ public:
      * \param feature the feature that's currently printing
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
-    void writeExtrusion(const Point3& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false);
+    void writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false);
 
     /*!
      * Initialize the extruder trains.

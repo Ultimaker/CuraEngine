@@ -39,11 +39,11 @@ public:
 
     coord_t getTransitioningLength(coord_t lower_bead_count) const override;
 
-    float getTransitionAnchorPos(coord_t lower_bead_count) const override;
+    double getTransitionAnchorPos(coord_t lower_bead_count) const override;
 
 protected:
-    const coord_t max_bead_count;
-    const BeadingStrategyPtr parent;
+    const coord_t max_bead_count_;
+    const BeadingStrategyPtr parent_;
 };
 
 

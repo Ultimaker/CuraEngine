@@ -131,22 +131,20 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ExtrusionJunction.cpp
         src/utils/ExtrusionLine.cpp
         src/utils/ExtrusionSegment.cpp
-        src/utils/FMatrix4x3.cpp
         src/utils/gettime.cpp
         src/utils/LinearAlg2D.cpp
         src/utils/ListPolyIt.cpp
+        src/utils/Matrix4x3D.cpp
         src/utils/MinimumSpanningTree.cpp
-        src/utils/Point3.cpp
+        src/utils/Point3LL.cpp
         src/utils/PolygonConnector.cpp
         src/utils/PolygonsPointIndex.cpp
         src/utils/PolygonsSegmentIndex.cpp
         src/utils/polygonUtils.cpp
         src/utils/polygon.cpp
         src/utils/PolylineStitcher.cpp
-        src/utils/ProximityPointLink.cpp
         src/utils/Simplify.cpp
         src/utils/SVG.cpp
-        src/utils/socket.cpp
         src/utils/SquareGrid.cpp
         src/utils/ThreadPool.cpp
         src/utils/ToolpathVisualizer.cpp
@@ -201,7 +199,7 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
-find_package(neargye-semver REQUIRED)
+find_package(semver REQUIRED)
 
 if (ENABLE_TESTING)
     find_package(GTest REQUIRED)
@@ -217,7 +215,7 @@ target_link_libraries(_CuraEngine
         stb::stb
         boost::boost
         scripta::scripta
-        neargye-semver::neargye-semver
+        semver::semver
         curaengine_grpc_definitions::curaengine_grpc_definitions
         asio-grpc::asio-grpc
         grpc::grpc

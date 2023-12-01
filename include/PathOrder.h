@@ -1,5 +1,5 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2021 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef PATHORDER_H
 #define PATHORDER_H
@@ -28,7 +28,6 @@ template<typename PathType>
 class PathOrder
 {
 public:
-
     /*!
      * After reordering, this contains the paths that need to be printed in the
      * correct order.
@@ -37,18 +36,18 @@ public:
      * pointer to the vertex data, whether to close the loop or not, the
      * direction in which to print the path and where to start the path.
      */
-    std::vector<PathOrdering<PathType>> paths;
+    std::vector<PathOrdering<PathType>> paths_;
 
     /*!
      * The location where the nozzle is assumed to start from before printing
      * these parts.
      */
-    Point start_point;
+    Point2LL start_point_;
 
     /*!
      * Seam settings.
      */
-    ZSeamConfig seam_config;
+    ZSeamConfig seam_config_;
 
     /*!
      * Add a new polygon to be planned.
@@ -59,7 +58,7 @@ public:
     void addPolygon(const PathType& polygon)
     {
         constexpr bool is_closed = true;
-        paths.emplace_back(polygon, is_closed);
+        paths_.emplace_back(polygon, is_closed);
     }
 
     /*!
@@ -71,7 +70,7 @@ public:
     void addPolyline(const PathType& polyline)
     {
         constexpr bool is_closed = false;
-        paths.emplace_back(polyline, is_closed);
+        paths_.emplace_back(polyline, is_closed);
     }
 
     /*!
@@ -96,7 +95,7 @@ protected:
      * pretend they are the same point.
      * This is used for detecting loops and chaining lines together.
      */
-    constexpr static coord_t coincident_point_distance = 10;
+    constexpr static coord_t coincident_point_distance_ = 10;
 
 
     /*!
@@ -108,25 +107,25 @@ protected:
      */
     void detectLoops()
     {
-        for(PathOrdering<PathType>& path : paths)
+        for (PathOrdering<PathType>& path : paths_)
         {
-            if(path.is_closed) //Already a polygon. No need to detect loops.
+            if (path.is_closed_) // Already a polygon. No need to detect loops.
             {
                 continue;
             }
-            if(path.converted->size() < 3) //Not enough vertices to really be a closed loop.
+            if (path.converted_->size() < 3) // Not enough vertices to really be a closed loop.
             {
                 continue;
             }
-            if(vSize2(path.converted->back() - path.converted->front()) < coincident_point_distance * coincident_point_distance)
+            if (vSize2(path.converted_->back() - path.converted_->front()) < coincident_point_distance_ * coincident_point_distance_)
             {
-                //Endpoints are really close to one another. Consider it a closed loop.
-                path.is_closed = true;
+                // Endpoints are really close to one another. Consider it a closed loop.
+                path.is_closed_ = true;
             }
         }
     }
 };
 
-}
+} // namespace cura
 
-#endif //PATHORDER_H
+#endif // PATHORDER_H
