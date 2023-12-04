@@ -327,13 +327,13 @@ ClosestPolygonPoint PolygonUtils::_moveInside2(const ClosestPolygonPoint& closes
 /*
  * Implementation assumes moving inside, but moving outside should just as well be possible.
  */
-unsigned int PolygonUtils::moveInside(const Polygons& polygons, Point2LL& from, int distance, int64_t maxDist2)
+size_t PolygonUtils::moveInside(const Polygons& polygons, Point2LL& from, int distance, int64_t maxDist2)
 {
     Point2LL ret = from;
     int64_t bestDist2 = std::numeric_limits<int64_t>::max();
-    unsigned int bestPoly = NO_INDEX;
+    size_t bestPoly = NO_INDEX;
     bool is_already_on_correct_side_of_boundary = false; // whether [from] is already on the right side of the boundary
-    for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
+    for (size_t poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
         ConstPolygonRef poly = polygons[poly_idx];
         if (poly.size() < 2)
