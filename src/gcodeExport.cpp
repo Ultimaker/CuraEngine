@@ -1429,7 +1429,7 @@ void GCodeExport::writeFanCommand(double speed)
     else if (speed > 0)
     {
         const bool should_scale_zero_to_one = Application::getInstance().current_slice_->scene.settings.get<bool>("machine_scale_fan_speed_zero_to_one");
-        *output_stream_ << "M106 S" << PrecisionedDouble{ (should_scale_zero_to_one ? 2u : 1u), (should_scale_zero_to_one ? speed : speed * 255) / 100 };
+        *output_stream_ << "M106 S" << PrecisionedDouble{ static_cast<uint8_t>((should_scale_zero_to_one ? 2u : 1u)), (should_scale_zero_to_one ? speed : speed * 255) / 100 };
         if (fan_number_)
         {
             *output_stream_ << " P" << fan_number_;
