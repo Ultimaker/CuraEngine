@@ -8,8 +8,14 @@
 #include <iostream>
 #include <map>
 #include <string_view>
-#include <sys/wait.h>
-#include <unistd.h>
+#ifndef WIN32
+    #include <sys/wait.h>
+    #include <unistd.h>
+#else
+    #include <range/v3/view/enumerate.hpp>
+    #define NOMINMAX 1
+    #include <Windows.h>
+#endif
 #include <vector>
 
 #include <boost/geometry/geometries/multi_polygon.hpp>
@@ -34,13 +40,15 @@ Executes a Stress Benchmark on CuraEngine.
 
 Usage:
   stress_benchmark -o FILE
-  stress_benchmark (-h | --help)
+  stress_benchmark [-h | --help]
   stress_benchmark --version
+  stress_benchmark -r N
 
 Options:
   -h --help                      Show this screen.
   --version                      Show version.
   -o FILE                        Specify the output Json file.
+  -r N                           Run N-th resource/testcase intead of anything else.
 )";
 
 struct Resource
@@ -80,7 +88,7 @@ struct Resource
             cura::Polygon outer;
             for (const auto& point : boost_polygon.outer())
             {
-                outer.add(cura::Point(point.x(), point.y()));
+                outer.add({ static_cast<ClipperLib::cInt>(point.x()), static_cast<ClipperLib::cInt>(point.y()) });
             }
             polygon.add(outer);
 
@@ -89,7 +97,7 @@ struct Resource
                 cura::Polygon inner;
                 for (const auto& point : hole)
                 {
-                    inner.add(cura::Point(point.x(), point.y()));
+                    inner.add({ static_cast<ClipperLib::cInt>(point.x()), static_cast<ClipperLib::cInt>(point.y()) });
                 }
                 polygon.add(inner);
             }
@@ -126,7 +134,7 @@ struct Resource
 
 std::vector<Resource> getResources()
 {
-    auto resource_path = std::filesystem::path(std::source_location::current().file_name()).parent_path().append("resources");
+    const auto resource_path = std::filesystem::path(std::source_location::current().file_name()).parent_path().append("resources");
 
     std::vector<Resource> resources;
     for (const auto& p : std::filesystem::recursive_directory_iterator(resource_path))
@@ -159,10 +167,14 @@ void handleChildProcess(const auto& shapes, const auto& settings)
 
 size_t checkCrashCount(size_t crashCount, int status, const auto& resource)
 {
+#ifndef WIN32
     if (WIFSIGNALED(status))
+#else // !WIN32
+    if (status != 0)
+#endif // !WIN32
     {
         ++crashCount;
-        spdlog::error("Crash detected for: {}", resource.stem());
+        spdlog::error("Crash detected for: {} (with exit code {}).", resource.stem(), status);
     }
     return crashCount;
 }
@@ -222,6 +234,7 @@ int main(int argc, const char** argv)
     size_t crash_count = 0;
     std::vector<std::string> extra_infos;
 
+#ifndef WIN32
     for (const auto& resource : resources)
     {
         const auto& shapes = resource.polygons();
@@ -249,6 +262,54 @@ int main(int argc, const char** argv)
             }
         }
     }
+
+#else // !WIN32
+
+    if (args.at("-r").kind() == docopt::Kind::Empty)
+    {
+        constexpr auto bufflen = 256;
+        char buff[bufflen];
+        for (const auto& [r, resource] : resources | ranges::views::enumerate)
+        {
+            const auto path = std::filesystem::path(std::source_location::current().file_name());
+            std::snprintf(buff, bufflen, "C:\\Windows\\System32\\cmd.exe /C %s -r %lld", path.string().c_str(), r); // Couldn't use fmt here for some reason :-/
+
+            STARTUPINFO info = { sizeof(info) };
+            PROCESS_INFORMATION process_info;
+            if (! CreateProcess(nullptr, buff, nullptr, nullptr, true, 0, nullptr, nullptr, &info, &process_info))
+            {
+                spdlog::critical("Unable to CreateProcess");
+                return EXIT_FAILURE;
+            }
+            else
+            {
+                DWORD status = 0;
+                WaitForSingleObject(process_info.hProcess, INFINITE);
+                if (! GetExitCodeProcess(process_info.hProcess, &status))
+                {
+                    spdlog::critical("Unable to get exit-code");
+                    return EXIT_FAILURE;
+                }
+
+                const auto old_crash_count = crash_count;
+                crash_count = checkCrashCount(crash_count, status, resource);
+                if (old_crash_count != crash_count)
+                {
+                    extra_infos.emplace_back(resource.stem());
+                }
+
+                CloseHandle(process_info.hProcess);
+                CloseHandle(process_info.hThread);
+            }
+        }
+    }
+    else
+    {
+        const int r = args.at("-r").asLong();
+        handleChildProcess(resources[r].polygons(), resources[r].settings());
+    }
+#endif // !WIN32
+
     const double stress_level = static_cast<double>(crash_count) / static_cast<double>(resources.size()) * 100.0;
     spdlog::info("Stress level: {:.2f} [%]", stress_level);
 
