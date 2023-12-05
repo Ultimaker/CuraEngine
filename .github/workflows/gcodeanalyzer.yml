@@ -105,7 +105,8 @@ jobs:
 
       #  FIXME: point to `main` once merged
       - name: Sync pip requirements
-        run: wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/.github/workflows/requirements-runner.txt -O .github/workflows/requirements-runner.txt
+        run: curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/.github/workflows/requirements-runner.txt
+        working-directory: .github/workflows
 
       - name: Setup Python and pip
         uses: actions/setup-python@v4
@@ -125,9 +126,10 @@ jobs:
       - name: Install Linux system requirements for building
         run: |
           mkdir runner_scripts
-          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/ubuntu_setup.sh -O runner_scripts/ubuntu_setup.sh
-          chmod +x runner_scripts/ubuntu_setup.sh
-          sudo ./runner_scripts/ubuntu_setup.sh
+          cd runner_scripts
+          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/ubuntu_setup.sh
+          chmod +x ubuntu_setup.sh
+          sudo ./ubuntu_setup.sh
 
       - name: Setup pipeline caches
         run: |
