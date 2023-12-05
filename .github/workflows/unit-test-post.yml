@@ -2,7 +2,7 @@ name: unit-test-post
 
 on:
   workflow_run:
-    workflows: [ "unit-test" ]
+    workflows: [ unit-test ]
     types: [ completed ]
 
 jobs:
