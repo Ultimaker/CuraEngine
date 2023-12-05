@@ -80,7 +80,7 @@ struct Resource
             cura::Polygon outer;
             for (const auto& point : boost_polygon.outer())
             {
-                outer.add(cura::Point(point.x(), point.y()));
+                outer.add(cura::Point2LL(point.x(), point.y()));
             }
             polygon.add(outer);
 
@@ -89,7 +89,7 @@ struct Resource
                 cura::Polygon inner;
                 for (const auto& point : hole)
                 {
-                    inner.add(cura::Point(point.x(), point.y()));
+                    inner.add(cura::Point2LL(point.x(), point.y()));
                 }
                 polygon.add(inner);
             }
