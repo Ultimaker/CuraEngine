@@ -5,7 +5,7 @@ from os import path
 
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
-from conan.tools.files import copy, mkdir
+from conan.tools.files import copy, mkdir, update_conandata
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
 from conan.tools.scm import Version
@@ -42,6 +42,8 @@ class CuraEngineConan(ConanFile):
         if not self.version:
             self.version = self.conan_data["version"]
 
+    def export(self):
+        update_conandata(self, {"version": self.version})
     def export_sources(self):
         copy(self, "CMakeLists.txt", self.recipe_folder, self.export_sources_folder)
         copy(self, "Cura.proto", self.recipe_folder, self.export_sources_folder)
