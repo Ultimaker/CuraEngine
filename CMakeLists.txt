@@ -13,6 +13,7 @@ option(ENABLE_BENCHMARKS "Build with Benchmarks" OFF)
 option(EXTENSIVE_WARNINGS "Build with all warnings" ON)
 option(ENABLE_PLUGINS "Build with plugins" ON)
 option(ENABLE_REMOTE_PLUGINS "Build with all warnings" OFF)
+option(ENABLE_SENTRY "Send crash data via Sentry" OFF)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
@@ -201,6 +202,10 @@ find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
 find_package(semver REQUIRED)
 
+if (ENABLE_SENTRY)
+    find_package(sentry REQUIRED)
+endif ()
+
 if (ENABLE_TESTING)
     find_package(GTest REQUIRED)
 endif ()
@@ -238,8 +243,14 @@ else ()
 endif (NOT WIN32)
 
 use_threads(CuraEngine)
-target_link_libraries(CuraEngine PRIVATE _CuraEngine)
-target_compile_definitions(CuraEngine PRIVATE VERSION=\"${CURA_ENGINE_VERSION}\")
+target_link_libraries(CuraEngine PRIVATE
+        _CuraEngine
+        $<$<BOOL:${ENABLE_SENTRY}>:sentry::sentry>
+)
+target_compile_definitions(CuraEngine PRIVATE
+        $<$<BOOL:${ENABLE_SENTRY}>:SENTRY_URL=\"${SENTRY_URL}\">
+        VERSION=\"${CURA_ENGINE_VERSION}\"
+)
 
 # Compiling the test environment.
 if (ENABLE_TESTING OR ENABLE_BENCHMARKS)
