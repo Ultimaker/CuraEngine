@@ -106,18 +106,18 @@ jobs:
       #  FIXME: point to `main` once merged
       - name: Sync pip requirements
         run: curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/.github/workflows/requirements-runner.txt
-        working-directory: .github/workflows
+        working-directory: CuraEngine/.github/workflows
 
       - name: Setup Python and pip
         uses: actions/setup-python@v4
         with:
           python-version: 3.11.x
           cache: pip
-          cache-dependency-path: .github/workflows/requirements-runner.txt
+          cache-dependency-path: CuraEngine/.github/workflows/requirements-runner.txt
 
       - name: Install Python requirements and Create default Conan profile
         run: |
-          pip install -r .github/workflows/requirements-runner.txt
+          pip install -r CuraEngine/.github/workflows/requirements-runner.txt
           pip install wheel numpy pandas python-dateutil pytz six
           pip install git+https://github.com/ultimaker/libcharon@CURA-9495_analyzer_requisites#egg=charon
           pip install pytest pytest-benchmark
