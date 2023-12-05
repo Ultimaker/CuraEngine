@@ -570,7 +570,6 @@ material_shrinkage_percentage_xy=100.2
 bridge_skin_material_flow=95.0
 raft_base_jerk=20
 speed_wall_x=35
-time=10:25:13
 machine_buildplate_type=glass
 top_layers=17
 machine_gcode_flavor=Griffin
