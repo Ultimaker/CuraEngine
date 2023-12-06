@@ -1,4 +1,5 @@
 # Copyright (c) 2022 Ultimaker B.V.
+# Modified by BigRep GmbH
 # CuraEngine is released under the terms of the AGPLv3 or higher.
 
 message(STATUS "Building tests...")
@@ -40,6 +41,10 @@ set(TESTS_SRC_UTILS
         UnionFindTest
         )
 
+set(TESTS_SRC_PATHPLANNING 
+        ArcPathCalculatorTest
+        )
+
 foreach (test ${TESTS_SRC_BASE})
     add_executable(${test} main.cpp ${test}.cpp)
     add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -67,6 +72,12 @@ endforeach ()
 
 foreach (test ${TESTS_SRC_UTILS})
     add_executable(${test} main.cpp utils/${test}.cpp)
+    add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(${test} PRIVATE _CuraEngine test_helpers GTest::gtest GTest::gmock clipper::clipper)
+endforeach ()
+
+foreach (test ${TESTS_SRC_PATHPLANNING})
+    add_executable(${test} main.cpp pathPlanning/${test}.cpp)
     add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
     target_link_libraries(${test} PRIVATE _CuraEngine test_helpers GTest::gtest GTest::gmock clipper::clipper)
 endforeach ()
