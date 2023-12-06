@@ -104,36 +104,36 @@ ArcPath ArcPath::calculate(
 
 bool ArcPath::isOutOfBounds(const AABB3D& bounding_box) const
 {
-    return circle_center.Y - radius <= bounding_box.min_.y_ || circle_center.X - radius <= bounding_box.min_.x_ || circle_center.Y + radius >= bounding_box.max_.y_
-        || circle_center.X + radius >= bounding_box.max_.x_;
+    return circle_center_.Y - radius_ <= bounding_box.min_.y_ || circle_center_.X - radius_ <= bounding_box.min_.x_ || circle_center_.Y + radius_ >= bounding_box.max_.y_
+        || circle_center_.X + radius_ >= bounding_box.max_.x_;
 }
 
 std::vector<std::pair<Point3LL, Velocity>> ArcPath::getDiscreteArc(const coord_t z_start) const
 {
-    const coord_t z_end = z_start + z_increase;
+    const coord_t z_end = z_start + z_increase_;
     assert(z_end >= z_start && "The start height of a z-hop needs to be less then the end height.");
     // Calculate the angle difference on the circle between two different steps of the discretization
-    const Point2LL centered_start = normal(start - circle_center, normalization_value);
+    const Point2LL centered_start = normal(start_ - circle_center_, normalization_value);
     const float angle_to_start
         = convertToLimitedAngle(std::atan2(centered_start.Y / static_cast<float>(normalization_value), centered_start.X / static_cast<float>(normalization_value)));
-    const float arc_angle = calcArcAngle(start, end, circle_center, is_clockwise);
-    const float angle_per_step = (arc_angle + (n_turns - 1) * 2 * std::numbers::pi) / n_discrete_steps;
-    const float height_per_step = static_cast<float>(z_end - z_start) / n_discrete_steps;
-    const Velocity vel = sqrt(xy_speed * xy_speed + z_speed * z_speed);
+    const float arc_angle = calcArcAngle(start_, end_, circle_center_, is_clockwise_);
+    const float angle_per_step = (arc_angle + (n_turns_ - 1) * 2 * std::numbers::pi) / n_discrete_steps_;
+    const float height_per_step = static_cast<float>(z_end - z_start) / n_discrete_steps_;
+    const Velocity vel = sqrt(xy_speed_ * xy_speed_ + z_speed_ * z_speed_);
 
     // This vector is not including the current position, which is the start point of the arc
     std::vector<std::pair<Point3LL, Velocity>> arc_points{};
-    arc_points.reserve(n_discrete_steps);
+    arc_points.reserve(n_discrete_steps_);
     // For each discretization rotate the starting position by an increasing angle and keep a constant velocity for each step
-    for (size_t i = 1; i < n_discrete_steps; ++i)
+    for (size_t i = 1; i < n_discrete_steps_; ++i)
     {
-        const auto angle = is_clockwise ? convertToLimitedAngle(angle_to_start - i * angle_per_step) : convertToLimitedAngle(angle_to_start + i * angle_per_step);
-        auto pt = Point3LL{ static_cast<coord_t>(cos(angle) * radius + circle_center.X),
-                            static_cast<coord_t>(sin(angle) * radius + circle_center.Y),
+        const auto angle = is_clockwise_ ? convertToLimitedAngle(angle_to_start - i * angle_per_step) : convertToLimitedAngle(angle_to_start + i * angle_per_step);
+        auto pt = Point3LL{ static_cast<coord_t>(cos(angle) * radius_ + circle_center_.X),
+                            static_cast<coord_t>(sin(angle) * radius_ + circle_center_.Y),
                             static_cast<coord_t>(z_start + i * height_per_step) };
         arc_points.emplace_back(pt, vel);
     }
-    arc_points.emplace_back(Point3LL{ end.X, end.Y, z_end }, vel);
+    arc_points.emplace_back(Point3LL{ end_.X, end_.Y, z_end }, vel);
     return arc_points;
 }
 
@@ -149,17 +149,17 @@ ArcPath::ArcPath(
     const coord_t n_discrete_steps,
     const bool is_clockwise,
     const int n_turns)
-    : start(start)
-    , end(end)
-    , radius(radius)
-    , circle_center(circle_center)
-    , z_increase(z_increase)
-    , xy_speed(xy_speed)
-    , z_speed(z_speed)
-    , step_size(step_size)
-    , n_discrete_steps(n_discrete_steps)
-    , is_clockwise(is_clockwise)
-    , n_turns(n_turns)
+    : start_(start)
+    , end_(end)
+    , radius_(radius)
+    , circle_center_(circle_center)
+    , z_increase_(z_increase)
+    , xy_speed_(xy_speed)
+    , z_speed_(z_speed)
+    , step_size_(step_size)
+    , n_discrete_steps_(n_discrete_steps)
+    , is_clockwise_(is_clockwise)
+    , n_turns_(n_turns)
 {
 }
 

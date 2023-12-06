@@ -23,7 +23,7 @@ public:
 TEST_F(ArcPathCalculation_GeneralCreationTest, CenterCorrectDistance)
 {
     const ArcPath arc = ArcPath::calculate(previous_position, current_position, target_position, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_LT(vSize(current_position - arc.end) - 2 * radius, error_margin);
+    EXPECT_LT(vSize(current_position - arc.end_) - 2 * radius, error_margin);
 }
 
 
@@ -33,8 +33,8 @@ TEST_F(ArcPathCalculation_GeneralCreationTest, CorrectTangentPoint_PositiveValue
     const auto target_position = Point2LL{ current_position.X + radius, current_position.Y + 2 * radius };
     const auto tangent_point = Point2LL{ current_position.X + radius, current_position.Y + radius };
     const ArcPath arc = ArcPath::calculate({ 10'000, 10'000 }, current_position, target_position, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_LE(vSize(arc.end - tangent_point), error_margin);
-    EXPECT_FALSE(arc.is_clockwise);
+    EXPECT_LE(vSize(arc.end_ - tangent_point), error_margin);
+    EXPECT_FALSE(arc.is_clockwise_);
 }
 
 TEST_F(ArcPathCalculation_GeneralCreationTest, CorrectTangentPoint_FromPositiveToNegativeValues)
@@ -43,8 +43,8 @@ TEST_F(ArcPathCalculation_GeneralCreationTest, CorrectTangentPoint_FromPositiveT
     const auto target_position = Point2LL{ current_position.X + radius, current_position.Y - 2 * radius };
     const auto tangent_point = Point2LL{ current_position.X + radius, current_position.Y - radius };
     const ArcPath arc = ArcPath::calculate({ 10, 10 }, current_position, target_position, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_LE(vSize(arc.end - tangent_point), error_margin);
-    EXPECT_TRUE(arc.is_clockwise);
+    EXPECT_LE(vSize(arc.end_ - tangent_point), error_margin);
+    EXPECT_TRUE(arc.is_clockwise_);
 }
 
 TEST_F(ArcPathCalculation_GeneralCreationTest, CorrectTangentPoint_FromNegativeToPositiveValues)
@@ -53,8 +53,8 @@ TEST_F(ArcPathCalculation_GeneralCreationTest, CorrectTangentPoint_FromNegativeT
     const auto target_position = Point2LL{ current_position.X + radius, current_position.Y + 2 * radius };
     const auto tangent_point = Point2LL{ current_position.X + radius, current_position.Y + radius };
     const ArcPath arc = ArcPath::calculate({ -20, -10 }, current_position, target_position, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_LE(vSize(arc.end - tangent_point), error_margin);
-    EXPECT_FALSE(arc.is_clockwise);
+    EXPECT_LE(vSize(arc.end_ - tangent_point), error_margin);
+    EXPECT_FALSE(arc.is_clockwise_);
 }
 
 TEST_F(ArcPathCalculation_GeneralCreationTest, CorrectTangentPoint_OnlyNegativeValues)
@@ -63,45 +63,45 @@ TEST_F(ArcPathCalculation_GeneralCreationTest, CorrectTangentPoint_OnlyNegativeV
     const auto target_position = Point2LL{ current_position.X - radius, current_position.Y - 2 * radius };
     const auto tangent_point = Point2LL{ current_position.X - radius, current_position.Y - radius };
     const ArcPath arc = ArcPath::calculate({ -10'000, -10'000 }, current_position, target_position, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_LE(vSize(arc.end - tangent_point), error_margin);
-    EXPECT_FALSE(arc.is_clockwise);
+    EXPECT_LE(vSize(arc.end_ - tangent_point), error_margin);
+    EXPECT_FALSE(arc.is_clockwise_);
 }
 
 
 TEST_F(ArcPathCalculation_GeneralCreationTest, DirectionTest_VerticalClockwise)
 {
     const ArcPath arc = ArcPath::calculate({ 10'000, 10'000 }, { 10'000, 20'000 }, { 15'000, 20'000 }, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_TRUE(arc.is_clockwise);
+    EXPECT_TRUE(arc.is_clockwise_);
 }
 
 TEST_F(ArcPathCalculation_GeneralCreationTest, DirectionTest_VerticalCounterClockwise)
 {
     const ArcPath arc = ArcPath::calculate({ 15'000, 10'000 }, { 15'000, 20'000 }, { 10'000, 20'000 }, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_FALSE(arc.is_clockwise);
+    EXPECT_FALSE(arc.is_clockwise_);
 }
 
 TEST_F(ArcPathCalculation_GeneralCreationTest, DirectionTest_HorizontalClockwise)
 {
     const ArcPath arc = ArcPath::calculate({ 10'000, 15'000 }, { 20'000, 15'000 }, { 20'000, 10'000 }, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_TRUE(arc.is_clockwise);
+    EXPECT_TRUE(arc.is_clockwise_);
 }
 
 TEST_F(ArcPathCalculation_GeneralCreationTest, DirectionTest_HorizontalCounterClockwise)
 {
     const ArcPath arc = ArcPath::calculate({ 10'000, 10'000 }, { 20'000, 10'000 }, { 20'000, 15'000 }, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_FALSE(arc.is_clockwise);
+    EXPECT_FALSE(arc.is_clockwise_);
 }
 
 TEST_F(ArcPathCalculation_GeneralCreationTest, DirectionTest_DiagonalClockwise)
 {
     const ArcPath arc = ArcPath::calculate({ 1000, 1000 }, { 2000, 2000 }, { 2000, 1000 }, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_TRUE(arc.is_clockwise);
+    EXPECT_TRUE(arc.is_clockwise_);
 }
 
 TEST_F(ArcPathCalculation_GeneralCreationTest, DirectionTest_DiagonalCounterClockwise)
 {
     const ArcPath arc = ArcPath::calculate({ 10'000, 10'000 }, { 20'000, 20'000 }, { 10'000, 20'000 }, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_FALSE(arc.is_clockwise);
+    EXPECT_FALSE(arc.is_clockwise_);
 }
 
 TEST_F(ArcPathCalculation_GeneralCreationTest, TunaroundTest_SingleTurn)
@@ -111,7 +111,7 @@ TEST_F(ArcPathCalculation_GeneralCreationTest, TunaroundTest_SingleTurn)
     const double arc_length = (2 * std::numbers::pi * radius) / 4;
     const Velocity high_z_speed = 1.2 * hop_height / (arc_length / xy_speed);
     const ArcPath arc = ArcPath::calculate({ 10'000, 10'000 }, current_position, target_position, hop_height, radius, xy_speed, high_z_speed, step_size);
-    EXPECT_EQ(arc.n_turns, 1);
+    EXPECT_EQ(arc.n_turns_, 1);
 }
 
 TEST_F(ArcPathCalculation_GeneralCreationTest, TunaroundTest_TwoTurnsLowSpeed)
@@ -123,7 +123,7 @@ TEST_F(ArcPathCalculation_GeneralCreationTest, TunaroundTest_TwoTurnsLowSpeed)
     const Velocity low_z_speed = 0.5 * hop_height / (arc_length / xy_speed);
     const double minimal_arc_length = xy_speed * (hop_height / low_z_speed);
     const ArcPath arc = ArcPath::calculate({ 10'000, 10'000 }, current_position, target_position, hop_height, radius, xy_speed, low_z_speed, step_size);
-    EXPECT_GE(arc.n_turns, minimal_arc_length / circumference);
+    EXPECT_GE(arc.n_turns_, minimal_arc_length / circumference);
 }
 
 
@@ -146,8 +146,8 @@ public:
 TEST_F(ArcPathCalculation_EdgeCaseTest, ZeroHopHeightTest)
 {
     const ArcPath arc = ArcPath::calculate(previous_position, current_position, target_position, 0, radius, xy_speed, z_speed, step_size);
-    EXPECT_LT(vSize(current_position - arc.end) - 2 * radius, error_margin);
-    EXPECT_TRUE(arc.is_clockwise);
+    EXPECT_LT(vSize(current_position - arc.end_) - 2 * radius, error_margin);
+    EXPECT_TRUE(arc.is_clockwise_);
 }
 
 
@@ -199,7 +199,7 @@ TEST_F(ArcPathCalculation_EdgeCaseTest, ShortTravelTest_TargetPointOutsideCircle
     const auto current_position = Point2LL{ 20'000, 10'000 };
     const auto target_position = Point2LL{ current_position.X, current_position.Y + 3 * radius };
     const ArcPath arc = ArcPath::calculate({ 10'000, 10'000 }, current_position, target_position, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_TRUE((arc.end != current_position) && (arc.end != target_position)) << "Failed when testing the end point for a travel move which is longer then the circle diameter.";
+    EXPECT_TRUE((arc.end_ != current_position) && (arc.end_ != target_position)) << "Failed when testing the end point for a travel move which is longer then the circle diameter.";
 }
 
 TEST_F(ArcPathCalculation_EdgeCaseTest, ShortTravelTest_TargetPointOnCircle)
@@ -207,7 +207,7 @@ TEST_F(ArcPathCalculation_EdgeCaseTest, ShortTravelTest_TargetPointOnCircle)
     const auto current_position = Point2LL{ 20'000, 10'000 };
     const auto target_position = Point2LL{ current_position.X, current_position.Y + 2 * radius };
     const ArcPath arc = ArcPath::calculate({ 10'000, 10'000 }, current_position, target_position, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_LT(vSize(arc.end - target_position), error_margin) << "Failed when testing the end point for a travel move which is the exact same length as the circle diameter.";
+    EXPECT_LT(vSize(arc.end_ - target_position), error_margin) << "Failed when testing the end point for a travel move which is the exact same length as the circle diameter.";
 }
 
 TEST_F(ArcPathCalculation_EdgeCaseTest, ShortTravelTest_TargetPointInsideCircle)
@@ -215,15 +215,15 @@ TEST_F(ArcPathCalculation_EdgeCaseTest, ShortTravelTest_TargetPointInsideCircle)
     const auto current_position = Point2LL{ 20'000, 10'000 };
     const auto target_position = Point2LL{ current_position.X, current_position.Y + 50 };
     const ArcPath arc = ArcPath::calculate({ 10'000, 10'000 }, current_position, target_position, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_LT(vSize(arc.end - current_position), error_margin) << "Failed when testing the end point for a travel move which is short then the circle diameter.";
+    EXPECT_LT(vSize(arc.end_ - current_position), error_margin) << "Failed when testing the end point for a travel move which is short then the circle diameter.";
 }
 
 TEST_F(ArcPathCalculation_EdgeCaseTest, ShortTravelTest_TargetPointIsCurrentPosition)
 {
     const auto current_position = Point2LL{ 20'000, 10'000 };
     const ArcPath arc = ArcPath::calculate({ 10'000, 10'000 }, current_position, current_position, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_LT(vSize(arc.end - current_position), error_margin);
-    EXPECT_GE(arc.n_turns, 1);
+    EXPECT_LT(vSize(arc.end_ - current_position), error_margin);
+    EXPECT_GE(arc.n_turns_, 1);
 }
 
 
@@ -231,30 +231,30 @@ TEST_F(ArcPathCalculation_EdgeCaseTest, ColinearLineTest_LeftToRightLine)
 {
     const auto current_position = Point2LL{ 15'000, 10'000 };
     const ArcPath arc = ArcPath::calculate({ 10'000, 10'000 }, current_position, { 30'000, 10'000 }, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_LT(vSize(arc.end - current_position), error_margin);
-    EXPECT_TRUE(arc.is_clockwise);
-    EXPECT_NEAR(arc.circle_center.X, current_position.X, error_margin);
-    EXPECT_NEAR(arc.circle_center.Y, current_position.Y - radius, error_margin);
+    EXPECT_LT(vSize(arc.end_ - current_position), error_margin);
+    EXPECT_TRUE(arc.is_clockwise_);
+    EXPECT_NEAR(arc.circle_center_.X, current_position.X, error_margin);
+    EXPECT_NEAR(arc.circle_center_.Y, current_position.Y - radius, error_margin);
 }
 
 TEST_F(ArcPathCalculation_EdgeCaseTest, ColinearLineTest_LeftToRightLineCurrentIsCenter)
 {
     const auto current_position = Point2LL{ 20'000, 10'000 };
     const ArcPath arc = ArcPath::calculate({ 10'000, 10'000 }, current_position, { 30'000, 10'000 }, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_LT(vSize(arc.end - current_position), error_margin);
-    EXPECT_TRUE(arc.is_clockwise);
-    EXPECT_NEAR(arc.circle_center.X, current_position.X, error_margin);
-    EXPECT_NEAR(arc.circle_center.Y, current_position.Y - radius, error_margin);
+    EXPECT_LT(vSize(arc.end_ - current_position), error_margin);
+    EXPECT_TRUE(arc.is_clockwise_);
+    EXPECT_NEAR(arc.circle_center_.X, current_position.X, error_margin);
+    EXPECT_NEAR(arc.circle_center_.Y, current_position.Y - radius, error_margin);
 }
 
 TEST_F(ArcPathCalculation_EdgeCaseTest, ColinearLineTest_RightToLeftLine)
 {
     const auto current_position = Point2LL{ 15'000, 10'000 };
     const ArcPath arc = ArcPath::calculate({ 30'000, 10'000 }, current_position, { 10'000, 10'000 }, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_LT(vSize(arc.end - current_position), error_margin);
-    EXPECT_TRUE(arc.is_clockwise);
-    EXPECT_NEAR(arc.circle_center.X, current_position.X, error_margin);
-    EXPECT_NEAR(arc.circle_center.Y, current_position.Y + radius, error_margin);
+    EXPECT_LT(vSize(arc.end_ - current_position), error_margin);
+    EXPECT_TRUE(arc.is_clockwise_);
+    EXPECT_NEAR(arc.circle_center_.X, current_position.X, error_margin);
+    EXPECT_NEAR(arc.circle_center_.Y, current_position.Y + radius, error_margin);
 }
 
 TEST_F(ArcPathCalculation_EdgeCaseTest, ColinearLineTest_OppositeDirections)
@@ -263,53 +263,53 @@ TEST_F(ArcPathCalculation_EdgeCaseTest, ColinearLineTest_OppositeDirections)
     const auto target_position = Point2LL{ current_position.X + radius, current_position.Y };
     const auto previous_position = Point2LL{ current_position.X + radius / 3, current_position.Y };
     const ArcPath arc = ArcPath::calculate(previous_position, current_position, target_position, hop_height, radius, xy_speed, z_speed, step_size);
-    const auto target_tangent = Point2LL{ arc.circle_center.X + radius, arc.circle_center.Y };
+    const auto target_tangent = Point2LL{ arc.circle_center_.X + radius, arc.circle_center_.Y };
     const auto target_circle_center = Point2LL{ current_position.X, current_position.Y + radius };
-    EXPECT_LE(vSize(arc.circle_center - target_circle_center), error_margin);
-    EXPECT_LE(vSize(arc.end - target_tangent), error_margin);
-    EXPECT_TRUE(arc.is_clockwise);
+    EXPECT_LE(vSize(arc.circle_center_ - target_circle_center), error_margin);
+    EXPECT_LE(vSize(arc.end_ - target_tangent), error_margin);
+    EXPECT_TRUE(arc.is_clockwise_);
 }
 
 TEST_F(ArcPathCalculation_EdgeCaseTest, ColinearLineTest_BottomToTopLine)
 {
     const auto current_position = Point2LL{ 10'000, 15'000 };
     const ArcPath arc = ArcPath::calculate({ 10'000, 10'000 }, current_position, { 10'000, 30'000 }, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_LT(vSize(arc.end - current_position), error_margin);
-    EXPECT_TRUE(arc.is_clockwise);
-    EXPECT_NEAR(arc.circle_center.Y, current_position.Y, error_margin);
-    EXPECT_NEAR(arc.circle_center.X, current_position.X + radius, error_margin);
+    EXPECT_LT(vSize(arc.end_ - current_position), error_margin);
+    EXPECT_TRUE(arc.is_clockwise_);
+    EXPECT_NEAR(arc.circle_center_.Y, current_position.Y, error_margin);
+    EXPECT_NEAR(arc.circle_center_.X, current_position.X + radius, error_margin);
 }
 
 TEST_F(ArcPathCalculation_EdgeCaseTest, ColinearLineTest_TopToBottomLine)
 {
     const auto current_position = Point2LL{ 10'000, 15'000 };
     const ArcPath arc = ArcPath::calculate({ 10'000, 30'000 }, current_position, { 10'000, 10'000 }, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_LT(vSize(arc.end - current_position), error_margin);
-    EXPECT_TRUE(arc.is_clockwise);
-    EXPECT_NEAR(arc.circle_center.Y, current_position.Y, error_margin);
-    EXPECT_NEAR(arc.circle_center.X, current_position.X - radius, error_margin);
+    EXPECT_LT(vSize(arc.end_ - current_position), error_margin);
+    EXPECT_TRUE(arc.is_clockwise_);
+    EXPECT_NEAR(arc.circle_center_.Y, current_position.Y, error_margin);
+    EXPECT_NEAR(arc.circle_center_.X, current_position.X - radius, error_margin);
 }
 
 TEST_F(ArcPathCalculation_EdgeCaseTest, ColinearLineTest_DiagonalRisingLineLeftToRight)
 {
     const auto current_position = Point2LL{ 15'000, 15'000 };
     const ArcPath arc = ArcPath::calculate({ 10'000, 10'000 }, current_position, { 30'000, 30'000 }, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_LT(vSize(arc.end - current_position), error_margin);
-    EXPECT_TRUE(arc.is_clockwise);
+    EXPECT_LT(vSize(arc.end_ - current_position), error_margin);
+    EXPECT_TRUE(arc.is_clockwise_);
     const coord_t xy_offset = radius * std::sin(std::numbers::pi / 4);
-    EXPECT_NEAR(arc.circle_center.Y, current_position.Y - xy_offset, error_margin);
-    EXPECT_NEAR(arc.circle_center.X, current_position.X + xy_offset, error_margin);
+    EXPECT_NEAR(arc.circle_center_.Y, current_position.Y - xy_offset, error_margin);
+    EXPECT_NEAR(arc.circle_center_.X, current_position.X + xy_offset, error_margin);
 }
 
 TEST_F(ArcPathCalculation_EdgeCaseTest, ColinearLineTest_DiagonalRisingLineRightToLeft)
 {
     const auto current_position = Point2LL{ 15'000, 15'000 };
     const ArcPath arc = ArcPath::calculate({ 30'000, 30'000 }, current_position, { 10'000, 10'000 }, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_LT(vSize(arc.end - current_position), error_margin);
-    EXPECT_TRUE(arc.is_clockwise);
+    EXPECT_LT(vSize(arc.end_ - current_position), error_margin);
+    EXPECT_TRUE(arc.is_clockwise_);
     const coord_t xy_offset = radius * std::sin(std::numbers::pi / 4);
-    EXPECT_NEAR(arc.circle_center.Y, current_position.Y + xy_offset, error_margin);
-    EXPECT_NEAR(arc.circle_center.X, current_position.X - xy_offset, error_margin);
+    EXPECT_NEAR(arc.circle_center_.Y, current_position.Y + xy_offset, error_margin);
+    EXPECT_NEAR(arc.circle_center_.X, current_position.X - xy_offset, error_margin);
 }
 
 
@@ -318,8 +318,8 @@ TEST_F(ArcPathCalculation_EdgeCaseTest, ColinearAndHorizontalAndInRadiusDistance
     const auto current_position = Point2LL{ 20'000, 10'000 };
     const auto target_position = Point2LL{ current_position.X + 2 * radius, current_position.Y };
     const ArcPath arc = ArcPath::calculate({ 10'000, 10'000 }, current_position, target_position, hop_height, radius, xy_speed, z_speed, step_size);
-    EXPECT_LT(vSize(arc.end - current_position), error_margin);
-    EXPECT_TRUE(arc.is_clockwise);
+    EXPECT_LT(vSize(arc.end_ - current_position), error_margin);
+    EXPECT_TRUE(arc.is_clockwise_);
 }
 
 TEST_F(ArcPathCalculation_EdgeCaseTest, ColinearAndZeroRadiusTest)
@@ -362,7 +362,7 @@ TEST_F(ArcPathCalculation_DiscretizationTest, CorrectRadius)
     const std::vector<std::pair<Point3LL, Velocity>> arc_points = arc.getDiscreteArc(z_height);
     for (size_t idx = 0; idx < arc_points.size(); ++idx)
     {
-        EXPECT_LE(vSize(Point2LL{ arc_points[idx].first.x_, arc_points[idx].first.y_ } - arc.circle_center) - radius, error_margin)
+        EXPECT_LE(vSize(Point2LL{ arc_points[idx].first.x_, arc_points[idx].first.y_ } - arc.circle_center_) - radius, error_margin)
             << "The " << idx << "th point in the arc had a wrong distance to the origin";
     }
 }
@@ -450,7 +450,7 @@ TEST_F(ArcPathCalculation_DiscretizationTest, TravelendsCloserThanStepSize)
         2 * vSize(target_position - current_position));
     std::vector<std::pair<Point3LL, Velocity>> arc_points = arc.getDiscreteArc(z_height);
     EXPECT_EQ(arc_points.size(), 1);
-    EXPECT_LT(vSize(Point2LL{ arc_points[0].first.x_, arc_points[0].first.y_ } - arc.end), error_margin);
+    EXPECT_LT(vSize(Point2LL{ arc_points[0].first.x_, arc_points[0].first.y_ } - arc.end_), error_margin);
 }
 
 
@@ -481,13 +481,13 @@ TEST_F(ArcPathCalculation_DiscretizationTest, SpeedCalculationTest_MultipleTurnA
     const Velocity low_z_speed = 0.5 * hop_height / (arc_length / xy_speed);
     const ArcPath arc = ArcPath::calculate({ 10'000, 10'000 }, current_position, target_position, hop_height, radius, xy_speed, low_z_speed, step_size);
     const std::vector<std::pair<Point3LL, Velocity>> arc_points = arc.getDiscreteArc(z_height);
-    const coord_t total_distance = arc.n_turns * circumference + arc_length + hop_height;
+    const coord_t total_distance = arc.n_turns_ * circumference + arc_length + hop_height;
 
     for (auto& pt : arc_points)
     {
         EXPECT_EQ(arc_points[0].second, pt.second) << "The speed does not stay constant over the arc.";
     }
-    EXPECT_NEAR(arc_points[0].second * ((arc.n_turns * circumference + arc_length) / total_distance), xy_speed, error_margin);
+    EXPECT_NEAR(arc_points[0].second * ((arc.n_turns_ * circumference + arc_length) / total_distance), xy_speed, error_margin);
     EXPECT_LE(arc_points[0].second * (hop_height / total_distance), low_z_speed, error_margin);
 }
 

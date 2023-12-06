@@ -31,17 +31,17 @@ constexpr coord_t normalization_value = 1000;
 class ArcPath
 {
 public:
-    const Point2LL start; //!< The beginning of the arc
-    const Point2LL end; //!< The end point of the arc
-    const coord_t radius; //!< the radius of the underlying circle
-    const Point2LL circle_center; //!< The center of the underlying circle
-    const coord_t z_increase; //!< The z difference from the beginning to the end of the arc
-    const Velocity xy_speed; //!< The speed along the xy-plane, with which the arc should be traveled
-    const Velocity z_speed; //!< The speed along the z-axis, with which the arc should be traveled
-    const coord_t step_size; //!< The discretization step size
-    const coord_t n_discrete_steps; //!< The amount of discrete steps (at least) required for arc discretization
-    const bool is_clockwise; //!< Whether the arc is spanned clockwise or counter clockwise
-    const int n_turns; //!< The number of turns to be taken, one turn is only the arc going from start to end and higher values mean, that full turns are required as well, going
+    const Point2LL start_; //!< The beginning of the arc
+    const Point2LL end_; //!< The end point of the arc
+    const coord_t radius_; //!< the radius of the underlying circle
+    const Point2LL circle_center_; //!< The center of the underlying circle
+    const coord_t z_increase_; //!< The z difference from the beginning to the end of the arc
+    const Velocity xy_speed_; //!< The speed along the xy-plane, with which the arc should be traveled
+    const Velocity z_speed_; //!< The speed along the z-axis, with which the arc should be traveled
+    const coord_t step_size_; //!< The discretization step size
+    const coord_t n_discrete_steps_; //!< The amount of discrete steps (at least) required for arc discretization
+    const bool is_clockwise_; //!< Whether the arc is spanned clockwise or counter clockwise
+    const int n_turns_; //!< The number of turns to be taken, one turn is only the arc going from start to end and higher values mean, that full turns are required as well, going
                        //!< from start to start
 
     /*
