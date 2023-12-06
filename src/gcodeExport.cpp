@@ -587,6 +587,9 @@ void GCodeExport::writeTypeComment(const PrintFeatureType& type)
     case PrintFeatureType::PrimeTower:
         *output_stream_ << ";TYPE:PRIME-TOWER" << new_line_;
         break;
+    case PrintFeatureType::MoveGradualZHop:
+        *output_stream_ << ";TYPE:GRADUAL-Z-HOP" << new_line_;
+        break;
     case PrintFeatureType::MoveCombing:
     case PrintFeatureType::MoveRetraction:
     case PrintFeatureType::NoneType:
