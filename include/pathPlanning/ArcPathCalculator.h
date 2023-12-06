@@ -4,7 +4,6 @@
 #define PATH_PLANNING_ARC_PATH_CALCULATOR_H
 
 #include <functional>
-#include <numbers>
 #include <vector>
 
 #include "../settings/types/Velocity.h"
@@ -29,8 +28,6 @@ constexpr coord_t normalization_value = 1000;
  * Calculations are done for a discretized arc (depending on the given step size for the linear segments).
  * For each gradual z-hop one arc path is used.
  */
-
-
 class ArcPath
 {
 public:
@@ -105,20 +102,19 @@ private:
     * \param is_clockwise_ Whether the arc is spanned clockwise or counter clockwise
     * \param n_turns_ The number of turns to be taken, one turn is only the arc going from start to end and higher values mean, that full turns are required as well, going from
     start to start
-
     */
     ArcPath(
-        const Point2LL start_,
-        const Point2LL end_,
-        const coord_t radius_,
-        const Point2LL circle_center_,
-        const coord_t z_increase_,
-        const Velocity xy_speed_,
-        const Velocity z_speed_,
+        const Point2LL start,
+        const Point2LL end,
+        const coord_t radius,
+        const Point2LL circle_center,
+        const coord_t z_increase,
+        const Velocity xy_speed,
+        const Velocity z_speed,
         const coord_t step_size,
-        const coord_t n_discrete_steps_,
-        const bool is_clockwise_,
-        const int n_turns_);
+        const coord_t n_discrete_steps,
+        const bool is_clockwise,
+        const int n_turns);
 
     /*!
      * \brief Converts an angle to a range of 0 to 2pi.
