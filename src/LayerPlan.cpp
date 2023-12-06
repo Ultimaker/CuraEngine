@@ -2094,18 +2094,20 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                             = gcode.writeSpiralZhopStart(previous_point, path.points[0], z_hop_height, xy_speed, storage_.machine_size, retraction_config->retraction_config);
                         
                         const auto current_pos = Point3LL{ gcode.getPositionXY().X, gcode.getPositionXY().Y, gcode.getPositionZ() };
-                        //insertTempOnTime((current_pos - spiral_points[0].first).vSizeMM() / spiral_points[0].second, path_idx);
+                        // The spiral point vector might be empty, in the case where no spiral was possible (i.e. when it would have been outside of the printer bounds)
+                        double total_spiral_time = spiral_points.size() > 0 ? (current_pos - spiral_points[0].first).vSizeMM() / spiral_points[0].second : 0;
                         
                         for (size_t pt_idx = 0; pt_idx < spiral_points.size(); ++pt_idx)
                         {
                             const auto& [point, velocity] = spiral_points[pt_idx];
-                            //if (pt_idx > 0)
-                            //{
-                            //    insertTempOnTime((point - spiral_points[pt_idx - 1].first).vSizeMM() / velocity, path_idx);
-                            //}
+                            if (pt_idx > 0)
+                            {
+                                total_spiral_time += (point - spiral_points[pt_idx - 1].first).vSizeMM() / velocity;
+                            }
                             // Send this to the optimized layer plan for the gcode preview
                             communication->sendLineTo(path.config.type, Point2LL{ point.x_, point.y_ }, path.getLineWidthForLayerView(), path.config.getLayerThickness(), velocity);
                         }
+                        insertTempOnTime(total_spiral_time, path_idx);
                         z_hop_height = retraction_config->retraction_config.zHop; // back to normal z hop
                     }
                     else // vertical hop with retraction before
