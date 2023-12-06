@@ -138,28 +138,28 @@ std::vector<std::pair<Point3LL, Velocity>> ArcPath::getDiscreteArc(const coord_t
 }
 
 ArcPath::ArcPath(
-    const Point2LL start_,
-    const Point2LL end_,
-    const coord_t radius_,
-    const Point2LL circle_center_,
-    const coord_t z_increase_,
-    const Velocity xy_speed_,
-    const Velocity z_speed_,
-    const coord_t step_size_,
-    const coord_t n_discrete_steps_,
-    const bool is_clockwise_,
-    const int n_turns_)
-    : start(start_)
-    , end(end_)
-    , radius(radius_)
-    , circle_center(circle_center_)
-    , z_increase(z_increase_)
-    , xy_speed(xy_speed_)
-    , z_speed(z_speed_)
-    , step_size(step_size_)
-    , n_discrete_steps(n_discrete_steps_)
-    , is_clockwise(is_clockwise_)
-    , n_turns(n_turns_)
+    const Point2LL start,
+    const Point2LL end,
+    const coord_t radius,
+    const Point2LL circle_center,
+    const coord_t z_increase,
+    const Velocity xy_speed,
+    const Velocity z_speed,
+    const coord_t step_size,
+    const coord_t n_discrete_steps,
+    const bool is_clockwise,
+    const int n_turns)
+    : start(start)
+    , end(end)
+    , radius(radius)
+    , circle_center(circle_center)
+    , z_increase(z_increase)
+    , xy_speed(xy_speed)
+    , z_speed(z_speed)
+    , step_size(step_size)
+    , n_discrete_steps(n_discrete_steps)
+    , is_clockwise(is_clockwise)
+    , n_turns(n_turns)
 {
 }
 
