@@ -1,4 +1,5 @@
 # Copyright (c) 2022 Ultimaker B.V.
+# Modified by BigRep GmbH
 # CuraEngine is released under the terms of the AGPLv3 or higher.
 
 cmake_policy(SET CMP0091 NEW)  # For MSVC flags, will be ignored on non-Windows OS's
@@ -111,6 +112,7 @@ set(engine_SRCS # Except main.cpp.
         src/pathPlanning/LinePolygonsCrossings.cpp
         src/pathPlanning/NozzleTempInsert.cpp
         src/pathPlanning/SpeedDerivatives.cpp
+        src/pathPlanning/ArcPathCalculator.cpp
 
         src/plugins/converters.cpp
 

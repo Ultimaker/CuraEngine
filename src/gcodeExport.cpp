@@ -1,4 +1,5 @@
 // Copyright (c) 2023 UltiMaker
+// Modified by BigRep GmbH
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "gcodeExport.h"
@@ -20,6 +21,7 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/Date.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
+#include "pathPlanning/ArcPathCalculator.h"
 
 namespace cura
 {
@@ -1115,6 +1117,35 @@ void GCodeExport::writeUnretractionAndPrime()
     }
 }
 
+bool GCodeExport::handleRetractionLimitation(const RetractionConfig& config)
+{ // handle retraction limitation
+
+    ExtruderTrainAttributes& extruder_attributes = extruder_attr_[current_extruder_];
+    const double current_extruded_volume = getCurrentExtrudedVolume();
+    std::deque<double>& extruded_volume_at_previous_n_retractions = extruder_attributes.extruded_volume_at_previous_n_retractions_;
+    while (extruded_volume_at_previous_n_retractions.size() > config.retraction_count_max && ! extruded_volume_at_previous_n_retractions.empty())
+    {
+        // extruder switch could have introduced data which falls outside the retraction window
+        // also the retraction_count_max could have changed between the last retraction and this
+        extruded_volume_at_previous_n_retractions.pop_back();
+    }
+    if (config.retraction_count_max <= 0)
+    {
+        return false;
+    }
+    if (extruded_volume_at_previous_n_retractions.size() == config.retraction_count_max
+        && current_extruded_volume < extruded_volume_at_previous_n_retractions.back() + config.retraction_extrusion_window * extruder_attributes.filament_area_)
+    {
+        return false;
+    }
+    extruded_volume_at_previous_n_retractions.push_front(current_extruded_volume);
+    if (extruded_volume_at_previous_n_retractions.size() == config.retraction_count_max + 1)
+    {
+        extruded_volume_at_previous_n_retractions.pop_back();
+    }
+    return true;
+}
+
 void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bool extruder_switch)
 {
     ExtruderTrainAttributes& extr_attr = extruder_attr_[current_extruder_];
@@ -1140,29 +1171,10 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         return;
     }
 
-    { // handle retraction limitation
-        double current_extruded_volume = getCurrentExtrudedVolume();
-        std::deque<double>& extruded_volume_at_previous_n_retractions = extr_attr.extruded_volume_at_previous_n_retractions_;
-        while (extruded_volume_at_previous_n_retractions.size() > config.retraction_count_max && ! extruded_volume_at_previous_n_retractions.empty())
-        {
-            // extruder switch could have introduced data which falls outside the retraction window
-            // also the retraction_count_max could have changed between the last retraction and this
-            extruded_volume_at_previous_n_retractions.pop_back();
-        }
-        if (! force && config.retraction_count_max <= 0)
-        {
-            return;
-        }
-        if (! force && extruded_volume_at_previous_n_retractions.size() == config.retraction_count_max
-            && current_extruded_volume < extruded_volume_at_previous_n_retractions.back() + config.retraction_extrusion_window * extr_attr.filament_area_)
-        {
-            return;
-        }
-        extruded_volume_at_previous_n_retractions.push_front(current_extruded_volume);
-        if (extruded_volume_at_previous_n_retractions.size() == config.retraction_count_max + 1)
-        {
-            extruded_volume_at_previous_n_retractions.pop_back();
-        }
+    const bool perform_retraction = handleRetractionLimitation(config);
+    if (! force && ! perform_retraction)
+    {
+        return;
     }
 
     if (extr_attr.machine_firmware_retract_)
@@ -1220,6 +1232,138 @@ void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed /*= 0*
         total_bounding_box_.includeZ(current_layer_z_ + is_z_hopped_);
         assert(speed > 0.0 && "Z hop speed should be positive.");
     }
+}
+
+std::vector<std::pair<Point3LL, Velocity>> GCodeExport::writeSpiralZhopStart(
+    const Point2LL previous_position,
+    const Point2LL target,
+    const coord_t hop_height,
+    const Velocity xy_speed,
+    const AABB3D& printer_bounding_box,
+    const RetractionConfig& config,
+    bool force_retraction /* = false */)
+{
+    if (hop_height <= 0)
+    {
+        return {};
+    }
+
+    const bool retraction_while_spiral = Application::getInstance().current_slice_->scene.settings.get<bool>("retract_during_spiral");
+    const auto radius = Application::getInstance().current_slice_->scene.settings.get<coord_t>("spiral_radius");
+
+    const Point2LL current_position = getPositionXY();
+    const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[current_extruder_];
+    const auto z_speed = extruder.settings_.get<Velocity>("speed_z_hop");
+    assert(z_speed > 0.0 && "Z hop speed should be positive.");
+    const coord_t step_size = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<double>("minimal_segment_length") * 1000;
+    is_z_hopped_ = hop_height;
+    const ArcPath arc = ArcPath::calculate(previous_position, current_position, target, hop_height, radius, xy_speed, z_speed, step_size);
+
+    if (! arc.isOutOfBounds(printer_bounding_box))
+    {
+        const coord_t start_z = getPositionZ();
+        std::vector<std::pair<Point3LL, Velocity>> arc_points = arc.getDiscreteArc(start_z);
+
+        // TODO: Do continuous arc movement using G2 / G3 commands (incl. retraction while spiral)
+
+        // Basic parameter setup for the retraction during the spiral
+        // The first n_full_retraction_steps it will do a retraction where the retraction speed is the same as set in the UI.
+        // The retraction amount for each discrete arc segment is set in such way, so that the desired arc velocity and the desired retraction speed are compatible.
+        // Most likely these calculation will not result in an integer division without a rest there will be one segment, following the full retraction segments, where you need to
+        // retract a little rest. However, for this little rest, the retraction speed will not be equal to the one set in the UI.
+        ExtruderTrainAttributes& extruder_attributes = extruder_attr_[current_extruder_];
+        const coord_t z_per_step = arc_points[0].first.z_ - start_z; // Move this into the for loop when using non linear z increase
+        const auto step_size_3d = static_cast<coord_t>(sqrt(step_size * step_size + z_per_step * z_per_step));
+        const double new_retraction_e_amount = mmToE(config.distance);
+        const double retraction_diff_e_amount = extruder_attributes.retraction_e_amount_current_ - new_retraction_e_amount;
+        const double retraction_speed = ((retraction_diff_e_amount < 0.0) ? config.speed : extruder_attributes.last_retraction_prime_speed_);
+        double retraction_per_step = 0;
+
+        size_t n_full_retraction_steps = 0; // for which you have a "correct" retraction speed as set in the UI
+        double remaining_retraction = 0;
+        const bool not_retraction = std::abs(retraction_diff_e_amount) < 0.000001 || (! force_retraction && ! handleRetractionLimitation(config));
+        if (not_retraction)
+        {
+            // in case there should not be a retraction keep these at zero (only added to be explicit)
+            remaining_retraction = 0;
+            n_full_retraction_steps = 0;
+        }
+        else
+        {
+            const int retraction_sign = retraction_diff_e_amount / std::abs(retraction_diff_e_amount);
+            // units: retraction_per_step as e value, step_size_3d is in microns, retraction_speed in mm/sec, arc_points[0].second in mm/sec
+            retraction_per_step = mmToE(
+                retraction_sign * retraction_speed * (INT2MM(step_size_3d) / arc_points[0].second)); // For different / non linear velocity per step move this into the for loop
+            n_full_retraction_steps = floor(retraction_diff_e_amount / retraction_per_step);
+            // assert(theory_n_retraction_steps > 1 && "Retraction speed is faster then movement!");
+            remaining_retraction = retraction_diff_e_amount - n_full_retraction_steps * retraction_per_step;
+        }
+
+        writeTypeComment(PrintFeatureType::MoveGradualZHop);
+        for (size_t idx = 0; idx < arc_points.size(); ++idx)
+        {
+            const std::pair<Point3LL, Velocity> pt = arc_points[idx];
+            if (retraction_while_spiral && idx < n_full_retraction_steps)
+            {
+                // spiral segments and retractions with full retraction speed
+                // TODO: BitsFromBytes and G10 (flavor REPETIER) retraction not implemented (not able to test those)
+                *output_stream_ << "G1";
+                writeFXYZE(pt.second, pt.first.x_, pt.first.y_, pt.first.z_, current_e_value_ + retraction_per_step, PrintFeatureType::MoveGradualZHop);
+            }
+            else if (retraction_while_spiral && remaining_retraction != 0 && idx == n_full_retraction_steps)
+            {
+                // spiral segments and slower retraction (for remainder of the division or very fast or very small retractions)
+                *output_stream_ << "G1";
+                writeFXYZE(pt.second, pt.first.x_, pt.first.y_, pt.first.z_, current_e_value_ + remaining_retraction, PrintFeatureType::MoveGradualZHop);
+            }
+            else
+            {
+                // spiral segments without retraction
+                *output_stream_ << "G0";
+                writeFXYZE(pt.second, pt.first.x_, pt.first.y_, pt.first.z_, current_e_value_, PrintFeatureType::MoveGradualZHop);
+            }
+        }
+
+        // if the spiral was not large enough to do the full retraction then do a normal retraction for the remaining retraction afterwards
+        if (arc_points.size() <= n_full_retraction_steps)
+        {
+            const double retraction_done = retraction_per_step * arc_points.size();
+            remaining_retraction = retraction_diff_e_amount - retraction_done;
+            if (std::abs(remaining_retraction) >= 0.000001)
+            {
+                // just like in the standard retraction
+                current_e_value_ += remaining_retraction;
+                const double output_e = (relative_extrusion_) ? retraction_diff_e_amount : current_e_value_;
+                *output_stream_ << "G1 F" << PrecisionedDouble{ 1, retraction_speed * 60 } << " " << extruder_attributes.extruder_character_ << PrecisionedDouble{ 5, output_e }
+                               << new_line_;
+
+                current_speed_ = retraction_speed;
+                estimate_calculator_.plan(
+                    TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
+                    current_speed_,
+                    PrintFeatureType::MoveRetraction);
+            }
+        }
+
+        // required for doing the un-retract (e.g. in the beginning of the next extrusion)
+        if (retraction_while_spiral)
+        {
+            extruder_attributes.last_retraction_prime_speed_ = config.primeSpeed;
+            extruder_attributes.retraction_e_amount_current_ = new_retraction_e_amount; // suppose that for UM2 the retraction amount in the firmware is equal to the provided amount
+            extruder_attributes.prime_volume_ += config.prime_volume;
+        }
+
+        return arc_points;
+    }
+
+    // if the spiral would cross the printer bounds do a vertical z-hop
+    // do not forget to do the retraction, when it was supposed to be done during the spiral
+    if (retraction_while_spiral)
+    {
+        writeRetraction(config);
+    }
+    writeZhopStart(hop_height);
+    return std::vector<std::pair<Point3LL, Velocity>>{};
 }
 
 void GCodeExport::writeZhopEnd(Velocity speed /*= 0*/)

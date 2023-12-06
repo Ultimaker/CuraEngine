@@ -1,4 +1,5 @@
 // Copyright (c) 2023 UltiMaker
+// Modified by BigRep GmbH 
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef GCODEEXPORT_H
@@ -482,12 +483,40 @@ public:
     void writeRetraction(const RetractionConfig& config, bool force = false, bool extruder_switch = false);
 
     /*!
+     * Prepare for a retraction, while handling extruded_volume_at_previous_n_retractions and evaluating if a retraction should be performed
+     *
+     * \param Retraction configuration
+     * \return true if a retraction should be performed
+     */
+    bool handleRetractionLimitation(const RetractionConfig& config);
+
+    /*!
      * Start a z hop with the given \p hop_height.
      *
      * \param hop_height The height to move above the current layer.
      * \param speed The speed used for moving.
      */
     void writeZhopStart(const coord_t hop_height, Velocity speed = 0.0);
+
+    /*!
+     * Start a spiral z hop with the given \p hop_height.
+     *
+     * \param previous_position The previous point
+     * \param target The next target point in the extrusion
+     * \param hop_height The height to move above the current layer
+     * \param xy_speed The current speed in xy-direction
+     * \param printer_bounding_box Used to determine if a spiral leaves the build volume
+     * \param force_retraction if a retraction should be enforced
+     * \return An ordered vector of xyz-points along the hopping arc and the velocity with which it should travel towards this point
+     */
+    std::vector<std::pair<Point3LL, Velocity>> writeSpiralZhopStart(
+        const Point2LL previous_position,
+        const Point2LL target,
+        const coord_t hop_height,
+        const Velocity xy_speed,
+        const AABB3D& printer_bounding_box,
+        const RetractionConfig& config,
+        bool force_retraction = false);
 
     /*!
      * End a z hop: go back to the layer height
