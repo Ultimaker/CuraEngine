@@ -62,7 +62,6 @@ skirt_line_count=1
 prime_tower_size=20
 extruders_enabled_count=2
 smooth_spiralized_contours=True
-time=15:50:07
 machine_buildplate_type=glass
 mesh_position_y=0
 jerk_print=20

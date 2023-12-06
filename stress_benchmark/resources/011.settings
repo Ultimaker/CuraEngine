@@ -49,7 +49,6 @@ bridge_skin_speed_2=15.0
 support_brim_width=1.2000000000000002
 top_bottom_thickness=0.8
 raft_jerk=20
-time=17:02:46
 machine_buildplate_type=glass
 center_object=False
 speed_print=60
