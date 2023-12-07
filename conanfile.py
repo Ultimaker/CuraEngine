@@ -8,7 +8,8 @@ from conan.errors import ConanInvalidConfiguration
 from conan.tools.files import copy, mkdir
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
-from conan.tools.scm import Version
+from conan.tools.scm import Version, Git
+
 
 required_conan_version = ">=1.58.0 <2.0.0"
 
@@ -28,6 +29,7 @@ class CuraEngineConan(ConanFile):
         "enable_benchmarks": [True, False],
         "enable_extensive_warnings": [True, False],
         "enable_plugins": [True, False],
+        "enable_sentry": [True, False],
         "enable_remote_plugins": [True, False],
     }
     default_options = {
@@ -35,12 +37,14 @@ class CuraEngineConan(ConanFile):
         "enable_benchmarks": False,
         "enable_extensive_warnings": False,
         "enable_plugins": True,
+        "enable_sentry": False,
         "enable_remote_plugins": False,
     }
 
     def set_version(self):
         if not self.version:
-            self.version = "5.7.0-alpha"
+            git = Git(self)
+            self.version = f"5.7.0-alpha+{git.get_commit()[:6]}"
 
     def export_sources(self):
         copy(self, "CMakeLists.txt", self.recipe_folder, self.export_sources_folder)
@@ -57,6 +61,8 @@ class CuraEngineConan(ConanFile):
     def config_options(self):
         if not self.options.enable_plugins:
             del self.options.enable_remote_plugins
+        if self.conf.get("user.curaengine:sentry_url", "", check_type=str) == "":
+            del self.options.enable_sentry
 
     def configure(self):
         self.options["boost"].header_only = True
@@ -85,6 +91,8 @@ class CuraEngineConan(ConanFile):
     def requirements(self):
         if self.options.enable_arcus:
             self.requires("arcus/5.3.0")
+        if self.options.get_safe("enable_sentry", False):
+            self.requires("sentry-native/0.6.5")
         self.requires("asio-grpc/2.6.0")
         self.requires("grpc/1.50.1")
         self.requires("curaengine_grpc_definitions/(latest)@ultimaker/testing")
@@ -112,6 +120,9 @@ class CuraEngineConan(ConanFile):
         tc.variables["ENABLE_BENCHMARKS"] = self.options.enable_benchmarks
         tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
         tc.variables["OLDER_APPLE_CLANG"] = self.settings.compiler == "apple-clang" and Version(self.settings.compiler.version) < "14"
+        if self.options.get_safe("enable_sentry", False):
+            tc.variables["ENABLE_SENTRY"] = True
+            tc.variables["SENTRY_URL"] = self.conf.get("user.curaengine:sentry_url", "", check_type=str)
         if self.options.enable_plugins:
             tc.variables["ENABLE_PLUGINS"] = True
             tc.variables["ENABLE_REMOTE_PLUGINS"] = self.options.enable_remote_plugins
