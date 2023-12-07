@@ -13,7 +13,7 @@ ArcPath ArcPath::calculate(
     const coord_t radius,
     const Velocity xy_speed,
     const Velocity z_speed_limit,
-    const coord_t step_size)
+    const coord_t discretization_step_size)
 {
     assert(radius != 0 && "Arc radius should be larger then zero.");
     const Point2LL last_direction = current - previous;
@@ -21,11 +21,11 @@ ArcPath ArcPath::calculate(
     auto orthogonal_last_vec = Point2LL{ -last_direction.Y, last_direction.X };
     orthogonal_last_vec
         = normal(orthogonal_last_vec, normalization_value); // normalization to length 1 results in (0,0) since it is a ClipperLib::IntPoint, normalize to 1 mm hence 1000 um
-    const Point2LL target_previus_vec = normal(target - previous, normalization_value);
+    const Point2LL target_previous_vec = normal(target - previous, normalization_value);
     // When calculating the dot product of vectors which are not normalized keep in mind, that it involves squaring the magnitude of the dot product
     // Check if it is parallel and inverse direction
     const bool inverse_direction = dot(normal(last_direction, normalization_value), normal(target - current, normalization_value)) == -(normalization_value * normalization_value);
-    const float dot_product = dot(orthogonal_last_vec, target_previus_vec) / static_cast<float>(normalization_value * normalization_value);
+    const float dot_product = dot(orthogonal_last_vec, target_previous_vec) / static_cast<float>(normalization_value * normalization_value);
 
     // Step 1: Determine the nature of the underlying circle:
     // On which side of the previous movement the circle should be located and
@@ -81,15 +81,15 @@ ArcPath ArcPath::calculate(
     // Step 3: Determine if the arc is sufficient to raise the print head in z-direction without exceeding the z-speed threshold
     // Add spiral turns when the z-speed would be too high
     // Since in many cases the arc will be linearly approximated for or by the printer board, this calculation is done by assuming linear discretization steps
-    int n_discrete_steps = calcNumberOfSteps(current, arc_end, radius, step_size, circle_center, clockwise_rotation);
+    int n_discrete_steps = calcNumberOfSteps(current, arc_end, radius, discretization_step_size, circle_center, clockwise_rotation);
     float z_height_per_segment = static_cast<float>(hop_height) / n_discrete_steps;
-    const int n_steps_full_turn = calcNumberOfSteps(current, current, radius, step_size, circle_center, clockwise_rotation);
+    const int n_steps_full_turn = calcNumberOfSteps(current, current, radius, discretization_step_size, circle_center, clockwise_rotation);
     int n_turns = 1;
     auto z_speed = Velocity{ 0 };
     while (true)
     {
         // Velocity is always defined in mm/sec and the distance in um (micro meter), but the unit conversion here is mathematically redundant
-        z_speed = (z_height_per_segment * (xy_speed /* *1000 */ / step_size)) /* /1000  */;
+        z_speed = (z_height_per_segment * (xy_speed /* *1000 */ / discretization_step_size)) /* /1000  */;
         if (z_speed <= z_speed_limit) // z speed is not too high
         {
             break;
@@ -99,7 +99,7 @@ ArcPath ArcPath::calculate(
         z_height_per_segment = static_cast<float>(hop_height) / n_discrete_steps;
     }
 
-    return ArcPath(current, arc_end, radius, circle_center, hop_height, xy_speed, z_speed, step_size, n_discrete_steps, clockwise_rotation, n_turns);
+    return ArcPath(current, arc_end, radius, circle_center, hop_height, xy_speed, z_speed, discretization_step_size, n_discrete_steps, clockwise_rotation, n_turns);
 }
 
 bool ArcPath::isOutOfBounds(const AABB3D& bounding_box) const
@@ -145,7 +145,7 @@ ArcPath::ArcPath(
     const coord_t z_increase,
     const Velocity xy_speed,
     const Velocity z_speed,
-    const coord_t step_size,
+    const coord_t discretization_step_size,
     const coord_t n_discrete_steps,
     const bool is_clockwise,
     const int n_turns)
@@ -156,7 +156,7 @@ ArcPath::ArcPath(
     , z_increase_(z_increase)
     , xy_speed_(xy_speed)
     , z_speed_(z_speed)
-    , step_size_(step_size)
+    , discretization_step_size_(discretization_step_size)
     , n_discrete_steps_(n_discrete_steps)
     , is_clockwise_(is_clockwise)
     , n_turns_(n_turns)

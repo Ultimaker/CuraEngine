@@ -38,7 +38,7 @@ public:
     const coord_t z_increase_; //!< The z difference from the beginning to the end of the arc
     const Velocity xy_speed_; //!< The speed along the xy-plane, with which the arc should be traveled
     const Velocity z_speed_; //!< The speed along the z-axis, with which the arc should be traveled
-    const coord_t step_size_; //!< The discretization step size
+    const coord_t discretization_step_size_; //!< The discretization step size
     const coord_t n_discrete_steps_; //!< The amount of discrete steps (at least) required for arc discretization
     const bool is_clockwise_; //!< Whether the arc is spanned clockwise or counter clockwise
     const int n_turns_; //!< The number of turns to be taken, one turn is only the arc going from start to end and higher values mean, that full turns are required as well, going
@@ -52,10 +52,10 @@ public:
      * \param current The position at which the print head is right now
      * \param target The target position to which the print head should go
      * \param hop_height The distance in z direction by which the print head should be raised
-     * \param radius_value The desired radius of the arc
-     * \param current_speed The speed in xy-direction with which the print head was traveling from the previous position to the current one
-     * \param max_z_speed A threshold value in how fast the print head should maximally be raised in z direction
-     * \param discrete_step_size The xy-distance of one step for approximating the arc linearly (used for calculating the length of the arc when determining the speed in z
+     * \param radius The desired radius of the arc
+     * \param xy_speed The speed in xy-direction with which the print head was traveling from the previous position to the current one
+     * \param z_speed_limit A threshold value in how fast the print head should maximally be raised in z direction
+     * \param discretization_step_size The xy-distance of one step for approximating the arc linearly (used for calculating the length of the arc when determining the speed in z
      * direction) \return The arc path object
      */
     static ArcPath calculate(
@@ -63,10 +63,10 @@ public:
         const Point2LL current,
         const Point2LL target,
         const coord_t hop_height,
-        const coord_t radius_value,
-        const Velocity current_speed,
-        const Velocity max_z_speed,
-        const coord_t discrete_step_size);
+        const coord_t radius,
+        const Velocity xy_speed,
+        const Velocity z_speed_limit,
+        const coord_t discretization_step_size);
 
     /*
      * \brief Checks if the arc is inside some bounding box
@@ -84,9 +84,9 @@ public:
      */
     std::vector<std::pair<Point3LL, Velocity>> getDiscreteArc(const coord_t z_start) const;
 
-private:
     ArcPath() = delete;
-
+private:
+    
     /*
     * \brief The constructor for an arc path, which is private because the factory method is the intended way to create this object.
     *
@@ -111,7 +111,7 @@ private:
         const coord_t z_increase,
         const Velocity xy_speed,
         const Velocity z_speed,
-        const coord_t step_size,
+        const coord_t discretization_step_size,
         const coord_t n_discrete_steps,
         const bool is_clockwise,
         const int n_turns);
