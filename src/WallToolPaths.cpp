@@ -120,7 +120,7 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
         return toolpaths_;
     }
 
-    //if (false)
+    // if (false)
     { // begin: test fix polygons
         using map_pt = mapbox::geometry::point<coord_t>;
         using map_ring = mapbox::geometry::linear_ring<coord_t>;
