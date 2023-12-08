@@ -27,18 +27,17 @@ env:
   CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
   CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
 
-# FIXME: Use `main` instead of `CURA-10831` once merged
 # TODO: Make cura-workflows/benchmark.yml generic enough to fit the gcodeanalyzer benchmark
 
 jobs:
   check_actor:
-    uses: ultimaker/cura-workflows/.github/workflows/check-actor.yml@CURA-10831
+    uses: ultimaker/cura-workflows/.github/workflows/check-actor.yml@main
     secrets: inherit
 
   conan-recipe-version:
     needs: [ check_actor ]
     if: ${{ needs.check_actor.outputs.proceed == 'true' }}
-    uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml@CURA-10831
+    uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml@main
     with:
       project_name: curaengine
 
@@ -103,9 +102,8 @@ jobs:
             resources/definitions
             resources/extruders
 
-      #  FIXME: point to `main` once merged
       - name: Sync pip requirements
-        run: curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/.github/workflows/requirements-runner.txt
+        run: curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/.github/workflows/requirements-runner.txt
         working-directory: CuraEngine/.github/workflows
 
       - name: Setup Python and pip
@@ -122,12 +120,11 @@ jobs:
           pip install git+https://github.com/ultimaker/libcharon@CURA-9495_analyzer_requisites#egg=charon
           pip install pytest pytest-benchmark
 
-      #  FIXME: point to `main` once merged
       - name: Install Linux system requirements for building
         run: |
           mkdir runner_scripts
           cd runner_scripts
-          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/ubuntu_setup.sh
+          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/ubuntu_setup.sh
           chmod +x ubuntu_setup.sh
           sudo ./ubuntu_setup.sh
 

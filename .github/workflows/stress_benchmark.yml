@@ -30,23 +30,22 @@ env:
   CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
   CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
 
-# FIXME: Use `main` instead of `CURA-10831` once merged
 
 jobs:
   check_actor:
-    uses: ultimaker/cura-workflows/.github/workflows/check-actor.yml@CURA-10831
+    uses: ultimaker/cura-workflows/.github/workflows/check-actor.yml@main
     secrets: inherit
 
   conan-recipe-version:
     needs: [ check_actor ]
     if: ${{ needs.check_actor.outputs.proceed == 'true' }}
-    uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml@CURA-10831
+    uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml@main
     with:
       project_name: curaengine
 
   benchmark:
     needs: [ conan-recipe-version ]
-    uses: ultimaker/cura-workflows/.github/workflows/benchmark.yml@CURA-10831
+    uses: ultimaker/cura-workflows/.github/workflows/benchmark.yml@main
     with:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
       conan_extra_args: "-o curaengine:enable_benchmarks=True"
