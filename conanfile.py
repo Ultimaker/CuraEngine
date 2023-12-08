@@ -73,6 +73,8 @@ class CuraEngineConan(ConanFile):
             self.options["arcus"].shared = True
         if self.settings.os == "Linux":
             self.options["openssl"].shared = True
+        if self.options.get_safe("enable_sentry", False):
+            self.options["sentry-native"].backend = "breakpad"
 
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
