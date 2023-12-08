@@ -18,10 +18,10 @@
 #include "Slice.h"
 #include "WipeScriptConfig.h"
 #include "communication/Communication.h" //To send layer view data.
+#include "pathPlanning/ArcPathCalculator.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/Date.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
-#include "pathPlanning/ArcPathCalculator.h"
 
 namespace cura
 {
@@ -1338,7 +1338,7 @@ std::vector<std::pair<Point3LL, Velocity>> GCodeExport::writeSpiralZhopStart(
                 current_e_value_ += remaining_retraction;
                 const double output_e = (relative_extrusion_) ? retraction_diff_e_amount : current_e_value_;
                 *output_stream_ << "G1 F" << PrecisionedDouble{ 1, retraction_speed * 60 } << " " << extruder_attributes.extruder_character_ << PrecisionedDouble{ 5, output_e }
-                               << new_line_;
+                                << new_line_;
 
                 current_speed_ = retraction_speed;
                 estimate_calculator_.plan(
@@ -1352,7 +1352,8 @@ std::vector<std::pair<Point3LL, Velocity>> GCodeExport::writeSpiralZhopStart(
         if (retraction_while_spiral)
         {
             extruder_attributes.last_retraction_prime_speed_ = config.primeSpeed;
-            extruder_attributes.retraction_e_amount_current_ = new_retraction_e_amount; // suppose that for UM2 the retraction amount in the firmware is equal to the provided amount
+            extruder_attributes.retraction_e_amount_current_
+                = new_retraction_e_amount; // suppose that for UM2 the retraction amount in the firmware is equal to the provided amount
             extruder_attributes.prime_volume_ += config.prime_volume;
         }
 

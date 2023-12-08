@@ -2092,11 +2092,11 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         const double xy_speed = last_speed == 0 ? path.config.getSpeed().value * path.speed_factor : last_speed;
                         const std::vector<std::pair<Point3LL, Velocity>> spiral_points
                             = gcode.writeSpiralZhopStart(previous_point, path.points[0], z_hop_height, xy_speed, storage_.machine_size, retraction_config->retraction_config);
-                        
+
                         const auto current_pos = Point3LL{ gcode.getPositionXY().X, gcode.getPositionXY().Y, gcode.getPositionZ() };
                         // The spiral point vector might be empty, in the case where no spiral was possible (i.e. when it would have been outside of the printer bounds)
                         double total_spiral_time = spiral_points.size() > 0 ? (current_pos - spiral_points[0].first).vSizeMM() / spiral_points[0].second : 0;
-                        
+
                         for (size_t pt_idx = 0; pt_idx < spiral_points.size(); ++pt_idx)
                         {
                             const auto& [point, velocity] = spiral_points[pt_idx];
@@ -2141,7 +2141,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             // for some movements such as prime tower purge, the speed may get changed by this factor
             speed *= path.speed_factor;
-            last_speed = speed; 
+            last_speed = speed;
 
             // This seems to be the best location to place this, but still not ideal.
             if (path.mesh != current_mesh)

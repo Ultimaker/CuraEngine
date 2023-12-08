@@ -44,7 +44,7 @@ public:
     const coord_t n_discrete_steps_; //!< The amount of discrete steps (at least) required for arc discretization
     const bool is_clockwise_; //!< Whether the arc is spanned clockwise or counter clockwise
     const int n_turns_; //!< The number of turns to be taken, one turn is only the arc going from start to end and higher values mean, that full turns are required as well, going
-                       //!< from start to start
+                        //!< from start to start
 
     /*
      * \brief Factory method, which creates an arc path where the start is tangential to the previous movement done and the end leaves the arc tangential towards a provided target
@@ -87,8 +87,8 @@ public:
     std::vector<std::pair<Point3LL, Velocity>> getDiscreteArc(const coord_t z_start) const;
 
     ArcPath() = delete;
+
 private:
-    
     /*
     * \brief The constructor for an arc path, which is private because the factory method is the intended way to create this object.
     *
