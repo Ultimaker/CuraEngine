@@ -1,4 +1,6 @@
 // Copyright (c) 2023 BigRep GmbH
+// Released under the terms of the AGPLv3 or higher.
+// Author(s): Nadine Mikkelsen, Matthew McMillan (plaintoothpaste)
 
 #ifndef PATH_PLANNING_ARC_PATH_CALCULATOR_H
 #define PATH_PLANNING_ARC_PATH_CALCULATOR_H

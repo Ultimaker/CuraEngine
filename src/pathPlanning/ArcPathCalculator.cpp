@@ -1,4 +1,6 @@
 // Copyright (c) 2023 BigRep GmbH
+// Released under the terms of the AGPLv3 or higher.
+// Author(s): Nadine Mikkelsen, Matthew McMillan (plaintoothpaste)
 
 #include "pathPlanning/ArcPathCalculator.h"
 

@@ -1,6 +1,6 @@
 # Copyright (c) 2022 Ultimaker B.V.
-# Modified by BigRep GmbH
 # CuraEngine is released under the terms of the AGPLv3 or higher.
+# Modified by BigRep GmbH
 
 message(STATUS "Building tests...")
 include(GoogleTest)

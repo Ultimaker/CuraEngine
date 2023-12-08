@@ -1,6 +1,6 @@
 // Copyright (c) 2023 UltiMaker
-// Modified by BigRep GmbH 
 // CuraEngine is released under the terms of the AGPLv3 or higher
+// Modified by BigRep GmbH 
 
 #ifndef LAYER_PLAN_H
 #define LAYER_PLAN_H
