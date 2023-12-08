@@ -238,7 +238,6 @@ acceleration_travel_enabled=True
 coasting_enable=False
 support_interface_density=100
 machine_buildplate_type=glass
-time=21:10:13
 speed_wall_x=65
 material_final_print_temperature=250
 machine_endstop_positive_direction_x=False

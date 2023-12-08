@@ -572,7 +572,6 @@ material_shrinkage_percentage_xy=100.0
 bridge_skin_material_flow=60
 raft_base_jerk=20
 speed_wall_x=60.0
-time=09:53:09
 machine_buildplate_type=glass
 top_layers=8
 jerk_ironing=20

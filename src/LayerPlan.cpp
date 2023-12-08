@@ -2372,8 +2372,8 @@ bool LayerPlan::writePathWithCoasting(
 
     bool length_is_less_than_min_dist = true;
 
-    unsigned int acc_dist_idx_gt_coast_dist = NO_INDEX; // the index of the first point with accumulated_dist more than coasting_dist (= index into accumulated_dist_per_point)
-                                                        // == the point printed BEFORE the start point for coasting
+    std::optional<size_t> acc_dist_idx_gt_coast_dist; // the index of the first point with accumulated_dist more than coasting_dist (= index into accumulated_dist_per_point)
+                                                      // == the point printed BEFORE the start point for coasting
 
     const Point2LL* last = &path.points[path.points.size() - 1];
     for (unsigned int backward_point_idx = 1; backward_point_idx < path.points.size(); backward_point_idx++)
@@ -2383,7 +2383,7 @@ bool LayerPlan::writePathWithCoasting(
         accumulated_dist += distance;
         accumulated_dist_per_point.push_back(accumulated_dist);
 
-        if (acc_dist_idx_gt_coast_dist == NO_INDEX && accumulated_dist >= coasting_dist)
+        if (! acc_dist_idx_gt_coast_dist.has_value() && accumulated_dist >= coasting_dist)
         {
             acc_dist_idx_gt_coast_dist = backward_point_idx; // the newly added point
         }
@@ -2410,22 +2410,23 @@ bool LayerPlan::writePathWithCoasting(
         {
             return false; // Skip coasting at all then.
         }
-        for (acc_dist_idx_gt_coast_dist = 1; acc_dist_idx_gt_coast_dist < accumulated_dist_per_point.size(); acc_dist_idx_gt_coast_dist++)
+        for (acc_dist_idx_gt_coast_dist = 1; acc_dist_idx_gt_coast_dist.value() < accumulated_dist_per_point.size(); acc_dist_idx_gt_coast_dist.value()++)
         { // search for the correct coast_dist_idx
-            if (accumulated_dist_per_point[acc_dist_idx_gt_coast_dist] >= actual_coasting_dist)
+            if (accumulated_dist_per_point[acc_dist_idx_gt_coast_dist.value()] >= actual_coasting_dist)
             {
                 break;
             }
         }
     }
 
-    assert(acc_dist_idx_gt_coast_dist < accumulated_dist_per_point.size()); // something has gone wrong; coasting_min_dist < coasting_dist ?
+    assert(
+        acc_dist_idx_gt_coast_dist.has_value() && acc_dist_idx_gt_coast_dist < accumulated_dist_per_point.size()); // something has gone wrong; coasting_min_dist < coasting_dist ?
 
-    const size_t point_idx_before_start = path.points.size() - 1 - acc_dist_idx_gt_coast_dist;
+    const size_t point_idx_before_start = path.points.size() - 1 - acc_dist_idx_gt_coast_dist.value();
 
     Point2LL start;
     { // computation of begin point of coasting
-        const coord_t residual_dist = actual_coasting_dist - accumulated_dist_per_point[acc_dist_idx_gt_coast_dist - 1];
+        const coord_t residual_dist = actual_coasting_dist - accumulated_dist_per_point[acc_dist_idx_gt_coast_dist.value() - 1];
         const Point2LL& a = path.points[point_idx_before_start];
         const Point2LL& b = path.points[point_idx_before_start + 1];
         start = b + normal(a - b, residual_dist);

@@ -80,7 +80,7 @@ struct Resource
             cura::Polygon outer;
             for (const auto& point : boost_polygon.outer())
             {
-                outer.add(cura::Point(point.x(), point.y()));
+                outer.add(cura::Point2LL(point.x(), point.y()));
             }
             polygon.add(outer);
 
@@ -89,7 +89,7 @@ struct Resource
                 cura::Polygon inner;
                 for (const auto& point : hole)
                 {
-                    inner.add(cura::Point(point.x(), point.y()));
+                    inner.add(cura::Point2LL(point.x(), point.y()));
                 }
                 polygon.add(inner);
             }
@@ -140,7 +140,7 @@ std::vector<Resource> getResources()
         }
     }
     return resources;
-};
+}
 
 void handleChildProcess(const auto& shapes, const auto& settings)
 {
@@ -162,7 +162,11 @@ size_t checkCrashCount(size_t crashCount, int status, const auto& resource)
     if (WIFSIGNALED(status))
     {
         ++crashCount;
-        spdlog::error("Crash detected for: {}", resource.stem());
+        spdlog::error("# Crash detected for: {}", resource.stem());
+    }
+    else
+    {
+        spdlog::info("+ Test case {} processed normally", resource.stem());
     }
     return crashCount;
 }
@@ -227,25 +231,42 @@ int main(int argc, const char** argv)
         const auto& shapes = resource.polygons();
         const auto& settings = resource.settings();
 
-        pid_t pid = fork();
-        if (pid == -1)
+        spdlog::critical("Starting test case {}", resource.stem());
+        pid_t engine_pid = fork();
+        if (engine_pid == -1)
         {
-            spdlog::critical("Unable to fork");
+            spdlog::critical("Unable to fork - engine");
             return EXIT_FAILURE;
         }
-        if (pid == 0)
+        else if (engine_pid == 0)
         {
             handleChildProcess(shapes, settings);
+            return EXIT_SUCCESS;
         }
         else
         {
-            int status;
-            waitpid(pid, &status, 0);
-            const auto old_crash_count = crash_count;
-            crash_count = checkCrashCount(crash_count, status, resource);
-            if (old_crash_count != crash_count)
+            pid_t waiter_pid = fork();
+            if (waiter_pid == -1)
             {
-                extra_infos.emplace_back(resource.stem());
+                spdlog::critical("Unable to fork - waiter");
+                return EXIT_FAILURE;
+            }
+            else if (waiter_pid == 0)
+            {
+                sleep(30);
+                kill(engine_pid, SIGKILL);
+                return EXIT_SUCCESS;
+            }
+            else
+            {
+                int status;
+                waitpid(engine_pid, &status, 0);
+                const auto old_crash_count = crash_count;
+                crash_count = checkCrashCount(crash_count, status, resource);
+                if (old_crash_count != crash_count)
+                {
+                    extra_infos.emplace_back(resource.stem());
+                }
             }
         }
     }

@@ -530,7 +530,6 @@ mesh_position_y=0
 infill_randomize_start_location=False
 raft_base_jerk=12.5
 speed_wall_x=65
-time=17:54:18
 machine_buildplate_type=glass
 machine_nozzle_head_distance=3
 support_brim_width=1.2000000000000002
