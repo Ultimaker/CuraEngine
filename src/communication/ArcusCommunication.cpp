@@ -11,6 +11,9 @@
 #include <Arcus/Socket.h> //The socket to communicate to.
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
+#ifdef SENTRY_URL
+#include <sentry.h>
+#endif
 
 #include "Application.h" //To get and set the current slice command.
 #include "ExtruderTrain.h"
@@ -521,6 +524,11 @@ void ArcusCommunication::sliceNext()
 #ifdef ENABLE_PLUGINS
     for (const auto& plugin : slice_message->engine_plugins())
     {
+#ifdef SENTRY_URL
+        {
+            sentry_set_tag(fmt::format("plugin.{}", plugin.plugin_name()).c_str(), plugin.plugin_version().c_str());
+        }
+#endif
         const auto slot_id = static_cast<plugins::v0::SlotID>(plugin.id());
         slots::instance().connect(slot_id, plugin.plugin_name(), plugin.plugin_version(), utils::createChannel({ plugin.address(), plugin.port() }));
     }

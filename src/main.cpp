@@ -84,23 +84,21 @@ int main(int argc, char** argv)
         {
             // Not a production build
             sentry_options_set_environment(options, "development");
-            sentry_options_set_release(
-                options,
-                fmt::format(
-                    "curaengine@{}.{}.{}-{}.{}",
-                    version.major,
-                    version.minor,
-                    version.patch,
-                    version.prerelease_type == semver::prerelease::alpha ? "alpha" : "beta",
-                    version.prerelease_number)
-                    .c_str());
         }
         else
         {
             sentry_options_set_environment(options, "production");
-            sentry_options_set_release(options, fmt::format("curaengine@{}", version.to_string()).c_str());
         }
+
+        // Set the actual CuraEngine version
+        sentry_options_set_release(options, fmt::format("curaengine@{}", cura_engine_version).c_str());
         sentry_init(options);
+
+        // Set the presumed Cura version as a Sentry tag (this is unknown at the time of compiling
+        auto prerelease = version.prerelease_type == semver::prerelease::none
+                            ? ""
+                            : fmt::format("-{}.{}", version.prerelease_type == semver::prerelease::alpha ? "alpha" : "beta", version.prerelease_number);
+        sentry_set_tag("cura.version", fmt::format("{}.{}.{}{}", version.major, version.minor, version.patch, prerelease).c_str());
     }
 #endif
 
