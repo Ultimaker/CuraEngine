@@ -167,7 +167,7 @@ private:
     Temperature bed_temperature_; //!< Current build plate temperature.
     Temperature build_volume_temperature_; //!< build volume temperature
     bool machine_heated_build_volume_; //!< does the machine have the ability to control/stabilize build-volume-temperature
-    bool ppr_enable_; //! if the print process reporting is enabled
+    bool ppr_enable_; //!< if the print process reporting is enabled
 
 protected:
     /*!
