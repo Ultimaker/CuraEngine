@@ -4,14 +4,16 @@
 #ifndef CURAENGINE_INCLUDE_PLUGINS_METADATA_H
 #define CURAENGINE_INCLUDE_PLUGINS_METADATA_H
 
-#include "cura/plugins/v0/slot_id.pb.h"
-#include "plugins/types.h"
-
 #include <grpcpp/client_context.h>
 #include <grpcpp/support/string_ref.h>
 #include <map>
 #include <string>
 #include <string_view>
+
+#include <fmt/format.h>
+
+#include "cura/plugins/v0/slot_id.pb.h"
+#include "plugins/types.h"
 
 namespace cura::plugins
 {
@@ -33,5 +35,15 @@ struct slot_metadata
 };
 
 } // namespace cura::plugins
+
+namespace cura::plugins::v0
+{
+
+constexpr auto format_as(SlotID id)
+{
+    return fmt::underlying(id);
+}
+
+} // namespace cura::plugins::v0
 
 #endif // CURAENGINE_INCLUDE_PLUGINS_METADATA_H

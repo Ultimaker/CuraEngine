@@ -5,7 +5,7 @@ from os import path
 
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
-from conan.tools.files import copy, mkdir
+from conan.tools.files import copy, mkdir, update_conandata
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
 from conan.tools.scm import Version
@@ -28,6 +28,7 @@ class CuraEngineConan(ConanFile):
         "enable_benchmarks": [True, False],
         "enable_extensive_warnings": [True, False],
         "enable_plugins": [True, False],
+        "enable_sentry": [True, False],
         "enable_remote_plugins": [True, False],
     }
     default_options = {
@@ -35,12 +36,16 @@ class CuraEngineConan(ConanFile):
         "enable_benchmarks": False,
         "enable_extensive_warnings": False,
         "enable_plugins": True,
+        "enable_sentry": False,
         "enable_remote_plugins": False,
     }
 
     def set_version(self):
         if not self.version:
-            self.version = "5.5.0-beta.2"
+            self.version = self.conan_data["version"]
+
+    def export(self):
+        update_conandata(self, {"version": self.version})
 
     def export_sources(self):
         copy(self, "CMakeLists.txt", self.recipe_folder, self.export_sources_folder)
@@ -51,19 +56,23 @@ class CuraEngineConan(ConanFile):
         copy(self, "*", path.join(self.recipe_folder, "src"), path.join(self.export_sources_folder, "src"))
         copy(self, "*", path.join(self.recipe_folder, "include"), path.join(self.export_sources_folder, "include"))
         copy(self, "*", path.join(self.recipe_folder, "benchmark"), path.join(self.export_sources_folder, "benchmark"))
+        copy(self, "*", path.join(self.recipe_folder, "stress_benchmark"), path.join(self.export_sources_folder, "stress_benchmark"))
         copy(self, "*", path.join(self.recipe_folder, "tests"), path.join(self.export_sources_folder, "tests"))
 
     def config_options(self):
         if not self.options.enable_plugins:
             del self.options.enable_remote_plugins
+        if self.conf.get("user.curaengine:sentry_url", "", check_type=str) == "":
+            del self.options.enable_sentry
 
     def configure(self):
         self.options["boost"].header_only = True
         self.options["clipper"].shared = True
-
         self.options["protobuf"].shared = False
         if self.options.enable_arcus:
             self.options["arcus"].shared = True
+        if self.settings.os == "Linux":
+            self.options["openssl"].shared = True
 
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
@@ -79,25 +88,28 @@ class CuraEngineConan(ConanFile):
             self.test_requires("gtest/1.12.1")
         if self.options.enable_benchmarks:
             self.test_requires("benchmark/1.7.0")
+            self.test_requires("docopt.cpp/0.6.3")
 
     def requirements(self):
-        if self.options.enable_arcus:
-            self.requires("arcus/5.3.0")
+        for req in self.conan_data["requirements"]:
+            if "arcus" in req and not self.options.enable_arcus:
+                continue
+            self.requires(req)
+        if self.options.get_safe("enable_sentry", False):
+            self.requires("sentry-native/0.6.5")
         self.requires("asio-grpc/2.6.0")
         self.requires("grpc/1.50.1")
-        self.requires("curaengine_grpc_definitions/0.1.0-beta.1")
         self.requires("clipper/6.4.2")
         self.requires("boost/1.82.0")
         self.requires("rapidjson/1.1.0")
         self.requires("stb/20200203")
-        self.requires("spdlog/1.10.0")
-        self.requires("fmt/9.0.0")
+        self.requires("spdlog/1.12.0")
+        self.requires("fmt/10.1.1")
         self.requires("range-v3/0.12.0")
-        self.requires("scripta/0.1.0@ultimaker/testing")
         self.requires("neargye-semver/0.3.0")
         self.requires("protobuf/3.21.9")
         self.requires("zlib/1.2.12")
-        self.requires("openssl/1.1.1l")
+        self.requires("openssl/3.2.0")
 
     def generate(self):
         deps = CMakeDeps(self)
@@ -110,6 +122,9 @@ class CuraEngineConan(ConanFile):
         tc.variables["ENABLE_BENCHMARKS"] = self.options.enable_benchmarks
         tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
         tc.variables["OLDER_APPLE_CLANG"] = self.settings.compiler == "apple-clang" and Version(self.settings.compiler.version) < "14"
+        if self.options.get_safe("enable_sentry", False):
+            tc.variables["ENABLE_SENTRY"] = True
+            tc.variables["SENTRY_URL"] = self.conf.get("user.curaengine:sentry_url", "", check_type=str)
         if self.options.enable_plugins:
             tc.variables["ENABLE_PLUGINS"] = True
             tc.variables["ENABLE_REMOTE_PLUGINS"] = self.options.enable_remote_plugins
@@ -124,15 +139,14 @@ class CuraEngineConan(ConanFile):
             if len(dep.cpp_info.bindirs) > 0:
                 copy(self, "*.dll", dep.cpp_info.bindirs[0], self.build_folder)
             if not self.conf.get("tools.build:skip_test", False, check_type=bool):
-                test_path = path.join(self.build_folder,  "tests")
+                test_path = path.join(self.build_folder, "tests")
                 if not path.exists(test_path):
                     mkdir(self, test_path)
                 if len(dep.cpp_info.libdirs) > 0:
-                    copy(self, "*.dylib", dep.cpp_info.libdirs[0], path.join(self.build_folder,  "tests"))
-                    copy(self, "*.dll", dep.cpp_info.libdirs[0], path.join(self.build_folder,  "tests"))
+                    copy(self, "*.dylib", dep.cpp_info.libdirs[0], path.join(self.build_folder, "tests"))
+                    copy(self, "*.dll", dep.cpp_info.libdirs[0], path.join(self.build_folder, "tests"))
                 if len(dep.cpp_info.bindirs) > 0:
-                    copy(self, "*.dll", dep.cpp_info.bindirs[0], path.join(self.build_folder,  "tests"))
-
+                    copy(self, "*.dll", dep.cpp_info.bindirs[0], path.join(self.build_folder, "tests"))
 
     def layout(self):
         cmake_layout(self)
@@ -146,9 +160,9 @@ class CuraEngineConan(ConanFile):
 
     def package(self):
         ext = ".exe" if self.settings.os == "Windows" else ""
-        copy(self, f"CuraEngine{ext}", src = self.build_folder, dst = path.join(self.package_folder, "bin"))
-        copy(self, f"_CuraEngine.*", src = self.build_folder, dst = path.join(self.package_folder, "lib"))
-        copy(self, "LICENSE*", src = self.source_folder, dst = path.join(self.package_folder, "license"))
+        copy(self, f"CuraEngine{ext}", src=self.build_folder, dst=path.join(self.package_folder, "bin"))
+        copy(self, f"_CuraEngine.*", src=self.build_folder, dst=path.join(self.package_folder, "lib"))
+        copy(self, "LICENSE*", src=self.source_folder, dst=path.join(self.package_folder, "license"))
 
     def package_info(self):
         ext = ".exe" if self.settings.os == "Windows" else ""

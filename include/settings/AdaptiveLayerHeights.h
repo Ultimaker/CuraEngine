@@ -16,17 +16,17 @@ public:
     /*!
      * Height of the layer in microns.
      */
-    coord_t layer_height;
+    coord_t layer_height_;
 
     /*!
      * The absolute z position of the layer.
      */
-    coord_t z_position;
+    coord_t z_position_;
 
     /*!
      * Temperature to use for this layer.
      */
-    int temperature;
+    int temperature_;
 
     explicit AdaptiveLayer(const coord_t layer_height);
 };
@@ -65,41 +65,41 @@ private:
     /*!
      * Stores the found layer heights
      */
-    std::vector<AdaptiveLayer> layers;
+    std::vector<AdaptiveLayer> layers_;
 
     /*!
      * Stores the allowed layer heights in microns.
      */
-    std::vector<coord_t> allowed_layer_heights;
+    std::vector<coord_t> allowed_layer_heights_;
 
     /**
      * The base layer height.
      */
-    coord_t base_layer_height;
+    coord_t base_layer_height_;
 
     /**
      * The maximum deviation from the base layer height.
      */
-    coord_t max_variation;
+    coord_t max_variation_;
 
     /**
      * The layer height change per step to try between min and max deviation from the base layer height.
      */
-    coord_t step_size;
+    coord_t step_size_;
 
     /*!
      * Target topography size. Adaptive layers will try to keep the horizontal
      * distance the same.
      */
-    coord_t threshold;
+    coord_t threshold_;
 
     /*!
      * Stores the found slopes of each face using the same index.
      */
-    std::vector<double> face_slopes;
-    std::vector<int> face_min_z_values;
-    std::vector<int> face_max_z_values;
-    const MeshGroup* meshgroup;
+    std::vector<double> face_slopes_;
+    std::vector<int> face_min_z_values_;
+    std::vector<int> face_max_z_values_;
+    const MeshGroup* meshgroup_;
 
     /*!
      * Calculate the allowed layer heights depending on variation and step input

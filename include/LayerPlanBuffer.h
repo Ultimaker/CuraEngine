@@ -4,15 +4,15 @@
 #ifndef LAYER_PLAN_BUFFER_H
 #define LAYER_PLAN_BUFFER_H
 
+#include <list>
+#include <vector>
+
 #include "ExtruderPlan.h"
 #include "LayerPlan.h"
 #include "Preheat.h"
 #include "gcodeExport.h"
 #include "settings/Settings.h"
 #include "settings/types/Duration.h"
-
-#include <list>
-#include <vector>
 
 namespace cura
 {
@@ -36,20 +36,20 @@ class GCodeExport;
 class LayerPlanBuffer
 {
     friend class LayerPlan;
-    friend class LayerPlanBuffer;
-    GCodeExport& gcode;
 
-    Preheat preheat_config; //!< the nozzle and material temperature settings for each extruder train.
+    GCodeExport& gcode_;
 
-    static constexpr size_t buffer_size
+    Preheat preheat_config_; //!< the nozzle and material temperature settings for each extruder train.
+
+    static constexpr size_t buffer_size_
         = 5; // should be as low as possible while still allowing enough time in the buffer to heat up from standby temp to printing temp // TODO: hardcoded value
     // this value should be higher than 1, cause otherwise each layer is viewed as the first layer and no temp commands are inserted.
 
-    static constexpr Duration extra_preheat_time
+    static constexpr Duration extra_preheat_time_
         = 1.0_s; //!< Time to start heating earlier than computed to avoid accummulative discrepancy between actual heating times and computed ones.
 
-    std::vector<bool> extruder_used_in_meshgroup; //!< For each extruder whether it has already been planned once in this meshgroup. This is used to see whether we should heat to
-                                                  //!< the initial_print_temp or to the extrusion_temperature
+    std::vector<bool> extruder_used_in_meshgroup_; //!< For each extruder whether it has already been planned once in this meshgroup. This is used to see whether we should heat to
+                                                   //!< the initial_print_temp or to the extrusion_temperature
 
     /*!
      * The buffer containing several layer plans (LayerPlan) before writing them to gcode.
@@ -57,12 +57,12 @@ class LayerPlanBuffer
      * The front is the lowest/oldest layer.
      * The back is the highest/newest layer.
      */
-    std::list<LayerPlan*> buffer;
+    std::list<LayerPlan*> buffer_;
 
 public:
     LayerPlanBuffer(GCodeExport& gcode)
-        : gcode(gcode)
-        , extruder_used_in_meshgroup(MAX_EXTRUDERS, false)
+        : gcode_(gcode)
+        , extruder_used_in_meshgroup_(MAX_EXTRUDERS, false)
     {
     }
 

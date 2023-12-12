@@ -4,12 +4,12 @@
 #ifndef PREHEAT_H
 #define PREHEAT_H
 
+#include <algorithm> // max
+#include <cassert>
+
 #include "settings/types/Duration.h"
 #include "settings/types/Ratio.h"
 #include "settings/types/Temperature.h"
-
-#include <algorithm> // max
-#include <cassert>
 
 namespace cura
 {
@@ -45,11 +45,10 @@ public:
      * or the initial layer temperature.
      *
      * \param extruder The extruder train
-     * \param flow The flow for which to get the optimal temperature
      * \param is_initial_layer Whether the initial layer temperature should be returned instead of flow-based temperature
      * \return The corresponding optimal temperature
      */
-    Temperature getTemp(const size_t extruder, const Ratio& flow, const bool is_initial_layer);
+    Temperature getTemp(const size_t extruder, const bool is_initial_layer);
 
     /*!
      * Decide when to start warming up again after starting to cool down towards \p temp_mid.

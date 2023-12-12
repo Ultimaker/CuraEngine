@@ -18,23 +18,23 @@ namespace cura
 class DistributedBeadingStrategy : public BeadingStrategy
 {
 protected:
-    float one_over_distribution_radius_squared; // (1 / distribution_radius)^2
+    double one_over_distribution_radius_squared_; // (1 / distribution_radius)^2
 
 public:
     /*!
-    * \param distribution_radius the radius (in number of beads) over which to distribute the discrepancy between the feature size and the optimal thickness
-    */
-    DistributedBeadingStrategy
-    (
+     * \param distribution_radius the radius (in number of beads) over which to distribute the discrepancy between the feature size and the optimal thickness
+     */
+    DistributedBeadingStrategy(
         const coord_t optimal_width,
         const coord_t default_transition_length,
         const AngleRadians transitioning_angle,
         const Ratio wall_split_middle_threshold,
         const Ratio wall_add_middle_threshold,
-        const int distribution_radius
-    );
+        const int distribution_radius);
 
-    virtual ~DistributedBeadingStrategy() override {}
+    virtual ~DistributedBeadingStrategy() override
+    {
+    }
 
     Beading compute(coord_t thickness, coord_t bead_count) const override;
     coord_t getOptimalBeadCount(coord_t thickness) const override;
