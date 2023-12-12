@@ -41,11 +41,6 @@
 #include "utils/math.h"
 #include "utils/views/get.h"
 
-#include <cmath> // sqrt, round
-#include <deque>
-#include <fstream> // ifstream.good()
-#include <utility> // pair
-
 namespace cura
 {
 
