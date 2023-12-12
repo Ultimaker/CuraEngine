@@ -898,7 +898,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
             for (auto [current_point_idx, current_point] : current_poly | ranges::views::enumerate)
             {
                 auto min_dist2 = std::numeric_limits<coord_t>::max();
-                Point min_point;
+                Point2LL min_point;
 
                 for (auto delta_poly : layer_delta)
                 {
