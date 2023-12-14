@@ -200,7 +200,7 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
-find_package(neargye-semver REQUIRED)
+find_package(semver REQUIRED)
 
 if (ENABLE_TESTING)
     find_package(GTest REQUIRED)
@@ -216,7 +216,7 @@ target_link_libraries(_CuraEngine
         stb::stb
         boost::boost
         scripta::scripta
-        neargye-semver::neargye-semver
+        semver::semver
         curaengine_grpc_definitions::curaengine_grpc_definitions
         asio-grpc::asio-grpc
         grpc::grpc
