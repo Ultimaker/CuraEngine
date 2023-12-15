@@ -11,11 +11,11 @@
 #include <filesystem>
 #include <semver.hpp>
 #include <sentry.h>
-#include <spdlog/details/os.h>
 #include <string>
 
 #include <range/v3/algorithm/contains.hpp>
 #include <range/v3/range/conversion.hpp>
+#include <spdlog/details/os.h>
 
 #include "utils/format/filesystem_path.h"
 #endif
