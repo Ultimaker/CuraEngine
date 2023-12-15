@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <semver.hpp>
 #include <sentry.h>
+#include <spdlog/details/os.h>
 #include <string>
 
 #include <range/v3/algorithm/contains.hpp>
@@ -53,15 +54,7 @@ int main(int argc, char** argv)
 
 // Want to set the sentry URL? Use '-c user.curaengine:sentry_url=<url> -o curaengine:enable_sentry=True' with conan install
 #ifdef SENTRY_URL
-    bool use_sentry = true;
-    if (const char* use_sentry_env = std::getenv("use_sentry"))
-    {
-        if (std::strcmp(use_sentry_env, "0") == 0)
-        {
-            use_sentry = false;
-        }
-    }
-    if (use_sentry)
+    if (const auto use_sentry = spdlog::details::os::getenv("use_sentry"); ! use_sentry.empty() && use_sentry == "1")
     {
         // Setup sentry error handling.
         sentry_options_t* options = sentry_options_new();
@@ -99,13 +92,20 @@ int main(int argc, char** argv)
                             ? ""
                             : fmt::format("-{}.{}", version.prerelease_type == semver::prerelease::alpha ? "alpha" : "beta", version.prerelease_number);
         sentry_set_tag("cura.version", fmt::format("{}.{}.{}{}", version.major, version.minor, version.patch, prerelease).c_str());
+
+        if (const auto sentry_user = spdlog::details::os::getenv("CURAENGINE_SENTRY_USER"); ! sentry_user.empty())
+        {
+            sentry_value_t user = sentry_value_new_object();
+            sentry_value_set_by_key(user, "email", sentry_value_new_string(sentry_user.c_str()));
+            sentry_set_user(user);
+        }
     }
 #endif
 
     cura::Application::getInstance().run(argc, argv);
 
 #ifdef SENTRY_URL
-    if (use_sentry)
+    if (const auto use_sentry = spdlog::details::os::getenv("use_sentry"); ! use_sentry.empty() && use_sentry == "1")
     {
         sentry_close();
     }

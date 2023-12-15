@@ -17,7 +17,7 @@ protected:
     {
         sentry_value_t crumb = sentry_value_new_breadcrumb("debug", msg.payload.data());
         sentry_value_set_by_key(crumb, "category", sentry_value_new_string(msg.logger_name.data()));
-        sentry_value_set_by_key(crumb, "level", sentry_value_new_string(spdlog::level::to_short_c_str(msg.level)));
+        sentry_value_set_by_key(crumb, "level", sentry_value_new_string(spdlog::level::to_string_view(msg.level).data()));
 
         auto duration = msg.time.time_since_epoch();
         auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(duration).count();
