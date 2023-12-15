@@ -87,18 +87,6 @@ int main(int argc, char** argv)
         sentry_options_set_release(options, fmt::format("curaengine@{}", cura_engine_version).c_str());
         sentry_init(options);
 
-        // Set the presumed Cura version as a Sentry tag (this is unknown at the time of compiling
-        auto prerelease = version.prerelease_type == semver::prerelease::none
-                            ? ""
-                            : fmt::format("-{}.{}", version.prerelease_type == semver::prerelease::alpha ? "alpha" : "beta", version.prerelease_number);
-        sentry_set_tag("cura.version", fmt::format("{}.{}.{}{}", version.major, version.minor, version.patch, prerelease).c_str());
-
-        if (const auto sentry_user = spdlog::details::os::getenv("CURAENGINE_SENTRY_USER"); ! sentry_user.empty())
-        {
-            sentry_value_t user = sentry_value_new_object();
-            sentry_value_set_by_key(user, "email", sentry_value_new_string(sentry_user.c_str()));
-            sentry_set_user(user);
-        }
     }
 #endif
 
