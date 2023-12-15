@@ -86,7 +86,6 @@ int main(int argc, char** argv)
         // Set the actual CuraEngine version
         sentry_options_set_release(options, fmt::format("curaengine@{}", cura_engine_version).c_str());
         sentry_init(options);
-
     }
 #endif
 

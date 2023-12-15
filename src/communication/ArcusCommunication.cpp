@@ -10,8 +10,8 @@
 
 #include <Arcus/Socket.h> //The socket to communicate to.
 #include <fmt/format.h>
-#include <spdlog/spdlog.h>
 #include <spdlog/details/os.h>
+#include <spdlog/spdlog.h>
 
 #include "Application.h" //To get and set the current slice command.
 #include "ExtruderTrain.h"
