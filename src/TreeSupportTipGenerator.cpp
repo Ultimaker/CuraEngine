@@ -1839,18 +1839,6 @@ void TreeSupportTipGenerator::generateTips(
             }
         });
 
-    cura::parallel_for<coord_t>(
-        1,
-        mesh.overhang_areas.size() - z_distance_delta,
-        [&](const LayerIndex layer_idx)
-        {
-            if (layer_idx > 0)
-            {
-                storage.support.supportLayers[layer_idx].support_fractional_roof.add(
-                    storage.support.supportLayers[layer_idx].support_roof.difference(storage.support.supportLayers[layer_idx + 1].support_roof));
-            }
-        });
-
     removeUselessAddedPoints(new_tips, storage, additional_support_areas);
 
     if(support_roof_layers && !use_fake_roof && cradle_lines_roof)
@@ -1868,6 +1856,17 @@ void TreeSupportTipGenerator::generateTips(
         }
     }
 
+    cura::parallel_for<coord_t>(
+        1,
+        mesh.overhang_areas.size() - z_distance_delta,
+        [&](const LayerIndex layer_idx)
+        {
+            if (layer_idx > 0)
+            {
+                storage.support.supportLayers[layer_idx].support_fractional_roof.add(
+                    storage.support.supportLayers[layer_idx].support_roof.difference(storage.support.supportLayers[layer_idx + 1].support_roof));
+            }
+        });
 
     for (auto [layer_idx, tips_on_layer] : new_tips | ranges::views::enumerate)
     {
