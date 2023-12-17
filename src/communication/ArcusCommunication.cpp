@@ -548,7 +548,7 @@ void ArcusCommunication::sliceNext()
         const auto slot_id = static_cast<plugins::v0::SlotID>(plugin.id());
         slots::instance().connect(slot_id, plugin.plugin_name(), plugin.plugin_version(), utils::createChannel({ plugin.address(), plugin.port() }));
 #ifdef SENTRY_URL
-        sentry_set_tag(fmt::format("engine_plugin.{}", plugin.plugin_name()).c_str(), plugin.plugin_version().c_str());
+      sentry_set_tag(fmt::format("plugin_{}.version", plugin.plugin_name()).c_str(), plugin.plugin_version().c_str());
 #endif
     }
 #endif // ENABLE_PLUGINS
