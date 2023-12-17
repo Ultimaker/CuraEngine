@@ -5,6 +5,18 @@
 
 #include "communication/ArcusCommunication.h"
 
+#ifdef SENTRY_URL
+#ifdef _WIN32
+#if ! defined(NOMINMAX)
+#define NOMINMAX
+#endif
+#if ! defined(WIN32_LEAN_AND_MEAN)
+#define WIN32_LEAN_AND_MEAN
+#endif
+#endif
+#include <sentry.h>
+#endif
+
 #include <thread> //To sleep while waiting for the connection.
 #include <unordered_map> //To map settings to their extruder numbers for limit_to_extruder.
 

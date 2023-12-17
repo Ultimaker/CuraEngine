@@ -5,10 +5,6 @@
 #define ARCUSCOMMUNICATION_H
 #ifdef ARCUS
 
-#ifdef SENTRY_URL
-#include <sentry.h>
-#endif
-
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h>
 #endif

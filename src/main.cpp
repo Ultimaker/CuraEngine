@@ -8,6 +8,14 @@
 #endif
 
 #ifdef SENTRY_URL
+#ifdef _WIN32
+#if ! defined(NOMINMAX)
+#define NOMINMAX
+#endif
+#if ! defined(WIN32_LEAN_AND_MEAN)
+#define WIN32_LEAN_AND_MEAN
+#endif
+#endif
 #include <filesystem>
 #include <semver.hpp>
 #include <sentry.h>
