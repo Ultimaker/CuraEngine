@@ -24,6 +24,9 @@
 #include "plugins/slots.h"
 #include "progress/Progress.h"
 #include "utils/ThreadPool.h"
+#ifdef SENTRY_URL
+#include "utils/sentry_sink.h"
+#endif
 #include "utils/string.h" //For stringcasecompare.
 
 namespace cura
@@ -35,6 +38,11 @@ Application::Application()
     auto dup_sink = std::make_shared<spdlog::sinks::dup_filter_sink_mt>(std::chrono::seconds{ 10 });
     auto base_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     dup_sink->add_sink(base_sink);
+
+#ifdef SENTRY_URL
+    auto sentry_sink = std::make_shared<SentryBreadcrumbSink_mt>();
+    dup_sink->add_sink(sentry_sink);
+#endif
 
     spdlog::default_logger()->sinks()
         = std::vector<std::shared_ptr<spdlog::sinks::sink>>{ dup_sink }; // replace default_logger sinks with the duplicating filtering sink to avoid spamming

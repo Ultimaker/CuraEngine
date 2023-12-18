@@ -8,6 +8,14 @@
 #endif
 
 #ifdef SENTRY_URL
+#ifdef _WIN32
+#if ! defined(NOMINMAX)
+#define NOMINMAX
+#endif
+#if ! defined(WIN32_LEAN_AND_MEAN)
+#define WIN32_LEAN_AND_MEAN
+#endif
+#endif
 #include <filesystem>
 #include <semver.hpp>
 #include <sentry.h>
@@ -15,6 +23,7 @@
 
 #include <range/v3/algorithm/contains.hpp>
 #include <range/v3/range/conversion.hpp>
+#include <spdlog/details/os.h>
 
 #include "utils/format/filesystem_path.h"
 #endif
@@ -53,15 +62,7 @@ int main(int argc, char** argv)
 
 // Want to set the sentry URL? Use '-c user.curaengine:sentry_url=<url> -o curaengine:enable_sentry=True' with conan install
 #ifdef SENTRY_URL
-    bool use_sentry = true;
-    if (const char* use_sentry_env = std::getenv("use_sentry"))
-    {
-        if (std::strcmp(use_sentry_env, "0") == 0)
-        {
-            use_sentry = false;
-        }
-    }
-    if (use_sentry)
+    if (const auto use_sentry = spdlog::details::os::getenv("use_sentry"); ! use_sentry.empty() && use_sentry == "1")
     {
         // Setup sentry error handling.
         sentry_options_t* options = sentry_options_new();
@@ -93,19 +94,13 @@ int main(int argc, char** argv)
         // Set the actual CuraEngine version
         sentry_options_set_release(options, fmt::format("curaengine@{}", cura_engine_version).c_str());
         sentry_init(options);
-
-        // Set the presumed Cura version as a Sentry tag (this is unknown at the time of compiling
-        auto prerelease = version.prerelease_type == semver::prerelease::none
-                            ? ""
-                            : fmt::format("-{}.{}", version.prerelease_type == semver::prerelease::alpha ? "alpha" : "beta", version.prerelease_number);
-        sentry_set_tag("cura.version", fmt::format("{}.{}.{}{}", version.major, version.minor, version.patch, prerelease).c_str());
     }
 #endif
 
     cura::Application::getInstance().run(argc, argv);
 
 #ifdef SENTRY_URL
-    if (use_sentry)
+    if (const auto use_sentry = spdlog::details::os::getenv("use_sentry"); ! use_sentry.empty() && use_sentry == "1")
     {
         sentry_close();
     }
