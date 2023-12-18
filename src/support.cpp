@@ -920,7 +920,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
                 const auto min_dist = std::sqrt(min_dist2);
                 const auto slope = min_dist / delta_z;
                 const auto wall_angle = std::atan(std::abs(slope));
-                const auto ratio = wall_angle / overhang_angle;
+                const auto ratio = std::max(0.0, std::min(1.0, wall_angle / overhang_angle));
                 const auto xy_distance_varying = std::lerp(xy_distance, xy_distance_natural, ratio);
 
                 const poly_point_key key = { current_poly_idx, current_point_idx };
