@@ -1075,7 +1075,7 @@ void AreaSupport::generateSupportAreasForMesh(
                     // we also want to use the min XY distance when the support is resting on a sloped surface so we calculate the area of the
                     // layer below that protrudes beyond the current layer's area and combine it with the current layer's overhang disallowed area
 
-                    Polygons minimum_xy_disallowed_areas = xy_disallowed_per_layer[layer_idx].offset(xy_distance_overhang);
+                    Polygons minimum_xy_disallowed_areas = mesh.layers[layer_idx].getOutlines().offset(xy_distance_overhang);
                     Polygons varying_xy_disallowed_areas = generateVaryingXYDisallowedArea(mesh, layer_idx);
                     xy_disallowed_per_layer[layer_idx] = minimum_xy_disallowed_areas.unionPolygons(varying_xy_disallowed_areas);
                     scripta::log("support_xy_disallowed_areas", xy_disallowed_per_layer[layer_idx], SectionType::SUPPORT, layer_idx);
