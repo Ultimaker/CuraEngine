@@ -1546,25 +1546,25 @@ void TreeSupportTipGenerator::generateTips(
                 = relevant_forbidden.offset(EPSILON)
                       .unionPolygons(); // Prevent rounding errors down the line, points placed directly on the line of the forbidden area may not be added otherwise.
 
-            std::function<Polygons(const Polygons&, bool, LayerIndex)> generateLines = [&](const Polygons& area, bool roof, LayerIndex layer_idx)
+            enum class OverhangType {REGULAR, ROOF, CRADLE};
+            std::function<Polygons(const Polygons&, OverhangType, LayerIndex)> generateLines = [&](const Polygons& area, OverhangType overhang_type, LayerIndex layer_idx)
             {
                 coord_t upper_line_distance = support_supporting_branch_distance;
-                coord_t line_distance = std::max(roof ? support_roof_line_distance : support_tree_branch_distance, upper_line_distance);
+                coord_t line_distance = std::max((overhang_type == OverhangType::ROOF) ? support_roof_line_distance : support_tree_branch_distance, upper_line_distance);
 
                     bool use_grid = line_distance == upper_line_distance;
 
                 return TreeSupportUtils::generateSupportInfillLines(
                     area,
                     config,
-                    roof && ! use_fake_roof,
+                    (overhang_type == OverhangType::ROOF) && ! use_fake_roof,
                     layer_idx,
                     line_distance,
                     cross_fill_provider,
-                    roof && ! use_fake_roof,
+                    ((overhang_type == OverhangType::ROOF) && ! use_fake_roof)|| (overhang_type == OverhangType::CRADLE),
                     use_grid ? EFillMethod::GRID:EFillMethod::NONE);
             };
 
-                enum class OverhangType {REGULAR, ROOF, CRADLE};
 
             std::vector<std::pair<Polygons, OverhangType>> overhang_processing;
             // ^^^ Every overhang has saved if a roof should be generated for it.
@@ -1650,7 +1650,7 @@ void TreeSupportTipGenerator::generateTips(
                     }
 
                     std::vector<LineInformation> overhang_lines;
-                    Polygons polylines = ensureMaximumDistancePolyline(generateLines(remaining_overhang_part, false, layer_idx), config.min_radius, 1, false);
+                    Polygons polylines = ensureMaximumDistancePolyline(generateLines(remaining_overhang_part, OverhangType::REGULAR, layer_idx), config.min_radius, 1, false);
                     // ^^^ Support_line_width to form a line here as otherwise most will be unsupported.
                     // Technically this violates branch distance, but not only is this the only reasonable choice,
                     //   but it ensures consistent behavior as some infill patterns generate each line segment as its own polyline part causing a similar line forming behavior.
@@ -1721,7 +1721,7 @@ void TreeSupportTipGenerator::generateTips(
             for (std::pair<Polygons, OverhangType> overhang_pair : overhang_processing)
             {
                 const bool roof_allowed_for_this_part = overhang_pair.second == OverhangType::ROOF;
-                    const bool supports_cradle = overhang_pair.second == OverhangType::CRADLE;
+                const bool supports_cradle = overhang_pair.second == OverhangType::CRADLE;
 
                 Polygons overhang_outset = overhang_pair.first;
                 const size_t min_support_points = std::max(coord_t(2), std::min(coord_t(EPSILON), overhang_outset.polygonLength() / connect_length));
@@ -1732,7 +1732,7 @@ void TreeSupportTipGenerator::generateTips(
                 // The tip positions are determined here.
                 // todo can cause inconsistent support density if a line exactly aligns with the model
                 Polygons polylines = ensureMaximumDistancePolyline(
-                    generateLines(overhang_outset, roof_allowed_for_this_part, layer_idx + roof_allowed_for_this_part),
+                    generateLines(overhang_outset, overhang_pair.second, layer_idx + roof_allowed_for_this_part),
                     ! roof_allowed_for_this_part ? config.min_radius * 2
                     : use_fake_roof              ? support_supporting_branch_distance
                                                  : connect_length,
