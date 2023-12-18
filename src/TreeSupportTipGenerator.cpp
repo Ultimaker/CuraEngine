@@ -75,7 +75,7 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceDataStorage& storage
     , cradle_area_threshold(1000 * 1000 * retrieveSetting<double>(mesh.settings, "support_tree_maximum_pointy_area"))
     , cradle_tip_dtt(config.tip_layers * retrieveSetting<double>(mesh.settings, "support_tree_cradle_base_tip_percentage") / 100.0)
     , large_cradle_line_tips(retrieveSetting<bool>(mesh.settings, "support_tree_large_cradle_line_tips"))
-    , cradle_xy_distance(retrieveSetting<bool>(mesh.settings, "support_tree_cradle_xy_distance"))
+    , cradle_xy_distance(retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_xy_distance"))
 {
     const double support_overhang_angle = mesh.settings.get<AngleRadians>("support_angle");
     const coord_t max_overhang_speed = (support_overhang_angle < TAU / 4) ? (coord_t)(tan(support_overhang_angle) * config.layer_height) : std::numeric_limits<coord_t>::max();
@@ -845,7 +845,14 @@ void TreeSupportTipGenerator::generateCradle(const SliceMeshStorage& mesh, std::
                                     shortened_lines_to_center[line_idx].clear();
                                 }
                             }
-                            Polygons cradle = shortened_lines_to_center.offsetPolyLine(cradle_line_width / 2).unionPolygons().offset(FUDGE_LENGTH).unionPolygons().offset(-FUDGE_LENGTH).difference(relevant_forbidden);
+
+                            Polygons cradle = shortened_lines_to_center.offsetPolyLine(cradle_line_width / 2,ClipperLib::jtRound).unionPolygons().offset(FUDGE_LENGTH).unionPolygons().offset(-FUDGE_LENGTH).difference(relevant_forbidden);
+
+                            if(idx > 0 && relevant_forbidden.inside(center)) //todo better check
+                            {
+                                //Ensures that the cradle-lines don't touch to prevent the center from merging together and engulfing the model at low cradle xy distances.
+                                cradle = cradle.difference(PolygonUtils::makeCircle(center,config.support_line_width+FUDGE_LENGTH/2).offset(0));
+                            }
                             cradle_areas_calc[idx] = cradle;
                         }
                     }
@@ -892,6 +899,7 @@ void TreeSupportTipGenerator::generateCradle(const SliceMeshStorage& mesh, std::
                     for (auto [idx, cradle] : cradle_areas_calc | ranges::views::enumerate | ranges::views::reverse)
                     {
                         Polygons relevant_forbidden = volumes_.getAvoidance(0, layer_idx + idx, (only_gracious || ! config.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION, config.support_rests_on_model, true);
+                        relevant_forbidden = relevant_forbidden.offset(-config.xy_min_distance + cradle_xy_distance);
                         cradle_areas_calc[idx] = cradle_areas_calc[idx].difference(relevant_forbidden);
                     }
 
