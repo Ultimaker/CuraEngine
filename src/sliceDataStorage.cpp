@@ -730,24 +730,24 @@ void SupportLayer::fillInfillParts(
     const auto all_support_areas_in_layer = { support_this_layer.difference(support_layer_above), support_this_layer.intersection(support_layer_above) };
     bool use_fractional_config = true;
 
-//    AABB aabb;
-//    for (const auto& support_areas : all_support_areas_in_layer)
-//    {
-//        aabb.include(support_areas);
-//    }
-//    aabb.expand(1000);
-//    SVG svg(fmt::format("support_area_{}_.svg", layer_nr), aabb);
-//
-//    for (const auto support_areas : all_support_areas_in_layer)
-//    {
-//        svg.writePolygons(support_areas);
-//
-//        for (const PolygonsPart& island_outline : support_areas.splitIntoParts(true))
-//        {
-////            support_infill_parts.emplace_back(island_outline, support_line_width, false, wall_line_count, custom_line_distance);
-//        }
-//        use_fractional_config = false;
-//    }
+    //    AABB aabb;
+    //    for (const auto& support_areas : all_support_areas_in_layer)
+    //    {
+    //        aabb.include(support_areas);
+    //    }
+    //    aabb.expand(1000);
+    //    SVG svg(fmt::format("support_area_{}_.svg", layer_nr), aabb);
+    //
+    //    for (const auto support_areas : all_support_areas_in_layer)
+    //    {
+    //        svg.writePolygons(support_areas);
+    //
+    //        for (const PolygonsPart& island_outline : support_areas.splitIntoParts(true))
+    //        {
+    ////            support_infill_parts.emplace_back(island_outline, support_line_width, false, wall_line_count, custom_line_distance);
+    //        }
+    //        use_fractional_config = false;
+    //    }
 
     for (const PolygonsPart& island_outline : support_this_layer.splitIntoParts(true))
     {

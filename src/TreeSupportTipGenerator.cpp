@@ -36,8 +36,8 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, T
     , minimum_roof_area_(! use_fake_roof_ ? mesh.settings.get<double>("minimum_roof_area") : std::max(SUPPORT_TREE_MINIMUM_FAKE_ROOF_AREA, minimum_support_area_))
     , support_roof_layers_(
           (false && mesh.settings.get<bool>("support_roof_enable")) ? round_divide(mesh.settings.get<coord_t>("support_roof_height"), config_.layer_height)
-          : use_fake_roof_                               ? SUPPORT_TREE_MINIMUM_FAKE_ROOF_LAYERS
-                                                         : 0)
+          : use_fake_roof_                                          ? SUPPORT_TREE_MINIMUM_FAKE_ROOF_LAYERS
+                                                                    : 0)
     , connect_length_(
           (config_.support_line_width * 100 / mesh.settings.get<double>("support_tree_top_rate")) + std::max(2 * config_.min_radius - 1.0 * config_.support_line_width, 0.0))
     , support_tree_branch_distance_((config_.support_pattern == EFillMethod::TRIANGLES ? 3 : (config_.support_pattern == EFillMethod::GRID ? 2 : 1)) * connect_length_)
