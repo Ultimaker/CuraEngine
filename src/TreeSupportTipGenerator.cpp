@@ -30,12 +30,12 @@ namespace cura
 
 TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, TreeModelVolumes& volumes_s)
     : config_(mesh.settings)
-    , use_fake_roof_(! mesh.settings.get<bool>("support_roof_enable"))
+    , use_fake_roof_(! (false && mesh.settings.get<bool>("support_roof_enable")))
     , volumes_(volumes_s)
     , minimum_support_area_(mesh.settings.get<double>("minimum_support_area"))
     , minimum_roof_area_(! use_fake_roof_ ? mesh.settings.get<double>("minimum_roof_area") : std::max(SUPPORT_TREE_MINIMUM_FAKE_ROOF_AREA, minimum_support_area_))
     , support_roof_layers_(
-          mesh.settings.get<bool>("support_roof_enable") ? round_divide(mesh.settings.get<coord_t>("support_roof_height"), config_.layer_height)
+          (false && mesh.settings.get<bool>("support_roof_enable")) ? round_divide(mesh.settings.get<coord_t>("support_roof_height"), config_.layer_height)
           : use_fake_roof_                               ? SUPPORT_TREE_MINIMUM_FAKE_ROOF_LAYERS
                                                          : 0)
     , connect_length_(
