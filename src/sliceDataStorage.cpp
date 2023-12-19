@@ -387,11 +387,11 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
         {
             ret[mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr_] = true;
             ret[mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_] = true;
-            if (false && mesh_group_settings.get<bool>("support_roof_enable"))
+            if (mesh_group_settings.get<bool>("support_roof_enable"))
             {
                 ret[mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr_] = true;
             }
-            if (false && mesh_group_settings.get<bool>("support_bottom_enable"))
+            if (mesh_group_settings.get<bool>("support_bottom_enable"))
             {
                 ret[mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr_] = true;
             }
@@ -729,29 +729,13 @@ void SupportLayer::fillInfillParts(
         = (layer_nr + 1) >= support_fill_per_layer.size() || layer_nr <= 0 ? Polygons() : support_fill_per_layer[layer_nr + 1].offset(grow_layer_above);
     const auto all_support_areas_in_layer = { support_this_layer.difference(support_layer_above), support_this_layer.intersection(support_layer_above) };
     bool use_fractional_config = true;
-
-    //    AABB aabb;
-    //    for (const auto& support_areas : all_support_areas_in_layer)
-    //    {
-    //        aabb.include(support_areas);
-    //    }
-    //    aabb.expand(1000);
-    //    SVG svg(fmt::format("support_area_{}_.svg", layer_nr), aabb);
-    //
-    //    for (const auto support_areas : all_support_areas_in_layer)
-    //    {
-    //        svg.writePolygons(support_areas);
-    //
-    //        for (const PolygonsPart& island_outline : support_areas.splitIntoParts(true))
-    //        {
-    ////            support_infill_parts.emplace_back(island_outline, support_line_width, false, wall_line_count, custom_line_distance);
-    //        }
-    //        use_fractional_config = false;
-    //    }
-
-    for (const PolygonsPart& island_outline : support_this_layer.splitIntoParts(true))
+    for (auto& support_areas : all_support_areas_in_layer)
     {
-        support_infill_parts.emplace_back(island_outline, support_line_width, false, wall_line_count, custom_line_distance);
+        for (const PolygonsPart& island_outline : support_areas.splitIntoParts(unionAll))
+        {
+            support_infill_parts.emplace_back(island_outline, support_line_width, use_fractional_config, wall_line_count, custom_line_distance);
+        }
+        use_fractional_config = false;
     }
 }
 

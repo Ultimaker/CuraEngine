@@ -683,15 +683,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
         support_areas = support_areas.unionPolygons();
     }
 
-    for (auto [idx, support_area] : global_support_areas_per_layer | ranges::views::enumerate)
-    {
-        AABB aabb;
-        aabb.include(support_area);
-        aabb.expand(1000);
-        SVG svg(fmt::format("support_area_{}.svg", idx), aabb);
-        svg.writePolygons(support_area);
-    }
-
     // handle support interface
     for (auto& mesh : storage.meshes)
     {
@@ -700,11 +691,11 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
             continue;
         }
 
-        if (false && mesh->settings.get<bool>("support_roof_enable"))
+        if (mesh->settings.get<bool>("support_roof_enable"))
         {
             generateSupportRoof(storage, *mesh, global_support_areas_per_layer);
         }
-        if (false && mesh->settings.get<bool>("support_bottom_enable"))
+        if (mesh->settings.get<bool>("support_bottom_enable"))
         {
             generateSupportBottom(storage, *mesh, global_support_areas_per_layer);
         }
@@ -890,19 +881,12 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
         }
     }
 
-    spdlog::info("test");
-
     for (const auto& z_delta_poly : z_distances_layer_deltas)
     {
         const auto support_distance = z_delta_poly.support_distance;
         const auto delta_z = z_delta_poly.delta_z;
         const auto layer_delta = z_delta_poly.layer_delta;
         const auto xy_distance_natural = support_distance * std::tan(overhang_angle);
-
-        spdlog::info("xy_distance_natural: {}", xy_distance_natural);
-        spdlog::info("support_distance: {}", support_distance);
-        spdlog::info("overhang_angle: {}", overhang_angle);
-
 
         for (auto [current_poly_idx, current_poly] : layer_current | ranges::views::enumerate)
         {
@@ -969,14 +953,6 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
                 offset_dist = commutative_offset / static_cast<double>(n);
             }
 
-            if (offset_dist < 0.0)
-            {
-                spdlog::warn("varying offset dist is negative: {}", offset_dist);
-                offset_dist = 0.0;
-            }
-
-            spdlog::debug("varying offset dist: {}", offset_dist);
-
             varying_offsets.push_back(static_cast<coord_t>(offset_dist));
         }
     }
@@ -1033,7 +1009,7 @@ void AreaSupport::generateSupportAreasForMesh(
 
     // early out
     const coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
-    const coord_t z_distance_top = ((false && mesh.settings.get<bool>("support_roof_enable")) ? roof_settings : infill_settings).get<coord_t>("support_top_distance");
+    const coord_t z_distance_top = ((mesh.settings.get<bool>("support_roof_enable")) ? roof_settings : infill_settings).get<coord_t>("support_top_distance");
     const size_t layer_z_distance_top = (z_distance_top / layer_thickness) + 1;
     if (layer_z_distance_top + 1 > layer_count)
     {
@@ -1123,7 +1099,7 @@ void AreaSupport::generateSupportAreasForMesh(
     const coord_t max_tower_supported_diameter = infill_settings.get<coord_t>("support_tower_maximum_supported_diameter");
     const bool use_towers = infill_settings.get<bool>("support_use_towers") && max_tower_supported_diameter > 0;
 
-    const coord_t z_distance_bottom = ((false && mesh.settings.get<bool>("support_bottom_enable")) ? bottom_settings : infill_settings).get<coord_t>("support_bottom_distance");
+    const coord_t z_distance_bottom = ((mesh.settings.get<bool>("support_bottom_enable")) ? bottom_settings : infill_settings).get<coord_t>("support_bottom_distance");
     const size_t bottom_empty_layer_count = round_up_divide(z_distance_bottom, layer_thickness); // number of empty layers between support and model
     const coord_t bottom_stair_step_height = std::max(static_cast<coord_t>(0), mesh.settings.get<coord_t>("support_bottom_stair_step_height"));
     const size_t bottom_stair_step_layer_count
@@ -1349,17 +1325,6 @@ void AreaSupport::generateSupportAreasForMesh(
         {
             storage.support.layer_nr_max_filled_layer = layer_idx;
             break;
-        }
-    }
-
-    for (auto [idx, support_area] : support_areas | ranges::views::enumerate)
-    {
-        {
-            AABB aabb;
-            aabb.include(support_area);
-            aabb.expand(1000);
-            SVG svg(fmt::format("support_area_{}_.svg", idx), aabb);
-            svg.writePolygons(support_area);
         }
     }
 
@@ -1811,7 +1776,6 @@ void AreaSupport::generateSupportInterfaceLayer(
     const double minimum_interface_area,
     Polygons& interface_polygons)
 {
-    spdlog::info("Generating support interface layer");
     Polygons model = colliding_mesh_outlines.unionPolygons();
     interface_polygons = support_areas.offset(safety_offset / 2).intersection(model);
     interface_polygons = interface_polygons.offset(safety_offset).intersection(support_areas); // Make sure we don't generate any models that are not printable.
