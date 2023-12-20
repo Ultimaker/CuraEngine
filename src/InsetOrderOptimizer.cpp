@@ -187,7 +187,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         std::vector<LineLoc*> erase;
         for (const auto& root : roots)
         {
-            if (root->poly.inside(locator->poly))
+            if (root->poly.inside(locator->poly[0], false))
             {
                 // The root polygon is inside the location polygon. It is no longer a root in the graph we are building.
                 // Add this relationship (locator <-> root) to the graph, and remove root from roots.
