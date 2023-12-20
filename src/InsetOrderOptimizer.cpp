@@ -12,12 +12,12 @@
 #include <range/v3/view/any_view.hpp>
 #include <range/v3/view/drop.hpp>
 #include <range/v3/view/drop_last.hpp>
+#include <range/v3/view/filter.hpp>
 #include <range/v3/view/join.hpp>
 #include <range/v3/view/remove_if.hpp>
 #include <range/v3/view/reverse.hpp>
 #include <range/v3/view/take_exactly.hpp>
 #include <range/v3/view/transform.hpp>
-#include <range/v3/view/filter.hpp>
 
 #include "ExtruderTrain.h"
 #include "FffGcodeWriter.h"
@@ -157,24 +157,30 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
         min_inset_idx = std::min(min_inset_idx, line.inset_idx_);
     }
 
-    auto locator_view
-        = input
-        | rv::addressof
-        | rv::transform([&min_inset_idx](const ExtrusionLine* extrusion_line) {
-            const auto poly = extrusion_line->toPolygon();
-            AABB aabb;
-            aabb.include(poly);
-            return LineLoc {
-                .line = extrusion_line,
-                .poly = poly,
-                .area = aabb.area(),
-                .is_outer = extrusion_line->inset_idx_ == min_inset_idx,
-            };
-        })
-        | rg::to_vector;
+    auto locator_view = input | rv::addressof
+                      | rv::transform(
+                            [&min_inset_idx](const ExtrusionLine* extrusion_line)
+                            {
+                                const auto poly = extrusion_line->toPolygon();
+                                AABB aabb;
+                                aabb.include(poly);
+                                return LineLoc{
+                                    .line = extrusion_line,
+                                    .poly = poly,
+                                    .area = aabb.area(),
+                                    .is_outer = extrusion_line->inset_idx_ == min_inset_idx,
+                                };
+                            })
+                      | rg::to_vector;
 
     // Sort polygons by increasing area, we are building the graph from the leaves (smallest area) upwards.
-    rg::sort(locator_view, [](const auto& lhs, const auto& rhs) { return lhs < rhs; }, &LineLoc::area);
+    rg::sort(
+        locator_view,
+        [](const auto& lhs, const auto& rhs)
+        {
+            return lhs < rhs;
+        },
+        &LineLoc::area);
 
     // Create a bi-direction directed acyclic graph (Tree). Where polygon B is a child of A if B is inside A. The root of the graph is
     // the polygon that contains all other polygons. The leaves are polygons that contain no polygons.
@@ -209,7 +215,13 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
     // find for each line the closest outer line
     std::unordered_map<const LineLoc*, unsigned int> min_depth;
     std::unordered_map<const LineLoc*, const LineLoc*> min_node;
-    for (const LineLoc* root_node : locator_view | rv::filter([](const auto& locator) { return locator.is_outer; }) | rv::addressof)
+    for (const LineLoc* root_node : locator_view
+                                        | rv::filter(
+                                            [](const auto& locator)
+                                            {
+                                                return locator.is_outer;
+                                            })
+                                        | rv::addressof)
     {
         const std::function<void(const LineLoc*, const unsigned int)> update_nodes = [&root_node, &min_depth, &min_node](const auto& current_node, auto depth)
         {
@@ -225,7 +237,13 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
 
     // perform a dfs from the root and all hole roots $r$ and set the order constraints for each polyline for which
     // the depth is closest to root $r$
-    for (const LineLoc* root_node : locator_view | rv::filter([](const auto& locator) { return locator.is_outer; }) | rv::addressof)
+    for (const LineLoc* root_node : locator_view
+                                        | rv::filter(
+                                            [](const auto& locator)
+                                            {
+                                                return locator.is_outer;
+                                            })
+                                        | rv::addressof)
     {
         const std::function<void(const LineLoc*, const LineLoc*)> set_order_constraints
             = [&order, &min_node, &root_node, &outer_to_inner](const auto& current_node, const auto& parent_node)
