@@ -73,6 +73,8 @@ class CuraEngineConan(ConanFile):
             self.options["arcus"].shared = True
         if self.settings.os == "Linux":
             self.options["openssl"].shared = True
+        if self.options.get_safe("enable_sentry", False):
+            self.options["sentry-native"].backend = "breakpad"
 
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
@@ -163,6 +165,8 @@ class CuraEngineConan(ConanFile):
         copy(self, f"CuraEngine{ext}", src=self.build_folder, dst=path.join(self.package_folder, "bin"))
         copy(self, f"_CuraEngine.*", src=self.build_folder, dst=path.join(self.package_folder, "lib"))
         copy(self, "LICENSE*", src=self.source_folder, dst=path.join(self.package_folder, "license"))
+        if self.settings.os == "Windows" and self.settings.build_type == "RelWithDebInfo":
+            copy(self, "CuraEngine.pdb", src=self.build_folder, dst=path.join(self.package_folder, "bin"))
 
     def package_info(self):
         ext = ".exe" if self.settings.os == "Windows" else ""
