@@ -7,10 +7,6 @@
 
 #include <range/v3/view/sliding.hpp>
 #include <range/v3/view/reverse.hpp>
-//#include <range/v3/view/take.hpp>
-//#include <range/v3/view/take_last.hpp>
-//#include <range/v3/view/drop.hpp>
-//#include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/enumerate.hpp>
 
 #include "ExtrusionJunction.h"
