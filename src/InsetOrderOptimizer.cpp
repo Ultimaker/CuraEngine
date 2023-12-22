@@ -187,8 +187,10 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
         Polygons hole_polygons;
         for (const auto& poly : extrusion_line->toExtrusionPolygons().splitIntoParts())
         {
+            // drop first path, as this is the outer contour
             for (const auto& hole : poly.paths | ranges::views::drop(1))
             {
+                // reverse the hole polygon to turn a hole into a polygon
                 hole_polygons.emplace_back(hole | ranges::views::reverse | ranges::to_vector);
             }
         }
@@ -220,44 +222,44 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
 
     const std::vector<const ExtrusionLine*> outer_walls = extrusion_lines | ranges::views::filter(&ExtrusionLine::is_outer_wall) | ranges::views::addressof | ranges::to_vector;
 
-    std::unordered_multimap<const ExtrusionLine*, const ExtrusionLine*> order;
-
-    // find for each line the closest outer line
+    // find for each line the closest outer line, and store this in closest_outer_wall_line
+    std::unordered_map<const ExtrusionLine*, const ExtrusionLine*> closest_outer_wall_line;
     std::unordered_map<const ExtrusionLine*, unsigned int> min_depth;
-    std::unordered_map<const ExtrusionLine*, const ExtrusionLine*> min_node;
     for (const ExtrusionLine* outer_wall : outer_walls)
     {
         const std::function<void(const ExtrusionLine*, const unsigned int)> update_nodes
-            = [&outer_wall, &min_depth, &min_node](const ExtrusionLine* current_node, const unsigned int depth)
+            = [&outer_wall, &min_depth, &closest_outer_wall_line](const ExtrusionLine* current_line, const unsigned int depth)
         {
-            if (min_depth.find(current_node) == min_depth.end() || depth < min_depth[current_node])
+            if (min_depth.find(current_line) == min_depth.end() || depth < min_depth[current_line])
             {
-                min_depth[current_node] = depth;
-                min_node[current_node] = outer_wall;
+                min_depth[current_line] = depth;
+                closest_outer_wall_line[current_line] = outer_wall;
             }
         };
         actions::dfs_depth_state(outer_wall, graph, update_nodes);
     }
 
-    // for each of the outer walls, perform a dfs until we have found a extrusion line that is
-    // not closest to the current outer wall. For each extrusion $e$ traversed in the dfs, add an
-    // order constraint between to $e$ and the previous node in the dfs traversal of $e$.
+    // for each of the outer walls, perform a dfs until we have found an extrusion line that is
+    // _not_ closest to the current outer wall, then stop the dfs traversal for that branch. For
+    // each extrusion $e$ traversed in the dfs, add an order constraint between to $e$ and the
+    // previous line in the dfs traversal of $e$.
+    std::unordered_multimap<const ExtrusionLine*, const ExtrusionLine*> order;
     for (const ExtrusionLine* outer_wall : outer_walls)
     {
         const std::function<void(const ExtrusionLine*, const ExtrusionLine*)> set_order_constraints
-            = [&order, &min_node, &outer_wall, &outer_to_inner](const auto& current_node, const auto& parent_node)
+            = [&order, &closest_outer_wall_line, &outer_wall, &outer_to_inner](const auto& current_line, const auto& parent_line)
         {
-            // if parent root is n
-            if (min_node[current_node] == outer_wall && parent_node != nullptr)
+            // if the closest
+            if (closest_outer_wall_line[current_line] == outer_wall && parent_line != nullptr)
             {
                 // flip the key values if we want to print from inner to outer walls
                 if (outer_to_inner)
                 {
-                    order.insert(std::make_pair(parent_node, current_node));
+                    order.insert(std::make_pair(parent_line, current_line));
                 }
                 else
                 {
-                    order.insert(std::make_pair(current_node, parent_node));
+                    order.insert(std::make_pair(current_line, parent_line));
                 }
             }
         };
