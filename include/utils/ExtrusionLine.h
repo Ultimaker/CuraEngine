@@ -5,9 +5,9 @@
 #ifndef UTILS_EXTRUSION_LINE_H
 #define UTILS_EXTRUSION_LINE_H
 
+#include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/reverse.hpp>
 #include <range/v3/view/sliding.hpp>
-#include <range/v3/view/enumerate.hpp>
 
 #include "ExtrusionJunction.h"
 #include "polygon.h"
