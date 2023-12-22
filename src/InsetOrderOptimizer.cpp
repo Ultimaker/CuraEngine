@@ -3,8 +3,8 @@
 
 #include "InsetOrderOptimizer.h"
 
-#include <tuple>
 #include <functional>
+#include <tuple>
 
 #include <range/v3/algorithm/max.hpp>
 #include <range/v3/algorithm/sort.hpp>
@@ -145,24 +145,32 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
     }
 
     // view on the extrusion lines, sorted by area
-    const auto sorted_extrusion_lines = [&extrusion_lines](){
-        auto extrusion_lines_area
-            = extrusion_lines
-            | ranges::views::addressof
-            | ranges::views::transform([](const ExtrusionLine* line) {
-               const auto poly = line->toPolygon();
-               AABB aabb;
-               aabb.include(poly);
-               return std::make_pair(line, aabb.area());
-            })
-            | ranges::to_vector;
+    const auto sorted_extrusion_lines = [&extrusion_lines]()
+    {
+        auto extrusion_lines_area = extrusion_lines | ranges::views::addressof
+                                  | ranges::views::transform(
+                                        [](const ExtrusionLine* line)
+                                        {
+                                            const auto poly = line->toPolygon();
+                                            AABB aabb;
+                                            aabb.include(poly);
+                                            return std::make_pair(line, aabb.area());
+                                        })
+                                  | ranges::to_vector;
 
-        ranges::sort(extrusion_lines_area, [](const auto& lhs, const auto& rhs)
-        {
-            return std::get<1>(lhs) < std::get<1>(rhs);
-        });
+        ranges::sort(
+            extrusion_lines_area,
+            [](const auto& lhs, const auto& rhs)
+            {
+                return std::get<1>(lhs) < std::get<1>(rhs);
+            });
 
-        return extrusion_lines_area | ranges::views::transform([](const auto& pair) { return std::get<0>(pair); });
+        return extrusion_lines_area
+             | ranges::views::transform(
+                   [](const auto& pair)
+                   {
+                       return std::get<0>(pair);
+                   });
     }();
 
     // graph will contain the parent-child relationships between the extrusion lines
@@ -209,11 +217,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
         invariant_outer_parents.emplace(extrusion_line);
     }
 
-    const std::vector<const ExtrusionLine*> outer_walls
-        = extrusion_lines
-        | ranges::views::filter(&ExtrusionLine::is_outer_wall)
-        | ranges::views::addressof
-        | ranges::to_vector;
+    const std::vector<const ExtrusionLine*> outer_walls = extrusion_lines | ranges::views::filter(&ExtrusionLine::is_outer_wall) | ranges::views::addressof | ranges::to_vector;
 
     std::unordered_multimap<const ExtrusionLine*, const ExtrusionLine*> order;
 
@@ -222,7 +226,8 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
     std::unordered_map<const ExtrusionLine*, const ExtrusionLine*> min_node;
     for (const ExtrusionLine* outer_wall : outer_walls)
     {
-        const std::function<void(const ExtrusionLine*, const unsigned int)> update_nodes = [&outer_wall, &min_depth, &min_node](const ExtrusionLine* current_node, const unsigned int depth)
+        const std::function<void(const ExtrusionLine*, const unsigned int)> update_nodes
+            = [&outer_wall, &min_depth, &min_node](const ExtrusionLine* current_node, const unsigned int depth)
         {
             if (min_depth.find(current_node) == min_depth.end() || depth < min_depth[current_node])
             {
