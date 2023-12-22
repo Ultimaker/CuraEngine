@@ -230,9 +230,8 @@ struct ExtrusionLine
     }
 
     /*!
-     * Create a true-extrosion area polygo
-     *
-     * When this path is not closed the returned Polygon should be handled as a polyline, rather than a polygon.
+     * Create a true-extrusion area shape for the path; this means that each junction follows the bead-width
+     * set for that junction.
      */
     Polygons toExtrusionPolygons() const
     {
