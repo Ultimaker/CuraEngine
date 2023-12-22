@@ -4,6 +4,7 @@
 #include "InsetOrderOptimizer.h"
 
 #include <tuple>
+#include <functional>
 
 #include <range/v3/algorithm/max.hpp>
 #include <range/v3/algorithm/sort.hpp>
@@ -135,135 +136,127 @@ bool InsetOrderOptimizer::addToLayer()
     return added_something;
 }
 
-InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::vector<ExtrusionLine>& input, const bool outer_to_inner)
+InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::vector<ExtrusionLine>& extrusion_lines, const bool outer_to_inner)
 {
-    if (input.empty()) // Early out
+    if (extrusion_lines.empty())
     {
+        // Early out
         return {};
     }
 
-    // Cache the polygons and get the signed area of each extrusion line and store them mapped against the pointers for those lines
-    struct LineLoc
-    {
-        const ExtrusionLine* line;
-        Polygon poly;
-        coord_t area;
-        bool is_outer;
-    };
+    // view on the extrusion lines, sorted by area
+    const auto sorted_extrusion_lines = [&extrusion_lines](){
+        auto extrusion_lines_area
+            = extrusion_lines
+            | ranges::views::addressof
+            | ranges::views::transform([](const ExtrusionLine* line) {
+               const auto poly = line->toPolygon();
+               AABB aabb;
+               aabb.include(poly);
+               return std::make_pair(line, aabb.area());
+            })
+            | ranges::to_vector;
 
-    size_t min_inset_idx = std::numeric_limits<size_t>::max();
-    for (const auto& line : input)
-    {
-        min_inset_idx = std::min(min_inset_idx, line.inset_idx_);
-    }
-
-    auto locator_view = input | rv::addressof
-                      | rv::transform(
-                            [&min_inset_idx](const ExtrusionLine* extrusion_line)
-                            {
-                                const auto poly = extrusion_line->toPolygon();
-                                AABB aabb;
-                                aabb.include(poly);
-                                return LineLoc{
-                                    .line = extrusion_line,
-                                    .poly = poly,
-                                    .area = aabb.area(),
-                                    .is_outer = extrusion_line->inset_idx_ == min_inset_idx,
-                                };
-                            })
-                      | rg::to_vector;
-
-    // Sort polygons by increasing area, we are building the graph from the leaves (smallest area) upwards.
-    rg::sort(
-        locator_view,
-        [](const auto& lhs, const auto& rhs)
+        ranges::sort(extrusion_lines_area, [](const auto& lhs, const auto& rhs)
         {
-            return lhs < rhs;
-        },
-        &LineLoc::area);
+            return std::get<1>(lhs) < std::get<1>(rhs);
+        });
 
-    // Create a bi-direction directed acyclic graph (Tree). Where polygon B is a child of A if B is inside A. The root of the graph is
-    // the polygon that contains all other polygons. The leaves are polygons that contain no polygons.
-    // We need a bi-directional graph as we are performing a dfs from the root down and from each of the hole (which are leaves in the graph) up the tree
-    std::unordered_multimap<const LineLoc*, const LineLoc*> graph;
-    std::unordered_set<LineLoc*> roots;
-    for (const auto& locator : locator_view | rv::addressof)
+        return extrusion_lines_area | ranges::views::transform([](const auto& pair) { return std::get<0>(pair); });
+    }();
+
+    // graph will contain the parent-child relationships between the extrusion lines
+    // an edge is added for both the parent to child and child to parent relationship
+    std::unordered_multimap<const ExtrusionLine*, const ExtrusionLine*> graph;
+    // during the loop we maintain a list of invariant parents; these are the parents
+    // that we have found so far
+    std::unordered_set<const ExtrusionLine*> invariant_outer_parents;
+    for (const auto& extrusion_line : sorted_extrusion_lines)
     {
-        std::vector<LineLoc*> erase;
-        for (const auto& root : roots)
+        // Create a polygon representing the inner area of the extrusion line; any
+        // point inside this polygon is considered to the child of the extrusion line.
+        Polygons hole_polygons;
+        for (const auto& poly : extrusion_line->toExtrusionPolygons().splitIntoParts())
         {
-            if (locator->poly.inside(root->poly[0], false))
+            for (const auto& hole : poly.paths | ranges::views::drop(1))
+            {
+                hole_polygons.emplace_back(hole | ranges::views::reverse | ranges::to_vector);
+            }
+        }
+        // increase the size of the hole polygons by 10um to make sure we don't miss any invariant parents
+        hole_polygons.offset(10);
+
+        // go through all the invariant parents and see if they are inside the hole polygon
+        // if they are, then that means we have found a child for this extrusion line
+        std::vector<const ExtrusionLine*> removed_parent_invariants;
+        for (const ExtrusionLine* invariant_parent : invariant_outer_parents)
+        {
+            if (hole_polygons.inside(invariant_parent->junctions_[0].p_, false))
             {
                 // The root polygon is inside the location polygon. It is no longer a root in the graph we are building.
                 // Add this relationship (locator <-> root) to the graph, and remove root from roots.
-                graph.emplace(locator, root);
-                graph.emplace(root, locator);
-                erase.emplace_back(root);
+                graph.emplace(extrusion_line, invariant_parent);
+                graph.emplace(invariant_parent, extrusion_line);
+                removed_parent_invariants.emplace_back(invariant_parent);
             }
         }
-        for (const auto& node : erase)
+        for (const auto& node : removed_parent_invariants)
         {
-            roots.erase(node);
+            invariant_outer_parents.erase(node);
         }
-        // We are adding to the graph from smallest area -> largest area. This means locator will always be the largest polygon in the graph so far.
-        // No polygon in the graph is big enough to contain locator, so it must be a root.
-        roots.emplace(locator);
+
+        // the current extrusion line is now an invariant parent
+        invariant_outer_parents.emplace(extrusion_line);
     }
+
+    const std::vector<const ExtrusionLine*> outer_walls
+        = extrusion_lines
+        | ranges::views::filter(&ExtrusionLine::is_outer_wall)
+        | ranges::views::addressof
+        | ranges::to_vector;
 
     std::unordered_multimap<const ExtrusionLine*, const ExtrusionLine*> order;
 
     // find for each line the closest outer line
-    std::unordered_map<const LineLoc*, unsigned int> min_depth;
-    std::unordered_map<const LineLoc*, const LineLoc*> min_node;
-    for (const LineLoc* root_node : locator_view
-                                        | rv::filter(
-                                            [](const auto& locator)
-                                            {
-                                                return locator.is_outer;
-                                            })
-                                        | rv::addressof)
+    std::unordered_map<const ExtrusionLine*, unsigned int> min_depth;
+    std::unordered_map<const ExtrusionLine*, const ExtrusionLine*> min_node;
+    for (const ExtrusionLine* outer_wall : outer_walls)
     {
-        const std::function<void(const LineLoc*, const unsigned int)> update_nodes = [&root_node, &min_depth, &min_node](const auto& current_node, auto depth)
+        const std::function<void(const ExtrusionLine*, const unsigned int)> update_nodes = [&outer_wall, &min_depth, &min_node](const ExtrusionLine* current_node, const unsigned int depth)
         {
             if (min_depth.find(current_node) == min_depth.end() || depth < min_depth[current_node])
             {
                 min_depth[current_node] = depth;
-                min_node[current_node] = root_node;
+                min_node[current_node] = outer_wall;
             }
         };
-
-        actions::dfs_depth_state(root_node, graph, update_nodes);
+        actions::dfs_depth_state(outer_wall, graph, update_nodes);
     }
 
-    // perform a dfs from the root and all hole roots $r$ and set the order constraints for each polyline for which
-    // the depth is closest to root $r$
-    for (const LineLoc* root_node : locator_view
-                                        | rv::filter(
-                                            [](const auto& locator)
-                                            {
-                                                return locator.is_outer;
-                                            })
-                                        | rv::addressof)
+    // for each of the outer walls, perform a dfs until we have found a extrusion line that is
+    // not closest to the current outer wall. For each extrusion $e$ traversed in the dfs, add an
+    // order constraint between to $e$ and the previous node in the dfs traversal of $e$.
+    for (const ExtrusionLine* outer_wall : outer_walls)
     {
-        const std::function<void(const LineLoc*, const LineLoc*)> set_order_constraints
-            = [&order, &min_node, &root_node, &outer_to_inner](const auto& current_node, const auto& parent_node)
+        const std::function<void(const ExtrusionLine*, const ExtrusionLine*)> set_order_constraints
+            = [&order, &min_node, &outer_wall, &outer_to_inner](const auto& current_node, const auto& parent_node)
         {
             // if parent root is n
-            if (min_node[current_node] == root_node && parent_node != nullptr)
+            if (min_node[current_node] == outer_wall && parent_node != nullptr)
             {
                 // flip the key values if we want to print from inner to outer walls
                 if (outer_to_inner)
                 {
-                    order.insert(std::make_pair(parent_node->line, current_node->line));
+                    order.insert(std::make_pair(parent_node, current_node));
                 }
                 else
                 {
-                    order.insert(std::make_pair(current_node->line, parent_node->line));
+                    order.insert(std::make_pair(current_node, parent_node));
                 }
             }
         };
 
-        actions::dfs_parent_state(root_node, graph, set_order_constraints);
+        actions::dfs_parent_state(outer_wall, graph, set_order_constraints);
     }
 
     return order;

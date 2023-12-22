@@ -5,6 +5,14 @@
 #ifndef UTILS_EXTRUSION_LINE_H
 #define UTILS_EXTRUSION_LINE_H
 
+#include <range/v3/view/sliding.hpp>
+#include <range/v3/view/reverse.hpp>
+//#include <range/v3/view/take.hpp>
+//#include <range/v3/view/take_last.hpp>
+//#include <range/v3/view/drop.hpp>
+//#include <range/v3/view/drop_last.hpp>
+#include <range/v3/view/enumerate.hpp>
+
 #include "ExtrusionJunction.h"
 #include "polygon.h"
 
@@ -55,6 +63,16 @@ struct ExtrusionLine
     size_t size() const
     {
         return junctions_.size();
+    }
+
+    /*!
+     * Gets the vertex at the given index.
+     * \param idx The index of the vertex to get.
+     * \return The vertex at the given index.
+     */
+    bool is_outer_wall() const
+    {
+        return inset_idx_ == 0;
     }
 
     /*!
@@ -213,6 +231,42 @@ struct ExtrusionLine
             ret.add(j.p_);
 
         return ret;
+    }
+
+    /*!
+     * Create a true-extrosion area polygo
+     *
+     * When this path is not closed the returned Polygon should be handled as a polyline, rather than a polygon.
+     */
+    Polygons toExtrusionPolygons() const
+    {
+        Polygon poly;
+
+        const auto add_line_direction = [&poly](const auto iterator){
+            const auto window = iterator | ranges::views::sliding(2);
+
+            for (const auto& element : iterator | ranges::views::sliding(2))
+            {
+                const ExtrusionJunction& j1 = element[0];
+                const ExtrusionJunction& j2 = element[1];
+
+                const auto dir = j2.p_ - j1.p_;
+                const auto normal = turn90CCW(dir);
+                const auto mag = vSize(normal);
+                poly.emplace_back(j1.p_ + normal * j1.w_ / mag);
+                poly.emplace_back(j2.p_ + normal * j2.w_ / mag);
+            }
+        };
+
+        // forward pass
+        add_line_direction(junctions_);
+        // backward pass
+        add_line_direction(junctions_ | ranges::views::reverse);
+
+        Polygons paths;
+        paths.emplace_back(poly.poly);
+        ClipperLib::SimplifyPolygons(paths.paths, ClipperLib::pftNonZero);
+        return paths;
     }
 
     /*!
