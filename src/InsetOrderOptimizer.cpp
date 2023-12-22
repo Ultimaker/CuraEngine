@@ -170,7 +170,8 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
                    [](const auto& pair)
                    {
                        return std::get<0>(pair);
-                   });
+                   })
+                | ranges::to_vector;
     }();
 
     // graph will contain the parent-child relationships between the extrusion lines
