@@ -5,8 +5,12 @@
 #ifndef UTILS_EXTRUSION_LINE_H
 #define UTILS_EXTRUSION_LINE_H
 
-#include <range/v3/view/sliding.hpp>
 #include <range/v3/view/reverse.hpp>
+#include <range/v3/view/sliding.hpp>
+//#include <range/v3/view/take.hpp>
+//#include <range/v3/view/take_last.hpp>
+//#include <range/v3/view/drop.hpp>
+//#include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/enumerate.hpp>
 
 #include "ExtrusionJunction.h"
@@ -238,7 +242,8 @@ struct ExtrusionLine
     {
         Polygon poly;
 
-        const auto add_line_direction = [&poly](const auto iterator){
+        const auto add_line_direction = [&poly](const auto iterator)
+        {
             const auto window = iterator | ranges::views::sliding(2);
 
             for (const auto& element : iterator | ranges::views::sliding(2))
