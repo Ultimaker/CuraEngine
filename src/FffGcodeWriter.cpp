@@ -929,9 +929,35 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             skip_some_zags,
             zag_skip_count,
             pocket_size);
+
         std::vector<VariableWidthLines> raft_paths; // Should remain empty, since we have no walls.
         infill_comp.generate(raft_paths, raft_polygons, raft_lines, surface_settings, layer_nr, SectionType::ADHESION);
-        gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
+
+        const auto wipe_dist = 0;
+        const auto spiralize = false;
+        const auto flow_ratio = 1.0_r;
+        const auto enable_travel_optimization = false;
+        const auto always_retract = false;
+        const auto reverse_order = false;
+
+        gcode_layer.addLinesByOptimizer(
+            raft_lines,
+            gcode_layer.configs_storage.raft_surface_config,
+            SpaceFillType::Lines,
+            enable_travel_optimization,
+            wipe_dist,
+            flow_ratio,
+            last_planned_position);
+        gcode_layer.addPolygonsByOptimizer(
+            raft_polygons,
+            gcode_layer.configs_storage.raft_surface_config,
+            ZSeamConfig(),
+            wipe_dist,
+            spiralize,
+            flow_ratio,
+            always_retract,
+            reverse_order,
+            gcode_layer.getLastPlannedPositionOrStartingPosition());
 
         raft_polygons.clear();
         raft_lines.clear();
