@@ -437,20 +437,23 @@ struct TreeSupportElement
             }
         }
     }
+
     void setToBuildplateForAllParents(bool new_value)
     {
         to_buildplate = new_value;
+        to_model_gracious_ |= new_value;
         std::vector<TreeSupportElement*> grandparents {parents};
         while (!grandparents.empty()){
             std::vector<TreeSupportElement*> next_parents;
             for (TreeSupportElement* grandparent:grandparents){
                 next_parents.insert(next_parents.end(),grandparent->parents.begin(),grandparent->parents.end());
                 grandparent->to_buildplate = new_value;
+                grandparent->to_model_gracious |= new_value; // If we set to_buildplate to true, update to_model_gracious
             }
             grandparents = next_parents;
         }
     }
-    
+
     inline bool isResultOnLayerSet() const
     {
         return result_on_layer != Point(-1, -1);
