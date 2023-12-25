@@ -69,8 +69,8 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceDataStorage& storage
     , cradle_line_width(retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_line_width"))
     , cradle_lines_roof(! use_fake_roof && retrieveSetting<std::string>(mesh.settings, "support_tree_roof_cradle") != "none")
     , cradle_base_roof(
-          ! use_fake_roof && retrieveSetting<std::string>(mesh.settings, "support_tree_roof_cradle") == "cradle_and_base"
-          || retrieveSetting<std::string>(mesh.settings, "support_tree_roof_cradle") == "large_cradle_and_base")
+          ! use_fake_roof && (retrieveSetting<std::string>(mesh.settings, "support_tree_roof_cradle") == "cradle_and_base"
+          || retrieveSetting<std::string>(mesh.settings, "support_tree_roof_cradle") == "large_cradle_and_base"))
     , large_cradle_base(! use_fake_roof && retrieveSetting<std::string>(mesh.settings, "support_tree_roof_cradle") == "large_cradle_and_base")
     , cradle_area_threshold(1000 * 1000 * retrieveSetting<double>(mesh.settings, "support_tree_maximum_pointy_area"))
     , cradle_tip_dtt(config.tip_layers * retrieveSetting<double>(mesh.settings, "support_tree_cradle_base_tip_percentage") / 100.0)
@@ -588,7 +588,7 @@ void TreeSupportTipGenerator::generateCradle(const SliceMeshStorage& mesh, std::
         mesh.overhang_areas.size() - (z_distance_delta + 1),
         [&](const LayerIndex layer_idx)
         {
-            if(mesh.overhang_areas[layer_idx + z_distance_delta].empty())
+            if(mesh.overhang_areas[layer_idx + z_distance_delta].empty() || getFullyUnsupportedArea(layer_idx + z_distance_delta).empty())
             {
                 return;
             }
@@ -609,6 +609,7 @@ void TreeSupportTipGenerator::generateCradle(const SliceMeshStorage& mesh, std::
                 Polygons shadow; // A combination of all outlines of the model that will be supported with a cradle.
                 bool abort = false;
                 bool contacted_other_pointy = false;
+                std::vector<Polygons> unsupported_model(accumulated_model.size());
                 for (size_t cradle_up_layer = 0; cradle_up_layer < accumulated_model.size(); cradle_up_layer++)
                 {
                     Polygons relevant_forbidden =
@@ -641,7 +642,7 @@ void TreeSupportTipGenerator::generateCradle(const SliceMeshStorage& mesh, std::
                                     contacted_other_pointy = true;
                                     continue;
                                 }
-
+                                unsupported_model[cradle_up_layer].add(next_pointy_data.area);
                                 // Ensure each area is only handles once
                                 std::lock_guard<std::mutex> critical_section_cradle(critical_dedupe);
                                 if (! dedupe[layer_idx + cradle_up_layer].contains(next_pointy_data.index))
@@ -678,20 +679,11 @@ void TreeSupportTipGenerator::generateCradle(const SliceMeshStorage& mesh, std::
                             // But if the cradle stops there will be z distance layer between the end of the cradle and said merge.
                             // To reduce the impact an area is estimated where the cradle should be for these areas.
                             Polygons previous_area = shadow;
-                            for (size_t cradle_up_layer_z_delta = cradle_up_layer; cradle_up_layer_z_delta < std::min(cradle_up_layer + z_distance_delta - 1, accumulated_model.size()); cradle_up_layer_z_delta++)
+                            for (size_t cradle_up_layer_z_distance = cradle_up_layer;
+                                 cradle_up_layer_z_distance < std::min(cradle_up_layer + z_distance_delta - 1, accumulated_model.size());
+                                 cradle_up_layer_z_distance++)
                             {
-                                Polygons possible_areas = shadow.offset(cradle_up_layer_z_delta * config.maximum_move_distance + config.xy_min_distance).intersection(mesh.layers[layer_idx + cradle_up_layer_z_delta - 1].getOutlines());
-                                Polygons next_area;
-                                for (auto part : possible_areas.splitIntoParts(true))
-                                {
-                                    if (! previous_area.intersection(part).empty())
-                                    {
-                                        next_area.add(part);
-                                    }
-                                }
-                                previous_area = next_area;
-
-                                accumulated_model[cradle_up_layer_z_delta] = next_area;
+                                accumulated_model[cradle_up_layer_z_distance] = unsupported_model[cradle_up_layer_z_distance].unionPolygons();
                             }
                         }
                         break;
