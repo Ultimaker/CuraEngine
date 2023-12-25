@@ -727,8 +727,29 @@ void SupportLayer::fillInfillParts(
 {
     const Polygons& support_this_layer = support_fill_per_layer[layer_nr];
     const Polygons& support_layer_above
-        = (layer_nr + 1) >= support_fill_per_layer.size() || layer_nr <= 0 ? Polygons() : support_fill_per_layer[layer_nr + 1].offset(grow_layer_above);
-    const auto all_support_areas_in_layer = { support_this_layer.difference(support_layer_above), support_this_layer.intersection(support_layer_above) };
+        = (layer_nr + 1) >= support_fill_per_layer.size() || layer_nr <= 0 ? Polygons() : support_fill_per_layer[layer_nr + 1].unionPolygons().offset(grow_layer_above);
+
+    fillInfillParts(support_this_layer, support_this_layer, support_layer_above, support_line_width, wall_line_count, unionAll, custom_line_distance, custom_pattern);
+}
+
+void SupportLayer::fillInfillParts(
+    const Polygons& support_fill_new_this_layer,
+    const Polygons& support_fill_total_this_layer,
+    const Polygons& support_fill_total_next_layer,
+    const coord_t support_line_width,
+    const coord_t wall_line_count,
+    const bool unionAll,
+    const coord_t custom_line_distance,
+    EFillMethod custom_pattern)
+{
+    std::vector<Polygons> all_support_areas_in_layer
+        = { support_fill_total_this_layer.difference(support_fill_total_next_layer), support_fill_new_this_layer.intersection(support_fill_total_next_layer) };
+
+    if (&support_fill_new_this_layer != &support_fill_total_this_layer)
+    {
+        all_support_areas_in_layer[0] = all_support_areas_in_layer[0].intersection(support_fill_new_this_layer);
+    }
+
     bool use_fractional_config = true;
     for (auto& support_areas : all_support_areas_in_layer)
     {

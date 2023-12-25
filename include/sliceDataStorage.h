@@ -237,6 +237,7 @@ public:
      * \param grow_layer_above (optional, default to 0) In cases where support shrinks per layer up, an appropriate offset may be nescesary.
      * \param unionAll (optional, default to false) Wether to 'union all' for the split into parts bit.
      * \param custom_line_distance (optional, default to 0) Distance between lines of the infill pattern. custom_line_distance of 0 means use the default instead.
+     * \param custom_pattern (optional, default to EFillMethod::NONE) Set if a non default infill pattern should be used
      */
     void fillInfillParts(
         const LayerIndex layer_nr,
@@ -244,6 +245,29 @@ public:
         const coord_t support_line_width,
         const coord_t wall_line_count,
         const coord_t grow_layer_above = 0,
+        const bool unionAll = false,
+        const coord_t custom_line_distance = 0,
+        EFillMethod custom_pattern = EFillMethod::NONE);
+
+
+    /* Fill up the infill parts for the support with the given support polygons. The support polygons will be split into parts. This also takes into account fractional-height
+     * support layers.
+     *
+     * \param support_fill_new_this_layer Support that should be added.
+     * \param support_fill_total_this_layer All support that will be on the current layer.
+     * \param support_fill_total_next_layer All support that will be on the next.
+     * \param support_line_width Line width of the support extrusions.
+     * \param wall_line_count Wall-line count around the fill.
+     * \param unionAll (optional, default to false) Wether to 'union all' for the split into parts bit.
+     * \param custom_line_distance (optional, default to 0) Distance between lines of the infill pattern. custom_line_distance of 0 means use the default instead.
+     * \param custom_pattern (optional, default to EFillMethod::NONE) Set if a non default infill pattern should be used
+     */
+    void fillInfillParts(
+        const Polygons& support_fill_new_this_layer,
+        const Polygons& support_fill_total_this_layer,
+        const Polygons& support_fill_total_next_layer,
+        const coord_t support_line_width,
+        const coord_t wall_line_count,
         const bool unionAll = false,
         const coord_t custom_line_distance = 0,
         EFillMethod custom_pattern = EFillMethod::NONE);

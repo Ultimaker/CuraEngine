@@ -2134,7 +2134,16 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                         if (! PolygonUtils::clipPolygonWithAABB(may_need_skin_area,AABB(part_outline)).empty())
                         {
                             // Use line infill to scan which area the line infill has to occupy to reach the outer outline of a branch.
-                            Polygons scan_lines = TreeSupportUtils::generateSupportInfillLines(part_outline, config, false, layer_idx - support_skin_ctr, config.support_skin_line_distance, nullptr, false, EFillMethod::LINES, true);
+                            Polygons scan_lines = TreeSupportUtils::generateSupportInfillLines(
+                                part_outline,
+                                config,
+                                false,
+                                layer_idx - support_skin_ctr,
+                                config.support_skin_line_distance,
+                                nullptr,
+                                false,
+                                EFillMethod::LINES,
+                                true);
 
                             Polygons intersecting_lines;
 
@@ -2146,7 +2155,8 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                                 }
                             }
 
-                            Polygons partial_skin_area = intersecting_lines.offsetPolyLine(config.support_skin_line_distance).unionPolygons().intersection(part_outline);
+                            Polygons partial_skin_area
+                                = intersecting_lines.offsetPolyLine(config.support_skin_line_distance + FUDGE_LENGTH).unionPolygons().intersection(part_outline);
 
                             // If a some scan lines had contact with two parts of part_outline, but the second part is outside of may_need_skin_area it could cause a separate skin area, that then cuts a branch in half that could have been completely normal.
                             // This area that does not need to be skin will be filtered out here.
@@ -2167,7 +2177,9 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                             Polygons remaining_part;
                             for (auto sub_part : part.splitIntoParts())
                             {
-                                if (sub_part.area() < part_area / 5 && sub_part.area() * 2 < M_PI * pow(config.branch_radius,2)) // Prevent small slivers of a branch to generate as skin. The heuristic to detect if a part is too small or thin could maybe be improved.
+                                // Prevent small slivers of a branch to generate as support. The heuristic to detect if a part is too small or thin could maybe be improved.
+                                if ((sub_part.area() < part_area / 5 && sub_part.area() * 2 < M_PI * pow(config.branch_radius,2))
+                                    || sub_part.offset(-config.support_line_width).area() < 1)
                                 {
                                     partial_skin_area = partial_skin_area.unionPolygons(sub_part);
                                 }
@@ -2483,11 +2495,15 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
             }
 
             constexpr bool convert_every_part = true; // Convert every part into a PolygonsPart for the support.
-            storage.support.supportLayers[layer_idx]
-                .fillInfillParts(layer_idx, support_layer_storage, config.support_line_width, config.support_wall_count, config.maximum_move_distance, convert_every_part);
+            const Polygons all_this_layer = support_skin_storage[layer_idx].unionPolygons(support_layer_storage[layer_idx]);
+            const Polygons all_next_layer = support_layer_storage.size()<layer_idx+1?
+                support_skin_storage[layer_idx+1].unionPolygons(support_layer_storage[layer_idx+1]).offset(config.maximum_move_distance).unionPolygons():Polygons();
 
             storage.support.supportLayers[layer_idx]
-                .fillInfillParts(layer_idx, support_skin_storage, config.support_line_width, config.support_wall_count, config.maximum_move_distance, convert_every_part,  config.support_skin_line_distance, EFillMethod::LINES);
+                .fillInfillParts(support_layer_storage[layer_idx], all_this_layer, all_next_layer, config.support_line_width, config.support_wall_count, convert_every_part);
+
+            storage.support.supportLayers[layer_idx]
+                .fillInfillParts(support_skin_storage[layer_idx], all_this_layer, all_next_layer, config.support_line_width, config.support_wall_count, convert_every_part,  config.support_skin_line_distance, EFillMethod::LINES);
 
             {
                 std::lock_guard<std::mutex> critical_section_progress(critical_sections);
