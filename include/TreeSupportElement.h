@@ -441,7 +441,7 @@ struct TreeSupportElement
     void setToBuildplateForAllParents(bool new_value)
     {
         to_buildplate = new_value;
-        to_model_gracious_ |= new_value;
+        to_model_gracious |= new_value;
         std::vector<TreeSupportElement*> grandparents {parents};
         while (!grandparents.empty()){
             std::vector<TreeSupportElement*> next_parents;
