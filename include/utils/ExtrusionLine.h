@@ -239,8 +239,6 @@ struct ExtrusionLine
 
         const auto add_line_direction = [&poly](const auto iterator)
         {
-            const auto window = iterator | ranges::views::sliding(2);
-
             for (const auto& element : iterator | ranges::views::sliding(2))
             {
                 const ExtrusionJunction& j1 = element[0];
