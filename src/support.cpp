@@ -908,12 +908,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
                         const auto delta_point_next = window[1];
 
                         const auto dist2 = LinearAlg2D::getDist2FromLineSegment(delta_point, current_point, delta_point_next);
-
-                        if (dist2 < min_dist2)
-                        {
-                            min_dist2 = dist2;
-                            min_point = LinearAlg2D::getClosestOnLineSegment(current_point, delta_point, delta_point_next);
-                        }
+                        min_dist2 = std::min(min_dist2, dist2);
                     }
                 }
 
