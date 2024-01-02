@@ -8,7 +8,6 @@
 #include <fstream> // ifstream.good()
 #include <utility> // pair
 
-#include <range/v3/numeric/accumulate.hpp>
 #include <range/v3/view/concat.hpp>
 #include <range/v3/view/drop.hpp>
 #include <range/v3/view/drop_last.hpp>
@@ -22,7 +21,6 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get settings.
-#include "BoostInterface.hpp"
 #include "ExtruderTrain.h"
 #include "SkeletalTrapezoidation.h"
 #include "Slice.h"
@@ -37,9 +35,7 @@
 #include "slicer.h"
 #include "utils/Simplify.h"
 #include "utils/ThreadPool.h"
-#include "utils/VoronoiUtils.h"
 #include "utils/math.h"
-#include "utils/views/get.h"
 
 namespace cura
 {
