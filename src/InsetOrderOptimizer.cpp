@@ -188,7 +188,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
         Polygons hole_polygons;
         Polygons outer_polygons;
         outer_polygons.add(extrusion_line->toPolygon());
-        for (const auto& poly : outer_polygons.offsetPolyLine(line_width/2, ClipperLib::JoinType::jtRound).splitIntoParts())
+        for (const auto& poly : outer_polygons.offsetPolyLine(line_width / 2, ClipperLib::JoinType::jtRound).splitIntoParts())
         {
             // drop first path, as this is the outer contour
             for (const auto& hole : poly.paths | ranges::views::drop(1))
@@ -198,7 +198,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
             }
         }
         // increase the size of the hole polygons by 10um to make sure we don't miss any invariant parents
-        hole_polygons = hole_polygons.offset(line_width/2);
+        hole_polygons = hole_polygons.offset(line_width / 2);
 
         // go through all the invariant parents and see if they are inside the hole polygon
         // if they are, then that means we have found a child for this extrusion line
