@@ -247,6 +247,12 @@ struct ExtrusionLine
                 const auto dir = j2.p_ - j1.p_;
                 const auto normal = turn90CCW(dir);
                 const auto mag = vSize(normal);
+
+                if (mag <= 5)
+                {
+                    continue;
+                }
+
                 poly.emplace_back(j1.p_ + normal * j1.w_ / mag);
                 poly.emplace_back(j2.p_ + normal * j2.w_ / mag);
             }
