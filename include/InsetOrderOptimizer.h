@@ -72,7 +72,7 @@ public:
      *
      * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
      */
-    static value_type getRegionOrder(const std::vector<ExtrusionLine>& input, const bool outer_to_inner, const coord_t line_width);
+    static value_type getRegionOrder(const std::vector<ExtrusionLine>& input, const bool outer_to_inner);
 
     /*!
      * Get the order constraints of the insets when printing walls per inset.

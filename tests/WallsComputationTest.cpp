@@ -144,7 +144,6 @@ TEST_F(WallsComputationTest, GenerateWallsZeroWalls)
 TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
 {
     settings.add("wall_line_count", "5");
-    coord_t line_width = 400;
     SliceLayer layer;
     layer.parts.emplace_back();
     SliceLayerPart& part = layer.parts.back();
@@ -159,7 +158,7 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     {
         all_paths.emplace_back(line);
     }
-    auto order = InsetOrderOptimizer::getRegionOrder(all_paths, outer_to_inner, line_width);
+    auto order = InsetOrderOptimizer::getRegionOrder(all_paths, outer_to_inner);
 
     // Verify that something was generated.
     EXPECT_FALSE(part.wall_toolpaths.empty()) << "There must be some walls.";

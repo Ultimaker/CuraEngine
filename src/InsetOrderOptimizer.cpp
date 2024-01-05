@@ -75,7 +75,6 @@ bool InsetOrderOptimizer::addToLayer()
     const auto pack_by_inset = ! settings_.get<bool>("optimize_wall_printing_order");
     const auto inset_direction = settings_.get<InsetDirection>("inset_direction");
     const auto alternate_walls = settings_.get<bool>("material_alternate_walls");
-    const auto line_width = settings_.get<coord_t>("line_width");
 
     const bool outer_to_inner = inset_direction == InsetDirection::OUTSIDE_IN;
     const bool use_one_extruder = wall_0_extruder_nr_ == wall_x_extruder_nr_;
@@ -84,7 +83,7 @@ bool InsetOrderOptimizer::addToLayer()
     const bool reverse = shouldReversePath(use_one_extruder, current_extruder_is_wall_x, outer_to_inner);
     auto walls_to_be_added = getWallsToBeAdded(reverse, use_one_extruder);
 
-    const auto order = pack_by_inset ? getInsetOrder(walls_to_be_added, outer_to_inner) : getRegionOrder(walls_to_be_added, outer_to_inner, line_width);
+    const auto order = pack_by_inset ? getInsetOrder(walls_to_be_added, outer_to_inner) : getRegionOrder(walls_to_be_added, outer_to_inner);
 
     constexpr Ratio flow = 1.0_r;
 
@@ -137,7 +136,7 @@ bool InsetOrderOptimizer::addToLayer()
     return added_something;
 }
 
-InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::vector<ExtrusionLine>& extrusion_lines, const bool outer_to_inner, const coord_t line_width)
+InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::vector<ExtrusionLine>& extrusion_lines, const bool outer_to_inner)
 {
     if (extrusion_lines.empty())
     {
@@ -186,19 +185,16 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
         // Create a polygon representing the inner area of the extrusion line; any
         // point inside this polygon is considered to the child of the extrusion line.
         Polygons hole_polygons;
-        Polygons outer_polygons;
-        outer_polygons.add(extrusion_line->toPolygon());
-        for (const auto& poly : outer_polygons.offsetPolyLine(line_width / 2, ClipperLib::JoinType::jtRound).splitIntoParts())
+        if (extrusion_line->is_closed_)
         {
-            // drop first path, as this is the outer contour
-            for (const auto& hole : poly.paths | ranges::views::drop(1))
-            {
-                // reverse the hole polygon to turn a hole into a polygon
-                hole_polygons.emplace_back(hole | ranges::views::reverse | ranges::to_vector);
-            }
+            hole_polygons.add(extrusion_line->toPolygon());
         }
-        // increase the size of the hole polygons by 10um to make sure we don't miss any invariant parents
-        hole_polygons = hole_polygons.offset(line_width / 2);
+
+        if (hole_polygons.empty())
+        {
+            invariant_outer_parents.emplace(extrusion_line);
+            continue;
+        }
 
         // go through all the invariant parents and see if they are inside the hole polygon
         // if they are, then that means we have found a child for this extrusion line
