@@ -26,6 +26,7 @@ public:
     Polygons ff_holes;
     bool outer_to_inner;
     SliceLayer layer;
+    coord_t line_width;
 
 
     void SetUp(const ::benchmark::State& state)
@@ -77,6 +78,7 @@ public:
         settings.add("wall_distribution_count", "2");
         settings.add("wall_line_count", std::to_string(state.range(0)));
         outer_to_inner = false;
+        line_width = 400;
         layer.parts.emplace_back();
 
         SliceLayerPart& part = layer.parts.back();
@@ -108,7 +110,8 @@ BENCHMARK_DEFINE_F(WallTestFixture, InsetOrderOptimizer_getRegionOrder)(benchmar
     }
     for (auto _ : st)
     {
-        auto order = InsetOrderOptimizer::getRegionOrder(all_paths, outer_to_inner);
+
+        auto order = InsetOrderOptimizer::getRegionOrder(all_paths, outer_to_inner, line_width);
     }
 }
 
