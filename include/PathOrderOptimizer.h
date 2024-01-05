@@ -373,7 +373,7 @@ protected:
         {
             roots.erase(v);
             leaves.erase(u);
-            num_incoming_edges.find(v)->second ++;
+            num_incoming_edges.find(v)->second++;
         }
 
         // We used a shared visited set between runs of dfs. This is for the case when we reverse the ordering tree.
@@ -395,7 +395,7 @@ protected:
                 // from an arbitrary leaf we might encounter a junction. All paths from the other leaf-side(s) of the junction
                 // should be printed before continuing the junctions. Only once every branch of the junction has been ordered
                 // we can continue with the junction itself.
-                num_incoming_edges.find(neighbour)->second --;
+                num_incoming_edges.find(neighbour)->second--;
                 if (num_incoming_edges.at(neighbour) == 0)
                 {
                     candidates.insert(neighbour);
