@@ -228,6 +228,47 @@ struct ExtrusionLine
 
         return ret;
     }
+
+    /*!
+     * Create a true-extrusion area shape for the path; this means that each junction follows the bead-width
+     * set for that junction.
+     */
+    Polygons toExtrusionPolygons() const
+    {
+        Polygon poly;
+
+        const auto add_line_direction = [&poly](const auto iterator)
+        {
+            for (const auto& element : iterator | ranges::views::sliding(2))
+            {
+                const ExtrusionJunction& j1 = element[0];
+                const ExtrusionJunction& j2 = element[1];
+
+                const auto dir = j2.p_ - j1.p_;
+                const auto normal = turn90CCW(dir);
+                const auto mag = vSize(normal);
+
+                if (mag <= 5)
+                {
+                    continue;
+                }
+
+                poly.emplace_back(j1.p_ + normal * j1.w_ / mag / 2);
+                poly.emplace_back(j2.p_ + normal * j2.w_ / mag / 2);
+            }
+        };
+
+        // forward pass
+        add_line_direction(junctions_);
+        // backward pass
+        add_line_direction(junctions_ | ranges::views::reverse);
+
+        Polygons paths;
+        paths.emplace_back(poly.poly);
+        ClipperLib::SimplifyPolygons(paths.paths, ClipperLib::pftNonZero);
+        return paths;
+    }
+
     /*!
      * Get the minimal width of this path
      */
