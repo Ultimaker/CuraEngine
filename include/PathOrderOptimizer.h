@@ -395,7 +395,6 @@ protected:
                 // from an arbitrary leaf we might encounter a junction. All paths from the other leaf-side(s) of the junction
                 // should be printed before continuing the junctions. Only once every branch of the junction has been ordered
                 // we can continue with the junction itself.
-                num_incoming_edges.find(neighbour)->second--;
                 if (num_incoming_edges.at(neighbour) == 0)
                 {
                     candidates.insert(neighbour);
@@ -428,10 +427,10 @@ protected:
         };
 
         const std::function<std::nullptr_t(const Path, const std::nullptr_t)> handle_node
-            = [&current_position, &optimized_order, this](const Path current_node, [[maybe_unused]] const std::nullptr_t state)
+            = [&current_position, &optimized_order, &order_requirements, &num_incoming_edges, this](const Path current_node, [[maybe_unused]] const std::nullptr_t state)
         {
             // We should make map from node <-> path for this stuff
-            for (auto& path : paths_)
+            for (const auto& path : paths_)
             {
                 if (path.vertices_ == current_node)
                 {
@@ -447,6 +446,13 @@ protected:
 
                     // Add to optimized order
                     optimized_order.push_back(path);
+
+                    // update incoming edges of neighbours since this path is handled
+                    const auto& [neighbour_begin, neighbour_end] = order_requirements.equal_range(path.vertices_);
+                    for (const auto& [_, neighbour] : ranges::make_subrange(neighbour_begin, neighbour_end))
+                    {
+                        num_incoming_edges.find(neighbour)->second--;
+                    }
 
                     break;
                 }
