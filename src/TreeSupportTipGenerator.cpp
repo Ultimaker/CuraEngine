@@ -75,7 +75,7 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceDataStorage& storage
     , cradle_area_threshold(1000 * 1000 * retrieveSetting<double>(mesh.settings, "support_tree_maximum_pointy_area"))
     , cradle_tip_dtt(config.tip_layers * retrieveSetting<double>(mesh.settings, "support_tree_cradle_base_tip_percentage") / 100.0)
     , large_cradle_line_tips(retrieveSetting<bool>(mesh.settings, "support_tree_large_cradle_line_tips"))
-    , cradle_xy_distance(retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_xy_distance"))
+    , cradle_xy_distance(retrieveSetting<std::vector<coord_t>>(mesh.settings, "support_tree_cradle_xy_distance"))
 {
     const double support_overhang_angle = mesh.settings.get<AngleRadians>("support_angle");
     const coord_t max_overhang_speed = (support_overhang_angle < TAU / 4) ? (coord_t)(tan(support_overhang_angle) * config.layer_height) : std::numeric_limits<coord_t>::max();
@@ -582,6 +582,13 @@ void TreeSupportTipGenerator::generateCradle(const SliceMeshStorage& mesh, std::
     std::vector<std::unordered_set<size_t>> dedupe(mesh.overhang_areas.size());
 
     calculateFloatingParts(mesh);
+    std::vector<coord_t> effective_cradle_xy_distances(1+config.z_distance_top_layers,config.xy_min_distance);
+    effective_cradle_xy_distances.insert(effective_cradle_xy_distances.end(),cradle_xy_distance.begin(),cradle_xy_distance.end());
+
+    for(int ctr=effective_cradle_xy_distances.size(); ctr <= cradle_layers + 1; ctr++)
+    {
+        effective_cradle_xy_distances.emplace_back(effective_cradle_xy_distances.back());
+    }
 
     cura::parallel_for<coord_t>(
         1,
@@ -743,12 +750,13 @@ void TreeSupportTipGenerator::generateCradle(const SliceMeshStorage& mesh, std::
 
                     for (auto [idx, model_shadow] : accumulated_model | ranges::views::enumerate)
                     {
+                        coord_t current_cradle_xy_distance = effective_cradle_xy_distances[idx];
                         if ((idx > 0 || (cradle_base_roof && !large_cradle_base && ! abort))
                             && ! model_shadow.empty()) // also calculate lines for the small cradle, idea is that the lines will touch the overhang and support it that way.
                         {
                             coord_t max_distance2 = 0;
                             Polygons relevant_forbidden = volumes_.getAvoidance(0, layer_idx + idx, (only_gracious || ! config.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION, config.support_rests_on_model, true);
-                            relevant_forbidden = relevant_forbidden.offset(-config.xy_min_distance + cradle_xy_distance - config.support_line_width / 2);
+                            relevant_forbidden = relevant_forbidden.offset(-config.xy_min_distance + current_cradle_xy_distance - config.support_line_width / 2);
 
                             for (auto line : model_shadow)
                             {
@@ -770,7 +778,7 @@ void TreeSupportTipGenerator::generateCradle(const SliceMeshStorage& mesh, std::
                             // Subtract the model shadow up until this layer from the lines.
                             if (idx > 0)
                             {
-                                lines_to_center = model_shadow.offset(cradle_xy_distance).unionPolygons().differencePolyLines(lines_to_center, false);
+                                lines_to_center = model_shadow.offset(current_cradle_xy_distance).unionPolygons().differencePolyLines(lines_to_center, false);
                             }
                             // Store valid distances from the center in relation to the direction of the line.
                             // Used to detect if a line may be intersecting another model part.
@@ -890,8 +898,10 @@ void TreeSupportTipGenerator::generateCradle(const SliceMeshStorage& mesh, std::
                     }
                     for (auto [idx, cradle] : cradle_areas_calc | ranges::views::enumerate | ranges::views::reverse)
                     {
+                        coord_t current_cradle_xy_distance = effective_cradle_xy_distances[idx];
+
                         Polygons relevant_forbidden = volumes_.getAvoidance(0, layer_idx + idx, (only_gracious || ! config.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION, config.support_rests_on_model, true);
-                        relevant_forbidden = relevant_forbidden.offset(-config.xy_min_distance + cradle_xy_distance);
+                        relevant_forbidden = relevant_forbidden.offset(-config.xy_min_distance + current_cradle_xy_distance);
                         cradle_areas_calc[idx] = cradle_areas_calc[idx].difference(relevant_forbidden);
                     }
 

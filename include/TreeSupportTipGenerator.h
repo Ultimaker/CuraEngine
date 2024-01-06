@@ -407,9 +407,9 @@ private:
     bool large_cradle_line_tips;
 
     /*!
-     * \brief Distance the cradle lines should be from the model.
+     * \brief Distances the cradle lines should be from the model. First value corresponds to cradle line on the same layer as the first model line.
      */
-    coord_t cradle_xy_distance;
+    std::vector<coord_t> cradle_xy_distance;
 
     std::mutex critical_cradle;
     std::mutex critical_move_bounds;
