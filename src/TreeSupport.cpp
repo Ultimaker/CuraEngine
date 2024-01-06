@@ -2511,7 +2511,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
                 .fillInfillParts(support_layer_storage[layer_idx], all_this_layer, all_next_layer, config.support_line_width, config.support_wall_count, convert_every_part);
 
             storage.support.supportLayers[layer_idx]
-                .fillInfillParts(support_skin_storage[layer_idx], all_this_layer, all_next_layer, config.support_line_width, config.support_wall_count, convert_every_part,  config.support_skin_line_distance, EFillMethod::LINES);
+                .fillInfillParts(support_skin_storage[layer_idx], all_this_layer, all_next_layer, config.support_line_width, std::max(config.support_wall_count-1,0), convert_every_part,  config.support_skin_line_distance, EFillMethod::ZIG_ZAG);
 
             {
                 std::lock_guard<std::mutex> critical_section_progress(critical_sections);
