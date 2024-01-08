@@ -28,7 +28,8 @@ void Raft::generate(SliceDataStorage& storage)
     storage.raftSurfaceOutline = storage.raftSurfaceOutline.offset(settings.get<coord_t>("raft_surface_margin"), ClipperLib::jtRound);
 
     const coord_t shield_line_width_layer0 = settings.get<coord_t>("skirt_brim_line_width");
-    const coord_t max_raft_distance = std::max(std::max(settings.get<coord_t>("raft_base_margin"), settings.get<coord_t>("raft_interface_margin")), settings.get<coord_t>("raft_surface_margin"));
+    const coord_t max_raft_distance
+        = std::max(std::max(settings.get<coord_t>("raft_base_margin"), settings.get<coord_t>("raft_interface_margin")), settings.get<coord_t>("raft_surface_margin"));
     if (storage.draft_protection_shield.size() > 0)
     {
         Polygons draft_shield_raft
@@ -145,15 +146,15 @@ Raft::LayerType Raft::getLayerType(LayerIndex layer_index)
     const auto interface_layers = interface_train.settings_.get<size_t>("raft_interface_layers");
     const auto surface_layers = surface_train.settings_.get<size_t>("raft_surface_layers");
 
-    if (layer_index < - airgap - surface_layers - interface_layers)
+    if (layer_index < -airgap - surface_layers - interface_layers)
     {
         return LayerType::RaftBase;
     }
-    if (layer_index < - airgap - surface_layers)
+    if (layer_index < -airgap - surface_layers)
     {
         return LayerType::RaftInterface;
     }
-    if (layer_index < - airgap)
+    if (layer_index < -airgap)
     {
         return LayerType::RaftSurface;
     }
