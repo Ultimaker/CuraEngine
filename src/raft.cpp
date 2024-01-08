@@ -50,19 +50,34 @@ void Raft::generate(SliceDataStorage& storage)
         storage.raftInterfaceOutline = storage.raftInterfaceOutline.unionPolygons(ooze_shield_raft);
     }
 
-    if (settings.get<bool>("raft_remove_inside_corners"))
+    if (settings.get<bool>("raft_base_remove_inside_corners"))
     {
         storage.raftBaseOutline.makeConvex();
-        storage.raftSurfaceOutline.makeConvex();
+    }
+    else
+    {
+        const coord_t smoothing = settings.get<coord_t>("raft_base_smoothing");
+        storage.raftBaseOutline = storage.raftBaseOutline.offset(smoothing, ClipperLib::jtRound).offset(-smoothing, ClipperLib::jtRound);
+    }
+
+    if (settings.get<bool>("raft_interface_remove_inside_corners"))
+    {
         storage.raftInterfaceOutline.makeConvex();
     }
     else
     {
-        const coord_t smoothing = settings.get<coord_t>("raft_smoothing");
-        // remove small holes and smooth inward corners
-        storage.raftBaseOutline = storage.raftBaseOutline.offset(smoothing, ClipperLib::jtRound).offset(-smoothing, ClipperLib::jtRound);
-        storage.raftSurfaceOutline = storage.raftSurfaceOutline.offset(smoothing, ClipperLib::jtRound).offset(-smoothing, ClipperLib::jtRound);
+        const coord_t smoothing = settings.get<coord_t>("raft_interface_smoothing");
         storage.raftInterfaceOutline = storage.raftInterfaceOutline.offset(smoothing, ClipperLib::jtRound).offset(-smoothing, ClipperLib::jtRound);
+    }
+
+    if (settings.get<bool>("raft_surface_remove_inside_corners"))
+    {
+        storage.raftSurfaceOutline.makeConvex();
+    }
+    else
+    {
+        const coord_t smoothing = settings.get<coord_t>("raft_surface_smoothing");
+        storage.raftSurfaceOutline = storage.raftSurfaceOutline.offset(smoothing, ClipperLib::jtRound).offset(-smoothing, ClipperLib::jtRound);
     }
 
     if (storage.primeTower.enabled_ && ! storage.primeTower.would_have_actual_tower_)
