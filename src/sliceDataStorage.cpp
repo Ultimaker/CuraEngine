@@ -271,13 +271,41 @@ Polygons
         const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    if (layer_nr < 0 && layer_nr < -static_cast<LayerIndex>(Raft::getFillerLayerCount()))
-    { // when processing raft
-        if (include_support && (extruder_nr == -1 || extruder_nr == int(mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr_)))
+
+    const auto layer_type = Raft::getLayerType(layer_nr);
+    switch (layer_type)
+    {
+    case Raft::LayerType::RaftBase:
+    case Raft::LayerType::RaftInterface:
+    case Raft::LayerType::RaftSurface:
+    {
+        const Polygons* raftOutline;
+        bool use_current_extruder_for_raft = extruder_nr == -1;
+
+        switch (layer_type)
+        {
+        case Raft::LayerType::RaftBase:
+            raftOutline = &raftBaseOutline;
+            use_current_extruder_for_raft |= extruder_nr == int(mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_);
+            break;
+        case Raft::LayerType::RaftInterface:
+            raftOutline = &raftInterfaceOutline;
+            use_current_extruder_for_raft |= extruder_nr == int(mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr_);
+            break;
+        case Raft::LayerType::RaftSurface:
+            raftOutline = &raftSurfaceOutline;
+            use_current_extruder_for_raft |= extruder_nr == int(mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr_);
+            break;
+        default:
+            assert(false << "unreachable due to outer switch statement");
+            return Polygons();
+        }
+
+        if (include_support && use_current_extruder_for_raft)
         {
             if (external_polys_only)
             {
-                std::vector<PolygonsPart> parts = raftOutline.splitIntoParts();
+                std::vector<PolygonsPart> parts = raftOutline->splitIntoParts();
                 Polygons result;
                 for (PolygonsPart& part : parts)
                 {
@@ -287,16 +315,17 @@ Polygons
             }
             else
             {
-                return raftOutline;
+                return *raftOutline;
             }
         }
         else
         {
             return Polygons();
         }
+        break;
     }
-    else
-    {
+    case Raft::LayerType::Airgap:
+    case Raft::LayerType::Model:
         Polygons total;
         if (layer_nr >= 0)
         {
