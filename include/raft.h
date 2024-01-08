@@ -4,6 +4,7 @@
 #ifndef RAFT_H
 #define RAFT_H
 
+#include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
 
 namespace cura
@@ -53,6 +54,21 @@ public:
      * This includes the filler layers which are introduced in the air gap.
      */
     static size_t getTotalExtraLayers();
+
+    enum LayerType {
+        RaftBase,
+        RaftInterface,
+        RaftSurface,
+        Airgap,
+        Model
+    };
+
+    /*!
+     * \brief Get the type of layer at the given layer index.
+     * \param layer_index The layer index to get the type of.
+     * \return The type of layer at the given layer index.
+     */
+    static LayerType getLayerType(LayerIndex layer_index);
 
 };
 

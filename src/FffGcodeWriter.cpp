@@ -630,7 +630,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         };
 
         std::vector<ParameterizedRaftPath> raft_outline_paths;
-        raft_outline_paths.emplace_back(ParameterizedRaftPath{ line_spacing, storage.raftOutline });
+        raft_outline_paths.emplace_back(ParameterizedRaftPath{ line_spacing, storage.raftBaseOutline });
         if (storage.primeTower.enabled_)
         {
             const Polygons& raft_outline_prime_tower = storage.primeTower.getOuterPoly(layer_nr);
@@ -761,7 +761,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         Polygons raft_outline_path;
         const coord_t small_offset = gcode_layer.configs_storage_.raft_interface_config.getLineWidth()
                                    / 2; // Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
-        raft_outline_path = storage.raftOutline.offset(-small_offset);
+        raft_outline_path = storage.raftInterfaceOutline.offset(-small_offset);
         raft_outline_path = Simplify(interface_settings).polygon(raft_outline_path); // Remove those micron-movements.
         const coord_t infill_outline_width = gcode_layer.configs_storage_.raft_interface_config.getLineWidth();
         Polygons raft_lines;
@@ -880,7 +880,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         Polygons raft_outline_path;
         const coord_t small_offset = gcode_layer.configs_storage_.raft_interface_config.getLineWidth()
                                    / 2; // Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
-        raft_outline_path = storage.raftOutline.offset(-small_offset);
+        raft_outline_path = storage.raftSurfaceOutline.offset(-small_offset);
         raft_outline_path = Simplify(interface_settings).polygon(raft_outline_path); // Remove those micron-movements.
         const coord_t infill_outline_width = gcode_layer.configs_storage_.raft_interface_config.getLineWidth();
         Polygons raft_lines;

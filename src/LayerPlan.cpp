@@ -95,7 +95,7 @@ LayerPlan::LayerPlan(
     , storage_(storage)
     , layer_nr_(layer_nr)
     , is_initial_layer_(layer_nr == 0 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
-    , is_raft_layer_(layer_nr < 0 - static_cast<LayerIndex>(Raft::getFillerLayerCount()))
+    , layer_type_(Raft::getLayerType(layer_nr))
     , layer_thickness_(layer_thickness)
     , has_prime_tower_planned_per_extruder_(Application::getInstance().current_slice_->scene.extruders.size(), false)
     , current_mesh_(nullptr)
@@ -124,11 +124,12 @@ LayerPlan::LayerPlan(
         layer_start_pos_per_extruder_.emplace_back(extruder.settings_.get<coord_t>("layer_start_x"), extruder.settings_.get<coord_t>("layer_start_y"));
     }
     extruder_plans_.reserve(Application::getInstance().current_slice_->scene.extruders.size());
+    const auto is_raft_layer = layer_type_ == Raft::LayerType::RaftBase || layer_type_ == Raft::LayerType::RaftInterface || layer_type_ == Raft::LayerType::RaftSurface;
     extruder_plans_.emplace_back(
         current_extruder,
         layer_nr,
         is_initial_layer_,
-        is_raft_layer_,
+        is_raft_layer,
         layer_thickness,
         fan_speed_layer_time_settings_per_extruder[current_extruder],
         storage.retraction_wipe_config_per_extruder[current_extruder].retraction_config);
@@ -156,12 +157,25 @@ Polygons LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
     const CombingMode mesh_combing_mode = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing");
     if (mesh_combing_mode != CombingMode::OFF && (layer_nr_ >= 0 || mesh_combing_mode != CombingMode::NO_SKIN))
     {
-        if (layer_nr_ < 0)
+        switch (layer_type_)
         {
-            comb_boundary = storage_.raftOutline.offset(MM2INT(0.1));
-        }
-        else
-        {
+        case Raft::LayerType::RaftBase:
+            comb_boundary = storage_.raftBaseOutline.offset(MM2INT(0.1));
+            break;
+
+        case Raft::LayerType::RaftInterface:
+            comb_boundary = storage_.raftInterfaceOutline.offset(MM2INT(0.1));
+            break;
+
+        case Raft::LayerType::RaftSurface:
+            comb_boundary = storage_.raftSurfaceOutline.offset(MM2INT(0.1));
+            break;
+
+        case Raft::LayerType::Airgap:
+            // do nothing for airgap
+            break;
+
+        case Raft::LayerType::Model:
             for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage_.meshes)
             {
                 const auto& mesh = *mesh_ptr;
@@ -216,6 +230,7 @@ Polygons LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                     }
                 }
             }
+            break;
         }
     }
     return comb_boundary;
@@ -255,11 +270,13 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
     { // first extruder plan in a layer might be empty, cause it is made with the last extruder planned in the previous layer
         extruder_plans_.back().extruder_nr_ = extruder_nr;
     }
+
+    const auto is_raft_layer = layer_type_ == Raft::LayerType::RaftBase || layer_type_ == Raft::LayerType::RaftInterface || layer_type_ == Raft::LayerType::RaftSurface;
     extruder_plans_.emplace_back(
         extruder_nr,
         layer_nr_,
         is_initial_layer_,
-        is_raft_layer_,
+        is_raft_layer,
         layer_thickness_,
         fan_speed_layer_time_settings_per_extruder_[extruder_nr],
         storage_.retraction_wipe_config_per_extruder[extruder_nr].retraction_config);
