@@ -51,35 +51,19 @@ void Raft::generate(SliceDataStorage& storage)
         storage.raftInterfaceOutline = storage.raftInterfaceOutline.unionPolygons(ooze_shield_raft);
     }
 
-    if (settings.get<bool>("raft_base_remove_inside_corners"))
-    {
-        storage.raftBaseOutline.makeConvex();
-    }
-    else
-    {
-        const coord_t smoothing = settings.get<coord_t>("raft_base_smoothing");
-        storage.raftBaseOutline = storage.raftBaseOutline.offset(smoothing, ClipperLib::jtRound).offset(-smoothing, ClipperLib::jtRound);
-    }
-
-    if (settings.get<bool>("raft_interface_remove_inside_corners"))
-    {
-        storage.raftInterfaceOutline.makeConvex();
-    }
-    else
-    {
-        const coord_t smoothing = settings.get<coord_t>("raft_interface_smoothing");
-        storage.raftInterfaceOutline = storage.raftInterfaceOutline.offset(smoothing, ClipperLib::jtRound).offset(-smoothing, ClipperLib::jtRound);
-    }
-
-    if (settings.get<bool>("raft_surface_remove_inside_corners"))
-    {
-        storage.raftSurfaceOutline.makeConvex();
-    }
-    else
-    {
-        const coord_t smoothing = settings.get<coord_t>("raft_surface_smoothing");
-        storage.raftSurfaceOutline = storage.raftSurfaceOutline.offset(smoothing, ClipperLib::jtRound).offset(-smoothing, ClipperLib::jtRound);
-    }
+    const auto remove_inside_corners = [&settings, &storage](Polygons& outline, bool remove_inside_corners, coord_t smoothing) {
+        if (remove_inside_corners)
+        {
+            outline.makeConvex();
+        }
+        else
+        {
+            outline = outline.offset(smoothing, ClipperLib::jtRound).offset(-smoothing, ClipperLib::jtRound);
+        }
+    };
+    remove_inside_corners(storage.raftBaseOutline, settings.get<bool>("raft_base_remove_inside_corners"), settings.get<coord_t>("raft_base_smoothing"));
+    remove_inside_corners(storage.raftInterfaceOutline, settings.get<bool>("raft_interface_remove_inside_corners"), settings.get<coord_t>("raft_interface_smoothing"));
+    remove_inside_corners(storage.raftSurfaceOutline, settings.get<bool>("raft_surface_remove_inside_corners"), settings.get<coord_t>("raft_surface_smoothing"));
 
     if (storage.primeTower.enabled_ && ! storage.primeTower.would_have_actual_tower_)
     {
