@@ -179,7 +179,7 @@ jobs:
         run: |
           for file in `ls ../NightlyTestModels/*.stl`;
           do
-              ./build/Release/CuraEngine slice --force-read-parent --force-read-nondefault -v -p -j ../Cura/resources/definitions/ultimaker_s3.def.json -l $file -o ../`basename $file .stl`.gcode
+              ( time ./build/Release/CuraEngine slice --force-read-parent --force-read-nondefault -v -p -j ../Cura/resources/definitions/ultimaker_s3.def.json -l $file -o ../`basename $file .stl`.gcode ) 2> `basename $file .stl`.time
           done
         working-directory: CuraEngine
 
@@ -190,6 +190,7 @@ jobs:
           import sys
           import os
           import json
+          import re
           from Charon.filetypes.GCodeFile import GCodeFile
           
           sys.path.append(".")
@@ -204,6 +205,8 @@ jobs:
               if ext.lower() != ".gcode":
                   continue
               infilename = os.path.join(folder_path, filename)
+              with open(infilename.split(".")[0] + ".time", "r") as f:
+                    timer = float(re.match(r"^.*?cpu (\d+\.\d+)", f.read())[1])
           
               frame = GCodeAnalyzer.DataFrame(infilename)
           
@@ -290,6 +293,11 @@ jobs:
                       "name": f"Mean Temperature {basename}",
                       "unit": "Celcius",
                       "value": temperatures["50%"],
+                  },
+                  {
+                      "name": f"Slicing time {basename}",
+                      "unit": "s",
+                      "value": timer,
                   },
               ]
           
