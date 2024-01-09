@@ -17,7 +17,9 @@ namespace cura
 
 void Raft::generate(SliceDataStorage& storage)
 {
-    assert(storage.raftOutline.size() == 0 && "Raft polygon isn't generated yet, so should be empty!");
+    assert(
+        storage.raftBaseOutline.size() == 0 && storage.raftInterfaceOutline.size() == 0 && storage.raftSurfaceOutline.size() == 0
+        && "Raft polygon isn't generated yet, so should be empty!");
     const Settings& settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_;
     constexpr bool include_support = true;
     constexpr bool dont_include_prime_tower = false; // Prime tower raft will be handled separately in 'storage.primeRaftOutline'; see below.
