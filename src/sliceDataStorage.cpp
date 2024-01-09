@@ -369,7 +369,7 @@ Polygons
         return total;
     }
     default:
-        assert(false << "unreachable as switch statement is exhaustive");
+        assert(false && "unreachable as switch statement is exhaustive");
         return Polygons();
     }
 }
