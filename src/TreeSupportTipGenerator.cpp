@@ -1845,6 +1845,17 @@ void TreeSupportTipGenerator::generateTips(
                 {
                     storage.support.supportLayers[layer_idx].support_roof.add(support_roof_drawn[layer_idx]);
                     storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.unionPolygons(roof_tips_drawn[layer_idx]);
+
+                    if (layer_idx + 1 < support_roof_drawn.size() && layer_idx > 0)
+                    {
+                        Polygons all_roof = support_roof_drawn[layer_idx].unionPolygons(roof_tips_drawn[layer_idx]);
+                        Polygons all_roof_above = support_roof_drawn[layer_idx + 1]
+                                                      .unionPolygons(roof_tips_drawn[layer_idx + 1])
+                                                      .unionPolygons(cradle_areas[layer_idx])
+                                                      .offset(FUDGE_LENGTH)
+                                                      .unionPolygons();
+                        storage.support.supportLayers[layer_idx].support_fractional_roof.add(all_roof.difference(all_roof_above));
+                    }
                 }
             }
         });
@@ -1865,18 +1876,6 @@ void TreeSupportTipGenerator::generateTips(
             additional_support_areas[layer_idx] = additional_support_areas[layer_idx].unionPolygons(cradle);
         }
     }
-
-    cura::parallel_for<coord_t>(
-        1,
-        mesh.overhang_areas.size() - z_distance_delta,
-        [&](const LayerIndex layer_idx)
-        {
-            if (layer_idx > 0)
-            {
-                storage.support.supportLayers[layer_idx].support_fractional_roof.add(
-                    storage.support.supportLayers[layer_idx].support_roof.difference(storage.support.supportLayers[layer_idx + 1].support_roof));
-            }
-        });
 
     for (auto [layer_idx, tips_on_layer] : new_tips | ranges::views::enumerate)
     {
