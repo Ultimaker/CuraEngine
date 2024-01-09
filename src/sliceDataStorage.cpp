@@ -326,6 +326,7 @@ Polygons
     }
     case Raft::LayerType::Airgap:
     case Raft::LayerType::Model:
+    {
         Polygons total;
         if (layer_nr >= 0)
         {
@@ -366,6 +367,10 @@ Polygons
             }
         }
         return total;
+    }
+    default:
+        assert(false << "unreachable as switch statement is exhaustive");
+        return Polygons();
     }
 }
 
