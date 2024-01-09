@@ -297,7 +297,7 @@ Polygons
             use_current_extruder_for_raft |= extruder_nr == int(mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr_);
             break;
         default:
-            assert(false << "unreachable due to outer switch statement");
+            assert(false && "unreachable due to outer switch statement");
             return Polygons();
         }
 
