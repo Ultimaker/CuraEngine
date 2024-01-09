@@ -51,7 +51,8 @@ void Raft::generate(SliceDataStorage& storage)
         storage.raftInterfaceOutline = storage.raftInterfaceOutline.unionPolygons(ooze_shield_raft);
     }
 
-    const auto remove_inside_corners = [&settings, &storage](Polygons& outline, bool remove_inside_corners, coord_t smoothing) {
+    const auto remove_inside_corners = [&settings, &storage](Polygons& outline, bool remove_inside_corners, coord_t smoothing)
+    {
         if (remove_inside_corners)
         {
             outline.makeConvex();
