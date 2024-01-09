@@ -1,9 +1,10 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef RAFT_H
 #define RAFT_H
 
+#include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
 
 namespace cura
@@ -29,7 +30,7 @@ public:
     /*!
      * \brief Get the amount of layers to fill the airgap and initial layer with
      * helper parts (support, prime tower, etc.).
-     * 
+     *
      * The initial layer gets a separate filler layer because we don't want to
      * apply the layer_0_z_overlap to it.
      */
@@ -49,13 +50,28 @@ public:
     /*!
      * \brief Get the total amount of extra layers below zero because there is a
      * raft.
-     * 
+     *
      * This includes the filler layers which are introduced in the air gap.
      */
     static size_t getTotalExtraLayers();
 
+    enum LayerType
+    {
+        RaftBase,
+        RaftInterface,
+        RaftSurface,
+        Airgap,
+        Model
+    };
+
+    /*!
+     * \brief Get the type of layer at the given layer index.
+     * \param layer_index The layer index to get the type of.
+     * \return The type of layer at the given layer index.
+     */
+    static LayerType getLayerType(LayerIndex layer_index);
 };
 
-}//namespace cura
+} // namespace cura
 
-#endif//RAFT_H
+#endif // RAFT_H

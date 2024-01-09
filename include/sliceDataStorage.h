@@ -355,7 +355,11 @@ public:
 
     std::vector<SkirtBrimLine> skirt_brim[MAX_EXTRUDERS]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
     Polygons support_brim; //!< brim lines for support, going from the edge of the support inward. \note Not ordered by inset.
-    Polygons raftOutline; // Storage for the outline of the raft. Will be filled with lines when the GCode is generated.
+
+    // Storage for the outline of the raft-parts. Will be filled with lines when the GCode is generated.
+    Polygons raftBaseOutline;
+    Polygons raftInterfaceOutline;
+    Polygons raftSurfaceOutline;
 
     int max_print_height_second_to_last_extruder; //!< Used in multi-extrusion: the layer number beyond which all models are printed with the same extruder
     std::vector<int> max_print_height_per_extruder; //!< For each extruder the highest layer number at which it is used.

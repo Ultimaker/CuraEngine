@@ -13,6 +13,7 @@
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/NozzleTempInsert.h"
 #include "pathPlanning/TimeMaterialEstimates.h"
+#include "raft.h"
 #include "settings/PathConfigStorage.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/ExtrusionJunction.h"
@@ -63,7 +64,7 @@ private:
     const SliceDataStorage& storage_; //!< The polygon data obtained from FffPolygonProcessor
     const LayerIndex layer_nr_; //!< The layer number of this layer plan
     const bool is_initial_layer_; //!< Whether this is the first layer (which might be raft)
-    const bool is_raft_layer_; //!< Whether this is a layer which is part of the raft
+    const Raft::LayerType layer_type_; //!< Which part of the raft, airgap or model this layer is.
     coord_t layer_thickness_;
 
     std::vector<Point2LL> layer_start_pos_per_extruder_; //!< The starting position of a layer for each extruder
