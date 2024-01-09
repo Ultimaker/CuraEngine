@@ -23,15 +23,17 @@ void Raft::generate(SliceDataStorage& storage)
     const Settings& settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_;
     constexpr bool include_support = true;
     constexpr bool dont_include_prime_tower = false; // Prime tower raft will be handled separately in 'storage.primeRaftOutline'; see below.
+    const auto raft_base_margin = settings.get<coord_t>("raft_base_margin");
+    const auto raft_interface_margin = settings.get<coord_t>("raft_interface_margin");
+    const auto raft_surface_margin = settings.get<coord_t>("raft_surface_margin");
 
     storage.raftBaseOutline = storage.raftSurfaceOutline = storage.raftInterfaceOutline = storage.getLayerOutlines(0, include_support, dont_include_prime_tower);
-    storage.raftBaseOutline = storage.raftBaseOutline.offset(settings.get<coord_t>("raft_base_margin"), ClipperLib::jtRound);
-    storage.raftInterfaceOutline = storage.raftInterfaceOutline.offset(settings.get<coord_t>("raft_interface_margin"), ClipperLib::jtRound);
-    storage.raftSurfaceOutline = storage.raftSurfaceOutline.offset(settings.get<coord_t>("raft_surface_margin"), ClipperLib::jtRound);
+    storage.raftBaseOutline = storage.raftBaseOutline.offset(raft_base_margin, ClipperLib::jtRound);
+    storage.raftInterfaceOutline = storage.raftInterfaceOutline.offset(raft_interface_margin, ClipperLib::jtRound);
+    storage.raftSurfaceOutline = storage.raftSurfaceOutline.offset(raft_surface_margin, ClipperLib::jtRound);
 
     const coord_t shield_line_width_layer0 = settings.get<coord_t>("skirt_brim_line_width");
-    const coord_t max_raft_distance
-        = std::max(std::max(settings.get<coord_t>("raft_base_margin"), settings.get<coord_t>("raft_interface_margin")), settings.get<coord_t>("raft_surface_margin"));
+    const coord_t max_raft_distance = std::max(std::max(raft_base_margin, raft_interface_margin), raft_surface_margin);
     if (storage.draft_protection_shield.size() > 0)
     {
         Polygons draft_shield_raft
