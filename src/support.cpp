@@ -539,9 +539,9 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
             break;
         case EPlatformAdhesion::RAFT:
         {
-            adhesion_size = std::max({ mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_.get<coord_t>("raft_margin"),
-                                       mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_.get<coord_t>("raft_margin"),
-                                       mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings_.get<coord_t>("raft_margin") });
+            adhesion_size = std::max({ mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_.get<coord_t>("raft_base_margin"),
+                                       mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_.get<coord_t>("raft_interface_margin"),
+                                       mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings_.get<coord_t>("raft_surface_margin") });
             break;
         }
         case EPlatformAdhesion::NONE:
@@ -1673,12 +1673,10 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
         return;
     }
     const coord_t z_distance_bottom = round_up_divide(mesh.settings.get<coord_t>("support_bottom_distance"), layer_height); // Number of layers between support bottom and model.
-    const size_t skip_layer_count
-        = std::max(uint64_t(1), round_divide(mesh.settings.get<coord_t>("support_interface_skip_height"), layer_height)); // Resolution of generating support bottoms above model.
     const coord_t bottom_line_width = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").settings_.get<coord_t>("support_bottom_line_width");
     const coord_t bottom_outline_offset = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").settings_.get<coord_t>("support_bottom_offset");
 
-    const size_t scan_count = std::max(size_t(1), (bottom_layer_count - 1) / skip_layer_count); // How many measurements to take to generate bottom areas.
+    const size_t scan_count = std::max(size_t(1), (bottom_layer_count - 1)); // How many measurements to take to generate bottom areas.
     const double z_skip = std::max(
         1.0,
         double(bottom_layer_count - 1) / double(scan_count)); // How many layers to skip between measurements. Using float for better spread, but this is later rounded.
@@ -1710,12 +1708,10 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         return;
     }
     const coord_t z_distance_top = round_up_divide(mesh.settings.get<coord_t>("support_top_distance"), layer_height); // Number of layers between support roof and model.
-    const size_t skip_layer_count
-        = std::max(uint64_t(1), round_divide(mesh.settings.get<coord_t>("support_interface_skip_height"), layer_height)); // Resolution of generating support roof below model.
     const coord_t roof_line_width = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings_.get<coord_t>("support_roof_line_width");
     const coord_t roof_outline_offset = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings_.get<coord_t>("support_roof_offset");
 
-    const size_t scan_count = std::max(size_t(1), (roof_layer_count - 1) / skip_layer_count); // How many measurements to take to generate roof areas.
+    const size_t scan_count = std::max(size_t(1), (roof_layer_count - 1)); // How many measurements to take to generate roof areas.
     const double z_skip = std::max(
         1.0,
         double(roof_layer_count - 1) / double(scan_count)); // How many layers to skip between measurements. Using float for better spread, but this is later rounded.

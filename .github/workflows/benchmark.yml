@@ -55,4 +55,6 @@ jobs:
       output_file_path: "build/Release/benchmark_result.json"
       data_dir: "dev/bench"
       tool: "googlecpp"
+      alert_threshold: "125%"
+      alert_comment_cc_users: "@nallath, @jellespijker, @wawanbreton, @casperlamboo, @saumyaj3, @HellAholic"
     secrets: inherit
