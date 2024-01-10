@@ -172,6 +172,8 @@ class CuraEngineConan(ConanFile):
                 raise ConanInvalidSystemRequirements("sentry-cli is not installed")
             ext = ".exe" if self.settings.os == "Windows" else ""
             self.run(f"sentry-cli debug-files upload --include-sources ../../  -o {sentry_project} -p curaengine CuraEngine{ext}")
+            if self.settings.os == "Windows" and self.settings.build_type == "RelWithDebInfo":
+                self.run(f"sentry-cli upload-dif --include-sources ../../  -o {sentry_project} -p curaengine CuraEngine.pdb")
 
     def package(self):
         ext = ".exe" if self.settings.os == "Windows" else ""
