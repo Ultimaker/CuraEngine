@@ -1,4 +1,4 @@
-#  Copyright (c) 2023 UltiMaker
+#  Copyright (c) 2024 UltiMaker
 #  CuraEngine is released under the terms of the AGPLv3 or higher
 
 from os import path
@@ -42,7 +42,8 @@ class CuraEngineConan(ConanFile):
 
     def set_version(self):
         if not self.version:
-            self.version = self.conan_data["version"]
+            build_meta = "" if self.develop else "+source"
+            self.version = self.conan_data["version"] + build_meta
 
     def export(self):
         update_conandata(self, {"version": self.version})
