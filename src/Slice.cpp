@@ -1,8 +1,9 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "Slice.h"
 
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #ifdef SENTRY_URL
 #include <sentry.h>
@@ -20,7 +21,7 @@ Slice::Slice(const size_t num_mesh_groups)
 
 void Slice::compute()
 {
-    spdlog::info("All settings: {}", scene.getAllSettingsString());
+    fmt::print("All settings: {}", scene.getAllSettingsString()); // Print to console do not log, otherwise Sentry won't upload the crash because it is too big.
 #ifdef SENTRY_URL
     {
         sentry_set_tag("cura.machine_name", scene.settings.get<std::string>("machine_name").c_str());
