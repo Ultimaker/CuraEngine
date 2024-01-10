@@ -79,7 +79,6 @@ support_conical_angle=30
 speed_roofing=20
 anti_overhang_mesh=False
 meshfix_union_all_remove_holes=False
-support_interface_skip_height=0.3
 draft_shield_height=10
 top_thickness=1
 machine_endstop_positive_direction_y=False

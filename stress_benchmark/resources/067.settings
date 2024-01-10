@@ -610,7 +610,6 @@ support_tree_angle=38
 skin_angles=[45,135]
 support_tree_bp_diameter=7.5
 skirt_brim_speed=25.0
-support_interface_skip_height=0.28
 machine_nozzle_head_distance=3
 support_bottom_pattern=grid
 raft_base_wall_count=1

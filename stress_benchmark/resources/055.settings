@@ -71,7 +71,6 @@ raft_margin=15
 support_tree_branch_diameter_angle=7
 prime_tower_base_height=0.2
 machine_nozzle_head_distance=3
-support_interface_skip_height=0.2
 support_bottom_pattern=concentric
 bottom_thickness=0.8
 cool_fan_enabled=True

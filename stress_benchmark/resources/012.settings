@@ -253,7 +253,6 @@ prime_tower_position_y=118.80000000000001
 mesh_position_x=0
 mold_width=5
 adhesion_extruder_nr=0
-support_interface_skip_height=0.2
 jerk_support_infill=12.5
 wall_overhang_speed_factor=100
 material_bed_temp_prepend=True

@@ -6,7 +6,6 @@ resolution=0
 _plugin__curaenginegradualflow__0_1_0__layer_0_max_flow_acceleration=1
 skin_preshrink=0.8400000000000001
 clean_between_layers=False
-support_interface_skip_height=0.2
 machine_feeder_wheel_diameter=10.0
 retraction_hop_only_when_collides=False
 machine_steps_per_mm_y=50
