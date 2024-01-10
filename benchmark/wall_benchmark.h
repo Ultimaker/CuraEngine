@@ -105,7 +105,7 @@ public:
 
     void SetUp(const ::benchmark::State& state)
     {
-        std::filesystem::path wkt_file{ "benchmark/hole.wkt" };
+        auto wkt_file = std::filesystem::path(std::source_location::current().file_name()).parent_path().append("hole.wkt");
         std::ifstream file{ wkt_file };
 
         std::stringstream buffer;
