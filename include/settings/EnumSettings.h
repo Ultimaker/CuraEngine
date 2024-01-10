@@ -256,11 +256,6 @@ enum class PrimeTowerMethod
     NONE,
 
     /*!
-     * Basic full prime tower with only discs.
-     */
-    DEFAULT,
-
-    /*!
      * Prime tower that minimizes time and used filament as much as possible.
      */
     OPTIMIZED,

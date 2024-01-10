@@ -1526,18 +1526,6 @@ std::vector<ExtruderUse>
         case PrimeTowerMethod::NONE:
             break;
 
-        case PrimeTowerMethod::DEFAULT:
-            if (extruder_nr == storage.primeTower.extruder_order_[0] && layer_nr >= 0 && layer_nr <= storage.max_print_height_second_to_last_extruder)
-            {
-                // The outermost prime tower extruder is always used if there is a prime tower, apart on layers with negative index (e.g. for the raft)
-                prime = ExtruderPrime::Prime;
-            }
-            else if (extruder_is_used_on_this_layer[extruder_nr])
-            {
-                prime = ExtruderPrime::Prime;
-            }
-            break;
-
         case PrimeTowerMethod::OPTIMIZED_CONSISTENT:
             if (extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder)
             {
