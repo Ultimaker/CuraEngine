@@ -9,6 +9,7 @@ from conan.tools.files import copy, mkdir, update_conandata
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
 from conan.tools.scm import Version
+from conans.errors import ConanInvalidSystemRequirements
 
 required_conan_version = ">=1.58.0 <2.0.0"
 
@@ -168,7 +169,7 @@ class CuraEngineConan(ConanFile):
             output = StringIO()
             self.run(f"sentry-cli -V", output=output)
             if "sentry-cli" not in output.getvalue():
-                raise ConanInvalidConfiguration("sentry-cli is not installed")
+                raise ConanInvalidSystemRequirements("sentry-cli is not installed")
             ext = ".exe" if self.settings.os == "Windows" else ""
             self.run(f"sentry-cli debug-files upload --include-sources ../../  -o {sentry_project} -p curaengine CuraEngine{ext}")
 
