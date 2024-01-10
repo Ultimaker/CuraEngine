@@ -1,6 +1,6 @@
 #  Copyright (c) 2024 UltiMaker
 #  CuraEngine is released under the terms of the AGPLv3 or higher
-
+from io import StringIO
 from os import path
 
 from conan import ConanFile
@@ -160,6 +160,17 @@ class CuraEngineConan(ConanFile):
         cmake = CMake(self)
         cmake.configure()
         cmake.build()
+
+        if self.options.get_safe("enable_sentry", False):
+            sentry_project = self.conf.get("user.curaengine:sentry_project", "", check_type=str)
+            if sentry_project == "":
+                raise ConanInvalidConfiguration("sentry_project is not set")
+            output = StringIO()
+            self.run(f"sentry-cli -V", output=output)
+            if "sentry-cli" not in output.getvalue():
+                raise ConanInvalidConfiguration("sentry-cli is not installed")
+            ext = ".exe" if self.settings.os == "Windows" else ""
+            self.run(f"sentry-cli debug-files upload --include-sources ../../  -o {sentry_project} -p curaengine CuraEngine{ext}")
 
     def package(self):
         ext = ".exe" if self.settings.os == "Windows" else ""
