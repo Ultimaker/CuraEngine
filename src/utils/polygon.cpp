@@ -134,8 +134,8 @@ void Polygons::makeConvex()
 
                 if (LinearAlg2D::pointIsLeftOfLine(current, convexified.path->back(), after) < 0)
                 {
-                    //Track backwards to make sure we haven't been in a concave pocket for multiple vertices already.
-                    while(convexified.size() >= 2 && LinearAlg2D::pointIsLeftOfLine(convexified.path->back(), (*convexified.path)[convexified.size() - 2], current) > 0)
+                    // Track backwards to make sure we haven't been in a concave pocket for multiple vertices already.
+                    while (convexified.size() >= 2 && LinearAlg2D::pointIsLeftOfLine(convexified.path->back(), (*convexified.path)[convexified.size() - 2], current) > 0)
                     {
                         convexified.path->pop_back();
                     }
@@ -144,7 +144,13 @@ void Polygons::makeConvex()
             }
         };
 
-        std::sort(poly.begin(), poly.end(), [](Point2LL a, Point2LL b) { return a.X == b.X ? a.Y < b.Y : a.X < b.X; });
+        std::sort(
+            poly.begin(),
+            poly.end(),
+            [](Point2LL a, Point2LL b)
+            {
+                return a.X == b.X ? a.Y < b.Y : a.X < b.X;
+            });
         makeSortedPolyConvex(poly);
         std::reverse(poly.begin(), poly.end());
         makeSortedPolyConvex(poly);
