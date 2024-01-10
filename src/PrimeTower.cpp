@@ -44,12 +44,12 @@ PrimeTower::PrimeTower()
         // adhesion).
 
         multiple_extruders_on_first_layer_ = (method == PrimeTowerMethod::OPTIMIZED) || (method == PrimeTowerMethod::OPTIMIZED_CONSISTENT)
-                                         || (scene.current_mesh_group->settings.get<bool>("machine_extruders_share_nozzle")
-                                             && ((adhesion_type != EPlatformAdhesion::SKIRT) && (adhesion_type != EPlatformAdhesion::BRIM)));
+                                          || (scene.current_mesh_group->settings.get<bool>("machine_extruders_share_nozzle")
+                                              && ((adhesion_type != EPlatformAdhesion::SKIRT) && (adhesion_type != EPlatformAdhesion::BRIM)));
     }
 
     enabled_ = method != PrimeTowerMethod::NONE && scene.current_mesh_group->settings.get<coord_t>("prime_tower_min_volume") > 10
-           && scene.current_mesh_group->settings.get<coord_t>("prime_tower_size") > 10;
+            && scene.current_mesh_group->settings.get<coord_t>("prime_tower_size") > 10;
 
     would_have_actual_tower_ = enabled_; // Assume so for now.
 

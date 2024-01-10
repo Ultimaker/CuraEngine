@@ -4,11 +4,11 @@
 #ifndef SKELETAL_TRAPEZOIDATION_GRAPH_H
 #define SKELETAL_TRAPEZOIDATION_GRAPH_H
 
+#include <optional>
+
 #include "SkeletalTrapezoidationEdge.h"
 #include "SkeletalTrapezoidationJoint.h"
 #include "utils/HalfEdgeGraph.h"
-
-#include <optional>
 
 namespace cura
 {

@@ -4,10 +4,10 @@
 #ifndef CURAENGINE_DFS_SORT_H
 #define CURAENGINE_DFS_SORT_H
 
-#include "utils/types/graph.h"
-
 #include <range/v3/algorithm/contains.hpp>
 #include <range/v3/view/subrange.hpp>
+
+#include "utils/types/graph.h"
 
 namespace cura::actions
 {
