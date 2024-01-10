@@ -31,29 +31,29 @@ private:
     using MovesByExtruder = std::vector<Polygons>;
     using MovesByLayer = std::vector<MovesByExtruder>;
 
-    size_t extruder_count; //!< Number of extruders
+    size_t extruder_count_; //!< Number of extruders
 
-    bool wipe_from_middle; //!< Whether to wipe on the inside of the hollow prime tower
-    Point middle; //!< The middle of the prime tower
+    bool wipe_from_middle_; //!< Whether to wipe on the inside of the hollow prime tower
+    Point2LL middle_; //!< The middle of the prime tower
 
-    Point post_wipe_point; //!< Location to post-wipe the unused nozzle off on
+    Point2LL post_wipe_point_; //!< Location to post-wipe the unused nozzle off on
 
-    std::vector<ClosestPolygonPoint> prime_tower_start_locations; //!< The differernt locations where to pre-wipe the active nozzle
-    const unsigned int number_of_prime_tower_start_locations = 21; //!< The required size of \ref PrimeTower::wipe_locations
+    std::vector<ClosestPolygonPoint> prime_tower_start_locations_; //!< The differernt locations where to pre-wipe the active nozzle
+    const unsigned int number_of_prime_tower_start_locations_ = 21; //!< The required size of \ref PrimeTower::wipe_locations
 
-    MovesByExtruder prime_moves; //!< For each extruder, the moves to be processed for actual priming.
+    MovesByExtruder prime_moves_; //!< For each extruder, the moves to be processed for actual priming.
     std::map<size_t, std::map<size_t, Polygons>>
-        sparse_pattern_per_extruders; //!< For each extruders combination, and for each actual extruder, the pattern to print on all layers where extruders are actually useless.
-    MovesByLayer base_extra_moves; //!< For each layer and each extruder, the extra moves to be processed for better adhesion/strength
-    MovesByExtruder inset_extra_moves; //!< For each extruder, the extra inset moves to be processed for better adhesion on initial layer
+        sparse_pattern_per_extruders_; //!< For each extruders combination, and for each actual extruder, the pattern to print on all layers where extruders are actually useless.
+    MovesByLayer base_extra_moves_; //!< For each layer and each extruder, the extra moves to be processed for better adhesion/strength
+    MovesByExtruder inset_extra_moves_; //!< For each extruder, the extra inset moves to be processed for better adhesion on initial layer
 
-    Polygons outer_poly; //!< The outline of the outermost prime tower.
-    std::vector<Polygons> outer_poly_base; //!< The outline of the layers having extra width for the base
+    Polygons outer_poly_; //!< The outline of the outermost prime tower.
+    std::vector<Polygons> outer_poly_base_; //!< The outline of the layers having extra width for the base
 
 public:
-    bool enabled; //!< Whether the prime tower is enabled.
-    bool would_have_actual_tower; //!< Whether there is an actual tower.
-    bool multiple_extruders_on_first_layer; //!< Whether multiple extruders are allowed on the first layer of the prime tower (e.g. when a raft is there)
+    bool enabled_; //!< Whether the prime tower is enabled.
+    bool would_have_actual_tower_; //!< Whether there is an actual tower.
+    bool multiple_extruders_on_first_layer_; //!< Whether multiple extruders are allowed on the first layer of the prime tower (e.g. when a raft is there)
 
     /*
      * In which order, from outside to inside, will we be printing the prime
@@ -62,7 +62,7 @@ public:
      * This is the spatial order from outside to inside. This is NOT the actual
      * order in time in which they are printed.
      */
-    std::vector<size_t> extruder_order;
+    std::vector<size_t> extruder_order_;
 
     /*!
      * \brief Creates a prime tower instance that will determine where and how

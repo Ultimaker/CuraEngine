@@ -3,10 +3,10 @@
 
 #include "utils/channel.h"
 
-#include "utils/resources/certificate.pem.h"
-
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
+
+#include "utils/resources/certificate.pem.h"
 
 namespace cura::utils
 {
@@ -17,23 +17,23 @@ inline constexpr static bool ALLOW_REMOTE_CHANNELS = ENABLE_REMOTE_PLUGINS;
 
 std::shared_ptr<grpc::Channel> createChannel(const ChannelSetupConfiguration& config)
 {
-    constexpr auto create_credentials = [](const ChannelSetupConfiguration& config)
+    constexpr auto create_credentials = [](const ChannelSetupConfiguration& actual_config)
     {
-        if (config.host == "localhost" || config.host == "127.0.0.1")
+        if (actual_config.host == "localhost" || actual_config.host == "127.0.0.1")
         {
-            spdlog::info("Create local channel on port {}.", config.port);
+            spdlog::info("Create local channel on port {}.", actual_config.port);
             return grpc::InsecureChannelCredentials();
         }
         if (details::ALLOW_REMOTE_CHANNELS)
         {
-            spdlog::info("Create local channel on port {}.", config.port);
+            spdlog::info("Create local channel on port {}.", actual_config.port);
             auto creds_config = grpc::SslCredentialsOptions();
             creds_config.pem_root_certs = resources::certificate;
             return grpc::SslCredentials(creds_config);
         }
         // Create empty credentials, so it'll make a dummy channel where all operations fail.
         // This is consistent with creating a channel with the wrong credentials as it where.
-        spdlog::warn("Remote plugins where disabled, will not connect to {}:{}.", config.host, config.port);
+        spdlog::warn("Remote plugins where disabled, will not connect to {}:{}.", actual_config.host, actual_config.port);
         return std::shared_ptr<grpc::ChannelCredentials>();
     };
     grpc::ChannelArguments args;

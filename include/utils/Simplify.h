@@ -41,6 +41,23 @@ class Simplify
 {
 public:
     /*!
+     * Line segments shorter than this size should be considered for removal.
+     */
+    coord_t max_resolution_;
+
+    /*!
+     * If removing a vertex causes a deviation further than this, it may not be
+     * removed.
+     */
+    coord_t max_deviation_;
+
+    /*!
+     * If removing a vertex causes the covered area of the line segments to
+     * change by more than this, it may not be removed.
+     */
+    coord_t max_area_deviation_;
+
+    /*!
      * Construct a simplifier, storing the simplification parameters in the
      * instance (as a factory pattern).
      * \param max_resolution Line segments smaller than this are considered for
@@ -107,23 +124,6 @@ public:
      * \return The simplified polyline.
      */
     ExtrusionLine polyline(const ExtrusionLine& polyline) const;
-
-    /*!
-     * Line segments shorter than this size should be considered for removal.
-     */
-    coord_t max_resolution;
-
-    /*!
-     * If removing a vertex causes a deviation further than this, it may not be
-     * removed.
-     */
-    coord_t max_deviation;
-
-    /*!
-     * If removing a vertex causes the covered area of the line segments to
-     * change by more than this, it may not be removed.
-     */
-    coord_t max_area_deviation;
 
 protected:
     /*!
@@ -212,7 +212,7 @@ protected:
                     continue;
                 }
 
-                if (vertex_importance <= max_deviation * max_deviation)
+                if (vertex_importance <= max_deviation_ * max_deviation_)
                 {
                     current_removed += remove(result, to_delete, vertex.first, vertex_importance, is_closed) ? 1 : 0;
                 }
@@ -257,24 +257,24 @@ protected:
         }
         // From here on out we can safely look at the vertex neighbors and assume it's a polygon. We won't go out of bounds of the polyline.
 
-        const Point& vertex = getPosition(polygon[index]);
+        const Point2LL& vertex = getPosition(polygon[index]);
         const size_t before_index = previousNotDeleted(index, to_delete);
         const size_t after_index = nextNotDeleted(index, to_delete);
 
         const coord_t area_deviation = getAreaDeviation(polygon[before_index], polygon[index], polygon[after_index]);
-        if (area_deviation > max_area_deviation) // Removing this line causes the variable line width to get flattened out too much.
+        if (area_deviation > max_area_deviation_) // Removing this line causes the variable line width to get flattened out too much.
         {
             return std::numeric_limits<coord_t>::max();
         }
 
-        const Point& before = getPosition(polygon[before_index]);
-        const Point& after = getPosition(polygon[after_index]);
+        const Point2LL& before = getPosition(polygon[before_index]);
+        const Point2LL& after = getPosition(polygon[after_index]);
         const coord_t deviation2 = LinearAlg2D::getDist2FromLine(vertex, before, after);
         if (deviation2 <= min_resolution * min_resolution) // Deviation so small that it's always desired to remove them.
         {
             return deviation2;
         }
-        if (vSize2(before - vertex) > max_resolution * max_resolution && vSize2(after - vertex) > max_resolution * max_resolution)
+        if (vSize2(before - vertex) > max_resolution_ * max_resolution_ && vSize2(after - vertex) > max_resolution_ * max_resolution_)
         {
             return std::numeric_limits<coord_t>::max(); // Long line segments, no need to remove this one.
         }
@@ -310,13 +310,13 @@ protected:
 
         const size_t before = previousNotDeleted(vertex, to_delete);
         const size_t after = nextNotDeleted(vertex, to_delete);
-        const Point& vertex_position = getPosition(polygon[vertex]);
-        const Point& before_position = getPosition(polygon[before]);
-        const Point& after_position = getPosition(polygon[after]);
+        const Point2LL& vertex_position = getPosition(polygon[vertex]);
+        const Point2LL& before_position = getPosition(polygon[before]);
+        const Point2LL& after_position = getPosition(polygon[after]);
         const coord_t length2_before = vSize2(vertex_position - before_position);
         const coord_t length2_after = vSize2(vertex_position - after_position);
 
-        if (length2_before <= max_resolution * max_resolution && length2_after <= max_resolution * max_resolution) // Both adjacent line segments are short.
+        if (length2_before <= max_resolution_ * max_resolution_ && length2_after <= max_resolution_ * max_resolution_) // Both adjacent line segments are short.
         {
             // Removing this vertex does little harm. No long lines will be shifted.
             to_delete[vertex] = true;
@@ -326,7 +326,7 @@ protected:
         // Otherwise, one edge next to this vertex is longer than max_resolution. The other is shorter.
         // In this case we want to remove the short edge by replacing it with a vertex where the two surrounding edges intersect.
         // Find the two line segments surrounding the short edge here ("before" and "after" edges).
-        Point before_from, before_to, after_from, after_to;
+        Point2LL before_from, before_to, after_from, after_to;
         if (length2_before <= length2_after) // Before is the shorter line.
         {
             if (! is_closed && before == 0) // No edge before the short edge.
@@ -351,14 +351,14 @@ protected:
             after_from = getPosition(polygon[after]);
             after_to = getPosition(polygon[after_after]);
         }
-        Point intersection;
+        Point2LL intersection;
         const bool did_intersect = LinearAlg2D::lineLineIntersection(before_from, before_to, after_from, after_to, intersection);
         if (! did_intersect) // Lines are parallel.
         {
             return false; // Cannot remove edge without shifting a long edge. Don't remove anything.
         }
         const coord_t intersection_deviation = LinearAlg2D::getDist2FromLineSegment(before_to, intersection, after_from);
-        if (intersection_deviation <= max_deviation * max_deviation) // Intersection point doesn't deviate too much. Use it!
+        if (intersection_deviation <= max_deviation_ * max_deviation_) // Intersection point doesn't deviate too much. Use it!
         {
             to_delete[vertex] = true;
             polygon[length2_before <= length2_after ? before : after] = createIntersection(polygon[before], intersection, polygon[after]);
@@ -416,7 +416,7 @@ protected:
      * \param polygon The polygon to add to.
      * \param vertex The vertex to add.
      */
-    void appendVertex(Polygon& polygon, const Point& vertex) const;
+    void appendVertex(Polygon& polygon, const Point2LL& vertex) const;
 
     /*!
      * Append a vertex to this extrusion line.
@@ -435,7 +435,7 @@ protected:
      * \param vertex A vertex to get the coordinates of.
      * \return The coordinates of that vertex.
      */
-    const Point& getPosition(const Point& vertex) const;
+    const Point2LL& getPosition(const Point2LL& vertex) const;
 
     /*!
      * Get the coordinates of a vertex.
@@ -444,7 +444,7 @@ protected:
      * \param vertex A vertex to get the coordinates of.
      * \return The coordinates of that vertex.
      */
-    const Point& getPosition(const ExtrusionJunction& vertex) const;
+    const Point2LL& getPosition(const ExtrusionJunction& vertex) const;
 
     /*!
      * Create an intersection vertex that can be placed in a polygon.
@@ -454,7 +454,7 @@ protected:
      * \param after One of the vertices of a removed edge. Unused in this
      * overload.
      */
-    Point createIntersection(const Point& before, const Point intersection, const Point& after) const;
+    Point2LL createIntersection(const Point2LL& before, const Point2LL intersection, const Point2LL& after) const;
 
     /*!
      * Create an intersection vertex that can be placed in an ExtrusionLine.
@@ -464,7 +464,7 @@ protected:
      * \param after One of the vertices of the edge that gets replaced by an
      * intersection vertex.
      */
-    ExtrusionJunction createIntersection(const ExtrusionJunction& before, const Point intersection, const ExtrusionJunction& after) const;
+    ExtrusionJunction createIntersection(const ExtrusionJunction& before, const Point2LL intersection, const ExtrusionJunction& after) const;
 
     /*!
      * Get the extrusion area deviation that would be caused by removing this
@@ -477,7 +477,7 @@ protected:
      * \param after The vertex after the one that is to be removed.
      * \return The area deviation that would be caused by removing the vertex.
      */
-    coord_t getAreaDeviation(const Point& before, const Point& vertex, const Point& after) const;
+    coord_t getAreaDeviation(const Point2LL& before, const Point2LL& vertex, const Point2LL& after) const;
 
     /*!
      * Get the extrusion area deviation that would be caused by removing this

@@ -5,6 +5,26 @@
 
 #include "communication/ArcusCommunication.h"
 
+#ifdef SENTRY_URL
+#ifdef _WIN32
+#if ! defined(NOMINMAX)
+#define NOMINMAX
+#endif
+#if ! defined(WIN32_LEAN_AND_MEAN)
+#define WIN32_LEAN_AND_MEAN
+#endif
+#endif
+#include <sentry.h>
+#endif
+
+#include <thread> //To sleep while waiting for the connection.
+#include <unordered_map> //To map settings to their extruder numbers for limit_to_extruder.
+
+#include <Arcus/Socket.h> //The socket to communicate to.
+#include <fmt/format.h>
+#include <spdlog/details/os.h>
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To get and set the current slice command.
 #include "ExtruderTrain.h"
 #include "FffProcessor.h" //To start a slice.
@@ -18,13 +38,6 @@
 #include "settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
 #include "utils/channel.h"
 #include "utils/polygon.h"
-
-#include <Arcus/Socket.h> //The socket to communicate to.
-#include <fmt/format.h>
-#include <spdlog/spdlog.h>
-
-#include <thread> //To sleep while waiting for the connection.
-#include <unordered_map> //To map settings to their extruder numbers for limit_to_extruder.
 
 namespace cura
 {
@@ -54,7 +67,7 @@ class ArcusCommunication::PathCompiler
     std::vector<float> points; //!< The points used to define the line segments, the size of this vector is D*(N+1) as each line segment is defined from one point to the next. D is
                                //!< the dimensionality of the point.
 
-    Point last_point;
+    Point2LL last_point;
 
     PathCompiler(const PathCompiler&) = delete;
     PathCompiler& operator=(const PathCompiler&) = delete;
@@ -116,10 +129,10 @@ public:
      */
     void setExtruder(const ExtruderTrain& new_extruder)
     {
-        if (extruder != new_extruder.extruder_nr)
+        if (extruder != new_extruder.extruder_nr_)
         {
             flushPathSegments();
-            extruder = new_extruder.extruder_nr;
+            extruder = new_extruder.extruder_nr_;
         }
     }
 
@@ -130,7 +143,7 @@ public:
      * of the path this jump is marked as `PrintFeatureType::NoneType`.
      * \param from The initial point of a polygon.
      */
-    void handleInitialPoint(const Point& initial_point)
+    void handleInitialPoint(const Point2LL& initial_point)
     {
         if (points.size() == 0)
         {
@@ -188,7 +201,7 @@ public:
     /*!
      * \brief Move the current point of this path to \p position.
      */
-    void setCurrentPosition(const Point& position)
+    void setCurrentPosition(const Point2LL& position)
     {
         handleInitialPoint(position);
     }
@@ -204,7 +217,7 @@ public:
      * \param line_thickness The thickness (in the Z direction) of the line.
      * \param velocity The velocity of printing this polygon.
      */
-    void sendLineTo(const PrintFeatureType& print_feature_type, const Point& to, const coord_t& width, const coord_t& thickness, const Velocity& feedrate)
+    void sendLineTo(const PrintFeatureType& print_feature_type, const Point2LL& to, const coord_t& width, const coord_t& thickness, const Velocity& feedrate)
     {
         assert(! points.empty() && "A point must already be in the buffer for sendLineTo(.) to function properly.");
 
@@ -257,7 +270,7 @@ private:
      * Each point is represented as two consecutive floats. All members adding a
      * 2D point to the data should use this function.
      */
-    void addPoint2D(const Point& point)
+    void addPoint2D(const Point2LL& point)
     {
         points.push_back(INT2MM(point.X));
         points.push_back(INT2MM(point.Y));
@@ -276,7 +289,7 @@ private:
      * \param thickness The layer thickness of the polygon.
      * \param velocity How fast the polygon is printed.
      */
-    void addLineSegment(const PrintFeatureType& print_feature_type, const Point& point, const coord_t& width, const coord_t& thickness, const Velocity& velocity)
+    void addLineSegment(const PrintFeatureType& print_feature_type, const Point2LL& point, const coord_t& width, const coord_t& thickness, const Velocity& velocity)
     {
         addPoint2D(point);
         line_types.push_back(print_feature_type);
@@ -368,7 +381,7 @@ bool ArcusCommunication::hasSlice() const
         && private_data->slice_count < 1; // Only slice once per run of CuraEngine. See documentation of slice_count.
 }
 
-void ArcusCommunication::sendCurrentPosition(const Point& position)
+void ArcusCommunication::sendCurrentPosition(const Point2LL& position)
 {
     path_compiler->setCurrentPosition(position);
 }
@@ -402,7 +415,7 @@ void ArcusCommunication::sendLayerComplete(const LayerIndex::value_type& layer_n
     layer->set_thickness(thickness);
 }
 
-void ArcusCommunication::sendLineTo(const PrintFeatureType& type, const Point& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
+void ArcusCommunication::sendLineTo(const PrintFeatureType& type, const Point2LL& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
 {
     path_compiler->sendLineTo(type, to, line_width, line_thickness, velocity);
 }
@@ -443,7 +456,7 @@ void ArcusCommunication::sendPolygon(
 
 void ArcusCommunication::sendPolygons(const PrintFeatureType& type, const Polygons& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
 {
-    for (const std::vector<Point>& polygon : polygons)
+    for (const std::vector<Point2LL>& polygon : polygons)
     {
         path_compiler->sendPolygon(type, polygon, line_width, line_thickness, velocity);
     }
@@ -468,7 +481,7 @@ void ArcusCommunication::sendPrintTimeMaterialEstimates() const
     message->set_time_travel(time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveCombing)]);
     message->set_time_prime_tower(time_estimates[static_cast<unsigned char>(PrintFeatureType::PrimeTower)]);
 
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
     {
         proto::MaterialEstimates* material_message = message->add_materialestimates();
         material_message->set_id(extruder_nr);
@@ -479,7 +492,7 @@ void ArcusCommunication::sendPrintTimeMaterialEstimates() const
     spdlog::debug("Done sending print time and material estimates.");
 }
 
-void ArcusCommunication::sendProgress(const float& progress) const
+void ArcusCommunication::sendProgress(double progress) const
 {
     const int rounded_amount = 1000 * progress;
     if (private_data->last_sent_progress == rounded_amount) // No need to send another tiny update step.
@@ -488,7 +501,7 @@ void ArcusCommunication::sendProgress(const float& progress) const
     }
 
     std::shared_ptr<proto::Progress> message = std::make_shared<cura::proto::Progress>();
-    float progress_all_objects = progress / private_data->object_count;
+    double progress_all_objects = progress / private_data->object_count;
     progress_all_objects += private_data->optimized_layers.sliced_objects * (1.0 / private_data->object_count);
     message->set_amount(progress_all_objects);
     private_data->socket->sendMessage(message);
@@ -518,16 +531,30 @@ void ArcusCommunication::sliceNext()
     }
     spdlog::debug("Received a Slice message.");
 
+#ifdef SENTRY_URL
+    sentry_value_t user = sentry_value_new_object();
+    sentry_value_set_by_key(user, "id", sentry_value_new_string(slice_message->sentry_id().c_str()));
+    if (const auto sentry_user = spdlog::details::os::getenv("CURAENGINE_SENTRY_USER"); ! sentry_user.empty())
+    {
+        sentry_value_set_by_key(user, "email", sentry_value_new_string(sentry_user.c_str()));
+    }
+    sentry_set_user(user);
+    sentry_set_tag("cura.version", slice_message->cura_version().c_str());
+#endif
+
 #ifdef ENABLE_PLUGINS
     for (const auto& plugin : slice_message->engine_plugins())
     {
         const auto slot_id = static_cast<plugins::v0::SlotID>(plugin.id());
         slots::instance().connect(slot_id, plugin.plugin_name(), plugin.plugin_version(), utils::createChannel({ plugin.address(), plugin.port() }));
+#ifdef SENTRY_URL
+        sentry_set_tag(fmt::format("plugin_{}.version", plugin.plugin_name()).c_str(), plugin.plugin_version().c_str());
+#endif
     }
 #endif // ENABLE_PLUGINS
 
     Slice slice(slice_message->object_lists().size());
-    Application::getInstance().current_slice = &slice;
+    Application::getInstance().current_slice_ = &slice;
 
     private_data->readGlobalSettingsMessage(slice_message->global_settings());
     private_data->readExtruderSettingsMessage(slice_message->extruders());

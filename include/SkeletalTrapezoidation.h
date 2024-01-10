@@ -4,6 +4,12 @@
 #ifndef SKELETAL_TRAPEZOIDATION_H
 #define SKELETAL_TRAPEZOIDATION_H
 
+#include <memory> // smart pointers
+#include <unordered_map>
+#include <utility> // pair
+
+#include <boost/polygon/voronoi.hpp>
+
 #include "BeadingStrategy/BeadingStrategy.h"
 #include "SkeletalTrapezoidationEdge.h"
 #include "SkeletalTrapezoidationGraph.h"
@@ -15,11 +21,6 @@
 #include "utils/PolygonsSegmentIndex.h"
 #include "utils/polygon.h"
 #include "utils/section_type.h"
-
-#include <boost/polygon/voronoi.hpp>
-#include <memory> // smart pointers
-#include <unordered_map>
-#include <utility> // pair
 
 namespace cura
 {
@@ -58,15 +59,15 @@ class SkeletalTrapezoidation
     template<typename T>
     using ptr_vector_t = std::vector<std::shared_ptr<T>>;
 
-    AngleRadians transitioning_angle; //!< How pointy a region should be before we apply the method. Equals 180* - limit_bisector_angle
-    coord_t discretization_step_size; //!< approximate size of segments when parabolic VD edges get discretized (and vertex-vertex edges)
-    coord_t transition_filter_dist; //!< Filter transition mids (i.e. anchors) closer together than this
-    coord_t allowed_filter_deviation; //!< The allowed line width deviation induced by filtering
-    coord_t beading_propagation_transition_dist; //!< When there are different beadings propagated from below and from above, use this transitioning distance
-    static constexpr coord_t central_filter_dist = 20; //!< Filter areas marked as 'central' smaller than this
-    static constexpr coord_t snap_dist = 20; //!< Generic arithmatic inaccuracy. Only used to determine whether a transition really needs to insert an extra edge.
-    int layer_idx{};
-    SectionType section_type;
+    AngleRadians transitioning_angle_; //!< How pointy a region should be before we apply the method. Equals 180* - limit_bisector_angle
+    coord_t discretization_step_size_; //!< approximate size of segments when parabolic VD edges get discretized (and vertex-vertex edges)
+    coord_t transition_filter_dist_; //!< Filter transition mids (i.e. anchors) closer together than this
+    coord_t allowed_filter_deviation_; //!< The allowed line width deviation induced by filtering
+    coord_t beading_propagation_transition_dist_; //!< When there are different beadings propagated from below and from above, use this transitioning distance
+    static constexpr coord_t central_filter_dist_ = 20; //!< Filter areas marked as 'central' smaller than this
+    static constexpr coord_t snap_dist_ = 20; //!< Generic arithmatic inaccuracy. Only used to determine whether a transition really needs to insert an extra edge.
+    int layer_idx_{};
+    SectionType section_type_;
 
     /*!
      * The strategy to use to fill a certain shape with lines.
@@ -76,10 +77,20 @@ class SkeletalTrapezoidation
      * how the joints are handled where we transition to different numbers of
      * lines.
      */
-    const BeadingStrategy& beading_strategy;
+    const BeadingStrategy& beading_strategy_;
 
 public:
     using Segment = PolygonsSegmentIndex;
+
+    /*!
+     * A skeletal graph through the polygons that we need to fill with beads.
+     *
+     * The skeletal graph represents the medial axes through each part of the
+     * polygons, and the lines from these medial axes towards each vertex of the
+     * polygons. The graph can be used to see what the width is of a polygon in
+     * each place and where the width transitions.
+     */
+    graph_t graph_;
 
     /*!
      * Construct a new trapezoidation problem to solve.
@@ -110,16 +121,6 @@ public:
         SectionType section_type);
 
     /*!
-     * A skeletal graph through the polygons that we need to fill with beads.
-     *
-     * The skeletal graph represents the medial axes through each part of the
-     * polygons, and the lines from these medial axes towards each vertex of the
-     * polygons. The graph can be used to see what the width is of a polygon in
-     * each place and where the width transitions.
-     */
-    graph_t graph;
-
-    /*!
      * Generate the paths that the printer must extrude, to print the outlines
      * in the input polygons.
      * \param filter_outermost_central_edges Some edges are "central" but still
@@ -135,14 +136,21 @@ protected:
      */
     struct TransitionMidRef
     {
-        edge_t* edge;
-        std::list<TransitionMiddle>::iterator transition_it;
+        edge_t* edge_;
+        std::list<TransitionMiddle>::iterator transition_it_;
         TransitionMidRef(edge_t* edge, std::list<TransitionMiddle>::iterator transition_it)
-            : edge(edge)
-            , transition_it(transition_it)
+            : edge_(edge)
+            , transition_it_(transition_it)
         {
         }
     };
+
+    /*!
+     * mapping each voronoi VD edge to the corresponding halfedge HE edge
+     * In case the result segment is discretized, we map the VD edge to the *last* HE edge
+     */
+    std::unordered_map<vd_t::edge_type*, edge_t*> vd_edge_to_he_edge_;
+    std::unordered_map<vd_t::vertex_type*, node_t*> vd_node_to_he_node_;
 
     /*!
      * Compute the skeletal trapezoidation decomposition of the input shape.
@@ -159,13 +167,7 @@ protected:
      */
     void constructFromPolygons(const Polygons& polys);
 
-    /*!
-     * mapping each voronoi VD edge to the corresponding halfedge HE edge
-     * In case the result segment is discretized, we map the VD edge to the *last* HE edge
-     */
-    std::unordered_map<vd_t::edge_type*, edge_t*> vd_edge_to_he_edge;
-    std::unordered_map<vd_t::vertex_type*, node_t*> vd_node_to_he_node;
-    node_t& makeNode(vd_t::vertex_type& vd_node, Point p); //!< Get the node which the VD node maps to, or create a new mapping if there wasn't any yet.
+    node_t& makeNode(vd_t::vertex_type& vd_node, Point2LL p); //!< Get the node which the VD node maps to, or create a new mapping if there wasn't any yet.
 
     /*!
      * (Eventual) returned 'polylines per index' result (from generateToolpaths):
@@ -179,13 +181,13 @@ protected:
      * \p prev_edge serves as input and output. May be null as input.
      */
     void transferEdge(
-        Point from,
-        Point to,
+        Point2LL from,
+        Point2LL to,
         vd_t::edge_type& vd_edge,
         edge_t*& prev_edge,
-        Point& start_source_point,
-        Point& end_source_point,
-        const std::vector<Point>& points,
+        Point2LL& start_source_point,
+        Point2LL& end_source_point,
+        const std::vector<Point2LL>& points,
         const std::vector<Segment>& segments);
 
     /*!
@@ -213,7 +215,7 @@ protected:
      * \return A number of coordinates along the edge where the edge is broken
      * up into discrete pieces.
      */
-    std::vector<Point> discretize(const vd_t::edge_type& segment, const std::vector<Point>& points, const std::vector<Segment>& segments);
+    std::vector<Point2LL> discretize(const vd_t::edge_type& segment, const std::vector<Point2LL>& points, const std::vector<Segment>& segments);
 
     /*!
      * Compute the range of line segments that surround a cell of the skeletal
@@ -241,11 +243,11 @@ protected:
      */
     bool computePointCellRange(
         vd_t::cell_type& cell,
-        Point& start_source_point,
-        Point& end_source_point,
+        Point2LL& start_source_point,
+        Point2LL& end_source_point,
         vd_t::edge_type*& starting_vd_edge,
         vd_t::edge_type*& ending_vd_edge,
-        const std::vector<Point>& points,
+        const std::vector<Point2LL>& points,
         const std::vector<Segment>& segments);
 
     /*!
@@ -274,11 +276,11 @@ protected:
      */
     void computeSegmentCellRange(
         vd_t::cell_type& cell,
-        Point& start_source_point,
-        Point& end_source_point,
+        Point2LL& start_source_point,
+        Point2LL& end_source_point,
         vd_t::edge_type*& starting_vd_edge,
         vd_t::edge_type*& ending_vd_edge,
-        const std::vector<Point>& points,
+        const std::vector<Point2LL>& points,
         const std::vector<Segment>& segments);
 
     /*!

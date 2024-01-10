@@ -79,7 +79,7 @@ public:
     }
     void twoPolygonsAreEqual(Polygons& polygon1, Polygons& polygon2) const
     {
-        auto poly_cmp = [](const ClipperLib::Path& a, const ClipperLib::Path& b) { return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end(), [](const Point& p1, const Point& p2) { return p1 < p2; }); };
+        auto poly_cmp = [](const ClipperLib::Path& a, const ClipperLib::Path& b) { return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end(), [](const Point2LL& p1, const Point2LL& p2) { return p1 < p2; }); };
         std::sort(polygon1.begin(), polygon1.end(), poly_cmp);
         std::sort(polygon2.begin(), polygon2.end(), poly_cmp);
 
@@ -121,7 +121,7 @@ TEST_F(PolygonTest, polygonOffsetBugTest)
 
     for (const ConstPolygonRef poly : offsetted)
     {
-        for (const Point& p : poly)
+        for (const Point2LL& p : poly)
         {
             ASSERT_TRUE(polys.inside(p)) << "A negative offset should move the point towards the inside!";
         }
@@ -133,32 +133,32 @@ TEST_F(PolygonTest, isOutsideTest)
     Polygons test_triangle;
     test_triangle.add(triangle);
 
-    EXPECT_FALSE(test_triangle.inside(Point(0, 100))) << "Left point should be outside the triangle.";
-    EXPECT_FALSE(test_triangle.inside(Point(100, 100))) << "Middle left point should be outside the triangle.";
-    EXPECT_FALSE(test_triangle.inside(Point(300, 100))) << "Middle right point should be outside the triangle.";
-    EXPECT_FALSE(test_triangle.inside(Point(500, 100))) << "Right point should be outside the triangle.";
-    EXPECT_FALSE(test_triangle.inside(Point(100, 200))) << "Above point should be outside the triangle.";
-    EXPECT_FALSE(test_triangle.inside(Point(100, -100))) << "Below point should be outside the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point2LL(0, 100))) << "Left point should be outside the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point2LL(100, 100))) << "Middle left point should be outside the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point2LL(300, 100))) << "Middle right point should be outside the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point2LL(500, 100))) << "Right point should be outside the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point2LL(100, 200))) << "Above point should be outside the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point2LL(100, -100))) << "Below point should be outside the triangle.";
 }
 
 TEST_F(PolygonTest, isInsideTest)
 {
     Polygons test_polys;
     PolygonRef poly = test_polys.newPoly();
-    poly.add(Point(82124, 98235));
-    poly.add(Point(83179, 98691));
-    poly.add(Point(83434, 98950));
-    poly.add(Point(82751, 99026));
-    poly.add(Point(82528, 99019));
-    poly.add(Point(81605, 98854));
-    poly.add(Point(80401, 98686));
-    poly.add(Point(79191, 98595));
-    poly.add(Point(78191, 98441));
-    poly.add(Point(78998, 98299));
-    poly.add(Point(79747, 98179));
-    poly.add(Point(80960, 98095));
+    poly.add(Point2LL(82124, 98235));
+    poly.add(Point2LL(83179, 98691));
+    poly.add(Point2LL(83434, 98950));
+    poly.add(Point2LL(82751, 99026));
+    poly.add(Point2LL(82528, 99019));
+    poly.add(Point2LL(81605, 98854));
+    poly.add(Point2LL(80401, 98686));
+    poly.add(Point2LL(79191, 98595));
+    poly.add(Point2LL(78191, 98441));
+    poly.add(Point2LL(78998, 98299));
+    poly.add(Point2LL(79747, 98179));
+    poly.add(Point2LL(80960, 98095));
 
-    EXPECT_TRUE(test_polys.inside(Point(78315, 98440))) << "Point should be inside the polygons!";
+    EXPECT_TRUE(test_polys.inside(Point2LL(78315, 98440))) << "Point should be inside the polygons!";
 }
 
 TEST_F(PolygonTest, isOnBorderTest)
@@ -166,10 +166,10 @@ TEST_F(PolygonTest, isOnBorderTest)
     Polygons test_triangle;
     test_triangle.add(triangle);
 
-    EXPECT_FALSE(test_triangle.inside(Point(200, 0), false)) << "Point is on the bottom edge of the triangle.";
-    EXPECT_TRUE(test_triangle.inside(Point(200, 0), true)) << "Point is on the bottom edge of the triangle.";
-    EXPECT_FALSE(test_triangle.inside(Point(150, 50), false)) << "Point is on a diagonal side of the triangle.";
-    EXPECT_TRUE(test_triangle.inside(Point(150, 50), true)) << "Point is on a diagonal side of the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point2LL(200, 0), false)) << "Point is on the bottom edge of the triangle.";
+    EXPECT_TRUE(test_triangle.inside(Point2LL(200, 0), true)) << "Point is on the bottom edge of the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point2LL(150, 50), false)) << "Point is on a diagonal side of the triangle.";
+    EXPECT_TRUE(test_triangle.inside(Point2LL(150, 50), true)) << "Point is on a diagonal side of the triangle.";
 }
 
 TEST_F(PolygonTest, DISABLED_isInsideLineTest) // Disabled because this fails due to a bug in Clipper.
@@ -177,8 +177,8 @@ TEST_F(PolygonTest, DISABLED_isInsideLineTest) // Disabled because this fails du
     Polygons polys;
     polys.add(line);
 
-    EXPECT_FALSE(polys.inside(Point(50, 0), false)) << "Should be outside since it is on the border and border is considered outside.";
-    EXPECT_TRUE(polys.inside(Point(50, 0), true)) << "Should be inside since it is on the border and border is considered inside.";
+    EXPECT_FALSE(polys.inside(Point2LL(50, 0), false)) << "Should be outside since it is on the border and border is considered outside.";
+    EXPECT_TRUE(polys.inside(Point2LL(50, 0), true)) << "Should be inside since it is on the border and border is considered inside.";
 }
 
 TEST_F(PolygonTest, splitIntoPartsWithHoleTest)
@@ -207,8 +207,8 @@ TEST_F(PolygonTest, differenceClockwiseTest)
     for (size_t point_index = 0; point_index < outer.size(); point_index++)
     {
         const size_t next_index = (point_index + 1) % outer.size();
-        const Point point = outer[point_index];
-        const Point next = outer[next_index];
+        const Point2LL point = outer[point_index];
+        const Point2LL next = outer[next_index];
         area += (next.X - point.X) * (point.Y + next.Y);
     }
     EXPECT_LT(area, 0) << "Outer polygon should be counter-clockwise.";
@@ -218,8 +218,8 @@ TEST_F(PolygonTest, differenceClockwiseTest)
     for (size_t point_index = 0; point_index < inner.size(); point_index++)
     {
         const size_t next_index = (point_index + 1) % inner.size();
-        const Point point = inner[point_index];
-        const Point next = inner[next_index];
+        const Point2LL point = inner[point_index];
+        const Point2LL next = inner[next_index];
         area += (next.X - point.X) * (point.Y + next.Y);
     }
     EXPECT_GT(area, 0) << "Inner polygon should be clockwise.";
@@ -244,18 +244,18 @@ TEST_F(PolygonTest, convexTestCube)
 {
     Polygons d_polygons;
     PolygonRef d = d_polygons.newPoly();
-    d.add(Point(0, 0));
-    d.add(Point(10, 0));
-    d.add(Point(10, 10));
-    d.add(Point(0, 10));
+    d.add(Point2LL(0, 0));
+    d.add(Point2LL(10, 0));
+    d.add(Point2LL(10, 10));
+    d.add(Point2LL(0, 10));
 
     d_polygons.makeConvex();
 
     EXPECT_EQ(d.size(), 4);
-    EXPECT_EQ(d[0], Point(0, 0));
-    EXPECT_EQ(d[1], Point(10, 0));
-    EXPECT_EQ(d[2], Point(10, 10));
-    EXPECT_EQ(d[3], Point(0, 10));
+    EXPECT_EQ(d[0], Point2LL(0, 0));
+    EXPECT_EQ(d[1], Point2LL(10, 0));
+    EXPECT_EQ(d[2], Point2LL(10, 10));
+    EXPECT_EQ(d[3], Point2LL(0, 10));
 }
 
 /*
@@ -269,16 +269,16 @@ TEST_F(PolygonTest, convexHullStar)
     const int num_points = 10;
     const int outer_radius = 20;
     const int inner_radius = 10;
-    const double angle_step = M_PI * 2.0 / num_points;
+    const double angle_step = std::numbers::pi * 2.0 / num_points;
     for (int i = 0; i < num_points; ++i)
     {
         coord_t x_outer = -std::cos(angle_step * i) * outer_radius;
         coord_t y_outer = -std::sin(angle_step * i) * outer_radius;
-        d.add(Point(x_outer, y_outer));
+        d.add(Point2LL(x_outer, y_outer));
 
         coord_t x_inner = -std::cos(angle_step * (i + 0.5)) * inner_radius;
         coord_t y_inner = -std::sin(angle_step * (i + 0.5)) * inner_radius;
-        d.add(Point(x_inner, y_inner));
+        d.add(Point2LL(x_inner, y_inner));
     }
 
     d_polygons.makeConvex();
@@ -289,7 +289,7 @@ TEST_F(PolygonTest, convexHullStar)
         double angle = angle_step * i;
         coord_t x = -std::cos(angle) * outer_radius;
         coord_t y = -std::sin(angle) * outer_radius;
-        EXPECT_EQ(d[i], Point(x, y));
+        EXPECT_EQ(d[i], Point2LL(x, y));
     }
 }
 
@@ -301,10 +301,10 @@ TEST_F(PolygonTest, convexHullMultipleMinX)
 {
     Polygons d_polygons;
     PolygonRef d = d_polygons.newPoly();
-    d.add(Point(0, 0));
-    d.add(Point(0, -10));
-    d.add(Point(10, 0));
-    d.add(Point(0, 10));
+    d.add(Point2LL(0, 0));
+    d.add(Point2LL(0, -10));
+    d.add(Point2LL(10, 0));
+    d.add(Point2LL(0, 10));
 
     /*
      *   x\                          x\
@@ -327,22 +327,22 @@ TEST_F(PolygonTest, convexTestCubeColinear)
 {
     Polygons d_polygons;
     PolygonRef d = d_polygons.newPoly();
-    d.add(Point(0, 0));
-    d.add(Point(5, 0));
-    d.add(Point(10, 0));
-    d.add(Point(10, 5));
-    d.add(Point(10, 10));
-    d.add(Point(5, 10));
-    d.add(Point(0, 10));
-    d.add(Point(0, 5));
+    d.add(Point2LL(0, 0));
+    d.add(Point2LL(5, 0));
+    d.add(Point2LL(10, 0));
+    d.add(Point2LL(10, 5));
+    d.add(Point2LL(10, 10));
+    d.add(Point2LL(5, 10));
+    d.add(Point2LL(0, 10));
+    d.add(Point2LL(0, 5));
 
     d_polygons.makeConvex();
 
     EXPECT_EQ(d.size(), 4);
-    EXPECT_EQ(d[0], Point(0, 0));
-    EXPECT_EQ(d[1], Point(10, 0));
-    EXPECT_EQ(d[2], Point(10, 10));
-    EXPECT_EQ(d[3], Point(0, 10));
+    EXPECT_EQ(d[0], Point2LL(0, 0));
+    EXPECT_EQ(d[1], Point2LL(10, 0));
+    EXPECT_EQ(d[2], Point2LL(10, 10));
+    EXPECT_EQ(d[3], Point2LL(0, 10));
 }
 
 /*
@@ -352,22 +352,22 @@ TEST_F(PolygonTest, convexHullRemoveDuplicatePoints)
 {
     Polygons d_polygons;
     PolygonRef d = d_polygons.newPoly();
-    d.add(Point(0, 0));
-    d.add(Point(0, 0));
-    d.add(Point(10, 0));
-    d.add(Point(10, 0));
-    d.add(Point(10, 10));
-    d.add(Point(10, 10));
-    d.add(Point(0, 10));
-    d.add(Point(0, 10));
+    d.add(Point2LL(0, 0));
+    d.add(Point2LL(0, 0));
+    d.add(Point2LL(10, 0));
+    d.add(Point2LL(10, 0));
+    d.add(Point2LL(10, 10));
+    d.add(Point2LL(10, 10));
+    d.add(Point2LL(0, 10));
+    d.add(Point2LL(0, 10));
 
     d_polygons.makeConvex();
 
     EXPECT_EQ(d.size(), 4);
-    EXPECT_EQ(d[0], Point(0, 0));
-    EXPECT_EQ(d[1], Point(10, 0));
-    EXPECT_EQ(d[2], Point(10, 10));
-    EXPECT_EQ(d[3], Point(0, 10));
+    EXPECT_EQ(d[0], Point2LL(0, 0));
+    EXPECT_EQ(d[1], Point2LL(10, 0));
+    EXPECT_EQ(d[2], Point2LL(10, 10));
+    EXPECT_EQ(d[3], Point2LL(0, 10));
 }
 
 /*
@@ -378,7 +378,7 @@ TEST_F(PolygonTest, removeSmallAreas_simple)
 {
     // basic set of polygons
     auto test_square_2 = test_square;
-    test_square_2.translate(Point(0, 500));
+    test_square_2.translate(Point2LL(0, 500));
     auto d_polygons = Polygons{};
     d_polygons.add(test_square);
     d_polygons.add(test_square_2);
@@ -403,11 +403,11 @@ TEST_F(PolygonTest, removeSmallAreas_small_area)
 {
     // make some areas.
     auto small_area_1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
-    small_area_1.translate(Point(350, 450));
+    small_area_1.translate(Point2LL(350, 450));
     auto small_area_2 = small_area;
-    small_area_2.translate(Point(450, 350));
+    small_area_2.translate(Point2LL(450, 350));
     auto triangle_1 = triangle; // area = 10000 micron^2 = 1e-2 mm^2
-    triangle_1.translate(Point(50, 0));
+    triangle_1.translate(Point2LL(50, 0));
 
     // add areas to polygons
     auto d_polygons = Polygons{};
@@ -441,7 +441,7 @@ TEST_F(PolygonTest, removeSmallAreas_hole)
     // make some areas.
     auto small_hole_1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
     small_hole_1.reverse();
-    small_hole_1.translate(Point(10, 10));
+    small_hole_1.translate(Point2LL(10, 10));
 
     // add areas to polygons
     auto d_polygons = Polygons{};
@@ -472,14 +472,14 @@ TEST_F(PolygonTest, removeSmallAreas_hole_2)
     auto small_hole_1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
     small_hole_1.reverse();
     auto small_hole_2 = small_hole_1;
-    small_hole_1.translate(Point(10, 10));
-    small_hole_2.translate(Point(160, 160));
+    small_hole_1.translate(Point2LL(10, 10));
+    small_hole_2.translate(Point2LL(160, 160));
     auto med_square_1 = Polygon{}; // area = 2500 micron^2 = 2.5e-3 mm^2
-    med_square_1.add(Point(0, 0));
-    med_square_1.add(Point(50, 0));
-    med_square_1.add(Point(50, 50));
-    med_square_1.add(Point(0, 50));
-    med_square_1.translate(Point(150, 150));
+    med_square_1.add(Point2LL(0, 0));
+    med_square_1.add(Point2LL(50, 0));
+    med_square_1.add(Point2LL(50, 50));
+    med_square_1.add(Point2LL(0, 50));
+    med_square_1.translate(Point2LL(150, 150));
 
     // add areas to polygons
     auto d_polygons = Polygons{};
@@ -516,16 +516,16 @@ TEST_F(PolygonTest, removeSmallAreas_complex)
 {
     // make some areas.
     auto small_area_1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
-    small_area_1.translate(Point(350, 450));
+    small_area_1.translate(Point2LL(350, 450));
     auto small_area_2 = small_area;
-    small_area_2.translate(Point(450, 350));
+    small_area_2.translate(Point2LL(450, 350));
     auto small_hole_1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
     small_hole_1.reverse();
     auto small_hole_2 = small_hole_1;
-    small_hole_1.translate(Point(3, 3));
-    small_hole_2.translate(Point(22, 50));
+    small_hole_1.translate(Point2LL(3, 3));
+    small_hole_2.translate(Point2LL(22, 50));
     auto triangle_1 = triangle; // area = 10000 micron^2 = 1e-2 mm^2
-    triangle_1.translate(Point(600, 0));
+    triangle_1.translate(Point2LL(600, 0));
 
     // add areas to polygons
     auto d_polygons = Polygons{};

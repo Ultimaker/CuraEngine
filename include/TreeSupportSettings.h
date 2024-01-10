@@ -3,6 +3,8 @@
 #ifndef TREESUPPORTSETTINGS_H
 #define TREESUPPORTSETTINGS_H
 
+#include <functional>
+
 #include "TreeSupportElement.h"
 #include "TreeSupportEnums.h"
 #include "settings/EnumSettings.h"
@@ -10,8 +12,6 @@
 #include "settings/types/Angle.h"
 #include "utils/Coord_t.h"
 #include "utils/Simplify.h"
-
-#include <functional>
 
 namespace cura
 {
@@ -32,8 +32,8 @@ struct TreeSupportSettings
         , min_radius(mesh_group_settings.get<coord_t>("support_tree_tip_diameter") / 2)
         , // The actual radius is 50 microns larger as the resulting branches will be increased by 50 microns to avoid rounding errors effectively increasing the xydistance
         max_radius(mesh_group_settings.get<coord_t>("support_tree_max_diameter") / 2)
-        , maximum_move_distance((angle < TAU / 4) ? (coord_t)(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max())
-        , maximum_move_distance_slow((angle_slow < TAU / 4) ? (coord_t)(tan(angle_slow) * layer_height) : std::numeric_limits<coord_t>::max())
+        , maximum_move_distance((angle < TAU / 4) ? std::llround(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max())
+        , maximum_move_distance_slow((angle_slow < TAU / 4) ? std::llround(tan(angle_slow) * layer_height) : std::numeric_limits<coord_t>::max())
         , support_bottom_layers(mesh_group_settings.get<bool>("support_bottom_enable") ? round_divide(mesh_group_settings.get<coord_t>("support_bottom_height"), layer_height) : 0)
         , tip_layers(std::max((branch_radius - min_radius) / (support_line_width / 3), branch_radius / layer_height))
         , // Ensure lines always stack nicely even if layer height is large
@@ -50,7 +50,7 @@ struct TreeSupportSettings
                                                                                                                              : RestPreference::BUILDPLATE)
         , xy_distance(mesh_group_settings.get<coord_t>("support_xy_distance"))
         , bp_radius(mesh_group_settings.get<coord_t>("support_tree_bp_diameter") / 2)
-        , diameter_scale_bp_radius(std::min(sin(0.7) * layer_height / branch_radius, 1.0 / (branch_radius / (support_line_width / 2.0))))
+        , diameter_scale_bp_radius(std::min(sin(0.7) * static_cast<double>(layer_height / branch_radius), 1.0 / (branch_radius / (support_line_width / 2.0))))
         , // Either 40° or as much as possible so that 2 lines will overlap by at least 50%, whichever is smaller.
         support_overrides(mesh_group_settings.get<SupportDistPriority>("support_xy_overrides_z"))
         , xy_min_distance(support_overrides == SupportDistPriority::Z_OVERRIDES_XY ? mesh_group_settings.get<coord_t>("support_xy_distance_overhang") : xy_distance)
@@ -431,8 +431,8 @@ public:
      */
     [[nodiscard]] inline size_t getEffectiveDTT(const TreeSupportElement& elem) const
     {
-        return elem.effective_radius_height < increase_radius_until_dtt ? (elem.distance_to_top < increase_radius_until_dtt ? elem.distance_to_top : increase_radius_until_dtt)
-                                                                        : elem.effective_radius_height;
+        return elem.effective_radius_height_ < increase_radius_until_dtt ? (elem.distance_to_top_ < increase_radius_until_dtt ? elem.distance_to_top_ : increase_radius_until_dtt)
+                                                                         : elem.effective_radius_height_;
     }
 
     /*!
@@ -459,7 +459,7 @@ public:
      */
     [[nodiscard]] inline coord_t getRadius(const TreeSupportElement& elem) const
     {
-        return getRadius(getEffectiveDTT(elem), (elem.isResultOnLayerSet() || ! support_rests_on_model) && elem.to_buildplate ? elem.buildplate_radius_increases : 0);
+        return getRadius(getEffectiveDTT(elem), (elem.isResultOnLayerSet() || ! support_rests_on_model) && elem.to_buildplate_ ? elem.buildplate_radius_increases_ : 0);
     }
 
     /*!
@@ -469,7 +469,7 @@ public:
      */
     [[nodiscard]] inline coord_t getCollisionRadius(const TreeSupportElement& elem) const
     {
-        return getRadius(elem.effective_radius_height, elem.buildplate_radius_increases);
+        return getRadius(elem.effective_radius_height_, elem.buildplate_radius_increases_);
     }
 
     /*!

@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/AABB3D.h"
 
@@ -10,92 +10,87 @@
 namespace cura
 {
 
-AABB3D::AABB3D() 
-: min(std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max())
-, max(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min())
+AABB3D::AABB3D()
+    : min_(std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max())
+    , max_(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min())
 {
 }
 
-AABB3D::AABB3D(Point3 min, Point3 max) 
-: min(min)
-, max(max)
+AABB3D::AABB3D(Point3LL min, Point3LL max)
+    : min_(min)
+    , max_(max)
 {
 }
 
-Point3 AABB3D::getMiddle() const
+Point3LL AABB3D::getMiddle() const
 {
-    return (min + max) / 2;
+    return (min_ + max_) / 2;
 }
 
 AABB AABB3D::flatten() const
 {
-    return AABB(Point(min.x, min.y), Point(max.x, max.y));
+    return AABB(Point2LL(min_.x_, min_.y_), Point2LL(max_.x_, max_.y_));
 }
 
 
 bool AABB3D::hit(const AABB3D& other) const
 {
-    if (   max.x < other.min.x
-        || min.x > other.max.x
-        || max.y < other.min.y
-        || min.y > other.max.y
-        || max.z < other.min.z
-        || min.z > other.max.z)
+    if (max_.x_ < other.min_.x_ || min_.x_ > other.max_.x_ || max_.y_ < other.min_.y_ || min_.y_ > other.max_.y_ || max_.z_ < other.min_.z_ || min_.z_ > other.max_.z_)
     {
         return false;
     }
     return true;
 }
 
-AABB3D AABB3D::include(Point3 p)
+AABB3D AABB3D::include(Point3LL p)
 {
-    min.x = std::min(min.x, p.x);
-    min.y = std::min(min.y, p.y);
-    min.z = std::min(min.z, p.z);
-    max.x = std::max(max.x, p.x);
-    max.y = std::max(max.y, p.y);
-    max.z = std::max(max.z, p.z);   
+    min_.x_ = std::min(min_.x_, p.x_);
+    min_.y_ = std::min(min_.y_, p.y_);
+    min_.z_ = std::min(min_.z_, p.z_);
+    max_.x_ = std::max(max_.x_, p.x_);
+    max_.y_ = std::max(max_.y_, p.y_);
+    max_.z_ = std::max(max_.z_, p.z_);
     return *this;
 }
 
 AABB3D AABB3D::include(const AABB3D& aabb)
 {
     // Note that this is different from including the min and max points, since when 'min > max' it's used to denote an negative/empty box.
-    min.x = std::min(min.x, aabb.min.x);
-    min.y = std::min(min.y, aabb.min.y);
-    min.z = std::min(min.z, aabb.min.z);
-    max.x = std::max(max.x, aabb.max.x);
-    max.y = std::max(max.y, aabb.max.y);
-    max.z = std::max(max.z, aabb.max.z);
+    min_.x_ = std::min(min_.x_, aabb.min_.x_);
+    min_.y_ = std::min(min_.y_, aabb.min_.y_);
+    min_.z_ = std::min(min_.z_, aabb.min_.z_);
+    max_.x_ = std::max(max_.x_, aabb.max_.x_);
+    max_.y_ = std::max(max_.y_, aabb.max_.y_);
+    max_.z_ = std::max(max_.z_, aabb.max_.z_);
     return *this;
 }
 
 AABB3D AABB3D::includeZ(coord_t z)
 {
-    min.z = std::min(min.z, z);
-    max.z = std::max(max.z, z);
+    min_.z_ = std::min(min_.z_, z);
+    max_.z_ = std::max(max_.z_, z);
     return *this;
 }
 
-AABB3D AABB3D::translate(Point3 offset)
+AABB3D AABB3D::translate(Point3LL offset)
 {
-    min += offset;
-    max += offset;
+    min_ += offset;
+    max_ += offset;
     return *this;
 }
 
-AABB3D AABB3D::translate(Point offset)
+AABB3D AABB3D::translate(Point2LL offset)
 {
-    min += offset;
-    max += offset;
+    min_ += offset;
+    max_ += offset;
     return *this;
 }
 
 AABB3D AABB3D::expand(coord_t outset)
 {
-    min -= Point3(outset, outset, outset);
-    max += Point3(outset, outset, outset);
-    if (min.x > max.x || min.y > max.y || min.z > max.z)
+    min_ -= Point3LL(outset, outset, outset);
+    max_ += Point3LL(outset, outset, outset);
+    if (min_.x_ > max_.x_ || min_.y_ > max_.y_ || min_.z_ > max_.z_)
     { // make this AABB3D invalid
         *this = AABB3D();
     }
@@ -104,14 +99,13 @@ AABB3D AABB3D::expand(coord_t outset)
 
 AABB3D AABB3D::expandXY(coord_t outset)
 {
-    min -= Point3(outset, outset, 0);
-    max += Point3(outset, outset, 0);
-    if (min.x > max.x || min.y > max.y)
+    min_ -= Point3LL(outset, outset, 0);
+    max_ += Point3LL(outset, outset, 0);
+    if (min_.x_ > max_.x_ || min_.y_ > max_.y_)
     { // make this AABB3D invalid
         *this = AABB3D();
     }
     return *this;
 }
 
-}//namespace cura
-
+} // namespace cura

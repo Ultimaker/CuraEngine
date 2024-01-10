@@ -4,11 +4,11 @@
 #ifndef SUPPORT_H
 #define SUPPORT_H
 
-#include "settings/types/LayerIndex.h"
-#include "utils/polygon.h"
-
 #include <cstddef>
 #include <vector>
+
+#include "settings/types/LayerIndex.h"
+#include "utils/polygon.h"
 
 namespace cura
 {
@@ -219,11 +219,9 @@ private:
      * \param storage Where to store the resulting support.
      * \param supportLayer_up The support areas the layer above.
      * \param supportLayer_this The overhang areas of the current layer at hand.
-     * \param smoothing_distance Maximal distance in the X/Y directions of a
-     * line segment which is to be smoothed out.
      * \return The joined support areas for this layer.
      */
-    static Polygons join(const SliceDataStorage& storage, const Polygons& supportLayer_up, Polygons& supportLayer_this, const coord_t smoothing_distance);
+    static Polygons join(const SliceDataStorage& storage, const Polygons& supportLayer_up, Polygons& supportLayer_this);
 
     /*!
      * Move the support up from model (cut away polygons to ensure bottom z distance)
@@ -322,11 +320,10 @@ private:
      * generates varying xy disallowed areas for \param layer_idx where the offset distance is dependent on the wall angle
      *
      * \param storage Data storage containing the input layer data and
-     * \param settings The settings to use to calculate the offsets
      * \param layer_idx The layer for which the disallowed areas are to be calcualted
      *
      */
-    static Polygons generateVaryingXYDisallowedArea(const SliceMeshStorage& storage, const Settings& infill_settings, const LayerIndex layer_idx);
+    static Polygons generateVaryingXYDisallowedArea(const SliceMeshStorage& storage, const LayerIndex layer_idx);
 };
 
 

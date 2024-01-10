@@ -1,6 +1,6 @@
-//Copyright (c) 2017 Tim Kuipers
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2017 Tim Kuipers
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef INFILL_SIERPINSKI_FILL_H
 #define INFILL_SIERPINSKI_FILL_H
@@ -18,17 +18,17 @@ class SVG;
 
 /*!
  * A class for generating the Cross and Cross 3D infill patterns.
- * 
- * 
+ *
+ *
  * === BASIC SUBDIVISION ===
- * 
+ *
  * The line is generated from a recurvive subdivision of the area of a square into triangles.
  *  _______    _______    _______    _______
  * |      /|  |\     /|  |\  |  /|  |\ /|\ /|          .
  * |    /  |  |  \ /  |  |__\|/__|  |/_\|/_\|  etc     .
  * |  /    |  |  / \  |  |  /|\  |  |\ /|\ /|          .
  * |/______|  |/_____\|  |/__|__\|  |/_\|/_\|          .
- * 
+ *
  * Triangles are subdivided into two children like so:
  * |\       |\        .
  * |A \     |A \      .
@@ -38,9 +38,9 @@ class SVG;
  * |    /   |    /      Note that the polygon direction flips between clockwise and CCW each subdivision
  * |B /     |B /
  * |/       |/
- * 
+ *
  * The direction of the space filling curve along each triangle is recorded:
- * 
+ *
  * |\                           |\                                        .
  * |B \  AC_TO_BC               |B \   AC_TO_AB                           .
  * |  ↑ \                       |  ↑ \                                    .
@@ -67,18 +67,18 @@ class SVG;
  * |    /                       |↗   /                                    .
  * |A /                         |A /   AC_TO_BC                           .
  * |/                           |/                                        .
- * 
- * 
+ *
+ *
  * Each triangle is associated with the length of the Sierpinski dual curve going through the triangle.
  * The realized density of a triangle is calculated using the length of the Sierpinski segment,
  * the line width and the area of the triangle.
  * The realized density is compared with the requested average density over the triangle according to
  * the volumetric density specification of the user.
- * 
- * 
- * 
+ *
+ *
+ *
  * === BALANCING ===
- * 
+ *
  * If for any single triangle in the pattern the total realized length of all/both children is less than the average requested length of that parent triangle,
  * the parent triangle would definitely like to be subdivided.
  *     (When dithering, we may subdivide at a lower threshold and a constraint may cause such a triangle not to be subdivided after all. See CONSTRAINTS.)
@@ -86,14 +86,14 @@ class SVG;
  * namely when the other child has a surplus of requested length.
  * The error thus induced should be recorded.
  * Value will be transported from the child with a surplus to the child with a lack of requested length.
- * 
+ *
  * Example:
  * Parent cell realizes 10mm filament, but child 1 requests 100mm and child 2 requests 2mm.
  * Subdivision would lead to two cells with 14mm filament realized.
  * Cell 2 therefore obtains 12mm filament from cell 1, where 12mm is recorded as an error.
- * 
+ *
  * === CONSTRAINTS ===
- * 
+ *
  * When subdividing an AC_TO_AB or an AB_TO_BC triangle, the place where the Sierpinski curve intersects AB changes.
  * In order to maintain a connected Sierpinski curve, we need to subdivide the (respectively) next / previous as well.
  * A triangle is said to be constrained by a preceding AC_TO_AB triangle or a consecutive AB_TO_BC triangle
@@ -103,22 +103,22 @@ class SVG;
  *   \⟶⟶⟶⟶|↘ \                              .
  *     \  | ↘/                              .
  *       \|/                                .
- * 
+ *
  *         ^^^
  *         constrained triangle
  * ^^^^^^^
  * constraining triangle
- * 
- * 
+ *
+ *
  * This constraint means that sharp changes in output density are impossible.
  * Instead the output density changes with steps of 1 recursion depth difference at a time.
  * When the input requested density has a sharp contrast, we should try to keep the error introduced by the consecutivity constraint
  * as close to the contrast edge as possible.
- * 
- * 
- * 
+ *
+ *
+ *
  * === TREE VIEW ===
- * 
+ *
  * The problem is easiest conceptualized when looking at the tree of all possible triangles.
  * The final sequence of triangles which are crossed by the Sierpinski dual curve can be seen as a cut through the tree.
  *.
@@ -136,12 +136,12 @@ class SVG;
  *.     /   \       /   \       /    \      /    \   .
  *.   / \   / \   / \   / \   /#\   /#\   / \   / \  .
  *.  /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\/#\/#\/#\/#\ .  The chosen nodes # cut through the tree at a variable depth leading to variable density infill.
- * 
- * 
- * 
- * 
+ *
+ *
+ *
+ *
  * === ALGORITHM ===
- * 
+ *
  * The algorithm runs as follows:
  * 1- We create the tree of all possible triangles
  * 2- We decide on the lower density boundary sequence of nodes (triangles) to cross
@@ -154,7 +154,7 @@ class SVG;
  * - Bubble up the total requested line length from the leaves all teh way to the root
  * - Calculate the average length of the Cross Fractal crossing of each triangle and record it
  *
- * 
+ *
  * >> 2. Create lower boundary
  *       *********************
  * - Start the sequence of nodes with the starting triangles (We start with two triangles, which form a square)
@@ -162,13 +162,13 @@ class SVG;
  * Each iteration:
  * 1- Move error length values introduced by constraining triangles from constrained triangle to constraining triangle.
  * 2- (Use errors to) subdivide each node where the total errored value is now large enough
- * 
+ *
  * 2.1
  * From highest density cells currently in the sequence to lowest density:
  * - Calculate the difference between the actualized length and the requested length.
  * - Distribute this error over the constraining triangles.
  * - Cascade this error value further up toward the root when processing the next density of cells.
- * 
+ *
  * 2.2
  * From lowest density cells currently in the sequence to highest density cells:
  * - Try to subdivide the node / two consecutive nodes which share an AB edge
@@ -176,7 +176,7 @@ class SVG;
  *   * Redistribute error to where it came from: cascade errors back down the tree toward teh leaves where the error came from.
  *   * Balance children: make sure each newly introduced child has a positive error value.
  *
- * 
+ *
  * >> 3. Dithering
  *       *********
  * From begin to end of the sequence:
@@ -184,17 +184,18 @@ class SVG;
  *     If the errored value is high enough:
  *       subdivide this/these triangle(s)
  * - Carry along the induced error to the next triangle in the sequence.
- * 
- * 
+ *
+ *
  * ------------------------------------------------------------------------------------------------------
- * 
- * 
+ *
+ *
  * By following the path along the middle points of each triangle the Siepinski Curve will be generated.
  * By following the path along the middle of each edge the Cross Fractal curve will be generated, which is the dual of the Sierpinski curve.
  */
 class SierpinskiFill
 {
     friend class SierpinskiFillTest;
+
 public:
     /*!
      * Basic constructor
@@ -206,12 +207,12 @@ public:
     /*!
      * Generate the cross pattern curve
      */
-    Polygon generateCross() const; 
+    Polygon generateCross() const;
 
     /*!
      * Generate the Sierpinski space filling curve
      */
-    Polygon generateCross(coord_t z, coord_t min_dist_to_side, coord_t pocket_size) const; 
+    Polygon generateCross(coord_t z, coord_t min_dist_to_side, coord_t pocket_size) const;
 
     /*!
      * Output the triangles to a canvas
@@ -224,17 +225,17 @@ protected:
      */
     struct Edge
     {
-        Point l, r; //!< The points left, resp. right of the curve.
+        Point2LL l, r; //!< The points left, resp. right of the curve.
     };
     /*!
      * A node in the tree of all triangles.
-     * 
+     *
      * Vertex C is the straight 90* corner.
-     * 
+     *
      * Depending on the recursion depth the 90* corner is either on the left or on the right of the curve.
-     * 
+     *
      * The direction in which this triangle is crossed by the Sierpinski curve is recorded.
-     * 
+     *
      * Some statistics about the requested and realized polygon length are recorded on each node in the tree.
      */
     struct SierpinskiTriangle
@@ -249,61 +250,65 @@ protected:
             AC_TO_BC,
             AB_TO_BC
         };
-        Point straight_corner; //!< C, the 90* corner of the triangle
-        Point a; //!< The corner closer to the start of the space filling curve
-        Point b; //!< The corner closer to the end of the space filling curve
-        SierpinskiDirection dir; //!< The (order in which) edges being crossed by the Sierpinski curve.
-        bool straight_corner_is_left; //!< Whether the \ref straight_corner is left of the curve, rather than right. I.e. whether triangle ABC is counter-clockwise
-        int depth; //!< The recursion depth at which this triangle is generated. Root is zero.
+        const Point2LL straight_corner_; //!< C, the 90* corner of the triangle
+        const Point2LL a_; //!< The corner closer to the start of the space filling curve
+        const Point2LL b_; //!< The corner closer to the end of the space filling curve
+        const SierpinskiDirection dir_; //!< The (order in which) edges being crossed by the Sierpinski curve.
+        const bool straight_corner_is_left_; //!< Whether the \ref straight_corner is left of the curve, rather than right. I.e. whether triangle ABC is counter-clockwise
+        const int depth_; //!< The recursion depth at which this triangle is generated. Root is zero.
 
-        float area; //!< The area of the triangle in mm^2
-        float requested_length; //!< The polyline length corresponding to the average density requested by the volumetric density specification.
-        float realized_length; //!< The polyline length of the Cross Fractal line segment which would cross this triangle.
-        float total_child_realized_length; //!< The total of the \ref realized_length of all children.
-        float error_left; //!< Extra value modulating the \ref requested_length obtained from the triangle on the left / obtained by giving value to the triangle to the left.
-        float error_right; //!< Extra value modulating the \ref requested_length obtained from the triangle on the right / obtained by giving value to the triangle to the right.
+        double area_; //!< The area of the triangle in mm^2
+        double requested_length_; //!< The polyline length corresponding to the average density requested by the volumetric density specification.
+        double realized_length_; //!< The polyline length of the Cross Fractal line segment which would cross this triangle.
+        double total_child_realized_length_; //!< The total of the \ref realized_length of all children.
+        double error_left_; //!< Extra value modulating the \ref requested_length obtained from the triangle on the left / obtained by giving value to the triangle to the left.
+        double error_right_; //!< Extra value modulating the \ref requested_length obtained from the triangle on the right / obtained by giving value to the triangle to the right.
 
-        SierpinskiTriangle(Point straight_corner, Point a, Point b, SierpinskiDirection dir, bool straight_corner_is_left, int depth)
-        : straight_corner(straight_corner)
-        , a(a)
-        , b(b)
-        , dir(dir)
-        , straight_corner_is_left(straight_corner_is_left)
-        , depth(depth)
-        , requested_length(0)
-        , total_child_realized_length(0)
-        , error_left(0)
-        , error_right(0)
-        {}
+        SierpinskiTriangle(Point2LL straight_corner, Point2LL a, Point2LL b, SierpinskiDirection dir, bool straight_corner_is_left, int depth)
+            : straight_corner_(straight_corner)
+            , a_(a)
+            , b_(b)
+            , dir_(dir)
+            , straight_corner_is_left_(straight_corner_is_left)
+            , depth_(depth)
+            , requested_length_(0)
+            , total_child_realized_length_(0)
+            , error_left_(0)
+            , error_right_(0)
+        {
+        }
         //! Constructor for the root node.
         SierpinskiTriangle()
-        : straight_corner(no_point)
-        , a(no_point)
-        , b(no_point)
-        , depth(0)
-        , requested_length(0)
-        , total_child_realized_length(0)
-        , error_left(0)
-        , error_right(0)
-        {}
+            : straight_corner_(no_point)
+            , a_(no_point)
+            , b_(no_point)
+            , dir_(SierpinskiDirection::AB_TO_BC)
+            , straight_corner_is_left_(false)
+            , depth_(0)
+            , requested_length_(0)
+            , total_child_realized_length_(0)
+            , error_left_(0)
+            , error_right_(0)
+        {
+        }
         //! Get the first edge of this triangle crossed by the Sierpinski and/or Cross Fractal curve.
         Edge getFromEdge();
         //! Get the second edge of this triangle crossed by the Sierpinski and/or Cross Fractal curve.
         Edge getToEdge();
         //! Get the total error value modulating the \ref requested_length
-        float getTotalError();
+        double getTotalError();
         //! Get the total modulated \ref requested_length
-        float getErroredValue();
+        double getErroredValue();
         //! Get the error induced by subdividing this triangle.
-        float getSubdivisionError();
+        double getSubdivisionError();
         //! Get the total error currently acting on this traingle.
-        float getValueError();
+        double getValueError();
         //! The children into which this triangle would be subdivided. Empty if this is a leaf node.
         std::vector<SierpinskiTriangle> children;
     };
 
 
-    bool dithering; //!< Whether to oscilate between neighboring realizable density values when the requested density lies in between two possible density values.
+    bool dithering_; //!< Whether to oscilate between neighboring realizable density values when the requested density lies in between two possible density values.
     /*!
      * Whether to diffuse errors caused by constraints between consecutive cells.
      * Whether to center a stairway of depths around the contrast edge,
@@ -316,24 +321,24 @@ protected:
      * no constraint error        constraint error
      * diffusion                  diffusion
      */
-    bool constraint_error_diffusion;
+    bool constraint_error_diffusion_;
 
     //! Whether to use the constraint errors when performing dithering.
-    bool use_errors_in_dithering = true;
+    bool use_errors_in_dithering_ = true;
 
 
-    const DensityProvider& density_provider; //!< function which determines the requested infill density of a triangle defined by two consecutive edges.
-    AABB aabb; //!< The square which is the basis of the subdivision of the area on which the curve is based.
-    coord_t line_width; //!< The line width of the fill lines
-    int max_depth; //!< Maximum recursion depth of the fractal
+    const DensityProvider& density_provider_; //!< function which determines the requested infill density of a triangle defined by two consecutive edges.
+    AABB aabb_; //!< The square which is the basis of the subdivision of the area on which the curve is based.
+    coord_t line_width_; //!< The line width of the fill lines
+    int max_depth_; //!< Maximum recursion depth of the fractal
 
-    SierpinskiTriangle root; //! The (root of the) tree containing all possible triangles of the subdivision.
+    SierpinskiTriangle root_; //! The (root of the) tree containing all possible triangles of the subdivision.
 
     /*!
      * The triangles of the subdivision which are crossed by the fractal.
      * This sequence is created by \ref createLowerBoundSequence and updated by \ref diffuseError
      */
-    std::list<SierpinskiTriangle*> sequence;
+    std::list<SierpinskiTriangle*> sequence_;
 
 
     /*!
@@ -368,9 +373,9 @@ protected:
 
     /*!
      * For each noe: subdivide if possible.
-     * 
+     *
      * Start trying cells with lower recursion level before trying cells with deeper recursion depth, i.e. higher density value.
-     * 
+     *
      * \return Whether the sequence has changed.
      */
     bool subdivideAll();
@@ -378,15 +383,15 @@ protected:
     /*!
      * Bubble up errors from nodes which like to subdivide more,
      * but which are constrained by neighboring cells of lower recursion level.
-     * 
-     * \return Whether we have redistributed errors which could cause a new subdivision 
+     *
+     * \return Whether we have redistributed errors which could cause a new subdivision
      */
     bool bubbleUpConstraintErrors();
 
     /*!
      * Subdivide a node into its children.
      * Redistribute leftover errors needed for this subdivision and account for errors needed to keep the children balanced.
-     * 
+     *
      * \param it iterator to the node to subdivide
      * \param redistribute_errors Whether to redistribute the accumulated errors to neighboring nodes and/or among children
      * \return The last child, so that we can iterate further through the sequence on the input iterator.
@@ -398,28 +403,28 @@ protected:
      * Redistribute positive errors in as much as they aren't needed to subdivide this node.
      * If this node has received too much positive error then it will subdivide
      * and pass along the error from whence it came.
-     * 
+     *
      * This is called just before performing a subdivision.
      */
     void redistributeLeftoverErrors(std::list<SierpinskiTriangle*>::iterator begin, std::list<SierpinskiTriangle*>::iterator end, bool distribute_subdivision_errors);
 
     /*!
      * Balance child values such that they account for the minimum value of their recursion level.
-     * 
+     *
      * Account for errors caused by unbalanced children.
      * Plain subdivision can lead to one child having a smaller value than the density_value associated with the recursion depth
      * if another child has a high enough value such that the parent value will cause subdivision.
-     * 
+     *
      * In order to compensate for the error incurred, we more error value from the high child to the low child
      * such that the low child has an erroredValue of at least the density_value associated with the recusion depth.
-     * 
+     *
      * \param node The parent node of the children to balance
      */
     void balanceErrors(std::list<SierpinskiTriangle*>::iterator begin, std::list<SierpinskiTriangle*>::iterator end);
 
     /*!
      * Settle down unused errors which have been bubbled up, but haven't been used to subdivide any cell.
-     * 
+     *
      * Should be called before dithering.
      */
     void settleErrors();
@@ -442,7 +447,7 @@ protected:
     /*!
      * \return the requested value left over if we would subdivide all nodes in the sequence from \p begin to \p end
      */
-    float getSubdivisionError(std::list<SierpinskiTriangle*>::iterator begin, std::list<SierpinskiTriangle*>::iterator end);
+    double getSubdivisionError(std::list<SierpinskiTriangle*>::iterator begin, std::list<SierpinskiTriangle*>::iterator end);
 
     /*!
      * Check whether all properties which should hold at any time during the algorithm hold for the current sequence.

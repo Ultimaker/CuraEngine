@@ -1,5 +1,5 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2020 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef WIDENING_BEADING_STRATEGY_H
 #define WIDENING_BEADING_STRATEGY_H
@@ -32,14 +32,14 @@ public:
     virtual coord_t getTransitionThickness(coord_t lower_bead_count) const override;
     virtual coord_t getOptimalBeadCount(coord_t thickness) const override;
     virtual coord_t getTransitioningLength(coord_t lower_bead_count) const override;
-    virtual float getTransitionAnchorPos(coord_t lower_bead_count) const override;
+    virtual double getTransitionAnchorPos(coord_t lower_bead_count) const override;
     virtual std::vector<coord_t> getNonlinearThicknesses(coord_t lower_bead_count) const override;
     virtual std::string toString() const override;
 
 protected:
-    BeadingStrategyPtr parent;
-    const coord_t min_input_width;
-    const coord_t min_output_width;
+    BeadingStrategyPtr parent_;
+    const coord_t min_input_width_;
+    const coord_t min_output_width_;
 };
 
 } // namespace cura

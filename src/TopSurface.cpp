@@ -48,7 +48,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
         return false; // Nothing to do.
     }
     // Generate the lines to cover the surface.
-    const int extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr;
+    const int extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr_;
     const EFillMethod pattern = mesh.settings.get<EFillMethod>("ironing_pattern");
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     constexpr bool connect_polygons = false; // midway connections can make the surface less smooth
@@ -67,14 +67,14 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     const bool enforce_monotonic_order = mesh.settings.get<bool>("ironing_monotonic");
     constexpr size_t wall_line_count = 0;
     const coord_t small_area_width = 0; // This shouldn't be on for ironing.
-    const Point infill_origin = Point();
+    const Point2LL infill_origin = Point2LL();
     const bool skip_line_stitching = enforce_monotonic_order;
 
     coord_t ironing_inset = -mesh.settings.get<coord_t>("ironing_inset");
     if (pattern == EFillMethod::ZIG_ZAG)
     {
         // Compensate for the outline_offset decrease that takes place when using the infill generator to generate ironing with the zigzag pattern
-        const Ratio width_scale = (float)mesh.settings.get<coord_t>("layer_height") / mesh.settings.get<coord_t>("infill_sparse_thickness");
+        const Ratio width_scale = (double)mesh.settings.get<coord_t>("layer_height") / mesh.settings.get<coord_t>("infill_sparse_thickness");
         ironing_inset += width_scale * line_width / 2;
         // Align the edge of the ironing line with the edge of the outer wall
         ironing_inset -= ironing_flow * line_width / 2;
@@ -98,7 +98,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
         infill_overlap,
         infill_multiplier,
         direction,
-        layer.z - 10,
+        layer.z_ - 10,
         shift,
         max_resolution,
         max_deviation,
@@ -116,7 +116,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
         return false; // Nothing to do.
     }
 
-    layer.mode_skip_agressive_merge = true;
+    layer.mode_skip_agressive_merge_ = true;
 
     bool added = false;
     if (! ironing_polygons.empty())
@@ -133,12 +133,12 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
             // Move to a corner of the area that is perpendicular to the ironing lines, to reduce the number of seams.
             const AABB bounding_box(ironed_areas);
             PointMatrix rotate(-direction + 90);
-            const Point center = bounding_box.getMiddle();
-            const Point far_away = rotate.apply(
-                Point(0, vSize(bounding_box.max - center) * 100)); // Some direction very far away in the direction perpendicular to the ironing lines, relative to the centre.
+            const Point2LL center = bounding_box.getMiddle();
+            const Point2LL far_away = rotate.apply(
+                Point2LL(0, vSize(bounding_box.max_ - center) * 100)); // Some direction very far away in the direction perpendicular to the ironing lines, relative to the centre.
             // Two options to start, both perpendicular to the ironing lines. Which is closer?
-            const Point front_side = PolygonUtils::findNearestVert(center + far_away, ironed_areas).p();
-            const Point back_side = PolygonUtils::findNearestVert(center - far_away, ironed_areas).p();
+            const Point2LL front_side = PolygonUtils::findNearestVert(center + far_away, ironed_areas).p();
+            const Point2LL back_side = PolygonUtils::findNearestVert(center - far_away, ironed_areas).p();
             if (vSize2(layer.getLastPlannedPositionOrStartingPosition() - front_side) < vSize2(layer.getLastPlannedPositionOrStartingPosition() - back_side))
             {
                 layer.addTravel(front_side);
@@ -187,7 +187,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
         added = true;
     }
 
-    layer.mode_skip_agressive_merge = false;
+    layer.mode_skip_agressive_merge_ = false;
     return added;
 }
 

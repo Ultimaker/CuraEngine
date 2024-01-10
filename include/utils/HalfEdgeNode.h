@@ -4,9 +4,9 @@
 #ifndef UTILS_HALF_EDGE_NODE_H
 #define UTILS_HALF_EDGE_NODE_H
 
-#include "IntPoint.h"
-
 #include <list>
+
+#include "Point2LL.h"
 
 namespace cura
 {
@@ -18,12 +18,13 @@ class HalfEdgeNode
     using node_t = derived_node_t;
 
 public:
-    node_data_t data;
-    Point p;
-    edge_t* incident_edge = nullptr;
-    HalfEdgeNode(node_data_t data, Point p)
-        : data(data)
-        , p(p)
+    node_data_t data_;
+    Point2LL p_;
+    edge_t* incident_edge_ = nullptr;
+
+    HalfEdgeNode(node_data_t data, Point2LL p)
+        : data_(data)
+        , p_(p)
     {
     }
 
