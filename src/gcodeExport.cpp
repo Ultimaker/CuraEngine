@@ -63,6 +63,7 @@ GCodeExport::GCodeExport()
     bed_temperature_ = 0;
     build_volume_temperature_ = 0;
     machine_heated_build_volume_ = false;
+    ppr_enable_ = false;
 
     fan_number_ = 0;
     use_extruder_offset_to_offset_coords_ = false;
@@ -86,6 +87,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
     setFlavor(mesh_group->settings.get<EGCodeFlavor>("machine_gcode_flavor"));
     use_extruder_offset_to_offset_coords_ = mesh_group->settings.get<bool>("machine_use_extruder_offset_to_offset_coords");
     const size_t extruder_count = Application::getInstance().current_slice_->scene.extruders.size();
+    ppr_enable_ = mesh_group->settings.get<bool>("ppr_enable");
 
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
@@ -265,6 +267,28 @@ std::string GCodeExport::getFileHeader(
         prefix << ";PRINT.SIZE.MAX.Y:" << INT2MM(total_bounding_box_.max_.y_) << new_line_;
         prefix << ";PRINT.SIZE.MAX.Z:" << INT2MM(total_bounding_box_.max_.z_) << new_line_;
         prefix << ";SLICE_UUID:" << slice_uuid_ << new_line_;
+
+        if (ppr_enable_)
+        {
+            prefix << ";PPR_ENABLE:TRUE" << new_line_;
+
+            for (size_t extr_nr = 0; extr_nr < extruder_count; extr_nr++)
+            {
+                if (! extruder_is_used[extr_nr])
+                {
+                    continue;
+                }
+                const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extr_nr].settings_;
+                prefix << ";EXTRUDER_TRAIN." << extr_nr << ".PPR_FLOW_WARNING:" << extruder_settings.get<double>("flow_warn_limit") << new_line_;
+                prefix << ";EXTRUDER_TRAIN." << extr_nr << ".PPR_FLOW_LIMIT:" << extruder_settings.get<double>("flow_anomaly_limit") << new_line_;
+                prefix << ";EXTRUDER_TRAIN." << extr_nr << ".PPR_PRINTING_TEMPERATURE_WARNING:" << extruder_settings.get<double>("print_temp_warn_limit") << new_line_;
+                prefix << ";EXTRUDER_TRAIN." << extr_nr << ".PPR_PRINTING_TEMPERATURE_LIMIT:" << extruder_settings.get<double>("print_temp_anomaly_limit") << new_line_;
+            }
+            prefix << ";PPR_BUILD_VOLUME_TEMPERATURE_WARNING:" << Application::getInstance().current_slice_->scene.extruders[0].settings_.get<double>("bv_temp_warn_limit")
+                   << new_line_;
+            prefix << ";PPR_BUILD_VOLUME_TEMPERATURE_LIMIT:" << Application::getInstance().current_slice_->scene.extruders[0].settings_.get<double>("bv_temp_anomaly_limit")
+                   << new_line_;
+        }
         prefix << ";END_OF_HEADER" << new_line_;
         break;
     default:
