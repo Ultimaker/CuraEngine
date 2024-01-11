@@ -174,9 +174,9 @@ class CuraEngineConan(ConanFile):
                 raise ConanInvalidSystemRequirements("sentry-cli is not installed")
             self.output.info("Uploading debug symbols to sentry")
             ext = ".exe" if self.settings.os == "Windows" else ""
-            self.run(f"sentry-cli debug-files upload --include-sources {self.source_folder} -o {sentry_project} -p curaengine CuraEngine{ext}")
+            self.run(f"sentry-cli debug-files upload --include-sources -o {sentry_project} -p curaengine CuraEngine{ext}")
             if self.settings.os == "Windows" and self.settings.build_type == "RelWithDebInfo":
-                self.run(f"sentry-cli upload-dif --include-sources {self.build_folder}  -o {sentry_project} -p curaengine CuraEngine.pdb")
+                self.run(f"sentry-cli upload-dif --include-sources -o {sentry_project} -p curaengine CuraEngine.pdb")
 
             # create a sentry release and link it to the commit this is based upon
             self.output.info(f"Creating a new release {self.version} in Sentry and linking it to the current commit {self.conan_data['commit']}")
