@@ -41,7 +41,6 @@ speed_wall_0_roofing=45
 bottom_skin_preshrink=0
 min_feature_size=0.1
 brim_replaces_support=True
-support_interface_skip_height=0.2
 prime_tower_wipe_enabled=True
 gantry_height=320
 material_surface_energy=70

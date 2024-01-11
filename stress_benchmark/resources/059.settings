@@ -613,7 +613,6 @@ machine_firmware_retract=False
 support_tree_angle=45
 support_tree_bp_diameter=7.5
 skirt_brim_speed=25
-support_interface_skip_height=0.2
 machine_nozzle_head_distance=3
 support_bottom_pattern=grid
 raft_base_wall_count=1
