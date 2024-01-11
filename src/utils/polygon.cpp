@@ -105,6 +105,15 @@ Polygons Polygons::approxConvexHull(int extra_outset)
 
 void Polygons::makeConvex()
 {
+    // early out if there is nothing to do
+    if (empty())
+    {
+        return;
+    }
+
+    // convex hulls cannot have holes, so remove all paths except the outerpath
+    this->paths.resize(1);
+
     // Andrew’s Monotone Chain Convex Hull Algorithm
     for (PolygonRef poly : *this)
     {
