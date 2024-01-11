@@ -724,8 +724,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 flow_ratio,
                 always_retract,
                 reverse_order,
-                last_planned_position
-            );
+                last_planned_position);
             raft_polygons.clear();
             raft_lines.clear();
             last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
@@ -886,8 +885,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             flow_ratio,
             always_retract,
             reverse_order,
-            last_planned_position
-            );
+            last_planned_position);
 
         raft_polygons.clear();
         raft_lines.clear();
