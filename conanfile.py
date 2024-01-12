@@ -79,6 +79,7 @@ class CuraEngineConan(ConanFile):
         if self.options.get_safe("enable_sentry", False):
             self.options["sentry-native"].backend = "breakpad"
             self.options["arcus"].enable_sentry = True
+            self.options["clipper"].enable_sentry = True
 
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
