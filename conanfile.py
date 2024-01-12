@@ -105,7 +105,7 @@ class CuraEngineConan(ConanFile):
             self.requires("sentry-native/0.6.5")
         self.requires("asio-grpc/2.6.0")
         self.requires("grpc/1.50.1")
-        self.requires("clipper/6.4.2")
+        self.requires("clipper/6.4.2@ultimaker/cura_11482")  # TODO: change channel to `testing` once merged
         self.requires("boost/1.82.0")
         self.requires("rapidjson/1.1.0")
         self.requires("stb/20200203")
