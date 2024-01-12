@@ -175,7 +175,8 @@ class CuraEngineConan(ConanFile):
             if "sentry-cli" not in output.getvalue():
                 raise ConanInvalidSystemRequirements("sentry-cli is not installed")
             self.output.info("Uploading debug symbols to sentry")
-            self.run(f"sentry-cli debug-files upload --include-sources -o {sentry_org} -p {sentry_project} .")
+            build_source_dir = self.build_path.parent.parent.as_posix()
+            self.run(f"sentry-cli debug-files upload --include-sources -o {sentry_org} -p {sentry_project} {build_source_dir}")
 
             # create a sentry release and link it to the commit this is based upon
             self.output.info(f"Creating a new release {self.version} in Sentry and linking it to the current commit {self.conan_data['commit']}")
