@@ -65,7 +65,7 @@ class CuraEngineConan(ConanFile):
     def config_options(self):
         if not self.options.enable_plugins:
             del self.options.enable_remote_plugins
-        if self.conf.get("user.curaengine:sentry_url", "", check_type=str) == "":
+        if self.conf.get("user.curaengine:sentry_url", "", check_type=str) == "" or self.conf.get("tools.build:skip_test", False, check_type=bool):
             del self.options.enable_sentry
 
     def configure(self):
