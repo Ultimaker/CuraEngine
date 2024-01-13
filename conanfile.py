@@ -9,6 +9,7 @@ from conan.tools.files import copy, mkdir, update_conandata
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
 from conan.tools.scm import Version, Git
+from conans.tools import which
 
 required_conan_version = ">=1.58.0 <2.0.0"
 
@@ -169,10 +170,8 @@ class CuraEngineConan(ConanFile):
             sentry_project = self.conf.get("user.curaengine:sentry_project", "", check_type=str)
             sentry_org = self.conf.get("user.curaengine:sentry_org", "", check_type=str)
             if sentry_project == "" or sentry_org == "":
-                raise ConanInvalidConfiguration("sentry_project is not set")
-            output = StringIO()
-            self.run(f"sentry-cli -V", output=output, ignore_errors=True)
-            if "sentry-cli" not in output.getvalue():
+                raise ConanInvalidConfiguration("sentry_project or sentry_org is not set")
+            if which("sentry-cli") is None:
                 self.output.warn("sentry-cli is not installed, skipping uploading debug symbols")
                 self.output.warn("sentry-cli is not installed, skipping release creation")
                 return
