@@ -205,7 +205,7 @@ jobs:
               if ext.lower() != ".gcode":
                   continue
               infilename = os.path.join(folder_path, filename)
-              with open(infilename.split(".")[0] + ".time", "r") as f:
+              with open(infilename.rsplit(".", 1)[0] + ".time", "r") as f:
                     timer = float(re.match(r"^.*?cpu (\d+\.\d+)", f.read())[1])
           
               frame = GCodeAnalyzer.DataFrame(infilename)
