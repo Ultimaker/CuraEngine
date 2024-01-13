@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifdef ARCUS
@@ -536,7 +536,8 @@ void ArcusCommunication::sliceNext()
     sentry_value_set_by_key(user, "id", sentry_value_new_string(slice_message->sentry_id().c_str()));
     if (const auto sentry_user = spdlog::details::os::getenv("CURAENGINE_SENTRY_USER"); ! sentry_user.empty())
     {
-        sentry_value_set_by_key(user, "email", sentry_value_new_string(sentry_user.c_str()));
+        spdlog::debug("Setting Sentry user to {}", sentry_user);
+        sentry_value_set_by_key(user, "username", sentry_value_new_string(sentry_user.c_str()));
     }
     sentry_set_user(user);
     sentry_set_tag("cura.version", slice_message->cura_version().c_str());
