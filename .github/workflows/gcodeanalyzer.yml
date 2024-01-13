@@ -206,7 +206,8 @@ jobs:
                   continue
               infilename = os.path.join(folder_path, filename)
               with open(infilename.rsplit(".", 1)[0] + ".time", "r") as f:
-                    timer = float(re.match(r"^.*?cpu (\d+\.\d+)", f.read())[1])
+                  match = re.match(r"^.*?real\s+(\d+)m(\d+\.\d+)s", f.read())
+                  timer = 0 if not match else float(match[1])
           
               frame = GCodeAnalyzer.DataFrame(infilename)
           
