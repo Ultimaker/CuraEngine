@@ -9,7 +9,6 @@ from conan.tools.files import copy, mkdir, update_conandata
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
 from conan.tools.scm import Version, Git
-from conans.errors import ConanInvalidSystemRequirements
 
 required_conan_version = ">=1.58.0 <2.0.0"
 
@@ -65,7 +64,7 @@ class CuraEngineConan(ConanFile):
     def config_options(self):
         if not self.options.enable_plugins:
             del self.options.enable_remote_plugins
-        if self.conf.get("user.curaengine:sentry_url", "", check_type=str) == "" or self.conf.get("tools.build:skip_test", False, check_type=bool):
+        if self.conf.get("user.curaengine:sentry_url", "", check_type=str) == "":
             del self.options.enable_sentry
 
     def configure(self):
@@ -172,9 +171,18 @@ class CuraEngineConan(ConanFile):
             if sentry_project == "" or sentry_org == "":
                 raise ConanInvalidConfiguration("sentry_project is not set")
             output = StringIO()
-            self.run(f"sentry-cli -V", output=output)
+            self.run(f"sentry-cli -V", output=output, ignore_errors=True)
             if "sentry-cli" not in output.getvalue():
-                raise ConanInvalidSystemRequirements("sentry-cli is not installed")
+                self.output.warn("sentry-cli is not installed, skipping uploading debug symbols")
+                self.output.warn("sentry-cli is not installed, skipping release creation")
+                return
+
+            if self.settings.os == "Linux":
+                self.output.info("Stripping debug symbols from binary")
+                self.run("objcopy --only-keep-debug --compress-debug-sections=zlib CuraEngine CuraEngine.debug")
+                self.run("objcopy --strip-debug --strip-unneeded CuraEngine")
+                self.run("objcopy --add-gnu-debuglink=CuraEngine.debug CuraEngine")
+
             self.output.info("Uploading debug symbols to sentry")
             build_source_dir = self.build_path.parent.parent.as_posix()
             self.run(f"sentry-cli debug-files upload --include-sources -o {sentry_org} -p {sentry_project} {build_source_dir}")
