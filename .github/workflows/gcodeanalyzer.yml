@@ -179,7 +179,7 @@ jobs:
         run: |
           for file in `ls ../NightlyTestModels/*.stl`;
           do
-              ( time ./build/Release/CuraEngine slice --force-read-parent --force-read-nondefault -v -p -j ../Cura/resources/definitions/ultimaker_s3.def.json -l $file -o ../`basename $file .stl`.gcode ) 2> $file.time
+              ( time ./build/Release/CuraEngine slice --force-read-parent --force-read-nondefault -v -p -j ../Cura/resources/definitions/ultimaker_s3.def.json -l $file -o ../`basename $file .stl`.gcode ) 2> ../`basename $file .stl`.time
           done
         working-directory: CuraEngine
 
@@ -205,8 +205,9 @@ jobs:
               if ext.lower() != ".gcode":
                   continue
               infilename = os.path.join(folder_path, filename)
-              with open(infilename + ".time", "r") as f:
-                    timer = float(re.match(r"^.*?cpu (\d+\.\d+)", f.read())[1])
+              with open(infilename.rsplit(".", 1)[0] + ".time", "r") as f:
+                  match = re.match(r"^.*?real\s+(\d+)m(\d+\.\d+)s", f.read())
+                  timer = 0 if not match else float(match[1])
           
               frame = GCodeAnalyzer.DataFrame(infilename)
           
