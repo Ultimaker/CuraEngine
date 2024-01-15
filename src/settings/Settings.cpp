@@ -682,13 +682,13 @@ template<>
 PrimeTowerMethod Settings::get<PrimeTowerMethod>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    if (value == "optimized")
+    if (value == "sparse")
     {
-        return PrimeTowerMethod::OPTIMIZED;
+        return PrimeTowerMethod::SPARSE;
     }
-    else if (value == "optimized_consistent")
+    else if (value == "bucket")
     {
-        return PrimeTowerMethod::OPTIMIZED_CONSISTENT;
+        return PrimeTowerMethod::BUCKET;
     }
     else // Default.
     {

@@ -1526,7 +1526,7 @@ std::vector<ExtruderUse>
         case PrimeTowerMethod::NONE:
             break;
 
-        case PrimeTowerMethod::OPTIMIZED_CONSISTENT:
+        case PrimeTowerMethod::BUCKET:
             if (extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder)
             {
                 prime = ExtruderPrime::Prime;
@@ -1537,7 +1537,7 @@ std::vector<ExtruderUse>
             }
             break;
 
-        case PrimeTowerMethod::OPTIMIZED:
+        case PrimeTowerMethod::SPARSE:
             if (extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder)
             {
                 prime = ExtruderPrime::Prime;
@@ -1552,7 +1552,7 @@ std::vector<ExtruderUse>
         }
     }
 
-    if (method == PrimeTowerMethod::OPTIMIZED && ret.size() == 1 && ret.front().prime == ExtruderPrime::None && layer_nr <= storage.max_print_height_second_to_last_extruder)
+    if (method == PrimeTowerMethod::SPARSE && ret.size() == 1 && ret.front().prime == ExtruderPrime::None && layer_nr <= storage.max_print_height_second_to_last_extruder)
     {
         ret.front().prime = ExtruderPrime::Sparse;
     }
