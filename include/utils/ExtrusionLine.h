@@ -233,7 +233,7 @@ struct ExtrusionLine
      * Create a true-extrusion area shape for the path; this means that each junction follows the bead-width
      * set for that junction.
      */
-    Polygons toExtrusionPolygons() const
+    [[maybe_unused]] Polygons toExtrusionPolygons() const
     {
         Polygon poly;
 
