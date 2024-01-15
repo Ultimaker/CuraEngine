@@ -541,6 +541,10 @@ void ArcusCommunication::sliceNext()
     }
     sentry_set_user(user);
     sentry_set_tag("cura.version", slice_message->cura_version().c_str());
+    if (slice_message->has_project_name())
+    {
+        sentry_set_tag("cura.project_name", slice_message->project_name().c_str());
+    }
 #endif
 
 #ifdef ENABLE_PLUGINS
