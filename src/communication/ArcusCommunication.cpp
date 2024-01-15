@@ -534,10 +534,10 @@ void ArcusCommunication::sliceNext()
 #ifdef SENTRY_URL
     sentry_value_t user = sentry_value_new_object();
     sentry_value_set_by_key(user, "id", sentry_value_new_string(slice_message->sentry_id().c_str()));
-    if (const auto sentry_user = spdlog::details::os::getenv("CURAENGINE_SENTRY_USER"); ! sentry_user.empty())
+    if (slice_message->has_user_name())
     {
-        spdlog::debug("Setting Sentry user to {}", sentry_user);
-        sentry_value_set_by_key(user, "username", sentry_value_new_string(sentry_user.c_str()));
+        spdlog::debug("Setting Sentry user to {}", slice_message->user_name());
+        sentry_value_set_by_key(user, "username", sentry_value_new_string(slice_message->user_name().c_str()));
     }
     sentry_set_user(user);
     sentry_set_tag("cura.version", slice_message->cura_version().c_str());
