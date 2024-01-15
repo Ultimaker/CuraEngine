@@ -3,7 +3,6 @@
 
 #include "Slice.h"
 
-#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #ifdef SENTRY_URL
 #include <sentry.h>
