@@ -164,8 +164,7 @@ void PrimeTower::generatePaths_denseInfill(std::vector<coord_t>& cumulative_inse
         }
 
         // Generate the base outside extra rings
-        if ((method == PrimeTowerMethod::SPARSE
-             || (extruder_nr == extruder_order_.front() && method == PrimeTowerMethod::BUCKET)) && (base_enabled || has_raft)
+        if ((method == PrimeTowerMethod::SPARSE || (extruder_nr == extruder_order_.front() && method == PrimeTowerMethod::BUCKET)) && (base_enabled || has_raft)
             && base_extra_radius > 0 && base_height > 0)
         {
             for (coord_t z = 0; z < base_height; z += layer_height)
