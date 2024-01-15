@@ -145,7 +145,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
     }
 
     // view on the extrusion lines, sorted by area
-    const auto sorted_extrusion_lines = [&extrusion_lines]()
+    const std::vector<const ExtrusionLine*> sorted_extrusion_lines = [&extrusion_lines]()
     {
         auto extrusion_lines_area = extrusion_lines | ranges::views::addressof
                                   | ranges::views::transform(
@@ -185,17 +185,16 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
         // Create a polygon representing the inner area of the extrusion line; any
         // point inside this polygon is considered to the child of the extrusion line.
         Polygons hole_polygons;
-        for (const auto& poly : extrusion_line->toExtrusionPolygons().splitIntoParts())
+        if (extrusion_line->is_closed_)
         {
-            // drop first path, as this is the outer contour
-            for (const auto& hole : poly.paths | ranges::views::drop(1))
-            {
-                // reverse the hole polygon to turn a hole into a polygon
-                hole_polygons.emplace_back(hole | ranges::views::reverse | ranges::to_vector);
-            }
+            hole_polygons.add(extrusion_line->toPolygon());
         }
-        // increase the size of the hole polygons by 10um to make sure we don't miss any invariant parents
-        hole_polygons.offset(10);
+
+        if (hole_polygons.empty())
+        {
+            invariant_outer_parents.emplace(extrusion_line);
+            continue;
+        }
 
         // go through all the invariant parents and see if they are inside the hole polygon
         // if they are, then that means we have found a child for this extrusion line
