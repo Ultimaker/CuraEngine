@@ -21,7 +21,7 @@ Slice::Slice(const size_t num_mesh_groups)
 
 void Slice::compute()
 {
-    fmt::print("All settings: {}", scene.getAllSettingsString()); // Print to console do not log, otherwise Sentry won't upload the crash because it is too big.
+    spdlog::info("All settings: {}", scene.getAllSettingsString());
 #ifdef SENTRY_URL
     {
         sentry_set_tag("cura.machine_name", scene.settings.get<std::string>("machine_name").c_str());
