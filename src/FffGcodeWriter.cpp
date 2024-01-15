@@ -2529,6 +2529,7 @@ bool FffGcodeWriter::processInsets(
     }
     else
     {
+        // TODO use roofing config for layers-parts that are exposed to air
         auto use_roofing_config = false;
         const GCodePathConfig& inset0_config = use_roofing_config ? mesh_config.inset0_roofing_config : mesh_config.inset0_config;
         const GCodePathConfig& insetX_config = use_roofing_config ? mesh_config.insetX_roofing_config : mesh_config.insetX_config;
