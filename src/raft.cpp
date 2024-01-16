@@ -5,6 +5,8 @@
 
 #include <polyclipping/clipper.hpp>
 
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "Slice.h"
@@ -59,7 +61,48 @@ void Raft::generate(SliceDataStorage& storage)
     {
         if (remove_inside_corners)
         {
-            outline.makeConvex();
+            // Make all parts convex. We could take the convex hull of the union of all parts, but that would
+            // result in a massive brim if you would have models in all corners of the build plate. We instead
+            // perform a convex hull operation on each polygon part separately, this will result in much smaller
+            // raft islands. However, this might result in inside corners in the raft outline in the situation
+            // where after the merge operations some parts become connected. To properly make sure that there are
+            // no inside corners we perform a convex hull operation followed by a merge. If the number of polygon
+            // parts no longer decrease we have found the polygons that have both no longer inside corners and
+            // occupy the smallest possible area.
+            outline = outline.unionPolygons();
+            auto outline_parts = outline.unionPolygons().splitIntoParts();
+            auto nr_of_parts = outline_parts.size();
+
+            while (true)
+            {
+                outline.clear();
+
+                for (auto& part : outline_parts)
+                {
+                    part.makeConvex();
+                    outline.add(part);
+                }
+
+                outline = outline.unionPolygons();
+                outline_parts = outline.splitIntoParts();
+                const auto new_nr_of_parts = outline_parts.size();
+
+                if (new_nr_of_parts > nr_of_parts)
+                {
+                    // from the recursive convex hull + merge operation the number of parts cannot logically increase
+                    // if it does increase, and allow the loop to continue we might get into an infinite loop; so break out of the loop
+                    // this might produce a raft with inside corners, but that is better than an infinite loop
+                    assert(false);
+                    spdlog::warn("Error while removing inside corners from raft; merge operation increased the number of parts");
+                    break;
+                }
+
+                if (new_nr_of_parts == nr_of_parts)
+                {
+                    break;
+                }
+                nr_of_parts = new_nr_of_parts;
+            }
         }
         else
         {
