@@ -92,8 +92,8 @@ void Raft::generate(SliceDataStorage& storage)
                     // from the recursive convex hull + merge operation the number of parts cannot logically increase
                     // if it does increase, and allow the loop to continue we might get into an infinite loop; so break out of the loop
                     // this might produce a raft with inside corners, but that is better than an infinite loop
-                    assert(false);
                     spdlog::warn("Error while removing inside corners from raft; merge operation increased the number of parts");
+                    assert(false);
                     break;
                 }
 
