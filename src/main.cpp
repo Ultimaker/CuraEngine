@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <iostream> //To change the formatting of std::cerr.
@@ -62,7 +62,7 @@ int main(int argc, char** argv)
 
 // Want to set the sentry URL? Use '-c user.curaengine:sentry_url=<url> -o curaengine:enable_sentry=True' with conan install
 #ifdef SENTRY_URL
-    if (const auto use_sentry = spdlog::details::os::getenv("use_sentry"); ! use_sentry.empty() && use_sentry == "1")
+    if (const auto use_sentry = spdlog::details::os::getenv("USE_SENTRY"); ! use_sentry.empty() && use_sentry == "1")
     {
         // Setup sentry error handling.
         sentry_options_t* options = sentry_options_new();
@@ -93,6 +93,7 @@ int main(int argc, char** argv)
 
         // Set the actual CuraEngine version
         sentry_options_set_release(options, fmt::format("curaengine@{}", cura_engine_version).c_str());
+        spdlog::info("Starting sentry");
         sentry_init(options);
     }
 #endif
@@ -100,8 +101,9 @@ int main(int argc, char** argv)
     cura::Application::getInstance().run(argc, argv);
 
 #ifdef SENTRY_URL
-    if (const auto use_sentry = spdlog::details::os::getenv("use_sentry"); ! use_sentry.empty() && use_sentry == "1")
+    if (const auto use_sentry = spdlog::details::os::getenv("USE_SENTRY"); ! use_sentry.empty() && use_sentry == "1")
     {
+        spdlog::info("Closing sentry");
         sentry_close();
     }
 #endif

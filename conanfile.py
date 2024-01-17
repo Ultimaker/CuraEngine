@@ -1,6 +1,6 @@
-#  Copyright (c) 2023 UltiMaker
+#  Copyright (c) 2024 UltiMaker
 #  CuraEngine is released under the terms of the AGPLv3 or higher
-
+from io import StringIO
 from os import path
 
 from conan import ConanFile
@@ -8,7 +8,8 @@ from conan.errors import ConanInvalidConfiguration
 from conan.tools.files import copy, mkdir, update_conandata
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
-from conan.tools.scm import Version
+from conan.tools.scm import Version, Git
+from conans.tools import which
 
 required_conan_version = ">=1.58.0 <2.0.0"
 
@@ -42,10 +43,12 @@ class CuraEngineConan(ConanFile):
 
     def set_version(self):
         if not self.version:
-            self.version = self.conan_data["version"]
+            build_meta = "" if self.develop else "+source"
+            self.version = self.conan_data["version"] + build_meta
 
     def export(self):
-        update_conandata(self, {"version": self.version})
+        git = Git(self)
+        update_conandata(self, {"version": self.version, "commit": git.get_commit()})
 
     def export_sources(self):
         copy(self, "CMakeLists.txt", self.recipe_folder, self.export_sources_folder)
@@ -75,6 +78,8 @@ class CuraEngineConan(ConanFile):
             self.options["openssl"].shared = True
         if self.options.get_safe("enable_sentry", False):
             self.options["sentry-native"].backend = "breakpad"
+            self.options["arcus"].enable_sentry = True
+            self.options["clipper"].enable_sentry = True
 
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
@@ -101,7 +106,7 @@ class CuraEngineConan(ConanFile):
             self.requires("sentry-native/0.6.5")
         self.requires("asio-grpc/2.6.0")
         self.requires("grpc/1.50.1")
-        self.requires("clipper/6.4.2")
+        self.requires("clipper/6.4.2@ultimaker/stable")
         self.requires("boost/1.82.0")
         self.requires("rapidjson/1.1.0")
         self.requires("stb/20200203")
@@ -160,13 +165,38 @@ class CuraEngineConan(ConanFile):
         cmake.configure()
         cmake.build()
 
+        if self.options.get_safe("enable_sentry", False):
+            # Upload debug symbols to sentry
+            sentry_project = self.conf.get("user.curaengine:sentry_project", "", check_type=str)
+            sentry_org = self.conf.get("user.curaengine:sentry_org", "", check_type=str)
+            if sentry_project == "" or sentry_org == "":
+                raise ConanInvalidConfiguration("sentry_project or sentry_org is not set")
+
+            if which("sentry-cli") is None:
+                self.output.warn("sentry-cli is not installed, skipping uploading debug symbols")
+                self.output.warn("sentry-cli is not installed, skipping release creation")
+            else:
+                if self.settings.os == "Linux":
+                    self.output.info("Stripping debug symbols from binary")
+                    self.run("objcopy --only-keep-debug --compress-debug-sections=zlib CuraEngine CuraEngine.debug")
+                    self.run("objcopy --strip-debug --strip-unneeded CuraEngine")
+                    self.run("objcopy --add-gnu-debuglink=CuraEngine.debug CuraEngine")
+
+                self.output.info("Uploading debug symbols to sentry")
+                build_source_dir = self.build_path.parent.parent.as_posix()
+                self.run(f"sentry-cli debug-files upload --include-sources -o {sentry_org} -p {sentry_project} {build_source_dir}")
+
+                # create a sentry release and link it to the commit this is based upon
+                self.output.info(f"Creating a new release {self.version} in Sentry and linking it to the current commit {self.conan_data['commit']}")
+                self.run(f"sentry-cli releases new -o {sentry_org} -p {sentry_project} {self.version}")
+                self.run(f"sentry-cli releases set-commits -o {sentry_org} -p {sentry_project} --commit \"Ultimaker/CuraEngine@{self.conan_data['commit']}\" {self.version}")
+                self.run(f"sentry-cli releases finalize -o {sentry_org} -p {sentry_project} {self.version}")
+
     def package(self):
         ext = ".exe" if self.settings.os == "Windows" else ""
         copy(self, f"CuraEngine{ext}", src=self.build_folder, dst=path.join(self.package_folder, "bin"))
         copy(self, f"_CuraEngine.*", src=self.build_folder, dst=path.join(self.package_folder, "lib"))
         copy(self, "LICENSE*", src=self.source_folder, dst=path.join(self.package_folder, "license"))
-        if self.settings.os == "Windows" and self.settings.build_type == "RelWithDebInfo":
-            copy(self, "CuraEngine.pdb", src=self.build_folder, dst=path.join(self.package_folder, "bin"))
 
     def package_info(self):
         ext = ".exe" if self.settings.os == "Windows" else ""
