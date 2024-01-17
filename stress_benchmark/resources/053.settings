@@ -73,7 +73,6 @@ raft_surface_margin=15
 support_tree_branch_diameter_angle=7
 prime_tower_base_height=0.1
 machine_nozzle_head_distance=5
-support_interface_skip_height=0.1
 support_bottom_pattern=zigzag
 bottom_thickness=0.8
 cool_fan_enabled=True

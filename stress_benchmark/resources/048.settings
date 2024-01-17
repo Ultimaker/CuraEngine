@@ -532,7 +532,6 @@ skirt_brim_minimal_length=250
 cooling=0
 brim_replaces_support=False
 wall_x_extruder_nr=-1
-support_interface_skip_height=0.12
 machine_nozzle_head_distance=3
 support_bottom_pattern=grid
 raft_base_wall_count=1
