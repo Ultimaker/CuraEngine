@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef CURAENGINE_WALL_BENCHMARK_H
@@ -105,7 +105,7 @@ public:
 
     void SetUp(const ::benchmark::State& state)
     {
-        auto wkt_file = std::filesystem::path(std::source_location::current().file_name()).parent_path().append("hole.wkt");
+        auto wkt_file = std::filesystem::path(__FILE__).parent_path().append("hole.wkt");
         std::ifstream file{ wkt_file };
 
         std::stringstream buffer;

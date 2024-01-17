@@ -575,7 +575,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     constexpr bool retract_before_outer_wall = false;
     constexpr coord_t wipe_dist = 0;
 
-    Polygons raft_polygons; // should remain empty, since we only have the lines pattern for the raft...
+    Polygons raft_polygons;
     std::optional<Point2LL> last_planned_position = std::optional<Point2LL>();
 
     unsigned int current_extruder_nr = base_extruder_nr;
@@ -604,7 +604,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         Application::getInstance().communication_->sendLayerComplete(layer_nr, z, layer_height);
 
-        Polygons raftLines;
+        Polygons raft_lines;
         AngleDegrees fill_angle = (num_surface_layers + num_interface_layers) % 2 ? 45 : 135; // 90 degrees rotated from the interface layer.
         constexpr bool zig_zaggify_infill = false;
         constexpr bool connect_polygons = true; // causes less jerks, so better adhesion
@@ -674,7 +674,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 zag_skip_count,
                 pocket_size);
             std::vector<VariableWidthLines> raft_paths;
-            infill_comp.generate(raft_paths, raft_polygons, raftLines, base_settings, layer_nr, SectionType::ADHESION);
+            infill_comp.generate(raft_paths, raft_polygons, raft_lines, base_settings, layer_nr, SectionType::ADHESION);
             if (! raft_paths.empty())
             {
                 const GCodePathConfig& config = gcode_layer.configs_storage_.raft_base_config;
@@ -698,14 +698,39 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                     raft_paths);
                 wall_orderer.addToLayer();
             }
-            gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage_.raft_base_config, SpaceFillType::Lines);
 
+            const auto wipe_dist = 0;
+            const auto spiralize = false;
+            const auto flow_ratio = 1.0_r;
+            const auto enable_travel_optimization = false;
+            const auto always_retract = false;
+            const auto reverse_order = false;
+
+            gcode_layer.addLinesByOptimizer(
+                raft_lines,
+                gcode_layer.configs_storage_.raft_base_config,
+                SpaceFillType::Lines,
+                enable_travel_optimization,
+                wipe_dist,
+                flow_ratio,
+                last_planned_position);
+            last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
+            gcode_layer.addPolygonsByOptimizer(
+                raft_polygons,
+                gcode_layer.configs_storage_.raft_base_config,
+                ZSeamConfig(),
+                wipe_dist,
+                spiralize,
+                flow_ratio,
+                always_retract,
+                reverse_order,
+                last_planned_position);
             raft_polygons.clear();
-            raftLines.clear();
+            raft_lines.clear();
+            last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
         }
 
         layer_plan_buffer.handle(gcode_layer, gcode);
-        last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
 
     const coord_t interface_layer_height = interface_settings.get<coord_t>("raft_interface_thickness");
@@ -834,7 +859,33 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 raft_paths);
             wall_orderer.addToLayer();
         }
-        gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage_.raft_interface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
+
+        const auto wipe_dist = 0;
+        const auto spiralize = false;
+        const auto flow_ratio = 1.0_r;
+        const auto enable_travel_optimization = false;
+        const auto always_retract = false;
+        const auto reverse_order = false;
+
+        gcode_layer.addLinesByOptimizer(
+            raft_lines,
+            gcode_layer.configs_storage_.raft_interface_config,
+            SpaceFillType::Lines,
+            enable_travel_optimization,
+            wipe_dist,
+            flow_ratio,
+            last_planned_position);
+        last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
+        gcode_layer.addPolygonsByOptimizer(
+            raft_polygons,
+            gcode_layer.configs_storage_.raft_interface_config,
+            ZSeamConfig(),
+            wipe_dist,
+            spiralize,
+            flow_ratio,
+            always_retract,
+            reverse_order,
+            last_planned_position);
 
         raft_polygons.clear();
         raft_lines.clear();
@@ -995,6 +1046,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             wipe_dist,
             flow_ratio,
             last_planned_position);
+        last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
         gcode_layer.addPolygonsByOptimizer(
             raft_polygons,
             gcode_layer.configs_storage_.raft_surface_config,
@@ -1004,7 +1056,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             flow_ratio,
             always_retract,
             reverse_order,
-            gcode_layer.getLastPlannedPositionOrStartingPosition());
+            last_planned_position);
+        last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
 
         raft_polygons.clear();
         raft_lines.clear();

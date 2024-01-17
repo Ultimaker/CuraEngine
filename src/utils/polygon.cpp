@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/polygon.h"
@@ -14,8 +14,10 @@
 #include <range/v3/view/c_str.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/join.hpp>
+#include <range/v3/view/sliding.hpp>
 #include <range/v3/view/transform.hpp>
 #include <range/v3/view/zip.hpp>
+#include <spdlog/spdlog.h>
 
 #include "utils/ListPolyIt.h"
 #include "utils/PolylineStitcher.h"
@@ -104,44 +106,56 @@ Polygons Polygons::approxConvexHull(int extra_outset)
 
 void Polygons::makeConvex()
 {
-    for (PolygonRef poly : *this)
+    // early out if there is nothing to do
+    if (empty())
     {
-        if (poly.size() <= 3)
-        {
-            continue; // Already convex.
-        }
-
-        Polygon convexified;
-
-        // Start from a vertex that is known to be on the convex hull: The one with the lowest X.
-        const size_t start_index = std::min_element(
-                                       poly.begin(),
-                                       poly.end(),
-                                       [](Point2LL a, Point2LL b)
-                                       {
-                                           return a.X == b.X ? a.Y < b.Y : a.X < b.X;
-                                       })
-                                 - poly.begin();
-        convexified.path->push_back(poly[start_index]);
-
-        for (size_t i = 1; i <= poly.size(); ++i)
-        {
-            const Point2LL& current = poly[(start_index + i) % poly.size()];
-
-            // Track backwards to make sure we haven't been in a concave pocket for multiple vertices already.
-            while (convexified.size() >= 2
-                   && (LinearAlg2D::pointIsLeftOfLine(convexified.path->back(), (*convexified.path)[convexified.size() - 2], current) >= 0
-                       || LinearAlg2D::pointIsLeftOfLine(convexified.path->back(), (*convexified.path)[convexified.size() - 2], convexified.path->front()) > 0))
-            {
-                convexified.path->pop_back();
-            }
-            convexified.path->push_back(current);
-        }
-        // remove last vertex as the starting vertex is added in the last iteration of the loop
-        convexified.path->pop_back();
-
-        poly.path->swap(*convexified.path); // Due to vector's implementation, this is constant time.
+        return;
     }
+
+    // Andrew’s Monotone Chain Convex Hull Algorithm
+    std::vector<Point2LL> points;
+
+    for (const auto& poly : this->paths)
+    {
+        points.insert(points.end(), poly.begin(), poly.end());
+    }
+
+    ClipperLib::Path convexified;
+    auto make_sorted_poly_convex = [&convexified](std::vector<Point2LL>& poly)
+    {
+        convexified.push_back(poly[0]);
+
+        for (const auto window : poly | ranges::views::sliding(2))
+        {
+            const Point2LL& current = window[0];
+            const Point2LL& after = window[1];
+
+            if (LinearAlg2D::pointIsLeftOfLine(current, convexified.back(), after) < 0)
+            {
+                // Track backwards to make sure we haven't been in a concave pocket for multiple vertices already.
+                while (convexified.size() >= 2
+                       && (LinearAlg2D::pointIsLeftOfLine(convexified.back(), convexified[convexified.size() - 2], current) >= 0
+                           || LinearAlg2D::pointIsLeftOfLine(convexified.back(), convexified[convexified.size() - 2], convexified.front()) > 0))
+                {
+                    convexified.pop_back();
+                }
+                convexified.push_back(current);
+            }
+        }
+    };
+
+    std::sort(
+        points.begin(),
+        points.end(),
+        [](Point2LL a, Point2LL b)
+        {
+            return a.X == b.X ? a.Y < b.Y : a.X < b.X;
+        });
+    make_sorted_poly_convex(points);
+    std::reverse(points.begin(), points.end());
+    make_sorted_poly_convex(points);
+
+    this->paths = { convexified };
 }
 
 size_t Polygons::pointCount() const
