@@ -1651,7 +1651,7 @@ void TreeSupport::generateBranchAreas(
     }
 
     std::vector<Polygons> linear_inserts(linear_data.size());
-    const size_t progress_inserts_check_interval = linear_data.size() / progress_report_steps;
+    const size_t progress_inserts_check_interval = std::max(linear_data.size() / progress_report_steps, size_t(1));
 
     std::mutex critical_sections;
     cura::parallel_for<size_t>(
@@ -1924,9 +1924,8 @@ void TreeSupport::dropNonGraciousAreas(
         [&](const size_t idx)
         {
             TreeSupportElement* elem = linear_data[idx].second;
-            bool non_gracious_model_contact
-                = ! elem->to_model_gracious_
-               && ! inverse_tree_order.count(elem); // If an element has no child, it connects to whatever is below as no support further down for it will exist.
+            bool non_gracious_model_contact = ! elem->to_model_gracious_ && ! inverse_tree_order.count(elem) && linear_data[idx].first > 0
+                                           && ! elem->to_buildplate_; // If an element has no child, it connects to whatever is below as no support further down for it will exist.
             if (non_gracious_model_contact)
             {
                 Polygons rest_support = layer_tree_polygons[linear_data[idx].first][elem].intersection(volumes_.getAccumulatedPlaceable0(linear_data[idx].first));
@@ -2221,7 +2220,13 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
                 storage.support.supportLayers[layer_idx].support_bottom = storage.support.supportLayers[layer_idx].support_bottom.unionPolygons(floor_layer);
                 support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(floor_layer.offset(10)); // Subtract the support floor from the normal support.
             }
+        });
 
+    cura::parallel_for<coord_t>(
+        0,
+        support_layer_storage.size(),
+        [&](const LayerIndex layer_idx)
+        {
             constexpr bool convert_every_part = true; // Convert every part into a PolygonsPart for the support.
             storage.support.supportLayers[layer_idx]
                 .fillInfillParts(layer_idx, support_layer_storage, config.support_line_width, config.support_wall_count, config.maximum_move_distance, convert_every_part);
