@@ -17,6 +17,8 @@
 #include <range/v3/view/sliding.hpp>
 #include <range/v3/view/transform.hpp>
 #include <range/v3/view/zip.hpp>
+#include <range/v3/view/concat.hpp>
+#include <range/v3/view/take.hpp>
 #include <spdlog/spdlog.h>
 
 #include "utils/ListPolyIt.h"
@@ -845,14 +847,14 @@ Polygons Polygons::toPolygons(ClipperLib::PolyTree& poly_tree)
                          | ranges::views::transform(
                                [](const auto& path)
                                {
-                                   const auto path_str = path
+                                   const auto line_string = ranges::views::concat(path, path | ranges::views::take(1))
                                                        | ranges::views::transform(
                                                              [](const auto& point)
                                                              {
                                                                  return fmt::format("{} {}", point.X, point.Y);
                                                              })
                                                        | ranges::views::join(ranges::views::c_str(", ")) | ranges::to<std::string>();
-                                   return "(" + path_str + ")";
+                                   return "(" + line_string + ")";
                                })
                          | ranges::views::join(ranges::views::c_str(", ")) | ranges::to<std::string>();
     stream << paths_str;
