@@ -115,8 +115,16 @@ void Raft::generate(SliceDataStorage& storage)
     };
     const auto nominal_raft_line_width = settings.get<coord_t>("skirt_brim_line_width");
     remove_inside_corners(storage.raftBaseOutline, settings.get<bool>("raft_base_remove_inside_corners"), settings.get<coord_t>("raft_base_smoothing"), nominal_raft_line_width);
-    remove_inside_corners(storage.raftInterfaceOutline, settings.get<bool>("raft_interface_remove_inside_corners"), settings.get<coord_t>("raft_interface_smoothing"), nominal_raft_line_width);
-    remove_inside_corners(storage.raftSurfaceOutline, settings.get<bool>("raft_surface_remove_inside_corners"), settings.get<coord_t>("raft_surface_smoothing"), nominal_raft_line_width);
+    remove_inside_corners(
+        storage.raftInterfaceOutline,
+        settings.get<bool>("raft_interface_remove_inside_corners"),
+        settings.get<coord_t>("raft_interface_smoothing"),
+        nominal_raft_line_width);
+    remove_inside_corners(
+        storage.raftSurfaceOutline,
+        settings.get<bool>("raft_surface_remove_inside_corners"),
+        settings.get<coord_t>("raft_surface_smoothing"),
+        nominal_raft_line_width);
 
     if (storage.primeTower.enabled_ && ! storage.primeTower.would_have_actual_tower_)
     {
