@@ -808,8 +808,7 @@ Polygons Polygons::toPolygons(ClipperLib::PolyTree& poly_tree)
     return ret;
 }
 
-[[maybe_unused]]
-Polygons Polygons::fromWkt(const std::string& wkt)
+[[maybe_unused]] Polygons Polygons::fromWkt(const std::string& wkt)
 {
     typedef boost::geometry::model::d2::point_xy<double> point_type;
     typedef boost::geometry::model::polygon<point_type> polygon_type;
@@ -839,22 +838,23 @@ Polygons Polygons::fromWkt(const std::string& wkt)
     return ret;
 }
 
-[[maybe_unused]]
-void Polygons::writeWkt(std::ostream& stream) const
+[[maybe_unused]] void Polygons::writeWkt(std::ostream& stream) const
 {
     stream << "POLYGON (";
-    const auto paths_str
-        = paths
-        | ranges::views::transform([](const auto& path)
-        {
-            const auto path_str
-                = path
-                | ranges::views::transform([](const auto& point) { return fmt::format("{} {}", point.X, point.Y); })
-                | ranges::views::join(ranges::views::c_str(", ")) | ranges::to<std::string>();
-            return "(" + path_str + ")";
-        })
-        | ranges::views::join(ranges::views::c_str(", "))
-        | ranges::to<std::string>();
+    const auto paths_str = paths
+                         | ranges::views::transform(
+                               [](const auto& path)
+                               {
+                                   const auto path_str = path
+                                                       | ranges::views::transform(
+                                                             [](const auto& point)
+                                                             {
+                                                                 return fmt::format("{} {}", point.X, point.Y);
+                                                             })
+                                                       | ranges::views::join(ranges::views::c_str(", ")) | ranges::to<std::string>();
+                                   return "(" + path_str + ")";
+                               })
+                         | ranges::views::join(ranges::views::c_str(", ")) | ranges::to<std::string>();
     stream << paths_str;
     stream << ")";
 }
