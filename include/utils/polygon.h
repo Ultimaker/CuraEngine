@@ -1527,6 +1527,7 @@ public:
      *
      * @param stream The stream to write to
      */
+    [[maybe_unused]]
     void writeWkt(std::ostream& stream) const;
 
     /*!
@@ -1535,6 +1536,7 @@ public:
      * @param wkt The WKT string to read from
      * @return Polygons The polygons read from the stream
      */
+    [[maybe_unused]]
     static Polygons fromWkt(const std::string& wkt);
 };
 

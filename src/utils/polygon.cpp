@@ -808,6 +808,7 @@ Polygons Polygons::toPolygons(ClipperLib::PolyTree& poly_tree)
     return ret;
 }
 
+[[maybe_unused]]
 Polygons Polygons::fromWkt(const std::string& wkt)
 {
     typedef boost::geometry::model::d2::point_xy<double> point_type;
@@ -838,6 +839,7 @@ Polygons Polygons::fromWkt(const std::string& wkt)
     return ret;
 }
 
+[[maybe_unused]]
 void Polygons::writeWkt(std::ostream& stream) const
 {
     stream << "POLYGON (";
