@@ -110,7 +110,7 @@ void Raft::generate(SliceDataStorage& storage)
             outline = outline.offset(smoothing, ClipperLib::jtRound).offset(-smoothing, ClipperLib::jtRound);
 
             // Opening operation to get rid of articfacts created by the closing operation:
-            outline = outline.offset(-(line_width + 5), ClipperLib::jtRound).offset(line_width, ClipperLib::jtRound);
+            outline = outline.offset(-line_width, ClipperLib::jtRound).offset(line_width, ClipperLib::jtRound);
         }
     };
     const auto nominal_raft_line_width = settings.get<coord_t>("skirt_brim_line_width");
