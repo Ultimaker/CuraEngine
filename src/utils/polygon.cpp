@@ -843,21 +843,18 @@ Polygons Polygons::fromWkt(const std::string& wkt)
 void Polygons::writeWkt(std::ostream& stream) const
 {
     stream << "POLYGON (";
-    const auto paths_str = paths
-                         | ranges::views::transform(
-                               [](const auto& path)
-                               {
-                                   const auto path_str = path
-                                                       | ranges::views::transform(
-                                                             [](const auto& point)
-                                                             {
-                                                                 return fmt::format("{} {}", point.X, point.Y);
-                                                             })
-                                                       | ranges::views::join(ranges::views::c_str(", ")) | ranges::to<std::string>();
-                                   return "(" + path_str + ")";
-                               })
-                         | ranges::views::join(ranges::views::c_str(" ")) | ranges::to<std::string>();
-
+    const auto paths_str
+        = paths
+        | ranges::views::transform([](const auto& path)
+        {
+            const auto path_str
+                = path
+                | ranges::views::transform([](const auto& point) { return fmt::format("{} {}", point.X, point.Y); })
+                | ranges::views::join(ranges::views::c_str(", ")) | ranges::to<std::string>();
+            return "(" + path_str + ")";
+        })
+        | ranges::views::join(ranges::views::c_str(", "))
+        | ranges::to<std::string>();
     stream << paths_str;
     stream << ")";
 }
