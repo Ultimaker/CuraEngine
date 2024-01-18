@@ -12,13 +12,13 @@
 #include <range/v3/range/primitives.hpp>
 #include <range/v3/to_container.hpp>
 #include <range/v3/view/c_str.hpp>
+#include <range/v3/view/concat.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/join.hpp>
 #include <range/v3/view/sliding.hpp>
+#include <range/v3/view/take.hpp>
 #include <range/v3/view/transform.hpp>
 #include <range/v3/view/zip.hpp>
-#include <range/v3/view/concat.hpp>
-#include <range/v3/view/take.hpp>
 #include <spdlog/spdlog.h>
 
 #include "utils/ListPolyIt.h"
@@ -848,12 +848,12 @@ Polygons Polygons::toPolygons(ClipperLib::PolyTree& poly_tree)
                                [](const auto& path)
                                {
                                    const auto line_string = ranges::views::concat(path, path | ranges::views::take(1))
-                                                       | ranges::views::transform(
-                                                             [](const auto& point)
-                                                             {
-                                                                 return fmt::format("{} {}", point.X, point.Y);
-                                                             })
-                                                       | ranges::views::join(ranges::views::c_str(", ")) | ranges::to<std::string>();
+                                                          | ranges::views::transform(
+                                                                [](const auto& point)
+                                                                {
+                                                                    return fmt::format("{} {}", point.X, point.Y);
+                                                                })
+                                                          | ranges::views::join(ranges::views::c_str(", ")) | ranges::to<std::string>();
                                    return "(" + line_string + ")";
                                })
                          | ranges::views::join(ranges::views::c_str(", ")) | ranges::to<std::string>();
