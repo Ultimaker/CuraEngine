@@ -57,7 +57,7 @@ void Raft::generate(SliceDataStorage& storage)
         storage.raftInterfaceOutline = storage.raftInterfaceOutline.unionPolygons(ooze_shield_raft);
     }
 
-    const auto remove_inside_corners = [](Polygons& outline, bool remove_inside_corners, coord_t smoothing)
+    const auto remove_inside_corners = [](Polygons& outline, bool remove_inside_corners, coord_t smoothing, coord_t line_width)
     {
         if (remove_inside_corners)
         {
@@ -106,12 +106,17 @@ void Raft::generate(SliceDataStorage& storage)
         }
         else
         {
+            // Closing operation for smoothing:
             outline = outline.offset(smoothing, ClipperLib::jtRound).offset(-smoothing, ClipperLib::jtRound);
+
+            // Opening operation to get rid of articfacts created by the closing operation:
+            outline = outline.offset(-(line_width + 5), ClipperLib::jtRound).offset(line_width, ClipperLib::jtRound);
         }
     };
-    remove_inside_corners(storage.raftBaseOutline, settings.get<bool>("raft_base_remove_inside_corners"), settings.get<coord_t>("raft_base_smoothing"));
-    remove_inside_corners(storage.raftInterfaceOutline, settings.get<bool>("raft_interface_remove_inside_corners"), settings.get<coord_t>("raft_interface_smoothing"));
-    remove_inside_corners(storage.raftSurfaceOutline, settings.get<bool>("raft_surface_remove_inside_corners"), settings.get<coord_t>("raft_surface_smoothing"));
+    const auto nominal_raft_line_width = settings.get<coord_t>("skirt_brim_line_width");
+    remove_inside_corners(storage.raftBaseOutline, settings.get<bool>("raft_base_remove_inside_corners"), settings.get<coord_t>("raft_base_smoothing"), nominal_raft_line_width);
+    remove_inside_corners(storage.raftInterfaceOutline, settings.get<bool>("raft_interface_remove_inside_corners"), settings.get<coord_t>("raft_interface_smoothing"), nominal_raft_line_width);
+    remove_inside_corners(storage.raftSurfaceOutline, settings.get<bool>("raft_surface_remove_inside_corners"), settings.get<coord_t>("raft_surface_smoothing"), nominal_raft_line_width);
 
     if (storage.primeTower.enabled_ && ! storage.primeTower.would_have_actual_tower_)
     {
