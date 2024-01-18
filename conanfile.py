@@ -34,7 +34,7 @@ class CuraEngineConan(ConanFile):
     }
     default_options = {
         "enable_arcus": True,
-        "enable_benchmarks": True,
+        "enable_benchmarks": False,
         "enable_extensive_warnings": False,
         "enable_plugins": True,
         "enable_sentry": False,
