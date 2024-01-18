@@ -145,15 +145,22 @@ class CuraEngineConan(ConanFile):
                 copy(self, "*.dll", dep.cpp_info.libdirs[0], self.build_folder)
             if len(dep.cpp_info.bindirs) > 0:
                 copy(self, "*.dll", dep.cpp_info.bindirs[0], self.build_folder)
+
+            folder_dists = []
             if not self.conf.get("tools.build:skip_test", False, check_type=bool):
-                test_path = path.join(self.build_folder, "tests")
-                if not path.exists(test_path):
-                    mkdir(self, test_path)
+                folder_dists.append("tests")
+            if self.options.enable_benchmarks:
+                folder_dists.append("benchmark")
+
+            for dist_folder in folder_dists:
+                dist_path = path.join(self.build_folder, dist_folder)
+                if not path.exists(dist_path):
+                    mkdir(self, dist_path)
                 if len(dep.cpp_info.libdirs) > 0:
-                    copy(self, "*.dylib", dep.cpp_info.libdirs[0], path.join(self.build_folder, "tests"))
-                    copy(self, "*.dll", dep.cpp_info.libdirs[0], path.join(self.build_folder, "tests"))
+                    copy(self, "*.dylib", dep.cpp_info.libdirs[0], path.join(self.build_folder, dist_folder))
+                    copy(self, "*.dll", dep.cpp_info.libdirs[0], path.join(self.build_folder, dist_folder))
                 if len(dep.cpp_info.bindirs) > 0:
-                    copy(self, "*.dll", dep.cpp_info.bindirs[0], path.join(self.build_folder, "tests"))
+                    copy(self, "*.dll", dep.cpp_info.bindirs[0], path.join(self.build_folder, dist_folder))
 
     def layout(self):
         cmake_layout(self)
