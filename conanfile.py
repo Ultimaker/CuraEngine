@@ -2,6 +2,7 @@
 #  CuraEngine is released under the terms of the AGPLv3 or higher
 from io import StringIO
 from os import path
+import os
 
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
@@ -191,7 +192,7 @@ class CuraEngineConan(ConanFile):
 
                 self.output.info("Uploading debug symbols to sentry")
                 build_source_dir = self.build_path.parent.parent.as_posix()
-                self.run(f"sentry-cli debug-files upload --include-sources -o {sentry_org} -p {sentry_project} {build_source_dir}")
+                self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} debug-files upload --include-sources -o {sentry_org} -p {sentry_project} {build_source_dir}")
 
                 # create a sentry release and link it to the commit this is based upon
                 self.output.info(f"Creating a new release {self.version} in Sentry and linking it to the current commit {self.conan_data['commit']}")
