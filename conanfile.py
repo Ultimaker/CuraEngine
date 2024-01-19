@@ -196,9 +196,9 @@ class CuraEngineConan(ConanFile):
 
                 # create a sentry release and link it to the commit this is based upon
                 self.output.info(f"Creating a new release {self.version} in Sentry and linking it to the current commit {self.conan_data['commit']}")
-                self.run(f"sentry-cli releases new -o {sentry_org} -p {sentry_project} {self.version}")
-                self.run(f"sentry-cli releases set-commits -o {sentry_org} -p {sentry_project} --commit \"Ultimaker/CuraEngine@{self.conan_data['commit']}\" {self.version}")
-                self.run(f"sentry-cli releases finalize -o {sentry_org} -p {sentry_project} {self.version}")
+                self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases new -o {sentry_org} -p {sentry_project} {self.version}")
+                self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases set-commits -o {sentry_org} -p {sentry_project} --commit \"Ultimaker/CuraEngine@{self.conan_data['commit']}\" {self.version}")
+                self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases finalize -o {sentry_org} -p {sentry_project} {self.version}")
 
     def package(self):
         ext = ".exe" if self.settings.os == "Windows" else ""
