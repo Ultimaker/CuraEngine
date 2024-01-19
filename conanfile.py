@@ -179,7 +179,7 @@ class CuraEngineConan(ConanFile):
             if sentry_project == "" or sentry_org == "":
                 raise ConanInvalidConfiguration("sentry_project or sentry_org is not set")
 
-            if which("sentry-cli") is None and self.settings.build_type != "Release":
+            if which("sentry-cli") is None:
                 self.output.warn("sentry-cli is not installed, skipping uploading debug symbols")
                 self.output.warn("sentry-cli is not installed, skipping release creation")
             else:
