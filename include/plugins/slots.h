@@ -266,12 +266,19 @@ namespace details
 struct Slots
 {
     template<plugins::v0::SlotID S>
-    constexpr auto modify(auto&& data, auto&&... args) noexcept { return std::forward<decltype(data)>(data); }
+    constexpr auto modify(auto&& data, auto&&... args) noexcept
+    {
+        return std::forward<decltype(data)>(data);
+    }
 
     template<plugins::v0::SlotID S>
-    constexpr auto broadcast(auto&&... args) noexcept {}
+    constexpr auto broadcast(auto&&... args) noexcept
+    {
+    }
 
-    constexpr auto connect(auto&&... args) noexcept {}
+    constexpr auto connect(auto&&... args) noexcept
+    {
+    }
 };
 } // namespace details
 

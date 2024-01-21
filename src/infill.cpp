@@ -317,7 +317,7 @@ void Infill::_generate(
         break;
     case EFillMethod::PLUGIN:
     {
-#ifdef ENABLE_PLUGINS  // FIXME: I don't like this conditional block outside of the plugin scope.
+#ifdef ENABLE_PLUGINS // FIXME: I don't like this conditional block outside of the plugin scope.
         auto [toolpaths_, generated_result_polygons_, generated_result_lines_] = slots::instance().generate<plugins::v0::SlotID::INFILL_GENERATE>(
             inner_contour_,
             mesh ? mesh->settings.get<std::string>("infill_pattern") : settings.get<std::string>("infill_pattern"),
