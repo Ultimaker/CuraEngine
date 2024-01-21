@@ -20,13 +20,13 @@ option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
 
 # Generate the plugin types
 find_package(protobuf REQUIRED)
-find_package(asio-grpc REQUIRED)
-find_package(gRPC REQUIRED)
-find_package(curaengine_grpc_definitions REQUIRED)
 option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
 
 MESSAGE(STATUS "Compiling with plugins support: ${ENABLE_PLUGINS}")
 if (${ENABLE_PLUGINS})
+    find_package(asio-grpc REQUIRED)
+    find_package(gRPC REQUIRED)
+    find_package(curaengine_grpc_definitions REQUIRED)
     MESSAGE(STATUS "Plugin secure remotes allowed: ${ENABLE_REMOTE_PLUGINS}")
 endif ()
 
@@ -221,9 +221,9 @@ target_link_libraries(_CuraEngine
         boost::boost
         scripta::scripta
         semver::semver
-        curaengine_grpc_definitions::curaengine_grpc_definitions
-        asio-grpc::asio-grpc
-        grpc::grpc
+        $<$<BOOL:${ENABLE_PLUGINS}>:curaengine_grpc_definitions::curaengine_grpc_definitions>
+        $<$<BOOL:${ENABLE_PLUGINS}>:asio-grpc::asio-grpc>
+        $<$<BOOL:${ENABLE_PLUGINS}>:grpc::grpc>
         protobuf::libprotobuf
         $<$<BOOL:${ENABLE_SENTRY}>:sentry::sentry>
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
@@ -280,9 +280,9 @@ if (ENABLE_TESTING OR ENABLE_BENCHMARKS)
             GTest::gtest
             GTest::gmock
             clipper::clipper
-            curaengine_grpc_definitions::curaengine_grpc_definitions
-            asio-grpc::asio-grpc
-            grpc::grpc
+            $<$<BOOL:${ENABLE_PLUGINS}>:curaengine_grpc_definitions::curaengine_grpc_definitions>
+            $<$<BOOL:${ENABLE_PLUGINS}>:asio-grpc::asio-grpc>
+            $<$<BOOL:${ENABLE_PLUGINS}>:grpc::grpc>
             protobuf::libprotobuf)
     if (ENABLE_ARCUS)
         target_link_libraries(test_helpers PUBLIC arcus::arcus)

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "infill.h"
@@ -317,6 +317,7 @@ void Infill::_generate(
         break;
     case EFillMethod::PLUGIN:
     {
+#ifdef ENABLE_PLUGINS  // FIXME: I don't like this conditional block outside of the plugin scope.
         auto [toolpaths_, generated_result_polygons_, generated_result_lines_] = slots::instance().generate<plugins::v0::SlotID::INFILL_GENERATE>(
             inner_contour_,
             mesh ? mesh->settings.get<std::string>("infill_pattern") : settings.get<std::string>("infill_pattern"),
@@ -324,6 +325,7 @@ void Infill::_generate(
         toolpaths.insert(toolpaths.end(), toolpaths_.begin(), toolpaths_.end());
         result_polygons.add(generated_result_polygons_);
         result_lines.add(generated_result_lines_);
+#endif
         break;
     }
     default:

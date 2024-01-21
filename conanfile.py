@@ -105,8 +105,11 @@ class CuraEngineConan(ConanFile):
             self.requires(req)
         if self.options.get_safe("enable_sentry", False):
             self.requires("sentry-native/0.6.5")
-        self.requires("asio-grpc/2.6.0")
-        self.requires("grpc/1.50.1")
+        if self.options.enable_plugins:
+            self.requires("asio-grpc/2.6.0")
+            self.requires("grpc/1.50.1")
+            for req in self.conan_data["requirements_plugins"]:
+                self.requires(req)
         self.requires("clipper/6.4.2@ultimaker/stable")
         self.requires("boost/1.82.0")
         self.requires("rapidjson/1.1.0")

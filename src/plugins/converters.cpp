@@ -1,6 +1,7 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#ifdef ENABLE_PLUGINS
 
 #include "plugins/converters.h"
 
@@ -481,3 +482,5 @@ gcode_paths_modify_response::native_value_type
     return paths;
 }
 } // namespace cura::plugins
+
+#endif // ENABLE_PLUGINS

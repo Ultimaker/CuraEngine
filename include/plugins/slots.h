@@ -1,9 +1,10 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef PLUGINS_SLOTS_H
 #define PLUGINS_SLOTS_H
 
+#ifdef ENABLE_PLUGINS
 #include <exception>
 #include <memory>
 #include <tuple>
@@ -236,5 +237,53 @@ using SlotTypes = details::Typelist<slot_gcode_paths_modify, slot_infill_generat
 using slots = plugins::details::SingletonRegistry<plugins::SlotTypes, plugins::details::Holder>;
 
 } // namespace cura
+
+#else // No Engine plugin support
+namespace cura
+{
+
+namespace plugins::v0
+{
+// FIXME: use same SlotID as defined in Cura.proto
+enum SlotID : int
+{
+    SETTINGS_BROADCAST = 0,
+    SIMPLIFY_MODIFY = 100,
+    POSTPROCESS_MODIFY = 101,
+    INFILL_MODIFY = 102,
+    GCODE_PATHS_MODIFY = 103,
+    INFILL_GENERATE = 200,
+    DIALECT_GENERATE = 201,
+    SlotID_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::min(),
+    SlotID_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::max()
+};
+} // namespace plugins::v0
+
+namespace slots
+{
+namespace details
+{
+struct Slots
+{
+    template<plugins::v0::SlotID S>
+    constexpr auto modify(auto&& data, auto&&... args) noexcept { return std::forward<decltype(data)>(data); }
+
+    template<plugins::v0::SlotID S>
+    constexpr auto broadcast(auto&&... args) noexcept {}
+
+    constexpr auto connect(auto&&... args) noexcept {}
+};
+} // namespace details
+
+constexpr details::Slots instance() noexcept
+{
+    return {};
+}
+} // namespace slots
+
+} // namespace cura
+
+
+#endif // ENABLE_PLUGINS
 
 #endif // PLUGINS_SLOTS_H
