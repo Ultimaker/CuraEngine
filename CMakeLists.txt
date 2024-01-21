@@ -154,7 +154,7 @@ set(engine_SRCS # Except main.cpp.
         )
 
 add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})
-use_threads(_CuraEngine)
+#use_threads(_CuraEngine)
 
 target_include_directories(_CuraEngine
         PUBLIC
@@ -250,7 +250,7 @@ else ()
     endif ()
 endif (NOT WIN32)
 
-use_threads(CuraEngine)
+#use_threads(CuraEngine)
 target_link_libraries(CuraEngine PRIVATE
         _CuraEngine
         $<$<BOOL:${ENABLE_SENTRY}>:sentry::sentry>
