@@ -1,15 +1,16 @@
-#  Copyright (c) 2023 UltiMaker
+#  Copyright (c) 2024 UltiMaker
 #  CuraEngine is released under the terms of the AGPLv3 or higher
-
+from io import StringIO
 from os import path
+import os
 
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
-from conan.tools.files import copy, mkdir
+from conan.tools.files import copy, mkdir, update_conandata
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
 from conan.tools.scm import Version, Git
-
+from conans.tools import which
 
 required_conan_version = ">=1.58.0 <2.0.0"
 
@@ -43,8 +44,12 @@ class CuraEngineConan(ConanFile):
 
     def set_version(self):
         if not self.version:
-            git = Git(self)
-            self.version = f"5.7.0-alpha+{git.get_commit()[:6]}"
+            build_meta = "" if self.develop else "+source"
+            self.version = self.conan_data["version"] + build_meta
+
+    def export(self):
+        git = Git(self)
+        update_conandata(self, {"version": self.version, "commit": git.get_commit()})
 
     def export_sources(self):
         copy(self, "CMakeLists.txt", self.recipe_folder, self.export_sources_folder)
@@ -67,10 +72,15 @@ class CuraEngineConan(ConanFile):
     def configure(self):
         self.options["boost"].header_only = True
         self.options["clipper"].shared = True
-
         self.options["protobuf"].shared = False
         if self.options.enable_arcus:
             self.options["arcus"].shared = True
+        if self.settings.os == "Linux":
+            self.options["openssl"].shared = True
+        if self.options.get_safe("enable_sentry", False):
+            self.options["sentry-native"].backend = "breakpad"
+            self.options["arcus"].enable_sentry = True
+            self.options["clipper"].enable_sentry = True
 
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
@@ -89,25 +99,25 @@ class CuraEngineConan(ConanFile):
             self.test_requires("docopt.cpp/0.6.3")
 
     def requirements(self):
-        if self.options.enable_arcus:
-            self.requires("arcus/5.3.0")
+        for req in self.conan_data["requirements"]:
+            if "arcus" in req and not self.options.enable_arcus:
+                continue
+            self.requires(req)
         if self.options.get_safe("enable_sentry", False):
             self.requires("sentry-native/0.6.5")
         self.requires("asio-grpc/2.6.0")
         self.requires("grpc/1.50.1")
-        self.requires("curaengine_grpc_definitions/(latest)@ultimaker/testing")
-        self.requires("clipper/6.4.2")
+        self.requires("clipper/6.4.2@ultimaker/stable")
         self.requires("boost/1.82.0")
         self.requires("rapidjson/1.1.0")
         self.requires("stb/20200203")
         self.requires("spdlog/1.12.0")
         self.requires("fmt/10.1.1")
         self.requires("range-v3/0.12.0")
-        self.requires("scripta/0.1.0@ultimaker/testing")
         self.requires("neargye-semver/0.3.0")
         self.requires("protobuf/3.21.9")
         self.requires("zlib/1.2.12")
-        self.requires("openssl/1.1.1l")
+        self.requires("openssl/3.2.0")
 
     def generate(self):
         deps = CMakeDeps(self)
@@ -136,16 +146,22 @@ class CuraEngineConan(ConanFile):
                 copy(self, "*.dll", dep.cpp_info.libdirs[0], self.build_folder)
             if len(dep.cpp_info.bindirs) > 0:
                 copy(self, "*.dll", dep.cpp_info.bindirs[0], self.build_folder)
-            if not self.conf.get("tools.build:skip_test", False, check_type=bool):
-                test_path = path.join(self.build_folder,  "tests")
-                if not path.exists(test_path):
-                    mkdir(self, test_path)
-                if len(dep.cpp_info.libdirs) > 0:
-                    copy(self, "*.dylib", dep.cpp_info.libdirs[0], path.join(self.build_folder,  "tests"))
-                    copy(self, "*.dll", dep.cpp_info.libdirs[0], path.join(self.build_folder,  "tests"))
-                if len(dep.cpp_info.bindirs) > 0:
-                    copy(self, "*.dll", dep.cpp_info.bindirs[0], path.join(self.build_folder,  "tests"))
 
+            folder_dists = []
+            if not self.conf.get("tools.build:skip_test", False, check_type=bool):
+                folder_dists.append("tests")
+            if self.options.enable_benchmarks:
+                folder_dists.append("benchmark")
+
+            for dist_folder in folder_dists:
+                dist_path = path.join(self.build_folder, dist_folder)
+                if not path.exists(dist_path):
+                    mkdir(self, dist_path)
+                if len(dep.cpp_info.libdirs) > 0:
+                    copy(self, "*.dylib", dep.cpp_info.libdirs[0], path.join(self.build_folder, dist_folder))
+                    copy(self, "*.dll", dep.cpp_info.libdirs[0], path.join(self.build_folder, dist_folder))
+                if len(dep.cpp_info.bindirs) > 0:
+                    copy(self, "*.dll", dep.cpp_info.bindirs[0], path.join(self.build_folder, dist_folder))
 
     def layout(self):
         cmake_layout(self)
@@ -157,11 +173,38 @@ class CuraEngineConan(ConanFile):
         cmake.configure()
         cmake.build()
 
+        if self.options.get_safe("enable_sentry", False):
+            # Upload debug symbols to sentry
+            sentry_project = self.conf.get("user.curaengine:sentry_project", "", check_type=str)
+            sentry_org = self.conf.get("user.curaengine:sentry_org", "", check_type=str)
+            if sentry_project == "" or sentry_org == "":
+                raise ConanInvalidConfiguration("sentry_project or sentry_org is not set")
+
+            if which("sentry-cli") is None:
+                self.output.warn("sentry-cli is not installed, skipping uploading debug symbols")
+                self.output.warn("sentry-cli is not installed, skipping release creation")
+            else:
+                if self.settings.os == "Linux":
+                    self.output.info("Stripping debug symbols from binary")
+                    self.run("objcopy --only-keep-debug --compress-debug-sections=zlib CuraEngine CuraEngine.debug")
+                    self.run("objcopy --strip-debug --strip-unneeded CuraEngine")
+                    self.run("objcopy --add-gnu-debuglink=CuraEngine.debug CuraEngine")
+
+                self.output.info("Uploading debug symbols to sentry")
+                build_source_dir = self.build_path.parent.parent.as_posix()
+                self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} debug-files upload --include-sources -o {sentry_org} -p {sentry_project} {build_source_dir}")
+
+                # create a sentry release and link it to the commit this is based upon
+                self.output.info(f"Creating a new release {self.version} in Sentry and linking it to the current commit {self.conan_data['commit']}")
+                self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases new -o {sentry_org} -p {sentry_project} {self.version}")
+                self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases set-commits -o {sentry_org} -p {sentry_project} --commit \"Ultimaker/CuraEngine@{self.conan_data['commit']}\" {self.version}")
+                self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases finalize -o {sentry_org} -p {sentry_project} {self.version}")
+
     def package(self):
         ext = ".exe" if self.settings.os == "Windows" else ""
-        copy(self, f"CuraEngine{ext}", src = self.build_folder, dst = path.join(self.package_folder, "bin"))
-        copy(self, f"_CuraEngine.*", src = self.build_folder, dst = path.join(self.package_folder, "lib"))
-        copy(self, "LICENSE*", src = self.source_folder, dst = path.join(self.package_folder, "license"))
+        copy(self, f"CuraEngine{ext}", src=self.build_folder, dst=path.join(self.package_folder, "bin"))
+        copy(self, f"_CuraEngine.*", src=self.build_folder, dst=path.join(self.package_folder, "lib"))
+        copy(self, "LICENSE*", src=self.source_folder, dst=path.join(self.package_folder, "license"))
 
     def package_info(self):
         ext = ".exe" if self.settings.os == "Windows" else ""

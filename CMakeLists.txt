@@ -225,7 +225,12 @@ target_link_libraries(_CuraEngine
         asio-grpc::asio-grpc
         grpc::grpc
         protobuf::libprotobuf
+        $<$<BOOL:${ENABLE_SENTRY}>:sentry::sentry>
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
+
+target_compile_definitions(_CuraEngine PRIVATE
+        $<$<BOOL:${ENABLE_SENTRY}>:SENTRY_URL=\"${SENTRY_URL}\">
+)
 
 if (NOT WIN32)
     add_executable(CuraEngine src/main.cpp) # Then compile main.cpp as separate executable, and link the library to it.
@@ -240,6 +245,9 @@ else ()
                 )
     endif ()
     add_executable(CuraEngine src/main.cpp ${RES_FILES}) # ..., but don't forget the glitter!
+    if (ENABLE_SENTRY)
+        set_target_properties(CuraEngine PROPERTIES LINK_FLAGS "/DEBUG:FULL")
+    endif ()
 endif (NOT WIN32)
 
 use_threads(CuraEngine)
