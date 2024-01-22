@@ -1552,7 +1552,10 @@ public:
     }
     ConstPolygonRef outerPolygon() const
     {
-        return paths[0];
+        if (! paths.empty())
+        {
+            return paths[0];
+        }
     }
 
     /*!

@@ -152,6 +152,7 @@ class CuraEngineConan(ConanFile):
                 folder_dists.append("tests")
             if self.options.enable_benchmarks:
                 folder_dists.append("benchmark")
+                folder_dists.append("stress_benchmark")
 
             for dist_folder in folder_dists:
                 dist_path = path.join(self.build_folder, dist_folder)
