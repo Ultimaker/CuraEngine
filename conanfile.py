@@ -143,6 +143,9 @@ class CuraEngineConan(ConanFile):
             tc.variables["ENABLE_PLUGINS"] = self.options.enable_plugins
         tc.generate()
 
+        if self.settings.arch == "wasm" and self.settings.os == "Emscripten":
+            self.buildenv.define("EMCC_CFLAGS", "-s ALLOW_MEMORY_GROWTH=1 -s EXPORT_ES6=1 -s EXPORT_NAME='CuraEngine' -s EXPORTED_RUNTIME_METHODS='[\"callMain\", \"FS\"]' -s INVOKE_RUN=0 -s MODULARIZE=1 -s SINGLE_FILE=1 -s ENVIRONMENT=worker -s USE_ES6_IMPORT_META=0")
+
         for dep in self.dependencies.values():
             if len(dep.cpp_info.libdirs) > 0:
                 copy(self, "*.dylib", dep.cpp_info.libdirs[0], self.build_folder)

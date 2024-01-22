@@ -151,7 +151,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ToolpathVisualizer.cpp
         src/utils/VoronoiUtils.cpp
         src/utils/VoxelUtils.cpp
-        )
+)
 
 add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})
 #use_threads(_CuraEngine)
@@ -162,7 +162,7 @@ target_include_directories(_CuraEngine
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}> # Include Cura.pb.h
-        )
+)
 
 target_compile_definitions(_CuraEngine
         PUBLIC
@@ -180,7 +180,7 @@ target_compile_definitions(_CuraEngine
         $<$<CONFIG:RelWithDebInfo>:ASSERT_INSANE_OUTPUT>
         $<$<CONFIG:RelWithDebInfo>:USE_CPU_TIME>
         $<$<CONFIG:RelWithDebInfo>:DEBUG>
-        )
+)
 
 enable_sanitizers(_CuraEngine)
 
@@ -189,7 +189,7 @@ if (${EXTENSIVE_WARNINGS})
 endif ()
 
 if (ENABLE_ARCUS)
-    target_link_libraries(_CuraEngine PUBLIC arcus::arcus )
+    target_link_libraries(_CuraEngine PUBLIC arcus::arcus)
 endif ()
 
 find_package(clipper REQUIRED)
@@ -242,7 +242,7 @@ else ()
         SET(CMAKE_RC_COMPILER_INIT windres)
         SET(CMAKE_RC_COMPILE_OBJECT
                 "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <SOURCE> -o <OBJECT>"
-                )
+        )
     endif ()
     add_executable(CuraEngine src/main.cpp ${RES_FILES}) # ..., but don't forget the glitter!
     if (ENABLE_SENTRY)
@@ -293,7 +293,7 @@ if (ENABLE_BENCHMARKS)
     add_subdirectory(benchmark)
     if (NOT WIN32)
         add_subdirectory(stress_benchmark)
-    endif()
+    endif ()
 endif ()
 
 if (ENABLE_TESTING)

@@ -1,5 +1,5 @@
-//  Copyright (c) 2018-2022 Ultimaker B.V.
-//  CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2024 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef COMMANDLINE_H
 #define COMMANDLINE_H
@@ -151,6 +151,10 @@ public:
     void sliceNext() override;
 
 private:
+#ifdef __EMSCRIPTEN__
+    std::string progressHandler;
+#endif
+
     /*
      * \brief The command line arguments that the application was called with.
      */

@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "communication/CommandLine.h"
@@ -20,6 +20,10 @@
 #include "FffProcessor.h" //To start a slice and get time estimates.
 #include "Slice.h"
 #include "utils/Matrix4x3D.h" //For the mesh_rotation_matrix setting.
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 namespace cura
 {
@@ -106,6 +110,12 @@ void CommandLine::sendProgress(double progress) const
         return;
     }
     // TODO: Do we want to print a progress bar? We'd need a better solution to not have that progress bar be ruined by any logging.
+#ifdef __EMSCRIPTEN__
+    // Call progress handler with progress
+    char js[100];
+    std::sprintf(js, "globalThis[\"%s\"](%f)", progressHandler.c_str(), progress);
+    emscripten_run_script(js);
+#endif
 }
 
 void CommandLine::sliceNext()
@@ -178,6 +188,15 @@ void CommandLine::sliceNext()
                     force_read_parent = false;
                     force_read_nondefault = false;
                 }
+#ifdef __EMSCRIPTEN__
+                else if (argument.find("--progress") == 0)
+                {
+                    // Store progress handler name
+                    argument_index++;
+                    argument = arguments_[argument_index];
+                    progressHandler = argument;
+                }
+#endif
                 else
                 {
                     spdlog::error("Unknown option: {}", argument);
