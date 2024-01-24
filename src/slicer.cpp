@@ -12,6 +12,7 @@
 
 #include "Application.h"
 #include "Slice.h"
+#include "raft.h"
 #include "plugins/slots.h"
 #include "settings/AdaptiveLayerHeights.h"
 #include "settings/EnumSettings.h"
@@ -824,7 +825,8 @@ Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_c
         mesh->settings_.get<coord_t>("raft_interface_thickness"),
         mesh->settings_.get<coord_t>("raft_base_thickness"),
         mesh->settings_.get<coord_t>("raft_airgap"),
-        mesh->settings_.get<coord_t>("layer_0_z_overlap"));
+        mesh->settings_.get<coord_t>("layer_0_z_overlap"),
+        Raft::getFillerLayerCount());
 
     std::vector<std::pair<int32_t, int32_t>> zbbox = buildZHeightsForFaces(*mesh);
 
