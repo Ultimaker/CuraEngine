@@ -42,7 +42,7 @@ public:
      * The location where the nozzle is assumed to start from before printing
      * these parts.
      */
-    Point2LL start_point_;
+    const Point2LL start_point_;
 
     /*!
      * Seam settings.
@@ -97,6 +97,15 @@ protected:
      */
     constexpr static coord_t coincident_point_distance_ = 10;
 
+    /*!
+     * \brief Basic constructor with a given start point
+     * \param start_point The location where the nozzle is assumed to start
+     * from before printing these parts.
+     */
+    PathOrder(const Point2LL& start_point)
+        : start_point_(start_point)
+    {
+    }
 
     /*!
      * In the current set of paths, detect all loops and mark them as such.
