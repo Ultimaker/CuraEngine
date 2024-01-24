@@ -984,11 +984,11 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         }
 
         std::vector<Polygons> raft_islands;
-        if(monotonic)
+        if (monotonic)
         {
             // When using monotonic infill, process islands separately otherwise multiple rafts
             // will be printed in parallel in a global monotonic order, which doesn't look good
-            for(const PolygonRef raft_island : raft_outline_path)
+            for (const PolygonRef raft_island : raft_outline_path)
             {
                 Polygons island;
                 island.add(raft_island);
@@ -1000,7 +1000,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             raft_islands.emplace_back(raft_outline_path);
         }
 
-        for(const Polygons raft_island : raft_islands)
+        for (const Polygons raft_island : raft_islands)
         {
             Infill infill_comp(
                 EFillMethod::ZIG_ZAG,
@@ -1060,18 +1060,13 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             const auto always_retract = false;
             const auto reverse_order = false;
 
-            if(monotonic)
+            if (monotonic)
             {
                 const AngleRadians monotonic_direction = fill_angle;
                 constexpr SpaceFillType space_fill_type = SpaceFillType::PolyLines;
                 const coord_t max_adjacent_distance = surface_line_spacing;
 
-                gcode_layer.addLinesMonotonic(raft_island,
-                                              raft_lines,
-                                              config,
-                                              space_fill_type,
-                                              monotonic_direction,
-                                              max_adjacent_distance);
+                gcode_layer.addLinesMonotonic(raft_island, raft_lines, config, space_fill_type, monotonic_direction, max_adjacent_distance);
             }
             else
             {
