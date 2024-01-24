@@ -91,7 +91,8 @@ class CuraEngineConan(ConanFile):
 
     def build_requirements(self):
         self.test_requires("standardprojectsettings/[>=0.1.0]@ultimaker/stable")
-        self.test_requires("protobuf/3.21.9")
+        if self.options.enable_arcus or self.options.enable_plugins:
+            self.tool_requires("protobuf/3.21.9")
         if not self.conf.get("tools.build:skip_test", False, check_type=bool):
             self.test_requires("gtest/1.12.1")
         if self.options.enable_benchmarks:
@@ -105,6 +106,8 @@ class CuraEngineConan(ConanFile):
             self.requires(req)
         if self.options.get_safe("enable_sentry", False):
             self.requires("sentry-native/0.6.5")
+        if self.options.enable_arcus or self.options.enable_plugins:
+            self.requires("protobuf/3.21.9")
         self.requires("asio-grpc/2.6.0")
         self.requires("grpc/1.50.1")
         self.requires("clipper/6.4.2@ultimaker/stable")
@@ -115,7 +118,6 @@ class CuraEngineConan(ConanFile):
         self.requires("fmt/10.1.1")
         self.requires("range-v3/0.12.0")
         self.requires("neargye-semver/0.3.0")
-        self.requires("protobuf/3.21.9")
         self.requires("zlib/1.2.12")
         self.requires("openssl/3.2.0")
 
