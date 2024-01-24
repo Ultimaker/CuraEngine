@@ -12,8 +12,8 @@
 
 #include "Application.h"
 #include "Slice.h"
-#include "raft.h"
 #include "plugins/slots.h"
+#include "raft.h"
 #include "settings/AdaptiveLayerHeights.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/LayerIndex.h"
