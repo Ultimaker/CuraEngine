@@ -222,7 +222,7 @@ target_link_libraries(_CuraEngine
         stb::stb
         boost::boost
         scripta::scripta
-        semver::semver
+        $<$<BOOL:${ENABLE_PLUGINS}>:semver::semver>
         $<$<BOOL:${ENABLE_PLUGINS}>:curaengine_grpc_definitions::curaengine_grpc_definitions>
         $<$<BOOL:${ENABLE_PLUGINS}>:asio-grpc::asio-grpc>
         $<$<BOOL:${ENABLE_PLUGINS}>:grpc::grpc>
