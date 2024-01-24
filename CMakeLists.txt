@@ -18,20 +18,23 @@ option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" 
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
 
-# Generate the plugin types
-find_package(protobuf REQUIRED)
 option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
 
-MESSAGE(STATUS "Compiling with plugins support: ${ENABLE_PLUGINS}")
+if (${ENABLE_ARCUS} OR ${ENABLE_PLUGINS})
+    find_package(protobuf REQUIRED)
+endif ()
+
+MESSAGE(STATUS "Building with plugins support: ${ENABLE_PLUGINS}")
 if (${ENABLE_PLUGINS})
     find_package(asio-grpc REQUIRED)
     find_package(gRPC REQUIRED)
     find_package(curaengine_grpc_definitions REQUIRED)
+    find_package(semver REQUIRED)
     MESSAGE(STATUS "Plugin secure remotes allowed: ${ENABLE_REMOTE_PLUGINS}")
 endif ()
 
-if (ENABLE_ARCUS)
-    message(STATUS "Building with Arcus")
+message(STATUS "Building with Arcus: ${ENABLE_ARCUS}")
+if (${ENABLE_ARCUS})
     find_package(arcus REQUIRED)
     protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 endif ()
@@ -200,7 +203,6 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
-find_package(semver REQUIRED)
 
 if (ENABLE_SENTRY)
     find_package(sentry REQUIRED)

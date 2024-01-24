@@ -72,7 +72,8 @@ class CuraEngineConan(ConanFile):
     def configure(self):
         self.options["boost"].header_only = True
         self.options["clipper"].shared = True
-        self.options["protobuf"].shared = False
+        if self.options.enable_arcus or self.options.enable_plugins:
+            self.options["protobuf"].shared = False
         if self.options.enable_arcus:
             self.options["arcus"].shared = True
         if self.settings.os == "Linux":
@@ -101,20 +102,20 @@ class CuraEngineConan(ConanFile):
 
     def requirements(self):
         for req in self.conan_data["requirements"]:
-            if "arcus" in req and not self.options.enable_arcus:
-                continue
             self.requires(req)
+        if self.options.enable_arcus:
+            for req in self.conan_data["requirements_arcus"]:
+                self.requires(req)
         if self.options.get_safe("enable_sentry", False):
             self.requires("sentry-native/0.6.5")
         if self.options.enable_plugins:
+            self.requires("neargye-semver/0.3.0")
             self.requires("asio-grpc/2.6.0")
             self.requires("grpc/1.50.1")
             for req in self.conan_data["requirements_plugins"]:
                 self.requires(req)
         if self.options.enable_arcus or self.options.enable_plugins:
             self.requires("protobuf/3.21.9")
-        self.requires("asio-grpc/2.6.0")
-        self.requires("grpc/1.50.1")
         self.requires("clipper/6.4.2@ultimaker/stable")
         self.requires("boost/1.82.0")
         self.requires("rapidjson/1.1.0")
@@ -122,7 +123,6 @@ class CuraEngineConan(ConanFile):
         self.requires("spdlog/1.12.0")
         self.requires("fmt/10.1.1")
         self.requires("range-v3/0.12.0")
-        self.requires("neargye-semver/0.3.0")
         self.requires("zlib/1.2.12")
         self.requires("openssl/3.2.0")
 
