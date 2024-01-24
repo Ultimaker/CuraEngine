@@ -91,7 +91,8 @@ class CuraEngineConan(ConanFile):
 
     def build_requirements(self):
         self.test_requires("standardprojectsettings/[>=0.1.0]@ultimaker/stable")
-        self.test_requires("protobuf/3.21.9")
+        if self.options.enable_arcus or self.options.enable_plugins:
+            self.tool_requires("protobuf/3.21.9")
         if not self.conf.get("tools.build:skip_test", False, check_type=bool):
             self.test_requires("gtest/1.12.1")
         if self.options.enable_benchmarks:
@@ -110,6 +111,10 @@ class CuraEngineConan(ConanFile):
             self.requires("grpc/1.50.1")
             for req in self.conan_data["requirements_plugins"]:
                 self.requires(req)
+        if self.options.enable_arcus or self.options.enable_plugins:
+            self.requires("protobuf/3.21.9")
+        self.requires("asio-grpc/2.6.0")
+        self.requires("grpc/1.50.1")
         self.requires("clipper/6.4.2@ultimaker/stable")
         self.requires("boost/1.82.0")
         self.requires("rapidjson/1.1.0")
@@ -118,7 +123,6 @@ class CuraEngineConan(ConanFile):
         self.requires("fmt/10.1.1")
         self.requires("range-v3/0.12.0")
         self.requires("neargye-semver/0.3.0")
-        self.requires("protobuf/3.21.9")
         self.requires("zlib/1.2.12")
         self.requires("openssl/3.2.0")
 
@@ -158,6 +162,7 @@ class CuraEngineConan(ConanFile):
                 folder_dists.append("tests")
             if self.options.enable_benchmarks:
                 folder_dists.append("benchmark")
+                folder_dists.append("stress_benchmark")
 
             for dist_folder in folder_dists:
                 dist_path = path.join(self.build_folder, dist_folder)
