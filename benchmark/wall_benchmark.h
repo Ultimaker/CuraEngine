@@ -18,6 +18,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <spdlog/spdlog.h>
 
 namespace cura
 {
@@ -105,7 +106,7 @@ public:
 
     void SetUp(const ::benchmark::State& state)
     {
-        auto wkt_file = std::filesystem::path(__FILE__).parent_path().append("hole.wkt");
+        auto wkt_file = std::filesystem::path(__FILE__).parent_path().append("holes.wkt");
         std::ifstream file{ wkt_file };
 
         std::stringstream buffer;
