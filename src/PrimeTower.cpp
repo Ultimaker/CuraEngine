@@ -296,7 +296,7 @@ Polygons PrimeTower::generatePath_sparseInfill(
             const coord_t ring_inner_radius = (inner_radius + i * actual_radius_step) + semi_line_width;
             const coord_t ring_outer_radius = (inner_radius + (i + 1) * actual_radius_step) - semi_line_width;
 
-            const size_t semi_nb_spokes = std::ceil((M_PI * ring_outer_radius) / max_bridging_distance);
+            const size_t semi_nb_spokes = std::ceil((std::numbers::pi * ring_outer_radius) / max_bridging_distance);
 
             pattern.add(PolygonUtils::makeWheel(middle_, ring_inner_radius, ring_outer_radius, semi_nb_spokes, ARC_RESOLUTION));
         }
