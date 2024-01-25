@@ -36,7 +36,6 @@ jobs:
 
   conan-package-create-macos:
     needs: [ conan-recipe-version, conan-package-export ]
-    if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) }}
     uses: ultimaker/cura-workflows/.github/workflows/conan-package-create-macos.yml@main
     with:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
@@ -44,7 +43,6 @@ jobs:
 
   conan-package-create-windows:
     needs: [ conan-recipe-version, conan-package-export ]
-    if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) }}
     uses: ultimaker/cura-workflows/.github/workflows/conan-package-create-windows.yml@main
     with:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
@@ -52,7 +50,6 @@ jobs:
 
   conan-package-create-linux:
     needs: [ conan-recipe-version, conan-package-export ]
-    if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) }}
     uses: ultimaker/cura-workflows/.github/workflows/conan-package-create-linux.yml@main
     with:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
