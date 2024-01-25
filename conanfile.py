@@ -93,7 +93,7 @@ class CuraEngineConan(ConanFile):
     def build_requirements(self):
         self.test_requires("standardprojectsettings/[>=0.1.0]@ultimaker/stable")
         if self.options.enable_arcus or self.options.enable_plugins:
-            self.tool_requires("protobuf/3.21.9")
+            self.tool_requires("protobuf/3.21.12")
         if not self.conf.get("tools.build:skip_test", False, check_type=bool):
             self.test_requires("gtest/1.12.1")
         if self.options.enable_benchmarks:
@@ -115,7 +115,7 @@ class CuraEngineConan(ConanFile):
             for req in self.conan_data["requirements_plugins"]:
                 self.requires(req)
         if self.options.enable_arcus or self.options.enable_plugins:
-            self.requires("protobuf/3.21.9")
+            self.requires("protobuf/3.21.12")
         self.requires("clipper/6.4.2@ultimaker/stable")
         self.requires("boost/1.82.0")
         self.requires("rapidjson/1.1.0")
@@ -148,7 +148,7 @@ class CuraEngineConan(ConanFile):
         tc.generate()
 
         if self.settings.arch == "wasm" and self.settings.os == "Emscripten":
-            self.buildenv.define("EMCC_CFLAGS", "-s ALLOW_MEMORY_GROWTH=1 -s EXPORT_ES6=1 -s EXPORT_NAME='CuraEngine' -s EXPORTED_RUNTIME_METHODS='[\"callMain\", \"FS\"]' -s INVOKE_RUN=0 -s MODULARIZE=1 -s SINGLE_FILE=1 -s ENVIRONMENT=worker -s USE_ES6_IMPORT_META=0")
+            self.buildenv.define("EMCC_CFLAGS", "-s FORCE_FILESYSTEM -s ALLOW_MEMORY_GROWTH=1 -s EXPORT_ES6=1 -s EXPORT_NAME='CuraEngine' -s EXPORTED_RUNTIME_METHODS='[\"callMain\", \"FS\"]' -s INVOKE_RUN=0 -s MODULARIZE=1 -s SINGLE_FILE=1 -s ENVIRONMENT=worker -s USE_ES6_IMPORT_META=0")
 
         for dep in self.dependencies.values():
             if len(dep.cpp_info.libdirs) > 0:

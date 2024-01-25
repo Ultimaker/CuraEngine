@@ -226,7 +226,7 @@ target_link_libraries(_CuraEngine
         $<$<BOOL:${ENABLE_PLUGINS}>:curaengine_grpc_definitions::curaengine_grpc_definitions>
         $<$<BOOL:${ENABLE_PLUGINS}>:asio-grpc::asio-grpc>
         $<$<BOOL:${ENABLE_PLUGINS}>:grpc::grpc>
-        protobuf::libprotobuf
+        $<$<TARGET_EXISTS:protobuf::libprotobuf>:protobuf::libprotobuf>
         $<$<BOOL:${ENABLE_SENTRY}>:sentry::sentry>
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
 
@@ -285,7 +285,7 @@ if (ENABLE_TESTING OR ENABLE_BENCHMARKS)
             $<$<BOOL:${ENABLE_PLUGINS}>:curaengine_grpc_definitions::curaengine_grpc_definitions>
             $<$<BOOL:${ENABLE_PLUGINS}>:asio-grpc::asio-grpc>
             $<$<BOOL:${ENABLE_PLUGINS}>:grpc::grpc>
-            protobuf::libprotobuf)
+            $<$<TARGET_EXISTS:protobuf::libprotobuf>:protobuf::libprotobuf>)
     if (ENABLE_ARCUS)
         target_link_libraries(test_helpers PUBLIC arcus::arcus)
     endif ()
