@@ -2,6 +2,7 @@
 #  CuraEngine is released under the terms of the AGPLv3 or higher
 from io import StringIO
 from os import path
+import os
 
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
@@ -90,7 +91,8 @@ class CuraEngineConan(ConanFile):
 
     def build_requirements(self):
         self.test_requires("standardprojectsettings/[>=0.1.0]@ultimaker/stable")
-        self.test_requires("protobuf/3.21.9")
+        if self.options.enable_arcus or self.options.enable_plugins:
+            self.tool_requires("protobuf/3.21.9")
         if not self.conf.get("tools.build:skip_test", False, check_type=bool):
             self.test_requires("gtest/1.12.1")
         if self.options.enable_benchmarks:
@@ -104,6 +106,8 @@ class CuraEngineConan(ConanFile):
             self.requires(req)
         if self.options.get_safe("enable_sentry", False):
             self.requires("sentry-native/0.6.5")
+        if self.options.enable_arcus or self.options.enable_plugins:
+            self.requires("protobuf/3.21.9")
         self.requires("asio-grpc/2.6.0")
         self.requires("grpc/1.50.1")
         self.requires("clipper/6.4.2@ultimaker/stable")
@@ -114,7 +118,6 @@ class CuraEngineConan(ConanFile):
         self.requires("fmt/10.1.1")
         self.requires("range-v3/0.12.0")
         self.requires("neargye-semver/0.3.0")
-        self.requires("protobuf/3.21.9")
         self.requires("zlib/1.2.12")
         self.requires("openssl/3.2.0")
 
@@ -145,15 +148,23 @@ class CuraEngineConan(ConanFile):
                 copy(self, "*.dll", dep.cpp_info.libdirs[0], self.build_folder)
             if len(dep.cpp_info.bindirs) > 0:
                 copy(self, "*.dll", dep.cpp_info.bindirs[0], self.build_folder)
+
+            folder_dists = []
             if not self.conf.get("tools.build:skip_test", False, check_type=bool):
-                test_path = path.join(self.build_folder, "tests")
-                if not path.exists(test_path):
-                    mkdir(self, test_path)
+                folder_dists.append("tests")
+            if self.options.enable_benchmarks:
+                folder_dists.append("benchmark")
+                folder_dists.append("stress_benchmark")
+
+            for dist_folder in folder_dists:
+                dist_path = path.join(self.build_folder, dist_folder)
+                if not path.exists(dist_path):
+                    mkdir(self, dist_path)
                 if len(dep.cpp_info.libdirs) > 0:
-                    copy(self, "*.dylib", dep.cpp_info.libdirs[0], path.join(self.build_folder, "tests"))
-                    copy(self, "*.dll", dep.cpp_info.libdirs[0], path.join(self.build_folder, "tests"))
+                    copy(self, "*.dylib", dep.cpp_info.libdirs[0], path.join(self.build_folder, dist_folder))
+                    copy(self, "*.dll", dep.cpp_info.libdirs[0], path.join(self.build_folder, dist_folder))
                 if len(dep.cpp_info.bindirs) > 0:
-                    copy(self, "*.dll", dep.cpp_info.bindirs[0], path.join(self.build_folder, "tests"))
+                    copy(self, "*.dll", dep.cpp_info.bindirs[0], path.join(self.build_folder, dist_folder))
 
     def layout(self):
         cmake_layout(self)
@@ -184,13 +195,13 @@ class CuraEngineConan(ConanFile):
 
                 self.output.info("Uploading debug symbols to sentry")
                 build_source_dir = self.build_path.parent.parent.as_posix()
-                self.run(f"sentry-cli debug-files upload --include-sources -o {sentry_org} -p {sentry_project} {build_source_dir}")
+                self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} debug-files upload --include-sources -o {sentry_org} -p {sentry_project} {build_source_dir}")
 
                 # create a sentry release and link it to the commit this is based upon
                 self.output.info(f"Creating a new release {self.version} in Sentry and linking it to the current commit {self.conan_data['commit']}")
-                self.run(f"sentry-cli releases new -o {sentry_org} -p {sentry_project} {self.version}")
-                self.run(f"sentry-cli releases set-commits -o {sentry_org} -p {sentry_project} --commit \"Ultimaker/CuraEngine@{self.conan_data['commit']}\" {self.version}")
-                self.run(f"sentry-cli releases finalize -o {sentry_org} -p {sentry_project} {self.version}")
+                self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases new -o {sentry_org} -p {sentry_project} {self.version}")
+                self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases set-commits -o {sentry_org} -p {sentry_project} --commit \"Ultimaker/CuraEngine@{self.conan_data['commit']}\" {self.version}")
+                self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases finalize -o {sentry_org} -p {sentry_project} {self.version}")
 
     def package(self):
         ext = ".exe" if self.settings.os == "Windows" else ""
