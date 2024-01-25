@@ -45,11 +45,11 @@ public:
     using PathOrder<PathType>::coincident_point_distance_;
 
     PathOrderMonotonic(const AngleRadians monotonic_direction, const coord_t max_adjacent_distance, const Point2LL start_point)
+        : PathOrder<PathType>(start_point)
         // The monotonic vector needs to rotate clockwise instead of counter-clockwise, the same as how the infill patterns are generated.
-        : monotonic_vector_(-std::cos(monotonic_direction) * monotonic_vector_resolution_, std::sin(monotonic_direction) * monotonic_vector_resolution_)
+        , monotonic_vector_(-std::cos(monotonic_direction) * monotonic_vector_resolution_, std::sin(monotonic_direction) * monotonic_vector_resolution_)
         , max_adjacent_distance_(max_adjacent_distance)
     {
-        this->start_point_ = start_point;
     }
 
     void optimize()

@@ -22,6 +22,7 @@
 #include "FffProcessor.h"
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
+#include "PathOrderMonotonic.h" //Monotonic ordering of skin lines.
 #include "Slice.h"
 #include "WallToolPaths.h"
 #include "bridge.h"
@@ -907,6 +908,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     const coord_t surface_line_width = surface_settings.get<coord_t>("raft_surface_line_width");
     const coord_t surface_avoid_distance = surface_settings.get<coord_t>("travel_avoid_distance");
     const Ratio surface_fan_speed = surface_settings.get<Ratio>("raft_surface_fan_speed");
+    const bool surface_monotonic = surface_settings.get<bool>("raft_surface_monotonic");
 
     for (LayerIndex raft_surface_layer = 1; static_cast<size_t>(raft_surface_layer) <= num_surface_layers; raft_surface_layer++)
     { // raft surface layers
@@ -965,7 +967,9 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         const size_t wall_line_count = surface_settings.get<size_t>("raft_surface_wall_count");
         const coord_t small_area_width = 0; // A raft never has a small region due to the large horizontal expansion.
         const Point2LL& infill_origin = Point2LL();
-        constexpr bool skip_stitching = false;
+        const GCodePathConfig& config = gcode_layer.configs_storage_.raft_surface_config;
+        const bool monotonic = (raft_surface_layer == num_surface_layers && surface_monotonic);
+        const bool skip_stitching = monotonic;
         constexpr bool connected_zigzags = false;
         constexpr bool connect_polygons = false; // midway connections between polygons can make the surface less smooth
         constexpr bool use_endpieces = true;
@@ -979,88 +983,118 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             raft_outline_path = raft_outline_path.difference(storage.primeTower.getOuterPoly(layer_nr));
         }
 
-        Infill infill_comp(
-            EFillMethod::ZIG_ZAG,
-            zig_zaggify_infill,
-            connect_polygons,
-            raft_outline_path,
-            infill_outline_width,
-            surface_line_spacing,
-            fill_overlap,
-            infill_multiplier,
-            fill_angle,
-            z,
-            extra_infill_shift,
-            surface_max_resolution,
-            surface_max_deviation,
-            wall_line_count,
-            small_area_width,
-            infill_origin,
-            skip_stitching,
-            fill_gaps,
-            connected_zigzags,
-            use_endpieces,
-            skip_some_zags,
-            zag_skip_count,
-            pocket_size);
-
-        std::vector<VariableWidthLines> raft_paths;
-        infill_comp.generate(raft_paths, raft_polygons, raft_lines, surface_settings, layer_nr, SectionType::ADHESION);
-
-        if (! raft_paths.empty())
+        std::vector<Polygons> raft_islands;
+        if (monotonic)
         {
-            const GCodePathConfig& config = gcode_layer.configs_storage_.raft_surface_config;
-            const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
-            InsetOrderOptimizer wall_orderer(
-                *this,
-                storage,
-                gcode_layer,
-                surface_settings,
-                surface_extruder_nr,
-                config,
-                config,
-                config,
-                config,
-                retract_before_outer_wall,
-                wipe_dist,
-                wipe_dist,
-                surface_extruder_nr,
-                surface_extruder_nr,
-                z_seam_config,
-                raft_paths);
-            wall_orderer.addToLayer();
+            // When using monotonic infill, process islands separately otherwise multiple rafts
+            // will be printed in parallel in a global monotonic order, which doesn't look good
+            for (const PolygonRef raft_island : raft_outline_path)
+            {
+                Polygons island;
+                island.add(raft_island);
+                raft_islands.emplace_back(island);
+            }
+        }
+        else
+        {
+            raft_islands.emplace_back(raft_outline_path);
         }
 
-        const auto wipe_dist = 0;
-        const auto spiralize = false;
-        const auto flow_ratio = 1.0_r;
-        const auto enable_travel_optimization = false;
-        const auto always_retract = false;
-        const auto reverse_order = false;
+        for (const Polygons raft_island : raft_islands)
+        {
+            Infill infill_comp(
+                EFillMethod::ZIG_ZAG,
+                zig_zaggify_infill,
+                connect_polygons,
+                raft_island,
+                infill_outline_width,
+                surface_line_spacing,
+                fill_overlap,
+                infill_multiplier,
+                fill_angle,
+                z,
+                extra_infill_shift,
+                surface_max_resolution,
+                surface_max_deviation,
+                wall_line_count,
+                small_area_width,
+                infill_origin,
+                skip_stitching,
+                fill_gaps,
+                connected_zigzags,
+                use_endpieces,
+                skip_some_zags,
+                zag_skip_count,
+                pocket_size);
 
-        gcode_layer.addLinesByOptimizer(
-            raft_lines,
-            gcode_layer.configs_storage_.raft_surface_config,
-            SpaceFillType::Lines,
-            enable_travel_optimization,
-            wipe_dist,
-            flow_ratio,
-            last_planned_position);
-        last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
-        gcode_layer.addPolygonsByOptimizer(
-            raft_polygons,
-            gcode_layer.configs_storage_.raft_surface_config,
-            ZSeamConfig(),
-            wipe_dist,
-            spiralize,
-            flow_ratio,
-            always_retract,
-            reverse_order,
-            last_planned_position);
-        last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
+            std::vector<VariableWidthLines> raft_paths;
+            infill_comp.generate(raft_paths, raft_polygons, raft_lines, surface_settings, layer_nr, SectionType::ADHESION);
 
-        raft_polygons.clear();
-        raft_lines.clear();
+            if (! raft_paths.empty())
+            {
+                const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+                InsetOrderOptimizer wall_orderer(
+                    *this,
+                    storage,
+                    gcode_layer,
+                    surface_settings,
+                    surface_extruder_nr,
+                    config,
+                    config,
+                    config,
+                    config,
+                    retract_before_outer_wall,
+                    wipe_dist,
+                    wipe_dist,
+                    surface_extruder_nr,
+                    surface_extruder_nr,
+                    z_seam_config,
+                    raft_paths);
+                wall_orderer.addToLayer();
+            }
+
+            const auto wipe_dist = 0;
+            const auto spiralize = false;
+            const auto flow_ratio = 1.0_r;
+            const auto enable_travel_optimization = false;
+            const auto always_retract = false;
+            const auto reverse_order = false;
+
+            if (monotonic)
+            {
+                const AngleRadians monotonic_direction = fill_angle;
+                constexpr SpaceFillType space_fill_type = SpaceFillType::PolyLines;
+                const coord_t max_adjacent_distance = surface_line_spacing;
+
+                gcode_layer.addLinesMonotonic(raft_island, raft_lines, config, space_fill_type, monotonic_direction, max_adjacent_distance);
+            }
+            else
+            {
+                gcode_layer.addLinesByOptimizer(
+                    raft_lines,
+                    gcode_layer.configs_storage_.raft_surface_config,
+                    SpaceFillType::Lines,
+                    enable_travel_optimization,
+                    wipe_dist,
+                    flow_ratio,
+                    last_planned_position);
+                last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
+                gcode_layer.addPolygonsByOptimizer(
+                    raft_polygons,
+                    gcode_layer.configs_storage_.raft_surface_config,
+                    ZSeamConfig(),
+                    wipe_dist,
+                    spiralize,
+                    flow_ratio,
+                    always_retract,
+                    reverse_order,
+                    last_planned_position);
+                last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
+            }
+
+            raft_polygons.clear();
+            raft_lines.clear();
+        }
 
         if (! prime_tower_added_on_this_layer)
         {
