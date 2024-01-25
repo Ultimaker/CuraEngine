@@ -42,8 +42,15 @@ private:
     const unsigned int number_of_prime_tower_start_locations_ = 21; //!< The required size of \ref PrimeTower::wipe_locations
 
     MovesByExtruder prime_moves_; //!< For each extruder, the moves to be processed for actual priming.
-    std::map<size_t, std::map<size_t, Polygons>>
-        sparse_pattern_per_extruders_; //!< For each extruders combination, and for each actual extruder, the pattern to print on all layers where extruders are actually useless.
+
+    /*
+     *  The first index is a bitmask representing an extruder combination, e.g. 0x05 for extruders 1+3.
+     *  The second one is the used extruder index, e.g. 1
+     *  The polygons represent the sparse pattern to be printed when all the given extruders are unused for this layer
+     *  and the given extruder is currently in use
+     */
+    std::map<size_t, std::map<size_t, Polygons>> sparse_pattern_per_extruders_;
+
     MovesByLayer base_extra_moves_; //!< For each layer and each extruder, the extra moves to be processed for better adhesion/strength
     MovesByExtruder inset_extra_moves_; //!< For each extruder, the extra inset moves to be processed for better adhesion on initial layer
 
