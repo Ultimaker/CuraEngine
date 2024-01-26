@@ -3,8 +3,8 @@
 
 #include "communication/CommandLine.h"
 
-#include <cstring> //For strtok and strcopy.
 #include <cerrno> // error number when trying to read file
+#include <cstring> //For strtok and strcopy.
 #include <filesystem>
 #include <fstream> //To check if files exist.
 #include <numeric> //For std::accumulate.
@@ -401,18 +401,18 @@ void CommandLine::sliceNext()
 
 int CommandLine::loadJSON(const std::string& json_filename, Settings& settings, bool force_read_parent, bool force_read_nondefault)
 {
-    FILE* file = fopen(json_filename.c_str(), "rb");
+    std::ifstream file(json_filename, std::ios::binary);
     if (! file)
     {
         spdlog::error("Couldn't open JSON file: {}", json_filename);
         return 1;
     }
 
+    std::vector<char> read_buffer(std::istreambuf_iterator<char>(file), {});
+    rapidjson::MemoryStream ms(read_buffer.data(), read_buffer.size());
+
     rapidjson::Document json_document;
-    char read_buffer[4096];
-    rapidjson::FileReadStream reader_stream(file, read_buffer, sizeof(read_buffer));
-    json_document.ParseStream(reader_stream);
-    fclose(file);
+    json_document.ParseStream(ms);
     if (json_document.HasParseError())
     {
         spdlog::error("Error parsing JSON (offset {}): {}", json_document.GetErrorOffset(), GetParseError_En(json_document.GetParseError()));
