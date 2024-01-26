@@ -404,7 +404,9 @@ public:
      * \param settings The settings which should apply to this line added to the
      * layer plan.
      * \param default_config The config with which to print the wall lines
-     * that are not spanning a bridge.
+     * that are not spanning a bridge or are exposed to air.
+     * \param roofing_config The config with which to print the wall lines
+     * that are exposed to air.
      * \param bridge_config The config with which to print the wall lines that
      * are spanning a bridge.
      * \param flow The ratio with which to multiply the extrusion amount.
@@ -436,9 +438,9 @@ public:
      * \param start_idx The index of the starting vertex to start at.
      * \param settings The settings which should apply to this wall added to the layer plan.
      * \param default_config The config with which to print the wall lines
-     * that are not spanning a bridge.
-     * \param bridge_config The config with which to print the wall lines that
-     * are spanning a bridge.
+     * that are not spanning a bridge or are exposed to air.
+     * \param roofing_config The config with which to print the wall lines
+     * that are exposed to air.
      * \param wall_0_wipe_dist The distance to travel along the wall after it
      * has been laid down, in order to wipe the start and end of the wall
      * \param flow_ratio The ratio with which to multiply the extrusion amount.
@@ -462,7 +464,9 @@ public:
      * \param start_idx The index of the starting vertex to start at.
      * \param mesh The current mesh being added to the layer plan.
      * \param default_config The config with which to print the wall lines
-     * that are not spanning a bridge.
+     * that are not spanning a bridge or are exposed to air.
+     * \param roofing_config The config with which to print the wall lines
+     * that are exposed to air.
      * \param bridge_config The config with which to print the wall lines that
      * are spanning a bridge
      * \param wall_0_wipe_dist The distance to travel along the wall after it
@@ -501,7 +505,10 @@ public:
      * Add walls (polygons) to the gcode with optimized order.
      * \param walls The walls
      * \param settings The settings which should apply to these walls added to the layer plan.
-     * \param default_config The config with which to print the wall lines that are not spanning a bridge
+     * \param default_config The config with which to print the wall lines
+     * that are not spanning a bridge or are exposed to air.
+     * \param roofing_config The config with which to print the wall lines
+     * that are exposed to air.
      * \param bridge_config The config with which to print the wall lines that are spanning a bridge
      * \param z_seam_config Optional configuration for z-seam
      * \param wall_0_wipe_dist The distance to travel along each wall after it has been laid down, in order to wipe the start and end of the wall together
