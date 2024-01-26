@@ -2613,7 +2613,7 @@ bool FffGcodeWriter::processInsets(
                     roofing_mask.add(layer_part.outline);
                 }
             }
-            return roofing_mask.offset(100);
+            return roofing_mask;
         }();
 
         gcode_layer.setRoofingMask(roofing_mask);
