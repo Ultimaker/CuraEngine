@@ -137,7 +137,19 @@ bool InsetOrderOptimizer::addToLayer()
         const bool linked_path = ! path.is_closed_;
 
         gcode_layer_.setIsInside(true); // Going to print walls, which are always inside.
-        gcode_layer_.addWall(*path.vertices_, start_index, settings_, default_config, roofing_config, bridge_config, wipe_dist, flow, retract_before, path.is_closed_, backwards, linked_path);
+        gcode_layer_.addWall(
+            *path.vertices_,
+            start_index,
+            settings_,
+            default_config,
+            roofing_config,
+            bridge_config,
+            wipe_dist,
+            flow,
+            retract_before,
+            path.is_closed_,
+            backwards,
+            linked_path);
         added_something = true;
     }
     return added_something;
