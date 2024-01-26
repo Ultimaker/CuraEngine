@@ -768,6 +768,7 @@ void LayerPlan::addWallLine(
         if (roofing_config == default_config)
         {
             // if the roofing config and normal config are the same any way there is no need to check what part of the line segment
+            // what part of the line segment will be printed with what config.
             return false;
         }
         return roofing_mask_.empty() || PolygonUtils::polygonCollidesWithLineSegment(roofing_mask_, p0, p1) || !roofing_mask_.inside(p1, true);
