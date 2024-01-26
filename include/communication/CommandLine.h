@@ -4,6 +4,7 @@
 #ifndef COMMANDLINE_H
 #define COMMANDLINE_H
 
+#include <filesystem>
 #include <rapidjson/document.h> //Loading JSON documents to get settings from them.
 #include <string> //To store the command line arguments.
 #include <unordered_set>
@@ -155,6 +156,8 @@ private:
     std::string progressHandler;
 #endif
 
+    std::unordered_set<std::filesystem::path> search_directories_;
+
     /*
      * \brief The command line arguments that the application was called with.
      */
@@ -164,12 +167,6 @@ private:
      * The last progress update that we output to stdcerr.
      */
     unsigned int last_shown_progress_;
-
-    /*
-     * \brief Get the default search directories to search for definition files.
-     * \return The default search directories to search for definition files.
-     */
-    std::unordered_set<std::string> defaultSearchDirectories();
 
     /*
      * \brief Load a JSON file and store the settings inside it.
@@ -194,7 +191,7 @@ private:
      */
     int loadJSON(
         const rapidjson::Document& document,
-        const std::unordered_set<std::string>& search_directories,
+        const std::unordered_set<std::filesystem::path>& search_directories,
         Settings& settings,
         bool force_read_parent = false,
         bool force_read_nondefault = false);
@@ -215,7 +212,7 @@ private:
      * \param search_directories The directories to search in.
      * \return The first definition file that matches the definition ID.
      */
-    const std::string findDefinitionFile(const std::string& definition_id, const std::unordered_set<std::string>& search_directories);
+    const std::string findDefinitionFile(const std::string& definition_id, const std::unordered_set<std::filesystem::path>& search_directories);
 };
 
 } // namespace cura

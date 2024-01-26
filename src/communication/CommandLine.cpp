@@ -4,15 +4,18 @@
 #include "communication/CommandLine.h"
 
 #include <cstring> //For strtok and strcopy.
-#include <errno.h> // error number when trying to read file
+#include <cerrno> // error number when trying to read file
 #include <filesystem>
 #include <fstream> //To check if files exist.
 #include <numeric> //For std::accumulate.
 #include <rapidjson/error/en.h> //Loading JSON documents to get settings from them.
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/rapidjson.h>
+#include <string>
 #include <unordered_set>
 
+#include <range/v3/all.hpp>
+#include <spdlog/details/os.h>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get the extruders for material estimates.
@@ -20,6 +23,7 @@
 #include "FffProcessor.h" //To start a slice and get time estimates.
 #include "Slice.h"
 #include "utils/Matrix4x3D.h" //For the mesh_rotation_matrix setting.
+#include "utils/views/split_paths.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -29,9 +33,13 @@ namespace cura
 {
 
 CommandLine::CommandLine(const std::vector<std::string>& arguments)
-    : arguments_(arguments)
-    , last_shown_progress_(0)
+    : arguments_{ arguments }
+    , last_shown_progress_{ 0 }
 {
+    if (auto search_paths = spdlog::details::os::getenv("CURA_ENGINE_SEARCH_PATH"); ! search_paths.empty())
+    {
+        search_directories_ = search_paths | views::split_paths | ranges::to<std::unordered_set<std::filesystem::path>>();
+    };
 }
 
 // These are not applicable to command line slicing.
@@ -223,6 +231,18 @@ void CommandLine::sliceNext()
                     // enableProgressLogging(); FIXME: how to handle progress logging? Is this still relevant?
                     break;
                 }
+                case 'd':
+                {
+                    argument_index++;
+                    if (argument_index >= arguments_.size())
+                    {
+                        spdlog::error("Missing definition search paths");
+                        exit(1);
+                    }
+                    argument = arguments_[argument_index];
+                    search_directories_ = argument | views::split_paths | ranges::to<std::unordered_set<std::filesystem::path>>();
+                    break;
+                }
                 case 'j':
                 {
                     argument_index++;
@@ -399,40 +419,13 @@ int CommandLine::loadJSON(const std::string& json_filename, Settings& settings, 
         return 2;
     }
 
-    std::unordered_set<std::string> search_directories = defaultSearchDirectories(); // For finding the inheriting JSON files.
-    std::string directory = std::filesystem::path(json_filename).parent_path().string();
-    search_directories.insert(directory);
-
-    return loadJSON(json_document, search_directories, settings, force_read_parent, force_read_nondefault);
-}
-
-std::unordered_set<std::string> CommandLine::defaultSearchDirectories()
-{
-    std::unordered_set<std::string> result;
-
-    char* search_path_env = getenv("CURA_ENGINE_SEARCH_PATH");
-    if (search_path_env)
-    {
-#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
-        char delims[] = ":"; // Colon for Unix.
-#else
-        char delims[] = ";"; // Semicolon for Windows.
-#endif
-        char paths[128 * 1024]; // Maximum length of environment variable.
-        strcpy(paths, search_path_env); // Necessary because strtok actually modifies the original string, and we don't want to modify the environment variable itself.
-        char* path = strtok(paths, delims);
-        while (path != nullptr)
-        {
-            result.insert(path);
-            path = strtok(nullptr, delims); // Continue searching in last call to strtok.
-        }
-    }
-    return result;
+    search_directories_.insert(std::filesystem::path(json_filename).parent_path());
+    return loadJSON(json_document, search_directories_, settings, force_read_parent, force_read_nondefault);
 }
 
 int CommandLine::loadJSON(
     const rapidjson::Document& document,
-    const std::unordered_set<std::string>& search_directories,
+    const std::unordered_set<std::filesystem::path>& search_directories,
     Settings& settings,
     bool force_read_parent,
     bool force_read_nondefault)
@@ -588,7 +581,7 @@ void CommandLine::loadJSONSettings(const rapidjson::Value& element, Settings& se
     }
 }
 
-const std::string CommandLine::findDefinitionFile(const std::string& definition_id, const std::unordered_set<std::string>& search_directories)
+const std::string CommandLine::findDefinitionFile(const std::string& definition_id, const std::unordered_set<std::filesystem::path>& search_directories)
 {
     for (const std::string& search_directory : search_directories)
     {
