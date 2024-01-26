@@ -43,8 +43,8 @@ public:
         LayerPlan& gcode_layer,
         const Settings& settings,
         const int extruder_nr,
-        const GCodePathConfig& inset_0_non_bridge_config,
-        const GCodePathConfig& inset_X_non_bridge_config,
+        const GCodePathConfig& inset_0_default_config,
+        const GCodePathConfig& inset_X_default_config,
         const GCodePathConfig& inset_0_roofing_config,
         const GCodePathConfig& inset_X_roofing_config,
         const GCodePathConfig& inset_0_bridge_config,
@@ -92,8 +92,8 @@ private:
     LayerPlan& gcode_layer_;
     const Settings& settings_;
     const size_t extruder_nr_;
-    const GCodePathConfig& inset_0_non_bridge_config_;
-    const GCodePathConfig& inset_X_non_bridge_config_;
+    const GCodePathConfig& inset_0_default_config_;
+    const GCodePathConfig& inset_X_default_config_;
     const GCodePathConfig& inset_0_roofing_config_;
     const GCodePathConfig& inset_X_roofing_config_;
     const GCodePathConfig& inset_0_bridge_config_;

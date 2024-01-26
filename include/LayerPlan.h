@@ -403,7 +403,7 @@ public:
      * \param p1 The end vertex of the line.
      * \param settings The settings which should apply to this line added to the
      * layer plan.
-     * \param non_bridge_config The config with which to print the wall lines
+     * \param default_config The config with which to print the wall lines
      * that are not spanning a bridge.
      * \param bridge_config The config with which to print the wall lines that
      * are spanning a bridge.
@@ -421,7 +421,7 @@ public:
         const Point2LL& p0,
         const Point2LL& p1,
         const Settings& settings,
-        const GCodePathConfig& non_bridge_config,
+        const GCodePathConfig& default_config,
         const GCodePathConfig& roofing_config,
         const GCodePathConfig& bridge_config,
         double flow,
@@ -435,7 +435,7 @@ public:
      * \param wall The vertices of the wall to add.
      * \param start_idx The index of the starting vertex to start at.
      * \param settings The settings which should apply to this wall added to the layer plan.
-     * \param non_bridge_config The config with which to print the wall lines
+     * \param default_config The config with which to print the wall lines
      * that are not spanning a bridge.
      * \param bridge_config The config with which to print the wall lines that
      * are spanning a bridge.
@@ -449,7 +449,7 @@ public:
         ConstPolygonRef wall,
         int start_idx,
         const Settings& settings,
-        const GCodePathConfig& non_bridge_config,
+        const GCodePathConfig& default_config,
         const GCodePathConfig& roofing_config,
         const GCodePathConfig& bridge_config,
         coord_t wall_0_wipe_dist,
@@ -461,7 +461,7 @@ public:
      * \param wall The wall of type ExtrusionJunctions
      * \param start_idx The index of the starting vertex to start at.
      * \param mesh The current mesh being added to the layer plan.
-     * \param non_bridge_config The config with which to print the wall lines
+     * \param default_config The config with which to print the wall lines
      * that are not spanning a bridge.
      * \param bridge_config The config with which to print the wall lines that
      * are spanning a bridge
@@ -479,7 +479,7 @@ public:
         const ExtrusionLine& wall,
         int start_idx,
         const Settings& settings,
-        const GCodePathConfig& non_bridge_config,
+        const GCodePathConfig& default_config,
         const GCodePathConfig& roofing_config,
         const GCodePathConfig& bridge_config,
         coord_t wall_0_wipe_dist,
@@ -501,7 +501,7 @@ public:
      * Add walls (polygons) to the gcode with optimized order.
      * \param walls The walls
      * \param settings The settings which should apply to these walls added to the layer plan.
-     * \param non_bridge_config The config with which to print the wall lines that are not spanning a bridge
+     * \param default_config The config with which to print the wall lines that are not spanning a bridge
      * \param bridge_config The config with which to print the wall lines that are spanning a bridge
      * \param z_seam_config Optional configuration for z-seam
      * \param wall_0_wipe_dist The distance to travel along each wall after it has been laid down, in order to wipe the start and end of the wall together
@@ -512,7 +512,7 @@ public:
     void addWalls(
         const Polygons& walls,
         const Settings& settings,
-        const GCodePathConfig& non_bridge_config,
+        const GCodePathConfig& default_config,
         const GCodePathConfig& roofing_config,
         const GCodePathConfig& bridge_config,
         const ZSeamConfig& z_seam_config = ZSeamConfig(),

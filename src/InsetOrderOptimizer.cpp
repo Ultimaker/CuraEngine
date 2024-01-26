@@ -38,8 +38,8 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     LayerPlan& gcode_layer,
     const Settings& settings,
     const int extruder_nr,
-    const GCodePathConfig& inset_0_non_bridge_config,
-    const GCodePathConfig& inset_X_non_bridge_config,
+    const GCodePathConfig& inset_0_default_config,
+    const GCodePathConfig& inset_X_default_config,
     const GCodePathConfig& inset_0_roofing_config,
     const GCodePathConfig& inset_X_roofing_config,
     const GCodePathConfig& inset_0_bridge_config,
@@ -56,8 +56,8 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , gcode_layer_(gcode_layer)
     , settings_(settings)
     , extruder_nr_(extruder_nr)
-    , inset_0_non_bridge_config_(inset_0_non_bridge_config)
-    , inset_X_non_bridge_config_(inset_X_non_bridge_config)
+    , inset_0_default_config_(inset_0_default_config)
+    , inset_X_default_config_(inset_X_default_config)
     , inset_0_roofing_config_(inset_0_roofing_config)
     , inset_X_roofing_config_(inset_X_roofing_config)
     , inset_0_bridge_config_(inset_0_bridge_config)
@@ -124,7 +124,7 @@ bool InsetOrderOptimizer::addToLayer()
 
         const bool is_outer_wall = path.vertices_->inset_idx_ == 0; // or thin wall 'gap filler'
         const bool is_gap_filler = path.vertices_->is_odd_;
-        const GCodePathConfig& non_bridge_config = is_outer_wall ? inset_0_non_bridge_config_ : inset_X_non_bridge_config_;
+        const GCodePathConfig& default_config = is_outer_wall ? inset_0_default_config_ : inset_X_default_config_;
         const GCodePathConfig& roofing_config = is_outer_wall ? inset_0_roofing_config_ : inset_X_roofing_config_;
         const GCodePathConfig& bridge_config = is_outer_wall ? inset_0_bridge_config_ : inset_X_bridge_config_;
         const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist_ : wall_x_wipe_dist_;
@@ -137,7 +137,7 @@ bool InsetOrderOptimizer::addToLayer()
         const bool linked_path = ! path.is_closed_;
 
         gcode_layer_.setIsInside(true); // Going to print walls, which are always inside.
-        gcode_layer_.addWall(*path.vertices_, start_index, settings_, non_bridge_config, roofing_config, bridge_config, wipe_dist, flow, retract_before, path.is_closed_, backwards, linked_path);
+        gcode_layer_.addWall(*path.vertices_, start_index, settings_, default_config, roofing_config, bridge_config, wipe_dist, flow, retract_before, path.is_closed_, backwards, linked_path);
         added_something = true;
     }
     return added_something;
