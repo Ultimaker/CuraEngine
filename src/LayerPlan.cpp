@@ -771,7 +771,7 @@ void LayerPlan::addWallLine(
             // what part of the line segment will be printed with what config.
             return false;
         }
-        return roofing_mask_.empty() || PolygonUtils::polygonCollidesWithLineSegment(roofing_mask_, p0, p1) || !roofing_mask_.inside(p1, true);
+        return roofing_mask_.empty() || PolygonUtils::polygonCollidesWithLineSegment(roofing_mask_, p0, p1) || ! roofing_mask_.inside(p1, true);
     }();
 
     if (use_roofing_config)
@@ -803,7 +803,13 @@ void LayerPlan::addWallLine(
                     std::reverse(line_poly.begin(), line_poly.end());
                 }
             }
-            std::sort(has_area_above_poly_lines.begin(), has_area_above_poly_lines.end(), [&](auto& a, auto& b) { return vSize2(a.front() - p0) < vSize2(b.front() - p0); });
+            std::sort(
+                has_area_above_poly_lines.begin(),
+                has_area_above_poly_lines.end(),
+                [&](auto& a, auto& b)
+                {
+                    return vSize2(a.front() - p0) < vSize2(b.front() - p0);
+                });
 
             // add intersected line segments, alternating between roofing and default_config
             for (const auto& line_poly : has_area_above_poly_lines)
