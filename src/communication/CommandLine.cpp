@@ -9,8 +9,9 @@
 #include <fstream> //To check if files exist.
 #include <numeric> //For std::accumulate.
 #include <rapidjson/error/en.h> //Loading JSON documents to get settings from them.
-#include <rapidjson/filereadstream.h>
 #include <rapidjson/rapidjson.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 #include <string>
 #include <unordered_set>
 
@@ -106,7 +107,7 @@ void CommandLine::sendPrintTimeMaterialEstimates() const
     sum = 0.0;
     for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
     {
-        sum += FffProcessor::getInstance()->getTotalFilamentUsed(extruder_nr);
+        sum += FffProcessor::getInstance()->getTotalFilamentUsed(static_cast<int>(extruder_nr));
     }
 }
 
@@ -134,7 +135,7 @@ void CommandLine::sliceNext()
     size_t num_mesh_groups = 1;
     for (size_t argument_index = 2; argument_index < arguments_.size(); argument_index++)
     {
-        if (arguments_[argument_index].find("--next") == 0) // Starts with "--next".
+        if (arguments_[argument_index].starts_with("--next")) // Starts with "--next".
         {
             num_mesh_groups++;
         }
@@ -148,7 +149,7 @@ void CommandLine::sliceNext()
 
     slice.scene.extruders.reserve(arguments_.size() >> 1); // Allocate enough memory to prevent moves.
     slice.scene.extruders.emplace_back(0, &slice.scene.settings); // Always have one extruder.
-    ExtruderTrain* last_extruder = &slice.scene.extruders[0];
+    ExtruderTrain* last_extruder = slice.scene.extruders.data();
 
     bool force_read_parent = false;
     bool force_read_nondefault = false;
@@ -160,7 +161,7 @@ void CommandLine::sliceNext()
         {
             if (argument[1] == '-') // Starts with "--".
             {
-                if (argument.find("--next") == 0) // Starts with "--next".
+                if (argument.starts_with("--next")) // Starts with "--next".
                 {
                     try
                     {
@@ -179,18 +180,18 @@ void CommandLine::sliceNext()
                         exit(1);
                     }
                 }
-                else if (argument.find("--force-read-parent") == 0 || argument.find("--force_read_parent") == 0)
+                else if (argument.starts_with("--force-read-parent") || argument.starts_with("--force_read_parent"))
                 {
                     spdlog::info("From this point on, force the parser to read values of non-leaf settings, instead of skipping over them as is proper.");
                     force_read_parent = true;
                 }
-                else if (argument.find("--force-read-nondefault") == 0 || argument.find("--force_read_nondefault") == 0)
+                else if (argument.starts_with("--force-read-nondefault") || argument.starts_with("--force_read_nondefault"))
                 {
                     spdlog::info(
                         "From this point on, if 'default_value' is not available, force the parser to read 'value' (instead of dropping it) to fill the used setting-values.");
                     force_read_nondefault = true;
                 }
-                else if (argument.find("--end-force-read") == 0 || argument.find("--end_force_read") == 0)
+                else if (argument.starts_with("--end-force-read") || argument.starts_with("--end_force_read"))
                 {
                     spdlog::info("From this point on, reset all force-XXX values to false (don't 'force read ___' anymore).");
                     force_read_parent = false;
@@ -252,7 +253,7 @@ void CommandLine::sliceNext()
                         exit(1);
                     }
                     argument = arguments_[argument_index];
-                    if (loadJSON(argument, *last_settings, force_read_parent, force_read_nondefault))
+                    if (loadJSON(argument, *last_settings, force_read_parent, force_read_nondefault) != 0)
                     {
                         spdlog::error("Failed to load JSON file: {}", argument);
                         exit(1);
@@ -261,7 +262,7 @@ void CommandLine::sliceNext()
                     // If this was the global stack, create extruders for the machine_extruder_count setting.
                     if (last_settings == &slice.scene.settings)
                     {
-                        const size_t extruder_count = slice.scene.settings.get<size_t>("machine_extruder_count");
+                        const auto extruder_count = slice.scene.settings.get<size_t>("machine_extruder_count");
                         while (slice.scene.extruders.size() < extruder_count)
                         {
                             slice.scene.extruders.emplace_back(slice.scene.extruders.size(), &slice.scene.settings);
@@ -296,7 +297,7 @@ void CommandLine::sliceNext()
                     }
                     argument = arguments_[argument_index];
 
-                    const Matrix4x3D transformation = last_settings->get<Matrix4x3D>("mesh_rotation_matrix"); // The transformation applied to the model when loaded.
+                    const auto transformation = last_settings->get<Matrix4x3D>("mesh_rotation_matrix"); // The transformation applied to the model when loaded.
 
                     if (! loadMeshIntoMeshGroup(&slice.scene.mesh_groups[mesh_group_index], argument.c_str(), transformation, last_extruder->settings_))
                     {
@@ -341,7 +342,7 @@ void CommandLine::sliceNext()
                         exit(1);
                     }
                     argument = arguments_[argument_index];
-                    const size_t value_position = argument.find("=");
+                    const size_t value_position = argument.find('=');
                     std::string key = argument.substr(0, value_position);
                     if (value_position == std::string::npos)
                     {
@@ -358,7 +359,6 @@ void CommandLine::sliceNext()
                     Application::getInstance().printCall();
                     Application::getInstance().printHelp();
                     exit(1);
-                    break;
                 }
                 }
             }
@@ -409,10 +409,10 @@ int CommandLine::loadJSON(const std::string& json_filename, Settings& settings, 
     }
 
     std::vector<char> read_buffer(std::istreambuf_iterator<char>(file), {});
-    rapidjson::MemoryStream ms(read_buffer.data(), read_buffer.size());
+    rapidjson::MemoryStream memory_stream(read_buffer.data(), read_buffer.size());
 
     rapidjson::Document json_document;
-    json_document.ParseStream(ms);
+    json_document.ParseStream(memory_stream);
     if (json_document.HasParseError())
     {
         spdlog::error("Error parsing JSON (offset {}): {}", json_document.GetErrorOffset(), GetParseError_En(json_document.GetParseError()));
@@ -434,13 +434,13 @@ int CommandLine::loadJSON(
     if (document.HasMember("inherits") && document["inherits"].IsString())
     {
         std::string parent_file = findDefinitionFile(document["inherits"].GetString(), search_directories);
-        if (parent_file == "")
+        if (parent_file.empty())
         {
             spdlog::error("Inherited JSON file: {} not found.", document["inherits"].GetString());
             return 1;
         }
-        int error_code = loadJSON(parent_file, settings, force_read_parent, force_read_nondefault); // Head-recursively load the settings file that we inherit from.
-        if (error_code)
+        // Head-recursively load the settings file that we inherit from.
+        if (const auto error_code = loadJSON(parent_file, settings, force_read_parent, force_read_nondefault); error_code != 0)
         {
             return error_code;
         }
@@ -558,12 +558,16 @@ void CommandLine::loadJSONSettings(const rapidjson::Value& element, Settings& se
             }
         }
 
-        if (! (setting_object.HasMember("default_value") || (force_read_nondefault && setting_object.HasMember("value") && ! settings.has(name))))
+        if (! setting_object.HasMember("default_value") && (! force_read_nondefault || ! setting_object.HasMember("value") || settings.has(name)))
         {
             if (! setting_object.HasMember("children"))
             {
                 // Setting has no child-settings, so must be leaf, but also holds no (default) value?!
-                spdlog::warn("JSON setting {} has no [default_]value!", name);
+                spdlog::warn("JSON setting '{}' has no [default_]value!", name);
+                rapidjson::StringBuffer buffer;
+                rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+                setting_object.Accept(writer);
+                spdlog::debug("JSON setting '{}': '{}'", name, buffer.GetString());
             }
             continue;
         }
@@ -581,19 +585,17 @@ void CommandLine::loadJSONSettings(const rapidjson::Value& element, Settings& se
     }
 }
 
-const std::string CommandLine::findDefinitionFile(const std::string& definition_id, const std::unordered_set<std::filesystem::path>& search_directories)
+std::string CommandLine::findDefinitionFile(const std::string& definition_id, const std::unordered_set<std::filesystem::path>& search_directories)
 {
-    for (const std::string& search_directory : search_directories)
+    for (const auto& search_directory : search_directories)
     {
-        const std::string candidate = search_directory + std::string("/") + definition_id + std::string(".def.json");
-        const std::ifstream ifile(candidate.c_str()); // Check whether the file exists and is readable by opening it.
-        if (ifile)
+        if (auto candidate = search_directory / (definition_id + ".def.json"); std::filesystem::exists(candidate))
         {
             return candidate;
         }
     }
     spdlog::error("Couldn't find definition file with ID: {}", definition_id);
-    return std::string("");
+    return {};
 }
 
 } // namespace cura

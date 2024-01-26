@@ -212,7 +212,7 @@ private:
      * \param search_directories The directories to search in.
      * \return The first definition file that matches the definition ID.
      */
-    const std::string findDefinitionFile(const std::string& definition_id, const std::unordered_set<std::filesystem::path>& search_directories);
+    static std::string findDefinitionFile(const std::string& definition_id, const std::unordered_set<std::filesystem::path>& search_directories);
 };
 
 } // namespace cura
