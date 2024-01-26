@@ -647,6 +647,7 @@ void LayerPlan::addWallLine(
     const Point2LL& p1,
     const Settings& settings,
     const GCodePathConfig& non_bridge_config,
+    const GCodePathConfig& roofing_config,
     const GCodePathConfig& bridge_config,
     double flow,
     const Ratio width_factor,
@@ -760,7 +761,28 @@ void LayerPlan::addWallLine(
         }
     };
 
-    if (bridge_wall_mask_.empty())
+    const auto use_roofing_config = [&]() -> bool
+    {
+        if (roofing_config == non_bridge_config)
+        {
+            // if the roofing config and normal config are the same any way there is no need to check what part of the line segment
+            return false;
+        }
+        return roofing_mask_.empty() || PolygonUtils::polygonCollidesWithLineSegment(roofing_mask_, p0, p1) || !roofing_mask_.inside(p1, true);
+    }();
+
+    if (use_roofing_config)
+    {
+        addExtrusionMove(
+            p1,
+            roofing_config,
+            SpaceFillType::Polygons,
+            flow,
+            width_factor,
+            spiralize,
+            1.0_r);
+    }
+    else if (bridge_wall_mask_.empty())
     {
         // no bridges required
         addExtrusionMove(
@@ -867,6 +889,7 @@ void LayerPlan::addWall(
     int start_idx,
     const Settings& settings,
     const GCodePathConfig& non_bridge_config,
+    const GCodePathConfig& roofing_config,
     const GCodePathConfig& bridge_config,
     coord_t wall_0_wipe_dist,
     double flow_ratio,
@@ -895,7 +918,7 @@ void LayerPlan::addWall(
     constexpr bool is_closed = true;
     constexpr bool is_reversed = false;
     constexpr bool is_linked_path = false;
-    addWall(ewall, start_idx, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, is_closed, is_reversed, is_linked_path);
+    addWall(ewall, start_idx, settings, non_bridge_config, roofing_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, is_closed, is_reversed, is_linked_path);
 }
 
 void LayerPlan::addWall(
@@ -903,6 +926,7 @@ void LayerPlan::addWall(
     int start_idx,
     const Settings& settings,
     const GCodePathConfig& non_bridge_config,
+    const GCodePathConfig& roofing_config,
     const GCodePathConfig& bridge_config,
     coord_t wall_0_wipe_dist,
     double flow_ratio,
@@ -1094,6 +1118,7 @@ void LayerPlan::addWall(
                     destination,
                     settings,
                     non_bridge_config,
+                    roofing_config,
                     bridge_config,
                     flow_ratio,
                     line_width * nominal_line_width_multiplier,
@@ -1168,6 +1193,7 @@ void LayerPlan::addWalls(
     const Polygons& walls,
     const Settings& settings,
     const GCodePathConfig& non_bridge_config,
+    const GCodePathConfig& roofing_config,
     const GCodePathConfig& bridge_config,
     const ZSeamConfig& z_seam_config,
     coord_t wall_0_wipe_dist,
@@ -1183,7 +1209,7 @@ void LayerPlan::addWalls(
     orderOptimizer.optimize();
     for (const PathOrdering<ConstPolygonPointer>& path : orderOptimizer.paths_)
     {
-        addWall(**path.vertices_, path.start_vertex_, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
+        addWall(**path.vertices_, path.start_vertex_, settings, non_bridge_config, roofing_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
     }
 }
 
@@ -2487,6 +2513,11 @@ void LayerPlan::setBridgeWallMask(const Polygons& polys)
 void LayerPlan::setOverhangMask(const Polygons& polys)
 {
     overhang_mask_ = polys;
+}
+
+void LayerPlan::setRoofingMask(const Polygons& polys)
+{
+    roofing_mask_ = polys;
 }
 
 } // namespace cura

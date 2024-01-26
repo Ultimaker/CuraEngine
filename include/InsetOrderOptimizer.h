@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2024 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef INSET_ORDER_OPTIMIZER_H
@@ -45,6 +45,8 @@ public:
         const int extruder_nr,
         const GCodePathConfig& inset_0_non_bridge_config,
         const GCodePathConfig& inset_X_non_bridge_config,
+        const GCodePathConfig& inset_0_roofing_config,
+        const GCodePathConfig& inset_X_roofing_config,
         const GCodePathConfig& inset_0_bridge_config,
         const GCodePathConfig& inset_X_bridge_config,
         const bool retract_before_outer_wall,
@@ -92,6 +94,8 @@ private:
     const size_t extruder_nr_;
     const GCodePathConfig& inset_0_non_bridge_config_;
     const GCodePathConfig& inset_X_non_bridge_config_;
+    const GCodePathConfig& inset_0_roofing_config_;
+    const GCodePathConfig& inset_X_roofing_config_;
     const GCodePathConfig& inset_0_bridge_config_;
     const GCodePathConfig& inset_X_bridge_config_;
     const bool retract_before_outer_wall_;

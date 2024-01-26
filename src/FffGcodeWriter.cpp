@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "FffGcodeWriter.h"
@@ -690,6 +690,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                     config,
                     config,
                     config,
+                    config,
+                    config,
                     retract_before_outer_wall,
                     wipe_dist,
                     wipe_dist,
@@ -847,6 +849,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 gcode_layer,
                 interface_settings,
                 interface_extruder_nr,
+                config,
+                config,
                 config,
                 config,
                 config,
@@ -1039,6 +1043,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                     gcode_layer,
                     surface_settings,
                     surface_extruder_nr,
+                    config,
+                    config,
                     config,
                     config,
                     config,
@@ -2239,6 +2245,8 @@ bool FffGcodeWriter::processSingleLayerInfill(
                     mesh_config.infill_config[0],
                     mesh_config.infill_config[0],
                     mesh_config.infill_config[0],
+                    mesh_config.infill_config[0],
+                    mesh_config.infill_config[0],
                     retract_before_outer_wall,
                     wipe_dist,
                     wipe_dist,
@@ -2587,6 +2595,28 @@ bool FffGcodeWriter::processInsets(
             Polygons overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10 + overhang_width - half_outer_wall_width)).offset(10);
             gcode_layer.setOverhangMask(overhang_region);
         }
+
+        const auto roofing_mask = [&gcode_layer, &mesh, &boundaryBox]() -> Polygons
+        {
+            const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
+
+            if (gcode_layer.getLayerNr() + roofing_layer_count >= mesh.layers.size())
+            {
+                return Polygons();
+            }
+
+            auto roofing_mask = Polygons();
+            for (const auto& layer_part : mesh.layers[gcode_layer.getLayerNr() + roofing_layer_count].parts)
+            {
+                if (boundaryBox.hit(layer_part.boundaryBox))
+                {
+                    roofing_mask.add(layer_part.outline);
+                }
+            }
+            return roofing_mask.offset(100);
+        }();
+
+        gcode_layer.setRoofingMask(roofing_mask);
     }
     else
     {
@@ -2594,6 +2624,8 @@ bool FffGcodeWriter::processInsets(
         gcode_layer.setBridgeWallMask(Polygons());
         // clear to disable overhang detection
         gcode_layer.setOverhangMask(Polygons());
+        // clear to disable use of roofing settings
+        gcode_layer.setRoofingMask(Polygons());
     }
 
     if (spiralize && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ && ! part.spiral_wall.empty())
@@ -2611,16 +2643,11 @@ bool FffGcodeWriter::processInsets(
         else
         {
             // Print the spiral walls of other parts as single walls without Z gradient.
-            gcode_layer.addWalls(part.spiral_wall, mesh.settings, mesh_config.inset0_config, mesh_config.inset0_config);
+            gcode_layer.addWalls(part.spiral_wall, mesh.settings, mesh_config.inset0_config, mesh_config.inset0_config, mesh_config.inset0_config);
         }
     }
     else
     {
-        // TODO use roofing config for layers-parts that are exposed to air
-        auto use_roofing_config = false;
-        const GCodePathConfig& inset0_config = use_roofing_config ? mesh_config.inset0_roofing_config : mesh_config.inset0_config;
-        const GCodePathConfig& insetX_config = use_roofing_config ? mesh_config.insetX_roofing_config : mesh_config.insetX_config;
-
         // Main case: Optimize the insets with the InsetOrderOptimizer.
         const coord_t wall_x_wipe_dist = 0;
         const ZSeamConfig z_seam_config(
@@ -2634,8 +2661,10 @@ bool FffGcodeWriter::processInsets(
             gcode_layer,
             mesh.settings,
             extruder_nr,
-            inset0_config,
-            insetX_config,
+            mesh_config.inset0_config,
+            mesh_config.insetX_config,
+            mesh_config.inset0_roofing_config,
+            mesh_config.insetX_roofing_config,
             mesh_config.bridge_inset0_config,
             mesh_config.bridge_insetX_config,
             mesh.settings.get<bool>("travel_retract_before_outer_wall"),
@@ -3061,6 +3090,8 @@ void FffGcodeWriter::processSkinPrintFeature(
                     config,
                     config,
                     config,
+                    config,
+                    config,
                     retract_before_outer_wall,
                     wipe_dist,
                     wipe_dist,
@@ -3324,6 +3355,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 config,
                 config,
                 config,
+                config,
+                config,
                 retract_before_outer_wall,
                 wipe_dist,
                 wipe_dist,
@@ -3500,6 +3533,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     config,
                     config,
                     config,
+                    config,
+                    config,
                     retract_before_outer_wall,
                     wipe_dist,
                     wipe_dist,
@@ -3636,6 +3671,8 @@ bool FffGcodeWriter::addSupportRoofsToGCode(
             config,
             config,
             config,
+            config,
+            config,
             retract_before_outer_wall,
             wipe_dist,
             wipe_dist,
@@ -3743,6 +3780,8 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
             gcode_layer,
             bottom_extruder.settings_,
             bottom_extruder_nr,
+            config,
+            config,
             config,
             config,
             config,
