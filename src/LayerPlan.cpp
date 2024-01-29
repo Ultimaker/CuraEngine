@@ -776,60 +776,7 @@ void LayerPlan::addWallLine(
 
     if (use_roofing_config)
     {
-        // The line segment is wholly or partially in the roofing area. The line is intersected
-        // with the roofing area into line segments. Each line segment left in this intersection
-        // will be printed using the roofing config, all removed segments will be printed using
-        // the default_config. Since the original line segment was straight we can simply print
-        // to the first and last point of the intersected line segments alternating between
-        // roofing and default_config's.
-        Polygons line_polys;
-        line_polys.addLine(p0, p1);
-        constexpr bool restitch = false; // only a single line doesn't need stitching
-        auto has_area_above_poly_lines = roofing_mask_.intersectionPolyLines(line_polys, restitch);
-
-        if (has_area_above_poly_lines.empty())
-        {
-            addExtrusionMove(p1, roofing_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
-        }
-        else
-        {
-            // reorder all the line segments so all lines start at p0 and end at p1
-            for (auto& line_poly : has_area_above_poly_lines)
-            {
-                const Point2LL& line_p0 = line_poly.front();
-                const Point2LL& line_p1 = line_poly.back();
-                if (vSize2(line_p1 - p0) < vSize2(line_p0 - p0))
-                {
-                    std::reverse(line_poly.begin(), line_poly.end());
-                }
-            }
-            std::sort(
-                has_area_above_poly_lines.begin(),
-                has_area_above_poly_lines.end(),
-                [&](auto& a, auto& b)
-                {
-                    return vSize2(a.front() - p0) < vSize2(b.front() - p0);
-                });
-
-            // add intersected line segments, alternating between roofing and default_config
-            for (const auto& line_poly : has_area_above_poly_lines)
-            {
-                // This is only relevant for the very fist iteration of the loop
-                // if the start of the line segment is already the same as p0 then no move is required
-                if (vSize2(line_poly.front() - p0) > 10 * 10)
-                {
-                    addExtrusionMove(line_poly.front(), roofing_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
-                }
-
-                addExtrusionMove(line_poly.back(), default_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
-            }
-
-            // if the last point is not yet at p1 then add a move to p1
-            if (vSize2(has_area_above_poly_lines.back().back() - p1) > 10 * 10)
-            {
-                addExtrusionMove(p1, roofing_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
-            }
-        }
+        addExtrusionMove(p1, roofing_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
     }
     else if (bridge_wall_mask_.empty())
     {
