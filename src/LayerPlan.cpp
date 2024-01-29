@@ -816,7 +816,7 @@ void LayerPlan::addWallLine(
             {
                 // This is only relevant for the very fist iteration of the loop
                 // if the start of the line segment is already the same as p0 then no move is required
-                if (line_poly.front() != p0)
+                if (vSize2(line_poly.front() - p0) < 10 * 10)
                 {
                     addExtrusionMove(line_poly.front(), roofing_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
                 }
@@ -825,7 +825,7 @@ void LayerPlan::addWallLine(
             }
 
             // if the last point is not yet at p1 then add a move to p1
-            if (has_area_above_poly_lines.back().back() != p1)
+            if (vSize2(has_area_above_poly_lines.back().back() - p1) < 10 * 10)
             {
                 addExtrusionMove(p1, roofing_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
             }
