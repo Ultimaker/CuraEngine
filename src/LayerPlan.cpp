@@ -767,7 +767,7 @@ void LayerPlan::addWallLine(
     {
         if (roofing_config == default_config)
         {
-            // if the roofing config and normal config are the same any way there is no need to check 
+            // if the roofing config and normal config are the same any way there is no need to check
             // what part of the line segment will be printed with what config.
             return false;
         }
