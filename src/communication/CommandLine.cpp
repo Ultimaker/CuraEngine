@@ -25,6 +25,7 @@
 #include "Slice.h"
 #include "utils/Matrix4x3D.h" //For the mesh_rotation_matrix setting.
 #include "utils/views/split_paths.h"
+#include "utils/format/filesystem_path.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -253,7 +254,7 @@ void CommandLine::sliceNext()
                         exit(1);
                     }
                     argument = arguments_[argument_index];
-                    if (loadJSON(argument, *last_settings, force_read_parent, force_read_nondefault) != 0)
+                    if (loadJSON(std::filesystem::path { argument }, *last_settings, force_read_parent, force_read_nondefault) != 0)
                     {
                         spdlog::error("Failed to load JSON file: {}", argument);
                         exit(1);
@@ -399,7 +400,7 @@ void CommandLine::sliceNext()
     FffProcessor::getInstance()->finalize();
 }
 
-int CommandLine::loadJSON(const std::string& json_filename, Settings& settings, bool force_read_parent, bool force_read_nondefault)
+int CommandLine::loadJSON(const std::filesystem::path& json_filename, Settings& settings, bool force_read_parent, bool force_read_nondefault)
 {
     std::ifstream file(json_filename, std::ios::binary);
     if (! file)

@@ -21,7 +21,7 @@ constexpr auto path_sep = ':';
 #endif
 } // namespace details
 
-inline static constexpr auto split_paths = ranges::view::split(details::path_sep)
+inline static constexpr auto split_paths = ranges::views::split(details::path_sep)
                                          | ranges::views::transform(
                                                [](auto&& rng)
                                                {
