@@ -24,8 +24,8 @@
 #include "FffProcessor.h" //To start a slice and get time estimates.
 #include "Slice.h"
 #include "utils/Matrix4x3D.h" //For the mesh_rotation_matrix setting.
-#include "utils/views/split_paths.h"
 #include "utils/format/filesystem_path.h"
+#include "utils/views/split_paths.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -254,7 +254,7 @@ void CommandLine::sliceNext()
                         exit(1);
                     }
                     argument = arguments_[argument_index];
-                    if (loadJSON(std::filesystem::path { argument }, *last_settings, force_read_parent, force_read_nondefault) != 0)
+                    if (loadJSON(std::filesystem::path{ argument }, *last_settings, force_read_parent, force_read_nondefault) != 0)
                     {
                         spdlog::error("Failed to load JSON file: {}", argument);
                         exit(1);
