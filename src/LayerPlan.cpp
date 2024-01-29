@@ -774,7 +774,18 @@ void LayerPlan::addWallLine(
         return roofing_mask_.empty() || PolygonUtils::polygonCollidesWithLineSegment(roofing_mask_, p0, p1) || ! roofing_mask_.inside(p1, true);
     }();
 
-    if (bridge_wall_mask_.empty())
+    if (use_roofing_config)
+    {
+        addExtrusionMove(
+            p1,
+            default_config,
+            SpaceFillType::Polygons,
+            flow,
+            width_factor,
+            spiralize,
+            (overhang_mask_.empty() || (! overhang_mask_.inside(p0, true) && ! overhang_mask_.inside(p1, true))) ? 1.0_r : overhang_speed_factor);
+    }
+    else if (bridge_wall_mask_.empty())
     {
         // no bridges required
         addExtrusionMove(
