@@ -12,6 +12,7 @@ message ObjectList
 // 0 ... 99: Broadcasts
 // 100 ... 199: Modify
 // 200 ... 299: Generate
+// IMPORTANT: If you add a slot idea also update the SlotID enum in include/plugins/slots.h
 enum SlotID {
     SETTINGS_BROADCAST = 0;
     SIMPLIFY_MODIFY = 100;

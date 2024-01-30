@@ -244,7 +244,7 @@ namespace cura
 
 namespace plugins::v0
 {
-// FIXME: use same SlotID as defined in Cura.proto
+// FIXME: use same SlotID as defined in Cura.proto, Maybe revert back to char_range_literal, but that is a lot of work
 enum SlotID : int
 {
     SETTINGS_BROADCAST = 0,
