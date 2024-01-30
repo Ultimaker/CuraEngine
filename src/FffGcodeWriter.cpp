@@ -987,24 +987,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             raft_outline_path = raft_outline_path.difference(storage.primeTower.getOuterPoly(layer_nr));
         }
 
-        std::vector<Polygons> raft_islands;
-        if (monotonic)
-        {
-            // When using monotonic infill, process islands separately otherwise multiple rafts
-            // will be printed in parallel in a global monotonic order, which doesn't look good
-            for (const PolygonRef raft_island : raft_outline_path)
-            {
-                Polygons island;
-                island.add(raft_island);
-                raft_islands.emplace_back(island);
-            }
-        }
-        else
-        {
-            raft_islands.emplace_back(raft_outline_path);
-        }
-
-        for (const Polygons raft_island : raft_islands)
+        for (const Polygons raft_island : raft_outline_path.splitIntoParts())
         {
             Infill infill_comp(
                 EFillMethod::ZIG_ZAG,
