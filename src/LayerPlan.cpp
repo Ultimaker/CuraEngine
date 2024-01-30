@@ -642,11 +642,14 @@ void LayerPlan::addPolygonsByOptimizer(
 
 static constexpr double max_non_bridge_line_volume = MM2INT(100); // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
 
+static int i = 0;
+
 void LayerPlan::addWallLine(
     const Point2LL& p0,
     const Point2LL& p1,
     const Settings& settings,
-    const GCodePathConfig& non_bridge_config,
+    const GCodePathConfig& default_config,
+    const GCodePathConfig& roofing_config,
     const GCodePathConfig& bridge_config,
     double flow,
     const Ratio width_factor,
@@ -692,7 +695,7 @@ void LayerPlan::addWallLine(
                 // speed_flow_factor approximates how the extrusion rate alters between the non-bridge wall line and the following bridge wall line
                 // if the extrusion rates are the same, its value will be 1, if the bridge config extrusion rate is < the non-bridge config extrusion rate, the value is < 1
 
-                const Ratio speed_flow_factor((bridge_config.getSpeed() * bridge_config.getFlowRatio()) / (non_bridge_config.getSpeed() * non_bridge_config.getFlowRatio()));
+                const Ratio speed_flow_factor((bridge_config.getSpeed() * bridge_config.getFlowRatio()) / (default_config.getSpeed() * default_config.getFlowRatio()));
 
                 // coast distance is proportional to distance, speed and flow of non-bridge segments just printed and is throttled by speed_flow_factor
                 const double coast_dist = std::min(non_bridge_line_volume, max_non_bridge_line_volume) * (1 - speed_flow_factor) * bridge_wall_coast / 40;
@@ -711,7 +714,7 @@ void LayerPlan::addWallLine(
                         // segment is longer than coast distance so extrude using non-bridge config to start of coast
                         addExtrusionMove(
                             segment_end + coast_dist * (cur_point - segment_end) / len,
-                            non_bridge_config,
+                            default_config,
                             SpaceFillType::Polygons,
                             segment_flow,
                             width_factor,
@@ -720,14 +723,14 @@ void LayerPlan::addWallLine(
                     }
                     // then coast to start of bridge segment
                     constexpr Ratio no_flow = 0.0_r; // Coasting has no flow rate.
-                    addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, no_flow, width_factor, spiralize, speed_factor);
+                    addExtrusionMove(segment_end, default_config, SpaceFillType::Polygons, no_flow, width_factor, spiralize, speed_factor);
                 }
                 else
                 {
                     // no coasting required, just normal segment using non-bridge config
                     addExtrusionMove(
                         segment_end,
-                        non_bridge_config,
+                        default_config,
                         SpaceFillType::Polygons,
                         segment_flow,
                         width_factor,
@@ -742,14 +745,14 @@ void LayerPlan::addWallLine(
                 // no coasting required, just normal segment using non-bridge config
                 addExtrusionMove(
                     segment_end,
-                    non_bridge_config,
+                    default_config,
                     SpaceFillType::Polygons,
                     segment_flow,
                     width_factor,
                     spiralize,
                     (overhang_mask_.empty() || (! overhang_mask_.inside(p0, true) && ! overhang_mask_.inside(p1, true))) ? speed_factor : overhang_speed_factor);
             }
-            non_bridge_line_volume += vSize(cur_point - segment_end) * segment_flow * width_factor * speed_factor * non_bridge_config.getSpeed();
+            non_bridge_line_volume += vSize(cur_point - segment_end) * segment_flow * width_factor * speed_factor * default_config.getSpeed();
             cur_point = segment_end;
             speed_factor = 1 - (1 - speed_factor) * acceleration_factor;
             if (speed_factor >= 0.9)
@@ -760,12 +763,80 @@ void LayerPlan::addWallLine(
         }
     };
 
-    if (bridge_wall_mask_.empty())
+    const auto use_roofing_config = [&]() -> bool
+    {
+        if (roofing_config == default_config)
+        {
+            // if the roofing config and normal config are the same any way there is no need to check
+            // what part of the line segment will be printed with what config.
+            return false;
+        }
+        return roofing_mask_.empty() || PolygonUtils::polygonCollidesWithLineSegment(roofing_mask_, p0, p1) || ! roofing_mask_.inside(p1, true);
+    }();
+
+    if (use_roofing_config)
+    {
+        // The line segment is wholly or partially in the roofing area. The line is intersected
+        // with the roofing area into line segments. Each line segment left in this intersection
+        // will be printed using the roofing config, all removed segments will be printed using
+        // the default_config. Since the original line segment was straight we can simply print
+        // to the first and last point of the intersected line segments alternating between
+        // roofing and default_config's.
+        Polygons line_polys;
+        line_polys.addLine(p0, p1);
+        constexpr bool restitch = false; // only a single line doesn't need stitching
+        auto has_area_above_poly_lines = roofing_mask_.intersectionPolyLines(line_polys, restitch);
+
+        if (has_area_above_poly_lines.empty())
+        {
+            addExtrusionMove(p1, roofing_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
+        }
+        else
+        {
+            // reorder all the line segments so all lines start at p0 and end at p1
+            for (auto& line_poly : has_area_above_poly_lines)
+            {
+                const Point2LL& line_p0 = line_poly.front();
+                const Point2LL& line_p1 = line_poly.back();
+                if (vSize2(line_p1 - p0) < vSize2(line_p0 - p0))
+                {
+                    std::reverse(line_poly.begin(), line_poly.end());
+                }
+            }
+            std::sort(
+                has_area_above_poly_lines.begin(),
+                has_area_above_poly_lines.end(),
+                [&](auto& a, auto& b)
+                {
+                    return vSize2(a.front() - p0) < vSize2(b.front() - p0);
+                });
+
+            // add intersected line segments, alternating between roofing and default_config
+            for (const auto& line_poly : has_area_above_poly_lines)
+            {
+                // This is only relevant for the very fist iteration of the loop
+                // if the start of the line segment is already the same as p0 then no move is required
+                if (line_poly.front() != p0)
+                {
+                    addExtrusionMove(line_poly.front(), roofing_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
+                }
+
+                addExtrusionMove(line_poly.back(), default_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
+            }
+
+            // if the last point is not yet at p1 then add a move to p1
+            if (has_area_above_poly_lines.back().back() != p1)
+            {
+                addExtrusionMove(p1, roofing_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
+            }
+        }
+    }
+    else if (bridge_wall_mask_.empty())
     {
         // no bridges required
         addExtrusionMove(
             p1,
-            non_bridge_config,
+            default_config,
             SpaceFillType::Polygons,
             flow,
             width_factor,
@@ -815,7 +886,7 @@ void LayerPlan::addWallLine(
                     b1 = bridge[0];
                 }
 
-                // extrude using non_bridge_config to the start of the next bridge segment
+                // extrude using default_config to the start of the next bridge segment
 
                 addNonBridgeLine(b0);
 
@@ -831,7 +902,7 @@ void LayerPlan::addWallLine(
                         non_bridge_line_volume = 0;
                         cur_point = b1;
                         // after a bridge segment, start slow and accelerate to avoid under-extrusion due to extruder lag
-                        speed_factor = std::max(std::min(Ratio(bridge_config.getSpeed() / non_bridge_config.getSpeed()), 1.0_r), 0.5_r);
+                        speed_factor = std::max(std::min(Ratio(bridge_config.getSpeed() / default_config.getSpeed()), 1.0_r), 0.5_r);
                     }
                 }
                 else
@@ -845,7 +916,7 @@ void LayerPlan::addWallLine(
                 line_polys.remove(nearest);
             }
 
-            // if we haven't yet reached p1, fill the gap with non_bridge_config line
+            // if we haven't yet reached p1, fill the gap with default_config line
             addNonBridgeLine(p1);
         }
         else if (bridge_wall_mask_.inside(p0, true) && vSize(p0 - p1) >= min_bridge_line_len)
@@ -866,7 +937,8 @@ void LayerPlan::addWall(
     ConstPolygonRef wall,
     int start_idx,
     const Settings& settings,
-    const GCodePathConfig& non_bridge_config,
+    const GCodePathConfig& default_config,
+    const GCodePathConfig& roofing_config,
     const GCodePathConfig& bridge_config,
     coord_t wall_0_wipe_dist,
     double flow_ratio,
@@ -880,7 +952,7 @@ void LayerPlan::addWall(
 
     constexpr size_t dummy_perimeter_id = 0; // <-- Here, don't care about which perimeter any more.
     const coord_t nominal_line_width
-        = non_bridge_config
+        = default_config
               .getLineWidth(); // <-- The line width which it's 'supposed to' be will be used to adjust the flow ratio each time, this'll give a flow-ratio-multiplier of 1.
 
     ExtrusionLine ewall;
@@ -895,14 +967,15 @@ void LayerPlan::addWall(
     constexpr bool is_closed = true;
     constexpr bool is_reversed = false;
     constexpr bool is_linked_path = false;
-    addWall(ewall, start_idx, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, is_closed, is_reversed, is_linked_path);
+    addWall(ewall, start_idx, settings, default_config, roofing_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, is_closed, is_reversed, is_linked_path);
 }
 
 void LayerPlan::addWall(
     const ExtrusionLine& wall,
     int start_idx,
     const Settings& settings,
-    const GCodePathConfig& non_bridge_config,
+    const GCodePathConfig& default_config,
+    const GCodePathConfig& roofing_config,
     const GCodePathConfig& bridge_config,
     coord_t wall_0_wipe_dist,
     double flow_ratio,
@@ -928,7 +1001,7 @@ void LayerPlan::addWall(
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
 
     const Ratio nominal_line_width_multiplier{
-        1.0 / Ratio{ static_cast<Ratio::value_type>(non_bridge_config.getLineWidth()) }
+        1.0 / Ratio{ static_cast<Ratio::value_type>(default_config.getLineWidth()) }
     }; // we multiply the flow with the actual wanted line width (for that junction), and then multiply with this
 
     // helper function to calculate the distance from the start of the current wall line to the first bridge segment
@@ -1017,7 +1090,7 @@ void LayerPlan::addWall(
     const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr_ == 0 || wall.inset_idx_ == 0) && cura::shorterThan(wall, small_feature_max_length);
     Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr_ == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
     const Velocity min_speed = fan_speed_layer_time_settings_per_extruder_[getLastPlannedExtruderTrain()->extruder_nr_].cool_min_speed;
-    small_feature_speed_factor = std::max((double)small_feature_speed_factor, (double)(min_speed / non_bridge_config.getSpeed()));
+    small_feature_speed_factor = std::max((double)small_feature_speed_factor, (double)(min_speed / default_config.getSpeed()));
     const coord_t max_area_deviation = std::max(settings.get<int>("meshfix_maximum_extrusion_area_deviation"), 1); // Square micrometres!
     const coord_t max_resolution = std::max(settings.get<coord_t>("meshfix_maximum_resolution"), coord_t(1));
 
@@ -1079,7 +1152,7 @@ void LayerPlan::addWall(
                 constexpr bool spiralize = false;
                 addExtrusionMove(
                     destination,
-                    non_bridge_config,
+                    default_config,
                     SpaceFillType::Polygons,
                     flow_ratio,
                     line_width * nominal_line_width_multiplier,
@@ -1093,7 +1166,8 @@ void LayerPlan::addWall(
                     origin,
                     destination,
                     settings,
-                    non_bridge_config,
+                    default_config,
+                    roofing_config,
                     bridge_config,
                     flow_ratio,
                     line_width * nominal_line_width_multiplier,
@@ -1167,7 +1241,8 @@ void LayerPlan::addInfillWall(const ExtrusionLine& wall, const GCodePathConfig& 
 void LayerPlan::addWalls(
     const Polygons& walls,
     const Settings& settings,
-    const GCodePathConfig& non_bridge_config,
+    const GCodePathConfig& default_config,
+    const GCodePathConfig& roofing_config,
     const GCodePathConfig& bridge_config,
     const ZSeamConfig& z_seam_config,
     coord_t wall_0_wipe_dist,
@@ -1183,7 +1258,7 @@ void LayerPlan::addWalls(
     orderOptimizer.optimize();
     for (const PathOrdering<ConstPolygonPointer>& path : orderOptimizer.paths_)
     {
-        addWall(**path.vertices_, path.start_vertex_, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
+        addWall(**path.vertices_, path.start_vertex_, settings, default_config, roofing_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
     }
 }
 
@@ -2487,6 +2562,11 @@ void LayerPlan::setBridgeWallMask(const Polygons& polys)
 void LayerPlan::setOverhangMask(const Polygons& polys)
 {
     overhang_mask_ = polys;
+}
+
+void LayerPlan::setRoofingMask(const Polygons& polys)
+{
+    roofing_mask_ = polys;
 }
 
 } // namespace cura

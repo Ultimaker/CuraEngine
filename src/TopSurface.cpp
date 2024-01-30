@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "TopSurface.h"
@@ -172,6 +172,8 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
             layer,
             mesh.settings,
             extruder_nr,
+            line_config,
+            line_config,
             line_config,
             line_config,
             line_config,
