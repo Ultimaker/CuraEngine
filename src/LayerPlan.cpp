@@ -779,7 +779,7 @@ void LayerPlan::addWallLine(
         // no bridges required
         addExtrusionMove(
             p1,
-            roofing_config,
+            default_config,
             SpaceFillType::Polygons,
             flow,
             width_factor,
