@@ -17,8 +17,7 @@ option(ENABLE_SENTRY "Send crash data via Sentry" OFF)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
-
-option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
+option(ENABLE_THREADING "Enable threading support" ON)
 
 if (${ENABLE_ARCUS} OR ${ENABLE_PLUGINS})
     find_package(protobuf REQUIRED)
@@ -157,7 +156,9 @@ set(engine_SRCS # Except main.cpp.
 )
 
 add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})
-#use_threads(_CuraEngine)
+if (ENABLE_THREADING)
+    use_threads(_CuraEngine)
+endif ()
 
 target_include_directories(_CuraEngine
         PUBLIC
@@ -252,7 +253,15 @@ else ()
     endif ()
 endif (NOT WIN32)
 
-#use_threads(CuraEngine)
+if (ENABLE_THREADING)
+    use_threads(CuraEngine)
+endif ()
+
+if (CMAKE_CXX_PLATFORM_ID STREQUAL "emscripten")
+    message(STATUS "Building for Emscripten")
+    target_link_options(_CuraEngine PUBLIC -Wno-unused-command-line-argument -sINVOKE_RUN=0 -sEXPORT_NAME=CuraEngine -sEXPORTED_RUNTIME_METHODS=[callMain,FS] -sFORCE_FILESYSTEM=1 -sALLOW_MEMORY_GROWTH=1 -sEXPORT_ES6=1 -sMODULARIZE=1 -sSINGLE_FILE=1 -sENVIRONMENT=worker)
+endif ()
+
 target_link_libraries(CuraEngine PRIVATE
         _CuraEngine
         $<$<BOOL:${ENABLE_SENTRY}>:sentry::sentry>
