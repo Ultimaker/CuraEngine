@@ -2581,7 +2581,7 @@ bool FffGcodeWriter::processInsets(
 
         const auto roofing_mask = [&gcode_layer, &mesh, &boundaryBox]() -> Polygons
         {
-            const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
+            const size_t roofing_layer_count = mesh.settings.get<size_t>("top_layers");
 
             if (gcode_layer.getLayerNr() + roofing_layer_count >= mesh.layers.size())
             {
