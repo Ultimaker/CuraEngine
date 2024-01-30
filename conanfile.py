@@ -210,7 +210,12 @@ class CuraEngineConan(ConanFile):
                 self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases finalize -o {sentry_org} -p {sentry_project} {self.version}")
 
     def package(self):
-        ext = ".exe" if self.settings.os == "Windows" else ""
+        if self.settings.os == "Windows":
+            ext = ".exe"
+        elif self.settings.os == "Emscripten":
+            ext = ".js"
+        else:
+            ext = ""
         copy(self, f"CuraEngine{ext}", src=self.build_folder, dst=path.join(self.package_folder, "bin"))
         copy(self, f"_CuraEngine.*", src=self.build_folder, dst=path.join(self.package_folder, "lib"))
         copy(self, "LICENSE*", src=self.source_folder, dst=path.join(self.package_folder, "license"))
