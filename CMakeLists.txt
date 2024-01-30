@@ -223,13 +223,13 @@ target_link_libraries(_CuraEngine
         stb::stb
         boost::boost
         scripta::scripta
-        $<$<BOOL:${ENABLE_PLUGINS}>:semver::semver>
-        $<$<BOOL:${ENABLE_PLUGINS}>:curaengine_grpc_definitions::curaengine_grpc_definitions>
-        $<$<BOOL:${ENABLE_PLUGINS}>:asio-grpc::asio-grpc>
-        $<$<BOOL:${ENABLE_PLUGINS}>:grpc::grpc>
+        $<$<TARGET_EXISTS:semver::semver>:semver::semver>
+        $<$<TARGET_EXISTS:curaengine_grpc_definitions::curaengine_grpc_definitions>:curaengine_grpc_definitions::curaengine_grpc_definitions>
+        $<$<TARGET_EXISTS:asio-grpc::asio-grpc>:asio-grpc::asio-grpc>
+        $<$<TARGET_EXISTS:grpc::grpc>:grpc::grpc>
         $<$<TARGET_EXISTS:protobuf::libprotobuf>:protobuf::libprotobuf>
-        $<$<BOOL:${ENABLE_SENTRY}>:sentry::sentry>
-        $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
+        $<$<TARGET_EXISTS:sentry::sentry>:sentry::sentry>
+        $<$<TARGET_EXISTS:GTest::gtest>:GTest::gtest>)
 
 target_compile_definitions(_CuraEngine PRIVATE
         $<$<BOOL:${ENABLE_SENTRY}>:SENTRY_URL=\"${SENTRY_URL}\">
@@ -264,7 +264,7 @@ endif ()
 
 target_link_libraries(CuraEngine PRIVATE
         _CuraEngine
-        $<$<BOOL:${ENABLE_SENTRY}>:sentry::sentry>
+        $<$<TARGET_EXISTS:sentry::sentry>:sentry::sentry>
 )
 target_compile_definitions(CuraEngine PRIVATE
         $<$<BOOL:${ENABLE_SENTRY}>:SENTRY_URL=\"${SENTRY_URL}\">
@@ -291,9 +291,9 @@ if (ENABLE_TESTING OR ENABLE_BENCHMARKS)
             GTest::gtest
             GTest::gmock
             clipper::clipper
-            $<$<BOOL:${ENABLE_PLUGINS}>:curaengine_grpc_definitions::curaengine_grpc_definitions>
-            $<$<BOOL:${ENABLE_PLUGINS}>:asio-grpc::asio-grpc>
-            $<$<BOOL:${ENABLE_PLUGINS}>:grpc::grpc>
+            $<$<TARGET_EXISTS:curaengine_grpc_definitions::curaengine_grpc_definitions>:curaengine_grpc_definitions::curaengine_grpc_definitions>
+            $<$<TARGET_EXISTS:asio-grpc::asio-grpc>:asio-grpc::asio-grpc>
+            $<$<TARGET_EXISTS:grpc::grpc>:grpc::grpc>
             $<$<TARGET_EXISTS:protobuf::libprotobuf>:protobuf::libprotobuf>)
     if (ENABLE_ARCUS)
         target_link_libraries(test_helpers PUBLIC arcus::arcus)
