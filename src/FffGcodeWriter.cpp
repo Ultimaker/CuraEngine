@@ -2579,21 +2579,23 @@ bool FffGcodeWriter::processInsets(
             gcode_layer.setOverhangMask(overhang_region);
         }
 
-        const auto roofing_mask = [&gcode_layer, &mesh, &boundaryBox]() -> Polygons
+        const auto roofing_mask = [&]() -> Polygons
         {
-            const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
+            const size_t roofing_layer_count = mesh.settings.get<size_t>("top_layers");
+
+            auto roofing_mask = storage.getMachineBorder(mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_);
 
             if (gcode_layer.getLayerNr() + roofing_layer_count >= mesh.layers.size())
             {
-                return Polygons();
+                return roofing_mask;
             }
 
-            auto roofing_mask = Polygons();
+            const auto wall_line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0");
             for (const auto& layer_part : mesh.layers[gcode_layer.getLayerNr() + roofing_layer_count].parts)
             {
                 if (boundaryBox.hit(layer_part.boundaryBox))
                 {
-                    roofing_mask.add(layer_part.outline);
+                    roofing_mask = roofing_mask.difference(layer_part.outline.offset(-wall_line_width_0 / 4));
                 }
             }
             return roofing_mask;

@@ -771,7 +771,7 @@ void LayerPlan::addWallLine(
             // what part of the line segment will be printed with what config.
             return false;
         }
-        return roofing_mask_.empty() || PolygonUtils::polygonCollidesWithLineSegment(roofing_mask_, p0, p1) || ! roofing_mask_.inside(p1, true);
+        return PolygonUtils::polygonCollidesWithLineSegment(roofing_mask_, p0, p1) || roofing_mask_.inside(p1, true);
     }();
 
     if (use_roofing_config)
@@ -785,16 +785,19 @@ void LayerPlan::addWallLine(
         Polygons line_polys;
         line_polys.addLine(p0, p1);
         constexpr bool restitch = false; // only a single line doesn't need stitching
-        auto has_area_above_poly_lines = roofing_mask_.intersectionPolyLines(line_polys, restitch);
+        auto roofing_line_segments = roofing_mask_.intersectionPolyLines(line_polys, restitch);
 
-        if (has_area_above_poly_lines.empty())
+        if (roofing_line_segments.empty())
         {
-            addExtrusionMove(p1, roofing_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
+            // roofing_line_segments should never be empty since we already checked that the line segment
+            // intersects with the roofing area. But if it is empty then just print the line segment
+            // using the default_config.
+            addExtrusionMove(p1, default_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
         }
         else
         {
             // reorder all the line segments so all lines start at p0 and end at p1
-            for (auto& line_poly : has_area_above_poly_lines)
+            for (auto& line_poly : roofing_line_segments)
             {
                 const Point2LL& line_p0 = line_poly.front();
                 const Point2LL& line_p1 = line_poly.back();
@@ -804,30 +807,30 @@ void LayerPlan::addWallLine(
                 }
             }
             std::sort(
-                has_area_above_poly_lines.begin(),
-                has_area_above_poly_lines.end(),
+                roofing_line_segments.begin(),
+                roofing_line_segments.end(),
                 [&](auto& a, auto& b)
                 {
                     return vSize2(a.front() - p0) < vSize2(b.front() - p0);
                 });
 
             // add intersected line segments, alternating between roofing and default_config
-            for (const auto& line_poly : has_area_above_poly_lines)
+            for (const auto& line_poly : roofing_line_segments)
             {
                 // This is only relevant for the very fist iteration of the loop
-                // if the start of the line segment is already the same as p0 then no move is required
-                if (line_poly.front() != p0)
+                // if the start of the line segment is not at minimum distance from p0
+                if (vSize2(line_poly.front() - p0) > min_line_len * min_line_len)
                 {
-                    addExtrusionMove(line_poly.front(), roofing_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
+                    addExtrusionMove(line_poly.front(), default_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
                 }
 
-                addExtrusionMove(line_poly.back(), default_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
+                addExtrusionMove(line_poly.back(), roofing_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
             }
 
-            // if the last point is not yet at p1 then add a move to p1
-            if (has_area_above_poly_lines.back().back() != p1)
+            // if the last point is not yet at a minimum distance from p1 then add a move to p1
+            if (vSize2(roofing_line_segments.back().back() - p1) > min_line_len * min_line_len)
             {
-                addExtrusionMove(p1, roofing_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
+                addExtrusionMove(p1, default_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
             }
         }
     }
