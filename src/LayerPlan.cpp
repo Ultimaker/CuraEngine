@@ -819,7 +819,7 @@ void LayerPlan::addWallLine(
             {
                 // This is only relevant for the very fist iteration of the loop
                 // if the start of the line segment is already the same as p0 then no move is required
-                if (vSize(line_poly.front() - p0) > min_line_len * min_line_len)
+                if (vSize2(line_poly.front() - p0) > min_line_len * min_line_len)
                 {
                     addExtrusionMove(line_poly.front(), default_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
                 }
