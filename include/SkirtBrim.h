@@ -35,23 +35,23 @@ private:
             const size_t inset_idx,
             const int extruder_nr,
             const bool is_last)
-            : reference_outline_or_index(reference_outline_or_index)
-            , external_only(external_only)
-            , offset_value(offset_value)
-            , total_offset(total_offset)
-            , inset_idx(inset_idx)
-            , extruder_nr(extruder_nr)
-            , is_last(is_last)
+            : reference_outline_or_index_(reference_outline_or_index)
+            , external_only_(external_only)
+            , offset_value_(offset_value)
+            , total_offset_(total_offset)
+            , inset_idx_(inset_idx)
+            , extruder_nr_(extruder_nr)
+            , is_last_(is_last)
         {
         }
 
-        std::variant<Polygons*, int> reference_outline_or_index;
-        bool external_only; //!< Wether to only offset outward from the reference polygons
-        coord_t offset_value; //!< Distance by which to offset from the reference
-        coord_t total_offset; //!< Total distance from the model
-        int inset_idx; //!< The outset index of this brimline
-        int extruder_nr; //!< The extruder by which to print this brim line
-        bool is_last; //!< Whether this is the last planned offset for this extruder.
+        std::variant<Polygons*, int> reference_outline_or_index_;
+        bool external_only_; //!< Wether to only offset outward from the reference polygons
+        coord_t offset_value_; //!< Distance by which to offset from the reference
+        coord_t total_offset_; //!< Total distance from the model
+        int inset_idx_; //!< The outset index of this brimline
+        int extruder_nr_; //!< The extruder by which to print this brim line
+        bool is_last_; //!< Whether this is the last planned offset for this extruder.
     };
 
     /*!
@@ -60,23 +60,23 @@ private:
     static inline const auto OffsetSorter{ [](const Offset& a, const Offset& b)
                                            {
                                                // Use extruder_nr in case both extruders have the same offset settings.
-                                               return a.total_offset != b.total_offset ? a.total_offset < b.total_offset : a.extruder_nr < b.extruder_nr;
+                                               return a.total_offset_ != b.total_offset_ ? a.total_offset_ < b.total_offset_ : a.extruder_nr_ < b.extruder_nr_;
                                            } };
 
-    SliceDataStorage& storage; //!< Where to retrieve settings and store brim lines.
-    const EPlatformAdhesion adhesion_type; //!< Whether we are generating brim, skirt, or raft
-    const bool has_ooze_shield; //!< Whether the meshgroup has an ooze shield
-    const bool has_draft_shield; //!< Whether the meshgroup has a draft shield
-    const std::vector<ExtruderTrain>& extruders; //!< The extruders of the current slice
-    const int extruder_count; //!< The total number of extruders
-    const std::vector<bool> extruder_is_used; //!< For each extruder whether it is actually used in this print
-    int first_used_extruder_nr; //!< The first extruder which is used
-    int skirt_brim_extruder_nr; //!< The extruder with which the skirt/brim is printed or -1 if printed with both
-    std::vector<bool> external_polys_only; //!< For each extruder whether to only generate brim on the outside
-    std::vector<coord_t> line_widths; //!< For each extruder the skirt/brim line width
-    std::vector<coord_t> skirt_brim_minimal_length; //!< For each extruder the minimal brim length
-    std::vector<int> line_count; //!< For each extruder the (minimal) number of brim lines to generate
-    std::vector<coord_t> gap; //!< For each extruder the gap between the part and the first brim/skirt line
+    SliceDataStorage& storage_; //!< Where to retrieve settings and store brim lines.
+    const EPlatformAdhesion adhesion_type_; //!< Whether we are generating brim, skirt, or raft
+    const bool has_ooze_shield_; //!< Whether the meshgroup has an ooze shield
+    const bool has_draft_shield_; //!< Whether the meshgroup has a draft shield
+    const std::vector<ExtruderTrain>& extruders_; //!< The extruders of the current slice
+    const int extruder_count_; //!< The total number of extruders
+    const std::vector<bool> extruder_is_used_; //!< For each extruder whether it is actually used in this print
+    int first_used_extruder_nr_; //!< The first extruder which is used
+    int skirt_brim_extruder_nr_; //!< The extruder with which the skirt/brim is printed or -1 if printed with both
+    std::vector<bool> external_polys_only_; //!< For each extruder whether to only generate brim on the outside
+    std::vector<coord_t> line_widths_; //!< For each extruder the skirt/brim line width
+    std::vector<coord_t> skirt_brim_minimal_length_; //!< For each extruder the minimal brim length
+    std::vector<int> line_count_; //!< For each extruder the (minimal) number of brim lines to generate
+    std::vector<coord_t> gap_; //!< For each extruder the gap between the part and the first brim/skirt line
 
 public:
     /*!

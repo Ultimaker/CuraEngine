@@ -1,13 +1,13 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2024 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef INSET_ORDER_OPTIMIZER_H
 #define INSET_ORDER_OPTIMIZER_H
 
+#include <unordered_set>
+
 #include "settings/ZSeamConfig.h"
 #include "sliceDataStorage.h"
-
-#include <unordered_set>
 
 namespace cura
 {
@@ -43,8 +43,10 @@ public:
         LayerPlan& gcode_layer,
         const Settings& settings,
         const int extruder_nr,
-        const GCodePathConfig& inset_0_non_bridge_config,
-        const GCodePathConfig& inset_X_non_bridge_config,
+        const GCodePathConfig& inset_0_default_config,
+        const GCodePathConfig& inset_X_default_config,
+        const GCodePathConfig& inset_0_roofing_config,
+        const GCodePathConfig& inset_X_roofing_config,
         const GCodePathConfig& inset_0_bridge_config,
         const GCodePathConfig& inset_X_bridge_config,
         const bool retract_before_outer_wall,
@@ -72,7 +74,7 @@ public:
      *
      * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
      */
-    static value_type getRegionOrder(const auto& input, const bool outer_to_inner);
+    static value_type getRegionOrder(const std::vector<ExtrusionLine>& input, const bool outer_to_inner);
 
     /*!
      * Get the order constraints of the insets when printing walls per inset.
@@ -85,27 +87,29 @@ public:
     static value_type getInsetOrder(const auto& input, const bool outer_to_inner);
 
 private:
-    const FffGcodeWriter& gcode_writer;
-    const SliceDataStorage& storage;
-    LayerPlan& gcode_layer;
-    const Settings& settings;
-    const size_t extruder_nr;
-    const GCodePathConfig& inset_0_non_bridge_config;
-    const GCodePathConfig& inset_X_non_bridge_config;
-    const GCodePathConfig& inset_0_bridge_config;
-    const GCodePathConfig& inset_X_bridge_config;
-    const bool retract_before_outer_wall;
-    const coord_t wall_0_wipe_dist;
-    const coord_t wall_x_wipe_dist;
-    const size_t wall_0_extruder_nr;
-    const size_t wall_x_extruder_nr;
-    const ZSeamConfig& z_seam_config;
-    const std::vector<VariableWidthLines>& paths;
-    const LayerIndex layer_nr;
+    const FffGcodeWriter& gcode_writer_;
+    const SliceDataStorage& storage_;
+    LayerPlan& gcode_layer_;
+    const Settings& settings_;
+    const size_t extruder_nr_;
+    const GCodePathConfig& inset_0_default_config_;
+    const GCodePathConfig& inset_X_default_config_;
+    const GCodePathConfig& inset_0_roofing_config_;
+    const GCodePathConfig& inset_X_roofing_config_;
+    const GCodePathConfig& inset_0_bridge_config_;
+    const GCodePathConfig& inset_X_bridge_config_;
+    const bool retract_before_outer_wall_;
+    const coord_t wall_0_wipe_dist_;
+    const coord_t wall_x_wipe_dist_;
+    const size_t wall_0_extruder_nr_;
+    const size_t wall_x_extruder_nr_;
+    const ZSeamConfig& z_seam_config_;
+    const std::vector<VariableWidthLines>& paths_;
+    const LayerIndex layer_nr_;
 
-    std::vector<std::vector<ConstPolygonPointer>> inset_polys; // vector of vectors holding the inset polygons
-    Polygons retraction_region; // After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see
-                                // retraction_region_calculated).
+    std::vector<std::vector<ConstPolygonPointer>> inset_polys_; // vector of vectors holding the inset polygons
+    Polygons retraction_region_; // After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see
+                                 // retraction_region_calculated).
 
     /*!
      * Determine if the paths should be reversed

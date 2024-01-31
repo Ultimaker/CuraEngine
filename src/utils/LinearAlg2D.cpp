@@ -3,19 +3,19 @@
 
 #include "utils/linearAlg2D.h"
 
-#include "utils/IntPoint.h" // dot
-
 #include <algorithm> // swap
 #include <cassert>
 #include <cmath> // atan2
 
+#include "utils/Point2LL.h" // dot
+
 namespace cura
 {
 
-float LinearAlg2D::getAngleLeft(const Point& a, const Point& b, const Point& c)
+double LinearAlg2D::getAngleLeft(const Point2LL& a, const Point2LL& b, const Point2LL& c)
 {
-    const Point ba = a - b;
-    const Point bc = c - b;
+    const Point2LL ba = a - b;
+    const Point2LL bc = c - b;
     const coord_t dott = dot(ba, bc); // dot product
     const coord_t det = ba.X * bc.Y - ba.Y * bc.X; // determinant
     if (det == 0)
@@ -26,22 +26,22 @@ float LinearAlg2D::getAngleLeft(const Point& a, const Point& b, const Point& c)
         }
         else
         {
-            return M_PI; // straight bit
+            return std::numbers::pi; // straight bit
         }
     }
-    const float angle = -atan2(det, dott); // from -pi to pi
+    const double angle = -atan2(det, dott); // from -pi to pi
     if (angle >= 0)
     {
         return angle;
     }
     else
     {
-        return M_PI * 2 + angle;
+        return std::numbers::pi * 2 + angle;
     }
 }
 
 
-bool LinearAlg2D::getPointOnLineWithDist(const Point& p, const Point& a, const Point& b, const coord_t dist, Point& result)
+bool LinearAlg2D::getPointOnLineWithDist(const Point2LL& p, const Point2LL& a, const Point2LL& b, const coord_t dist, Point2LL& result)
 {
     //         result
     //         v
@@ -49,9 +49,9 @@ bool LinearAlg2D::getPointOnLineWithDist(const Point& p, const Point& a, const P
     //          '-.        :
     //              '-.    :
     //                  '-.p
-    const Point ab = b - a;
+    const Point2LL ab = b - a;
     const coord_t ab_size = vSize(ab);
-    const Point ap = p - a;
+    const Point2LL ap = p - a;
     const coord_t ax_size = (ab_size < 50) ? dot(normal(ab, 1000), ap) / 1000 : dot(ab, ap) / ab_size;
     const coord_t ap_size2 = vSize2(ap);
     const coord_t px_size = sqrt(std::max(coord_t(0), ap_size2 - ax_size * ax_size));
@@ -124,15 +124,15 @@ bool LinearAlg2D::getPointOnLineWithDist(const Point& p, const Point& a, const P
 }
 
 
-std::pair<Point, Point> LinearAlg2D::getClosestConnection(Point a1, Point a2, Point b1, Point b2)
+std::pair<Point2LL, Point2LL> LinearAlg2D::getClosestConnection(Point2LL a1, Point2LL a2, Point2LL b1, Point2LL b2)
 {
-    Point b1_on_a = getClosestOnLineSegment(b1, a1, a2);
+    Point2LL b1_on_a = getClosestOnLineSegment(b1, a1, a2);
     coord_t b1_on_a_dist2 = vSize2(b1_on_a - b1);
-    Point b2_on_a = getClosestOnLineSegment(b2, a1, a2);
+    Point2LL b2_on_a = getClosestOnLineSegment(b2, a1, a2);
     coord_t b2_on_a_dist2 = vSize2(b2_on_a - b2);
-    Point a1_on_b = getClosestOnLineSegment(a1, b1, b2);
+    Point2LL a1_on_b = getClosestOnLineSegment(a1, b1, b2);
     coord_t a1_on_b_dist2 = vSize2(a1_on_b - a1);
-    Point a2_on_b = getClosestOnLineSegment(a1, b1, b2);
+    Point2LL a2_on_b = getClosestOnLineSegment(a1, b1, b2);
     coord_t a2_on_b_dist2 = vSize2(a2_on_b - a2);
     if (b1_on_a_dist2 < b2_on_a_dist2 && b1_on_a_dist2 < a1_on_b_dist2 && b1_on_a_dist2 < a2_on_b_dist2)
     {
@@ -152,7 +152,7 @@ std::pair<Point, Point> LinearAlg2D::getClosestConnection(Point a1, Point a2, Po
     }
 }
 
-bool LinearAlg2D::lineSegmentsCollide(const Point& a_from_transformed, const Point& a_to_transformed, Point b_from_transformed, Point b_to_transformed)
+bool LinearAlg2D::lineSegmentsCollide(const Point2LL& a_from_transformed, const Point2LL& a_to_transformed, Point2LL b_from_transformed, Point2LL b_to_transformed)
 {
     assert(std::abs(a_from_transformed.Y - a_to_transformed.Y) < 2 && "line a is supposed to be transformed to be aligned with the X axis!");
     assert(a_from_transformed.X - 2 <= a_to_transformed.X && "line a is supposed to be aligned with X axis in positive direction!");
@@ -188,7 +188,7 @@ bool LinearAlg2D::lineSegmentsCollide(const Point& a_from_transformed, const Poi
     return false;
 }
 
-coord_t LinearAlg2D::getDist2FromLine(const Point& p, const Point& a, const Point& b)
+coord_t LinearAlg2D::getDist2FromLine(const Point2LL& p, const Point2LL& a, const Point2LL& b)
 {
     // NOTE: The version that tried to do a faster calulation wasn't actually that much faster, and introduced errors.
     //       Use this for now, should we need this, we can reimplement later.
@@ -196,7 +196,7 @@ coord_t LinearAlg2D::getDist2FromLine(const Point& p, const Point& a, const Poin
     return dist * dist;
 }
 
-bool LinearAlg2D::isInsideCorner(const Point a, const Point b, const Point c, const Point query_point)
+bool LinearAlg2D::isInsideCorner(const Point2LL a, const Point2LL b, const Point2LL c, const Point2LL query_point)
 {
     /*
      Visualisation for the algorithm below:
@@ -214,10 +214,10 @@ bool LinearAlg2D::isInsideCorner(const Point a, const Point b, const Point c, co
 
 
     constexpr coord_t normal_length = 10000; // Create a normal vector of reasonable length in order to reduce rounding error.
-    const Point ba = normal(a - b, normal_length);
-    const Point bc = normal(c - b, normal_length);
-    const Point bq = query_point - b;
-    const Point perpendicular = turn90CCW(bq); // The query projects to this perpendicular to coordinate 0.
+    const Point2LL ba = normal(a - b, normal_length);
+    const Point2LL bc = normal(c - b, normal_length);
+    const Point2LL bq = query_point - b;
+    const Point2LL perpendicular = turn90CCW(bq); // The query projects to this perpendicular to coordinate 0.
     const coord_t project_a_perpendicular = dot(ba, perpendicular); // Project vertex A on the perpendicular line.
     const coord_t project_c_perpendicular = dot(bc, perpendicular); // Project vertex C on the perpendicular line.
     if ((project_a_perpendicular > 0) != (project_c_perpendicular > 0)) // Query is between A and C on the projection.
@@ -236,15 +236,15 @@ bool LinearAlg2D::isInsideCorner(const Point a, const Point b, const Point c, co
     }
 }
 
-coord_t LinearAlg2D::getDistFromLine(const Point& p, const Point& a, const Point& b)
+coord_t LinearAlg2D::getDistFromLine(const Point2LL& p, const Point2LL& a, const Point2LL& b)
 {
     //  x.......a------------b
     //  :
     //  :
     //  p
     // return px_size
-    const Point vab = b - a;
-    const Point vap = p - a;
+    const Point2LL vab = b - a;
+    const Point2LL vap = p - a;
     const double ab_size = vSize(vab);
     if (ab_size == 0) // Line of 0 length. Assume it's a line perpendicular to the direction to p.
     {
@@ -255,7 +255,7 @@ coord_t LinearAlg2D::getDistFromLine(const Point& p, const Point& a, const Point
     return px_size;
 }
 
-Point LinearAlg2D::getBisectorVector(const Point& intersect, const Point& a, const Point& b, const coord_t vec_len)
+Point2LL LinearAlg2D::getBisectorVector(const Point2LL& intersect, const Point2LL& a, const Point2LL& b, const coord_t vec_len)
 {
     const auto a0 = a - intersect;
     const auto b0 = b - intersect;

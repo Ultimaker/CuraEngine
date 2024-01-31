@@ -1,11 +1,12 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "LayerPlan.h" //Code under test.
-#include "pathPlanning/SpeedDerivatives.h"
+#include <numeric> //For calculating averages.
 
 #include <gtest/gtest.h>
-#include <numeric> //For calculating averages.
+
+#include "LayerPlan.h" //Code under test.
+#include "pathPlanning/SpeedDerivatives.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
@@ -71,8 +72,16 @@ public:
     GCodePathConfig travel_config;
 
     ExtruderPlanTestPathCollection()
-        : extrusion_config(GCodePathConfig{ .type = PrintFeatureType::OuterWall, .line_width = 400, .layer_thickness = 100, .flow = 1.0_r, .speed_derivatives = SpeedDerivatives { .speed = 50.0, .acceleration = 1000.0, .jerk = 10.0 } })
-        , travel_config(GCodePathConfig{ .type = PrintFeatureType::MoveCombing, .line_width = 0, .layer_thickness = 100, .flow = 0.0_r, .speed_derivatives = SpeedDerivatives { .speed = 120.0, .acceleration = 5000.0, .jerk = 30.0 } })
+        : extrusion_config(GCodePathConfig{ .type = PrintFeatureType::OuterWall,
+                                            .line_width = 400,
+                                            .layer_thickness = 100,
+                                            .flow = 1.0_r,
+                                            .speed_derivatives = SpeedDerivatives{ .speed = 50.0, .acceleration = 1000.0, .jerk = 10.0 } })
+        , travel_config(GCodePathConfig{ .type = PrintFeatureType::MoveCombing,
+                                         .line_width = 0,
+                                         .layer_thickness = 100,
+                                         .flow = 0.0_r,
+                                         .speed_derivatives = SpeedDerivatives{ .speed = 120.0, .acceleration = 5000.0, .jerk = 30.0 } })
     {
         std::shared_ptr<SliceMeshStorage> mesh = nullptr;
         constexpr Ratio flow_1 = 1.0_r;
@@ -87,7 +96,7 @@ public:
                                    .spiralize = no_spiralize,
                                    .speed_factor = speed_1 } });
 
-        square.back().points = { Point(0, 0), Point(1000, 0), Point(1000, 1000), Point(0, 1000), Point(0, 0) };
+        square.back().points = { Point2LL(0, 0), Point2LL(1000, 0), Point2LL(1000, 1000), Point2LL(0, 1000), Point2LL(0, 0) };
 
         lines.assign({ GCodePath{ .config = extrusion_config,
                                   .mesh = mesh,
@@ -124,11 +133,11 @@ public:
                                   .width_factor = width_1,
                                   .spiralize = no_spiralize,
                                   .speed_factor = speed_1 } });
-        lines[0].points = { Point(0, 0), Point(1000, 0) };
-        lines[1].points = { Point(1000, 0), Point(1000, 400) };
-        lines[2].points = { Point(1000, 400), Point(0, 400) };
-        lines[3].points = { Point(0, 400), Point(0, 800) };
-        lines[4].points = { Point(0, 800), Point(1000, 800) };
+        lines[0].points = { Point2LL(0, 0), Point2LL(1000, 0) };
+        lines[1].points = { Point2LL(1000, 0), Point2LL(1000, 400) };
+        lines[2].points = { Point2LL(1000, 400), Point2LL(0, 400) };
+        lines[3].points = { Point2LL(0, 400), Point2LL(0, 800) };
+        lines[4].points = { Point2LL(0, 800), Point2LL(1000, 800) };
 
         constexpr Ratio flow_12 = 1.2_r;
         constexpr Ratio flow_08 = 0.8_r;
@@ -168,11 +177,11 @@ public:
                                             .width_factor = width_1,
                                             .spiralize = no_spiralize,
                                             .speed_factor = speed_1 } });
-        decreasing_flow[0].points = { Point(0, 0), Point(1000, 0) };
-        decreasing_flow[1].points = { Point(1000, 0), Point(1000, 400) };
-        decreasing_flow[2].points = { Point(1000, 400), Point(0, 400) };
-        decreasing_flow[3].points = { Point(0, 400), Point(0, 800) };
-        decreasing_flow[4].points = { Point(0, 800), Point(1000, 800) };
+        decreasing_flow[0].points = { Point2LL(0, 0), Point2LL(1000, 0) };
+        decreasing_flow[1].points = { Point2LL(1000, 0), Point2LL(1000, 400) };
+        decreasing_flow[2].points = { Point2LL(1000, 400), Point2LL(0, 400) };
+        decreasing_flow[3].points = { Point2LL(0, 400), Point2LL(0, 800) };
+        decreasing_flow[4].points = { Point2LL(0, 800), Point2LL(1000, 800) };
 
         constexpr Ratio speed_12 = 1.2_r;
         constexpr Ratio speed_08 = 0.8_r;
@@ -212,11 +221,11 @@ public:
                                              .width_factor = width_1,
                                              .spiralize = no_spiralize,
                                              .speed_factor = speed_04 } });
-        decreasing_speed[0].points = { Point(0, 0), Point(1000, 0) };
-        decreasing_speed[1].points = { Point(1000, 0), Point(1000, 400) };
-        decreasing_speed[2].points = { Point(1000, 400), Point(0, 400) };
-        decreasing_speed[3].points = { Point(0, 400), Point(0, 800) };
-        decreasing_speed[4].points = { Point(0, 800), Point(1000, 800) };
+        decreasing_speed[0].points = { Point2LL(0, 0), Point2LL(1000, 0) };
+        decreasing_speed[1].points = { Point2LL(1000, 0), Point2LL(1000, 400) };
+        decreasing_speed[2].points = { Point2LL(1000, 400), Point2LL(0, 400) };
+        decreasing_speed[3].points = { Point2LL(0, 400), Point2LL(0, 800) };
+        decreasing_speed[4].points = { Point2LL(0, 800), Point2LL(1000, 800) };
 
         variable_width.assign({
             GCodePath{ .config = extrusion_config,
@@ -262,12 +271,12 @@ public:
                        .spiralize = no_spiralize,
                        .speed_factor = speed_1 },
         });
-        variable_width[0].points = { Point(0, 0), Point(1000, 0) };
-        variable_width[1].points = { Point(1000, 0), Point(2000, 0) };
-        variable_width[2].points = { Point(2000, 0), Point(3000, 0) };
-        variable_width[3].points = { Point(3000, 0), Point(4000, 0) };
-        variable_width[4].points = { Point(4000, 0), Point(5000, 0) };
-        variable_width[5].points = { Point(5000, 0), Point(6000, 0) };
+        variable_width[0].points = { Point2LL(0, 0), Point2LL(1000, 0) };
+        variable_width[1].points = { Point2LL(1000, 0), Point2LL(2000, 0) };
+        variable_width[2].points = { Point2LL(2000, 0), Point2LL(3000, 0) };
+        variable_width[3].points = { Point2LL(3000, 0), Point2LL(4000, 0) };
+        variable_width[4].points = { Point2LL(4000, 0), Point2LL(5000, 0) };
+        variable_width[5].points = { Point2LL(5000, 0), Point2LL(6000, 0) };
     }
 };
 // NOLINTEND(misc-non-private-member-variables-in-classes)
@@ -363,10 +372,10 @@ public:
  */
 TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompensated)
 {
-    extruder_plan.paths = GetParam();
+    extruder_plan.paths_ = GetParam();
     std::vector<Ratio> original_widths;
     std::vector<Ratio> original_speeds;
-    for (const GCodePath& path : extruder_plan.paths)
+    for (const GCodePath& path : extruder_plan.paths_)
     {
         original_widths.push_back(path.width_factor);
         original_speeds.push_back(path.speed_factor);
@@ -374,11 +383,11 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompe
 
     extruder_plan.applyBackPressureCompensation(0.0_r);
 
-    ASSERT_EQ(extruder_plan.paths.size(), original_widths.size()) << "Number of paths may not have changed.";
-    for (size_t i = 0; i < extruder_plan.paths.size(); ++i)
+    ASSERT_EQ(extruder_plan.paths_.size(), original_widths.size()) << "Number of paths may not have changed.";
+    for (size_t i = 0; i < extruder_plan.paths_.size(); ++i)
     {
-        EXPECT_NEAR(original_widths[i], extruder_plan.paths[i].width_factor, error_margin) << "The width did not change. Back pressure compensation doesn't adjust line width.";
-        EXPECT_NEAR(original_speeds[i], extruder_plan.paths[i].speed_factor, error_margin) << "The speed factor did not change, since the compensation factor was 0.";
+        EXPECT_NEAR(original_widths[i], extruder_plan.paths_[i].width_factor, error_margin) << "The width did not change. Back pressure compensation doesn't adjust line width.";
+        EXPECT_NEAR(original_speeds[i], extruder_plan.paths_[i].speed_factor, error_margin) << "The speed factor did not change, since the compensation factor was 0.";
     }
 }
 
@@ -388,24 +397,24 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompe
  */
 TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
 {
-    extruder_plan.paths = GetParam();
+    extruder_plan.paths_ = GetParam();
     extruder_plan.applyBackPressureCompensation(1.0_r);
 
     auto first_extrusion = std::find_if(
-        extruder_plan.paths.begin(),
-        extruder_plan.paths.end(),
+        extruder_plan.paths_.begin(),
+        extruder_plan.paths_.end(),
         [&](GCodePath& path)
         {
             return shouldCountPath(path);
         });
-    if (first_extrusion == extruder_plan.paths.end()) // Only travel moves in this plan.
+    if (first_extrusion == extruder_plan.paths_.end()) // Only travel moves in this plan.
     {
         return;
     }
     // All flow rates must be equal to this one.
     const double first_flow_mm3_per_sec = calculatePathWidth(*first_extrusion);
 
-    for (GCodePath& path : extruder_plan.paths)
+    for (GCodePath& path : extruder_plan.paths_)
     {
         if (! shouldCountPath(path))
         {
@@ -422,11 +431,11 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
  */
 TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
 {
-    extruder_plan.paths = GetParam();
+    extruder_plan.paths_ = GetParam();
 
     // Calculate what the flow rates were originally.
     std::vector<double> original_flows;
-    for (GCodePath& path : extruder_plan.paths)
+    for (GCodePath& path : extruder_plan.paths_)
     {
         if (! shouldCountPath(path))
         {
@@ -441,7 +450,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
 
     // Calculate the new flow rates.
     std::vector<double> new_flows;
-    for (GCodePath& path : extruder_plan.paths)
+    for (GCodePath& path : extruder_plan.paths_)
     {
         if (! shouldCountPath(path))
         {
@@ -471,7 +480,7 @@ TEST_F(ExtruderPlanTest, BackPressureCompensationEmptyPlan)
     // The extruder plan starts off empty. So immediately try applying back-pressure compensation.
     extruder_plan.applyBackPressureCompensation(0.5_r);
 
-    EXPECT_TRUE(extruder_plan.paths.empty()) << "The paths in the extruder plan should remain empty. Also it shouldn't crash.";
+    EXPECT_TRUE(extruder_plan.paths_.empty()) << "The paths in the extruder plan should remain empty. Also it shouldn't crash.";
 }
 } // namespace cura
 // NOLINTEND(*-magic-numbers)

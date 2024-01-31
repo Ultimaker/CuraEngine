@@ -4,14 +4,14 @@
 #ifndef TIME_ESTIMATE_H
 #define TIME_ESTIMATE_H
 
+#include <stdint.h>
+#include <unordered_map>
+#include <vector>
+
 #include "PrintFeature.h"
 #include "settings/types/Duration.h" //Print time estimates.
 #include "settings/types/Ratio.h"
 #include "settings/types/Velocity.h" //Speeds and accelerations at which we print.
-
-#include <stdint.h>
-#include <unordered_map>
-#include <vector>
 
 namespace cura
 {
@@ -26,11 +26,11 @@ class Settings;
 class TimeEstimateCalculator
 {
 public:
-    constexpr static unsigned int NUM_AXIS = 4;
-    constexpr static unsigned int X_AXIS = 0;
-    constexpr static unsigned int Y_AXIS = 1;
-    constexpr static unsigned int Z_AXIS = 2;
-    constexpr static unsigned int E_AXIS = 3;
+    constexpr static size_t NUM_AXIS = 4;
+    constexpr static size_t X_AXIS = 0;
+    constexpr static size_t Y_AXIS = 1;
+    constexpr static size_t Z_AXIS = 2;
+    constexpr static size_t E_AXIS = 3;
 
 
     class Position
@@ -50,7 +50,7 @@ public:
         }
         double axis[NUM_AXIS];
 
-        double& operator[](const int n)
+        double& operator[](const size_t n)
         {
             return axis[n];
         }

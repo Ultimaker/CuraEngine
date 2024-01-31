@@ -32,7 +32,7 @@ const std::string Scene::getAllSettingsString() const
     // Per-extruder settings.
     for (size_t extruder_nr = 0; extruder_nr < extruders.size(); extruder_nr++)
     {
-        output << " -e" << extruder_nr << extruders[extruder_nr].settings.getAllSettingsString();
+        output << " -e" << extruder_nr << extruders[extruder_nr].settings_.getAllSettingsString();
     }
 
     for (size_t mesh_group_index = 0; mesh_group_index < mesh_groups.size(); mesh_group_index++)
@@ -54,7 +54,7 @@ const std::string Scene::getAllSettingsString() const
         for (size_t mesh_index = 0; mesh_index < mesh_group.meshes.size(); mesh_index++)
         {
             const Mesh& mesh = mesh_group.meshes[mesh_index];
-            output << " -e" << mesh.settings.get<size_t>("extruder_nr") << " -l \"" << mesh_index << "\"" << mesh.settings.getAllSettingsString();
+            output << " -e" << mesh.settings_.get<size_t>("extruder_nr") << " -l \"" << mesh_index << "\"" << mesh.settings_.getAllSettingsString();
         }
     }
     output << "\n";
@@ -72,7 +72,7 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     bool empty = true;
     for (Mesh& mesh : mesh_group.meshes)
     {
-        if (! mesh.settings.get<bool>("infill_mesh") && ! mesh.settings.get<bool>("anti_overhang_mesh"))
+        if (! mesh.settings_.get<bool>("infill_mesh") && ! mesh.settings_.get<bool>("anti_overhang_mesh"))
         {
             empty = false;
             break;
@@ -95,8 +95,8 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     fff_processor->gcode_writer.writeGCode(storage, fff_processor->time_keeper);
 
     Progress::messageProgress(Progress::Stage::FINISH, 1, 1); // 100% on this meshgroup
-    Application::getInstance().communication->flushGCode();
-    Application::getInstance().communication->sendOptimizedLayerData();
+    Application::getInstance().communication_->flushGCode();
+    Application::getInstance().communication_->sendOptimizedLayerData();
     spdlog::info("Total time elapsed {:03.3f}s\n", time_keeper_total.restart());
 }
 

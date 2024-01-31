@@ -1,14 +1,14 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef EXTRUDER_TRAIN_H
 #define EXTRUDER_TRAIN_H
 
 #include "settings/Settings.h"
 
-namespace cura 
+namespace cura
 {
-    
+
 class ExtruderTrain
 {
 public:
@@ -21,7 +21,7 @@ public:
     /*
      * \brief The settings that this extruder overwrites.
      */
-    Settings settings;
+    Settings settings_;
 
     /*
      * \brief The position of this extruder.
@@ -29,8 +29,8 @@ public:
      * This may be used by g-code commands such as T to indicate to which
      * tool we must switch.
      */
-    const size_t extruder_nr;
+    const size_t extruder_nr_;
 };
 
-}//namespace cura
+} // namespace cura
 #endif // EXTRUDER_TRAIN_H

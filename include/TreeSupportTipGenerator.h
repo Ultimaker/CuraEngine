@@ -24,7 +24,7 @@ namespace cura
 class TreeSupportTipGenerator
 {
 public:
-    TreeSupportTipGenerator(const SliceDataStorage& storage, const SliceMeshStorage& mesh, TreeModelVolumes& volumes_);
+    TreeSupportTipGenerator(const SliceMeshStorage& mesh, TreeModelVolumes& volumes_);
 
     /*!
      * \brief Generate tips, that will later form branches
@@ -54,7 +54,7 @@ private:
         TO_BP_SAFE
     };
 
-    using LineInformation = std::vector<std::pair<Point, TreeSupportTipGenerator::LineStatus>>;
+    using LineInformation = std::vector<std::pair<Point2LL, TreeSupportTipGenerator::LineStatus>>;
 
     /*!
      * \brief Converts a Polygons object representing a line into the internal format.
@@ -79,7 +79,7 @@ private:
      * \param current_layer[in] The layer on which the point lies
      * \return A function that can be called to evaluate a point.
      */
-    std::function<bool(std::pair<Point, TreeSupportTipGenerator::LineStatus>)> getEvaluatePointForNextLayerFunction(size_t current_layer);
+    std::function<bool(std::pair<Point2LL, TreeSupportTipGenerator::LineStatus>)> getEvaluatePointForNextLayerFunction(size_t current_layer);
 
     /*!
      * \brief Evaluates which points of some lines are not valid one layer below and which are. Assumes all points are valid on the current layer. Validity is evaluated using
@@ -91,7 +91,7 @@ private:
      */
     std::pair<std::vector<LineInformation>, std::vector<LineInformation>> splitLines(
         std::vector<LineInformation> lines,
-        std::function<bool(std::pair<Point, TreeSupportTipGenerator::LineStatus>)> evaluatePoint); // assumes all Points on the current line are valid
+        std::function<bool(std::pair<Point2LL, TreeSupportTipGenerator::LineStatus>)> evaluatePoint); // assumes all Points on the current line are valid
 
     /*!
      * \brief Ensures that every line segment is about distance in length. The resulting lines may differ from the original but all points are on the original
@@ -141,13 +141,13 @@ private:
      */
     void addPointAsInfluenceArea(
         std::vector<std::set<TreeSupportElement*>>& move_bounds,
-        std::pair<Point, LineStatus> p,
+        std::pair<Point2LL, LineStatus> p,
         size_t dtt,
         LayerIndex insert_layer,
         size_t dont_move_until,
         bool roof,
         bool skip_ovalisation,
-        std::vector<Point> additional_ovalization_targets = std::vector<Point>());
+        std::vector<Point2LL> additional_ovalization_targets = std::vector<Point2LL>());
 
 
     /*!
@@ -176,11 +176,15 @@ private:
      */
     void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<Polygons>& additional_support_areas);
 
+    /*!
+     * \brief Contains config settings to avoid loading them in every function. This was done to improve readability of the code.
+     */
+    TreeSupportSettings config_;
 
     /*!
      * \brief If large areas should be supported by a roof out of regular support lines.
      */
-    bool use_fake_roof;
+    bool use_fake_roof_;
 
     /*!
      * \brief Generator for model collision, avoidance and internal guide volumes.
@@ -188,126 +192,119 @@ private:
     TreeModelVolumes& volumes_;
 
     /*!
-     * \brief Contains config settings to avoid loading them in every function. This was done to improve readability of the code.
-     */
-    TreeSupportSettings config;
-
-
-    /*!
      * \brief Minimum area an overhang has to have to be supported.
      */
-    const double minimum_support_area;
+    const double minimum_support_area_;
 
     /*!
      * \brief Minimum area an overhang has to have to become a roof.
      */
-    const double minimum_roof_area;
+    const double minimum_roof_area_;
 
     /*!
      * \brief Amount of layers of roof. Zero if roof is disabled
      */
-    const size_t support_roof_layers;
+    const size_t support_roof_layers_;
 
     /*!
      * \brief Distance between tips, so that the tips form a lime. Is smaller than Tip Diameter.
      */
-    const coord_t connect_length;
+    const coord_t connect_length_;
 
     /*!
      * \brief Distance between tips, if the tips support an overhang.
      */
-    const coord_t support_tree_branch_distance;
+    const coord_t support_tree_branch_distance_;
 
     /*!
      * \brief Distance between support roof lines. Is required for generating roof patterns.
      */
-    const coord_t support_roof_line_distance;
+    const coord_t support_roof_line_distance_;
 
 
     /*!
      * \brief Amount of offset to each overhang for support with regular branches (as opposed to roof).
      */
-    const coord_t support_outset;
+    const coord_t support_outset_;
 
     /*!
      * \brief Amount of offset to each overhang for support with roof (as opposed to regular branches).
      */
-    const coord_t roof_outset;
+    const coord_t roof_outset_;
 
     /*!
      * \brief Whether tips should be printed as roof
      */
-    const bool force_tip_to_roof;
+    const bool force_tip_to_roof_;
 
     /*!
      * \brief Whether the maximum distance a branch should from a point they support should be limited. Can be violated if required.
      */
-    const bool support_tree_limit_branch_reach;
+    const bool support_tree_limit_branch_reach_;
 
     /*!
      * \brief Maximum distance a branch should from a point they support (in the xy plane). Can be violated if required.
      */
-    const coord_t support_tree_branch_reach_limit;
+    const coord_t support_tree_branch_reach_limit_;
 
     /*!
      * \brief Distance in layers from the overhang to the first layer with support. This is the z distance in layers+1
      */
-    const size_t z_distance_delta;
+    const size_t z_distance_delta_;
 
     /*!
      * \brief Whether the Support Distance Priority is X/Y Overrides Z
      */
-    const bool xy_overrides;
+    const bool xy_overrides_;
 
     /*!
      * \brief Amount of layers further down than required an overhang can be supported, when Support Distance Priority is X/Y Overrides Z
      */
-    size_t max_overhang_insert_lag;
+    size_t max_overhang_insert_lag_;
 
     /*!
      * \brief Area of a tip.
      */
-    const double tip_roof_size;
+    const double tip_roof_size_;
 
     /*!
      * \brief Whether only support that can rest on a flat surface should be supported.
      */
-    const bool only_gracious = SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL;
+    const bool only_gracious_ = SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL;
 
     /*!
      * \brief Whether minimum_roof_area is a hard limit. If false the roof will be combined with roof above and below, to see if a part of this roof may be part of a valid roof
      * further up/down.
      */
-    const bool force_minimum_roof_area = SUPPORT_TREE_MINIMUM_ROOF_AREA_HARD_LIMIT;
+    const bool force_minimum_roof_area_ = SUPPORT_TREE_MINIMUM_ROOF_AREA_HARD_LIMIT;
 
     /*!
      * \brief Distance between branches when the branches support a support pattern
      */
-    coord_t support_supporting_branch_distance;
+    coord_t support_supporting_branch_distance_;
 
     /*!
      * \brief Required to generate cross infill patterns
      */
-    std::shared_ptr<SierpinskiFillProvider> cross_fill_provider;
+    std::shared_ptr<SierpinskiFillProvider> cross_fill_provider_;
 
     /*!
      * \brief Map that saves locations of already inserted tips. Used to prevent tips far to close together from being added.
      */
-    std::vector<std::unordered_set<Point>> already_inserted;
+    std::vector<std::unordered_set<Point2LL>> already_inserted_;
 
     /*!
      * \brief Areas that will be saved as support roof
      */
-    std::vector<Polygons> support_roof_drawn;
+    std::vector<Polygons> support_roof_drawn_;
 
     /*!
      * \brief Areas that will be saved as support roof, originating from tips being replaced with roof areas.
      */
-    std::vector<Polygons> roof_tips_drawn;
+    std::vector<Polygons> roof_tips_drawn_;
 
-
-    std::mutex critical_move_bounds;
-    std::mutex critical_roof_tips;
+    std::mutex critical_move_bounds_;
+    std::mutex critical_roof_tips_;
 };
 
 } // namespace cura

@@ -36,17 +36,17 @@ std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours = [](c
     }
     return neighbours;
 };
-};
+}
 
 template<utils::nodeable Node, typename State, utils::graphable Graph>
-constexpr void dfs(
-    const Node& current_node,
-    const Graph& graph,
-    std::function<State(const Node, const State)> handle_node,
-    std::unordered_set<Node>& visited,
-    const State& state = nullptr,
-    std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours = details::get_neighbours<Node, Graph>
-) {
+constexpr void
+    dfs(const Node& current_node,
+        const Graph& graph,
+        std::function<State(const Node, const State)> handle_node,
+        std::unordered_set<Node>& visited,
+        const State& state = nullptr,
+        std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours = details::get_neighbours<Node, Graph>)
+{
     if (visited.contains(current_node))
     {
         return;
@@ -64,10 +64,10 @@ constexpr void dfs(
 template<utils::nodeable Node, utils::graphable Graph>
 constexpr void dfs_parent_state(const Node& current_node, const Graph& graph, std::function<void(const Node, const Node)> handle_node)
 {
-    const std::function<Node(const Node, const Node)> parent_view = [handle_node](auto current_node, auto parent_node)
+    const std::function<Node(const Node, const Node)> parent_view = [handle_node](auto node, auto parent_node)
     {
-        handle_node(current_node, parent_node);
-        return current_node;
+        handle_node(node, parent_node);
+        return node;
     };
 
     auto visited = std::unordered_set<Node>();
@@ -77,9 +77,9 @@ constexpr void dfs_parent_state(const Node& current_node, const Graph& graph, st
 template<utils::nodeable Node, utils::graphable Graph>
 constexpr void dfs_depth_state(const Node& current_node, const Graph& graph, std::function<void(const Node, const unsigned int)> handle_node)
 {
-    const std::function<unsigned int(const Node, const unsigned int)> depth_view = [handle_node](auto current_node, auto depth)
+    const std::function<unsigned int(const Node, const unsigned int)> depth_view = [handle_node](auto node, auto depth)
     {
-        handle_node(current_node, depth);
+        handle_node(node, depth);
         return depth + 1;
     };
     auto visited = std::unordered_set<Node>();
