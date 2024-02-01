@@ -2581,7 +2581,7 @@ bool FffGcodeWriter::processInsets(
 
         const auto roofing_mask = [&]() -> Polygons
         {
-            const size_t roofing_layer_count = mesh.settings.get<size_t>("top_layers");
+            const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
 
             auto roofing_mask = storage.getMachineBorder(mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_);
 
