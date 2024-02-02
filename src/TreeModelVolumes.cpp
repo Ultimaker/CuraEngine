@@ -1084,7 +1084,6 @@ void TreeModelVolumes::calculateAvoidanceToModel(const std::deque<RadiusLayerPai
             {
                 return;
             }
-            getPlaceableAreas(radius, max_required_layer); // ensuring Placeableareas are calculated
             const coord_t offset_speed = slow ? max_move_slow_ : max_move_;
             const coord_t max_step_move = std::max(1.9 * radius, current_min_xy_dist_ * 1.9);
             Polygons latest_avoidance;
@@ -1100,12 +1099,13 @@ void TreeModelVolumes::calculateAvoidanceToModel(const std::deque<RadiusLayerPai
                                  : critical_avoidance_cache_to_model_));
                 start_layer = 1 + getMaxCalculatedLayer(radius, slow ? avoidance_cache_to_model_slow_ : holefree ? avoidance_cache_hole_to_model_ : avoidance_cache_to_model_);
             }
+            start_layer = std::max(start_layer, LayerIndex(1));
             if (start_layer > max_required_layer)
             {
-                spdlog::debug("Requested calculation for value already calculated ?");
+                spdlog::debug("Requested calculation for value already calculated or max_required_layer is 0?");
                 return;
             }
-            start_layer = std::max(start_layer, LayerIndex(1));
+            getPlaceableAreas(radius, max_required_layer); // ensuring Placeable Areas are calculated
             latest_avoidance
                 = getAvoidance(radius, start_layer - 1, type, true, true); // minDist as the delta was already added, also avoidance for layer 0 will return the collision.
 
