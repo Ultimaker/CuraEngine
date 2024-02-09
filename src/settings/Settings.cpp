@@ -682,13 +682,13 @@ template<>
 PrimeTowerMethod Settings::get<PrimeTowerMethod>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    if (value == "sparse")
+    if (value == "interleaved")
     {
-        return PrimeTowerMethod::SPARSE;
+        return PrimeTowerMethod::INTERLEAVED;
     }
-    else if (value == "bucket")
+    else if (value == "normal")
     {
-        return PrimeTowerMethod::BUCKET;
+        return PrimeTowerMethod::NORMAL;
     }
     else // Default.
     {

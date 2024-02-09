@@ -43,7 +43,7 @@ PrimeTower::PrimeTower()
         // used (sacrifying for this purpose the usual single-extruder first layer, that would be better for prime-tower
         // adhesion).
 
-        multiple_extruders_on_first_layer_ = (method == PrimeTowerMethod::SPARSE) || (method == PrimeTowerMethod::BUCKET)
+        multiple_extruders_on_first_layer_ = (method == PrimeTowerMethod::INTERLEAVED) || (method == PrimeTowerMethod::NORMAL)
                                           || (scene.current_mesh_group->settings.get<bool>("machine_extruders_share_nozzle")
                                               && ((adhesion_type != EPlatformAdhesion::SKIRT) && (adhesion_type != EPlatformAdhesion::BRIM)));
     }
@@ -164,7 +164,7 @@ void PrimeTower::generatePaths_denseInfill(std::vector<coord_t>& cumulative_inse
         }
 
         // Generate the base outside extra rings
-        if ((method == PrimeTowerMethod::SPARSE || (extruder_nr == extruder_order_.front() && method == PrimeTowerMethod::BUCKET)) && (base_enabled || has_raft)
+        if ((method == PrimeTowerMethod::INTERLEAVED || (extruder_nr == extruder_order_.front() && method == PrimeTowerMethod::NORMAL)) && (base_enabled || has_raft)
             && base_extra_radius > 0 && base_height > 0)
         {
             for (coord_t z = 0; z < base_height; z += layer_height)
@@ -190,7 +190,7 @@ void PrimeTower::generatePaths_denseInfill(std::vector<coord_t>& cumulative_inse
     // Now we have the total cumulative inset, generate the base inside extra rings
     for (size_t extruder_nr : extruder_order_)
     {
-        if (extruder_nr == extruder_order_.back() || method == PrimeTowerMethod::SPARSE)
+        if (extruder_nr == extruder_order_.back() || method == PrimeTowerMethod::INTERLEAVED)
         {
             const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
             Polygons pattern = PolygonUtils::generateInset(outer_poly_, line_width, cumulative_inset);
@@ -222,7 +222,7 @@ void PrimeTower::generatePaths_sparseInfill(const std::vector<coord_t>& cumulati
         actual_extruders.push_back({ extruder_nr, line_width });
     }
 
-    if (method == PrimeTowerMethod::SPARSE || method == PrimeTowerMethod::BUCKET)
+    if (method == PrimeTowerMethod::INTERLEAVED || method == PrimeTowerMethod::NORMAL)
     {
         const size_t nb_extruders = scene.extruders.size();
 
@@ -242,7 +242,7 @@ void PrimeTower::generatePaths_sparseInfill(const std::vector<coord_t>& cumulati
         // A combination is represented by a bitmask
         for (size_t first_extruder_idx = 0; first_extruder_idx < nb_extruders; ++first_extruder_idx)
         {
-            size_t nb_extruders_sparse = method == PrimeTowerMethod::BUCKET ? first_extruder_idx + 1 : nb_extruders;
+            size_t nb_extruders_sparse = method == PrimeTowerMethod::NORMAL ? first_extruder_idx + 1 : nb_extruders;
 
             for (size_t last_extruder_idx = first_extruder_idx; last_extruder_idx < nb_extruders_sparse; ++last_extruder_idx)
             {
@@ -256,7 +256,7 @@ void PrimeTower::generatePaths_sparseInfill(const std::vector<coord_t>& cumulati
                 std::map<size_t, Polygons> infills_for_combination;
                 for (const ActualExtruder& actual_extruder : actual_extruders)
                 {
-                    if (method == PrimeTowerMethod::SPARSE || actual_extruder.number == extruder_order_.at(first_extruder_idx))
+                    if (method == PrimeTowerMethod::INTERLEAVED || actual_extruder.number == extruder_order_.at(first_extruder_idx))
                     {
                         Polygons infill = generatePath_sparseInfill(first_extruder_idx, last_extruder_idx, rings_radii, actual_extruder.line_width, actual_extruder.number);
                         infills_for_combination[actual_extruder.number] = infill;
@@ -384,7 +384,7 @@ void PrimeTower::addToGcode(
     switch (extruder_iterator->prime)
     {
     case ExtruderPrime::None:
-        if (method != PrimeTowerMethod::SPARSE)
+        if (method != PrimeTowerMethod::INTERLEAVED)
         {
             gcode_layer.setPrimeTowerIsPlanned(new_extruder_nr);
         }
@@ -399,7 +399,7 @@ void PrimeTower::addToGcode(
         addToGcode_denseInfill(gcode_layer, new_extruder_nr);
         gcode_layer.setPrimeTowerIsPlanned(new_extruder_nr);
 
-        if (method == PrimeTowerMethod::SPARSE && gcode_layer.getLayerNr() <= storage.max_print_height_second_to_last_extruder)
+        if (method == PrimeTowerMethod::INTERLEAVED && gcode_layer.getLayerNr() <= storage.max_print_height_second_to_last_extruder)
         {
             // Whatever happens before and after, use the current extruder to prime all the non-required extruders now
             extra_primed_extruders_idx = findExtrudersSparseInfill(gcode_layer, required_extruder_prime, method);
@@ -571,7 +571,7 @@ std::vector<size_t> PrimeTower::findExtrudersSparseInfill(
         else
         {
             size_t extruder_nr = extruder_order_.at(extruder_idx);
-            if (method == PrimeTowerMethod::SPARSE && ! gcode_layer.getPrimeTowerIsPlanned(extruder_nr))
+            if (method == PrimeTowerMethod::INTERLEAVED && ! gcode_layer.getPrimeTowerIsPlanned(extruder_nr))
             {
                 auto iterator_required_list = std::find_if(
                     required_extruder_prime.begin(),

@@ -258,13 +258,13 @@ enum class PrimeTowerMethod
     /*!
      * Prime tower that minimizes time and used filament as much as possible.
      */
-    SPARSE,
+    INTERLEAVED,
 
     /*!
      * Prime tower that minimizes time and used filament, but doesn't allow
      * for printing two different filaments over each other.
      */
-    BUCKET,
+    NORMAL,
 };
 
 } // namespace cura
