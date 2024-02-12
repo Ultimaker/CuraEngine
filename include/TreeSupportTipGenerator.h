@@ -57,12 +57,17 @@ private:
 
     struct UnsupportedAreaInformation
     {
-        UnsupportedAreaInformation(const Polygons area, size_t index, size_t height) : area{ area }, index{ index }, height{ height }
+        UnsupportedAreaInformation(const Polygons area, size_t index, size_t height, coord_t accumulated_supportable_overhang) :
+            area{ area },
+            index{ index },
+            height{ height },
+            accumulated_supportable_overhang { accumulated_supportable_overhang }
         {
         }
         const Polygons area;
         size_t index;
         size_t height;
+        coord_t accumulated_supportable_overhang;
     };
 
     using LineInformation = std::vector<std::pair<Point, TreeSupportTipGenerator::LineStatus>>;
@@ -147,6 +152,21 @@ private:
      * \param mesh[in] The mesh that is currently processed.
      */
     void calculateFloatingParts(const SliceMeshStorage& mesh);
+
+    using CradleShadowCenterPair = std::pair<std::vector<Polygons>,std::vector<Point>>;
+    using CenterSubCenterPointPair = std::pair<size_t,size_t>; //todo rename
+
+    //todo one function that calculates centers and corresponding shadows Returns: Model_shadows with corresponding centers
+    std::vector<std::vector<CradleShadowCenterPair>> generateCradleCenters(const SliceMeshStorage& mesh);
+
+    //todo maybe one function that moves cradles up if they dont do anything yet
+    //todo one function that generates the lines. Returns vector of lines relative to a certain cradle index. WHERE GET INDEX?
+    std::vector<std::vector<std::pair<std::vector<Polygons>,CenterSubCenterPointPair>>> generateCradleLines(std::vector<std::vector<CradleShadowCenterPair>>& center_data);
+    //todo one function that cleans overlaps between lines. Updates cradle lines previously generated
+    void cleanCradleLineOverlaps(std::vector<std::vector<std::pair<std::vector<Polygons>,CenterSubCenterPointPair>>>& cradle_polylines);
+    //todo one function that renders the cradle
+    void finalizeCradleAreas(  std::vector<std::vector<std::vector<Polygons>>>& cradle_polygons,std::vector<Polygons>& support_free_areas,std::vector<std::vector<CradleShadowCenterPair>>& center_data);
+
 
     /*!
      * \brief Generate a cradle to stabilize pointy overhang
@@ -363,12 +383,17 @@ private:
     /*!
      * \brief Amount of lines used for the cradle.
      */
-    size_t cradle_lines;
+    size_t cradle_line_count;
 
     /*!
      * \brief Length of lines used for the cradle.
      */
     coord_t cradle_length;
+
+    /*!
+     * \brief Minimum length of lines used for the cradle.
+     */
+    coord_t cradle_length_min;
 
     /*!
      * \brief Width of lines used for the cradle.
@@ -410,6 +435,11 @@ private:
      * \brief Distances the cradle lines should be from the model. First value corresponds to cradle line on the same layer as the first model line.
      */
     std::vector<coord_t> cradle_xy_distance;
+
+    /*!
+     * \brief Distances in lines between the cradle and the support they are supported by.
+     */
+    size_t cradle_z_distance_layers;
 
     std::mutex critical_cradle;
     std::mutex critical_move_bounds;

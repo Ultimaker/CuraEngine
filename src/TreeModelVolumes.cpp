@@ -571,16 +571,65 @@ void TreeModelVolumes::addAreaToAntiPreferred(const Polygons area, LayerIndex la
     RadiusLayerPair key(0,layer_idx);
     std::lock_guard<std::mutex> critical_section(*critical_anti_preferred_);
     anti_preferred_[key] = anti_preferred_[key].unionPolygons(area);
+
+    //todo calculated all required radiis and invalidate all non 0 radiis
+    //todo add function to recalculate anti-pref for non 0 radiis
 }
 
-const Polygons& TreeModelVolumes::getAntiPreferredAreas(LayerIndex layer_idx)
+
+
+
+const Polygons& TreeModelVolumes::getAntiPreferredAreas(LayerIndex layer_idx, coord_t radius)
 {
-    RadiusLayerPair key(0,layer_idx);
-    std::lock_guard<std::mutex> critical_section(*critical_anti_preferred_);
-    return anti_preferred_[key];
 
+    coord_t ceiled_radius = ceilRadius(radius);
+    RadiusLayerPair key(ceilRadius(ceiled_radius),layer_idx);
+
+    std::optional<std::reference_wrapper<const Polygons>> result;
+    {
+        std::lock_guard<std::mutex> critical_section(*critical_anti_preferred_);
+        result = getArea(anti_preferred_, key);
+    }
+    if (result)
+    {
+        return result.value().get();
+    }
+
+    {
+        key.first = 0;
+        std::lock_guard<std::mutex> critical_section(*critical_anti_preferred_);
+        result = getArea(anti_preferred_, key);
+    }
+
+    if(!result)
+    {
+        return empty_polygon;
+    }
+
+    if (precalculated)
+    {
+        //todo enable logging when precalc for anti preferred was implemented
+       // spdlog::warn("Had to calculate anti preferred at radius {} and layer {}, but precalculate was called. Performance may suffer!", ceiled_radius, key.second);
+    }
+    key.first = ceiled_radius;
+    std::lock_guard<std::mutex> critical_section(*critical_anti_preferred_);
+
+    anti_preferred_[key] = result->get().offset(ceiled_radius + current_min_xy_dist);
+
+    return anti_preferred_[key];
 }
 
+const Polygons& TreeModelVolumes::getSupportBlocker(LayerIndex layer_idx)
+{
+    if(layer_idx < anti_overhang_.size())
+    {
+        return anti_overhang_[layer_idx];
+    }
+    else
+    {
+        return empty_polygon;
+    }
+}
 
 
 

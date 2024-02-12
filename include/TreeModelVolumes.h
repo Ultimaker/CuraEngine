@@ -163,9 +163,17 @@ public:
     /*!
      * \brief Get areas that were additionally set to be avoided
      * \param layer_idx The layer said area is on.
+     * \param radius The radius of the node of interest.
      * \returns The area that should be avoided
      */
-    const Polygons& getAntiPreferredAreas(LayerIndex layer_idx);
+    const Polygons& getAntiPreferredAreas(LayerIndex layer_idx, coord_t radius);
+
+    /*!
+     * \brief Get areas that were are classified as support blocker
+     * \param layer_idx The layer said area is on.
+     * \returns The area should not contain support
+     */
+    const Polygons& getSupportBlocker(LayerIndex layer_idx);
 
 
 
@@ -562,6 +570,8 @@ private:
     std::unique_ptr<std::mutex> critical_progress = std::make_unique<std::mutex>();
 
     Simplify simplifier = Simplify(0, 0, 0); // a simplifier to simplify polygons. Will be properly initialised in the constructor.
+
+    Polygons empty_polygon = Polygons();
 };
 
 }
