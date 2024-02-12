@@ -1,8 +1,8 @@
 #  Copyright (c) 2024 UltiMaker
 #  CuraEngine is released under the terms of the AGPLv3 or higher
-from io import StringIO
-from os import path
+
 import os
+from shutil import which
 
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
@@ -10,9 +10,8 @@ from conan.tools.files import copy, mkdir, update_conandata
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
 from conan.tools.scm import Version, Git
-from conans.tools import which
 
-required_conan_version = ">=1.58.0 <2.0.0"
+required_conan_version = ">=1.58.0"
 
 
 class CuraEngineConan(ConanFile):
@@ -24,6 +23,7 @@ class CuraEngineConan(ConanFile):
     topics = ("cura", "protobuf", "gcode", "c++", "curaengine", "libarcus", "gcode-generation", "3D-printing")
     exports = "LICENSE*"
     settings = "os", "compiler", "build_type", "arch"
+    package_type = "application"
 
     options = {
         "enable_arcus": [True, False],
@@ -44,8 +44,7 @@ class CuraEngineConan(ConanFile):
 
     def set_version(self):
         if not self.version:
-            build_meta = "" if self.develop else "+source"
-            self.version = self.conan_data["version"] + build_meta
+            self.version = self.conan_data["version"]
 
     def export(self):
         git = Git(self)
@@ -57,11 +56,12 @@ class CuraEngineConan(ConanFile):
         copy(self, "CuraEngine.ico", self.recipe_folder, self.export_sources_folder)
         copy(self, "CuraEngine.rc", self.recipe_folder, self.export_sources_folder)
         copy(self, "LICENSE", self.recipe_folder, self.export_sources_folder)
-        copy(self, "*", path.join(self.recipe_folder, "src"), path.join(self.export_sources_folder, "src"))
-        copy(self, "*", path.join(self.recipe_folder, "include"), path.join(self.export_sources_folder, "include"))
-        copy(self, "*", path.join(self.recipe_folder, "benchmark"), path.join(self.export_sources_folder, "benchmark"))
-        copy(self, "*", path.join(self.recipe_folder, "stress_benchmark"), path.join(self.export_sources_folder, "stress_benchmark"))
-        copy(self, "*", path.join(self.recipe_folder, "tests"), path.join(self.export_sources_folder, "tests"))
+        copy(self, "*", os.path.join(self.recipe_folder, "src"), os.path.join(self.export_sources_folder, "src"))
+        copy(self, "*", os.path.join(self.recipe_folder, "include"), os.path.join(self.export_sources_folder, "include"))
+        copy(self, "*", os.path.join(self.recipe_folder, "benchmark"), os.path.join(self.export_sources_folder, "benchmark"))
+        copy(self, "*", os.path.join(self.recipe_folder, "stress_benchmark"),
+             os.path.join(self.export_sources_folder, "stress_benchmark"))
+        copy(self, "*", os.path.join(self.recipe_folder, "tests"), os.path.join(self.export_sources_folder, "tests"))
 
     def config_options(self):
         if not self.options.enable_plugins:
@@ -90,13 +90,13 @@ class CuraEngineConan(ConanFile):
                 raise ConanInvalidConfiguration("only versions 5+ are supported")
 
     def build_requirements(self):
-        self.test_requires("standardprojectsettings/[>=0.1.0]@ultimaker/stable")
+        self.test_requires("standardprojectsettings/[>=0.2.0]@ultimaker/cura_11622")  # FIXME: use stable after merge
         if self.options.enable_arcus or self.options.enable_plugins:
-            self.tool_requires("protobuf/3.21.9")
+            self.tool_requires("protobuf/3.21.12")
         if not self.conf.get("tools.build:skip_test", False, check_type=bool):
-            self.test_requires("gtest/1.12.1")
+            self.test_requires("gtest/1.14.0")
         if self.options.enable_benchmarks:
-            self.test_requires("benchmark/1.7.0")
+            self.test_requires("benchmark/1.8.3")
             self.test_requires("docopt.cpp/0.6.3")
 
     def requirements(self):
@@ -105,21 +105,21 @@ class CuraEngineConan(ConanFile):
                 continue
             self.requires(req)
         if self.options.get_safe("enable_sentry", False):
-            self.requires("sentry-native/0.6.5")
+            self.requires("sentry-native/0.7.0")
         if self.options.enable_arcus or self.options.enable_plugins:
-            self.requires("protobuf/3.21.9")
-        self.requires("asio-grpc/2.6.0")
-        self.requires("grpc/1.50.1")
-        self.requires("clipper/6.4.2@ultimaker/stable")
-        self.requires("boost/1.82.0")
-        self.requires("rapidjson/1.1.0")
-        self.requires("stb/20200203")
+            self.requires("protobuf/3.21.12")
+        self.requires("asio-grpc/2.9.2")
+        self.requires("grpc/1.54.3")
+        self.requires("clipper/6.4.2@ultimaker/cura_11622")
+        self.requires("boost/1.83.0")
+        self.requires("rapidjson/cci.20230929")
+        self.requires("stb/cci.20230920")
         self.requires("spdlog/1.12.0")
-        self.requires("fmt/10.1.1")
+        self.requires("fmt/10.2.1")
         self.requires("range-v3/0.12.0")
         self.requires("neargye-semver/0.3.0")
-        self.requires("zlib/1.2.12")
-        self.requires("openssl/3.2.0")
+        self.requires("zlib/1.3.1")
+        self.requires("openssl/3.2.1")
 
     def generate(self):
         deps = CMakeDeps(self)
@@ -131,7 +131,8 @@ class CuraEngineConan(ConanFile):
         tc.variables["ENABLE_TESTING"] = not self.conf.get("tools.build:skip_test", False, check_type=bool)
         tc.variables["ENABLE_BENCHMARKS"] = self.options.enable_benchmarks
         tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
-        tc.variables["OLDER_APPLE_CLANG"] = self.settings.compiler == "apple-clang" and Version(self.settings.compiler.version) < "14"
+        tc.variables["OLDER_APPLE_CLANG"] = self.settings.compiler == "apple-clang" and Version(
+            self.settings.compiler.version) < "14"
         if self.options.get_safe("enable_sentry", False):
             tc.variables["ENABLE_SENTRY"] = True
             tc.variables["SENTRY_URL"] = self.conf.get("user.curaengine:sentry_url", "", check_type=str)
@@ -157,14 +158,14 @@ class CuraEngineConan(ConanFile):
                 folder_dists.append("stress_benchmark")
 
             for dist_folder in folder_dists:
-                dist_path = path.join(self.build_folder, dist_folder)
-                if not path.exists(dist_path):
+                dist_path = os.path.join(self.build_folder, dist_folder)
+                if not os.path.exists(dist_path):
                     mkdir(self, dist_path)
                 if len(dep.cpp_info.libdirs) > 0:
-                    copy(self, "*.dylib", dep.cpp_info.libdirs[0], path.join(self.build_folder, dist_folder))
-                    copy(self, "*.dll", dep.cpp_info.libdirs[0], path.join(self.build_folder, dist_folder))
+                    copy(self, "*.dylib", dep.cpp_info.libdirs[0], os.path.join(self.build_folder, dist_folder))
+                    copy(self, "*.dll", dep.cpp_info.libdirs[0], os.path.join(self.build_folder, dist_folder))
                 if len(dep.cpp_info.bindirs) > 0:
-                    copy(self, "*.dll", dep.cpp_info.bindirs[0], path.join(self.build_folder, dist_folder))
+                    copy(self, "*.dll", dep.cpp_info.bindirs[0], os.path.join(self.build_folder, dist_folder))
 
     def layout(self):
         cmake_layout(self)
@@ -195,23 +196,26 @@ class CuraEngineConan(ConanFile):
 
                 self.output.info("Uploading debug symbols to sentry")
                 build_source_dir = self.build_path.parent.parent.as_posix()
-                self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} debug-files upload --include-sources -o {sentry_org} -p {sentry_project} {build_source_dir}")
+                self.run(
+                    f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} debug-files upload --include-sources -o {sentry_org} -p {sentry_project} {build_source_dir}")
 
                 # create a sentry release and link it to the commit this is based upon
-                self.output.info(f"Creating a new release {self.version} in Sentry and linking it to the current commit {self.conan_data['commit']}")
-                self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases new -o {sentry_org} -p {sentry_project} {self.version}")
-                self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases set-commits -o {sentry_org} -p {sentry_project} --commit \"Ultimaker/CuraEngine@{self.conan_data['commit']}\" {self.version}")
-                self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases finalize -o {sentry_org} -p {sentry_project} {self.version}")
+                self.output.info(
+                    f"Creating a new release {self.version} in Sentry and linking it to the current commit {self.conan_data['commit']}")
+                self.run(
+                    f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases new -o {sentry_org} -p {sentry_project} {self.version}")
+                self.run(
+                    f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases set-commits -o {sentry_org} -p {sentry_project} --commit \"Ultimaker/CuraEngine@{self.conan_data['commit']}\" {self.version}")
+                self.run(
+                    f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases finalize -o {sentry_org} -p {sentry_project} {self.version}")
 
     def package(self):
         ext = ".exe" if self.settings.os == "Windows" else ""
-        copy(self, f"CuraEngine{ext}", src=self.build_folder, dst=path.join(self.package_folder, "bin"))
-        copy(self, f"_CuraEngine.*", src=self.build_folder, dst=path.join(self.package_folder, "lib"))
-        copy(self, "LICENSE*", src=self.source_folder, dst=path.join(self.package_folder, "license"))
+        copy(self, f"CuraEngine{ext}", src=self.build_folder, dst=os.path.join(self.package_folder, "bin"))
+        copy(self, f"_CuraEngine.*", src=self.build_folder, dst=os.path.join(self.package_folder, "lib"))
+        copy(self, "LICENSE*", src=self.source_folder, dst=os.path.join(self.package_folder, "license"))
 
     def package_info(self):
         ext = ".exe" if self.settings.os == "Windows" else ""
-        if self.in_local_cache:
-            self.conf_info.define_path("user.curaengine:curaengine", path.join(self.package_folder, "bin", f"CuraEngine{ext}"))
-        else:
-            self.conf_info.define_path("user.curaengine:curaengine", path.join(self.build_folder, f"CuraEngine{ext}"))
+        self.conf_info.define_path("user.curaengine:curaengine",
+                                   os.path.join(self.package_folder, "bin", f"CuraEngine{ext}"))
