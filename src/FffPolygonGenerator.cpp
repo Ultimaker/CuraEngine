@@ -1109,9 +1109,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
         SliceLayer& layer = mesh.layers[layer_nr];
         for (SliceLayerPart& part : layer.parts)
         {
-            if (! part.outline.empty())
-            {
-                std::vector<VariableWidthLines> result_paths;
+            std::vector<VariableWidthLines> result_paths;
                 for (auto& toolpath : part.wall_toolpaths)
                 {
                     if (toolpath.front().inset_idx_ != 0)
@@ -1201,7 +1199,6 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                     }
                 }
                 part.wall_toolpaths = result_paths;
-            }
         }
     }
 }
