@@ -568,7 +568,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
             // they have to be polylines, because they might break up further when doing the cutting
             for (SliceLayerPart& part : layer.parts)
             {
-                if(part.outline.empty())
+                if (part.outline.empty())
                 {
                     continue;
                 }
@@ -646,7 +646,8 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
         layer.parts.clear();
         for (PolygonsPart& part : new_parts)
         {
-            if (part.empty()){
+            if (part.empty())
+            {
                 spdlog::warn("ffp");
                 continue;
             }
@@ -1109,7 +1110,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
         SliceLayer& layer = mesh.layers[layer_nr];
         for (SliceLayerPart& part : layer.parts)
         {
-            if (!part.outline.empty())
+            if (! part.outline.empty())
             {
                 std::vector<VariableWidthLines> result_paths;
                 for (auto& toolpath : part.wall_toolpaths)
