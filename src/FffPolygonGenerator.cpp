@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <algorithm>
@@ -648,7 +648,6 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
         {
             if (part.empty())
             {
-                spdlog::warn("ffp");
                 continue;
             }
             layer.parts.emplace_back();
