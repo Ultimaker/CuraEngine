@@ -740,7 +740,10 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_po
     {
         const size_t remove_idx = to_remove_part_indices.back();
         to_remove_part_indices.pop_back();
-
+        if (support_infill_parts.empty())
+        {
+            continue;
+        }
         if (remove_idx < support_infill_parts.size() - 1)
         { // move last element to the to-be-removed element so that we can erase the last place in the vector
             support_infill_parts[remove_idx] = std::move(support_infill_parts.back());

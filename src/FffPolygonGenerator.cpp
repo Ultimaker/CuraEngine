@@ -568,6 +568,10 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
             // they have to be polylines, because they might break up further when doing the cutting
             for (SliceLayerPart& part : layer.parts)
             {
+                if(part.outline.empty())
+                {
+                    continue;
+                }
                 for (PolygonRef poly : part.outline)
                 {
                     layer.openPolyLines.add(poly);
@@ -642,6 +646,10 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
         layer.parts.clear();
         for (PolygonsPart& part : new_parts)
         {
+            if (part.empty()){
+                spdlog::warn("ffp");
+                continue;
+            }
             layer.parts.emplace_back();
             layer.parts.back().outline = part;
             layer.parts.back().boundaryBox.calculate(part);
@@ -1101,96 +1109,99 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
         SliceLayer& layer = mesh.layers[layer_nr];
         for (SliceLayerPart& part : layer.parts)
         {
-            std::vector<VariableWidthLines> result_paths;
-            for (auto& toolpath : part.wall_toolpaths)
+            if (!part.outline.empty())
             {
-                if (toolpath.front().inset_idx_ != 0)
+                std::vector<VariableWidthLines> result_paths;
+                for (auto& toolpath : part.wall_toolpaths)
                 {
-                    result_paths.push_back(toolpath);
-                    continue;
-                }
-
-                auto& result_lines = result_paths.emplace_back();
-
-                if (apply_outside_only)
-                {
-                    hole_area = part.print_outline.getOutsidePolygons().offset(-line_width);
-                    accumulate_is_in_hole = [&hole_area](const bool& prev_result, const ExtrusionJunction& junction)
+                    if (toolpath.front().inset_idx_ != 0)
                     {
-                        return prev_result || hole_area.inside(junction.p_);
-                    };
-                }
-                for (auto& line : toolpath)
-                {
-                    if (apply_outside_only && std::accumulate(line.begin(), line.end(), false, accumulate_is_in_hole))
-                    {
-                        result_lines.push_back(line);
+                        result_paths.push_back(toolpath);
                         continue;
                     }
 
-                    auto& result = result_lines.emplace_back(line.inset_idx_, line.is_odd_, line.is_closed_);
+                    auto& result_lines = result_paths.emplace_back();
 
-                    // generate points in between p0 and p1
-                    int64_t dist_left_over
-                        = (min_dist_between_points / 4) + rand() % (min_dist_between_points / 4); // the distance to be traversed on the line before making the first new point
-                    auto* p0 = &line.front();
-                    for (auto& p1 : line)
+                    if (apply_outside_only)
                     {
-                        if (p0->p_ == p1.p_) // avoid seams
+                        hole_area = part.print_outline.getOutsidePolygons().offset(-line_width);
+                        accumulate_is_in_hole = [&hole_area](const bool& prev_result, const ExtrusionJunction& junction)
                         {
-                            result.emplace_back(p1.p_, p1.w_, p1.perimeter_index_);
+                            return prev_result || hole_area.inside(junction.p_);
+                        };
+                    }
+                    for (auto& line : toolpath)
+                    {
+                        if (apply_outside_only && std::accumulate(line.begin(), line.end(), false, accumulate_is_in_hole))
+                        {
+                            result_lines.push_back(line);
                             continue;
                         }
 
-                        // 'a' is the (next) new point between p0 and p1
-                        const Point2LL p0p1 = p1.p_ - p0->p_;
-                        const int64_t p0p1_size = vSize(p0p1);
-                        int64_t p0pa_dist = dist_left_over;
-                        if (p0pa_dist >= p0p1_size)
-                        {
-                            const Point2LL p = p1.p_ - (p0p1 / 2);
-                            const double width = (p1.w_ * vSize(p1.p_ - p) + p0->w_ * vSize(p0->p_ - p)) / p0p1_size;
-                            result.emplace_back(p, width, p1.perimeter_index_);
-                        }
-                        for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
-                        {
-                            const int r = rand() % (fuzziness * 2) - fuzziness;
-                            const Point2LL perp_to_p0p1 = turn90CCW(p0p1);
-                            const Point2LL fuzz = normal(perp_to_p0p1, r);
-                            const Point2LL pa = p0->p_ + normal(p0p1, p0pa_dist);
-                            const double width = (p1.w_ * vSize(p1.p_ - pa) + p0->w_ * vSize(p0->p_ - pa)) / p0p1_size;
-                            result.emplace_back(pa + fuzz, width, p1.perimeter_index_);
-                        }
-                        // p0pa_dist > p0p1_size now because we broke out of the for-loop
-                        dist_left_over = p0pa_dist - p0p1_size;
+                        auto& result = result_lines.emplace_back(line.inset_idx_, line.is_odd_, line.is_closed_);
 
-                        p0 = &p1;
-                    }
-                    while (result.size() < 3)
-                    {
-                        size_t point_idx = line.size() - 2;
-                        result.emplace_back(line[point_idx].p_, line[point_idx].w_, line[point_idx].perimeter_index_);
-                        if (point_idx == 0)
+                        // generate points in between p0 and p1
+                        int64_t dist_left_over
+                            = (min_dist_between_points / 4) + rand() % (min_dist_between_points / 4); // the distance to be traversed on the line before making the first new point
+                        auto* p0 = &line.front();
+                        for (auto& p1 : line)
                         {
-                            break;
+                            if (p0->p_ == p1.p_) // avoid seams
+                            {
+                                result.emplace_back(p1.p_, p1.w_, p1.perimeter_index_);
+                                continue;
+                            }
+
+                            // 'a' is the (next) new point between p0 and p1
+                            const Point2LL p0p1 = p1.p_ - p0->p_;
+                            const int64_t p0p1_size = vSize(p0p1);
+                            int64_t p0pa_dist = dist_left_over;
+                            if (p0pa_dist >= p0p1_size)
+                            {
+                                const Point2LL p = p1.p_ - (p0p1 / 2);
+                                const double width = (p1.w_ * vSize(p1.p_ - p) + p0->w_ * vSize(p0->p_ - p)) / p0p1_size;
+                                result.emplace_back(p, width, p1.perimeter_index_);
+                            }
+                            for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
+                            {
+                                const int r = rand() % (fuzziness * 2) - fuzziness;
+                                const Point2LL perp_to_p0p1 = turn90CCW(p0p1);
+                                const Point2LL fuzz = normal(perp_to_p0p1, r);
+                                const Point2LL pa = p0->p_ + normal(p0p1, p0pa_dist);
+                                const double width = (p1.w_ * vSize(p1.p_ - pa) + p0->w_ * vSize(p0->p_ - pa)) / p0p1_size;
+                                result.emplace_back(pa + fuzz, width, p1.perimeter_index_);
+                            }
+                            // p0pa_dist > p0p1_size now because we broke out of the for-loop
+                            dist_left_over = p0pa_dist - p0p1_size;
+
+                            p0 = &p1;
                         }
-                        point_idx--;
-                    }
-                    if (result.size() < 3)
-                    {
-                        result.clear();
-                        for (auto& p : line)
+                        while (result.size() < 3)
                         {
-                            result.emplace_back(p.p_, p.w_, p.perimeter_index_);
+                            size_t point_idx = line.size() - 2;
+                            result.emplace_back(line[point_idx].p_, line[point_idx].w_, line[point_idx].perimeter_index_);
+                            if (point_idx == 0)
+                            {
+                                break;
+                            }
+                            point_idx--;
                         }
-                    }
-                    if (line.back().p_ == line.front().p_) // avoid seams
-                    {
-                        result.back().p_ = result.front().p_;
+                        if (result.size() < 3)
+                        {
+                            result.clear();
+                            for (auto& p : line)
+                            {
+                                result.emplace_back(p.p_, p.w_, p.perimeter_index_);
+                            }
+                        }
+                        if (line.back().p_ == line.front().p_) // avoid seams
+                        {
+                            result.back().p_ = result.front().p_;
+                        }
                     }
                 }
+                part.wall_toolpaths = result_paths;
             }
-            part.wall_toolpaths = result_paths;
         }
     }
 }
