@@ -154,7 +154,7 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
         generateInfill(part);
     }
 
-    for (PolygonsPart& skin_area_part : skin.splitIntoParts())
+    for (const PolygonsPart& skin_area_part : skin.splitIntoParts())
     {
         if (skin_area_part.empty())
         {
