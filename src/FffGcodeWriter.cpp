@@ -1643,7 +1643,8 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
     Polygons polygons;
     for (const SliceLayerPart& part : layer->parts)
     {
-        polygons.add(part.outline);
+        if(!part.outline.empty())
+            polygons.add(part.outline);
     }
 
     polygons = Simplify(mesh.settings).polygon(polygons);
@@ -1707,7 +1708,10 @@ void FffGcodeWriter::addMeshLayerToGCode(
     {
         part_order_optimizer.addPolygon(&part);
     }
-    part_order_optimizer.optimize(false);
+    if (part_order_optimizer.vertices_to_paths_.size() > 1)
+    {
+        part_order_optimizer.optimize(false);
+    }
     for (const PathOrdering<const SliceLayerPart*>& path : part_order_optimizer.paths_)
     {
         addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *path.vertices_, gcode_layer);
