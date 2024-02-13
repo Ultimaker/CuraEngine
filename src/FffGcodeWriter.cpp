@@ -1643,7 +1643,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
     Polygons polygons;
     for (const SliceLayerPart& part : layer->parts)
     {
-        if(!part.outline.empty())
+        if (! part.outline.empty())
             polygons.add(part.outline);
     }
 
