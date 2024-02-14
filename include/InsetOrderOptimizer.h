@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2024 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef INSET_ORDER_OPTIMIZER_H
@@ -43,8 +43,10 @@ public:
         LayerPlan& gcode_layer,
         const Settings& settings,
         const int extruder_nr,
-        const GCodePathConfig& inset_0_non_bridge_config,
-        const GCodePathConfig& inset_X_non_bridge_config,
+        const GCodePathConfig& inset_0_default_config,
+        const GCodePathConfig& inset_X_default_config,
+        const GCodePathConfig& inset_0_roofing_config,
+        const GCodePathConfig& inset_X_roofing_config,
         const GCodePathConfig& inset_0_bridge_config,
         const GCodePathConfig& inset_X_bridge_config,
         const bool retract_before_outer_wall,
@@ -72,7 +74,7 @@ public:
      *
      * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
      */
-    static value_type getRegionOrder(const auto& input, const bool outer_to_inner);
+    static value_type getRegionOrder(const std::vector<ExtrusionLine>& input, const bool outer_to_inner);
 
     /*!
      * Get the order constraints of the insets when printing walls per inset.
@@ -90,8 +92,10 @@ private:
     LayerPlan& gcode_layer_;
     const Settings& settings_;
     const size_t extruder_nr_;
-    const GCodePathConfig& inset_0_non_bridge_config_;
-    const GCodePathConfig& inset_X_non_bridge_config_;
+    const GCodePathConfig& inset_0_default_config_;
+    const GCodePathConfig& inset_X_default_config_;
+    const GCodePathConfig& inset_0_roofing_config_;
+    const GCodePathConfig& inset_X_roofing_config_;
     const GCodePathConfig& inset_0_bridge_config_;
     const GCodePathConfig& inset_X_bridge_config_;
     const bool retract_before_outer_wall_;

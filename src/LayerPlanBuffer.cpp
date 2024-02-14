@@ -535,7 +535,7 @@ void LayerPlanBuffer::insertTempCommands()
 
         if (initial_print_temp == 0.0 // user doesn't want to use initial print temp feature
             || extruder_settings.get<bool>("machine_extruders_share_heater") // ignore initial print temps when extruders share a heater
-            || ! extruder_used_in_meshgroup_[extruder] // prime blob uses print temp rather than initial print temp
+            || (! extruder_used_in_meshgroup_[extruder] && extruder_settings.get<bool>("prime_blob_enable")) // prime blob uses print temp rather than initial print temp
             || (overall_extruder_plan_idx > 0 && extruder_plans[overall_extruder_plan_idx - 1]->extruder_nr_ == extruder // prev plan has same extruder ..
                 && extruder_plans[overall_extruder_plan_idx - 1]->estimates_.getTotalUnretractedTime() > 0.0) // and prev extruder plan already heated to printing temperature
         )
