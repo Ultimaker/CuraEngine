@@ -1644,7 +1644,9 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
     for (const SliceLayerPart& part : layer->parts)
     {
         if (! part.outline.empty())
+        {
             polygons.add(part.outline);
+        }
     }
 
     polygons = Simplify(mesh.settings).polygon(polygons);

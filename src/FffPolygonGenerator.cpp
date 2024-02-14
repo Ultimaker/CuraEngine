@@ -568,7 +568,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
             // they have to be polylines, because they might break up further when doing the cutting
             for (SliceLayerPart& part : layer.parts)
             {
-                for (const PolygonRef poly : part.outline)
+                for (const PolygonRef& poly : part.outline)
                 {
                     layer.openPolyLines.add(poly);
                     layer.openPolyLines.back().add(layer.openPolyLines.back()[0]); // add the segment which closes the polygon
