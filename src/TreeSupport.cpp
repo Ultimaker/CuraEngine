@@ -156,10 +156,10 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 
         // ### Precalculate avoidances, collision etc.
         const LayerIndex max_required_layer = precalculate(storage, processing.second);
-        if(max_required_layer < 0)
+        if (max_required_layer < 0)
         {
-            spdlog::info("Support tree mesh group {} does not have any overhang. Skipping tree support generation for this support tree mesh group.",counter + 1);
-            continue; //If there is no overhang to support, skip these meshes
+            spdlog::info("Support tree mesh group {} does not have any overhang. Skipping tree support generation for this support tree mesh group.", counter + 1);
+            continue; // If there is no overhang to support, skip these meshes
         }
         const auto t_precalc = std::chrono::high_resolution_clock::now();
 
@@ -245,7 +245,7 @@ LayerIndex TreeSupport::precalculate(const SliceDataStorage& storage, std::vecto
     }
 
     // ### The actual precalculation happens in TreeModelVolumes.
-    if(max_layer >= 0)
+    if (max_layer >= 0)
     {
         volumes_.precalculate(max_layer);
     }
