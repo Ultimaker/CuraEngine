@@ -30,7 +30,7 @@ do
           GCODE_FILE="$GCODE_DIRECTORY/$(basename $STL_FILE .stl)_${LAYER_HEIGHT_FILENAME}_${TREE_SUPPORT}.gcode"
           CSV_FILE="$RESULTS_DIRECTORY/$(basename $STL_FILE .stl)_${LAYER_HEIGHT_FILENAME}_${TREE_SUPPORT}.csv"
 
-          CURAENGINE_LOG_LEVEL=error $CURA_ENGINE_EXECUTABLE slice --force-read-parent --force-read-nondefault -p -j $DEFINITION_FILE -s layer_height=$LAYER_HEIGHT -s support_structure=tree -s support_enable=$TREE_SUPPORT -l $STL_FILE -o $GCODE_FILE &
+          CURAENGINE_LOG_LEVEL=error $CURA_ENGINE_EXECUTABLE slice --force-read-parent --force-read-nondefault -p -j $DEFINITION_FILE -s layer_height=$LAYER_HEIGHT -s support_structure=tree -s support_enable=$TREE_SUPPORT -s _plugin__curaenginegradualflow__0_1_0__gradual_flow_enabled=false -s mesh_rotation_matrix="[[1.1,0,0], [0,0.9,0], [0,0,1.2]]" -l $STL_FILE -o $GCODE_FILE &
 
           audria $(pgrep CuraEngine) -d -1 -k -o $CSV_FILE
       done
