@@ -27,7 +27,7 @@ do
         OUTPUT_FILE="$(basename $STL_FILE .stl)_${LAYER_HEIGHT_FILENAME}.csv"
         GCODE_FILE="$GCODE_DIRECTORY/$(basename $STL_FILE .stl)_${LAYER_HEIGHT_FILENAME}.gcode"
 
-        CURAENGINE_LOG_LEVEL=info $CURA_ENGINE_EXECUTABLE slice --force-read-parent --force-read-nondefault -v -p -j $DEFINITION_FILE -s layer_height=$LAYER_HEIGHT -l $STL_FILE -o $GCODE_FILE
+        CURAENGINE_LOG_LEVEL=warn $CURA_ENGINE_EXECUTABLE slice --force-read-parent --force-read-nondefault -p -j $DEFINITION_FILE -s layer_height=$LAYER_HEIGHT -l $STL_FILE -o $GCODE_FILE &
 
         audria $(pgrep CuraEngine) -d -1 -k -o "$RESULTS_DIRECTORY/$(basename $STL_FILE .stl)_${LAYER_HEIGHT_FILENAME}.csv"
     done
