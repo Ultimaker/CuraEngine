@@ -212,7 +212,6 @@ private:
     void handleStandbyTemp(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx, double standby_temp);
 };
 
-
 } // namespace cura
 
 #endif // LAYER_PLAN_BUFFER_H
