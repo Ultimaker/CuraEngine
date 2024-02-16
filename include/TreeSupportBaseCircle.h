@@ -3,12 +3,12 @@
 #ifndef TREESUPPORTCIRCLE_H
 #define TREESUPPORTCIRCLE_H
 
-#include "utils/Coord_t.h"
-#include "utils/polygon.h"
+#include <cmath>
 
 #include <range/v3/view/iota.hpp>
 
-#include <cmath>
+#include "utils/Coord_t.h"
+#include "utils/polygon.h"
 
 namespace cura
 {

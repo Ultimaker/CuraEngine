@@ -4,9 +4,9 @@
 #ifndef EXTRUDERUSE_H
 #define EXTRUDERUSE_H
 
-#include "ExtruderPrime.h"
-
 #include <stddef.h>
+
+#include "ExtruderPrime.h"
 
 namespace cura
 {
