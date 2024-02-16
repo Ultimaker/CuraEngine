@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef LAYER_PLAN_H
@@ -98,6 +98,7 @@ private:
     coord_t comb_move_inside_distance_; //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
     Polygons bridge_wall_mask_; //!< The regions of a layer part that are not supported, used for bridging
     Polygons overhang_mask_; //!< The regions of a layer part where the walls overhang
+    Polygons roofing_mask_; //!< The regions of a layer part where the walls are exposed to the air
 
     const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_;
 
@@ -280,6 +281,13 @@ public:
     void setOverhangMask(const Polygons& polys);
 
     /*!
+     * Set roofing_mask.
+     *
+     * \param polys The areas of the part currently being processed that will require roofing.
+     */
+    void setRoofingMask(const Polygons& polys);
+
+    /*!
      * Travel to a certain point, with all of the procedures necessary to do so.
      *
      * Additional procedures here are:
@@ -417,8 +425,10 @@ public:
      * \param p1 The end vertex of the line.
      * \param settings The settings which should apply to this line added to the
      * layer plan.
-     * \param non_bridge_config The config with which to print the wall lines
-     * that are not spanning a bridge.
+     * \param default_config The config with which to print the wall lines
+     * that are not spanning a bridge or are exposed to air.
+     * \param roofing_config The config with which to print the wall lines
+     * that are exposed to air.
      * \param bridge_config The config with which to print the wall lines that
      * are spanning a bridge.
      * \param flow The ratio with which to multiply the extrusion amount.
@@ -435,7 +445,8 @@ public:
         const Point2LL& p0,
         const Point2LL& p1,
         const Settings& settings,
-        const GCodePathConfig& non_bridge_config,
+        const GCodePathConfig& default_config,
+        const GCodePathConfig& roofing_config,
         const GCodePathConfig& bridge_config,
         double flow,
         const Ratio width_factor,
@@ -448,10 +459,10 @@ public:
      * \param wall The vertices of the wall to add.
      * \param start_idx The index of the starting vertex to start at.
      * \param settings The settings which should apply to this wall added to the layer plan.
-     * \param non_bridge_config The config with which to print the wall lines
-     * that are not spanning a bridge.
-     * \param bridge_config The config with which to print the wall lines that
-     * are spanning a bridge.
+     * \param default_config The config with which to print the wall lines
+     * that are not spanning a bridge or are exposed to air.
+     * \param roofing_config The config with which to print the wall lines
+     * that are exposed to air.
      * \param wall_0_wipe_dist The distance to travel along the wall after it
      * has been laid down, in order to wipe the start and end of the wall
      * \param flow_ratio The ratio with which to multiply the extrusion amount.
@@ -462,7 +473,8 @@ public:
         ConstPolygonRef wall,
         int start_idx,
         const Settings& settings,
-        const GCodePathConfig& non_bridge_config,
+        const GCodePathConfig& default_config,
+        const GCodePathConfig& roofing_config,
         const GCodePathConfig& bridge_config,
         coord_t wall_0_wipe_dist,
         double flow_ratio,
@@ -473,8 +485,10 @@ public:
      * \param wall The wall of type ExtrusionJunctions
      * \param start_idx The index of the starting vertex to start at.
      * \param mesh The current mesh being added to the layer plan.
-     * \param non_bridge_config The config with which to print the wall lines
-     * that are not spanning a bridge.
+     * \param default_config The config with which to print the wall lines
+     * that are not spanning a bridge or are exposed to air.
+     * \param roofing_config The config with which to print the wall lines
+     * that are exposed to air.
      * \param bridge_config The config with which to print the wall lines that
      * are spanning a bridge
      * \param wall_0_wipe_dist The distance to travel along the wall after it
@@ -491,7 +505,8 @@ public:
         const ExtrusionLine& wall,
         int start_idx,
         const Settings& settings,
-        const GCodePathConfig& non_bridge_config,
+        const GCodePathConfig& default_config,
+        const GCodePathConfig& roofing_config,
         const GCodePathConfig& bridge_config,
         coord_t wall_0_wipe_dist,
         double flow_ratio,
@@ -512,7 +527,10 @@ public:
      * Add walls (polygons) to the gcode with optimized order.
      * \param walls The walls
      * \param settings The settings which should apply to these walls added to the layer plan.
-     * \param non_bridge_config The config with which to print the wall lines that are not spanning a bridge
+     * \param default_config The config with which to print the wall lines
+     * that are not spanning a bridge or are exposed to air.
+     * \param roofing_config The config with which to print the wall lines
+     * that are exposed to air.
      * \param bridge_config The config with which to print the wall lines that are spanning a bridge
      * \param z_seam_config Optional configuration for z-seam
      * \param wall_0_wipe_dist The distance to travel along each wall after it has been laid down, in order to wipe the start and end of the wall together
@@ -523,7 +541,8 @@ public:
     void addWalls(
         const Polygons& walls,
         const Settings& settings,
-        const GCodePathConfig& non_bridge_config,
+        const GCodePathConfig& default_config,
+        const GCodePathConfig& roofing_config,
         const GCodePathConfig& bridge_config,
         const ZSeamConfig& z_seam_config = ZSeamConfig(),
         coord_t wall_0_wipe_dist = 0,
@@ -647,7 +666,7 @@ public:
             return start_idx;
         }
 
-        Polygons air_below(bridge_wall_mask_.unionPolygons(overhang_mask_));
+        const auto air_below = bridge_wall_mask_.unionPolygons(overhang_mask_);
 
         unsigned curr_idx = start_idx;
 

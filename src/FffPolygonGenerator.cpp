@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <algorithm>
@@ -566,7 +566,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
             // they have to be polylines, because they might break up further when doing the cutting
             for (SliceLayerPart& part : layer.parts)
             {
-                for (PolygonRef poly : part.outline)
+                for (const PolygonRef& poly : part.outline)
                 {
                     layer.openPolyLines.add(poly);
                     layer.openPolyLines.back().add(layer.openPolyLines.back()[0]); // add the segment which closes the polygon
@@ -638,8 +638,12 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
         }
 
         layer.parts.clear();
-        for (PolygonsPart& part : new_parts)
+        for (const PolygonsPart& part : new_parts)
         {
+            if (part.empty())
+            {
+                continue;
+            }
             layer.parts.emplace_back();
             layer.parts.back().outline = part;
             layer.parts.back().boundaryBox.calculate(part);
