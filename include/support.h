@@ -74,8 +74,7 @@ private:
      * \param global_support_areas_per_layer the global support areas per layer
      * \param total_layer_count total number of layers
      */
-    static void
-        splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<Shape>& global_support_areas_per_layer, unsigned int total_layer_count);
+    static void splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<Shape>& global_support_areas_per_layer, unsigned int total_layer_count);
 
     /*!
      * Generate gradual support on the already generated support areas. This must be called after generateSupportAreas().

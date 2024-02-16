@@ -75,10 +75,7 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
 }
 
 
-void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(
-    SliceDataStorage& storage,
-    const std::vector<Shape>& global_support_areas_per_layer,
-    unsigned int total_layer_count)
+void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<Shape>& global_support_areas_per_layer, unsigned int total_layer_count)
 {
     if (total_layer_count == 0)
     {
@@ -950,13 +947,13 @@ Shape AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& stora
 
     const auto smooth_dist = xy_distance / 2.0;
     Shape varying_xy_disallowed_areas = layer_current
-                                               // offset using the varying offset distances we calculated previously
-                                               .offsetMulti(varying_offsets)
-                                               // close operation to smooth the x/y disallowed area boundary. With varying xy distances we see some jumps in the boundary.
-                                               // As the x/y disallowed areas "cut in" to support the xy-disallowed area may propagate through the support area. If the
-                                               // x/y disallowed area is not smoothed boost has trouble generating a voronoi diagram.
-                                               .offset(smooth_dist)
-                                               .offset(-smooth_dist);
+                                            // offset using the varying offset distances we calculated previously
+                                            .offsetMulti(varying_offsets)
+                                            // close operation to smooth the x/y disallowed area boundary. With varying xy distances we see some jumps in the boundary.
+                                            // As the x/y disallowed areas "cut in" to support the xy-disallowed area may propagate through the support area. If the
+                                            // x/y disallowed area is not smoothed boost has trouble generating a voronoi diagram.
+                                            .offset(smooth_dist)
+                                            .offset(-smooth_dist);
     scripta::log("support_varying_xy_disallowed_areas", varying_xy_disallowed_areas, SectionType::SUPPORT, layer_idx);
     return varying_xy_disallowed_areas;
 }
@@ -1158,8 +1155,7 @@ void AreaSupport::generateSupportAreasForMesh(
         { // join with support from layer up
             const Shape empty;
             const Shape* layer_above = (layer_idx < support_areas.size()) ? &support_areas[layer_idx + 1] : &empty;
-            const Shape model_mesh_on_layer
-                = (layer_idx > 0) && ! is_support_mesh_nondrop_place_holder ? storage.getLayerOutlines(layer_idx, no_support, no_prime_tower) : empty;
+            const Shape model_mesh_on_layer = (layer_idx > 0) && ! is_support_mesh_nondrop_place_holder ? storage.getLayerOutlines(layer_idx, no_support, no_prime_tower) : empty;
             if (is_support_mesh_nondrop_place_holder)
             {
                 layer_above = &empty;
@@ -1469,8 +1465,8 @@ std::pair<Shape, Shape> AreaSupport::computeBasicAndFullOverhang(const SliceData
     }
 
     Shape overhang_extended = basic_overhang
-                                     // +0.1mm for easier joining with support from layer above
-                                     .offset(max_dist_from_lower_layer * layers_below + MM2INT(0.1));
+                                  // +0.1mm for easier joining with support from layer above
+                                  .offset(max_dist_from_lower_layer * layers_below + MM2INT(0.1));
     Shape full_overhang = overhang_extended.intersection(outlines);
 
     return std::make_pair(basic_overhang, full_overhang);
@@ -1572,11 +1568,11 @@ void AreaSupport::handleTowers(
     }
 
     for (Shape& tower_roof : tower_roofs
-                                    | ranges::views::filter(
-                                        [](const auto& poly)
-                                        {
-                                            return ! poly.empty();
-                                        }))
+                                 | ranges::views::filter(
+                                     [](const auto& poly)
+                                     {
+                                         return ! poly.empty();
+                                     }))
     {
         supportLayer_this = supportLayer_this.unionPolygons(tower_roof);
 

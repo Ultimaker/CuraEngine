@@ -3539,11 +3539,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 }
 
 
-bool FffGcodeWriter::addSupportRoofsToGCode(
-    const SliceDataStorage& storage,
-    const Shape& support_roof_outlines,
-    const GCodePathConfig& current_roof_config,
-    LayerPlan& gcode_layer) const
+bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, const Shape& support_roof_outlines, const GCodePathConfig& current_roof_config, LayerPlan& gcode_layer)
+    const
 {
     const SupportLayer& support_layer = storage.support.supportLayers[std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr())];
 

@@ -109,7 +109,7 @@ private:
 
     std::vector<std::vector<const Polygon*>> inset_polys_; // vector of vectors holding the inset polygons
     Shape retraction_region_; // After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see
-                                 // retraction_region_calculated).
+                              // retraction_region_calculated).
 
     /*!
      * Determine if the paths should be reversed

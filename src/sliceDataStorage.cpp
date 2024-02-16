@@ -266,9 +266,12 @@ SliceDataStorage::SliceDataStorage()
     machine_size.include(machine_max);
 }
 
-Shape
-    SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only, const int extruder_nr)
-        const
+Shape SliceDataStorage::getLayerOutlines(
+    const LayerIndex layer_nr,
+    const bool include_support,
+    const bool include_prime_tower,
+    const bool external_polys_only,
+    const int extruder_nr) const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
 
@@ -759,8 +762,7 @@ void SupportLayer::fillInfillParts(
     const coord_t custom_line_distance /*has default 0*/)
 {
     const Shape& support_this_layer = support_fill_per_layer[layer_nr];
-    const Shape& support_layer_above
-        = (layer_nr + 1) >= support_fill_per_layer.size() || layer_nr <= 0 ? Shape() : support_fill_per_layer[layer_nr + 1].offset(grow_layer_above);
+    const Shape& support_layer_above = (layer_nr + 1) >= support_fill_per_layer.size() || layer_nr <= 0 ? Shape() : support_fill_per_layer[layer_nr + 1].offset(grow_layer_above);
     const auto all_support_areas_in_layer = { support_this_layer.difference(support_layer_above), support_this_layer.intersection(support_layer_above) };
     bool use_fractional_config = true;
     for (auto& support_areas : all_support_areas_in_layer)

@@ -7,8 +7,8 @@
 
 #include "geometry/open_polyline.h"
 #include "geometry/polygon.h"
-#include "geometry/shape.h"
 #include "geometry/polyline_type.h"
+#include "geometry/shape.h"
 
 namespace cura
 {

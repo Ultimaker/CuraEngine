@@ -50,8 +50,8 @@ void Raft::generate(SliceDataStorage& storage)
     {
         const Shape& ooze_shield = storage.oozeShield[0];
         Shape ooze_shield_raft = ooze_shield
-                                        .offset(shield_line_width_layer0) // start half a line width outside shield
-                                        .difference(ooze_shield.offset(-max_raft_distance - shield_line_width_layer0 / 2, ClipperLib::jtRound)); // end distance inside shield
+                                     .offset(shield_line_width_layer0) // start half a line width outside shield
+                                     .difference(ooze_shield.offset(-max_raft_distance - shield_line_width_layer0 / 2, ClipperLib::jtRound)); // end distance inside shield
         storage.raftBaseOutline = storage.raftBaseOutline.unionPolygons(ooze_shield_raft);
         storage.raftSurfaceOutline = storage.raftSurfaceOutline.unionPolygons(ooze_shield_raft);
         storage.raftInterfaceOutline = storage.raftInterfaceOutline.unionPolygons(ooze_shield_raft);

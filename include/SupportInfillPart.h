@@ -31,7 +31,7 @@ public:
     coord_t support_line_width_; //!< The support line width
     int inset_count_to_generate_; //!< The number of insets need to be generated from the outline. This is not the actual insets that will be generated.
     std::vector<std::vector<Shape>> infill_area_per_combine_per_density_; //!< a list of separated sub-areas which requires different infill densities and combined thicknesses
-                                                                             //   for infill_areas[x][n], x means the density level and n means the thickness
+                                                                          //   for infill_areas[x][n], x means the density level and n means the thickness
     std::vector<VariableWidthLines> wall_toolpaths_; //!< Any walls go here, not in the areas, where they could be combined vertically (don't combine walls). Binned by inset_idx.
 
     coord_t custom_line_distance_; //!< The distance between support infill lines. 0 means use the default line distance instead.

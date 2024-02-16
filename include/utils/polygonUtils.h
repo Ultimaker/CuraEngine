@@ -597,8 +597,7 @@ public:
      * \return whether the line segment collides with the boundary of the
      * polygon(s)
      */
-    static bool
-        polygonCollidesWithLineSegment(const Shape& polys, const Point2LL& transformed_startPoint, const Point2LL& transformed_endPoint, PointMatrix transformation_matrix);
+    static bool polygonCollidesWithLineSegment(const Shape& polys, const Point2LL& transformed_startPoint, const Point2LL& transformed_endPoint, PointMatrix transformation_matrix);
 
     /*!
      * Checks whether a given line segment collides with a given polygon(s).

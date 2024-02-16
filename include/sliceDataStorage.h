@@ -65,7 +65,7 @@ public:
                          //!< a cross-section of the 3D model. The first polygon is the outer boundary polygon and the
                          //!< rest are holes.
     Shape print_outline; //!< An approximation to the outline of what's actually printed, based on the outer wall.
-                            //!< Too small parts will be omitted compared to the outline.
+                         //!< Too small parts will be omitted compared to the outline.
     Shape spiral_wall; //!< The centerline of the wall used by spiralize mode. Only computed if spiralize mode is enabled.
     Shape inner_area; //!< The area of the outline, minus the walls. This will be filled with either skin or infill.
     std::vector<SkinPart> skin_parts; //!< The skin parts which are filled for 100% with lines and/or insets.
@@ -214,9 +214,9 @@ public:
     std::vector<SupportInfillPart> support_infill_parts; //!< a list of support infill parts
     Shape support_bottom; //!< Piece of support below the support and above the model. This must not overlap with any of the support_infill_parts or support_roof.
     Shape support_roof; //!< Piece of support above the support and below the model. This must not overlap with any of the support_infill_parts or support_bottom.
-                           //   NOTE: This is _all_ of the support_roof, and as such, overlaps with support_fractional_roof!
+                        //   NOTE: This is _all_ of the support_roof, and as such, overlaps with support_fractional_roof!
     Shape support_fractional_roof; //!< If the support distance is not exactly a multiple of the layer height,
-                                      //   the first part of support just underneath the model needs to be printed at a fracional layer height.
+                                   //   the first part of support just underneath the model needs to be printed at a fracional layer height.
     Shape support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support
     Shape support_mesh; //!< Areas from support meshes which should NOT be supported by more support
     Shape anti_overhang; //!< Areas where no overhang should be detected.
@@ -286,9 +286,9 @@ public:
     std::vector<AngleDegrees> skin_angles; //!< a list of angle values which is cycled through to determine the skin angle of each layer
     std::vector<Shape> overhang_areas; //!< For each layer the areas that are classified as overhang on this mesh.
     std::vector<Shape> full_overhang_areas; //!< For each layer the full overhang without the tangent of the overhang angle removed, such that the overhang area adjoins the
-                                               //!< areas of the next layers.
+                                            //!< areas of the next layers.
     std::vector<std::vector<Shape>> overhang_points; //!< For each layer a list of points where point-overhang is detected. This is overhang that hasn't got any surface area,
-                                                        //!< such as a corner pointing downwards.
+                                                     //!< such as a corner pointing downwards.
     AABB3D bounding_box; //!< the mesh's bounding box
 
     std::shared_ptr<SubDivCube> base_subdiv_cube;

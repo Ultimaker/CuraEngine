@@ -143,7 +143,7 @@ private:
     std::unique_ptr<LocToLineGrid> inside_loc_to_line_minimum_; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
     std::unique_ptr<LocToLineGrid> inside_loc_to_line_optimal_; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
     std::unordered_map<size_t, Shape> boundary_outside_; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only
-                                                            //!< compute it when we move outside the boundary (so not when there is only a single part in the layer)
+                                                         //!< compute it when we move outside the boundary (so not when there is only a single part in the layer)
     std::unordered_map<size_t, Shape> model_boundary_; //!< The boundary of the model itself
     std::unordered_map<size_t, std::unique_ptr<LocToLineGrid>> outside_loc_to_line_; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
     std::unordered_map<size_t, std::unique_ptr<LocToLineGrid>>
