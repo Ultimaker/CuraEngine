@@ -262,7 +262,7 @@ struct ExtrusionLine
 
         Shape paths;
         paths.emplace_back(poly);
-        ClipperLib::SimplifyPolygons(paths.getCallable(), ClipperLib::pftNonZero);
+        ClipperLib::SimplifyPolygons(paths.asRawVector(), ClipperLib::pftNonZero);
         return paths;
     }
 

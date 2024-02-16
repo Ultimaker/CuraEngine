@@ -1487,7 +1487,7 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Shape& polygon)
 {
     if (epsilon < 1)
     {
-        ClipperLib::SimplifyPolygons(polygon.getCallable());
+        ClipperLib::SimplifyPolygons(polygon.asRawVector());
         return;
     }
 
@@ -1531,7 +1531,7 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Shape& polygon)
         }
     }
 
-    ClipperLib::SimplifyPolygons(polygon.getCallable());
+    ClipperLib::SimplifyPolygons(polygon.asRawVector());
 }
 
 Shape PolygonUtils::unionManySmall(const Shape& polygon)

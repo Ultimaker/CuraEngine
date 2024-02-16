@@ -112,17 +112,17 @@ Shape LinesSet<LineType>::offset(coord_t distance, ClipperLib::JoinType joinType
 {
     if (distance == 0)
     {
-        return Shape(getCallable());
+        return Shape(asRawVector());
     }
 
     Shape temp;
-    const ClipperLib::Paths* actual_polygons = &getCallable();
+    const ClipperLib::Paths* actual_polygons = &asRawVector();
     Shape ret;
     ClipperLib::EndType end_type;
     if constexpr (LineType::type_ == PolylineType::Filled)
     {
-        temp = Shape(getCallable()).unionPolygons();
-        actual_polygons = &temp.getCallable();
+        temp = Shape(asRawVector()).unionPolygons();
+        actual_polygons = &temp.asRawVector();
         end_type = ClipperLib::etClosedPolygon;
     }
     else if constexpr (LineType::type_ == PolylineType::Closed)
@@ -140,7 +140,7 @@ Shape LinesSet<LineType>::offset(coord_t distance, ClipperLib::JoinType joinType
     ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
     clipper.AddPaths(*actual_polygons, joinType, end_type);
     clipper.MiterLimit = miter_limit;
-    clipper.Execute(ret.getCallable(), distance);
+    clipper.Execute(ret.asRawVector(), distance);
     return ret;
 }
 

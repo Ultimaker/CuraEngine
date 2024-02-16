@@ -37,7 +37,7 @@ Shape Polygon::intersection(const Polygon& other) const
     ClipperLib::Clipper clipper(clipper_init);
     clipper.AddPath(*this, ClipperLib::ptSubject, true);
     clipper.AddPath(other, ClipperLib::ptClip, true);
-    clipper.Execute(ClipperLib::ctIntersection, ret.getCallable());
+    clipper.Execute(ClipperLib::ctIntersection, ret.asRawVector());
     return ret;
 }
 
@@ -624,7 +624,7 @@ Shape Polygon::offset(int distance, ClipperLib::JoinType join_type, double miter
     ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
     clipper.AddPath(*this, join_type, ClipperLib::etClosedPolygon);
     clipper.MiterLimit = miter_limit;
-    clipper.Execute(ret.getCallable(), distance);
+    clipper.Execute(ret.asRawVector(), distance);
     return ret;
 }
 

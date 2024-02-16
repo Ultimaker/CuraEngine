@@ -34,6 +34,15 @@ bool shorterThan(const T& shape, const coord_t check_length)
     return true;
 }
 
+/*!
+ * \brief Base class for all geometry containers representing a set of points.
+ * \warning This class and all its subclasses must not contain any attribute. This way the memory
+ *          footprint of all the objects is the same whatever their type, which allows us to
+ *          directly cast them between each other, and also most important, into
+ *          std::vector<Point2LL> which is the base type required by ClipperLib. This gives us the
+ *          possibility to have nice container with transformation methods, and call the Clipper
+ *          functions directly on them without having to make any active data conversion.
+ */
 class PointsSet : public std::vector<Point2LL>
 {
 public:
@@ -53,11 +62,13 @@ public:
 
     const std::vector<Point2LL>& asRawVector() const
     {
+        // This does work as long as we don't add any attribute to the PointsSet class or any of its child
         return *reinterpret_cast<const std::vector<Point2LL>*>(this);
     }
 
     std::vector<Point2LL>& asRawVector()
     {
+        // This does work as long as we don't add any attribute to the PointsSet class or any of its child
         return *reinterpret_cast<std::vector<Point2LL>*>(this);
     }
 

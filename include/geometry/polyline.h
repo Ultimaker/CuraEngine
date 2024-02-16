@@ -16,6 +16,25 @@ template<class T>
 class LinesSet;
 class AngleRadians;
 
+/*!
+ * \brief Base class for various types of polylines. A polyline is basically a set of points, but
+ *        we geometrically interpret them forming a chain of segments between each other.
+ *
+ *  * Open Polyline : this represents a line that does not closes, i.e. the last point is different
+ *                    from the initial point
+ *  * Closed Polyline : a closed polyline as a final segment joining the last point and the
+ *                      initial one
+ *  * Filled Polyline : this is a particular type of closed polyline, for which we consider that the
+ *                      "inside" part of the line forms a surface
+ *
+ *  Due to the nature of the PointsSet class, it is possible to cast e.g. an open polyline to a
+ *  closed polyline. This only changes whether the last point forms a segment with the initial one,
+ *  but the list of points itself does not change.
+ *
+ *  \note Historically, the open and closed polylines were not explicitely differenciated, so
+ *        sometimes we would use an open polyline with an extra point at the end, which virtually
+ *        closes the line. This behaviour is now deprecated and should be removed over time.
+ */
 template<PolylineType PolylineTypeVal>
 class Polyline : public PointsSet
 {

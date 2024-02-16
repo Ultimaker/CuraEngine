@@ -40,7 +40,7 @@ Shape Shape::approxConvexHull(int extra_outset) const
         Shape offset_result;
         ClipperLib::ClipperOffset offsetter(1.2, 10.0);
         offsetter.AddPath(path, ClipperLib::jtRound, ClipperLib::etClosedPolygon);
-        offsetter.Execute(offset_result.getCallable(), overshoot);
+        offsetter.Execute(offset_result.asRawVector(), overshoot);
         convex_hull.add(offset_result);
     }
 
@@ -104,9 +104,9 @@ Shape Shape::difference(const Shape& other) const
 {
     Shape ret;
     ClipperLib::Clipper clipper(clipper_init);
-    clipper.AddPaths(getCallable(), ClipperLib::ptSubject, true);
-    clipper.AddPaths(other.getCallable(), ClipperLib::ptClip, true);
-    clipper.Execute(ClipperLib::ctDifference, ret.getCallable());
+    clipper.AddPaths(asRawVector(), ClipperLib::ptSubject, true);
+    clipper.AddPaths(other.asRawVector(), ClipperLib::ptClip, true);
+    clipper.Execute(ClipperLib::ctDifference, ret.asRawVector());
     return ret;
 }
 
@@ -114,9 +114,9 @@ Shape Shape::unionPolygons(const Shape& other, ClipperLib::PolyFillType fill_typ
 {
     Shape ret;
     ClipperLib::Clipper clipper(clipper_init);
-    clipper.AddPaths(getCallable(), ClipperLib::ptSubject, true);
-    clipper.AddPaths(other.getCallable(), ClipperLib::ptSubject, true);
-    clipper.Execute(ClipperLib::ctUnion, ret.getCallable(), fill_type, fill_type);
+    clipper.AddPaths(asRawVector(), ClipperLib::ptSubject, true);
+    clipper.AddPaths(other.asRawVector(), ClipperLib::ptSubject, true);
+    clipper.Execute(ClipperLib::ctUnion, ret.asRawVector(), fill_type, fill_type);
     return ret;
 }
 
@@ -124,9 +124,9 @@ Shape Shape::intersection(const Shape& other) const
 {
     Shape ret;
     ClipperLib::Clipper clipper(clipper_init);
-    clipper.AddPaths(getCallable(), ClipperLib::ptSubject, true);
-    clipper.AddPaths(other.getCallable(), ClipperLib::ptClip, true);
-    clipper.Execute(ClipperLib::ctIntersection, ret.getCallable());
+    clipper.AddPaths(asRawVector(), ClipperLib::ptSubject, true);
+    clipper.AddPaths(other.asRawVector(), ClipperLib::ptClip, true);
+    clipper.Execute(ClipperLib::ctIntersection, ret.asRawVector());
     return ret;
 }
 
@@ -233,11 +233,11 @@ LinesSet<OpenPolyline> Shape::intersectionPolyLines(const LinesSet<OpenPolyline>
 
     ClipperLib::PolyTree result;
     ClipperLib::Clipper clipper(clipper_init);
-    clipper.AddPaths(split_polylines.getCallable(), ClipperLib::ptSubject, false);
-    clipper.AddPaths(getCallable(), ClipperLib::ptClip, true);
+    clipper.AddPaths(split_polylines.asRawVector(), ClipperLib::ptSubject, false);
+    clipper.AddPaths(asRawVector(), ClipperLib::ptClip, true);
     clipper.Execute(ClipperLib::ctIntersection, result);
     LinesSet<OpenPolyline> ret;
-    ClipperLib::OpenPathsFromPolyTree(result, ret.getCallable());
+    ClipperLib::OpenPathsFromPolyTree(result, ret.asRawVector());
 
     if (restitch)
     {
@@ -263,9 +263,9 @@ Shape Shape::xorPolygons(const Shape& other, ClipperLib::PolyFillType pft) const
 {
     Shape ret;
     ClipperLib::Clipper clipper(clipper_init);
-    clipper.AddPaths(getCallable(), ClipperLib::ptSubject, true);
-    clipper.AddPaths(other.getCallable(), ClipperLib::ptClip, true);
-    clipper.Execute(ClipperLib::ctXor, ret.getCallable(), pft);
+    clipper.AddPaths(asRawVector(), ClipperLib::ptSubject, true);
+    clipper.AddPaths(other.asRawVector(), ClipperLib::ptClip, true);
+    clipper.Execute(ClipperLib::ctXor, ret.asRawVector(), pft);
     return ret;
 }
 
@@ -273,8 +273,8 @@ Shape Shape::execute(ClipperLib::PolyFillType pft) const
 {
     Shape ret;
     ClipperLib::Clipper clipper(clipper_init);
-    clipper.AddPaths(getCallable(), ClipperLib::ptSubject, true);
-    clipper.Execute(ClipperLib::ctXor, ret.getCallable(), pft);
+    clipper.AddPaths(asRawVector(), ClipperLib::ptSubject, true);
+    clipper.Execute(ClipperLib::ctXor, ret.asRawVector(), pft);
     return ret;
 }
 /*
@@ -332,7 +332,7 @@ Shape Shape::offsetMulti(const std::vector<coord_t>& offset_dists) const
         ret.push_back(ret_poly_line);
     }
 
-    ClipperLib::SimplifyPolygons(ret.getCallable(), ClipperLib::PolyFillType::pftPositive);
+    ClipperLib::SimplifyPolygons(ret.asRawVector(), ClipperLib::PolyFillType::pftPositive);
 
     return ret;
 }
@@ -343,7 +343,7 @@ Shape Shape::getOutsidePolygons() const
     ClipperLib::Clipper clipper(clipper_init);
     ClipperLib::PolyTree poly_tree;
     constexpr bool paths_are_closed_polys = true;
-    clipper.AddPaths(getCallable(), ClipperLib::ptSubject, paths_are_closed_polys);
+    clipper.AddPaths(asRawVector(), ClipperLib::ptSubject, paths_are_closed_polys);
     clipper.Execute(ClipperLib::ctUnion, poly_tree);
 
     for (int outer_poly_idx = 0; outer_poly_idx < poly_tree.ChildCount(); outer_poly_idx++)
@@ -360,7 +360,7 @@ Shape Shape::removeEmptyHoles() const
     ClipperLib::Clipper clipper(clipper_init);
     ClipperLib::PolyTree poly_tree;
     constexpr bool paths_are_closed_polys = true;
-    clipper.AddPaths(getCallable(), ClipperLib::ptSubject, paths_are_closed_polys);
+    clipper.AddPaths(asRawVector(), ClipperLib::ptSubject, paths_are_closed_polys);
     clipper.Execute(ClipperLib::ctUnion, poly_tree);
 
     bool remove_holes = true;
@@ -374,7 +374,7 @@ Shape Shape::getEmptyHoles() const
     ClipperLib::Clipper clipper(clipper_init);
     ClipperLib::PolyTree poly_tree;
     constexpr bool paths_are_closed_polys = true;
-    clipper.AddPaths(getCallable(), ClipperLib::ptSubject, paths_are_closed_polys);
+    clipper.AddPaths(asRawVector(), ClipperLib::ptSubject, paths_are_closed_polys);
     clipper.Execute(ClipperLib::ctUnion, poly_tree);
 
     bool remove_holes = false;
@@ -523,15 +523,15 @@ Shape Shape::processEvenOdd(ClipperLib::PolyFillType poly_fill_type) const
 {
     Shape ret;
     ClipperLib::Clipper clipper(clipper_init);
-    clipper.AddPaths(getCallable(), ClipperLib::ptSubject, true);
-    clipper.Execute(ClipperLib::ctUnion, ret.getCallable(), poly_fill_type);
+    clipper.AddPaths(asRawVector(), ClipperLib::ptSubject, true);
+    clipper.Execute(ClipperLib::ctUnion, ret.asRawVector(), poly_fill_type);
     return ret;
 }
 
 Shape Shape::toPolygons(ClipperLib::PolyTree& poly_tree)
 {
     Shape ret;
-    ClipperLib::PolyTreeToPaths(poly_tree, ret.getCallable());
+    ClipperLib::PolyTreeToPaths(poly_tree, ret.asRawVector());
     return ret;
 }
 
@@ -725,7 +725,7 @@ std::vector<SingleShape> Shape::splitIntoParts(bool unionAll) const
     std::vector<SingleShape> ret;
     ClipperLib::Clipper clipper(clipper_init);
     ClipperLib::PolyTree resultPolyTree;
-    clipper.AddPaths(getCallable(), ClipperLib::ptSubject, true);
+    clipper.AddPaths(asRawVector(), ClipperLib::ptSubject, true);
     if (unionAll)
         clipper.Execute(ClipperLib::ctUnion, resultPolyTree, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
     else
@@ -756,7 +756,7 @@ std::vector<Shape> Shape::sortByNesting() const
     std::vector<Shape> ret;
     ClipperLib::Clipper clipper(clipper_init);
     ClipperLib::PolyTree resultPolyTree;
-    clipper.AddPaths(getCallable(), ClipperLib::ptSubject, true);
+    clipper.AddPaths(asRawVector(), ClipperLib::ptSubject, true);
     clipper.Execute(ClipperLib::ctUnion, resultPolyTree);
 
     sortByNesting_processPolyTreeNode(&resultPolyTree, 0, ret);
@@ -783,7 +783,7 @@ PartsView Shape::splitIntoPartsView(bool unionAll)
     PartsView partsView(*this);
     ClipperLib::Clipper clipper(clipper_init);
     ClipperLib::PolyTree resultPolyTree;
-    clipper.AddPaths(getCallable(), ClipperLib::ptSubject, true);
+    clipper.AddPaths(asRawVector(), ClipperLib::ptSubject, true);
     if (unionAll)
         clipper.Execute(ClipperLib::ctUnion, resultPolyTree, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
     else

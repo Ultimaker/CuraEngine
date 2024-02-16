@@ -16,6 +16,14 @@ class OpenPolyline;
 template<class T>
 class LinesSet;
 
+/*!
+ * \brief Base class for all geometry containers representing a set of polylines. All the polylines
+ *        have to be of the same type, e.g. open polylines. Due to the nature of the Polyline
+ *        classes, it is possible to cast a LinesSet directly to a
+ *        std::vector<std::vector<ClipperLib::IntPoint>> so that we can call the Clipper functions
+ *        which having to do an active data conversion. It is also possible to virtually change the
+ *        inner type of lines without having to do a conversion.
+ */
 template<class LineType>
 class LinesSet : public std::vector<LineType>
 {
@@ -56,20 +64,19 @@ public:
     template<class OtherLineType>
     const LinesSet<OtherLineType>& toType() const
     {
+        // This does work as long as we don't add any attribute to the PointsSet class or any of its child
         return *reinterpret_cast<const LinesSet<OtherLineType>*>(this);
     }
 
-    const std::vector<std::vector<Point2LL>>& getCallable() const
+    const std::vector<std::vector<Point2LL>>& asRawVector() const
     {
-        // This does work as long as we don't add any attribute to the Polygon class or any of its
-        // parent until std::vector<point_t>
+        // This does work as long as we don't add any attribute to the PointsSet class or any of its child
         return *reinterpret_cast<const std::vector<std::vector<Point2LL>>*>(this);
     }
 
-    std::vector<std::vector<Point2LL>>& getCallable()
+    std::vector<std::vector<Point2LL>>& asRawVector()
     {
-        // This does work as long as we don't add any attribute to the Polygon class or any of its
-        // parent until std::vector<point_t>
+        // This does work as long as we don't add any attribute to the PointsSet class or any of its child
         return *reinterpret_cast<std::vector<std::vector<Point2LL>>*>(this);
     }
 
