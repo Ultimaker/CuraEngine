@@ -6,9 +6,9 @@
 #include <cmath> // isfinite
 #include <sstream> // ostream
 
+#include "geometry/polygon.h"
 #include "utils/AABB.h" // for debug output svg html
 #include "utils/SVG.h"
-#include "geometry/polygon.h"
 
 namespace cura
 {

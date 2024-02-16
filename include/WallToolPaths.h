@@ -7,9 +7,9 @@
 #include <memory>
 
 #include "BeadingStrategy/BeadingStrategyFactory.h"
+#include "geometry/polygon.h"
 #include "settings/Settings.h"
 #include "utils/ExtrusionLine.h"
-#include "geometry/polygon.h"
 #include "utils/section_type.h"
 
 namespace cura

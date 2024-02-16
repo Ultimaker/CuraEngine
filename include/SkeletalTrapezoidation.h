@@ -14,12 +14,12 @@
 #include "SkeletalTrapezoidationEdge.h"
 #include "SkeletalTrapezoidationGraph.h"
 #include "SkeletalTrapezoidationJoint.h"
+#include "geometry/polygon.h"
 #include "settings/types/Ratio.h"
 #include "utils/ExtrusionJunction.h"
 #include "utils/ExtrusionLine.h"
 #include "utils/HalfEdgeGraph.h"
 #include "utils/PolygonsSegmentIndex.h"
-#include "geometry/polygon.h"
 #include "utils/section_type.h"
 
 namespace cura

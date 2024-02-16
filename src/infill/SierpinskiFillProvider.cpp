@@ -5,11 +5,11 @@
 
 #include <spdlog/spdlog.h>
 
+#include "geometry/polygon.h"
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/UniformDensityProvider.h"
 #include "utils/AABB3D.h"
 #include "utils/math.h"
-#include "geometry/polygon.h"
 
 namespace cura
 {

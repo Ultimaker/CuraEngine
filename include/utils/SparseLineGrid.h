@@ -10,9 +10,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "geometry/point2ll.h"
 #include "SVG.h" // debug
 #include "SparseGrid.h"
+#include "geometry/point2ll.h"
 
 namespace cura
 {

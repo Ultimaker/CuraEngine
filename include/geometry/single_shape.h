@@ -4,8 +4,8 @@
 #ifndef GEOMETRY_SINGLE_SHAPE_H
 #define GEOMETRY_SINGLE_SHAPE_H
 
-#include "point2ll.h"
 #include "geometry/polygons.h"
+#include "point2ll.h"
 
 namespace cura
 {

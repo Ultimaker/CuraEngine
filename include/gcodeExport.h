@@ -11,6 +11,7 @@
 #include <sstream> // for stream.str()
 #include <stdio.h>
 
+#include "geometry/point2ll.h"
 #include "settings/EnumSettings.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
 #include "settings/types/LayerIndex.h"
@@ -20,7 +21,6 @@
 #include "timeEstimate.h"
 #include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
 #include "utils/NoCopy.h"
-#include "geometry/point2ll.h"
 
 namespace cura
 {

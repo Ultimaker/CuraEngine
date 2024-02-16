@@ -10,11 +10,11 @@
 
 #include "GCodePathConfig.h"
 #include "WallToolPaths.h"
+#include "geometry/polygon.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/SpeedDerivatives.h"
 #include "settings/Settings.h"
 #include "settings/types/LayerIndex.h"
-#include "geometry/polygon.h"
 
 namespace cura::plugins
 {

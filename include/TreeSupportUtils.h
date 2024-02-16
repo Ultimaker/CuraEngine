@@ -12,12 +12,12 @@
 #include "TreeSupportEnums.h"
 #include "TreeSupportSettings.h"
 #include "boost/functional/hash.hpp" // For combining hashes
+#include "geometry/polygon.h"
 #include "infill.h"
 #include "polyclipping/clipper.hpp"
 #include "settings/EnumSettings.h"
 #include "sliceDataStorage.h"
 #include "utils/Coord_t.h"
-#include "geometry/polygon.h"
 
 namespace cura
 {

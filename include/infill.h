@@ -8,6 +8,7 @@
 
 #include <range/v3/range/concepts.hpp>
 
+#include "geometry/point2ll.h"
 #include "infill/LightningGenerator.h"
 #include "infill/ZigzagConnectorProcessor.h"
 #include "settings/EnumSettings.h" //For infill types.
@@ -15,7 +16,6 @@
 #include "settings/types/Angle.h"
 #include "utils/AABB.h"
 #include "utils/ExtrusionLine.h"
-#include "geometry/point2ll.h"
 #include "utils/section_type.h"
 
 namespace cura

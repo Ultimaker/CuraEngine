@@ -10,11 +10,11 @@
 #include <unordered_set>
 
 #include "TreeSupportSettings.h"
+#include "geometry/polygon.h" //For polygon parameters.
 #include "settings/EnumSettings.h" //To store whether X/Y or Z distance gets priority.
 #include "settings/types/LayerIndex.h" //Part of the RadiusLayerPair.
 #include "sliceDataStorage.h"
 #include "utils/Simplify.h"
-#include "geometry/polygon.h" //For polygon parameters.
 
 namespace cura
 {

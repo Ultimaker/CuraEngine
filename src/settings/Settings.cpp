@@ -18,6 +18,8 @@
 #include "BeadingStrategy/BeadingStrategyFactory.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
+#include "geometry/polygon.h"
+#include "geometry/polygons.h"
 #include "settings/EnumSettings.h"
 #include "settings/FlowTempGraph.h"
 #include "settings/types/Angle.h"
@@ -27,8 +29,6 @@
 #include "settings/types/Temperature.h" //For temperature settings.
 #include "settings/types/Velocity.h" //For velocity settings.
 #include "utils/Matrix4x3D.h"
-#include "geometry/polygon.h"
-#include "geometry/polygons.h"
 #include "utils/string.h" //For Escaped.
 #include "utils/types/string_switch.h" //For string switch.
 

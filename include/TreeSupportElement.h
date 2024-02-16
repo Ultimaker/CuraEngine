@@ -10,9 +10,9 @@
 #include "TreeModelVolumes.h"
 #include "TreeSupportBaseCircle.h"
 #include "TreeSupportEnums.h"
+#include "geometry/polygons.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
-#include "geometry/polygons.h"
 
 namespace cura
 {

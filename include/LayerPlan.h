@@ -10,6 +10,7 @@
 #include "PathOrderOptimizer.h"
 #include "SpaceFillType.h"
 #include "gcodeExport.h"
+#include "geometry/polygon.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/NozzleTempInsert.h"
 #include "pathPlanning/TimeMaterialEstimates.h"
@@ -17,7 +18,6 @@
 #include "settings/PathConfigStorage.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/ExtrusionJunction.h"
-#include "geometry/polygon.h"
 
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.

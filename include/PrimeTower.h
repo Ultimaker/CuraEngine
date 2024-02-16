@@ -6,8 +6,8 @@
 
 #include <vector>
 
-#include "settings/types/LayerIndex.h"
 #include "geometry/polygon.h" // Polygons
+#include "settings/types/LayerIndex.h"
 #include "utils/polygonUtils.h"
 
 

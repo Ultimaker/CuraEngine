@@ -5,9 +5,9 @@
 
 #include <limits>
 
-#include "utils/linearAlg2D.h"
 #include "geometry/polygon.h"
 #include "geometry/polygons.h"
+#include "utils/linearAlg2D.h"
 
 namespace cura
 {

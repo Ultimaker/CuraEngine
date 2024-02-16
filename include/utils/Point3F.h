@@ -7,8 +7,8 @@
 #include <math.h>
 #include <stdint.h>
 
-#include "geometry/point2ll.h"
 #include "Point3D.h"
+#include "geometry/point2ll.h"
 
 
 namespace cura
