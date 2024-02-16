@@ -789,7 +789,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
         mesh->settings_.get<coord_t>("meshfix_maximum_resolution"),
         mesh->settings_.get<coord_t>("meshfix_maximum_deviation"),
         static_cast<coord_t>(mesh->settings_.get<size_t>("meshfix_maximum_extrusion_area_deviation")));
-    polygons.removeDegenerateVertsForEveryone(); // remove verts connected to overlapping line segments
+    polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 
     // Clean up polylines for Surface Mode printing
     auto itPolylines = std::remove_if(
@@ -801,7 +801,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
         });
     openPolylines.erase(itPolylines, openPolylines.end());
 
-    openPolylines.removeDegenerateVertsForEveryone();
+    openPolylines.removeDegenerateVerts();
 }
 
 Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_count, bool use_variable_layer_heights, std::vector<AdaptiveLayer>* adaptive_layers)

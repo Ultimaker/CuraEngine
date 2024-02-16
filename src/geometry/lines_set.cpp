@@ -145,7 +145,7 @@ Shape LinesSet<LineType>::offset(coord_t distance, ClipperLib::JoinType joinType
 }
 
 template<class LineType>
-void LinesSet<LineType>::removeDegenerateVertsForEveryone()
+void LinesSet<LineType>::removeDegenerateVerts()
 {
     constexpr bool for_polyline = LineType::type_ == PolylineType::Open;
     for (size_t poly_idx = 0; poly_idx < this->size(); poly_idx++)
@@ -220,7 +220,7 @@ template LinesSet<OpenPolyline> LinesSet<OpenPolyline>::splitIntoSegments() cons
 template coord_t LinesSet<OpenPolyline>::length() const;
 template Shape LinesSet<OpenPolyline>::tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 template Shape LinesSet<OpenPolyline>::offset(coord_t distance, ClipperLib::JoinType joinType, double miter_limit) const;
-template void LinesSet<OpenPolyline>::removeDegenerateVertsForEveryone();
+template void LinesSet<OpenPolyline>::removeDegenerateVerts();
 template void LinesSet<OpenPolyline>::addIfNotEmpty(const OpenPolyline& line);
 template void LinesSet<OpenPolyline>::addIfNotEmpty(OpenPolyline&& line);
 
@@ -232,7 +232,7 @@ template LinesSet<OpenPolyline> LinesSet<Polygon>::splitIntoSegments() const;
 template coord_t LinesSet<Polygon>::length() const;
 template Shape LinesSet<Polygon>::tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 template Shape LinesSet<Polygon>::offset(coord_t distance, ClipperLib::JoinType joinType, double miter_limit) const;
-template void LinesSet<Polygon>::removeDegenerateVertsForEveryone();
+template void LinesSet<Polygon>::removeDegenerateVerts();
 template void LinesSet<Polygon>::addIfNotEmpty(const Polygon& line);
 template void LinesSet<Polygon>::addIfNotEmpty(Polygon&& line);
 

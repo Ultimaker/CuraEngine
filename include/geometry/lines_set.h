@@ -117,11 +117,9 @@ public:
      * See \ref removeDegenerateVertsPolyline for a version that works on
      * polylines.
      */
-#warning rename this to removeDegenerateVerts
-    void removeDegenerateVertsForEveryone();
+    void removeDegenerateVerts();
 
     Shape offset(coord_t distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
-    // Polygons offsetPolyLine(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, bool inputPolyIsClosed = false) const;
 
     /*!
      * Utility method for creating the tube (or 'donut') of a shape.

@@ -102,11 +102,11 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     }
 
     PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
-    prepared_outline.removeDegenerateVertsForEveryone();
+    prepared_outline.removeDegenerateVerts();
     prepared_outline.removeColinearEdges(AngleRadians(0.005));
     // Removing collinear edges may introduce self intersections, so we need to fix them again
     PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
-    prepared_outline.removeDegenerateVertsForEveryone();
+    prepared_outline.removeDegenerateVerts();
     prepared_outline = prepared_outline.unionPolygons();
     prepared_outline = Simplify(settings_).polygon(prepared_outline);
 

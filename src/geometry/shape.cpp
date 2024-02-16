@@ -467,49 +467,6 @@ void Shape::removeSmallAreas(const double min_area_size, const bool remove_holes
     resize(new_end - begin());
 }
 
-void Shape::removeSmallCircumference(const coord_t min_circumference_size, const bool remove_holes)
-{
-    removeSmallAreaCircumference(0.0, min_circumference_size, remove_holes);
-}
-
-void Shape::removeSmallAreaCircumference(const double min_area_size, const coord_t min_circumference_size, const bool remove_holes)
-{
-    Shape new_polygon;
-
-    bool outline_is_removed = false;
-    for (const Polygon& poly : (*this))
-    {
-        double area = poly.area();
-        auto circumference = poly.length();
-        bool is_outline = area >= 0;
-
-        if (is_outline)
-        {
-            if (circumference >= min_circumference_size && std::abs(area) >= min_area_size)
-            {
-                new_polygon.push_back(poly);
-                outline_is_removed = false;
-            }
-            else
-            {
-                outline_is_removed = true;
-            }
-        }
-        else if (outline_is_removed)
-        {
-            // containing parent outline is removed; hole should be removed as well
-        }
-        else if (! remove_holes || (circumference >= min_circumference_size && std::abs(area) >= min_area_size))
-        {
-            // keep hole-polygon if we do not remove holes, or if its
-            // circumference is bigger then the minimum circumference size
-            new_polygon.push_back(poly);
-        }
-    }
-
-    *this = new_polygon;
-}
-
 Shape Shape::removePolygon(const Shape& to_be_removed, int same_distance) const
 {
     Shape result;

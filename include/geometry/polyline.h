@@ -122,12 +122,6 @@ public:
      */
     void simplify(const coord_t smallest_line_segment_squared = MM2INT(0.01) * MM2INT(0.01), const coord_t allowed_error_distance_squared = 25);
 
-    /*!
-     * See simplify(.)
-     */
-#warning This can probably be merge with simplify ?
-    void simplifyPolyline(const coord_t smallest_line_segment_squared = 100, const coord_t allowed_error_distance_squared = 25);
-
 private:
     /*!
      * Private implementation for both simplify and simplifyPolygons.

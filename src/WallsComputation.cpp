@@ -127,7 +127,7 @@ void WallsComputation::generateSpiralInsets(SliceLayerPart* part, coord_t line_w
     // Optimize the wall. This prevents buffer underruns in the printer firmware, and reduces processing time in CuraEngine.
     const ExtruderTrain& train_wall = settings_.get<ExtruderTrain&>("wall_0_extruder_nr");
     part->spiral_wall = Simplify(train_wall.settings_).polygon(part->spiral_wall);
-    part->spiral_wall.removeDegenerateVertsForEveryone();
+    part->spiral_wall.removeDegenerateVerts();
     if (recompute_outline_based_on_outer_wall)
     {
         part->print_outline = part->spiral_wall.offset(line_width_0 / 2, ClipperLib::jtSquare);

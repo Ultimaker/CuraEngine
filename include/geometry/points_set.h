@@ -68,9 +68,9 @@ public:
     Point2LL closestPointTo(const Point2LL& p) const;
 
     /*!
-     * Translate the whole polygon in some direction.
+     * Translate all the points in some direction.
      *
-     * \param translation The direction in which to move the polygon
+     * \param translation The direction in which to move the points
      */
     void translate(const Point2LL& translation);
 
