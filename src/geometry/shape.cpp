@@ -147,7 +147,7 @@ void Shape::add(const Shape& other)
     std::copy(other.begin(), other.end(), std::back_inserter(*this));
 }
 
-bool Shape::inside(Point2LL p, bool border_result) const
+bool Shape::inside(const Point2LL& p, bool border_result) const
 {
     int poly_count_inside = 0;
     for (const ClipperLib::Path& poly : *this)
@@ -162,7 +162,7 @@ bool Shape::inside(Point2LL p, bool border_result) const
     return (poly_count_inside % 2) == 1;
 }
 
-size_t Shape::findInside(Point2LL p, bool border_result) const
+size_t Shape::findInside(const Point2LL& p, bool border_result) const
 {
     if (size() < 1)
     {

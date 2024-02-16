@@ -61,7 +61,7 @@ public:
      *
      * http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Functions/PointInPolygon.htm
      */
-    bool inside(Point2LL p, bool border_result = false) const;
+    bool inside(const Point2LL& p, bool border_result = false) const;
 
     bool inside(const auto& polygon) const;
 };
@@ -70,7 +70,7 @@ public:
 // Definitions of templated methods
 // ###########################################################
 template<PolylineType PolylineTypeVal>
-bool GenericClosedPolyline<PolylineTypeVal>::inside(Point2LL p, bool border_result) const
+bool GenericClosedPolyline<PolylineTypeVal>::inside(const Point2LL& p, bool border_result) const
 {
     int res = ClipperLib::PointInPolygon(p, *this);
     if (res == -1)

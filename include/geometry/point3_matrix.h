@@ -45,7 +45,7 @@ public:
         matrix[8] = 1;
     }
 
-    Point3LL apply(const Point3LL p) const
+    Point3LL apply(const Point3LL& p) const
     {
         const double x = static_cast<double>(p.x_);
         const double y = static_cast<double>(p.y_);
@@ -59,13 +59,13 @@ public:
     /*!
      * Apply matrix to vector as homogeneous coordinates.
      */
-    Point2LL apply(const Point2LL p) const
+    Point2LL apply(const Point2LL& p) const
     {
         Point3LL result = apply(Point3LL(p.X, p.Y, 1));
         return Point2LL(result.x_ / result.z_, result.y_ / result.z_);
     }
 
-    static Point3Matrix translate(const Point2LL p)
+    static Point3Matrix translate(const Point2LL& p)
     {
         Point3Matrix ret; // uniform matrix
         ret.matrix[2] = static_cast<double>(p.X);

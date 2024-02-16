@@ -32,7 +32,7 @@ public:
         matrix[3] = matrix[0];
     }
 
-    PointMatrix(const Point2LL p)
+    PointMatrix(const Point2LL& p)
     {
         matrix[0] = static_cast<double>(p.X);
         matrix[1] = static_cast<double>(p.Y);
@@ -51,7 +51,7 @@ public:
         return ret;
     }
 
-    Point2LL apply(const Point2LL p) const
+    Point2LL apply(const Point2LL& p) const
     {
         const double x = static_cast<double>(p.X);
         const double y = static_cast<double>(p.Y);
@@ -61,7 +61,7 @@ public:
     /*!
      * \warning only works on a rotation matrix! Output is incorrect for other types of matrix
      */
-    Point2LL unapply(const Point2LL p) const
+    Point2LL unapply(const Point2LL& p) const
     {
         const double x = static_cast<double>(p.X);
         const double y = static_cast<double>(p.Y);

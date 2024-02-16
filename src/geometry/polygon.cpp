@@ -230,15 +230,15 @@ void Polygon::smooth_outward(const AngleDegrees min_angle, int shortcut_length, 
 }
 
 void Polygon::smooth_corner_simple(
-    const Point2LL p0,
-    const Point2LL p1,
-    const Point2LL p2,
-    const ListPolyIt p0_it,
-    const ListPolyIt p1_it,
-    const ListPolyIt p2_it,
-    const Point2LL v10,
-    const Point2LL v12,
-    const Point2LL v02,
+    const Point2LL& p0,
+    const Point2LL& p1,
+    const Point2LL& p2,
+    const ListPolyIt& p0_it,
+    const ListPolyIt& p1_it,
+    const ListPolyIt& p2_it,
+    const Point2LL& v10,
+    const Point2LL& v12,
+    const Point2LL& v02,
     const int64_t shortcut_length,
     double cos_angle)
 {
@@ -331,7 +331,7 @@ void Polygon::smooth_corner_simple(
 }
 
 void Polygon::smooth_outward_step(
-    const Point2LL p1,
+    const Point2LL& p1,
     const int64_t shortcut_length2,
     ListPolyIt& p0_it,
     ListPolyIt& p2_it,
@@ -395,7 +395,7 @@ void Polygon::smooth_outward_step(
     }
 }
 
-bool Polygon::smooth_corner_complex(const Point2LL p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length)
+bool Polygon::smooth_corner_complex(const Point2LL& p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length)
 {
     // walk away from the corner until the shortcut > shortcut_length or it would smooth a piece inward
     // - walk in both directions untill shortcut > shortcut_length

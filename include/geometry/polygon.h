@@ -108,15 +108,15 @@ public:
      * \param cos_angle The cosine on the angle in L 012
      */
     static void smooth_corner_simple(
-        const Point2LL p0,
-        const Point2LL p1,
-        const Point2LL p2,
-        const ListPolyIt p0_it,
-        const ListPolyIt p1_it,
-        const ListPolyIt p2_it,
-        const Point2LL v10,
-        const Point2LL v12,
-        const Point2LL v02,
+        const Point2LL& p0,
+        const Point2LL& p1,
+        const Point2LL& p2,
+        const ListPolyIt& p0_it,
+        const ListPolyIt& p1_it,
+        const ListPolyIt& p2_it,
+        const Point2LL& v10,
+        const Point2LL& v12,
+        const Point2LL& v02,
         const int64_t shortcut_length,
         double cos_angle);
 
@@ -134,7 +134,7 @@ public:
      * \param shortcut_length The desired length ofthe shortcutting line
      * \return Whether this whole polygon whould be removed by the smoothing
      */
-    static bool smooth_corner_complex(const Point2LL p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length);
+    static bool smooth_corner_complex(const Point2LL& p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length);
 
     /*!
      * Try to take a step away from the corner point in order to take a bigger shortcut.
@@ -153,7 +153,7 @@ public:
      * \param[in,out] backward_is_too_far Whether trying another step backward is blocked by the shortcut length condition. Updated for the next iteration.
      */
     static void smooth_outward_step(
-        const Point2LL p1,
+        const Point2LL& p1,
         const int64_t shortcut_length2,
         ListPolyIt& p0_it,
         ListPolyIt& p2_it,
