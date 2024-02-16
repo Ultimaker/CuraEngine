@@ -11,11 +11,10 @@
 #include <initializer_list>
 #include <limits> // int64_t.min
 #include <list>
+#include <mapbox/geometry/wagyu/wagyu.hpp>
 #include <polyclipping/clipper.hpp>
 #include <unordered_map>
 #include <vector>
-
-#include <mapbox/geometry/wagyu/wagyu.hpp>
 
 #include "../settings/types/Angle.h" //For angles between vertices.
 #include "../settings/types/Ratio.h"
