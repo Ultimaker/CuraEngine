@@ -605,7 +605,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
                         { // early out
                             continue;
                         }
-                        Polygons new_outline = part.outline.intersection(other_part.getOwnInfillArea());
+                        Shape new_outline = part.outline.intersection(other_part.getOwnInfillArea());
                         if (new_outline.size() == 1)
                         { // we don't have to call splitIntoParts, because a single polygon can only be a single part
                             SingleShape outline_part_here;
@@ -628,7 +628,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
                 }
                 if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
-                    const Polygons& own_infill_area = other_part.getOwnInfillArea();
+                    const Shape& own_infill_area = other_part.getOwnInfillArea();
                     std::vector<OpenPolyline> cut_lines = own_infill_area.intersectionPolyLines(layer.openPolyLines);
                     new_polylines.add(cut_lines);
                     // NOTE: closed polygons will be represented as polylines, which will be closed automatically in the PathOrderOptimizer
@@ -1003,7 +1003,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
 
     const LayerIndex layer_skip{ 500 / layer_height + 1 };
 
-    Polygons& draft_shield = storage.draft_protection_shield;
+    Shape& draft_shield = storage.draft_protection_shield;
     for (LayerIndex layer_nr = 0; layer_nr < storage.print_layer_count && layer_nr < draft_shield_layers; layer_nr += layer_skip)
     {
         constexpr bool around_support = true;
@@ -1090,7 +1090,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
     unsigned int start_layer_nr
         = (mesh.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM) ? 1 : 0; // don't make fuzzy skin on first layer if there's a brim
 
-    auto hole_area = Polygons();
+    auto hole_area = Shape();
     std::function<bool(const bool&, const ExtrusionJunction&)> accumulate_is_in_hole
         = []([[maybe_unused]] const bool& prev_result, [[maybe_unused]] const ExtrusionJunction& junction)
     {

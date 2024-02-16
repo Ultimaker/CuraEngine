@@ -6,7 +6,7 @@
 namespace cura
 {
 
-class Polygons;
+class Shape;
 class OpenPolyline;
 
 template<class T>
@@ -37,7 +37,7 @@ public:
      * \param z The Z coordinate of this layer. Different Z coordinates cause the pattern to vary, producing a 3D
      * pattern.
      */
-    static void generateTotalGyroidInfill(LinesSet<OpenPolyline>& result_lines, bool zig_zaggify, coord_t line_distance, const Polygons& in_outline, coord_t z);
+    static void generateTotalGyroidInfill(LinesSet<OpenPolyline>& result_lines, bool zig_zaggify, coord_t line_distance, const Shape& in_outline, coord_t z);
 
 private:
 };

@@ -88,7 +88,7 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*>& volumes)
         aabb.expandXY(overlap); // expand to account for the case where two models and their bounding boxes are adjacent along the X or Y-direction
         for (LayerIndex layer_nr = 0; layer_nr < volume->layers.size(); layer_nr++)
         {
-            Polygons all_other_volumes;
+            Shape all_other_volumes;
             for (Slicer* other_volume : volumes)
             {
                 if (other_volume->mesh->settings_.get<bool>("infill_mesh") || other_volume->mesh->settings_.get<bool>("anti_overhang_mesh")
@@ -118,10 +118,10 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
         Slicer& cutting_mesh_volume = *volumes[carving_mesh_idx];
         for (LayerIndex layer_nr = 0; layer_nr < cutting_mesh_volume.layers.size(); layer_nr++)
         {
-            Polygons& cutting_mesh_polygons = cutting_mesh_volume.layers[layer_nr].polygons;
+            Shape& cutting_mesh_polygons = cutting_mesh_volume.layers[layer_nr].polygons;
             LinesSet<OpenPolyline>& cutting_mesh_polylines = cutting_mesh_volume.layers[layer_nr].openPolylines;
-            Polygons cutting_mesh_area_recomputed;
-            Polygons* cutting_mesh_area;
+            Shape cutting_mesh_area_recomputed;
+            Shape* cutting_mesh_area;
             coord_t surface_line_width = cutting_mesh.settings_.get<coord_t>("wall_line_width_0");
             { // compute cutting_mesh_area
                 if (cutting_mesh.settings_.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::BOTH)
@@ -149,7 +149,7 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
                 }
             }
 
-            Polygons new_outlines;
+            Shape new_outlines;
             LinesSet<OpenPolyline> new_polylines;
             for (unsigned int carved_mesh_idx = 0; carved_mesh_idx < volumes.size(); carved_mesh_idx++)
             {
@@ -160,9 +160,9 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
                     continue;
                 }
                 Slicer& carved_volume = *volumes[carved_mesh_idx];
-                Polygons& carved_mesh_layer = carved_volume.layers[layer_nr].polygons;
+                Shape& carved_mesh_layer = carved_volume.layers[layer_nr].polygons;
 
-                Polygons intersection = cutting_mesh_polygons.intersection(carved_mesh_layer);
+                Shape intersection = cutting_mesh_polygons.intersection(carved_mesh_layer);
                 new_outlines.add(intersection);
                 if (cutting_mesh.settings_.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL) // niet te geleuven
                 {

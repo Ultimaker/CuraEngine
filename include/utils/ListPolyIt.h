@@ -14,7 +14,7 @@ namespace cura
 {
 
 class Polygon;
-class Polygons;
+class Shape;
 
 using ListPolygon = std::list<Point2LL>; //!< A polygon represented by a linked list instead of a vector
 using ListPolygons = std::vector<ListPolygon>; //!< Polygons represented by a vector of linked lists instead of a vector of vectors
@@ -115,7 +115,7 @@ public:
      * \param polys The polygons to convert
      * \param result The converted polygons
      */
-    static void convertPolygonsToLists(const Polygons& polys, ListPolygons& result);
+    static void convertPolygonsToLists(const Shape& polys, ListPolygons& result);
 
     /*!
      * Convert Polygons to ListPolygons
@@ -131,7 +131,7 @@ public:
      * \param list_polygons The polygons to convert
      * \param polygons The converted polygons
      */
-    static void convertListPolygonsToPolygons(const ListPolygons& list_polygons, Polygons& polygons);
+    static void convertListPolygonsToPolygons(const ListPolygons& list_polygons, Shape& polygons);
 
     /*!
      * Convert ListPolygons to Polygons

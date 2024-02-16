@@ -26,7 +26,7 @@ public:
      * \param settings The settings as provided by the user
      */
     WallToolPaths(
-        const Polygons& outline,
+        const Shape& outline,
         const coord_t nominal_bead_width,
         const size_t inset_count,
         const coord_t wall_0_inset,
@@ -44,7 +44,7 @@ public:
      * \param settings The settings as provided by the user
      */
     WallToolPaths(
-        const Polygons& outline,
+        const Shape& outline,
         const coord_t bead_width_0,
         const coord_t bead_width_x,
         const size_t inset_count,
@@ -90,7 +90,7 @@ public:
      * If there are no walls, the outline will be returned.
      * \return The inner contour of the generated walls.
      */
-    const Polygons& getInnerContour();
+    const Shape& getInnerContour();
 
     /*!
      * Removes empty paths from the toolpaths
@@ -122,7 +122,7 @@ protected:
     static void simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths, const Settings& settings);
 
 private:
-    const Polygons& outline_; //<! A reference to the outline polygon that is the designated area
+    const Shape& outline_; //<! A reference to the outline polygon that is the designated area
     coord_t bead_width_0_; //<! The nominal or first extrusion line width with which libArachne generates its walls
     coord_t bead_width_x_; //<! The subsequently extrusion line width with which libArachne generates its walls if WallToolPaths was called with the nominal_bead_width Constructor
                            // this is the same as bead_width_0
@@ -135,7 +135,7 @@ private:
     coord_t transition_length_; //<! The transitioning length when the amount of extrusion lines changes
     bool toolpaths_generated_; //<! Are the toolpaths generated
     std::vector<VariableWidthLines> toolpaths_; //<! The generated toolpaths binned by inset_idx.
-    Polygons inner_contour_; //<! The inner contour of the generated toolpaths
+    Shape inner_contour_; //<! The inner contour of the generated toolpaths
     const Settings& settings_;
     int layer_idx_;
     SectionType section_type_;

@@ -82,7 +82,7 @@ public:
      * \param polygons The polygons to simplify.
      * \return The simplified polygons.
      */
-    Polygons polygon(const Polygons& polygons) const;
+    Shape polygon(const Shape& polygons) const;
 
     /*!
      * Simplify a polygon.

@@ -32,12 +32,12 @@ SupportStorage::~SupportStorage()
     supportLayers.clear();
 }
 
-Polygons& SliceLayerPart::getOwnInfillArea()
+Shape& SliceLayerPart::getOwnInfillArea()
 {
-    return const_cast<Polygons&>(const_cast<const SliceLayerPart*>(this)->getOwnInfillArea());
+    return const_cast<Shape&>(const_cast<const SliceLayerPart*>(this)->getOwnInfillArea());
 }
 
-const Polygons& SliceLayerPart::getOwnInfillArea() const
+const Shape& SliceLayerPart::getOwnInfillArea() const
 {
     if (infill_area_own)
     {
@@ -68,14 +68,14 @@ SliceLayer::~SliceLayer()
 {
 }
 
-Polygons SliceLayer::getOutlines(bool external_polys_only) const
+Shape SliceLayer::getOutlines(bool external_polys_only) const
 {
-    Polygons ret;
+    Shape ret;
     getOutlines(ret, external_polys_only);
     return ret;
 }
 
-void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
+void SliceLayer::getOutlines(Shape& result, bool external_polys_only) const
 {
     for (const SliceLayerPart& part : parts)
     {
@@ -266,7 +266,7 @@ SliceDataStorage::SliceDataStorage()
     machine_size.include(machine_max);
 }
 
-Polygons
+Shape
     SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only, const int extruder_nr)
         const
 {
@@ -279,7 +279,7 @@ Polygons
     case Raft::LayerType::RaftInterface:
     case Raft::LayerType::RaftSurface:
     {
-        const Polygons* raftOutline;
+        const Shape* raftOutline;
         bool use_current_extruder_for_raft = extruder_nr == -1;
 
         switch (layer_type)
@@ -298,7 +298,7 @@ Polygons
             break;
         default:
             assert(false && "unreachable due to outer switch statement");
-            return Polygons();
+            return Shape();
         }
 
         if (include_support && use_current_extruder_for_raft)
@@ -306,7 +306,7 @@ Polygons
             if (external_polys_only)
             {
                 std::vector<SingleShape> parts = raftOutline->splitIntoParts();
-                Polygons result;
+                Shape result;
                 for (SingleShape& part : parts)
                 {
                     result.push_back(part.outerPolygon());
@@ -320,14 +320,14 @@ Polygons
         }
         else
         {
-            return Polygons();
+            return Shape();
         }
         break;
     }
     case Raft::LayerType::Airgap:
     case Raft::LayerType::Model:
     {
-        Polygons total;
+        Shape total;
         if (layer_nr >= 0)
         {
             for (const std::shared_ptr<SliceMeshStorage>& mesh : meshes)
@@ -370,7 +370,7 @@ Polygons
     }
     default:
         assert(false && "unreachable as switch statement is exhaustive");
-        return Polygons();
+        return Shape();
     }
 }
 
@@ -564,11 +564,11 @@ bool SliceDataStorage::getExtruderPrimeBlobEnabled(const size_t extruder_nr) con
     return train.settings_.get<bool>("prime_blob_enable");
 }
 
-Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
+Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
 
-    Polygons border;
+    Shape border;
     border.emplace_back();
     Polygon& outline = border.back();
     switch (mesh_group_settings.get<BuildPlateShape>("machine_shape"))
@@ -592,7 +592,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
         break;
     }
 
-    Polygons disallowed_areas = mesh_group_settings.get<Polygons>("machine_disallowed_areas");
+    Shape disallowed_areas = mesh_group_settings.get<Shape>("machine_disallowed_areas");
     disallowed_areas = disallowed_areas.unionPolygons(); // union overlapping disallowed areas
 
     // The disallowed areas are expressed in buildplate-centered coordinates, but the models
@@ -629,12 +629,12 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
         }
         Point2LL translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
         prime_pos -= translation;
-        Polygons prime_polygons;
+        Shape prime_polygons;
         prime_polygons.emplace_back(PolygonUtils::makeCircle(prime_pos, prime_clearance, std::numbers::pi / 32));
         disallowed_areas = disallowed_areas.unionPolygons(prime_polygons);
     }
 
-    Polygons disallowed_all_extruders;
+    Shape disallowed_all_extruders;
     bool first = true;
     for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
     {
@@ -644,7 +644,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
         }
         Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_;
         Point2LL translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
-        Polygons extruder_border = disallowed_areas;
+        Shape extruder_border = disallowed_areas;
         extruder_border.translate(translation);
         if (first)
         {
@@ -658,7 +658,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
     }
     disallowed_all_extruders.processEvenOdd(ClipperLib::pftNonZero); // prevent overlapping disallowed areas from XORing
 
-    Polygons border_all_extruders = border; // each extruders border areas must be limited to the global border, which is the union of all extruders borders
+    Shape border_all_extruders = border; // each extruders border areas must be limited to the global border, which is the union of all extruders borders
     if (mesh_group_settings.has("nozzle_offsetting_for_disallowed_areas") && mesh_group_settings.get<bool>("nozzle_offsetting_for_disallowed_areas"))
     {
         for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
@@ -678,7 +678,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
                 }
                 Settings& other_extruder_settings = Application::getInstance().current_slice_->scene.extruders[other_extruder_nr].settings_;
                 Point2LL other_translation(other_extruder_settings.get<coord_t>("machine_nozzle_offset_x"), other_extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
-                Polygons translated_border = border;
+                Shape translated_border = border;
                 translated_border.translate(translation - other_translation);
                 border_all_extruders = border_all_extruders.intersection(translated_border);
             }
@@ -690,7 +690,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
 }
 
 
-void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_polygons, const AABB& exclude_polygons_boundary_box)
+void SupportLayer::excludeAreasFromSupportInfillAreas(const Shape& exclude_polygons, const AABB& exclude_polygons_boundary_box)
 {
     // record the indexes that need to be removed and do that after
     std::list<size_t> to_remove_part_indices; // LIFO for removing
@@ -706,7 +706,7 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_po
             continue;
         }
 
-        Polygons result_polygons = support_infill_part.outline_.difference(exclude_polygons);
+        Shape result_polygons = support_infill_part.outline_.difference(exclude_polygons);
 
         // if no smaller parts get generated, this mean this part should be removed.
         if (result_polygons.empty())
@@ -751,16 +751,16 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_po
 
 void SupportLayer::fillInfillParts(
     const LayerIndex layer_nr,
-    const std::vector<Polygons>& support_fill_per_layer,
+    const std::vector<Shape>& support_fill_per_layer,
     const coord_t support_line_width,
     const coord_t wall_line_count,
     const coord_t grow_layer_above /*has default 0*/,
     const bool unionAll /*has default false*/,
     const coord_t custom_line_distance /*has default 0*/)
 {
-    const Polygons& support_this_layer = support_fill_per_layer[layer_nr];
-    const Polygons& support_layer_above
-        = (layer_nr + 1) >= support_fill_per_layer.size() || layer_nr <= 0 ? Polygons() : support_fill_per_layer[layer_nr + 1].offset(grow_layer_above);
+    const Shape& support_this_layer = support_fill_per_layer[layer_nr];
+    const Shape& support_layer_above
+        = (layer_nr + 1) >= support_fill_per_layer.size() || layer_nr <= 0 ? Shape() : support_fill_per_layer[layer_nr + 1].offset(grow_layer_above);
     const auto all_support_areas_in_layer = { support_this_layer.difference(support_layer_above), support_this_layer.intersection(support_layer_above) };
     bool use_fractional_config = true;
     for (auto& support_areas : all_support_areas_in_layer)

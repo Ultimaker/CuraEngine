@@ -1073,8 +1073,8 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
 
                 for (const auto& part : parts)
                 {
-                    Polygons holes;
-                    Polygons outline;
+                    Shape holes;
+                    Shape outline;
                     for (const Polygon& poly : part)
                     {
                         const auto area = poly.area();

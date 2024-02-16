@@ -9,7 +9,7 @@
 #include <unordered_map>
 
 #include "geometry/polygon.h"
-#include "geometry/polygons.h"
+#include "geometry/shape.h"
 #include "settings/EnumSettings.h"
 
 /*
@@ -61,7 +61,7 @@ public:
     std::unordered_map<int, int> face_idx_to_segment_idx; // topology
 
     int z = -1;
-    Polygons polygons;
+    Shape polygons;
     LinesSet<OpenPolyline> openPolylines;
 
     /*!

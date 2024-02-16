@@ -23,7 +23,7 @@ namespace cura
 {
 
 WallToolPaths::WallToolPaths(
-    const Polygons& outline,
+    const Shape& outline,
     const coord_t nominal_bead_width,
     const size_t inset_count,
     const coord_t wall_0_inset,
@@ -47,7 +47,7 @@ WallToolPaths::WallToolPaths(
 }
 
 WallToolPaths::WallToolPaths(
-    const Polygons& outline,
+    const Shape& outline,
     const coord_t bead_width_0,
     const coord_t bead_width_x,
     const size_t inset_count,
@@ -87,7 +87,7 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
 
     // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self intersections allowed:
     // TODO: Open question: Does this indeed fix all (or all-but-one-in-a-million) cases for manifold but otherwise possibly complex polygons?
-    Polygons prepared_outline = outline_.offset(-open_close_distance).offset(open_close_distance * 2).offset(-open_close_distance);
+    Shape prepared_outline = outline_.offset(-open_close_distance).offset(open_close_distance * 2).offset(-open_close_distance);
     scripta::log("prepared_outline_0", prepared_outline, section_type_, layer_idx_);
     prepared_outline.removeSmallAreas(small_area_length_ * small_area_length_, false);
     prepared_outline = Simplify(settings_).polygon(prepared_outline);
@@ -415,7 +415,7 @@ void WallToolPaths::separateOutInnerContour()
     inner_contour_ = inner_contour_.processEvenOdd();
 }
 
-const Polygons& WallToolPaths::getInnerContour()
+const Shape& WallToolPaths::getInnerContour()
 {
     if (! toolpaths_generated_ && inset_count_ > 0)
     {

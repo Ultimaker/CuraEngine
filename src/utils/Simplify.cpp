@@ -25,9 +25,9 @@ Simplify::Simplify(const Settings& settings)
 {
 }
 
-Polygons Simplify::polygon(const Polygons& polygons) const
+Shape Simplify::polygon(const Shape& polygons) const
 {
-    Polygons result;
+    Shape result;
     for (size_t i = 0; i < polygons.size(); ++i)
     {
         result.addIfNotEmpty(polygon(polygons[i]));

@@ -27,8 +27,8 @@ class WallTestFixture : public benchmark::Fixture
 public:
     Settings settings{};
     WallsComputation walls_computation{ settings, LayerIndex(100) };
-    Polygons square_shape;
-    Polygons ff_holes;
+    Shape square_shape;
+    Shape ff_holes;
     bool outer_to_inner;
     SliceLayer layer;
 
@@ -98,8 +98,8 @@ class HolesWallTestFixture : public benchmark::Fixture
 public:
     Settings settings{};
     WallsComputation walls_computation{ settings, LayerIndex(100) };
-    Polygons shape;
-    Polygons ff_holes;
+    Shape shape;
+    Shape ff_holes;
     bool outer_to_inner;
     SliceLayer layer;
 
@@ -113,7 +113,7 @@ public:
         buffer << file.rdbuf();
         const auto wkt = buffer.str();
 
-        const auto shape = Polygons::fromWkt(buffer.str());
+        const auto shape = Shape::fromWkt(buffer.str());
 
         // Settings for a simple 2 walls, about as basic as possible.
         settings.add("alternate_extra_perimeter", "false");

@@ -53,9 +53,9 @@ static inline int computeScanSegmentIdx(int x, int line_width)
 namespace cura
 {
 
-Polygons Infill::generateWallToolPaths(
+Shape Infill::generateWallToolPaths(
     std::vector<VariableWidthLines>& toolpaths,
-    Polygons& outer_contour,
+    Shape& outer_contour,
     const size_t wall_line_count,
     const coord_t line_width,
     const coord_t infill_overlap,
@@ -66,7 +66,7 @@ Polygons Infill::generateWallToolPaths(
     outer_contour = outer_contour.offset(infill_overlap);
     scripta::log("infill_outer_contour", outer_contour, section_type, layer_idx, scripta::CellVDI{ "infill_overlap", infill_overlap });
 
-    Polygons inner_contour;
+    Shape inner_contour;
     if (wall_line_count > 0)
     {
         constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
@@ -83,7 +83,7 @@ Polygons Infill::generateWallToolPaths(
 
 void Infill::generate(
     std::vector<VariableWidthLines>& toolpaths,
-    Polygons& result_polygons,
+    Shape& result_polygons,
     LinesSet<OpenPolyline>& result_lines,
     const Settings& settings,
     int layer_idx,
@@ -91,7 +91,7 @@ void Infill::generate(
     const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
     const std::shared_ptr<LightningLayer>& lightning_trees,
     const SliceMeshStorage* mesh,
-    const Polygons& prevent_small_exposed_to_air)
+    const Shape& prevent_small_exposed_to_air)
 {
     if (outer_contour_.empty())
     {
@@ -110,7 +110,7 @@ void Infill::generate(
         const auto too_small_length = INT2MM(static_cast<double>(infill_line_width_) / 2.0);
 
         // Split the infill region in a narrow region and the normal region.
-        Polygons small_infill = inner_contour_;
+        Shape small_infill = inner_contour_;
         inner_contour_ = inner_contour_.offset(-small_area_width_ / 2);
         inner_contour_.removeSmallAreas(too_small_length * too_small_length, true);
         inner_contour_ = inner_contour_.offset(small_area_width_ / 2);
@@ -179,7 +179,7 @@ void Infill::generate(
         {
             zig_zaggify_ = false;
         }
-        Polygons generated_result_polygons;
+        Shape generated_result_polygons;
         LinesSet<OpenPolyline> generated_result_lines;
 
         _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
@@ -192,8 +192,8 @@ void Infill::generate(
     else
     {
         //_generate may clear() the generated_result_lines, but this is an output variable that may contain data before we start.
-        // So make sure we provide it with a Polygons that is safe to clear and only add stuff to result_lines.
-        Polygons generated_result_polygons;
+        // So make sure we provide it with a Shape that is safe to clear and only add stuff to result_lines.
+        Shape generated_result_polygons;
         LinesSet<OpenPolyline> generated_result_lines;
 
         _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
@@ -229,7 +229,7 @@ void Infill::generate(
         PolygonConnector connector(infill_line_width_);
         connector.add(result_polygons);
         connector.add(toolpaths);
-        Polygons connected_polygons;
+        Shape connected_polygons;
         std::vector<VariableWidthLines> connected_paths;
         connector.connect(connected_polygons, connected_paths);
         result_polygons = connected_polygons;
@@ -251,7 +251,7 @@ void Infill::generate(
 
 void Infill::_generate(
     std::vector<VariableWidthLines>& toolpaths,
-    Polygons& result_polygons,
+    Shape& result_polygons,
     LinesSet<OpenPolyline>& result_lines,
     const Settings& settings,
     const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
@@ -354,7 +354,7 @@ void Infill::_generate(
     result_lines = simplifier.polyline(result_lines);
 }
 
-void Infill::multiplyInfill(Polygons& result_polygons, LinesSet<OpenPolyline>& result_lines)
+void Infill::multiplyInfill(Shape& result_polygons, LinesSet<OpenPolyline>& result_lines)
 {
     if (pattern_ == EFillMethod::CONCENTRIC)
     {
@@ -365,13 +365,13 @@ void Infill::multiplyInfill(Polygons& result_polygons, LinesSet<OpenPolyline>& r
     coord_t offset = (odd_multiplier) ? infill_line_width_ : infill_line_width_ / 2;
 
     // Get the first offset these are mirrored from the original center line
-    Polygons result;
-    Polygons first_offset;
+    Shape result;
+    Shape first_offset;
     {
-        const Polygons first_offset_lines = result_lines.offset(offset); // make lines on both sides of the input lines
-        const Polygons first_offset_polygons_inward = result_polygons.offset(-offset); // make lines on the inside of the input polygons
-        const Polygons first_offset_polygons_outward = result_polygons.offset(offset); // make lines on the other side of the input polygons
-        const Polygons first_offset_polygons = first_offset_polygons_outward.difference(first_offset_polygons_inward);
+        const Shape first_offset_lines = result_lines.offset(offset); // make lines on both sides of the input lines
+        const Shape first_offset_polygons_inward = result_polygons.offset(-offset); // make lines on the inside of the input polygons
+        const Shape first_offset_polygons_outward = result_polygons.offset(offset); // make lines on the other side of the input polygons
+        const Shape first_offset_polygons = first_offset_polygons_outward.difference(first_offset_polygons_inward);
         first_offset = first_offset_lines.unionPolygons(
             first_offset_polygons); // usually we only have either lines or polygons, but this code also handles an infill pattern which generates both
         if (zig_zaggify_)
@@ -385,13 +385,13 @@ void Infill::multiplyInfill(Polygons& result_polygons, LinesSet<OpenPolyline>& r
     // depended on whether these lines should be connected or not.
     if (infill_multiplier_ > 3)
     {
-        Polygons reference_polygons = first_offset;
+        Shape reference_polygons = first_offset;
         const size_t multiplier = infill_multiplier_ / 2;
 
         const int extra_offset = mirror_offset_ ? -infill_line_width_ : infill_line_width_;
         for (size_t infill_line = 1; infill_line < multiplier; ++infill_line)
         {
-            Polygons extra_polys = reference_polygons.offset(extra_offset);
+            Shape extra_polys = reference_polygons.offset(extra_offset);
             result.add(extra_polys);
             reference_polygons = std::move(extra_polys);
         }
@@ -416,7 +416,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, LinesSet<OpenPolyline>& r
     }
 }
 
-void Infill::generateGyroidInfill(LinesSet<OpenPolyline>& result_lines, Polygons& result_polygons)
+void Infill::generateGyroidInfill(LinesSet<OpenPolyline>& result_lines, Shape& result_polygons)
 {
     LinesSet<OpenPolyline> line_segments;
     GyroidInfill::generateTotalGyroidInfill(line_segments, zig_zaggify_, line_distance_, inner_contour_, z_);
@@ -437,7 +437,7 @@ void Infill::generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths
 {
     const coord_t min_area = infill_line_width_ * infill_line_width_;
 
-    Polygons current_inset = inner_contour_;
+    Shape current_inset = inner_contour_;
     Simplify simplifier(settings);
     while (true)
     {
@@ -520,7 +520,7 @@ void Infill::generateCubicSubDivInfill(LinesSet<OpenPolyline>& result, const Sli
     result = outer_contour_.offset(infill_overlap_).intersectionPolyLines(uncropped, restitch);
 }
 
-void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, LinesSet<OpenPolyline>& result_lines)
+void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Shape& result_polygons, LinesSet<OpenPolyline>& result_lines)
 {
     Polygon cross_pattern_polygon = cross_fill_provider.generate(pattern_, z_, infill_line_width_, pocket_size_);
 
@@ -531,7 +531,7 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
 
     if (zig_zaggify_)
     {
-        Polygons cross_pattern_polygons;
+        Shape cross_pattern_polygons;
         cross_pattern_polygons.push_back(cross_pattern_polygon);
         result_polygons.add(inner_contour_.intersection(cross_pattern_polygons));
     }
@@ -644,7 +644,7 @@ void Infill::generateLinearBasedInfill(
         return;
     }
 
-    Polygons outline = inner_contour_; // Make a copy. We'll be rotating this outline to make intersections always horizontal, for better performance.
+    Shape outline = inner_contour_; // Make a copy. We'll be rotating this outline to make intersections always horizontal, for better performance.
     outline.applyMatrix(rotation_matrix);
 
     coord_t shift = extra_shift + this->shift_;

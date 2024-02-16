@@ -26,7 +26,7 @@ class LayerPlan;
 class PrimeTower
 {
 private:
-    using MovesByExtruder = std::vector<Polygons>;
+    using MovesByExtruder = std::vector<Shape>;
     using MovesByLayer = std::vector<MovesByExtruder>;
 
     size_t extruder_count_; //!< Number of extruders
@@ -42,8 +42,8 @@ private:
     MovesByExtruder prime_moves_; //!< For each extruder, the moves to be processed for actual priming.
     MovesByLayer base_extra_moves_; //!< For each layer and each extruder, the extra moves to be processed for better adhesion/strength
 
-    Polygons outer_poly_; //!< The outline of the outermost prime tower.
-    std::vector<Polygons> outer_poly_base_; //!< The outline of the layers having extra width for the base
+    Shape outer_poly_; //!< The outline of the outermost prime tower.
+    std::vector<Shape> outer_poly_base_; //!< The outline of the layers having extra width for the base
 
 public:
     bool enabled_; //!< Whether the prime tower is enabled.
@@ -108,12 +108,12 @@ public:
      * \param[in] layer_nr The index of the layer
      * \return The outer polygon for the prime tower at the given layer
      */
-    const Polygons& getOuterPoly(const LayerIndex& layer_nr) const;
+    const Shape& getOuterPoly(const LayerIndex& layer_nr) const;
 
     /*!
      * Get the outer polygon for the very first layer, which may be the priming polygon only, or a larger polygon if there is a base
      */
-    const Polygons& getGroundPoly() const;
+    const Shape& getGroundPoly() const;
 
 private:
     /*!

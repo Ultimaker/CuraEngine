@@ -40,8 +40,8 @@ public:
         SliceDataStorage& storage,
         const SliceMeshStorage& mesh,
         std::vector<std::set<TreeSupportElement*>>& move_bounds,
-        std::vector<Polygons>& additional_support_areas,
-        std::vector<Polygons>& placed_support_lines_support_areas);
+        std::vector<Shape>& additional_support_areas,
+        std::vector<Shape>& placed_support_lines_support_areas);
 
 private:
     enum class LineStatus
@@ -121,7 +121,7 @@ private:
      * \param result[out] The dropped overhang ares
      * \param roof[in] Whether the result is for roof generation.
      */
-    void dropOverhangAreas(const SliceMeshStorage& mesh, std::vector<Polygons>& result, bool roof);
+    void dropOverhangAreas(const SliceMeshStorage& mesh, std::vector<Shape>& result, bool roof);
 
     /*!
      * \brief Calculates which areas should be supported with roof, and saves these in roof support_roof_drawn
@@ -174,7 +174,7 @@ private:
      * \param storage[in] Background storage, required for adding roofs.
      * \param additional_support_areas[in] Areas that should have been roofs, but are now support, as they would not generate any lines as roof.
      */
-    void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<Polygons>& additional_support_areas);
+    void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<Shape>& additional_support_areas);
 
     /*!
      * \brief Contains config settings to avoid loading them in every function. This was done to improve readability of the code.
@@ -296,12 +296,12 @@ private:
     /*!
      * \brief Areas that will be saved as support roof
      */
-    std::vector<Polygons> support_roof_drawn_;
+    std::vector<Shape> support_roof_drawn_;
 
     /*!
      * \brief Areas that will be saved as support roof, originating from tips being replaced with roof areas.
      */
-    std::vector<Polygons> roof_tips_drawn_;
+    std::vector<Shape> roof_tips_drawn_;
 
     std::mutex critical_move_bounds_;
     std::mutex critical_roof_tips_;

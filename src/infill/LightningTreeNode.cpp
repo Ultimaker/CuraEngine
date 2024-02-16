@@ -65,7 +65,7 @@ LightningTreeNodeSPtr LightningTreeNode::addChild(LightningTreeNodeSPtr& new_chi
 
 void LightningTreeNode::propagateToNextLayer(
     std::vector<LightningTreeNodeSPtr>& next_trees,
-    const Polygons& next_outlines,
+    const Shape& next_outlines,
     const LocToLineGrid& outline_locator,
     const coord_t prune_distance,
     const coord_t smooth_magnitude,
@@ -170,7 +170,7 @@ LightningTreeNodeSPtr LightningTreeNode::closestNode(const Point2LL& loc)
     return result;
 }
 
-bool LightningTreeNode::realign(const Polygons& outlines, const LocToLineGrid& outline_locator, std::vector<LightningTreeNodeSPtr>& rerooted_parts)
+bool LightningTreeNode::realign(const Shape& outlines, const LocToLineGrid& outline_locator, std::vector<LightningTreeNodeSPtr>& rerooted_parts)
 {
     if (outlines.empty())
     {

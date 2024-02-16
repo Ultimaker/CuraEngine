@@ -9,13 +9,13 @@
 namespace cura
 {
 
-class Polygons;
+class Shape;
 class ListPolyIt;
 class AngleDegrees;
 
 class Polygon : public GenericClosedPolyline<PolylineType::Filled>
 {
-    friend class Polygons;
+    friend class Shape;
 
 public:
     Polygon() = default;
@@ -48,7 +48,7 @@ public:
      *
      * \param other The polygon with which to intersect this polygon.
      */
-    Polygons intersection(const Polygon& other) const;
+    Shape intersection(const Polygon& other) const;
 
     double area() const
     {
@@ -57,7 +57,7 @@ public:
 
     Point2LL centerOfMass() const;
 
-    Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
+    Shape offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
     /*!
      * Smooth out small perpendicular segments and store the result in \p result.

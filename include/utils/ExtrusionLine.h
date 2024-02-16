@@ -11,7 +11,7 @@
 
 #include "ExtrusionJunction.h"
 #include "geometry/polygon.h"
-#include "geometry/polygons.h"
+#include "geometry/shape.h"
 
 namespace cura
 {
@@ -230,7 +230,7 @@ struct ExtrusionLine
      * Create a true-extrusion area shape for the path; this means that each junction follows the bead-width
      * set for that junction.
      */
-    [[maybe_unused]] Polygons toExtrusionPolygons() const
+    [[maybe_unused]] Shape toExtrusionPolygons() const
     {
         Polygon poly;
 
@@ -260,7 +260,7 @@ struct ExtrusionLine
         // backward pass
         add_line_direction(junctions_ | ranges::views::reverse);
 
-        Polygons paths;
+        Shape paths;
         paths.emplace_back(poly);
         ClipperLib::SimplifyPolygons(paths.getCallable(), ClipperLib::pftNonZero);
         return paths;

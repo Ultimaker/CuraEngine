@@ -5,7 +5,7 @@
 
 #include "geometry/open_polyline.h"
 #include "geometry/polygon.h"
-#include "geometry/polygons.h"
+#include "geometry/shape.h"
 #include "utils/AABB.h"
 #include "utils/linearAlg2D.h"
 
@@ -20,7 +20,7 @@ GyroidInfill::~GyroidInfill()
 {
 }
 
-void GyroidInfill::generateTotalGyroidInfill(LinesSet<OpenPolyline>& result_lines, bool zig_zaggify, coord_t line_distance, const Polygons& in_outline, coord_t z)
+void GyroidInfill::generateTotalGyroidInfill(LinesSet<OpenPolyline>& result_lines, bool zig_zaggify, coord_t line_distance, const Shape& in_outline, coord_t z)
 {
     // generate infill based on the gyroid equation: sin_x * cos_y + sin_y * cos_z + sin_z * cos_x = 0
     // kudos to the author of the Slic3r implementation equation code, the equation code here is based on that

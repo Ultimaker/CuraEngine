@@ -212,7 +212,7 @@ void PolylineStitcher<InputPaths, OutputPaths, Path, Junction>::stitch(
 template void OpenPolylineStitcher::stitch(
     const LinesSet<OpenPolyline>& lines,
     LinesSet<OpenPolyline>& result_lines,
-    Polygons& result_polygons,
+    Shape& result_polygons,
     coord_t max_stitch_distance,
     coord_t snap_distance);
 

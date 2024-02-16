@@ -8,7 +8,7 @@
 
 #include "geometry/point2ll.h"
 #include "geometry/polygon.h"
-#include "geometry/polygons.h"
+#include "geometry/shape.h"
 
 
 namespace cura
@@ -146,7 +146,7 @@ public:
     }
 };
 
-using PolygonsPointIndex = PathsPointIndex<Polygons>;
+using PolygonsPointIndex = PathsPointIndex<Shape>;
 
 
 /*!
@@ -170,7 +170,7 @@ struct PathsPointIndexLocator
     }
 };
 
-using PolygonsPointIndexLocator = PathsPointIndexLocator<Polygons>;
+using PolygonsPointIndexLocator = PathsPointIndexLocator<Shape>;
 
 } // namespace cura
 

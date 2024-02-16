@@ -12,7 +12,7 @@ namespace cura
 {
 // Some forward declarations to increase compilation speed.
 enum class PrintFeatureType : unsigned char;
-class Polygons;
+class Shape;
 class Polygon;
 class ExtruderTrain;
 
@@ -76,7 +76,7 @@ public:
      * \param line_thickness The thickness (in the Z direction) of the polygons.
      * \param velocity The velocity of printing these polygons.
      */
-    virtual void sendPolygons(const PrintFeatureType& type, const Polygons& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) = 0;
+    virtual void sendPolygons(const PrintFeatureType& type, const Shape& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) = 0;
 
     /*
      * \brief Send a polygon to the user to visualise.

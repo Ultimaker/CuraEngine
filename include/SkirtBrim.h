@@ -14,7 +14,7 @@
 namespace cura
 {
 
-class Polygons;
+class Shape;
 class SliceDataStorage;
 
 constexpr coord_t min_brim_line_length = 3000u; //!< open polyline brim lines smaller than this will be removed
@@ -28,7 +28,7 @@ private:
     struct Offset
     {
         Offset(
-            const std::variant<Polygons*, int>& reference_outline_or_index,
+            const std::variant<Shape*, int>& reference_outline_or_index,
             const bool external_only,
             const coord_t offset_value,
             const coord_t total_offset,
@@ -45,7 +45,7 @@ private:
         {
         }
 
-        std::variant<Polygons*, int> reference_outline_or_index_;
+        std::variant<Shape*, int> reference_outline_or_index_;
         bool external_only_; //!< Wether to only offset outward from the reference polygons
         coord_t offset_value_; //!< Distance by which to offset from the reference
         coord_t total_offset_; //!< Total distance from the model
@@ -112,7 +112,7 @@ private:
      * \param[out] starting_outlines The first layer outlines from which to compute the offsets. Returned as output parameter because pointers need to stay valid.
      * \return An ordered list of offsets to perform in the order in which they are to be performed.
      */
-    std::vector<Offset> generateBrimOffsetPlan(std::vector<Polygons>& starting_outlines);
+    std::vector<Offset> generateBrimOffsetPlan(std::vector<Shape>& starting_outlines);
 
     /*!
      * Generate the primary skirt/brim of the one skirt_brim_extruder or of all extruders simultaneously.
@@ -122,7 +122,7 @@ private:
      * \param[in,out] allowed_areas_per_extruder The difference between the machine bed area (offsetted by the nozzle offset) and the covered_area.
      * \return The total length of the brim lines added by this method per extruder.
      */
-    std::vector<coord_t> generatePrimaryBrim(std::vector<Offset>& all_brim_offsets, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder);
+    std::vector<coord_t> generatePrimaryBrim(std::vector<Offset>& all_brim_offsets, Shape& covered_area, std::vector<Shape>& allowed_areas_per_extruder);
 
     /*!
      * Generate the brim inside the ooze shield and draft shield
@@ -133,7 +133,7 @@ private:
      * \param[in,out] brim_covered_area The area that was covered with brim before (in) and after (out) adding the shield brims
      * \param[in,out] allowed_areas_per_extruder The difference between the machine areas and the \p covered_area
      */
-    void generateShieldBrim(Polygons& brim_covered_area, std::vector<Polygons>& allowed_areas_per_extruder);
+    void generateShieldBrim(Shape& brim_covered_area, std::vector<Shape>& allowed_areas_per_extruder);
 
     /*!
      * \brief Get the reference outline of the first layer around which to
@@ -146,7 +146,7 @@ private:
      * \param extruder_nr The extruder for which to get the outlines. -1 to include outliens for all extruders
      * \return The resulting reference polygons
      */
-    Polygons getFirstLayerOutline(const int extruder_nr = -1);
+    Shape getFirstLayerOutline(const int extruder_nr = -1);
 
     /*!
      * The disallowed area around the internal holes of parts with other parts inside which would get an external brim.
@@ -158,7 +158,7 @@ private:
      * \param extruder_nr The extruder for which to compute disallowed areas
      * \return The disallowed areas
      */
-    Polygons getInternalHoleExclusionArea(const Polygons& outline, const int extruder_nr);
+    Shape getInternalHoleExclusionArea(const Shape& outline, const int extruder_nr);
 
     /*!
      * Generate a brim line with offset parameters given by \p offset from the \p starting_outlines and store it in the \ref storage.
@@ -171,7 +171,7 @@ private:
      * \param[out] result Where to store the resulting brim line
      * \return The length of the added lines
      */
-    coord_t generateOffset(const Offset& offset, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, SkirtBrimLine& result);
+    coord_t generateOffset(const Offset& offset, Shape& covered_area, std::vector<Shape>& allowed_areas_per_extruder, SkirtBrimLine& result);
 
     /*!
      * Generate a skirt of extruders which don't yet comply with the minimum length requirement.
@@ -184,7 +184,7 @@ private:
      * \param[in,out] allowed_areas_per_extruder The difference between the machine areas and the \p covered_area
      * \param[in,out] total_length The total length of the brim lines for each extruder.
      */
-    void generateSecondarySkirtBrim(Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length);
+    void generateSecondarySkirtBrim(Shape& covered_area, std::vector<Shape>& allowed_areas_per_extruder, std::vector<coord_t>& total_length);
 
 public:
     /*!

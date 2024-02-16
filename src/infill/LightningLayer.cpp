@@ -45,8 +45,8 @@ void LightningLayer::fillLocator(SparseLightningTreeNodeGrid& tree_node_locator)
 }
 
 void LightningLayer::generateNewTrees(
-    const Polygons& current_overhang,
-    const Polygons& current_outlines,
+    const Shape& current_overhang,
+    const Shape& current_outlines,
     const LocToLineGrid& outlines_locator,
     const coord_t supporting_radius,
     const coord_t wall_supporting_radius)
@@ -80,7 +80,7 @@ void LightningLayer::generateNewTrees(
 
 GroundingLocation LightningLayer::getBestGroundingLocation(
     const Point2LL& unsupported_location,
-    const Polygons& current_outlines,
+    const Shape& current_outlines,
     const LocToLineGrid& outline_locator,
     const coord_t supporting_radius,
     const coord_t wall_supporting_radius,
@@ -143,7 +143,7 @@ bool LightningLayer::attach(const Point2LL& unsupported_location, const Groundin
 
 void LightningLayer::reconnectRoots(
     std::vector<LightningTreeNodeSPtr>& to_be_reconnected_tree_roots,
-    const Polygons& current_outlines,
+    const Shape& current_outlines,
     const LocToLineGrid& outline_locator,
     const coord_t supporting_radius,
     const coord_t wall_supporting_radius)
@@ -217,7 +217,7 @@ void LightningLayer::reconnectRoots(
 }
 
 // Returns 'added someting'.
-LinesSet<OpenPolyline> LightningLayer::convertToLines(const Polygons& limit_to_outline, const coord_t line_width) const
+LinesSet<OpenPolyline> LightningLayer::convertToLines(const Shape& limit_to_outline, const coord_t line_width) const
 {
     LinesSet<OpenPolyline> result_lines;
     if (tree_roots.empty())

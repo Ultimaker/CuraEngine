@@ -57,8 +57,8 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, T
     , tip_roof_size_(force_tip_to_roof_ ? config_.min_radius * config_.min_radius * std::numbers::pi : 0)
     , force_minimum_roof_area_(use_fake_roof_ || SUPPORT_TREE_MINIMUM_ROOF_AREA_HARD_LIMIT)
     , already_inserted_(mesh.overhang_areas.size())
-    , support_roof_drawn_(mesh.overhang_areas.size(), Polygons())
-    , roof_tips_drawn_(mesh.overhang_areas.size(), Polygons())
+    , support_roof_drawn_(mesh.overhang_areas.size(), Shape())
+    , roof_tips_drawn_(mesh.overhang_areas.size(), Shape())
 {
     const double support_overhang_angle = mesh.settings.get<AngleRadians>("support_angle");
     const coord_t max_overhang_speed = (support_overhang_angle < TAU / 4) ? (coord_t)(tan(support_overhang_angle) * config_.layer_height) : std::numeric_limits<coord_t>::max();
@@ -407,7 +407,7 @@ std::shared_ptr<SierpinskiFillProvider> TreeSupportTipGenerator::generateCrossFi
     return nullptr;
 }
 
-void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, std::vector<Polygons>& result, bool roof)
+void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, std::vector<Shape>& result, bool roof)
 {
     std::mutex critical;
 
@@ -422,13 +422,13 @@ void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, st
                 return; // This is a continue if imagined in a loop context.
             }
 
-            Polygons relevant_forbidden = volumes_.getCollision(roof ? 0 : config_.getRadius(0), layer_idx, ! xy_overrides_);
+            Shape relevant_forbidden = volumes_.getCollision(roof ? 0 : config_.getRadius(0), layer_idx, ! xy_overrides_);
             // ^^^ Take the least restrictive avoidance possible
 
             // Technically this also makes support blocker smaller, which is wrong as they do not have a xy_distance, but it should be good enough.
-            Polygons model_outline = volumes_.getCollision(0, layer_idx, ! xy_overrides_).offset(-config_.xy_min_distance, ClipperLib::jtRound);
+            Shape model_outline = volumes_.getCollision(0, layer_idx, ! xy_overrides_).offset(-config_.xy_min_distance, ClipperLib::jtRound);
 
-            Polygons overhang_regular = TreeSupportUtils::safeOffsetInc(
+            Shape overhang_regular = TreeSupportUtils::safeOffsetInc(
                 mesh.overhang_areas[layer_idx + z_distance_delta_],
                 roof ? roof_outset_ : support_outset_,
                 relevant_forbidden,
@@ -437,11 +437,11 @@ void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, st
                 1,
                 config_.support_line_distance / 2,
                 &config_.simplifier);
-            Polygons remaining_overhang = mesh.overhang_areas[layer_idx + z_distance_delta_]
-                                              .offset(roof ? roof_outset_ : support_outset_)
-                                              .difference(overhang_regular)
-                                              .intersection(relevant_forbidden)
-                                              .difference(model_outline);
+            Shape remaining_overhang = mesh.overhang_areas[layer_idx + z_distance_delta_]
+                                           .offset(roof ? roof_outset_ : support_outset_)
+                                           .difference(overhang_regular)
+                                           .intersection(relevant_forbidden)
+                                           .difference(model_outline);
             for (size_t lag_ctr = 1; lag_ctr <= max_overhang_insert_lag_ && layer_idx - coord_t(lag_ctr) >= 1 && ! remaining_overhang.empty(); lag_ctr++)
             {
                 {
@@ -449,7 +449,7 @@ void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, st
                     result[layer_idx - lag_ctr].add(remaining_overhang);
                 }
 
-                Polygons relevant_forbidden_below = volumes_.getCollision(roof ? 0 : config_.getRadius(0), layer_idx - lag_ctr, ! xy_overrides_).offset(EPSILON);
+                Shape relevant_forbidden_below = volumes_.getCollision(roof ? 0 : config_.getRadius(0), layer_idx - lag_ctr, ! xy_overrides_).offset(EPSILON);
                 remaining_overhang = remaining_overhang.intersection(relevant_forbidden_below).unionPolygons().difference(model_outline);
             }
         });
@@ -465,9 +465,9 @@ void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, st
 
 void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& mesh)
 {
-    std::vector<Polygons> potential_support_roofs(mesh.overhang_areas.size(), Polygons());
+    std::vector<Shape> potential_support_roofs(mesh.overhang_areas.size(), Shape());
     std::mutex critical_potential_support_roofs;
-    std::vector<Polygons> dropped_overhangs(mesh.overhang_areas.size(), Polygons());
+    std::vector<Shape> dropped_overhangs(mesh.overhang_areas.size(), Shape());
 
     if (xy_overrides_)
     {
@@ -486,19 +486,19 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
 
             // Roof does not have a radius, so remove it using offset. Note that there is no 0 radius avoidance, and it would not be identical with the avoidance offset with
             // -radius. This is intentional here, as support roof is still valid if only a part of the tip may reach it.
-            Polygons forbidden_here = volumes_
-                                          .getAvoidance(
-                                              config_.getRadius(0),
-                                              layer_idx,
-                                              (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
-                                              config_.support_rests_on_model,
-                                              ! xy_overrides_)
-                                          .offset(-config_.getRadius(0), ClipperLib::jtRound);
+            Shape forbidden_here = volumes_
+                                       .getAvoidance(
+                                           config_.getRadius(0),
+                                           layer_idx,
+                                           (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
+                                           config_.support_rests_on_model,
+                                           ! xy_overrides_)
+                                       .offset(-config_.getRadius(0), ClipperLib::jtRound);
 
             // todo Since arachnea the assumption that an area smaller then line_width is not printed is no longer true all such safeOffset should have config.support_line_width
             // replaced with another setting. It should still work in most cases, but it should be possible to create a situation where a overhang outset lags though a wall. I will
             // take a look at this later.
-            Polygons full_overhang_area = TreeSupportUtils::safeOffsetInc(
+            Shape full_overhang_area = TreeSupportUtils::safeOffsetInc(
                 mesh.full_overhang_areas[layer_idx + z_distance_delta_].unionPolygons(dropped_overhangs[layer_idx]),
                 roof_outset_,
                 forbidden_here,
@@ -510,14 +510,14 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
 
             for (LayerIndex dtt_roof = 0; dtt_roof < support_roof_layers_ && layer_idx - dtt_roof >= 1; dtt_roof++)
             {
-                const Polygons forbidden_next = volumes_
-                                                    .getAvoidance(
-                                                        config_.getRadius(0),
-                                                        layer_idx - (dtt_roof + 1),
-                                                        (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
-                                                        config_.support_rests_on_model,
-                                                        ! xy_overrides_)
-                                                    .offset(-config_.getRadius(0), ClipperLib::jtRound);
+                const Shape forbidden_next = volumes_
+                                                 .getAvoidance(
+                                                     config_.getRadius(0),
+                                                     layer_idx - (dtt_roof + 1),
+                                                     (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
+                                                     config_.support_rests_on_model,
+                                                     ! xy_overrides_)
+                                                 .offset(-config_.getRadius(0), ClipperLib::jtRound);
 
                 full_overhang_area = full_overhang_area.difference(forbidden_next);
 
@@ -555,7 +555,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
                                                      .unionPolygons(potential_support_roofs[layer_idx]);
         });
 
-    std::vector<Polygons> additional_support_roofs(mesh.overhang_areas.size(), Polygons());
+    std::vector<Shape> additional_support_roofs(mesh.overhang_areas.size(), Shape());
 
     cura::parallel_for<coord_t>(
         0,
@@ -566,18 +566,18 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
             {
                 // Roof does not have a radius, so remove it using offset. Note that there is no 0 radius avoidance, and it would not be identical with the avoidance offset with
                 // -radius. This is intentional here, as support roof is still valid if only a part of the tip may reach it.
-                Polygons forbidden_here = volumes_
-                                              .getAvoidance(
-                                                  config_.getRadius(0),
-                                                  layer_idx,
-                                                  (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
-                                                  config_.support_rests_on_model,
-                                                  ! xy_overrides_)
-                                              .offset(-(config_.getRadius(0)), ClipperLib::jtRound);
+                Shape forbidden_here = volumes_
+                                           .getAvoidance(
+                                               config_.getRadius(0),
+                                               layer_idx,
+                                               (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
+                                               config_.support_rests_on_model,
+                                               ! xy_overrides_)
+                                           .offset(-(config_.getRadius(0)), ClipperLib::jtRound);
 
                 if (! force_minimum_roof_area_)
                 {
-                    Polygons fuzzy_area = Polygons();
+                    Shape fuzzy_area = Shape();
 
                     // the roof will be combined with roof above and below, to see if a part of this roof may be part of a valid roof further up/down.
                     // This prevents the situation where a roof gets removed even tough its area would contribute to a (better) printable roof area further down.
@@ -591,7 +591,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
                     fuzzy_area = fuzzy_area.unionPolygons();
                     fuzzy_area.removeSmallAreas(std::max(minimum_roof_area_, tip_roof_size_));
 
-                    for (Polygons potential_roof : potential_support_roofs[layer_idx].difference(forbidden_here).splitIntoParts())
+                    for (Shape potential_roof : potential_support_roofs[layer_idx].difference(forbidden_here).splitIntoParts())
                     {
                         if (! potential_roof.intersection(fuzzy_area).empty())
                         {
@@ -601,7 +601,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
                 }
                 else
                 {
-                    Polygons valid_roof = potential_support_roofs[layer_idx].difference(forbidden_here);
+                    Shape valid_roof = potential_support_roofs[layer_idx].difference(forbidden_here);
                     valid_roof.removeSmallAreas(std::max(minimum_roof_area_, tip_roof_size_));
                     additional_support_roofs[layer_idx].add(valid_roof);
                 }
@@ -642,7 +642,7 @@ void TreeSupportTipGenerator::addPointAsInfluenceArea(
     {
         circle.push_back(p.first + corner);
     }
-    Polygons area = circle.offset(0);
+    Shape area = circle.offset(0);
     {
         std::lock_guard<std::mutex> critical_section_movebounds(critical_move_bounds_);
         if (! already_inserted_[insert_layer].count(p.first / ((config_.min_radius + 1) / 10)))
@@ -663,7 +663,7 @@ void TreeSupportTipGenerator::addPointAsInfluenceArea(
                 skip_ovalisation,
                 support_tree_limit_branch_reach_,
                 support_tree_branch_reach_limit_);
-            elem->area_ = new Polygons(area);
+            elem->area_ = new Shape(area);
 
             for (Point2LL target : additional_ovalization_targets)
             {
@@ -699,7 +699,7 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
                 {
                     roof_circle.push_back(p.first + corner * std::max(config_.min_radius / TreeSupportBaseCircle::base_radius, coord_t(1)));
                 }
-                Polygons area = roof_circle.offset(0);
+                Shape area = roof_circle.offset(0);
                 return ! TreeSupportUtils::generateSupportInfillLines(area, config_, true, insert_layer_idx - dtt_roof_tip, support_roof_line_distance_, cross_fill_provider_, true)
                              .empty();
             };
@@ -728,7 +728,7 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
             }
 
             // Add all tips as roof to the roof storage.
-            Polygons added_roofs;
+            Shape added_roofs;
             for (LineInformation line : lines)
             {
                 for (std::pair<Point2LL, TreeSupportTipGenerator::LineStatus> p : line)
@@ -787,7 +787,7 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
 void TreeSupportTipGenerator::removeUselessAddedPoints(
     std::vector<std::set<TreeSupportElement*>>& move_bounds,
     SliceDataStorage& storage,
-    std::vector<Polygons>& additional_support_areas)
+    std::vector<Shape>& additional_support_areas)
 {
     cura::parallel_for<coord_t>(
         0,
@@ -797,9 +797,9 @@ void TreeSupportTipGenerator::removeUselessAddedPoints(
             if (layer_idx + 1 < storage.support.supportLayers.size())
             {
                 std::vector<TreeSupportElement*> to_be_removed;
-                Polygons roof_on_layer_above = use_fake_roof_ ? support_roof_drawn_[layer_idx + 1]
-                                                              : storage.support.supportLayers[layer_idx + 1].support_roof.unionPolygons(additional_support_areas[layer_idx + 1]);
-                Polygons roof_on_layer
+                Shape roof_on_layer_above = use_fake_roof_ ? support_roof_drawn_[layer_idx + 1]
+                                                           : storage.support.supportLayers[layer_idx + 1].support_roof.unionPolygons(additional_support_areas[layer_idx + 1]);
+                Shape roof_on_layer
                     = use_fake_roof_ ? support_roof_drawn_[layer_idx] : storage.support.supportLayers[layer_idx].support_roof.unionPolygons(additional_support_areas[layer_idx]);
 
                 for (TreeSupportElement* elem : move_bounds[layer_idx])
@@ -838,8 +838,8 @@ void TreeSupportTipGenerator::generateTips(
     SliceDataStorage& storage,
     const SliceMeshStorage& mesh,
     std::vector<std::set<TreeSupportElement*>>& move_bounds,
-    std::vector<Polygons>& additional_support_areas,
-    std::vector<Polygons>& placed_support_lines_support_areas)
+    std::vector<Shape>& additional_support_areas,
+    std::vector<Shape>& placed_support_lines_support_areas)
 {
     std::vector<std::set<TreeSupportElement*>> new_tips(move_bounds.size());
 
@@ -869,7 +869,7 @@ void TreeSupportTipGenerator::generateTips(
                 return; // This is a continue if imagined in a loop context.
             }
 
-            Polygons relevant_forbidden = volumes_.getAvoidance(
+            Shape relevant_forbidden = volumes_.getAvoidance(
                 config_.getRadius(0),
                 layer_idx,
                 (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
@@ -880,7 +880,7 @@ void TreeSupportTipGenerator::generateTips(
                 = relevant_forbidden.offset(EPSILON)
                       .unionPolygons(); // Prevent rounding errors down the line, points placed directly on the line of the forbidden area may not be added otherwise.
 
-            std::function<LinesSet<OpenPolyline>(const Polygons&, bool, LayerIndex)> generateLines = [&](const Polygons& area, bool roof, LayerIndex generate_layer_idx)
+            std::function<LinesSet<OpenPolyline>(const Shape&, bool, LayerIndex)> generateLines = [&](const Shape& area, bool roof, LayerIndex generate_layer_idx)
             {
                 coord_t upper_line_distance = support_supporting_branch_distance_;
                 coord_t line_distance = std::max(roof ? support_roof_line_distance_ : support_tree_branch_distance_, upper_line_distance);
@@ -897,21 +897,21 @@ void TreeSupportTipGenerator::generateTips(
             };
 
 
-            std::vector<std::pair<Polygons, bool>> overhang_processing;
+            std::vector<std::pair<Shape, bool>> overhang_processing;
             // ^^^ Every overhang has saved if a roof should be generated for it.
             //     This can NOT be done in the for loop as an area may NOT have a roof even if it is larger than the minimum_roof_area when it is only larger because of the support
             //     horizontal expansion and it would not have a roof if the overhang is offset by support roof horizontal expansion instead. (At least this is the current behavior
             //     of the regular support)
 
-            Polygons core_overhang = mesh.overhang_areas[layer_idx + z_distance_delta_];
+            Shape core_overhang = mesh.overhang_areas[layer_idx + z_distance_delta_];
 
 
             if (support_roof_layers_ && layer_idx + 1 < support_roof_drawn_.size())
             {
                 core_overhang = core_overhang.difference(support_roof_drawn_[layer_idx]);
-                for (Polygons roof_part : support_roof_drawn_[layer_idx + 1]
-                                              .difference(support_roof_drawn_[layer_idx])
-                                              .splitIntoParts(true)) // If there is a roof, the roof will be one layer above the tips.
+                for (Shape roof_part : support_roof_drawn_[layer_idx + 1]
+                                           .difference(support_roof_drawn_[layer_idx])
+                                           .splitIntoParts(true)) // If there is a roof, the roof will be one layer above the tips.
                 {
                     //^^^Technically one should also subtract the avoidance of radius 0 (similarly how calculated in calculateRoofArea), as there can be some rounding errors
                     // introduced since then. But this does not fully prevent some rounding errors either way, so just handle the error later.
@@ -919,7 +919,7 @@ void TreeSupportTipGenerator::generateTips(
                 }
             }
 
-            Polygons overhang_regular = TreeSupportUtils::safeOffsetInc(
+            Shape overhang_regular = TreeSupportUtils::safeOffsetInc(
                 core_overhang,
                 support_outset_,
                 relevant_forbidden,
@@ -928,8 +928,7 @@ void TreeSupportTipGenerator::generateTips(
                 1,
                 config_.support_line_distance / 2,
                 &config_.simplifier);
-            Polygons remaining_overhang
-                = core_overhang.offset(support_outset_).difference(overhang_regular.offset(config_.support_line_width * 0.5)).intersection(relevant_forbidden);
+            Shape remaining_overhang = core_overhang.offset(support_outset_).difference(overhang_regular.offset(config_.support_line_width * 0.5)).intersection(relevant_forbidden);
 
 
             // Offset ensures that areas that could be supported by a part of a support line, are not considered unsupported overhang
@@ -943,7 +942,7 @@ void TreeSupportTipGenerator::generateTips(
                                                 ? std::min(config_.support_line_width / 8, extra_outset - extra_total_offset_acc)
                                                 : std::min(circle_length_to_half_linewidth_change, extra_outset - extra_total_offset_acc);
                 extra_total_offset_acc += offset_current_step;
-                Polygons overhang_offset = TreeSupportUtils::safeOffsetInc(
+                Shape overhang_offset = TreeSupportUtils::safeOffsetInc(
                     overhang_regular,
                     1.5 * extra_total_offset_acc,
                     volumes_.getCollision(0, layer_idx, true),
@@ -954,7 +953,7 @@ void TreeSupportTipGenerator::generateTips(
                     &config_.simplifier);
                 remaining_overhang = remaining_overhang.difference(overhang_offset.unionPolygons(support_roof_drawn_[layer_idx].offset(1.5 * extra_total_offset_acc)))
                                          .unionPolygons(); // overhang_offset is combined with roof, as all area that has a roof, is already supported by said roof.
-                Polygons next_overhang = TreeSupportUtils::safeOffsetInc(
+                Shape next_overhang = TreeSupportUtils::safeOffsetInc(
                     remaining_overhang,
                     extra_total_offset_acc,
                     volumes_.getCollision(0, layer_idx, true),
@@ -971,7 +970,7 @@ void TreeSupportTipGenerator::generateTips(
             //   (while adding them an infinite amount of layers down would technically be closer the setting description, it would not produce reasonable results. )
             if (xy_overrides_)
             {
-                for (Polygons& remaining_overhang_part : remaining_overhang.splitIntoParts(false))
+                for (Shape& remaining_overhang_part : remaining_overhang.splitIntoParts(false))
                 {
                     if (remaining_overhang_part.area() <= MM2_2INT(minimum_support_area_))
                     {
@@ -1003,7 +1002,7 @@ void TreeSupportTipGenerator::generateTips(
                     for (size_t lag_ctr = 1; lag_ctr <= max_overhang_insert_lag_ && ! overhang_lines.empty() && layer_idx - coord_t(lag_ctr) >= 1; lag_ctr++)
                     {
                         // get least restricted avoidance for layer_idx-lag_ctr
-                        Polygons relevant_forbidden_below = volumes_.getAvoidance(
+                        Shape relevant_forbidden_below = volumes_.getAvoidance(
                             config_.getRadius(0),
                             layer_idx - lag_ctr,
                             (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
@@ -1046,15 +1045,15 @@ void TreeSupportTipGenerator::generateTips(
 
             overhang_regular.removeSmallAreas(minimum_support_area_);
 
-            for (Polygons support_part : overhang_regular.splitIntoParts(true))
+            for (Shape support_part : overhang_regular.splitIntoParts(true))
             {
                 overhang_processing.emplace_back(support_part, false);
             }
 
-            for (std::pair<Polygons, bool> overhang_pair : overhang_processing)
+            for (std::pair<Shape, bool> overhang_pair : overhang_processing)
             {
                 const bool roof_allowed_for_this_part = overhang_pair.second;
-                Polygons overhang_outset = overhang_pair.first;
+                Shape overhang_outset = overhang_pair.first;
                 const size_t min_support_points = std::max(coord_t(1), std::min(coord_t(EPSILON), overhang_outset.length() / connect_length_));
                 std::vector<LineInformation> overhang_lines;
 
@@ -1081,7 +1080,7 @@ void TreeSupportTipGenerator::generateTips(
                     only_lines = false;
                     // Add the outer wall (of the overhang) to ensure it is correct supported instead.
                     // Try placing the support points in a way that they fully support the outer wall, instead of just the with half of the support line width.
-                    Polygons reduced_overhang_outset = overhang_outset.offset(-config_.support_line_width / 2.2);
+                    Shape reduced_overhang_outset = overhang_outset.offset(-config_.support_line_width / 2.2);
                     // ^^^ It's assumed that even small overhangs are over one line width wide, so lets try to place the support points in a way that the full support area
                     // generated from them will support the overhang.
                     //     (If this is not done it may only be half). This WILL NOT be the case when supporting an angle of about < 60� so there is a fallback, as some support is
@@ -1106,7 +1105,7 @@ void TreeSupportTipGenerator::generateTips(
 
                 if (overhang_lines.empty()) // some error handling and logging
                 {
-                    Polygons enlarged_overhang_outset = overhang_outset.offset(config_.getRadius(0) + FUDGE_LENGTH / 2, ClipperLib::jtRound).difference(relevant_forbidden);
+                    Shape enlarged_overhang_outset = overhang_outset.offset(config_.getRadius(0) + FUDGE_LENGTH / 2, ClipperLib::jtRound).difference(relevant_forbidden);
                     polylines = ensureMaximumDistancePolyline(TreeSupportUtils::toPolylines(enlarged_overhang_outset), connect_length_, min_support_points, true);
                     overhang_lines = convertLinesToInternal(polylines, layer_idx);
 

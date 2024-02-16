@@ -10,7 +10,7 @@ namespace cura
 {
 
 class Polygon;
-class Polygons;
+class Shape;
 
 /* Axis aligned boundary box */
 class AABB
@@ -20,10 +20,10 @@ public:
 
     AABB(); //!< initializes with invalid min and max
     AABB(const Point2LL& min, const Point2LL& max); //!< initializes with given min and max
-    AABB(const Polygons& polys); //!< Computes the boundary box for the given polygons
+    AABB(const Shape& polys); //!< Computes the boundary box for the given polygons
     AABB(const Polygon& poly); //!< Computes the boundary box for the given polygons
 
-    void calculate(const Polygons& polys); //!< Calculates the aabb for the given polygons (throws away old min and max data of this aabb)
+    void calculate(const Shape& polys); //!< Calculates the aabb for the given polygons (throws away old min and max data of this aabb)
     void calculate(const Polygon& poly); //!< Calculates the aabb for the given polygon (throws away old min and max data of this aabb)
 
     /*!

@@ -33,7 +33,7 @@ public:
     Polygon test_circle;
     Polygon test_convex_shape;
 
-    Polygons test_shapes; // all above polygons
+    Shape test_shapes; // all above polygons
 
     void SetUp() override
     {

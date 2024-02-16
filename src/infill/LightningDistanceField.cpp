@@ -10,7 +10,7 @@ namespace cura
 
 constexpr coord_t radius_per_cell_size = 6; // The cell-size should be small compared to the radius, but not so small as to be inefficient.
 
-LightningDistanceField::LightningDistanceField(const coord_t& radius, const Polygons& current_outline, const Polygons& current_overhang)
+LightningDistanceField::LightningDistanceField(const coord_t& radius, const Shape& current_outline, const Shape& current_overhang)
     : cell_size_(radius / radius_per_cell_size)
     , grid_(cell_size_)
     , supporting_radius_(radius)

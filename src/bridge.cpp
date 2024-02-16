@@ -14,21 +14,21 @@ namespace cura
 
 double bridgeAngle(
     const Settings& settings,
-    const Polygons& skin_outline,
+    const Shape& skin_outline,
     const SliceDataStorage& storage,
     const unsigned layer_nr,
     const unsigned bridge_layer,
     const SupportLayer* support_layer,
-    Polygons& supported_regions)
+    Shape& supported_regions)
 {
     assert(! skin_outline.empty());
     AABB boundary_box(skin_outline);
 
     // To detect if we have a bridge, first calculate the intersection of the current layer with the previous layer.
     //  This gives us the islands that the layer rests on.
-    Polygons islands;
+    Shape islands;
 
-    Polygons prev_layer_outline; // we also want the complete outline of the previous layer
+    Shape prev_layer_outline; // we also want the complete outline of the previous layer
 
     const Ratio sparse_infill_max_density = settings.get<Ratio>("bridge_sparse_infill_max_density");
 
@@ -45,7 +45,7 @@ double bridgeAngle(
 
             for (const SliceLayerPart& prev_layer_part : mesh.layers[layer_nr - bridge_layer].parts)
             {
-                Polygons solid_below(prev_layer_part.outline);
+                Shape solid_below(prev_layer_part.outline);
                 if (bridge_layer == 1 && part_has_sparse_infill)
                 {
                     solid_below = solid_below.difference(prev_layer_part.getOwnInfillArea());
@@ -76,7 +76,7 @@ double bridgeAngle(
             {
                 prev_layer_outline.add(support_layer->support_roof); // not intersected with skin
 
-                Polygons supported_skin(skin_outline.intersection(support_layer->support_roof));
+                Shape supported_skin(skin_outline.intersection(support_layer->support_roof));
                 if (! supported_skin.empty())
                 {
                     supported_regions.add(supported_skin);
@@ -92,7 +92,7 @@ double bridgeAngle(
                 {
                     prev_layer_outline.add(support_part.getInfillArea()); // not intersected with skin
 
-                    Polygons supported_skin(skin_outline.intersection(support_part.getInfillArea()));
+                    Shape supported_skin(skin_outline.intersection(support_part.getInfillArea()));
                     if (! supported_skin.empty())
                     {
                         supported_regions.add(supported_skin);
@@ -112,7 +112,7 @@ double bridgeAngle(
 
     if (support_threshold > 0 && (supported_regions.area() / (skin_outline.area() + 1)) < support_threshold)
     {
-        Polygons bb_poly;
+        Shape bb_poly;
         bb_poly.push_back(boundary_box.toPolygon());
 
         // airBelow is the region below the skin that is not supported, it extends well past the boundary of the skin.
@@ -120,7 +120,7 @@ double bridgeAngle(
         // the air boundary do appear to be supported
 
         const coord_t bb_max_dim = std::max(boundary_box.max_.X - boundary_box.min_.X, boundary_box.max_.Y - boundary_box.min_.Y);
-        const Polygons air_below(bb_poly.offset(bb_max_dim).difference(prev_layer_outline).offset(-10));
+        const Shape air_below(bb_poly.offset(bb_max_dim).difference(prev_layer_outline).offset(-10));
 
         std::vector<OpenPolyline> skin_perimeter_lines;
         for (const Polygon& poly : skin_outline)

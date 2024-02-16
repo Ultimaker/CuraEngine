@@ -70,7 +70,7 @@ TEST_P(MoveInsideTest, MoveInside)
 TEST_P(MoveInsideTest, MoveInside2)
 {
     const MoveInsideParameters parameters = GetParam();
-    Polygons polys;
+    Shape polys;
     polys.add(test_square);
     Point2LL result = parameters.close_to;
     PolygonUtils::moveInside2(polys, result, parameters.distance);
@@ -164,7 +164,7 @@ TEST_F(MoveInsideTest, cornerEdgeTest2)
     const Point2LL supposed1(80, 80); // Allow two possible values here, since the behaviour for this edge case is not specified.
     const Point2LL supposed2(72, 100);
     constexpr coord_t distance = 28;
-    Polygons polys;
+    Shape polys;
     polys.add(test_square);
     Point2LL result = close_to;
     PolygonUtils::moveInside2(polys, result, distance);
@@ -178,7 +178,7 @@ TEST_F(MoveInsideTest, pointyCorner)
 {
     const Point2LL from(55, 100); // Above pointy bit.
     Point2LL result(from);
-    Polygons inside;
+    Shape inside;
     inside.add(pointy_square);
     ClosestPoint cpp = PolygonUtils::ensureInsideOrOutside(inside, result, 10);
 
@@ -192,7 +192,7 @@ TEST_F(MoveInsideTest, pointyCornerFail)
     // Should fail with normal moveInside2 (and the like).
     const Point2LL from(55, 170); // Above pointy bit.
     Point2LL result(from);
-    Polygons inside;
+    Shape inside;
     inside.add(pointy_square);
 
     ClosestPoint cpp = PolygonUtils::moveInside2(inside, result, 10);
@@ -206,7 +206,7 @@ TEST_F(MoveInsideTest, outsidePointyCorner)
     const Point2LL from(60, 70); // Above pointy bit.
     Point2LL result(from);
     const Point2LL supposed(50, 70); // 10 below pointy bit.
-    Polygons inside;
+    Shape inside;
     inside.add(pointy_square);
 
     const ClosestPoint cpp = PolygonUtils::ensureInsideOrOutside(inside, result, -10);
@@ -221,7 +221,7 @@ TEST_F(MoveInsideTest, outsidePointyCornerFail)
     const Point2LL from(60, 70); // Above pointy bit.
     Point2LL result(from);
     const Point2LL supposed(50, 70); // 10 below pointy bit.
-    Polygons inside;
+    Shape inside;
     inside.add(pointy_square);
 
     const ClosestPoint cpp = PolygonUtils::moveInside2(inside, result, -10);
@@ -265,7 +265,7 @@ public:
 TEST_P(FindCloseTest, FindClose)
 {
     const FindCloseParameters parameters = GetParam();
-    Polygons polygons;
+    Shape polygons;
     polygons.add(test_square);
     auto loc_to_line = PolygonUtils::createLocToLineGrid(polygons, parameters.cell_size);
 
@@ -312,9 +312,9 @@ INSTANTIATE_TEST_SUITE_P(
 class PolygonUtilsTest : public testing::Test
 {
 public:
-    Polygons test_squares;
-    Polygons test_line;
-    Polygons test_line_extra_vertices; // Line that has extra vertices along it that are technically unnecessary.
+    Shape test_squares;
+    Shape test_line;
+    Shape test_line_extra_vertices; // Line that has extra vertices along it that are technically unnecessary.
 
     PolygonUtilsTest()
     {
@@ -399,7 +399,7 @@ struct GetNextParallelIntersectionParameters
 class GetNextParallelIntersectionTest : public testing::TestWithParam<GetNextParallelIntersectionParameters>
 {
 public:
-    Polygons test_squares;
+    Shape test_squares;
 
     GetNextParallelIntersectionTest()
     {
@@ -448,7 +448,7 @@ TEST_F(PolygonUtilsTest, RelativeHammingSquaresOverlap)
 
 TEST_F(PolygonUtilsTest, RelativeHammingDisjunct)
 {
-    Polygons shifted_polys = test_squares; // Make a copy.
+    Shape shifted_polys = test_squares; // Make a copy.
     shifted_polys[0].translate(Point2LL(200, 0));
 
     ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, shifted_polys), 1.0);
@@ -456,7 +456,7 @@ TEST_F(PolygonUtilsTest, RelativeHammingDisjunct)
 
 TEST_F(PolygonUtilsTest, RelativeHammingHalfOverlap)
 {
-    Polygons shifted_polys = test_squares; // Make a copy.
+    Shape shifted_polys = test_squares; // Make a copy.
     shifted_polys[0].translate(Point2LL(50, 0));
 
     ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, shifted_polys), 0.5);
@@ -469,7 +469,7 @@ TEST_F(PolygonUtilsTest, RelativeHammingHalfOverlap)
  */
 TEST_F(PolygonUtilsTest, RelativeHammingQuarterOverlap)
 {
-    Polygons shifted_polys = test_squares; // Make a copy.
+    Shape shifted_polys = test_squares; // Make a copy.
     shifted_polys[0].translate(Point2LL(50, 50));
 
     ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, shifted_polys), 0.75);
@@ -506,7 +506,7 @@ TEST_F(PolygonUtilsTest,
 
 TEST_F(PolygonUtilsTest, RelativeHammingLineLineDisjunct)
 {
-    Polygons shifted_line = test_line; // Make a copy.
+    Shape shifted_line = test_line; // Make a copy.
     shifted_line[0].translate(Point2LL(0, 1));
 
     ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_line, test_line), 1.0);

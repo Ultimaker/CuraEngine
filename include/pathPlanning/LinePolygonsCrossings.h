@@ -48,7 +48,7 @@ private:
 
     std::vector<Crossing> crossings_; //!< All crossings of polygons in the LinePolygonsCrossings::boundary with the scanline.
 
-    const Polygons& boundary_; //!< The boundary not to cross during combing.
+    const Shape& boundary_; //!< The boundary not to cross during combing.
     LocToLineGrid& loc_to_line_grid_; //!< Mapping from locations to line segments of \ref LinePolygonsCrossings::boundary
     Point2LL start_point_; //!< The start point of the scanline.
     Point2LL end_point_; //!< The end point of the scanline.
@@ -125,7 +125,7 @@ private:
      * \param end the end point
      * \param dist_to_move_boundary_point_outside Distance used to move a point from a boundary so that it doesn't intersect with it anymore. (Precision issue)
      */
-    LinePolygonsCrossings(const Polygons& boundary, LocToLineGrid& loc_to_line_grid, Point2LL& start, Point2LL& end, int64_t dist_to_move_boundary_point_outside)
+    LinePolygonsCrossings(const Shape& boundary, LocToLineGrid& loc_to_line_grid, Point2LL& start, Point2LL& end, int64_t dist_to_move_boundary_point_outside)
         : boundary_(boundary)
         , loc_to_line_grid_(loc_to_line_grid)
         , start_point_(start)
@@ -146,7 +146,7 @@ public:
      * \return Whether combing succeeded, i.e. we didn't cross any gaps/other parts
      */
     static bool comb(
-        const Polygons& boundary,
+        const Shape& boundary,
         LocToLineGrid& loc_to_line_grid,
         Point2LL startPoint,
         Point2LL endPoint,

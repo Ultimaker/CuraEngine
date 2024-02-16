@@ -94,7 +94,7 @@ bool InsetOrderOptimizer::addToLayer()
     bool added_something = false;
 
     constexpr bool detect_loops = false;
-    constexpr Polygons* combing_boundary = nullptr;
+    constexpr Shape* combing_boundary = nullptr;
     const auto group_outer_walls = settings_.get<bool>("group_outer_walls");
     // When we alternate walls, also alternate the direction at which the first wall starts in.
     // On even layers we start with normal direction, on odd layers with inverted direction.
@@ -203,7 +203,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
     {
         // Create a polygon representing the inner area of the extrusion line; any
         // point inside this polygon is considered to the child of the extrusion line.
-        Polygons hole_polygons;
+        Shape hole_polygons;
         if (extrusion_line->is_closed_)
         {
             hole_polygons.push_back(extrusion_line->toPolygon());

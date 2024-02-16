@@ -157,7 +157,7 @@ TEST_F(SlicePhaseTest, Cylinder1000)
         const coord_t y = std::sin(std::numbers::pi * 2 / num_vertices * i) * radius;
         circle.emplace_back(x, y);
     }
-    Polygons circles;
+    Shape circles;
     circles.add(circle);
 
     for (size_t layer_nr = 0; layer_nr < num_layers; layer_nr++)

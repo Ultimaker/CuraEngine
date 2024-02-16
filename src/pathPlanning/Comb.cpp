@@ -29,7 +29,7 @@ LocToLineGrid& Comb::getOutsideLocToLine(const ExtruderTrain& train)
     return *outside_loc_to_line_[train.extruder_nr_];
 }
 
-Polygons& Comb::getBoundaryOutside(const ExtruderTrain& train)
+Shape& Comb::getBoundaryOutside(const ExtruderTrain& train)
 {
     if (boundary_outside_[train.extruder_nr_].empty())
     {
@@ -39,7 +39,7 @@ Polygons& Comb::getBoundaryOutside(const ExtruderTrain& train)
     return boundary_outside_[train.extruder_nr_];
 }
 
-Polygons& Comb::getModelBoundary(const ExtruderTrain& train)
+Shape& Comb::getModelBoundary(const ExtruderTrain& train)
 {
     if (model_boundary_[train.extruder_nr_].empty())
     {
@@ -61,8 +61,8 @@ LocToLineGrid& Comb::getModelBoundaryLocToLine(const ExtruderTrain& train)
 Comb::Comb(
     const SliceDataStorage& storage,
     const LayerIndex layer_nr,
-    const Polygons& comb_boundary_inside_minimum,
-    const Polygons& comb_boundary_inside_optimal,
+    const Shape& comb_boundary_inside_minimum,
+    const Shape& comb_boundary_inside_optimal,
     coord_t comb_boundary_offset,
     coord_t travel_avoid_distance,
     coord_t move_inside_distance)
@@ -374,7 +374,7 @@ bool Comb::calc(
 }
 
 // Try to move comb_path_input points inside by the amount of `move_inside_distance` and see if the points are still in boundary_inside_optimal, add result in comb_path_output
-void Comb::moveCombPathInside(Polygons& boundary_inside, Polygons& boundary_inside_optimal, CombPath& comb_path_input, CombPath& comb_path_output)
+void Comb::moveCombPathInside(Shape& boundary_inside, Shape& boundary_inside_optimal, CombPath& comb_path_input, CombPath& comb_path_output)
 {
     const coord_t dist = move_inside_distance_;
     const coord_t dist2 = dist * dist;
@@ -409,7 +409,7 @@ Comb::Crossing::Crossing(
     const bool dest_is_inside,
     const unsigned int dest_part_idx,
     const unsigned int dest_part_boundary_crossing_poly_idx,
-    const Polygons& boundary_inside,
+    const Shape& boundary_inside,
     const LocToLineGrid& inside_loc_to_line)
     : dest_is_inside_(dest_is_inside)
     , boundary_inside_(boundary_inside)
@@ -424,7 +424,7 @@ Comb::Crossing::Crossing(
     }
 }
 
-bool Comb::moveInside(Polygons& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point2LL& dest_point, size_t& inside_poly)
+bool Comb::moveInside(Shape& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point2LL& dest_point, size_t& inside_poly)
 {
     if (is_inside)
     {
@@ -513,7 +513,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
     }
 }
 
-bool Comb::Crossing::findOutside(const ExtruderTrain& train, const Polygons& outside, const Point2LL close_to, const bool fail_on_unavoidable_obstacles, Comb& comber)
+bool Comb::Crossing::findOutside(const ExtruderTrain& train, const Shape& outside, const Point2LL close_to, const bool fail_on_unavoidable_obstacles, Comb& comber)
 {
     out_ = in_or_mid_;
     if (dest_is_inside_ || outside.inside(in_or_mid_, true)) // start in_between
@@ -556,7 +556,7 @@ bool Comb::Crossing::findOutside(const ExtruderTrain& train, const Polygons& out
 
 std::shared_ptr<std::pair<ClosestPoint, ClosestPoint>> Comb::Crossing::findBestCrossing(
     const ExtruderTrain& train,
-    const Polygons& outside,
+    const Shape& outside,
     const Polygon& from,
     const Point2LL estimated_start,
     const Point2LL estimated_end,

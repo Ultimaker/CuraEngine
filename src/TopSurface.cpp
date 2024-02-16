@@ -19,7 +19,7 @@ TopSurface::TopSurface()
 void TopSurface::setAreasFromMeshAndLayerNumber(SliceMeshStorage& mesh, size_t layer_number)
 {
     // The top surface is all parts of the mesh where there's no mesh above it, so find the layer above it first.
-    Polygons mesh_above;
+    Shape mesh_above;
     if (layer_number < mesh.layers.size() - 1)
     {
         mesh_above = mesh.layers[layer_number + 1].getOutlines();
@@ -86,7 +86,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
         // Align the edge of the ironing line with the edge of the outer wall
         ironing_inset -= ironing_flow * line_width / 2;
     }
-    Polygons ironed_areas = areas.offset(ironing_inset);
+    Shape ironed_areas = areas.offset(ironing_inset);
 
     Infill infill_generator(
         pattern,
@@ -107,7 +107,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
         infill_origin,
         skip_line_stitching);
     std::vector<VariableWidthLines> ironing_paths;
-    Polygons ironing_polygons;
+    Shape ironing_polygons;
     LinesSet<OpenPolyline> ironing_lines;
     infill_generator.generate(ironing_paths, ironing_polygons, ironing_lines, mesh.settings, layer.getLayerNr(), SectionType::IRONING);
 
@@ -157,7 +157,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
         {
             const coord_t max_adjacent_distance
                 = line_spacing * 1.1; // Lines are considered adjacent - meaning they need to be printed in monotonic order - if spaced 1 line apart, with 10% extra play.
-            layer.addLinesMonotonic(Polygons(), ironing_lines, line_config, SpaceFillType::PolyLines, AngleRadians(direction), max_adjacent_distance);
+            layer.addLinesMonotonic(Shape(), ironing_lines, line_config, SpaceFillType::PolyLines, AngleRadians(direction), max_adjacent_distance);
         }
         added = true;
     }

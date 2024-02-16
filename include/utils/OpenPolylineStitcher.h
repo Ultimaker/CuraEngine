@@ -7,12 +7,12 @@
 #include "PolylineStitcher.h"
 #include "geometry/open_polyline.h"
 #include "geometry/polygon.h"
-#include "geometry/polygons.h"
+#include "geometry/shape.h"
 
 namespace cura
 {
 
-using OpenPolylineStitcher = PolylineStitcher<LinesSet<OpenPolyline>, Polygons, OpenPolyline, Point2LL>;
+using OpenPolylineStitcher = PolylineStitcher<LinesSet<OpenPolyline>, Shape, OpenPolyline, Point2LL>;
 
 } // namespace cura
 #endif // UTILS_OPEN_POLYLINE_STITCHER_H

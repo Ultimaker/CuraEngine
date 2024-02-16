@@ -21,11 +21,11 @@ public:
     {
     }
 
-    void outline(const Polygons& input);
+    void outline(const Shape& input);
     void toolpaths(const std::vector<ExtrusionSegment>& all_segments, bool rounded_visualization = true);
-    void underfill(const Polygons& underfills);
-    void overfill(const Polygons& overfills, const Polygons& double_overfills = Polygons());
-    void width_legend(const Polygons& input, coord_t nozzle_size, coord_t max_dev, coord_t min_w, bool rounded_visualization);
+    void underfill(const Shape& underfills);
+    void overfill(const Shape& overfills, const Shape& double_overfills = Shape());
+    void width_legend(const Shape& input, coord_t nozzle_size, coord_t max_dev, coord_t min_w, bool rounded_visualization);
     void widths(const std::vector<ExtrusionSegment>& all_segments, coord_t nozzle_size, coord_t max_dev, coord_t min_w, bool rounded_visualization, bool exaggerate_widths = false);
 
 private:

@@ -35,8 +35,8 @@ class Infill
     // We skip ZigZag, Cross and Cross3D because they have their own algorithms. Eventually we want to replace all that with the new algorithm.
     // Cubic Subdivision ends lines in the center of the infill so it won't be effective.
     bool connect_polygons_{}; //!< Whether to connect as much polygons together into a single path
-    Polygons outer_contour_{}; //!< The area that originally needs to be filled with infill. The input of the algorithm.
-    Polygons inner_contour_{}; //!< The part of the contour that will get filled with an infill pattern. Equals outer_contour minus the extra infill walls.
+    Shape outer_contour_{}; //!< The area that originally needs to be filled with infill. The input of the algorithm.
+    Shape inner_contour_{}; //!< The part of the contour that will get filled with an infill pattern. Equals outer_contour minus the extra infill walls.
     coord_t infill_line_width_{}; //!< The line width of the infill lines to generate
     coord_t line_distance_{}; //!< The distance between two infill lines / polygons
     coord_t infill_overlap_{}; //!< the distance by which to overlap with the actual area within which to generate infill
@@ -74,7 +74,7 @@ public:
         EFillMethod pattern,
         bool zig_zaggify,
         bool connect_polygons,
-        Polygons in_outline,
+        Shape in_outline,
         coord_t infill_line_width,
         coord_t line_distance,
         coord_t infill_overlap,
@@ -104,7 +104,7 @@ public:
         EFillMethod pattern,
         bool zig_zaggify,
         bool connect_polygons,
-        Polygons in_outline,
+        Shape in_outline,
         coord_t infill_line_width,
         coord_t line_distance,
         coord_t infill_overlap,
@@ -142,7 +142,7 @@ public:
         EFillMethod pattern,
         bool zig_zaggify,
         bool connect_polygons,
-        Polygons in_outline,
+        Shape in_outline,
         coord_t infill_line_width,
         coord_t line_distance,
         coord_t infill_overlap,
@@ -202,7 +202,7 @@ public:
      */
     void generate(
         std::vector<VariableWidthLines>& toolpaths,
-        Polygons& result_polygons,
+        Shape& result_polygons,
         LinesSet<OpenPolyline>& result_lines,
         const Settings& settings,
         int layer_idx,
@@ -210,7 +210,7 @@ public:
         const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider = nullptr,
         const std::shared_ptr<LightningLayer>& lightning_layer = nullptr,
         const SliceMeshStorage* mesh = nullptr,
-        const Polygons& prevent_small_exposed_to_air = Polygons());
+        const Shape& prevent_small_exposed_to_air = Shape());
 
     /*!
      * Generate the wall toolpaths of an infill area. It will return the inner contour and set the inner-contour.
@@ -224,9 +224,9 @@ public:
      * \param settings [in] A settings storage to use for generating variable-width walls.
      * \return The inner contour of the wall toolpaths
      */
-    static Polygons generateWallToolPaths(
+    static Shape generateWallToolPaths(
         std::vector<VariableWidthLines>& toolpaths,
-        Polygons& outer_contour,
+        Shape& outer_contour,
         const size_t wall_line_count,
         const coord_t line_width,
         const coord_t infill_overlap,
@@ -373,7 +373,7 @@ private:
      */
     void _generate(
         std::vector<VariableWidthLines>& toolpaths,
-        Polygons& result_polygons,
+        Shape& result_polygons,
         LinesSet<OpenPolyline>& result_lines,
         const Settings& settings,
         const std::shared_ptr<SierpinskiFillProvider>& cross_fill_pattern = nullptr,
@@ -391,14 +391,14 @@ private:
      * \param[in,out] result_polygons The polygons to be multiplied (input and output)
      * \param[in,out] result_lines The lines to be multiplied (input and output)
      */
-    void multiplyInfill(Polygons& result_polygons, LinesSet<OpenPolyline>& result_lines);
+    void multiplyInfill(Shape& result_polygons, LinesSet<OpenPolyline>& result_lines);
 
     /*!
      * Generate gyroid infill
      * \param result_polylines (output) The resulting polylines
      * \param result_polygons (output) The resulting polygons, if zigzagging accidentally happened to connect gyroid lines in a circle.
      */
-    void generateGyroidInfill(LinesSet<OpenPolyline>& result_polylines, Polygons& result_polygons);
+    void generateGyroidInfill(LinesSet<OpenPolyline>& result_polylines, Shape& result_polygons);
 
     /*!
      * Generate lightning fill aka minfill aka 'Ribbed Support Vault Infill', see Tricard,Claux,Lefebvre/'Ribbed Support Vaults for 3D Printing of Hollowed Objects'
@@ -474,7 +474,7 @@ private:
      * \param[out] result_polygons The resulting polygons
      * \param[out] result_lines The resulting lines
      */
-    void generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, LinesSet<OpenPolyline>& result_lines);
+    void generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Shape& result_polygons, LinesSet<OpenPolyline>& result_lines);
 
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cut_list) into line segments, using the even-odd rule

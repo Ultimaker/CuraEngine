@@ -19,7 +19,7 @@
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "geometry/polygon.h"
-#include "geometry/polygons.h"
+#include "geometry/shape.h"
 #include "settings/EnumSettings.h"
 #include "settings/FlowTempGraph.h"
 #include "settings/types/Angle.h"
@@ -258,11 +258,11 @@ FlowTempGraph Settings::get<FlowTempGraph>(const std::string& key) const
 }
 
 template<>
-Polygons Settings::get<Polygons>(const std::string& key) const
+Shape Settings::get<Shape>(const std::string& key) const
 {
     std::string value_string = get<std::string>(key);
 
-    Polygons result;
+    Shape result;
     if (value_string.empty())
     {
         return result; // Empty at this point.

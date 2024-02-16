@@ -370,7 +370,7 @@ void SkeletalTrapezoidation::computeSegmentCellRange(
 }
 
 SkeletalTrapezoidation::SkeletalTrapezoidation(
-    const Polygons& polys,
+    const Shape& polys,
     const BeadingStrategy& beading_strategy,
     AngleRadians transitioning_angle,
     coord_t discretization_step_size,
@@ -392,7 +392,7 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(
     constructFromPolygons(polys);
 }
 
-void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
+void SkeletalTrapezoidation::constructFromPolygons(const Shape& polys)
 {
     vd_edge_to_he_edge_.clear();
     vd_node_to_he_node_.clear();

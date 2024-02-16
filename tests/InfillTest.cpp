@@ -73,11 +73,11 @@ public:
 
     // Parameters used to generate the infill:
     InfillParameters params;
-    Polygons outline_polygons;
+    Shape outline_polygons;
 
     // Resulting infill:
-    Polygons result_lines;
-    Polygons result_polygons;
+    Shape result_lines;
+    Shape result_polygons;
 
     std::string name;
 
@@ -89,7 +89,7 @@ public:
     {
     }
 
-    InfillTestParameters(const InfillParameters& params, const size_t& test_polygon_id, Polygons outline_polygons, Polygons result_lines, Polygons result_polygons)
+    InfillTestParameters(const InfillParameters& params, const size_t& test_polygon_id, Shape outline_polygons, Shape result_lines, Shape result_polygons)
         : valid(true)
         , fail_reason("__")
         , params(params)
@@ -149,7 +149,7 @@ void writeTestcaseSVG(const InfillTestParameters& params)
 }
 #endif // TEST_INFILL_SVG_OUTPUT
 
-InfillTestParameters generateInfillToTest(const InfillParameters& params, const size_t& test_polygon_id, const Polygons& outline_polygons)
+InfillTestParameters generateInfillToTest(const InfillParameters& params, const size_t& test_polygon_id, const Shape& outline_polygons)
 {
     auto layers = std::vector<SlicerLayer>(200, SlicerLayer{});
     scripta::setAll(layers);
@@ -176,8 +176,8 @@ InfillTestParameters generateInfillToTest(const InfillParameters& params, const 
 
     Settings infill_settings;
     std::vector<VariableWidthLines> result_paths;
-    Polygons result_polygons;
-    Polygons result_lines;
+    Shape result_polygons;
+    Shape result_lines;
     infill.generate(result_paths, result_polygons, result_lines, infill_settings, 1, SectionType::INFILL, nullptr, nullptr);
 
     InfillTestParameters result = InfillTestParameters(params, test_polygon_id, outline_polygons, result_lines, result_polygons);
@@ -190,7 +190,7 @@ std::vector<InfillTestParameters> generateInfillTests()
     constexpr bool do_connect_polygons = true;
     constexpr bool dont_connect_polygons = false;
 
-    std::vector<Polygons> shapes;
+    std::vector<Shape> shapes;
     if (! readTestPolygons(POLYGON_FILENAMES, shapes))
     {
         return { InfillTestParameters() }; // return an invalid singleton, that'll trip up the 'file read' assertion in the TEST_P's
@@ -220,7 +220,7 @@ std::vector<InfillTestParameters> generateInfillTests()
 
     std::vector<InfillTestParameters> parameters_list;
     size_t test_polygon_id = 0;
-    for (const Polygons& polygons : shapes)
+    for (const Shape& polygons : shapes)
     {
         for (const EFillMethod& method : methods)
         {
@@ -283,11 +283,11 @@ TEST_P(InfillTest, TestInfillSanity)
     ASSERT_LT((coord_t)out_infill_area, (coord_t)max_expected_infill_area) << "Infill area should be less than the maximum area to be covered.";
 
     const coord_t maximum_error = 10_mu; // potential rounding error
-    const Polygons padded_shape_outline = params.outline_polygons.offset(INFILL_LINE_WIDTH / 2);
+    const Shape padded_shape_outline = params.outline_polygons.offset(INFILL_LINE_WIDTH / 2);
     constexpr bool restitch = false; // No need to restitch polylines - that would introduce stitching errors.
     ASSERT_LE(std::abs(padded_shape_outline.intersectionPolyLines(params.result_lines, restitch).polyLineLength() - params.result_lines.polyLineLength()), maximum_error)
         << "Infill (lines) should not be outside target polygon.";
-    Polygons result_polygon_lines = params.result_polygons;
+    Shape result_polygon_lines = params.result_polygons;
     for (Polygon& poly : result_polygon_lines)
     {
         poly.add(poly.front());

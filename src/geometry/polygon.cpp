@@ -26,14 +26,14 @@
 // #include "utils/PolylineStitcher.h"
 #include "geometry/point3_matrix.h"
 #include "geometry/point_matrix.h"
-#include "geometry/polygons.h"
+#include "geometry/shape.h"
 
 namespace cura
 {
 
-Polygons Polygon::intersection(const Polygon& other) const
+Shape Polygon::intersection(const Polygon& other) const
 {
-    Polygons ret;
+    Shape ret;
     ClipperLib::Clipper clipper(clipper_init);
     clipper.AddPath(*this, ClipperLib::ptSubject, true);
     clipper.AddPath(other, ClipperLib::ptClip, true);
@@ -614,13 +614,13 @@ Point2LL Polygon::centerOfMass() const
     }
 }
 
-Polygons Polygon::offset(int distance, ClipperLib::JoinType join_type, double miter_limit) const
+Shape Polygon::offset(int distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
     if (distance == 0)
     {
-        return Polygons({ *this });
+        return Shape({ *this });
     }
-    Polygons ret;
+    Shape ret;
     ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
     clipper.AddPath(*this, join_type, ClipperLib::etClosedPolygon);
     clipper.MiterLimit = miter_limit;

@@ -36,8 +36,8 @@ public:
     std::vector<LightningTreeNodeSPtr> tree_roots;
 
     void generateNewTrees(
-        const Polygons& current_overhang,
-        const Polygons& current_outlines,
+        const Shape& current_overhang,
+        const Shape& current_outlines,
         const LocToLineGrid& outline_locator,
         const coord_t supporting_radius,
         const coord_t wall_supporting_radius);
@@ -47,7 +47,7 @@ public:
      */
     GroundingLocation getBestGroundingLocation(
         const Point2LL& unsupported_location,
-        const Polygons& current_outlines,
+        const Shape& current_outlines,
         const LocToLineGrid& outline_locator,
         const coord_t supporting_radius,
         const coord_t wall_supporting_radius,
@@ -63,12 +63,12 @@ public:
 
     void reconnectRoots(
         std::vector<LightningTreeNodeSPtr>& to_be_reconnected_tree_roots,
-        const Polygons& current_outlines,
+        const Shape& current_outlines,
         const LocToLineGrid& outline_locator,
         const coord_t supporting_radius,
         const coord_t wall_supporting_radius);
 
-    LinesSet<OpenPolyline> convertToLines(const Polygons& limit_to_outline, const coord_t line_width) const;
+    LinesSet<OpenPolyline> convertToLines(const Shape& limit_to_outline, const coord_t line_width) const;
 
     coord_t getWeightedDistance(const Point2LL& boundary_loc, const Point2LL& unsupported_location);
 

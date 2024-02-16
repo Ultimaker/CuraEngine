@@ -99,7 +99,7 @@ public:
 
     void writeComment(const std::string& comment) const;
 
-    void writeAreas(const Polygons& polygons, const ColorObject color = Color::GRAY, const ColorObject outline_color = Color::BLACK, const double stroke_width = 1.0) const;
+    void writeAreas(const Shape& polygons, const ColorObject color = Color::GRAY, const ColorObject outline_color = Color::BLACK, const double stroke_width = 1.0) const;
 
     void writeAreas(const Polygon& polygon, const ColorObject color = Color::GRAY, const ColorObject outline_color = Color::BLACK, const double stroke_width = 1.0) const;
 
@@ -107,7 +107,7 @@ public:
 
     void writePoints(const Polygon& poly, const bool write_coords = false, const double size = 5.0, const ColorObject color = Color::BLACK) const;
 
-    void writePoints(const Polygons& polygons, const bool write_coords = false, const double size = 5.0, const ColorObject color = Color::BLACK) const;
+    void writePoints(const Shape& polygons, const bool write_coords = false, const double size = 5.0, const ColorObject color = Color::BLACK) const;
 
     /*!
      * \brief Draws a polyline on the canvas.
@@ -144,11 +144,11 @@ public:
 
     void writeText(const Point2LL& p, const std::string& txt, const ColorObject color = Color::BLACK, const double font_size = 10.0) const;
 
-    void writePolygons(const Polygons& polys, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
+    void writePolygons(const Shape& polys, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
 
     void writePolygon(const Polygon& poly, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
 
-    void writePolylines(const Polygons& polys, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
+    void writePolylines(const Shape& polys, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
 
     void writePolyline(const Polygon& poly, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
 

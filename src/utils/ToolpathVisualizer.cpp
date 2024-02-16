@@ -8,7 +8,7 @@
 namespace cura
 {
 
-void ToolpathVisualizer::outline(const Polygons& input)
+void ToolpathVisualizer::outline(const Shape& input)
 {
     svg_.writeAreas(input, SVG::Color::GRAY, SVG::Color::NONE, 2);
     svg_.nextLayer();
@@ -18,13 +18,13 @@ void ToolpathVisualizer::toolpaths(const std::vector<ExtrusionSegment>& all_segm
 {
     for (double w = .9; w > .25; w = 1.0 - (1.0 - w) * 1.2)
     {
-        Polygons polys;
+        Shape polys;
         for (size_t segment_idx = 0; segment_idx < all_segments.size(); segment_idx++)
         {
             ExtrusionSegment s = all_segments[segment_idx];
             s.from_.w_ *= w / .9;
             s.to_.w_ *= w / .9;
-            Polygons covered = s.toPolygons(false);
+            Shape covered = s.toPolygons(false);
             polys.add(covered);
         }
         int c = 255 - 200 * (w - .25);
@@ -40,12 +40,12 @@ void ToolpathVisualizer::toolpaths(const std::vector<ExtrusionSegment>& all_segm
 }
 
 
-void ToolpathVisualizer::underfill(const Polygons& underfills)
+void ToolpathVisualizer::underfill(const Shape& underfills)
 {
     svg_.writeAreas(underfills, SVG::ColorObject(0, 128, 255), SVG::Color::NONE);
     svg_.nextLayer();
 }
-void ToolpathVisualizer::overfill(const Polygons& overfills, const Polygons& double_overfills)
+void ToolpathVisualizer::overfill(const Shape& overfills, const Shape& double_overfills)
 {
     svg_.writeAreas(overfills, SVG::ColorObject(255, 128, 0), SVG::Color::NONE);
     svg_.nextLayer();
@@ -56,7 +56,7 @@ void ToolpathVisualizer::overfill(const Polygons& overfills, const Polygons& dou
     }
 }
 
-void ToolpathVisualizer::width_legend(const Polygons& input, coord_t nozzle_size, coord_t max_dev, coord_t min_w, bool rounded_visualization)
+void ToolpathVisualizer::width_legend(const Shape& input, coord_t nozzle_size, coord_t max_dev, coord_t min_w, bool rounded_visualization)
 {
     auto to_string = [](double v)
     {
@@ -143,7 +143,7 @@ void ToolpathVisualizer::widths(
                 //                 }
                 s.from_.w_ *= w / .9;
                 s.to_.w_ *= w / .9;
-                Polygons covered = s.toPolygons();
+                Shape covered = s.toPolygons();
                 svg_.writeAreas(covered, SVG::ColorObject(clr.x_, clr.y_, clr.z_), SVG::Color::NONE);
             }
         }

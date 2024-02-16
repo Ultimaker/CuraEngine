@@ -92,7 +92,7 @@ public:
      * \param process_cell_func Function to perform on each voxel cell
      * \return Whether executing was stopped short as indicated by the \p cell_processing_function
      */
-    bool walkPolygons(const Polygons& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const;
+    bool walkPolygons(const Shape& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
     /*!
      * Process voxels near the line segments of a polygon.
@@ -105,13 +105,13 @@ public:
      * \param process_cell_func Function to perform on each voxel cell
      * \return Whether executing was stopped short as indicated by the \p cell_processing_function
      */
-    bool walkDilatedPolygons(const Polygons& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
+    bool walkDilatedPolygons(const Shape& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
 private:
     /*!
      * \warning the \p polys is assumed to be translated by half the cell_size in xy already
      */
-    bool _walkAreas(const Polygons& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const;
+    bool _walkAreas(const Shape& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
 public:
     /*!
@@ -124,7 +124,7 @@ public:
      * \param process_cell_func Function to perform on each voxel cell
      * \return Whether executing was stopped short as indicated by the \p cell_processing_function
      */
-    bool walkAreas(const Polygons& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const;
+    bool walkAreas(const Shape& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
     /*!
      * Process all voxels inside the area of a polygons object.
@@ -137,7 +137,7 @@ public:
      * \param process_cell_func Function to perform on each voxel cell
      * \return Whether executing was stopped short as indicated by the \p cell_processing_function
      */
-    bool walkDilatedAreas(const Polygons& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
+    bool walkDilatedAreas(const Shape& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
     /*!
      * Dilate with a kernel.

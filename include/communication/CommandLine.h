@@ -114,7 +114,7 @@ public:
      *
      * The command line doesn't show any layer view so this is ignored.
      */
-    void sendPolygons(const PrintFeatureType&, const Polygons&, const coord_t&, const coord_t&, const Velocity&) override;
+    void sendPolygons(const PrintFeatureType&, const Shape&, const coord_t&, const coord_t&, const Velocity&) override;
 
     /*
      * \brief Show an estimate of how long the print would take and how much

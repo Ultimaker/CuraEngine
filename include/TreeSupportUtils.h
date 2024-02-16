@@ -31,7 +31,7 @@ public:
      * \param poly[in] The Polygons object, of which its lines should be extended.
      * \return A Polygons object with explicit line from the last vertex of a Polygon to the first one added.
      */
-    static LinesSet<OpenPolyline> toPolylines(const Polygons& poly)
+    static LinesSet<OpenPolyline> toPolylines(const Shape& poly)
     {
 #warning We should just cast it to a LineSet<ClosedPolyline> instead, but that's running for trouble yet
         LinesSet<OpenPolyline> result;
@@ -95,7 +95,7 @@ public:
      * \return A Polygons object that represents the resulting infill lines.
      */
     [[nodiscard]] static LinesSet<OpenPolyline> generateSupportInfillLines(
-        const Polygons& area,
+        const Shape& area,
         const TreeSupportSettings& config,
         bool roof,
         LayerIndex layer_idx,
@@ -104,7 +104,7 @@ public:
         bool include_walls,
         bool generate_support_supporting = false)
     {
-        Polygons gaps;
+        Shape gaps;
         // As we effectivly use lines to place our supportPoints we may use the Infill class for it, while not made for it, it works perfectly.
 
         const EFillMethod pattern = generate_support_supporting ? EFillMethod::GRID : roof ? config.roof_pattern : config.support_pattern;
@@ -156,7 +156,7 @@ public:
             zag_skip_count,
             pocket_size);
 
-        Polygons areas;
+        Shape areas;
         LinesSet<OpenPolyline> lines;
         roof_computation.generate(toolpaths, areas, lines, config.settings, layer_idx, SectionType::SUPPORT, cross_fill_provider);
         lines.add(toPolylines(areas));
@@ -165,12 +165,12 @@ public:
     }
 
     /*!
-     * \brief Unions two Polygons. Ensures that if the input is non empty that the output also will be non empty.
+     * \brief Unions two Shape. Ensures that if the input is non empty that the output also will be non empty.
      * \param first[in] The first Polygon.
      * \param second[in] The second Polygon.
-     * \return The union of both Polygons
+     * \return The union of both Shape
      */
-    [[nodiscard]] static Polygons safeUnion(const Polygons& first, const Polygons& second = Polygons())
+    [[nodiscard]] static Shape safeUnion(const Shape& first, const Shape& second = Shape())
     {
         // The unionPolygons function can slowly remove Polygons under certain circumstances, because of rounding issues (Polygons that have a thin area).
         // This does not cause a problem when actually using it on large areas, but as influence areas (representing centerpoints) can be very thin, this does occur so this ugly
@@ -185,7 +185,7 @@ public:
         */
 
         const bool was_empty = first.empty() && second.empty();
-        Polygons result = first.unionPolygons(second);
+        Shape result = first.unionPolygons(second);
 
         if (result.empty() && ! was_empty) // Some error occurred.
         {
@@ -199,19 +199,19 @@ public:
 
     /*!
      * \brief Offsets (increases the area of) a polygons object in multiple steps to ensure that it does not lag through over a given obstacle.
-     * \param me[in] Polygons object that has to be offset.
+     * \param me[in] Shape object that has to be offset.
      * \param distance[in] The distance by which me should be offset. Expects values >=0.
      * \param collision[in] The area representing obstacles.
      * \param last_step_offset_without_check[in] The most it is allowed to offset in one step.
-     * \param min_amount_offset[in] How many steps have to be done at least. As this uses round offset this increases the amount of vertices, which may be required if Polygons get
+     * \param min_amount_offset[in] How many steps have to be done at least. As this uses round offset this increases the amount of vertices, which may be required if Shape get
      * very small. Required as arcTolerance is not exposed in offset, which should result with a similar result, benefit may be eliminated by simplifying. \param
      * min_offset_per_step Don't get below this amount of offset per step taken. Fine-tune tradeoff between speed and accuracy. \param simplifier[in] Pointer to Simplify object if
-     * the offset operation also simplify the Polygon. Improves performance. \return The resulting Polygons object.
+     * the offset operation also simplify the Polygon. Improves performance. \return The resulting Shape object.
      */
-    [[nodiscard]] static Polygons safeOffsetInc(
-        const Polygons& me,
+    [[nodiscard]] static Shape safeOffsetInc(
+        const Shape& me,
         coord_t distance,
-        const Polygons& collision,
+        const Shape& collision,
         coord_t safe_step_size,
         coord_t last_step_offset_without_check,
         size_t min_amount_offset,
@@ -219,7 +219,7 @@ public:
         Simplify* simplifier)
     {
         bool do_final_difference = last_step_offset_without_check == 0;
-        Polygons ret = safeUnion(me); // Ensure sane input.
+        Shape ret = safeUnion(me); // Ensure sane input.
         if (distance == 0)
         {
             return (do_final_difference ? ret.difference(collision) : ret).unionPolygons();
@@ -289,7 +289,7 @@ public:
      * \param max_allowed_distance[in] The maximum distance a point may be moved. If not possible the point will be moved as far as possible in the direction of the outside of the
      * provided area. \return A Polyline object containing the moved points.
      */
-    [[nodiscard]] static LinesSet<OpenPolyline> movePointsOutside(const LinesSet<OpenPolyline>& polylines, const Polygons& area, coord_t max_allowed_distance)
+    [[nodiscard]] static LinesSet<OpenPolyline> movePointsOutside(const LinesSet<OpenPolyline>& polylines, const Shape& area, coord_t max_allowed_distance)
     {
         LinesSet<OpenPolyline> result;
 
@@ -327,7 +327,7 @@ public:
         return result;
     }
 
-    [[nodiscard]] static VariableWidthLines polyLineToVWL(const Polygons& polylines, coord_t line_width)
+    [[nodiscard]] static VariableWidthLines polyLineToVWL(const Shape& polylines, coord_t line_width)
     {
         VariableWidthLines result;
         for (auto path : polylines)

@@ -11,7 +11,7 @@
 namespace cura
 {
 
-class Polygons;
+class Shape;
 class OpenPolyline;
 template<class T>
 class LinesSet;
@@ -120,7 +120,7 @@ public:
 #warning rename this to removeDegenerateVerts
     void removeDegenerateVertsForEveryone();
 
-    Polygons offset(coord_t distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
+    Shape offset(coord_t distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
     // Polygons offsetPolyLine(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, bool inputPolyIsClosed = false) const;
 
     /*!
@@ -129,7 +129,7 @@ public:
      * kept, not the shape. \param outer_offset Offset relative to the original shape-outline towards the outside of the shape. Comparable to normal offset. \return The resulting
      * polygons.
      */
-    Polygons tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
+    Shape tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 };
 
 } // namespace cura

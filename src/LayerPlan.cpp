@@ -66,7 +66,7 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     return ret;
 }
 
-const Polygons* LayerPlan::getCombBoundaryInside() const
+const Shape* LayerPlan::getCombBoundaryInside() const
 {
     return &comb_boundary_preferred_;
 }
@@ -151,9 +151,9 @@ ExtruderTrain* LayerPlan::getLastPlannedExtruderTrain()
     return last_planned_extruder_;
 }
 
-Polygons LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
+Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
 {
-    Polygons comb_boundary;
+    Shape comb_boundary;
     const CombingMode mesh_combing_mode = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing");
     if (mesh_combing_mode != CombingMode::OFF && (layer_nr_ >= 0 || mesh_combing_mode != CombingMode::NO_SKIN))
     {
@@ -213,7 +213,7 @@ Polygons LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                     }
                     else if (combing_mode == CombingMode::NO_OUTER_SURFACES)
                     {
-                        Polygons top_and_bottom_most_fill;
+                        Shape top_and_bottom_most_fill;
                         for (const SliceLayerPart& outer_surface_part : layer.parts)
                         {
                             for (const SkinPart& skin_part : outer_surface_part.skin_parts)
@@ -602,7 +602,7 @@ void LayerPlan::addPolygon(
 }
 
 void LayerPlan::addPolygonsByOptimizer(
-    const Polygons& polygons,
+    const Shape& polygons,
     const GCodePathConfig& config,
     const ZSeamConfig& z_seam_config,
     coord_t wall_0_wipe_dist,
@@ -1242,7 +1242,7 @@ void LayerPlan::addInfillWall(const ExtrusionLine& wall, const GCodePathConfig& 
 }
 
 void LayerPlan::addWalls(
-    const Polygons& walls,
+    const Shape& walls,
     const Settings& settings,
     const GCodePathConfig& default_config,
     const GCodePathConfig& roofing_config,
@@ -1278,7 +1278,7 @@ void LayerPlan::addLinesByOptimizer(
     const bool reverse_print_direction,
     const std::unordered_multimap<const OpenPolyline*, const OpenPolyline*>& order_requirements)
 {
-    Polygons boundary;
+    Shape boundary;
     if (enable_travel_optimization && ! comb_boundary_minimum_.empty())
     {
         // use the combing boundary inflated so that all infill lines are inside the boundary
@@ -1422,7 +1422,7 @@ void LayerPlan::addLinesInGivenOrder(
 }
 
 void LayerPlan::addLinesMonotonic(
-    const Polygons& area,
+    const Shape& area,
     const std::vector<OpenPolyline>& lines,
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
@@ -1433,7 +1433,7 @@ void LayerPlan::addLinesMonotonic(
     const Ratio flow_ratio,
     const double fan_speed)
 {
-    const Polygons exclude_areas = area.tubeShape(exclude_distance, exclude_distance);
+    const Shape exclude_areas = area.tubeShape(exclude_distance, exclude_distance);
     const coord_t exclude_dist2 = exclude_distance * exclude_distance;
     const Point2LL last_position = getLastPlannedPositionOrStartingPosition();
 
@@ -1511,7 +1511,7 @@ void LayerPlan::spiralizeWallSlice(
     }
 
     const int n_points = wall.size();
-    Polygons last_wall_polygons;
+    Shape last_wall_polygons;
     last_wall_polygons.push_back(last_wall);
     const int max_dist2 = config.getLineWidth() * config.getLineWidth() * 4; // (2 * lineWidth)^2;
 
@@ -2557,17 +2557,17 @@ size_t LayerPlan::getExtruder() const
     return extruder_plans_.back().extruder_nr_;
 }
 
-void LayerPlan::setBridgeWallMask(const Polygons& polys)
+void LayerPlan::setBridgeWallMask(const Shape& polys)
 {
     bridge_wall_mask_ = polys;
 }
 
-void LayerPlan::setOverhangMask(const Polygons& polys)
+void LayerPlan::setOverhangMask(const Shape& polys)
 {
     overhang_mask_ = polys;
 }
 
-void LayerPlan::setRoofingMask(const Polygons& polys)
+void LayerPlan::setRoofingMask(const Shape& polys)
 {
     roofing_mask_ = polys;
 }

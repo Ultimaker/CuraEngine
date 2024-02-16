@@ -152,9 +152,9 @@ public:
     /*!
      * Generate a grid of dots inside of the area of the \p polygons.
      */
-    static std::vector<Point2LL> spreadDotsArea(const Polygons& polygons, coord_t grid_size);
+    static std::vector<Point2LL> spreadDotsArea(const Shape& polygons, coord_t grid_size);
 
-    static std::vector<Point2LL> spreadDotsArea(const Polygons& polygons, Point2LL grid_size);
+    static std::vector<Point2LL> spreadDotsArea(const Shape& polygons, Point2LL grid_size);
 
     /*!
      * Whether a polygon intersects with a line-segment. If true, the closest collision point to 'b' is stored in the result.
@@ -162,7 +162,7 @@ public:
     static bool lineSegmentPolygonsIntersection(
         const Point2LL& a,
         const Point2LL& b,
-        const Polygons& current_outlines,
+        const Shape& current_outlines,
         const LocToLineGrid& outline_locator,
         Point2LL& result,
         const coord_t within_max_dist);
@@ -207,7 +207,7 @@ public:
      * \param max_dist2 The squared maximal allowed distance from the point to the nearest polygon.
      * \return The index to the polygon onto which we have moved the point.
      */
-    static size_t moveInside(const Polygons& polygons, Point2LL& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
+    static size_t moveInside(const Shape& polygons, Point2LL& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
 
     /**
      * \brief Moves the point \p from onto the nearest polygon or leaves the
@@ -247,11 +247,11 @@ public:
      * \return The point on the polygon closest to \p from
      */
     static ClosestPoint moveInside2(
-        const Polygons& polygons,
+        const Shape& polygons,
         Point2LL& from,
         const int distance = 0,
         const int64_t max_dist2 = std::numeric_limits<int64_t>::max(),
-        const Polygons* loc_to_line_polygons = nullptr,
+        const Shape* loc_to_line_polygons = nullptr,
         const LocToLineGrid* loc_to_line_grid = nullptr,
         const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
 
@@ -275,7 +275,7 @@ public:
      * \return The point on the polygon closest to \p from
      */
     static ClosestPoint moveInside2(
-        const Polygons& loc_to_line_polygons,
+        const Shape& loc_to_line_polygons,
         const Polygon& polygon,
         Point2LL& from,
         const int distance = 0,
@@ -298,7 +298,7 @@ public:
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      * \return The index to the polygon onto which we have moved the point.
      */
-    static unsigned int moveOutside(const Polygons& polygons, Point2LL& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
+    static unsigned int moveOutside(const Shape& polygons, Point2LL& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
 
     /*!
      * Compute a point at a distance from a point on the boundary in orthogonal direction to the boundary.
@@ -346,11 +346,11 @@ public:
      * \return The point on the polygon closest to \p from
      */
     static ClosestPoint ensureInsideOrOutside(
-        const Polygons& polygons,
+        const Shape& polygons,
         Point2LL& from,
         int preferred_dist_inside,
         int64_t max_dist2 = std::numeric_limits<int64_t>::max(),
-        const Polygons* loc_to_line_polygons = nullptr,
+        const Shape* loc_to_line_polygons = nullptr,
         const LocToLineGrid* loc_to_line_grid = nullptr,
         const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
 
@@ -378,11 +378,11 @@ public:
      * \return The point on the polygon closest to \p from
      */
     static ClosestPoint ensureInsideOrOutside(
-        const Polygons& polygons,
+        const Shape& polygons,
         Point2LL& from,
         const ClosestPoint& closest_polygon_point,
         int preferred_dist_inside,
-        const Polygons* loc_to_line_polygons = nullptr,
+        const Shape* loc_to_line_polygons = nullptr,
         const LocToLineGrid* loc_to_line_grid = nullptr,
         const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
 
@@ -420,7 +420,7 @@ public:
      *
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      */
-    static ClosestPoint findClosest(Point2LL from, const Polygons& polygons, const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
+    static ClosestPoint findClosest(Point2LL from, const Shape& polygons, const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
 
     /*!
      * Find the point closest to \p from in the polygon \p polygon.
@@ -437,7 +437,7 @@ public:
      * \param polys The polygons in which to search
      * \return The nearest vertex on the polygons
      */
-    static PolygonsPointIndex findNearestVert(const Point2LL from, const Polygons& polys);
+    static PolygonsPointIndex findNearestVert(const Point2LL from, const Shape& polys);
 
     /*!
      * Find the nearest vertex to \p from in \p poly
@@ -456,7 +456,7 @@ public:
      * \param square_size The cell size used to bundle line segments (also used to chop up lines so that multiple cells contain the same long line)
      * \return A bucket grid mapping spatial locations to poly-point indices into \p polygons
      */
-    static std::unique_ptr<LocToLineGrid> createLocToLineGrid(const Polygons& polygons, int square_size);
+    static std::unique_ptr<LocToLineGrid> createLocToLineGrid(const Shape& polygons, int square_size);
 
     /*!
      * Find the line segment closest to a given point \p from within a cell-block of a size defined in the SparsePointGridInclusive \p loc_to_line
@@ -471,7 +471,7 @@ public:
      * \return The nearest point on the polygon if the polygon was within a distance equal to the cell_size of the SparsePointGridInclusive
      */
     static std::optional<ClosestPoint>
-        findClose(Point2LL from, const Polygons& polygons, const LocToLineGrid& loc_to_line, const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
+        findClose(Point2LL from, const Shape& polygons, const LocToLineGrid& loc_to_line, const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
 
     /*!
      * Find the line segment closest to any point on \p from within cell-blocks of a size defined in the SparsePointGridInclusive \p destination_loc_to_line
@@ -488,7 +488,7 @@ public:
      */
     static std::vector<std::pair<ClosestPoint, ClosestPoint>> findClose(
         const Polygon& from,
-        const Polygons& destination,
+        const Shape& destination,
         const LocToLineGrid& destination_loc_to_line,
         const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
 
@@ -598,7 +598,7 @@ public:
      * polygon(s)
      */
     static bool
-        polygonCollidesWithLineSegment(const Polygons& polys, const Point2LL& transformed_startPoint, const Point2LL& transformed_endPoint, PointMatrix transformation_matrix);
+        polygonCollidesWithLineSegment(const Shape& polys, const Point2LL& transformed_startPoint, const Point2LL& transformed_endPoint, PointMatrix transformation_matrix);
 
     /*!
      * Checks whether a given line segment collides with a given polygon(s).
@@ -614,7 +614,7 @@ public:
      * \return whether the line segment collides with the boundary of the
      * polygon(s)
      */
-    static bool polygonCollidesWithLineSegment(const Polygons& polys, const Point2LL& startPoint, const Point2LL& endPoint);
+    static bool polygonCollidesWithLineSegment(const Shape& polys, const Point2LL& startPoint, const Point2LL& endPoint);
 
     /*!
      * Checks whether two polygon groups intersect - does a BB hit check first and if that succeeds, the full intersection
@@ -659,7 +659,7 @@ public:
      * two polygons. This will be between 0.0 (the polygons are exactly equal)
      * and 1.0 (the polygons are completely disjunct).
      */
-    static double relativeHammingDistance(const Polygons& poly_a, const Polygons& poly_b);
+    static double relativeHammingDistance(const Shape& poly_a, const Shape& poly_b);
 
     /*!
      * Create an approximation of a circle.
@@ -675,11 +675,11 @@ public:
     /*!
      * Connect all polygons to their holes using zero widths hole channels, so that the polygons and their outlines are connected together
      */
-    static Polygons connect(const Polygons& input);
+    static Shape connect(const Shape& input);
 
-    static void fixSelfIntersections(const coord_t epsilon, Polygons& polygon);
+    static void fixSelfIntersections(const coord_t epsilon, Shape& polygon);
 
-    static Polygons unionManySmall(const Polygons& polygon);
+    static Shape unionManySmall(const Shape& polygon);
 
 
     /*!
@@ -688,7 +688,7 @@ public:
      * \param aabb The AABB with which the polygon that has to be intersected with
      * \return A new Polygon that is said intersection
      */
-    static Polygons clipPolygonWithAABB(const Polygons& src, const AABB& aabb);
+    static Shape clipPolygonWithAABB(const Shape& src, const AABB& aabb);
 
     /*!
      * Generate a few outset polygons around the given base, according to the given line width
@@ -698,7 +698,7 @@ public:
      * \param line_width The actual line width to distance the polygons from each other (and from the base)
      * \return The generated outset polygons
      */
-    static Polygons generateOutset(const Polygons& inner_poly, size_t count, coord_t line_width);
+    static Shape generateOutset(const Shape& inner_poly, size_t count, coord_t line_width);
 
     /*!
      * Generate inset polygons inside the given base, until there is no space left, according to the given line width
@@ -708,7 +708,7 @@ public:
      * \param initial_inset The inset distance to be added to the first generated polygon
      * \return The generated inset polygons
      */
-    static Polygons generateInset(const Polygons& outer_poly, coord_t line_width, coord_t initial_inset = 0);
+    static Shape generateInset(const Shape& outer_poly, coord_t line_width, coord_t initial_inset = 0);
 
 private:
     /*!

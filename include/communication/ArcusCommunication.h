@@ -168,7 +168,7 @@ public:
      * \param line_thickness The thickness (in the Z direction) of the polygons.
      * \param velocity The velocity of printing these polygons.
      */
-    void sendPolygons(const PrintFeatureType& type, const Polygons& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
+    void sendPolygons(const PrintFeatureType& type, const Shape& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
 
     /*
      * \brief Send an estimate of how long the print would take and how much

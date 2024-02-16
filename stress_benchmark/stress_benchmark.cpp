@@ -53,7 +53,7 @@ struct Resource
         return wkt_file.stem().string();
     }
 
-    std::vector<cura::Polygons> polygons() const
+    std::vector<cura::Shape> polygons() const
     {
         using point_type = boost::geometry::model::d2::point_xy<double>;
         using polygon_type = boost::geometry::model::polygon<point_type>;
@@ -71,11 +71,11 @@ struct Resource
 
         boost::geometry::read_wkt(buffer.str(), boost_polygons);
 
-        std::vector<cura::Polygons> polygons;
+        std::vector<cura::Shape> polygons;
 
         for (const auto& boost_polygon : boost_polygons)
         {
-            cura::Polygons polygon;
+            cura::Shape polygon;
 
             cura::Polygon outer;
             for (const auto& point : boost_polygon.outer())
@@ -145,7 +145,7 @@ std::vector<Resource> getResources()
 void handleChildProcess(const auto& shapes, const auto& settings)
 {
     cura::SliceLayer layer;
-    for (const cura::Polygons& shape : shapes)
+    for (const cura::Shape& shape : shapes)
     {
         layer.parts.emplace_back();
         cura::SliceLayerPart& part = layer.parts.back();

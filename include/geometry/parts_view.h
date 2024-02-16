@@ -9,7 +9,7 @@
 namespace cura
 {
 
-class Polygons;
+class Shape;
 class SingleShape;
 
 /*!
@@ -19,9 +19,9 @@ class SingleShape;
 class PartsView : public std::vector<std::vector<size_t>>
 {
 public:
-    Polygons& polygons_;
+    Shape& polygons_;
 
-    PartsView(Polygons& polygons)
+    PartsView(Shape& polygons)
         : polygons_(polygons)
     {
     }

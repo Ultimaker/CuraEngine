@@ -55,7 +55,7 @@ public:
      * Converts this segment to an outline of the area that the segment covers.
      * \return The area that would be covered by this extrusion segment.
      */
-    Polygons toPolygons();
+    Shape toPolygons();
 
     /*!
      * Converts this segment to an outline of the area that the segment covers.
@@ -63,7 +63,7 @@ public:
      * it will be included in the next extrusion move. Overrides class field
      * \ref is_reduced .
      */
-    Polygons toPolygons(bool reduced);
+    Shape toPolygons(bool reduced);
 
     /*!
      * Discretize a variable-line-width extrusion segment into multiple

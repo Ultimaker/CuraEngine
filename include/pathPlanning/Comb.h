@@ -60,7 +60,7 @@ private:
         Point2LL out_; //!< The point on the outside boundary
         SingleShape dest_part_; //!< The assembled inside-boundary SingleShape in which the dest_point lies. (will only be initialized when Crossing::dest_is_inside holds)
         std::optional<const Polygon*> dest_crossing_poly_; //!< The polygon of the part in which dest_point lies, which will be crossed (often will be the outside polygon)
-        const Polygons& boundary_inside_; //!< The inside boundary as in \ref Comb::boundary_inside
+        const Shape& boundary_inside_; //!< The inside boundary as in \ref Comb::boundary_inside
         const LocToLineGrid& inside_loc_to_line_; //!< The loc to line grid \ref Comb::inside_loc_to_line
 
         /*!
@@ -77,7 +77,7 @@ private:
             const bool dest_is_inside,
             const unsigned int dest_part_idx,
             const unsigned int dest_part_boundary_crossing_poly_idx,
-            const Polygons& boundary_inside,
+            const Shape& boundary_inside,
             const LocToLineGrid& inside_loc_to_line);
 
         /*!
@@ -100,7 +100,7 @@ private:
          * \param comber[in] The combing calculator which has references to the
          * offsets and boundaries to use in combing.
          */
-        bool findOutside(const ExtruderTrain& train, const Polygons& outside, const Point2LL close_to, const bool fail_on_unavoidable_obstacles, Comb& comber);
+        bool findOutside(const ExtruderTrain& train, const Shape& outside, const Point2LL close_to, const bool fail_on_unavoidable_obstacles, Comb& comber);
 
     private:
         const Point2LL dest_point_; //!< Either the eventual startPoint or the eventual endPoint of this combing move
@@ -119,7 +119,7 @@ private:
          * \return A pair of which the first is the crossing point on the inside boundary and the second the crossing point on the outside boundary
          */
         std::shared_ptr<std::pair<ClosestPoint, ClosestPoint>>
-            findBestCrossing(const ExtruderTrain& train, const Polygons& outside, const Polygon& from, const Point2LL estimated_start, const Point2LL estimated_end, Comb& comber);
+            findBestCrossing(const ExtruderTrain& train, const Shape& outside, const Polygon& from, const Point2LL estimated_start, const Point2LL estimated_end, Comb& comber);
     };
 
 
@@ -136,15 +136,15 @@ private:
     static constexpr coord_t offset_dist_to_get_from_on_the_polygon_to_outside_ = 40; //!< in order to prevent on-boundary vs crossing boundary confusions (precision thing)
     static constexpr coord_t offset_extra_start_end_ = 100; //!< Distance to move start point and end point toward eachother to extra avoid collision with the boundaries.
 
-    Polygons boundary_inside_minimum_; //!< The boundary within which to comb. (Will be reordered by the partsView_inside_minimum)
-    Polygons boundary_inside_optimal_; //!< The boundary within which to comb. (Will be reordered by the partsView_inside_optimal)
+    Shape boundary_inside_minimum_; //!< The boundary within which to comb. (Will be reordered by the partsView_inside_minimum)
+    Shape boundary_inside_optimal_; //!< The boundary within which to comb. (Will be reordered by the partsView_inside_optimal)
     const PartsView parts_view_inside_minimum_; //!< Structured indices onto boundary_inside_minimum which shows which polygons belong to which part.
     const PartsView parts_view_inside_optimal_; //!< Structured indices onto boundary_inside_optimal which shows which polygons belong to which part.
     std::unique_ptr<LocToLineGrid> inside_loc_to_line_minimum_; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
     std::unique_ptr<LocToLineGrid> inside_loc_to_line_optimal_; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
-    std::unordered_map<size_t, Polygons> boundary_outside_; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only
+    std::unordered_map<size_t, Shape> boundary_outside_; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only
                                                             //!< compute it when we move outside the boundary (so not when there is only a single part in the layer)
-    std::unordered_map<size_t, Polygons> model_boundary_; //!< The boundary of the model itself
+    std::unordered_map<size_t, Shape> model_boundary_; //!< The boundary of the model itself
     std::unordered_map<size_t, std::unique_ptr<LocToLineGrid>> outside_loc_to_line_; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
     std::unordered_map<size_t, std::unique_ptr<LocToLineGrid>>
         model_boundary_loc_to_line_; //!< The SparsePointGridInclusive mapping locations to line segments of the model boundary
@@ -159,7 +159,7 @@ private:
     /*!
      * Get the boundary_outside, which is an offset from the outlines of all meshes in the layer. Calculate it when it hasn't been calculated yet.
      */
-    Polygons& getBoundaryOutside(const ExtruderTrain& train);
+    Shape& getBoundaryOutside(const ExtruderTrain& train);
 
     /*!
      * Get the SparsePointGridInclusive mapping locations to line segments of the model boundary. Calculate it when it hasn't been calculated yet.
@@ -169,7 +169,7 @@ private:
     /*!
      * Get the boundary_outside, which is an offset from the outlines of all meshes in the layer. Calculate it when it hasn't been calculated yet.
      */
-    Polygons& getModelBoundary(const ExtruderTrain& train);
+    Shape& getModelBoundary(const ExtruderTrain& train);
 
     /*!
      * Move the startPoint or endPoint inside when it should be inside
@@ -179,9 +179,9 @@ private:
      * \param start_inside_poly[out] The polygon in which the point has been moved
      * \return Whether we have moved the point inside
      */
-    bool moveInside(Polygons& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point2LL& dest_point, size_t& start_inside_poly);
+    bool moveInside(Shape& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point2LL& dest_point, size_t& start_inside_poly);
 
-    void moveCombPathInside(Polygons& boundary_inside, Polygons& boundary_inside_optimal, CombPath& comb_path_input, CombPath& comb_path_output);
+    void moveCombPathInside(Shape& boundary_inside, Shape& boundary_inside_optimal, CombPath& comb_path_input, CombPath& comb_path_output);
 
 public:
     /*!
@@ -208,8 +208,8 @@ public:
     Comb(
         const SliceDataStorage& storage,
         const LayerIndex layer_nr,
-        const Polygons& comb_boundary_inside_minimum,
-        const Polygons& comb_boundary_inside_optimal,
+        const Shape& comb_boundary_inside_minimum,
+        const Shape& comb_boundary_inside_optimal,
         coord_t offset_from_outlines,
         coord_t travel_avoid_distance,
         coord_t move_inside_distance);

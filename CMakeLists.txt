@@ -152,7 +152,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/VoxelUtils.cpp
 
         src/geometry/polygon.cpp
-        src/geometry/polygons.cpp
+        src/geometry/shape.cpp
         src/geometry/points_set.cpp
         src/geometry/single_shape.cpp
         src/geometry/parts_view.cpp

@@ -6,7 +6,7 @@
 #include <limits>
 
 #include "geometry/polygon.h"
-#include "geometry/polygons.h"
+#include "geometry/shape.h"
 #include "utils/linearAlg2D.h"
 
 namespace cura
@@ -25,7 +25,7 @@ AABB::AABB(const Point2LL& min, const Point2LL& max)
 {
 }
 
-AABB::AABB(const Polygons& polys)
+AABB::AABB(const Shape& polys)
     : min_(POINT_MAX, POINT_MAX)
     , max_(POINT_MIN, POINT_MIN)
 {
@@ -69,7 +69,7 @@ coord_t AABB::distanceSquared(const AABB& other) const
     });
 }
 
-void AABB::calculate(const Polygons& polys)
+void AABB::calculate(const Shape& polys)
 {
     min_ = Point2LL(POINT_MAX, POINT_MAX);
     max_ = Point2LL(POINT_MIN, POINT_MIN);

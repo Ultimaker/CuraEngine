@@ -6,7 +6,7 @@
 #include <functional>
 
 #include "geometry/polygon.h"
-#include "geometry/polygons.h"
+#include "geometry/shape.h"
 #include "settings/types/Angle.h" //For the infill angle.
 #include "sliceDataStorage.h"
 #include "utils/math.h"
@@ -230,7 +230,7 @@ coord_t SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, const LayerI
         return 2;
         *distance2 = 0;
     }
-    Polygons collide;
+    Shape collide;
     for (const SliceLayerPart& part : mesh.layers[layer_nr].parts)
     {
         collide.add(part.infill_area);

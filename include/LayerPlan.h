@@ -90,13 +90,13 @@ private:
     std::optional<std::pair<Acceleration, Velocity>> next_layer_acc_jerk_; //!< If there is a next layer, the first acceleration and jerk it starts with.
     bool was_inside_; //!< Whether the last planned (extrusion) move was inside a layer part
     bool is_inside_; //!< Whether the destination of the next planned travel move is inside a layer part
-    Polygons comb_boundary_minimum_; //!< The minimum boundary within which to comb, or to move into when performing a retraction.
-    Polygons comb_boundary_preferred_; //!< The boundary preferably within which to comb, or to move into when performing a retraction.
+    Shape comb_boundary_minimum_; //!< The minimum boundary within which to comb, or to move into when performing a retraction.
+    Shape comb_boundary_preferred_; //!< The boundary preferably within which to comb, or to move into when performing a retraction.
     Comb* comb_;
     coord_t comb_move_inside_distance_; //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
-    Polygons bridge_wall_mask_; //!< The regions of a layer part that are not supported, used for bridging
-    Polygons overhang_mask_; //!< The regions of a layer part where the walls overhang
-    Polygons roofing_mask_; //!< The regions of a layer part where the walls are exposed to the air
+    Shape bridge_wall_mask_; //!< The regions of a layer part that are not supported, used for bridging
+    Shape overhang_mask_; //!< The regions of a layer part where the walls overhang
+    Shape roofing_mask_; //!< The regions of a layer part where the walls are exposed to the air
 
     const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_;
 
@@ -176,7 +176,7 @@ public:
      */
     ExtruderTrain* getLastPlannedExtruderTrain();
 
-    const Polygons* getCombBoundaryInside() const;
+    const Shape* getCombBoundaryInside() const;
 
     LayerIndex getLayerNr() const;
 
@@ -249,21 +249,21 @@ public:
      *
      * \param polys The unsupported areas of the part currently being processed that will require bridges.
      */
-    void setBridgeWallMask(const Polygons& polys);
+    void setBridgeWallMask(const Shape& polys);
 
     /*!
      * Set overhang_mask.
      *
      * \param polys The overhung areas of the part currently being processed that will require modified print settings
      */
-    void setOverhangMask(const Polygons& polys);
+    void setOverhangMask(const Shape& polys);
 
     /*!
      * Set roofing_mask.
      *
      * \param polys The areas of the part currently being processed that will require roofing.
      */
-    void setRoofingMask(const Polygons& polys);
+    void setRoofingMask(const Shape& polys);
 
     /*!
      * Travel to a certain point, with all of the procedures necessary to do so.
@@ -387,7 +387,7 @@ public:
      * If unset, this causes it to start near the last planned location.
      */
     void addPolygonsByOptimizer(
-        const Polygons& polygons,
+        const Shape& polygons,
         const GCodePathConfig& config,
         const ZSeamConfig& z_seam_config = ZSeamConfig(),
         coord_t wall_0_wipe_dist = 0,
@@ -517,7 +517,7 @@ public:
      * \param alternate_inset_direction_modifier Whether to alternate the direction of the walls for each inset.
      */
     void addWalls(
-        const Polygons& walls,
+        const Shape& walls,
         const Settings& settings,
         const GCodePathConfig& default_config,
         const GCodePathConfig& roofing_config,
@@ -574,7 +574,7 @@ public:
      * \param fan_speed Fan speed override for this path.
      */
     void addLinesMonotonic(
-        const Polygons& area,
+        const Shape& area,
         const std::vector<OpenPolyline>& lines,
         const GCodePathConfig& config,
         const SpaceFillType space_fill_type,
@@ -755,9 +755,9 @@ private:
      *  - If CombingMode::INFILL: Add the infill (infill only).
      *
      * \param boundary_type The boundary type to compute.
-     * \return the combing boundary or an empty Polygons if no combing is required
+     * \return the combing boundary or an empty Shape if no combing is required
      */
-    Polygons computeCombBoundary(const CombBoundary boundary_type);
+    Shape computeCombBoundary(const CombBoundary boundary_type);
 };
 
 } // namespace cura

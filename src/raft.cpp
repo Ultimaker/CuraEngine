@@ -38,7 +38,7 @@ void Raft::generate(SliceDataStorage& storage)
     const coord_t max_raft_distance = std::max(std::max(raft_base_margin, raft_interface_margin), raft_surface_margin);
     if (storage.draft_protection_shield.size() > 0)
     {
-        Polygons draft_shield_raft
+        Shape draft_shield_raft
             = storage.draft_protection_shield
                   .offset(shield_line_width_layer0) // start half a line width outside shield
                   .difference(storage.draft_protection_shield.offset(-max_raft_distance - shield_line_width_layer0 / 2, ClipperLib::jtRound)); // end distance inside shield
@@ -48,8 +48,8 @@ void Raft::generate(SliceDataStorage& storage)
     }
     if (storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0)
     {
-        const Polygons& ooze_shield = storage.oozeShield[0];
-        Polygons ooze_shield_raft = ooze_shield
+        const Shape& ooze_shield = storage.oozeShield[0];
+        Shape ooze_shield_raft = ooze_shield
                                         .offset(shield_line_width_layer0) // start half a line width outside shield
                                         .difference(ooze_shield.offset(-max_raft_distance - shield_line_width_layer0 / 2, ClipperLib::jtRound)); // end distance inside shield
         storage.raftBaseOutline = storage.raftBaseOutline.unionPolygons(ooze_shield_raft);
@@ -57,7 +57,7 @@ void Raft::generate(SliceDataStorage& storage)
         storage.raftInterfaceOutline = storage.raftInterfaceOutline.unionPolygons(ooze_shield_raft);
     }
 
-    const auto remove_inside_corners = [](Polygons& outline, bool remove_inside_corners, coord_t smoothing, coord_t line_width)
+    const auto remove_inside_corners = [](Shape& outline, bool remove_inside_corners, coord_t smoothing, coord_t line_width)
     {
         if (remove_inside_corners)
         {

@@ -4,7 +4,7 @@
 #ifndef GEOMETRY_SINGLE_SHAPE_H
 #define GEOMETRY_SINGLE_SHAPE_H
 
-#include "geometry/polygons.h"
+#include "geometry/shape.h"
 #include "point2ll.h"
 
 namespace cura
@@ -17,7 +17,7 @@ class Polygon;
  *
  * This class has little more functionality than Polygons, but serves to show that a specific instance is ordered such that the first Polygon is the outline and the rest are holes.
  */
-class SingleShape : public Polygons
+class SingleShape : public Shape
 {
 public:
     Polygon& outerPolygon();

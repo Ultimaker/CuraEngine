@@ -107,7 +107,7 @@ public:
         const Point2LL& start_point,
         const ZSeamConfig seam_config = ZSeamConfig(),
         const bool detect_loops = false,
-        const Polygons* combing_boundary = nullptr,
+        const Shape* combing_boundary = nullptr,
         const bool reverse_direction = false,
         const std::unordered_multimap<Path, Path>& order_requirements = no_order_requirements_,
         const bool group_outer_walls = false)
@@ -257,7 +257,7 @@ protected:
     /*!
      * Boundary to avoid when making travel moves.
      */
-    const Polygons* combing_boundary_;
+    const Shape* combing_boundary_;
 
     /*!
      * Whether to check polylines to see if they are closed, before optimizing.

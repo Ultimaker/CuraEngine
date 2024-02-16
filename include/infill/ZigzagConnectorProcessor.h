@@ -12,7 +12,7 @@ namespace cura
 {
 
 class Polygon;
-class Polygons;
+class Shape;
 class PointMatrix;
 class OpenPolyline;
 template<class T>

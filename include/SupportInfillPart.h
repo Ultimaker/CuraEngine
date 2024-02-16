@@ -30,7 +30,7 @@ public:
     AABB outline_boundary_box_; //!< The boundary box for the infill area
     coord_t support_line_width_; //!< The support line width
     int inset_count_to_generate_; //!< The number of insets need to be generated from the outline. This is not the actual insets that will be generated.
-    std::vector<std::vector<Polygons>> infill_area_per_combine_per_density_; //!< a list of separated sub-areas which requires different infill densities and combined thicknesses
+    std::vector<std::vector<Shape>> infill_area_per_combine_per_density_; //!< a list of separated sub-areas which requires different infill densities and combined thicknesses
                                                                              //   for infill_areas[x][n], x means the density level and n means the thickness
     std::vector<VariableWidthLines> wall_toolpaths_; //!< Any walls go here, not in the areas, where they could be combined vertically (don't combine walls). Binned by inset_idx.
 
@@ -39,10 +39,10 @@ public:
 
     SupportInfillPart(const SingleShape& outline, coord_t support_line_width, bool use_fractional_config, int inset_count_to_generate = 0, coord_t custom_line_distance = 0);
 
-    const Polygons& getInfillArea() const;
+    const Shape& getInfillArea() const;
 };
 
-inline const Polygons& SupportInfillPart::getInfillArea() const
+inline const Shape& SupportInfillPart::getInfillArea() const
 {
     // if there is no wall, we use the original outline as the infill area
     return outline_;

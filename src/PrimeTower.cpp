@@ -133,14 +133,14 @@ void PrimeTower::generatePaths_denseInfill()
         const coord_t required_volume = MM3_2INT(scene.extruders[extruder_nr].settings_.get<double>("prime_tower_min_volume"));
         const Ratio flow = scene.extruders[extruder_nr].settings_.get<Ratio>("prime_tower_flow");
         coord_t current_volume = 0;
-        Polygons& prime_moves = prime_moves_[extruder_nr];
+        Shape& prime_moves = prime_moves_[extruder_nr];
 
         // Create the walls of the prime tower.
         unsigned int wall_nr = 0;
         for (; current_volume < required_volume; wall_nr++)
         {
             // Create a new polygon with an offset from the outer polygon.
-            Polygons polygons = outer_poly_.offset(-cumulative_inset - wall_nr * line_width - line_width / 2);
+            Shape polygons = outer_poly_.offset(-cumulative_inset - wall_nr * line_width - line_width / 2);
             prime_moves.add(polygons);
             current_volume += polygons.length() * line_width * layer_height * flow;
             if (polygons.empty()) // Don't continue. We won't ever reach the required volume because it doesn't fit.
@@ -173,7 +173,7 @@ void PrimeTower::generatePaths_denseInfill()
         // Only the most inside extruder needs to fill the inside of the prime tower
         if (extruder_nr == extruder_order_.back())
         {
-            Polygons base_extra_moves = PolygonUtils::generateInset(outer_poly_, line_width, cumulative_inset);
+            Shape base_extra_moves = PolygonUtils::generateInset(outer_poly_, line_width, cumulative_inset);
             if (! base_extra_moves.empty())
             {
                 base_extra_moves_[extruder_nr].push_back(base_extra_moves);
@@ -249,16 +249,16 @@ void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t ext
     {
         // Actual prime pattern
         const GCodePathConfig& config = gcode_layer.configs_storage_.prime_tower_config_per_extruder[extruder_nr];
-        const Polygons& pattern = prime_moves_[extruder_nr];
+        const Shape& pattern = prime_moves_[extruder_nr];
         gcode_layer.addPolygonsByOptimizer(pattern, config);
     }
 
-    const std::vector<Polygons>& pattern_extra_brim = base_extra_moves_[extruder_nr];
+    const std::vector<Shape>& pattern_extra_brim = base_extra_moves_[extruder_nr];
     if (absolute_layer_number < pattern_extra_brim.size())
     {
         // Extra rings for stronger base
         const GCodePathConfig& config = gcode_layer.configs_storage_.prime_tower_config_per_extruder[extruder_nr];
-        const Polygons& pattern = pattern_extra_brim[absolute_layer_number];
+        const Shape& pattern = pattern_extra_brim[absolute_layer_number];
         gcode_layer.addPolygonsByOptimizer(pattern, config);
     }
 }
@@ -267,7 +267,7 @@ void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
 {
     for (size_t layer = 0; layer <= (size_t)storage.max_print_height_second_to_last_extruder + 1 && layer < storage.support.supportLayers.size(); layer++)
     {
-        const Polygons outside_polygon = getOuterPoly(layer).getOutsidePolygons();
+        const Shape outside_polygon = getOuterPoly(layer).getOutsidePolygons();
         AABB outside_polygon_boundary_box(outside_polygon);
         SupportLayer& support_layer = storage.support.supportLayers[layer];
         // take the differences of the support infill parts and the prime tower area
@@ -275,7 +275,7 @@ void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
     }
 }
 
-const Polygons& PrimeTower::getOuterPoly(const LayerIndex& layer_nr) const
+const Shape& PrimeTower::getOuterPoly(const LayerIndex& layer_nr) const
 {
     const LayerIndex absolute_layer_nr = layer_nr + Raft::getTotalExtraLayers();
     if (absolute_layer_nr < outer_poly_base_.size())
@@ -288,7 +288,7 @@ const Polygons& PrimeTower::getOuterPoly(const LayerIndex& layer_nr) const
     }
 }
 
-const Polygons& PrimeTower::getGroundPoly() const
+const Shape& PrimeTower::getGroundPoly() const
 {
     return getOuterPoly(-Raft::getTotalExtraLayers());
 }

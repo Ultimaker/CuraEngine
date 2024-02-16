@@ -14,14 +14,14 @@ class InfillTest : public benchmark::Fixture
 {
 public:
     Settings settings{};
-    Polygons square_shape;
-    Polygons ff_holes;
+    Shape square_shape;
+    Shape ff_holes;
 
 
     std::vector<ExtrusionLine> all_paths;
 
 
-    Polygons outline_polygons;
+    Shape outline_polygons;
     EFillMethod pattern{ EFillMethod::LINES };
     bool zig_zagify{ true };
     bool connect_polygons{ true };
@@ -110,8 +110,8 @@ BENCHMARK_DEFINE_F(InfillTest, Infill_generate_connect)(benchmark::State& st)
     for (auto _ : st)
     {
         std::vector<VariableWidthLines> result_paths;
-        Polygons result_polygons;
-        Polygons result_lines;
+        Shape result_polygons;
+        Shape result_lines;
         infill.generate(result_paths, result_polygons, result_lines, settings, 0, SectionType::INFILL, nullptr, nullptr);
     }
 }

@@ -21,10 +21,10 @@ public:
     Polygon test_triangle;
     Polygon test_circle;
     Polygon test_convex_shape;
-    Polygons test_shapes; // All above polygons! As well as an inset of 100 microns of them.
+    Shape test_shapes; // All above polygons! As well as an inset of 100 microns of them.
 
     PolygonConnector* pc;
-    Polygons connected_polygons;
+    Shape connected_polygons;
     std::vector<VariableWidthLines> connected_paths;
 
     virtual void SetUp() override
@@ -164,14 +164,14 @@ TEST_F(PolygonConnectorTest, getBridgeTooNarrow)
  */
 TEST_F(PolygonConnectorTest, connectFourNested)
 {
-    Polygons connecting;
+    Shape connecting;
     connecting.add(test_square_around); // 1200-wide square.
     connecting.add(test_square); // 1000-wide square.
     connecting.add(test_square.offset(-100)); // 800-wide square.
     connecting.add(test_square.offset(-200)); // 600-wide square.
 
     pc->add(connecting);
-    Polygons output_polygons;
+    Shape output_polygons;
     std::vector<VariableWidthLines> output_paths;
     pc->connect(output_polygons, output_paths);
 

@@ -3,13 +3,13 @@
 
 #include "utils/PolygonsPointIndex.h"
 
-#include "geometry/polygons.h"
+#include "geometry/shape.h"
 
 namespace cura
 {
 
 template<>
-const Polygon& PathsPointIndex<Polygons>::getPolygon() const
+const Polygon& PathsPointIndex<Shape>::getPolygon() const
 {
     return (*polygons_)[poly_idx_];
 }

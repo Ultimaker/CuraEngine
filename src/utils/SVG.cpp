@@ -156,7 +156,7 @@ void SVG::writeComment(const std::string& comment) const
     fprintf(out_, "<!-- %s -->\n", comment.c_str());
 }
 
-void SVG::writeAreas(const Polygons& polygons, const ColorObject color, const ColorObject outline_color, const double stroke_width) const
+void SVG::writeAreas(const Shape& polygons, const ColorObject color, const ColorObject outline_color, const double stroke_width) const
 {
     std::vector<SingleShape> parts = polygons.splitIntoParts();
     for (auto part_it = parts.rbegin(); part_it != parts.rend(); ++part_it)
@@ -219,7 +219,7 @@ void SVG::writePoints(const Polygon& poly, const bool write_coords, const double
     }
 }
 
-void SVG::writePoints(const Polygons& polygons, const bool write_coords, const double size, const ColorObject color) const
+void SVG::writePoints(const Shape& polygons, const bool write_coords, const double size, const ColorObject color) const
 {
     for (const Polygon& poly : polygons)
     {
@@ -335,7 +335,7 @@ void SVG::writeText(const Point2LL& p, const std::string& txt, const ColorObject
         txt.c_str());
 }
 
-void SVG::writePolygons(const Polygons& polys, const ColorObject color, const double stroke_width) const
+void SVG::writePolygons(const Shape& polys, const ColorObject color, const double stroke_width) const
 {
     for (const Polygon& poly : polys)
     {
@@ -378,7 +378,7 @@ void SVG::writePolygon(const Polygon& poly, const ColorObject color, const doubl
 }
 
 
-void SVG::writePolylines(const Polygons& polys, const ColorObject color, const double stroke_width) const
+void SVG::writePolylines(const Shape& polys, const ColorObject color, const double stroke_width) const
 {
     for (const Polygon& poly : polys)
     {

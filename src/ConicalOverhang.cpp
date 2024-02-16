@@ -30,7 +30,7 @@ void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
         { // magically nothing happens when max_dist_from_lower_layer == 0
             // below magic code solves that
             constexpr coord_t safe_dist = 20;
-            Polygons diff = layer_above.polygons.difference(layer.polygons.offset(-safe_dist));
+            Shape diff = layer_above.polygons.difference(layer.polygons.offset(-safe_dist));
             layer.polygons = layer.polygons.unionPolygons(diff);
             layer.polygons = layer.polygons.smooth(safe_dist);
             layer.polygons = Simplify(safe_dist, safe_dist / 2, 0).polygon(layer.polygons);
@@ -42,7 +42,7 @@ void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
             // Get the current layer and split it into parts
             std::vector<SingleShape> layerParts = layer.polygons.splitIntoParts();
             // Get a copy of the layer above to prune away before we shrink it
-            Polygons above = layer_above.polygons;
+            Shape above = layer_above.polygons;
 
             // Now go through all the holes in the current layer and check if they intersect anything in the layer above
             // If not, then they're the top of a hole and should be cut from the layer above before the union
@@ -52,15 +52,15 @@ void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
                 {
                     for (unsigned int hole_nr = 1; hole_nr < layerParts[part].size(); ++hole_nr)
                     {
-                        Polygons holePoly;
+                        Shape holePoly;
                         holePoly.push_back(layerParts[part][hole_nr]);
                         if (maxHoleArea > 0.0 && INT2MM2(std::abs(holePoly.area())) < maxHoleArea)
                         {
-                            Polygons holeWithAbove = holePoly.intersection(above);
+                            Shape holeWithAbove = holePoly.intersection(above);
                             if (! holeWithAbove.empty())
                             {
                                 // The hole had some intersection with the above layer, check if it's a complete overlap
-                                Polygons holeDifference = holePoly.xorPolygons(holeWithAbove);
+                                Shape holeDifference = holePoly.xorPolygons(holeWithAbove);
                                 if (holeDifference.empty())
                                 {
                                     // The hole was returned unchanged, so the layer above must completely cover it.  Remove the hole from the layer above.

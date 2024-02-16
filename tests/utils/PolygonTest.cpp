@@ -26,7 +26,7 @@ public:
     Polygon clipper_bug;
     Polygon clockwise_large;
     Polygon clockwise_small;
-    Polygons clockwise_donut;
+    Shape clockwise_donut;
     Polygon line;
     Polygon small_area;
 
@@ -68,8 +68,8 @@ public:
         clockwise_small.emplace_back(50, 50);
         clockwise_small.emplace_back(50, -50);
 
-        Polygons outer;
-        Polygons inner;
+        Shape outer;
+        Shape inner;
         outer.push_back(clockwise_large);
         inner.push_back(clockwise_small);
         clockwise_donut = outer.difference(inner);
@@ -82,7 +82,7 @@ public:
         small_area.emplace_back(10, 10);
         small_area.emplace_back(0, 10);
     }
-    void twoPolygonsAreEqual(Polygons& polygon1, Polygons& polygon2) const
+    void twoPolygonsAreEqual(Shape& polygon1, Shape& polygon2) const
     {
         auto poly_cmp = [](const ClipperLib::Path& a, const ClipperLib::Path& b)
         {
@@ -112,18 +112,18 @@ public:
 
 TEST_F(PolygonTest, polygonOffsetTest)
 {
-    Polygons test_squares;
+    Shape test_squares;
     test_squares.push_back(test_square);
-    const Polygons expanded = test_squares.offset(25);
+    const Shape expanded = test_squares.offset(25);
     const coord_t expanded_length = expanded.length();
 
-    Polygons square_hole;
+    Shape square_hole;
     Polygon& square_inverted = square_hole.newLine();
     for (int i = test_square.size() - 1; i >= 0; i--)
     {
         square_inverted.push_back(test_square[i]);
     }
-    const Polygons contracted = square_hole.offset(25);
+    const Shape contracted = square_hole.offset(25);
     const coord_t contracted_length = contracted.length();
 
     ASSERT_NEAR(expanded_length, contracted_length, 5) << "Offset on outside poly is different from offset on inverted poly!";
@@ -131,9 +131,9 @@ TEST_F(PolygonTest, polygonOffsetTest)
 
 TEST_F(PolygonTest, polygonOffsetBugTest)
 {
-    Polygons polys;
+    Shape polys;
     polys.push_back(clipper_bug);
-    const Polygons offsetted = polys.offset(-20);
+    const Shape offsetted = polys.offset(-20);
 
     for (const Polygon& poly : offsetted)
     {
@@ -146,7 +146,7 @@ TEST_F(PolygonTest, polygonOffsetBugTest)
 
 TEST_F(PolygonTest, isOutsideTest)
 {
-    Polygons test_triangle;
+    Shape test_triangle;
     test_triangle.push_back(triangle);
 
     EXPECT_FALSE(test_triangle.inside(Point2LL(0, 100))) << "Left point should be outside the triangle.";
@@ -159,7 +159,7 @@ TEST_F(PolygonTest, isOutsideTest)
 
 TEST_F(PolygonTest, isInsideTest)
 {
-    Polygons test_polys;
+    Shape test_polys;
     Polygon& poly = test_polys.newLine();
     poly.push_back(Point2LL(82124, 98235));
     poly.push_back(Point2LL(83179, 98691));
@@ -179,7 +179,7 @@ TEST_F(PolygonTest, isInsideTest)
 
 TEST_F(PolygonTest, isOnBorderTest)
 {
-    Polygons test_triangle;
+    Shape test_triangle;
     test_triangle.push_back(triangle);
 
     EXPECT_FALSE(test_triangle.inside(Point2LL(200, 0), false)) << "Point is on the bottom edge of the triangle.";
@@ -190,7 +190,7 @@ TEST_F(PolygonTest, isOnBorderTest)
 
 TEST_F(PolygonTest, DISABLED_isInsideLineTest) // Disabled because this fails due to a bug in Clipper.
 {
-    Polygons polys;
+    Shape polys;
     polys.push_back(line);
 
     EXPECT_FALSE(polys.inside(Point2LL(50, 0), false)) << "Should be outside since it is on the border and border is considered outside.";
@@ -243,7 +243,7 @@ TEST_F(PolygonTest, differenceClockwiseTest)
 
 TEST_F(PolygonTest, getEmptyHolesTest)
 {
-    const Polygons holes = clockwise_donut.getEmptyHoles();
+    const Shape holes = clockwise_donut.getEmptyHoles();
 
     ASSERT_EQ(holes.size(), 1);
     ASSERT_EQ(holes[0].size(), clockwise_small.size()) << "Empty hole should have the same amount of vertices as the original polygon.";
@@ -258,7 +258,7 @@ TEST_F(PolygonTest, getEmptyHolesTest)
  */
 TEST_F(PolygonTest, convexTestCube)
 {
-    Polygons d_polygons;
+    Shape d_polygons;
     Polygon& d = d_polygons.newLine();
     d.push_back(Point2LL(0, 0));
     d.push_back(Point2LL(10, 0));
@@ -279,7 +279,7 @@ TEST_F(PolygonTest, convexTestCube)
  */
 TEST_F(PolygonTest, convexHullStar)
 {
-    Polygons d_polygons;
+    Shape d_polygons;
     Polygon& d = d_polygons.newLine();
 
     const int num_points = 10;
@@ -315,7 +315,7 @@ TEST_F(PolygonTest, convexHullStar)
  */
 TEST_F(PolygonTest, convexHullMultipleMinX)
 {
-    Polygons d_polygons;
+    Shape d_polygons;
     Polygon& d = d_polygons.newLine();
     d.push_back(Point2LL(0, 0));
     d.push_back(Point2LL(0, -10));
@@ -341,7 +341,7 @@ TEST_F(PolygonTest, convexHullMultipleMinX)
  */
 TEST_F(PolygonTest, convexTestCubeColinear)
 {
-    Polygons d_polygons;
+    Shape d_polygons;
     Polygon& d = d_polygons.newLine();
     d.push_back(Point2LL(0, 0));
     d.push_back(Point2LL(5, 0));
@@ -366,7 +366,7 @@ TEST_F(PolygonTest, convexTestCubeColinear)
  */
 TEST_F(PolygonTest, convexHullRemoveDuplicatePoints)
 {
-    Polygons d_polygons;
+    Shape d_polygons;
     Polygon& d = d_polygons.newLine();
     d.push_back(Point2LL(0, 0));
     d.push_back(Point2LL(0, 0));
@@ -395,7 +395,7 @@ TEST_F(PolygonTest, removeSmallAreas_simple)
     // basic set of polygons
     auto test_square_2 = test_square;
     test_square_2.translate(Point2LL(0, 500));
-    auto d_polygons = Polygons{};
+    auto d_polygons = Shape{};
     d_polygons.push_back(test_square);
     d_polygons.push_back(test_square_2);
     d_polygons.push_back(triangle);
@@ -426,14 +426,14 @@ TEST_F(PolygonTest, removeSmallAreas_small_area)
     triangle_1.translate(Point2LL(50, 0));
 
     // add areas to polygons
-    auto d_polygons = Polygons{};
+    auto d_polygons = Shape{};
     d_polygons.push_back(small_area_1);
     d_polygons.push_back(small_area_2);
     d_polygons.push_back(test_square); // area = 10000 micron^2 = 1e-2 mm^2
     d_polygons.push_back(triangle_1);
 
-    // make an expected Polygons
-    auto exp_polygons = Polygons{};
+    // make an expected Shape
+    auto exp_polygons = Shape{};
     exp_polygons.push_back(test_square);
     exp_polygons.push_back(triangle_1);
 
@@ -460,7 +460,7 @@ TEST_F(PolygonTest, removeSmallAreas_hole)
     small_hole_1.translate(Point2LL(10, 10));
 
     // add areas to polygons
-    auto d_polygons = Polygons{};
+    auto d_polygons = Shape{};
     d_polygons.push_back(test_square); // area = 10000 micron^2 = 1e-2 mm^2
     d_polygons.push_back(small_hole_1);
 
@@ -471,8 +471,8 @@ TEST_F(PolygonTest, removeSmallAreas_hole)
     twoPolygonsAreEqual(act_polygons, d_polygons);
 
     // for remove_holes == true there should be one less poly.
-    // make an expected Polygons
-    auto exp_polygons = Polygons{};
+    // make an expected Shape
+    auto exp_polygons = Shape{};
     exp_polygons.push_back(test_square);
     act_polygons = d_polygons;
     act_polygons.removeSmallAreas(1e-3, true);
@@ -498,7 +498,7 @@ TEST_F(PolygonTest, removeSmallAreas_hole_2)
     med_square_1.translate(Point2LL(150, 150));
 
     // add areas to polygons
-    auto d_polygons = Polygons{};
+    auto d_polygons = Shape{};
     d_polygons.push_back(test_square); // area = 10000 micron^2 = 1e-2 mm^2
     d_polygons.push_back(small_hole_1);
     d_polygons.push_back(med_square_1);
@@ -506,8 +506,8 @@ TEST_F(PolygonTest, removeSmallAreas_hole_2)
 
     // for remove_holes == false, two polygons removed.
     auto act_polygons = d_polygons;
-    // make an expected Polygons
-    auto exp_polygons = Polygons{};
+    // make an expected Shape
+    auto exp_polygons = Shape{};
     exp_polygons.push_back(test_square);
     exp_polygons.push_back(small_hole_1);
     act_polygons.removeSmallAreas(3e-3, false);
@@ -516,7 +516,7 @@ TEST_F(PolygonTest, removeSmallAreas_hole_2)
     // for remove_holes == true, three polygons removed.
     act_polygons = d_polygons;
     // make an expected Polygons
-    exp_polygons = Polygons{};
+    exp_polygons = Shape{};
     exp_polygons.push_back(test_square);
     act_polygons.removeSmallAreas(3e-3, true);
     twoPolygonsAreEqual(act_polygons, exp_polygons);
@@ -544,7 +544,7 @@ TEST_F(PolygonTest, removeSmallAreas_complex)
     triangle_1.translate(Point2LL(600, 0));
 
     // add areas to polygons
-    auto d_polygons = Polygons{};
+    auto d_polygons = Shape{};
     d_polygons.push_back(small_area_1);
     d_polygons.push_back(small_area_2);
     d_polygons.push_back(test_square); // area = 10000 micron^2 = 1e-2 mm^2
@@ -554,8 +554,8 @@ TEST_F(PolygonTest, removeSmallAreas_complex)
 
     // for remove_holes == false there should be 2 small areas removed.
     auto act_polygons = d_polygons;
-    // make an expected Polygons
-    auto exp_polygons = Polygons{};
+    // make an expected Shape
+    auto exp_polygons = Shape{};
     exp_polygons.push_back(test_square); // area = 10000 micron^2 = 1e-2 mm^2
     exp_polygons.push_back(small_hole_1);
     exp_polygons.push_back(small_hole_2);
@@ -566,7 +566,7 @@ TEST_F(PolygonTest, removeSmallAreas_complex)
     // for remove_holes == true there should be 2 small areas and 2 small holes removed.
     act_polygons = d_polygons;
     // make an expected Polygons
-    exp_polygons = Polygons{};
+    exp_polygons = Shape{};
     exp_polygons.push_back(test_square);
     exp_polygons.push_back(triangle_1); // area = 10000 micron^2 = 1e-2 mm^2
     act_polygons.removeSmallAreas(1e-3, true);

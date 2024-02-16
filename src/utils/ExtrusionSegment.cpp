@@ -10,14 +10,14 @@
 namespace cura
 {
 
-Polygons ExtrusionSegment::toPolygons()
+Shape ExtrusionSegment::toPolygons()
 {
     return toPolygons(is_reduced_);
 }
 
-Polygons ExtrusionSegment::toPolygons(bool reduced)
+Shape ExtrusionSegment::toPolygons(bool reduced)
 {
-    Polygons ret;
+    Shape ret;
     const Point2LL vec = to_.p_ - from_.p_;
     const coord_t vec_length = vSize(vec);
 

@@ -41,12 +41,12 @@ public:
     /*!
      * Basic 10x10mm square shape to work with.
      */
-    Polygons square_shape;
+    Shape square_shape;
 
     /*!
      * A rectangle enclosing two triangular holes;
      */
-    Polygons ff_holes;
+    Shape ff_holes;
 
     WallsComputationTest() : walls_computation(settings, LayerIndex(100))
     {

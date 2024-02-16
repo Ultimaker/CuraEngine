@@ -47,11 +47,11 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
     }
 
     const coord_t layer_height = scene.current_mesh_group->settings.get<coord_t>("layer_height");
-    std::vector<Polygons> mold_outline_above_per_mesh; // the outer outlines of the layer above without the original model(s) being cut out
+    std::vector<Shape> mold_outline_above_per_mesh; // the outer outlines of the layer above without the original model(s) being cut out
     mold_outline_above_per_mesh.resize(slicer_list.size());
     for (int layer_nr = layer_count - 1; layer_nr >= 0; layer_nr--)
     {
-        Polygons all_original_mold_outlines; // outlines of all models for which to generate a mold (insides of all molds)
+        Shape all_original_mold_outlines; // outlines of all models for which to generate a mold (insides of all molds)
 
         // first generate outlines
         for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
@@ -77,7 +77,7 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
 
 
             SlicerLayer& layer = slicer.layers[layer_nr];
-            Polygons model_outlines = layer.polygons.unionPolygons(layer.openPolylines.offset(open_polyline_width / 2));
+            Shape model_outlines = layer.polygons.unionPolygons(layer.openPolylines.offset(open_polyline_width / 2));
             layer.openPolylines.clear();
             all_original_mold_outlines.add(model_outlines);
 
@@ -87,7 +87,7 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
             }
             else
             {
-                Polygons& mold_outline_above = mold_outline_above_per_mesh[mesh_idx]; // the outside of the mold on the layer above
+                Shape& mold_outline_above = mold_outline_above_per_mesh[mesh_idx]; // the outside of the mold on the layer above
                 layer.polygons = mold_outline_above.offset(-inset).unionPolygons(model_outlines.offset(width, ClipperLib::jtRound));
             }
 
@@ -95,7 +95,7 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
             if (roof_layer_count > 0 && layer_nr > 0)
             {
                 LayerIndex layer_nr_below = std::max(0, static_cast<int>(layer_nr - roof_layer_count));
-                Polygons roofs = slicer.layers[layer_nr_below].polygons.offset(width, ClipperLib::jtRound); // TODO: don't compute offset twice!
+                Shape roofs = slicer.layers[layer_nr_below].polygons.offset(width, ClipperLib::jtRound); // TODO: don't compute offset twice!
                 layer.polygons = layer.polygons.unionPolygons(roofs);
             }
 

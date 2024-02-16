@@ -5,7 +5,7 @@
 #define TOPSURFACE_H
 
 #include "GCodePathConfig.h"
-#include "geometry/polygons.h"
+#include "geometry/shape.h"
 
 namespace cura
 {
@@ -58,7 +58,7 @@ public:
     /*!
      * \brief The areas of top surface, for each layer.
      */
-    Polygons areas;
+    Shape areas;
 };
 
 } // namespace cura

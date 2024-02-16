@@ -71,9 +71,9 @@ constexpr coord_t shift = 0;
 constexpr coord_t max_resolution = 10;
 constexpr coord_t max_deviation = 5;
 
-bool getInfillLines(const std::string& filename, const AngleRadians& angle, Polygons& output)
+bool getInfillLines(const std::string& filename, const AngleRadians& angle, Shape& output)
 {
-    std::vector<Polygons> shapes;
+    std::vector<Shape> shapes;
     if (! readTestPolygons(filename, shapes))
     {
         return false;
@@ -84,7 +84,7 @@ bool getInfillLines(const std::string& filename, const AngleRadians& angle, Poly
         Infill infill_comp(pattern, zig_zagify, connect_polygons, shape, infill_line_width, line_distance, infill_overlap, infill_multiplier, AngleDegrees(angle), z, shift, max_resolution, max_deviation);
         Settings infill_settings;
         std::vector<VariableWidthLines> result_paths;
-        Polygons dummy_polys;
+        Shape dummy_polys;
         infill_comp.generate(result_paths, dummy_polys, output, infill_settings, 1, SectionType::INFILL, nullptr, nullptr);
     }
     return true;
@@ -136,7 +136,7 @@ TEST_P(PathOrderMonotonicTest, SectionsTest)
     const auto params = GetParam();
     const double angle_radians{ std::get<1>(params) };
     const auto& filename = std::get<0>(params);
-    Polygons polylines;
+    Shape polylines;
     ASSERT_TRUE(getInfillLines(filename, angle_radians, polylines)) << "Input test-file could not be read, check setup.";
 
     const Point2LL& pt_r = polylines.begin()->at(0);

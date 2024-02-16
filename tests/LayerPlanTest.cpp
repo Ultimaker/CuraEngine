@@ -356,7 +356,7 @@ public:
         storage->retraction_wipe_config_per_extruder[0].retraction_config.retraction_min_travel_distance = settings->get<coord_t>("retraction_min_travel"); // Update the copy that the storage has of this.
         settings->add("retraction_combing_max_distance", parameters.is_long_combing ? "1" : "10000");
 
-        Polygons slice_data;
+        Shape slice_data;
         switch (parameters.scene)
         {
         case OPEN:

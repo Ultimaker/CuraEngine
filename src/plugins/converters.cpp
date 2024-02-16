@@ -210,7 +210,7 @@ infill_generate_request::value_type
 infill_generate_response::native_value_type infill_generate_response::operator()(const infill_generate_response::value_type& message) const
 {
     VariableWidthLines toolpaths;
-    Polygons result_polygons;
+    Shape result_polygons;
     LinesSet<OpenPolyline> result_lines;
 
     for (auto& tool_path : message.tool_paths().tool_paths())
@@ -231,7 +231,7 @@ infill_generate_response::native_value_type infill_generate_response::operator()
 
     for (auto& polygon_msg : message.polygons().polygons())
     {
-        Polygons polygon{};
+        Shape polygon{};
 
         Polygon outline{};
         for (auto& path_msg : polygon_msg.outline().path())

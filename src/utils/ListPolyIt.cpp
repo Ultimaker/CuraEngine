@@ -14,7 +14,7 @@ namespace cura
 {
 
 
-void ListPolyIt::convertPolygonsToLists(const Polygons& polys, ListPolygons& result)
+void ListPolyIt::convertPolygonsToLists(const Shape& polys, ListPolygons& result)
 {
     for (const Polygon& poly : polys)
     {
@@ -42,7 +42,7 @@ void ListPolyIt::convertPolygonToList(const Polygon& poly, ListPolygon& result)
 }
 
 
-void ListPolyIt::convertListPolygonsToPolygons(const ListPolygons& list_polygons, Polygons& polygons)
+void ListPolyIt::convertListPolygonsToPolygons(const ListPolygons& list_polygons, Shape& polygons)
 {
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
