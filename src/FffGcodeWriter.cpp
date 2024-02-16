@@ -1538,7 +1538,10 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
         std::vector<ExtruderUse> extruder_order = getUsedExtrudersOnLayerExcludingStartingExtruder(storage, last_extruder, layer_nr);
         extruder_order_per_layer_here.push_back(extruder_order);
 
-        last_extruder = extruder_order.back().extruder_nr;
+        if (! extruder_order.empty())
+        {
+            last_extruder = extruder_order.back().extruder_nr;
+        }
     }
 }
 
