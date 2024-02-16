@@ -1442,7 +1442,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
             start_close_to,
             fan_speed,
             reverse_print_direction,
-            order_requirements);
+            layer_nr == 0 ? order_requirements : PathOrderOptimizer<ConstPolygonPointer>::no_order_requirements_);
     }
 
 
