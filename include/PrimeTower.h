@@ -45,7 +45,7 @@ private:
 
     /*
      *  The first index is a bitmask representing an extruder combination, e.g. 0x05 for extruders 1+3.
-     *  The second one is the used extruder index, e.g. 1
+     *  The second index is the used extruder index, e.g. 1
      *  The polygons represent the sparse pattern to be printed when all the given extruders are unused for this layer
      *  and the given extruder is currently in use
      */
