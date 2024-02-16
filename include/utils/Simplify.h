@@ -6,8 +6,8 @@
 
 #include "../settings/Settings.h" //To load the parameters from a Settings object.
 #include "ExtrusionLine.h"
+#include "geometry/polygon.h"
 #include "linearAlg2D.h" //To calculate line deviations and intersecting lines.
-#include "polygon.h"
 
 namespace cura
 {
@@ -105,7 +105,8 @@ public:
      * \param polylines The polylines to simplify.
      * \return The simplified polylines.
      */
-    Polygons polyline(const Polygons& polylines) const;
+    template<class LineType>
+    LinesSet<LineType> polyline(const LinesSet<LineType>& polylines) const;
 
     /*!
      * Simplify a polyline.
@@ -114,7 +115,8 @@ public:
      * \param polyline The polyline to simplify.
      * \return The simplified polyline.
      */
-    Polygon polyline(const Polygon& polyline) const;
+    template<PolylineType PolylineTypeVal>
+    Polyline<PolylineTypeVal> polyline(const Polyline<PolylineTypeVal>& polyline) const;
 
     /*!
      * Simplify a variable-line-width polyline.
@@ -416,7 +418,8 @@ protected:
      * \param polygon The polygon to add to.
      * \param vertex The vertex to add.
      */
-    void appendVertex(Polygon& polygon, const Point2LL& vertex) const;
+    template<PolylineType PolylineTypeVal>
+    void appendVertex(Polyline<PolylineTypeVal>& polygon, const Point2LL& vertex) const;
 
     /*!
      * Append a vertex to this extrusion line.

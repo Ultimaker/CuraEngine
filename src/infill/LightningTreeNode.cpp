@@ -3,6 +3,7 @@
 
 #include "infill/LightningTreeNode.h"
 
+#include "geometry/open_polyline.h"
 #include "utils/linearAlg2D.h"
 
 using namespace cura;
@@ -354,43 +355,43 @@ const std::optional<Point2LL>& LightningTreeNode::getLastGroundingLocation() con
     return last_grounding_location_;
 }
 
-void LightningTreeNode::convertToPolylines(Polygons& output, const coord_t line_width) const
+void LightningTreeNode::convertToPolylines(LinesSet<OpenPolyline>& output, const coord_t line_width) const
 {
-    Polygons result;
-    result.newPoly();
+    LinesSet<OpenPolyline> result;
+    result.emplace_back();
     convertToPolylines(0, result);
     removeJunctionOverlap(result, line_width);
     output.add(result);
 }
 
-void LightningTreeNode::convertToPolylines(size_t long_line_idx, Polygons& output) const
+void LightningTreeNode::convertToPolylines(size_t long_line_idx, LinesSet<OpenPolyline>& output) const
 {
     if (children_.empty())
     {
-        output[long_line_idx].add(p_);
+        output[long_line_idx].push_back(p_);
         return;
     }
     size_t first_child_idx = rand() % children_.size();
     children_[first_child_idx]->convertToPolylines(long_line_idx, output);
-    output[long_line_idx].add(p_);
+    output[long_line_idx].push_back(p_);
 
     for (size_t idx_offset = 1; idx_offset < children_.size(); idx_offset++)
     {
         size_t child_idx = (first_child_idx + idx_offset) % children_.size();
         const LightningTreeNode& child = *children_[child_idx];
-        output.newPoly();
+        output.emplace_back();
         size_t child_line_idx = output.size() - 1;
         child.convertToPolylines(child_line_idx, output);
-        output[child_line_idx].add(p_);
+        output[child_line_idx].push_back(p_);
     }
 }
 
-void LightningTreeNode::removeJunctionOverlap(Polygons& result_lines, const coord_t line_width) const
+void LightningTreeNode::removeJunctionOverlap(LinesSet<OpenPolyline>& result_lines, const coord_t line_width) const
 {
     const coord_t reduction = line_width / 2; // TODO make configurable?
     for (auto poly_it = result_lines.begin(); poly_it != result_lines.end();)
     {
-        PolygonRef polyline = *poly_it;
+        OpenPolyline& polyline = *poly_it;
         if (polyline.size() <= 1)
         {
             polyline = std::move(result_lines.back());

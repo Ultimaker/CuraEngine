@@ -6,9 +6,10 @@
 
 #include <vector>
 
+#include "geometry/polygon.h"
+#include "geometry/single_shape.h"
 #include "utils/AABB.h"
 #include "utils/ExtrusionLine.h"
-#include "utils/polygon.h"
 
 
 namespace cura
@@ -25,7 +26,7 @@ namespace cura
 class SupportInfillPart
 {
 public:
-    PolygonsPart outline_; //!< The outline of the support infill area
+    SingleShape outline_; //!< The outline of the support infill area
     AABB outline_boundary_box_; //!< The boundary box for the infill area
     coord_t support_line_width_; //!< The support line width
     int inset_count_to_generate_; //!< The number of insets need to be generated from the outline. This is not the actual insets that will be generated.
@@ -36,7 +37,7 @@ public:
     coord_t custom_line_distance_; //!< The distance between support infill lines. 0 means use the default line distance instead.
     bool use_fractional_config_; //!< Request to use the configuration used to fill a partial layer height here, instead of the normal full layer height configuration.
 
-    SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, bool use_fractional_config, int inset_count_to_generate = 0, coord_t custom_line_distance = 0);
+    SupportInfillPart(const SingleShape& outline, coord_t support_line_width, bool use_fractional_config, int inset_count_to_generate = 0, coord_t custom_line_distance = 0);
 
     const Polygons& getInfillArea() const;
 };

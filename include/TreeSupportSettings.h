@@ -10,8 +10,10 @@
 #include "settings/EnumSettings.h"
 #include "settings/Settings.h"
 #include "settings/types/Angle.h"
+#include "settings/types/Ratio.h"
 #include "utils/Coord_t.h"
 #include "utils/Simplify.h"
+
 
 namespace cura
 {

@@ -20,7 +20,7 @@ LightningDistanceField::LightningDistanceField(const coord_t& radius, const Poly
     std::vector<Point2LL> regular_dots = PolygonUtils::spreadDotsArea(current_overhang, cell_size_);
     for (const auto& p : regular_dots)
     {
-        const ClosestPolygonPoint cpp = PolygonUtils::findClosest(p, current_outline);
+        const ClosestPoint cpp = PolygonUtils::findClosest(p, current_outline);
         const coord_t dist_to_boundary = vSize(p - cpp.p());
         unsupported_points_.emplace_back(p, dist_to_boundary);
     }

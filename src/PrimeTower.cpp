@@ -94,7 +94,7 @@ void PrimeTower::generateGroundpoly()
     const coord_t x = mesh_group_settings.get<coord_t>("prime_tower_position_x");
     const coord_t y = mesh_group_settings.get<coord_t>("prime_tower_position_y");
     const coord_t tower_radius = tower_size / 2;
-    outer_poly_.add(PolygonUtils::makeCircle(Point2LL(x - tower_radius, y + tower_radius), tower_radius, TAU / CIRCLE_RESOLUTION));
+    outer_poly_.push_back(PolygonUtils::makeCircle(Point2LL(x - tower_radius, y + tower_radius), tower_radius, TAU / CIRCLE_RESOLUTION));
     middle_ = Point2LL(x - tower_size / 2, y + tower_size / 2);
 
     post_wipe_point_ = Point2LL(x - tower_size / 2, y + tower_size / 2);
@@ -142,7 +142,7 @@ void PrimeTower::generatePaths_denseInfill()
             // Create a new polygon with an offset from the outer polygon.
             Polygons polygons = outer_poly_.offset(-cumulative_inset - wall_nr * line_width - line_width / 2);
             prime_moves.add(polygons);
-            current_volume += polygons.polygonLength() * line_width * layer_height * flow;
+            current_volume += polygons.length() * line_width * layer_height * flow;
             if (polygons.empty()) // Don't continue. We won't ever reach the required volume because it doesn't fit.
             {
                 break;
@@ -298,7 +298,7 @@ void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const int extruder_nr
     int current_start_location_idx = ((((extruder_nr + 1) * gcode_layer.getLayerNr()) % number_of_prime_tower_start_locations_) + number_of_prime_tower_start_locations_)
                                    % number_of_prime_tower_start_locations_;
 
-    const ClosestPolygonPoint wipe_location = prime_tower_start_locations_[current_start_location_idx];
+    const ClosestPoint wipe_location = prime_tower_start_locations_[current_start_location_idx];
 
     const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
     const coord_t inward_dist = train.settings_.get<coord_t>("machine_nozzle_size") * 3 / 2;

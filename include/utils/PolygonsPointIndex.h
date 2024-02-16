@@ -6,8 +6,9 @@
 
 #include <vector>
 
-#include "Point2LL.h"
-#include "polygon.h"
+#include "geometry/point2ll.h"
+#include "geometry/polygon.h"
+#include "geometry/polygons.h"
 
 
 namespace cura
@@ -79,7 +80,7 @@ public:
     /*!
      * Get the polygon to which this PolygonsPointIndex refers
      */
-    ConstPolygonRef getPolygon() const;
+    const Polygon& getPolygon() const;
 
     /*!
      * Test whether two iterators refer to the same polygon in the same polygon list.
@@ -153,14 +154,7 @@ using PolygonsPointIndex = PathsPointIndex<Polygons>;
  */
 struct PolygonsPointIndexSegmentLocator
 {
-    std::pair<Point2LL, Point2LL> operator()(const PolygonsPointIndex& val) const
-    {
-        ConstPolygonRef poly = (*val.polygons_)[val.poly_idx_];
-        Point2LL start = poly[val.point_idx_];
-        size_t next_point_idx = (val.point_idx_ + 1ul) % poly.size();
-        Point2LL end = poly[next_point_idx];
-        return std::pair<Point2LL, Point2LL>(start, end);
-    }
+    std::pair<Point2LL, Point2LL> operator()(const PolygonsPointIndex& val) const;
 };
 
 

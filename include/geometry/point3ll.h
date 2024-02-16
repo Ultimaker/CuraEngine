@@ -1,17 +1,16 @@
 // Copyright (c) 2018 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_POINT3_H
-#define UTILS_POINT3_H
+#ifndef GEOMETRY_POINT3LL_H
+#define GEOMETRY_POINT3LL_H
 
 #include <cassert>
 #include <cmath> //For sqrt.
 #include <iostream> //Auto-serialization.
 #include <limits> //For numeric_limits::min and max.
-#include <stdint.h> //For int32_t and int64_t.
 #include <type_traits> // for operations on any arithmetic number type
 
-#include "Coord_t.h"
+#include "utils/Coord_t.h"
 
 
 namespace cura
@@ -180,4 +179,4 @@ struct hash<cura::Point3LL>
 } // namespace std
 
 
-#endif // UTILS_POINT3_H
+#endif // GEOMETRY_POINT3LL_H

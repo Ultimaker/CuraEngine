@@ -12,7 +12,7 @@ namespace cura
 {
 
 
-coord_t ExtrusionLine::getLength() const
+coord_t ExtrusionLine::length() const
 {
     if (junctions_.empty())
     {

@@ -12,7 +12,7 @@
 #include "pathPlanning/TimeMaterialEstimates.h"
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Ratio.h"
-#include "utils/Point2LL.h"
+#include "geometry/point2ll.h"
 
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.

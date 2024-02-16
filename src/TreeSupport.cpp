@@ -1145,7 +1145,7 @@ void TreeSupport::increaseAreas(
                 {
                     // If the area becomes for whatever reason something that clipper sees as a line, offset would stop working, so ensure that even if if wrongly would be a line,
                     // it still actually has an area that can be increased
-                    Polygons lines_offset = TreeSupportUtils::toPolylines(*parent->area_).offsetPolyLine(EPSILON);
+                    Polygons lines_offset = TreeSupportUtils::toPolylines(*parent->area_).offset(EPSILON);
                     Polygons base_error_area = parent->area_->unionPolygons(lines_offset);
                     result = increaseSingleArea(settings, layer_idx, parent, base_error_area, to_bp_data, to_model_data, inc_wo_collision, settings.increase_speed_, mergelayer);
 
@@ -1646,7 +1646,7 @@ void TreeSupport::generateBranchAreas(
         for (Point2LL vertex : base_circle)
         {
             vertex = Point2LL(vertex.X * config.branch_radius / TreeSupportBaseCircle::base_radius, vertex.Y * config.branch_radius / TreeSupportBaseCircle::base_radius);
-            branch_circle.add(vertex);
+            branch_circle.push_back(vertex);
         }
     }
 
@@ -1714,7 +1714,7 @@ void TreeSupport::generateBranchAreas(
                     for (Point2LL vertex : branch_circle)
                     {
                         vertex = Point2LL(matrix[0] * vertex.X + matrix[1] * vertex.Y, matrix[2] * vertex.X + matrix[3] * vertex.Y);
-                        circle.add(center_position + vertex);
+                        circle.push_back(center_position + vertex);
                     }
                     poly.add(circle.offset(0));
                 }
@@ -1749,7 +1749,7 @@ void TreeSupport::generateBranchAreas(
                     if (nozzle_path.splitIntoParts(false).size() > 1)
                     {
                         Polygons polygons_with_correct_center;
-                        for (PolygonsPart part : nozzle_path.splitIntoParts(false))
+                        for (SingleShape part : nozzle_path.splitIntoParts(false))
                         {
                             if (part.inside(elem->result_on_layer_, true))
                             {
@@ -2166,7 +2166,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
                                                    config.support_roof_line_distance,
                                                    storage.support.cross_fill_provider,
                                                    true)
-                                                   .offsetPolyLine(config.support_roof_line_width / 2);
+                                                   .offset(config.support_roof_line_width / 2);
                     support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(interface_lines);
                 }
                 break;
@@ -2182,7 +2182,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
                                                               config.support_line_distance,
                                                               storage.support.cross_fill_provider,
                                                               true)
-                                                              .offsetPolyLine(config.support_line_width / 2));
+                                                              .offset(config.support_line_width / 2));
                     storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.difference(tree_lines);
                     // Do not draw roof where the tree is. I prefer it this way as otherwise the roof may cut of a branch from its support below.
                 }
@@ -2227,7 +2227,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
         {
-            constexpr bool convert_every_part = true; // Convert every part into a PolygonsPart for the support.
+            constexpr bool convert_every_part = true; // Convert every part into a SingleShape for the support.
             storage.support.supportLayers[layer_idx]
                 .fillInfillParts(layer_idx, support_layer_storage, config.support_line_width, config.support_wall_count, config.maximum_move_distance, convert_every_part);
 

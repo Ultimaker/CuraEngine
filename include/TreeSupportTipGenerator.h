@@ -15,7 +15,7 @@
 #include "settings/EnumSettings.h"
 #include "sliceDataStorage.h"
 #include "utils/Coord_t.h"
-#include "utils/polygon.h"
+#include "geometry/polygon.h"
 
 namespace cura
 {
@@ -63,7 +63,7 @@ private:
      * \param layer_idx[in] The current layer.
      * \return All lines of the \p polylines object, with information for each point regarding in which avoidance it is currently valid in.
      */
-    std::vector<LineInformation> convertLinesToInternal(Polygons polylines, LayerIndex layer_idx);
+    std::vector<LineInformation> convertLinesToInternal(const LinesSet<OpenPolyline>& polylines, LayerIndex layer_idx);
 
     /*!
      * \brief Converts lines in internal format into a Polygons object representing these lines.
@@ -71,7 +71,7 @@ private:
      * \param lines[in] The lines that will be converted.
      * \return All lines of the \p lines object as a Polygons object.
      */
-    Polygons convertInternalToLines(std::vector<TreeSupportTipGenerator::LineInformation> lines);
+    LinesSet<OpenPolyline> convertInternalToLines(std::vector<TreeSupportTipGenerator::LineInformation> lines);
 
     /*!
      * \brief Returns a function, evaluating if a point has to be added now. Required for a splitLines call in generateInitialAreas.
@@ -102,7 +102,7 @@ private:
      * \param enforce_distance[in] If points should not be added if they are closer than distance to other points.
      * \return A Polygons object containing the evenly spaced points. Does not represent an area, more a collection of points on lines.
      */
-    Polygons ensureMaximumDistancePolyline(const Polygons& input, coord_t distance, size_t min_points, bool enforce_distance) const;
+    LinesSet<OpenPolyline> ensureMaximumDistancePolyline(const LinesSet<OpenPolyline>& input, coord_t distance, size_t min_points, bool enforce_distance) const;
 
     /*!
      * \brief Creates a valid CrossInfillProvider

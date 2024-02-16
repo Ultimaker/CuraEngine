@@ -13,7 +13,7 @@
 #include "WallsComputation.h"
 #include "settings/Settings.h"
 #include "sliceDataStorage.h"
-#include "utils/polygon.h"
+#include "geometry/polygon.h"
 
 #include <filesystem>
 #include <fstream>

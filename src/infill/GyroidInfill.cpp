@@ -3,9 +3,11 @@
 
 #include "infill/GyroidInfill.h"
 
+#include "geometry/open_polyline.h"
+#include "geometry/polygon.h"
+#include "geometry/polygons.h"
 #include "utils/AABB.h"
 #include "utils/linearAlg2D.h"
-#include "utils/polygon.h"
 
 namespace cura
 {
@@ -18,7 +20,7 @@ GyroidInfill::~GyroidInfill()
 {
 }
 
-void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_zaggify, coord_t line_distance, const Polygons& in_outline, coord_t z)
+void GyroidInfill::generateTotalGyroidInfill(LinesSet<OpenPolyline>& result_lines, bool zig_zaggify, coord_t line_distance, const Polygons& in_outline, coord_t z)
 {
     // generate infill based on the gyroid equation: sin_x * cos_y + sin_y * cos_z + sin_z * cos_x = 0
     // kudos to the author of the Slic3r implementation equation code, the equation code here is based on that
@@ -39,7 +41,7 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
     const double sin_z = std::sin(z_rads);
     std::vector<coord_t> odd_line_coords;
     std::vector<coord_t> even_line_coords;
-    Polygons result;
+    LinesSet<OpenPolyline> result;
     std::vector<Point2LL> chains[2]; // [start_points[], end_points[]]
     std::vector<unsigned> connected_to[2]; // [chain_indices[], chain_indices[]]
     std::vector<int> line_numbers; // which row/column line a chain is part of
@@ -85,7 +87,7 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
                         else if (last_inside != current_inside)
                         {
                             // line hits the boundary, add the part that's inside the boundary
-                            Polygons line;
+                            LinesSet<OpenPolyline> line;
                             line.addLine(last, current);
                             constexpr bool restitch = false; // only a single line doesn't need stitching
                             line = in_outline.intersectionPolyLines(line, restitch);
@@ -177,7 +179,7 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
                         else if (last_inside != current_inside)
                         {
                             // line hits the boundary, add the part that's inside the boundary
-                            Polygons line;
+                            LinesSet<OpenPolyline> line;
                             line.addLine(last, current);
                             constexpr bool restitch = false; // only a single line doesn't need stitching
                             line = in_outline.intersectionPolyLines(line, restitch);
@@ -238,7 +240,7 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
 
         int chain_ends_remaining = chains[0].size() * 2;
 
-        for (ConstPolygonRef outline_poly : in_outline)
+        for (const Polygon& outline_poly : in_outline)
         {
             std::vector<Point2LL> connector_points; // the points that make up a connector line
 
@@ -340,7 +342,7 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
 
                         if (chain_index != connector_start_chain_index && connected_to[(point_index + 1) % 2][chain_index] != connector_start_chain_index)
                         {
-                            result.add(connector_points);
+                            result.push_back(connector_points);
                             drawing = false;
                             connector_points.clear();
                             // remember the connection
@@ -389,9 +391,9 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
             {
                 // output the connector line segments from the last chain to the first point in the outline
                 connector_points.push_back(outline_poly[0]);
-                result.add(connector_points);
+                result.push_back(connector_points);
                 // output the connector line segments from the first point in the outline to the first chain
-                result.add(path_to_first_chain);
+                result.push_back(path_to_first_chain);
             }
 
             if (chain_ends_remaining < 1)

@@ -10,7 +10,7 @@
 #include "slicer.h" // Starts the slicing phase that we want to test.
 #include "utils/Coord_t.h"
 #include "utils/Matrix4x3D.h" // To load STL files.
-#include "utils/polygon.h" // Creating polygons to compare to sliced layers.
+#include "geometry/polygon.h" // Creating polygons to compare to sliced layers.
 #include "utils/polygonUtils.h" // Comparing similarity of polygons.
 
 namespace cura

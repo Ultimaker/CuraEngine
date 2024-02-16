@@ -6,7 +6,8 @@
 #include <limits>
 
 #include "utils/linearAlg2D.h"
-#include "utils/polygon.h" //To create the AABB of a polygon.
+#include "geometry/polygon.h"
+#include "geometry/polygons.h"
 
 namespace cura
 {
@@ -31,7 +32,7 @@ AABB::AABB(const Polygons& polys)
     calculate(polys);
 }
 
-AABB::AABB(ConstPolygonRef poly)
+AABB::AABB(const Polygon& poly)
     : min_(POINT_MAX, POINT_MAX)
     , max_(POINT_MIN, POINT_MIN)
 {
@@ -72,16 +73,16 @@ void AABB::calculate(const Polygons& polys)
 {
     min_ = Point2LL(POINT_MAX, POINT_MAX);
     max_ = Point2LL(POINT_MIN, POINT_MIN);
-    for (unsigned int i = 0; i < polys.size(); i++)
+    for (const Polygon& poly : polys)
     {
-        for (unsigned int j = 0; j < polys[i].size(); j++)
+        for (const Point2LL& point : poly)
         {
-            include(polys[i][j]);
+            include(point);
         }
     }
 }
 
-void AABB::calculate(ConstPolygonRef poly)
+void AABB::calculate(const Polygon& poly)
 {
     min_ = Point2LL(POINT_MAX, POINT_MAX);
     max_ = Point2LL(POINT_MIN, POINT_MIN);
@@ -131,7 +132,7 @@ bool AABB::hit(const AABB& other) const
     return true;
 }
 
-void AABB::include(Point2LL point)
+void AABB::include(const Point2LL& point)
 {
     min_.X = std::min(min_.X, point.X);
     min_.Y = std::min(min_.Y, point.Y);
@@ -139,7 +140,15 @@ void AABB::include(Point2LL point)
     max_.Y = std::max(max_.Y, point.Y);
 }
 
-void AABB::include(const AABB other)
+void AABB::include(const Polygon& polygon)
+{
+    for (const Point2LL& point : polygon)
+    {
+        include(point);
+    }
+}
+
+void AABB::include(const AABB& other)
 {
     // Note that this is different from including the min and max points, since when 'min > max' it's used to denote an negative/empty box.
     min_.X = std::min(min_.X, other.min_.X);
@@ -162,12 +171,7 @@ void AABB::expand(int dist)
 
 Polygon AABB::toPolygon() const
 {
-    Polygon ret;
-    ret.add(min_);
-    ret.add(Point2LL(max_.X, min_.Y));
-    ret.add(max_);
-    ret.add(Point2LL(min_.X, max_.Y));
-    return ret;
+    return Polygon({ min_, Point2LL(max_.X, min_.Y), max_, Point2LL(min_.X, max_.Y) });
 }
 
 } // namespace cura

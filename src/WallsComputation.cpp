@@ -84,7 +84,7 @@ void WallsComputation::generateWalls(SliceLayerPart* part, SectionType section_t
         part->wall_toolpaths = wall_tool_paths.getToolPaths();
         part->inner_area = wall_tool_paths.getInnerContour();
     }
-    part->outline = PolygonsPart{ Simplify(settings_).polygon(part->outline) };
+    part->outline = SingleShape{ Simplify(settings_).polygon(part->outline) };
     part->print_outline = part->outline;
 }
 
@@ -127,7 +127,7 @@ void WallsComputation::generateSpiralInsets(SliceLayerPart* part, coord_t line_w
     // Optimize the wall. This prevents buffer underruns in the printer firmware, and reduces processing time in CuraEngine.
     const ExtruderTrain& train_wall = settings_.get<ExtruderTrain&>("wall_0_extruder_nr");
     part->spiral_wall = Simplify(train_wall.settings_).polygon(part->spiral_wall);
-    part->spiral_wall.removeDegenerateVerts();
+    part->spiral_wall.removeDegenerateVertsForEveryone();
     if (recompute_outline_based_on_outer_wall)
     {
         part->print_outline = part->spiral_wall.offset(line_width_0 / 2, ClipperLib::jtSquare);

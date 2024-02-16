@@ -49,6 +49,7 @@
 #include "utils/ThreadPool.h"
 #include "utils/gettime.h"
 #include "utils/math.h"
+#include "geometry/open_polyline.h"
 #include "utils/Simplify.h"
 // clang-format on
 
@@ -568,17 +569,17 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
             // they have to be polylines, because they might break up further when doing the cutting
             for (SliceLayerPart& part : layer.parts)
             {
-                for (PolygonRef poly : part.outline)
+                for (const Polygon& poly : part.outline)
                 {
-                    layer.openPolyLines.add(poly);
-                    layer.openPolyLines.back().add(layer.openPolyLines.back()[0]); // add the segment which closes the polygon
+                    layer.openPolyLines.push_back(OpenPolyline(poly));
+                    layer.openPolyLines.back().push_back(layer.openPolyLines.back()[0]); // add the segment which closes the polygon
                 }
             }
             layer.parts.clear();
         }
 
-        std::vector<PolygonsPart> new_parts;
-        Polygons new_polylines;
+        std::vector<SingleShape> new_parts;
+        LinesSet<OpenPolyline> new_polylines;
 
         for (const size_t other_mesh_idx : mesh_order)
         { // limit the infill mesh's outline to within the infill of all meshes with lower order
@@ -607,14 +608,14 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
                         Polygons new_outline = part.outline.intersection(other_part.getOwnInfillArea());
                         if (new_outline.size() == 1)
                         { // we don't have to call splitIntoParts, because a single polygon can only be a single part
-                            PolygonsPart outline_part_here;
-                            outline_part_here.add(new_outline[0]);
+                            SingleShape outline_part_here;
+                            outline_part_here.push_back(new_outline[0]);
                             new_parts.push_back(outline_part_here);
                         }
                         else if (new_outline.size() > 1)
                         { // we don't know whether it's a multitude of parts because of newly introduced holes, or because the polygon has been split up
-                            std::vector<PolygonsPart> new_parts_here = new_outline.splitIntoParts();
-                            for (PolygonsPart& new_part_here : new_parts_here)
+                            std::vector<SingleShape> new_parts_here = new_outline.splitIntoParts();
+                            for (SingleShape& new_part_here : new_parts_here)
                             {
                                 new_parts.push_back(new_part_here);
                             }
@@ -628,19 +629,19 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
                 if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
                     const Polygons& own_infill_area = other_part.getOwnInfillArea();
-                    Polygons cut_lines = own_infill_area.intersectionPolyLines(layer.openPolyLines);
+                    std::vector<OpenPolyline> cut_lines = own_infill_area.intersectionPolyLines(layer.openPolyLines);
                     new_polylines.add(cut_lines);
                     // NOTE: closed polygons will be represented as polylines, which will be closed automatically in the PathOrderOptimizer
                     if (! own_infill_area.empty())
                     {
-                        other_part.infill_area_own = own_infill_area.difference(layer.openPolyLines.offsetPolyLine(surface_line_width / 2));
+                        other_part.infill_area_own = own_infill_area.difference(layer.openPolyLines.offset(surface_line_width / 2));
                     }
                 }
             }
         }
 
         layer.parts.clear();
-        for (PolygonsPart& part : new_parts)
+        for (SingleShape& part : new_parts)
         {
             layer.parts.emplace_back();
             layer.parts.back().outline = part;

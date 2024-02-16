@@ -16,7 +16,7 @@ PolygonConnector::PolygonConnector(const coord_t line_width)
 
 void PolygonConnector::add(const Polygons& input)
 {
-    for (ConstPolygonRef poly : input)
+    for (const Polygon& poly : input)
     {
         input_polygons_.push_back(poly);
     }
@@ -36,9 +36,9 @@ void PolygonConnector::add(const std::vector<VariableWidthLines>& input)
 void PolygonConnector::connect(Polygons& output_polygons, std::vector<VariableWidthLines>& output_paths)
 {
     std::vector<Polygon> result_polygons = connectGroup(input_polygons_);
-    for (Polygon& polygon : result_polygons)
+    for (const Polygon& polygon : result_polygons)
     {
-        output_polygons.add(polygon);
+        output_polygons.push_back(polygon);
     }
 
     std::vector<ExtrusionLine> result_paths = connectGroup(input_paths_);
@@ -67,12 +67,12 @@ coord_t PolygonConnector::getWidth(const ExtrusionJunction& junction) const
 
 void PolygonConnector::addVertex(Polygon& polygonal, const Point2LL& position, const coord_t) const
 {
-    polygonal.add(position);
+    polygonal.push_back(position);
 }
 
 void PolygonConnector::addVertex(Polygon& polygonal, const Point2LL& vertex) const
 {
-    polygonal.add(vertex);
+    polygonal.push_back(vertex);
 }
 
 void PolygonConnector::addVertex(ExtrusionLine& polygonal, const Point2LL& position, const coord_t width) const

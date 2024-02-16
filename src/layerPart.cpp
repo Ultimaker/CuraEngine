@@ -8,7 +8,7 @@
 #include "settings/Settings.h"
 #include "sliceDataStorage.h"
 #include "slicer.h"
-#include "utils/PolylineStitcher.h"
+#include "utils/OpenPolylineStitcher.h"
 #include "utils/Simplify.h" //Simplifying the layers after creating them.
 #include "utils/ThreadPool.h"
 
@@ -29,7 +29,7 @@ namespace cura
 
 void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, SlicerLayer* layer)
 {
-    PolylineStitcher<Polygons, Polygon, Point2LL>::stitch(layer->openPolylines, storageLayer.openPolyLines, layer->polygons, settings.get<coord_t>("wall_line_width_0"));
+    OpenPolylineStitcher::stitch(layer->openPolylines, storageLayer.openPolyLines, layer->polygons, settings.get<coord_t>("wall_line_width_0"));
 
     storageLayer.openPolyLines = Simplify(settings).polyline(storageLayer.openPolyLines);
 
@@ -43,16 +43,16 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
         }
     }
 
-    std::vector<PolygonsPart> result;
+    std::vector<SingleShape> result;
     const bool union_layers = settings.get<bool>("meshfix_union_all");
     const ESurfaceMode surface_only = settings.get<ESurfaceMode>("magic_mesh_surface_mode");
     if (surface_only == ESurfaceMode::SURFACE && ! union_layers)
     { // Don't do anything with overlapping areas; no union nor xor
         result.reserve(layer->polygons.size());
-        for (const PolygonRef poly : layer->polygons)
+        for (const Polygon& poly : layer->polygons)
         {
             result.emplace_back();
-            result.back().add(poly);
+            result.back().push_back(poly);
         }
     }
     else

@@ -19,7 +19,7 @@
 #include "utils/ExtrusionLine.h"
 #include "utils/HalfEdgeGraph.h"
 #include "utils/PolygonsSegmentIndex.h"
-#include "utils/polygon.h"
+#include "geometry/polygon.h"
 #include "utils/section_type.h"
 
 namespace cura

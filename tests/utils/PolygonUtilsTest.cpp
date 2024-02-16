@@ -6,8 +6,8 @@
 #include <gtest/gtest.h>
 
 #include "utils/Coord_t.h"
-#include "utils/Point2LL.h" // Creating and testing with points.
-#include "utils/polygon.h" // Creating polygons to test with.
+#include "geometry/point2ll.h" // Creating and testing with points.
+#include "geometry/polygon.h" // Creating polygons to test with.
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
@@ -56,7 +56,7 @@ public:
 TEST_P(MoveInsideTest, MoveInside)
 {
     const MoveInsideParameters parameters = GetParam();
-    const ClosestPolygonPoint cpp = PolygonUtils::findClosest(parameters.close_to, test_square);
+    const ClosestPoint cpp = PolygonUtils::findClosest(parameters.close_to, test_square);
     Point2LL result = PolygonUtils::moveInside(cpp, parameters.distance);
 
     // FIXME: Clean-up message with ftm when CURA-8258 is implemented or when we use C++20
@@ -99,7 +99,7 @@ TEST_F(MoveInsideTest, cornerEdgeTest)
     const Point2LL supposed1(80, 80); // Allow two possible values here, since the behaviour for this edge case is not specified.
     const Point2LL supposed2(72, 100);
     constexpr coord_t distance = 28;
-    const ClosestPolygonPoint cpp = PolygonUtils::findClosest(close_to, test_square);
+    const ClosestPoint cpp = PolygonUtils::findClosest(close_to, test_square);
     const Point2LL result = PolygonUtils::moveInside(cpp, distance);
 
     constexpr coord_t maximum_error = 10;
@@ -120,7 +120,7 @@ TEST_F(MoveInsideTest, middleTest)
     const Point2LL supposed3(20, 50);
     const Point2LL supposed4(50, 20);
     constexpr coord_t distance = 20;
-    const ClosestPolygonPoint cpp = PolygonUtils::findClosest(close_to, test_square);
+    const ClosestPoint cpp = PolygonUtils::findClosest(close_to, test_square);
     const Point2LL result = PolygonUtils::moveInside(cpp, distance);
 
     constexpr coord_t maximum_error = 10;
@@ -142,7 +142,7 @@ TEST_F(MoveInsideTest, middleTestPenalty)
     const Point2LL supposed(80, 50);
     const Point2LL preferred_dir(120, 60);
     constexpr coord_t distance = 20;
-    const ClosestPolygonPoint cpp = PolygonUtils::findClosest(
+    const ClosestPoint cpp = PolygonUtils::findClosest(
         close_to,
         test_square,
         [preferred_dir](Point2LL candidate)
@@ -180,7 +180,7 @@ TEST_F(MoveInsideTest, pointyCorner)
     Point2LL result(from);
     Polygons inside;
     inside.add(pointy_square);
-    ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(inside, result, 10);
+    ClosestPoint cpp = PolygonUtils::ensureInsideOrOutside(inside, result, 10);
 
     ASSERT_NE(cpp.point_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
     ASSERT_NE(cpp.poly_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
@@ -195,7 +195,7 @@ TEST_F(MoveInsideTest, pointyCornerFail)
     Polygons inside;
     inside.add(pointy_square);
 
-    ClosestPolygonPoint cpp = PolygonUtils::moveInside2(inside, result, 10);
+    ClosestPoint cpp = PolygonUtils::moveInside2(inside, result, 10);
     ASSERT_NE(cpp.point_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
     ASSERT_NE(cpp.poly_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
     ASSERT_FALSE(inside.inside(result)) << from << " could be moved inside, while it was designed to fail.";
@@ -209,7 +209,7 @@ TEST_F(MoveInsideTest, outsidePointyCorner)
     Polygons inside;
     inside.add(pointy_square);
 
-    const ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(inside, result, -10);
+    const ClosestPoint cpp = PolygonUtils::ensureInsideOrOutside(inside, result, -10);
     ASSERT_NE(cpp.point_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
     ASSERT_NE(cpp.poly_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
     ASSERT_TRUE(! inside.inside(result)) << from << " couldn't be moved outside.";
@@ -224,7 +224,7 @@ TEST_F(MoveInsideTest, outsidePointyCornerFail)
     Polygons inside;
     inside.add(pointy_square);
 
-    const ClosestPolygonPoint cpp = PolygonUtils::moveInside2(inside, result, -10);
+    const ClosestPoint cpp = PolygonUtils::moveInside2(inside, result, -10);
     ASSERT_NE(cpp.point_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
     ASSERT_NE(cpp.poly_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
     ASSERT_FALSE(! inside.inside(result)) << from << " could be moved outside to " << result << ", while it was designed to fail.";
@@ -269,7 +269,7 @@ TEST_P(FindCloseTest, FindClose)
     polygons.add(test_square);
     auto loc_to_line = PolygonUtils::createLocToLineGrid(polygons, parameters.cell_size);
 
-    std::optional<ClosestPolygonPoint> cpp;
+    std::optional<ClosestPoint> cpp;
     if (parameters.penalty_function)
     {
         cpp = PolygonUtils::findClose(parameters.close_to, polygons, *loc_to_line, *parameters.penalty_function);
@@ -341,12 +341,12 @@ public:
 
 TEST_F(PolygonUtilsTest, spreadDotsSegment)
 {
-    std::vector<ClosestPolygonPoint> supposed;
+    std::vector<ClosestPoint> supposed;
     supposed.emplace_back(Point2LL(50, 0), 0, test_squares[0], 0);
     supposed.emplace_back(Point2LL(100, 0), 1, test_squares[0], 0);
     supposed.emplace_back(Point2LL(100, 50), 1, test_squares[0], 0);
 
-    std::vector<ClosestPolygonPoint> result;
+    std::vector<ClosestPoint> result;
     PolygonUtils::spreadDots(PolygonsPointIndex(&test_squares, 0, 0), PolygonsPointIndex(&test_squares, 0, 2), 3, result);
 
     ASSERT_EQ(result.size(), supposed.size());
@@ -358,7 +358,7 @@ TEST_F(PolygonUtilsTest, spreadDotsSegment)
 
 TEST_F(PolygonUtilsTest, spreadDotsFull)
 {
-    std::vector<ClosestPolygonPoint> supposed;
+    std::vector<ClosestPoint> supposed;
     supposed.emplace_back(Point2LL(0, 0), 0, test_squares[0], 0);
     supposed.emplace_back(Point2LL(50, 0), 0, test_squares[0], 0);
     supposed.emplace_back(Point2LL(100, 0), 1, test_squares[0], 0);
@@ -368,7 +368,7 @@ TEST_F(PolygonUtilsTest, spreadDotsFull)
     supposed.emplace_back(Point2LL(0, 100), 3, test_squares[0], 0);
     supposed.emplace_back(Point2LL(0, 50), 3, test_squares[0], 0);
 
-    std::vector<ClosestPolygonPoint> result;
+    std::vector<ClosestPoint> result;
     PolygonUtils::spreadDots(PolygonsPointIndex(&test_squares, 0, 0), PolygonsPointIndex(&test_squares, 0, 0), 8, result);
 
     ASSERT_EQ(result.size(), supposed.size());
@@ -416,8 +416,8 @@ public:
 TEST_P(GetNextParallelIntersectionTest, GetNextParallelIntersection)
 {
     const GetNextParallelIntersectionParameters parameters = GetParam();
-    const ClosestPolygonPoint start = PolygonUtils::findClosest(parameters.start_point, test_squares);
-    std::optional<ClosestPolygonPoint> computed = PolygonUtils::getNextParallelIntersection(start, parameters.line_to, parameters.dist, parameters.forward);
+    const ClosestPoint start = PolygonUtils::findClosest(parameters.start_point, test_squares);
+    std::optional<ClosestPoint> computed = PolygonUtils::getNextParallelIntersection(start, parameters.line_to, parameters.dist, parameters.forward);
 
     ASSERT_EQ(bool(parameters.predicted), bool(computed)) << "An answer was predicted but not computed, or computed but not predicted.";
     if (parameters.predicted)

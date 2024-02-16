@@ -50,7 +50,7 @@ struct PathOrdering
      * Vertex data, converted into a Polygon so that the orderer knows how
      * to deal with this data.
      */
-    ConstPolygonPointer converted_;
+    const Polygon* converted_{ nullptr };
 
     /*!
      * Which vertex along the path to start printing with.
@@ -89,7 +89,7 @@ struct PathOrdering
      * for each different type that this class is used with. See the .cpp file
      * for examples and where to add a new specialization.
      */
-    ConstPolygonRef getVertexData();
+    const Polygon& getVertexData();
 
 protected:
     /*!

@@ -62,7 +62,7 @@ public:
         // Get the vertex data and store it in the paths.
         for (Path& path : this->paths_)
         {
-            path.converted_ = path.getVertexData();
+            path.converted_ = &path.getVertexData();
         }
 
         std::vector<Path> reordered; // To store the result in. At the end, we'll std::swap with the real paths.

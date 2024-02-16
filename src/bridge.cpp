@@ -3,10 +3,11 @@
 
 #include "bridge.h"
 
+#include "geometry/open_polyline.h"
+#include "geometry/polygon.h"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "utils/AABB.h"
-#include "utils/polygon.h"
 
 namespace cura
 {
@@ -112,7 +113,7 @@ double bridgeAngle(
     if (support_threshold > 0 && (supported_regions.area() / (skin_outline.area() + 1)) < support_threshold)
     {
         Polygons bb_poly;
-        bb_poly.add(boundary_box.toPolygon());
+        bb_poly.push_back(boundary_box.toPolygon());
 
         // airBelow is the region below the skin that is not supported, it extends well past the boundary of the skin.
         // It needs to be shrunk slightly so that the vertices of the skin polygon that would otherwise fall exactly on
@@ -121,23 +122,23 @@ double bridgeAngle(
         const coord_t bb_max_dim = std::max(boundary_box.max_.X - boundary_box.min_.X, boundary_box.max_.Y - boundary_box.min_.Y);
         const Polygons air_below(bb_poly.offset(bb_max_dim).difference(prev_layer_outline).offset(-10));
 
-        Polygons skin_perimeter_lines;
-        for (ConstPolygonRef poly : skin_outline)
+        std::vector<OpenPolyline> skin_perimeter_lines;
+        for (const Polygon& poly : skin_outline)
         {
-            if (poly.empty())
-                continue;
-            skin_perimeter_lines.add(poly);
-            skin_perimeter_lines.back().emplace_back(poly.front());
+            if (! poly.empty())
+            {
+                skin_perimeter_lines.emplace_back(poly);
+            }
         }
 
-        Polygons skin_perimeter_lines_over_air(air_below.intersectionPolyLines(skin_perimeter_lines));
+        LinesSet<OpenPolyline> skin_perimeter_lines_over_air(air_below.intersectionPolyLines(skin_perimeter_lines));
 
         if (skin_perimeter_lines_over_air.size())
         {
             // one or more edges of the skin region are unsupported, determine the longest
             coord_t max_dist2 = 0;
             double line_angle = -1;
-            for (PolygonRef air_line : skin_perimeter_lines_over_air)
+            for (const Polygon& air_line : skin_perimeter_lines_over_air)
             {
                 Point2LL p0 = air_line[0];
                 for (unsigned i = 1; i < air_line.size(); ++i)

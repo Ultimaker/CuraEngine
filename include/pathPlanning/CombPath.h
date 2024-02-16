@@ -4,7 +4,7 @@
 #ifndef PATH_PLANNING_COMB_PATH_H
 #define PATH_PLANNING_COMB_PATH_H
 
-#include "../utils/Point2LL.h"
+#include "geometry/point2ll.h"
 
 namespace cura
 {

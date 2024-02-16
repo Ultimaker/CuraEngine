@@ -6,7 +6,7 @@
 #include "communication/ArcusCommunicationPrivate.h" //To access the private fields of this communication class.
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
-#include "utils/polygon.h" //Create test shapes to send over the socket.
+#include "geometry/polygon.h" //Create test shapes to send over the socket.
 #include <google/protobuf/message.h>
 #include <gtest/gtest.h>
 #include <memory>

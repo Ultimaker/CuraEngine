@@ -3,7 +3,7 @@
 
 #include "utils/PolygonConnector.h" // The class under test.
 #include "utils/Coord_t.h"
-#include "utils/polygon.h" // To create polygons to test with.
+#include "geometry/polygon.h" // To create polygons to test with.
 #include <gtest/gtest.h>
 #include <unordered_set>
 

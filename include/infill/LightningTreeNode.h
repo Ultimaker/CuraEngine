@@ -9,8 +9,9 @@
 #include <optional>
 #include <vector>
 
-#include "../utils/polygon.h"
+#include "geometry/polygon.h"
 #include "../utils/polygonUtils.h"
+#include "geometry/polygons.h"
 
 namespace cura
 {
@@ -239,7 +240,7 @@ public:
      *
      * \param output all branches in this tree connected into polylines
      */
-    void convertToPolylines(Polygons& output, const coord_t line_width) const;
+    void convertToPolylines(LinesSet<OpenPolyline>& output, const coord_t line_width) const;
 
     /*! If this was ever a direct child of the root, it'll have a previous grounding location.
      *
@@ -258,9 +259,9 @@ protected:
      * \param long_line a reference to a polyline in \p output which to continue building on in the recursion
      * \param output all branches in this tree connected into polylines
      */
-    void convertToPolylines(size_t long_line_idx, Polygons& output) const;
+    void convertToPolylines(size_t long_line_idx, LinesSet<OpenPolyline>& output) const;
 
-    void removeJunctionOverlap(Polygons& polylines, const coord_t line_width) const;
+    void removeJunctionOverlap(LinesSet<OpenPolyline>& polylines, const coord_t line_width) const;
 
     bool is_root_;
     Point2LL p_;

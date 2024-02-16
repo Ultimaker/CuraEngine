@@ -104,7 +104,7 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, T
 }
 
 
-std::vector<TreeSupportTipGenerator::LineInformation> TreeSupportTipGenerator::convertLinesToInternal(Polygons polylines, LayerIndex layer_idx)
+std::vector<TreeSupportTipGenerator::LineInformation> TreeSupportTipGenerator::convertLinesToInternal(const LinesSet<OpenPolyline>& polylines, LayerIndex layer_idx)
 {
     // NOTE: The volumes below (on which '.inside(p, true)' is called each time below) are the same each time. The values being calculated here are strictly local as well.
     //       So they could in theory be pre-calculated here (outside of the loop). However, when I refatored it to be that way, it seemed to cause deadlocks each time for some
@@ -114,7 +114,7 @@ std::vector<TreeSupportTipGenerator::LineInformation> TreeSupportTipGenerator::c
 
     std::vector<LineInformation> result;
     // Also checks if the position is valid, if it is NOT, it deletes that point
-    for (const auto& line : polylines)
+    for (const OpenPolyline& line : polylines)
     {
         LineInformation res_line;
         for (const Point2LL& p : line)
@@ -158,17 +158,17 @@ std::vector<TreeSupportTipGenerator::LineInformation> TreeSupportTipGenerator::c
     return result;
 }
 
-Polygons TreeSupportTipGenerator::convertInternalToLines(std::vector<TreeSupportTipGenerator::LineInformation> lines)
+LinesSet<OpenPolyline> TreeSupportTipGenerator::convertInternalToLines(std::vector<TreeSupportTipGenerator::LineInformation> lines)
 {
-    Polygons result;
+    LinesSet<OpenPolyline> result;
     for (const LineInformation& line : lines)
     {
-        Polygon path;
+        OpenPolyline path;
         for (const auto& point_data : line)
         {
-            path.add(point_data.first);
+            path.push_back(point_data.first);
         }
-        result.add(path);
+        result.push_back(path);
     }
     return result;
 }
@@ -250,23 +250,24 @@ std::pair<std::vector<TreeSupportTipGenerator::LineInformation>, std::vector<Tre
         std::vector<std::vector<std::pair<Point2LL, TreeSupportTipGenerator::LineStatus>>>>(keep, set_free);
 }
 
-Polygons TreeSupportTipGenerator::ensureMaximumDistancePolyline(const Polygons& input, coord_t distance, size_t min_points, bool enforce_distance) const
+LinesSet<OpenPolyline> TreeSupportTipGenerator::ensureMaximumDistancePolyline(const LinesSet<OpenPolyline>& input, coord_t distance, size_t min_points, bool enforce_distance) const
 {
-    Polygons result;
-    for (auto part : input)
+    LinesSet<OpenPolyline> result;
+    for (OpenPolyline part : input)
     {
         if (part.size() == 0)
         {
             continue;
         }
-        const coord_t length = Polygon(part).offset(0).polyLineLength();
-        Polygon line;
+
+        const coord_t length = part.length();
+        OpenPolyline line;
         coord_t current_distance = std::max(distance, coord_t(FUDGE_LENGTH * 2));
         if (length < 2 * distance && min_points <= 1)
         {
-            ClosestPolygonPoint middle_point(part[0], 0, part);
+            ClosestPoint middle_point(part[0], 0, &part);
             middle_point = PolygonUtils::walk(middle_point, coord_t(length / 2));
-            line.add(middle_point.location_);
+            line.push_back(middle_point.location_);
         }
         else
         {
@@ -300,7 +301,7 @@ Polygons TreeSupportTipGenerator::ensureMaximumDistancePolyline(const Polygons& 
             {
                 line.clear();
                 Point2LL current_point = part[0];
-                line.add(part[0]);
+                line.push_back(part[0]);
 
                 bool should_add_endpoint = min_points > 1 || vSize2(part[0] - part[optimal_end_index]) > (current_distance * current_distance);
                 bool added_endpoint = ! should_add_endpoint; // If no endpoint should be added all endpoints are already added.
@@ -318,7 +319,7 @@ Polygons TreeSupportTipGenerator::ensureMaximumDistancePolyline(const Polygons& 
                         current_index = optimal_end_index;
                         current_point = part[optimal_end_index];
                         added_endpoint = true;
-                        line.add(part[optimal_end_index]);
+                        line.push_back(part[optimal_end_index]);
                         continue;
                     }
 
@@ -336,7 +337,7 @@ Polygons TreeSupportTipGenerator::ensureMaximumDistancePolyline(const Polygons& 
                     if (! enforce_distance || min_distance_to_existing_point_sqd >= (current_distance * current_distance))
                     {
                         // viable point was found. Add to possible result.
-                        line.add(next_point.location);
+                        line.push_back(next_point.location);
                         current_point = next_point.location;
                         current_index = next_point.pos;
                         next_distance = current_distance;
@@ -366,13 +367,13 @@ Polygons TreeSupportTipGenerator::ensureMaximumDistancePolyline(const Polygons& 
 
                 if (! added_endpoint)
                 {
-                    line.add(part[optimal_end_index]);
+                    line.push_back(part[optimal_end_index]);
                 }
 
                 current_distance *= 0.9;
             }
         }
-        result.add(line);
+        result.push_back(line);
     }
     return result;
 }
@@ -637,9 +638,9 @@ void TreeSupportTipGenerator::addPointAsInfluenceArea(
     }
     Polygon circle;
     Polygon base_circle = TreeSupportBaseCircle::getBaseCircle();
-    for (Point2LL corner : base_circle)
+    for (const Point2LL& corner : base_circle)
     {
-        circle.add(p.first + corner);
+        circle.push_back(p.first + corner);
     }
     Polygons area = circle.offset(0);
     {
@@ -694,9 +695,9 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
             std::function<bool(std::pair<Point2LL, LineStatus>)> evaluateRoofWillGenerate = [&](std::pair<Point2LL, LineStatus> p)
             {
                 Polygon roof_circle;
-                for (Point2LL corner : TreeSupportBaseCircle::getBaseCircle())
+                for (const Point2LL& corner : TreeSupportBaseCircle::getBaseCircle())
                 {
-                    roof_circle.add(p.first + corner * std::max(config_.min_radius / TreeSupportBaseCircle::base_radius, coord_t(1)));
+                    roof_circle.push_back(p.first + corner * std::max(config_.min_radius / TreeSupportBaseCircle::base_radius, coord_t(1)));
                 }
                 Polygons area = roof_circle.offset(0);
                 return ! TreeSupportUtils::generateSupportInfillLines(area, config_, true, insert_layer_idx - dtt_roof_tip, support_roof_line_distance_, cross_fill_provider_, true)
@@ -733,11 +734,11 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
                 for (std::pair<Point2LL, TreeSupportTipGenerator::LineStatus> p : line)
                 {
                     Polygon roof_circle;
-                    for (Point2LL corner : TreeSupportBaseCircle::getBaseCircle())
+                    for (const Point2LL& corner : TreeSupportBaseCircle::getBaseCircle())
                     {
-                        roof_circle.add(p.first + corner * std::max(config_.min_radius / TreeSupportBaseCircle::base_radius, coord_t(1)));
+                        roof_circle.push_back(p.first + corner * std::max(config_.min_radius / TreeSupportBaseCircle::base_radius, coord_t(1)));
                     }
-                    added_roofs.add(roof_circle);
+                    added_roofs.push_back(roof_circle);
                 }
             }
             added_roofs = added_roofs.unionPolygons();
@@ -879,7 +880,7 @@ void TreeSupportTipGenerator::generateTips(
                 = relevant_forbidden.offset(EPSILON)
                       .unionPolygons(); // Prevent rounding errors down the line, points placed directly on the line of the forbidden area may not be added otherwise.
 
-            std::function<Polygons(const Polygons&, bool, LayerIndex)> generateLines = [&](const Polygons& area, bool roof, LayerIndex generate_layer_idx)
+            std::function<LinesSet<OpenPolyline>(const Polygons&, bool, LayerIndex)> generateLines = [&](const Polygons& area, bool roof, LayerIndex generate_layer_idx)
             {
                 coord_t upper_line_distance = support_supporting_branch_distance_;
                 coord_t line_distance = std::max(roof ? support_roof_line_distance_ : support_tree_branch_distance_, upper_line_distance);
@@ -978,7 +979,7 @@ void TreeSupportTipGenerator::generateTips(
                     }
 
                     std::vector<LineInformation> overhang_lines;
-                    Polygons polylines = ensureMaximumDistancePolyline(generateLines(remaining_overhang_part, false, layer_idx), config_.min_radius, 1, false);
+                    LinesSet<OpenPolyline> polylines = ensureMaximumDistancePolyline(generateLines(remaining_overhang_part, false, layer_idx), config_.min_radius, 1, false);
                     // ^^^ Support_line_width to form a line here as otherwise most will be unsupported.
                     // Technically this violates branch distance, but not only is this the only reasonable choice,
                     //   but it ensures consistent behavior as some infill patterns generate each line segment as its own polyline part causing a similar line forming behavior.
@@ -1054,14 +1055,14 @@ void TreeSupportTipGenerator::generateTips(
             {
                 const bool roof_allowed_for_this_part = overhang_pair.second;
                 Polygons overhang_outset = overhang_pair.first;
-                const size_t min_support_points = std::max(coord_t(1), std::min(coord_t(EPSILON), overhang_outset.polygonLength() / connect_length_));
+                const size_t min_support_points = std::max(coord_t(1), std::min(coord_t(EPSILON), overhang_outset.length() / connect_length_));
                 std::vector<LineInformation> overhang_lines;
 
                 bool only_lines = true;
 
                 // The tip positions are determined here.
                 // todo can cause inconsistent support density if a line exactly aligns with the model
-                Polygons polylines = ensureMaximumDistancePolyline(
+                LinesSet<OpenPolyline> polylines = ensureMaximumDistancePolyline(
                     generateLines(overhang_outset, roof_allowed_for_this_part, layer_idx + roof_allowed_for_this_part),
                     ! roof_allowed_for_this_part ? config_.min_radius * 2
                     : use_fake_roof_             ? support_supporting_branch_distance_
@@ -1173,7 +1174,7 @@ void TreeSupportTipGenerator::generateTips(
                                                                           support_roof_line_distance_,
                                                                           cross_fill_provider_,
                                                                           false)
-                                                                          .offsetPolyLine(config_.support_line_width / 2));
+                                                                          .offset(config_.support_line_width / 2));
                 }
                 else
                 {

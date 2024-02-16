@@ -4,7 +4,7 @@
 
 #include "ExtrusionSegment.h"
 #include "SVG.h"
-#include "polygon.h"
+#include "geometry/polygon.h"
 
 namespace cura
 {

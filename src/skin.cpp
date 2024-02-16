@@ -154,7 +154,7 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
         generateInfill(part);
     }
 
-    for (PolygonsPart& skin_area_part : skin.splitIntoParts())
+    for (SingleShape& skin_area_part : skin.splitIntoParts())
     {
         part.skin_parts.emplace_back();
         part.skin_parts.back().outline = skin_area_part;

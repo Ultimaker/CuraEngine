@@ -119,7 +119,7 @@ bool Comb::calc(
     // normal combing within part using optimal comb boundary
     if (start_inside && end_inside && start_part_idx == end_part_idx)
     {
-        PolygonsPart part = parts_view_inside_optimal_.assemblePart(start_part_idx);
+        SingleShape part = parts_view_inside_optimal_.assemblePart(start_part_idx);
         comb_paths.emplace_back();
         const bool combing_succeeded = LinePolygonsCrossings::comb(
             part,
@@ -155,7 +155,7 @@ bool Comb::calc(
     // normal combing within part using minimum comb boundary
     if (start_inside_min && end_inside_min && start_part_idx_min == end_part_idx_min)
     {
-        PolygonsPart part = parts_view_inside_minimum_.assemblePart(start_part_idx_min);
+        SingleShape part = parts_view_inside_minimum_.assemblePart(start_part_idx_min);
         comb_paths.emplace_back();
 
         comb_result = LinePolygonsCrossings::comb(
@@ -419,8 +419,8 @@ Comb::Crossing::Crossing(
 {
     if (dest_is_inside)
     {
-        dest_crossing_poly_.emplace(boundary_inside[dest_part_boundary_crossing_poly_idx]); // initialize with most obvious poly, cause mostly a combing move will move outside the
-                                                                                            // part, rather than inside a hole in the part
+        dest_crossing_poly_ = &(boundary_inside[dest_part_boundary_crossing_poly_idx]); // initialize with most obvious poly, cause mostly a combing move will move outside the
+                                                                                        // part, rather than inside a hole in the part
     }
 }
 
@@ -428,7 +428,7 @@ bool Comb::moveInside(Polygons& boundary_inside, bool is_inside, LocToLineGrid* 
 {
     if (is_inside)
     {
-        ClosestPolygonPoint cpp
+        ClosestPoint cpp
             = PolygonUtils::ensureInsideOrOutside(boundary_inside, dest_point, offset_extra_start_end_, max_moveInside_distance2_, &boundary_inside, inside_loc_to_line);
         if (! cpp.isValid())
         {
@@ -456,7 +456,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
             });
         dest_part_ = partsView_inside.assemblePart(dest_part_idx_);
 
-        ClosestPolygonPoint boundary_crossing_point;
+        ClosestPoint boundary_crossing_point;
         { // set [result] to a point on the destination part closest to close_to (but also a bit close to _dest_point)
             std::unordered_set<unsigned int> dest_part_poly_indices;
             for (unsigned int poly_idx : partsView_inside[dest_part_idx_])
@@ -476,7 +476,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
                 if (dist2_score_here < dist2_score)
                 {
                     dist2_score = dist2_score_here;
-                    boundary_crossing_point = ClosestPolygonPoint(closest_here, boundary_segment.point_idx_, boundary_segment.getPolygon(), boundary_segment.poly_idx_);
+                    boundary_crossing_point = ClosestPoint(closest_here, boundary_segment.point_idx_, &boundary_segment.getPolygon(), boundary_segment.poly_idx_);
                 }
                 return true;
             };
@@ -489,7 +489,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
             result = dest_point_;
         }
 
-        ClosestPolygonPoint crossing_1_in_cp = PolygonUtils::ensureInsideOrOutside(
+        ClosestPoint crossing_1_in_cp = PolygonUtils::ensureInsideOrOutside(
             dest_part_,
             result,
             boundary_crossing_point,
@@ -499,7 +499,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
             close_towards_start_penalty_function);
         if (crossing_1_in_cp.isValid())
         {
-            dest_crossing_poly_ = crossing_1_in_cp.poly_;
+            dest_crossing_poly_ = reinterpret_cast<const Polygon*>(crossing_1_in_cp.poly_);
             in_or_mid_ = result;
         }
         else
@@ -524,7 +524,7 @@ bool Comb::Crossing::findOutside(const ExtruderTrain& train, const Polygons& out
             {
                 return vSize2((candidate - preferred_crossing_1_out) / 2);
             });
-        std::optional<ClosestPolygonPoint> crossing_1_out_cpp = PolygonUtils::findClose(in_or_mid_, outside, comber.getOutsideLocToLine(train), close_to_penalty_function);
+        std::optional<ClosestPoint> crossing_1_out_cpp = PolygonUtils::findClose(in_or_mid_, outside, comber.getOutsideLocToLine(train), close_to_penalty_function);
         if (crossing_1_out_cpp)
         {
             out_ = PolygonUtils::moveOutside(*crossing_1_out_cpp, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
@@ -539,7 +539,7 @@ bool Comb::Crossing::findOutside(const ExtruderTrain& train, const Polygons& out
     { // if move is too far over in_between
         // find crossing closer by
         assert(dest_crossing_poly_ && "destination crossing poly should have been instantiated!");
-        std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> best = findBestCrossing(train, outside, **dest_crossing_poly_, dest_point_, close_to, comber);
+        std::shared_ptr<std::pair<ClosestPoint, ClosestPoint>> best = findBestCrossing(train, outside, **dest_crossing_poly_, dest_point_, close_to, comber);
         if (best)
         {
             in_or_mid_ = PolygonUtils::moveInside(best->first, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
@@ -554,21 +554,21 @@ bool Comb::Crossing::findOutside(const ExtruderTrain& train, const Polygons& out
 }
 
 
-std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Crossing::findBestCrossing(
+std::shared_ptr<std::pair<ClosestPoint, ClosestPoint>> Comb::Crossing::findBestCrossing(
     const ExtruderTrain& train,
     const Polygons& outside,
-    ConstPolygonRef from,
+    const Polygon& from,
     const Point2LL estimated_start,
     const Point2LL estimated_end,
     Comb& comber)
 {
-    ClosestPolygonPoint* best_in = nullptr;
-    ClosestPolygonPoint* best_out = nullptr;
+    ClosestPoint* best_in = nullptr;
+    ClosestPoint* best_out = nullptr;
     coord_t best_detour_score = std::numeric_limits<coord_t>::max();
     coord_t best_crossing_dist2;
-    std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> crossing_out_candidates = PolygonUtils::findClose(from, outside, comber.getOutsideLocToLine(train));
+    std::vector<std::pair<ClosestPoint, ClosestPoint>> crossing_out_candidates = PolygonUtils::findClose(from, outside, comber.getOutsideLocToLine(train));
     bool seen_close_enough_connection = false;
-    for (std::pair<ClosestPolygonPoint, ClosestPolygonPoint>& crossing_candidate : crossing_out_candidates)
+    for (std::pair<ClosestPoint, ClosestPoint>& crossing_candidate : crossing_out_candidates)
     {
         const coord_t crossing_dist2 = vSize2(crossing_candidate.first.location_ - crossing_candidate.second.location_);
         if (crossing_dist2 > comber.max_crossing_dist2_ * 2)
@@ -603,7 +603,7 @@ std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Cross
     }
     if (best_detour_score == std::numeric_limits<coord_t>::max())
     { // i.e. if best_in == nullptr or if best_out == nullptr
-        return std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>>();
+        return std::shared_ptr<std::pair<ClosestPoint, ClosestPoint>>();
     }
     if (best_crossing_dist2 > comber.max_crossing_dist2_)
     { // find closer point on line segments, rather than moving between vertices of the polygons only
@@ -611,10 +611,10 @@ std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Cross
         best_crossing_dist2 = vSize2(best_in->location_ - best_out->location_);
         if (best_crossing_dist2 > comber.max_crossing_dist2_)
         {
-            return std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>>();
+            return std::shared_ptr<std::pair<ClosestPoint, ClosestPoint>>();
         }
     }
-    return std::make_shared<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>>(*best_in, *best_out);
+    return std::make_shared<std::pair<ClosestPoint, ClosestPoint>>(*best_in, *best_out);
 }
 
 } // namespace cura

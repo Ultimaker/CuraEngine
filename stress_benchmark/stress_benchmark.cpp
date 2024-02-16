@@ -25,7 +25,7 @@
 #include "rapidjson/writer.h"
 #include "settings/Settings.h"
 #include "sliceDataStorage.h"
-#include "utils/polygon.h"
+#include "geometry/polygon.h"
 
 
 constexpr std::string_view USAGE = R"(Stress Benchmark.

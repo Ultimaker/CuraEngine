@@ -7,7 +7,7 @@
 #include "slicer.h"
 #include "utils/Coord_t.h"
 #include "utils/math.h"
-#include "utils/polygon.h"
+#include "geometry/polygon.h"
 #include <gtest/gtest.h>
 #include <filesystem>
 #include <polyclipping/clipper.hpp>

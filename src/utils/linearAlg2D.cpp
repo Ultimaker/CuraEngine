@@ -7,7 +7,9 @@
 #include <cassert>
 #include <cmath> // atan2
 
-#include "utils/Point2LL.h" // dot
+#include "geometry/point3_matrix.h"
+#include "geometry/point_matrix.h"
+#include "utils/math.h"
 
 namespace cura
 {
@@ -260,6 +262,45 @@ Point2LL LinearAlg2D::getBisectorVector(const Point2LL& intersect, const Point2L
     const auto a0 = a - intersect;
     const auto b0 = b - intersect;
     return (((a0 * vec_len) / std::max(1LL, vSize(a0))) + ((b0 * vec_len) / std::max(1LL, vSize(b0)))) / 2;
+}
+
+Point3Matrix LinearAlg2D::rotateAround(const Point2LL& middle, double rotation)
+{
+    PointMatrix rotation_matrix(rotation);
+    Point3Matrix rotation_matrix_homogeneous(rotation_matrix);
+    return Point3Matrix::translate(middle).compose(rotation_matrix_homogeneous).compose(Point3Matrix::translate(-middle));
+}
+
+bool LinearAlg2D::lineLineIntersection(const Point2LL& a, const Point2LL& b, const Point2LL& c, const Point2LL& d, Point2LL& output)
+{
+    // Adapted from Apex: https://github.com/Ghostkeeper/Apex/blob/eb75f0d96e36c7193d1670112826842d176d5214/include/apex/line_segment.hpp#L91
+    // Adjusted to work with lines instead of line segments.
+    const Point2LL l1_delta = b - a;
+    const Point2LL l2_delta = d - c;
+    const coord_t divisor = cross(l1_delta, l2_delta); // Pre-compute divisor needed for the intersection check.
+    if (divisor == 0)
+    {
+        // The lines are parallel if the cross product of their directions is zero.
+        return false;
+    }
+
+    // Create a parametric representation of each line.
+    // We'll equate the parametric equations to each other to find the intersection then.
+    // Parametric equation is L = P + Vt (where P and V are a starting point and directional vector).
+    // We'll map the starting point of one line onto the parameter system of the other line.
+    // Then using the divisor we can see whether and where they cross.
+    const Point2LL starts_delta = a - c;
+    const coord_t l1_parametric = cross(l2_delta, starts_delta);
+    Point2LL result = a + Point2LL(round_divide_signed(l1_parametric * l1_delta.X, divisor), round_divide_signed(l1_parametric * l1_delta.Y, divisor));
+
+    if (std::abs(result.X) > std::numeric_limits<int32_t>::max() || std::abs(result.Y) > std::numeric_limits<int32_t>::max())
+    {
+        // Intersection is so far away that it could lead to integer overflows.
+        // Even though the lines aren't 100% parallel, it's better to pretend they are. They are practically parallel.
+        return false;
+    }
+    output = result;
+    return true;
 }
 
 } // namespace cura

@@ -14,7 +14,7 @@
 #include "settings/types/LayerIndex.h" //Part of the RadiusLayerPair.
 #include "sliceDataStorage.h"
 #include "utils/Simplify.h"
-#include "utils/polygon.h" //For polygon parameters.
+#include "geometry/polygon.h" //For polygon parameters.
 
 namespace cura
 {

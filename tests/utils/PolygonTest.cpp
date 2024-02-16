@@ -1,11 +1,13 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/polygon.h" // The class under test.
+#include "geometry/polygon.h" // The class under test.
+
+#include <gtest/gtest.h>
+
 #include "utils/Coord_t.h"
 #include "utils/SVG.h" // helper functions
 #include "utils/polygonUtils.h" // helper functions
-#include <gtest/gtest.h>
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
@@ -79,7 +81,18 @@ public:
     }
     void twoPolygonsAreEqual(Polygons& polygon1, Polygons& polygon2) const
     {
-        auto poly_cmp = [](const ClipperLib::Path& a, const ClipperLib::Path& b) { return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end(), [](const Point2LL& p1, const Point2LL& p2) { return p1 < p2; }); };
+        auto poly_cmp = [](const ClipperLib::Path& a, const ClipperLib::Path& b)
+        {
+            return std::lexicographical_compare(
+                a.begin(),
+                a.end(),
+                b.begin(),
+                b.end(),
+                [](const Point2LL& p1, const Point2LL& p2)
+                {
+                    return p1 < p2;
+                });
+        };
         std::sort(polygon1.begin(), polygon1.end(), poly_cmp);
         std::sort(polygon2.begin(), polygon2.end(), poly_cmp);
 
@@ -102,7 +115,7 @@ TEST_F(PolygonTest, polygonOffsetTest)
     const coord_t expanded_length = expanded.polygonLength();
 
     Polygons square_hole;
-    PolygonRef square_inverted = square_hole.newPoly();
+    Polygon& square_inverted = square_hole.newLine();
     for (int i = test_square.size() - 1; i >= 0; i--)
     {
         square_inverted.add(test_square[i]);
@@ -144,7 +157,7 @@ TEST_F(PolygonTest, isOutsideTest)
 TEST_F(PolygonTest, isInsideTest)
 {
     Polygons test_polys;
-    PolygonRef poly = test_polys.newPoly();
+    PolygonRef poly = test_polys.newLine();
     poly.add(Point2LL(82124, 98235));
     poly.add(Point2LL(83179, 98691));
     poly.add(Point2LL(83434, 98950));
@@ -183,23 +196,23 @@ TEST_F(PolygonTest, DISABLED_isInsideLineTest) // Disabled because this fails du
 
 TEST_F(PolygonTest, splitIntoPartsWithHoleTest)
 {
-    const std::vector<PolygonsPart> parts = clockwise_donut.splitIntoParts();
+    const std::vector<SingleShape> parts = clockwise_donut.splitIntoParts();
 
-    EXPECT_EQ(parts.size(), 1) << "Difference between two polygons should be one PolygonsPart!";
+    EXPECT_EQ(parts.size(), 1) << "Difference between two polygons should be one SingleShape!";
 }
 
 TEST_F(PolygonTest, differenceContainsOriginalPointTest)
 {
-    const PolygonsPart part = clockwise_donut.splitIntoParts()[0];
-    const ConstPolygonRef outer = part.outerPolygon();
+    const SingleShape part = clockwise_donut.splitIntoParts()[0];
+    const Polygon& outer = part.outerPolygon();
     EXPECT_NE(std::find(outer.begin(), outer.end(), clockwise_large[0]), outer.end()) << "Outer vertex must be in polygons difference.";
-    const ConstPolygonRef inner = part[1];
+    const Polygon& inner = part[1];
     EXPECT_NE(std::find(inner.begin(), inner.end(), clockwise_small[0]), inner.end()) << "Inner vertex must be in polygons difference.";
 }
 
 TEST_F(PolygonTest, differenceClockwiseTest)
 {
-    const PolygonsPart part = clockwise_donut.splitIntoParts()[0];
+    const SingleShape part = clockwise_donut.splitIntoParts()[0];
 
     const ConstPolygonRef outer = part.outerPolygon();
     // Apply the shoelace formula to determine surface area. If it's negative, the polygon is counterclockwise.
@@ -243,7 +256,7 @@ TEST_F(PolygonTest, getEmptyHolesTest)
 TEST_F(PolygonTest, convexTestCube)
 {
     Polygons d_polygons;
-    PolygonRef d = d_polygons.newPoly();
+    PolygonRef d = d_polygons.newLine();
     d.add(Point2LL(0, 0));
     d.add(Point2LL(10, 0));
     d.add(Point2LL(10, 10));
@@ -264,7 +277,7 @@ TEST_F(PolygonTest, convexTestCube)
 TEST_F(PolygonTest, convexHullStar)
 {
     Polygons d_polygons;
-    PolygonRef d = d_polygons.newPoly();
+    PolygonRef d = d_polygons.newLine();
 
     const int num_points = 10;
     const int outer_radius = 20;
@@ -300,7 +313,7 @@ TEST_F(PolygonTest, convexHullStar)
 TEST_F(PolygonTest, convexHullMultipleMinX)
 {
     Polygons d_polygons;
-    PolygonRef d = d_polygons.newPoly();
+    PolygonRef d = d_polygons.newLine();
     d.add(Point2LL(0, 0));
     d.add(Point2LL(0, -10));
     d.add(Point2LL(10, 0));
@@ -326,7 +339,7 @@ TEST_F(PolygonTest, convexHullMultipleMinX)
 TEST_F(PolygonTest, convexTestCubeColinear)
 {
     Polygons d_polygons;
-    PolygonRef d = d_polygons.newPoly();
+    PolygonRef d = d_polygons.newLine();
     d.add(Point2LL(0, 0));
     d.add(Point2LL(5, 0));
     d.add(Point2LL(10, 0));
@@ -351,7 +364,7 @@ TEST_F(PolygonTest, convexTestCubeColinear)
 TEST_F(PolygonTest, convexHullRemoveDuplicatePoints)
 {
     Polygons d_polygons;
-    PolygonRef d = d_polygons.newPoly();
+    PolygonRef d = d_polygons.newLine();
     d.add(Point2LL(0, 0));
     d.add(Point2LL(0, 0));
     d.add(Point2LL(10, 0));

@@ -3,7 +3,7 @@
 
 #include "GCodePathConfig.h"
 
-#include "utils/Point2LL.h" // INT2MM
+#include "geometry/point2ll.h" // INT2MM
 
 namespace cura
 {

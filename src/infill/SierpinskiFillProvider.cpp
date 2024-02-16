@@ -9,7 +9,7 @@
 #include "infill/UniformDensityProvider.h"
 #include "utils/AABB3D.h"
 #include "utils/math.h"
-#include "utils/polygon.h"
+#include "geometry/polygon.h"
 
 namespace cura
 {

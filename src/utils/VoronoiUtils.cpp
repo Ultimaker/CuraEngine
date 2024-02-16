@@ -8,6 +8,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include "geometry/point_matrix.h"
 #include "utils/linearAlg2D.h"
 #include "utils/macros.h"
 

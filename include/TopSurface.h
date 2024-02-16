@@ -5,7 +5,7 @@
 #define TOPSURFACE_H
 
 #include "GCodePathConfig.h"
-#include "utils/polygon.h" //For the polygon areas.
+#include "geometry/polygons.h"
 
 namespace cura
 {

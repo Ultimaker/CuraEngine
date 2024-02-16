@@ -1,28 +1,32 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/polygon.h"
+#include "geometry/polygon.h"
 
-#include <unordered_set>
+// #include <unordered_set>
 
-#include <boost/geometry/geometries/point_xy.hpp>
-#include <boost/geometry/geometries/polygon.hpp>
-#include <boost/geometry/io/wkt/read.hpp>
-#include <fmt/format.h>
-#include <range/v3/range/primitives.hpp>
-#include <range/v3/to_container.hpp>
-#include <range/v3/view/c_str.hpp>
-#include <range/v3/view/concat.hpp>
-#include <range/v3/view/filter.hpp>
-#include <range/v3/view/join.hpp>
-#include <range/v3/view/sliding.hpp>
-#include <range/v3/view/take.hpp>
-#include <range/v3/view/transform.hpp>
-#include <range/v3/view/zip.hpp>
-#include <spdlog/spdlog.h>
+// #include <boost/geometry/geometries/point_xy.hpp>
+// #include <boost/geometry/geometries/polygon.hpp>
+// #include <boost/geometry/io/wkt/read.hpp>
+// #include <fmt/format.h>
+// #include <range/v3/range/primitives.hpp>
+// #include <range/v3/to_container.hpp>
+// #include <range/v3/view/c_str.hpp>
+// #include <range/v3/view/concat.hpp>
+// #include <range/v3/view/filter.hpp>
+// #include <range/v3/view/join.hpp>
+// #include <range/v3/view/sliding.hpp>
+// #include <range/v3/view/take.hpp>
+// #include <range/v3/view/transform.hpp>
+// #include <range/v3/view/zip.hpp>
+// #include <spdlog/spdlog.h>
+#include "utils/ListPolyIt.h"
+#include "utils/linearAlg2D.h"
 
-#include "utils/PolylineStitcher.h"
-#include "utils/polygons.h"
+// #include "utils/PolylineStitcher.h"
+#include "geometry/point3_matrix.h"
+#include "geometry/point_matrix.h"
+#include "geometry/polygons.h"
 
 namespace cura
 {
@@ -621,60 +625,6 @@ Polygons Polygon::offset(int distance, ClipperLib::JoinType join_type, double mi
     clipper.AddPath(*this, join_type, ClipperLib::etClosedPolygon);
     clipper.MiterLimit = miter_limit;
     clipper.Execute(ret.getCallable(), distance);
-    return ret;
-}
-
-void PointsSet::applyMatrix(const PointMatrix& matrix)
-{
-    for (point_t& point : (*this))
-    {
-        point = matrix.apply(point);
-    }
-}
-
-void PointsSet::applyMatrix(const Point3Matrix& matrix)
-{
-    for (point_t& point : (*this))
-    {
-        point = matrix.apply(point);
-    }
-}
-
-Point2LL PointsSet::min() const
-{
-    Point2LL ret = Point2LL(POINT_MAX, POINT_MAX);
-    for (Point2LL p : *this)
-    {
-        ret.X = std::min(ret.X, p.X);
-        ret.Y = std::min(ret.Y, p.Y);
-    }
-    return ret;
-}
-
-Point2LL PointsSet::max() const
-{
-    Point2LL ret = Point2LL(POINT_MIN, POINT_MIN);
-    for (Point2LL p : *this)
-    {
-        ret.X = std::max(ret.X, p.X);
-        ret.Y = std::max(ret.Y, p.Y);
-    }
-    return ret;
-}
-
-Point2LL PointsSet::closestPointTo(Point2LL p) const
-{
-    Point2LL ret = p;
-    double bestDist = std::numeric_limits<double>::max();
-    for (size_t n = 0; n < size(); n++)
-    {
-        double dist = vSize2f(p - (*this)[n]);
-        if (dist < bestDist)
-        {
-            ret = (*this)[n];
-            bestDist = dist;
-        }
-    }
     return ret;
 }
 

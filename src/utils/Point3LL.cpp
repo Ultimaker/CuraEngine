@@ -1,7 +1,7 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/Point3LL.h" //The headers we're implementing.
+#include "geometry/point3ll.h" //The headers we're implementing.
 
 namespace cura
 {

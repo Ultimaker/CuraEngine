@@ -20,7 +20,7 @@
 #include "timeEstimate.h"
 #include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
 #include "utils/NoCopy.h"
-#include "utils/Point2LL.h"
+#include "geometry/point2ll.h"
 
 namespace cura
 {

@@ -7,9 +7,9 @@
 
 #include <range/v3/all.hpp>
 
-#include "utils/Point2LL.h"
+#include "geometry/point2ll.h"
 #include "utils/actions/smooth.h"
-#include "utils/polygon.h"
+#include "geometry/polygon.h"
 
 namespace cura
 {

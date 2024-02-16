@@ -7,8 +7,8 @@
 #include <functional>
 #include <unordered_set>
 
-#include "utils/Point2LL.h"
-#include "utils/polygon.h"
+#include "geometry/point2ll.h"
+#include "geometry/polygon.h"
 
 namespace cura
 {

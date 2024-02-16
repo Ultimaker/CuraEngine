@@ -6,14 +6,14 @@
 
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Velocity.h"
-#include "utils/Point2LL.h"
+#include "geometry/point2ll.h"
 
 namespace cura
 {
 // Some forward declarations to increase compilation speed.
 enum class PrintFeatureType : unsigned char;
 class Polygons;
-class ConstPolygonRef;
+class Polygon;
 class ExtruderTrain;
 
 /*
@@ -90,7 +90,7 @@ public:
      * \param line_thickness The thickness (in the Z direction) of the polygon.
      * \param velocity The velocity of printing this polygon.
      */
-    virtual void sendPolygon(const PrintFeatureType& type, const ConstPolygonRef& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) = 0;
+    virtual void sendPolygon(const PrintFeatureType& type, const Polygon& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) = 0;
 
     /*
      * \brief Send a line to the user to visualise.

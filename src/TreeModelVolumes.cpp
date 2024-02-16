@@ -584,7 +584,7 @@ Polygons TreeModelVolumes::extractOutlineFromMesh(const SliceMeshStorage& mesh, 
     layer.getOutlines(total, external_polys_only);
     if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
     {
-        total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(FUDGE_LENGTH * 2));
+        total = total.unionPolygons(layer.openPolyLines.offset(FUDGE_LENGTH * 2));
     }
     const coord_t maximum_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
     const coord_t maximum_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");

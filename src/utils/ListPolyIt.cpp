@@ -8,6 +8,7 @@
 
 #include "utils/AABB.h" // for debug output svg html
 #include "utils/SVG.h"
+#include "geometry/polygon.h"
 
 namespace cura
 {
@@ -15,14 +16,14 @@ namespace cura
 
 void ListPolyIt::convertPolygonsToLists(const Polygons& polys, ListPolygons& result)
 {
-    for (ConstPolygonRef poly : polys)
+    for (const Polygon& poly : polys)
     {
         result.emplace_back();
         convertPolygonToList(poly, result.back());
     }
 }
 
-void ListPolyIt::convertPolygonToList(ConstPolygonRef poly, ListPolygon& result)
+void ListPolyIt::convertPolygonToList(const Polygon& poly, ListPolygon& result)
 {
 #ifdef DEBUG
     Point2LL last = poly.back();
@@ -50,11 +51,11 @@ void ListPolyIt::convertListPolygonsToPolygons(const ListPolygons& list_polygons
     }
 }
 
-void ListPolyIt::convertListPolygonToPolygon(const ListPolygon& list_polygon, PolygonRef polygon)
+void ListPolyIt::convertListPolygonToPolygon(const ListPolygon& list_polygon, Polygon& polygon)
 {
     for (const Point2LL& p : list_polygon)
     {
-        polygon.add(p);
+        polygon.push_back(p);
     }
 }
 

@@ -21,7 +21,7 @@ using SparseLightningTreeNodeGrid = SparsePointGridInclusive<std::weak_ptr<Light
 struct GroundingLocation
 {
     LightningTreeNodeSPtr tree_node; //!< not null if the gounding location is on a tree
-    std::optional<ClosestPolygonPoint> boundary_location; //!< in case the gounding location is on the boundary
+    std::optional<ClosestPoint> boundary_location; //!< in case the gounding location is on the boundary
     Point2LL p() const;
 };
 
@@ -68,7 +68,7 @@ public:
         const coord_t supporting_radius,
         const coord_t wall_supporting_radius);
 
-    Polygons convertToLines(const Polygons& limit_to_outline, const coord_t line_width) const;
+    LinesSet<OpenPolyline> convertToLines(const Polygons& limit_to_outline, const coord_t line_width) const;
 
     coord_t getWeightedDistance(const Point2LL& boundary_loc, const Point2LL& unsupported_location);
 

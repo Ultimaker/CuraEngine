@@ -107,7 +107,7 @@ public:
      *
      * The command line doesn't show any layer view so this is ignored.
      */
-    void sendPolygon(const PrintFeatureType&, const ConstPolygonRef&, const coord_t&, const coord_t&, const Velocity&) override;
+    void sendPolygon(const PrintFeatureType&, const Polygon&, const coord_t&, const coord_t&, const Velocity&) override;
 
     /*
      * \brief Send a polygon to show it in layer view.

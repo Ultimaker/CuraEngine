@@ -1,13 +1,13 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef UTILS_SHAPE_TYPE_H
-#define UTILS_SHAPE_TYPE_H
+#ifndef UTILS_POLYLINE_TYPE_H
+#define UTILS_POLYLINE_TYPE_H
 
 namespace cura
 {
 
-enum class ShapeType
+enum class PolylineType
 {
     Open,
     Closed,
@@ -16,4 +16,4 @@ enum class ShapeType
 
 } // namespace cura
 
-#endif // UTILS_SHAPE_TYPE_H
+#endif // UTILS_POLYLINE_TYPE_H

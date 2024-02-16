@@ -7,9 +7,11 @@
 #include <limits> // To find the maximum for coord_t.
 #include <memory> // shared_ptr
 
-#include "../settings/types/LayerIndex.h" // To store the layer on which we comb.
-#include "../utils/polygon.h"
-#include "../utils/polygonUtils.h"
+#include "geometry/parts_view.h"
+#include "geometry/polygon.h"
+#include "geometry/single_shape.h"
+#include "settings/types/LayerIndex.h" // To store the layer on which we comb.
+#include "utils/polygonUtils.h"
 
 namespace cura
 {
@@ -36,7 +38,7 @@ class SliceDataStorage;
  * perpendicular to its boundary.
  *
  * As an optimization, the combing paths inside are calculated on specifically
- * those PolygonsParts within which to comb, while the boundary_outside isn't
+ * those SingleShapes within which to comb, while the boundary_outside isn't
  * split into outside parts, because generally there is only one outside part;
  * encapsulated holes occur less often.
  */
@@ -56,8 +58,8 @@ private:
         bool dest_is_inside_; //!< Whether the startPoint or endPoint is inside the inside boundary
         Point2LL in_or_mid_; //!< The point on the inside boundary, or in between the inside and outside boundary if the start/end point isn't inside the inside boudary
         Point2LL out_; //!< The point on the outside boundary
-        PolygonsPart dest_part_; //!< The assembled inside-boundary PolygonsPart in which the dest_point lies. (will only be initialized when Crossing::dest_is_inside holds)
-        std::optional<ConstPolygonPointer> dest_crossing_poly_; //!< The polygon of the part in which dest_point lies, which will be crossed (often will be the outside polygon)
+        SingleShape dest_part_; //!< The assembled inside-boundary SingleShape in which the dest_point lies. (will only be initialized when Crossing::dest_is_inside holds)
+        std::optional<const Polygon*> dest_crossing_poly_; //!< The polygon of the part in which dest_point lies, which will be crossed (often will be the outside polygon)
         const Polygons& boundary_inside_; //!< The inside boundary as in \ref Comb::boundary_inside
         const LocToLineGrid& inside_loc_to_line_; //!< The loc to line grid \ref Comb::inside_loc_to_line
 
@@ -116,8 +118,8 @@ private:
          * \param comber[in] The combing calculator which has references to the offsets and boundaries to use in combing.
          * \return A pair of which the first is the crossing point on the inside boundary and the second the crossing point on the outside boundary
          */
-        std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>>
-            findBestCrossing(const ExtruderTrain& train, const Polygons& outside, ConstPolygonRef from, const Point2LL estimated_start, const Point2LL estimated_end, Comb& comber);
+        std::shared_ptr<std::pair<ClosestPoint, ClosestPoint>>
+            findBestCrossing(const ExtruderTrain& train, const Polygons& outside, const Polygon& from, const Point2LL estimated_start, const Point2LL estimated_end, Comb& comber);
     };
 
 

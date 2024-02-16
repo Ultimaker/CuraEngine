@@ -7,10 +7,11 @@
 #include "ExtruderTrain.h"
 #include "Scene.h"
 #include "Slice.h"
+#include "geometry/open_polyline.h"
+#include "geometry/point2ll.h"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "slicer.h"
-#include "utils/Point2LL.h"
 
 namespace cura
 {
@@ -76,7 +77,7 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
 
 
             SlicerLayer& layer = slicer.layers[layer_nr];
-            Polygons model_outlines = layer.polygons.unionPolygons(layer.openPolylines.offsetPolyLine(open_polyline_width / 2));
+            Polygons model_outlines = layer.polygons.unionPolygons(layer.openPolylines.offset(open_polyline_width / 2));
             layer.openPolylines.clear();
             all_original_mold_outlines.add(model_outlines);
 

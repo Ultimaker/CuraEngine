@@ -12,7 +12,7 @@
 #include "AABB.h"
 #include "ExtrusionLine.h" //To accept variable-width paths.
 #include "NoCopy.h"
-#include "Point2LL.h"
+#include "geometry/point2ll.h"
 
 namespace cura
 {
@@ -101,11 +101,11 @@ public:
 
     void writeAreas(const Polygons& polygons, const ColorObject color = Color::GRAY, const ColorObject outline_color = Color::BLACK, const double stroke_width = 1.0) const;
 
-    void writeAreas(ConstPolygonRef polygon, const ColorObject color = Color::GRAY, const ColorObject outline_color = Color::BLACK, const double stroke_width = 1.0) const;
+    void writeAreas(const Polygon& polygon, const ColorObject color = Color::GRAY, const ColorObject outline_color = Color::BLACK, const double stroke_width = 1.0) const;
 
     void writePoint(const Point2LL& p, const bool write_coords = false, const double size = 5.0, const ColorObject color = Color::BLACK) const;
 
-    void writePoints(ConstPolygonRef poly, const bool write_coords = false, const double size = 5.0, const ColorObject color = Color::BLACK) const;
+    void writePoints(const Polygon& poly, const bool write_coords = false, const double size = 5.0, const ColorObject color = Color::BLACK) const;
 
     void writePoints(const Polygons& polygons, const bool write_coords = false, const double size = 5.0, const ColorObject color = Color::BLACK) const;
 
@@ -146,11 +146,11 @@ public:
 
     void writePolygons(const Polygons& polys, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
 
-    void writePolygon(ConstPolygonRef poly, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
+    void writePolygon(const Polygon& poly, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
 
     void writePolylines(const Polygons& polys, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
 
-    void writePolyline(ConstPolygonRef poly, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
+    void writePolyline(const Polygon& poly, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
 
     /*!
      * Draw variable-width paths into the image.

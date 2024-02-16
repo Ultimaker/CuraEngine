@@ -12,7 +12,7 @@
 #include "TreeSupportEnums.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
-#include "utils/polygon.h"
+#include "geometry/polygons.h"
 
 namespace cura
 {
@@ -402,7 +402,7 @@ struct TreeSupportElement
                 Polygon circle;
                 for (Point2LL corner : TreeSupportBaseCircle::getBaseCircle())
                 {
-                    circle.add(p + corner * influence_area_limit_range_ / double(TreeSupportBaseCircle::base_radius));
+                    circle.push_back(p + corner * influence_area_limit_range_ / double(TreeSupportBaseCircle::base_radius));
                 }
                 if (influence_area_limit_area_.empty())
                 {

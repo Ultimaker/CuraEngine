@@ -157,7 +157,7 @@ public:
         // Get the vertex data and store it in the paths.
         for (auto& path : paths_)
         {
-            path.converted_ = path.getVertexData();
+            path.converted_ = &path.getVertexData();
             vertices_to_paths_.emplace(path.vertices_, &path);
         }
 
@@ -661,7 +661,7 @@ protected:
 
         size_t best_i;
         double best_score = std::numeric_limits<double>::infinity();
-        for (const auto& [i, here] : **path.converted_ | ranges::views::drop_last(1) | ranges::views::enumerate)
+        for (const auto& [i, here] : *path.converted_ | ranges::views::drop_last(1) | ranges::views::enumerate)
         {
             // For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
             // For SHARPEST_CORNER, use a fixed starting score of 0.
@@ -884,7 +884,7 @@ protected:
      * \param polygon A polygon to get a random vertex of.
      * \return A random index in that polygon.
      */
-    size_t getRandomPointInPolygon(ConstPolygonRef const& polygon) const
+    size_t getRandomPointInPolygon(const Polygon& polygon) const
     {
         return rand() % polygon.size();
     }

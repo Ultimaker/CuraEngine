@@ -8,8 +8,8 @@
 #include <utility>
 
 #include "ExtrusionJunction.h"
-#include "Point2LL.h"
-#include "polygon.h"
+#include "geometry/point2ll.h"
+#include "geometry/polygon.h"
 #include "polygonUtils.h"
 
 namespace cura

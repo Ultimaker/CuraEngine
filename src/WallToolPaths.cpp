@@ -13,7 +13,7 @@
 
 #include "ExtruderTrain.h"
 #include "SkeletalTrapezoidation.h"
-#include "utils/PolylineStitcher.h"
+#include "utils/ExtrusionLineStitcher.h"
 #include "utils/Simplify.h"
 #include "utils/SparsePointGrid.h" //To stitch the inner contour.
 #include "utils/actions/smooth.h"
@@ -95,18 +95,18 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     {
         // No need to smooth support walls
         auto smoother = actions::smooth(settings_);
-        for (auto& polygon : prepared_outline)
+        for (Polygon& polygon : prepared_outline)
         {
-            polygon = smoother(polygon);
+            polygon = smoother(polygon.asRawVector());
         }
     }
 
     PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
-    prepared_outline.removeDegenerateVerts();
+    prepared_outline.removeDegenerateVertsForEveryone();
     prepared_outline.removeColinearEdges(AngleRadians(0.005));
     // Removing collinear edges may introduce self intersections, so we need to fix them again
     PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
-    prepared_outline.removeDegenerateVerts();
+    prepared_outline.removeDegenerateVertsForEveryone();
     prepared_outline = prepared_outline.unionPolygons();
     prepared_outline = Simplify(settings_).polygon(prepared_outline);
 
@@ -251,7 +251,7 @@ void WallToolPaths::stitchToolPaths(std::vector<VariableWidthLines>& toolpaths, 
 
         VariableWidthLines stitched_polylines;
         VariableWidthLines closed_polygons;
-        PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::stitch(wall_lines, stitched_polylines, closed_polygons, stitch_distance);
+        ExtrusionLineStitcher::stitch(wall_lines, stitched_polylines, closed_polygons, stitch_distance);
         wall_lines = stitched_polylines; // replace input toolpaths with stitched polylines
 
         for (ExtrusionLine& wall_polygon : closed_polygons)

@@ -9,10 +9,11 @@
 #endif
 #include <vector>
 
-#include "Point2LL.h"
+#include "geometry/point2ll.h"
+#include "geometry/polygon.h"
 #include "linearAlg2D.h"
-#include "polygon.h"
 #include "polygonUtils.h"
+#include "settings/types/Ratio.h"
 
 namespace cura
 {

@@ -26,7 +26,7 @@ Polygons ExtrusionSegment::toPolygons(bool reduced)
         return ret;
     }
 
-    PolygonRef poly = ret.newPoly();
+    Polygon& poly = ret.newLine();
     const double delta_r = 0.5 * std::abs(from_.w_ - to_.w_);
     const double vec_length_fixed = std::max(delta_r, static_cast<double>(vec_length));
     float alpha = std::acos(delta_r / vec_length_fixed); // Angle between the slope along the edge of the polygon (due to varying line width) and the centerline.
@@ -49,7 +49,7 @@ Polygons ExtrusionSegment::toPolygons(bool reduced)
 
     // Draw the endcap on the "from" vertex's end.
     {
-        poly.emplace_back(from_.p_ + Point2LL(from_.w_ / 2 * cos(alpha + dir), from_.w_ / 2 * sin(alpha + dir)));
+        poly.push_back(from_.p_ + Point2LL(from_.w_ / 2 * cos(alpha + dir), from_.w_ / 2 * sin(alpha + dir)));
 
         double start_a = 2 * std::numbers::pi;
         while (start_a > alpha + dir)
@@ -74,7 +74,7 @@ Polygons ExtrusionSegment::toPolygons(bool reduced)
 
     // Draw the endcap on the "to" vertex's end.
     {
-        poly.emplace_back(
+        poly.push_back(
             to_.p_
             + Point2LL(
                 to_.w_ / 2 * cos(2 * std::numbers::pi - alpha + dir),
@@ -125,7 +125,7 @@ Polygons ExtrusionSegment::toPolygons(bool reduced)
     }
 
 #ifdef DEBUG
-    for (Point2LL p : poly)
+    for (const Point2LL& p : poly)
     {
         assert(p.X < 0x3FFFFFFFFFFFFFFFLL);
         assert(p.Y < 0x3FFFFFFFFFFFFFFFLL);

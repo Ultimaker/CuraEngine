@@ -10,7 +10,8 @@
 #include <range/v3/view/sliding.hpp>
 
 #include "ExtrusionJunction.h"
-#include "polygon.h"
+#include "geometry/polygon.h"
+#include "geometry/polygons.h"
 
 namespace cura
 {
@@ -208,11 +209,7 @@ struct ExtrusionLine
     /*!
      * Sum the total length of this path.
      */
-    coord_t getLength() const;
-    coord_t polylineLength() const
-    {
-        return getLength();
-    }
+    coord_t length() const;
 
     /*!
      * Put all junction locations into a polygon object.
@@ -224,7 +221,7 @@ struct ExtrusionLine
         Polygon ret;
 
         for (const ExtrusionJunction& j : junctions_)
-            ret.add(j.p_);
+            ret.push_back(j.p_);
 
         return ret;
     }
@@ -264,8 +261,8 @@ struct ExtrusionLine
         add_line_direction(junctions_ | ranges::views::reverse);
 
         Polygons paths;
-        paths.emplace_back(poly.poly);
-        ClipperLib::SimplifyPolygons(paths.paths, ClipperLib::pftNonZero);
+        paths.emplace_back(poly);
+        ClipperLib::SimplifyPolygons(paths.getCallable(), ClipperLib::pftNonZero);
         return paths;
     }
 

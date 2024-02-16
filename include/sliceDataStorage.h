@@ -13,14 +13,16 @@
 #include "SupportInfillPart.h"
 #include "TopSurface.h"
 #include "WipeScriptConfig.h"
+#include "geometry/open_polyline.h"
+#include "geometry/point2ll.h"
+#include "geometry/polygon.h"
+#include "geometry/single_shape.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
 #include "settings/types/Angle.h" //Infill angles.
 #include "settings/types/LayerIndex.h"
 #include "utils/AABB.h"
 #include "utils/AABB3D.h"
 #include "utils/NoCopy.h"
-#include "utils/Point2LL.h"
-#include "utils/polygon.h"
 
 // libArachne
 #include "utils/ExtrusionLine.h"
@@ -40,8 +42,8 @@ class LightningGenerator;
 class SkinPart
 {
 public:
-    PolygonsPart outline; //!< The skinOutline is the area which needs to be 100% filled to generate a proper top&bottom filling. It's filled by the "skin" module. Includes both
-                          //!< roofing and non-roofing.
+    SingleShape outline; //!< The skinOutline is the area which needs to be 100% filled to generate a proper top&bottom filling. It's filled by the "skin" module. Includes both
+                         //!< roofing and non-roofing.
     Polygons skin_fill; //!< The part of the skin which is not roofing.
     Polygons roofing_fill; //!< The inner infill which has air directly above
     Polygons top_most_surface_fill; //!< The inner infill of the uppermost top layer which has air directly above.
@@ -59,9 +61,9 @@ public:
     AABB boundaryBox; //!< The boundaryBox is an axis-aligned boundary box which is used to quickly check for possible
                       //!< collision between different parts on different layers. It's an optimization used during
                       //!< skin calculations.
-    PolygonsPart outline; //!< The outline is the first member that is filled, and it's filled with polygons that match
-                          //!< a cross-section of the 3D model. The first polygon is the outer boundary polygon and the
-                          //!< rest are holes.
+    SingleShape outline; //!< The outline is the first member that is filled, and it's filled with polygons that match
+                         //!< a cross-section of the 3D model. The first polygon is the outer boundary polygon and the
+                         //!< rest are holes.
     Polygons print_outline; //!< An approximation to the outline of what's actually printed, based on the outer wall.
                             //!< Too small parts will be omitted compared to the outline.
     Polygons spiral_wall; //!< The centerline of the wall used by spiralize mode. Only computed if spiralize mode is enabled.
@@ -166,7 +168,7 @@ public:
     coord_t printZ; //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
     coord_t thickness; //!< The thickness of this layer. Can be different when using variable layer heights.
     std::vector<SliceLayerPart> parts; //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
-    Polygons openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
+    LinesSet<OpenPolyline> openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
 
     /*!
      * \brief The parts of the model that are exposed at the very top of the
@@ -336,7 +338,7 @@ public:
  */
 struct SkirtBrimLine
 {
-    Polygons open_polylines;
+    LinesSet<OpenPolyline> open_polylines;
     Polygons closed_polygons;
 };
 
@@ -354,7 +356,7 @@ public:
     SupportStorage support;
 
     std::vector<SkirtBrimLine> skirt_brim[MAX_EXTRUDERS]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
-    Polygons support_brim; //!< brim lines for support, going from the edge of the support inward. \note Not ordered by inset.
+    LinesSet<OpenPolyline> support_brim; //!< brim lines for support, going from the edge of the support inward. \note Not ordered by inset.
 
     // Storage for the outline of the raft-parts. Will be filled with lines when the GCode is generated.
     Polygons raftBaseOutline;

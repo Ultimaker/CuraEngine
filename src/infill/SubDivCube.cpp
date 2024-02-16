@@ -8,7 +8,9 @@
 #include "settings/types/Angle.h" //For the infill angle.
 #include "sliceDataStorage.h"
 #include "utils/math.h"
+#include "geometry/polygon.h"
 #include "utils/polygonUtils.h"
+#include "geometry/polygons.h"
 
 #define ONE_OVER_SQRT_2 0.7071067811865475244008443621048490392848359376884740 // 1 / sqrt(2)
 #define ONE_OVER_SQRT_3 0.577350269189625764509148780501957455647601751270126876018 // 1 / sqrt(3)
@@ -83,19 +85,19 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh, const Point2LL& infill
     mesh.base_subdiv_cube = std::make_shared<SubDivCube>(mesh, center, curr_recursion_depth - 1);
 }
 
-void SubDivCube::generateSubdivisionLines(const coord_t z, Polygons& result)
+void SubDivCube::generateSubdivisionLines(const coord_t z, LinesSet<OpenPolyline>& result)
 {
     if (cube_properties_per_recursion_step_.empty()) // Infill is set to 0%.
     {
         return;
     }
-    Polygons directional_line_groups[3];
+    LinesSet<OpenPolyline> directional_line_groups[3];
 
     generateSubdivisionLines(z, directional_line_groups);
 
     for (int dir_idx = 0; dir_idx < 3; dir_idx++)
     {
-        Polygons& line_group = directional_line_groups[dir_idx];
+        LinesSet<OpenPolyline>& line_group = directional_line_groups[dir_idx];
         for (unsigned int line_idx = 0; line_idx < line_group.size(); line_idx++)
         {
             result.addLine(line_group[line_idx][0], line_group[line_idx][1]);
@@ -103,7 +105,7 @@ void SubDivCube::generateSubdivisionLines(const coord_t z, Polygons& result)
     }
 }
 
-void SubDivCube::generateSubdivisionLines(const coord_t z, Polygons (&directional_line_groups)[3])
+void SubDivCube::generateSubdivisionLines(const coord_t z, LinesSet<OpenPolyline> (&directional_line_groups)[3])
 {
     CubeProperties cube_properties = cube_properties_per_recursion_step_[depth_];
 
@@ -236,7 +238,7 @@ coord_t SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, const LayerI
 
     Point2LL centerpoint = location;
     bool inside = collide.inside(centerpoint);
-    ClosestPolygonPoint border_point = PolygonUtils::moveInside2(collide, centerpoint);
+    ClosestPoint border_point = PolygonUtils::moveInside2(collide, centerpoint);
     Point2LL diff = border_point.location_ - location;
     *distance2 = vSize2(diff);
     if (inside)
@@ -261,7 +263,7 @@ void SubDivCube::rotatePoint120(Point2LL& target)
     target.X = x;
 }
 
-void SubDivCube::addLineAndCombine(Polygons& group, Point2LL from, Point2LL to)
+void SubDivCube::addLineAndCombine(LinesSet<OpenPolyline>& group, Point2LL from, Point2LL to)
 {
     int epsilon = 10; // the smallest distance of two points which are viewed as coincident (dist > 0 due to rounding errors)
     for (unsigned int idx = 0; idx < group.size(); idx++)
@@ -269,14 +271,14 @@ void SubDivCube::addLineAndCombine(Polygons& group, Point2LL from, Point2LL to)
         if (std::abs(from.X - group[idx][1].X) < epsilon && std::abs(from.Y - group[idx][1].Y) < epsilon)
         {
             from = group[idx][0];
-            group.remove(idx);
+            group.removeAt(idx);
             idx--;
             continue;
         }
         if (std::abs(to.X - group[idx][0].X) < epsilon && std::abs(to.Y - group[idx][0].Y) < epsilon)
         {
             to = group[idx][1];
-            group.remove(idx);
+            group.removeAt(idx);
             idx--;
             continue;
         }

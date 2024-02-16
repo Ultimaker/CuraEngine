@@ -4,7 +4,7 @@
 #ifndef READ_TEST_POLYGONS_H
 #define READ_TEST_POLYGONS_H
 
-#include "utils/polygon.h"
+#include "geometry/polygon.h"
 #include <string>
 #include <vector>
 

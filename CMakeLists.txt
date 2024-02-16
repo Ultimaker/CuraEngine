@@ -133,7 +133,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ExtrusionLine.cpp
         src/utils/ExtrusionSegment.cpp
         src/utils/gettime.cpp
-        src/utils/LinearAlg2D.cpp
+        src/utils/linearAlg2D.cpp
         src/utils/ListPolyIt.cpp
         src/utils/Matrix4x3D.cpp
         src/utils/MinimumSpanningTree.cpp
@@ -142,7 +142,6 @@ set(engine_SRCS # Except main.cpp.
         src/utils/PolygonsPointIndex.cpp
         src/utils/PolygonsSegmentIndex.cpp
         src/utils/polygonUtils.cpp
-        src/utils/polygon.cpp
         src/utils/PolylineStitcher.cpp
         src/utils/Simplify.cpp
         src/utils/SVG.cpp
@@ -151,6 +150,14 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ToolpathVisualizer.cpp
         src/utils/VoronoiUtils.cpp
         src/utils/VoxelUtils.cpp
+
+        src/geometry/polygon.cpp
+        src/geometry/polygons.cpp
+        src/geometry/points_set.cpp
+        src/geometry/single_shape.cpp
+        src/geometry/parts_view.cpp
+        src/geometry/lines_set.cpp
+        src/geometry/polyline.cpp
         )
 
 add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})

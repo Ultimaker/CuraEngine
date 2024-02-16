@@ -4,6 +4,14 @@
 #ifndef PLUGINS_CONVERTERS_H
 #define PLUGINS_CONVERTERS_H
 
+#include <google/protobuf/empty.pb.h>
+#include <string>
+#include <tuple>
+
+#include <range/v3/range/operations.hpp>
+#include <range/v3/view/drop.hpp>
+#include <spdlog/spdlog.h>
+
 #include "Cura.pb.h"
 #include "WallToolPaths.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
@@ -24,15 +32,7 @@
 #include "plugins/types.h"
 #include "settings/Settings.h"
 #include "settings/types/LayerIndex.h"
-#include "utils/polygon.h"
-
-#include <range/v3/range/operations.hpp>
-#include <range/v3/view/drop.hpp>
-#include <spdlog/spdlog.h>
-
-#include <google/protobuf/empty.pb.h>
-#include <string>
-#include <tuple>
+#include "geometry/polygon.h"
 
 
 namespace cura::plugins
@@ -106,7 +106,8 @@ struct infill_generate_request : public details::converter<infill_generate_reque
 };
 
 struct infill_generate_response
-    : public details::converter<infill_generate_response, slots::infill::v0::generate::CallResponse, std::tuple<std::vector<std::vector<ExtrusionLine>>, Polygons, Polygons>>
+    : public details::
+          converter<infill_generate_response, slots::infill::v0::generate::CallResponse, std::tuple<std::vector<std::vector<ExtrusionLine>>, Polygons, LinesSet<OpenPolyline>>>
 {
     native_value_type operator()(const value_type& message) const;
 };

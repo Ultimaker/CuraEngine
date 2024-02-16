@@ -8,7 +8,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "Point2LL.h"
+#include "geometry/point2ll.h"
 
 namespace cura
 {

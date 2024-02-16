@@ -494,12 +494,12 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
                 const coord_t y = machine_middle.y_ + sin(angle) * depth / 2;
                 border_circle.emplace_back(x, y);
             }
-            machine_volume_border.add(border_circle);
+            machine_volume_border.push_back(border_circle);
             break;
         }
         case BuildPlateShape::RECTANGULAR:
         default:
-            machine_volume_border.add(storage.machine_size.flatten().toPolygon());
+            machine_volume_border.push_back(storage.machine_size.flatten().toPolygon());
             break;
         }
         coord_t adhesion_size = 0; // Make sure there is enough room for the platform adhesion around support.
@@ -820,7 +820,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
 
     constexpr auto close_dist = 20;
 
-    auto layer_current = simplify.polygon(storage.layers[layer_idx].getOutlines().offset(-close_dist).offset(close_dist));
+    Polygons layer_current = simplify.polygon(storage.layers[layer_idx].getOutlines().offset(-close_dist).offset(close_dist));
 
     using point_pair_t = std::pair<size_t, double>;
     using poly_point_key = std::tuple<unsigned int, unsigned int>;
@@ -951,7 +951,7 @@ Polygons AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& st
     const auto smooth_dist = xy_distance / 2.0;
     Polygons varying_xy_disallowed_areas = layer_current
                                                // offset using the varying offset distances we calculated previously
-                                               .offset(varying_offsets)
+                                               .offsetMulti(varying_offsets)
                                                // close operation to smooth the x/y disallowed area boundary. With varying xy distances we see some jumps in the boundary.
                                                // As the x/y disallowed areas "cut in" to support the xy-disallowed area may propagate through the support area. If the
                                                // x/y disallowed area is not smoothed boost has trouble generating a voronoi diagram.
@@ -1171,7 +1171,7 @@ void AreaSupport::generateSupportAreasForMesh(
         // make towers for small support
         if (use_towers)
         {
-            for (PolygonsPart poly : layer_this.splitIntoParts())
+            for (SingleShape poly : layer_this.splitIntoParts())
             {
                 const auto polygon_part = poly.difference(xy_disallowed_per_layer[layer_idx]).offset(-half_min_feature_width).offset(half_min_feature_width);
 
@@ -1624,7 +1624,7 @@ void AreaSupport::handleWallStruts(const Settings& settings, Polygons& supportLa
     const coord_t tower_diameter = settings.get<coord_t>("support_tower_diameter");
     for (unsigned int p = 0; p < supportLayer_this.size(); p++)
     {
-        PolygonRef poly = supportLayer_this[p];
+        const Polygon& poly = supportLayer_this[p];
         if (poly.size() < 6) // might be a single wall
         {
             int best = -1;
@@ -1652,11 +1652,11 @@ void AreaSupport::handleWallStruts(const Settings& settings, Polygons& supportLa
             {
                 Point2LL mid = (poly[best] + poly[(best + 1) % poly.size()]) / 2;
                 Polygons struts;
-                PolygonRef strut = struts.newPoly();
-                strut.add(mid + Point2LL(tower_diameter / 2, tower_diameter / 2));
-                strut.add(mid + Point2LL(-tower_diameter / 2, tower_diameter / 2));
-                strut.add(mid + Point2LL(-tower_diameter / 2, -tower_diameter / 2));
-                strut.add(mid + Point2LL(tower_diameter / 2, -tower_diameter / 2));
+                Polygon& strut = struts.newLine();
+                strut.push_back(mid + Point2LL(tower_diameter / 2, tower_diameter / 2));
+                strut.push_back(mid + Point2LL(-tower_diameter / 2, tower_diameter / 2));
+                strut.push_back(mid + Point2LL(-tower_diameter / 2, -tower_diameter / 2));
+                strut.push_back(mid + Point2LL(tower_diameter / 2, -tower_diameter / 2));
                 supportLayer_this = supportLayer_this.unionPolygons(struts);
             }
         }

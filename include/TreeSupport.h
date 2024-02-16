@@ -14,7 +14,7 @@
 #include "settings/EnumSettings.h"
 #include "sliceDataStorage.h"
 #include "utils/Coord_t.h"
-#include "utils/polygon.h"
+#include "geometry/polygon.h"
 
 namespace cura
 {

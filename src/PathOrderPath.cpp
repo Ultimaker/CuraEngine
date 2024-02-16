@@ -9,42 +9,54 @@ namespace cura
 {
 
 template<>
-ConstPolygonRef PathOrdering<ConstPolygonPointer>::getVertexData()
+const Polygon& PathOrdering<const Polygon*>::getVertexData()
 {
     return *vertices_;
 }
 
 template<>
-ConstPolygonRef PathOrdering<PolygonPointer>::getVertexData()
+const Polygon& PathOrdering<Polygon*>::getVertexData()
 {
     return *vertices_;
 }
 
 template<>
-ConstPolygonRef PathOrdering<const SkinPart*>::getVertexData()
+const Polygon& PathOrdering<const OpenPolyline*>::getVertexData()
+{
+    return *reinterpret_cast<const Polygon*>(vertices_);
+}
+
+template<>
+const Polygon& PathOrdering<OpenPolyline*>::getVertexData()
+{
+    return *reinterpret_cast<Polygon*>(vertices_);
+}
+
+template<>
+const Polygon& PathOrdering<const SkinPart*>::getVertexData()
 {
     return vertices_->outline.outerPolygon();
 }
 
 template<>
-ConstPolygonRef PathOrdering<const SliceLayerPart*>::getVertexData()
+const Polygon& PathOrdering<const SliceLayerPart*>::getVertexData()
 {
     return vertices_->outline.outerPolygon();
 }
 
 template<>
-ConstPolygonRef PathOrdering<const SupportInfillPart*>::getVertexData()
+const Polygon& PathOrdering<const SupportInfillPart*>::getVertexData()
 {
     return vertices_->outline_.outerPolygon();
 }
 template<>
-ConstPolygonRef PathOrdering<const ExtrusionLine*>::getVertexData()
+const Polygon& PathOrdering<const ExtrusionLine*>::getVertexData()
 {
     if (! cached_vertices_)
     {
         cached_vertices_ = vertices_->toPolygon();
     }
-    return ConstPolygonRef(*cached_vertices_);
+    return *cached_vertices_;
 }
 
 } // namespace cura

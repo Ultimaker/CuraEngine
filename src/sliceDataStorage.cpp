@@ -81,7 +81,7 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
     {
         if (external_polys_only)
         {
-            result.add(part.outline.outerPolygon());
+            result.push_back(part.outline.outerPolygon());
         }
         else
         {
@@ -305,11 +305,11 @@ Polygons
         {
             if (external_polys_only)
             {
-                std::vector<PolygonsPart> parts = raftOutline->splitIntoParts();
+                std::vector<SingleShape> parts = raftOutline->splitIntoParts();
                 Polygons result;
-                for (PolygonsPart& part : parts)
+                for (SingleShape& part : parts)
                 {
-                    result.add(part.outerPolygon());
+                    result.push_back(part.outerPolygon());
                 }
                 return result;
             }
@@ -341,7 +341,7 @@ Polygons
                 layer.getOutlines(total, external_polys_only);
                 if (mesh->settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
-                    total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(MM2INT(0.1)));
+                    total = total.unionPolygons(layer.openPolyLines.offset(MM2INT(0.1)));
                 }
             }
         }
@@ -570,7 +570,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
 
     Polygons border;
     border.emplace_back();
-    PolygonRef outline = border.back();
+    Polygon& outline = border.back();
     switch (mesh_group_settings.get<BuildPlateShape>("machine_shape"))
     {
     case BuildPlateShape::ELLIPTIC:
@@ -599,7 +599,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
     // may be expressed in front-left-centered coordinantes, so in this case we need to translate them
     if (! mesh_group_settings.get<bool>("machine_center_is_zero"))
     {
-        for (PolygonRef poly : disallowed_areas)
+        for (Polygon& poly : disallowed_areas)
         {
             for (Point2LL& p : poly)
             {
@@ -715,7 +715,7 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_po
             continue;
         }
 
-        std::vector<PolygonsPart> smaller_support_islands = result_polygons.splitIntoParts();
+        std::vector<SingleShape> smaller_support_islands = result_polygons.splitIntoParts();
 
         if (smaller_support_islands.empty())
         { // extra safety guard in case result_polygons consists of too small polygons which are automatically removed in splitIntoParts
@@ -730,7 +730,7 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Polygons& exclude_po
 
         for (size_t support_island_idx = 1; support_island_idx < smaller_support_islands.size(); ++support_island_idx)
         {
-            const PolygonsPart& smaller_island = smaller_support_islands[support_island_idx];
+            const SingleShape& smaller_island = smaller_support_islands[support_island_idx];
             support_infill_parts.emplace_back(smaller_island, support_infill_part.support_line_width_, support_infill_part.inset_count_to_generate_);
         }
     }
@@ -765,7 +765,7 @@ void SupportLayer::fillInfillParts(
     bool use_fractional_config = true;
     for (auto& support_areas : all_support_areas_in_layer)
     {
-        for (const PolygonsPart& island_outline : support_areas.splitIntoParts(unionAll))
+        for (const SingleShape& island_outline : support_areas.splitIntoParts(unionAll))
         {
             support_infill_parts.emplace_back(island_outline, support_line_width, use_fractional_config, wall_line_count, custom_line_distance);
         }

@@ -97,7 +97,7 @@ bool VoxelUtils::walkLine(Point3LL start, Point3LL end, const std::function<bool
 
 bool VoxelUtils::walkPolygons(const Polygons& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
-    for (ConstPolygonRef poly : polys)
+    for (const Polygon& poly : polys)
     {
         Point2LL last = poly.back();
         for (Point2LL p : poly)

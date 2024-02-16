@@ -6,7 +6,7 @@
 
 #include <list>
 
-#include "Point2LL.h"
+#include "geometry/point2ll.h"
 
 namespace cura
 {

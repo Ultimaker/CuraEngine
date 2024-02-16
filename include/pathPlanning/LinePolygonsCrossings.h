@@ -4,9 +4,10 @@
 #ifndef PATH_PLANNING_LINE_POLYGONS_CROSSINGS_H
 #define PATH_PLANNING_LINE_POLYGONS_CROSSINGS_H
 
-#include "../utils/polygon.h"
-#include "../utils/polygonUtils.h"
 #include "CombPath.h"
+#include "geometry/point_matrix.h"
+#include "geometry/polygon.h"
+#include "utils/polygonUtils.h"
 
 namespace cura
 {

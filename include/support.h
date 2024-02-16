@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "settings/types/LayerIndex.h"
-#include "utils/polygon.h"
+#include "geometry/polygon.h"
 
 namespace cura
 {

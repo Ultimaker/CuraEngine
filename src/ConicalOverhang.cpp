@@ -4,6 +4,7 @@
 
 #include "ConicalOverhang.h"
 
+#include "geometry/single_shape.h"
 #include "mesh.h"
 #include "settings/types/Angle.h" //To process the overhang angle.
 #include "settings/types/LayerIndex.h"
@@ -39,7 +40,7 @@ void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
         else
         {
             // Get the current layer and split it into parts
-            std::vector<PolygonsPart> layerParts = layer.polygons.splitIntoParts();
+            std::vector<SingleShape> layerParts = layer.polygons.splitIntoParts();
             // Get a copy of the layer above to prune away before we shrink it
             Polygons above = layer_above.polygons;
 
@@ -52,7 +53,7 @@ void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
                     for (unsigned int hole_nr = 1; hole_nr < layerParts[part].size(); ++hole_nr)
                     {
                         Polygons holePoly;
-                        holePoly.add(layerParts[part][hole_nr]);
+                        holePoly.push_back(layerParts[part][hole_nr]);
                         if (maxHoleArea > 0.0 && INT2MM2(std::abs(holePoly.area())) < maxHoleArea)
                         {
                             Polygons holeWithAbove = holePoly.intersection(above);

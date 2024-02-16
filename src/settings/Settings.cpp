@@ -27,7 +27,8 @@
 #include "settings/types/Temperature.h" //For temperature settings.
 #include "settings/types/Velocity.h" //For velocity settings.
 #include "utils/Matrix4x3D.h"
-#include "utils/polygon.h"
+#include "geometry/polygon.h"
+#include "geometry/polygons.h"
 #include "utils/string.h" //For Escaped.
 #include "utils/types/string_switch.h" //For string switch.
 
@@ -287,8 +288,7 @@ Polygons Settings::get<Polygons>(const std::string& key) const
         {
             std::string polygon_str = *polygon_match_iter++;
 
-            result.emplace_back();
-            PolygonRef poly = result.back();
+            Polygon& poly = result.newLine();
 
             std::regex point2D_regex(R"(\[([^,\[]*),([^,\]]*)\])"); // matches to a list of exactly two things
 

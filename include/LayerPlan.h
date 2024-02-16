@@ -17,7 +17,7 @@
 #include "settings/PathConfigStorage.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/ExtrusionJunction.h"
-#include "utils/polygon.h"
+#include "geometry/polygon.h"
 
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
@@ -349,7 +349,7 @@ public:
      * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
      */
     void addPolygon(
-        ConstPolygonRef polygon,
+        const Polygon& polygon,
         int startIdx,
         const bool reverse,
         const GCodePathConfig& config,
@@ -448,7 +448,7 @@ public:
      * start of the wall (used for outer walls).
      */
     void addWall(
-        ConstPolygonRef wall,
+        const Polygon& wall,
         int start_idx,
         const Settings& settings,
         const GCodePathConfig& default_config,
@@ -529,7 +529,7 @@ public:
 
     /*!
      * Add lines to the gcode with optimized order.
-     * \param polygons The lines
+     * \param lines The lines
      * \param config The config of the lines
      * \param space_fill_type The type of space filling used to generate the line segments (should be either Lines or PolyLines!)
      * \param enable_travel_optimization Whether to enable some potentially time consuming optimization of order the lines are printed to reduce the travel time required.
@@ -538,10 +538,10 @@ public:
      * \param near_start_location Optional: Location near where to add the first line. If not provided the last position is used.
      * \param fan_speed optional fan speed override for this path
      * \param reverse_print_direction Whether to reverse the optimized order and their printing direction.
-     * \param order_requirements Pairs where first needs to be printed before second. Pointers are pointing to elements of \p polygons
+     * \param order_requirements Pairs where first needs to be printed before second. Pointers are pointing to elements of \p lines
      */
     void addLinesByOptimizer(
-        const Polygons& polygons,
+        const std::vector<OpenPolyline>& lines,
         const GCodePathConfig& config,
         const SpaceFillType space_fill_type,
         const bool enable_travel_optimization = false,
@@ -550,11 +550,11 @@ public:
         const std::optional<Point2LL> near_start_location = std::optional<Point2LL>(),
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
         const bool reverse_print_direction = false,
-        const std::unordered_multimap<ConstPolygonPointer, ConstPolygonPointer>& order_requirements = PathOrderOptimizer<ConstPolygonPointer>::no_order_requirements_);
+        const std::unordered_multimap<const OpenPolyline*, const OpenPolyline*>& order_requirements = PathOrderOptimizer<const OpenPolyline*>::no_order_requirements_);
 
     /*!
-     * Add polygons to the g-code with monotonic order.
-     * \param polygons The lines to add.
+     * Add lines to the g-code with monotonic order.
+     * \param lines The lines to add.
      * \param config The settings to print those lines with.
      * \param space_fill_type The type of space filling used to generate the
      * line segments (should be either Lines or PolyLines!)
@@ -575,7 +575,7 @@ public:
      */
     void addLinesMonotonic(
         const Polygons& area,
-        const Polygons& polygons,
+        const std::vector<OpenPolyline>& lines,
         const GCodePathConfig& config,
         const SpaceFillType space_fill_type,
         const AngleRadians monotonic_direction,
@@ -588,7 +588,7 @@ public:
 protected:
     /*!
      * Add order optimized lines to the gcode.
-     * \param paths The paths in order
+     * \param lines The lines in order
      * \param config The config of the lines
      * \param space_fill_type The type of space filling used to generate the line segments (should be either Lines or PolyLines!)
      * \param wipe_dist (optional) the distance wiped without extruding after laying down a line.
@@ -596,7 +596,7 @@ protected:
      * \param fan_speed optional fan speed override for this path
      */
     void addLinesInGivenOrder(
-        const std::vector<PathOrdering<ConstPolygonPointer>>& paths,
+        const std::vector<PathOrdering<const OpenPolyline*>>& lines,
         const GCodePathConfig& config,
         const SpaceFillType space_fill_type,
         const coord_t wipe_dist,
@@ -619,8 +619,8 @@ public:
      */
     void spiralizeWallSlice(
         const GCodePathConfig& config,
-        ConstPolygonRef wall,
-        ConstPolygonRef last_wall,
+        const Polygon& wall,
+        const Polygon& last_wall,
         int seam_vertex_idx,
         int last_seam_vertex_idx,
         const bool is_top_layer,

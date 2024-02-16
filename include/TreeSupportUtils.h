@@ -17,7 +17,7 @@
 #include "settings/EnumSettings.h"
 #include "sliceDataStorage.h"
 #include "utils/Coord_t.h"
-#include "utils/polygon.h"
+#include "geometry/polygon.h"
 
 namespace cura
 {
@@ -29,20 +29,17 @@ public:
      * \brief Adds the implicit line from the last vertex of a Polygon to the first one.
      *
      * \param poly[in] The Polygons object, of which its lines should be extended.
-     * \return A Polygons object with implicit line from the last vertex of a Polygon to the first one added.
+     * \return A Polygons object with explicit line from the last vertex of a Polygon to the first one added.
      */
-    static Polygons toPolylines(const Polygons& poly)
+    static LinesSet<OpenPolyline> toPolylines(const Polygons& poly)
     {
-        Polygons result;
+#warning We should just cast it to a LineSet<ClosedPolyline> instead, but that's running for trouble yet
+        LinesSet<OpenPolyline> result;
         for (const auto& path : poly)
         {
-            Polygon part;
-            for (const auto& p : path)
-            {
-                part.add(p);
-            }
-            part.add(path[0]);
-            result.add(part);
+            Polygon part(path);
+            part.push_back(path[0]);
+            result.push_back(part);
         }
         return result;
     }
@@ -54,29 +51,30 @@ public:
      * \param toolpaths[in] The toolpaths.
      * \return A Polygons object.
      */
-    [[nodiscard]] static Polygons toPolylines(const std::vector<VariableWidthLines> toolpaths)
+    [[nodiscard]] static LinesSet<OpenPolyline> toPolylines(const std::vector<VariableWidthLines> toolpaths)
     {
-        Polygons result;
-        for (VariableWidthLines lines : toolpaths)
+        LinesSet<OpenPolyline> result;
+        for (const VariableWidthLines& lines : toolpaths)
         {
-            for (ExtrusionLine line : lines)
+            for (const ExtrusionLine& line : lines)
             {
-                if (line.size() == 0)
+                if (line.empty())
                 {
                     continue;
                 }
-                Polygon result_line;
-                for (ExtrusionJunction junction : line)
+
+                OpenPolyline result_line;
+                for (const ExtrusionJunction& junction : line)
                 {
-                    result_line.add(junction.p_);
+                    result_line.push_back(junction.p_);
                 }
 
                 if (line.is_closed_)
                 {
-                    result_line.add(line[0].p_);
+                    result_line.push_back(line[0].p_);
                 }
 
-                result.add(result_line);
+                result.push_back(result_line);
             }
         }
         return result;
@@ -96,7 +94,7 @@ public:
      * todo doku
      * \return A Polygons object that represents the resulting infill lines.
      */
-    [[nodiscard]] static Polygons generateSupportInfillLines(
+    [[nodiscard]] static LinesSet<OpenPolyline> generateSupportInfillLines(
         const Polygons& area,
         const TreeSupportSettings& config,
         bool roof,
@@ -159,7 +157,7 @@ public:
             pocket_size);
 
         Polygons areas;
-        Polygons lines;
+        LinesSet<OpenPolyline> lines;
         roof_computation.generate(toolpaths, areas, lines, config.settings, layer_idx, SectionType::SUPPORT, cross_fill_provider);
         lines.add(toPolylines(areas));
         lines.add(toPolylines(toolpaths));
@@ -194,7 +192,7 @@ public:
             spdlog::warn("Caught an area destroying union, enlarging areas a bit.");
 
             // Just take the few lines we have, and offset them a tiny bit. Needs to be offsetPolylines, as offset may already have problems with the area.
-            return toPolylines(first).offsetPolyLine(2).unionPolygons(toPolylines(second).offsetPolyLine(2));
+            return toPolylines(first).offset(2).unionPolygons(toPolylines(second).offset(2));
         }
         return result;
     }
@@ -291,14 +289,14 @@ public:
      * \param max_allowed_distance[in] The maximum distance a point may be moved. If not possible the point will be moved as far as possible in the direction of the outside of the
      * provided area. \return A Polyline object containing the moved points.
      */
-    [[nodiscard]] static Polygons movePointsOutside(const Polygons& polylines, const Polygons& area, coord_t max_allowed_distance)
+    [[nodiscard]] static LinesSet<OpenPolyline> movePointsOutside(const LinesSet<OpenPolyline>& polylines, const Polygons& area, coord_t max_allowed_distance)
     {
-        Polygons result;
+        LinesSet<OpenPolyline> result;
 
-        for (auto line : polylines)
+        for (const OpenPolyline& line : polylines)
         {
-            Polygon next_line;
-            for (Point2LL p : line)
+            OpenPolyline next_line;
+            for (const Point2LL& p : line)
             {
                 if (area.inside(p))
                 {
@@ -306,23 +304,23 @@ public:
                     PolygonUtils::moveOutside(area, next_outside);
                     if (vSize2(p - next_outside) < max_allowed_distance * max_allowed_distance)
                     {
-                        next_line.add(next_outside);
+                        next_line.push_back(next_outside);
                     }
                     else // move point as far as allowed.
                     {
                         double max_partial_move_proportion = double(max_allowed_distance) / double(vSize(p - next_outside));
                         next_outside = p + (next_outside - p) * max_partial_move_proportion;
-                        next_line.add(next_outside);
+                        next_line.push_back(next_outside);
                     }
                 }
                 else
                 {
-                    next_line.add(p);
+                    next_line.push_back(p);
                 }
             }
             if (next_line.size() > 0)
             {
-                result.add(next_line);
+                result.push_back(next_line);
             }
         }
 

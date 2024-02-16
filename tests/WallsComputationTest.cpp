@@ -6,7 +6,7 @@
 #include "settings/Settings.h" //Settings to generate walls with.
 #include "sliceDataStorage.h" //Sl
 #include "slicer.h"
-#include "utils/polygon.h" //To create example polygons.
+#include "geometry/polygon.h" //To create example polygons.
 #include <gtest/gtest.h>
 #include <range/v3/view/join.hpp>
 #include <unordered_set>
@@ -15,7 +15,7 @@
 
 #ifdef WALLS_COMPUTATION_TEST_SVG_OUTPUT
 #include "utils/SVG.h"
-#include "utils/polygon.h"
+#include "geometry/polygon.h"
 #include <cstdlib>
 #endif // WALLS_COMPUTATION_TEST_SVG_OUTPUT
 

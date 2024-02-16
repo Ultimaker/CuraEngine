@@ -1,7 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/polygons.h"
+#include "geometry/polygons.h"
 
 #include <unordered_set>
 
@@ -9,7 +9,6 @@
 #include <boost/geometry/geometries/polygon.hpp>
 #include <boost/geometry/io/wkt/read.hpp>
 #include <fmt/format.h>
-#include <range/v3/range/primitives.hpp>
 #include <range/v3/to_container.hpp>
 #include <range/v3/view/c_str.hpp>
 #include <range/v3/view/concat.hpp>
@@ -18,23 +17,15 @@
 #include <range/v3/view/sliding.hpp>
 #include <range/v3/view/take.hpp>
 #include <range/v3/view/transform.hpp>
-#include <range/v3/view/zip.hpp>
-#include <spdlog/spdlog.h>
 
+#include "geometry/parts_view.h"
+#include "geometry/single_shape.h"
+#include "settings/types/Ratio.h"
 #include "utils/OpenPolylineStitcher.h"
+#include "utils/linearAlg2D.h"
 
 namespace cura
 {
-
-Polygons Polygon::intersection(const Polygon& other) const
-{
-    Polygons ret;
-    ClipperLib::Clipper clipper(clipper_init);
-    clipper.AddPath(*this, ClipperLib::ptSubject, true);
-    clipper.AddPath(other, ClipperLib::ptClip, true);
-    clipper.Execute(ClipperLib::ctIntersection, ret.getCallable());
-    return ret;
-}
 
 Polygons Polygons::approxConvexHull(int extra_outset) const
 {
@@ -44,7 +35,7 @@ Polygons Polygons::approxConvexHull(int extra_outset) const
     // Perform the offset for each polygon one at a time.
     // This is necessary because the polygons may overlap, in which case the offset could end up in an infinite loop.
     // See http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Classes/ClipperOffset/_Body.htm
-    for (const path_t& path : (*this))
+    for (const ClipperLib::Path& path : (*this))
     {
         Polygons offset_result;
         ClipperLib::ClipperOffset offsetter(1.2, 10.0);
@@ -65,21 +56,21 @@ void Polygons::makeConvex()
     }
 
     // Andrew’s Monotone Chain Convex Hull Algorithm
-    std::vector<point_t> points;
-    for (const path_t& poly : (*this))
+    std::vector<Point2LL> points;
+    for (const std::vector<Point2LL>& poly : (*this))
     {
         points.insert(points.end(), poly.begin(), poly.end());
     }
 
     Polygon convexified;
-    auto make_sorted_poly_convex = [&convexified](std::vector<point_t>& poly)
+    auto make_sorted_poly_convex = [&convexified](std::vector<Point2LL>& poly)
     {
         convexified.push_back(poly[0]);
 
         for (const auto window : poly | ranges::views::sliding(2))
         {
-            const point_t& current = window[0];
-            const point_t& after = window[1];
+            const Point2LL& current = window[0];
+            const Point2LL& after = window[1];
 
             if (LinearAlg2D::pointIsLeftOfLine(current, convexified.back(), after) < 0)
             {
@@ -98,7 +89,7 @@ void Polygons::makeConvex()
     std::sort(
         points.begin(),
         points.end(),
-        [](point_t a, point_t b)
+        [](const Point2LL& a, const Point2LL& b)
         {
             return a.X == b.X ? a.Y < b.Y : a.X < b.X;
         });
@@ -148,65 +139,9 @@ Polygons& Polygons::operator=(Polygons&& polygons)
     return *this;
 }
 
-size_t Polygons::pointCount() const
-{
-    return std::accumulate(
-        begin(),
-        end(),
-        size_t(0),
-        [](size_t total, const Polygon& polygon)
-        {
-            return total + polygon.size();
-        });
-}
-
-void Polygons::remove(size_t index)
-{
-    if (size() == 1)
-    {
-        clear();
-    }
-    else if (size() > 1)
-    {
-        POLY_ASSERT(index < size());
-        if (index < size() - 1)
-        {
-            (*this)[index] = std::move(back());
-        }
-        resize(size() - 1);
-    }
-}
-
 void Polygons::add(const Polygons& other)
 {
     std::copy(other.begin(), other.end(), std::back_inserter(*this));
-}
-
-void Polygons::addIfNotEmpty(const Polygon& polygon)
-{
-    if (! polygon.empty())
-    {
-        push_back(polygon);
-    }
-}
-
-void Polygons::addIfNotEmpty(Polygon&& polygon)
-{
-    if (! polygon.empty())
-    {
-        emplace_back(std::move(polygon));
-    }
-}
-
-void Polygons::addLine(const point_t& from, const point_t& to)
-{
-    emplace_back(Polygon{ from, to });
-}
-
-Polygon& Polygons::newPoly()
-{
-    emplace_back();
-    return back();
 }
 
 bool Polygons::inside(Point2LL p, bool border_result) const
@@ -222,57 +157,6 @@ bool Polygons::inside(Point2LL p, bool border_result) const
         poly_count_inside += is_inside_this_poly;
     }
     return (poly_count_inside % 2) == 1;
-}
-
-bool PolygonsPart::inside(Point2LL p, bool border_result) const
-{
-    if (size() < 1)
-    {
-        return false;
-    }
-
-    if (! (*this)[0].inside(p, border_result))
-    {
-        return false;
-    }
-
-    for (unsigned int n = 1; n < size(); n++)
-    {
-        if ((*this)[n].inside(p, border_result))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool Polygons::insideOld(Point2LL p, bool border_result) const
-{
-    const Polygons& thiss = *this;
-    if (size() < 1)
-    {
-        return false;
-    }
-
-    int crossings = 0;
-    for (const ClipperLib::Path& poly : thiss)
-    {
-        Point2LL p0 = poly.back();
-        for (const Point2LL& p1 : poly)
-        {
-            short comp = LinearAlg2D::pointLiesOnTheRightOfLine(p, p0, p1);
-            if (comp == 1)
-            {
-                crossings++;
-            }
-            else if (comp == 0)
-            {
-                return border_result;
-            }
-            p0 = p1;
-        }
-    }
-    return (crossings % 2) == 1;
 }
 
 size_t Polygons::findInside(Point2LL p, bool border_result) const
@@ -340,7 +224,7 @@ size_t Polygons::findInside(Point2LL p, bool border_result) const
     return ret;
 }
 
-std::vector<OpenPolyline> Polygons::intersectionPolyLines(const LinesSet<OpenPolyline>& polylines, bool restitch, const coord_t max_stitch_distance) const
+LinesSet<OpenPolyline> Polygons::intersectionPolyLines(const LinesSet<OpenPolyline>& polylines, bool restitch, const coord_t max_stitch_distance) const
 {
     LinesSet<OpenPolyline> split_polylines = polylines.splitIntoSegments();
 
@@ -354,7 +238,7 @@ std::vector<OpenPolyline> Polygons::intersectionPolyLines(const LinesSet<OpenPol
 
     if (restitch)
     {
-        std::vector<OpenPolyline> result_lines;
+        LinesSet<OpenPolyline> result_lines;
         Polygons result_polygons;
         const coord_t snap_distance = 10_mu;
         OpenPolylineStitcher::stitch(ret, result_lines, result_polygons, max_stitch_distance, snap_distance);
@@ -400,103 +284,28 @@ void Polygons::toPolylines()
         poly.emplace_back(poly.front());
     }
 }
-
-void Polygons::splitPolylinesIntoSegments(Polygons& result) const
-{
-for (ConstPolygonRef poly : *this)
-{
-  poly.splitPolylineIntoSegments(result);
- }
-}
-Polygons Polygons::splitPolylinesIntoSegments() const
-{
- Polygons ret;
-    splitPolylinesIntoSegments(ret);
-    return ret;
-}
-
-void Polygons::splitPolygonsIntoSegments(Polygons& result) const
-{
-    for (ConstPolygonRef poly : *this)
-    {
-        poly.splitPolygonIntoSegments(result);
-    }
-}
-Polygons Polygons::splitPolygonsIntoSegments() const
-{
-    Polygons ret;
-    splitPolygonsIntoSegments(ret);
-    return ret;
-}
-
-coord_t Polygons::polyLineLength() const
-{
-    coord_t length = 0;
-    for (ConstPolygonRef poly : *this)
-    {
-        length += poly.polylineLength();
-    }
-    return length;
-}
 */
 
-template<class LineType>
-Polygons LinesSet<LineType>::offset(coord_t distance, ClipperLib::JoinType joinType, double miter_limit) const
-{
-    if (distance == 0)
-    {
-        return Polygons(getCallable());
-    }
-
-    Polygons temp;
-    const paths_t* actual_polygons = &getCallable();
-    Polygons ret;
-    ClipperLib::EndType end_type;
-    if constexpr (LineType::shape_type_ == ShapeType::Filled)
-    {
-        temp = Polygons(getCallable()).unionPolygons();
-        actual_polygons = &temp.getCallable();
-        end_type = ClipperLib::etClosedPolygon;
-    }
-    else if constexpr (LineType::shape_type_ == ShapeType::Closed)
-    {
-        end_type = ClipperLib::etClosedLine;
-    }
-    else if (joinType == ClipperLib::jtMiter)
-    {
-        end_type = ClipperLib::etOpenSquare;
-    }
-    else
-    {
-        end_type = ClipperLib::etOpenRound;
-    }
-    ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
-    clipper.AddPaths(*actual_polygons, joinType, end_type);
-    clipper.MiterLimit = miter_limit;
-    clipper.Execute(ret.getCallable(), distance);
-    return ret;
-}
-/*
-Polygons Polygons::offset(const std::vector<coord_t>& offset_dists) const
+Polygons Polygons::offsetMulti(const std::vector<coord_t>& offset_dists) const
 {
     // we need as many offset-dists as points
     assert(pointCount() == offset_dists.size());
 
     Polygons ret;
     size_t i = 0;
-    for (const path_t& poly_line : (*this)
-                                       | ranges::views::filter(
-                                           [](const path_t& path)
-                                           {
-                                               return ! path.empty();
-                                           }))
+    for (const ClipperLib::Path& poly_line : (*this)
+                                                 | ranges::views::filter(
+                                                     [](const ClipperLib::Path& path)
+                                                     {
+                                                         return ! path.empty();
+                                                     }))
     {
         Polygon ret_poly_line;
 
         auto prev_p = poly_line.back();
         auto prev_dist = offset_dists[i + poly_line.size() - 1];
 
-        for (const point_t& p : poly_line)
+        for (const Point2LL& p : poly_line)
         {
             auto offset_dist = offset_dists[i];
 
@@ -524,7 +333,7 @@ Polygons Polygons::offset(const std::vector<coord_t>& offset_dists) const
 
     return ret;
 }
-*/
+
 Polygons Polygons::getOutsidePolygons() const
 {
     Polygons ret;
@@ -698,75 +507,7 @@ void Polygons::removeSmallAreaCircumference(const double min_area_size, const co
     *this = new_polygon;
 }
 
-template<class LineType>
-void LinesSet<LineType>::removeDegenerateVertsForEveryone()
-{
-    constexpr bool for_polyline = LineType::shape_type_ == ShapeType::Open;
-    for (size_t poly_idx = 0; poly_idx < this->size(); poly_idx++)
-    {
-        Polygon& poly = (*this)[poly_idx];
-        Polygon result;
-
-        auto isDegenerate = [](const Point2LL& last, const Point2LL& now, const Point2LL& next)
-        {
-            Point2LL last_line = now - last;
-            Point2LL next_line = next - now;
-            return dot(last_line, next_line) == -1 * vSize(last_line) * vSize(next_line);
-        };
-
-        // With polylines, skip the first and last vertex.
-        const size_t start_vertex = for_polyline ? 1 : 0;
-        const size_t end_vertex = for_polyline ? poly.size() - 1 : poly.size();
-        for (size_t i = 0; i < start_vertex; ++i)
-        {
-            result.push_back(poly[i]); // Add everything before the start vertex.
-        }
-
-        bool isChanged = false;
-        for (size_t idx = start_vertex; idx < end_vertex; idx++)
-        {
-            const Point2LL& last = (result.size() == 0) ? poly.back() : result.back();
-            if (idx + 1 >= poly.size() && result.size() == 0)
-            {
-                break;
-            }
-            const Point2LL& next = (idx + 1 >= poly.size()) ? result[0] : poly[idx + 1];
-            if (isDegenerate(last, poly[idx], next))
-            { // lines are in the opposite direction
-                // don't add vert to the result
-                isChanged = true;
-                while (result.size() > 1 && isDegenerate(result[result.size() - 2], result.back(), next))
-                {
-                    result.pop_back();
-                }
-            }
-            else
-            {
-                result.push_back(poly[idx]);
-            }
-        }
-
-        for (size_t i = end_vertex; i < poly.size(); ++i)
-        {
-            result.push_back(poly[i]); // Add everything after the end vertex.
-        }
-
-        if (isChanged)
-        {
-            if (for_polyline || result.size() > 2)
-            {
-                poly = result;
-            }
-            else
-            {
-                remove(poly_idx);
-                poly_idx--; // effectively the next iteration has the same poly_idx (referring to a new poly which is not yet processed)
-            }
-        }
-    }
-}
-
-Polygons Polygons::remove(const Polygons& to_be_removed, int same_distance) const
+Polygons Polygons::removePolygon(const Polygons& to_be_removed, int same_distance) const
 {
     Polygons result;
     for (size_t poly_keep_idx = 0; poly_keep_idx < size(); poly_keep_idx++)
@@ -847,7 +588,7 @@ Polygons Polygons::toPolygons(ClipperLib::PolyTree& poly_tree)
     Polygon outer;
     for (const auto& point : poly.outer())
     {
-        outer.push_back(point_t(point.x(), point.y()));
+        outer.push_back(Point2LL(point.x(), point.y()));
     }
     ret.push_back(outer);
 
@@ -856,7 +597,7 @@ Polygons Polygons::toPolygons(ClipperLib::PolyTree& poly_tree)
         Polygon inner;
         for (const auto& point : hole)
         {
-            inner.push_back(point_t(point.x(), point.y()));
+            inner.push_back(Point2LL(point.x(), point.y()));
         }
         ret.push_back(inner);
     }
@@ -899,7 +640,7 @@ Polygons Polygons::smooth_outward(const AngleDegrees max_angle, int shortcut_len
             ret.push_back(poly);
             continue;
         }
-        poly.smooth_outward(max_angle, shortcut_length, ret.newPoly());
+        poly.smooth_outward(max_angle, shortcut_length, ret.newLine());
         if (ret.back().size() < 3)
         {
             ret.resize(ret.size() - 1);
@@ -922,7 +663,7 @@ Polygons Polygons::smooth(int remove_length) const
             ret.push_back(poly);
             continue;
         }
-        poly.smooth(remove_length, ret.newPoly());
+        poly.smooth(remove_length, ret.newLine());
         Polygon& back = ret.back();
         if (back.size() < 3)
         {
@@ -952,7 +693,7 @@ Polygons Polygons::smooth2(int remove_length, int min_area) const
         }
         else
         {
-            poly.smooth2(remove_length, ret.newPoly());
+            poly.smooth2(remove_length, ret.newLine());
         }
     }
     return ret;
@@ -966,7 +707,7 @@ void Polygons::removeColinearEdges(const AngleRadians max_deviation_angle)
         thiss[p].removeColinearEdges(max_deviation_angle);
         if (thiss[p].size() < 3)
         {
-            remove(p);
+            removeAt(p);
             p--;
         }
     }
@@ -988,7 +729,7 @@ void Polygons::scale(const Ratio& ratio)
     }
 }
 
-void Polygons::translate(const point_t& delta)
+void Polygons::translate(const Point2LL& delta)
 {
     if (delta.X != 0 || delta.Y != 0)
     {
@@ -1019,9 +760,9 @@ double Polygons::area() const
     return area;
 }
 
-std::vector<PolygonsPart> Polygons::splitIntoParts(bool unionAll) const
+std::vector<SingleShape> Polygons::splitIntoParts(bool unionAll) const
 {
-    std::vector<PolygonsPart> ret;
+    std::vector<SingleShape> ret;
     ClipperLib::Clipper clipper(clipper_init);
     ClipperLib::PolyTree resultPolyTree;
     clipper.AddPaths(getCallable(), ClipperLib::ptSubject, true);
@@ -1034,12 +775,12 @@ std::vector<PolygonsPart> Polygons::splitIntoParts(bool unionAll) const
     return ret;
 }
 
-void Polygons::splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const
+void Polygons::splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<SingleShape>& ret) const
 {
     for (int n = 0; n < node->ChildCount(); n++)
     {
         ClipperLib::PolyNode* child = node->Childs[n];
-        PolygonsPart part;
+        SingleShape part;
         part.emplace_back(child->Contour);
         for (int i = 0; i < child->ChildCount(); i++)
         {
@@ -1074,59 +815,6 @@ void Polygons::sortByNesting_processPolyTreeNode(ClipperLib::PolyNode* node, con
         ret[nesting_idx].emplace_back(child->Contour);
         sortByNesting_processPolyTreeNode(child, nesting_idx + 1, ret);
     }
-}
-
-Polygons Polygons::tubeShape(const coord_t inner_offset, const coord_t outer_offset) const
-{
-    return this->offset(outer_offset).difference(this->offset(-inner_offset));
-}
-
-size_t PartsView::getPartContaining(size_t poly_idx, size_t* boundary_poly_idx) const
-{
-    const PartsView& partsView = *this;
-    for (size_t part_idx_now = 0; part_idx_now < partsView.size(); part_idx_now++)
-    {
-        const std::vector<size_t>& partView = partsView[part_idx_now];
-        if (partView.size() == 0)
-        {
-            continue;
-        }
-        std::vector<size_t>::const_iterator result = std::find(partView.begin(), partView.end(), poly_idx);
-        if (result != partView.end())
-        {
-            if (boundary_poly_idx)
-            {
-                *boundary_poly_idx = partView[0];
-            }
-            return part_idx_now;
-        }
-    }
-    return NO_INDEX;
-}
-
-PolygonsPart PartsView::assemblePart(size_t part_idx) const
-{
-    const PartsView& partsView = *this;
-    PolygonsPart ret;
-    if (part_idx != NO_INDEX)
-    {
-        for (size_t poly_idx_ff : partsView[part_idx])
-        {
-            ret.push_back(polygons_[poly_idx_ff]);
-        }
-    }
-    return ret;
-}
-
-PolygonsPart PartsView::assemblePartContaining(size_t poly_idx, size_t* boundary_poly_idx) const
-{
-    PolygonsPart ret;
-    size_t part_idx = getPartContaining(poly_idx, boundary_poly_idx);
-    if (part_idx != NO_INDEX)
-    {
-        return assemblePart(part_idx);
-    }
-    return ret;
 }
 
 PartsView Polygons::splitIntoPartsView(bool unionAll)
@@ -1171,7 +859,7 @@ void Polygons::ensureManifold()
     std::unordered_set<Point2LL> poly_locations;
     for (const Polygon& poly : (*this))
     {
-        for (const point_t& p : poly)
+        for (const Point2LL& p : poly)
         {
             if (poly_locations.find(p) != poly_locations.end())
             {
@@ -1181,9 +869,9 @@ void Polygons::ensureManifold()
         }
     }
     Polygons removal_dots;
-    for (Point2LL p : duplicate_locations)
+    for (const Point2LL& p : duplicate_locations)
     {
-        Polygon& dot = removal_dots.newPoly();
+        Polygon& dot = removal_dots.newLine();
         dot.push_back(p + Point2LL(0, 5));
         dot.push_back(p + Point2LL(5, 0));
         dot.push_back(p + Point2LL(0, -5));
@@ -1195,25 +883,13 @@ void Polygons::ensureManifold()
     }
 }
 
-coord_t Polygons::length() const
+Point2LL Polygons::min() const
 {
-    return std::accumulate(
-        begin(),
-        end(),
-        0,
-        [](coord_t total, const Polygon& polygon)
-        {
-            return total += polygon.length();
-        });
-}
-
-point_t Polygons::min() const
-{
-    point_t ret = point_t(POINT_MAX, POINT_MAX);
+    Point2LL ret = Point2LL(POINT_MAX, POINT_MAX);
 
     for (const Polygon& polygon : *this)
     {
-        for (const point_t& p : polygon)
+        for (const Point2LL& p : polygon)
         {
             ret.X = std::min(ret.X, p.X);
             ret.Y = std::min(ret.Y, p.Y);
@@ -1223,13 +899,13 @@ point_t Polygons::min() const
     return ret;
 }
 
-point_t Polygons::max() const
+Point2LL Polygons::max() const
 {
-    point_t ret = point_t(POINT_MIN, POINT_MIN);
+    Point2LL ret = Point2LL(POINT_MIN, POINT_MIN);
 
     for (const Polygon& polygon : *this)
     {
-        for (const point_t& p : polygon)
+        for (const Point2LL& p : polygon)
         {
             ret.X = std::max(ret.X, p.X);
             ret.Y = std::max(ret.Y, p.Y);

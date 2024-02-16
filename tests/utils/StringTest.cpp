@@ -2,7 +2,7 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/string.h" // The file under test.
-#include "utils/Point2LL.h"
+#include "geometry/point2ll.h"
 #include <gtest/gtest.h>
 
 // NOLINTBEGIN(*-magic-numbers)

@@ -22,6 +22,8 @@ class Socket;
 namespace cura
 {
 
+class Polygon;
+
 /*
  * \brief Communication class that connects via libArcus to Cura's front-end.
  */
@@ -152,7 +154,7 @@ public:
      * \param line_thickness The thickness (in the Z direction) of the polygon.
      * \param velocity The velocity of printing this polygon.
      */
-    void sendPolygon(const PrintFeatureType& type, const ConstPolygonRef& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
+    void sendPolygon(const PrintFeatureType& type, const Polygon& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
 
     /*
      * \brief Send polygons to the front-end to display in layer view.

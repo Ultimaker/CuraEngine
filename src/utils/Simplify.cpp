@@ -6,6 +6,8 @@
 #include <limits>
 #include <queue> //Priority queue to prioritise removing unimportant vertices.
 
+#include "geometry/open_polyline.h"
+
 namespace cura
 {
 
@@ -45,9 +47,10 @@ ExtrusionLine Simplify::polygon(const ExtrusionLine& polygon) const
     return simplify(polygon, is_closed);
 }
 
-Polygons Simplify::polyline(const Polygons& polylines) const
+template<class LineType>
+LinesSet<LineType> Simplify::polyline(const LinesSet<LineType>& polylines) const
 {
-    Polygons result;
+    LinesSet<LineType> result;
     for (size_t i = 0; i < polylines.size(); ++i)
     {
         result.addIfNotEmpty(polyline(polylines[i]));
@@ -55,10 +58,24 @@ Polygons Simplify::polyline(const Polygons& polylines) const
     return result;
 }
 
-Polygon Simplify::polyline(const Polygon& polyline) const
+template LinesSet<OpenPolyline> Simplify::polyline(const LinesSet<OpenPolyline>& polylines) const;
+
+template<>
+Polyline<PolylineType::Open> Simplify::polyline(const Polyline<PolylineType::Open>& polyline) const
 {
-    constexpr bool is_closed = false;
-    return simplify(polyline, is_closed);
+    return simplify(polyline, false);
+}
+
+template<>
+Polyline<PolylineType::Closed> Simplify::polyline(const Polyline<PolylineType::Closed>& polyline) const
+{
+    return simplify(polyline, true);
+}
+
+template<>
+Polyline<PolylineType::Filled> Simplify::polyline(const Polyline<PolylineType::Filled>& polyline) const
+{
+    return simplify(polyline, true);
 }
 
 ExtrusionLine Simplify::polyline(const ExtrusionLine& polyline) const
@@ -95,9 +112,10 @@ ExtrusionLine Simplify::createEmpty(const ExtrusionLine& original) const
     return result;
 }
 
-void Simplify::appendVertex(Polygon& polygon, const Point2LL& vertex) const
+template<PolylineType PolylineTypeVal>
+void Simplify::appendVertex(Polyline<PolylineTypeVal>& polygon, const Point2LL& vertex) const
 {
-    polygon.add(vertex);
+    polygon.push_back(vertex);
 }
 
 void Simplify::appendVertex(ExtrusionLine& extrusion_line, const ExtrusionJunction& vertex) const

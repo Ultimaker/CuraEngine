@@ -12,6 +12,7 @@
 
 #include "Application.h"
 #include "Slice.h"
+#include "geometry/point_matrix.h"
 #include "settings/types/LayerIndex.h"
 #include "slicer.h"
 #include "utils/VoxelUtils.h"
@@ -111,7 +112,7 @@ void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>
         const Point3LL bottom_corner = vu_.toLowerCorner(cell);
         for (coord_t layer_nr = bottom_corner.z_; layer_nr < bottom_corner.z_ + cell_size_.z_ && layer_nr < static_cast<coord_t>(near_interlock_per_layer.size()); ++layer_nr)
         {
-            near_interlock_per_layer[static_cast<size_t>(layer_nr)].add(vu_.toPolygon(cell));
+            near_interlock_per_layer[static_cast<size_t>(layer_nr)].push_back(vu_.toPolygon(cell));
         }
     }
     for (auto& near_interlock : near_interlock_per_layer)
@@ -255,7 +256,7 @@ std::vector<std::vector<Polygons>> InterlockingGenerator::generateMicrostructure
         Point2LL offset(mesh_idx ? middle : 0, 0);
         Point2LL area_size(width[mesh_idx], cell_size_.y_);
 
-        PolygonRef poly = cell_area_per_mesh_per_layer[0][mesh_idx].newPoly();
+        Polygon& poly = cell_area_per_mesh_per_layer[0][mesh_idx].newLine();
         poly.emplace_back(offset);
         poly.emplace_back(offset + Point2LL(area_size.X, 0));
         poly.emplace_back(offset + area_size);
@@ -264,7 +265,7 @@ std::vector<std::vector<Polygons>> InterlockingGenerator::generateMicrostructure
     cell_area_per_mesh_per_layer[1] = cell_area_per_mesh_per_layer[0];
     for (Polygons& polys : cell_area_per_mesh_per_layer[1])
     {
-        for (PolygonRef poly : polys)
+        for (Polygon& poly : polys)
         {
             for (Point2LL& p : poly)
             {

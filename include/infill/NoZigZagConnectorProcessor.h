@@ -9,7 +9,10 @@
 namespace cura
 {
 
-class Polygons;
+class OpenPolyline;
+
+template<class T>
+class LinesSet;
 
 /*!
  * This processor adds no connection. This is for line infill pattern.
@@ -17,7 +20,7 @@ class Polygons;
 class NoZigZagConnectorProcessor : public ZigzagConnectorProcessor
 {
 public:
-    NoZigZagConnectorProcessor(const PointMatrix& rotation_matrix, Polygons& result)
+    NoZigZagConnectorProcessor(const PointMatrix& rotation_matrix, LinesSet<OpenPolyline>& result)
         : ZigzagConnectorProcessor(
             rotation_matrix,
             result,

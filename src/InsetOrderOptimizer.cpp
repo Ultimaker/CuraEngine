@@ -170,7 +170,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
                                   | ranges::views::transform(
                                         [](const ExtrusionLine* line)
                                         {
-                                            const auto poly = line->toPolygon();
+                                            const Polygon poly = line->toPolygon();
                                             AABB aabb;
                                             aabb.include(poly);
                                             return std::make_pair(line, aabb.area());
@@ -206,7 +206,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
         Polygons hole_polygons;
         if (extrusion_line->is_closed_)
         {
-            hole_polygons.add(extrusion_line->toPolygon());
+            hole_polygons.push_back(extrusion_line->toPolygon());
         }
 
         if (hole_polygons.empty())

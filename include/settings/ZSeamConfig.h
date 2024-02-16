@@ -4,7 +4,7 @@
 #ifndef ZSEAMCONFIG_H
 #define ZSEAMCONFIG_H
 
-#include "../utils/Point2LL.h" //To store the preferred seam position.
+#include "geometry/point2ll.h" //To store the preferred seam position.
 #include "EnumSettings.h" //For EZSeamType and EZSeamCornerPrefType.
 
 namespace cura
