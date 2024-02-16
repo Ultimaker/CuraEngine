@@ -19,8 +19,6 @@ class AngleRadians;
 template<PolylineType PolylineTypeVal>
 class Polyline : public PointsSet
 {
-    friend class Polygons;
-
 public:
     static constexpr PolylineType type_ = PolylineTypeVal;
 

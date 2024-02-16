@@ -14,8 +14,6 @@ namespace cura
 template<PolylineType PolylineTypeVal>
 class GenericClosedPolyline : public Polyline<PolylineTypeVal>
 {
-    friend class Polygons;
-
 public:
     GenericClosedPolyline() = default;
 

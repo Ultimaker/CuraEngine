@@ -15,8 +15,6 @@ class AngleDegrees;
 
 class Polygon : public GenericClosedPolyline<PolylineType::Filled>
 {
-    friend class Shape;
-
 public:
     Polygon() = default;
 
