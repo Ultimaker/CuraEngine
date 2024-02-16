@@ -9,9 +9,11 @@ AssureOutOfSourceBuilds()
 
 option(ENABLE_ARCUS "Enable support for ARCUS" ON)
 option(ENABLE_TESTING "Build with unit tests" OFF)
+option(ENABLE_BENCHMARKS "Build with Benchmarks" OFF)
 option(EXTENSIVE_WARNINGS "Build with all warnings" ON)
 option(ENABLE_PLUGINS "Build with plugins" ON)
 option(ENABLE_REMOTE_PLUGINS "Build with all warnings" OFF)
+option(ENABLE_SENTRY "Send crash data via Sentry" OFF)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
@@ -130,22 +132,20 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ExtrusionJunction.cpp
         src/utils/ExtrusionLine.cpp
         src/utils/ExtrusionSegment.cpp
-        src/utils/FMatrix4x3.cpp
         src/utils/gettime.cpp
         src/utils/LinearAlg2D.cpp
         src/utils/ListPolyIt.cpp
+        src/utils/Matrix4x3D.cpp
         src/utils/MinimumSpanningTree.cpp
-        src/utils/Point3.cpp
+        src/utils/Point3LL.cpp
         src/utils/PolygonConnector.cpp
         src/utils/PolygonsPointIndex.cpp
         src/utils/PolygonsSegmentIndex.cpp
         src/utils/polygonUtils.cpp
         src/utils/polygon.cpp
         src/utils/PolylineStitcher.cpp
-        src/utils/ProximityPointLink.cpp
         src/utils/Simplify.cpp
         src/utils/SVG.cpp
-        src/utils/socket.cpp
         src/utils/SquareGrid.cpp
         src/utils/ThreadPool.cpp
         src/utils/ToolpathVisualizer.cpp
@@ -200,7 +200,11 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
-find_package(neargye-semver REQUIRED)
+find_package(semver REQUIRED)
+
+if (ENABLE_SENTRY)
+    find_package(sentry REQUIRED)
+endif ()
 
 if (ENABLE_TESTING)
     find_package(GTest REQUIRED)
@@ -216,12 +220,17 @@ target_link_libraries(_CuraEngine
         stb::stb
         boost::boost
         scripta::scripta
-        neargye-semver::neargye-semver
+        semver::semver
         curaengine_grpc_definitions::curaengine_grpc_definitions
         asio-grpc::asio-grpc
         grpc::grpc
         protobuf::libprotobuf
+        $<$<BOOL:${ENABLE_SENTRY}>:sentry::sentry>
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
+
+target_compile_definitions(_CuraEngine PRIVATE
+        $<$<BOOL:${ENABLE_SENTRY}>:SENTRY_URL=\"${SENTRY_URL}\">
+)
 
 if (NOT WIN32)
     add_executable(CuraEngine src/main.cpp) # Then compile main.cpp as separate executable, and link the library to it.
@@ -236,11 +245,20 @@ else ()
                 )
     endif ()
     add_executable(CuraEngine src/main.cpp ${RES_FILES}) # ..., but don't forget the glitter!
+    if (ENABLE_SENTRY)
+        set_target_properties(CuraEngine PROPERTIES LINK_FLAGS "/DEBUG:FULL")
+    endif ()
 endif (NOT WIN32)
 
 use_threads(CuraEngine)
-target_link_libraries(CuraEngine PRIVATE _CuraEngine)
-target_compile_definitions(CuraEngine PRIVATE VERSION=\"${CURA_ENGINE_VERSION}\")
+target_link_libraries(CuraEngine PRIVATE
+        _CuraEngine
+        $<$<BOOL:${ENABLE_SENTRY}>:sentry::sentry>
+)
+target_compile_definitions(CuraEngine PRIVATE
+        $<$<BOOL:${ENABLE_SENTRY}>:SENTRY_URL=\"${SENTRY_URL}\">
+        VERSION=\"${CURA_ENGINE_VERSION}\"
+)
 
 # Compiling the test environment.
 if (ENABLE_TESTING OR ENABLE_BENCHMARKS)
@@ -271,11 +289,14 @@ if (ENABLE_TESTING OR ENABLE_BENCHMARKS)
     endif ()
 endif ()
 
+if (ENABLE_BENCHMARKS)
+    add_subdirectory(benchmark)
+    if (NOT WIN32)
+        add_subdirectory(stress_benchmark)
+    endif()
+endif ()
+
 if (ENABLE_TESTING)
     enable_testing()
     add_subdirectory(tests)
-endif ()
-
-if (ENABLE_BENCHMARKS)
-    add_subdirectory(benchmark)
 endif ()

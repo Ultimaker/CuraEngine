@@ -4,12 +4,12 @@
 #ifndef COMMANDLINE_H
 #define COMMANDLINE_H
 
-#include "Communication.h" //The class we're implementing.
-
 #include <rapidjson/document.h> //Loading JSON documents to get settings from them.
 #include <string> //To store the command line arguments.
 #include <unordered_set>
 #include <vector> //To store the command line arguments.
+
+#include "Communication.h" //The class we're implementing.
 
 namespace cura
 {
@@ -59,7 +59,7 @@ public:
      * The command line doesn't do anything with the current position so this is
      * ignored.
      */
-    void sendCurrentPosition(const Point&) override;
+    void sendCurrentPosition(const Point2LL&) override;
 
     /*
      * \brief Indicate to the command line that we finished slicing.
@@ -93,7 +93,7 @@ public:
      *
      * The command line doesn't show any layer view so this is ignored.
      */
-    void sendLineTo(const PrintFeatureType&, const Point&, const coord_t&, const coord_t&, const Velocity&) override;
+    void sendLineTo(const PrintFeatureType&, const Point2LL&, const coord_t&, const coord_t&, const Velocity&) override;
 
     /*
      * \brief Complete a layer to show it in layer view.
@@ -125,7 +125,7 @@ public:
     /*
      * \brief Show an update of our slicing progress.
      */
-    void sendProgress(const float& progress) const override;
+    void sendProgress(double progress) const override;
 
     /*
      * \brief Set which extruder is being used for the following calls to
@@ -154,12 +154,12 @@ private:
     /*
      * \brief The command line arguments that the application was called with.
      */
-    std::vector<std::string> arguments;
+    std::vector<std::string> arguments_;
 
     /*
      * The last progress update that we output to stdcerr.
      */
-    unsigned int last_shown_progress;
+    unsigned int last_shown_progress_;
 
     /*
      * \brief Get the default search directories to search for definition files.

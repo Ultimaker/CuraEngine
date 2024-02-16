@@ -1,17 +1,17 @@
-//Copyright (c) 2023 UltiMaker
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SKIRT_BRIM_H
 #define SKIRT_BRIM_H
 
-#include "utils/Coord_t.h"
+#include <variant>
+
 #include "ExtruderTrain.h"
 #include "settings/EnumSettings.h"
 #include "sliceDataStorage.h"
+#include "utils/Coord_t.h"
 
-#include <variant>
-
-namespace cura 
+namespace cura
 {
 
 class Polygons;
@@ -27,75 +27,71 @@ private:
      */
     struct Offset
     {
-        Offset
-        (
+        Offset(
             const std::variant<Polygons*, int>& reference_outline_or_index,
             const bool external_only,
             const coord_t offset_value,
             const coord_t total_offset,
             const size_t inset_idx,
             const int extruder_nr,
-            const bool is_last
-        ) :
-            reference_outline_or_index(reference_outline_or_index),
-            external_only(external_only),
-            offset_value(offset_value),
-            total_offset(total_offset),
-            inset_idx(inset_idx),
-            extruder_nr(extruder_nr),
-            is_last(is_last)
-        {}
+            const bool is_last)
+            : reference_outline_or_index_(reference_outline_or_index)
+            , external_only_(external_only)
+            , offset_value_(offset_value)
+            , total_offset_(total_offset)
+            , inset_idx_(inset_idx)
+            , extruder_nr_(extruder_nr)
+            , is_last_(is_last)
+        {
+        }
 
-        std::variant<Polygons*, int>  reference_outline_or_index;
-        bool external_only; //!< Wether to only offset outward from the reference polygons
-        coord_t offset_value; //!< Distance by which to offset from the reference
-        coord_t total_offset; //!< Total distance from the model
-        int inset_idx; //!< The outset index of this brimline
-        int extruder_nr; //!< The extruder by which to print this brim line
-        bool is_last; //!< Whether this is the last planned offset for this extruder.
+        std::variant<Polygons*, int> reference_outline_or_index_;
+        bool external_only_; //!< Wether to only offset outward from the reference polygons
+        coord_t offset_value_; //!< Distance by which to offset from the reference
+        coord_t total_offset_; //!< Total distance from the model
+        int inset_idx_; //!< The outset index of this brimline
+        int extruder_nr_; //!< The extruder by which to print this brim line
+        bool is_last_; //!< Whether this is the last planned offset for this extruder.
     };
 
     /*!
      * Defines an order on offsets (potentially from different extruders) based on how far the offset is from the original outline.
      */
-    static inline const auto OffsetSorter
-    {
-        [](const Offset& a, const Offset& b)
-        {
-            // Use extruder_nr in case both extruders have the same offset settings.
-            return a.total_offset != b.total_offset ? a.total_offset < b.total_offset : a.extruder_nr < b.extruder_nr;
-        }
-    };
-    
-    SliceDataStorage& storage; //!< Where to retrieve settings and store brim lines.
-    const EPlatformAdhesion adhesion_type; //!< Whether we are generating brim, skirt, or raft
-    const bool has_ooze_shield; //!< Whether the meshgroup has an ooze shield
-    const bool has_draft_shield; //!< Whether the meshgroup has a draft shield
-    const std::vector<ExtruderTrain>& extruders; //!< The extruders of the current slice
-    const int extruder_count; //!< The total number of extruders
-    const std::vector<bool> extruder_is_used; //!< For each extruder whether it is actually used in this print
-    int first_used_extruder_nr; //!< The first extruder which is used
-    int skirt_brim_extruder_nr; //!< The extruder with which the skirt/brim is printed or -1 if printed with both
-    std::vector<bool> external_polys_only; //!< For each extruder whether to only generate brim on the outside
-    std::vector<coord_t> line_widths; //!< For each extruder the skirt/brim line width
-    std::vector<coord_t> skirt_brim_minimal_length; //!< For each extruder the minimal brim length
-    std::vector<int> line_count; //!< For each extruder the (minimal) number of brim lines to generate
-    std::vector<coord_t> gap; //!< For each extruder the gap between the part and the first brim/skirt line
+    static inline const auto OffsetSorter{ [](const Offset& a, const Offset& b)
+                                           {
+                                               // Use extruder_nr in case both extruders have the same offset settings.
+                                               return a.total_offset_ != b.total_offset_ ? a.total_offset_ < b.total_offset_ : a.extruder_nr_ < b.extruder_nr_;
+                                           } };
+
+    SliceDataStorage& storage_; //!< Where to retrieve settings and store brim lines.
+    const EPlatformAdhesion adhesion_type_; //!< Whether we are generating brim, skirt, or raft
+    const bool has_ooze_shield_; //!< Whether the meshgroup has an ooze shield
+    const bool has_draft_shield_; //!< Whether the meshgroup has a draft shield
+    const std::vector<ExtruderTrain>& extruders_; //!< The extruders of the current slice
+    const int extruder_count_; //!< The total number of extruders
+    const std::vector<bool> extruder_is_used_; //!< For each extruder whether it is actually used in this print
+    int first_used_extruder_nr_; //!< The first extruder which is used
+    int skirt_brim_extruder_nr_; //!< The extruder with which the skirt/brim is printed or -1 if printed with both
+    std::vector<bool> external_polys_only_; //!< For each extruder whether to only generate brim on the outside
+    std::vector<coord_t> line_widths_; //!< For each extruder the skirt/brim line width
+    std::vector<coord_t> skirt_brim_minimal_length_; //!< For each extruder the minimal brim length
+    std::vector<int> line_count_; //!< For each extruder the (minimal) number of brim lines to generate
+    std::vector<coord_t> gap_; //!< For each extruder the gap between the part and the first brim/skirt line
 
 public:
     /*!
      * Precomputes some values used in several functions when calling \ref generate
-     * 
+     *
      * \param storage Storage containing the parts at the first layer.
      */
     SkirtBrim(SliceDataStorage& storage);
 
     /*!
      * Generate skirt or brim (depending on parameters).
-     * 
+     *
      * When \p distance > 0 and \p count == 1 a skirt is generated, which has
      * slightly different configuration. Otherwise, a brim is generated.
-     * 
+     *
      * \param storage Storage containing the parts at the first layer.
      * \param first_layer_outline The outline to generate skirt or brim around.
      * \param distance The distance of the first outset from the parts at the first
@@ -108,7 +104,7 @@ public:
 private:
     /*!
      * Plan the offsets which we will be going to perform and put them in the right order.
-     * 
+     *
      * In order for brims of different materials to grow toward the middle,
      * we need to perform the offsets alternatingly.
      * We therefore first create all planned Offset objects,
@@ -119,17 +115,8 @@ private:
     std::vector<Offset> generateBrimOffsetPlan(std::vector<Polygons>& starting_outlines);
 
     /*!
-     * In case that the models have skirt 'adhesion', but the prime tower has a brim, the covered areas are different.
-     *
-     * Since the output of this function will need to be handled differently than the rest of the adhesion lines, have a separate function.
-     * Specifically, for skirt an additional 'approximate convex hull' is applied to the initial 'covered area', which is detrimental to brim.
-     * \return An ordered list of offsets of the prime-tower to perform in the order in which they are to be performed.
-     */
-    std::vector<Offset> generatePrimeTowerBrimForSkirtAdhesionOffsetPlan();
-
-    /*!
      * Generate the primary skirt/brim of the one skirt_brim_extruder or of all extruders simultaneously.
-     * 
+     *
      * \param[in,out] all_brim_offsets The offsets to perform. Adjusted when the minimal length constraint isn't met yet.
      * \param[in,out] covered_area The area of the first layer covered by model or generated brim lines.
      * \param[in,out] allowed_areas_per_extruder The difference between the machine bed area (offsetted by the nozzle offset) and the covered_area.
@@ -139,9 +126,9 @@ private:
 
     /*!
      * Generate the brim inside the ooze shield and draft shield
-     * 
+     *
      * \warning Adjusts brim_covered_area
-     * 
+     *
      * \param storage Storage containing the parts at the first layer.
      * \param[in,out] brim_covered_area The area that was covered with brim before (in) and after (out) adding the shield brims
      * \param[in,out] allowed_areas_per_extruder The difference between the machine areas and the \p covered_area
@@ -163,10 +150,10 @@ private:
 
     /*!
      * The disallowed area around the internal holes of parts with other parts inside which would get an external brim.
-     * 
+     *
      * In order to prevent the external_only brim of a part inside another part to overlap with the internal holes of the outer part,
      * we generate a disallowed area around those internal hole polygons.
-     * 
+     *
      * \param outline The full layer outlines
      * \param extruder_nr The extruder for which to compute disallowed areas
      * \return The disallowed areas
@@ -175,9 +162,9 @@ private:
 
     /*!
      * Generate a brim line with offset parameters given by \p offset from the \p starting_outlines and store it in the \ref storage.
-     * 
+     *
      * \warning Has side effects on \p covered_area, \p allowed_areas_per_extruder and \p total_length
-     * 
+     *
      * \param offset The parameters with which to perform the offset
      * \param[in,out] covered_area The total area covered by the brims (and models) on the first layer.
      * \param[in,out] allowed_areas_per_extruder The difference between the machine areas and the \p covered_area
@@ -188,11 +175,11 @@ private:
 
     /*!
      * Generate a skirt of extruders which don't yet comply with the minimum length requirement.
-     * 
+     *
      * This skirt goes directly adjacent to all primary brims.
-     * 
+     *
      * The skirt is stored in storage.skirt_brim.
-     * 
+     *
      * \param[in,out] covered_area The total area covered by the brims (and models) on the first layer.
      * \param[in,out] allowed_areas_per_extruder The difference between the machine areas and the \p covered_area
      * \param[in,out] total_length The total length of the brim lines for each extruder.
@@ -205,6 +192,6 @@ public:
      */
     void generateSupportBrim();
 };
-}//namespace cura
+} // namespace cura
 
-#endif //SKIRT_BRIM_H
+#endif // SKIRT_BRIM_H

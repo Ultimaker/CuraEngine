@@ -12,7 +12,7 @@
 #include "pathPlanning/TimeMaterialEstimates.h"
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Ratio.h"
-#include "utils/IntPoint.h"
+#include "utils/Point2LL.h"
 
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
@@ -44,7 +44,7 @@ class ExtruderPlan
     FRIEND_TEST(ExtruderPlanTest, BackPressureCompensationEmptyPlan);
 #endif
 public:
-    size_t extruder_nr{ 0 }; //!< The extruder used for this paths in the current plan.
+    size_t extruder_nr_{ 0 }; //!< The extruder used for this paths in the current plan.
 
     ExtruderPlan() noexcept = default;
 
@@ -93,11 +93,10 @@ public:
     /*!
      * Applying fan speed changes for minimal layer times.
      *
-     * \param starting_position The position the head was before starting this extruder plan
      * \param minTime Maximum minimum layer time for all extruders in this layer
      * \param time_other_extr_plans The time spent on the other extruder plans in this layer
      */
-    void processFanSpeedForMinimalLayerTime(Point starting_position, Duration maximum_cool_min_layer_time, double time_other_extr_plans);
+    void processFanSpeedForMinimalLayerTime(Duration maximum_cool_min_layer_time, double time_other_extr_plans);
 
     /*!
      * Applying fan speed changes for the first layers.
@@ -125,20 +124,20 @@ public:
     void applyBackPressureCompensation(const Ratio back_pressure_compensation);
 
 private:
-    LayerIndex layer_nr{ 0 }; //!< The layer number at which we are currently printing.
-    bool is_initial_layer{ false }; //!< Whether this extruder plan is printed on the very first layer (which might be raft)
-    bool is_raft_layer{ false }; //!< Whether this is a layer which is part of the raft
+    LayerIndex layer_nr_{ 0 }; //!< The layer number at which we are currently printing.
+    bool is_initial_layer_{ false }; //!< Whether this extruder plan is printed on the very first layer (which might be raft)
+    bool is_raft_layer_{ false }; //!< Whether this is a layer which is part of the raft
 
-    coord_t layer_thickness{ 200 }; //!< The thickness of this layer in Z-direction
+    coord_t layer_thickness_{ 200 }; //!< The thickness of this layer in Z-direction
 
-    FanSpeedLayerTimeSettings fan_speed_layer_time_settings{}; //!< The fan speed and layer time settings used to limit this extruder plan
+    FanSpeedLayerTimeSettings fan_speed_layer_time_settings_{}; //!< The fan speed and layer time settings used to limit this extruder plan
 
-    RetractionConfig retraction_config{}; //!< The retraction settings for the extruder of this plan
+    RetractionConfig retraction_config_{}; //!< The retraction settings for the extruder of this plan
 
 
-    std::vector<GCodePath> paths; //!< The paths planned for this extruder
-    std::list<NozzleTempInsert> inserts; //!< The nozzle temperature command inserts, to be inserted in between segments
-    double heated_pre_travel_time{ 0.0 }; //!< The time at the start of this ExtruderPlan during which the head travels and has a temperature of initial_print_temperature
+    std::vector<GCodePath> paths_; //!< The paths planned for this extruder
+    std::list<NozzleTempInsert> inserts_; //!< The nozzle temperature command inserts, to be inserted in between segments
+    double heated_pre_travel_time_{ 0.0 }; //!< The time at the start of this ExtruderPlan during which the head travels and has a temperature of initial_print_temperature
 
     /*!
      * The required temperature at the start of this extruder plan
@@ -152,25 +151,21 @@ private:
      * In that case no temperature (and wait) command will be inserted from this value, but a NozzleTempInsert is used instead.
      * In this case this member is only used as a way to convey information between different calls of \ref LayerPlanBuffer::processBuffer
      */
-    double required_start_temperature{ -1.0 };
-    std::optional<double> extrusion_temperature{ std::nullopt }; //!< The normal temperature for printing this extruder plan. That start and end of this extruder plan may deviate
-                                                                 //!< because of the initial and final print temp (none if extruder plan has no extrusion moves)
-    std::optional<std::list<NozzleTempInsert>::iterator> extrusion_temperature_command{
-        std::nullopt
-    }; //!< The command to heat from the printing temperature of this extruder plan to the printing
-       //!< temperature of the next extruder plan (if it has the same extruder).
-    std::optional<double> prev_extruder_standby_temp{
-        std::nullopt
-    }; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
+    double required_start_temperature_{ -1.0 };
+    std::optional<double> extrusion_temperature_{}; //!< The normal temperature for printing this extruder plan. That start and end of this extruder plan may deviate
+                                                    //!< because of the initial and final print temp (none if extruder plan has no extrusion moves)
+    std::optional<std::list<NozzleTempInsert>::iterator> extrusion_temperature_command_{}; //!< The command to heat from the printing temperature of this extruder plan to the
+                                                                                           //!< printing temperature of the next extruder plan (if it has the same extruder).
+    std::optional<double> prev_extruder_standby_temp_{}; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
 
-    TimeMaterialEstimates estimates{}; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
-    double slowest_path_speed{ 0.0 };
+    TimeMaterialEstimates estimates_{}; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
+    double slowest_path_speed_{ 0.0 };
 
-    double extraTime{ 0.0 }; //!< Extra waiting time at the and of this extruder plan, so that the filament can cool
+    double extra_time_{ 0.0 }; //!< Extra waiting time at the and of this extruder plan, so that the filament can cool
 
     double fan_speed{ 0.0 }; //!< The fan speed to be used during this extruder plan
 
-    double temperatureFactor{ 0.0 }; //!< Temperature reduction factor for small layers
+    double temperature_factor_{ 0.0 }; //!< Temperature reduction factor for small layers
 
     /*!
      * Set the fan speed to be used while printing this extruder plan
@@ -195,7 +190,7 @@ private:
     /*!
      * @return distance between p0 and p1 as well as the time spend on the segment
      */
-    std::pair<double, double> getPointToPointTime(const Point& p0, const Point& p1, const GCodePath& path);
+    std::pair<double, double> getPointToPointTime(const Point2LL& p0, const Point2LL& p1, const GCodePath& path);
 
     /*!
      * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates.
@@ -204,7 +199,7 @@ private:
      * \param starting_position The position the head was in before starting this layer
      * \return the total estimates of this layer
      */
-    TimeMaterialEstimates computeNaiveTimeEstimates(Point starting_position);
+    TimeMaterialEstimates computeNaiveTimeEstimates(Point2LL starting_position);
 };
 
 } // namespace cura

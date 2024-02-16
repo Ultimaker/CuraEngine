@@ -10,23 +10,23 @@
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "slicer.h"
-#include "utils/IntPoint.h"
+#include "utils/Point2LL.h"
 
 namespace cura
 {
 
 void Mold::process(std::vector<Slicer*>& slicer_list)
 {
-    Scene& scene = Application::getInstance().current_slice->scene;
+    Scene& scene = Application::getInstance().current_slice_->scene;
     { // check whether we even need to process molds
         bool has_any_mold = false;
         for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
         {
             Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
-            if (mesh.settings.get<bool>("mold_enabled"))
+            if (mesh.settings_.get<bool>("mold_enabled"))
             {
                 has_any_mold = true;
-                mesh.expandXY(mesh.settings.get<coord_t>("mold_width"));
+                mesh.expandXY(mesh.settings_.get<coord_t>("mold_width"));
             }
         }
         if (! has_any_mold)
@@ -57,21 +57,21 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
         {
             const Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
             Slicer& slicer = *slicer_list[mesh_idx];
-            if (! mesh.settings.get<bool>("mold_enabled") || layer_nr >= static_cast<int>(slicer.layers.size()))
+            if (! mesh.settings_.get<bool>("mold_enabled") || layer_nr >= static_cast<int>(slicer.layers.size()))
             {
                 continue;
             }
-            coord_t width = mesh.settings.get<coord_t>("mold_width");
-            coord_t open_polyline_width = mesh.settings.get<coord_t>("wall_line_width_0");
+            coord_t width = mesh.settings_.get<coord_t>("mold_width");
+            coord_t open_polyline_width = mesh.settings_.get<coord_t>("wall_line_width_0");
             if (layer_nr == 0)
             {
-                const ExtruderTrain& train_wall_0 = mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr");
-                open_polyline_width *= train_wall_0.settings.get<Ratio>("initial_layer_line_width_factor");
+                const ExtruderTrain& train_wall_0 = mesh.settings_.get<ExtruderTrain&>("wall_0_extruder_nr");
+                open_polyline_width *= train_wall_0.settings_.get<Ratio>("initial_layer_line_width_factor");
             }
-            const AngleDegrees angle = mesh.settings.get<AngleDegrees>("mold_angle");
-            const coord_t roof_height = mesh.settings.get<coord_t>("mold_roof_height");
+            const AngleDegrees angle = mesh.settings_.get<AngleDegrees>("mold_angle");
+            const coord_t roof_height = mesh.settings_.get<coord_t>("mold_roof_height");
 
-            const coord_t inset = tan(angle / 180 * M_PI) * layer_height;
+            const coord_t inset = tan(angle / 180 * std::numbers::pi) * layer_height;
             const size_t roof_layer_count = roof_height / layer_height;
 
 
@@ -108,7 +108,7 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
         for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
         {
             const Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
-            if (! mesh.settings.get<bool>("mold_enabled"))
+            if (! mesh.settings_.get<bool>("mold_enabled"))
             {
                 continue; // only cut original models out of all molds
             }

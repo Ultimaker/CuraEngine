@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/ListPolyIt.h"
 
@@ -9,7 +9,7 @@
 #include "utils/AABB.h" // for debug output svg html
 #include "utils/SVG.h"
 
-namespace cura 
+namespace cura
 {
 
 
@@ -25,9 +25,9 @@ void ListPolyIt::convertPolygonsToLists(const Polygons& polys, ListPolygons& res
 void ListPolyIt::convertPolygonToList(ConstPolygonRef poly, ListPolygon& result)
 {
 #ifdef DEBUG
-    Point last = poly.back();
+    Point2LL last = poly.back();
 #endif // DEBUG
-    for (const Point& p : poly)
+    for (const Point2LL& p : poly)
     {
         result.push_back(p);
 #ifdef DEBUG
@@ -52,13 +52,13 @@ void ListPolyIt::convertListPolygonsToPolygons(const ListPolygons& list_polygons
 
 void ListPolyIt::convertListPolygonToPolygon(const ListPolygon& list_polygon, PolygonRef polygon)
 {
-    for (const Point& p : list_polygon)
+    for (const Point2LL& p : list_polygon)
     {
         polygon.add(p);
     }
 }
 
-ListPolyIt ListPolyIt::insertPointNonDuplicate(const ListPolyIt before, const ListPolyIt after, const Point to_insert)
+ListPolyIt ListPolyIt::insertPointNonDuplicate(const ListPolyIt before, const ListPolyIt after, const Point2LL to_insert)
 {
     if (to_insert == before.p())
     {
@@ -70,11 +70,10 @@ ListPolyIt ListPolyIt::insertPointNonDuplicate(const ListPolyIt before, const Li
     }
     else
     {
-        ListPolygon& poly = *after.poly;
-        return ListPolyIt(poly, poly.insert(after.it, to_insert));
+        ListPolygon& poly = *after.poly_;
+        return ListPolyIt(poly, poly.insert(after.it_, to_insert));
     }
 }
 
 
-
-}//namespace cura 
+} // namespace cura

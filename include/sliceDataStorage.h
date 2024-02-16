@@ -4,6 +4,10 @@
 #ifndef SLICE_DATA_STORAGE_H
 #define SLICE_DATA_STORAGE_H
 
+#include <map>
+#include <memory>
+#include <optional>
+
 #include "PrimeTower.h"
 #include "RetractionConfig.h"
 #include "SupportInfillPart.h"
@@ -14,13 +18,9 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/AABB.h"
 #include "utils/AABB3D.h"
-#include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
+#include "utils/Point2LL.h"
 #include "utils/polygon.h"
-
-#include <map>
-#include <memory>
-#include <optional>
 
 // libArachne
 #include "utils/ExtrusionLine.h"
@@ -212,6 +212,9 @@ public:
     std::vector<SupportInfillPart> support_infill_parts; //!< a list of support infill parts
     Polygons support_bottom; //!< Piece of support below the support and above the model. This must not overlap with any of the support_infill_parts or support_roof.
     Polygons support_roof; //!< Piece of support above the support and below the model. This must not overlap with any of the support_infill_parts or support_bottom.
+                           //   NOTE: This is _all_ of the support_roof, and as such, overlaps with support_fractional_roof!
+    Polygons support_fractional_roof; //!< If the support distance is not exactly a multiple of the layer height,
+                                      //   the first part of support just underneath the model needs to be printed at a fracional layer height.
     Polygons support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support
     Polygons support_mesh; //!< Areas from support meshes which should NOT be supported by more support
     Polygons anti_overhang; //!< Areas where no overhang should be detected.
@@ -223,6 +226,26 @@ public:
      * \param exclude_polygons_boundary_box The boundary box for the polygons to exclude
      */
     void excludeAreasFromSupportInfillAreas(const Polygons& exclude_polygons, const AABB& exclude_polygons_boundary_box);
+
+    /* Fill up the infill parts for the support with the given support polygons. The support polygons will be split into parts. This also takes into account fractional-height
+     * support layers.
+     *
+     * \param layer_nr Current layer index.
+     * \param support_fill_per_layer All of the (infill) support (since the layer above might be needed).
+     * \param support_line_width Line width of the support extrusions.
+     * \param wall_line_count Wall-line count around the fill.
+     * \param grow_layer_above (optional, default to 0) In cases where support shrinks per layer up, an appropriate offset may be nescesary.
+     * \param unionAll (optional, default to false) Wether to 'union all' for the split into parts bit.
+     * \param custom_line_distance (optional, default to 0) Distance between lines of the infill pattern. custom_line_distance of 0 means use the default instead.
+     */
+    void fillInfillParts(
+        const LayerIndex layer_nr,
+        const std::vector<Polygons>& support_fill_per_layer,
+        const coord_t support_line_width,
+        const coord_t wall_line_count,
+        const coord_t grow_layer_above = 0,
+        const bool unionAll = false,
+        const coord_t custom_line_distance = 0);
 };
 
 class SupportStorage
@@ -305,7 +328,7 @@ public:
     /*!
      * \return the mesh's user specified z seam hint
      */
-    Point getZSeamHint() const;
+    Point2LL getZSeamHint() const;
 };
 
 /*!
@@ -322,7 +345,7 @@ class SliceDataStorage : public NoCopy
 public:
     size_t print_layer_count; //!< The total number of layers (except the raft and filler layers)
 
-    Point3 model_size, model_min, model_max;
+    Point3LL model_size, model_min, model_max;
     AABB3D machine_size; //!< The bounding box with the width, height and depth of the printer.
     std::vector<std::shared_ptr<SliceMeshStorage>> meshes;
 
@@ -332,9 +355,11 @@ public:
 
     std::vector<SkirtBrimLine> skirt_brim[MAX_EXTRUDERS]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
     Polygons support_brim; //!< brim lines for support, going from the edge of the support inward. \note Not ordered by inset.
-    Polygons raftOutline; // Storage for the outline of the raft. Will be filled with lines when the GCode is generated.
-    Polygons primeRaftOutline; // ... the raft underneath the prime-tower will have to be printed first, if there is one. (When the raft has top layers with a different extruder
-                               // for example.)
+
+    // Storage for the outline of the raft-parts. Will be filled with lines when the GCode is generated.
+    Polygons raftBaseOutline;
+    Polygons raftInterfaceOutline;
+    Polygons raftSurfaceOutline;
 
     int max_print_height_second_to_last_extruder; //!< Used in multi-extrusion: the layer number beyond which all models are printed with the same extruder
     std::vector<int> max_print_height_per_extruder; //!< For each extruder the highest layer number at which it is used.

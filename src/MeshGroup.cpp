@@ -1,6 +1,8 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include "MeshGroup.h"
+
 #include <limits>
 #include <stdio.h>
 #include <string.h>
@@ -10,10 +12,9 @@
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
 
-#include "MeshGroup.h"
 #include "settings/types/Ratio.h" //For the shrinkage percentage and scale factor.
-#include "utils/FMatrix4x3.h" //To transform the input meshes for shrinkage compensation and to align in command line mode.
-#include "utils/floatpoint.h" //To accept incoming meshes with floating point vertices.
+#include "utils/Matrix4x3D.h" //To transform the input meshes for shrinkage compensation and to align in command line mode.
+#include "utils/Point3F.h" //To accept incoming meshes with floating point vertices.
 #include "utils/gettime.h"
 #include "utils/section_type.h"
 #include "utils/string.h"
@@ -39,44 +40,46 @@ void* fgets_(char* ptr, size_t len, FILE* f)
     return nullptr;
 }
 
-Point3 MeshGroup::min() const
+Point3LL MeshGroup::min() const
 {
     if (meshes.size() < 1)
     {
-        return Point3(0, 0, 0);
+        return Point3LL(0, 0, 0);
     }
-    Point3 ret(std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max());
+    Point3LL ret(std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max());
     for (const Mesh& mesh : meshes)
     {
-        if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("cutting_mesh") || mesh.settings.get<bool>("anti_overhang_mesh")) // Don't count pieces that are not printed.
+        if (mesh.settings_.get<bool>("infill_mesh") || mesh.settings_.get<bool>("cutting_mesh")
+            || mesh.settings_.get<bool>("anti_overhang_mesh")) // Don't count pieces that are not printed.
         {
             continue;
         }
-        Point3 v = mesh.min();
-        ret.x = std::min(ret.x, v.x);
-        ret.y = std::min(ret.y, v.y);
-        ret.z = std::min(ret.z, v.z);
+        Point3LL v = mesh.min();
+        ret.x_ = std::min(ret.x_, v.x_);
+        ret.y_ = std::min(ret.y_, v.y_);
+        ret.z_ = std::min(ret.z_, v.z_);
     }
     return ret;
 }
 
-Point3 MeshGroup::max() const
+Point3LL MeshGroup::max() const
 {
     if (meshes.size() < 1)
     {
-        return Point3(0, 0, 0);
+        return Point3LL(0, 0, 0);
     }
-    Point3 ret(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min());
+    Point3LL ret(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min());
     for (const Mesh& mesh : meshes)
     {
-        if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("cutting_mesh") || mesh.settings.get<bool>("anti_overhang_mesh")) // Don't count pieces that are not printed.
+        if (mesh.settings_.get<bool>("infill_mesh") || mesh.settings_.get<bool>("cutting_mesh")
+            || mesh.settings_.get<bool>("anti_overhang_mesh")) // Don't count pieces that are not printed.
         {
             continue;
         }
-        Point3 v = mesh.max();
-        ret.x = std::max(ret.x, v.x);
-        ret.y = std::max(ret.y, v.y);
-        ret.z = std::max(ret.z, v.z);
+        Point3LL v = mesh.max();
+        ret.x_ = std::max(ret.x_, v.x_);
+        ret.y_ = std::max(ret.y_, v.y_);
+        ret.z_ = std::max(ret.z_, v.z_);
     }
     return ret;
 }
@@ -92,27 +95,29 @@ void MeshGroup::clear()
 void MeshGroup::finalize()
 {
     // If the machine settings have been supplied, offset the given position vertices to the center of vertices (0,0,0) is at the bed center.
-    Point3 meshgroup_offset(0, 0, 0);
+    Point3LL meshgroup_offset(0, 0, 0);
     if (! settings.get<bool>("machine_center_is_zero"))
     {
-        meshgroup_offset.x = settings.get<coord_t>("machine_width") / 2;
-        meshgroup_offset.y = settings.get<coord_t>("machine_depth") / 2;
+        meshgroup_offset.x_ = settings.get<coord_t>("machine_width") / 2;
+        meshgroup_offset.y_ = settings.get<coord_t>("machine_depth") / 2;
     }
 
     // If a mesh position was given, put the mesh at this position in 3D space.
     for (Mesh& mesh : meshes)
     {
-        Point3 mesh_offset(mesh.settings.get<coord_t>("mesh_position_x"), mesh.settings.get<coord_t>("mesh_position_y"), mesh.settings.get<coord_t>("mesh_position_z"));
-        if (mesh.settings.get<bool>("center_object"))
+        Point3LL mesh_offset(mesh.settings_.get<coord_t>("mesh_position_x"), mesh.settings_.get<coord_t>("mesh_position_y"), mesh.settings_.get<coord_t>("mesh_position_z"));
+        if (mesh.settings_.get<bool>("center_object"))
         {
-            Point3 object_min = mesh.min();
-            Point3 object_max = mesh.max();
-            Point3 object_size = object_max - object_min;
-            mesh_offset += Point3(-object_min.x - object_size.x / 2, -object_min.y - object_size.y / 2, -object_min.z);
+            Point3LL object_min = mesh.min();
+            Point3LL object_max = mesh.max();
+            Point3LL object_size = object_max - object_min;
+            mesh_offset += Point3LL(-object_min.x_ - object_size.x_ / 2, -object_min.y_ - object_size.y_ / 2, -object_min.z_);
         }
         mesh.translate(mesh_offset + meshgroup_offset);
     }
-    scaleFromBottom(settings.get<Ratio>("material_shrinkage_percentage_xy"), settings.get<Ratio>("material_shrinkage_percentage_z")); // Compensate for the shrinkage of the material.
+    scaleFromBottom(
+        settings.get<Ratio>("material_shrinkage_percentage_xy"),
+        settings.get<Ratio>("material_shrinkage_percentage_z")); // Compensate for the shrinkage of the material.
     for (const auto& [idx, mesh] : meshes | ranges::views::enumerate)
     {
         scripta::log(fmt::format("mesh_{}", idx), mesh, SectionType::NA);
@@ -121,38 +126,38 @@ void MeshGroup::finalize()
 
 void MeshGroup::scaleFromBottom(const Ratio factor_xy, const Ratio factor_z)
 {
-    const Point3 center = (max() + min()) / 2;
-    const Point3 origin(center.x, center.y, 0);
+    const Point3LL center = (max() + min()) / 2;
+    const Point3LL origin(center.x_, center.y_, 0);
 
-    const FMatrix4x3 transformation = FMatrix4x3::scale(factor_xy, factor_xy, factor_z, origin);
+    const Matrix4x3D transformation = Matrix4x3D::scale(factor_xy, factor_xy, factor_z, origin);
     for (Mesh& mesh : meshes)
     {
         mesh.transform(transformation);
     }
 }
 
-bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const FMatrix4x3& matrix)
+bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const Matrix4x3D& matrix)
 {
     FILE* f = fopen(filename, "rt");
     char buffer[1024];
-    FPoint3 vertex;
+    Point3F vertex;
     int n = 0;
-    Point3 v0(0, 0, 0), v1(0, 0, 0), v2(0, 0, 0);
+    Point3LL v0(0, 0, 0), v1(0, 0, 0), v2(0, 0, 0);
     while (fgets_(buffer, sizeof(buffer), f))
     {
-        if (sscanf(buffer, " vertex %f %f %f", &vertex.x, &vertex.y, &vertex.z) == 3)
+        if (sscanf(buffer, " vertex %f %f %f", &vertex.x_, &vertex.y_, &vertex.z_) == 3)
         {
             n++;
             switch (n)
             {
             case 1:
-                v0 = matrix.apply(vertex);
+                v0 = matrix.apply(vertex.toPoint3d());
                 break;
             case 2:
-                v1 = matrix.apply(vertex);
+                v1 = matrix.apply(vertex.toPoint3d());
                 break;
             case 3:
-                v2 = matrix.apply(vertex);
+                v2 = matrix.apply(vertex.toPoint3d());
                 mesh->addFace(v0, v1, v2);
                 n = 0;
                 break;
@@ -164,7 +169,7 @@ bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const FMatrix4x3& matri
     return true;
 }
 
-bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const FMatrix4x3& matrix)
+bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const Matrix4x3D& matrix)
 {
     FILE* f = fopen(filename, "rb");
 
@@ -196,20 +201,20 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const FMatrix4x3& matr
     // For each face read:
     // float(x,y,z) = normal, float(X,Y,Z)*3 = vertexes, uint16_t = flags
     //  Every Face is 50 Bytes: Normal(3*float), Vertices(9*float), 2 Bytes Spacer
-    mesh->faces.reserve(face_count);
-    mesh->vertices.reserve(face_count);
-    for (unsigned int i = 0; i < face_count; i++)
+    mesh->faces_.reserve(face_count);
+    mesh->vertices_.reserve(face_count);
+    for (size_t i = 0; i < face_count; i++)
     {
         if (fread(buffer, 50, 1, f) != 1)
         {
             fclose(f);
             return false;
         }
-        float* v = ((float*)buffer) + 3;
+        float* v = reinterpret_cast<float*>(buffer) + 3;
 
-        Point3 v0 = matrix.apply(FPoint3(v[0], v[1], v[2]));
-        Point3 v1 = matrix.apply(FPoint3(v[3], v[4], v[5]));
-        Point3 v2 = matrix.apply(FPoint3(v[6], v[7], v[8]));
+        Point3LL v0 = matrix.apply(Point3F(v[0], v[1], v[2]).toPoint3d());
+        Point3LL v1 = matrix.apply(Point3F(v[3], v[4], v[5]).toPoint3d());
+        Point3LL v2 = matrix.apply(Point3F(v[6], v[7], v[8]).toPoint3d());
         mesh->addFace(v0, v1, v2);
     }
     fclose(f);
@@ -217,7 +222,7 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const FMatrix4x3& matr
     return true;
 }
 
-bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix4x3& matrix)
+bool loadMeshSTL(Mesh* mesh, const char* filename, const Matrix4x3D& matrix)
 {
     FILE* f = fopen(filename, "rb");
     if (f == nullptr)
@@ -226,7 +231,7 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix4x3& matrix)
     }
 
     // assign filename to mesh_name
-    mesh->mesh_name = filename;
+    mesh->mesh_name_ = filename;
 
     // Skip any whitespace at the beginning of the file.
     unsigned long long num_whitespace = 0; // Number of whitespace characters.
@@ -264,7 +269,7 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix4x3& matrix)
 
         // This logic is used to handle the case where the file starts with
         // "solid" but is a binary file.
-        if (mesh->faces.size() < 1)
+        if (mesh->faces_.size() < 1)
         {
             mesh->clear();
             return loadMeshSTL_binary(mesh, filename, matrix);
@@ -274,7 +279,7 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix4x3& matrix)
     return loadMeshSTL_binary(mesh, filename, matrix);
 }
 
-bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix4x3& transformation, Settings& object_parent_settings)
+bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const Matrix4x3D& transformation, Settings& object_parent_settings)
 {
     TimeKeeper load_timer;
 
@@ -285,7 +290,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMa
         if (loadMeshSTL(&mesh, filename, transformation)) // Load it! If successful...
         {
             meshgroup->meshes.push_back(mesh);
-            spdlog::info("loading '{}' took {:3} seconds", filename, load_timer.restart());
+            spdlog::info("loading '{}' took {:03.3f} seconds", filename, load_timer.restart());
             return true;
         }
     }
