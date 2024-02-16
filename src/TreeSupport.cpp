@@ -69,10 +69,6 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
             {
                 added = true;
                 grouped_mesh.second.emplace_back(mesh_idx);
-                // Handle some settings that are only used for performance reasons. This ensures that a horrible set setting intended to improve performance can not reduce it
-                // drastically.
-                grouped_mesh.first.performance_interface_skip_layers
-                    = std::min(grouped_mesh.first.performance_interface_skip_layers, next_settings.performance_interface_skip_layers);
             }
         }
         if (! added)
@@ -159,7 +155,12 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             exclude);
 
         // ### Precalculate avoidances, collision etc.
-        precalculate(storage, processing.second);
+        const LayerIndex max_required_layer = precalculate(storage, processing.second);
+        if (max_required_layer < 0)
+        {
+            spdlog::info("Support tree mesh group {} does not have any overhang. Skipping tree support generation for this support tree mesh group.", counter + 1);
+            continue; // If there is no overhang to support, skip these meshes
+        }
         const auto t_precalc = std::chrono::high_resolution_clock::now();
 
         // ### Place tips of the support tree
@@ -212,10 +213,10 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     storage.support.generated = true;
 }
 
-void TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes)
+LayerIndex TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes)
 {
     // Calculate top most layer that is relevant for support.
-    LayerIndex max_layer = 0;
+    LayerIndex max_layer = -1;
     for (size_t mesh_idx : currently_processing_meshes)
     {
         const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
@@ -244,7 +245,11 @@ void TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size
     }
 
     // ### The actual precalculation happens in TreeModelVolumes.
-    volumes_.precalculate(max_layer);
+    if (max_layer >= 0)
+    {
+        volumes_.precalculate(max_layer);
+    }
+    return max_layer;
 }
 
 
@@ -1655,7 +1660,7 @@ void TreeSupport::generateBranchAreas(
     }
 
     std::vector<Polygons> linear_inserts(linear_data.size());
-    const size_t progress_inserts_check_interval = linear_data.size() / progress_report_steps;
+    const size_t progress_inserts_check_interval = std::max(linear_data.size() / progress_report_steps, size_t(1));
 
     std::mutex critical_sections;
     cura::parallel_for<size_t>(
@@ -1928,9 +1933,8 @@ void TreeSupport::dropNonGraciousAreas(
         [&](const size_t idx)
         {
             TreeSupportElement* elem = linear_data[idx].second;
-            bool non_gracious_model_contact
-                = ! elem->to_model_gracious_
-               && ! inverse_tree_order.count(elem); // If an element has no child, it connects to whatever is below as no support further down for it will exist.
+            bool non_gracious_model_contact = ! elem->to_model_gracious_ && ! inverse_tree_order.count(elem) && linear_data[idx].first > 0
+                                           && ! elem->to_buildplate_; // If an element has no child, it connects to whatever is below as no support further down for it will exist.
             if (non_gracious_model_contact)
             {
                 Polygons rest_support = layer_tree_polygons[linear_data[idx].first][elem].intersection(volumes_.getAccumulatedPlaceable0(linear_data[idx].first));
@@ -2206,8 +2210,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
                 size_t layers_below = 0;
                 while (layers_below <= config.support_bottom_layers)
                 {
-                    // One sample at 0 layers below, another at config.support_bottom_layers. In-between samples at config.performance_interface_skip_layers distance from each
-                    // other.
+                    // One sample at 0 layers below, another at config.support_bottom_layers. In-between samples at 1-layer distance from each other.
                     const size_t sample_layer
                         = static_cast<size_t>(std::max(0, (static_cast<int>(layer_idx) - static_cast<int>(layers_below)) - static_cast<int>(config.z_distance_bottom_layers)));
                     constexpr bool no_support = false;
@@ -2215,7 +2218,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
                     floor_layer.add(layer_outset.intersection(storage.getLayerOutlines(sample_layer, no_support, no_prime_tower)));
                     if (layers_below < config.support_bottom_layers)
                     {
-                        layers_below = std::min(layers_below + config.performance_interface_skip_layers, config.support_bottom_layers);
+                        layers_below = std::min(layers_below + 1UL, config.support_bottom_layers);
                     }
                     else
                     {
@@ -2226,7 +2229,13 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
                 storage.support.supportLayers[layer_idx].support_bottom = storage.support.supportLayers[layer_idx].support_bottom.unionPolygons(floor_layer);
                 support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(floor_layer.offset(10)); // Subtract the support floor from the normal support.
             }
+        });
 
+    cura::parallel_for<coord_t>(
+        0,
+        support_layer_storage.size(),
+        [&](const LayerIndex layer_idx)
+        {
             constexpr bool convert_every_part = true; // Convert every part into a PolygonsPart for the support.
             storage.support.supportLayers[layer_idx]
                 .fillInfillParts(layer_idx, support_layer_storage, config.support_line_width, config.support_wall_count, config.maximum_move_distance, convert_every_part);

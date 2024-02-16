@@ -212,6 +212,13 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
         }
     }
     EXPECT_GT(order.size(), 0) << "There should be ordered pairs!";
+    std::unordered_set<const ExtrusionLine*> has_order_info(part.wall_toolpaths.size());
+    for (auto [from, to] : order)
+    {
+        has_order_info.emplace(from);
+        has_order_info.emplace(to);
+    }
+    EXPECT_EQ(has_order_info.size(), n_paths) << "Every path should have order information.";
 }
 
 } // namespace cura

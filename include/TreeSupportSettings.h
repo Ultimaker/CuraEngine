@@ -56,7 +56,6 @@ struct TreeSupportSettings
         , xy_min_distance(support_overrides == SupportDistPriority::Z_OVERRIDES_XY ? mesh_group_settings.get<coord_t>("support_xy_distance_overhang") : xy_distance)
         , z_distance_top_layers(round_up_divide(mesh_group_settings.get<coord_t>("support_top_distance"), layer_height))
         , z_distance_bottom_layers(round_up_divide(mesh_group_settings.get<coord_t>("support_bottom_distance"), layer_height))
-        , performance_interface_skip_layers(round_up_divide(mesh_group_settings.get<coord_t>("support_interface_skip_height"), layer_height))
         , support_infill_angles(mesh_group_settings.get<std::vector<AngleDegrees>>("support_infill_angles"))
         , support_roof_angles(mesh_group_settings.get<std::vector<AngleDegrees>>("support_roof_angles"))
         , roof_pattern(mesh_group_settings.get<EFillMethod>("support_roof_pattern"))
@@ -267,11 +266,6 @@ public:
      * \brief Amount of layers distance required from the top of the model to the bottom of a support structure.
      */
     size_t z_distance_bottom_layers;
-
-    /*!
-     * \brief used for performance optimization at the support floor. Should have no impact on the resulting tree.
-     */
-    size_t performance_interface_skip_layers;
 
     /*!
      * \brief User specified angles for the support infill.

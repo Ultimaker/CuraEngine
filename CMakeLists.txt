@@ -247,6 +247,9 @@ else ()
                 )
     endif ()
     add_executable(CuraEngine src/main.cpp ${RES_FILES}) # ..., but don't forget the glitter!
+    if (ENABLE_SENTRY)
+        set_target_properties(CuraEngine PROPERTIES LINK_FLAGS "/DEBUG:FULL")
+    endif ()
 endif (NOT WIN32)
 
 use_threads(CuraEngine)

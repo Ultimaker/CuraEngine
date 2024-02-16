@@ -359,10 +359,12 @@ protected:
         // initialize the roots set with all possible nodes
         std::unordered_set<Path> roots;
         std::unordered_set<Path> leaves;
+        std::unordered_map<Path, size_t> num_incoming_edges;
         for (const auto& path : paths_)
         {
             roots.insert(path.vertices_);
             leaves.insert(path.vertices_);
+            num_incoming_edges.emplace(path.vertices_, 0);
         }
 
         // remove all edges from roots with an incoming edge
@@ -371,6 +373,7 @@ protected:
         {
             roots.erase(v);
             leaves.erase(u);
+            num_incoming_edges.find(v)->second++;
         }
 
         // We used a shared visited set between runs of dfs. This is for the case when we reverse the ordering tree.
@@ -379,16 +382,23 @@ protected:
         Point2LL current_position = start_point_;
 
         std::function<std::vector<Path>(const Path, const std::unordered_multimap<Path, Path>&)> get_neighbours
-            = [current_position, this](const Path current_node, const std::unordered_multimap<Path, Path>& graph)
+            = [&current_position, &num_incoming_edges, this](const Path current_node, const std::unordered_multimap<Path, Path>& graph)
         {
             std::vector<Path> order; // Output order to traverse neighbors
 
             const auto& [neighbour_begin, neighbour_end] = graph.equal_range(current_node);
-            auto candidates_iterator = ranges::make_subrange(neighbour_begin, neighbour_end);
             std::unordered_set<Path> candidates;
-            for (const auto& [_, neighbour] : candidates_iterator)
+            for (const auto& [_, neighbour] : ranges::make_subrange(neighbour_begin, neighbour_end))
             {
-                candidates.insert(neighbour);
+                // we only want to visit nodes that have no incoming edges, this is for the situation where we
+                // are printing paths from inner to outer. As the ordering tree is reversed, and we start traversing
+                // from an arbitrary leaf we might encounter a junction. All paths from the other leaf-side(s) of the junction
+                // should be printed before continuing the junctions. Only once every branch of the junction has been ordered
+                // we can continue with the junction itself.
+                if (num_incoming_edges.at(neighbour) == 0)
+                {
+                    candidates.insert(neighbour);
+                }
             }
 
             auto local_current_position = current_position;
@@ -417,10 +427,10 @@ protected:
         };
 
         const std::function<std::nullptr_t(const Path, const std::nullptr_t)> handle_node
-            = [&current_position, &optimized_order, this](const Path current_node, [[maybe_unused]] const std::nullptr_t state)
+            = [&current_position, &optimized_order, &order_requirements, &num_incoming_edges, this](const Path current_node, [[maybe_unused]] const std::nullptr_t state)
         {
             // We should make map from node <-> path for this stuff
-            for (auto& path : paths_)
+            for (const auto& path : paths_)
             {
                 if (path.vertices_ == current_node)
                 {
@@ -436,6 +446,13 @@ protected:
 
                     // Add to optimized order
                     optimized_order.push_back(path);
+
+                    // update incoming edges of neighbours since this path is handled
+                    const auto& [neighbour_begin, neighbour_end] = order_requirements.equal_range(path.vertices_);
+                    for (const auto& [_, neighbour] : ranges::make_subrange(neighbour_begin, neighbour_end))
+                    {
+                        num_incoming_edges.find(neighbour)->second--;
+                    }
 
                     break;
                 }

@@ -44,6 +44,7 @@ class SlicePhaseTest : public testing::Test
         scene.settings.add("raft_interface_layers", "1");
         scene.settings.add("raft_surface_thickness", "0.2");
         scene.settings.add("raft_surface_layers", "1");
+        scene.settings.add("raft_surface_extruder_nr", "0");
         scene.settings.add("magic_mesh_surface_mode", "normal");
         scene.settings.add("meshfix_extensive_stitching", "false");
         scene.settings.add("meshfix_keep_open_polygons", "false");

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "LayerPlan.h" //The code under test.
@@ -124,6 +124,8 @@ public:
         settings->add("prime_tower_line_width", "0.48");
         settings->add("prime_tower_min_volume", "10");
         settings->add("prime_tower_size", "40");
+        settings->add("raft_interface_layers", "1");
+        settings->add("raft_surface_layers", "1");
         settings->add("raft_base_line_width", "0.401");
         settings->add("raft_base_acceleration", "5001");
         settings->add("raft_base_jerk", "5.1");
@@ -134,11 +136,13 @@ public:
         settings->add("raft_interface_line_width", "0.402");
         settings->add("raft_interface_speed", "52");
         settings->add("raft_interface_thickness", "0.102");
+        settings->add("raft_interface_layers", "3");
         settings->add("raft_surface_acceleration", "5003");
         settings->add("raft_surface_jerk", "5.3");
         settings->add("raft_surface_line_width", "0.403");
         settings->add("raft_surface_speed", "53");
         settings->add("raft_surface_thickness", "0.103");
+        settings->add("raft_surface_layers", "3");
         settings->add("retraction_amount", "8");
         settings->add("retraction_combing", "off");
         settings->add("retraction_count_max", "30");
