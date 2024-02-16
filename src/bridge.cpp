@@ -127,7 +127,7 @@ double bridgeAngle(
         {
             if (! poly.empty())
             {
-                skin_perimeter_lines.emplace_back(poly);
+                skin_perimeter_lines.push_back(poly.toType<OpenPolyline>());
             }
         }
 
@@ -138,19 +138,17 @@ double bridgeAngle(
             // one or more edges of the skin region are unsupported, determine the longest
             coord_t max_dist2 = 0;
             double line_angle = -1;
-            for (const Polygon& air_line : skin_perimeter_lines_over_air)
+            for (const OpenPolyline& air_line : skin_perimeter_lines_over_air)
             {
-                Point2LL p0 = air_line[0];
-                for (unsigned i = 1; i < air_line.size(); ++i)
+                for (auto iterator = air_line.beginSegments(); iterator != air_line.endSegments(); ++iterator)
                 {
-                    const Point2LL& p1(air_line[i]);
-                    coord_t dist2 = vSize2(p0 - p1);
+                    const Point2LL vector = (*iterator).start - (*iterator).end;
+                    coord_t dist2 = vSize2(vector);
                     if (dist2 > max_dist2)
                     {
                         max_dist2 = dist2;
-                        line_angle = angle(p0 - p1);
+                        line_angle = angle(vector);
                     }
-                    p0 = p1;
                 }
             }
             return line_angle;

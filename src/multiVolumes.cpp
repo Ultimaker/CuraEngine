@@ -135,8 +135,9 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
                     // they have to be polylines, because they might break up further when doing the cutting
                     for (Polygon& poly : cutting_mesh_polygons)
                     {
+#warning this should not be required
                         poly.push_back(poly[0]);
-                        cutting_mesh_polylines.push_back(poly);
+                        cutting_mesh_polylines.push_back(poly.toType<OpenPolyline>());
                     }
 
                     cutting_mesh_polygons.clear();
