@@ -130,12 +130,15 @@ Polygons Polygons::intersection(const Polygons& other) const
     return ret;
 }
 
-Polygons& Polygons::operator=(Polygons&& polygons)
+Polygons& Polygons::operator=(const Polygons& other)
 {
-    if (this != &polygons)
-    {
-        (*this) = std::move(polygons);
-    }
+    LinesSet<Polygon>::operator=(other);
+    return *this;
+}
+
+Polygons& Polygons::operator=(Polygons&& other)
+{
+    LinesSet<Polygon>::operator=(other);
     return *this;
 }
 

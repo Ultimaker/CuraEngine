@@ -2,8 +2,11 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ReadTestPolygons.h"
-#include "utils/Coord_t.h"
+
 #include <cstdio>
+
+#include "geometry/polygons.h"
+#include "utils/Coord_t.h"
 
 // NOTE: See the documentation in the header-file for an explanation of this simple file format.
 
@@ -68,7 +71,7 @@ bool readTestPolygons(const std::string& filename, std::vector<Polygons>& polygo
         case '#': // end of file
             if (! next_path.empty())
             {
-                next_shape.add(Polygon(next_path)); // copy and add
+                next_shape.push_back(Polygon(next_path)); // copy and add
                 next_path.clear();
             }
             if (command != 'x' && ! next_shape.empty())

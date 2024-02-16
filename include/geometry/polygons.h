@@ -37,13 +37,9 @@ public:
     {
     }
 
-    Polygons& operator=(const Polygons& other)
-    {
-        LinesSet<Polygon>::operator=(other);
-        return *this;
-    }
+    Polygons& operator=(const Polygons& other);
 
-    Polygons& operator=(Polygons&& polygons);
+    Polygons& operator=(Polygons&& other);
 
     void add(const Polygons& other);
 

@@ -45,6 +45,18 @@ public:
     {
     }
 
+    template<class OtherType>
+    OtherType& toType()
+    {
+        return *reinterpret_cast<OtherType*>(this);
+    }
+
+    template<class OtherType>
+    const OtherType& toType() const
+    {
+        return *reinterpret_cast<const OtherType*>(this);
+    }
+
     /*Polyline& operator=(const Polyline& other)
     {
         std::vector<point_t>::operator=(other);
