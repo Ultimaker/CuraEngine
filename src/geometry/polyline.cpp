@@ -153,10 +153,7 @@ bool Polyline<PolylineTypeVal>::shorterThan(const coord_t check_length) const
         [&length, &check_length](const const_segments_iterator::value_type& segment)
         {
             length += vSize(segment.end - segment.start);
-            if (length >= check_length)
-            {
-                return true;
-            }
+            return length >= check_length;
         });
     return iterator_segment == endSegments();
 }
