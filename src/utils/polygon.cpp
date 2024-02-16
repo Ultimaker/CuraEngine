@@ -1582,6 +1582,67 @@ Polygons Polygons::tubeShape(const coord_t inner_offset, const coord_t outer_off
     return this->offset(outer_offset).difference(this->offset(-inner_offset));
 }
 
+Polygons Polygons::removeNearSelfIntersections() const
+{
+    using map_pt = mapbox::geometry::point<coord_t>;
+    using map_ring = mapbox::geometry::linear_ring<coord_t>;
+    using map_poly = mapbox::geometry::polygon<coord_t>;
+    using map_mpoly = mapbox::geometry::multi_polygon<coord_t>;
+
+    map_mpoly mwpoly;
+
+    mapbox::geometry::wagyu::wagyu<coord_t> wagyu;
+
+    for (const auto& polygon : splitIntoParts())
+    {
+        mwpoly.emplace_back();
+        map_poly& wpoly = mwpoly.back();
+        for (const auto& path : polygon)
+        {
+            wpoly.emplace_back();
+            map_ring& wring = wpoly.back();
+            for (const auto& point : path)
+            {
+                wring.emplace_back(point.X / 4, point.Y / 4);
+            }
+
+            wagyu.add_ring(wring);
+        }
+    }
+
+    map_mpoly sln;
+
+    wagyu.execute(mapbox::geometry::wagyu::clip_type_union, sln, mapbox::geometry::wagyu::fill_type_even_odd, mapbox::geometry::wagyu::fill_type_even_odd);
+
+    Polygons polys;
+
+    {
+        for (const auto& poly : sln)
+        {
+            for (const auto& ring : poly)
+            {
+                Polygon npoly;
+                auto last = ring.back();
+                bool first = true;
+                for (const auto& pt : ring)
+                {
+                    if (first || pt != ring.back())
+                    {
+                        npoly.emplace_back(pt.x * 4, pt.y * 4);
+                        first = false;
+                    }
+                    last = pt;
+                }
+                polys.add(npoly);
+            }
+        }
+        polys = polys.unionPolygons();
+        polys.removeColinearEdges();
+    }
+
+    return polys;
+}
+
 size_t PartsView::getPartContaining(size_t poly_idx, size_t* boundary_poly_idx) const
 {
     const PartsView& partsView = *this;

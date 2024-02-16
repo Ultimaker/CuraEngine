@@ -15,6 +15,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <mapbox/geometry/wagyu/wagyu.hpp>
+
 #include "../settings/types/Angle.h" //For angles between vertices.
 #include "../settings/types/Ratio.h"
 #include "Point2LL.h"
@@ -1536,6 +1538,17 @@ public:
      * @return Polygons The polygons read from the stream
      */
     [[maybe_unused]] static Polygons fromWkt(const std::string& wkt);
+
+    /*!
+     * @brief Remove self-intersections from the polygons
+     * _note_: this function uses wagyu to remove the self intersections.
+     * since wagyu uses a different internal representation of the polygons
+     * we need to convert back and forward between data structures which
+     * might impact performance, use wisely!
+     *
+     * @return Polygons - the cleaned polygons
+     */
+    Polygons removeNearSelfIntersections() const;
 };
 
 /*!
