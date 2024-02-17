@@ -1,6 +1,6 @@
 #  Copyright (c) 2024 UltiMaker
 #  CuraEngine is released under the terms of the AGPLv3 or higher
-from io import StringIO
+from shutil import which
 from os import path
 import os
 
@@ -66,7 +66,9 @@ class CuraEngineConan(ConanFile):
     def config_options(self):
         if not self.options.enable_plugins:
             del self.options.enable_remote_plugins
-        if self.conf.get("user.curaengine:sentry_url", "", check_type=str) == "":
+        sentry_project = self.conf.get("user.curaengine:sentry_project", "", check_type=str)
+        sentry_org = self.conf.get("user.curaengine:sentry_org", "", check_type=str)
+        if os.environ.get('SENTRY_TOKEN', None) is None or sentry_project == "" or sentry_org == "":
             del self.options.enable_sentry
 
     def configure(self):
