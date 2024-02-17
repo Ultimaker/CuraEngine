@@ -1491,6 +1491,10 @@ void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMes
 
         for (const SliceLayerPart& part : layer.parts)
         {
+            if (part.outline.empty())
+            {
+                continue;
+            }
             if (part.outline.outerPolygon().area() >= max_tower_supported_area)
             {
                 // area is too big for support towers, should be supported by normal overhang detection
