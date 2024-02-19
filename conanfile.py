@@ -120,7 +120,7 @@ class CuraEngineConan(ConanFile):
         self.requires("neargye-semver/0.3.0")
         self.requires("zlib/1.2.12")
         self.requires("openssl/3.2.0")
-        self.requires("mapbox-wagyu/0.5.0@ultimaker/cura_11444")
+        self.requires("mapbox-wagyu/0.5.0@ultimaker/stable")
 
     def generate(self):
         deps = CMakeDeps(self)
