@@ -198,7 +198,7 @@ void CommandLine::sliceNext()
                     force_read_nondefault = false;
                 }
 #ifdef __EMSCRIPTEN__
-                else if (argument.find("--progress") == 0)
+                else if (argument.starts_with("--progress"))
                 {
                     // Store progress handler name
                     argument_index++;
