@@ -15,7 +15,7 @@ namespace cura::views
 namespace details
 {
 #ifdef _WIN32
-constexpr auto path_sep = ";";
+constexpr auto path_sep = ';';
 #else
 constexpr auto path_sep = ':';
 #endif

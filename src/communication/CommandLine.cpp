@@ -592,7 +592,7 @@ std::string CommandLine::findDefinitionFile(const std::string& definition_id, co
     {
         if (auto candidate = search_directory / (definition_id + ".def.json"); std::filesystem::exists(candidate))
         {
-            return candidate;
+            return candidate.string();
         }
     }
     spdlog::error("Couldn't find definition file with ID: {}", definition_id);
