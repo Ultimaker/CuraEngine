@@ -259,7 +259,7 @@ endif ()
 
 if (CMAKE_CXX_PLATFORM_ID STREQUAL "emscripten")
     message(STATUS "Building for Emscripten")
-    target_link_options(_CuraEngine PUBLIC -Wno-unused-command-line-argument -sINVOKE_RUN=0 -sEXPORT_NAME=CuraEngine -sEXPORTED_RUNTIME_METHODS=[callMain,FS] -sFORCE_FILESYSTEM=1 -sALLOW_MEMORY_GROWTH=1 -sEXPORT_ES6=1 -sMODULARIZE=1 -sSINGLE_FILE=1 -sENVIRONMENT=worker)
+    target_link_options(_CuraEngine PUBLIC -Wno-unused-command-line-argument -sINVOKE_RUN=0 -sEXPORT_NAME=CuraEngine -sEXPORTED_RUNTIME_METHODS=[callMain,FS] -sFORCE_FILESYSTEM=1 -sALLOW_MEMORY_GROWTH=1 -sEXPORT_ES6=1 -sMODULARIZE=1 -sSINGLE_FILE=1 -sENVIRONMENT=worker -sERROR_ON_UNDEFINED_SYMBOLS=0 -lembind --embind-emit-tsd CuraEngine.d.ts)
 endif ()
 
 target_link_libraries(CuraEngine PRIVATE
