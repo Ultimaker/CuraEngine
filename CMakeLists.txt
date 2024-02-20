@@ -17,21 +17,23 @@ option(ENABLE_SENTRY "Send crash data via Sentry" OFF)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
+option(ENABLE_THREADING "Enable threading support" ON)
 
-# Generate the plugin types
-find_package(protobuf REQUIRED)
-find_package(asio-grpc REQUIRED)
-find_package(gRPC REQUIRED)
-find_package(curaengine_grpc_definitions REQUIRED)
-option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
+if (${ENABLE_ARCUS} OR ${ENABLE_PLUGINS})
+    find_package(protobuf REQUIRED)
+endif ()
 
-MESSAGE(STATUS "Compiling with plugins support: ${ENABLE_PLUGINS}")
+MESSAGE(STATUS "Building with plugins support: ${ENABLE_PLUGINS}")
 if (${ENABLE_PLUGINS})
+    find_package(asio-grpc REQUIRED)
+    find_package(gRPC REQUIRED)
+    find_package(curaengine_grpc_definitions REQUIRED)
+    find_package(semver REQUIRED)
     MESSAGE(STATUS "Plugin secure remotes allowed: ${ENABLE_REMOTE_PLUGINS}")
 endif ()
 
-if (ENABLE_ARCUS)
-    message(STATUS "Building with Arcus")
+message(STATUS "Building with Arcus: ${ENABLE_ARCUS}")
+if (${ENABLE_ARCUS})
     find_package(arcus REQUIRED)
     protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 endif ()
@@ -151,10 +153,12 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ToolpathVisualizer.cpp
         src/utils/VoronoiUtils.cpp
         src/utils/VoxelUtils.cpp
-        )
+)
 
 add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})
-use_threads(_CuraEngine)
+if (ENABLE_THREADING)
+    use_threads(_CuraEngine)
+endif ()
 
 target_include_directories(_CuraEngine
         PUBLIC
@@ -162,7 +166,7 @@ target_include_directories(_CuraEngine
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}> # Include Cura.pb.h
-        )
+)
 
 target_compile_definitions(_CuraEngine
         PUBLIC
@@ -180,7 +184,7 @@ target_compile_definitions(_CuraEngine
         $<$<CONFIG:RelWithDebInfo>:ASSERT_INSANE_OUTPUT>
         $<$<CONFIG:RelWithDebInfo>:USE_CPU_TIME>
         $<$<CONFIG:RelWithDebInfo>:DEBUG>
-        )
+)
 
 enable_sanitizers(_CuraEngine)
 
@@ -189,7 +193,7 @@ if (${EXTENSIVE_WARNINGS})
 endif ()
 
 if (ENABLE_ARCUS)
-    target_link_libraries(_CuraEngine PUBLIC arcus::arcus )
+    target_link_libraries(_CuraEngine PUBLIC arcus::arcus)
 endif ()
 
 find_package(clipper REQUIRED)
@@ -200,7 +204,6 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
-find_package(semver REQUIRED)
 
 if (ENABLE_SENTRY)
     find_package(sentry REQUIRED)
@@ -220,13 +223,13 @@ target_link_libraries(_CuraEngine
         stb::stb
         boost::boost
         scripta::scripta
-        semver::semver
-        curaengine_grpc_definitions::curaengine_grpc_definitions
-        asio-grpc::asio-grpc
-        grpc::grpc
-        protobuf::libprotobuf
-        $<$<BOOL:${ENABLE_SENTRY}>:sentry::sentry>
-        $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
+        $<$<TARGET_EXISTS:semver::semver>:semver::semver>
+        $<$<TARGET_EXISTS:curaengine_grpc_definitions::curaengine_grpc_definitions>:curaengine_grpc_definitions::curaengine_grpc_definitions>
+        $<$<TARGET_EXISTS:asio-grpc::asio-grpc>:asio-grpc::asio-grpc>
+        $<$<TARGET_EXISTS:grpc::grpc>:grpc::grpc>
+        $<$<TARGET_EXISTS:protobuf::libprotobuf>:protobuf::libprotobuf>
+        $<$<TARGET_EXISTS:sentry::sentry>:sentry::sentry>
+        $<$<TARGET_EXISTS:GTest::gtest>:GTest::gtest>)
 
 target_compile_definitions(_CuraEngine PRIVATE
         $<$<BOOL:${ENABLE_SENTRY}>:SENTRY_URL=\"${SENTRY_URL}\">
@@ -242,7 +245,7 @@ else ()
         SET(CMAKE_RC_COMPILER_INIT windres)
         SET(CMAKE_RC_COMPILE_OBJECT
                 "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <SOURCE> -o <OBJECT>"
-                )
+        )
     endif ()
     add_executable(CuraEngine src/main.cpp ${RES_FILES}) # ..., but don't forget the glitter!
     if (ENABLE_SENTRY)
@@ -250,10 +253,18 @@ else ()
     endif ()
 endif (NOT WIN32)
 
-use_threads(CuraEngine)
+if (ENABLE_THREADING)
+    use_threads(CuraEngine)
+endif ()
+
+if (CMAKE_CXX_PLATFORM_ID STREQUAL "emscripten")
+    message(STATUS "Building for Emscripten")
+    target_link_options(_CuraEngine PUBLIC -Wno-unused-command-line-argument -sINVOKE_RUN=0 -sEXPORT_NAME=CuraEngine -sEXPORTED_RUNTIME_METHODS=[callMain,FS] -sFORCE_FILESYSTEM=1 -sALLOW_MEMORY_GROWTH=1 -sEXPORT_ES6=1 -sMODULARIZE=1 -sSINGLE_FILE=1 -sENVIRONMENT=worker -sERROR_ON_UNDEFINED_SYMBOLS=0 -lembind --embind-emit-tsd CuraEngine.d.ts)
+endif ()
+
 target_link_libraries(CuraEngine PRIVATE
         _CuraEngine
-        $<$<BOOL:${ENABLE_SENTRY}>:sentry::sentry>
+        $<$<TARGET_EXISTS:sentry::sentry>:sentry::sentry>
 )
 target_compile_definitions(CuraEngine PRIVATE
         $<$<BOOL:${ENABLE_SENTRY}>:SENTRY_URL=\"${SENTRY_URL}\">
@@ -280,10 +291,10 @@ if (ENABLE_TESTING OR ENABLE_BENCHMARKS)
             GTest::gtest
             GTest::gmock
             clipper::clipper
-            curaengine_grpc_definitions::curaengine_grpc_definitions
-            asio-grpc::asio-grpc
-            grpc::grpc
-            protobuf::libprotobuf)
+            $<$<TARGET_EXISTS:curaengine_grpc_definitions::curaengine_grpc_definitions>:curaengine_grpc_definitions::curaengine_grpc_definitions>
+            $<$<TARGET_EXISTS:asio-grpc::asio-grpc>:asio-grpc::asio-grpc>
+            $<$<TARGET_EXISTS:grpc::grpc>:grpc::grpc>
+            $<$<TARGET_EXISTS:protobuf::libprotobuf>:protobuf::libprotobuf>)
     if (ENABLE_ARCUS)
         target_link_libraries(test_helpers PUBLIC arcus::arcus)
     endif ()
@@ -293,7 +304,7 @@ if (ENABLE_BENCHMARKS)
     add_subdirectory(benchmark)
     if (NOT WIN32)
         add_subdirectory(stress_benchmark)
-    endif()
+    endif ()
 endif ()
 
 if (ENABLE_TESTING)

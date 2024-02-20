@@ -1,5 +1,6 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
+#ifdef ENABLE_PLUGINS
 
 #include "utils/channel.h"
 
@@ -45,3 +46,5 @@ std::shared_ptr<grpc::Channel> createChannel(const ChannelSetupConfiguration& co
 }
 
 } // namespace cura::utils
+
+#endif // ENABLE_PLUGINS

@@ -1,8 +1,17 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef PLUGINS_CONVERTERS_H
 #define PLUGINS_CONVERTERS_H
+#ifdef ENABLE_PLUGINS
+
+#include <google/protobuf/empty.pb.h>
+#include <string>
+#include <tuple>
+
+#include <range/v3/range/operations.hpp>
+#include <range/v3/view/drop.hpp>
+#include <spdlog/spdlog.h>
 
 #include "Cura.pb.h"
 #include "WallToolPaths.h"
@@ -25,14 +34,6 @@
 #include "settings/Settings.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/polygon.h"
-
-#include <range/v3/range/operations.hpp>
-#include <range/v3/view/drop.hpp>
-#include <spdlog/spdlog.h>
-
-#include <google/protobuf/empty.pb.h>
-#include <string>
-#include <tuple>
 
 
 namespace cura::plugins
@@ -128,5 +129,5 @@ struct gcode_paths_modify_response : public details::converter<gcode_paths_modif
 
 } // namespace cura::plugins
 
-
+#endif // ENABLE_PLUGINS
 #endif
