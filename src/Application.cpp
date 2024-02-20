@@ -131,6 +131,7 @@ void Application::printHelp() const
     fmt::print("  -v\n\tIncrease the verbose level (show log messages).\n");
     fmt::print("  -m<thread_count>\n\tSet the desired number of threads.\n");
     fmt::print("  -p\n\tLog progress information.\n");
+    fmt::print("  -d Add definition search paths seperated by a `:` (Unix) or `;` (Windows)\n");
     fmt::print("  -j\n\tLoad settings.def.json file to register all settings and their defaults.\n");
     fmt::print("  -s <setting>=<value>\n\tSet a setting to a value for the last supplied object, \n\textruder train, or general settings.\n");
     fmt::print("  -l <model_file>\n\tLoad an STL model. \n");
@@ -152,7 +153,7 @@ void Application::printLicense() const
 {
     fmt::print("\n");
     fmt::print("Cura_SteamEngine version {}\n", CURA_ENGINE_VERSION);
-    fmt::print("Copyright (C) 2023 Ultimaker\n");
+    fmt::print("Copyright (C) 2024 Ultimaker\n");
     fmt::print("\n");
     fmt::print("This program is free software: you can redistribute it and/or modify\n");
     fmt::print("it under the terms of the GNU Affero General Public License as published by\n");
