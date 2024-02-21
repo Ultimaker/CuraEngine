@@ -1,6 +1,8 @@
 // Copyright (c) 2020 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <numbers>
+
 #ifndef UTILS_INT_POINT_H
 #define UTILS_INT_POINT_H
 

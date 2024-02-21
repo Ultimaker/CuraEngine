@@ -1438,6 +1438,42 @@ Polygon PolygonUtils::makeCircle(const Point2LL mid, const coord_t radius, const
     return circle;
 }
 
+Polygon PolygonUtils::makeWheel(const Point2LL& mid, const coord_t inner_radius, const coord_t outer_radius, const size_t semi_nb_spokes, const size_t arc_angle_resolution)
+{
+    Polygon wheel;
+
+    std::vector<std::pair<coord_t, coord_t>> target_radii;
+    target_radii.push_back({ inner_radius, outer_radius });
+    target_radii.push_back({ outer_radius, inner_radius });
+
+    const size_t nb_spokes = semi_nb_spokes * 2;
+    const float angle_step = TAU / nb_spokes;
+    const float arc_step = angle_step / arc_angle_resolution;
+    float angle = 0.0;
+    for (size_t spoke = 0; spoke < nb_spokes; ++spoke)
+    {
+        const std::pair<coord_t, coord_t>& radii = target_radii.at(spoke % 2);
+
+        angle = spoke * angle_step;
+        float cos_angle = cos(angle);
+        float sin_angle = sin(angle);
+        wheel.emplace_back(mid + Point2LL(radii.first * cos_angle, radii.first * sin_angle));
+
+        for (size_t arc_part = 0; arc_part < arc_angle_resolution; ++arc_part)
+        {
+            wheel.emplace_back(mid + Point2LL(radii.second * cos_angle, radii.second * sin_angle));
+            if (arc_part < arc_angle_resolution - 1)
+            {
+                angle += arc_step;
+                cos_angle = cos(angle);
+                sin_angle = sin(angle);
+            }
+        }
+    }
+
+    return wheel;
+}
+
 
 Shape PolygonUtils::connect(const Shape& input)
 {

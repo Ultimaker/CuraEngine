@@ -7,6 +7,7 @@
 #include <fstream>
 #include <optional>
 
+#include "ExtruderUse.h"
 #include "FanSpeedLayerTime.h"
 #include "LayerPlanBuffer.h"
 #include "gcodeExport.h"
@@ -64,9 +65,9 @@ private:
      * For each raft/filler layer, the extruders to be used in that layer in the order in which they are going to be used.
      * The first number is the first raft layer. Indexing is shifted compared to normal negative layer numbers for raft/filler layers.
      */
-    std::vector<std::vector<size_t>> extruder_order_per_layer_negative_layers;
+    std::vector<std::vector<ExtruderUse>> extruder_order_per_layer_negative_layers;
 
-    std::vector<std::vector<size_t>> extruder_order_per_layer; //!< For each layer, the extruders to be used in that layer in the order in which they are going to be used
+    std::vector<std::vector<ExtruderUse>> extruder_order_per_layer; //!< For each layer, the extruders to be used in that layer in the order in which they are going to be used
 
     std::vector<std::vector<size_t>> mesh_order_per_extruder; //!< For each extruder, the order of the meshes (first element is first mesh to be printed)
 
@@ -296,7 +297,7 @@ private:
      * \param current_extruder The current extruder with which we last printed
      * \return The order of extruders for a layer beginning with \p current_extruder
      */
-    std::vector<size_t> getUsedExtrudersOnLayerExcludingStartingExtruder(const SliceDataStorage& storage, const size_t start_extruder, const LayerIndex& layer_nr) const;
+    std::vector<ExtruderUse> getUsedExtrudersOnLayerExcludingStartingExtruder(const SliceDataStorage& storage, const size_t start_extruder, const LayerIndex& layer_nr) const;
 
     /*!
      * Calculate in which order to plan the meshes of a specific extruder

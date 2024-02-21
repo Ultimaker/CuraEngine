@@ -1,9 +1,10 @@
-//  Copyright (c) 2018-2022 Ultimaker B.V.
-//  CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2024 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef COMMANDLINE_H
 #define COMMANDLINE_H
 
+#include <filesystem>
 #include <rapidjson/document.h> //Loading JSON documents to get settings from them.
 #include <string> //To store the command line arguments.
 #include <unordered_set>
@@ -151,6 +152,12 @@ public:
     void sliceNext() override;
 
 private:
+#ifdef __EMSCRIPTEN__
+    std::string progressHandler;
+#endif
+
+    std::unordered_set<std::filesystem::path> search_directories_;
+
     /*
      * \brief The command line arguments that the application was called with.
      */
@@ -162,12 +169,6 @@ private:
     unsigned int last_shown_progress_;
 
     /*
-     * \brief Get the default search directories to search for definition files.
-     * \return The default search directories to search for definition files.
-     */
-    std::unordered_set<std::string> defaultSearchDirectories();
-
-    /*
      * \brief Load a JSON file and store the settings inside it.
      * \param json_filename The location of the JSON file to load settings from.
      * \param settings The settings storage to store the settings in.
@@ -177,7 +178,7 @@ private:
      * 1, the file could not be opened. If it's 2, there was a syntax error in
      * the file.
      */
-    int loadJSON(const std::string& json_filename, Settings& settings, bool force_read_parent = false, bool force_read_nondefault = false);
+    int loadJSON(const std::filesystem::path& json_filename, Settings& settings, bool force_read_parent = false, bool force_read_nondefault = false);
 
     /*
      * \brief Load a JSON document and store the settings inside it.
@@ -190,7 +191,7 @@ private:
      */
     int loadJSON(
         const rapidjson::Document& document,
-        const std::unordered_set<std::string>& search_directories,
+        const std::unordered_set<std::filesystem::path>& search_directories,
         Settings& settings,
         bool force_read_parent = false,
         bool force_read_nondefault = false);
@@ -211,7 +212,7 @@ private:
      * \param search_directories The directories to search in.
      * \return The first definition file that matches the definition ID.
      */
-    const std::string findDefinitionFile(const std::string& definition_id, const std::unordered_set<std::string>& search_directories);
+    static std::string findDefinitionFile(const std::string& definition_id, const std::unordered_set<std::filesystem::path>& search_directories);
 };
 
 } // namespace cura

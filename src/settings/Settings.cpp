@@ -679,6 +679,24 @@ InsetDirection Settings::get<InsetDirection>(const std::string& key) const
 }
 
 template<>
+PrimeTowerMethod Settings::get<PrimeTowerMethod>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "interleaved")
+    {
+        return PrimeTowerMethod::INTERLEAVED;
+    }
+    else if (value == "normal")
+    {
+        return PrimeTowerMethod::NORMAL;
+    }
+    else // Default.
+    {
+        return PrimeTowerMethod::NONE;
+    }
+}
+
+template<>
 std::vector<double> Settings::get<std::vector<double>>(const std::string& key) const
 {
     const std::string& value_string = get<std::string>(key);

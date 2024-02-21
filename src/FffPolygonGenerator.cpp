@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <algorithm>
@@ -413,8 +413,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     computePrintHeightStatistics(storage);
 
     // handle helpers
-    storage.primeTower.checkUsed(storage);
-    storage.primeTower.generateGroundpoly();
     storage.primeTower.generatePaths(storage);
     storage.primeTower.subtractFromSupport(storage);
 
@@ -641,8 +639,12 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
         }
 
         layer.parts.clear();
-        for (SingleShape& part : new_parts)
+        for (const SingleShape& part : new_parts)
         {
+            if (part.empty())
+            {
+                continue;
+            }
             layer.parts.emplace_back();
             layer.parts.back().outline = part;
             layer.parts.back().boundaryBox.calculate(part);
@@ -971,7 +973,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
     {
         storage.oozeShield[layer_nr].removeSmallAreas(largest_printed_area);
     }
-    if (mesh_group_settings.get<bool>("prime_tower_enable"))
+    if (mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode") != PrimeTowerMethod::NONE)
     {
         coord_t max_line_width = 0;
         { // compute max_line_width
@@ -1023,7 +1025,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
         maximum_deviation = std::min(maximum_deviation, extruder.settings_.get<coord_t>("meshfix_maximum_deviation"));
     }
     storage.draft_protection_shield = Simplify(maximum_resolution, maximum_deviation, 0).polygon(storage.draft_protection_shield);
-    if (mesh_group_settings.get<bool>("prime_tower_enable"))
+    if (mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode") != PrimeTowerMethod::NONE)
     {
         coord_t max_line_width = 0;
         { // compute max_line_width
