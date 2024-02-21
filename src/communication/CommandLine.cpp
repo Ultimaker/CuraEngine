@@ -40,7 +40,7 @@ CommandLine::CommandLine(const std::vector<std::string>& arguments)
 {
     if (auto search_paths = spdlog::details::os::getenv("CURA_ENGINE_SEARCH_PATH"); ! search_paths.empty())
     {
-        search_directories_ = search_paths | views::split_paths | ranges::to<std::unordered_set<std::filesystem::path>>();
+        search_directories_ = search_paths | views::split_paths | ranges::to<std::vector<std::filesystem::path>>();
     };
 }
 
@@ -242,7 +242,7 @@ void CommandLine::sliceNext()
                         exit(1);
                     }
                     argument = arguments_[argument_index];
-                    search_directories_ = argument | views::split_paths | ranges::to<std::unordered_set<std::filesystem::path>>();
+                    search_directories_ = argument | views::split_paths | ranges::to<std::vector<std::filesystem::path>>();
                     break;
                 }
                 case 'j':
@@ -420,13 +420,13 @@ int CommandLine::loadJSON(const std::filesystem::path& json_filename, Settings& 
         return 2;
     }
 
-    search_directories_.insert(std::filesystem::path(json_filename).parent_path());
+    search_directories_.push_back(std::filesystem::path(json_filename).parent_path());
     return loadJSON(json_document, search_directories_, settings, force_read_parent, force_read_nondefault);
 }
 
 int CommandLine::loadJSON(
     const rapidjson::Document& document,
-    const std::unordered_set<std::filesystem::path>& search_directories,
+    const std::vector<std::filesystem::path>& search_directories,
     Settings& settings,
     bool force_read_parent,
     bool force_read_nondefault)
@@ -586,7 +586,7 @@ void CommandLine::loadJSONSettings(const rapidjson::Value& element, Settings& se
     }
 }
 
-std::string CommandLine::findDefinitionFile(const std::string& definition_id, const std::unordered_set<std::filesystem::path>& search_directories)
+std::string CommandLine::findDefinitionFile(const std::string& definition_id, const std::vector<std::filesystem::path>& search_directories)
 {
     for (const auto& search_directory : search_directories)
     {

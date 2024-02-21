@@ -7,7 +7,6 @@
 #include <filesystem>
 #include <rapidjson/document.h> //Loading JSON documents to get settings from them.
 #include <string> //To store the command line arguments.
-#include <unordered_set>
 #include <vector> //To store the command line arguments.
 
 #include "Communication.h" //The class we're implementing.
@@ -156,7 +155,7 @@ private:
     std::string progressHandler;
 #endif
 
-    std::unordered_set<std::filesystem::path> search_directories_;
+    std::vector<std::filesystem::path> search_directories_;
 
     /*
      * \brief The command line arguments that the application was called with.
@@ -191,7 +190,7 @@ private:
      */
     int loadJSON(
         const rapidjson::Document& document,
-        const std::unordered_set<std::filesystem::path>& search_directories,
+        const std::vector<std::filesystem::path>& search_directories,
         Settings& settings,
         bool force_read_parent = false,
         bool force_read_nondefault = false);
@@ -212,7 +211,7 @@ private:
      * \param search_directories The directories to search in.
      * \return The first definition file that matches the definition ID.
      */
-    static std::string findDefinitionFile(const std::string& definition_id, const std::unordered_set<std::filesystem::path>& search_directories);
+    static std::string findDefinitionFile(const std::string& definition_id, const std::vector<std::filesystem::path>& search_directories);
 };
 
 } // namespace cura
