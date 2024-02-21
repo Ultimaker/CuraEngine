@@ -116,10 +116,7 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
         return toolpaths_;
     }
 
-    if (settings_.get<bool>("use_wagyu"))
-    {
-        prepared_outline = prepared_outline.removeNearSelfIntersections();
-    }
+    prepared_outline = prepared_outline.removeNearSelfIntersections();
 
     const coord_t wall_transition_length = settings_.get<coord_t>("wall_transition_length");
 

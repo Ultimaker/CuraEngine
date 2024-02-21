@@ -91,7 +91,6 @@ public:
         settings.add("wall_transition_length", "1");
         settings.add("wall_x_extruder_nr", "0");
         settings.add("wall_distribution_count", "2");
-        settings.add("use_wagyu", "true");
     }
 };
 
