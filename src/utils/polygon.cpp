@@ -9,6 +9,7 @@
 #include <boost/geometry/geometries/polygon.hpp>
 #include <boost/geometry/io/wkt/read.hpp>
 #include <fmt/format.h>
+#include <mapbox/geometry/wagyu/wagyu.hpp>
 #include <range/v3/range/primitives.hpp>
 #include <range/v3/to_container.hpp>
 #include <range/v3/view/c_str.hpp>
@@ -1593,20 +1594,19 @@ Polygons Polygons::removeNearSelfIntersections() const
 
     mapbox::geometry::wagyu::wagyu<coord_t> wagyu;
 
-    for (const auto& polygon : splitIntoParts())
+    for (auto& polygon : splitIntoParts())
     {
         mwpoly.emplace_back();
         map_poly& wpoly = mwpoly.back();
-        for (const auto& path : polygon)
+        for (auto& path : polygon)
         {
-            wpoly.emplace_back();
-            map_ring& wring = wpoly.back();
-            for (const auto& point : path)
+            wpoly.push_back(std::move(*reinterpret_cast<std::vector<mapbox::geometry::point<coord_t>>*>(&path)));
+            for (auto& point : wpoly.back())
             {
-                wring.emplace_back(point.X / 4, point.Y / 4);
+                point.x /= 4;
+                point.y /= 4;
             }
-
-            wagyu.add_ring(wring);
+            wagyu.add_ring(wpoly.back());
         }
     }
 
@@ -1616,29 +1616,21 @@ Polygons Polygons::removeNearSelfIntersections() const
 
     Polygons polys;
 
+    for (auto& poly : sln)
     {
-        for (const auto& poly : sln)
+        for (auto& ring : poly)
         {
-            for (const auto& ring : poly)
+            ring.pop_back();
+            for (auto& point : ring)
             {
-                Polygon npoly;
-                auto last = ring.back();
-                bool first = true;
-                for (const auto& pt : ring)
-                {
-                    if (first || pt != ring.back())
-                    {
-                        npoly.emplace_back(pt.x * 4, pt.y * 4);
-                        first = false;
-                    }
-                    last = pt;
-                }
-                polys.add(npoly);
+                point.x *= 4;
+                point.y *= 4;
             }
+            polys.add(*reinterpret_cast<std::vector<ClipperLib::IntPoint>*>(&ring));  // NOTE: 'add' already moves the vector
         }
-        polys = polys.unionPolygons();
-        polys.removeColinearEdges();
     }
+    polys = polys.unionPolygons();
+    polys.removeColinearEdges();
 
     return polys;
 }

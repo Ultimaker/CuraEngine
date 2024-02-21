@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_POLYGON_H
@@ -11,7 +11,6 @@
 #include <initializer_list>
 #include <limits> // int64_t.min
 #include <list>
-#include <mapbox/geometry/wagyu/wagyu.hpp>
 #include <polyclipping/clipper.hpp>
 #include <unordered_map>
 #include <vector>
