@@ -3,13 +3,13 @@
 
 #include "utils/polygon.h"
 
+#include <mapbox/geometry/wagyu/wagyu.hpp>
 #include <unordered_set>
 
 #include <boost/geometry/geometries/point_xy.hpp>
 #include <boost/geometry/geometries/polygon.hpp>
 #include <boost/geometry/io/wkt/read.hpp>
 #include <fmt/format.h>
-#include <mapbox/geometry/wagyu/wagyu.hpp>
 #include <range/v3/range/primitives.hpp>
 #include <range/v3/to_container.hpp>
 #include <range/v3/view/c_str.hpp>
@@ -1626,7 +1626,7 @@ Polygons Polygons::removeNearSelfIntersections() const
                 point.x *= 4;
                 point.y *= 4;
             }
-            polys.add(*reinterpret_cast<std::vector<ClipperLib::IntPoint>*>(&ring));  // NOTE: 'add' already moves the vector
+            polys.add(*reinterpret_cast<std::vector<ClipperLib::IntPoint>*>(&ring)); // NOTE: 'add' already moves the vector
         }
     }
     polys = polys.unionPolygons();
