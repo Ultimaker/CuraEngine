@@ -13,8 +13,10 @@
 #include <benchmark/benchmark.h>
 #include <filesystem>
 
+#ifdef ENABLE_PLUGINS
 #include "plugins/slots.h"
 #include <grpcpp/create_channel.h>
+#endif
 
 namespace cura
 {
@@ -59,6 +61,7 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_local)(benchmark::State& st)
 
 BENCHMARK_REGISTER_F(SimplifyTestFixture, simplify_local);
 
+#ifdef ENABLE_PLUGINS
 BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_noplugin)(benchmark::State& st)
 {
     for (auto _ : st)
@@ -72,6 +75,7 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_noplugin)(benchmark::State
 }
 
 BENCHMARK_REGISTER_F(SimplifyTestFixture, simplify_slot_noplugin);
+#endif
 
 } // namespace cura
 #endif // CURAENGINE_BENCHMARK_SIMPLIFY_BENCHMARK_H
