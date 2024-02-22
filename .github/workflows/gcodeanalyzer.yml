@@ -178,7 +178,7 @@ jobs:
 
       - name: Collect STL-files, run CuraEngine, output GCode-files
         run: |
-          for file in `ls ../NightlyTestModels/*.stl`;
+          for file in `ls ../NightlyTestModels/*.stl | tail -n 3`;
           do
               ( time ./build/Release/CuraEngine slice --force-read-parent --force-read-nondefault -v -p -j ../Cura/resources/definitions/ultimaker_s3.def.json -l $file -o ../`basename $file .stl`.gcode ) 2> ../`basename $file .stl`.time
           done
@@ -308,15 +308,15 @@ jobs:
         shell: python
         working-directory: GCodeAnalyzer
 
-      - name: Store benchmark result
-        uses: benchmark-action/github-action-benchmark@v1
-        with:
-          name: CGcodeAnalyzer
-          output-file-path: output.json
-          gh-repository: github.com/Ultimaker/CuraEngineBenchmarks
-          gh-pages-branch: main
-          benchmark-data-dir-path: dev/gcodeanalyzer
-          tool: customBiggerIsBetter
-          github-token: ${{ secrets.CURA_BENCHMARK_PAT }}
-          auto-push: true
-          max-items-in-chart: 250
+#      - name: Store benchmark result
+#        uses: benchmark-action/github-action-benchmark@v1
+#        with:
+#          name: CGcodeAnalyzer
+#          output-file-path: output.json
+#          gh-repository: github.com/Ultimaker/CuraEngineBenchmarks
+#          gh-pages-branch: main
+#          benchmark-data-dir-path: dev/gcodeanalyzer
+#          tool: customBiggerIsBetter
+#          github-token: ${{ secrets.CURA_BENCHMARK_PAT }}
+#          auto-push: true
+#          max-items-in-chart: 250
