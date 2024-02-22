@@ -178,8 +178,7 @@ jobs:
 
       - name: Collect STL-files, run CuraEngine, output GCode-files
         run: |
-          for file in `ls ../NightlyTestModels/*.stl`;
-          do
+          for file in `ls ../NightlyTestModels/*.stl -r | head -1`;
               ( time ./build/Release/CuraEngine slice --force-read-parent --force-read-nondefault -v -p -j ../Cura/resources/definitions/ultimaker_s3.def.json -l $file -o ../`basename $file .stl`.gcode ) 2> ../`basename $file .stl`.time
           done
         working-directory: CuraEngine
