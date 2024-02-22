@@ -302,8 +302,9 @@ jobs:
                       "value": timer,
                   },
               ]
-          
-          with open("../output.json", "w") as outfile:
-              outfile.write(json.dumps(jzon))
+              break
+
+#          with open("../output.json", "w") as outfile:
+#              outfile.write(json.dumps(jzon))
         shell: python
         working-directory: GCodeAnalyzer
