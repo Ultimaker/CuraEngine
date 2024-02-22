@@ -49,6 +49,7 @@ public:
      */
     ZSeamConfig seam_config_;
 
+
     /*!
      * Add a new polygon to be planned.
      *
