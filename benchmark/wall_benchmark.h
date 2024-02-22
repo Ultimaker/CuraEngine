@@ -103,7 +103,6 @@ public:
     bool outer_to_inner;
     SliceLayer layer;
 
-
     void SetUp(const ::benchmark::State& state)
     {
         auto wkt_file = std::filesystem::path(__FILE__).parent_path().append("holes.wkt");
