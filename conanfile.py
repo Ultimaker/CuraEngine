@@ -180,6 +180,7 @@ class CuraEngineConan(ConanFile):
         self.cpp.build.includedirs = ["."]  # To package the generated headers
         self.cpp.package.libs = ["_CuraEngine"]
 
+
     def build(self):
         cmake = CMake(self)
         cmake.configure()
