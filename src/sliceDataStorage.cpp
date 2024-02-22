@@ -627,7 +627,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
         {
             continue; // Ignore extruder prime position if it is not set.
         }
-        Point2LL translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
+        Point2LL translation(0, 0);
         prime_pos -= translation;
         Polygons prime_polygons;
         prime_polygons.emplace_back(PolygonUtils::makeCircle(prime_pos, prime_clearance, std::numbers::pi / 32));

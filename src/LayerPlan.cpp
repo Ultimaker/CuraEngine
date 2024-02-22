@@ -260,7 +260,7 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
         }
         else
         {
-            const Point2LL extruder_offset(extruder->settings_.get<coord_t>("machine_nozzle_offset_x"), extruder->settings_.get<coord_t>("machine_nozzle_offset_y"));
+            const Point2LL extruder_offset(0, 0);
             end_pos += extruder_offset; // absolute end pos is given as a head position
         }
         if (end_pos_absolute || last_planned_position_)

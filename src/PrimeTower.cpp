@@ -428,7 +428,7 @@ void PrimeTower::addToGcode(
     {
         // Make sure we wipe the old extruder on the prime tower.
         const Settings& previous_settings = Application::getInstance().current_slice_->scene.extruders[prev_extruder_nr].settings_;
-        const Point2LL previous_nozzle_offset = Point2LL(previous_settings.get<coord_t>("machine_nozzle_offset_x"), previous_settings.get<coord_t>("machine_nozzle_offset_y"));
+        const Point2LL previous_nozzle_offset = Point2LL(0, 0);
         const Settings& new_settings = Application::getInstance().current_slice_->scene.extruders[new_extruder_nr].settings_;
         const Point2LL new_nozzle_offset = Point2LL(new_settings.get<coord_t>("machine_nozzle_offset_x"), new_settings.get<coord_t>("machine_nozzle_offset_y"));
         gcode_layer.addTravel(post_wipe_point_ - previous_nozzle_offset + new_nozzle_offset);

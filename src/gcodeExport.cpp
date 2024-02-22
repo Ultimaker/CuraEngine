@@ -94,14 +94,14 @@ void GCodeExport::preSetup(const size_t start_extruder)
 
         extruder_attr_[extruder_nr].last_retraction_prime_speed_
             = train.settings_.get<Velocity>("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
-        extruder_attr_[extruder_nr].fan_number_ = train.settings_.get<size_t>("machine_extruder_cooling_fan_number");
+        extruder_attr_[extruder_nr].fan_number_ = 1; // train.settings_.get<size_t>("machine_extruder_cooling_fan_number");
 
         // Cache some settings that we use frequently.
         const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_;
         if (use_extruder_offset_to_offset_coords_)
         {
             extruder_attr_[extruder_nr].nozzle_offset_
-                = Point2LL(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
+                = Point2LL(0, 0);
         }
         else
         {
