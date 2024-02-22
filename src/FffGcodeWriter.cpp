@@ -145,7 +145,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     const auto extruder_settings = Application::getInstance().current_slice_->scene.extruders[start_extruder_nr].settings_;
     Point3LL p(extruder_settings.get<coord_t>("machine_extruder_start_pos_x"), extruder_settings.get<coord_t>("machine_extruder_start_pos_y"), gcode.getPositionZ());
     gcode.writeTravel(p, Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_travel"));
-    ;
 
     calculateExtruderOrderPerLayer(storage);
     calculatePrimeLayerPerExtruder(storage);
