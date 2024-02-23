@@ -1601,7 +1601,7 @@ std::vector<ExtruderUse>
     {
         ExtruderPrime prime = ExtruderPrime::None;
 
-        if (!prime_tower_enable)
+        if (! prime_tower_enable)
         {
             break;
         }
