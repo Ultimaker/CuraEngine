@@ -308,15 +308,15 @@ jobs:
         shell: python
         working-directory: GCodeAnalyzer
 
-#      - name: Store benchmark result
-#        uses: benchmark-action/github-action-benchmark@v1
-#        with:
-#          name: CGcodeAnalyzer
-#          output-file-path: output.json
-#          gh-repository: github.com/Ultimaker/CuraEngineBenchmarks
-#          gh-pages-branch: main
-#          benchmark-data-dir-path: dev/gcodeanalyzer
-#          tool: customBiggerIsBetter
-#          github-token: ${{ secrets.CURA_BENCHMARK_PAT }}
-#          auto-push: true
-#          max-items-in-chart: 250
+      - name: Store benchmark result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: CGcodeAnalyzer
+          output-file-path: output.json
+          gh-repository: github.com/Ultimaker/CuraEngineBenchmarks
+          gh-pages-branch: main
+          benchmark-data-dir-path: dev/gcodeanalyzer
+          tool: customBiggerIsBetter
+          github-token: ${{ secrets.CURA_BENCHMARK_PAT }}
+          auto-push: true
+          max-items-in-chart: 250
