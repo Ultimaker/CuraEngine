@@ -1568,7 +1568,8 @@ std::vector<ExtruderUse>
     assert(static_cast<int>(extruder_count) > 0);
     std::vector<ExtruderUse> ret;
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
-    PrimeTowerMethod method = mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode");
+    const auto method = mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode");
+    const auto prime_tower_enable = mesh_group_settings.get<bool>("prime_tower_enable");
 
     // check if we are on the first layer
     if (layer_nr == -static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
@@ -1599,6 +1600,11 @@ std::vector<ExtruderUse>
     for (size_t extruder_nr : ordered_extruders)
     {
         ExtruderPrime prime = ExtruderPrime::None;
+
+        if (!prime_tower_enable)
+        {
+            break;
+        }
 
         switch (method)
         {
