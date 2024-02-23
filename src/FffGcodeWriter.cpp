@@ -1602,8 +1602,6 @@ std::vector<ExtruderUse>
 
         switch (method)
         {
-        case PrimeTowerMethod::NONE:
-            break;
 
         case PrimeTowerMethod::NORMAL:
             if (extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder)
