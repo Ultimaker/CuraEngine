@@ -1601,30 +1601,28 @@ std::vector<ExtruderUse>
     {
         ExtruderPrime prime = ExtruderPrime::None;
 
-        if (! prime_tower_enable)
+        if (prime_tower_enable)
         {
-            break;
-        }
+            switch (method)
+            {
+            case PrimeTowerMethod::NORMAL:
+                if (extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder)
+                {
+                    prime = ExtruderPrime::Prime;
+                }
+                else if (layer_nr < storage.max_print_height_second_to_last_extruder)
+                {
+                    prime = ExtruderPrime::Sparse;
+                }
+                break;
 
-        switch (method)
-        {
-        case PrimeTowerMethod::NORMAL:
-            if (extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder)
-            {
-                prime = ExtruderPrime::Prime;
+            case PrimeTowerMethod::INTERLEAVED:
+                if (extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder)
+                {
+                    prime = ExtruderPrime::Prime;
+                }
+                break;
             }
-            else if (layer_nr < storage.max_print_height_second_to_last_extruder)
-            {
-                prime = ExtruderPrime::Sparse;
-            }
-            break;
-
-        case PrimeTowerMethod::INTERLEAVED:
-            if (extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder)
-            {
-                prime = ExtruderPrime::Prime;
-            }
-            break;
         }
 
         if (extruder_is_used_on_this_layer[extruder_nr] || prime != ExtruderPrime::None)
