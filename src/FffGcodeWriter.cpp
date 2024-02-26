@@ -1775,12 +1775,15 @@ void FffGcodeWriter::addMeshLayerToGCode(
     PathOrderOptimizer<const SliceLayerPart*> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
     for (const SliceLayerPart& part : layer.parts)
     {
+        if (part.outline.empty())
+        {
+            continue;
+        }
         part_order_optimizer.addPolygon(&part);
     }
-    if (part_order_optimizer.vertices_to_paths_.size() > 1)
-    {
-        part_order_optimizer.optimize(false);
-    }
+
+    part_order_optimizer.optimize(false);
+
     for (const PathOrdering<const SliceLayerPart*>& path : part_order_optimizer.paths_)
     {
         addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *path.vertices_, gcode_layer);
