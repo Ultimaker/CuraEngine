@@ -141,8 +141,8 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         }
     }
     const auto extruder_settings = Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_;
-    //in case the prime blob is enabled the brim already starts from the closest start position which is blob location
-    if (!extruder_settings.get<bool>("prime_blob_enable"))
+    // in case the prime blob is enabled the brim already starts from the closest start position which is blob location
+    if (! extruder_settings.get<bool>("prime_blob_enable"))
     {
         // Setting first travel move of the first extruder to the machine start position
         Point3LL p(extruder_settings.get<coord_t>("machine_extruder_start_pos_x"), extruder_settings.get<coord_t>("machine_extruder_start_pos_y"), gcode.getPositionZ());
