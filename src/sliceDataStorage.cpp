@@ -68,28 +68,24 @@ SliceLayer::~SliceLayer()
 {
 }
 
-Polygons SliceLayer::getOutlines(bool outer_polys, bool inner_polys) const
+Polygons SliceLayer::getOutlines(bool external_polys_only) const
 {
     Polygons ret;
-    getOutlines(ret, outer_polys, inner_polys);
+    getOutlines(ret, external_polys_only);
     return ret;
 }
 
-void SliceLayer::getOutlines(Polygons& result, bool outer_polys, bool inner_polys) const
+void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
 {
     for (const SliceLayerPart& part : parts)
     {
-        if (outer_polys && inner_polys)
-        {
-            result.add(part.print_outline);
-        }
-        else if (outer_polys)
+        if (external_polys_only)
         {
             result.add(part.outline.outerPolygon());
         }
-        else if (inner_polys)
+        else
         {
-            result.add(part.outline.innerPolygons());
+            result.add(part.print_outline);
         }
     }
 }
@@ -270,13 +266,9 @@ SliceDataStorage::SliceDataStorage()
     machine_size.include(machine_max);
 }
 
-Polygons SliceDataStorage::getLayerOutlines(
-    const LayerIndex layer_nr,
-    const bool include_support,
-    const bool include_prime_tower,
-    const bool outer_polys,
-    const bool inner_polys,
-    const int extruder_nr) const
+Polygons
+    SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only, const int extruder_nr)
+        const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
 
@@ -311,26 +303,19 @@ Polygons SliceDataStorage::getLayerOutlines(
 
         if (include_support && use_current_extruder_for_raft)
         {
-            if (outer_polys && inner_polys)
-            {
-                return *raftOutline;
-            }
-            else
+            if (external_polys_only)
             {
                 std::vector<PolygonsPart> parts = raftOutline->splitIntoParts();
                 Polygons result;
                 for (PolygonsPart& part : parts)
                 {
-                    if (outer_polys)
-                    {
-                        result.add(part.outerPolygon());
-                    }
-                    else if (inner_polys)
-                    {
-                        result.add(part.innerPolygons());
-                    }
+                    result.add(part.outerPolygon());
                 }
                 return result;
+            }
+            else
+            {
+                return *raftOutline;
             }
         }
         else
@@ -353,7 +338,7 @@ Polygons SliceDataStorage::getLayerOutlines(
                     continue;
                 }
                 const SliceLayer& layer = mesh->layers[layer_nr];
-                layer.getOutlines(total, outer_polys, inner_polys);
+                layer.getOutlines(total, external_polys_only);
                 if (mesh->settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
                     total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(MM2INT(0.1)));

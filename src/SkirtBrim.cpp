@@ -437,13 +437,7 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
         {
             for (const ExtruderTrain& extruder : Application::getInstance().current_slice_->scene.extruders)
             {
-                first_layer_outline = first_layer_outline.unionPolygons(storage_.getLayerOutlines(
-                    i_layer,
-                    include_support,
-                    include_prime_tower,
-                    reference_extruder_config.outside_polys_,
-                    reference_extruder_config.inside_polys_,
-                    extruder.extruder_nr_));
+                first_layer_outline = first_layer_outline.unionPolygons(storage_.getLayerOutlines(i_layer, include_support, include_prime_tower, true, extruder.extruder_nr_));
             }
         }
 
@@ -474,9 +468,8 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
     { // add brim underneath support by removing support where there's brim around the model
         constexpr bool include_support = false; // Include manually below.
         constexpr bool include_prime_tower = false; // Not included.
-        constexpr bool outer_polys = true; // Remove manually below.
-        constexpr bool inner_polys = true; // Remove manually below.
-        first_layer_outline = storage_.getLayerOutlines(layer_nr, include_support, include_prime_tower, outer_polys, inner_polys, extruder_nr);
+        constexpr bool external_polys_only = false; // Remove manually below.
+        first_layer_outline = storage_.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr);
         first_layer_outline = first_layer_outline.unionPolygons(); // To guard against overlapping outlines, which would produce holes according to the even-odd rule.
         Polygons first_layer_empty_holes;
         if (! reference_extruder_config.inside_polys_)
