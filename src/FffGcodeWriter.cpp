@@ -140,6 +140,12 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
             mesh_order_per_extruder.push_back(calculateMeshOrder(storage, extruder_nr));
         }
     }
+
+    // Setting first travel move of the first extruder to the machine start position
+    const auto extruder_settings = Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_;
+    Point3LL p(extruder_settings.get<coord_t>("machine_extruder_start_pos_x"), extruder_settings.get<coord_t>("machine_extruder_start_pos_y"), gcode.getPositionZ());
+    gcode.writeTravel(p, extruder_settings.get<Velocity>("speed_travel"));
+
     calculateExtruderOrderPerLayer(storage);
     calculatePrimeLayerPerExtruder(storage);
 
@@ -1173,13 +1179,29 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
     const std::vector<ExtruderUse>& extruder_order
         = (layer_nr < 0) ? extruder_order_per_layer_negative_layers[extruder_order_per_layer_negative_layers.size() + layer_nr] : extruder_order_per_layer[layer_nr];
 
-    const coord_t first_outer_wall_line_width = scene.extruders[extruder_order.front().extruder_nr].settings_.get<coord_t>("wall_line_width_0");
+    size_t first_extruder;
+    if (extruder_order.size() > 0)
+    {
+        first_extruder = extruder_order.front().extruder_nr;
+    }
+    else
+    {
+        // find the last extruder used in the previous layer
+        size_t last_extruder_nr_layer = layer_nr - 1;
+        while (extruder_order_per_layer[last_extruder_nr_layer].size() == 0 && last_extruder_nr_layer >= 0)
+        {
+            last_extruder_nr_layer--;
+        }
+        first_extruder = extruder_order_per_layer[last_extruder_nr_layer].back().extruder_nr;
+    }
+
+    const coord_t first_outer_wall_line_width = scene.extruders[first_extruder].settings_.get<coord_t>("wall_line_width_0");
     LayerPlan& gcode_layer = *new LayerPlan(
         storage,
         layer_nr,
         z,
         layer_thickness,
-        extruder_order.front().extruder_nr,
+        first_extruder,
         fan_speed_layer_time_settings_per_extruder,
         comb_offset_from_outlines,
         first_outer_wall_line_width,
@@ -1754,12 +1776,15 @@ void FffGcodeWriter::addMeshLayerToGCode(
     PathOrderOptimizer<const SliceLayerPart*> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
     for (const SliceLayerPart& part : layer.parts)
     {
+        if (part.outline.empty())
+        {
+            continue;
+        }
         part_order_optimizer.addPolygon(&part);
     }
-    if (part_order_optimizer.vertices_to_paths_.size() > 1)
-    {
-        part_order_optimizer.optimize(false);
-    }
+
+    part_order_optimizer.optimize(false);
+
     for (const PathOrdering<const SliceLayerPart*>& path : part_order_optimizer.paths_)
     {
         addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *path.vertices_, gcode_layer);
