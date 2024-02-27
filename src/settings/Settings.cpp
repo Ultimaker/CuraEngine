@@ -697,6 +697,24 @@ PrimeTowerMethod Settings::get<PrimeTowerMethod>(const std::string& key) const
 }
 
 template<>
+BrimLocation Settings::get<BrimLocation>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "everywhere")
+    {
+        return BrimLocation::EVERYWHERE;
+    }
+    else if (value == "inside")
+    {
+        return BrimLocation::INSIDE;
+    }
+    else // Default.
+    {
+        return BrimLocation::OUTSIDE;
+    }
+}
+
+template<>
 std::vector<double> Settings::get<std::vector<double>>(const std::string& key) const
 {
     const std::string& value_string = get<std::string>(key);

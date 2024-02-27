@@ -186,19 +186,21 @@ public:
     /*!
      * Get the all outlines of all layer parts in this layer.
      *
-     * \param external_polys_only Whether to only include the outermost outline of each layer part
+     * \param outer_polys Whether to include the outermost outline of each layer part
+     * \param inner_polys Whether to include the inner outlines (holes) of each layer part
      * \return A collection of all the outline polygons
      */
-    Polygons getOutlines(bool external_polys_only = false) const;
+    Polygons getOutlines(bool outer_polys = true, bool inner_polys = true) const;
 
     /*!
      * Get the all outlines of all layer parts in this layer.
      * Add those polygons to @p result.
      *
-     * \param external_polys_only Whether to only include the outermost outline of each layer part
+     * \param outer_polys Whether to include the outermost outline of each layer part
+     * \param inner_polys Whether to include the inner outlines (holes) of each layer part
      * \param result The result: a collection of all the outline polygons
      */
-    void getOutlines(Polygons& result, bool external_polys_only = false) const;
+    void getOutlines(Polygons& result, bool outer_polys = true, bool inner_polys = true) const;
 
     ~SliceLayer();
 };
@@ -391,12 +393,17 @@ public:
      * \param include_support Whether to include support in the outline.
      * \param include_prime_tower Whether to include the prime tower in the
      * outline.
-     * \param external_polys_only Whether to disregard all hole polygons.
+     * \param outer_polys Whether to include the outline polygons.
+     * \param inner_polys Whether to include all hole polygons.
      * \param extruder_nr (optional) only give back outlines for this extruder (where the walls are printed with this extruder)
      */
-    Polygons
-        getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only = false, const int extruder_nr = -1)
-            const;
+    Polygons getLayerOutlines(
+        const LayerIndex layer_nr,
+        const bool include_support,
+        const bool include_prime_tower,
+        const bool outer_polys = true,
+        const bool inner_polys = true,
+        const int extruder_nr = -1) const;
 
     /*!
      * Get the extruders used.
