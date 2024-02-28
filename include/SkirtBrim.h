@@ -65,7 +65,7 @@ private:
         bool extruder_is_used_; //!< Whether the extruder is actually used in this print
         bool outside_polys_; //!< Whether to generate brim on the outside
         bool inside_polys_; //!< Whether to generate brim on the inside
-        coord_t line_widths_; //!< The skirt/brim line width
+        coord_t line_width_; //!< The skirt/brim line width
         coord_t skirt_brim_minimal_length_; //!< The minimal brim length
         int line_count_; //!< The (minimal) number of brim lines to generate
         coord_t gap_; //!< The gap between the part and the first brim/skirt line
@@ -197,6 +197,8 @@ private:
      * \param[in,out] total_length The total length of the brim lines for each extruder.
      */
     void generateSecondarySkirtBrim(Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length);
+
+    std::vector<Polygons> generateAllowedAreas() const;
 
 public:
     /*!

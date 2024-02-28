@@ -1286,6 +1286,8 @@ public:
      */
     Polygons getEmptyHoles() const;
 
+    Polygons getHoles() const;
+
     /*!
      * Split up the polygons into groups according to the even-odd rule.
      * Each PolygonsPart in the result has an outline as first polygon, whereas the rest are holes.

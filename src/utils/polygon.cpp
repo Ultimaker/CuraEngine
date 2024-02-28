@@ -599,6 +599,19 @@ Polygons Polygons::getEmptyHoles() const
     return ret;
 }
 
+Polygons Polygons::getHoles() const
+{
+    Polygons ret;
+    for (ConstPolygonRef polygon : *this)
+    {
+        if (polygon.area() < 0)
+        {
+            ret.add(polygon);
+        }
+    }
+    return ret;
+}
+
 void Polygons::removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& node, const bool remove_holes, Polygons& ret) const
 {
     for (int outer_poly_idx = 0; outer_poly_idx < node.ChildCount(); outer_poly_idx++)

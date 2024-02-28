@@ -340,6 +340,7 @@ void SVG::writePolygons(const Polygons& polys, const ColorObject color, const do
     {
         writePolygon(poly, color, stroke_width);
     }
+    fflush(out_);
 }
 
 void SVG::writePolygon(ConstPolygonRef poly, const ColorObject color, const double stroke_width) const
@@ -374,6 +375,7 @@ void SVG::writePolygon(ConstPolygonRef poly, const ColorObject color, const doub
         p0 = p1;
         i++;
     }
+    fflush(out_);
 }
 
 
