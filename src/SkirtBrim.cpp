@@ -620,7 +620,8 @@ std::vector<Polygons> SkirtBrim::generateAllowedAreas(const std::vector<Polygons
                     coord_t offset = extruder_config.line_width_ / 2;
                     double covered_area = covered_surface.area();
 
-                    if (other_extruder_nr == extruder_nr && ((covered_area > 0 && extruder_config.outside_polys_) || (covered_area < 0 && extruder_config.inside_polys_)))
+                    if ((other_extruder_nr == extruder_nr || extruder_nr == skirt_brim_extruder_nr_)
+                        && ((covered_area > 0 && extruder_config.outside_polys_) || (covered_area < 0 && extruder_config.inside_polys_)))
                     {
                         // This is an area we are gonna generate brim on with the same extruder, use the actual gap
                         offset += extruder_config.gap_ - 50; // Lower margin a bit to avoid discarding legitimate lines
