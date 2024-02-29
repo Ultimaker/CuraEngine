@@ -198,6 +198,14 @@ private:
      */
     void generateSecondarySkirtBrim(Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length);
 
+    /*!
+     * Generate the allowed areas for each extruder. Allowed areas represent where the brim/skirt is allowed to grow
+     * while adding new outset lines. This is basically the whole build plate, removing the areas where models are
+     * located, offsetted with some specific margins.
+     *
+     * \param[in] starting_outlines The previously generated starting outlines for each extruder
+     * \return The list of allowed areas for each extruder
+     */
     std::vector<Polygons> generateAllowedAreas(const std::vector<Polygons>& starting_outlines) const;
 
 public:
