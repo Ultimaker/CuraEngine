@@ -1194,11 +1194,6 @@ public:
      */
     double area() const;
 
-    void reverse()
-    {
-        ClipperLib::ReversePaths(paths);
-    }
-
     /*!
      * Smooth out small perpendicular segments
      * Smoothing is performed by removing the inner most vertex of a line segment smaller than \p remove_length
@@ -1557,16 +1552,6 @@ public:
     ConstPolygonRef outerPolygon() const
     {
         return paths[0];
-    }
-
-    Polygons innerPolygons() const
-    {
-        Polygons ret;
-        if (size() > 1)
-        {
-            ret.paths = ClipperLib::Paths(std::next(paths.begin()), paths.end());
-        }
-        return ret;
     }
 
     /*!

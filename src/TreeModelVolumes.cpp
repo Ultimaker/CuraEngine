@@ -572,6 +572,7 @@ Polygons TreeModelVolumes::extractOutlineFromMesh(const SliceMeshStorage& mesh, 
 {
     // Similar to SliceDataStorage.getLayerOutlines but only for one mesh instead of for all of them.
 
+    constexpr bool external_polys_only = false;
     Polygons total;
 
     if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
@@ -580,7 +581,7 @@ Polygons TreeModelVolumes::extractOutlineFromMesh(const SliceMeshStorage& mesh, 
     }
     const SliceLayer& layer = mesh.layers[layer_idx];
 
-    layer.getOutlines(total);
+    layer.getOutlines(total, external_polys_only);
     if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
     {
         total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(FUDGE_LENGTH * 2));
