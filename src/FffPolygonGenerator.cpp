@@ -770,15 +770,15 @@ bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const LayerInd
 void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size_t& total_layers)
 {
     const auto get_highest_z = [&storage](const LayerIndex& layer_idx)
+    {
+        coord_t highest_z = 0;
+        for (std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
         {
-            coord_t highest_z = 0;
-            for (std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
-            {
-                auto& mesh = *mesh_ptr;
-                highest_z = layer_idx >= mesh.layers.size() ? highest_z : std::max(highest_z, mesh.layers[layer_idx].printZ);
-            }
-            return highest_z;
-        };
+            auto& mesh = *mesh_ptr;
+            highest_z = layer_idx >= mesh.layers.size() ? highest_z : std::max(highest_z, mesh.layers[layer_idx].printZ);
+        }
+        return highest_z;
+    };
 
     size_t n_empty_first_layers = 0;
     coord_t hightest_empty_layer = 0;
