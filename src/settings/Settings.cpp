@@ -686,14 +686,8 @@ PrimeTowerMethod Settings::get<PrimeTowerMethod>(const std::string& key) const
     {
         return PrimeTowerMethod::INTERLEAVED;
     }
-    else if (value == "normal")
-    {
-        return PrimeTowerMethod::NORMAL;
-    }
-    else // Default.
-    {
-        return PrimeTowerMethod::NONE;
-    }
+
+    return PrimeTowerMethod::NORMAL;
 }
 
 template<>
