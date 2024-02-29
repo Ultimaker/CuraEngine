@@ -15,10 +15,10 @@
 #include <string>
 #include <unordered_set>
 
+#include <fmt/format.h>
 #include <range/v3/all.hpp>
 #include <spdlog/details/os.h>
 #include <spdlog/spdlog.h>
-#include <fmt/format.h>
 
 #include "Application.h" //To get the extruders for material estimates.
 #include "ExtruderTrain.h"
