@@ -196,6 +196,7 @@ if (ENABLE_ARCUS)
     target_link_libraries(_CuraEngine PUBLIC arcus::arcus)
 endif ()
 
+find_package(mapbox-wagyu REQUIRED)
 find_package(clipper REQUIRED)
 find_package(RapidJSON REQUIRED)
 find_package(stb REQUIRED)
@@ -219,6 +220,7 @@ target_link_libraries(_CuraEngine
         range-v3::range-v3
         fmt::fmt
         clipper::clipper
+        mapbox-wagyu::mapbox-wagyu
         rapidjson
         stb::stb
         boost::boost
@@ -291,6 +293,7 @@ if (ENABLE_TESTING OR ENABLE_BENCHMARKS)
             GTest::gtest
             GTest::gmock
             clipper::clipper
+            mapbox-wagyu::mapbox-wagyu
             $<$<TARGET_EXISTS:curaengine_grpc_definitions::curaengine_grpc_definitions>:curaengine_grpc_definitions::curaengine_grpc_definitions>
             $<$<TARGET_EXISTS:asio-grpc::asio-grpc>:asio-grpc::asio-grpc>
             $<$<TARGET_EXISTS:grpc::grpc>:grpc::grpc>

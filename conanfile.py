@@ -127,6 +127,7 @@ class CuraEngineConan(ConanFile):
         self.requires("range-v3/0.12.0")
         self.requires("zlib/1.2.12")
         self.requires("openssl/3.2.0")
+        self.requires("mapbox-wagyu/0.5.0@ultimaker/stable")
 
     def generate(self):
         deps = CMakeDeps(self)
@@ -212,7 +213,7 @@ class CuraEngineConan(ConanFile):
                 self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases finalize -o {sentry_org} -p {sentry_project} {self.version}")
 
     def package(self):
-        match self.setting.os:
+        match self.settings.os:
             case "Windows":
                 ext = ".exe"
             case "Emscripten":

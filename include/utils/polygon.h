@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_POLYGON_H
@@ -1536,6 +1536,17 @@ public:
      * @return Polygons The polygons read from the stream
      */
     [[maybe_unused]] static Polygons fromWkt(const std::string& wkt);
+
+    /*!
+     * @brief Remove self-intersections from the polygons
+     * _note_: this function uses wagyu to remove the self intersections.
+     * since wagyu uses a different internal representation of the polygons
+     * we need to convert back and forward between data structures which
+     * might impact performance, use wisely!
+     *
+     * @return Polygons - the cleaned polygons
+     */
+    Polygons removeNearSelfIntersections() const;
 };
 
 /*!
