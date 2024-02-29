@@ -123,7 +123,7 @@ void CommandLine::sendProgress(double progress) const
     // TODO: Do we want to print a progress bar? We'd need a better solution to not have that progress bar be ruined by any logging.
 #ifdef __EMSCRIPTEN__
     // Call progress handler with progress
-    emscripten_run_script(fmt::format("globalThis['{}\']({})", progressHandler.c_str(), progress));
+    emscripten_run_script(fmt::format("globalThis['{}\']({})", progressHandler.c_str(), progress).c_str());
 #endif
 }
 
