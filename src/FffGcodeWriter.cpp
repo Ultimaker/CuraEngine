@@ -1594,7 +1594,8 @@ std::vector<ExtruderUse>
     assert(static_cast<int>(extruder_count) > 0);
     std::vector<ExtruderUse> ret;
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
-    PrimeTowerMethod method = mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode");
+    const auto method = mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode");
+    const auto prime_tower_enable = mesh_group_settings.get<bool>("prime_tower_enable");
 
     // check if we are on the first layer
     if (layer_nr == -static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
@@ -1626,28 +1627,28 @@ std::vector<ExtruderUse>
     {
         ExtruderPrime prime = ExtruderPrime::None;
 
-        switch (method)
+        if (prime_tower_enable)
         {
-        case PrimeTowerMethod::NONE:
-            break;
+            switch (method)
+            {
+            case PrimeTowerMethod::NORMAL:
+                if (extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder)
+                {
+                    prime = ExtruderPrime::Prime;
+                }
+                else if (layer_nr < storage.max_print_height_second_to_last_extruder)
+                {
+                    prime = ExtruderPrime::Sparse;
+                }
+                break;
 
-        case PrimeTowerMethod::NORMAL:
-            if (extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder)
-            {
-                prime = ExtruderPrime::Prime;
+            case PrimeTowerMethod::INTERLEAVED:
+                if (extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder)
+                {
+                    prime = ExtruderPrime::Prime;
+                }
+                break;
             }
-            else if (layer_nr < storage.max_print_height_second_to_last_extruder)
-            {
-                prime = ExtruderPrime::Sparse;
-            }
-            break;
-
-        case PrimeTowerMethod::INTERLEAVED:
-            if (extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder)
-            {
-                prime = ExtruderPrime::Prime;
-            }
-            break;
         }
 
         if (extruder_is_used_on_this_layer[extruder_nr] || prime != ExtruderPrime::None)

@@ -251,11 +251,6 @@ enum class InsetDirection
 enum class PrimeTowerMethod
 {
     /*!
-     * No prime tower is generated.
-     */
-    NONE,
-
-    /*!
      * Prime tower that minimizes time and used filament as much as possible.
      */
     INTERLEAVED,
