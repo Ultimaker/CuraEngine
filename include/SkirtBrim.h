@@ -198,7 +198,7 @@ private:
      */
     void generateSecondarySkirtBrim(Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length);
 
-    std::vector<Polygons> generateAllowedAreas() const;
+    std::vector<Polygons> generateAllowedAreas(const std::vector<Polygons>& starting_outlines) const;
 
 public:
     /*!

@@ -123,8 +123,7 @@ void SkirtBrim::generate()
 {
     std::vector<Polygons> starting_outlines(extruder_count_);
     std::vector<Offset> all_brim_offsets = generateBrimOffsetPlan(starting_outlines);
-
-    std::vector<Polygons> allowed_areas_per_extruder = generateAllowedAreas();
+    std::vector<Polygons> allowed_areas_per_extruder = generateAllowedAreas(starting_outlines);
 
     // Apply 'approximate convex hull' if the adhesion is skirt _after_ any skirt but also prime-tower-brim adhesion.
     // Otherwise, the now expanded convex hull covered areas will mess with that brim. Fortunately this does not mess
@@ -260,12 +259,6 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Polygons& covered_area, 
         brim.add(local_brim);
     }
 
-
-    SVG svg(fmt::format("/tmp/result_offset{}_ex{}.svg", offset.total_offset_, offset.extruder_nr_), AABB(allowed_areas_per_extruder[offset.extruder_nr_]), 0.001);
-    svg.writePolygons(allowed_areas_per_extruder[offset.extruder_nr_], SVG::Color::MAGENTA, 0.1);
-    svg.writePolygons(brim, SVG::Color::BLACK, extruder_config.line_width_ / 1000.0);
-
-
     // limit brim lines to allowed areas, stitch them and store them in the result
     brim = Simplify(Application::getInstance().current_slice_->scene.extruders[offset.extruder_nr_].settings_).polygon(brim);
     brim.toPolylines();
@@ -274,7 +267,6 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Polygons& covered_area, 
     length_added = brim_lines.polyLineLength();
 
     Polygons newly_covered = brim_lines.offsetPolyLine(extruder_config.line_width_ / 2 + 10, ClipperLib::jtRound);
-    svg.writePolygons(newly_covered, SVG::Color::BLUE, 0.1);
 
     const coord_t max_stitch_distance = extruder_config.line_width_;
     PolylineStitcher<Polygons, Polygon, Point2LL>::stitch(brim_lines, result.open_polylines, result.closed_polygons, max_stitch_distance);
@@ -361,20 +353,11 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
     }
     else
     { // add brim underneath support by removing support where there's brim around the model
-        constexpr bool include_support = false; // Include manually below.
-        constexpr bool include_prime_tower = false; // Not included.
-        constexpr bool external_polys_only = false; // Remove manually below.
+        constexpr bool include_support = false; // Don't include the supports yet because we need to reduce them before
+        constexpr bool include_prime_tower = false; // Not included, has its own brim
+        constexpr bool external_polys_only = false; // Gather all polygons and treat them separately.
         first_layer_outline = storage_.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr);
         first_layer_outline = first_layer_outline.unionPolygons(); // To guard against overlapping outlines, which would produce holes according to the even-odd rule.
-        Polygons first_layer_empty_holes;
-        if (! reference_extruder_config.inside_polys_)
-        {
-            first_layer_empty_holes = first_layer_outline.getEmptyHoles();
-            first_layer_outline = first_layer_outline.removeEmptyHoles();
-        }
-
-        SVG svg("/tmp/outline.svg", AABB(storage_.getMachineBorder(extruder_nr)));
-        svg.writePolygons(first_layer_outline);
 
         if (storage_.support.generated && primary_line_count > 0 && ! storage_.support.supportLayers.empty()
             && (extruder_nr == -1 || extruder_nr == global_settings.get<int>("support_infill_extruder_nr")))
@@ -391,19 +374,39 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
                 //  |+-+|     |+--+|
                 //  +---+     +----+
                 const coord_t primary_extruder_skirt_brim_line_width = reference_extruder_config.line_width_;
-                Polygons model_brim_covered_area = first_layer_outline.offset(
-                    primary_extruder_skirt_brim_line_width * (primary_line_count + primary_line_count % 2),
-                    ClipperLib::jtRound); // always leave a gap of an even number of brim lines, so that it fits if it's generating brim from both sides
-                if (! reference_extruder_config.inside_polys_)
-                { // don't remove support within empty holes where no brim is generated.
-                    model_brim_covered_area.add(first_layer_empty_holes);
+                Polygons model_brim_covered_area;
+
+                // always leave a gap of an even number of brim lines, so that it fits if it's generating brim from both sides
+                const coord_t offset = primary_extruder_skirt_brim_line_width * (primary_line_count + primary_line_count % 2);
+
+                for (ConstPolygonRef polygon : first_layer_outline)
+                {
+                    Polygons outset;
+                    Polygons inset;
+
+                    double area = polygon.area();
+                    if (area > 0 && reference_extruder_config.outside_polys_)
+                    {
+                        outset = polygon.offset(offset, ClipperLib::jtRound);
+                        inset.add(polygon);
+                    }
+                    else if (area < 0 && reference_extruder_config.inside_polys_)
+                    {
+                        outset.add(polygon);
+                        inset = polygon.offset(-offset, ClipperLib::jtRound);
+                    }
+
+                    outset = outset.difference(inset);
+                    model_brim_covered_area = model_brim_covered_area.unionPolygons(outset);
                 }
+
                 AABB model_brim_covered_area_boundary_box(model_brim_covered_area);
                 support_layer.excludeAreasFromSupportInfillAreas(model_brim_covered_area, model_brim_covered_area_boundary_box);
 
                 // If the gap between the model and the BP is small enough, support starts with the interface instead, so remove it there as well:
                 support_layer.support_roof = support_layer.support_roof.difference(model_brim_covered_area);
             }
+
             for (const SupportInfillPart& support_infill_part : support_layer.support_infill_parts)
             {
                 first_layer_outline.add(support_infill_part.outline_);
@@ -549,7 +552,7 @@ void SkirtBrim::generateSecondarySkirtBrim(Polygons& covered_area, std::vector<P
     }
 }
 
-std::vector<Polygons> SkirtBrim::generateAllowedAreas() const
+std::vector<Polygons> SkirtBrim::generateAllowedAreas(const std::vector<Polygons>& starting_outlines) const
 {
     constexpr LayerIndex layer_nr = 0;
 
@@ -587,21 +590,6 @@ std::vector<Polygons> SkirtBrim::generateAllowedAreas() const
             }
         }
     }
-    else
-    {
-        // Single allowed areas for all extruders
-        covered_area_by_extruder.emplace_back(
-            storage_
-                .getLayerOutlines(
-                    layer_nr,
-                    /*include_support*/ true,
-                    /*include_prime_tower*/ true,
-                    /*external_polys_only*/ true,
-                    /*extruder_nr*/ -1,
-                    /*include_model*/ true)
-                .approxConvexHull(),
-            Polygons());
-    }
 
     std::vector<Polygons> allowed_areas_per_extruder(extruder_count_);
     for (size_t extruder_nr = 0; extruder_nr < extruder_count_; extruder_nr++)
@@ -613,32 +601,55 @@ std::vector<Polygons> SkirtBrim::generateAllowedAreas() const
             continue;
         }
 
-        const Settings& settings = Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_;
-        const coord_t hole_brim_distance = settings.get<coord_t>("brim_inside_margin");
-
-        // Initialize allowed area to full build plate, then remove unreachable areas
+        // Initialize allowed area to full build plate, then remove disallowed areas
         Polygons& allowed_areas = allowed_areas_per_extruder[extruder_nr];
         allowed_areas = storage_.getMachineBorder(extruder_nr);
 
-        for (size_t other_extruder_nr = 0; other_extruder_nr < covered_area_by_extruder.size(); ++other_extruder_nr)
+        if (adhesion_type_ == EPlatformAdhesion::BRIM)
         {
-            // Remove areas covered by models with a higher margin on those printed with a different extruder
-            coord_t models_offset = extruder_config.line_width_ / 2;
-            if (other_extruder_nr == extruder_nr || adhesion_type_ == EPlatformAdhesion::SKIRT)
-            {
-                models_offset += extruder_config.gap_ - 50; // Lower margin a bit to avoid discarding legitimate lines
-            }
-            else
-            {
-                models_offset += hole_brim_distance;
-            }
+            const Settings& settings = Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_;
+            const coord_t hole_brim_distance = settings.get<coord_t>("brim_inside_margin");
 
-            const ExtruderOutlines& extruder_outlines = covered_area_by_extruder[other_extruder_nr];
-            allowed_areas = allowed_areas.difference(extruder_outlines.models_outlines.offset(models_offset, ClipperLib::jtRound));
+            for (size_t other_extruder_nr = 0; other_extruder_nr < covered_area_by_extruder.size(); ++other_extruder_nr)
+            {
+                const ExtruderOutlines& extruder_outlines = covered_area_by_extruder[other_extruder_nr];
 
-            // Remove areas covered by support, with a low margin because we don't care if the brim touches it
-            allowed_areas = allowed_areas.difference(extruder_outlines.supports_outlines.offset(extruder_config.line_width_ / 2));
+                // Remove areas covered by models
+                for (ConstPolygonRef covered_surface : extruder_outlines.models_outlines)
+                {
+                    coord_t offset = extruder_config.line_width_ / 2;
+                    double covered_area = covered_surface.area();
+
+                    if (other_extruder_nr == extruder_nr && ((covered_area > 0 && extruder_config.outside_polys_) || (covered_area < 0 && extruder_config.inside_polys_)))
+                    {
+                        // This is an area we are gonna generate brim on with the same extruder, use the actual gap
+                        offset += extruder_config.gap_ - 50; // Lower margin a bit to avoid discarding legitimate lines
+                    }
+                    else
+                    {
+                        // This is an area we are not gonna generate brim in, or with a different extruder,
+                        // use a larger gap to keep the printed surface clean
+                        offset += hole_brim_distance;
+                    }
+
+                    if (covered_area < 0)
+                    {
+                        // Invert offset for making holes grow inside
+                        allowed_areas.add(covered_surface.offset(-offset, ClipperLib::jtRound));
+                    }
+                    else
+                    {
+                        allowed_areas = allowed_areas.difference(covered_surface.offset(offset, ClipperLib::jtRound));
+                    }
+                }
+
+                // Remove areas covered by support, with a low margin because we don't care if the brim touches it
+                allowed_areas = allowed_areas.difference(extruder_outlines.supports_outlines.offset(extruder_config.line_width_ / 2));
+            }
         }
+
+        // Anyway, don't allow a brim/skirt to grow inside itself, which may happen e.g. with ooze shield+skirt
+        allowed_areas = allowed_areas.difference(starting_outlines[extruder_nr].offset(extruder_config.gap_ - 50, ClipperLib::jtRound));
     }
 
     return allowed_areas_per_extruder;
