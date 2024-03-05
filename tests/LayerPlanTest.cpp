@@ -119,6 +119,7 @@ public:
         settings->add("machine_width", "1000");
         settings->add("material_flow_layer_0", "100");
         settings->add("meshfix_maximum_travel_resolution", "0");
+        settings->add("prime_tower_enable", "false");
         settings->add("prime_tower_mode", "default");
         settings->add("prime_tower_flow", "108");
         settings->add("prime_tower_line_width", "0.48");
