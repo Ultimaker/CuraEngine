@@ -2150,9 +2150,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 else
                 {
                     gcode.writeZhopEnd();
-                    if (z > 0 && path.z_offset != 0)
+                    if (z_ > 0 && path.z_offset != 0)
                     {
-                        gcode.setZ(z + path.z_offset);
+                        gcode.setZ(z_ + path.z_offset);
                     }
                 }
             }
