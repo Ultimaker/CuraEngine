@@ -3,6 +3,17 @@
 
 #include "settings/Settings.h"
 
+#include <cctype>
+#include <fstream>
+#include <regex> // regex parsing for temp flow graph
+#include <sstream> // ostringstream
+#include <stdio.h>
+#include <string> //Parsing strings (stod, stoul).
+
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/map.hpp>
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To get the extruders.
 #include "BeadingStrategy/BeadingStrategyFactory.h"
 #include "ExtruderTrain.h"
@@ -15,21 +26,10 @@
 #include "settings/types/Ratio.h" //For ratio settings and percentages.
 #include "settings/types/Temperature.h" //For temperature settings.
 #include "settings/types/Velocity.h" //For velocity settings.
-#include "utils/FMatrix4x3.h"
+#include "utils/Matrix4x3D.h"
 #include "utils/polygon.h"
 #include "utils/string.h" //For Escaped.
 #include "utils/types/string_switch.h" //For string switch.
-
-#include <range/v3/range/conversion.hpp>
-#include <range/v3/view/map.hpp>
-#include <spdlog/spdlog.h>
-
-#include <cctype>
-#include <fstream>
-#include <regex> // regex parsing for temp flow graph
-#include <sstream> // ostringstream
-#include <stdio.h>
-#include <string> //Parsing strings (stod, stoul).
 
 namespace cura
 {
@@ -60,10 +60,10 @@ std::string Settings::get<std::string>(const std::string& key) const
         return settings.at(key);
     }
 
-    const std::unordered_map<std::string, ExtruderTrain*>& limit_to_extruder = Application::getInstance().current_slice->scene.limit_to_extruder;
+    const std::unordered_map<std::string, ExtruderTrain*>& limit_to_extruder = Application::getInstance().current_slice_->scene.limit_to_extruder;
     if (limit_to_extruder.find(key) != limit_to_extruder.end())
     {
-        return limit_to_extruder.at(key)->settings.getWithoutLimiting(key);
+        return limit_to_extruder.at(key)->settings_.getWithoutLimiting(key);
     }
 
     if (parent)
@@ -113,7 +113,7 @@ ExtruderTrain& Settings::get<ExtruderTrain&>(const std::string& key) const
     {
         extruder_nr = get<size_t>("extruder_nr");
     }
-    return Application::getInstance().current_slice->scene.extruders[extruder_nr];
+    return Application::getInstance().current_slice_->scene.extruders[extruder_nr];
 }
 
 template<>
@@ -123,14 +123,14 @@ std::vector<ExtruderTrain*> Settings::get<std::vector<ExtruderTrain*>>(const std
     std::vector<ExtruderTrain*> ret;
     if (extruder_nr < 0)
     {
-        for (ExtruderTrain& train : Application::getInstance().current_slice->scene.extruders)
+        for (ExtruderTrain& train : Application::getInstance().current_slice_->scene.extruders)
         {
             ret.emplace_back(&train);
         }
     }
     else
     {
-        ret.emplace_back(&Application::getInstance().current_slice->scene.extruders[extruder_nr]);
+        ret.emplace_back(&Application::getInstance().current_slice_->scene.extruders[extruder_nr]);
     }
     return ret;
 }
@@ -151,7 +151,7 @@ coord_t Settings::get<coord_t>(const std::string& key) const
 template<>
 AngleRadians Settings::get<AngleRadians>(const std::string& key) const
 {
-    return get<double>(key) * M_PI / 180; // The settings are all in degrees, but we need to interpret them as radians.
+    return get<double>(key) * std::numbers::pi / 180; // The settings are all in degrees, but we need to interpret them as radians.
 }
 
 template<>
@@ -245,7 +245,7 @@ FlowTempGraph Settings::get<FlowTempGraph>(const std::string& key) const
         {
             double first = std::stod(first_substring);
             double second = std::stod(second_substring);
-            result.data.emplace_back(first, second);
+            result.data_.emplace_back(first, second);
         }
         catch (const std::invalid_argument& e)
         {
@@ -319,11 +319,11 @@ Polygons Settings::get<Polygons>(const std::string& key) const
 }
 
 template<>
-FMatrix4x3 Settings::get<FMatrix4x3>(const std::string& key) const
+Matrix4x3D Settings::get<Matrix4x3D>(const std::string& key) const
 {
     const std::string value_string = get<std::string>(key);
 
-    FMatrix4x3 result;
+    Matrix4x3D result;
     if (value_string.empty())
     {
         return result; // Standard matrix ([[1,0,0], [0,1,0], [0,0,1]]).
@@ -676,6 +676,18 @@ InsetDirection Settings::get<InsetDirection>(const std::string& key) const
     default:
         return InsetDirection::INSIDE_OUT;
     }
+}
+
+template<>
+PrimeTowerMethod Settings::get<PrimeTowerMethod>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "interleaved")
+    {
+        return PrimeTowerMethod::INTERLEAVED;
+    }
+
+    return PrimeTowerMethod::NORMAL;
 }
 
 template<>

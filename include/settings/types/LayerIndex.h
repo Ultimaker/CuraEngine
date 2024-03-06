@@ -4,9 +4,11 @@
 #ifndef LAYERINDEX_H
 #define LAYERINDEX_H
 
-#include "utils/types/generic.h"
-
 #include <functional>
+
+#include <fmt/format.h>
+
+#include "utils/types/generic.h"
 
 namespace cura
 {
@@ -24,10 +26,14 @@ struct LayerIndex
     constexpr LayerIndex(LayerIndex&& other) noexcept = default;
 
     constexpr explicit LayerIndex(const utils::floating_point auto val) noexcept
-        : value{ static_cast<value_type>(val) } {};
+        : value{ static_cast<value_type>(val) }
+    {
+    }
 
     constexpr LayerIndex(const utils::integral auto val) noexcept
-        : value{ static_cast<value_type>(val) } {};
+        : value{ static_cast<value_type>(val) }
+    {
+    }
 
     constexpr LayerIndex& operator=(const LayerIndex& other) noexcept = default;
 
@@ -191,6 +197,11 @@ struct LayerIndex
         return tmp;
     }
 };
+
+constexpr auto format_as(LayerIndex index)
+{
+    return index.value;
+}
 
 } // namespace cura
 

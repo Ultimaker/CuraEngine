@@ -4,10 +4,10 @@
 #ifndef SKELETAL_TRAPEZOIDATION_JOINT_H
 #define SKELETAL_TRAPEZOIDATION_JOINT_H
 
-#include "BeadingStrategy/BeadingStrategy.h"
-#include "utils/IntPoint.h"
-
 #include <memory> // smart pointers
+
+#include "BeadingStrategy/BeadingStrategy.h"
+#include "utils/Point2LL.h"
 
 namespace cura
 {
@@ -19,45 +19,45 @@ class SkeletalTrapezoidationJoint
 public:
     struct BeadingPropagation
     {
-        Beading beading;
-        coord_t dist_to_bottom_source;
-        coord_t dist_from_top_source;
-        bool is_upward_propagated_only;
+        Beading beading_;
+        coord_t dist_to_bottom_source_;
+        coord_t dist_from_top_source_;
+        bool is_upward_propagated_only_;
         BeadingPropagation(const Beading& beading)
-            : beading(beading)
-            , dist_to_bottom_source(0)
-            , dist_from_top_source(0)
-            , is_upward_propagated_only(false)
+            : beading_(beading)
+            , dist_to_bottom_source_(0)
+            , dist_from_top_source_(0)
+            , is_upward_propagated_only_(false)
         {
         }
     };
 
-    coord_t distance_to_boundary;
-    coord_t bead_count;
-    float transition_ratio; //! The distance near the skeleton to leave free because this joint is in the middle of a transition, as a fraction of the inner bead width of the bead
-                            //! at the higher transition.
+    coord_t distance_to_boundary_;
+    coord_t bead_count_;
+    double transition_ratio_; //! The distance near the skeleton to leave free because this joint is in the middle of a transition, as a fraction of the inner bead width of the
+                              //! bead at the higher transition.
     SkeletalTrapezoidationJoint()
-        : distance_to_boundary(-1)
-        , bead_count(-1)
-        , transition_ratio(0)
+        : distance_to_boundary_(-1)
+        , bead_count_(-1)
+        , transition_ratio_(0)
     {
     }
 
     bool hasBeading() const
     {
-        return beading.use_count() > 0;
+        return beading_.use_count() > 0;
     }
     void setBeading(std::shared_ptr<BeadingPropagation>& storage)
     {
-        beading = storage;
+        beading_ = storage;
     }
     std::shared_ptr<BeadingPropagation> getBeading()
     {
-        return beading.lock();
+        return beading_.lock();
     }
 
 private:
-    std::weak_ptr<BeadingPropagation> beading;
+    std::weak_ptr<BeadingPropagation> beading_;
 };
 
 } // namespace cura

@@ -1,15 +1,11 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "Application.h"
 
-#include "FffProcessor.h"
-#include "communication/ArcusCommunication.h" //To connect via Arcus to the front-end.
-#include "communication/CommandLine.h" //To use the command line to slice stuff.
-#include "plugins/slots.h"
-#include "progress/Progress.h"
-#include "utils/ThreadPool.h"
-#include "utils/string.h" //For stringcasecompare.
+#include <chrono>
+#include <memory>
+#include <string>
 
 #include <boost/uuid/random_generator.hpp> //For generating a UUID.
 #include <boost/uuid/uuid_io.hpp> //For generating a UUID.
@@ -22,15 +18,19 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
-#include <chrono>
-#include <memory>
-#include <string>
+#include "FffProcessor.h"
+#include "communication/ArcusCommunication.h" //To connect via Arcus to the front-end.
+#include "communication/CommandLine.h" //To use the command line to slice stuff.
+#include "plugins/slots.h"
+#include "progress/Progress.h"
+#include "utils/ThreadPool.h"
+#include "utils/string.h" //For stringcasecompare.
 
 namespace cura
 {
 
 Application::Application()
-    : instance_uuid(boost::uuids::to_string(boost::uuids::random_generator()()))
+    : instance_uuid_(boost::uuids::to_string(boost::uuids::random_generator()()))
 {
     auto dup_sink = std::make_shared<spdlog::sinks::dup_filter_sink_mt>(std::chrono::seconds{ 10 });
     auto base_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -47,8 +47,8 @@ Application::Application()
 
 Application::~Application()
 {
-    delete communication;
-    delete thread_pool;
+    delete communication_;
+    delete thread_pool_;
 }
 
 Application& Application::getInstance()
@@ -64,7 +64,7 @@ void Application::connect()
     int port = 49674;
 
     // Parse port number from IP address.
-    std::string ip_port(argv[2]);
+    std::string ip_port(argv_[2]);
     std::size_t found_pos = ip_port.find(':');
     if (found_pos != std::string::npos)
     {
@@ -74,9 +74,9 @@ void Application::connect()
 
     int n_threads;
 
-    for (size_t argn = 3; argn < argc; argn++)
+    for (size_t argn = 3; argn < argc_; argn++)
     {
-        char* str = argv[argn];
+        char* str = argv_[argn];
         if (str[0] == '-')
         {
             for (str++; *str; str++)
@@ -104,13 +104,13 @@ void Application::connect()
 
     ArcusCommunication* arcus_communication = new ArcusCommunication();
     arcus_communication->connect(ip, port);
-    communication = arcus_communication;
+    communication_ = arcus_communication;
 }
 #endif // ARCUS
 
 void Application::printCall() const
 {
-    spdlog::error("Command called: {}", *argv);
+    spdlog::error("Command called: {}", *argv_);
 }
 
 void Application::printHelp() const
@@ -131,6 +131,7 @@ void Application::printHelp() const
     fmt::print("  -v\n\tIncrease the verbose level (show log messages).\n");
     fmt::print("  -m<thread_count>\n\tSet the desired number of threads.\n");
     fmt::print("  -p\n\tLog progress information.\n");
+    fmt::print("  -d Add definition search paths seperated by a `:` (Unix) or `;` (Windows)\n");
     fmt::print("  -j\n\tLoad settings.def.json file to register all settings and their defaults.\n");
     fmt::print("  -s <setting>=<value>\n\tSet a setting to a value for the last supplied object, \n\textruder train, or general settings.\n");
     fmt::print("  -l <model_file>\n\tLoad an STL model. \n");
@@ -152,7 +153,7 @@ void Application::printLicense() const
 {
     fmt::print("\n");
     fmt::print("Cura_SteamEngine version {}\n", CURA_ENGINE_VERSION);
-    fmt::print("Copyright (C) 2023 Ultimaker\n");
+    fmt::print("Copyright (C) 2024 Ultimaker\n");
     fmt::print("\n");
     fmt::print("This program is free software: you can redistribute it and/or modify\n");
     fmt::print("it under the terms of the GNU Affero General Public License as published by\n");
@@ -171,18 +172,18 @@ void Application::printLicense() const
 void Application::slice()
 {
     std::vector<std::string> arguments;
-    for (size_t argument_index = 0; argument_index < argc; argument_index++)
+    for (size_t argument_index = 0; argument_index < argc_; argument_index++)
     {
-        arguments.emplace_back(argv[argument_index]);
+        arguments.emplace_back(argv_[argument_index]);
     }
 
-    communication = new CommandLine(arguments);
+    communication_ = new CommandLine(arguments);
 }
 
 void Application::run(const size_t argc, char** argv)
 {
-    this->argc = argc;
-    this->argv = argv;
+    argc_ = argc;
+    argv_ = argv;
 
     printLicense();
     Progress::init();
@@ -216,7 +217,7 @@ void Application::run(const size_t argc, char** argv)
             exit(1);
         }
 
-    if (! communication)
+    if (! communication_)
     {
         // No communication channel is open any more, so either:
         //- communication failed to connect, or
@@ -225,9 +226,9 @@ void Application::run(const size_t argc, char** argv)
         exit(0);
     }
     startThreadPool(); // Start the thread pool
-    while (communication->hasSlice())
+    while (communication_->hasSlice())
     {
-        communication->sliceNext();
+        communication_->sliceNext();
     }
 }
 
@@ -236,7 +237,7 @@ void Application::startThreadPool(int nworkers)
     size_t nthreads;
     if (nworkers <= 0)
     {
-        if (thread_pool)
+        if (thread_pool_)
         {
             return; // Keep the previous ThreadPool
         }
@@ -246,12 +247,12 @@ void Application::startThreadPool(int nworkers)
     {
         nthreads = nworkers - 1; // Minus one for the main thread
     }
-    if (thread_pool && thread_pool->thread_count() == nthreads)
+    if (thread_pool_ && thread_pool_->thread_count() == nthreads)
     {
         return; // Keep the previous ThreadPool
     }
-    delete thread_pool;
-    thread_pool = new ThreadPool(nthreads);
+    delete thread_pool_;
+    thread_pool_ = new ThreadPool(nthreads);
 }
 
 } // namespace cura

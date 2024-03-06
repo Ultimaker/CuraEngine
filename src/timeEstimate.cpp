@@ -3,13 +3,13 @@
 
 #include "timeEstimate.h"
 
-#include "settings/Settings.h"
-#include "utils/math.h"
-
 #include <algorithm>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "settings/Settings.h"
+#include "utils/math.h"
 
 namespace cura
 {
@@ -68,7 +68,7 @@ static inline Velocity maxAllowableSpeed(const Acceleration& acceleration, const
 }
 
 // Calculates the distance (not time) it takes to accelerate from initial_rate to target_rate using the given acceleration:
-static inline float estimateAccelerationDistance(const Velocity& initial_rate, const Velocity& target_rate, const Acceleration& acceleration)
+static inline double estimateAccelerationDistance(const Velocity& initial_rate, const Velocity& target_rate, const Acceleration& acceleration)
 {
     if (acceleration == 0)
     {

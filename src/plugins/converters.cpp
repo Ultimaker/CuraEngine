@@ -1,8 +1,13 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#ifdef ENABLE_PLUGINS
 
 #include "plugins/converters.h"
+
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/filter.hpp>
+#include <range/v3/view/transform.hpp>
 
 #include "GCodePathConfig.h"
 #include "WallToolPaths.h"
@@ -11,10 +16,6 @@
 #include "settings/Settings.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/polygon.h"
-
-#include <range/v3/range/conversion.hpp>
-#include <range/v3/view/filter.hpp>
-#include <range/v3/view/transform.hpp>
 
 namespace cura::plugins
 {
@@ -85,9 +86,11 @@ handshake_response::native_value_type handshake_response::operator()(const hands
              .broadcast_subscriptions = std::set<int>(message.broadcast_subscriptions().begin(), message.broadcast_subscriptions().end()) };
 }
 
-simplify_request::value_type
-    simplify_request::operator()(const simplify_request::native_value_type& polygons, const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation)
-        const
+simplify_request::value_type simplify_request::operator()(
+    const simplify_request::native_value_type& polygons,
+    const coord_t max_resolution,
+    [[maybe_unused]] const coord_t max_deviation,
+    [[maybe_unused]] const coord_t max_area_deviation) const
 {
     value_type message{};
     if (polygons.empty())
@@ -133,7 +136,7 @@ simplify_response::native_value_type
         Polygon o{};
         for (const auto& point : paths.outline().path())
         {
-            o.add(Point{ point.x(), point.y() });
+            o.add(Point2LL{ point.x(), point.y() });
         }
         poly.add(o);
 
@@ -142,7 +145,7 @@ simplify_response::native_value_type
             Polygon h{};
             for (const auto& point : hole.path())
             {
-                h.add(Point{ point.x(), point.y() });
+                h.add(Point2LL{ point.x(), point.y() });
             }
             poly.add(h);
         }
@@ -234,7 +237,7 @@ infill_generate_response::native_value_type infill_generate_response::operator()
         Polygon outline{};
         for (auto& path_msg : polygon_msg.outline().path())
         {
-            outline.add(Point{ path_msg.x(), path_msg.y() });
+            outline.add(Point2LL{ path_msg.x(), path_msg.y() });
         }
         polygon.add(outline);
 
@@ -244,7 +247,7 @@ infill_generate_response::native_value_type infill_generate_response::operator()
             Polygon hole{};
             for (auto& path_msg : hole_msg.path())
             {
-                hole.add(Point{ path_msg.x(), path_msg.y() });
+                hole.add(Point2LL{ path_msg.x(), path_msg.y() });
             }
             polygon.add(hole);
         }
@@ -257,7 +260,7 @@ infill_generate_response::native_value_type infill_generate_response::operator()
         Polygon poly_line;
         for (auto& p : polygon.path())
         {
-            poly_line.emplace_back(Point{ p.x(), p.y() });
+            poly_line.emplace_back(Point2LL{ p.x(), p.y() });
         }
         result_lines.emplace_back(poly_line);
     }
@@ -472,7 +475,7 @@ gcode_paths_modify_response::native_value_type
                     | ranges::views::transform(
                           [](const auto& point_msg)
                           {
-                              return Point{ point_msg.x(), point_msg.y() };
+                              return Point2LL{ point_msg.x(), point_msg.y() };
                           })
                     | ranges::to_vector;
 
@@ -482,3 +485,5 @@ gcode_paths_modify_response::native_value_type
     return paths;
 }
 } // namespace cura::plugins
+
+#endif // ENABLE_PLUGINS
