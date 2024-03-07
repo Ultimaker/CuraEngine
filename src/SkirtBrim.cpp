@@ -222,13 +222,17 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Polygons& covered_area, 
     if (std::holds_alternative<Polygons*>(offset.reference_outline_or_index_))
     {
         Polygons* reference_outline = std::get<Polygons*>(offset.reference_outline_or_index_);
+        const coord_t offset_value = offset.offset_value_;
         for (ConstPolygonRef polygon : *reference_outline)
         {
-            const coord_t offset_value = offset.offset_value_;
             const double area = polygon.area();
-            if ((area > 0 && offset.outside_) || (area < 0 && offset.inside_))
+            if (area > 0 && offset.outside_)
             {
-                brim.add(polygon.offset(area < 0 ? -offset_value : offset_value, ClipperLib::jtRound));
+                brim.add(polygon.offset(offset_value, ClipperLib::jtRound));
+            }
+            else if (area < 0 && offset.inside_)
+            {
+                brim.add(polygon.offset(-offset_value, ClipperLib::jtRound));
             }
         }
     }
