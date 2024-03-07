@@ -634,7 +634,7 @@ std::vector<Polygons> SkirtBrim::generateAllowedAreas(const std::vector<Polygons
                 }
 
                 // Remove areas covered by support, with a low margin because we don't care if the brim touches it
-                allowed_areas = allowed_areas.difference(extruder_outlines.supports_outlines.offset(base_offset));
+                allowed_areas = allowed_areas.difference(extruder_outlines.supports_outlines.offset(base_offset - 50));
             }
         }
 
