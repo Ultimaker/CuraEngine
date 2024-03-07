@@ -92,6 +92,7 @@ std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Pol
     for (int extruder_nr = 0; extruder_nr < extruder_count_; extruder_nr++)
     {
         const ExtruderConfig& extruder_config = extruders_configs_[extruder_nr];
+        const coord_t semi_line_width = extruder_config.line_width_ / 2;
 
         if (! extruder_config.extruder_is_used_ || (skirt_brim_extruder_nr_ >= 0 && extruder_nr != skirt_brim_extruder_nr_) || starting_outlines[extruder_nr].empty())
         {
@@ -101,7 +102,7 @@ std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Pol
         for (int line_idx = 0; line_idx < extruder_config.line_count_; line_idx++)
         {
             const bool is_last = line_idx == extruder_config.line_count_ - 1;
-            coord_t offset = extruder_config.gap_ + extruder_config.line_width_ / 2 + extruder_config.line_width_ * line_idx;
+            coord_t offset = extruder_config.gap_ + semi_line_width + extruder_config.line_width_ * line_idx;
             if (line_idx == 0)
             {
                 all_brim_offsets
