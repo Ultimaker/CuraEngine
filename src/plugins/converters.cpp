@@ -361,6 +361,7 @@ gcode_paths_modify_request::value_type
         gcode_path->set_layer_thickness(path.config.getLayerThickness());
         gcode_path->set_flow_ratio(path.config.getFlowRatio());
         gcode_path->set_is_bridge_path(path.config.isBridgePath());
+        gcode_path->set_z_offset(path.config.z_offset);
     }
 
     return message;
@@ -420,7 +421,8 @@ gcode_paths_modify_request::value_type
 
 [[nodiscard]] GCodePathConfig gcode_paths_modify_response::buildConfig(const v0::GCodePath& path)
 {
-    return { .type = getPrintFeatureType(path.feature()),
+    return { .z_offset = path.z_offset(),
+             .type = getPrintFeatureType(path.feature()),
              .line_width = path.line_width(),
              .layer_thickness = path.layer_thickness(),
              .flow = path.flow_ratio(),
@@ -451,6 +453,7 @@ gcode_paths_modify_response::native_value_type
     for (const auto& gcode_path_msg : message.gcode_paths())
     {
         GCodePath path{
+            .z_offset = gcode_path_msg.z_offset(),
             .config = buildConfig(gcode_path_msg),
             .mesh = gcode_path_msg.mesh_name().empty() ? nullptr : meshes.at(gcode_path_msg.mesh_name()),
             .space_fill_type = getSpaceFillType(gcode_path_msg.space_fill_type()),

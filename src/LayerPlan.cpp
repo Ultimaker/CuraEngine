@@ -2150,6 +2150,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 else
                 {
                     gcode.writeZhopEnd();
+                    if (z_ > 0 && path.z_offset != 0)
+                    {
+                        gcode.setZ(z_ + path.z_offset);
+                    }
                 }
             }
             const auto& extruder_changed = ! last_extrusion_config.has_value() || (last_extrusion_config.value().type != path.config.type);
