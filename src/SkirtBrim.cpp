@@ -576,7 +576,8 @@ std::vector<Polygons> SkirtBrim::generateAllowedAreas(const std::vector<Polygons
                     constexpr bool include_support = true;
                     constexpr bool include_prime_tower = true;
                     constexpr bool include_model = false;
-                    extruder_outlines.models_outlines = storage_.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr, include_model);
+                    extruder_outlines.supports_outlines
+                        = storage_.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr, include_model);
                 }
             }
         }
