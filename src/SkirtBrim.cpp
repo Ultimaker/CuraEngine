@@ -315,11 +315,9 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
 
         for (int i_layer = layer_nr; i_layer < skirt_height; ++i_layer)
         {
-            first_layer_outline = first_layer_outline.unionPolygons(storage_.getLayerOutlines(
-                i_layer,
-                /*include_support*/ true,
-                /*include_prime_tower*/ true,
-                true));
+            constexpr bool include_support = true;
+            constexpr bool include_prime_tower = true;
+            first_layer_outline = first_layer_outline.unionPolygons(storage_.getLayerOutlines(i_layer, include_support, include_prime_tower, true));
         }
 
         Polygons shields;
@@ -563,20 +561,19 @@ std::vector<Polygons> SkirtBrim::generateAllowedAreas(const std::vector<Polygons
             {
                 // Gather models/support/prime tower areas separately to apply different margins
                 ExtruderOutlines& extruder_outlines = covered_area_by_extruder[extruder_nr];
-                extruder_outlines.models_outlines = storage_.getLayerOutlines(
-                    layer_nr,
-                    /*include_support*/ false,
-                    /*include_prime_tower*/ false,
-                    /*external_polys_only*/ false,
-                    extruder_nr,
-                    /*include_model*/ true);
-                extruder_outlines.supports_outlines = storage_.getLayerOutlines(
-                    layer_nr,
-                    /*include_support*/ true,
-                    /*include_prime_tower*/ true,
-                    /*external_polys_only*/ false,
-                    extruder_nr,
-                    /*include_model*/ false);
+                constexpr bool external_polys_only = false;
+                {
+                    constexpr bool include_support = false;
+                    constexpr bool include_prime_tower = false;
+                    constexpr bool include_model = true;
+                    extruder_outlines.models_outlines = storage_.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr, include_model);
+                }
+                {
+                    constexpr bool include_support = true;
+                    constexpr bool include_prime_tower = true;
+                    constexpr bool include_model = false;
+                    extruder_outlines.models_outlines = storage_.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr, include_model);
+                }
             }
         }
     }
