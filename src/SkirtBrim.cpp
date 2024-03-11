@@ -508,15 +508,15 @@ void SkirtBrim::generateSecondarySkirtBrim(Polygons& covered_area, std::vector<P
             if (first)
             {
                 ref_polys_or_idx = &reference_outline;
-                offset_from_reference = extruder_config.line_width_ / 2;
+                offset_from_reference = extruder_config.line_width_ / 2 + extruder_config.gap_;
             }
             else
             {
                 ref_polys_or_idx = static_cast<int>(storage_.skirt_brim[extruder_nr].size() - 1);
                 offset_from_reference = extruder_config.line_width_;
             }
-            constexpr bool outside_polys = true;
-            constexpr bool inside_polys = true; // The reference outline may contain both outlines and hole polygons.
+            const bool outside_polys = extruder_config.outside_polys_;
+            const bool inside_polys = extruder_config.inside_polys_;
             Offset extra_offset(
                 ref_polys_or_idx,
                 outside_polys,
