@@ -147,11 +147,13 @@ public:
     /*!
      * \brief Round \p radius upwards to the maximum that would still round up to the same value as the provided one.
      *
-     * \param radius The radius of the node of interest
+     * \param radius The radius of the element of interest
      * \param min_xy_dist is the minimum xy distance used.
      * \return The maximum radius, resulting in the same rounding.
      */
     coord_t getRadiusNextCeil(coord_t radius, bool min_xy_dist) const;
+
+    LayerIndex getFirstAntiPreferredLayerIdx();
 
     /*!
      * \brief Provide hints which areas should be avoided in the future.
@@ -160,6 +162,8 @@ public:
      */
     void addAreaToAntiPreferred(const Polygons area, LayerIndex layer_idx);
 
+    void precalculateAntiPreferred();
+
     /*!
      * \brief Get areas that were additionally set to be avoided
      * \param layer_idx The layer said area is on.
@@ -167,6 +171,14 @@ public:
      * \returns The area that should be avoided
      */
     const Polygons& getAntiPreferredAreas(LayerIndex layer_idx, coord_t radius);
+
+    /*!
+     * \brief Get avoidance areas for areas that were additionally set to be avoided
+     * \param layer_idx The layer said area is on.
+     * \param radius The radius of the node of interest.
+     * \returns The area that should be avoided
+     */
+    const Polygons& getAntiPreferredAvoidance(coord_t radius, LayerIndex layer_idx, AvoidanceType type, bool to_model, bool min_xy_dist);
 
     /*!
      * \brief Get areas that were are classified as support blocker
@@ -509,6 +521,13 @@ private:
      */
     size_t max_cradle_dtt = 0;
 
+    LayerIndex first_anti_preferred_layer_idx = 0;
+
+    /*!
+     * \brief radii for which avoidance was already precalculated. Used to calculate anti preferred avoidance.
+     */
+    std::deque<RadiusLayerPair> precalculated_avoidance_radii;
+
     /*!
      * \brief Caches for the collision, avoidance and areas on the model where support can be placed safely
      * at given radius and layer indices.
@@ -566,6 +585,12 @@ private:
 
     mutable std::unordered_map<RadiusLayerPair, Polygons> anti_preferred_;
     std::unique_ptr<std::mutex> critical_anti_preferred_ = std::make_unique<std::mutex>();
+
+    mutable std::unordered_map<RadiusLayerPair, Polygons> anti_preferred_cache_;
+    mutable std::unordered_map<RadiusLayerPair, Polygons> anti_preferred_cache_to_model_;
+    mutable std::unordered_map<RadiusLayerPair, Polygons> anti_preferred_cache_collision;
+    std::unique_ptr<std::mutex> critical_anti_preferred_caches = std::make_unique<std::mutex>();
+
 
     std::unique_ptr<std::mutex> critical_progress = std::make_unique<std::mutex>();
 

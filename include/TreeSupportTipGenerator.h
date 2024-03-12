@@ -16,10 +16,10 @@
 #include "sliceDataStorage.h"
 #include "utils/Coord_t.h"
 #include "utils/polygon.h"
+#include "TreeSupportCradle.h"
 
 namespace cura
 {
-
 
 class TreeSupportTipGenerator
 {
@@ -35,6 +35,7 @@ public:
      * \param additional_support_areas[out] Areas that should have been roofs, but are now support, as they would not generate any lines as roof. Should already be initialised.
      * \param placed_support_lines_support_areas[out] Support-lines that were already placed represented as the area the lines will take when printed.
      * \param support_free_areas[out] Areas where no support (including roof) of any kind is to be drawn.
+     * \param cradle_data_export[out] Generated cradle lines.
      * \return All lines of the \p polylines object, with information for each point regarding in which avoidance it is currently valid in.
      */
     void generateTips(
@@ -42,7 +43,10 @@ public:
         const SliceMeshStorage& mesh,
         std::vector<std::set<TreeSupportElement*>>& move_bounds,
         std::vector<Polygons>& additional_support_areas,
-        std::vector<Polygons>& placed_support_lines_support_areas, std::vector<Polygons>& placed_fake_roof_areas, std::vector<Polygons>& support_free_areas);
+        std::vector<Polygons>& placed_support_lines_support_areas,
+        std::vector<Polygons>& placed_fake_roof_areas,
+        std::vector<Polygons>& support_free_areas,
+        std::vector<std::vector<TreeSupportCradle*>>& cradle_data_export);
 
 private:
     enum class LineStatus
@@ -153,19 +157,31 @@ private:
      */
     void calculateFloatingParts(const SliceMeshStorage& mesh);
 
-    using CradleShadowCenterPair = std::pair<std::vector<Polygons>,std::vector<Point>>;
-    using CenterSubCenterPointPair = std::pair<size_t,size_t>; //todo rename
+    /*!
+     * \brief Generate the center points of all generated cradles.
+     * \param shadow_data[in] The accumulated model of given pointy overhangs
+     * \returns The accumulated model of given pointy overhangs
+     */
+    std::vector<std::vector<std::vector<Polygons>>> generateCradleCenters(const SliceMeshStorage& mesh);
 
-    //todo one function that calculates centers and corresponding shadows Returns: Model_shadows with corresponding centers
-    std::vector<std::vector<CradleShadowCenterPair>> generateCradleCenters(const SliceMeshStorage& mesh);
+    /*!
+     * \brief Generate lines from center and model information
+     * Only area up to the required maximum height are stored.
+     * \param shadow_data[in] The accumulated model of given pointy overhangs
+     */
+    void generateCradleLines(std::vector<std::vector<std::vector<Polygons>>>& shadow_data);
 
-    //todo maybe one function that moves cradles up if they dont do anything yet
-    //todo one function that generates the lines. Returns vector of lines relative to a certain cradle index. WHERE GET INDEX?
-    std::vector<std::vector<std::pair<std::vector<Polygons>,CenterSubCenterPointPair>>> generateCradleLines(std::vector<std::vector<CradleShadowCenterPair>>& center_data);
-    //todo one function that cleans overlaps between lines. Updates cradle lines previously generated
-    void cleanCradleLineOverlaps(std::vector<std::vector<std::pair<std::vector<Polygons>,CenterSubCenterPointPair>>>& cradle_polylines);
-    //todo one function that renders the cradle
-    void finalizeCradleAreas(  std::vector<std::vector<std::vector<Polygons>>>& cradle_polygons,std::vector<Polygons>& support_free_areas,std::vector<std::vector<CradleShadowCenterPair>>& center_data);
+    /*!
+     * \brief Ensures cradle-lines do not intersect with each other.
+     */
+    void cleanCradleLineOverlaps();
+
+    /*!
+     * \brief Finishes the cradle areas that represent cradle base and lines and calculates overhang for them.
+     * \param shadow_data[in] The accumulated model of given pointy overhangs
+     * \param support_free_areas[out] Areas where support will have to be removed, to guarantee that a line is around it.
+     */
+    void generateCradleLineAreasAndBase(std::vector<std::vector<std::vector<Polygons>>>& shadow_data, std::vector<Polygons>& support_free_areas);
 
 
     /*!
@@ -200,7 +216,7 @@ private:
      * \param skip_ovalisation[in] Whether the tip may be ovalized when drawn later.
      * \param additional_ovalization_targets[in] Additional targets the ovalization should reach.
      */
-    void addPointAsInfluenceArea(
+    TreeSupportElement*  addPointAsInfluenceArea(
         std::vector<std::set<TreeSupportElement*>>& move_bounds,
         std::pair<Point, TreeSupportTipGenerator::LineStatus> p, size_t dtt, LayerIndex insert_layer, size_t dont_move_until, bool roof, bool cradle, bool skip_ovalisation,
         std::vector<Point> additional_ovalization_targets = std::vector<Point>());
@@ -216,7 +232,7 @@ private:
      * \param dont_move_until[in] Until which dtt the branch should not move if possible.
      * \param connect_points [in] If the points of said line should be connected by ovalization.
      */
-    void addLinesAsInfluenceAreas(std::vector<std::set<TreeSupportElement *>>& move_bounds, std::vector<TreeSupportTipGenerator::LineInformation> lines, size_t roof_tip_layers, LayerIndex insert_layer_idx, bool supports_roof, bool supports_cradle, size_t dont_move_until,
+    std::vector<TreeSupportElement*> addLinesAsInfluenceAreas(std::vector<std::set<TreeSupportElement *>>& move_bounds, std::vector<TreeSupportTipGenerator::LineInformation> lines, size_t roof_tip_layers, LayerIndex insert_layer_idx, bool supports_roof, bool supports_cradle, size_t dont_move_until,
         bool connect_points);
 
     /*!
@@ -356,19 +372,7 @@ private:
     std::vector<Polygons> roof_tips_drawn;
 
 
-    /*!
-     * \brief Areas that will become cradle.
-     */
-    std::vector<Polygons> cradle_areas;
-
-    /*!
-     * \brief Overhang of a cradle that will need support. May be on the same layer as the cradle.
-     */
-    std::vector<Polygons> cradle_overhang;
-    /*!
-     * \brief Areas below the first layer of a cradle.
-     */
-    std::vector<Polygons> cradle_base_areas;
+    std::vector<std::vector<TreeSupportCradle*>> cradle_data;
 
     /*!
      * \brief Amount of layers of the cradle to support pointy overhangs.
@@ -378,7 +382,7 @@ private:
     /*!
      * \brief Minimum amount of layers of the cradle to support pointy overhangs.
      */
-    size_t minimum_cradle_layers; // Minimal height of the cradle
+    size_t cradle_layers_min; // Minimal height of the cradle
 
     /*!
      * \brief Amount of lines used for the cradle.
@@ -391,7 +395,7 @@ private:
     coord_t cradle_length;
 
     /*!
-     * \brief Minimum length of lines used for the cradle.
+     * \brief Minimum length of lines used for the cradle. TODO Width is effectively added to length ... fix or document?
      */
     coord_t cradle_length_min;
 
@@ -427,7 +431,7 @@ private:
     size_t cradle_tip_dtt;
 
     /*!
-     * \brief If the cradle lines should also be supported by larger tips.
+     * \brief If the cradle lines should also be supported by larger tips. todo
      */
     bool large_cradle_line_tips;
 
@@ -454,4 +458,4 @@ private:
 
 } // namespace cura
 
-#endif /* TREESUPPORT_H */
+#endif /* TREESUPPORTTIPGENERATOR_H */

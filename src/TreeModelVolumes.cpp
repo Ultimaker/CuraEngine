@@ -78,7 +78,8 @@ TreeModelVolumes::TreeModelVolumes(
         min_maximum_deviation = std::min(min_maximum_deviation, data_pair.first.get<coord_t>("meshfix_maximum_deviation"));
         min_maximum_resolution = std::min(min_maximum_resolution, data_pair.first.get<coord_t>("meshfix_maximum_resolution"));
         min_maximum_area_deviation = std::min(min_maximum_area_deviation, data_pair.first.get<coord_t>("meshfix_maximum_extrusion_area_deviation"));
-        max_cradle_layers = std::max(coord_t(max_cradle_layers), retrieveSetting<coord_t>(data_pair.first,"support_tree_cradle_height") / config.layer_height);
+        const coord_t extra_cradle_distance = round_divide(retrieveSetting<coord_t>(data_pair.first, "support_tree_cradle_z_distance") , config.layer_height);
+        max_cradle_layers = std::max(coord_t(max_cradle_layers), extra_cradle_distance + retrieveSetting<coord_t>(data_pair.first,"support_tree_cradle_height") / config.layer_height);
         max_cradle_dtt = std::max(max_cradle_dtt, size_t(config.tip_layers * retrieveSetting<double>(data_pair.first,"support_tree_cradle_base_tip_percentage") / 100.0));
     }
 
@@ -234,6 +235,7 @@ void TreeModelVolumes::precalculate(LayerIndex max_layer)
     std::deque<RadiusLayerPair> relevant_avoidance_radiis_to_model;
     relevant_avoidance_radiis.insert(relevant_avoidance_radiis.end(), radius_until_layer.begin(), radius_until_layer.end());
     relevant_avoidance_radiis_to_model.insert(relevant_avoidance_radiis_to_model.end(), radius_until_layer.begin(), radius_until_layer.end());
+    precalculated_avoidance_radii.insert(precalculated_avoidance_radii.end(), radius_until_layer.begin(), radius_until_layer.end());
 
     // Append additional radiis needed for collision.
 
@@ -577,18 +579,179 @@ void TreeModelVolumes::addAreaToAntiPreferred(const Polygons area, LayerIndex la
 }
 
 
+void TreeModelVolumes::precalculateAntiPreferred()
+{
 
+    cura::parallel_for<size_t>(
+        0,
+        precalculated_avoidance_radii.size(),
+        [&, precalculated_avoidance_radiis=precalculated_avoidance_radii](const size_t key_idx)
+        {
+            const coord_t radius = precalculated_avoidance_radiis[key_idx].first;
+            const LayerIndex max_required_layer = precalculated_avoidance_radiis[key_idx].second;
+
+            const coord_t max_step_move = std::max(1.9 * radius, current_min_xy_dist * 1.9);
+            RadiusLayerPair key(radius, 0);
+
+            Polygons latest_avoidance;
+            Polygons latest_avoidance_to_model;
+            Polygons latest_avoidance_collision;
+
+            LayerIndex start_layer = 0;
+            std::vector<std::pair<RadiusLayerPair, Polygons>> data(max_required_layer + 1, std::pair<RadiusLayerPair, Polygons>(RadiusLayerPair(radius, -1), Polygons()));
+            std::vector<std::pair<RadiusLayerPair, Polygons>> data_to_model(max_required_layer + 1, std::pair<RadiusLayerPair, Polygons>(RadiusLayerPair(radius, -1), Polygons()));
+            std::vector<std::pair<RadiusLayerPair, Polygons>> data_collision(max_required_layer + 1, std::pair<RadiusLayerPair, Polygons>(RadiusLayerPair(radius, -1), Polygons()));
+            std::vector<std::pair<RadiusLayerPair, Polygons>> data_raw_anti(max_required_layer + 1, std::pair<RadiusLayerPair, Polygons>(RadiusLayerPair(radius, -1), Polygons()));
+
+            bool encountered_anti = false;
+            // ### main loop doing the calculation
+            for (const LayerIndex layer : ranges::views::iota(static_cast<size_t>(start_layer), max_required_layer + 1UL))
+            {
+                key.second = layer;
+                RadiusLayerPair key_0(0, layer);
+                Polygons anti;
+                {
+                    std::lock_guard<std::mutex> critical_section(*critical_anti_preferred_);
+                    anti=anti_preferred_[key_0];
+                }
+
+                if(!encountered_anti && ! anti.empty())
+                {
+                    encountered_anti = true;
+                    if (support_rest_preference == RestPreference::BUILDPLATE)
+                    {
+                        latest_avoidance = getAvoidance(radius,layer,AvoidanceType::FAST_SAFE, false, true);
+                    }
+                    if(support_rests_on_model)
+                    {
+                        latest_avoidance_to_model = getAvoidance(radius,layer,AvoidanceType::FAST_SAFE, true, true);
+                    }
+                    if(max_layer_idx_without_blocker <= layer && support_rests_on_model)
+                    {
+                        latest_avoidance_collision = getAvoidance(radius,layer,AvoidanceType::COLLISION, true, true);
+                    }
+
+                    std::lock_guard<std::mutex> critical_section(*critical_anti_preferred_);
+                    first_anti_preferred_layer_idx = layer;
+                }
+                if(!encountered_anti)
+                {
+                    continue;
+                }
+
+                Polygons col = getCollisionHolefree(radius, layer, true);
+                anti = anti.unionPolygons().offset(radius).unionPolygons();
+                data_raw_anti[layer] = std::pair<RadiusLayerPair, Polygons>(key, anti);
+
+                if (support_rest_preference == RestPreference::BUILDPLATE)
+                {
+                    latest_avoidance = safeOffset(latest_avoidance, -max_move_, ClipperLib::jtRound, -max_step_move, col.unionPolygons(anti));
+                    Polygons next_latest_avoidance = simplifier.polygon(latest_avoidance);
+                    latest_avoidance = next_latest_avoidance.unionPolygons(latest_avoidance);
+                    data[layer] = std::pair<RadiusLayerPair, Polygons>(key, latest_avoidance);
+                }
+
+                if(support_rests_on_model)
+                {
+                    latest_avoidance_to_model = safeOffset(latest_avoidance_to_model, -max_move_, ClipperLib::jtRound, -max_step_move, col.unionPolygons(anti));
+                    Polygons next_latest_avoidance_to_model = simplifier.polygon(latest_avoidance_to_model);
+                    latest_avoidance_to_model = next_latest_avoidance_to_model.unionPolygons(latest_avoidance_to_model);
+                    latest_avoidance_to_model = latest_avoidance_to_model.difference(getPlaceableAreas(radius,layer));
+                    data_to_model[layer] = std::pair<RadiusLayerPair, Polygons>(key, latest_avoidance_to_model);
+
+                }
+
+                if(max_layer_idx_without_blocker <= layer && support_rests_on_model)
+                {
+                    latest_avoidance_collision = safeOffset(latest_avoidance_collision, -max_move_, ClipperLib::jtRound, -max_step_move, col.unionPolygons(anti));
+                    Polygons placeable0RadiusCompensated = getAccumulatedPlaceable0(layer).offset(-std::max(radius, increase_until_radius), ClipperLib::jtRound);
+                    latest_avoidance_collision = latest_avoidance_collision.difference(placeable0RadiusCompensated).unionPolygons(getCollision(radius, layer, true));
+                    data_collision[layer] = std::pair<RadiusLayerPair, Polygons>(key, latest_avoidance_collision);
+                }
+            }
+            {
+                std::lock_guard<std::mutex> critical_section(*critical_anti_preferred_caches);
+                anti_preferred_cache_.insert(data.begin(), data.end());
+                anti_preferred_cache_to_model_.insert(data_to_model.begin(), data_to_model.end());
+                anti_preferred_cache_collision.insert(data_collision.begin(), data_collision.end());
+            }
+            {
+                std::lock_guard<std::mutex> critical_section(*critical_anti_preferred_);
+                anti_preferred_.insert(data_raw_anti.begin(), data_raw_anti.end());
+            }
+        });
+}
 
 const Polygons& TreeModelVolumes::getAntiPreferredAreas(LayerIndex layer_idx, coord_t radius)
 {
-
     coord_t ceiled_radius = ceilRadius(radius);
     RadiusLayerPair key(ceilRadius(ceiled_radius),layer_idx);
-
     std::optional<std::reference_wrapper<const Polygons>> result;
+
+    std::unordered_map<RadiusLayerPair, Polygons>* cache_ptr = &anti_preferred_;
     {
+        std::lock_guard<std::mutex> critical_section(*critical_anti_preferred_caches);
+        result = getArea(*cache_ptr, key);
+    }
+
+    if (result)
+    {
+        return result.value().get();
+    }
+
+    {
+        key.first = 0;
         std::lock_guard<std::mutex> critical_section(*critical_anti_preferred_);
         result = getArea(anti_preferred_, key);
+    }
+
+    if(!result || result.value().get().empty()) //todo where and why are empty areas inserted?
+    {
+        return empty_polygon;
+    }
+
+    if (precalculated)
+    {
+        spdlog::warn("Missing anti preferred area at radius {} and layer {}  Returning Empty! Result had area of {}", ceiled_radius, key.second, result.value().get().area());
+    }
+    return empty_polygon;
+
+}
+
+
+const Polygons& TreeModelVolumes::getAntiPreferredAvoidance(coord_t radius, LayerIndex layer_idx, AvoidanceType type, bool to_model, bool min_xy_dist)
+{
+
+    coord_t ceiled_radius = ceilRadius(radius,min_xy_dist);
+    RadiusLayerPair key(ceilRadius(ceiled_radius),layer_idx);
+    std::optional<std::reference_wrapper<const Polygons>> result;
+
+    std::unordered_map<RadiusLayerPair, Polygons>* cache_ptr = nullptr;
+
+    if(type == AvoidanceType::COLLISION)
+    {
+        if(max_layer_idx_without_blocker <= layer_idx && to_model)
+        {
+            cache_ptr = &anti_preferred_cache_collision;
+        }
+        else
+        {
+            cache_ptr = &anti_preferred_;
+        }
+    }
+    else if(to_model)
+    {
+        cache_ptr = &anti_preferred_cache_to_model_;
+    }
+    else
+    {
+        cache_ptr = &anti_preferred_cache_;
+
+    }
+
+    {
+        std::lock_guard<std::mutex> critical_section(*critical_anti_preferred_caches);
+        result = getArea(*cache_ptr, key);
     }
     if (result)
     {
@@ -601,22 +764,16 @@ const Polygons& TreeModelVolumes::getAntiPreferredAreas(LayerIndex layer_idx, co
         result = getArea(anti_preferred_, key);
     }
 
-    if(!result)
+    if(!result || result.value().get().empty())
     {
         return empty_polygon;
     }
 
     if (precalculated)
     {
-        //todo enable logging when precalc for anti preferred was implemented
-       // spdlog::warn("Had to calculate anti preferred at radius {} and layer {}, but precalculate was called. Performance may suffer!", ceiled_radius, key.second);
+        spdlog::warn("Missing anti preferred calculated at radius {} and layer {} and type {} to model {}, but precalculate was called. Returning Empty!", ceiled_radius, key.second, type == AvoidanceType::COLLISION, to_model);
     }
-    key.first = ceiled_radius;
-    std::lock_guard<std::mutex> critical_section(*critical_anti_preferred_);
-
-    anti_preferred_[key] = result->get().offset(ceiled_radius + current_min_xy_dist);
-
-    return anti_preferred_[key];
+    return empty_polygon;
 }
 
 const Polygons& TreeModelVolumes::getSupportBlocker(LayerIndex layer_idx)
@@ -642,6 +799,12 @@ coord_t TreeModelVolumes::getRadiusNextCeil(coord_t radius, bool min_xy_dist) co
 {
     return ceilRadius(radius, min_xy_dist) - (min_xy_dist ? 0 : current_min_xy_dist_delta);
 }
+
+LayerIndex TreeModelVolumes::getFirstAntiPreferredLayerIdx()
+{
+    return first_anti_preferred_layer_idx;
+}
+
 
 bool TreeModelVolumes::checkSettingsEquality(const Settings& me, const Settings& other) const
 {

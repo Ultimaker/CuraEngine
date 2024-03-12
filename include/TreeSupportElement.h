@@ -16,6 +16,7 @@
 namespace cura
 {
 
+struct CradlePresenceInformation;
 struct AreaIncreaseSettings
 {
     AreaIncreaseSettings() :
@@ -24,6 +25,7 @@ struct AreaIncreaseSettings
         increase_radius(false),
         no_error(false),
         use_min_distance(false),
+        use_anti_preferred(false),
         move(false)
     {
     }
@@ -35,6 +37,7 @@ struct AreaIncreaseSettings
         bool increase_radius,
         bool simplify,
         bool use_min_distance,
+        bool use_anti_preferred,
         bool move
     ) :
         type(type),
@@ -42,6 +45,7 @@ struct AreaIncreaseSettings
         increase_radius(increase_radius),
         no_error(simplify),
         use_min_distance(use_min_distance),
+        use_anti_preferred(use_anti_preferred),
         move(move)
     {
     }
@@ -51,6 +55,7 @@ struct AreaIncreaseSettings
     bool increase_radius;
     bool no_error;
     bool use_min_distance;
+    bool use_anti_preferred;
     bool move;
 
     bool operator==(const AreaIncreaseSettings& other) const
@@ -99,7 +104,8 @@ struct TreeSupportElement
         supports_roof(supports_roof),
         dont_move_until(dont_move_until),
         can_use_safe_radius(can_use_safe_radius),
-        last_area_increase(AreaIncreaseSettings(AvoidanceType::FAST, 0, false, false, false, false)),
+        can_avoid_anti_preferred(false), //todo init?
+        last_area_increase(AreaIncreaseSettings(AvoidanceType::FAST, 0, false, false, false, false, false)),
         missing_roof_layers(force_tips_to_roof ? dont_move_until : 0),
         skip_ovalisation(skip_ovalisation),
         all_tips({ target_position }),
@@ -127,6 +133,7 @@ struct TreeSupportElement
         supports_roof(elem.supports_roof),
         dont_move_until(elem.dont_move_until),
         can_use_safe_radius(elem.can_use_safe_radius),
+        can_avoid_anti_preferred(elem.can_avoid_anti_preferred),
         last_area_increase(elem.last_area_increase),
         missing_roof_layers(elem.missing_roof_layers),
         skip_ovalisation(elem.skip_ovalisation),
@@ -138,36 +145,6 @@ struct TreeSupportElement
         parents.insert(parents.begin(), elem.parents.begin(), elem.parents.end());
     }
 
-    /*!
-     * \brief Create a new Element for one layer below the element of the pointer supplied.
-     */
-    explicit TreeSupportElement(TreeSupportElement* element_above) :
-        target_height(element_above->target_height),
-        target_position(element_above->target_position),
-        next_position(element_above->next_position),
-        next_height(element_above->next_height),
-        effective_radius_height(element_above->effective_radius_height),
-        to_buildplate(element_above->to_buildplate),
-        distance_to_top(element_above->distance_to_top + 1),
-        area(element_above->area),
-        result_on_layer(Point(-1, -1)), // set to invalid as we are a new node on a new layer
-        increased_to_model_radius(element_above->increased_to_model_radius),
-        to_model_gracious(element_above->to_model_gracious),
-        buildplate_radius_increases(element_above->buildplate_radius_increases),
-        use_min_xy_dist(element_above->use_min_xy_dist),
-        supports_roof(element_above->supports_roof),
-        dont_move_until(element_above->dont_move_until),
-        can_use_safe_radius(element_above->can_use_safe_radius),
-        last_area_increase(element_above->last_area_increase),
-        missing_roof_layers(element_above->missing_roof_layers),
-        skip_ovalisation(false),
-        all_tips(element_above->all_tips),
-        influence_area_limit_area(element_above->influence_area_limit_area),
-        influence_area_limit_range(element_above->influence_area_limit_range),
-        influence_area_limit_active(element_above->influence_area_limit_active)
-    {
-        parents = { element_above };
-    }
 
     // ONLY to be called in merge as it assumes a few assurances made by it.
     TreeSupportElement
@@ -238,6 +215,7 @@ struct TreeSupportElement
                 first.last_area_increase.increase_radius || second.last_area_increase.increase_radius,
                 first.last_area_increase.no_error || second.last_area_increase.no_error,
                 first.last_area_increase.use_min_distance && second.last_area_increase.use_min_distance,
+                first.can_avoid_anti_preferred && second.can_avoid_anti_preferred,
                 first.last_area_increase.move || second.last_area_increase.move
             );
 
@@ -341,6 +319,11 @@ struct TreeSupportElement
     bool can_use_safe_radius;
 
     /*!
+     * \brief An influence area can avoid anti-preferred when the difference with it is non empty.
+     */
+    bool can_avoid_anti_preferred;
+
+    /*!
      * \brief Settings used to increase the influence area to its current state.
      */
     AreaIncreaseSettings last_area_increase;
@@ -379,6 +362,9 @@ struct TreeSupportElement
      * \brief Additional locations that the tip should reach
      */
     std::vector<Point> additional_ovalization_targets;
+
+    std::shared_ptr<CradlePresenceInformation> cradle_line;
+
 
 
     bool operator==(const TreeSupportElement& other) const
@@ -457,6 +443,20 @@ struct TreeSupportElement
     inline bool isResultOnLayerSet() const
     {
         return result_on_layer != Point(-1, -1);
+    }
+    /*!
+     * \brief Create a new Element for one layer below the element.
+     */
+
+    TreeSupportElement createNewElement()
+    {
+        TreeSupportElement result(*this);
+        result.parents = { this };
+        result.distance_to_top += 1;
+        result.skip_ovalisation = false;
+        result.result_on_layer = Point(-1, -1);
+        //result.area = nullptr;
+        return result;
     }
 
 };

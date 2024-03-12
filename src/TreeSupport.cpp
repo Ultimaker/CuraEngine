@@ -164,15 +164,26 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         precalculate(storage, processing.second);
         const auto t_precalc = std::chrono::high_resolution_clock::now();
 
+        std::vector<std::vector<TreeSupportCradle*>> cradle_data;
         // ### Place tips of the support tree
         for (size_t mesh_idx : processing.second)
         {
-            generateInitialAreas(*storage.meshes[mesh_idx], move_bounds, storage);
+            std::vector<std::vector<TreeSupportCradle*>> cradle_data_mesh;
+            generateInitialAreas(*storage.meshes[mesh_idx], move_bounds, storage, cradle_data_mesh);
+            if(cradle_data.size()<cradle_data_mesh.size())
+            {
+                cradle_data.resize(cradle_data_mesh.size());
+            }
+            for(LayerIndex layer_idx = 0; layer_idx < cradle_data.size(); layer_idx++)
+            {
+                cradle_data[layer_idx].insert(cradle_data[layer_idx].end(),cradle_data_mesh[layer_idx].begin(),cradle_data_mesh[layer_idx].end());
+            }
         }
+        volumes_.precalculateAntiPreferred();
         const auto t_gen = std::chrono::high_resolution_clock::now();
 
         // ### Propagate the influence areas downwards.
-        createLayerPathing(move_bounds);
+        createLayerPathing(move_bounds,cradle_data);
         const auto t_path = std::chrono::high_resolution_clock::now();
 
         // ### Set a point in each influence area
@@ -180,7 +191,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         const auto t_place = std::chrono::high_resolution_clock::now();
 
         // ### draw these points as circles
-        drawAreas(move_bounds, storage);
+        drawAreas(move_bounds, storage, cradle_data);
 
         const auto t_draw = std::chrono::high_resolution_clock::now();
         const auto dur_pre_gen = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_precalc - t_start).count();
@@ -250,10 +261,13 @@ void TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size
 }
 
 
-void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage)
+void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh,
+                                       std::vector<std::set<TreeSupportElement*>>& move_bounds,
+                                       SliceDataStorage& storage,
+                                       std::vector<std::vector<TreeSupportCradle*>>& cradle_data_model)
 {
     TreeSupportTipGenerator tip_gen(storage, mesh, volumes_);
-    tip_gen.generateTips(storage, mesh, move_bounds, additional_required_support_area, placed_support_lines_support_areas, placed_fake_roof_areas , support_free_areas);
+    tip_gen.generateTips(storage, mesh, move_bounds, additional_required_support_area, placed_support_lines_support_areas, placed_fake_roof_areas , support_free_areas, cradle_data_model);
 }
 
 void TreeSupport::mergeHelper(
@@ -298,6 +312,9 @@ void TreeSupport::mergeHelper(
                 //     But because a different collision may be removed from the in drawArea generated circles, this assumption could be wrong.
                 const bool merging_different_range_limits = reduced_check.first.influence_area_limit_active && influence.first.influence_area_limit_active
                                                          && influence.first.influence_area_limit_range != reduced_check.first.influence_area_limit_range;
+                const bool merging_cant_avoiding_pref = !reduced_check.first.can_avoid_anti_preferred || !influence.first.can_avoid_anti_preferred; //todo just put them in bypass merge then?
+
+
                 coord_t increased_to_model_radius = 0;
                 size_t larger_to_model_dtt = 0;
 
@@ -329,7 +346,7 @@ void TreeSupport::mergeHelper(
                 //   would merge to model before it is known they will even been drawn the merge is skipped
                 if (merging_min_and_regular_xy || merging_gracious_and_non_gracious || increased_to_model_radius > config.max_to_model_radius_increase
                     || (! merging_to_bp && larger_to_model_dtt < config.min_dtt_to_model && ! reduced_check.first.supports_roof && ! influence.first.supports_roof)
-                    || merging_different_range_limits)
+                    || merging_different_range_limits || merging_cant_avoiding_pref)
                 {
                     continue;
                 }
@@ -644,7 +661,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
     const coord_t overspeed,
     const bool mergelayer)
 {
-    TreeSupportElement current_elem(parent); // Also increases DTT by one.
+    TreeSupportElement current_elem = parent->createNewElement(); // Also increases DTT by one.
     Polygons check_layer_data;
     if (settings.increase_radius)
     {
@@ -731,10 +748,70 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
             to_model_data = to_model_data.unionPolygons(to_model_data.offsetPolyLine(1));
             spdlog::warn("Detected very small influence area, possible caused by a small hole in the avoidance. Compensating.");
         }
-
     }
 
+
+    coord_t actual_radius = config.getRadius(current_elem);
+    // Removing cradle areas from influence areas if possible.
+    Polygons anti_preferred_areas = volumes_.getAntiPreferredAreas(layer_idx-1, actual_radius);
+    bool anti_preferred_applied = false;
+    if(!anti_preferred_areas.empty())
+    {
+
+
+        //Ensure that branches can not lag through cradle lines. Proper way to do this would be in the beginning with custom increased areas. Todo?
+        coord_t anti_radius_extra = std::max(settings.increase_speed-volumes_.ceilRadius(actual_radius*2,true), coord_t(0)); //todo better real radius. How prevent problems?
+        if(anti_radius_extra)
+        {
+            anti_preferred_areas = anti_preferred_areas.offset(anti_radius_extra).unionPolygons();
+        }
+        if (current_elem.to_buildplate)
+        {
+            Polygons to_bp_without_anti = to_bp_data.difference(anti_preferred_areas);
+            if(to_bp_without_anti.area()>EPSILON || settings.use_anti_preferred)
+            {
+                to_bp_data = to_bp_without_anti;
+                Polygons to_model_data_without_anti  = to_model_data.difference(anti_preferred_areas);
+                to_model_data = to_model_data_without_anti;
+                Polygons increased_without_anti  = increased.difference(anti_preferred_areas);
+                increased = increased_without_anti;
+                anti_preferred_applied = true;
+            }
+        }
+        else
+        {
+            Polygons to_model_data_without_anti  = to_model_data.difference(anti_preferred_areas);
+            if(to_model_data_without_anti.area()>EPSILON || settings.use_anti_preferred)
+            {
+                to_model_data = to_model_data_without_anti;
+                Polygons increased_without_anti  = increased.difference(anti_preferred_areas);
+                increased = increased_without_anti;
+                anti_preferred_applied = true;
+            }
+        }
+    }
     check_layer_data = current_elem.to_buildplate ? to_bp_data : to_model_data;
+
+    // Remove areas where the branch should not be if possible.
+    // Has to be also subtracted from increased, as otherwise a merge directly below the anti-preferred area may force a branch inside it.
+    if(volumes_.getFirstAntiPreferredLayerIdx() < layer_idx && settings.use_anti_preferred)
+    {
+        const Polygons anti_preferred = volumes_.getAntiPreferredAvoidance(radius, layer_idx - 1, settings.type, ! current_elem.to_buildplate, settings.use_min_distance );
+        if (current_elem.to_buildplate)
+        {
+            to_bp_data = to_bp_data.difference(anti_preferred);
+            to_model_data  = to_model_data.difference(anti_preferred);
+        }
+        else
+        {
+            to_model_data  = to_model_data.difference(anti_preferred);
+        }
+        check_layer_data = current_elem.to_buildplate ? to_bp_data : to_model_data;
+        if(check_layer_data.area() > 1)
+        {
+            current_elem.can_avoid_anti_preferred = true;
+        }
+    }
 
     if (settings.increase_radius && check_layer_data.area() > 1)
     {
@@ -749,7 +826,16 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
             if (current_elem.to_buildplate)
             {
                 // Regular union as output will not be used later => this area should always be a subset of the safeUnion one.
+
                 to_bp_data_2 = increased.difference(volumes_.getAvoidance(next_radius, layer_idx - 1, settings.type, false, settings.use_min_distance)).unionPolygons();
+                if(settings.use_anti_preferred) //todo ensure anti pref contains avoidance then we can save one diff here
+                {
+                    to_bp_data_2 = to_bp_data_2.difference(volumes_.getAntiPreferredAvoidance(next_radius, layer_idx - 1, settings.type, ! current_elem.to_buildplate, settings.use_min_distance));
+                }
+                else if(anti_preferred_applied)
+                {
+                    to_bp_data_2 = to_bp_data_2.difference(volumes_.getAntiPreferredAreas(layer_idx-1, next_radius));
+                }
             }
             Polygons to_model_data_2;
             if (config.support_rests_on_model && ! current_elem.to_buildplate)
@@ -762,6 +848,14 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
                                           true,
                                           settings.use_min_distance))
                                       .unionPolygons();
+                if(settings.use_anti_preferred) //todo ensure anti pref contains avoidance then we can save one diff here
+                {
+                    to_model_data_2 = to_model_data_2.difference(volumes_.getAntiPreferredAvoidance(next_radius, layer_idx - 1, settings.type, ! current_elem.to_buildplate, settings.use_min_distance));
+                }
+                else if(anti_preferred_applied)
+                {
+                    to_model_data_2 = to_model_data_2.difference(volumes_.getAntiPreferredAreas(layer_idx-1, next_radius));
+                }
             }
             Polygons check_layer_data_2 = current_elem.to_buildplate ? to_bp_data_2 : to_model_data_2;
 
@@ -905,38 +999,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
         }
     }
 
-    const Polygons& anti_preferred = volumes_.getAntiPreferredAreas(layer_idx - 1, radius);
 
-
-    // Remove areas where the branch should not be if possible.
-    // Has to be also subtracted from increased, as otherwise a merge directly below the anti-preferred area may force a branch inside it.
-    if(!anti_preferred.empty() && check_layer_data.area() > 1)
-    {
-
-        if (current_elem.to_buildplate)
-        {
-            Polygons to_bp_without_anti = to_bp_data.difference(anti_preferred);
-            if (to_bp_without_anti.area() > 1 || settings.type == AvoidanceType::SLOW)
-            {
-                to_bp_data = to_bp_without_anti;
-                to_model_data = to_model_data.difference(anti_preferred);
-                increased = increased.difference(anti_preferred);
-            }
-        }
-        else
-        {
-            Polygons to_model_data_without_anti  = to_model_data.difference(anti_preferred);
-            if (to_model_data_without_anti.area() > 1 || settings.type == AvoidanceType::SLOW)
-            {
-                to_bp_data = to_bp_data.difference(anti_preferred);
-                to_model_data = to_model_data_without_anti;
-                increased = increased.difference(anti_preferred);
-            }
-        }
-
-    }
-
-    check_layer_data = current_elem.to_buildplate ? to_bp_data : to_model_data;
 
 
     return check_layer_data.area() > 1 ? std::optional<TreeSupportElement>(current_elem) : std::optional<TreeSupportElement>();
@@ -946,7 +1009,7 @@ void TreeSupport::increaseAreas(
     PropertyAreasUnordered& to_bp_areas,
     PropertyAreas& to_model_areas,
     PropertyAreas& influence_areas,
-    std::vector<TreeSupportElement*>& bypass_merge_areas,
+    PropertyAreas& bypass_merge_areas,
     const std::vector<TreeSupportElement*>& last_layer,
     const LayerIndex layer_idx,
     const bool mergelayer)
@@ -958,7 +1021,7 @@ void TreeSupport::increaseAreas(
         [&](const size_t idx)
         {
             TreeSupportElement* parent = last_layer[idx];
-            TreeSupportElement elem(parent); // Also increases dtt.
+            TreeSupportElement elem = parent->createNewElement(); // Also increases dtt.
             // Abstract representation of the model outline. If an influence area would move through it, it could teleport through a wall.
             const Polygons wall_restriction = volumes_.getWallRestriction(config.getCollisionRadius(*parent), layer_idx, parent->use_min_xy_dist);
 
@@ -1033,6 +1096,7 @@ void TreeSupport::increaseAreas(
             constexpr bool increase_radius = true;
             constexpr bool no_error = true;
             constexpr bool use_min_radius = true;
+            constexpr bool use_anti_preferred = true;
             constexpr bool move = true;
 
             // Determine in which order configurations are checked if they result in a valid influence area. Check will stop if a valid area is found
@@ -1066,6 +1130,7 @@ void TreeSupport::increaseAreas(
                         increase_radius,
                         elem.last_area_increase.no_error,
                         ! use_min_radius,
+                        use_anti_preferred,
                         elem.last_area_increase.move),
                     true);
                 insertSetting(
@@ -1075,6 +1140,7 @@ void TreeSupport::increaseAreas(
                         ! increase_radius,
                         elem.last_area_increase.no_error,
                         ! use_min_radius,
+                        use_anti_preferred,
                         elem.last_area_increase.move),
                     true);
             }
@@ -1083,31 +1149,49 @@ void TreeSupport::increaseAreas(
             {
                 // If the radius until which it is always increased can not be guaranteed, move fast. This is to avoid holes smaller than the real branch radius.
                 // This does not guarantee the avoidance of such holes, but ensures they are avoided if possible.
-                insertSetting(AreaIncreaseSettings(AvoidanceType::SLOW, slow_speed, increase_radius, no_error, ! use_min_radius, ! move), true); // Did we go through the hole.
+                insertSetting(AreaIncreaseSettings(AvoidanceType::SLOW, slow_speed, increase_radius, no_error, ! use_min_radius, use_anti_preferred, ! move), true); // Did we go through the hole.
                 // In many cases the definition of hole is overly restrictive, so to avoid unnecessary fast movement in the tip, it is ignored there for a bit.
                 // This CAN cause a branch to go though a hole it otherwise may have avoided.
                 if (elem.distance_to_top < round_up_divide(config.tip_layers, 2))
                 {
-                    insertSetting(AreaIncreaseSettings(AvoidanceType::FAST, slow_speed, increase_radius, no_error, ! use_min_radius, ! move), true);
+                    insertSetting(AreaIncreaseSettings(AvoidanceType::FAST, slow_speed, increase_radius, no_error, ! use_min_radius, use_anti_preferred, ! move), true);
                 }
                 insertSetting(
-                    AreaIncreaseSettings(AvoidanceType::FAST_SAFE, fast_speed, increase_radius, no_error, ! use_min_radius, ! move),
+                    AreaIncreaseSettings(AvoidanceType::FAST_SAFE, fast_speed, increase_radius, no_error, ! use_min_radius, use_anti_preferred, ! move),
                     true); // Did we manage to avoid the hole,
-                insertSetting(AreaIncreaseSettings(AvoidanceType::FAST_SAFE, fast_speed, ! increase_radius, no_error, ! use_min_radius, move), true);
-                insertSetting(AreaIncreaseSettings(AvoidanceType::FAST, fast_speed, ! increase_radius, no_error, ! use_min_radius, move), true);
+                insertSetting(AreaIncreaseSettings(AvoidanceType::FAST_SAFE, fast_speed, ! increase_radius, no_error, ! use_min_radius, use_anti_preferred, move), true);
+                insertSetting(AreaIncreaseSettings(AvoidanceType::FAST, fast_speed, ! increase_radius, no_error, ! use_min_radius, use_anti_preferred, move), true);
             }
             else
             {
-                insertSetting(AreaIncreaseSettings(AvoidanceType::SLOW, slow_speed, increase_radius, no_error, ! use_min_radius, move), true);
+                insertSetting(AreaIncreaseSettings(AvoidanceType::SLOW, slow_speed, increase_radius, no_error, ! use_min_radius, use_anti_preferred, move), true);
                 // While moving fast to be able to increase the radius (b) may seems preferable (over a) this can cause the a sudden skip in movement, which looks similar to a
                 // layer shift and can reduce stability. As such idx have chosen to only use the user setting for radius increases as a friendly recommendation.
-                insertSetting(AreaIncreaseSettings(AvoidanceType::SLOW, slow_speed, ! increase_radius, no_error, ! use_min_radius, move), true); // a (See above.)
+                insertSetting(AreaIncreaseSettings(AvoidanceType::SLOW, slow_speed, ! increase_radius, no_error, ! use_min_radius, use_anti_preferred, move), true); // a (See above.)
                 if (elem.distance_to_top < config.tip_layers)
                 {
-                    insertSetting(AreaIncreaseSettings(AvoidanceType::FAST_SAFE, slow_speed, increase_radius, no_error, ! use_min_radius, move), true);
+                    insertSetting(AreaIncreaseSettings(AvoidanceType::FAST_SAFE, slow_speed, increase_radius, no_error, ! use_min_radius, use_anti_preferred, move), true);
                 }
-                insertSetting(AreaIncreaseSettings(AvoidanceType::FAST_SAFE, fast_speed, increase_radius, no_error, ! use_min_radius, move), true); // b (See above.)
-                insertSetting(AreaIncreaseSettings(AvoidanceType::FAST_SAFE, fast_speed, ! increase_radius, no_error, ! use_min_radius, move), true);
+                insertSetting(AreaIncreaseSettings(AvoidanceType::FAST_SAFE, fast_speed, increase_radius, no_error, ! use_min_radius, use_anti_preferred, move), true); // b (See above.)
+                insertSetting(AreaIncreaseSettings(AvoidanceType::FAST_SAFE, fast_speed, ! increase_radius, no_error, ! use_min_radius, use_anti_preferred, move), true);
+            }
+
+            if(!elem.can_avoid_anti_preferred)
+            {
+                std::deque<AreaIncreaseSettings> old_order = order;
+                for (AreaIncreaseSettings settings : old_order)
+                {
+                    if(elem.effective_radius_height < config.increase_radius_until_dtt && !settings.increase_radius)
+                    {
+                        continue ;
+                    }
+                    if(!settings.move)
+                    {
+                        continue ;
+                    }
+
+                    insertSetting(AreaIncreaseSettings(settings.type, settings.increase_speed, settings.increase_radius, settings.no_error, use_min_radius, !settings.use_anti_preferred, settings.move),true);
+                }
             }
 
             if (elem.use_min_xy_dist)
@@ -1118,13 +1202,13 @@ void TreeSupport::increaseAreas(
                 for (AreaIncreaseSettings settings : order)
                 {
                     new_order.emplace_back(settings);
-                    new_order.emplace_back(settings.type, settings.increase_speed, settings.increase_radius, settings.no_error, use_min_radius, settings.move);
+                    new_order.emplace_back(settings.type, settings.increase_speed, settings.increase_radius, settings.no_error, use_min_radius, settings.use_anti_preferred, settings.move);
                 }
                 order = new_order;
             }
 
             insertSetting(
-                AreaIncreaseSettings(AvoidanceType::FAST, fast_speed, ! increase_radius, ! no_error, elem.use_min_xy_dist, move),
+                AreaIncreaseSettings(AvoidanceType::FAST, fast_speed, ! increase_radius, ! no_error, elem.use_min_xy_dist, !use_anti_preferred, move),
                 true); // simplifying is very important for performance, but before an error is compensated by moving faster it makes sense to check to see if the simplifying has
                        // caused issues
 
@@ -1135,12 +1219,12 @@ void TreeSupport::increaseAreas(
                 || (! elem.to_model_gracious && (parent->area->intersection(volumes_.getAccumulatedPlaceable0(layer_idx)).empty()))) // Error case.
             {
                 // It is normal that we won't be able to find a new area at some point in time if we won't be able to reach layer 0 aka have to connect with the model.
-                insertSetting(AreaIncreaseSettings(AvoidanceType::FAST, fast_speed * 1.5, ! increase_radius, ! no_error, elem.use_min_xy_dist, move), true);
+                insertSetting(AreaIncreaseSettings(AvoidanceType::FAST, fast_speed * 1.5, ! increase_radius, ! no_error, elem.use_min_xy_dist, !use_anti_preferred, move), true);
             }
             if (elem.distance_to_top < elem.dont_move_until && elem.can_use_safe_radius) // Only do not move when holes would be avoided in every case.
             {
                 insertSetting(
-                    AreaIncreaseSettings(AvoidanceType::SLOW, 0, increase_radius, no_error, ! use_min_radius, ! move),
+                    AreaIncreaseSettings(AvoidanceType::SLOW, 0, increase_radius, no_error, ! use_min_radius, use_anti_preferred, ! move),
                     false); // Only do not move when already in a no hole avoidance with the regular xy distance.
             }
 
@@ -1303,21 +1387,19 @@ void TreeSupport::increaseAreas(
                     std::lock_guard<std::mutex> critical_section_newLayer(critical_sections);
                     if (bypass_merge)
                     {
-                        Polygons* new_area = new Polygons(max_influence_area);
-                        TreeSupportElement* next = new TreeSupportElement(elem, new_area);
-                        bypass_merge_areas.emplace_back(next);
+                        bypass_merge_areas.emplace(elem, max_influence_area);
                     }
                     else
                     {
                         influence_areas.emplace(elem, max_influence_area);
-                        if (elem.to_buildplate)
-                        {
-                            to_bp_areas.emplace(elem, to_bp_data);
-                        }
-                        if (config.support_rests_on_model)
-                        {
-                            to_model_areas.emplace(elem, to_model_data);
-                        }
+                    }
+                    if (elem.to_buildplate)
+                    {
+                        to_bp_areas.emplace(elem, to_bp_data);
+                    }
+                    if (config.support_rests_on_model)
+                    {
+                        to_model_areas.emplace(elem, to_model_data);
                     }
                 }
             }
@@ -1331,7 +1413,128 @@ void TreeSupport::increaseAreas(
         });
 }
 
-void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>& move_bounds)
+void TreeSupport::handleCradleLineValidity(PropertyAreasUnordered& to_bp_areas,
+                                           PropertyAreas& to_model_areas,
+                                           PropertyAreas& influence_areas,
+                                           PropertyAreas& bypass_merge_areas,
+                                           LayerIndex layer_idx,
+                                           std::vector<std::set<TreeSupportElement*>>& move_bounds,
+                                           std::vector<std::vector<CradlePresenceInformation>>& cradle_data)
+{
+    std::unordered_set<size_t> removed_lines_idx;
+    // Evaluate which lines have to be removed for all influence areas to be valid.
+    // Goal is to remove as few lines as possible
+    // Correctly solving this is very hard.
+    // So for now any solution will do. Todo find a better way. Also parallelize
+
+    std::vector<const TreeSupportElement*> all_elements_on_layer;
+    all_elements_on_layer.insert(all_elements_on_layer.end(), move_bounds[layer_idx].begin(), move_bounds[layer_idx].end());
+    for (auto& elem_influence_pair : influence_areas)
+    {
+        all_elements_on_layer.emplace_back(&elem_influence_pair.first);
+    }
+    for (auto& elem_influence_pair : bypass_merge_areas)
+    {
+        all_elements_on_layer.emplace_back(&elem_influence_pair.first);
+    }
+
+    for (const TreeSupportElement* elem : all_elements_on_layer)
+    {
+        // todo the coll/ regular radius difference can cause issues with slow vs fast avoidance causing lines to be removed even though the branch will not be here. It just could have been...
+        if(!elem->can_avoid_anti_preferred || config.getCollisionRadius(*elem) != config.getRadius(*elem))
+        {
+            const coord_t safe_movement_distance = (elem->use_min_xy_dist ? config.xy_min_distance : config.xy_distance)
+                                                 + (std::min(config.z_distance_top_layers, config.z_distance_bottom_layers) > 0 ? config.min_feature_size : 0);
+
+            bool immutable = elem->area != nullptr;
+            bool to_bp = elem->to_buildplate;
+
+            Polygons relevant_influence;
+            Polygons full_influence;
+            if(!immutable)
+            {
+                relevant_influence = to_bp? to_bp_areas[*elem] : to_model_areas[*elem];
+                full_influence = bypass_merge_areas.contains(*elem) ? bypass_merge_areas[*elem] : influence_areas[*elem];
+            }
+            else
+            {
+                relevant_influence = elem->area->difference(volumes_.getCollision(config.getCollisionRadius(*elem),layer_idx,elem->use_min_xy_dist));
+                full_influence = relevant_influence;
+            }
+            AABB relevant_influence_aabb = AABB(relevant_influence);
+
+
+
+            for (auto [cradle_idx, cradle] : cradle_data[layer_idx] | ranges::views::enumerate)
+            {
+                if (cradle.cradleLineExists() && ! cradle.getCradleLine()->is_base && !removed_lines_idx.contains(cradle_idx))
+                {
+                    //The branch created by the influence area cant lag though the model... So the offset needs to be safe...
+                    AABB cradle_area_aabb = AABB(cradle.getCradleLine()->area);
+                    cradle_area_aabb.expand(config.getRadius(*elem) + config.xy_distance);
+                    if(cradle_area_aabb.hit(relevant_influence_aabb))
+                    {
+                        Polygons cradle_influence = TreeSupportUtils::safeOffsetInc(cradle.getCradleLine()->area,
+                                                              config.getRadius(*elem) + config.xy_distance,
+                                                              volumes_.getCollision(0,layer_idx,true),
+                                                              safe_movement_distance,
+                                                              0,
+                                                              1,
+                                                              config.support_line_distance / 2,
+                                                              &config.simplifier);
+                        Polygons next_relevant_influence = relevant_influence.difference(cradle_influence);
+
+                        if(next_relevant_influence.area()>EPSILON)
+                        {
+                            relevant_influence = next_relevant_influence;
+                            full_influence = full_influence.difference(cradle_influence).unionPolygons(relevant_influence);
+
+                        }
+                        else
+                        {
+                            //todo Check if non remove options are available eg shortening cradle line...
+                            removed_lines_idx.emplace(cradle_idx);
+                            cradle.getCradleLine()->addLineToRemoved(cradle.getCradleLine()->line);
+                            cradle.getCradleLine()->line.clear();
+                            spdlog::info("Flagging to remove cradle line {} {} ", cradle.layer_idx, cradle.line_idx);
+                        }
+                    }
+                }
+            }
+            if(!immutable)
+            {
+                (bypass_merge_areas.contains(*elem) ? bypass_merge_areas[*elem] : influence_areas[*elem]) = full_influence;
+                (to_bp? to_bp_areas[*elem] : to_model_areas[*elem]) = relevant_influence;
+            }
+
+        }
+    }
+    for (auto [cradle_idx, cradle] : cradle_data[layer_idx] | ranges::views::enumerate)
+    {
+        if(cradle.cradleLineExists())
+        {
+            cradle.cradle->verifyLines();
+        }
+    }
+
+    //todo would be great if removed cradle lines could be eliminated from the avoidance...
+
+    std::vector<TreeSupportElement*> next_layer;
+    next_layer.insert(next_layer.begin(), move_bounds[layer_idx].begin(), move_bounds[layer_idx].end());
+    for(TreeSupportElement* elem:next_layer)
+    {
+        if(elem->cradle_line != nullptr && !elem->cradle_line->cradleLineExists())
+        {
+            move_bounds[layer_idx].erase(elem);
+            delete elem->area;
+            delete elem;
+        }
+    }
+
+}
+
+
+void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>& move_bounds, std::vector<std::vector<TreeSupportCradle*>>& cradle_data)
 {
     const double data_size_inverse = 1 / double(move_bounds.size());
     double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES;
@@ -1351,6 +1554,27 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>&
         3000 / config.layer_height);
 
     size_t merge_every_x_layers = 1;
+
+    std::vector<std::vector<CradlePresenceInformation>> all_cradles_with_line_presence(move_bounds.size());
+    for(LayerIndex layer_idx = 0; layer_idx < cradle_data.size(); layer_idx++)
+    {
+        for(size_t cradle_idx = 0; cradle_idx < cradle_data[layer_idx].size(); cradle_idx++)
+        {
+            for(size_t line_idx = 0; line_idx < cradle_data[layer_idx][cradle_idx]->lines.size(); line_idx++)
+            {
+                for(size_t height_idx = 0; height_idx < cradle_data[layer_idx][cradle_idx]->lines[line_idx].size(); height_idx++)
+                {
+                    LayerIndex cradle_layer_idx = cradle_data[layer_idx][cradle_idx]->lines[line_idx][height_idx].layer_idx;
+                    if(cradle_layer_idx == 84)
+                    {
+                        printf("");
+                    }
+                    all_cradles_with_line_presence[cradle_layer_idx].emplace_back(cradle_data[layer_idx][cradle_idx],cradle_layer_idx,line_idx);
+                }
+            }
+        }
+    }
+
     // Calculate the influence areas for each layer below (Top down)
     // This is done by first increasing the influence area by the allowed movement distance, and merging them with other influence areas if possible
     for (const auto layer_idx : ranges::views::iota(1UL, move_bounds.size()) | ranges::views::reverse)
@@ -1366,13 +1590,12 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>&
         PropertyAreas influence_areas; // Over this map will be iterated when merging, as such it has to be ordered to ensure deterministic results.
         PropertyAreas to_model_areas; // The area of these SupportElement is not set, to avoid to much allocation and deallocation on the heap.
         PropertyAreasUnordered to_bp_areas; // Same.
-        std::vector<TreeSupportElement*>
-            bypass_merge_areas; // Different to the other maps of SupportElements as these here have the area already set, as they are already to be inserted into move_bounds.
+        PropertyAreas bypass_merge_areas;
 
         const auto time_a = std::chrono::high_resolution_clock::now();
 
         std::vector<TreeSupportElement*> last_layer;
-        last_layer.insert(last_layer.begin(), move_bounds[layer_idx].begin(), move_bounds[layer_idx].end());
+        last_layer.insert(last_layer.end(), move_bounds[layer_idx].begin(), move_bounds[layer_idx].end());
 
         // ### Increase the influence areas by the allowed movement distance
         increaseAreas(to_bp_areas, to_model_areas, influence_areas, bypass_merge_areas, last_layer, layer_idx, merge_this_layer);
@@ -1399,6 +1622,13 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>&
 
         new_element = ! move_bounds[layer_idx - 1].empty();
 
+
+        // ### Cradle lines may be removed, causing tips to be removed.
+        if(layer_idx>0)
+        {
+            handleCradleLineValidity(to_bp_areas, to_model_areas,influence_areas,bypass_merge_areas,layer_idx-1,move_bounds,all_cradles_with_line_presence);
+        }
+
         // Save calculated elements to output, and allocate Polygons on heap, as they will not be changed again.
         for (std::pair<TreeSupportElement, Polygons> tup : influence_areas)
         {
@@ -1414,13 +1644,16 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>&
         }
 
         // Place already fully constructed elements in the output.
-        for (TreeSupportElement* elem : bypass_merge_areas)
+        for (std::pair<TreeSupportElement, Polygons> tup : bypass_merge_areas)
         {
-            if (elem->area->area() < 1)
+            const TreeSupportElement elem = tup.first;
+            Polygons* new_area = new Polygons(TreeSupportUtils::safeUnion(tup.second));
+            TreeSupportElement* next = new TreeSupportElement(elem, new_area);
+            move_bounds[layer_idx - 1].emplace(next);
+            if (new_area->area() < 1)
             {
                 spdlog::error("Insert Error of Influence area bypass on layer {}.", layer_idx - 1);
             }
-            move_bounds[layer_idx - 1].emplace(elem);
         }
 
         progress_total += data_size_inverse * TREE_PROGRESS_AREA_CALC;
@@ -2002,13 +2235,72 @@ void TreeSupport::dropNonGraciousAreas(
         });
 }
 
-void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_storage, std::vector<Polygons>& support_skin_storage,  std::vector<Polygons>& support_roof_storage, SliceDataStorage& storage, std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons)
+void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_storage,
+                                      std::vector<Polygons>& support_skin_storage,
+                                      std::vector<Polygons>& support_roof_storage,
+                                      SliceDataStorage& storage,
+                                      std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons,
+                                      std::vector<std::vector<TreeSupportCradle*>>& cradle_data)
 {
     const auto t_start = std::chrono::high_resolution_clock::now();
     const coord_t open_close_distance = config.fill_outline_gaps ? config.min_feature_size/ 2 - 5 : config.min_wall_line_width/ 2 - 5; // based on calculation in WallToolPath
     const double small_area_length = INT2MM(static_cast<double>(config.support_line_width) / 2);
 
     std::mutex critical_support_layer_storage;
+
+
+    std::vector<Polygons> cradle_support_base_areas(support_layer_storage.size());
+    std::vector<Polygons> cradle_support_line_areas(support_layer_storage.size());
+    std::vector<Polygons> cradle_line_xy_distance_areas(support_layer_storage.size());
+
+    //todo parallelize
+    for(LayerIndex layer_idx = 0; layer_idx < cradle_data.size(); layer_idx++)
+    {
+        for(size_t cradle_idx = 0; cradle_idx < cradle_data[layer_idx].size(); cradle_idx++)
+        {
+            for (auto [base_idx, base] : cradle_data[layer_idx][cradle_idx]->base_below | ranges::views::enumerate)
+            {
+                if(cradle_data[layer_idx][cradle_idx]->is_roof)
+                {
+                    support_roof_storage[layer_idx-base_idx].add(base);
+                }
+                else
+                {
+                    cradle_support_base_areas[layer_idx-base_idx].add(base);
+                    support_layer_storage[layer_idx-base_idx].add(base);
+                }
+            }
+
+            for(size_t line_idx = 0; line_idx < cradle_data[layer_idx][cradle_idx]->lines.size(); line_idx++)
+            {
+                for(size_t height_idx = 0; height_idx < cradle_data[layer_idx][cradle_idx]->lines[line_idx].size(); height_idx++)
+                {
+                    Polygons line_area = cradle_data[layer_idx][cradle_idx]->lines[line_idx][height_idx].area;
+                    LayerIndex cradle_line_layer_idx = cradle_data[layer_idx][cradle_idx]->lines[line_idx][height_idx].layer_idx;
+                    if(cradle_data[layer_idx][cradle_idx]->is_roof)
+                    {
+                        if(support_roof_storage.size()<=layer_idx)
+                        {
+                            support_roof_storage.resize(layer_idx+1 + cradle_data[layer_idx][cradle_idx]->lines[line_idx].size()-height_idx);
+                        }
+                        support_roof_storage[cradle_line_layer_idx].add(line_area);
+                    }
+                    else
+                    {
+                        if(cradle_support_line_areas.size()<=layer_idx)
+                        {
+                            cradle_support_line_areas.resize(layer_idx+1 + cradle_data[layer_idx][cradle_idx]->lines[line_idx].size()-height_idx);
+                        }
+                        cradle_support_line_areas[cradle_line_layer_idx].add(line_area);
+                    }
+                    if(!cradle_data[layer_idx][cradle_idx]->lines[line_idx][height_idx].is_base)
+                    {
+                        //todo cradle_line_xy_distance_areas[cradle_line_layer_idx].add(line_area.offset(config.xy_distance)); todo offset needs to be safe...
+                    }
+                }
+            }
+        }
+    }
 
 
     cura::parallel_for<coord_t>
@@ -2018,7 +2310,8 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
             [&](const LayerIndex layer_idx)
             {
                 support_layer_storage[layer_idx] = config.simplifier.polygon(PolygonUtils::unionManySmall(support_layer_storage[layer_idx].smooth(FUDGE_LENGTH))).offset(-open_close_distance).offset(open_close_distance * 2).offset(-open_close_distance);
-                support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(placed_support_lines_support_areas[layer_idx]);
+                support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(placed_support_lines_support_areas[layer_idx].unionPolygons());
+                support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(cradle_line_xy_distance_areas[layer_idx].unionPolygons());
                 support_layer_storage[layer_idx].removeSmallAreas(small_area_length * small_area_length, false);
                 placed_fake_roof_areas[layer_idx] = placed_fake_roof_areas[layer_idx].unionPolygons();
                 additional_required_support_area[layer_idx] = additional_required_support_area[layer_idx].unionPolygons();
@@ -2088,9 +2381,11 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                     needs_supporting.add(storage.support.supportLayers[layer_idx + 1].support_roof.difference(support_shell_capable_of_supporting_roof));
                     needs_supporting.add(placed_fake_roof_areas[layer_idx + 1].difference(support_shell_capable_of_supporting_roof));
                     needs_supporting.add(additional_required_support_area[layer_idx + 1]); // E.g. cradle
+                    needs_supporting.add(cradle_support_line_areas[layer_idx+1]);
 
-                    needs_supporting = needs_supporting.unionPolygons();
                 }
+                needs_supporting.add(cradle_support_base_areas[layer_idx]);
+                needs_supporting = needs_supporting.unionPolygons();
 
                 Polygons already_supports;
                 already_supports.add(storage.support.supportLayers[layer_idx].support_roof); // roof
@@ -2227,7 +2522,7 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
         [&](const LayerIndex layer_idx)
         {
             support_skin_storage[layer_idx] = support_skin_storage[layer_idx].unionPolygons();
-            support_layer_storage[layer_idx] = support_layer_storage[layer_idx].unionPolygons().difference(support_skin_storage[layer_idx]);
+            support_layer_storage[layer_idx] = support_layer_storage[layer_idx].unionPolygons(cradle_support_line_areas[layer_idx]).difference(support_skin_storage[layer_idx]);
         }
     );
 }
@@ -2544,7 +2839,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
         });
 }
 
-void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage)
+void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<std::vector<TreeSupportCradle*>>& cradle_data)
 {
     std::vector<Polygons> support_layer_storage(move_bounds.size());
     std::vector<Polygons> support_skin_storage(move_bounds.size());
@@ -2644,7 +2939,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
         }
     }
 
-    generateSupportSkin(support_layer_storage,support_skin_storage,support_roof_storage,storage,layer_tree_polygons);
+    generateSupportSkin(support_layer_storage,support_skin_storage,support_roof_storage,storage,layer_tree_polygons,cradle_data);
 
     // cradle being added before skin causes cradle lines to become skin.
     for (const auto layer_idx : ranges::views::iota(0UL, additional_required_support_area.size()))

@@ -6,6 +6,7 @@
 
 #include "TreeModelVolumes.h"
 #include "TreeSupportBaseCircle.h"
+#include "TreeSupportCradle.h"
 #include "TreeSupportElement.h"
 #include "TreeSupportEnums.h"
 #include "TreeSupportSettings.h"
@@ -86,8 +87,10 @@ private:
      * \param mesh[in] The mesh that is currently processed.
      * \param move_bounds[out] Storage for the influence areas.
      * \param storage[in] Background storage, required for adding roofs.
+     * \param cradle_data_model[out] All generated cradles, with its corresponding cradle lines.
+
      */
-    void generateInitialAreas(const SliceMeshStorage& mesh, std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage);
+    void generateInitialAreas(const SliceMeshStorage& mesh, std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage,std::vector<std::vector<TreeSupportCradle*>>& cradle_data_model);
 
 
     /*!
@@ -127,9 +130,10 @@ private:
      * \param to_bp_areas[in] The Elements of the current Layer that will reach the buildplate.
      *  Value is the influence area where the center of a circle of support may be placed.
      * \param to_model_areas[in] The Elements of the current Layer that do not have to reach the buildplate. Also contains main as every element that can reach the buildplate is
-     * not forced to. Value is the influence area where the center of a circle of support may be placed. \param influence_areas[in] The Elements of the current Layer without
-     * avoidances removed. This is the largest possible influence area for this layer. Value is the influence area where the center of a circle of support may be placed. \param
-     * layer_idx[in] The current layer.
+     * not forced to. Value is the influence area where the center of a circle of support may be placed.
+     * \param influence_areas[in] The Elements of the current Layer without
+     * avoidances removed. This is the largest possible influence area for this layer. Value is the influence area where the center of a circle of support may be placed.
+     * \param layer_idx[in] The current layer.
      */
     void mergeInfluenceAreas(PropertyAreasUnordered& to_bp_areas, PropertyAreas& to_model_areas, PropertyAreas& influence_areas, LayerIndex layer_idx);
 
@@ -179,27 +183,52 @@ private:
      *
      * \param to_bp_areas[out] Influence areas that can reach the buildplate
      * \param to_model_areas[out] Influence areas that do not have to reach the buildplate. This has overlap with new_layer_data, as areas that can reach the buildplate are also
-     * considered valid areas to the model. This redundancy is required if a to_buildplate influence area is allowed to merge with a to model influence area. \param
-     * influence_areas[out] Area than can reach all further up support points. No assurance is made that the buildplate or the model can be reached in accordance to the
-     * user-supplied settings. \param bypass_merge_areas[out] Influence areas ready to be added to the layer below that do not need merging. \param last_layer[in] Influence areas
-     * of the current layer. \param layer_idx[in] Number of the current layer. \param mergelayer[in] Will the merge method be called on this layer. This information is required as
-     * some calculation can be avoided if they are not required for merging.
+     * considered valid areas to the model. This redundancy is required if a to_buildplate influence area is allowed to merge with a to model influence area.
+     * \param influence_areas[out] Area than can reach all further up support points. No assurance is made that the buildplate or the model can be reached in accordance to the
+     * user-supplied settings.
+     * \param bypass_merge_areas[out] Influence areas ready to be added to the layer below that do not need merging.
+     * \param last_layer[in] Influence areas of the current layer.
+     * \param layer_idx[in] Number of the current layer.
+     * \param mergelayer[in] Will the merge method be called on this layer. This information is required as some calculation can be avoided if they are not required for merging.
      */
     void increaseAreas(
         PropertyAreasUnordered& to_bp_areas,
         PropertyAreas& to_model_areas,
         PropertyAreas& influence_areas,
-        std::vector<TreeSupportElement*>& bypass_merge_areas,
+        PropertyAreas& bypass_merge_areas,
         const std::vector<TreeSupportElement*>& last_layer,
         const LayerIndex layer_idx,
         const bool mergelayer);
 
     /*!
+     * \brief Evaluate which cradle lines will have to be removed, remove them and remove tips that support said lines
+     *
+
+     * \param to_bp_areas[in,out] The Elements of the current Layer that will reach the buildplate.
+     *  Value is the influence area where the center of a circle of support may be placed.
+     * \param to_model_areas[in,out] The Elements of the current Layer that do not have to reach the buildplate. Also contains main as every element that can reach the buildplate is
+     * not forced to. Value is the influence area where the center of a circle of support may be placed.
+     * \param influence_areas[in,out] The Elements of the current Layer without
+     * avoidances removed. This is the largest possible influence area for this layer. Value is the influence area where the center of a circle of support may be placed.
+     * \param layer_idx[in] The current layer.
+     * \param move_bounds[in,out] All currently existing influence areas
+     * \param cradle_data[in] Information about all cradle lines on this layer.
+     */
+    void handleCradleLineValidity(PropertyAreasUnordered& to_bp_areas,
+                                                          PropertyAreas& to_model_areas,
+                                                          PropertyAreas& influence_areas,
+                                                          PropertyAreas& bypass_merge_areas,
+                                                          LayerIndex layer_idx,
+                                                          std::vector<std::set<TreeSupportElement*>>& move_bounds,
+                                                          std::vector<std::vector<CradlePresenceInformation>>& cradle_data);
+
+    /*!
      * \brief Propagates influence downwards, and merges overlapping ones.
      *
      * \param move_bounds[in,out] All currently existing influence areas
+     * \param cradle_data[in,out] All currently existing cradles, with its corresponding cradle lines.
      */
-    void createLayerPathing(std::vector<std::set<TreeSupportElement*>>& move_bounds);
+    void createLayerPathing(std::vector<std::set<TreeSupportElement*>>& move_bounds, std::vector<std::vector<TreeSupportCradle*>>& cradle_data);
 
 
     /*!
@@ -268,8 +297,15 @@ private:
      * \param support_roof_storage[in,out] Areas where support was replaced with roof.
      * \param storage[in] The storage where the support should be stored.
      * \param layer_tree_polygons[in] Resulting branch areas with the layerindex they appear on.
+     * \param cradle_data[in] All currently existing cradles, with its corresponding cradle lines.
+
      */
-    void generateSupportSkin(std::vector<Polygons>& support_layer_storage, std::vector<Polygons>& support_skin_storage,  std::vector<Polygons>& support_roof_storage, SliceDataStorage& storage, std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons);
+    void generateSupportSkin(std::vector<Polygons>& support_layer_storage,
+                             std::vector<Polygons>& support_skin_storage,
+                             std::vector<Polygons>& support_roof_storage,
+                             SliceDataStorage& storage,
+                             std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons,
+                             std::vector<std::vector<TreeSupportCradle*>>& cradle_data);
 
     /*!
      * \brief Filters out holses that would cause support to be printed mid-air.
@@ -292,8 +328,10 @@ private:
      *
      * \param move_bounds[in] All currently existing influence areas
      * \param storage[in,out] The storage where the support should be stored.
+     * \param cradle_data[in] All currently existing cradles, with its corresponding cradle lines.
+
      */
-    void drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage);
+    void drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<std::vector<TreeSupportCradle*>>& cradle_data);
 
     /*!
      * \brief Settings with the indexes of meshes that use these settings.
