@@ -1163,8 +1163,16 @@ void TreeSupportTipGenerator::generateTips(
             {
                 if (use_fake_roof_)
                 {
-                    storage.support.supportLayers[layer_idx]
-                        .fillInfillParts(layer_idx, support_roof_drawn_, config_.support_line_width, 0, config_.maximum_move_distance, false, support_roof_line_distance_);
+                    storage.support.supportLayers[layer_idx].fillInfillParts(
+                        layer_idx,
+                        support_roof_drawn_,
+                        config_.layer_height,
+                        storage.meshes,
+                        config_.support_line_width,
+                        0,
+                        config_.maximum_move_distance,
+                        false,
+                        support_roof_line_distance_);
                     placed_support_lines_support_areas[layer_idx].add(TreeSupportUtils::generateSupportInfillLines(
                                                                           support_roof_drawn_[layer_idx],
                                                                           config_,
