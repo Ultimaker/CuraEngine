@@ -781,7 +781,8 @@ void SupportLayer::fillInfillParts(
     overhang_z_dist_above = overhang_z_dist_above.unionPolygons();
 
     // Split the support outline into areas that are directly under the overhang and areas that are not.
-    const auto all_support_areas_in_layer = { support_fill_per_layer[layer_nr].intersection(overhang_z_dist_above), support_fill_per_layer[layer_nr].difference(overhang_z_dist_above) };
+    const auto all_support_areas_in_layer
+        = { support_fill_per_layer[layer_nr].intersection(overhang_z_dist_above), support_fill_per_layer[layer_nr].difference(overhang_z_dist_above) };
     bool use_fractional_config = true;
     for (auto& support_areas : all_support_areas_in_layer)
     {
