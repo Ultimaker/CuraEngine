@@ -634,8 +634,8 @@ private:
      * layer.
      *
      * \param[in] storage Where the slice data is stored.
-     * \param[in] support_roof_outlines which polygons to generate roofs for -- originally split-up because of fractional (layer-height) layers
-     * \param[in] current_roof_config config to be used -- most importantly, support has slightly different configs for fractional (layer-height) layers
+     * \param[in] support_roof_outlines which polygons to generate roofs for.
+     * \param[in] current_roof_config config to be used.
      * \param gcodeLayer The initial planning of the g-code of the layer.
      * \return Whether any support skin was added to the layer plan.
      */
