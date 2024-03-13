@@ -813,6 +813,11 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
         }
     }
 
+    if(volumes_.getFirstAntiPreferredLayerIdx() >= layer_idx)
+    {
+        current_elem.can_avoid_anti_preferred = true;
+    }
+
     if (settings.increase_radius && check_layer_data.area() > 1)
     {
         std::function<bool(coord_t)> validWithRadius = [&](coord_t next_radius)
