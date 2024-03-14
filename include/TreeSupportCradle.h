@@ -12,7 +12,47 @@
 
 namespace cura
 {
+//todo rename file as now general TreeSupportTipDataStructures
+struct TreeSupportCradle;
 
+struct OverhangInformation
+{
+
+    OverhangInformation(Polygons overhang, bool roof):
+        overhang(overhang),
+        is_roof(roof),
+        is_cradle(false),
+        cradle_layer_idx(-1),
+        cradle_line_idx(-1),
+        cradle(nullptr)
+    {
+
+    }
+
+    OverhangInformation(Polygons overhang, bool roof, TreeSupportCradle* cradle, int32_t cradle_layer_idx = -1,int32_t cradle_line_idx = -1):
+        overhang(overhang),
+        is_roof(roof),
+        is_cradle(true),
+        cradle_layer_idx(cradle_layer_idx),
+        cradle_line_idx(cradle_line_idx),
+        cradle(cradle)
+    {
+
+    }
+
+    Polygons overhang;
+    bool is_roof;
+    bool is_cradle;
+    int32_t cradle_layer_idx;
+    int32_t cradle_line_idx;
+    TreeSupportCradle* cradle;
+
+    bool isCradleLine()
+    {
+        return is_cradle && cradle_line_idx >= 0;
+    }
+
+};
 struct TreeSupportCradleLine
 {
     //required to shrink a vector using resize
@@ -21,17 +61,18 @@ struct TreeSupportCradleLine
         spdlog::error("Dummy TreeSupportCradleLine constructor called");
     }
 
-    TreeSupportCradleLine(Polygon line, LayerIndex layer_idx)
+    TreeSupportCradleLine(Polygon line, LayerIndex layer_idx, bool is_roof)
         : line(line)
         , layer_idx(layer_idx)
+        , is_roof(is_roof)
     {
     }
     Polygons area;
     Polygon line;
     Polygon removed_line;
-    std::vector<TreeSupportElement*> tips;
     LayerIndex layer_idx;
     bool is_base = false;
+    bool is_roof;
 
     void addLineToRemoved(Polygon& line_to_add)
     {
@@ -55,26 +96,6 @@ struct TreeSupportCradleLine
     }
 };
 
-struct TreeSupportCradleOverhangInformation
-{
-    TreeSupportCradleOverhangInformation()
-        : TreeSupportCradleOverhangInformation(Polygons(), false)
-    {
-    }
-    TreeSupportCradleOverhangInformation(Polygons area, bool is_line, bool is_roof = false, LayerIndex line_layer_idx = -1, int32_t line_idx = -1)
-        : area(area)
-        , is_line(is_line)
-        , is_roof(is_roof)
-        , line_information(std::pair<LayerIndex, int32_t>(line_layer_idx, line_idx))
-    {
-
-    }
-    Polygons area;
-    bool is_line;
-    std::pair<LayerIndex, int32_t> line_information = std::pair<LayerIndex, int32_t>(-1, -1);
-    bool is_roof;
-};
-
 struct TreeSupportCradle
 {
     std::vector<std::deque<TreeSupportCradleLine>> lines;
@@ -83,7 +104,7 @@ struct TreeSupportCradle
     std::vector<Polygons> base_below;
     Point center;
     size_t shadow_idx;
-    std::unordered_map<LayerIndex, std::vector<TreeSupportCradleOverhangInformation>> overhang;
+    std::unordered_map<LayerIndex, std::vector<OverhangInformation>> overhang;
 
     size_t config_cradle_layers_min;
     coord_t config_cradle_length_min;

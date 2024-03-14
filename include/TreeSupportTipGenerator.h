@@ -218,7 +218,8 @@ private:
      */
     TreeSupportElement*  addPointAsInfluenceArea(
         std::vector<std::set<TreeSupportElement*>>& move_bounds,
-        std::pair<Point, TreeSupportTipGenerator::LineStatus> p, size_t dtt, LayerIndex insert_layer, size_t dont_move_until, bool roof, bool cradle, bool skip_ovalisation,
+        std::pair<Point, TreeSupportTipGenerator::LineStatus> p, size_t dtt, LayerIndex insert_layer, size_t dont_move_until, bool roof,
+        bool cradle, bool skip_ovalisation,
         std::vector<Point> additional_ovalization_targets = std::vector<Point>());
 
 
@@ -232,8 +233,12 @@ private:
      * \param dont_move_until[in] Until which dtt the branch should not move if possible.
      * \param connect_points [in] If the points of said line should be connected by ovalization.
      */
-    std::vector<TreeSupportElement*> addLinesAsInfluenceAreas(std::vector<std::set<TreeSupportElement *>>& move_bounds, std::vector<TreeSupportTipGenerator::LineInformation> lines, size_t roof_tip_layers, LayerIndex insert_layer_idx, bool supports_roof, bool supports_cradle, size_t dont_move_until,
-        bool connect_points);
+    void addLinesAsInfluenceAreas(std::vector<std::set<TreeSupportElement *>>& move_bounds,
+                                                              std::vector<TreeSupportTipGenerator::LineInformation> lines,
+                                                              size_t roof_tip_layers, LayerIndex insert_layer_idx,
+                                                              OverhangInformation& overhang_data,
+                                                              size_t dont_move_until,
+                                                              bool connect_points);
 
     /*!
      * \brief Remove tips that should not have been added in the first place.

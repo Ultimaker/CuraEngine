@@ -2281,8 +2281,9 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                 for(size_t height_idx = 0; height_idx < cradle_data[layer_idx][cradle_idx]->lines[line_idx].size(); height_idx++)
                 {
                     Polygons line_area = cradle_data[layer_idx][cradle_idx]->lines[line_idx][height_idx].area;
+                    bool is_roof = cradle_data[layer_idx][cradle_idx]->lines[line_idx][height_idx].is_roof;
                     LayerIndex cradle_line_layer_idx = cradle_data[layer_idx][cradle_idx]->lines[line_idx][height_idx].layer_idx;
-                    if(cradle_data[layer_idx][cradle_idx]->is_roof)
+                    if(is_roof)
                     {
                         if(support_roof_storage.size()<=layer_idx)
                         {

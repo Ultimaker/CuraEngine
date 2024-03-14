@@ -455,7 +455,7 @@ struct TreeSupportElement
         result.distance_to_top += 1;
         result.skip_ovalisation = false;
         result.result_on_layer = Point(-1, -1);
-        //result.area = nullptr;
+        result.area = nullptr;
         return result;
     }
 
