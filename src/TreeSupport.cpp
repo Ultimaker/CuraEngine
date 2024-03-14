@@ -757,8 +757,6 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
     bool anti_preferred_applied = false;
     if(!anti_preferred_areas.empty())
     {
-
-
         //Ensure that branches can not lag through cradle lines. Proper way to do this would be in the beginning with custom increased areas. Todo?
         coord_t anti_radius_extra = std::max(settings.increase_speed-volumes_.ceilRadius(actual_radius*2,true), coord_t(0)); //todo better real radius. How prevent problems?
         if(anti_radius_extra)
@@ -1426,6 +1424,12 @@ void TreeSupport::handleCradleLineValidity(PropertyAreasUnordered& to_bp_areas,
                                            std::vector<std::set<TreeSupportElement*>>& move_bounds,
                                            std::vector<std::vector<CradlePresenceInformation>>& cradle_data)
 {
+
+    if(cradle_data.size()<=layer_idx || cradle_data[layer_idx].empty())
+    {
+        return;
+    }
+
     std::unordered_set<size_t> removed_lines_idx;
     // Evaluate which lines have to be removed for all influence areas to be valid.
     // Goal is to remove as few lines as possible
@@ -1448,7 +1452,7 @@ void TreeSupport::handleCradleLineValidity(PropertyAreasUnordered& to_bp_areas,
         // todo the coll/ regular radius difference can cause issues with slow vs fast avoidance causing lines to be removed even though the branch will not be here. It just could have been...
         if(!elem->can_avoid_anti_preferred || config.getCollisionRadius(*elem) != config.getRadius(*elem))
         {
-            const coord_t safe_movement_distance = (elem->use_min_xy_dist ? config.xy_min_distance : config.xy_distance)
+            const coord_t safe_movement_distance = (elem->use_min_xy_dist ? config.xy_min_distance : config.xy_distance) + config.getRadius(*elem)
                                                  + (std::min(config.z_distance_top_layers, config.z_distance_bottom_layers) > 0 ? config.min_feature_size : 0);
 
             bool immutable = elem->area != nullptr;
@@ -1468,8 +1472,6 @@ void TreeSupport::handleCradleLineValidity(PropertyAreasUnordered& to_bp_areas,
             }
             AABB relevant_influence_aabb = AABB(relevant_influence);
 
-
-
             for (auto [cradle_idx, cradle] : cradle_data[layer_idx] | ranges::views::enumerate)
             {
                 if (cradle.cradleLineExists() && ! cradle.getCradleLine()->is_base && !removed_lines_idx.contains(cradle_idx))
@@ -1481,7 +1483,7 @@ void TreeSupport::handleCradleLineValidity(PropertyAreasUnordered& to_bp_areas,
                     {
                         Polygons cradle_influence = TreeSupportUtils::safeOffsetInc(cradle.getCradleLine()->area,
                                                               config.getRadius(*elem) + config.xy_distance,
-                                                              volumes_.getCollision(0,layer_idx,true),
+                                                              volumes_.getCollision(config.getRadius(*elem),layer_idx,true),
                                                               safe_movement_distance,
                                                               0,
                                                               1,
@@ -1501,7 +1503,7 @@ void TreeSupport::handleCradleLineValidity(PropertyAreasUnordered& to_bp_areas,
                             removed_lines_idx.emplace(cradle_idx);
                             cradle.getCradleLine()->addLineToRemoved(cradle.getCradleLine()->line);
                             cradle.getCradleLine()->line.clear();
-                            spdlog::info("Flagging to remove cradle line {} {} ", cradle.layer_idx, cradle.line_idx);
+                            spdlog::debug("Flagging to remove cradle line {} {} ", cradle.layer_idx, cradle.line_idx);
                         }
                     }
                 }
@@ -1546,9 +1548,7 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>&
 
     auto dur_inc = std::chrono::duration_values<std::chrono::nanoseconds>::zero();
     auto dur_merge = std::chrono::duration_values<std::chrono::nanoseconds>::zero();
-
-    const auto dur_inc_recent = std::chrono::duration_values<std::chrono::nanoseconds>::zero();
-    const auto dur_merge_recent = std::chrono::duration_values<std::chrono::nanoseconds>::zero();
+    auto dur_cradle = std::chrono::duration_values<std::chrono::nanoseconds>::zero();
 
     LayerIndex last_merge = move_bounds.size();
     bool new_element = false;
@@ -1620,19 +1620,19 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>&
                 merge_every_x_layers = std::min(max_merge_every_x_layers, merge_every_x_layers + 1);
             }
         }
-        const auto time_c = std::chrono::high_resolution_clock::now();
-
-        dur_inc += time_b - time_a;
-        dur_merge += time_c - time_b;
-
         new_element = ! move_bounds[layer_idx - 1].empty();
-
+        const auto time_c = std::chrono::high_resolution_clock::now();
 
         // ### Cradle lines may be removed, causing tips to be removed.
         if(layer_idx>0)
         {
             handleCradleLineValidity(to_bp_areas, to_model_areas,influence_areas,bypass_merge_areas,layer_idx-1,move_bounds,all_cradles_with_line_presence);
         }
+        const auto time_d = std::chrono::high_resolution_clock::now();
+
+        dur_inc += time_b - time_a;
+        dur_merge += time_c - time_b;
+        dur_cradle += time_d - time_c;
 
         // Save calculated elements to output, and allocate Polygons on heap, as they will not be changed again.
         for (std::pair<TreeSupportElement, Polygons> tup : influence_areas)
@@ -1665,7 +1665,7 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>&
         Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
     }
 
-    spdlog::info("Time spent with creating influence areas' subtasks: Increasing areas {} ms merging areas: {} ms", dur_inc.count() / 1000000, dur_merge.count() / 1000000);
+    spdlog::info("Time spent with creating influence areas' subtasks: Increasing areas {} ms merging areas: {} ms CradleLineValidity: {} ms ", dur_inc.count() / 1000000, dur_merge.count() / 1000000, dur_cradle.count() / 1000000);
 }
 
 void TreeSupport::setPointsOnAreas(const TreeSupportElement* elem)

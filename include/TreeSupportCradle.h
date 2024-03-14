@@ -164,14 +164,13 @@ struct TreeSupportCradle
                     {
                         if (up_idx <= config_cradle_layers_min)
                         {
-
-                            spdlog::info("Removing cradle line of cradle on layer {} line at {}. Invalid line was on layer {}",layer_idx,line_idx,lines[line_idx][up_idx].layer_idx);
+                            spdlog::debug("Removing cradle line of cradle on layer {} line at {}. Invalid line was on layer {}",layer_idx,line_idx,lines[line_idx][up_idx].layer_idx);
                             lines[line_idx].clear();
                             break;
                         }
                         else
                         {
-                            spdlog::info("Partially removing cradle line of cradle on layer {} line at {} at height {}",layer_idx,line_idx,up_idx);
+                            spdlog::debug("Partially removing cradle line of cradle on layer {} line at {} at height {}",layer_idx,line_idx,up_idx);
                             lines[line_idx].resize(up_idx-1);
                             break;
                         }

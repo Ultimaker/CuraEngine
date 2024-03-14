@@ -203,11 +203,13 @@ public:
      * \param me[in] Polygons object that has to be offset.
      * \param distance[in] The distance by which me should be offset. Expects values >=0.
      * \param collision[in] The area representing obstacles.
-     * \param last_step_offset_without_check[in] The most it is allowed to offset in one step.
+     * \param safe_step_size[in] The most it is allowed to offset in one step.
+     * \param last_step_offset_without_check[in] The amount of distance for which the collision could be violated at the end.
      * \param min_amount_offset[in] How many steps have to be done at least. As this uses round offset this increases the amount of vertices, which may be required if Polygons get
-     * very small. Required as arcTolerance is not exposed in offset, which should result with a similar result, benefit may be eliminated by simplifying. \param
-     * min_offset_per_step Don't get below this amount of offset per step taken. Fine-tune tradeoff between speed and accuracy. \param simplifier[in] Pointer to Simplify object if
-     * the offset operation also simplify the Polygon. Improves performance. \return The resulting Polygons object.
+     * very small. Required as arcTolerance is not exposed in offset, which should result with a similar result, benefit may be eliminated by simplifying.
+     * \param min_offset_per_step Don't get below this amount of offset per step taken. Fine-tune tradeoff between speed and accuracy.
+     * \param simplifier[in] Pointer to Simplify object if  the offset operation also simplify the Polygon. Improves performance.
+     * \return The resulting Polygons object.
      */
     [[nodiscard]] static Polygons safeOffsetInc(
         const Polygons& me,

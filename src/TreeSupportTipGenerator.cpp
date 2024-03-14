@@ -1029,7 +1029,7 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
 
                             size_t angle_idx = std::min(size_t(((angle+M_PI)/(2.0*M_PI)) * double(cradle_line_count)),cradle_line_count-1);
                             Polygon line(next_line);
-                            //Handle cradle_z_distance_layers by overwriting first element in the vector until valid distance is reached. Todo that means overhang prefered on layer of cradle
+                            //Handle cradle_z_distance_layers by overwriting first element in the vector until valid distance is reached.
                             if(idx <= cradle_z_distance_layers + 1 && !cradle->lines[angle_idx].empty())
                             {
                                 cradle->lines[angle_idx][0]=TreeSupportCradleLine(line,layer_idx+idx,cradle_lines_roof);
@@ -1040,10 +1040,50 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                             }
                         }
                     }
+
+                    for (auto [line_idx, cradle_lines] : cradle->lines | ranges::views::enumerate)
+                    {
+                        if(!cradle_lines.empty())
+                        {
+                            Point line_end = cradle_lines.back().line.back();
+                            for (auto [up_idx, line] : cradle_lines | ranges::views::enumerate | ranges::views::reverse)
+                            {
+                                if(vSize2(line_end-cradle->center) > vSize2(line.line.back()-cradle->center))
+                                {
+
+                                    Polygons line_extension;
+                                    line_extension.addLine(line.line.back(),line_end);
+                                    coord_t line_length_before = line_extension.polyLineLength();
+                                    Polygons actually_forbidden = volumes_.getAvoidance(
+                                        0,
+                                        line.layer_idx,
+                                        (only_gracious || ! config.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
+                                        config.support_rests_on_model,
+                                        true);
+                                    line_extension = actually_forbidden.differencePolyLines(line_extension);
+
+                                    if(line_extension.polyLineLength()+EPSILON < line_length_before)
+                                    {
+                                        for(auto line_part:line_extension)
+                                        {
+                                            bool front_closer = vSize2(line_part.front() - cradle->center) < vSize2(line_part.back() - cradle->center);
+                                            Point closer = front_closer ? line_part.front() : line_part.back();
+                                            Point further = front_closer ? line_part.back() : line_part.front();
+
+                                            if(vSize2(closer-line.line.back() < EPSILON * EPSILON))
+                                            {
+                                                line_end = further;
+                                            }
+                                        }
+                                    }
+                                    line.line.back() = line_end;
+                                }
+                            }
+                        }
+                    }
                 }
             }
         });
-
 }
 
 
@@ -2246,7 +2286,7 @@ void TreeSupportTipGenerator::generateTips(
                     }
                     else
                     {
-                        spdlog::warn("Overhang area has no valid tips! Was roof: {} Was Cradle {} On Layer: {}", overhang_data.is_roof, overhang_data.is_cradle ,layer_idx);
+                        spdlog::warn("Overhang area has no valid tips! Was roof: {} Was Cradle {} Was Line {} On Layer: {}", overhang_data.is_roof, overhang_data.is_cradle,overhang_data.isCradleLine() ,layer_idx);
                     }
                 }
 
