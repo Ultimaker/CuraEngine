@@ -750,15 +750,15 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
         }
     }
 
-
     coord_t actual_radius = config.getRadius(current_elem);
     // Removing cradle areas from influence areas if possible.
     Polygons anti_preferred_areas = volumes_.getAntiPreferredAreas(layer_idx-1, actual_radius);
     bool anti_preferred_applied = false;
     if(!anti_preferred_areas.empty())
     {
-        //Ensure that branches can not lag through cradle lines. Proper way to do this would be in the beginning with custom increased areas. Todo?
-        coord_t anti_radius_extra = std::max(settings.increase_speed-volumes_.ceilRadius(actual_radius*2,true), coord_t(0)); //todo better real radius. How prevent problems?
+        bool is_fast = settings.increase_speed >= config.maximum_move_distance;
+        //Ensure that branches can not lag through cradle lines. Proper way to do this would be in the beginning with custom increased areas.
+        coord_t anti_radius_extra = std::max(settings.increase_speed-volumes_.ceilRadius(actual_radius*2,true), coord_t(0));
         if(anti_radius_extra)
         {
             anti_preferred_areas = anti_preferred_areas.offset(anti_radius_extra).unionPolygons();
@@ -766,7 +766,8 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
         if (current_elem.to_buildplate)
         {
             Polygons to_bp_without_anti = to_bp_data.difference(anti_preferred_areas);
-            if(to_bp_without_anti.area()>EPSILON || settings.use_anti_preferred)
+            // If already moving fast there is not much to do. The anti preferred with collision radius will then later be subtracted if it is not subtracted here.
+            if(to_bp_without_anti.area()>EPSILON || (settings.use_anti_preferred &&!is_fast))
             {
                 to_bp_data = to_bp_without_anti;
                 Polygons to_model_data_without_anti  = to_model_data.difference(anti_preferred_areas);
@@ -779,7 +780,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
         else
         {
             Polygons to_model_data_without_anti  = to_model_data.difference(anti_preferred_areas);
-            if(to_model_data_without_anti.area()>EPSILON || settings.use_anti_preferred)
+            if(to_model_data_without_anti.area()>EPSILON || (settings.use_anti_preferred &&!is_fast))
             {
                 to_model_data = to_model_data_without_anti;
                 Polygons increased_without_anti  = increased.difference(anti_preferred_areas);
@@ -804,6 +805,12 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
         {
             to_model_data  = to_model_data.difference(anti_preferred);
         }
+
+        if(!anti_preferred_applied)
+        {
+            increased = increased.difference(volumes_.getAntiPreferredAreas(layer_idx-1, radius));
+        }
+
         check_layer_data = current_elem.to_buildplate ? to_bp_data : to_model_data;
         if(check_layer_data.area() > 1)
         {
