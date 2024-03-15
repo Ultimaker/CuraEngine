@@ -120,7 +120,9 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(
         }
         // We don't generate insets and infill area for the parts yet because later the skirt/brim and prime
         // tower will remove themselves from the support, so the outlines of the parts can be changed.
-        storage.support.supportLayers[layer_nr].fillInfillParts(layer_nr, global_support_areas_per_layer, support_line_width_here, wall_line_count_this_layer);
+        const coord_t layer_height = infill_extruder.settings_.get<coord_t>("layer_height");
+        storage.support.supportLayers[layer_nr]
+            .fillInfillParts(layer_nr, global_support_areas_per_layer, layer_height, storage.meshes, support_line_width_here, wall_line_count_this_layer);
     }
 }
 
