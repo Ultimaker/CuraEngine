@@ -312,8 +312,6 @@ void TreeSupport::mergeHelper(
                 //     But because a different collision may be removed from the in drawArea generated circles, this assumption could be wrong.
                 const bool merging_different_range_limits = reduced_check.first.influence_area_limit_active && influence.first.influence_area_limit_active
                                                          && influence.first.influence_area_limit_range != reduced_check.first.influence_area_limit_range;
-                const bool merging_cant_avoiding_pref = !reduced_check.first.can_avoid_anti_preferred || !influence.first.can_avoid_anti_preferred; //todo just put them in bypass merge then?
-
 
                 coord_t increased_to_model_radius = 0;
                 size_t larger_to_model_dtt = 0;
@@ -346,7 +344,7 @@ void TreeSupport::mergeHelper(
                 //   would merge to model before it is known they will even been drawn the merge is skipped
                 if (merging_min_and_regular_xy || merging_gracious_and_non_gracious || increased_to_model_radius > config.max_to_model_radius_increase
                     || (! merging_to_bp && larger_to_model_dtt < config.min_dtt_to_model && ! reduced_check.first.supports_roof && ! influence.first.supports_roof)
-                    || merging_different_range_limits || merging_cant_avoiding_pref)
+                    || merging_different_range_limits)
                 {
                     continue;
                 }
@@ -1355,10 +1353,10 @@ void TreeSupport::increaseAreas(
                     radius = config.getCollisionRadius(elem);
                     elem.last_area_increase = settings;
                     add = true;
-                    bypass_merge
-                        = ! settings.move
-                       || (settings.use_min_distance
-                           && elem.distance_to_top < config.tip_layers); // Do not merge if the branch should not move or the priority has to be to get farther away from the model.
+                    // Do not merge if the branch should not move or the priority has to be to get farther away from the model.
+                    bypass_merge = ! settings.move
+                                || (settings.use_min_distance && elem.distance_to_top < config.tip_layers)
+                                || !elem.can_avoid_anti_preferred; // todo less aggressive merge prevention?
                     if (settings.move)
                     {
                         elem.dont_move_until = 0;
@@ -1459,7 +1457,7 @@ void TreeSupport::handleCradleLineValidity(PropertyAreasUnordered& to_bp_areas,
         // todo the coll/ regular radius difference can cause issues with slow vs fast avoidance causing lines to be removed even though the branch will not be here. It just could have been...
         if(!elem->can_avoid_anti_preferred || config.getCollisionRadius(*elem) != config.getRadius(*elem))
         {
-            const coord_t safe_movement_distance = (elem->use_min_xy_dist ? config.xy_min_distance : config.xy_distance) + config.getRadius(*elem)
+            const coord_t safe_movement_distance = (elem->use_min_xy_dist ? config.xy_min_distance : config.xy_distance) + config.getCollisionRadius(*elem)
                                                  + (std::min(config.z_distance_top_layers, config.z_distance_bottom_layers) > 0 ? config.min_feature_size : 0);
 
             bool immutable = elem->area != nullptr;
@@ -1490,7 +1488,7 @@ void TreeSupport::handleCradleLineValidity(PropertyAreasUnordered& to_bp_areas,
                     {
                         Polygons cradle_influence = TreeSupportUtils::safeOffsetInc(cradle.getCradleLine()->area,
                                                               config.getRadius(*elem) + config.xy_distance,
-                                                              volumes_.getCollision(config.getRadius(*elem),layer_idx,true),
+                                                              volumes_.getCollision(config.getCollisionRadius(*elem),layer_idx,true),
                                                               safe_movement_distance,
                                                               0,
                                                               1,
