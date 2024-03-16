@@ -102,7 +102,7 @@ struct TreeSupportCradle
     bool is_roof;
     LayerIndex layer_idx;
     std::vector<Polygons> base_below;
-    Point center;
+    std::vector<Point> centers;
     size_t shadow_idx;
     std::unordered_map<LayerIndex, std::vector<OverhangInformation>> overhang;
 
@@ -111,7 +111,7 @@ struct TreeSupportCradle
 
     TreeSupportCradle(LayerIndex layer_idx, Point center, size_t shadow_idx, bool roof, size_t cradle_layers_min, coord_t cradle_length_min)
         : layer_idx(layer_idx)
-        , center(center)
+        , centers({center})
         , shadow_idx(shadow_idx)
         , is_roof(roof)
         , config_cradle_layers_min(cradle_layers_min)
@@ -133,6 +133,20 @@ struct TreeSupportCradle
             }
         }
         return {};
+    }
+
+    Point getCenter(LayerIndex layer_idx_req)
+    {
+        if(layer_idx_req<layer_idx)
+        {
+            return centers.front();
+        }
+        size_t index = layer_idx_req - layer_idx;
+        if(centers.size()<=index)
+        {
+            return centers.back();
+        }
+        return centers[index];
     }
 
     void verifyLines()

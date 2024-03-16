@@ -639,6 +639,7 @@ std::vector<std::vector<std::vector<Polygons>>> TreeSupportTipGenerator::generat
             {
                 return;
             }
+
             for (auto pointy_info : getFullyUnsupportedArea(layer_idx + z_distance_delta))
             {
                 AABB overhang_aabb(mesh.overhang_areas[layer_idx + z_distance_delta]);
@@ -651,15 +652,16 @@ std::vector<std::vector<std::vector<Polygons>>> TreeSupportTipGenerator::generat
                 std::vector<Polygons> accumulated_model(std::min(cradle_layers + 1, mesh.overhang_areas.size() - layer_idx), Polygons());
                 std::vector<size_t> all_pointy_idx{ pointy_info.index };
 
-                Point assumed_center_prev;
-                Point initial_center;
-                std::vector<Point> centers;
+                Point center_prev = Polygon(pointy_info.area.getOutsidePolygons()[0]).centerOfMass();
+                std::vector<Point> additional_centers;
+                TreeSupportCradle* cradle_main = new TreeSupportCradle(layer_idx,center_prev,shadows[layer_idx].size(), cradle_base_roof, cradle_layers_min, cradle_length_min);
                 Polygons shadow; // A combination of all outlines of the model that will be supported with a cradle.
                 bool aborted = false;
                 bool contacted_other_pointy = false;
                 std::vector<Polygons> unsupported_model(accumulated_model.size());
                 for (size_t cradle_up_layer = 0; cradle_up_layer < accumulated_model.size(); cradle_up_layer++)
                 {
+
                     // shadow model up => not cradle where model
                     // then drop cradle down
                     // cut into parts => get close to original pointy that are far enough from each other.
@@ -669,34 +671,6 @@ std::vector<std::vector<std::vector<Polygons>>> TreeSupportTipGenerator::generat
                     // The cradle base is below the bottommost unsupported and the first cradle layer is around it, so this will be needed only for the second one and up
                     if (cradle_up_layer > 1)
                     {
-                        if (cradle_up_layer == 2)
-                        {
-                            assumed_center_prev = Polygon(shadow.getOutsidePolygons()[0]).centerOfMass();
-                            initial_center = assumed_center_prev;
-                        }
-                        else
-                        {
-                            Point next_center = Polygon(shadow.getOutsidePolygons()[0]).centerOfMass();
-                            // todo Long lines can cause very missplaced centers. Best way to choose when to keep initial center
-                            if (vSize(assumed_center_prev - next_center) < cradle_length && (! centers.empty() || vSize(assumed_center_prev - initial_center) < cradle_length))
-                            {
-                                assumed_center_prev = (2 * assumed_center_prev + next_center) / 3;
-                            }
-                            else
-                            {
-                                // Large center shift. May need its own cradle
-                                if (centers.empty())
-                                {
-                                    centers.emplace_back(initial_center);
-                                }
-                                else
-                                {
-                                    centers.emplace_back(assumed_center_prev);
-                                }
-                                assumed_center_prev = next_center;
-                            }
-                        }
-
                         for (size_t pointy_idx : all_pointy_idx)
                         {
                             for (auto next_pointy_data : getUnsupportedArea(layer_idx + cradle_up_layer - 1 + z_distance_delta, pointy_idx))
@@ -754,11 +728,18 @@ std::vector<std::vector<std::vector<Polygons>>> TreeSupportTipGenerator::generat
                         break;
                     }
 
-
                     model_outline = model_outline.unionPolygons();
-                    shadow = shadow.unionPolygons(model_outline);
+                    shadow = shadow.offset(-config.maximum_move_distance).unionPolygons(model_outline);
+                    accumulated_model[cradle_up_layer] = shadow;
 
-                    accumulated_model[cradle_up_layer] = shadow.offset(-config.maximum_move_distance).unionPolygons(model_outline);
+                    if(cradle_up_layer > 0)
+                    {
+                        Point shadow_center = Polygon(shadow.getOutsidePolygons()[0]).centerOfMass();
+                        coord_t center_move_distance = std::min(config.maximum_move_distance_slow, config.support_line_width/3);
+                        center_move_distance = std::min(center_move_distance, vSize(shadow_center-center_prev));
+                        center_prev = center_prev + normal(shadow_center-center_prev, center_move_distance); //todo support line width roof if roof
+                        cradle_main->centers.emplace_back(center_prev);
+                    }
                 }
 
                 if (aborted)
@@ -770,54 +751,7 @@ std::vector<std::vector<std::vector<Polygons>>> TreeSupportTipGenerator::generat
                     accumulated_model.clear();
                     accumulated_model.emplace_back(cradle_0);
                 }
-
-                coord_t min_distance_to_assumed_center_prev = std::numeric_limits<coord_t>::max();
-                for(Point existing_center:centers)
-                {
-                    min_distance_to_assumed_center_prev = std::min(min_distance_to_assumed_center_prev, vSize(existing_center-assumed_center_prev));
-                }
-
-                if(min_distance_to_assumed_center_prev > 2*cradle_length)
-                {
-                    centers.emplace_back(assumed_center_prev);
-                }
-
-                if (! contacted_other_pointy)
-                {
-                    for (int extra_points = 0; extra_points < 2; extra_points++)
-                    {
-                        coord_t candidate_min_distance2 = 0;
-                        Point candidate = assumed_center_prev; // todo should do for all centers
-                        for (auto line : shadow)
-                        {
-                            for (auto p : line)
-                            {
-                                coord_t smallest_distance2 = std::numeric_limits<coord_t>::max();
-                                for (Point already_center : centers)
-                                {
-                                    smallest_distance2 = std::min(vSize2(p - already_center), smallest_distance2);
-                                }
-                                if (smallest_distance2 > candidate_min_distance2)
-                                {
-                                    candidate_min_distance2 = smallest_distance2;
-                                    candidate = p;
-                                }
-                            }
-                        }
-
-                        if (candidate_min_distance2 > pow(5 * cradle_length, 2))
-                        {
-                            centers.emplace_back(candidate);
-                        }
-                    }
-                }
-
-
-                for(Point center:centers)
-                {
-                    TreeSupportCradle* cradle = new TreeSupportCradle(layer_idx,center,shadows[layer_idx].size(), cradle_base_roof, cradle_layers_min, cradle_length_min);
-                    cradle_data[layer_idx].emplace_back(cradle);
-                }
+                cradle_data[layer_idx].emplace_back(cradle_main);
                 shadows[layer_idx].emplace_back(accumulated_model);
             }
         });
@@ -840,6 +774,7 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                 const auto& accumulated_model = shadow_data[layer_idx][cradle->shadow_idx];
                 for (auto [idx, model_shadow] : accumulated_model | ranges::views::enumerate)
                 {
+                    Point center = cradle->getCenter(layer_idx + idx);
                     const coord_t current_cradle_xy_distance = cradle_xy_distance[idx];
                     const coord_t current_cradle_length = cradle_length + max_cradle_xy_distance - current_cradle_xy_distance;
 
@@ -850,7 +785,6 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
 
                     if (idx > 0 && ! model_shadow.empty())
                     {
-                        coord_t max_distance2 = 0;
 
                         Polygons relevant_forbidden = volumes_.getAvoidance(
                             0,
@@ -884,21 +818,23 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                                                  .offset(cradle_min_xy_distance_delta)
                                                  .unionPolygons(model_shadow.offset(current_cradle_xy_distance + cradle_line_width / 2))
                                                  .unionPolygons(volumes_.getSupportBlocker(layer_idx).offset(cradle_line_width / 2));
+                        coord_t max_distance2 = 0;
                         for (auto line : model_shadow)
                         {
                             for (Point p : line)
                             {
-                                max_distance2 = std::max(max_distance2, vSize2(cradle->center - p));
+                                max_distance2 = std::max(max_distance2, vSize2(center - p));
                             }
                         }
 
-                        Polygon max_outer_points = PolygonUtils::makeCircle(cradle->center, sqrt(max_distance2) + current_cradle_length * 2, (2.0 * M_PI) / double(cradle_line_count));
+                        Polygon max_outer_points = PolygonUtils::makeCircle(center, sqrt(max_distance2) + current_cradle_length * 2.0, (2.0 * M_PI) / double(cradle_line_count));
 
                         // create lines that go from the furthest possible location to the center
                         Polygons lines_to_center;
                         for (Point p : max_outer_points)
                         {
-                            lines_to_center.addLine(p, cradle->center);
+                            Point direction = p - center;
+                            lines_to_center.addLine(p, center + normal(direction,config.support_line_width));
                         }
 
                         // Subtract the model shadow up until this layer from the lines.
@@ -914,7 +850,7 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                         Polygons shortened_lines_to_center;
                         for (auto [line_idx, line] : lines_to_center | ranges::views::enumerate)
                         {
-                            bool front_closer = vSize2(line.front() - cradle->center) < vSize2(line.back() - cradle->center);
+                            bool front_closer = vSize2(line.front() - center) < vSize2(line.back() - center);
                             Point closer = front_closer ? line.front() : line.back();
                             Point further = front_closer ? line.back() : line.front();
                             coord_t cradle_line_length = Polygon(line).polylineLength();
@@ -935,7 +871,7 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
 
                             if (further != closer)
                             {
-                                vector_distance_map.emplace_back((further - closer), vSize(cradle->center - closer));
+                                vector_distance_map.emplace_back((further - closer), vSize(center - closer));
                             }
                         }
                         // If a line is drawn, but half of it removed as it would collide with the collision, there may not actually be a print line. The offset should prevent
@@ -952,11 +888,11 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                         // Evaluate which lines are still valid after the avoidance was subtracted
                         for (auto [line_idx, line] : shortened_lines_to_center | ranges::views::enumerate)
                         {
-                            bool front_closer = vSize2(line.front() - cradle->center) < vSize2(line.back() - cradle->center);
+                            bool front_closer = vSize2(line.front() - center) < vSize2(line.back() - center);
                             Point closer = front_closer ? line.front() : line.back();
                             Point further = front_closer ? line.back() : line.front();
                             Point current_direction = further - closer;
-                            coord_t distance_from_center = vSize(closer - cradle->center);
+                            coord_t distance_from_center = vSize(closer - center);
 
                             shortened_lines_to_center[line_idx].clear();
                             shortened_lines_to_center[line_idx].add(closer);
@@ -1048,7 +984,7 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                             Point line_end = cradle_lines.back().line.back();
                             for (auto [up_idx, line] : cradle_lines | ranges::views::enumerate | ranges::views::reverse)
                             {
-                                if(vSize2(line_end-cradle->center) > vSize2(line.line.back()-cradle->center))
+                                if(vSize2(line_end - center) > vSize2(line.line.back() - center))
                                 {
 
                                     Polygons line_extension;
@@ -1066,7 +1002,7 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                                     {
                                         for(auto line_part:line_extension)
                                         {
-                                            bool front_closer = vSize2(line_part.front() - cradle->center) < vSize2(line_part.back() - cradle->center);
+                                            bool front_closer = vSize2(line_part.front() - center) < vSize2(line_part.back() - center);
                                             Point closer = front_closer ? line_part.front() : line_part.back();
                                             Point further = front_closer ? line_part.back() : line_part.front();
 
@@ -1076,6 +1012,7 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                                             }
                                         }
                                     }
+                                    line_end = LinearAlg2D::getClosestOnLine(line_end,line.line.front(),line.line.back());
                                     line.line.back() = line_end;
                                 }
                             }
@@ -1098,7 +1035,6 @@ void TreeSupportTipGenerator::cleanCradleLineOverlaps()
             {
                 for (size_t height = 0; height < cradle_data[layer_idx][cradle_idx]->lines[cradle_line_idx].size(); height++)
                 {
-
                     TreeSupportCradleLine* result = &cradle_data[layer_idx][cradle_idx]->lines[cradle_line_idx][height];
                     all_cradles_per_layer[layer_idx + height].emplace_back(result);
                 }
@@ -1292,7 +1228,7 @@ void TreeSupportTipGenerator::generateCradleLineAreasAndBase(std::vector<std::ve
                                 {
                                     // This cradle line is to close to another.
                                     // Move it back
-                                    center_front = center_front + normal(direction, outer_radius - vSize(center_front - cradle.center));
+                                    center_front = center_front + normal(direction, outer_radius - vSize(center_front - cradle.getCenter(line->layer_idx)));
                                     center_up = center_front + direction_up_center;
                                     center_down = center_front - direction_up_center;
                                 }
@@ -1370,7 +1306,7 @@ void TreeSupportTipGenerator::generateCradleLineAreasAndBase(std::vector<std::ve
                                 std::optional<TreeSupportCradleLine*> line_opt = cradle.getCradleLineOfIndex(layer_idx + cradle_z_distance_layers +1, line_idx);
                                 if(line_opt)
                                 {
-                                    connected_cradle_base.addLine(cradle.center,line_opt.value()->line.front());
+                                    connected_cradle_base.addLine(cradle.getCenter(line_opt.value()->layer_idx),line_opt.value()->line.front());
                                 }
                             }
                             Polygons relevant_forbidden =
