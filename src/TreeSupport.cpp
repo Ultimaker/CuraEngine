@@ -836,15 +836,17 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
                 // Regular union as output will not be used later => this area should always be a subset of the safeUnion one.
 
                 to_bp_data_2 = increased;
-                if(settings.use_anti_preferred)
+                bool avoidance_handled = false;
+                if(settings.use_anti_preferred && current_elem.can_use_safe_radius)
                 {
                     to_bp_data_2 = to_bp_data_2.difference(volumes_.getAntiPreferredAvoidance(next_radius, layer_idx - 1, settings.type, ! current_elem.to_buildplate, settings.use_min_distance));
+                    avoidance_handled = settings.type != AvoidanceType::SLOW;
                 }
                 else if(anti_preferred_applied)
                 {
                     to_bp_data_2 = to_bp_data_2.difference(volumes_.getAntiPreferredAreas(layer_idx-1, next_radius));
                 }
-                else
+                if(! avoidance_handled)
                 {
                     to_bp_data_2 = to_bp_data_2.difference(volumes_.getAvoidance(next_radius, layer_idx - 1, settings.type, false, settings.use_min_distance));
                 }
@@ -853,15 +855,17 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
             if (config.support_rests_on_model && ! current_elem.to_buildplate)
             {
                 to_model_data_2 = increased;
-                if(settings.use_anti_preferred)
+                bool avoidance_handled = false;
+                if(settings.use_anti_preferred && current_elem.can_use_safe_radius)
                 {
                     to_model_data_2 = to_model_data_2.difference(volumes_.getAntiPreferredAvoidance(next_radius, layer_idx - 1, settings.type, ! current_elem.to_buildplate, settings.use_min_distance));
+                    avoidance_handled = settings.type != AvoidanceType::SLOW; //There is no slow anti-preferred avoidance.
                 }
                 else if(anti_preferred_applied)
                 {
                     to_model_data_2 = to_model_data_2.difference(volumes_.getAntiPreferredAreas(layer_idx-1, next_radius));
                 }
-                else
+                if(! avoidance_handled)
                 {
                     to_model_data_2 = to_model_data_2.difference(volumes_.getAvoidance(
                         next_radius,
