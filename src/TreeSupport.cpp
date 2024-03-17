@@ -2265,7 +2265,6 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
     const coord_t open_close_distance = config.fill_outline_gaps ? config.min_feature_size/ 2 - 5 : config.min_wall_line_width/ 2 - 5; // based on calculation in WallToolPath
     const double small_area_length = INT2MM(static_cast<double>(config.support_line_width) / 2);
 
-    std::mutex critical_support_layer_storage;
 
 
     std::vector<Polygons> cradle_support_base_areas(support_layer_storage.size());
@@ -2275,7 +2274,7 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
     std::mutex critical_cradle_line_xy_distance_areas;
     std::mutex critical_cradle_support_line_areas;
     std::mutex critical_support_roof_storage;
-
+    std::mutex critical_support_layer_storage;
 
     cura::parallel_for<coord_t>
     (
@@ -2289,10 +2288,12 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                 {
                     if(cradle_data[layer_idx][cradle_idx]->is_roof)
                     {
+                        std::lock_guard<std::mutex> critical_section_cradle(critical_support_roof_storage);
                         support_roof_storage[layer_idx-base_idx].add(base);
                     }
                     else
                     {
+                        std::lock_guard<std::mutex> critical_section_cradle(critical_support_layer_storage);
                         cradle_support_base_areas[layer_idx-base_idx].add(base);
                         support_layer_storage[layer_idx-base_idx].add(base);
                     }
