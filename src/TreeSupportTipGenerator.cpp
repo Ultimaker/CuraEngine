@@ -1165,32 +1165,47 @@ void TreeSupportTipGenerator::cleanCradleLineOverlaps()
     {
             for (size_t cradle_idx = 0; cradle_idx < cradle_data[layer_idx].size(); cradle_idx++)
             {
-                for (size_t line_idx = 0; line_idx < cradle_data[layer_idx][cradle_idx]->lines.size(); line_idx++)
+                auto& cradle = cradle_data[layer_idx][cradle_idx];
+                cradle->verifyLines();
+                // As cradle lines (causing lines below to be longer) may have been removed to prevent them intersecting, all cradle lines are now shortened again if required.
+                for (auto [line_idx, cradle_lines] : cradle_data[layer_idx][cradle_idx]->lines | ranges::views::enumerate)
                 {
-                    std::deque<TreeSupportCradleLine>& cradle_lines = cradle_data[layer_idx][cradle_idx]->lines[line_idx];
-                    if(cradle_lines.size() < cradle_layers_min)
+                    if(!cradle_lines.empty())
                     {
-                        cradle_lines.clear();
-                        continue;
-                    }
-                    LayerIndex previous_layer_idx = cradle_lines.front().layer_idx;
-                    for (size_t up_idx = 1; up_idx < cradle_lines.size(); up_idx++)
-                    {
-                        if(cradle_lines[up_idx].layer_idx > previous_layer_idx + up_idx
-                            || cradle_lines[up_idx].line.size() < 2 || cradle_lines[up_idx].line.polylineLength() < cradle_length_min)
+                        Point line_end = cradle_lines.back().line.back();
+                        Point line_front_uppermost = cradle_lines.back().line.front();
+
+                        if(vSize2(line_end - cradle_lines.back().line.front()) > cradle_length * cradle_length)
                         {
-                            if(up_idx <= cradle_layers_min)
+                            cradle_lines.back().line.back() = line_front_uppermost + normal(line_end - line_front_uppermost, cradle_length);
+                            for (auto [up_idx, line] : cradle_lines | ranges::views::enumerate | ranges::views::reverse)
                             {
-                                cradle_lines.clear();
-                                break;
+                                Point center = cradle->getCenter(line.layer_idx);
+                                Point line_back_inner = line.line.back();
+                                Point line_front_inner = line.line.front();
+                                if(vSize2(line_back_inner - line_front_inner) > cradle_length * cradle_length)
+                                {
+                                    //As the center can move there is no guarantee that the point of the current line lies on the line below.
+                                    Point projected_line_end = LinearAlg2D::getClosestOnLine(line_end,line.line.front(),line.line.back());
+                                    const coord_t current_cradle_xy_distance = cradle_xy_distance[line.layer_idx - layer_idx];
+                                    const coord_t current_cradle_length = cradle_length + max_cradle_xy_distance - current_cradle_xy_distance;
+                                    if(vSize2(line_front_inner - projected_line_end) > current_cradle_length * current_cradle_length)
+                                    {
+                                        line.line.back() = projected_line_end;
+                                    }
+                                    else
+                                    {
+                                        line.line.back() = line_front_inner +  normal(line_back_inner - line_front_inner, current_cradle_length);
+                                    }
+                                }
+                                line_end = line.line.back();
                             }
                         }
+
                     }
                 }
             }
     });
-    //todo if removed line has similar cosine to one above, and on of the points lies close to the other one Remove that part of the line => Only keep above if still longer than min
-
 }
 
 
