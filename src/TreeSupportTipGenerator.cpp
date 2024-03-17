@@ -504,6 +504,7 @@ void TreeSupportTipGenerator::calculateFloatingParts(const SliceMeshStorage& mes
 
                 if(! completely_supported.intersection(part).empty() || (! has_support_below && part.area() > cradle_area_threshold))
                 {
+                    std::lock_guard<std::mutex> critical_section_add(critical_sections);
                     next_completely_supported.add(part);
                     return ;
                 }
