@@ -751,13 +751,17 @@ std::vector<std::vector<std::vector<Polygons>>> TreeSupportTipGenerator::generat
                 if (aborted)
                 {
                     // If aborted remove all model information for the cradle generation except the pointy overhang, as it may be needed to cut a small hole in the large interface
-                    // base.
+                    // base. todo reimplement that
 
                     Polygons cradle_0 = accumulated_model[0];
                     accumulated_model.clear();
                     accumulated_model.emplace_back(cradle_0);
+                    delete cradle_main;
                 }
-                cradle_data[layer_idx].emplace_back(cradle_main);
+                else
+                {
+                    cradle_data[layer_idx].emplace_back(cradle_main);
+                }
                 shadows[layer_idx].emplace_back(accumulated_model);
             }
         });
@@ -914,7 +918,7 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                             {
                                 for (auto [direction_idx, direction] : vector_distance_map | ranges::views::enumerate)
                                 {
-                                    double cosine = (dot(direction.first, current_direction)) / (vSize(current_direction) * vSize(direction.first));
+                                    double cosine = (dot(direction.first, current_direction)) / double(vSize(current_direction) * vSize(direction.first));
                                     if (cosine > 0.99)
                                     {
                                         found_candidate = true;
@@ -984,45 +988,47 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                             }
                         }
                     }
+                }
 
-                    for (auto [line_idx, cradle_lines] : cradle->lines | ranges::views::enumerate)
+                // enlarge cradle lines below to minimize overhang of cradle lines.
+                for (auto [line_idx, cradle_lines] : cradle->lines | ranges::views::enumerate)
+                {
+                    if(!cradle_lines.empty())
                     {
-                        if(!cradle_lines.empty())
+                        Point line_end = cradle_lines.back().line.back();
+                        for (auto [up_idx, line] : cradle_lines | ranges::views::enumerate | ranges::views::reverse)
                         {
-                            Point line_end = cradle_lines.back().line.back();
-                            for (auto [up_idx, line] : cradle_lines | ranges::views::enumerate | ranges::views::reverse)
+                            Point center = cradle->getCenter(line.layer_idx);
+                            if(vSize2(line_end - center) > vSize2(line.line.back() - center))
                             {
-                                if(vSize2(line_end - center) > vSize2(line.line.back() - center))
+                                Polygons line_extension;
+                                line_extension.addLine(line.line.back(),line_end);
+                                coord_t line_length_before = line_extension.polyLineLength();
+                                Polygons actually_forbidden = volumes_.getAvoidance(
+                                    0,
+                                    line.layer_idx,
+                                    (only_gracious || ! config.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
+                                    config.support_rests_on_model,
+                                    true);
+                                line_extension = actually_forbidden.differencePolyLines(line_extension);
+
+                                if(line_extension.polyLineLength()+EPSILON < line_length_before)
                                 {
-
-                                    Polygons line_extension;
-                                    line_extension.addLine(line.line.back(),line_end);
-                                    coord_t line_length_before = line_extension.polyLineLength();
-                                    Polygons actually_forbidden = volumes_.getAvoidance(
-                                        0,
-                                        line.layer_idx,
-                                        (only_gracious || ! config.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
-                                        config.support_rests_on_model,
-                                        true);
-                                    line_extension = actually_forbidden.differencePolyLines(line_extension);
-
-                                    if(line_extension.polyLineLength()+EPSILON < line_length_before)
+                                    for(auto line_part:line_extension)
                                     {
-                                        for(auto line_part:line_extension)
-                                        {
-                                            bool front_closer = vSize2(line_part.front() - center) < vSize2(line_part.back() - center);
-                                            Point closer = front_closer ? line_part.front() : line_part.back();
-                                            Point further = front_closer ? line_part.back() : line_part.front();
+                                        bool front_closer = vSize2(line_part.front() - center) < vSize2(line_part.back() - center);
+                                        Point closer = front_closer ? line_part.front() : line_part.back();
+                                        Point further = front_closer ? line_part.back() : line_part.front();
 
-                                            if(vSize2(closer-line.line.back() < EPSILON * EPSILON))
-                                            {
-                                                line_end = further;
-                                            }
+                                        if(vSize2(closer-line.line.back() < EPSILON * EPSILON))
+                                        {
+                                            line_end = further;
                                         }
                                     }
-                                    line_end = LinearAlg2D::getClosestOnLine(line_end,line.line.front(),line.line.back());
-                                    line.line.back() = line_end;
                                 }
+                                //As the center can move there is no guarantee that the point of the current line lies on the line below.
+                                line_end = LinearAlg2D::getClosestOnLine(line_end,line.line.front(),line.line.back());
+                                line.line.back() = line_end;
                             }
                         }
                     }
@@ -1034,6 +1040,9 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
 
 void TreeSupportTipGenerator::cleanCradleLineOverlaps()
 {
+    const coord_t min_distance_between_lines =  cradle_line_width +
+                                               std::max(config.xy_distance, (config.fill_outline_gaps ? config.min_feature_size/ 2 - 5 : config.min_wall_line_width/ 2 - 5));
+    const coord_t max_cradle_xy_distance = *std::max_element(cradle_xy_distance.begin(), cradle_xy_distance.end());
     std::vector<std::vector<TreeSupportCradleLine*>> all_cradles_per_layer(cradle_data.size() + cradle_layers);
     for (LayerIndex layer_idx = 0; layer_idx < cradle_data.size(); layer_idx++)
     {
@@ -1050,7 +1059,6 @@ void TreeSupportTipGenerator::cleanCradleLineOverlaps()
         }
     }
 
-    const coord_t min_distance_between_lines = FUDGE_LENGTH + (config.fill_outline_gaps ? config.min_feature_size/ 2 - 5 : config.min_wall_line_width/ 2 - 5); // based on calculation in WallToolPath
     std::vector<Polygons> removed_lines(cradle_data.size());
 
     cura::parallel_for<coord_t>(
@@ -1078,7 +1086,7 @@ void TreeSupportTipGenerator::cleanCradleLineOverlaps()
             for (size_t cradle_idx = 0; cradle_idx < all_cradles_on_layer.size(); cradle_idx++)
             {
                 AABB bounding_box_current = AABB(all_cradles_on_layer[cradle_idx]->line);
-                bounding_box_current.expand(cradle_line_width * 2 + FUDGE_LENGTH);
+                bounding_box_current.expand(min_distance_between_lines);
                 for (size_t cradle_idx_inner = cradle_idx + 1; cradle_idx_inner < all_cradles_on_layer.size(); cradle_idx_inner++)
                 {
                     if(all_cradles_on_layer[cradle_idx_inner]->line.empty()||all_cradles_on_layer[cradle_idx]->line.empty())
@@ -1087,8 +1095,8 @@ void TreeSupportTipGenerator::cleanCradleLineOverlaps()
                     }
                     if (bounding_box_current.hit(AABB(all_cradles_on_layer[cradle_idx_inner]->line)))
                     {
-                        Polygon outer_line = (*all_cradles_on_layer[cradle_idx]).line;
-                        Polygon inner_line = (*all_cradles_on_layer[cradle_idx_inner]).line;
+                        Polygon& outer_line = (*all_cradles_on_layer[cradle_idx]).line;
+                        Polygon& inner_line = (*all_cradles_on_layer[cradle_idx_inner]).line;
                         Point intersect;
                         if (LinearAlg2D::lineLineIntersection(outer_line.front(), outer_line.back(), inner_line.front(), inner_line.back(), intersect)
                             && ! LinearAlg2D::pointIsProjectedBeyondLine(intersect, outer_line.front(), outer_line.back())
@@ -1096,42 +1104,52 @@ void TreeSupportTipGenerator::cleanCradleLineOverlaps()
                         {
                             coord_t inner_intersect_dist = vSize(inner_line.front() - intersect);
                             coord_t outer_intersect_dist = vSize(outer_line.front() - intersect);
-                            const coord_t end_dist = FUDGE_LENGTH + min_distance_between_lines + cradle_line_width; // todo everywhere: This is dist to prevent lines from merging, not touching ... Maybe also should not touch
 
                             if (inner_intersect_dist > outer_intersect_dist)
                             {
-                                Point new_end_inner = intersect + normal((inner_line.front() - intersect), FUDGE_LENGTH + min_distance_between_lines + cradle_line_width + config.xy_distance);
+                                //this does not ensure that the line ends will not touch. Line ends not touching is handled later
+                                Point new_end_inner = intersect + normal((inner_line.front() - intersect), min_distance_between_lines);
                                 handleNewEnd(cradle_idx_inner,new_end_inner);
 
                             }
                             if (outer_intersect_dist > inner_intersect_dist)
                             {
-                                Point new_end_outer = intersect + normal((outer_line.front() - intersect), FUDGE_LENGTH + min_distance_between_lines + cradle_line_width + config.xy_distance);
+                                Point new_end_outer = intersect + normal((outer_line.front() - intersect), min_distance_between_lines);
                                 handleNewEnd(cradle_idx,new_end_outer);
                             }
                         }
-                        else
+
+                        if(!outer_line.empty() && !inner_line.empty())
                         {
                             // Touching lines have the same issue Lines touch if the end is to close to another line
-                            coord_t inner_end_to_outer_distance = LinearAlg2D::getDistFromLine(inner_line.back(),outer_line.front(), outer_line.back());
-                            if(inner_end_to_outer_distance < 2 * cradle_line_width)
+                            Point inner_direction = inner_line.back() - inner_line.front();
+                            Point outer_direction = outer_line.back() - outer_line.front();
+                            double cosine = std::abs((dot(inner_direction, outer_direction)) / double(vSize(outer_direction) * vSize(inner_direction)));
+                            // If both lines point in the same/opposite direction check that them being to close is not the end line of one to the start of the other
+                            if (cosine < 0.99 || vSize2(outer_line.back() - inner_line.back()) + EPSILON * EPSILON < vSize2(outer_line.front() - inner_line.front()))
                             {
-                                Point new_end_inner = inner_line.back() + normal(inner_line.front()-inner_line.back(),2 * cradle_line_width - inner_end_to_outer_distance);
-                                coord_t error = LinearAlg2D::getDistFromLine(new_end_inner,outer_line.front(), outer_line.back());
-                                double error_correction_factor = 1.0 + error/(2 * cradle_line_width - inner_end_to_outer_distance);
-                                new_end_inner = inner_line.back() + normal(inner_line.front()-inner_line.back(),(2 * cradle_line_width - inner_end_to_outer_distance)*error_correction_factor);
-                                handleNewEnd(cradle_idx_inner,new_end_inner);
-                            }
-                            else
-                            {
-                                coord_t outer_end_to_inner_distance = LinearAlg2D::getDistFromLine(outer_line.back(),inner_line.front(), inner_line.back());
-                                if(outer_end_to_inner_distance < 2 * cradle_line_width)
+                                coord_t inner_end_to_outer_distance = sqrt(LinearAlg2D::getDist2FromLineSegment(outer_line.front(), inner_line.back(), outer_line.back()));
+                                if(inner_end_to_outer_distance < min_distance_between_lines)
                                 {
-                                    Point new_end_outer = outer_line.back() + normal(outer_line.front()-outer_line.back(),2 * cradle_line_width - outer_end_to_inner_distance);
-                                    coord_t error = LinearAlg2D::getDistFromLine(new_end_outer,outer_line.front(), outer_line.back());
-                                    double error_correction_factor = 1.0 + error/(2 * cradle_line_width - outer_end_to_inner_distance);
-                                    new_end_outer = outer_line.back() + normal(outer_line.front()-outer_line.back(),(2 * cradle_line_width - outer_end_to_inner_distance)*error_correction_factor);
-                                    handleNewEnd(cradle_idx,new_end_outer);
+                                    Point new_end_inner = inner_line.back() + normal(inner_line.front()-inner_line.back(),min_distance_between_lines - inner_end_to_outer_distance);
+                                    double error = min_distance_between_lines - sqrt(LinearAlg2D::getDist2FromLineSegment(outer_line.front(), new_end_inner, outer_line.back()));
+                                    double error_correction_factor = 1.0 + error/double(min_distance_between_lines - inner_end_to_outer_distance);
+                                    new_end_inner = inner_line.back() +
+                                                    normal(inner_line.front()-inner_line.back(),(min_distance_between_lines - inner_end_to_outer_distance)*error_correction_factor);
+                                    handleNewEnd(cradle_idx_inner,new_end_inner);
+                                }
+                                else
+                                {
+                                    coord_t outer_end_to_inner_distance = sqrt(LinearAlg2D::getDist2FromLineSegment(inner_line.front(), outer_line.back(), inner_line.back()));
+                                    if(outer_end_to_inner_distance < min_distance_between_lines)
+                                    {
+                                        Point new_end_outer = outer_line.back() + normal(outer_line.front()-outer_line.back(),min_distance_between_lines - outer_end_to_inner_distance);
+                                        double error = min_distance_between_lines - sqrt(LinearAlg2D::getDistFromLine(new_end_outer,outer_line.front(), outer_line.back()));
+                                        double error_correction_factor = 1.0 + error/double(min_distance_between_lines - outer_end_to_inner_distance);
+                                        new_end_outer = outer_line.back() +
+                                                        normal(outer_line.front()-outer_line.back(),(min_distance_between_lines - outer_end_to_inner_distance)*error_correction_factor);
+                                        handleNewEnd(cradle_idx,new_end_outer);
+                                    }
                                 }
                             }
                         }
@@ -1301,7 +1319,15 @@ void TreeSupportTipGenerator::generateCradleLineAreasAndBase(std::vector<std::ve
                         }
                         if (large_cradle_base)
                         {
-                            cradle_base = cradle_base.difference(cut_line_base);
+                            Polygons forbidden_here =
+                                volumes_.getAvoidance(0, layer_idx, (only_gracious||!config.support_rests_on_model)? AvoidanceType::FAST : AvoidanceType::COLLISION, config.support_rests_on_model, ! xy_overrides);
+
+                            cradle_base = cradle_base.offset(config.getRadius(cradle_tip_dtt), ClipperLib::jtRound).difference(forbidden_here);
+                            Polygons center_removed = cradle_base.difference(cut_line_base);
+                            if(center_removed.area()>1)
+                            {
+                                cradle_base = center_removed;
+                            }
                         }
                         else if(cradle_base_roof)
                         {
@@ -1338,7 +1364,7 @@ void TreeSupportTipGenerator::generateCradleLineAreasAndBase(std::vector<std::ve
                                 continue;
                             }
 
-                            coord_t line_base_offset = large_cradle_base ? std::max(coord_t(0),config.getRadius(cradle_tip_dtt) - cradle_line_width/2) : 0;//todo what offset ? Closing ?
+                            coord_t line_base_offset = large_cradle_base ? std::max(coord_t(0),config.getRadius(cradle_tip_dtt) - cradle_line_width/2) : 0;
                             roofs.emplace_back(line_opt.value()->area.offset(line_base_offset,ClipperLib::jtRound).difference(forbidden_here),line_idx);
                         }
 
@@ -1413,14 +1439,11 @@ void TreeSupportTipGenerator::generateCradleLineAreasAndBase(std::vector<std::ve
                             if(!cradle.lines[line_idx].empty())
                             {
                                 LayerIndex support_cradle_on_layer_idx = cradle.lines[line_idx].front().layer_idx - cradle_z_distance_layers;
-
                                 OverhangInformation line_overhang(cradle.lines[line_idx].front().area,false,cradle_data[layer_idx][cradle_idx],cradle.lines[line_idx].front().layer_idx,line_idx);
                                 cradle.overhang[support_cradle_on_layer_idx].emplace_back(line_overhang);
                             }
                         }
-
                     }
-
                 }
             });
 
@@ -2236,7 +2259,8 @@ void TreeSupportTipGenerator::generateTips(
                     }
                     else
                     {
-                        spdlog::warn("Overhang area has no valid tips! Was roof: {} Was Cradle {} Was Line {} On Layer: {}", overhang_data.is_roof, overhang_data.is_cradle,overhang_data.isCradleLine() ,layer_idx);
+                        spdlog::warn("Overhang area has no valid tips! Was roof: {} Was Cradle {} Was Line {} On Layer: {} Area size was {}",
+                                     overhang_data.is_roof, overhang_data.is_cradle,overhang_data.isCradleLine() ,layer_idx, overhang_data.overhang.area());
                     }
                 }
 
