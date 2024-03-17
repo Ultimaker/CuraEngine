@@ -766,14 +766,14 @@ const Polygons& TreeModelVolumes::getAntiPreferredAvoidance(coord_t radius, Laye
 
     if(!result || result.value().get().empty())
     {
-        return empty_polygon;
+        return getAvoidance(radius, layer_idx, type, to_model, min_xy_dist);
     }
 
     if (precalculated)
     {
         spdlog::warn("Missing anti preferred calculated at radius {} and layer {} and type {} to model {}, but precalculate was called. Returning Empty!", ceiled_radius, key.second, type == AvoidanceType::COLLISION, to_model);
     }
-    return empty_polygon;
+    return getAvoidance(radius, layer_idx, type, to_model, min_xy_dist);
 }
 
 const Polygons& TreeModelVolumes::getSupportBlocker(LayerIndex layer_idx)

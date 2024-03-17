@@ -481,6 +481,7 @@ void TreeSupportTipGenerator::calculateFloatingParts(const SliceMeshStorage& mes
     LayerIndex start_layer = 1;
     floating_parts_cache_.resize(max_layer+1);
     floating_parts_map_.resize(max_layer+1);
+    std::mutex critical_sections;
 
     Polygons completely_supported = volumes_.getCollision(0,0,true);
     Polygons layer_below = completely_supported;  //technically wrong, but the xy distance error on layer 1 should not matter
@@ -491,60 +492,64 @@ void TreeSupportTipGenerator::calculateFloatingParts(const SliceMeshStorage& mes
         // As the collision contains z distance and xy distance it cant be used to clearly identify which parts of the model are connected to the buildplate.
         Polygons layer = mesh.layers[layer_idx].getOutlines();
 
-        // todo rewrite to be able to parallelize it
-        for (const Polygons part : layer.splitIntoParts())
+        const std::vector<PolygonsPart> layer_parts = layer.splitIntoParts();
+        cura::parallel_for<size_t>(
+        0,
+        layer_parts.size(),
+        [&](const size_t part_idx)
         {
+                const PolygonsPart& part = layer_parts[part_idx];
+                AABB part_aabb(part);
+                bool has_support_below = !PolygonUtils::clipPolygonWithAABB(layer_below,part_aabb).intersection(part).empty();
 
-            AABB part_aabb(part);
-            auto has_support_below = !PolygonUtils::clipPolygonWithAABB(layer_below,part_aabb).intersection(part).empty();
-
-            if(! completely_supported.intersection(part).empty() || (! has_support_below && part.area() > cradle_area_threshold))
-            {
-                next_completely_supported.add(part);
-                continue;
-            }
-
-            Polygons overhang = mesh.overhang_areas[layer_idx].intersection(part);
-            coord_t overhang_area = std::max(overhang.area(), M_PI * config.min_wall_line_width * config.min_wall_line_width);
-            if (!has_support_below)
-            {
-                floating_parts_cache_[layer_idx].emplace_back(part,floating_parts_cache_[layer_idx].size(),0,overhang_area);
-                floating_parts_map_ [layer_idx].emplace_back(std::vector<size_t>());
-                continue;
-            }
-
-            size_t min_resting_on_layers = 0;
-            coord_t supported_overhang_area = 0;
-            bool add = false;
-            std::vector<size_t> idx_of_floating_below;
-            for (auto [idx, floating] : floating_parts_cache_[layer_idx-1] | ranges::views::enumerate)
-            {
-                if(layer_idx > 1 && floating.height < cradle_layers - 1 && !floating.area.intersection(part).empty())
+                if(! completely_supported.intersection(part).empty() || (! has_support_below && part.area() > cradle_area_threshold))
                 {
-                    idx_of_floating_below.emplace_back(idx);
-                    supported_overhang_area += floating.accumulated_supportable_overhang;
-                    min_resting_on_layers = std::max(min_resting_on_layers,floating.height);
-                    add = true;
-                }
-            }
-
-            if(min_resting_on_layers < cradle_layers && add && overhang_area + supported_overhang_area < cradle_area_threshold)
-            {
-
-                for(size_t idx: idx_of_floating_below)
-                {
-                    floating_parts_map_[layer_idx-1][idx].emplace_back(floating_parts_cache_[layer_idx].size());
+                    next_completely_supported.add(part);
+                    return ;
                 }
 
-                floating_parts_map_[layer_idx].emplace_back(std::vector<size_t>());
-                floating_parts_cache_[layer_idx].emplace_back(part, floating_parts_cache_[layer_idx].size(),min_resting_on_layers+1,overhang_area + supported_overhang_area);
-            }
-            else
-            {
-                next_completely_supported.add(part);
-            }
+                Polygons overhang = mesh.overhang_areas[layer_idx].intersection(part);
+                coord_t overhang_area = std::max(overhang.area(), M_PI * config.min_wall_line_width * config.min_wall_line_width);
+                if (!has_support_below)
+                {
+                    std::lock_guard<std::mutex> critical_section_add(critical_sections);
+                    floating_parts_cache_[layer_idx].emplace_back(part,floating_parts_cache_[layer_idx].size(),0,overhang_area);
+                    floating_parts_map_ [layer_idx].emplace_back(std::vector<size_t>());
+                    return ;
+                }
 
-        }
+                size_t min_resting_on_layers = 0;
+                coord_t supported_overhang_area = 0;
+                bool add = false;
+                std::vector<size_t> idx_of_floating_below;
+                for (auto [idx, floating] : floating_parts_cache_[layer_idx-1] | ranges::views::enumerate)
+                {
+                    if(layer_idx > 1 && floating.height < cradle_layers - 1 && !floating.area.intersection(part).empty())
+                    {
+                        idx_of_floating_below.emplace_back(idx);
+                        supported_overhang_area += floating.accumulated_supportable_overhang;
+                        min_resting_on_layers = std::max(min_resting_on_layers,floating.height);
+                        add = true;
+                    }
+                }
+
+                if(min_resting_on_layers < cradle_layers && add && overhang_area + supported_overhang_area < cradle_area_threshold)
+                {
+                    std::lock_guard<std::mutex> critical_section_add(critical_sections);
+                    for(size_t idx: idx_of_floating_below)
+                    {
+                        floating_parts_map_[layer_idx-1][idx].emplace_back(floating_parts_cache_[layer_idx].size());
+                    }
+
+                    floating_parts_map_[layer_idx].emplace_back(std::vector<size_t>());
+                    floating_parts_cache_[layer_idx].emplace_back(part, floating_parts_cache_[layer_idx].size(),min_resting_on_layers+1,overhang_area + supported_overhang_area);
+                }
+                else
+                {
+                    std::lock_guard<std::mutex> critical_section_add(critical_sections);
+                    next_completely_supported.add(part);
+                }
+        });
         layer_below = layer;
         completely_supported = next_completely_supported;
 
