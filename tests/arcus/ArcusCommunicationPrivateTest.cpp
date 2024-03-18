@@ -2,16 +2,19 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "communication/ArcusCommunicationPrivate.h" //The class we're testing.
+
+#include <array>
+#include <cmath>
+#include <filesystem>
+#include <fstream>
+
+#include <gtest/gtest.h>
+
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "MockSocket.h"
 #include "Slice.h"
 #include "utils/Coord_t.h"
-#include <array>
-#include <cmath>
-#include <filesystem>
-#include <fstream>
-#include <gtest/gtest.h>
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
@@ -31,7 +34,7 @@ public:
     {
         instance = new ArcusCommunication::Private();
         instance->socket = new MockSocket();
-        Application::getInstance().current_slice = new Slice(GK_TEST_NUM_MESH_GROUPS);
+        Application::getInstance().current_slice_ = new Slice(GK_TEST_NUM_MESH_GROUPS);
     }
 
     void TearDown() override
@@ -39,7 +42,7 @@ public:
         delete instance->socket;
         delete instance;
 
-        delete Application::getInstance().current_slice;
+        delete Application::getInstance().current_slice_;
     }
 
     /*
@@ -92,7 +95,7 @@ TEST_F(ArcusCommunicationPrivateTest, ReadGlobalSettingsMessage)
     instance->readGlobalSettingsMessage(global_settings);
 
     // Check if they are equal in general:
-    const auto& settings = Application::getInstance().current_slice->scene.settings;
+    const auto& settings = Application::getInstance().current_slice_->scene.settings;
     for (const auto& entry : raw_settings)
     {
         EXPECT_EQ(settings.get<std::string>(entry.first), entry.second);
@@ -114,12 +117,12 @@ TEST_F(ArcusCommunicationPrivateTest, ReadSingleExtruderSettingsMessage)
     const std::string setting_value = "You put the 'sexy' in 'dyslexic'.";
     setting->set_value(setting_value);
 
-    Application::getInstance().current_slice->scene.settings.add("machine_extruder_count", "1");
+    Application::getInstance().current_slice_->scene.settings.add("machine_extruder_count", "1");
     // Run the call that we're testing.
     instance->readExtruderSettingsMessage(messages);
 
-    ASSERT_EQ(size_t(1), Application::getInstance().current_slice->scene.extruders.size()) << "Reading the extruders must construct the correct amount of extruders in the scene.";
-    EXPECT_EQ(setting_value, Application::getInstance().current_slice->scene.extruders[0].settings.get<std::string>("test_setting"));
+    ASSERT_EQ(size_t(1), Application::getInstance().current_slice_->scene.extruders.size()) << "Reading the extruders must construct the correct amount of extruders in the scene.";
+    EXPECT_EQ(setting_value, Application::getInstance().current_slice_->scene.extruders[0].settings_.get<std::string>("test_setting"));
 }
 
 TEST_F(ArcusCommunicationPrivateTest, ReadMultiExtruderSettingsMessage)
@@ -142,13 +145,13 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMultiExtruderSettingsMessage)
     second_setting->set_name("What extruder are you?");
     second_setting->set_value("Second");
 
-    Application::getInstance().current_slice->scene.settings.add("machine_extruder_count", "2");
+    Application::getInstance().current_slice_->scene.settings.add("machine_extruder_count", "2");
     // Run the call that we're testing.
     instance->readExtruderSettingsMessage(messages);
 
-    ASSERT_EQ(size_t(2), Application::getInstance().current_slice->scene.extruders.size()) << "Reading the extruders must construct the correct amount of extruders in the scene.";
-    EXPECT_EQ(std::string("First"), Application::getInstance().current_slice->scene.extruders[0].settings.get<std::string>("What extruder are you?"));
-    EXPECT_EQ(std::string("Second"), Application::getInstance().current_slice->scene.extruders[1].settings.get<std::string>("What extruder are you?"));
+    ASSERT_EQ(size_t(2), Application::getInstance().current_slice_->scene.extruders.size()) << "Reading the extruders must construct the correct amount of extruders in the scene.";
+    EXPECT_EQ(std::string("First"), Application::getInstance().current_slice_->scene.extruders[0].settings_.get<std::string>("What extruder are you?"));
+    EXPECT_EQ(std::string("Second"), Application::getInstance().current_slice_->scene.extruders[1].settings_.get<std::string>("What extruder are you?"));
 }
 
 TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
@@ -193,7 +196,8 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
 
     // - - Add settings to the mesh:
     std::map<std::string, std::string> mesh_settings = {
-        { "extruder_nr", "0" }, { "center_object", "1" }, { "mesh_position_x", "0" }, { "mesh_position_y", "0" }, { "mesh_position_z", "0" }, { "infill_mesh", "0" }, { "cutting_mesh", "0" }, { "anti_overhang_mesh", "0" },
+        { "extruder_nr", "0" },     { "center_object", "1" }, { "mesh_position_x", "0" }, { "mesh_position_y", "0" },
+        { "mesh_position_z", "0" }, { "infill_mesh", "0" },   { "cutting_mesh", "0" },    { "anti_overhang_mesh", "0" },
     };
     for (std::pair<std::string, std::string> key_value : mesh_settings)
     {
@@ -206,16 +210,16 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
     instance->readMeshGroupMessage(mesh_message);
 
     // Checks:
-    auto& scene = Application::getInstance().current_slice->scene;
+    auto& scene = Application::getInstance().current_slice_->scene;
     ASSERT_FALSE(scene.mesh_groups.empty());
 
     auto& meshes = scene.mesh_groups[0].meshes;
     ASSERT_FALSE(meshes.empty());
 
-    auto& vertices = meshes[0].vertices;
+    auto& vertices = meshes[0].vertices_;
     ASSERT_FALSE(vertices.empty());
     ASSERT_EQ(vertices.size(), size_t(8)); // A cube should have 8 unique vertices.
-    ASSERT_EQ(meshes[0].faces.size(), size_t(12)); // A cube should have 12 tri-s (2 for each 6 sides of the dice).
+    ASSERT_EQ(meshes[0].faces_.size(), size_t(12)); // A cube should have 12 tri-s (2 for each 6 sides of the dice).
 
     // Distances should be the same:
 
@@ -234,12 +238,12 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
     std::array<coord_t, 3> max_coords = { std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min() };
     for (const auto& vertex : vertices)
     {
-        min_coords[0] = std::min(vertex.p.x, min_coords[0]);
-        min_coords[1] = std::min(vertex.p.y, min_coords[1]);
-        min_coords[2] = std::min(vertex.p.z, min_coords[2]);
-        max_coords[0] = std::max(vertex.p.x, max_coords[0]);
-        max_coords[1] = std::max(vertex.p.y, max_coords[1]);
-        max_coords[2] = std::max(vertex.p.z, max_coords[2]);
+        min_coords[0] = std::min(vertex.p_.x_, min_coords[0]);
+        min_coords[1] = std::min(vertex.p_.y_, min_coords[1]);
+        min_coords[2] = std::min(vertex.p_.z_, min_coords[2]);
+        max_coords[0] = std::max(vertex.p_.x_, max_coords[0]);
+        max_coords[1] = std::max(vertex.p_.y_, max_coords[1]);
+        max_coords[2] = std::max(vertex.p_.z_, max_coords[2]);
     }
 
     // - Then, just compare:

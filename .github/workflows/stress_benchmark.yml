@@ -1,0 +1,58 @@
+name: Stress Benchmark
+on:
+  push:
+    paths:
+      - 'include/**'
+      - 'src/**'
+      - 'stress_benchmark/**'
+      - '.github/workflows/stress_benchmark.yml'
+    branches:
+      - main
+
+  pull_request:
+    types: [ opened, reopened, synchronize ]
+    paths:
+      - 'include/**'
+      - 'src/**'
+      - 'stress_benchmark/**'
+      - '.github/workflows/stress_benchmark.yml'
+    branches:
+      - main
+      - 'CURA-*'
+      - 'PP-*'
+      - 'NP-*'
+      - '[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+  deployments: write
+
+env:
+  CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
+  CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
+
+
+jobs:
+  check_actor:
+    uses: ultimaker/cura-workflows/.github/workflows/check-actor.yml@main
+    secrets: inherit
+
+  conan-recipe-version:
+    needs: [ check_actor ]
+    if: ${{ needs.check_actor.outputs.proceed == 'true' }}
+    uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml@main
+    with:
+      project_name: curaengine
+
+  benchmark:
+    needs: [ conan-recipe-version ]
+    uses: ultimaker/cura-workflows/.github/workflows/benchmark.yml@main
+    with:
+      recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
+      conan_extra_args: "-o curaengine:enable_benchmarks=True"
+      benchmark_cmd: "stress_benchmark/stress_benchmark -o benchmark_result.json"
+      name: "Stress Benchmark"
+      output_file_path: "build/Release/benchmark_result.json"
+      data_dir: "dev/stress_bench"
+      tool: "customSmallerIsBetter"
+    secrets: inherit

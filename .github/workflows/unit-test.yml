@@ -15,6 +15,7 @@ on:
       - main
       - 'CURA-*'
       - 'PP-*'
+      - 'NP-*'
       - '[0-9]+.[0-9]+'
 
   pull_request:
@@ -54,4 +55,5 @@ jobs:
       unit_test_cmd: 'ctest --output-junit engine_test.xml'
       unit_test_dir: 'build/Release'
       build: true
+    secrets: inherit
 

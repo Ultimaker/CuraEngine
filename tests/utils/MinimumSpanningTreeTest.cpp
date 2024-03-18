@@ -9,7 +9,7 @@
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
-bool has(const Point& pt, const std::vector<Point>& list)
+bool has(const Point2LL& pt, const std::vector<Point2LL>& list)
 {
     return std::find(list.begin(), list.end(), pt) != list.end();
 }
@@ -20,9 +20,9 @@ public:
     void SetUp() override
     {
         pts = {
-            Point(-3, -4), Point(3, -4), Point(0, -3), Point(0, 0), Point(1, 1), Point(5, 1), Point(-1, 6), Point(0, 5), Point(5, 7), Point(12, 12), Point(12, 13),
+            Point2LL(-3, -4), Point2LL(3, -4), Point2LL(0, -3), Point2LL(0, 0), Point2LL(1, 1), Point2LL(5, 1), Point2LL(-1, 6), Point2LL(0, 5), Point2LL(5, 7), Point2LL(12, 12), Point2LL(12, 13),
         };
-        std::vector<Point> pts_set(pts.begin(), pts.end());
+        std::vector<Point2LL> pts_set(pts.begin(), pts.end());
         p_mst = new MinimumSpanningTree(pts_set);
     }
 
@@ -32,13 +32,13 @@ public:
         p_mst = nullptr;
     }
 
-    std::vector<Point> pts;
+    std::vector<Point2LL> pts;
     MinimumSpanningTree* p_mst; // Needs to be a pointer, because SetUp isn't a constructor and the copy function is deleted.
 };
 
 TEST(SimpleMinimumSpanningTreeTest, TestConstructEmpty)
 {
-    std::vector<Point> vertices;
+    std::vector<Point2LL> vertices;
     MinimumSpanningTree tree(vertices);
 
     ASSERT_TRUE(tree.leaves().empty()) << "Empty tree should be empty.";
@@ -46,26 +46,26 @@ TEST(SimpleMinimumSpanningTreeTest, TestConstructEmpty)
 
 TEST(SimpleMinimumSpanningTreeTest, TestConstructOne)
 {
-    const Point pt_a(1, 1);
-    std::vector<Point> vertices = { pt_a };
+    const Point2LL pt_a(1, 1);
+    std::vector<Point2LL> vertices = { pt_a };
     MinimumSpanningTree tree(vertices);
 
     ASSERT_FALSE(tree.leaves().empty()) << "Tree with one point shouldn't have no vertices.";
-    std::vector<Point> points = tree.vertices();
+    std::vector<Point2LL> points = tree.vertices();
     EXPECT_EQ(points.size(), 1) << "Tree with one point should have exactly one vertex.";
     EXPECT_EQ(points[0], pt_a) << "Tree with one point should have that point among its vertices.";
 }
 
 TEST(SimpleMinimumSpanningTreeTest, TestSimpleAdjacent)
 {
-    const Point pt_a(1, 1);
-    const Point pt_b(2, 2);
-    const Point pt_c(3, 3);
-    const Point pt_d(4, 4);
-    std::vector<Point> vertices = { pt_a, pt_b, pt_c, pt_d };
+    const Point2LL pt_a(1, 1);
+    const Point2LL pt_b(2, 2);
+    const Point2LL pt_c(3, 3);
+    const Point2LL pt_d(4, 4);
+    std::vector<Point2LL> vertices = { pt_a, pt_b, pt_c, pt_d };
     MinimumSpanningTree tree(vertices);
 
-    std::vector<Point> adjacent;
+    std::vector<Point2LL> adjacent;
 
     adjacent = tree.adjacentNodes(pt_b);
     EXPECT_EQ(adjacent.size(), 2) << "2 points should be adjacent to point B (simple case).";
@@ -79,20 +79,20 @@ TEST(SimpleMinimumSpanningTreeTest, TestSimpleAdjacent)
     EXPECT_TRUE(has(pt_c, adjacent)) << "Point C should be adjacent to Point D (simple case).";
     EXPECT_FALSE(has(pt_d, adjacent)) << "Point D should not be adjacent to itself (simple case).";
 
-    adjacent = tree.adjacentNodes(Point(5, 5)); // point E, a non-existent node
+    adjacent = tree.adjacentNodes(Point2LL(5, 5)); // point E, a non-existent node
     EXPECT_EQ(adjacent.size(), 0) << "No points should be adjacent to point E.";
 }
 
 TEST(SimpleMinimumSpanningTreeTest, TestSimpleLeaves)
 {
-    const Point pt_a(1, 1);
-    const Point pt_b(5, 2);
-    const Point pt_c(2, 5);
-    const Point pt_d(3, 3);
-    std::vector<Point> vertices = { pt_a, pt_b, pt_c, pt_d };
+    const Point2LL pt_a(1, 1);
+    const Point2LL pt_b(5, 2);
+    const Point2LL pt_c(2, 5);
+    const Point2LL pt_d(3, 3);
+    std::vector<Point2LL> vertices = { pt_a, pt_b, pt_c, pt_d };
     MinimumSpanningTree tree(vertices);
 
-    std::vector<Point> leaves = tree.leaves();
+    std::vector<Point2LL> leaves = tree.leaves();
     EXPECT_EQ(leaves.size(), 3) << "Three out of four points should be leaves (simple case).";
     EXPECT_TRUE(has(pt_a, leaves)) << "Point A should be one of the leaves (simple case).";
     EXPECT_TRUE(has(pt_b, leaves)) << "Point B should be one of the leaves (simple case).";
@@ -120,7 +120,7 @@ TEST_F(MinimumSpanningTreeTest, TestLeaves)
     // constexpr won't work here (yet) on Win.
 
     MinimumSpanningTree& mst = *p_mst;
-    const std::vector<Point> leaves = mst.leaves();
+    const std::vector<Point2LL> leaves = mst.leaves();
 
     const size_t len = pts.size();
     for (size_t i_pt = 0; i_pt < len; ++i_pt)

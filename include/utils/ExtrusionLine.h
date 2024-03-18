@@ -1,9 +1,13 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2020 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 
 #ifndef UTILS_EXTRUSION_LINE_H
 #define UTILS_EXTRUSION_LINE_H
+
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/reverse.hpp>
+#include <range/v3/view/sliding.hpp>
 
 #include "ExtrusionJunction.h"
 #include "polygon.h"
@@ -25,7 +29,7 @@ struct ExtrusionLine
      *
      * The outer wall has index 0.
      */
-    size_t inset_idx;
+    size_t inset_idx_;
 
     /*!
      * If a thin piece needs to be printed with an odd number of walls (e.g. 5
@@ -34,12 +38,19 @@ struct ExtrusionLine
      * has no companion line going back on the other side and is not a closed
      * loop.
      */
-    bool is_odd;
+    bool is_odd_;
 
     /*!
      * Whether this is a closed polygonal path
      */
-    bool is_closed;
+    bool is_closed_;
+
+    /*!
+     * The list of vertices along which this path runs.
+     *
+     * Each junction has a width, making this path a variable-width path.
+     */
+    std::vector<ExtrusionJunction> junctions_;
 
     /*!
      * Gets the number of vertices in this polygon.
@@ -47,7 +58,17 @@ struct ExtrusionLine
      */
     size_t size() const
     {
-        return junctions.size();
+        return junctions_.size();
+    }
+
+    /*!
+     * Gets the vertex at the given index.
+     * \param idx The index of the vertex to get.
+     * \return The vertex at the given index.
+     */
+    bool is_outer_wall() const
+    {
+        return inset_idx_ == 0;
     }
 
     /*!
@@ -55,161 +76,197 @@ struct ExtrusionLine
      */
     bool empty() const
     {
-        return junctions.empty();
+        return junctions_.empty();
     }
 
-    /*!
-     * The list of vertices along which this path runs.
-     *
-     * Each junction has a width, making this path a variable-width path.
-     */
-    std::vector<ExtrusionJunction> junctions;
-
-    ExtrusionLine(const size_t inset_idx, const bool is_odd);
-
-    ExtrusionLine()
-    : inset_idx(-1)
-    , is_odd(true)
-    , is_closed(false)
-    {}
+    ExtrusionLine(size_t inset_idx = std::numeric_limits<size_t>::max(), bool is_odd = false, bool is_closed = false)
+        : inset_idx_(inset_idx)
+        , is_odd_(is_odd)
+        , is_closed_(is_closed)
+    {
+    }
 
     ExtrusionLine(const ExtrusionLine& other)
-    : inset_idx(other.inset_idx)
-    , is_odd(other.is_odd)
-    , is_closed(other.is_closed)
-    , junctions(other.junctions)
-    {}
-    
+        : inset_idx_(other.inset_idx_)
+        , is_odd_(other.is_odd_)
+        , is_closed_(other.is_closed_)
+        , junctions_(other.junctions_)
+    {
+    }
+
     ExtrusionLine& operator=(ExtrusionLine&& other)
     {
-        junctions = std::move(other.junctions);
-        inset_idx = other.inset_idx;
-        is_odd = other.is_odd;
-        is_closed = other.is_closed;
+        junctions_ = std::move(other.junctions_);
+        inset_idx_ = other.inset_idx_;
+        is_odd_ = other.is_odd_;
+        is_closed_ = other.is_closed_;
         return *this;
     }
 
     ExtrusionLine& operator=(const ExtrusionLine& other)
     {
-        junctions = other.junctions;
-        inset_idx = other.inset_idx;
-        is_odd = other.is_odd;
-        is_closed = other.is_closed;
+        junctions_ = other.junctions_;
+        inset_idx_ = other.inset_idx_;
+        is_odd_ = other.is_odd_;
+        is_closed_ = other.is_closed_;
         return *this;
     }
 
-    
+
     std::vector<ExtrusionJunction>::const_iterator begin() const
     {
-        return junctions.begin();
+        return junctions_.begin();
     }
 
     std::vector<ExtrusionJunction>::const_iterator end() const
     {
-        return junctions.end();
+        return junctions_.end();
     }
 
     std::vector<ExtrusionJunction>::const_reverse_iterator rbegin() const
     {
-        return junctions.rbegin();
+        return junctions_.rbegin();
     }
 
     std::vector<ExtrusionJunction>::const_reverse_iterator rend() const
     {
-        return junctions.rend();
+        return junctions_.rend();
     }
 
     std::vector<ExtrusionJunction>::const_reference front() const
     {
-        return junctions.front();
+        return junctions_.front();
     }
 
     std::vector<ExtrusionJunction>::const_reference back() const
     {
-        return junctions.back();
+        return junctions_.back();
     }
 
-    const ExtrusionJunction& operator[] (unsigned int index) const
+    const ExtrusionJunction& operator[](size_t index) const
     {
-        return junctions[index];
+        return junctions_[index];
     }
 
-    ExtrusionJunction& operator[] (unsigned int index)
+    ExtrusionJunction& operator[](size_t index)
     {
-        return junctions[index];
+        return junctions_[index];
     }
 
     std::vector<ExtrusionJunction>::iterator begin()
     {
-        return junctions.begin();
+        return junctions_.begin();
     }
 
     std::vector<ExtrusionJunction>::iterator end()
     {
-        return junctions.end();
+        return junctions_.end();
     }
 
     std::vector<ExtrusionJunction>::reference front()
     {
-        return junctions.front();
+        return junctions_.front();
     }
 
     std::vector<ExtrusionJunction>::reference back()
     {
-        return junctions.back();
+        return junctions_.back();
     }
 
-    template <typename... Args>
+    template<typename... Args>
     void emplace_back(Args&&... args)
     {
-        junctions.emplace_back(args...);
+        junctions_.emplace_back(args...);
     }
 
     void remove(unsigned int index)
     {
-        junctions.erase(junctions.begin() + index);
+        junctions_.erase(junctions_.begin() + index);
     }
 
     void insert(size_t index, const ExtrusionJunction& p)
     {
-        junctions.insert(junctions.begin() + index, p);
+        junctions_.insert(junctions_.begin() + static_cast<long>(index), p);
     }
 
-    template <class iterator>
+    template<class iterator>
     std::vector<ExtrusionJunction>::iterator insert(std::vector<ExtrusionJunction>::const_iterator pos, iterator first, iterator last)
     {
-        return junctions.insert(pos, first, last);
+        return junctions_.insert(pos, first, last);
     }
 
     void clear()
     {
-        junctions.clear();
+        junctions_.clear();
     }
 
     void reverse()
     {
-        std::reverse(junctions.begin(), junctions.end());
+        std::reverse(junctions_.begin(), junctions_.end());
     }
-    
+
     /*!
      * Sum the total length of this path.
      */
     coord_t getLength() const;
-    coord_t polylineLength() const { return getLength(); }
+    coord_t polylineLength() const
+    {
+        return getLength();
+    }
 
     /*!
      * Put all junction locations into a polygon object.
-     * 
+     *
      * When this path is not closed the returned Polygon should be handled as a polyline, rather than a polygon.
      */
     Polygon toPolygon() const
     {
         Polygon ret;
-        
-        for (const ExtrusionJunction& j : junctions)
-            ret.add(j.p);
-        
+
+        for (const ExtrusionJunction& j : junctions_)
+            ret.add(j.p_);
+
         return ret;
+    }
+
+    /*!
+     * Create a true-extrusion area shape for the path; this means that each junction follows the bead-width
+     * set for that junction.
+     */
+    [[maybe_unused]] Polygons toExtrusionPolygons() const
+    {
+        Polygon poly;
+
+        const auto add_line_direction = [&poly](const auto iterator)
+        {
+            for (const auto& element : iterator | ranges::views::sliding(2))
+            {
+                const ExtrusionJunction& j1 = element[0];
+                const ExtrusionJunction& j2 = element[1];
+
+                const auto dir = j2.p_ - j1.p_;
+                const auto normal = turn90CCW(dir);
+                const auto mag = vSize(normal);
+
+                if (mag <= 5)
+                {
+                    continue;
+                }
+
+                poly.emplace_back(j1.p_ + normal * j1.w_ / mag / 2);
+                poly.emplace_back(j2.p_ + normal * j2.w_ / mag / 2);
+            }
+        };
+
+        // forward pass
+        add_line_direction(junctions_);
+        // backward pass
+        add_line_direction(junctions_ | ranges::views::reverse);
+
+        Polygons paths;
+        paths.emplace_back(poly.poly);
+        ClipperLib::SimplifyPolygons(paths.paths, ClipperLib::pftNonZero);
+        return paths;
     }
 
     /*!

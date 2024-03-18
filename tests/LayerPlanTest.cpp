@@ -1,15 +1,17 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "LayerPlan.h" //The code under test.
+
+#include <gtest/gtest.h>
+
 #include "Application.h" //To provide settings for the layer plan.
 #include "RetractionConfig.h" //To provide retraction settings.
 #include "Slice.h" //To provide settings for the layer plan.
 #include "pathPlanning/Comb.h" //To create a combing path around the layer plan.
-#include "sliceDataStorage.h" //To provide slice data as input for the planning stage.
 #include "pathPlanning/NozzleTempInsert.h" //To provide nozzle temperature commands.
+#include "sliceDataStorage.h" //To provide slice data as input for the planning stage.
 #include "utils/Coord_t.h"
-#include <gtest/gtest.h>
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
@@ -59,7 +61,9 @@ public:
      */
     Mesh mesh;
 
-    LayerPlanTest() : storage(setUpStorage()), layer_plan(*storage, 100, 10000, 100, 0, fan_speed_layer_time_settings, 20, 10, 5000)
+    LayerPlanTest()
+        : storage(setUpStorage())
+        , layer_plan(*storage, 100, 10000, 100, 0, fan_speed_layer_time_settings, 20, 10, 5000)
     {
     }
 
@@ -76,10 +80,10 @@ public:
     SliceDataStorage* setUpStorage()
     {
         constexpr size_t num_mesh_groups = 1;
-        Application::getInstance().current_slice = new Slice(num_mesh_groups);
+        Application::getInstance().current_slice_ = new Slice(num_mesh_groups);
 
         // Define all settings in the mesh group. The extruder train and model settings will fall back on that then.
-        settings = &Application::getInstance().current_slice->scene.current_mesh_group->settings;
+        settings = &Application::getInstance().current_slice_->scene.current_mesh_group->settings;
         // Default settings. These are not (always) the FDM printer defaults, but sometimes just setting values that can be recognised
         // uniquely as much as possible.
         settings->add("acceleration_prime_tower", "5008");
@@ -119,11 +123,14 @@ public:
         settings->add("machine_width", "1000");
         settings->add("material_flow_layer_0", "100");
         settings->add("meshfix_maximum_travel_resolution", "0");
-        settings->add("prime_tower_enable", "true");
+        settings->add("prime_tower_enable", "false");
+        settings->add("prime_tower_mode", "normal");
         settings->add("prime_tower_flow", "108");
         settings->add("prime_tower_line_width", "0.48");
         settings->add("prime_tower_min_volume", "10");
         settings->add("prime_tower_size", "40");
+        settings->add("raft_interface_layers", "1");
+        settings->add("raft_surface_layers", "1");
         settings->add("raft_base_line_width", "0.401");
         settings->add("raft_base_acceleration", "5001");
         settings->add("raft_base_jerk", "5.1");
@@ -134,11 +141,13 @@ public:
         settings->add("raft_interface_line_width", "0.402");
         settings->add("raft_interface_speed", "52");
         settings->add("raft_interface_thickness", "0.102");
+        settings->add("raft_interface_layers", "3");
         settings->add("raft_surface_acceleration", "5003");
         settings->add("raft_surface_jerk", "5.3");
         settings->add("raft_surface_line_width", "0.403");
         settings->add("raft_surface_speed", "53");
         settings->add("raft_surface_thickness", "0.103");
+        settings->add("raft_surface_layers", "3");
         settings->add("retraction_amount", "8");
         settings->add("retraction_combing", "off");
         settings->add("retraction_count_max", "30");
@@ -176,7 +185,7 @@ public:
         settings->add("travel_avoid_other_parts", "true");
         settings->add("travel_avoid_supports", "true");
 
-        Application::getInstance().current_slice->scene.extruders.emplace_back(0, settings); // Add an extruder train.
+        Application::getInstance().current_slice_->scene.extruders.emplace_back(0, settings); // Add an extruder train.
 
         // Set the fan speed layer time settings (since the LayerPlan constructor copies these).
         FanSpeedLayerTimeSettings fan_settings;
@@ -207,7 +216,7 @@ public:
 
     void SetUp() override
     {
-        layer_plan.addTravel_simple(Point(0, 0)); // Make sure that it appears as if we have already done things in this layer plan. Just the standard case.
+        layer_plan.addTravel_simple(Point2LL(0, 0)); // Make sure that it appears as if we have already done things in this layer plan. Just the standard case.
     }
 
     /*!
@@ -216,7 +225,7 @@ public:
     void TearDown() override
     {
         delete storage;
-        delete Application::getInstance().current_slice;
+        delete Application::getInstance().current_slice_;
     }
 };
 
@@ -308,32 +317,33 @@ public:
     Polygon between; // Between the start and end position.
     Polygon between_hole; // Negative polygon between the start and end position (a hole).
 
-    AddTravelTest() : parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>("false", "false", "off", false, false, AddTravelTestScene::OPEN))
+    AddTravelTest()
+        : parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>("false", "false", "off", false, false, AddTravelTestScene::OPEN))
     {
-        around_start_end.add(Point(-100, -100));
-        around_start_end.add(Point(500100, -100));
-        around_start_end.add(Point(500100, 500100));
-        around_start_end.add(Point(-100, 500100));
+        around_start_end.add(Point2LL(-100, -100));
+        around_start_end.add(Point2LL(500100, -100));
+        around_start_end.add(Point2LL(500100, 500100));
+        around_start_end.add(Point2LL(-100, 500100));
 
-        around_start.add(Point(-100, -100));
-        around_start.add(Point(100, -100));
-        around_start.add(Point(100, 100));
-        around_start.add(Point(-100, 100));
+        around_start.add(Point2LL(-100, -100));
+        around_start.add(Point2LL(100, -100));
+        around_start.add(Point2LL(100, 100));
+        around_start.add(Point2LL(-100, 100));
 
-        around_end.add(Point(249900, 249900));
-        around_end.add(Point(250100, 249900));
-        around_end.add(Point(250100, 250100));
-        around_end.add(Point(249900, 249900));
+        around_end.add(Point2LL(249900, 249900));
+        around_end.add(Point2LL(250100, 249900));
+        around_end.add(Point2LL(250100, 250100));
+        around_end.add(Point2LL(249900, 249900));
 
-        between.add(Point(250000, 240000));
-        between.add(Point(260000, 240000));
-        between.add(Point(260000, 300000));
-        between.add(Point(250000, 300000));
+        between.add(Point2LL(250000, 240000));
+        between.add(Point2LL(260000, 240000));
+        between.add(Point2LL(260000, 300000));
+        between.add(Point2LL(250000, 300000));
 
-        between_hole.add(Point(250000, 240000));
-        between_hole.add(Point(250000, 300000));
-        between_hole.add(Point(260000, 300000));
-        between_hole.add(Point(260000, 240000));
+        between_hole.add(Point2LL(250000, 240000));
+        between_hole.add(Point2LL(250000, 300000));
+        between_hole.add(Point2LL(260000, 300000));
+        between_hole.add(Point2LL(260000, 240000));
     }
 
     /*!
@@ -349,7 +359,8 @@ public:
         settings->add("retraction_hop_enabled", parameters.hop_enable);
         settings->add("retraction_combing", parameters.combing);
         settings->add("retraction_min_travel", parameters.is_long ? "1" : "10000"); // If disabled, give it a high minimum travel so we're sure that our travel move is shorter.
-        storage->retraction_wipe_config_per_extruder[0].retraction_config.retraction_min_travel_distance = settings->get<coord_t>("retraction_min_travel"); // Update the copy that the storage has of this.
+        storage->retraction_wipe_config_per_extruder[0].retraction_config.retraction_min_travel_distance
+            = settings->get<coord_t>("retraction_min_travel"); // Update the copy that the storage has of this.
         settings->add("retraction_combing_max_distance", parameters.is_long_combing ? "1" : "10000");
 
         Polygons slice_data;
@@ -357,40 +368,40 @@ public:
         {
         case OPEN:
             layer_plan.setIsInside(false);
-            layer_plan.was_inside = false;
+            layer_plan.was_inside_ = false;
             break;
         case INSIDE:
             slice_data.add(around_start_end);
             layer_plan.setIsInside(true);
-            layer_plan.was_inside = true;
+            layer_plan.was_inside_ = true;
             break;
         case OBSTRUCTION:
             slice_data.add(between);
             layer_plan.setIsInside(false);
-            layer_plan.was_inside = false;
+            layer_plan.was_inside_ = false;
             break;
         case INSIDE_OBSTRUCTION:
             slice_data.add(around_start_end);
             slice_data.add(between_hole);
             layer_plan.setIsInside(true);
-            layer_plan.was_inside = true;
+            layer_plan.was_inside_ = true;
             break;
         case OTHER_PART:
             slice_data.add(around_start);
             slice_data.add(around_end);
             layer_plan.setIsInside(true);
-            layer_plan.was_inside = true;
+            layer_plan.was_inside_ = true;
             break;
         }
-        layer_plan.comb_boundary_minimum = slice_data;
-        layer_plan.comb_boundary_preferred = slice_data; // We don't care about the combing accuracy itself, so just use the same for both.
+        layer_plan.comb_boundary_minimum_ = slice_data;
+        layer_plan.comb_boundary_preferred_ = slice_data; // We don't care about the combing accuracy itself, so just use the same for both.
         if (parameters.combing != "off")
         {
-            layer_plan.comb = new Comb(
+            layer_plan.comb_ = new Comb(
                 *storage,
                 100, // layer_nr
-                layer_plan.comb_boundary_minimum,
-                layer_plan.comb_boundary_preferred,
+                layer_plan.comb_boundary_minimum_,
+                layer_plan.comb_boundary_preferred_,
                 20, // comb_boundary_offset
                 5000, // travel_avoid_distance
                 10 // comb_move_inside_distance
@@ -398,18 +409,25 @@ public:
         }
         else
         {
-            layer_plan.comb = nullptr;
+            layer_plan.comb_ = nullptr;
         }
 
-        const Point destination(500000, 500000);
+        const Point2LL destination(500000, 500000);
         return layer_plan.addTravel(destination);
     }
 };
 // NOLINTEND(misc-non-private-member-variables-in-classes)
 
-INSTANTIATE_TEST_SUITE_P(AllCombinations,
-                         AddTravelTest,
-                         testing::Combine(testing::ValuesIn(retraction_enable), testing::ValuesIn(hop_enable), testing::ValuesIn(combing), testing::ValuesIn(is_long), testing::ValuesIn(is_long_combing), testing::ValuesIn(scene)));
+INSTANTIATE_TEST_SUITE_P(
+    AllCombinations,
+    AddTravelTest,
+    testing::Combine(
+        testing::ValuesIn(retraction_enable),
+        testing::ValuesIn(hop_enable),
+        testing::ValuesIn(combing),
+        testing::ValuesIn(is_long),
+        testing::ValuesIn(is_long_combing),
+        testing::ValuesIn(scene)));
 
 /*!
  * Test if there are indeed no retractions if retractions are disabled.
@@ -554,13 +572,10 @@ TEST_P(AddTravelTest, NoUnretractBeforeLastTravelMoveIfNoPriorRetraction)
 
 TEST(NozzleTempInsertTest, SortNozzleTempInsterts)
 {
-    std::vector<NozzleTempInsert> nozzle_temp_inserts {
-        { .path_idx = 1, .extruder = 1, .temperature = 100., .wait = true },
-        { .path_idx = 2, .extruder = 1, .temperature = 110., .wait = false, .time_after_path_start = 2. },
-        { .path_idx = 1, .extruder = 1, .temperature = 120., .wait = true },
-        { .path_idx = 5, .extruder = 1, .temperature = 130., .wait = false, .time_after_path_start = 1. },
-        { .path_idx = 5, .extruder = 1, .temperature = 140., .wait = true },
-        { .path_idx = 2, .extruder = 1, .temperature = 150., .wait = false, .time_after_path_start = 1. },
+    std::vector<NozzleTempInsert> nozzle_temp_inserts{
+        { .path_idx = 1, .extruder = 1, .temperature = 100., .wait = true }, { .path_idx = 2, .extruder = 1, .temperature = 110., .wait = false, .time_after_path_start = 2. },
+        { .path_idx = 1, .extruder = 1, .temperature = 120., .wait = true }, { .path_idx = 5, .extruder = 1, .temperature = 130., .wait = false, .time_after_path_start = 1. },
+        { .path_idx = 5, .extruder = 1, .temperature = 140., .wait = true }, { .path_idx = 2, .extruder = 1, .temperature = 150., .wait = false, .time_after_path_start = 1. },
     };
     std::sort(nozzle_temp_inserts.begin(), nozzle_temp_inserts.end());
     EXPECT_EQ(nozzle_temp_inserts[0].temperature, 100.);

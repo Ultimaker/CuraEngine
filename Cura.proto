@@ -12,6 +12,7 @@ message ObjectList
 // 0 ... 99: Broadcasts
 // 100 ... 199: Modify
 // 200 ... 299: Generate
+// IMPORTANT: If you add a slot ID also update the SlotID enum in include/plugins/slots.h
 enum SlotID {
     SETTINGS_BROADCAST = 0;
     SIMPLIFY_MODIFY = 100;
@@ -37,6 +38,10 @@ message Slice
     repeated Extruder extruders = 3; // The settings sent to each extruder object
     repeated SettingExtruder limit_to_extruder = 4; // From which stack the setting would inherit if not defined per object
     repeated EnginePlugin engine_plugins = 5;
+    string sentry_id = 6; // The anonymized Sentry user id that requested the slice
+    string cura_version = 7; // The version of Cura that requested the slice
+    optional string project_name = 8; // The name of the project that requested the slice
+    optional string user_name = 9; // The Digital Factory account name of the user that requested the slice
 }
 
 message Extruder

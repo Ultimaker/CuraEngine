@@ -75,8 +75,9 @@ private:
      *
      * \param storage[in] Background storage to access meshes.
      * \param currently_processing_meshes[in] Indexes of all meshes that are processed in this iteration
+     * \return Uppermost layer precalculated. -1 if no layer were precalculated as no overhang is present.
      */
-    void precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes);
+    LayerIndex precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes);
 
 
     /*!
