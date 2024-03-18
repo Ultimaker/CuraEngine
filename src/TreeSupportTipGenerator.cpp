@@ -904,11 +904,11 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                             bool found_candidate = false;
                             bool too_short = (vSize(closer - further)) < cradle_length_min;
                             // a cradle line should also be removed if there will be no way to support it
-                            if(idx == cradle_z_distance_layers + 1)
+                            if(idx >= cradle_z_distance_layers + 1)
                             {
                                 const Polygons actually_forbidden = volumes_.getAvoidance(
-                                    0,
-                                    layer_idx + idx,
+                                    config.getRadius(0),
+                                    layer_idx + idx - (cradle_z_distance_layers + 1) ,
                                     (only_gracious || ! config.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
                                     config.support_rests_on_model,
                                     true);
@@ -1201,7 +1201,6 @@ void TreeSupportTipGenerator::cleanCradleLineOverlaps()
                                 line_end = line.line.back();
                             }
                         }
-
                     }
                 }
             }
@@ -1227,6 +1226,7 @@ void TreeSupportTipGenerator::generateCradleLineAreasAndBase(std::vector<std::ve
             cradle_data.size(),
             [&](const LayerIndex layer_idx)
             {
+                std::vector<TreeSupportCradle *> valid_cradles;
                 for (size_t cradle_idx = 0; cradle_idx < cradle_data[layer_idx].size(); cradle_idx++)
                 {
                     TreeSupportCradle& cradle = *cradle_data[layer_idx][cradle_idx];
@@ -1307,7 +1307,6 @@ void TreeSupportTipGenerator::generateCradleLineAreasAndBase(std::vector<std::ve
 
                     Polygons shadow = shadow_data[layer_idx][cradle.shadow_idx][0];
                     Polygons cradle_base = shadow;
-
 
                     if (! use_fake_roof && support_roof_layers)
                     {
@@ -1408,9 +1407,9 @@ void TreeSupportTipGenerator::generateCradleLineAreasAndBase(std::vector<std::ve
                                     }
                                     else
                                     {
-                                        if(dtt_roof+1 < cradle.base_below.size())
+                                        if(dtt_roof < cradle.base_below.size())
                                         {
-                                            cradle.base_below[dtt_roof+1].add(full_overhang_area);
+                                            cradle.base_below[dtt_roof].add(full_overhang_area);
                                         }
                                         else
                                         {
@@ -1437,8 +1436,12 @@ void TreeSupportTipGenerator::generateCradleLineAreasAndBase(std::vector<std::ve
                                 }
                                 else
                                 {
-                                    OverhangInformation cradle_overhang(roof_area_before, true, cradle_data[layer_idx][cradle_idx],layer_idx-dtt_roof+1,roof_area_pair.second);
-                                    cradle.overhang[layer_idx-dtt_roof].emplace_back(cradle_overhang);
+                                    if(roof_area_before.area()>1)
+                                    {
+                                        LayerIndex line_layer_idx = roof_area_pair.second<0 ? LayerIndex(-1) : cradle_data[layer_idx][cradle_idx]->lines[roof_area_pair.second].front().layer_idx;
+                                        OverhangInformation cradle_overhang(roof_area_before, true, cradle_data[layer_idx][cradle_idx], line_layer_idx, roof_area_pair.second);
+                                        cradle.overhang[layer_idx-dtt_roof].emplace_back(cradle_overhang);
+                                    }
                                     break;
                                 }
                             }
@@ -1446,20 +1449,36 @@ void TreeSupportTipGenerator::generateCradleLineAreasAndBase(std::vector<std::ve
                     }
                     else
                     {
-                        cradle.base_below.emplace_back(cradle_base);
-                        OverhangInformation cradle_overhang(cradle_base, false, cradle_data[layer_idx][cradle_idx]);
-                        cradle.overhang[layer_idx-1].emplace_back(cradle_overhang);
+                        Polygons forbidden_here =
+                            volumes_.getAvoidance(0, layer_idx, (only_gracious||!config.support_rests_on_model)? AvoidanceType::FAST : AvoidanceType::COLLISION, config.support_rests_on_model, ! xy_overrides);
+
+                        coord_t offset_radius = config.getRadius(cradle_tip_dtt);
+                        if(cradle_base.offset(offset_radius,ClipperLib::jtRound).difference(forbidden_here).area()>1)
+                        {
+                            OverhangInformation cradle_overhang(cradle_base, false, cradle_data[layer_idx][cradle_idx]);
+                            cradle.overhang[layer_idx].emplace_back(cradle_overhang);
+                        }
+
                         for(size_t line_idx = 0;line_idx < cradle.lines.size(); line_idx++)
                         {
                             if(!cradle.lines[line_idx].empty())
                             {
-                                LayerIndex support_cradle_on_layer_idx = cradle.lines[line_idx].front().layer_idx - cradle_z_distance_layers;
+                                LayerIndex support_cradle_on_layer_idx = cradle.lines[line_idx].front().layer_idx - (cradle_z_distance_layers + 1);
                                 OverhangInformation line_overhang(cradle.lines[line_idx].front().area,false,cradle_data[layer_idx][cradle_idx],cradle.lines[line_idx].front().layer_idx,line_idx);
                                 cradle.overhang[support_cradle_on_layer_idx].emplace_back(line_overhang);
                             }
                         }
                     }
+                    if(!cradle.overhang.empty())
+                    {
+                        valid_cradles.emplace_back(cradle_data[layer_idx][cradle_idx]);
+                    }
+                    else
+                    {
+                        delete cradle_data[layer_idx][cradle_idx];
+                    }
                 }
+                cradle_data[layer_idx] = valid_cradles;
             });
 
 }
@@ -1732,7 +1751,8 @@ TreeSupportElement* TreeSupportTipGenerator::addPointAsInfluenceArea(
                 gracious,
                 ! xy_overrides,
                 dont_move_until,
-                roof || cradle,
+                roof,
+                cradle,
                 safe_radius,
                 force_tip_to_roof,
                 skip_ovalisation,
@@ -2215,18 +2235,29 @@ void TreeSupportTipGenerator::generateTips(
                 std::vector<LineInformation> overhang_lines;
 
                 bool only_lines = true;
-                std::optional<TreeSupportCradleLine *> cradle_line_opt;
+                Polygons polylines;
                 // The tip positions are determined here.
-                // todo can cause inconsistent support density if a line exactly aligns with the model
-                Polygons polylines = ensureMaximumDistancePolyline(
-                        cradle_line_opt.has_value() ? cradle_line_opt.value()->line.offset(0) : generateLines(overhang_outset, overhang_data.is_roof,
-                                                                                                          overhang_data.is_cradle,
-                                                                                                          layer_idx + overhang_data.is_roof),
-                    ! overhang_data.is_roof ? config.min_radius * 2
-                    : use_fake_roof              ? support_supporting_branch_distance
-                                                 : connect_length,
-                    1,
-                    false);
+                if(overhang_data.isCradleLine())
+                {
+                    std::optional<TreeSupportCradleLine *> cradle_line_opt = overhang_data.cradle->getCradleLineOfIndex(overhang_data.cradle_layer_idx,overhang_data.cradle_line_idx);
+                    Polygons line = cradle_line_opt.value()->line.offset(0);
+                    polylines = ensureMaximumDistancePolyline(
+                        line,
+                        ! overhang_data.is_roof ? config.min_radius * 2 : use_fake_roof ? support_supporting_branch_distance : connect_length,
+                        1,
+                        false);
+                }
+                else
+                {
+                    // todo can cause inconsistent support density if a line exactly aligns with the model
+                    polylines = ensureMaximumDistancePolyline(
+                            generateLines(overhang_outset, overhang_data.is_roof, overhang_data.is_cradle, layer_idx + overhang_data.is_roof),
+                        ! overhang_data.is_roof ? config.min_radius * 2
+                        : use_fake_roof              ? support_supporting_branch_distance
+                                                     : connect_length,
+                        1,
+                        false);
+                }
 
 
                 // support_line_width to form a line here as otherwise most will be unsupported.
