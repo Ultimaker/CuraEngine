@@ -280,7 +280,7 @@ private:
     const size_t support_roof_layers;
 
     /*!
-     * \brief Distance between tips, so that the tips form a lime. Is smaller than Tip Diameter.
+     * \brief Distance between tips, so that the tips form a line. Is smaller than Tip Diameter.
      */
     const coord_t connect_length;
 
@@ -420,7 +420,7 @@ private:
     bool cradle_base_roof;
 
     /*!
-     * \brief If the cradle base should contain all cradle lines (if true) or only the pointy overhang (if false).
+     * \brief If the (roof) cradle base should contain all cradle lines at cradle_tip_dtt size.
      */
     bool large_cradle_base;
 
@@ -436,7 +436,7 @@ private:
     size_t cradle_tip_dtt;
 
     /*!
-     * \brief If the cradle lines should also be supported by larger tips. todo
+     * \brief If the cradle lines should also be supported by larger tips.
      */
     bool large_cradle_line_tips;
 

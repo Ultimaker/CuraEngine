@@ -82,6 +82,7 @@ struct TreeSupportElement
         bool use_min_xy_dist,
         size_t dont_move_until,
         bool supports_roof,
+        bool supports_cradle,
         bool can_use_safe_radius,
         bool force_tips_to_roof,
         bool skip_ovalisation,
@@ -102,6 +103,7 @@ struct TreeSupportElement
         buildplate_radius_increases(0),
         use_min_xy_dist(use_min_xy_dist),
         supports_roof(supports_roof),
+        supports_cradle(supports_cradle),
         dont_move_until(dont_move_until),
         can_use_safe_radius(can_use_safe_radius),
         can_avoid_anti_preferred(false), //todo init?
@@ -131,6 +133,7 @@ struct TreeSupportElement
         buildplate_radius_increases(elem.buildplate_radius_increases),
         use_min_xy_dist(elem.use_min_xy_dist),
         supports_roof(elem.supports_roof),
+        supports_cradle(elem.supports_cradle),
         dont_move_until(elem.dont_move_until),
         can_use_safe_radius(elem.can_use_safe_radius),
         can_avoid_anti_preferred(elem.can_avoid_anti_preferred),
@@ -165,6 +168,7 @@ struct TreeSupportElement
         increased_to_model_radius(increased_to_model_radius),
         use_min_xy_dist(first.use_min_xy_dist || second.use_min_xy_dist),
         supports_roof(first.supports_roof || second.supports_roof),
+        supports_cradle(first.supports_cradle || second.supports_cradle),
         dont_move_until(std::max(first.dont_move_until, second.dont_move_until)),
         can_use_safe_radius(first.can_use_safe_radius || second.can_use_safe_radius),
         missing_roof_layers(std::min(first.missing_roof_layers, second.missing_roof_layers)),
@@ -307,6 +311,11 @@ struct TreeSupportElement
      * \brief True if this Element or any parent provides support to a support roof.
      */
     bool supports_roof;
+
+    /*!
+     * \brief True if this Element or any parent provides support to a cradle or cradle line.
+     */
+    bool supports_cradle;
 
     /*!
      * \brief The element trys not to move until this dtt is reached, is set to 0 if the element had to move.

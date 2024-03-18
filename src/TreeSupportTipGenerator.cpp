@@ -2243,7 +2243,7 @@ void TreeSupportTipGenerator::generateTips(
                     Polygons line = cradle_line_opt.value()->line.offset(0);
                     polylines = ensureMaximumDistancePolyline(
                         line,
-                        ! overhang_data.is_roof ? config.min_radius * 2 : use_fake_roof ? support_supporting_branch_distance : connect_length,
+                        ! overhang_data.is_roof ? config.min_radius * 2 : support_supporting_branch_distance,
                         1,
                         false);
                 }

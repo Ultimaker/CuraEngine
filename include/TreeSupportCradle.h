@@ -49,7 +49,7 @@ struct OverhangInformation
 
     bool isCradleLine()
     {
-        return is_cradle && cradle_line_idx >= 0;
+        return is_cradle && cradle_line_idx >= 0 && cradle_layer_idx>=0;
     }
 
 };
