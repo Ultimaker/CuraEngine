@@ -266,9 +266,13 @@ SliceDataStorage::SliceDataStorage()
     machine_size.include(machine_max);
 }
 
-Polygons
-    SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only, const int extruder_nr)
-        const
+Polygons SliceDataStorage::getLayerOutlines(
+    const LayerIndex layer_nr,
+    const bool include_support,
+    const bool include_prime_tower,
+    const bool external_polys_only,
+    const int extruder_nr,
+    const bool include_models) const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
 
@@ -328,7 +332,7 @@ Polygons
     case Raft::LayerType::Model:
     {
         Polygons total;
-        if (layer_nr >= 0)
+        if (include_models && layer_nr >= 0)
         {
             for (const std::shared_ptr<SliceMeshStorage>& mesh : meshes)
             {

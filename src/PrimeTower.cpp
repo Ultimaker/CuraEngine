@@ -108,6 +108,8 @@ void PrimeTower::generateGroundpoly()
 
 void PrimeTower::generatePaths(const SliceDataStorage& storage)
 {
+    checkUsed(storage);
+
     const int raft_total_extra_layers = Raft::getTotalExtraLayers();
     would_have_actual_tower_ = storage.max_print_height_second_to_last_extruder
                             >= -raft_total_extra_layers; // Maybe it turns out that we don't need a prime tower after all because there are no layer switches.

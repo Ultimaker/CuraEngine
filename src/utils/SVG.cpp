@@ -334,15 +334,20 @@ void SVG::writeText(const Point2LL& p, const std::string& txt, const ColorObject
         txt.c_str());
 }
 
-void SVG::writePolygons(const Polygons& polys, const ColorObject color, const double stroke_width) const
+void SVG::writePolygons(const Polygons& polys, const ColorObject color, const double stroke_width, const bool flush) const
 {
     for (ConstPolygonRef poly : polys)
     {
-        writePolygon(poly, color, stroke_width);
+        writePolygon(poly, color, stroke_width, false);
+    }
+
+    if (flush)
+    {
+        fflush(out_);
     }
 }
 
-void SVG::writePolygon(ConstPolygonRef poly, const ColorObject color, const double stroke_width) const
+void SVG::writePolygon(ConstPolygonRef poly, const ColorObject color, const double stroke_width, const bool flush) const
 {
     if (poly.size() == 0)
     {
@@ -373,6 +378,11 @@ void SVG::writePolygon(ConstPolygonRef poly, const ColorObject color, const doub
         }
         p0 = p1;
         i++;
+    }
+
+    if (flush)
+    {
+        fflush(out_);
     }
 }
 

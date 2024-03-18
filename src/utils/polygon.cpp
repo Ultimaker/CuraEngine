@@ -571,34 +571,6 @@ Polygons Polygons::getOutsidePolygons() const
     return ret;
 }
 
-Polygons Polygons::removeEmptyHoles() const
-{
-    Polygons ret;
-    ClipperLib::Clipper clipper(clipper_init);
-    ClipperLib::PolyTree poly_tree;
-    constexpr bool paths_are_closed_polys = true;
-    clipper.AddPaths(paths, ClipperLib::ptSubject, paths_are_closed_polys);
-    clipper.Execute(ClipperLib::ctUnion, poly_tree);
-
-    bool remove_holes = true;
-    removeEmptyHoles_processPolyTreeNode(poly_tree, remove_holes, ret);
-    return ret;
-}
-
-Polygons Polygons::getEmptyHoles() const
-{
-    Polygons ret;
-    ClipperLib::Clipper clipper(clipper_init);
-    ClipperLib::PolyTree poly_tree;
-    constexpr bool paths_are_closed_polys = true;
-    clipper.AddPaths(paths, ClipperLib::ptSubject, paths_are_closed_polys);
-    clipper.Execute(ClipperLib::ctUnion, poly_tree);
-
-    bool remove_holes = false;
-    removeEmptyHoles_processPolyTreeNode(poly_tree, remove_holes, ret);
-    return ret;
-}
-
 void Polygons::removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& node, const bool remove_holes, Polygons& ret) const
 {
     for (int outer_poly_idx = 0; outer_poly_idx < node.ChildCount(); outer_poly_idx++)
