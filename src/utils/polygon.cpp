@@ -351,7 +351,7 @@ Polygons Polygons::differencePolyLines(const Polygons& polylines, bool restitch,
     {
         Polygons result_lines, result_polygons;
         const coord_t snap_distance = 10_mu;
-        PolylineStitcher<Polygons, Polygon, Point>::stitch(ret, result_lines, result_polygons, max_stitch_distance, snap_distance);
+        PolylineStitcher<Polygons, Polygon, Point2LL>::stitch(ret, result_lines, result_polygons, max_stitch_distance, snap_distance);
         ret = result_lines;
         // if polylines got stitched into polygons, split them back up into a polyline again, because the result only admits polylines
         for (PolygonRef poly : result_polygons)
