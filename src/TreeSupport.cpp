@@ -1445,7 +1445,7 @@ void TreeSupport::handleCradleLineValidity(PropertyAreasUnordered& to_bp_areas,
                                            std::vector<std::vector<CradlePresenceInformation>>& cradle_data)
 {
 
-    if(cradle_data.size()<=layer_idx || cradle_data[layer_idx].empty())
+    if(cradle_data.size()<=layer_idx)
     {
         return;
     }
@@ -1549,7 +1549,7 @@ void TreeSupport::handleCradleLineValidity(PropertyAreasUnordered& to_bp_areas,
     next_layer.insert(next_layer.begin(), move_bounds[layer_idx].begin(), move_bounds[layer_idx].end());
     for(TreeSupportElement* elem:next_layer)
     {
-        if(elem->cradle_line_ != nullptr && !elem->cradle_line_->cradleLineExists())
+        if(elem->cradle_line_ && !elem->cradle_line_->cradleLineExists())
         {
             move_bounds[layer_idx].erase(elem);
             delete elem->area_;
