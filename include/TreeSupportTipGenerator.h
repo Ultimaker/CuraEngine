@@ -376,80 +376,80 @@ private:
     std::vector<Polygons> roof_tips_drawn_;
 
 
-    std::vector<std::vector<TreeSupportCradle*>> cradle_data;
+    std::vector<std::vector<TreeSupportCradle*>> cradle_data_;
 
     /*!
      * \brief Amount of layers of the cradle to support pointy overhangs.
      */
-    size_t cradle_layers;
+    size_t cradle_layers_;
 
     /*!
      * \brief Minimum amount of layers of the cradle to support pointy overhangs.
      */
-    size_t cradle_layers_min; // Minimal height of the cradle
+    size_t cradle_layers_min_;
 
     /*!
      * \brief Amount of lines used for the cradle.
      */
-    size_t cradle_line_count;
+    size_t cradle_line_count_;
 
     /*!
      * \brief Length of lines used for the cradle.
      */
-    coord_t cradle_length;
+    coord_t cradle_length_;
 
     /*!
      * \brief Minimum length of lines used for the cradle. TODO Width is effectively added to length ... fix or document?
      */
-    coord_t cradle_length_min;
+    coord_t cradle_length_min_;
 
     /*!
      * \brief Width of lines used for the cradle.
      */
-    coord_t cradle_line_width;
+    coord_t cradle_line_width_;
 
     /*!
      * \brief If cradle lines should be drawn as roof.
      */
-    bool cradle_lines_roof;
+    bool cradle_lines_roof_;
 
     /*!
      * \brief If the cradle base should be drawn as roof.
      */
-    bool cradle_base_roof;
+    bool cradle_base_roof_;
 
     /*!
      * \brief If the (roof) cradle base should contain all cradle lines at cradle_tip_dtt size.
      */
-    bool large_cradle_base;
+    bool large_cradle_base_;
 
 
     /*!
      * \brief Maximum area of an overhang to still receive a cradle. Unit is square-microns!
      */
-    double cradle_area_threshold;
+    double cradle_area_threshold_;
 
     /*!
      * \brief Distance to top of tips that support either the pointy overhang or the cradle lines at the bottom-most layer.
      */
-    size_t cradle_tip_dtt;
+    size_t cradle_tip_dtt_;
 
     /*!
      * \brief If the cradle lines should also be supported by larger tips.
      */
-    bool large_cradle_line_tips;
+    bool large_cradle_line_tips_;
 
     /*!
      * \brief Distances the cradle lines should be from the model. First value corresponds to cradle line on the same layer as the first model line.
      */
-    std::vector<coord_t> cradle_xy_distance;
+    std::vector<coord_t> cradle_xy_distance_;
 
     /*!
      * \brief Distances in lines between the cradle and the support they are supported by.
      */
-    size_t cradle_z_distance_layers;
+    size_t cradle_z_distance_layers_;
 
-    std::mutex critical_cradle;
+    std::mutex critical_cradle_;
     std::mutex critical_move_bounds_;
     std::mutex critical_roof_tips_;
     mutable std::vector<std::vector<UnsupportedAreaInformation>> floating_parts_cache_;

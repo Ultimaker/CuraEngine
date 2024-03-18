@@ -21,13 +21,13 @@ struct CradlePresenceInformation;
 struct AreaIncreaseSettings
 {
     AreaIncreaseSettings() :
-        type(AvoidanceType::FAST),
-        increase_speed(0),
-        increase_radius(false),
-        no_error(false),
-        use_min_distance(false),
-        use_anti_preferred(false),
-        move(false)
+        type_(AvoidanceType::FAST),
+        increase_speed_(0),
+        increase_radius_(false),
+        no_error_(false),
+        use_min_distance_(false),
+        use_anti_preferred_(false),
+        move_(false)
     {
     }
 
@@ -41,23 +41,23 @@ struct AreaIncreaseSettings
         bool use_anti_preferred,
         bool move
     ) :
-        type(type),
-        increase_speed(increase_speed),
-        increase_radius(increase_radius),
-        no_error(simplify),
-        use_min_distance(use_min_distance),
-        use_anti_preferred(use_anti_preferred),
-        move(move)
+        type_(type),
+        increase_speed_(increase_speed),
+        increase_radius_(increase_radius),
+        no_error_(simplify),
+        use_min_distance_(use_min_distance),
+        use_anti_preferred_(use_anti_preferred),
+        move_(move)
     {
     }
 
-    AvoidanceType type;
-    coord_t increase_speed;
-    bool increase_radius;
-    bool no_error;
-    bool use_min_distance;
-    bool use_anti_preferred;
-    bool move;
+    AvoidanceType type_;
+    coord_t increase_speed_;
+    bool increase_radius_;
+    bool no_error_;
+    bool use_min_distance_;
+    bool use_anti_preferred_;
+    bool move_;
 
     bool operator==(const AreaIncreaseSettings& other) const
     {
@@ -84,61 +84,61 @@ struct TreeSupportElement
         bool influence_area_limit_active,
         coord_t influence_area_limit_range
     ) :
-        target_height(target_height),
-        target_position(target_position),
-        next_position(target_position),
-        next_height(target_height),
-        effective_radius_height(0),
-        to_buildplate(to_buildplate),
-        distance_to_top(distance_to_top),
-        area(nullptr),
-        result_on_layer(target_position),
-        increased_to_model_radius(0),
-        to_model_gracious(to_model_gracious),
-        buildplate_radius_increases(0),
-        use_min_xy_dist(use_min_xy_dist),
-        supports_roof(supports_roof),
-        supports_cradle(supports_cradle),
-        dont_move_until(dont_move_until),
-        can_use_safe_radius(can_use_safe_radius),
-        can_avoid_anti_preferred(false), //todo init?
-        last_area_increase(AreaIncreaseSettings(AvoidanceType::FAST, 0, false, false, false, false, false)),
-        missing_roof_layers(force_tips_to_roof ? dont_move_until : 0),
-        skip_ovalisation(skip_ovalisation),
-        all_tips({ target_position }),
-        influence_area_limit_active(influence_area_limit_active),
-        influence_area_limit_range(influence_area_limit_range
+        target_height_(target_height),
+        target_position_(target_position),
+        next_position_(target_position),
+        next_height_(target_height),
+        effective_radius_height_(0),
+        to_buildplate_(to_buildplate),
+        distance_to_top_(distance_to_top),
+        area_(nullptr),
+        result_on_layer_(target_position),
+        increased_to_model_radius_(0),
+        to_model_gracious_(to_model_gracious),
+        buildplate_radius_increases_(0),
+        use_min_xy_dist_(use_min_xy_dist),
+        supports_roof_(supports_roof),
+        supports_cradle_(supports_cradle),
+        dont_move_until_(dont_move_until),
+        can_use_safe_radius_(can_use_safe_radius),
+        can_avoid_anti_preferred_(false), //todo init?
+        last_area_increase_(AreaIncreaseSettings(AvoidanceType::FAST, 0, false, false, false, false, false)),
+        missing_roof_layers_(force_tips_to_roof ? dont_move_until : 0),
+        skip_ovalisation_(skip_ovalisation),
+        all_tips_({ target_position }),
+        influence_area_limit_active_(influence_area_limit_active),
+        influence_area_limit_range_(influence_area_limit_range
     )
     {
         RecreateInfluenceLimitArea();
     }
 
     TreeSupportElement(const TreeSupportElement& elem, Polygons* newArea = nullptr) : // copy constructor with possibility to set a new area
-        target_height(elem.target_height),
-        target_position(elem.target_position),
-        next_position(elem.next_position),
-        next_height(elem.next_height),
-        effective_radius_height(elem.effective_radius_height),
-        to_buildplate(elem.to_buildplate),
-        distance_to_top(elem.distance_to_top),
-        area(newArea != nullptr ? newArea : elem.area),
-        result_on_layer(elem.result_on_layer),
-        increased_to_model_radius(elem.increased_to_model_radius),
-        to_model_gracious(elem.to_model_gracious),
-        buildplate_radius_increases(elem.buildplate_radius_increases),
-        use_min_xy_dist(elem.use_min_xy_dist),
-        supports_roof(elem.supports_roof),
-        supports_cradle(elem.supports_cradle),
-        dont_move_until(elem.dont_move_until),
-        can_use_safe_radius(elem.can_use_safe_radius),
-        can_avoid_anti_preferred(elem.can_avoid_anti_preferred),
-        last_area_increase(elem.last_area_increase),
-        missing_roof_layers(elem.missing_roof_layers),
-        skip_ovalisation(elem.skip_ovalisation),
-        all_tips(elem.all_tips),
-        influence_area_limit_area(elem.influence_area_limit_area),
-        influence_area_limit_range(elem.influence_area_limit_range),
-        influence_area_limit_active(elem.influence_area_limit_active)
+        target_height_(elem.target_height_),
+        target_position_(elem.target_position_),
+        next_position_(elem.next_position_),
+        next_height_(elem.next_height_),
+        effective_radius_height_(elem.effective_radius_height_),
+        to_buildplate_(elem.to_buildplate_),
+        distance_to_top_(elem.distance_to_top_),
+        area_(newArea != nullptr ? newArea : elem.area_),
+        result_on_layer_(elem.result_on_layer_),
+        increased_to_model_radius_(elem.increased_to_model_radius_),
+        to_model_gracious_(elem.to_model_gracious_),
+        buildplate_radius_increases_(elem.buildplate_radius_increases_),
+        use_min_xy_dist_(elem.use_min_xy_dist_),
+        supports_roof_(elem.supports_roof_),
+        supports_cradle_(elem.supports_cradle_),
+        dont_move_until_(elem.dont_move_until_),
+        can_use_safe_radius_(elem.can_use_safe_radius_),
+        can_avoid_anti_preferred_(elem.can_avoid_anti_preferred_),
+        last_area_increase_(elem.last_area_increase_),
+        missing_roof_layers_(elem.missing_roof_layers_),
+        skip_ovalisation_(elem.skip_ovalisation_),
+        all_tips_(elem.all_tips_),
+        influence_area_limit_area_(elem.influence_area_limit_area_),
+        influence_area_limit_range_(elem.influence_area_limit_range_),
+        influence_area_limit_active_(elem.influence_area_limit_active_)
     {
         parents_.insert(parents_.begin(), elem.parents_.begin(), elem.parents_.end());
     }
@@ -156,17 +156,17 @@ struct TreeSupportElement
         coord_t branch_radius,
         double diameter_angle_scale_factor
     ) :
-        next_position(next_position),
-        next_height(next_height),
-        area(nullptr),
-        increased_to_model_radius(increased_to_model_radius),
-        use_min_xy_dist(first.use_min_xy_dist || second.use_min_xy_dist),
-        supports_roof(first.supports_roof || second.supports_roof),
-        supports_cradle(first.supports_cradle || second.supports_cradle),
-        dont_move_until(std::max(first.dont_move_until, second.dont_move_until)),
-        can_use_safe_radius(first.can_use_safe_radius || second.can_use_safe_radius),
-        missing_roof_layers(std::min(first.missing_roof_layers, second.missing_roof_layers)),
-        skip_ovalisation(false)
+        next_position_(next_position),
+        next_height_(next_height),
+        area_(nullptr),
+        increased_to_model_radius_(increased_to_model_radius),
+        use_min_xy_dist_(first.use_min_xy_dist_ || second.use_min_xy_dist_),
+        supports_roof_(first.supports_roof_ || second.supports_roof_),
+        supports_cradle_(first.supports_cradle_ || second.supports_cradle_),
+        dont_move_until_(std::max(first.dont_move_until_, second.dont_move_until_)),
+        can_use_safe_radius_(first.can_use_safe_radius_ || second.can_use_safe_radius_),
+        missing_roof_layers_(std::min(first.missing_roof_layers_, second.missing_roof_layers_)),
+        skip_ovalisation_(false)
     {
         if (first.target_height_ > second.target_height_)
         {
@@ -207,7 +207,7 @@ struct TreeSupportElement
             first.last_area_increase_.increase_radius_ || second.last_area_increase_.increase_radius_,
             first.last_area_increase_.no_error_ || second.last_area_increase_.no_error_,
             first.last_area_increase_.use_min_distance_ && second.last_area_increase_.use_min_distance_,
-            first.can_avoid_anti_preferred && second.can_avoid_anti_preferred,
+            first.can_avoid_anti_preferred_ && second.can_avoid_anti_preferred_,
                 first.last_area_increase_.move_ || second.last_area_increase_.move_);
 
         all_tips_ = first.all_tips_;
@@ -302,7 +302,7 @@ struct TreeSupportElement
     /*!
      * \brief True if this Element or any parent provides support to a cradle or cradle line.
      */
-    bool supports_cradle;
+    bool supports_cradle_;
 
     /*!
      * \brief The element trys not to move until this dtt is reached, is set to 0 if the element had to move.
@@ -317,7 +317,7 @@ struct TreeSupportElement
     /*!
      * \brief An influence area can avoid anti-preferred when the difference with it is non empty.
      */
-    bool can_avoid_anti_preferred;
+    bool can_avoid_anti_preferred_;
 
     /*!
      * \brief Settings used to increase the influence area to its current state.
@@ -359,7 +359,7 @@ struct TreeSupportElement
      */
     std::vector<Point2LL> additional_ovalization_targets_;
 
-    std::shared_ptr<CradlePresenceInformation> cradle_line;
+    std::shared_ptr<CradlePresenceInformation> cradle_line_;
 
 
 
@@ -449,11 +449,11 @@ struct TreeSupportElement
     TreeSupportElement createNewElement()
     {
         TreeSupportElement result(*this);
-        result.parents = { this };
-        result.distance_to_top += 1;
-        result.skip_ovalisation = false;
-        result.result_on_layer = Point(-1, -1);
-        result.area = nullptr;
+        result.parents_ = { this };
+        result.distance_to_top_ += 1;
+        result.skip_ovalisation_ = false;
+        result.result_on_layer_ = Point2LL(-1, -1);
+        result.area_ = nullptr;
         return result;
     }
 

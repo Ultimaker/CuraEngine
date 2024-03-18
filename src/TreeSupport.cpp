@@ -713,7 +713,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
         // technically this makes the influence area is larger than it should be (as it overlaps with the avoidance slightly),
         // but everything compensates for small rounding errors already, so it will be fine.
         // Other solution would be to apply a morphological closure for the avoidances, but as this issue occurs very rarely it may not be worth the performance impact.
-        if(! settings.no_error && ! to_bp_data.empty() && to_bp_data.area()<1)
+        if(! settings.no_error_ && ! to_bp_data.empty() && to_bp_data.area()<1)
         {
             to_bp_data = to_bp_data.unionPolygons(to_bp_data.offsetPolyLine(1));
             spdlog::warn("Detected very small influence area, possible caused by a small hole in the avoidance. Compensating.");
@@ -745,7 +745,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
         // technically this makes the influence area is larger than it should be (as it overlaps with the avoidance slightly),
         // but everything compensates for small rounding errors already, so it will be fine.
         // Other solution would be to apply a morphological closure for the avoidances, but as this issue occurs very rarely it may not be worth the performance impact.
-        if(! settings.no_error && ! to_model_data.empty() && to_model_data.area()<1)
+        if(! settings.no_error_ && ! to_model_data.empty() && to_model_data.area()<1)
         {
             to_model_data = to_model_data.unionPolygons(to_model_data.offsetPolyLine(1));
             spdlog::warn("Detected very small influence area, possible caused by a small hole in the avoidance. Compensating.");
@@ -758,18 +758,18 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
     bool anti_preferred_applied = false;
     if(!anti_preferred_areas.empty())
     {
-        bool is_fast = settings.increase_speed >= config.maximum_move_distance;
+        bool is_fast = settings.increase_speed_ >= config.maximum_move_distance;
         //Ensure that branches can not lag through cradle lines. Proper way to do this would be in the beginning with custom increased areas.
-        coord_t anti_radius_extra = std::max(settings.increase_speed-volumes_.ceilRadius(actual_radius*2,true), coord_t(0));
+        coord_t anti_radius_extra = std::max(settings.increase_speed_-volumes_.ceilRadius(actual_radius*2,true), coord_t(0));
         if(anti_radius_extra)
         {
             anti_preferred_areas = anti_preferred_areas.offset(anti_radius_extra).unionPolygons();
         }
-        if (current_elem.to_buildplate)
+        if (current_elem.to_buildplate_)
         {
             Polygons to_bp_without_anti = to_bp_data.difference(anti_preferred_areas);
             // If already moving fast there is not much to do. The anti preferred with collision radius will then later be subtracted if it is not subtracted here.
-            if(to_bp_without_anti.area()>EPSILON || (settings.use_anti_preferred &&!is_fast))
+            if(to_bp_without_anti.area()>EPSILON || (settings.use_anti_preferred_ &&!is_fast))
             {
                 to_bp_data = to_bp_without_anti;
                 Polygons to_model_data_without_anti  = to_model_data.difference(anti_preferred_areas);
@@ -782,7 +782,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
         else
         {
             Polygons to_model_data_without_anti  = to_model_data.difference(anti_preferred_areas);
-            if(to_model_data_without_anti.area()>EPSILON || (settings.use_anti_preferred &&!is_fast))
+            if(to_model_data_without_anti.area()>EPSILON || (settings.use_anti_preferred_ &&!is_fast))
             {
                 to_model_data = to_model_data_without_anti;
                 Polygons increased_without_anti  = increased.difference(anti_preferred_areas);
@@ -795,10 +795,10 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
 
     // Remove areas where the branch should not be if possible.
     // Has to be also subtracted from increased, as otherwise a merge directly below the anti-preferred area may force a branch inside it.
-    if(volumes_.getFirstAntiPreferredLayerIdx() < layer_idx && settings.use_anti_preferred)
+    if(volumes_.getFirstAntiPreferredLayerIdx() < layer_idx && settings.use_anti_preferred_)
     {
-        const Polygons anti_preferred = volumes_.getAntiPreferredAvoidance(radius, layer_idx - 1, settings.type, ! current_elem.to_buildplate, settings.use_min_distance );
-        if (current_elem.to_buildplate)
+        const Polygons anti_preferred = volumes_.getAntiPreferredAvoidance(radius, layer_idx - 1, settings.type_, ! current_elem.to_buildplate_, settings.use_min_distance_);
+        if (current_elem.to_buildplate_)
         {
             to_bp_data = to_bp_data.difference(anti_preferred);
             to_model_data  = to_model_data.difference(anti_preferred);
@@ -813,16 +813,16 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
             increased = increased.difference(volumes_.getAntiPreferredAreas(layer_idx-1, radius));
         }
 
-        check_layer_data = current_elem.to_buildplate ? to_bp_data : to_model_data;
+        check_layer_data = current_elem.to_buildplate_ ? to_bp_data : to_model_data;
         if(check_layer_data.area() > 1)
         {
-            current_elem.can_avoid_anti_preferred = true;
+            current_elem.can_avoid_anti_preferred_ = true;
         }
     }
 
     if(volumes_.getFirstAntiPreferredLayerIdx() >= layer_idx)
     {
-        current_elem.can_avoid_anti_preferred = true;
+        current_elem.can_avoid_anti_preferred_ = true;
     }
 
     if (settings.increase_radius_ && check_layer_data.area() > 1)
@@ -841,10 +841,10 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
 
                 to_bp_data_2 = increased;
                 bool avoidance_handled = false;
-                if(settings.use_anti_preferred && current_elem.can_use_safe_radius)
+                if(settings.use_anti_preferred_ && current_elem.can_use_safe_radius_)
                 {
-                    to_bp_data_2 = to_bp_data_2.difference(volumes_.getAntiPreferredAvoidance(next_radius, layer_idx - 1, settings.type, ! current_elem.to_buildplate, settings.use_min_distance));
-                    avoidance_handled = settings.type != AvoidanceType::SLOW;
+                    to_bp_data_2 = to_bp_data_2.difference(volumes_.getAntiPreferredAvoidance(next_radius, layer_idx - 1, settings.type_, ! current_elem.to_buildplate_, settings.use_min_distance_));
+                    avoidance_handled = settings.type_ != AvoidanceType::SLOW;
                 }
                 else if(anti_preferred_applied)
                 {
@@ -860,10 +860,10 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
             {
                 to_model_data_2 = increased;
                 bool avoidance_handled = false;
-                if(settings.use_anti_preferred && current_elem.can_use_safe_radius)
+                if(settings.use_anti_preferred_ && current_elem.can_use_safe_radius_)
                 {
-                    to_model_data_2 = to_model_data_2.difference(volumes_.getAntiPreferredAvoidance(next_radius, layer_idx - 1, settings.type, ! current_elem.to_buildplate, settings.use_min_distance));
-                    avoidance_handled = settings.type != AvoidanceType::SLOW; //There is no slow anti-preferred avoidance.
+                    to_model_data_2 = to_model_data_2.difference(volumes_.getAntiPreferredAvoidance(next_radius, layer_idx - 1, settings.type_, ! current_elem.to_buildplate_, settings.use_min_distance_));
+                    avoidance_handled = settings.type_ != AvoidanceType::SLOW; //There is no slow anti-preferred avoidance.
                 }
                 else if(anti_preferred_applied)
                 {
@@ -1199,21 +1199,21 @@ void TreeSupport::increaseAreas(
                 insertSetting(AreaIncreaseSettings(AvoidanceType::FAST_SAFE, fast_speed, ! increase_radius, no_error, ! use_min_radius, use_anti_preferred, move), true);
             }
 
-            if(!elem.can_avoid_anti_preferred)
+            if(!elem.can_avoid_anti_preferred_)
             {
                 std::deque<AreaIncreaseSettings> old_order = order;
                 for (AreaIncreaseSettings settings : old_order)
                 {
-                    if(elem.effective_radius_height < config.increase_radius_until_dtt && !settings.increase_radius)
+                    if(elem.effective_radius_height_ < config.increase_radius_until_dtt && !settings.increase_radius_)
                     {
                         continue ;
                     }
-                    if(!settings.move)
+                    if(!settings.move_)
                     {
                         continue ;
                     }
 
-                    insertSetting(AreaIncreaseSettings(settings.type, settings.increase_speed, settings.increase_radius, settings.no_error, use_min_radius, !settings.use_anti_preferred, settings.move),true);
+                    insertSetting(AreaIncreaseSettings(settings.type_, settings.increase_speed_, settings.increase_radius_, settings.no_error_, use_min_radius, !settings.use_anti_preferred_, settings.move_),true);
                 }
             }
 
@@ -1225,7 +1225,7 @@ void TreeSupport::increaseAreas(
                 for (AreaIncreaseSettings settings : order)
                 {
                     new_order.emplace_back(settings);
-                    new_order.emplace_back(settings.type_, settings.increase_speed_, settings.increase_radius_, settings.no_error_, use_min_radius, settings.use_anti_preferred, settings.move_);
+                    new_order.emplace_back(settings.type_, settings.increase_speed_, settings.increase_radius_, settings.no_error_, use_min_radius, settings.use_anti_preferred_, settings.move_);
                 }
                 order = new_order;
             }
@@ -1369,10 +1369,10 @@ void TreeSupport::increaseAreas(
                     elem.last_area_increase_ = settings;
                     add = true;
                     // Do not merge if the branch should not move or the priority has to be to get farther away from the model.
-                    bypass_merge = ! settings.move
-                                || (settings.use_min_distance && elem.distance_to_top < config.tip_layers)
-                                || !elem.can_avoid_anti_preferred; // todo less aggressive merge prevention?
-                    if (settings.move)
+                    bypass_merge = ! settings.move_
+                                || (settings.use_min_distance_ && elem.distance_to_top_ < config.tip_layers)
+                                || !elem.can_avoid_anti_preferred_; // todo less aggressive merge prevention?
+                    if (settings.move_)
                     {
                         elem.dont_move_until_ = 0;
                     }
@@ -1469,13 +1469,13 @@ void TreeSupport::handleCradleLineValidity(PropertyAreasUnordered& to_bp_areas,
 
     for (const TreeSupportElement* elem : all_elements_on_layer)
     {
-        if(!elem->can_avoid_anti_preferred || config.getCollisionRadius(*elem) != config.getRadius(*elem))
+        if(!elem->can_avoid_anti_preferred_ || config.getCollisionRadius(*elem) != config.getRadius(*elem))
         {
-            const coord_t safe_movement_distance = (elem->use_min_xy_dist ? config.xy_min_distance : config.xy_distance) + config.getCollisionRadius(*elem)
+            const coord_t safe_movement_distance = (elem->use_min_xy_dist_ ? config.xy_min_distance : config.xy_distance) + config.getCollisionRadius(*elem)
                                                  + (std::min(config.z_distance_top_layers, config.z_distance_bottom_layers) > 0 ? config.min_feature_size : 0);
 
-            bool immutable = elem->area != nullptr;
-            bool to_bp = elem->to_buildplate;
+            bool immutable = elem->area_ != nullptr;
+            bool to_bp = elem->to_buildplate_;
 
             Polygons relevant_influence;
             Polygons full_influence;
@@ -1486,21 +1486,21 @@ void TreeSupport::handleCradleLineValidity(PropertyAreasUnordered& to_bp_areas,
             }
             else
             {
-                relevant_influence = elem->area->difference(volumes_.getCollision(config.getCollisionRadius(*elem),layer_idx,elem->use_min_xy_dist));
+                relevant_influence = elem->area_->difference(volumes_.getCollision(config.getCollisionRadius(*elem),layer_idx,elem->use_min_xy_dist_));
                 full_influence = relevant_influence;
             }
             AABB relevant_influence_aabb = AABB(relevant_influence);
 
             for (auto [cradle_idx, cradle] : cradle_data[layer_idx] | ranges::views::enumerate)
             {
-                if (cradle.cradleLineExists() && ! cradle.getCradleLine()->is_base && !removed_lines_idx.contains(cradle_idx))
+                if (cradle.cradleLineExists() && ! cradle.getCradleLine()->is_base_ && !removed_lines_idx.contains(cradle_idx))
                 {
                     //The branch created by the influence area cant lag though the model... So the offset needs to be safe...
-                    AABB cradle_area_aabb = AABB(cradle.getCradleLine()->area);
+                    AABB cradle_area_aabb = AABB(cradle.getCradleLine()->area_);
                     cradle_area_aabb.expand(config.getRadius(*elem) + config.xy_distance);
                     if(cradle_area_aabb.hit(relevant_influence_aabb))
                     {
-                        Polygons cradle_influence = TreeSupportUtils::safeOffsetInc(cradle.getCradleLine()->area,
+                        Polygons cradle_influence = TreeSupportUtils::safeOffsetInc(cradle.getCradleLine()->area_,
                                                               config.getRadius(*elem) + config.xy_distance,
                                                               volumes_.getCollision(config.getCollisionRadius(*elem),layer_idx,true),
                                                               safe_movement_distance,
@@ -1520,9 +1520,9 @@ void TreeSupport::handleCradleLineValidity(PropertyAreasUnordered& to_bp_areas,
                         {
                             //todo Check if non remove options are available eg shortening cradle line...
                             removed_lines_idx.emplace(cradle_idx);
-                            cradle.getCradleLine()->addLineToRemoved(cradle.getCradleLine()->line);
-                            cradle.getCradleLine()->line.clear();
-                            spdlog::debug("Flagging to remove cradle line {} {} ", cradle.layer_idx, cradle.line_idx);
+                            cradle.getCradleLine()->addLineToRemoved(cradle.getCradleLine()->line_);
+                            cradle.getCradleLine()->line_.clear();
+                            spdlog::debug("Flagging to remove cradle line {} {} ", cradle.layer_idx_, cradle.line_idx_);
                         }
                     }
                 }
@@ -1539,7 +1539,7 @@ void TreeSupport::handleCradleLineValidity(PropertyAreasUnordered& to_bp_areas,
     {
         if(cradle.cradleLineExists())
         {
-            cradle.cradle->verifyLines();
+            cradle.cradle_->verifyLines();
         }
     }
 
@@ -1549,10 +1549,10 @@ void TreeSupport::handleCradleLineValidity(PropertyAreasUnordered& to_bp_areas,
     next_layer.insert(next_layer.begin(), move_bounds[layer_idx].begin(), move_bounds[layer_idx].end());
     for(TreeSupportElement* elem:next_layer)
     {
-        if(elem->cradle_line != nullptr && !elem->cradle_line->cradleLineExists())
+        if(elem->cradle_line_ != nullptr && !elem->cradle_line_->cradleLineExists())
         {
             move_bounds[layer_idx].erase(elem);
-            delete elem->area;
+            delete elem->area_;
             delete elem;
         }
     }
@@ -1584,11 +1584,11 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>&
     {
         for(size_t cradle_idx = 0; cradle_idx < cradle_data[layer_idx].size(); cradle_idx++)
         {
-            for(size_t line_idx = 0; line_idx < cradle_data[layer_idx][cradle_idx]->lines.size(); line_idx++)
+            for(size_t line_idx = 0; line_idx < cradle_data[layer_idx][cradle_idx]->lines_.size(); line_idx++)
             {
-                for(size_t height_idx = 0; height_idx < cradle_data[layer_idx][cradle_idx]->lines[line_idx].size(); height_idx++)
+                for(size_t height_idx = 0; height_idx < cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size(); height_idx++)
                 {
-                    LayerIndex cradle_layer_idx = cradle_data[layer_idx][cradle_idx]->lines[line_idx][height_idx].layer_idx;
+                    LayerIndex cradle_layer_idx = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].layer_idx_;
                     if(cradle_layer_idx == 84)
                     {
                         printf("");
@@ -2286,9 +2286,9 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
         {
             for(size_t cradle_idx = 0; cradle_idx < cradle_data[layer_idx].size(); cradle_idx++)
             {
-                for (auto [base_idx, base] : cradle_data[layer_idx][cradle_idx]->base_below | ranges::views::enumerate)
+                for (auto [base_idx, base] : cradle_data[layer_idx][cradle_idx]->base_below_ | ranges::views::enumerate)
                 {
-                    if(cradle_data[layer_idx][cradle_idx]->is_roof)
+                    if(cradle_data[layer_idx][cradle_idx]->is_roof_)
                     {
                         std::lock_guard<std::mutex> critical_section_cradle(critical_support_roof_storage);
                         support_roof_storage[layer_idx-base_idx].add(base);
@@ -2301,20 +2301,20 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                     }
                 }
 
-                for(size_t line_idx = 0; line_idx < cradle_data[layer_idx][cradle_idx]->lines.size(); line_idx++)
+                for(size_t line_idx = 0; line_idx < cradle_data[layer_idx][cradle_idx]->lines_.size(); line_idx++)
                 {
-                    for(size_t height_idx = 0; height_idx < cradle_data[layer_idx][cradle_idx]->lines[line_idx].size(); height_idx++)
+                    for(size_t height_idx = 0; height_idx < cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size(); height_idx++)
                     {
-                        Polygons line_area = cradle_data[layer_idx][cradle_idx]->lines[line_idx][height_idx].area;
-                        bool is_roof = cradle_data[layer_idx][cradle_idx]->lines[line_idx][height_idx].is_roof;
-                        LayerIndex cradle_line_layer_idx = cradle_data[layer_idx][cradle_idx]->lines[line_idx][height_idx].layer_idx;
+                        Polygons line_area = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].area_;
+                        bool is_roof = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].is_roof_;
+                        LayerIndex cradle_line_layer_idx = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].layer_idx_;
                         if(is_roof)
                         {
                             std::lock_guard<std::mutex> critical_section_cradle(critical_support_roof_storage);
 
                             if(support_roof_storage.size()<=layer_idx)
                             {
-                                support_roof_storage.resize(layer_idx+1 + cradle_data[layer_idx][cradle_idx]->lines[line_idx].size()-height_idx);
+                                support_roof_storage.resize(layer_idx+1 + cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size()-height_idx);
                             }
                             support_roof_storage[cradle_line_layer_idx].add(line_area);
                         }
@@ -2324,11 +2324,11 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
 
                             if(cradle_support_line_areas.size()<=layer_idx)
                             {
-                                cradle_support_line_areas.resize(layer_idx+1 + cradle_data[layer_idx][cradle_idx]->lines[line_idx].size()-height_idx);
+                                cradle_support_line_areas.resize(layer_idx+1 + cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size()-height_idx);
                             }
                             cradle_support_line_areas[cradle_line_layer_idx].add(line_area);
                         }
-                        if(!cradle_data[layer_idx][cradle_idx]->lines[line_idx][height_idx].is_base)
+                        if(!cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].is_base_)
                         {
                             const coord_t radius = config.getRadius(0);
                             Polygons line_areas = TreeSupportUtils::safeOffsetInc(line_area,
@@ -2351,9 +2351,9 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
     {
         for(size_t cradle_idx = 0; cradle_idx < cradle_data[layer_idx].size(); cradle_idx++)
         {
-            for (auto [base_idx, base] : cradle_data[layer_idx][cradle_idx]->base_below | ranges::views::enumerate)
+            for (auto [base_idx, base] : cradle_data[layer_idx][cradle_idx]->base_below_ | ranges::views::enumerate)
             {
-                if(cradle_data[layer_idx][cradle_idx]->is_roof)
+                if(cradle_data[layer_idx][cradle_idx]->is_roof_)
                 {
                     support_roof_storage[layer_idx-base_idx].add(base);
                 }
@@ -2364,18 +2364,18 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                 }
             }
 
-            for(size_t line_idx = 0; line_idx < cradle_data[layer_idx][cradle_idx]->lines.size(); line_idx++)
+            for(size_t line_idx = 0; line_idx < cradle_data[layer_idx][cradle_idx]->lines_.size(); line_idx++)
             {
-                for(size_t height_idx = 0; height_idx < cradle_data[layer_idx][cradle_idx]->lines[line_idx].size(); height_idx++)
+                for(size_t height_idx = 0; height_idx < cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size(); height_idx++)
                 {
-                    Polygons line_area = cradle_data[layer_idx][cradle_idx]->lines[line_idx][height_idx].area;
-                    bool is_roof = cradle_data[layer_idx][cradle_idx]->lines[line_idx][height_idx].is_roof;
-                    LayerIndex cradle_line_layer_idx = cradle_data[layer_idx][cradle_idx]->lines[line_idx][height_idx].layer_idx;
+                    Polygons line_area = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].area_;
+                    bool is_roof = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].is_roof_;
+                    LayerIndex cradle_line_layer_idx = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].layer_idx_;
                     if(is_roof)
                     {
                         if(support_roof_storage.size()<=layer_idx)
                         {
-                            support_roof_storage.resize(layer_idx+1 + cradle_data[layer_idx][cradle_idx]->lines[line_idx].size()-height_idx);
+                            support_roof_storage.resize(layer_idx+1 + cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size()-height_idx);
                         }
                         support_roof_storage[cradle_line_layer_idx].add(line_area);
                     }
@@ -2383,11 +2383,11 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                     {
                         if(cradle_support_line_areas.size()<=layer_idx)
                         {
-                            cradle_support_line_areas.resize(layer_idx+1 + cradle_data[layer_idx][cradle_idx]->lines[line_idx].size()-height_idx);
+                            cradle_support_line_areas.resize(layer_idx+1 + cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size()-height_idx);
                         }
                         cradle_support_line_areas[cradle_line_layer_idx].add(line_area);
                     }
-                    if(!cradle_data[layer_idx][cradle_idx]->lines[line_idx][height_idx].is_base)
+                    if(!cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].is_base_)
                     {
                         const coord_t radius = config.getRadius(0);
                         Polygons line_areas = TreeSupportUtils::safeOffsetInc(line_area,
@@ -2504,16 +2504,16 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                 {
                     bool has_parent_roof = false;
 
-                    if (data_pair.first->supports_roof)
+                    if (data_pair.first->supports_roof_)
                     {
-                        for (auto parent : data_pair.first->parents)
+                        for (auto parent : data_pair.first->parents_)
                         {
-                            has_parent_roof |= (data_pair.first->missing_roof_layers > data_pair.first->distance_to_top);
+                            has_parent_roof |= (data_pair.first->missing_roof_layers_ > data_pair.first->distance_to_top_);
                         }
                     }
 
                     bool element_viable_for_skin = has_parent_roof;
-                    element_viable_for_skin |= data_pair.first->parents.empty() && (config.getRadius(*data_pair.first) >= config.support_tree_skin_for_large_tips_radius_threshold);
+                    element_viable_for_skin |= data_pair.first->parents_.empty() && (config.getRadius(*data_pair.first) >= config.support_tree_skin_for_large_tips_radius_threshold);
 
                     if (element_viable_for_skin)
                     {
@@ -2595,7 +2595,7 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                             for (auto sub_part : part.splitIntoParts())
                             {
                                 // Prevent small slivers of a branch to generate as support. The heuristic to detect if a part is too small or thin could maybe be improved.
-                                if ((sub_part.area() < part_area / 5 && sub_part.area() * 2 < M_PI * pow(config.branch_radius,2))
+                                if ((sub_part.area() < part_area / 5 && sub_part.area() * 2 < std::numbers::pi * pow(config.branch_radius,2))
                                     || sub_part.offset(-config.support_line_width).area() < 1)
                                 {
                                     partial_skin_area = partial_skin_area.unionPolygons(sub_part);
@@ -2920,11 +2920,17 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
             const Polygons all_next_layer = support_layer_storage.size()<layer_idx+1?
                 support_skin_storage[layer_idx+1].unionPolygons(support_layer_storage[layer_idx+1]).offset(config.maximum_move_distance).unionPolygons():Polygons();
 
-            storage.support.supportLayers[layer_idx]
-                .fillInfillParts(support_layer_storage[layer_idx], all_this_layer, all_next_layer, config.support_line_width, config.support_wall_count, convert_every_part);
-
-            storage.support.supportLayers[layer_idx]
-                .fillInfillParts(support_skin_storage[layer_idx], all_this_layer, all_next_layer, config.support_line_width, std::max(config.support_wall_count-1,0), convert_every_part,  config.support_skin_line_distance, EFillMethod::ZIG_ZAG);
+            storage.support.supportLayers[layer_idx].fillInfillParts(
+                layer_idx,
+                support_skin_storage,
+                config.layer_height,
+                storage.meshes,
+                config.support_line_width,
+                std::max(config.support_wall_count-1,0),
+                config.maximum_move_distance,
+                convert_every_part,
+                config.support_skin_line_distance,
+                EFillMethod::ZIG_ZAG);
 
             storage.support.supportLayers[layer_idx].fillInfillParts(
                 layer_idx,
