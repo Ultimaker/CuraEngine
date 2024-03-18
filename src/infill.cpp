@@ -166,7 +166,10 @@ void Infill::generate(
         || infill_multiplier_ % 2
                == 0) // Multiplied infill prints loops of infill, partly along the walls, if even. For odd multipliers >1 it gets offset by the multiply algorithm itself.
     {
-        inner_contour_ = inner_contour_.offset(-infill_line_width_ / 2);
+        // Offset contour inwards to fit the semi line width inside it, and at the same time
+        // filter out shapes which are thinner that 2 line widths by making a morphological opening
+        inner_contour_ = inner_contour_.offset(-infill_line_width_);
+        inner_contour_ = inner_contour_.offset(infill_line_width_ / 2, ClipperLib::jtMiter);
         inner_contour_ = Simplify(max_resolution_, max_deviation_, 0).polygon(inner_contour_);
     }
     scripta::log("infill_inner_contour_2", inner_contour_, section_type, layer_idx);
