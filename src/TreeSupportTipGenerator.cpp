@@ -972,7 +972,6 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                         for (auto [next_line_idx, next_line] : shortened_lines_to_center | ranges::views::enumerate)
                         {
                             Point2LL current_direction = next_line.front() - next_line.back();
-                            bool found = false;
                             double angle = std::atan2(current_direction.X,current_direction.Y);
 
                             size_t angle_idx = std::min(size_t(((angle+std::numbers::pi)/(2.0*std::numbers::pi)) * double(cradle_line_count_)), cradle_line_count_ -1);
@@ -1218,7 +1217,6 @@ void TreeSupportTipGenerator::generateCradleLineAreasAndBase(std::vector<std::ve
         coord_t outer_radius = (double(min_distance_between_lines + config_.support_line_width) / sin(center_angle)) * sin(outer_angle);
         const coord_t small_hole_size
             = EPSILON + (config_.fill_outline_gaps ? config_.min_feature_size / 2 - 5 : config_.min_wall_line_width / 2 - 5); // based on calculation in WallToolPath
-        const coord_t closing_dist = sqrt(cradle_area_threshold_ / std::numbers::pi) + cradle_length_ + FUDGE_LENGTH;
         std::mutex critical_support_free_areas_and_cradle_areas;
 
         cura::parallel_for<coord_t>(

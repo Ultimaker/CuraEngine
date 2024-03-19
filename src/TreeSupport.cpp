@@ -2330,7 +2330,6 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                         }
                         if(!cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].is_base_)
                         {
-                            const coord_t radius = config.getRadius(0);
                             Polygons line_areas = TreeSupportUtils::safeOffsetInc(line_area,
                                                                                   config.xy_distance,
                                                                                   volumes_.getCollision(0,cradle_line_layer_idx),
@@ -2389,7 +2388,6 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                     }
                     if(!cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].is_base_)
                     {
-                        const coord_t radius = config.getRadius(0);
                         Polygons line_areas = TreeSupportUtils::safeOffsetInc(line_area,
                                                                               config.xy_distance,
                                                                               volumes_.getCollision(0,cradle_line_layer_idx),
