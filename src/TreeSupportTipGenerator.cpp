@@ -837,7 +837,8 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                             }
                         }
 
-                        Polygon max_outer_points = PolygonUtils::makeCircle(center, sqrt(max_distance2) + current_cradle_length * 2.0, (2.0 * std::numbers::pi) / double(cradle_line_count_));
+                        Polygon max_outer_points = PolygonUtils::makeCircle(center, sqrt(max_distance2) + current_cradle_length * 2.0,
+                                                                            std::min((2.0 * std::numbers::pi) / double(cradle_line_count_), 1.9 * std::numbers::pi));
 
                         // create lines that go from the furthest possible location to the center
                         Polygons lines_to_center;
