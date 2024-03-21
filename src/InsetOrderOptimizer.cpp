@@ -98,8 +98,20 @@ bool InsetOrderOptimizer::addToLayer()
     const auto group_outer_walls = settings_.get<bool>("group_outer_walls");
     // When we alternate walls, also alternate the direction at which the first wall starts in.
     // On even layers we start with normal direction, on odd layers with inverted direction.
+
+    std::vector<Polygons> overhang_areas;
+    for (const std::shared_ptr<SliceMeshStorage>& mesh : storage_.meshes)
+    {
+        if (layer_nr_ > 0 && layer_nr_ < mesh->overhang_areas.size())
+        {
+            // For the offset we should take the support XY distance plus a few line_widths
+            overhang_areas.push_back(mesh->overhang_areas[layer_nr_].offset(5000));
+            svg.writePolygons(mesh->overhang_areas[layer_nr_].offset(5000), SVG::Color::BLACK, 0.05);
+        }
+    }
+
     PathOrderOptimizer<const ExtrusionLine*>
-        order_optimizer(gcode_layer_.getLastPlannedPositionOrStartingPosition(), z_seam_config_, detect_loops, combing_boundary, reverse, order, group_outer_walls);
+        order_optimizer(gcode_layer_.getLastPlannedPositionOrStartingPosition(), z_seam_config_, detect_loops, combing_boundary, reverse, order, group_outer_walls, overhang_areas);
 
     for (const auto& line : walls_to_be_added)
     {

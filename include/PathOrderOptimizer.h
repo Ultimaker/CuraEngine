@@ -87,6 +87,8 @@ public:
      */
     ZSeamConfig seam_config_;
 
+    const std::vector<Polygons> overhang_areas_;
+
     static const std::unordered_multimap<Path, Path> no_order_requirements_;
 
     /*!
@@ -110,8 +112,10 @@ public:
         const Polygons* combing_boundary = nullptr,
         const bool reverse_direction = false,
         const std::unordered_multimap<Path, Path>& order_requirements = no_order_requirements_,
-        const bool group_outer_walls = false)
+        const bool group_outer_walls = false,
+        const std::vector<Polygons>& overhang_areas = {})
         : start_point_(start_point)
+        , overhang_areas_(overhang_areas)
         , seam_config_(seam_config)
         , combing_boundary_((combing_boundary != nullptr && ! combing_boundary->empty()) ? combing_boundary : nullptr)
         , detect_loops_(detect_loops)
@@ -716,6 +720,15 @@ protected:
                 score -= score_corner;
                 break;
             }
+            }
+
+            for (const Polygons& overhang_area : overhang_areas_)
+            {
+                if (overhang_area.inside(here))
+                {
+                    score *= 50;
+                    break;
+                }
             }
 
             constexpr double EPSILON = 5.0;
