@@ -1203,7 +1203,7 @@ void TreeSupportTipGenerator::generateTips(
                 // Current support fractional roof
                 auto& path_in_sfr = storage.support.supportLayers[layer_idx].support_fractional_roof;
                 // Loop over paths and add to fractional roof if not already present
-                for (const auto& path: paths)
+                for (const auto& path : paths)
                 {
                     if (std::find(path_in_sfr.begin(), path_in_sfr.end(), path) == path_in_sfr.end())
                     {
