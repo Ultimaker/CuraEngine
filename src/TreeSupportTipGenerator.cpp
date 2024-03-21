@@ -507,7 +507,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
                 config_.support_line_distance / 2,
                 &config_.simplifier);
 
-            for (LayerIndex dtt_roof = 0; dtt_roof < support_roof_layers_ && layer_idx - dtt_roof >= 1; dtt_roof++)
+            for (LayerIndex dtt_roof = 0; (dtt_roof < support_roof_layers_) && (layer_idx - dtt_roof >= 1); dtt_roof++)
             {
                 const Polygons forbidden_next = volumes_
                                                     .getAvoidance(
@@ -1198,8 +1198,18 @@ void TreeSupportTipGenerator::generateTips(
         {
             if (layer_idx > 0)
             {
-                storage.support.supportLayers[layer_idx].support_fractional_roof.add(
-                    storage.support.supportLayers[layer_idx].support_roof.difference(storage.support.supportLayers[layer_idx + 1].support_roof));
+                // Difference between support roofs of adjacent layers
+                auto paths = storage.support.supportLayers[layer_idx].support_roof.difference(storage.support.supportLayers[layer_idx + 1].support_roof);
+                // Current support fractional roof
+                auto& path_in_sfr = storage.support.supportLayers[layer_idx].support_fractional_roof;
+                // Loop over paths and add to fractional roof if not already present
+                for (const auto& path: paths)
+                {
+                    if (std::find(path_in_sfr.begin(), path_in_sfr.end(), path) == path_in_sfr.end())
+                    {
+                        path_in_sfr.add(path);
+                    }
+                }
             }
         });
 
