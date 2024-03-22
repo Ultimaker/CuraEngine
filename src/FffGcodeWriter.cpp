@@ -3673,7 +3673,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(
     // make sure there is a wall if this is on the first layer
     if (gcode_layer.getLayerNr() == 0)
     {
-        wall = support_layer.support_roof.offset(-support_roof_line_width / 2);
+        wall = support_roof_outlines.offset(-support_roof_line_width / 2);
         infill_outline = wall.offset(-support_roof_line_width / 2);
     }
     infill_outline = Simplify(roof_extruder.settings_).polygon(infill_outline);
