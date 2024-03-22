@@ -87,6 +87,8 @@ public:
      */
     ZSeamConfig seam_config_;
 
+    Polygons model_outline_layer_below_;
+
     static const std::unordered_multimap<Path, Path> no_order_requirements_;
 
     /*!
@@ -110,7 +112,8 @@ public:
         const Polygons* combing_boundary = nullptr,
         const bool reverse_direction = false,
         const std::unordered_multimap<Path, Path>& order_requirements = no_order_requirements_,
-        const bool group_outer_walls = false)
+        const bool group_outer_walls = false,
+        const Polygons& model_outline_layer_below = Polygons())
         : start_point_(start_point)
         , seam_config_(seam_config)
         , combing_boundary_((combing_boundary != nullptr && ! combing_boundary->empty()) ? combing_boundary : nullptr)
@@ -118,6 +121,7 @@ public:
         , reverse_direction_(reverse_direction)
         , _group_outer_walls(group_outer_walls)
         , order_requirements_(&order_requirements)
+        , model_outline_layer_below_(model_outline_layer_below)
     {
     }
 
@@ -716,6 +720,17 @@ protected:
                 score -= score_corner;
                 break;
             }
+            }
+
+            // TBD: Create the circle once (with a slightly higher res) and translate for every point
+            Polygons circle;
+            circle.add(PolygonUtils::makeCircle(here, 200));
+            Polygons supported_area = model_outline_layer_below_.intersection(circle);
+            double area = supported_area.area();
+            static constexpr double max_area = std::numbers::pi * (200 * 200);
+            if (area > 0.0)
+            {
+                score /= 1 - std::pow((area / max_area - 1), 2);
             }
 
             constexpr double EPSILON = 5.0;

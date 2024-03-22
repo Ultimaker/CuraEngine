@@ -98,8 +98,37 @@ bool InsetOrderOptimizer::addToLayer()
     const auto group_outer_walls = settings_.get<bool>("group_outer_walls");
     // When we alternate walls, also alternate the direction at which the first wall starts in.
     // On even layers we start with normal direction, on odd layers with inverted direction.
-    PathOrderOptimizer<const ExtrusionLine*>
-        order_optimizer(gcode_layer_.getLastPlannedPositionOrStartingPosition(), z_seam_config_, detect_loops, combing_boundary, reverse, order, group_outer_walls);
+
+    // SVG svg(fmt::format("/tmp/outline_{}.svg", layer_nr_.value), AABB(storage_.getMachineBorder()), 0.001);
+
+    Polygons model_outline_layer_below;
+    if (layer_nr_ == 0)
+    {
+        model_outline_layer_below = storage_.getMachineBorder();
+    }
+    else
+    {
+        for (const std::shared_ptr<SliceMeshStorage>& mesh : storage_.meshes)
+        {
+            const SliceLayer& slice_layer = mesh->layers[layer_nr_ - 1];
+            for (const SliceLayerPart& part : slice_layer.parts)
+            {
+                model_outline_layer_below.add(part.print_outline);
+            }
+        }
+    }
+
+    // svg.writePolygons(model_outline_layer_below, SVG::Color::BLACK, 0.05);
+
+    PathOrderOptimizer<const ExtrusionLine*> order_optimizer(
+        gcode_layer_.getLastPlannedPositionOrStartingPosition(),
+        z_seam_config_,
+        detect_loops,
+        combing_boundary,
+        reverse,
+        order,
+        group_outer_walls,
+        model_outline_layer_below);
 
     for (const auto& line : walls_to_be_added)
     {
