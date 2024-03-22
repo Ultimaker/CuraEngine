@@ -3321,10 +3321,6 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
     if (extruder_nr == support_roof_extruder_nr)
     {
         support_added |= addSupportRoofsToGCode(storage, support_layer.support_fractional_roof, gcode_layer.configs_storage_.support_fractional_roof_config, gcode_layer);
-        /*SVG svg(fmt::format("/tmp/support_{}.svg", gcode_layer.getLayerNr().value), AABB(storage.getMachineBorder()), 0.001);
-        svg.writePolygons(support_layer.support_roof, SVG::Color::BLACK, 0.15);
-        svg.writePolygons(support_layer.support_fractional_roof, SVG::Color::MAGENTA, 0.1);
-        svg.writePolygons(support_layer.support_roof.difference(support_layer.support_fractional_roof), SVG::Color::ORANGE, 0.05);*/
     }
     if (extruder_nr == support_infill_extruder_nr)
     {
