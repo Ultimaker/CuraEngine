@@ -716,8 +716,24 @@ private:
         const SliceLayerPart& part,
         coord_t infill_line_width);
 
+    /*!
+     * Find the first or last extruder used at the given layer. This may loop to lower layers if
+     * there is no extryder on the one that has been asked. If no extruder can be found at all, the
+     * very first used extruder will be returned.
+     *
+     * \param storage where the slice data is stored
+     * \param layer_nr The layer for which we want the extruder index
+     * \param last Indicates whether we want to retrieve the last or the first extruder being used
+     * \return The first or last exruder used at the given index
+     */
     size_t findUsedExtruderIndex(const SliceDataStorage& storage, const LayerIndex& layer_nr, bool last) const;
 
+    /*!
+     * Get the extruders use at the given layer
+     *
+     * \param layer_nr The index of the layer at which we want the extruders uses
+     * \return The extruders use at the given layer, which may be empty in some cases
+     */
     std::vector<ExtruderUse> getExtruderUse(const LayerIndex& layer_nr) const;
 };
 
