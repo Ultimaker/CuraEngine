@@ -1199,9 +1199,9 @@ void TreeSupportTipGenerator::generateTips(
             if (layer_idx > 0)
             {
                 // Difference between support roofs of adjacent layers
-                auto paths = storage.support.supportLayers[layer_idx].support_roof.difference(storage.support.supportLayers[layer_idx + 1].support_roof);
+                Polygons paths = storage.support.supportLayers[layer_idx].support_roof.difference(storage.support.supportLayers[layer_idx + 1].support_roof);
                 // Current support fractional roof
-                auto& path_in_sfr = storage.support.supportLayers[layer_idx].support_fractional_roof;
+                Polygons& path_in_sfr = storage.support.supportLayers[layer_idx].support_fractional_roof;
                 // Loop over paths and add to fractional roof if not already present
                 for (const auto& path : paths)
                 {
