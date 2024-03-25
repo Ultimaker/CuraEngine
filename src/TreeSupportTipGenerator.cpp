@@ -56,6 +56,7 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, T
     , tip_roof_size_(force_tip_to_roof_ ? config_.min_radius * config_.min_radius * std::numbers::pi : 0)
     , already_inserted_(mesh.overhang_areas.size())
     , support_roof_drawn_(mesh.overhang_areas.size(), Polygons())
+    , support_roof_drawn_fractional_(mesh.overhang_areas.size(), Polygons())
     , roof_tips_drawn_(mesh.overhang_areas.size(), Polygons())
     , cradle_data_(mesh.overhang_areas.size())
     , force_minimum_roof_area_(use_fake_roof_ || SUPPORT_TREE_MINIMUM_ROOF_AREA_HARD_LIMIT)
@@ -1625,6 +1626,12 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
                 {
                     std::lock_guard<std::mutex> critical_section_potential_support_roofs(critical_potential_support_roofs);
                     potential_support_roofs[layer_idx - dtt_roof].add((full_overhang_area));
+
+                    if(dtt_roof == 0)
+                    {
+                        support_roof_drawn_fractional_[layer_idx+1].add(full_overhang_area);
+                    }
+
                 }
                 else
                 {
@@ -1754,7 +1761,7 @@ TreeSupportElement* TreeSupportTipGenerator::addPointAsInfluenceArea(
                 roof,
                 cradle,
                 safe_radius,
-                force_tip_to_roof_,
+                !roof && force_tip_to_roof_,
                 skip_ovalisation,
                 support_tree_limit_branch_reach_,
                 support_tree_branch_reach_limit_);
@@ -1978,8 +1985,7 @@ void TreeSupportTipGenerator::generateTips(
     const SliceMeshStorage& mesh,
     std::vector<std::set<TreeSupportElement*>>& move_bounds,
     std::vector<Polygons>& additional_support_areas,
-    std::vector<Polygons>& placed_support_lines_support_areas,
-    std::vector<Polygons>& placed_fake_roof_areas,
+    std::vector<std::vector<FakeRoofArea>>& placed_fake_roof_areas,
     std::vector<Polygons>& support_free_areas,
     std::vector<std::vector<TreeSupportCradle*>>& cradle_data_export)
 {
@@ -2062,7 +2068,7 @@ void TreeSupportTipGenerator::generateTips(
                 coord_t upper_line_distance = support_supporting_branch_distance_;
                 coord_t line_distance = std::max(roof ? support_roof_line_distance_ : support_tree_branch_distance_, upper_line_distance);
 
-                    bool use_grid = line_distance == upper_line_distance;
+                bool use_grid = line_distance == upper_line_distance;
 
                 return TreeSupportUtils::generateSupportInfillLines(
                     area,
@@ -2087,9 +2093,9 @@ void TreeSupportTipGenerator::generateTips(
 
             if (support_roof_layers_ && layer_idx + 1 < support_roof_drawn_.size())
             {
-                core_overhang = core_overhang.difference(support_roof_drawn_[layer_idx]);
+                core_overhang = core_overhang.difference(support_roof_drawn_[layer_idx]); // todo Rounding errors again.
                 for (Polygons roof_part : support_roof_drawn_[layer_idx + 1]
-                                              .difference(support_roof_drawn_[layer_idx].offset(config_.maximum_move_distance_slow))
+                                              .difference(support_roof_drawn_[layer_idx].offset(config_.maximum_move_distance_slow).unionPolygons())
                                               .splitIntoParts(true)) // If there is a roof, the roof will be one layer above the tips.
                 {
                     //^^^Technically one should also subtract the avoidance of radius 0 (similarly how calculated in calculateRoofArea), as there can be some rounding errors
@@ -2353,33 +2359,33 @@ void TreeSupportTipGenerator::generateTips(
             {
                 if (use_fake_roof_)
                 {
-                    storage.support.supportLayers[layer_idx].fillInfillParts(
-                        layer_idx,
-                        support_roof_drawn_,
-                        config_.layer_height,
-                        storage.meshes,
-                        config_.support_line_width,
-                        0,
-                        config_.maximum_move_distance,
-                        false,
-                        support_roof_line_distance_);
-                    placed_fake_roof_areas[layer_idx].add(support_roof_drawn_[layer_idx]);
-                    placed_support_lines_support_areas[layer_idx].add( // todo Only save the area and add to storage at the end to enable correct handling of Support Interface Priority of fake roofs.
-                        TreeSupportUtils::generateSupportInfillLines(support_roof_drawn_[layer_idx], config_, false, layer_idx, support_roof_line_distance_, cross_fill_provider_, false).offsetPolyLine(config_.support_line_width / 2));
+
+                    placed_fake_roof_areas[layer_idx].emplace_back(support_roof_drawn_[layer_idx],support_roof_line_distance_, false);
+
+
+                    if (config_.z_distance_top % config_.layer_height != 0)
+                    {
+                        Polygons all_roof = support_roof_drawn_[layer_idx].unionPolygons(roof_tips_drawn_[layer_idx]);
+                        Polygons valid_fractional_roof = support_roof_drawn_fractional_[layer_idx].intersection(all_roof);
+                        placed_fake_roof_areas[layer_idx].emplace_back(support_roof_drawn_fractional_[layer_idx], support_roof_line_distance_, true);
+                    }
                 }
                 else
                 {
                     storage.support.supportLayers[layer_idx].support_roof.add(support_roof_drawn_[layer_idx]);
                     storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.unionPolygons(roof_tips_drawn_[layer_idx]);
 
-                    if (layer_idx + 1 < support_roof_drawn_.size() && layer_idx > 0)
+                    if (config_.z_distance_top % config_.layer_height != 0)
                     {
                         Polygons all_roof = support_roof_drawn_[layer_idx].unionPolygons(roof_tips_drawn_[layer_idx]);
-                        Polygons all_roof_above = support_roof_drawn_[layer_idx + 1]
-                                                      .unionPolygons(roof_tips_drawn_[layer_idx + 1])
-                                                      .offset(FUDGE_LENGTH)
-                                                      .unionPolygons();
-                        storage.support.supportLayers[layer_idx].support_fractional_roof.add(all_roof.difference(all_roof_above));
+                        Polygons valid_fractional_roof = support_roof_drawn_fractional_[layer_idx].intersection(all_roof);
+                        storage.support.supportLayers[layer_idx].support_fractional_roof =
+                            storage.support.supportLayers[layer_idx].support_fractional_roof.unionPolygons(valid_fractional_roof);
+
+                        // Fractional roof is a modifier applied to a roof area, which means if only the fractional roof area is set, there will be nothing as there is no roof to modify.
+                        // Because of that the fractional roof has ALSO to be added to the roof.
+                        storage.support.supportLayers[layer_idx].support_roof =
+                            storage.support.supportLayers[layer_idx].support_roof.unionPolygons(valid_fractional_roof);
                     }
                 }
             }

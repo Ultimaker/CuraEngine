@@ -21,6 +21,8 @@
 namespace cura
 {
 
+
+
 class TreeSupportTipGenerator
 {
 public:
@@ -43,8 +45,7 @@ public:
         const SliceMeshStorage& mesh,
         std::vector<std::set<TreeSupportElement*>>& move_bounds,
         std::vector<Polygons>& additional_support_areas,
-        std::vector<Polygons>& placed_support_lines_support_areas,
-        std::vector<Polygons>& placed_fake_roof_areas,
+        std::vector<std::vector<FakeRoofArea>>& placed_fake_roof_areas,
         std::vector<Polygons>& support_free_areas,
         std::vector<std::vector<TreeSupportCradle*>>& cradle_data_export);
 
@@ -369,6 +370,11 @@ private:
      * \brief Areas that will be saved as support roof
      */
     std::vector<Polygons> support_roof_drawn_;
+
+    /*!
+     * \brief Areas that will be saved as support roof
+     */
+    std::vector<Polygons> support_roof_drawn_fractional_;
 
     /*!
      * \brief Areas that will be saved as support roof, originating from tips being replaced with roof areas.

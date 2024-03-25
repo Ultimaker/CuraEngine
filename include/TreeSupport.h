@@ -46,6 +46,20 @@ constexpr coord_t SUPPORT_TREE_COLLISION_RESOLUTION = 500; // Only has an effect
 using PropertyAreasUnordered = std::unordered_map<TreeSupportElement, Polygons>;
 using PropertyAreas = std::map<TreeSupportElement, Polygons>;
 
+struct FakeRoofArea
+{
+    FakeRoofArea(Polygons area, coord_t line_distance, bool fractional):
+        area_(area)
+        , line_distance_(line_distance)
+        , fractional_(fractional)
+    {
+
+    }
+    Polygons area_;
+    coord_t line_distance_;
+    bool fractional_;
+};
+
 /*!
  * \brief Generates a tree structure to support your models.
  */
@@ -304,6 +318,7 @@ private:
     void generateSupportSkin(std::vector<Polygons>& support_layer_storage,
                              std::vector<Polygons>& support_skin_storage,
                              std::vector<Polygons>& support_roof_storage,
+                             std::vector<Polygons>& support_roof_storage_fractional,
                              SliceDataStorage& storage,
                              std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons,
                              std::vector<std::vector<TreeSupportCradle*>>& cradle_data);
@@ -322,7 +337,10 @@ private:
      * \param support_roof_storage[in] Areas where support was replaced with roof.
      * \param storage[in,out] The storage where the support should be stored.
      */
-    void finalizeInterfaceAndSupportAreas(std::vector<Polygons>& support_layer_storage, std::vector<Polygons>& support_skin_storage, std::vector<Polygons>& support_roof_storage, SliceDataStorage& storage);
+    void finalizeInterfaceAndSupportAreas(std::vector<Polygons>& support_layer_storage,
+                                          std::vector<Polygons>& support_skin_storage,
+                                          std::vector<Polygons>& support_layer_storage_fractional,
+                                          SliceDataStorage& storage);
 
     /*!
      * \brief Draws circles around result_on_layer points of the influence areas and applies some post processing.
@@ -345,15 +363,9 @@ private:
     std::vector<Polygons> additional_required_support_area;
 
     /*!
-     * \brief A representation of already placed lines. Required for subtracting from new support areas.
-     */
-    std::vector<Polygons> placed_support_lines_support_areas;
-
-    /*!
      * \brief Areas that use a higher density pattern of regular support to support the model (fake_roof).
-     *  placed_support_lines_support_areas contains the lines placed inside of placed_fake_roof_areas.
      */
-    std::vector<Polygons> placed_fake_roof_areas;
+    std::vector<std::vector<FakeRoofArea>> fake_roof_areas;
 
     /*!
      * \brief Areas where no support may be. Areas will be subtracted from support areas.

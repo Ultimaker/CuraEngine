@@ -227,6 +227,20 @@ public:
      */
     void excludeAreasFromSupportInfillAreas(const Polygons& exclude_polygons, const AABB& exclude_polygons_boundary_box);
 
+    void fillInfillParts(const Polygons& area,
+                         const coord_t support_line_width,
+                         const coord_t wall_line_count,
+                         const bool use_fractional_config = false,
+                         const bool unionAll = false,
+                         const coord_t custom_line_distance = 0,
+                         EFillMethod custom_pattern = EFillMethod::NONE)
+    {
+        for (const PolygonsPart& island_outline : area.splitIntoParts(unionAll))
+        {
+            support_infill_parts.emplace_back(island_outline, support_line_width, use_fractional_config, wall_line_count, custom_line_distance, custom_pattern);
+        }
+    }
+
     /* Fill up the infill parts for the support with the given support polygons. The support polygons will be split into parts. This also takes into account fractional-height
      * support layers.
      *
