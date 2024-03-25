@@ -2414,7 +2414,10 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
         {
             for (std::pair<TreeSupportElement*, Polygons> data_pair : layer_tree_polygons[layer_idx])
             {
-                if (data_pair.first->parents_.empty() && ! data_pair.first->supports_roof_ && layer_idx + 1 < support_roof_storage_fractional.size())
+                if (data_pair.first->parents_.empty() &&
+                    ! data_pair.first->supports_roof_ &&
+                    layer_idx + 1 < support_roof_storage_fractional.size() &&
+                    config.z_distance_top % config.layer_height > 0)
                 {
                     if (data_pair.first->missing_roof_layers_ > data_pair.first->distance_to_top_)
                     {
