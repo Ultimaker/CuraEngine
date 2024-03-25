@@ -746,7 +746,7 @@ public:
      * it.
      * \param part If given, stay within the boundary of this part.
      */
-    void moveInsideCombBoundary(const coord_t distance, const std::optional<SliceLayerPart>& part = std::nullopt);
+    void moveInsideCombBoundary(const coord_t distance, const std::optional<SliceLayerPart>& part = std::nullopt, GCodePath* path = nullptr);
 
     /*!
      * If enabled, apply the modify plugin to the layer-plan.
