@@ -336,7 +336,7 @@ private:
     size_t max_overhang_insert_lag_;
 
     /*!
-     * \brief Area of a tip.
+     * \brief Area of a tip in mm2.
      */
     const double tip_roof_size_;
 

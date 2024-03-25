@@ -53,7 +53,7 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, T
     , support_tree_branch_reach_limit_(support_tree_limit_branch_reach_ ? mesh.settings.get<coord_t>("support_tree_branch_reach_limit") : 0)
     , z_distance_delta_(std::min(config_.z_distance_top_layers + 1, mesh.overhang_areas.size()))
     , xy_overrides_(config_.support_overrides == SupportDistPriority::XY_OVERRIDES_Z)
-    , tip_roof_size_(force_tip_to_roof_ ? config_.min_radius * config_.min_radius * std::numbers::pi : 0)
+    , tip_roof_size_(force_tip_to_roof_ ? INT2MM2(config_.min_radius * config_.min_radius) * std::numbers::pi : 0)
     , already_inserted_(mesh.overhang_areas.size())
     , support_roof_drawn_(mesh.overhang_areas.size(), Polygons())
     , support_roof_drawn_fractional_(mesh.overhang_areas.size(), Polygons())
