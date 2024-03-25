@@ -47,12 +47,11 @@ using PropertyAreas = std::map<TreeSupportElement, Polygons>;
 
 struct FakeRoofArea
 {
-    FakeRoofArea(Polygons area, coord_t line_distance, bool fractional):
-        area_(area)
+    FakeRoofArea(Polygons area, coord_t line_distance, bool fractional)
+        : area_(area)
         , line_distance_(line_distance)
         , fractional_(fractional)
     {
-
     }
     /*!
      * \brief Area that should be a fake roof.
@@ -297,10 +296,11 @@ private:
      * \param support_roof_storage[in] Areas where support was replaced with roof.
      * \param storage[in,out] The storage where the support should be stored.
      */
-    void finalizeInterfaceAndSupportAreas(std::vector<Polygons>& support_layer_storage,
-                                          std::vector<Polygons>& support_roof_storage,
-                                          std::vector<Polygons>& support_layer_storage_fractional,
-                                          SliceDataStorage& storage);
+    void finalizeInterfaceAndSupportAreas(
+        std::vector<Polygons>& support_layer_storage,
+        std::vector<Polygons>& support_roof_storage,
+        std::vector<Polygons>& support_layer_storage_fractional,
+        SliceDataStorage& storage);
 
     /*!
      * \brief Draws circles around result_on_layer points of the influence areas and applies some post processing.
