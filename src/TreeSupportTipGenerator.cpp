@@ -532,7 +532,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
                     potential_support_roofs[layer_idx - dtt_roof].add((full_overhang_area));
                     if(dtt_roof == 0)
                     {
-                        support_roof_drawn_fractional_[layer_idx+1].add(full_overhang_area);
+                        support_roof_drawn_fractional_[layer_idx].add(full_overhang_area);
                     }
                 }
                 else
@@ -1174,45 +1174,33 @@ void TreeSupportTipGenerator::generateTips(
                 {
                     placed_fake_roof_areas[layer_idx].emplace_back(support_roof_drawn_[layer_idx], support_roof_line_distance_, false);
 
-                    if (config_.z_distance_top % config_.layer_height != 0)
+                    if (config_.z_distance_top % config_.layer_height != 0 && layer_idx > 0)
                     {
-                        Polygons all_roof = support_roof_drawn_[layer_idx].unionPolygons(roof_tips_drawn_[layer_idx]);
-                        Polygons valid_fractional_roof = support_roof_drawn_fractional_[layer_idx].intersection(all_roof);
-
+                        // Fake roof tips would just be tips, so no need to add them here as all polygons in roof_tips_drawn_ will be empty!
+                        Polygons all_roof_fractional = support_roof_drawn_fractional_[layer_idx - 1].intersection(support_roof_drawn_[layer_idx - 1]);
+                        placed_fake_roof_areas[layer_idx].emplace_back(all_roof_fractional, support_roof_line_distance_, true);
                     }
                 }
                 else
                 {
-                    storage.support.supportLayers[layer_idx].support_roof.add(support_roof_drawn_[layer_idx]);
-                    storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.unionPolygons(roof_tips_drawn_[layer_idx]);
-
-                    if (config_.z_distance_top % config_.layer_height != 0)
+                    if (config_.z_distance_top % config_.layer_height != 0 && layer_idx > 0)
                     {
-                        Polygons all_roof = support_roof_drawn_[layer_idx].unionPolygons(roof_tips_drawn_[layer_idx]);
-                        Polygons valid_fractional_roof = support_roof_drawn_fractional_[layer_idx].intersection(all_roof);
+                        Polygons all_roof_below = support_roof_drawn_[layer_idx - 1].unionPolygons(roof_tips_drawn_[layer_idx - 1]);
+                        Polygons all_roof_fractional = support_roof_drawn_fractional_[layer_idx - 1].intersection(all_roof_below);
                         storage.support.supportLayers[layer_idx].support_fractional_roof =
-                            storage.support.supportLayers[layer_idx].support_fractional_roof.unionPolygons(valid_fractional_roof);
+                            storage.support.supportLayers[layer_idx].support_fractional_roof.unionPolygons(all_roof_fractional);
 
                         // Fractional roof is a modifier applied to a roof area, which means if only the fractional roof area is set, there will be nothing as there is no roof to modify.
                         // Because of that the fractional roof has ALSO to be added to the roof.
-                        storage.support.supportLayers[layer_idx].support_roof =
-                            storage.support.supportLayers[layer_idx].support_roof.unionPolygons(valid_fractional_roof);
+                        storage.support.supportLayers[layer_idx].support_roof.add(all_roof_fractional);
                     }
+
+                    Polygons all_roof = support_roof_drawn_[layer_idx].unionPolygons(roof_tips_drawn_[layer_idx]);
+                    storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.unionPolygons(all_roof);
                 }
             }
         });
 
-    cura::parallel_for<coord_t>(
-        1,
-        mesh.overhang_areas.size() - z_distance_delta_,
-        [&](const LayerIndex layer_idx)
-        {
-            if (layer_idx > 0)
-            {
-                storage.support.supportLayers[layer_idx].support_fractional_roof.add(
-                    storage.support.supportLayers[layer_idx].support_roof.difference(storage.support.supportLayers[layer_idx + 1].support_roof));
-            }
-        });
 
     removeUselessAddedPoints(new_tips, storage, additional_support_areas);
 

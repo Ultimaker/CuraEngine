@@ -299,7 +299,7 @@ private:
     std::vector<Polygons> support_roof_drawn_;
 
     /*!
-     * \brief Areas that will be saved as fractional support roof
+     * \brief Areas that require fractional roof above it.
      */
     std::vector<Polygons> support_roof_drawn_fractional_;
 
