@@ -748,8 +748,12 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
             added_roofs = added_roofs.unionPolygons();
             {
                 std::lock_guard<std::mutex> critical_section_roof(critical_roof_tips_);
-
                 roof_tips_drawn_[insert_layer_idx - dtt_roof_tip].add(added_roofs);
+
+                if(dtt_roof_tip == 0)
+                {
+                    support_roof_drawn_fractional_[insert_layer_idx].add(added_roofs);
+                }
             }
         }
     }
