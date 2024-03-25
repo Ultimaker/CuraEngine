@@ -2407,33 +2407,33 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
             }
         });
 
-    // Single threaded combining all support areas to the right layers.
-    // Only copies data!
-    for (const auto layer_idx : ranges::views::iota(0UL, layer_tree_polygons.size()))
-    {
-        for (std::pair<TreeSupportElement*, Polygons> data_pair : layer_tree_polygons[layer_idx])
+    cura::parallel_for<size_t>(
+        0,
+        layer_tree_polygons.size(),
+        [&](const size_t layer_idx)
         {
-            if(data_pair.first->parents_.empty() && !data_pair.first->supports_roof_ && layer_idx + 1 < support_roof_storage_fractional.size())
+            for (std::pair<TreeSupportElement*, Polygons> data_pair : layer_tree_polygons[layer_idx])
             {
-                if(data_pair.first->missing_roof_layers_ > data_pair.first->distance_to_top_)
+                if (data_pair.first->parents_.empty() && ! data_pair.first->supports_roof_ && layer_idx + 1 < support_roof_storage_fractional.size())
                 {
-                    support_roof_storage_fractional[layer_idx+1].add(data_pair.second);
-                }
-                else
-                {
-                    support_layer_storage_fractional[layer_idx+1].add(data_pair.second);
+                    if (data_pair.first->missing_roof_layers_ > data_pair.first->distance_to_top_)
+                    {
+                        support_roof_storage_fractional[layer_idx + 1].add(data_pair.second);
+                    }
+                    else
+                    {
+                        support_layer_storage_fractional[layer_idx + 1].add(data_pair.second);
+                    }
                 }
 
+                ((data_pair.first->missing_roof_layers_ > data_pair.first->distance_to_top_) ? support_roof_storage : support_layer_storage)[layer_idx].add(data_pair.second);
             }
-
-            ((data_pair.first->missing_roof_layers_ > data_pair.first->distance_to_top_) ? support_roof_storage : support_layer_storage)[layer_idx].add(data_pair.second);
-        }
-        if(layer_idx + 1< support_roof_storage_fractional.size())
-        {
-            support_roof_storage_fractional[layer_idx+1] = support_roof_storage_fractional[layer_idx+1].unionPolygons();
-            support_layer_storage_fractional[layer_idx+1] = support_layer_storage_fractional[layer_idx+1].unionPolygons();
-        }
-    }
+            if (layer_idx + 1 < support_roof_storage_fractional.size())
+            {
+                support_roof_storage_fractional[layer_idx + 1] = support_roof_storage_fractional[layer_idx + 1].unionPolygons();
+                support_layer_storage_fractional[layer_idx + 1] = support_layer_storage_fractional[layer_idx + 1].unionPolygons();
+            }
+        });
 
     for (const auto layer_idx : ranges::views::iota(0UL, additional_required_support_area.size()))
     {
