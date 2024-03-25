@@ -94,7 +94,7 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
         mesh.first.setActualZ(known_z);
     }
 
-    fake_roof_areas = std::vector<std::vector<FakeRoofArea>>(storage.support.supportLayers.size(),std::vector<FakeRoofArea>());
+    fake_roof_areas = std::vector<std::vector<FakeRoofArea>>(storage.support.supportLayers.size(), std::vector<FakeRoofArea>());
 }
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
@@ -2135,10 +2135,11 @@ void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_stora
         dur_hole_removal);
 }
 
-void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& support_layer_storage,
-                                                   std::vector<Polygons>& support_roof_storage,
-                                                   std::vector<Polygons>& support_layer_storage_fractional,
-                                                   SliceDataStorage& storage)
+void TreeSupport::finalizeInterfaceAndSupportAreas(
+    std::vector<Polygons>& support_layer_storage,
+    std::vector<Polygons>& support_roof_storage,
+    std::vector<Polygons>& support_layer_storage_fractional,
+    SliceDataStorage& storage)
 {
     InterfacePreference interface_pref = config.interface_preference; // InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE;
     double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES + TREE_PROGRESS_AREA_CALC + TREE_PROGRESS_GENERATE_BRANCH_AREAS
@@ -2151,18 +2152,13 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
         {
-
             Polygons fake_roof_lines;
 
-            for(FakeRoofArea& f_roof:fake_roof_areas[layer_idx])
+            for (FakeRoofArea& f_roof : fake_roof_areas[layer_idx])
             {
-                fake_roof_lines.add(TreeSupportUtils::generateSupportInfillLines(f_roof.area_,
-                                                                           config,
-                                                                           false,
-                                                                           layer_idx,
-                                                                           f_roof.line_distance_,
-                                                                           storage.support.cross_fill_provider,
-                                                                           false).offsetPolyLine(config.support_line_width / 2));
+                fake_roof_lines.add(
+                    TreeSupportUtils::generateSupportInfillLines(f_roof.area_, config, false, layer_idx, f_roof.line_distance_, storage.support.cross_fill_provider, false)
+                        .offsetPolyLine(config.support_line_width / 2));
             }
             fake_roof_lines = fake_roof_lines.unionPolygons();
 
@@ -2257,19 +2253,15 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
             constexpr bool convert_every_part = true; // Convert every part into a PolygonsPart for the support.
 
 
-            storage.support.supportLayers[layer_idx].fillInfillParts(
-                support_layer_storage[layer_idx],
-                config.support_line_width,
-                config.support_wall_count,
-                false,
-                convert_every_part);
+            storage.support.supportLayers[layer_idx]
+                .fillInfillParts(support_layer_storage[layer_idx], config.support_line_width, config.support_wall_count, false, convert_every_part);
 
 
             // This only works because fractional support is always just projected upwards regular support or skin.
             // Also technically violates skin height, but there is no good way to prevent that.
             Polygons fractional_support;
 
-            if(layer_idx > 0)
+            if (layer_idx > 0)
             {
                 fractional_support = support_layer_storage_fractional[layer_idx].intersection(support_layer_storage[layer_idx - 1]);
             }
@@ -2278,23 +2270,13 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
                 fractional_support = support_layer_storage_fractional[layer_idx];
             }
 
-            storage.support.supportLayers[layer_idx].fillInfillParts(
-                fractional_support,
-                config.support_line_width,
-                config.support_wall_count,
-                true,
-                convert_every_part);
+            storage.support.supportLayers[layer_idx].fillInfillParts(fractional_support, config.support_line_width, config.support_wall_count, true, convert_every_part);
 
 
-            for(FakeRoofArea& fake_roof : fake_roof_areas[layer_idx])
+            for (FakeRoofArea& fake_roof : fake_roof_areas[layer_idx])
             {
-                storage.support.supportLayers[layer_idx].fillInfillParts(
-                    fake_roof.area_,
-                    config.support_line_width,
-                    0,
-                    fake_roof.fractional_,
-                    convert_every_part,
-                    fake_roof.line_distance_);
+                storage.support.supportLayers[layer_idx]
+                    .fillInfillParts(fake_roof.area_, config.support_line_width, 0, fake_roof.fractional_, convert_every_part, fake_roof.line_distance_);
             }
 
 
@@ -2414,10 +2396,8 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
         {
             for (std::pair<TreeSupportElement*, Polygons> data_pair : layer_tree_polygons[layer_idx])
             {
-                if (data_pair.first->parents_.empty() &&
-                    ! data_pair.first->supports_roof_ &&
-                    layer_idx + 1 < support_roof_storage_fractional.size() &&
-                    config.z_distance_top % config.layer_height > 0)
+                if (data_pair.first->parents_.empty() && ! data_pair.first->supports_roof_ && layer_idx + 1 < support_roof_storage_fractional.size()
+                    && config.z_distance_top % config.layer_height > 0)
                 {
                     if (data_pair.first->missing_roof_layers_ > data_pair.first->distance_to_top_)
                     {
