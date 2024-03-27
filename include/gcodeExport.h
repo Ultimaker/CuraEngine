@@ -266,7 +266,7 @@ public:
      */
     void addExtraPrimeAmount(double extra_prime_volume);
 
-    Point3LL getPosition() const;
+    const Point3LL& getPosition() const;
 
     Point2LL getPositionXY() const;
 
