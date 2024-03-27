@@ -56,7 +56,7 @@ class LayerPlan : public NoCopy
 
 public:
     const PathConfigStorage configs_storage_; //!< The line configs for this layer for each feature type
-    coord_t z_;
+    const coord_t z_;
     coord_t final_travel_z_;
     bool mode_skip_agressive_merge_; //!< Whether to give every new path the 'skip_agressive_merge_hint' property (see GCodePath); default is false.
 
