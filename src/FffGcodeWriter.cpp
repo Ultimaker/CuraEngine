@@ -597,12 +597,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         LayerIndex layer_nr = initial_raft_layer_nr;
         const coord_t layer_height = base_settings.get<coord_t>("raft_base_thickness");
         z += layer_height;
-        const coord_t comb_offset =
-            std::max
-            (
-                base_settings.get<coord_t>("raft_base_line_spacing"),
-                base_settings.get<coord_t>("raft_base_line_width")
-            );
+        const coord_t comb_offset = std::max(base_settings.get<coord_t>("raft_base_line_spacing"), base_settings.get<coord_t>("raft_base_line_width"));
 
         std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_raft_base
             = fan_speed_layer_time_settings_per_extruder; // copy so that we change only the local copy
