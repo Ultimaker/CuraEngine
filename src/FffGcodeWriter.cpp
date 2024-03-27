@@ -597,7 +597,12 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         LayerIndex layer_nr = initial_raft_layer_nr;
         const coord_t layer_height = base_settings.get<coord_t>("raft_base_thickness");
         z += layer_height;
-        const coord_t comb_offset = base_settings.get<coord_t>("raft_base_line_spacing");
+        const coord_t comb_offset =
+            std::max
+            (
+                base_settings.get<coord_t>("raft_base_line_spacing"),
+                base_settings.get<coord_t>("raft_base_line_width")
+            );
 
         std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_raft_base
             = fan_speed_layer_time_settings_per_extruder; // copy so that we change only the local copy
@@ -770,7 +775,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
         }
 
-        const coord_t comb_offset = interface_line_spacing;
+        const coord_t comb_offset = std::max(interface_line_spacing, interface_line_width);
         LayerPlan& gcode_layer = *new LayerPlan(
             storage,
             layer_nr,
@@ -940,7 +945,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
         }
 
-        const coord_t comb_offset = surface_line_spacing;
+        const coord_t comb_offset = std::max(surface_line_spacing, surface_line_width);
         LayerPlan& gcode_layer = *new LayerPlan(
             storage,
             layer_nr,
