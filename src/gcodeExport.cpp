@@ -411,7 +411,7 @@ void GCodeExport::setFlowRateExtrusionSettings(double max_extrusion_offset, doub
     this->extrusion_offset_factor_ = extrusion_offset_factor;
 }
 
-Point3LL GCodeExport::getPosition() const
+const Point3LL& GCodeExport::getPosition() const
 {
     return current_position_;
 }
