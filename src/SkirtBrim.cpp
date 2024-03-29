@@ -508,7 +508,7 @@ void SkirtBrim::generateSecondarySkirtBrim(Polygons& covered_area, std::vector<P
             if (first)
             {
                 ref_polys_or_idx = &reference_outline;
-                offset_from_reference = extruder_config.line_width_ / 2 + extruder_config.gap_;
+                offset_from_reference = extruder_config.line_width_ / 2;
             }
             else
             {
