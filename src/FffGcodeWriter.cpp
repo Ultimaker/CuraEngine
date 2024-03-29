@@ -1346,6 +1346,12 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     {
         total_line_count += line.closed_polygons.size();
         total_line_count += line.open_polylines.size();
+
+        // For layer_nr != 0 add only the innermost brim line (which is only the case if skirt_height > 1)
+        if (layer_nr != 0)
+        {
+            break;
+        }
     }
     Polygons all_brim_lines;
 
@@ -1382,6 +1388,12 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
                     grid.insert(p, BrimLineReference{ inset_idx, pp });
                 }
             }
+        }
+
+        // For layer_nr != 0 add only the innermost brim line (which is only the case if skirt_height > 1)
+        if (layer_nr != 0)
+        {
+            break;
         }
     }
 
@@ -1442,12 +1454,8 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
 
     if (! all_brim_lines.empty())
     {
-        // For layer_nr != 0 add only the innermost brim line (which is only the case if skirt_height > 1)
-        Polygons inner_brim_line;
-        inner_brim_line.add(all_brim_lines[0]);
-
         gcode_layer.addLinesByOptimizer(
-            layer_nr == 0 ? all_brim_lines : inner_brim_line,
+            all_brim_lines,
             gcode_layer.configs_storage_.skirt_brim_config_per_extruder[extruder_nr],
             SpaceFillType::PolyLines,
             enable_travel_optimization,
