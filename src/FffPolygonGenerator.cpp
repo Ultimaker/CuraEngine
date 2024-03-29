@@ -404,6 +404,8 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);
 
+    storage.primeTower.initializeExtruders(storage.getExtrudersUsed());
+
     AreaSupport::generateOverhangAreas(storage);
     AreaSupport::generateSupportAreas(storage);
     TreeSupport tree_support_generator(storage);

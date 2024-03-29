@@ -28,8 +28,8 @@ class LayerPlan;
 class PrimeTower
 {
 private:
-    using MovesByExtruder = std::vector<Polygons>;
-    using MovesByLayer = std::vector<MovesByExtruder>;
+    using MovesByExtruder = std::map<size_t, Polygons>;
+    using MovesByLayer = std::map<size_t, std::vector<Polygons>>;
 
     size_t extruder_count_; //!< Number of extruders
 
@@ -79,10 +79,12 @@ public:
      */
     PrimeTower();
 
+    void initializeExtruders(const std::vector<bool>& used_extruders);
+
     /*!
      * Check whether we actually use the prime tower.
      */
-    void checkUsed(const SliceDataStorage& storage);
+    void checkUsed();
 
     /*!
      * Generate the prime tower area to be used on each layer
