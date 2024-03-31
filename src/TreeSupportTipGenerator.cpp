@@ -1626,12 +1626,10 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
                 {
                     std::lock_guard<std::mutex> critical_section_potential_support_roofs(critical_potential_support_roofs);
                     potential_support_roofs[layer_idx - dtt_roof].add((full_overhang_area));
-
                     if(dtt_roof == 0)
                     {
-                        support_roof_drawn_fractional_[layer_idx+1].add(full_overhang_area);
+                        support_roof_drawn_fractional_[layer_idx].add(full_overhang_area);
                     }
-
                 }
                 else
                 {
@@ -1856,8 +1854,12 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(std::vector<std::set<Tree
             added_roofs = added_roofs.unionPolygons();
             {
                 std::lock_guard<std::mutex> critical_section_roof(critical_roof_tips_);
-
                 roof_tips_drawn_[insert_layer_idx - dtt_roof_tip].add(added_roofs);
+
+                if(dtt_roof_tip == 0)
+                {
+                    support_roof_drawn_fractional_[insert_layer_idx].add(added_roofs);
+                }
             }
         }
     }
@@ -2359,37 +2361,35 @@ void TreeSupportTipGenerator::generateTips(
             {
                 if (use_fake_roof_)
                 {
+                    placed_fake_roof_areas[layer_idx].emplace_back(support_roof_drawn_[layer_idx], support_roof_line_distance_, false);
 
-                    placed_fake_roof_areas[layer_idx].emplace_back(support_roof_drawn_[layer_idx],support_roof_line_distance_, false);
-
-
-                    if (config_.z_distance_top % config_.layer_height != 0)
+                    if (config_.z_distance_top % config_.layer_height != 0 && layer_idx > 0)
                     {
-                        Polygons all_roof = support_roof_drawn_[layer_idx].unionPolygons(roof_tips_drawn_[layer_idx]);
-                        Polygons valid_fractional_roof = support_roof_drawn_fractional_[layer_idx].intersection(all_roof);
-                        placed_fake_roof_areas[layer_idx].emplace_back(support_roof_drawn_fractional_[layer_idx], support_roof_line_distance_, true);
+                        // Fake roof tips would just be tips, so no need to add them here as all polygons in roof_tips_drawn_ will be empty!
+                        Polygons all_roof_fractional = support_roof_drawn_fractional_[layer_idx - 1].intersection(support_roof_drawn_[layer_idx - 1]);
+                        placed_fake_roof_areas[layer_idx].emplace_back(all_roof_fractional, support_roof_line_distance_, true);
                     }
                 }
                 else
                 {
-                    storage.support.supportLayers[layer_idx].support_roof.add(support_roof_drawn_[layer_idx]);
-                    storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.unionPolygons(roof_tips_drawn_[layer_idx]);
-
-                    if (config_.z_distance_top % config_.layer_height != 0)
+                    if (config_.z_distance_top % config_.layer_height != 0 && layer_idx > 0)
                     {
-                        Polygons all_roof = support_roof_drawn_[layer_idx].unionPolygons(roof_tips_drawn_[layer_idx]);
-                        Polygons valid_fractional_roof = support_roof_drawn_fractional_[layer_idx].intersection(all_roof);
+                        Polygons all_roof_below = support_roof_drawn_[layer_idx - 1].unionPolygons(roof_tips_drawn_[layer_idx - 1]);
+                        Polygons all_roof_fractional = support_roof_drawn_fractional_[layer_idx - 1].intersection(all_roof_below);
                         storage.support.supportLayers[layer_idx].support_fractional_roof =
-                            storage.support.supportLayers[layer_idx].support_fractional_roof.unionPolygons(valid_fractional_roof);
+                            storage.support.supportLayers[layer_idx].support_fractional_roof.unionPolygons(all_roof_fractional);
 
                         // Fractional roof is a modifier applied to a roof area, which means if only the fractional roof area is set, there will be nothing as there is no roof to modify.
                         // Because of that the fractional roof has ALSO to be added to the roof.
-                        storage.support.supportLayers[layer_idx].support_roof =
-                            storage.support.supportLayers[layer_idx].support_roof.unionPolygons(valid_fractional_roof);
+                        storage.support.supportLayers[layer_idx].support_roof.add(all_roof_fractional);
                     }
+
+                    Polygons all_roof = support_roof_drawn_[layer_idx].unionPolygons(roof_tips_drawn_[layer_idx]);
+                    storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.unionPolygons(all_roof);
                 }
             }
         });
+
     cradle_data_export.resize(cradle_data_.size());
 
     for (auto [layer_idx, cradles] : cradle_data_ | ranges::views::enumerate)

@@ -1021,9 +1021,6 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
         }
     }
 
-
-
-
     return check_layer_data.area() > 1 ? std::optional<TreeSupportElement>(current_elem) : std::optional<TreeSupportElement>();
 }
 
@@ -2360,17 +2357,25 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
             {
 
                 Polygons fake_roof;
+                Polygons fake_roof_lines;
 
                 for(FakeRoofArea& f_roof:fake_roof_areas[layer_idx])
                 {
                     fake_roof.add(f_roof.area_);
+                    fake_roof_lines.add(TreeSupportUtils::generateSupportInfillLines(f_roof.area_,
+                                                                                     config,
+                                                                                     false,
+                                                                                     layer_idx,
+                                                                                     f_roof.line_distance_,
+                                                                                     storage.support.cross_fill_provider,
+                                                                                     false).offsetPolyLine(config.support_line_width / 2));
                 }
-
+                fake_roof_lines = fake_roof_lines.unionPolygons();
                 fake_roof = fake_roof.unionPolygons();
                 fake_roofs[layer_idx] = fake_roof;
 
                 support_layer_storage[layer_idx] = config.simplifier.polygon(PolygonUtils::unionManySmall(support_layer_storage[layer_idx].smooth(FUDGE_LENGTH))).offset(-open_close_distance).offset(open_close_distance * 2).offset(-open_close_distance);
-                support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(fake_roof);
+                support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(fake_roof_lines);
                 support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(cradle_line_xy_distance_areas[layer_idx].unionPolygons());
                 support_layer_storage[layer_idx].removeSmallAreas(small_area_length * small_area_length, false);
                 additional_required_support_area[layer_idx] = additional_required_support_area[layer_idx].unionPolygons();
@@ -2632,7 +2637,7 @@ void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_stora
             support_holes[layer_idx] = holes_original;
         });
 
-
+    const auto t_union = std::chrono::high_resolution_clock::now();
 
     std::vector<std::vector<Polygons>> holeparts(support_layer_storage.size());
     // Split all holes into parts
@@ -2762,13 +2767,15 @@ void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_stora
 
     const auto t_end = std::chrono::high_resolution_clock::now();
 
-    const auto dur_hole_rest_ordering = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_hole_rest_ordering - t_start).count();
+    const auto dur_union = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_union - t_start).count();
+    const auto dur_hole_rest_ordering = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_hole_rest_ordering - t_union).count();
     const auto dur_hole_removal_tagging = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_hole_removal_tagging - t_hole_rest_ordering).count();
 
     const auto dur_hole_removal = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_hole_removal_tagging).count();
     spdlog::debug(
-        "Time to evaluate which hole rest on which other hole: {} ms Time to see which holes are not resting on anything valid: {} ms remove all holes "
+        "Time to union areas: {} ms Time to evaluate which hole rest on which other hole: {} ms Time to see which holes are not resting on anything valid: {} ms remove all holes "
         "that are invalid and not close enough to a valid hole: {} ms",
+        dur_union,
         dur_hole_rest_ordering,
         dur_hole_removal_tagging,
         dur_hole_removal);
@@ -2881,7 +2888,10 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
             constexpr bool convert_every_part = true; // Convert every part into a PolygonsPart for the support.
 
             storage.support.supportLayers[layer_idx].fillInfillParts(
-                support_layer_storage[layer_idx],
+                layer_idx,
+                support_layer_storage,
+                config.layer_height,
+                storage.meshes,
                 config.support_line_width,
                 config.support_wall_count,
                 false,
@@ -2959,7 +2969,6 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
     std::vector<Polygons> support_layer_storage(move_bounds.size());
     std::vector<Polygons> support_layer_storage_fractional(move_bounds.size());
     std::vector<Polygons> support_roof_storage_fractional(move_bounds.size());
-
     std::vector<Polygons> support_skin_storage(move_bounds.size());
     std::vector<Polygons> support_roof_storage(move_bounds.size());
     std::map<TreeSupportElement*, TreeSupportElement*>
@@ -3101,7 +3110,12 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
     const auto dur_finalize = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_filter).count();
     spdlog::info(
         "Time used for drawing subfuctions: generateBranchAreas: {} ms smoothBranchAreas: {} ms dropNonGraciousAreas: {} ms generateSupportSkin {} ms filterFloatingLines: {} ms "
-        "finalizeInterfaceAndSupportAreas {} ms", dur_gen_tips, dur_smooth, dur_drop, dur_skin, dur_filter,
+        "finalizeInterfaceAndSupportAreas {} ms",
+        dur_gen_tips,
+        dur_smooth,
+        dur_drop,
+        dur_skin,
+        dur_filter,
         dur_finalize);
 }
 

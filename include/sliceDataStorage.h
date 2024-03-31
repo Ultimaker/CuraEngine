@@ -227,6 +227,17 @@ public:
      */
     void excludeAreasFromSupportInfillAreas(const Polygons& exclude_polygons, const AABB& exclude_polygons_boundary_box);
 
+    /* Fill up the infill parts for the support with the given support polygons. The support polygons will be split into parts.
+     *
+     * \param area The support polygon to fill up with infill parts.
+     * \param support_fill_per_layer The support polygons to fill up with infill parts.
+     * \param support_line_width Line width of the support extrusions.
+     * \param wall_line_count Wall-line count around the fill.
+     * \param use_fractional_config (optional, default to false) If the area should be added as fractional support.
+     * \param unionAll (optional, default to false) Wether to 'union all' for the split into parts bit.
+     * \param custom_line_distance (optional, default to 0) Distance between lines of the infill pattern. custom_line_distance of 0 means use the default instead.
+     * \param custom_pattern (optional, default to EFillMethod::NONE) Set if a non default infill pattern should be used
+     */
     void fillInfillParts(const Polygons& area,
                          const coord_t support_line_width,
                          const coord_t wall_line_count,

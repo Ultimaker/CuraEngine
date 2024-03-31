@@ -22,7 +22,6 @@ namespace cura
 {
 
 
-
 class TreeSupportTipGenerator
 {
 public:
