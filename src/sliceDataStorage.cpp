@@ -362,13 +362,9 @@ Polygons SliceDataStorage::getLayerOutlines(
                 total.add(support_layer.support_roof);
             }
         }
-        int prime_tower_outer_extruder_nr = primeTower.extruder_order_[0];
-        if (include_prime_tower && (extruder_nr == -1 || extruder_nr == prime_tower_outer_extruder_nr))
+        if (include_prime_tower && primeTower.enabled_ && (extruder_nr == -1 || (! primeTower.extruder_order_.empty() && extruder_nr == primeTower.extruder_order_[0])))
         {
-            if (primeTower.enabled_)
-            {
-                total.add(primeTower.getOuterPoly(layer_nr));
-            }
+            total.add(primeTower.getOuterPoly(layer_nr));
         }
         return total;
     }
