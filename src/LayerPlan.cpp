@@ -310,7 +310,7 @@ void LayerPlan::setMesh(const std::shared_ptr<const SliceMeshStorage>& mesh)
     current_mesh_ = mesh;
 }
 
-void LayerPlan::moveInsideCombBoundary(const coord_t distance, const std::optional<SliceLayerPart>& part)
+void LayerPlan::moveInsideCombBoundary(const coord_t distance, const std::optional<SliceLayerPart>& part, GCodePath* path)
 {
     constexpr coord_t max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
     // this function is to be used to move from the boundary of a part to inside the part
@@ -321,7 +321,7 @@ void LayerPlan::moveInsideCombBoundary(const coord_t distance, const std::option
         PolygonUtils::moveInside(comb_boundary_preferred_, p, distance, max_dist2);
         if (comb_boundary_preferred_.inside(p) && (part == std::nullopt || part->outline.inside(p)))
         {
-            addTravel_simple(p);
+            addTravel_simple(p, path);
             // Make sure the that any retraction happens after this move, not before it by starting a new move path.
             forceNewPathStart();
         }
@@ -507,7 +507,7 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const bool force_retract, con
             {
                 innermost_wall_line_width *= mesh_or_extruder_settings.get<Ratio>("initial_layer_line_width_factor");
             }
-            moveInsideCombBoundary(innermost_wall_line_width);
+            moveInsideCombBoundary(innermost_wall_line_width, std::nullopt, path);
         }
         path->retract = retraction_enable;
         path->perform_z_hop = retraction_enable && mesh_or_extruder_settings.get<bool>("retraction_hop_enabled");
@@ -2185,6 +2185,13 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 ss << "MESH:" << (current_mesh ? current_mesh->mesh_name : "NONMESH");
                 gcode.writeComment(ss.str());
             }
+
+            if (! path.spiralize && (! path.retract || ! path.perform_z_hop) && (z_ + path.z_offset != gcode.getPositionZ()) && (path_idx > 0 || layer_nr_ > 0))
+            {
+                // First move to desired height to then make a plain horizontal move
+                gcode.writeTravel(Point3LL(gcode.getPosition().x_, gcode.getPosition().y_, z_ + path.z_offset), speed);
+            }
+
             if (path.config.isTravelPath())
             { // early comp for travel paths, which are handled more simply
                 if (! path.perform_z_hop && final_travel_z_ != z_ && extruder_plan_idx == (extruder_plans_.size() - 1) && path_idx == (paths.size() - 1))
@@ -2206,7 +2213,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     // We need to unretract before the last travel move of the path if the next path is an outer wall.
                     gcode.writeUnretractionAndPrime();
                 }
-                gcode.writeTravel(path.points.back(), speed);
+                if (! path.points.empty())
+                {
+                    gcode.writeTravel(path.points.back(), speed);
+                }
                 continue;
             }
 

@@ -348,12 +348,6 @@ void PrimeTower::addToGcode(
         post_wipe = false;
     }
 
-    // Go to the start location if it's not the first layer
-    if (layer_nr != 0)
-    {
-        gotoStartLocation(gcode_layer, new_extruder_nr);
-    }
-
     auto extruder_iterator = std::find_if(
         required_extruder_prime.begin(),
         required_extruder_prime.end(),
@@ -393,11 +387,14 @@ void PrimeTower::addToGcode(
         break;
 
     case ExtruderPrime::Sparse:
+        gotoStartLocation(gcode_layer, new_extruder_nr);
         extra_primed_extruders_idx = findExtrudersSparseInfill(gcode_layer, required_extruder_prime, method, { new_extruder_idx });
         addToGcode_sparseInfill(gcode_layer, extra_primed_extruders_idx, new_extruder_nr);
         break;
 
     case ExtruderPrime::Prime:
+        gotoStartLocation(gcode_layer, new_extruder_nr);
+
         addToGcode_denseInfill(gcode_layer, new_extruder_nr);
         gcode_layer.setPrimeTowerIsPlanned(new_extruder_nr);
 
@@ -627,19 +624,22 @@ const Polygons& PrimeTower::getGroundPoly() const
 
 void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const int extruder_nr) const
 {
-    int current_start_location_idx = ((((extruder_nr + 1) * gcode_layer.getLayerNr()) % number_of_prime_tower_start_locations_) + number_of_prime_tower_start_locations_)
-                                   % number_of_prime_tower_start_locations_;
+    if (gcode_layer.getLayerNr() != 0)
+    {
+        int current_start_location_idx = ((((extruder_nr + 1) * gcode_layer.getLayerNr()) % number_of_prime_tower_start_locations_) + number_of_prime_tower_start_locations_)
+                                       % number_of_prime_tower_start_locations_;
 
-    const ClosestPolygonPoint wipe_location = prime_tower_start_locations_[current_start_location_idx];
+        const ClosestPolygonPoint wipe_location = prime_tower_start_locations_[current_start_location_idx];
 
-    const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
-    const coord_t inward_dist = train.settings_.get<coord_t>("machine_nozzle_size") * 3 / 2;
-    const coord_t start_dist = train.settings_.get<coord_t>("machine_nozzle_size") * 2;
-    const Point2LL prime_end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
-    const Point2LL outward_dir = wipe_location.location_ - prime_end;
-    const Point2LL prime_start = wipe_location.location_ + normal(outward_dir, start_dist);
+        const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
+        const coord_t inward_dist = train.settings_.get<coord_t>("machine_nozzle_size") * 3 / 2;
+        const coord_t start_dist = train.settings_.get<coord_t>("machine_nozzle_size") * 2;
+        const Point2LL prime_end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
+        const Point2LL outward_dir = wipe_location.location_ - prime_end;
+        const Point2LL prime_start = wipe_location.location_ + normal(outward_dir, start_dist);
 
-    gcode_layer.addTravel(prime_start);
+        gcode_layer.addTravel(prime_start);
+    }
 }
 
 } // namespace cura

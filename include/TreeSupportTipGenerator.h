@@ -33,7 +33,7 @@ public:
      * \param mesh[in] The mesh that is currently processed. Contains the overhangs.
      * \param move_bounds[out] The storage for the tips.
      * \param additional_support_areas[out] Areas that should have been roofs, but are now support, as they would not generate any lines as roof. Should already be initialised.
-
+     * \param placed_fake_roof_areas[out] Areas where fake roof has to be placed.
      * \return All lines of the \p polylines object, with information for each point regarding in which avoidance it is currently valid in.
      */
     void generateTips(
@@ -41,7 +41,7 @@ public:
         const SliceMeshStorage& mesh,
         std::vector<std::set<TreeSupportElement*>>& move_bounds,
         std::vector<Polygons>& additional_support_areas,
-        std::vector<Polygons>& placed_support_lines_support_areas);
+        std::vector<std::vector<FakeRoofArea>>& placed_fake_roof_areas);
 
 private:
     enum class LineStatus
@@ -297,6 +297,11 @@ private:
      * \brief Areas that will be saved as support roof
      */
     std::vector<Polygons> support_roof_drawn_;
+
+    /*!
+     * \brief Areas that require fractional roof above it.
+     */
+    std::vector<Polygons> support_roof_drawn_fractional_;
 
     /*!
      * \brief Areas that will be saved as support roof, originating from tips being replaced with roof areas.
