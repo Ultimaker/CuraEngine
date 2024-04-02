@@ -3,6 +3,7 @@
 
 #include "geometry/shape.h"
 
+#include <mapbox/geometry/wagyu/wagyu.hpp>
 #include <unordered_set>
 
 #include <boost/geometry/geometries/point_xy.hpp>
@@ -811,6 +812,58 @@ void Shape::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Shape& 
             splitIntoPartsView_processPolyTreeNode(partsView, reordered, child->Childs[i]);
         }
     }
+}
+
+Shape Shape::removeNearSelfIntersections() const
+{
+    using map_pt = mapbox::geometry::point<coord_t>;
+    using map_ring = mapbox::geometry::linear_ring<coord_t>;
+    using map_poly = mapbox::geometry::polygon<coord_t>;
+    using map_mpoly = mapbox::geometry::multi_polygon<coord_t>;
+
+    map_mpoly mwpoly;
+
+    mapbox::geometry::wagyu::wagyu<coord_t> wagyu;
+
+    for (auto& polygon : splitIntoParts())
+    {
+        mwpoly.emplace_back();
+        map_poly& wpoly = mwpoly.back();
+        for (auto& path : polygon)
+        {
+            wpoly.push_back(std::move(*reinterpret_cast<std::vector<mapbox::geometry::point<coord_t>>*>(&path)));
+            for (auto& point : wpoly.back())
+            {
+                point.x /= 4;
+                point.y /= 4;
+            }
+            wagyu.add_ring(wpoly.back());
+        }
+    }
+
+    map_mpoly sln;
+
+    wagyu.execute(mapbox::geometry::wagyu::clip_type_union, sln, mapbox::geometry::wagyu::fill_type_even_odd, mapbox::geometry::wagyu::fill_type_even_odd);
+
+    Shape polys;
+
+    for (auto& poly : sln)
+    {
+        for (auto& ring : poly)
+        {
+            ring.pop_back();
+            for (auto& point : ring)
+            {
+                point.x *= 4;
+                point.y *= 4;
+            }
+            polys.push_back(*reinterpret_cast<std::vector<ClipperLib::IntPoint>*>(&ring)); // NOTE: 'add' already moves the vector
+        }
+    }
+    polys = polys.unionPolygons();
+    polys.removeColinearEdges();
+
+    return polys;
 }
 
 void Shape::ensureManifold()

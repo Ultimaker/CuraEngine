@@ -1,6 +1,6 @@
 #  Copyright (c) 2024 UltiMaker
 #  CuraEngine is released under the terms of the AGPLv3 or higher
-from io import StringIO
+from shutil import which
 from os import path
 import os
 
@@ -66,13 +66,16 @@ class CuraEngineConan(ConanFile):
     def config_options(self):
         if not self.options.enable_plugins:
             del self.options.enable_remote_plugins
-        if self.conf.get("user.curaengine:sentry_url", "", check_type=str) == "":
+        sentry_project = self.conf.get("user.curaengine:sentry_project", "", check_type=str)
+        sentry_org = self.conf.get("user.curaengine:sentry_org", "", check_type=str)
+        if os.environ.get('SENTRY_TOKEN', None) is None or sentry_project == "" or sentry_org == "":
             del self.options.enable_sentry
 
     def configure(self):
         self.options["boost"].header_only = True
         self.options["clipper"].shared = True
-        self.options["protobuf"].shared = False
+        if self.options.enable_arcus or self.options.enable_plugins:
+            self.options["protobuf"].shared = False
         if self.options.enable_arcus:
             self.options["arcus"].shared = True
         if self.settings.os == "Linux":
@@ -101,15 +104,20 @@ class CuraEngineConan(ConanFile):
 
     def requirements(self):
         for req in self.conan_data["requirements"]:
-            if "arcus" in req and not self.options.enable_arcus:
-                continue
             self.requires(req)
+        if self.options.enable_arcus:
+            for req in self.conan_data["requirements_arcus"]:
+                self.requires(req)
         if self.options.get_safe("enable_sentry", False):
             self.requires("sentry-native/0.6.5")
+        if self.options.enable_plugins:
+            self.requires("neargye-semver/0.3.0")
+            self.requires("asio-grpc/2.6.0")
+            self.requires("grpc/1.50.1")
+            for req in self.conan_data["requirements_plugins"]:
+                self.requires(req)
         if self.options.enable_arcus or self.options.enable_plugins:
-            self.requires("protobuf/3.21.9")
-        self.requires("asio-grpc/2.6.0")
-        self.requires("grpc/1.50.1")
+            self.requires("protobuf/3.21.12")
         self.requires("clipper/6.4.2@ultimaker/stable")
         self.requires("boost/1.82.0")
         self.requires("rapidjson/1.1.0")
@@ -117,9 +125,9 @@ class CuraEngineConan(ConanFile):
         self.requires("spdlog/1.12.0")
         self.requires("fmt/10.1.1")
         self.requires("range-v3/0.12.0")
-        self.requires("neargye-semver/0.3.0")
         self.requires("zlib/1.2.12")
         self.requires("openssl/3.2.0")
+        self.requires("mapbox-wagyu/0.5.0@ultimaker/stable")
 
     def generate(self):
         deps = CMakeDeps(self)
@@ -132,6 +140,7 @@ class CuraEngineConan(ConanFile):
         tc.variables["ENABLE_BENCHMARKS"] = self.options.enable_benchmarks
         tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
         tc.variables["OLDER_APPLE_CLANG"] = self.settings.compiler == "apple-clang" and Version(self.settings.compiler.version) < "14"
+        tc.variables["ENABLE_THREADING"] = not (self.settings.arch == "wasm" and self.settings.os == "Emscripten")
         if self.options.get_safe("enable_sentry", False):
             tc.variables["ENABLE_SENTRY"] = True
             tc.variables["SENTRY_URL"] = self.conf.get("user.curaengine:sentry_url", "", check_type=str)
@@ -204,8 +213,15 @@ class CuraEngineConan(ConanFile):
                 self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases finalize -o {sentry_org} -p {sentry_project} {self.version}")
 
     def package(self):
-        ext = ".exe" if self.settings.os == "Windows" else ""
+        match self.settings.os:
+            case "Windows":
+                ext = ".exe"
+            case "Emscripten":
+                ext = ".js"
+            case other:
+                ext = ""
         copy(self, f"CuraEngine{ext}", src=self.build_folder, dst=path.join(self.package_folder, "bin"))
+        copy(self, f"*.d.ts", src=self.build_folder, dst=path.join(self.package_folder, "bin"))
         copy(self, f"_CuraEngine.*", src=self.build_folder, dst=path.join(self.package_folder, "lib"))
         copy(self, "LICENSE*", src=self.source_folder, dst=path.join(self.package_folder, "license"))
 

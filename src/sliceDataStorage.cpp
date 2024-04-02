@@ -271,7 +271,8 @@ Shape SliceDataStorage::getLayerOutlines(
     const bool include_support,
     const bool include_prime_tower,
     const bool external_polys_only,
-    const int extruder_nr) const
+    const int extruder_nr,
+    const bool include_models) const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
 
@@ -331,7 +332,7 @@ Shape SliceDataStorage::getLayerOutlines(
     case Raft::LayerType::Model:
     {
         Shape total;
-        if (layer_nr >= 0)
+        if (include_models && layer_nr >= 0)
         {
             for (const std::shared_ptr<SliceMeshStorage>& mesh : meshes)
             {
@@ -743,7 +744,10 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Shape& exclude_polyg
     {
         const size_t remove_idx = to_remove_part_indices.back();
         to_remove_part_indices.pop_back();
-
+        if (support_infill_parts.empty())
+        {
+            continue;
+        }
         if (remove_idx < support_infill_parts.size() - 1)
         { // move last element to the to-be-removed element so that we can erase the last place in the vector
             support_infill_parts[remove_idx] = std::move(support_infill_parts.back());
@@ -755,15 +759,30 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Shape& exclude_polyg
 void SupportLayer::fillInfillParts(
     const LayerIndex layer_nr,
     const std::vector<Shape>& support_fill_per_layer,
+    const coord_t infill_layer_height,
+    const std::vector<std::shared_ptr<SliceMeshStorage>>& meshes,
     const coord_t support_line_width,
     const coord_t wall_line_count,
     const coord_t grow_layer_above /*has default 0*/,
     const bool unionAll /*has default false*/,
     const coord_t custom_line_distance /*has default 0*/)
 {
-    const Shape& support_this_layer = support_fill_per_layer[layer_nr];
-    const Shape& support_layer_above = (layer_nr + 1) >= support_fill_per_layer.size() || layer_nr <= 0 ? Shape() : support_fill_per_layer[layer_nr + 1].offset(grow_layer_above);
-    const auto all_support_areas_in_layer = { support_this_layer.difference(support_layer_above), support_this_layer.intersection(support_layer_above) };
+    // Find the model exactly z-distance above the support layer.
+    Shape overhang_z_dist_above;
+    for (const auto& mesh : meshes)
+    {
+        const coord_t mesh_z_distance_top = mesh->settings.get<coord_t>("support_top_distance");
+        const size_t overhang_layer_nr = layer_nr + (mesh_z_distance_top / infill_layer_height) + 1;
+        if (overhang_layer_nr < mesh->overhang_areas.size())
+        {
+            overhang_z_dist_above.add(mesh->overhang_areas[overhang_layer_nr]);
+        }
+    }
+    overhang_z_dist_above = overhang_z_dist_above.unionPolygons();
+
+    // Split the support outline into areas that are directly under the overhang and areas that are not.
+    const auto all_support_areas_in_layer
+        = { support_fill_per_layer[layer_nr].intersection(overhang_z_dist_above), support_fill_per_layer[layer_nr].difference(overhang_z_dist_above) };
     bool use_fractional_config = true;
     for (auto& support_areas : all_support_areas_in_layer)
     {

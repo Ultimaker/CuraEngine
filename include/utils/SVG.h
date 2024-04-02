@@ -144,9 +144,9 @@ public:
 
     void writeText(const Point2LL& p, const std::string& txt, const ColorObject color = Color::BLACK, const double font_size = 10.0) const;
 
-    void writePolygons(const Shape& polys, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
+    void writePolygons(const Shape& polys, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const bool flush = true) const;
 
-    void writePolygon(const Polygon& poly, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
+    void writePolygon(Polygon poly, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const bool flush = true) const;
 
     void writePolylines(const Shape& polys, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
 

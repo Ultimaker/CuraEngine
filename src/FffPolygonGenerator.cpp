@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <algorithm>
@@ -413,8 +413,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     computePrintHeightStatistics(storage);
 
     // handle helpers
-    storage.primeTower.checkUsed(storage);
-    storage.primeTower.generateGroundpoly();
     storage.primeTower.generatePaths(storage);
     storage.primeTower.subtractFromSupport(storage);
 
@@ -643,6 +641,10 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
         layer.parts.clear();
         for (SingleShape& part : new_parts)
         {
+            if (part.empty())
+            {
+                continue;
+            }
             layer.parts.emplace_back();
             layer.parts.back().outline = part;
             layer.parts.back().boundaryBox.calculate(part);
@@ -769,11 +771,20 @@ bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const LayerInd
 void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size_t& total_layers)
 {
     size_t n_empty_first_layers = 0;
+    coord_t hightest_empty_layer = 0;
     for (size_t layer_idx = 0; layer_idx < total_layers; layer_idx++)
     {
         if (isEmptyLayer(storage, layer_idx))
         {
             n_empty_first_layers++;
+
+            coord_t layer_highest_z = 0;
+            for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
+            {
+                const auto& mesh = *mesh_ptr;
+                layer_highest_z = layer_idx >= mesh.layers.size() ? layer_highest_z : std::max(layer_highest_z, mesh.layers[layer_idx].printZ);
+            }
+            hightest_empty_layer = std::max(hightest_empty_layer, layer_highest_z);
         }
         else
         {
@@ -797,7 +808,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size
             layers.erase(layers.begin(), layers.begin() + n_empty_first_layers);
             for (SliceLayer& layer : layers)
             {
-                layer.printZ -= n_empty_first_layers * layer_height;
+                layer.printZ -= hightest_empty_layer;
             }
             mesh.layer_nr_max_filled_layer -= n_empty_first_layers;
         }

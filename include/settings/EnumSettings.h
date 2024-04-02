@@ -245,6 +245,41 @@ enum class InsetDirection
     PLUGIN,
 };
 
+/*!
+ * Method used for prime tower generation
+ */
+enum class PrimeTowerMethod
+{
+    /*!
+     * Prime tower that minimizes time and used filament as much as possible.
+     */
+    INTERLEAVED,
+
+    /*!
+     * Prime tower that minimizes time and used filament, but doesn't allow
+     * for printing two different filaments over each other.
+     */
+    NORMAL,
+};
+
+/*!
+ * Brim location, inside, outside or both
+ */
+enum class BrimLocation
+{
+    OUTSIDE = 0x01, // Brim only on the outside of the model
+    INSIDE = 0x02, // Brim only on the inside of the model
+    EVERYWHERE = 0x03, // Brim on both the outside and inside of the model
+};
+
+/*!
+ * Convenience binary operator to allow testing brim location easily, like (actual_location & BrimLocation::OUTSIDE)
+ */
+static int operator&(BrimLocation location1, BrimLocation location2)
+{
+    return static_cast<int>(location1) & static_cast<int>(location2);
+}
+
 } // namespace cura
 
 #endif // ENUMSETTINGS_H

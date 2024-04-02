@@ -2,14 +2,16 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "LayerPlan.h" //The code under test.
+
+#include <gtest/gtest.h>
+
 #include "Application.h" //To provide settings for the layer plan.
 #include "RetractionConfig.h" //To provide retraction settings.
 #include "Slice.h" //To provide settings for the layer plan.
 #include "pathPlanning/Comb.h" //To create a combing path around the layer plan.
-#include "sliceDataStorage.h" //To provide slice data as input for the planning stage.
 #include "pathPlanning/NozzleTempInsert.h" //To provide nozzle temperature commands.
+#include "sliceDataStorage.h" //To provide slice data as input for the planning stage.
 #include "utils/Coord_t.h"
-#include <gtest/gtest.h>
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
@@ -59,7 +61,9 @@ public:
      */
     Mesh mesh;
 
-    LayerPlanTest() : storage(setUpStorage()), layer_plan(*storage, 100, 10000, 100, 0, fan_speed_layer_time_settings, 20, 10, 5000)
+    LayerPlanTest()
+        : storage(setUpStorage())
+        , layer_plan(*storage, 100, 10000, 100, 0, fan_speed_layer_time_settings, 20, 10, 5000)
     {
     }
 
@@ -119,7 +123,8 @@ public:
         settings->add("machine_width", "1000");
         settings->add("material_flow_layer_0", "100");
         settings->add("meshfix_maximum_travel_resolution", "0");
-        settings->add("prime_tower_enable", "true");
+        settings->add("prime_tower_enable", "false");
+        settings->add("prime_tower_mode", "normal");
         settings->add("prime_tower_flow", "108");
         settings->add("prime_tower_line_width", "0.48");
         settings->add("prime_tower_min_volume", "10");
@@ -312,7 +317,8 @@ public:
     Polygon between; // Between the start and end position.
     Polygon between_hole; // Negative polygon between the start and end position (a hole).
 
-    AddTravelTest() : parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>("false", "false", "off", false, false, AddTravelTestScene::OPEN))
+    AddTravelTest()
+        : parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>("false", "false", "off", false, false, AddTravelTestScene::OPEN))
     {
         around_start_end.add(Point2LL(-100, -100));
         around_start_end.add(Point2LL(500100, -100));
@@ -353,7 +359,8 @@ public:
         settings->add("retraction_hop_enabled", parameters.hop_enable);
         settings->add("retraction_combing", parameters.combing);
         settings->add("retraction_min_travel", parameters.is_long ? "1" : "10000"); // If disabled, give it a high minimum travel so we're sure that our travel move is shorter.
-        storage->retraction_wipe_config_per_extruder[0].retraction_config.retraction_min_travel_distance = settings->get<coord_t>("retraction_min_travel"); // Update the copy that the storage has of this.
+        storage->retraction_wipe_config_per_extruder[0].retraction_config.retraction_min_travel_distance
+            = settings->get<coord_t>("retraction_min_travel"); // Update the copy that the storage has of this.
         settings->add("retraction_combing_max_distance", parameters.is_long_combing ? "1" : "10000");
 
         Shape slice_data;
@@ -411,9 +418,16 @@ public:
 };
 // NOLINTEND(misc-non-private-member-variables-in-classes)
 
-INSTANTIATE_TEST_SUITE_P(AllCombinations,
-                         AddTravelTest,
-                         testing::Combine(testing::ValuesIn(retraction_enable), testing::ValuesIn(hop_enable), testing::ValuesIn(combing), testing::ValuesIn(is_long), testing::ValuesIn(is_long_combing), testing::ValuesIn(scene)));
+INSTANTIATE_TEST_SUITE_P(
+    AllCombinations,
+    AddTravelTest,
+    testing::Combine(
+        testing::ValuesIn(retraction_enable),
+        testing::ValuesIn(hop_enable),
+        testing::ValuesIn(combing),
+        testing::ValuesIn(is_long),
+        testing::ValuesIn(is_long_combing),
+        testing::ValuesIn(scene)));
 
 /*!
  * Test if there are indeed no retractions if retractions are disabled.
@@ -558,13 +572,10 @@ TEST_P(AddTravelTest, NoUnretractBeforeLastTravelMoveIfNoPriorRetraction)
 
 TEST(NozzleTempInsertTest, SortNozzleTempInsterts)
 {
-    std::vector<NozzleTempInsert> nozzle_temp_inserts {
-        { .path_idx = 1, .extruder = 1, .temperature = 100., .wait = true },
-        { .path_idx = 2, .extruder = 1, .temperature = 110., .wait = false, .time_after_path_start = 2. },
-        { .path_idx = 1, .extruder = 1, .temperature = 120., .wait = true },
-        { .path_idx = 5, .extruder = 1, .temperature = 130., .wait = false, .time_after_path_start = 1. },
-        { .path_idx = 5, .extruder = 1, .temperature = 140., .wait = true },
-        { .path_idx = 2, .extruder = 1, .temperature = 150., .wait = false, .time_after_path_start = 1. },
+    std::vector<NozzleTempInsert> nozzle_temp_inserts{
+        { .path_idx = 1, .extruder = 1, .temperature = 100., .wait = true }, { .path_idx = 2, .extruder = 1, .temperature = 110., .wait = false, .time_after_path_start = 2. },
+        { .path_idx = 1, .extruder = 1, .temperature = 120., .wait = true }, { .path_idx = 5, .extruder = 1, .temperature = 130., .wait = false, .time_after_path_start = 1. },
+        { .path_idx = 5, .extruder = 1, .temperature = 140., .wait = true }, { .path_idx = 2, .extruder = 1, .temperature = 150., .wait = false, .time_after_path_start = 1. },
     };
     std::sort(nozzle_temp_inserts.begin(), nozzle_temp_inserts.end());
     EXPECT_EQ(nozzle_temp_inserts[0].temperature, 100.);

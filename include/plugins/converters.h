@@ -1,8 +1,9 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef PLUGINS_CONVERTERS_H
 #define PLUGINS_CONVERTERS_H
+#ifdef ENABLE_PLUGINS
 
 #include <google/protobuf/empty.pb.h>
 #include <string>
@@ -129,5 +130,5 @@ struct gcode_paths_modify_response : public details::converter<gcode_paths_modif
 
 } // namespace cura::plugins
 
-
+#endif // ENABLE_PLUGINS
 #endif

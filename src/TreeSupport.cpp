@@ -94,7 +94,7 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
         mesh.first.setActualZ(known_z);
     }
 
-    placed_support_lines_support_areas = std::vector<Shape>(storage.support.supportLayers.size(), Shape());
+    fake_roof_areas = std::vector<std::vector<FakeRoofArea>>(storage.support.supportLayers.size(), std::vector<FakeRoofArea>());
 }
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
@@ -155,7 +155,12 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             exclude);
 
         // ### Precalculate avoidances, collision etc.
-        precalculate(storage, processing.second);
+        const LayerIndex max_required_layer = precalculate(storage, processing.second);
+        if (max_required_layer < 0)
+        {
+            spdlog::info("Support tree mesh group {} does not have any overhang. Skipping tree support generation for this support tree mesh group.", counter + 1);
+            continue; // If there is no overhang to support, skip these meshes
+        }
         const auto t_precalc = std::chrono::high_resolution_clock::now();
 
         // ### Place tips of the support tree
@@ -208,10 +213,10 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     storage.support.generated = true;
 }
 
-void TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes)
+LayerIndex TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes)
 {
     // Calculate top most layer that is relevant for support.
-    LayerIndex max_layer = 0;
+    LayerIndex max_layer = -1;
     for (size_t mesh_idx : currently_processing_meshes)
     {
         const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
@@ -240,14 +245,18 @@ void TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size
     }
 
     // ### The actual precalculation happens in TreeModelVolumes.
-    volumes_.precalculate(max_layer);
+    if (max_layer >= 0)
+    {
+        volumes_.precalculate(max_layer);
+    }
+    return max_layer;
 }
 
 
 void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage)
 {
     TreeSupportTipGenerator tip_gen(mesh, volumes_);
-    tip_gen.generateTips(storage, mesh, move_bounds, additional_required_support_area, placed_support_lines_support_areas);
+    tip_gen.generateTips(storage, mesh, move_bounds, additional_required_support_area, fake_roof_areas);
 }
 
 void TreeSupport::mergeHelper(
@@ -2125,7 +2134,11 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
         dur_hole_removal);
 }
 
-void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Shape>& support_layer_storage, std::vector<Shape>& support_roof_storage, SliceDataStorage& storage)
+void TreeSupport::finalizeInterfaceAndSupportAreas(
+    std::vector<Shape>& support_layer_storage,
+    std::vector<Shape>& support_roof_storage,
+    std::vector<Shape>& support_layer_storage_fractional,
+    SliceDataStorage& storage)
 {
     InterfacePreference interface_pref = config.interface_preference; // InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE;
     double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES + TREE_PROGRESS_AREA_CALC + TREE_PROGRESS_GENERATE_BRANCH_AREAS
@@ -2138,7 +2151,17 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Shape>& support_l
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
         {
-            support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(placed_support_lines_support_areas[layer_idx]);
+            Shape fake_roof_lines;
+
+            for (FakeRoofArea& f_roof : fake_roof_areas[layer_idx])
+            {
+                fake_roof_lines.add(
+                    TreeSupportUtils::generateSupportInfillLines(f_roof.area_, config, false, layer_idx, f_roof.line_distance_, storage.support.cross_fill_provider, false)
+                        .offset(config.support_line_width / 2));
+            }
+            fake_roof_lines = fake_roof_lines.unionPolygons();
+
+            support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(fake_roof_lines);
 
             // Subtract support lines of the branches from the roof
             storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.unionPolygons(support_roof_storage[layer_idx]);
@@ -2227,8 +2250,33 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Shape>& support_l
         [&](const LayerIndex layer_idx)
         {
             constexpr bool convert_every_part = true; // Convert every part into a SingleShape for the support.
+
             storage.support.supportLayers[layer_idx]
-                .fillInfillParts(layer_idx, support_layer_storage, config.support_line_width, config.support_wall_count, config.maximum_move_distance, convert_every_part);
+                .fillInfillParts(support_layer_storage[layer_idx], config.support_line_width, config.support_wall_count, false, convert_every_part);
+
+
+            // This only works because fractional support is always just projected upwards regular support or skin.
+            // Also technically violates skin height, but there is no good way to prevent that.
+            Shape fractional_support;
+
+            if (layer_idx > 0)
+            {
+                fractional_support = support_layer_storage_fractional[layer_idx].intersection(support_layer_storage[layer_idx - 1]);
+            }
+            else
+            {
+                fractional_support = support_layer_storage_fractional[layer_idx];
+            }
+
+            storage.support.supportLayers[layer_idx].fillInfillParts(fractional_support, config.support_line_width, config.support_wall_count, true, convert_every_part);
+
+
+            for (FakeRoofArea& fake_roof : fake_roof_areas[layer_idx])
+            {
+                storage.support.supportLayers[layer_idx]
+                    .fillInfillParts(fake_roof.area_, config.support_line_width, 0, fake_roof.fractional_, convert_every_part, fake_roof.line_distance_);
+            }
+
 
             {
                 std::lock_guard<std::mutex> critical_section_progress(critical_sections);
@@ -2249,6 +2297,8 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Shape>& support_l
 void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage)
 {
     std::vector<Shape> support_layer_storage(move_bounds.size());
+    std::vector<Shape> support_layer_storage_fractional(move_bounds.size());
+    std::vector<Shape> support_roof_storage_fractional(move_bounds.size());
     std::vector<Shape> support_roof_storage(move_bounds.size());
     std::map<TreeSupportElement*, TreeSupportElement*>
         inverse_tree_order; // In the tree structure only the parents can be accessed. Inverse this to be able to access the children.
@@ -2337,15 +2387,34 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
             }
         });
 
-    // Single threaded combining all support areas to the right layers.
-    // Only copies data!
-    for (const auto layer_idx : ranges::views::iota(0UL, layer_tree_polygons.size()))
-    {
-        for (std::pair<TreeSupportElement*, Shape> data_pair : layer_tree_polygons[layer_idx])
+    cura::parallel_for<size_t>(
+        0,
+        layer_tree_polygons.size(),
+        [&](const size_t layer_idx)
         {
-            ((data_pair.first->missing_roof_layers_ > data_pair.first->distance_to_top_) ? support_roof_storage : support_layer_storage)[layer_idx].add(data_pair.second);
-        }
-    }
+            for (std::pair<TreeSupportElement*, Shape> data_pair : layer_tree_polygons[layer_idx])
+            {
+                if (data_pair.first->parents_.empty() && ! data_pair.first->supports_roof_ && layer_idx + 1 < support_roof_storage_fractional.size()
+                    && config.z_distance_top % config.layer_height > 0)
+                {
+                    if (data_pair.first->missing_roof_layers_ > data_pair.first->distance_to_top_)
+                    {
+                        support_roof_storage_fractional[layer_idx + 1].add(data_pair.second);
+                    }
+                    else
+                    {
+                        support_layer_storage_fractional[layer_idx + 1].add(data_pair.second);
+                    }
+                }
+
+                ((data_pair.first->missing_roof_layers_ > data_pair.first->distance_to_top_) ? support_roof_storage : support_layer_storage)[layer_idx].add(data_pair.second);
+            }
+            if (layer_idx + 1 < support_roof_storage_fractional.size())
+            {
+                support_roof_storage_fractional[layer_idx + 1] = support_roof_storage_fractional[layer_idx + 1].unionPolygons();
+                support_layer_storage_fractional[layer_idx + 1] = support_layer_storage_fractional[layer_idx + 1].unionPolygons();
+            }
+        });
 
     for (const auto layer_idx : ranges::views::iota(0UL, additional_required_support_area.size()))
     {
@@ -2359,7 +2428,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
     filterFloatingLines(support_layer_storage);
     const auto t_filter = std::chrono::high_resolution_clock::now();
 
-    finalizeInterfaceAndSupportAreas(support_layer_storage, support_roof_storage, storage);
+    finalizeInterfaceAndSupportAreas(support_layer_storage, support_roof_storage, support_layer_storage_fractional, storage);
     const auto t_end = std::chrono::high_resolution_clock::now();
 
     const auto dur_gen_tips = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_generate - t_start).count();

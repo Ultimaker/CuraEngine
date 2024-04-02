@@ -51,6 +51,10 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
         result.reserve(layer->polygons.size());
         for (const Polygon& poly : layer->polygons)
         {
+            if (poly.empty())
+            {
+                continue;
+            }
             result.emplace_back();
             result.back().push_back(poly);
         }
@@ -63,6 +67,10 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
     for (auto& part : result)
     {
         storageLayer.parts.emplace_back();
+        if (part.empty())
+        {
+            continue;
+        }
         storageLayer.parts.back().outline = part;
         storageLayer.parts.back().boundaryBox.calculate(storageLayer.parts.back().outline);
         if (storageLayer.parts.back().outline.empty())

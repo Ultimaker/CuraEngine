@@ -241,18 +241,6 @@ TEST_F(PolygonTest, differenceClockwiseTest)
     EXPECT_GT(area, 0) << "Inner polygon should be clockwise.";
 }
 
-TEST_F(PolygonTest, getEmptyHolesTest)
-{
-    const Shape holes = clockwise_donut.getEmptyHoles();
-
-    ASSERT_EQ(holes.size(), 1);
-    ASSERT_EQ(holes[0].size(), clockwise_small.size()) << "Empty hole should have the same amount of vertices as the original polygon.";
-    for (size_t point_index = 0; point_index < holes[0].size(); point_index++)
-    {
-        EXPECT_EQ(holes[0][point_index], clockwise_small[point_index]) << "Coordinates of the empty hole must be the same as the original polygon.";
-    }
-}
-
 /*
  * The convex hull of a cube should still be a cube
  */

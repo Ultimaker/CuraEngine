@@ -45,6 +45,31 @@ constexpr coord_t SUPPORT_TREE_COLLISION_RESOLUTION = 500; // Only has an effect
 using PropertyAreasUnordered = std::unordered_map<TreeSupportElement, Shape>;
 using PropertyAreas = std::map<TreeSupportElement, Shape>;
 
+struct FakeRoofArea
+{
+    FakeRoofArea(Shape area, coord_t line_distance, bool fractional)
+        : area_(area)
+        , line_distance_(line_distance)
+        , fractional_(fractional)
+    {
+    }
+    /*!
+     * \brief Area that should be a fake roof.
+     */
+    Shape area_;
+
+    /*!
+     * \brief Distance between support lines
+     */
+    coord_t line_distance_;
+
+    /*!
+     * \brief If the area should be added as a fractional support area.
+     */
+    bool fractional_;
+};
+
+
 /*!
  * \brief Generates a tree structure to support your models.
  */
@@ -74,8 +99,9 @@ private:
      *
      * \param storage[in] Background storage to access meshes.
      * \param currently_processing_meshes[in] Indexes of all meshes that are processed in this iteration
+     * \return Uppermost layer precalculated. -1 if no layer were precalculated as no overhang is present.
      */
-    void precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes);
+    LayerIndex precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes);
 
 
     /*!
@@ -270,7 +296,11 @@ private:
      * \param support_roof_storage[in] Areas where support was replaced with roof.
      * \param storage[in,out] The storage where the support should be stored.
      */
-    void finalizeInterfaceAndSupportAreas(std::vector<Shape>& support_layer_storage, std::vector<Shape>& support_roof_storage, SliceDataStorage& storage);
+    void finalizeInterfaceAndSupportAreas(
+        std::vector<Shape>& support_layer_storage,
+        std::vector<Shape>& support_roof_storage,
+        std::vector<Shape>& support_layer_storage_fractional,
+        SliceDataStorage& storage);
 
     /*!
      * \brief Draws circles around result_on_layer points of the influence areas and applies some post processing.
@@ -291,9 +321,9 @@ private:
     std::vector<Shape> additional_required_support_area;
 
     /*!
-     * \brief A representation of already placed lines. Required for subtracting from new support areas.
+     * \brief Areas that use a higher density pattern of regular support to support the model (fake_roof).
      */
-    std::vector<Shape> placed_support_lines_support_areas;
+    std::vector<std::vector<FakeRoofArea>> fake_roof_areas;
 
     /*!
      * \brief Generator for model collision, avoidance and internal guide volumes.

@@ -5,6 +5,7 @@
 
 #include <numeric>
 
+#include "geometry/closed_polyline.h"
 #include "geometry/open_polyline.h"
 #include "geometry/polygon.h"
 #include "geometry/polyline_type.h"
@@ -235,5 +236,17 @@ template Shape LinesSet<Polygon>::offset(coord_t distance, ClipperLib::JoinType 
 template void LinesSet<Polygon>::removeDegenerateVerts();
 template void LinesSet<Polygon>::addIfNotEmpty(const Polygon& line);
 template void LinesSet<Polygon>::addIfNotEmpty(Polygon&& line);
+
+template size_t LinesSet<ClosedPolyline>::pointCount() const;
+template void LinesSet<ClosedPolyline>::addLine(const Point2LL& from, const Point2LL& to);
+template void LinesSet<ClosedPolyline>::removeAt(size_t index);
+template void LinesSet<ClosedPolyline>::splitIntoSegments(LinesSet<OpenPolyline>& result) const;
+template LinesSet<OpenPolyline> LinesSet<ClosedPolyline>::splitIntoSegments() const;
+template coord_t LinesSet<ClosedPolyline>::length() const;
+template Shape LinesSet<ClosedPolyline>::tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
+template Shape LinesSet<ClosedPolyline>::offset(coord_t distance, ClipperLib::JoinType joinType, double miter_limit) const;
+template void LinesSet<ClosedPolyline>::removeDegenerateVerts();
+template void LinesSet<ClosedPolyline>::addIfNotEmpty(const ClosedPolyline& line);
+template void LinesSet<ClosedPolyline>::addIfNotEmpty(ClosedPolyline&& line);
 
 } // namespace cura

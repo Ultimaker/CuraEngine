@@ -15,7 +15,7 @@ class Polygon;
 /*!
  * A single area with holes. The first polygon is the outline, while the rest are holes within this outline.
  *
- * This class has little more functionality than Polygons, but serves to show that a specific instance is ordered such that the first Polygon is the outline and the rest are holes.
+ * This class has little more functionality than Shape, but serves to show that a specific instance is ordered such that the first Polygon is the outline and the rest are holes.
  */
 class SingleShape : public Shape
 {

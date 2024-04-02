@@ -37,9 +37,9 @@ struct formatter<std::filesystem::path> : formatter<string_view>
 };
 
 #ifdef _WIN32
-std::string fmt::formatter<std::filesystem::path>::USERNAME = std::getenv("USERNAME") != nullptr ? std::getenv("USERNAME") : "";
+inline std::string fmt::formatter<std::filesystem::path>::USERNAME = std::getenv("USERNAME") != nullptr ? std::getenv("USERNAME") : "";
 #else
-std::string fmt::formatter<std::filesystem::path>::USERNAME = std::getenv("USER") != nullptr ? std::getenv("USER") : "";
+inline std::string fmt::formatter<std::filesystem::path>::USERNAME = std::getenv("USER") != nullptr ? std::getenv("USER") : "";
 #endif
 
 } // namespace fmt

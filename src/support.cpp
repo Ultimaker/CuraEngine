@@ -117,7 +117,9 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
         }
         // We don't generate insets and infill area for the parts yet because later the skirt/brim and prime
         // tower will remove themselves from the support, so the outlines of the parts can be changed.
-        storage.support.supportLayers[layer_nr].fillInfillParts(layer_nr, global_support_areas_per_layer, support_line_width_here, wall_line_count_this_layer);
+        const coord_t layer_height = infill_extruder.settings_.get<coord_t>("layer_height");
+        storage.support.supportLayers[layer_nr]
+            .fillInfillParts(layer_nr, global_support_areas_per_layer, layer_height, storage.meshes, support_line_width_here, wall_line_count_this_layer);
     }
 }
 
@@ -1487,6 +1489,10 @@ void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMes
 
         for (const SliceLayerPart& part : layer.parts)
         {
+            if (part.outline.empty())
+            {
+                continue;
+            }
             if (part.outline.outerPolygon().area() >= max_tower_supported_area)
             {
                 // area is too big for support towers, should be supported by normal overhang detection
@@ -1672,10 +1678,6 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
     const coord_t bottom_line_width = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").settings_.get<coord_t>("support_bottom_line_width");
     const coord_t bottom_outline_offset = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").settings_.get<coord_t>("support_bottom_offset");
 
-    const size_t scan_count = std::max(size_t(1), (bottom_layer_count - 1)); // How many measurements to take to generate bottom areas.
-    const double z_skip = std::max(
-        1.0,
-        double(bottom_layer_count - 1) / double(scan_count)); // How many layers to skip between measurements. Using float for better spread, but this is later rounded.
     const double minimum_bottom_area = mesh.settings.get<double>("minimum_bottom_area");
 
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
@@ -1683,9 +1685,9 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
     {
         const unsigned int bottom_layer_idx_below = std::max(0, int(layer_idx) - int(bottom_layer_count) - int(z_distance_bottom));
         Shape mesh_outlines;
-        for (double layer_idx_below = bottom_layer_idx_below; std::round(layer_idx_below) < (int)(layer_idx - z_distance_bottom); layer_idx_below += z_skip)
+        for (auto layer_idx_below = bottom_layer_idx_below; layer_idx_below < layer_idx - z_distance_bottom + 1; layer_idx_below += 1)
         {
-            mesh_outlines.add(mesh.layers[std::round(layer_idx_below)].getOutlines());
+            mesh_outlines.add(mesh.layers[layer_idx_below].getOutlines());
         }
         Shape bottoms;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, bottom_line_width, bottom_outline_offset, minimum_bottom_area, bottoms);
@@ -1707,10 +1709,6 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     const coord_t roof_line_width = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings_.get<coord_t>("support_roof_line_width");
     const coord_t roof_outline_offset = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings_.get<coord_t>("support_roof_offset");
 
-    const size_t scan_count = std::max(size_t(1), (roof_layer_count - 1)); // How many measurements to take to generate roof areas.
-    const double z_skip = std::max(
-        1.0,
-        double(roof_layer_count - 1) / double(scan_count)); // How many layers to skip between measurements. Using float for better spread, but this is later rounded.
     const double minimum_roof_area = mesh.settings.get<double>("minimum_roof_area");
 
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
@@ -1720,9 +1718,9 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
             std::min(LayerIndex{ support_layers.size() - 1 }, LayerIndex{ layer_idx + roof_layer_count + z_distance_top })
         }; // Maximum layer of the model that generates support roof.
         Shape mesh_outlines;
-        for (double layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top; layer_idx_above -= z_skip)
+        for (auto layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top - 1; layer_idx_above -= 1)
         {
-            mesh_outlines.add(mesh.layers[std::round(layer_idx_above)].getOutlines());
+            mesh_outlines.add(mesh.layers[layer_idx_above].getOutlines());
         }
         Shape roofs;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roof_outline_offset, minimum_roof_area, roofs);

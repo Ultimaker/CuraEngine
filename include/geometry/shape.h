@@ -71,6 +71,7 @@ public:
      * \param max_stitch_distance The maximum distance for two polylines to be stitched together with a segment
      * \return The resulting polylines limited to the area of this Polygons object
      */
+#warning Rework this
     LinesSet<OpenPolyline> intersectionPolyLines(const LinesSet<OpenPolyline>& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu) const;
 
     /*!
@@ -266,6 +267,17 @@ public:
      * @return Shape The polygons read from the stream
      */
     [[maybe_unused]] static Shape fromWkt(const std::string& wkt);
+
+    /*!
+     * @brief Remove self-intersections from the polygons
+     * _note_: this function uses wagyu to remove the self intersections.
+     * since wagyu uses a different internal representation of the polygons
+     * we need to convert back and forward between data structures which
+     * might impact performance, use wisely!
+     *
+     * @return Polygons - the cleaned polygons
+     */
+    Shape removeNearSelfIntersections() const;
 
 private:
     /*!
