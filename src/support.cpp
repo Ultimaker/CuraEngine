@@ -234,6 +234,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
 
             // calculate density areas for this island
             Polygons less_dense_support = infill_area; // one step less dense with each density_step
+            Polygons sum_more_dense;
             for (unsigned int density_step = 0; density_step < max_density_steps; ++density_step)
             {
                 LayerIndex actual_min_layer{ layer_nr + density_step * gradual_support_step_layer_count + static_cast<LayerIndex::value_type>(layer_skip_count) };
@@ -292,12 +293,13 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
                 support_infill_part.infill_area_per_combine_per_density_.emplace_back();
                 std::vector<Polygons>& support_area_current_density = support_infill_part.infill_area_per_combine_per_density_.back();
                 const Polygons more_dense_support = infill_area.difference(less_dense_support);
-                support_area_current_density.push_back(more_dense_support);
+                support_area_current_density.push_back(more_dense_support.difference(sum_more_dense));
+                sum_more_dense = sum_more_dense.unionPolygons(more_dense_support);
             }
 
             support_infill_part.infill_area_per_combine_per_density_.emplace_back();
             std::vector<Polygons>& support_area_current_density = support_infill_part.infill_area_per_combine_per_density_.back();
-            support_area_current_density.push_back(infill_area);
+            support_area_current_density.push_back(infill_area.difference(sum_more_dense));
 
             assert(support_infill_part.infill_area_per_combine_per_density_.size() != 0 && "support_infill_part.infill_area_per_combine_per_density should now be initialized");
 #ifdef DEBUG
