@@ -62,7 +62,7 @@ public:
     Shape intersection(const Shape& other) const;
 
     /*!
-     * Intersect polylines with this area Polygons object.
+     * Intersect polylines with the area covered by the shape.
      *
      * \note Due to a clipper bug with polylines with nearly collinear segments, the polylines are cut up into separate polylines, and restitched back together at the end.
      *
@@ -71,8 +71,8 @@ public:
      * \param max_stitch_distance The maximum distance for two polylines to be stitched together with a segment
      * \return The resulting polylines limited to the area of this Polygons object
      */
-#warning Rework this
-    LinesSet<OpenPolyline> intersectionPolyLines(const LinesSet<OpenPolyline>& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu) const;
+    template<class LineType>
+    LinesSet<OpenPolyline> intersectionPolyLines(const LinesSet<LineType>& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu) const;
 
     /*!
      * Add the front to each polygon so that the polygon is represented as a polyline

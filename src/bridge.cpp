@@ -122,7 +122,7 @@ double bridgeAngle(
         const coord_t bb_max_dim = std::max(boundary_box.max_.X - boundary_box.min_.X, boundary_box.max_.Y - boundary_box.min_.Y);
         const Shape air_below(bb_poly.offset(bb_max_dim).difference(prev_layer_outline).offset(-10));
 
-        std::vector<OpenPolyline> skin_perimeter_lines;
+        LinesSet<OpenPolyline> skin_perimeter_lines;
         for (const Polygon& poly : skin_outline)
         {
             if (! poly.empty())

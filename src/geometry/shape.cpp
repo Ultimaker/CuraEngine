@@ -19,6 +19,7 @@
 #include <range/v3/view/take.hpp>
 #include <range/v3/view/transform.hpp>
 
+#include "geometry/closed_polyline.h"
 #include "geometry/parts_view.h"
 #include "geometry/single_shape.h"
 #include "settings/types/Ratio.h"
@@ -228,7 +229,8 @@ size_t Shape::findInside(const Point2LL& p, bool border_result) const
     return ret;
 }
 
-LinesSet<OpenPolyline> Shape::intersectionPolyLines(const LinesSet<OpenPolyline>& polylines, bool restitch, const coord_t max_stitch_distance) const
+template<class LineType>
+LinesSet<OpenPolyline> Shape::intersectionPolyLines(const LinesSet<LineType>& polylines, bool restitch, const coord_t max_stitch_distance) const
 {
     LinesSet<OpenPolyline> split_polylines = polylines.splitIntoSegments();
 
@@ -943,5 +945,9 @@ void Shape::applyMatrix(const Point3Matrix& matrix)
         polygon.applyMatrix(matrix);
     }
 }
+
+template LinesSet<OpenPolyline> Shape::intersectionPolyLines(const LinesSet<OpenPolyline>& polylines, bool restitch, const coord_t max_stitch_distance) const;
+template LinesSet<OpenPolyline> Shape::intersectionPolyLines(const LinesSet<ClosedPolyline>& polylines, bool restitch, const coord_t max_stitch_distance) const;
+template LinesSet<OpenPolyline> Shape::intersectionPolyLines(const LinesSet<Polygon>& polylines, bool restitch, const coord_t max_stitch_distance) const;
 
 } // namespace cura
