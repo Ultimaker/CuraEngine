@@ -187,6 +187,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
     const size_t max_density_steps = infill_extruder.settings_.get<size_t>("gradual_support_infill_steps");
 
     const coord_t wall_width = infill_extruder.settings_.get<coord_t>("support_line_width");
+    const Simplify simplifier(infill_extruder.settings_);
 
     // no early-out for this function; it needs to initialize the [infill_area_per_combine_per_density]
     double layer_skip_count{ 8.0 }; // skip every so many layers as to ignore small gaps in the model making computation more easy
@@ -293,13 +294,13 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
                 support_infill_part.infill_area_per_combine_per_density_.emplace_back();
                 std::vector<Polygons>& support_area_current_density = support_infill_part.infill_area_per_combine_per_density_.back();
                 const Polygons more_dense_support = infill_area.difference(less_dense_support);
-                support_area_current_density.push_back(more_dense_support.difference(sum_more_dense));
+                support_area_current_density.push_back(simplifier.polygon(more_dense_support.difference(sum_more_dense).offset(-wall_width).offset(wall_width)));
                 sum_more_dense = sum_more_dense.unionPolygons(more_dense_support);
             }
 
             support_infill_part.infill_area_per_combine_per_density_.emplace_back();
             std::vector<Polygons>& support_area_current_density = support_infill_part.infill_area_per_combine_per_density_.back();
-            support_area_current_density.push_back(infill_area.difference(sum_more_dense));
+            support_area_current_density.push_back(simplifier.polygon(infill_area.difference(sum_more_dense).offset(-wall_width).offset(wall_width)));
 
             assert(support_infill_part.infill_area_per_combine_per_density_.size() != 0 && "support_infill_part.infill_area_per_combine_per_density should now be initialized");
 #ifdef DEBUG

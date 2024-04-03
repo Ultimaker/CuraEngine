@@ -16,6 +16,7 @@
 #include "sliceDataStorage.h"
 #include "utils/math.h"
 #include "utils/polygonUtils.h"
+#include "utils/Simplify.h"
 
 #define MIN_AREA_SIZE (0.4 * 0.4)
 
@@ -465,6 +466,8 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
     const LayerIndex mesh_min_layer = mesh.settings.get<size_t>("initial_bottom_layers");
     const LayerIndex mesh_max_layer = mesh.layers.size() - 1 - mesh.settings.get<size_t>("top_layers");
 
+    const Simplify simplifier(mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").settings_);
+
     const auto infill_wall_count = mesh.settings.get<size_t>("infill_wall_line_count");
     const auto infill_wall_width = mesh.settings.get<coord_t>("infill_line_width");
     const auto infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
@@ -527,12 +530,12 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                 part.infill_area_per_combine_per_density.emplace_back();
                 std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
                 const Polygons more_dense_infill = infill_area.difference(less_dense_infill);
-                infill_area_per_combine_current_density.push_back(more_dense_infill.difference(sum_more_dense));
+                infill_area_per_combine_current_density.push_back(simplifier.polygon(more_dense_infill.difference(sum_more_dense).offset(-infill_wall_width).offset(infill_wall_width)));
                 sum_more_dense = sum_more_dense.unionPolygons(more_dense_infill);
             }
             part.infill_area_per_combine_per_density.emplace_back();
             std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
-            infill_area_per_combine_current_density.push_back(infill_area.difference(sum_more_dense));
+            infill_area_per_combine_current_density.push_back(simplifier.polygon(infill_area.difference(sum_more_dense).offset(-infill_wall_width).offset(infill_wall_width)));
             part.infill_area_own = std::nullopt; // clear infill_area_own, it's not needed any more.
             assert(! part.infill_area_per_combine_per_density.empty() && "infill_area_per_combine_per_density is now initialized");
         }
