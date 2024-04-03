@@ -14,9 +14,9 @@
 #include "settings/types/Angle.h" //For the infill support angle.
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
+#include "utils/Simplify.h"
 #include "utils/math.h"
 #include "utils/polygonUtils.h"
-#include "utils/Simplify.h"
 
 #define MIN_AREA_SIZE (0.4 * 0.4)
 
@@ -530,7 +530,8 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                 part.infill_area_per_combine_per_density.emplace_back();
                 std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
                 const Polygons more_dense_infill = infill_area.difference(less_dense_infill);
-                infill_area_per_combine_current_density.push_back(simplifier.polygon(more_dense_infill.difference(sum_more_dense).offset(-infill_wall_width).offset(infill_wall_width)));
+                infill_area_per_combine_current_density.push_back(
+                    simplifier.polygon(more_dense_infill.difference(sum_more_dense).offset(-infill_wall_width).offset(infill_wall_width)));
                 sum_more_dense = sum_more_dense.unionPolygons(more_dense_infill);
             }
             part.infill_area_per_combine_per_density.emplace_back();
