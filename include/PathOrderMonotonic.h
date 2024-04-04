@@ -9,7 +9,7 @@
 #include <unordered_set> //To track starting points of monotonic sequences.
 
 #include "PathOrder.h"
-#include "PathOrdering.h"
+#include "path_ordering.h"
 
 namespace cura
 {

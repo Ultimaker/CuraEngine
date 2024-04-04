@@ -1289,7 +1289,7 @@ void LayerPlan::addWalls(
 
 
 void LayerPlan::addLinesByOptimizer(
-    const std::vector<OpenPolyline>& lines,
+    const LinesSet<OpenPolyline>& lines,
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
     const bool enable_travel_optimization,
@@ -1339,6 +1339,60 @@ void LayerPlan::addLinesByOptimizer(
     addLinesInGivenOrder(order_optimizer.paths_, config, space_fill_type, wipe_dist, flow_ratio, fan_speed);
 }
 
+void LayerPlan::addLinesByOptimizer(
+    const MixedLinesSet& lines,
+    const GCodePathConfig& config,
+    const SpaceFillType space_fill_type,
+    const bool enable_travel_optimization,
+    const coord_t wipe_dist,
+    const Ratio flow_ratio,
+    const std::optional<Point2LL> near_start_location,
+    const double fan_speed,
+    const bool reverse_print_direction,
+    const std::unordered_multimap<const OpenPolyline*, const OpenPolyline*>& order_requirements)
+{
+    Shape boundary;
+    if (enable_travel_optimization && ! comb_boundary_minimum_.empty())
+    {
+        // use the combing boundary inflated so that all infill lines are inside the boundary
+        int dist = 0;
+        if (layer_nr_ >= 0)
+        {
+            // determine how much the skin/infill lines overlap the combing boundary
+            for (const std::shared_ptr<SliceMeshStorage>& mesh : storage_.meshes)
+            {
+                const coord_t overlap = std::max(mesh->settings.get<coord_t>("skin_overlap_mm"), mesh->settings.get<coord_t>("infill_overlap_mm"));
+                if (overlap > dist)
+                {
+                    dist = overlap;
+                }
+            }
+            dist += 100; // ensure boundary is slightly outside all skin/infill lines
+        }
+        boundary.add(comb_boundary_minimum_.offset(dist));
+        // simplify boundary to cut down processing time
+        boundary = Simplify(MM2INT(0.1), MM2INT(0.1), 0).polygon(boundary);
+    }
+    constexpr bool detect_loops = false; // We already know which lines are closed
+    PathOrderOptimizer<const OpenPolyline*> order_optimizer(
+        near_start_location.value_or(getLastPlannedPositionOrStartingPosition()),
+        ZSeamConfig(),
+        detect_loops,
+        &boundary,
+        reverse_print_direction,
+        order_requirements);
+    for (const OpenPolyline& open_polyline : lines.getOpenLines())
+    {
+        order_optimizer.addPolyline(&open_polyline);
+    }
+    for (const ClosedPolyline& closed_polyline : lines.getClosedLines())
+    {
+        order_optimizer.addPolygon(&closed_polyline.toType<OpenPolyline>());
+    }
+    order_optimizer.optimize();
+
+    addLinesInGivenOrder(order_optimizer.paths_, config, space_fill_type, wipe_dist, flow_ratio, fan_speed);
+}
 
 void LayerPlan::addLinesInGivenOrder(
     const std::vector<PathOrdering<const OpenPolyline*>>& lines,
@@ -1474,7 +1528,7 @@ void LayerPlan::addLinesMonotonic(
 
     // Order monotonically, except for line-segments which stay in the excluded areas (read: close to the walls) consecutively.
     PathOrderMonotonic<const OpenPolyline*> order(monotonic_direction, max_adjacent_distance, last_position);
-    std::vector<OpenPolyline> left_over;
+    LinesSet<OpenPolyline> left_over;
     bool last_would_have_been_excluded = false;
     for (size_t line_idx = 0; line_idx < line_order.paths_.size(); ++line_idx)
     {

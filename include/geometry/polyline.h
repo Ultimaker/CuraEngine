@@ -22,7 +22,7 @@ class AngleRadians;
  *
  *  * Open Polyline : this represents a line that does not closes, i.e. the last point is different
  *                    from the initial point
- *  * Closed Polyline : a closed polyline as a final segment joining the last point and the
+ *  * Closed Polyline : a closed polyline has a final segment joining the last point and the
  *                      initial one
  *  * Filled Polyline : this is a particular type of closed polyline, for which we consider that the
  *                      "inside" part of the line forms a surface
@@ -138,6 +138,14 @@ public:
      removed
      */
     void simplify(const coord_t smallest_line_segment_squared = MM2INT(0.01) * MM2INT(0.01), const coord_t allowed_error_distance_squared = 25);
+
+    void pseudoClose()
+    {
+        if (size() >= 2)
+        {
+            push_back(front());
+        }
+    }
 
 private:
     /*!

@@ -16,7 +16,7 @@
 #include <spdlog/spdlog.h>
 
 #include "InsetOrderOptimizer.h" // for makeOrderIncludeTransitive
-#include "PathOrdering.h"
+#include "path_ordering.h"
 #include "pathPlanning/CombPath.h" //To calculate the combing distance if we want to use combing.
 #include "pathPlanning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
 #include "settings/EnumSettings.h" //To get the seam settings.

@@ -13,8 +13,9 @@
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "support.h"
-#include "utils/OpenPolylineStitcher.h"
+//#include "utils/OpenPolylineStitcher.h"
 #include "utils/Simplify.h"
+#include "utils/mixed_polyline_stitcher.h"
 
 namespace cura
 {
@@ -161,11 +162,11 @@ void SkirtBrim::generate()
     const coord_t maximum_deviation = global_settings.get<coord_t>("meshfix_maximum_deviation");
     for (int extruder_nr = 0; extruder_nr < extruder_count_; extruder_nr++)
     {
-        for (SkirtBrimLine& line : storage_.skirt_brim[extruder_nr])
+        for (MixedLinesSet& line : storage_.skirt_brim[extruder_nr])
         {
             constexpr coord_t max_area_dev = 0u; // No area deviation applied
-            line.open_polylines = Simplify(maximum_resolution, maximum_deviation, max_area_dev).polyline(line.open_polylines);
-            line.closed_polygons = Simplify(maximum_resolution, maximum_deviation, max_area_dev).polygon(line.closed_polygons);
+            line.setOpenLines(Simplify(maximum_resolution, maximum_deviation, max_area_dev).polyline(line.getOpenLines()));
+            line.setClosedLines(Simplify(maximum_resolution, maximum_deviation, max_area_dev).polyline(line.getClosedLines()));
         }
     }
 }
@@ -181,7 +182,7 @@ std::vector<coord_t> SkirtBrim::generatePrimaryBrim(std::vector<Offset>& all_bri
         {
             storage_.skirt_brim[offset.extruder_nr_].resize(offset.inset_idx_ + 1);
         }
-        SkirtBrimLine& output_location = storage_.skirt_brim[offset.extruder_nr_][offset.inset_idx_];
+        MixedLinesSet& output_location = storage_.skirt_brim[offset.extruder_nr_][offset.inset_idx_];
         const coord_t added_length = generateOffset(offset, covered_area, allowed_areas_per_extruder, output_location);
 
         if (added_length == 0)
@@ -214,7 +215,7 @@ std::vector<coord_t> SkirtBrim::generatePrimaryBrim(std::vector<Offset>& all_bri
     return total_length;
 }
 
-coord_t SkirtBrim::generateOffset(const Offset& offset, Shape& covered_area, std::vector<Shape>& allowed_areas_per_extruder, SkirtBrimLine& result)
+coord_t SkirtBrim::generateOffset(const Offset& offset, Shape& covered_area, std::vector<Shape>& allowed_areas_per_extruder, MixedLinesSet& result)
 {
     coord_t length_added;
     Shape brim;
@@ -242,11 +243,12 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Shape& covered_area, std
         const int reference_idx = std::get<int>(offset.reference_outline_or_index_);
         const coord_t offset_dist = extruder_config.line_width_;
 
+#warning Do it all in one go ?
         Shape local_brim;
-        auto closed_polygons_brim = storage_.skirt_brim[offset.extruder_nr_][reference_idx].closed_polygons.toType<ClosedPolyline>().offset(offset_dist, ClipperLib::jtRound);
+        auto closed_polygons_brim = storage_.skirt_brim[offset.extruder_nr_][reference_idx].getClosedLines().offset(offset_dist, ClipperLib::jtRound);
         local_brim.add(closed_polygons_brim);
 
-        auto open_polylines_brim = storage_.skirt_brim[offset.extruder_nr_][reference_idx].open_polylines.offset(offset_dist, ClipperLib::jtRound);
+        auto open_polylines_brim = storage_.skirt_brim[offset.extruder_nr_][reference_idx].getOpenLines().offset(offset_dist, ClipperLib::jtRound);
         local_brim.add(open_polylines_brim);
         local_brim.unionPolygons();
 
@@ -262,21 +264,19 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Shape& covered_area, std
     Shape newly_covered = brim_lines.offset(extruder_config.line_width_ / 2 + 10, ClipperLib::jtRound);
 
     const coord_t max_stitch_distance = extruder_config.line_width_;
-    OpenPolylineStitcher::stitch(brim_lines, result.open_polylines, result.closed_polygons, max_stitch_distance);
+    MixedPolylineStitcher::stitch(brim_lines, result, max_stitch_distance);
 
     // clean up too small lines
-    for (size_t line_idx = 0; line_idx < result.open_polylines.size();)
-    {
-        const OpenPolyline& line = result.open_polylines[line_idx];
-        if (line.shorterThan(min_brim_line_length))
-        {
-            result.open_polylines.removeAt(line_idx);
-        }
-        else
-        {
-            line_idx++;
-        }
-    }
+    LinesSet<OpenPolyline>& open_polylines = result.getOpenLines();
+    open_polylines.erase(
+        std::remove_if(
+            open_polylines.begin(),
+            open_polylines.end(),
+            [](const OpenPolyline& line)
+            {
+                return line.shorterThan(min_brim_line_length);
+            }),
+        open_polylines.end());
 
     // update allowed_areas_per_extruder
     covered_area = covered_area.unionPolygons(newly_covered.unionPolygons());
@@ -466,12 +466,12 @@ void SkirtBrim::generateShieldBrim(Shape& brim_covered_area, std::vector<Shape>&
 
         // generate brim within shield_brim
         storage_.skirt_brim[extruder_nr].emplace_back();
-        storage_.skirt_brim[extruder_nr].back().closed_polygons.add(shield_brim);
+        storage_.skirt_brim[extruder_nr].back().push_back(shield_brim.toType<ClosedPolyline>());
         while (shield_brim.size() > 0)
         {
             shield_brim = shield_brim.offset(-primary_extruder_skirt_brim_line_width);
-            storage_.skirt_brim[extruder_nr].back().closed_polygons.add(
-                shield_brim); // throw all polygons for the shileds onto one heap; because the brim lines are generated from both sides the order will not be important
+            storage_.skirt_brim[extruder_nr].back().push_back(shield_brim.toType<ClosedPolyline>()); // throw all polygons for the shileds onto one heap; because the brim lines are
+                                                                                                     // generated from both sides the order will not be important
         }
     }
 
@@ -528,7 +528,7 @@ void SkirtBrim::generateSecondarySkirtBrim(Shape& covered_area, std::vector<Shap
                 is_last);
 
             storage_.skirt_brim[extruder_nr].emplace_back();
-            SkirtBrimLine& output_location = storage_.skirt_brim[extruder_nr].back();
+            MixedLinesSet& output_location = storage_.skirt_brim[extruder_nr].back();
             coord_t added_length = generateOffset(extra_offset, covered_area, allowed_areas_per_extruder, output_location);
 
             if (! added_length)
@@ -671,10 +671,9 @@ void SkirtBrim::generateSupportBrim()
         storage_.skirt_brim[support_infill_extruder.extruder_nr_].emplace_back();
     }
 
-    for (const SkirtBrimLine& brim_line : storage_.skirt_brim[support_infill_extruder.extruder_nr_])
+    for (const MixedLinesSet& brim_line : storage_.skirt_brim[support_infill_extruder.extruder_nr_])
     {
-        skirt_brim_length += brim_line.closed_polygons.length();
-        skirt_brim_length += brim_line.open_polylines.length();
+        skirt_brim_length += brim_line.length();
     }
 
     SupportLayer& support_layer = storage_.support.supportLayers[0];

@@ -183,7 +183,7 @@ private:
      * \param[out] result Where to store the resulting brim line
      * \return The length of the added lines
      */
-    coord_t generateOffset(const Offset& offset, Shape& covered_area, std::vector<Shape>& allowed_areas_per_extruder, SkirtBrimLine& result);
+    coord_t generateOffset(const Offset& offset, Shape& covered_area, std::vector<Shape>& allowed_areas_per_extruder, MixedLinesSet& result);
 
     /*!
      * Generate a skirt of extruders which don't yet comply with the minimum length requirement.

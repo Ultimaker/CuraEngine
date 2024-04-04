@@ -3,6 +3,7 @@
 
 #include "utils/PolylineStitcher.h"
 
+#include "geometry/closed_polyline.h"
 #include "utils/ExtrusionLineStitcher.h"
 #include "utils/OpenPolylineStitcher.h"
 #include "utils/PolygonsPointIndex.h"
@@ -223,8 +224,21 @@ template void ExtrusionLineStitcher::stitch(
     coord_t max_stitch_distance,
     coord_t snap_distance);
 
+template void PolylineStitcher<LinesSet<OpenPolyline>, LinesSet<ClosedPolyline>, OpenPolyline, Point2LL>::stitch(
+    const LinesSet<OpenPolyline>& lines,
+    LinesSet<OpenPolyline>& result_lines,
+    LinesSet<ClosedPolyline>& result_polygons,
+    coord_t max_stitch_distance,
+    coord_t snap_distance);
+
 template<>
 bool OpenPolylineStitcher::canReverse(const PathsPointIndex<LinesSet<OpenPolyline>>&)
+{
+    return true;
+}
+
+template<>
+bool PolylineStitcher<LinesSet<OpenPolyline>, LinesSet<ClosedPolyline>, OpenPolyline, Point2LL>::canReverse(const PathsPointIndex<LinesSet<OpenPolyline>>&)
 {
     return true;
 }
@@ -242,6 +256,12 @@ bool OpenPolylineStitcher::canConnect(const OpenPolyline&, const OpenPolyline&)
 }
 
 template<>
+bool PolylineStitcher<LinesSet<OpenPolyline>, LinesSet<ClosedPolyline>, OpenPolyline, Point2LL>::canConnect(const OpenPolyline&, const OpenPolyline&)
+{
+    return true;
+}
+
+template<>
 bool ExtrusionLineStitcher::isOdd(const ExtrusionLine& line)
 {
     return line.is_odd_;
@@ -249,6 +269,12 @@ bool ExtrusionLineStitcher::isOdd(const ExtrusionLine& line)
 
 template<>
 bool OpenPolylineStitcher::isOdd(const OpenPolyline&)
+{
+    return false;
+}
+
+template<>
+bool PolylineStitcher<LinesSet<OpenPolyline>, LinesSet<ClosedPolyline>, OpenPolyline, Point2LL>::isOdd(const OpenPolyline&)
 {
     return false;
 }

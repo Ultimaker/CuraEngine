@@ -6,6 +6,7 @@
 #include <limits>
 #include <queue> //Priority queue to prioritise removing unimportant vertices.
 
+#include "geometry/closed_polyline.h"
 #include "geometry/open_polyline.h"
 
 namespace cura
@@ -59,6 +60,7 @@ LinesSet<LineType> Simplify::polyline(const LinesSet<LineType>& polylines) const
 }
 
 template LinesSet<OpenPolyline> Simplify::polyline(const LinesSet<OpenPolyline>& polylines) const;
+template LinesSet<ClosedPolyline> Simplify::polyline(const LinesSet<ClosedPolyline>& polylines) const;
 
 template<>
 Polyline<PolylineType::Open> Simplify::polyline(const Polyline<PolylineType::Open>& polyline) const

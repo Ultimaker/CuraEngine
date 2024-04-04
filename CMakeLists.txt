@@ -62,7 +62,7 @@ set(engine_SRCS # Except main.cpp.
         src/MeshGroup.cpp
         src/Mold.cpp
         src/multiVolumes.cpp
-        src/PathOrderPath.cpp
+        src/path_ordering.cpp
         src/Preheat.cpp
         src/PrimeTower.cpp
         src/raft.cpp
@@ -160,6 +160,7 @@ set(engine_SRCS # Except main.cpp.
         src/geometry/parts_view.cpp
         src/geometry/lines_set.cpp
         src/geometry/polyline.cpp
+        src/geometry/mixed_lines_set.cpp
 )
 
 add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})

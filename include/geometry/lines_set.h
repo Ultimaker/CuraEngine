@@ -61,6 +61,7 @@ public:
         return *this;
     }
 
+#warning rename this to asType
     template<class OtherLineType>
     const LinesSet<OtherLineType>& toType() const
     {

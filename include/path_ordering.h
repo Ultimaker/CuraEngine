@@ -76,7 +76,6 @@ struct PathOrdering
      */
     bool backwards_;
 
-
     /*!
      * Get vertex data from the custom path type.
      *

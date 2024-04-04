@@ -1,7 +1,8 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "PathOrdering.h" //The definitions we're implementing here.
+#include "path_ordering.h" //The definitions we're implementing here.
+
 #include "WallToolPaths.h"
 #include "sliceDataStorage.h" //For SliceLayerPart.
 

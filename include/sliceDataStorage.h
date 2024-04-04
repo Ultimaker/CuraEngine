@@ -13,6 +13,7 @@
 #include "SupportInfillPart.h"
 #include "TopSurface.h"
 #include "WipeScriptConfig.h"
+#include "geometry/mixed_lines_set.h"
 #include "geometry/open_polyline.h"
 #include "geometry/point2ll.h"
 #include "geometry/polygon.h"
@@ -361,15 +362,6 @@ public:
     Point2LL getZSeamHint() const;
 };
 
-/*!
- * Class to store all open polylines or closed polygons related to one outset index of brim/skirt.
- */
-struct SkirtBrimLine
-{
-    LinesSet<OpenPolyline> open_polylines;
-    Shape closed_polygons;
-};
-
 class SliceDataStorage : public NoCopy
 {
 public:
@@ -383,7 +375,7 @@ public:
 
     SupportStorage support;
 
-    std::vector<SkirtBrimLine> skirt_brim[MAX_EXTRUDERS]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
+    std::vector<MixedLinesSet> skirt_brim[MAX_EXTRUDERS]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
     LinesSet<OpenPolyline> support_brim; //!< brim lines for support, going from the edge of the support inward. \note Not ordered by inset.
 
     // Storage for the outline of the raft-parts. Will be filled with lines when the GCode is generated.

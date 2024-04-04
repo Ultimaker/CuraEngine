@@ -563,7 +563,32 @@ public:
      * \param order_requirements Pairs where first needs to be printed before second. Pointers are pointing to elements of \p lines
      */
     void addLinesByOptimizer(
-        const std::vector<OpenPolyline>& lines,
+        const LinesSet<OpenPolyline>& lines,
+        const GCodePathConfig& config,
+        const SpaceFillType space_fill_type,
+        const bool enable_travel_optimization = false,
+        const coord_t wipe_dist = 0,
+        const Ratio flow_ratio = 1.0,
+        const std::optional<Point2LL> near_start_location = std::optional<Point2LL>(),
+        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
+        const bool reverse_print_direction = false,
+        const std::unordered_multimap<const OpenPolyline*, const OpenPolyline*>& order_requirements = PathOrderOptimizer<const OpenPolyline*>::no_order_requirements_);
+
+    /*!
+     * Add lines to the gcode with optimized order.
+     * \param lines The lines
+     * \param config The config of the lines
+     * \param space_fill_type The type of space filling used to generate the line segments (should be either Lines or PolyLines!)
+     * \param enable_travel_optimization Whether to enable some potentially time consuming optimization of order the lines are printed to reduce the travel time required.
+     * \param wipe_dist (optional) the distance wiped without extruding after laying down a line.
+     * \param flow_ratio The ratio with which to multiply the extrusion amount
+     * \param near_start_location Optional: Location near where to add the first line. If not provided the last position is used.
+     * \param fan_speed optional fan speed override for this path
+     * \param reverse_print_direction Whether to reverse the optimized order and their printing direction.
+     * \param order_requirements Pairs where first needs to be printed before second. Pointers are pointing to elements of \p lines
+     */
+    void addLinesByOptimizer(
+        const MixedLinesSet& lines,
         const GCodePathConfig& config,
         const SpaceFillType space_fill_type,
         const bool enable_travel_optimization = false,
