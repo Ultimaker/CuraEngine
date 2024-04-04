@@ -170,7 +170,7 @@ private:
      *
      * \param[in] storage where to get settings from.
      */
-    size_t getStartExtruder(const SliceDataStorage& storage);
+    size_t getStartExtruder(const SliceDataStorage& storage) const;
 
     /*!
      * Set the infill angles and skin angles in the SliceDataStorage.
@@ -287,7 +287,7 @@ private:
     void calculatePrimeLayerPerExtruder(const SliceDataStorage& storage);
 
     /*!
-     * Gets a list of extruders that are used on the given layer, but excluding the given starting extruder.
+     * Gets a list of extruders that are used on the given layer.
      * When it's on the first layer, the prime blob will also be taken into account.
      *
      * \note At the planning stage we only have information on areas, not how those are filled.
@@ -295,9 +295,11 @@ private:
      *
      * \param[in] storage where the slice data is stored.
      * \param current_extruder The current extruder with which we last printed
+     * \param global_extruders_used The extruders that are at some point used for the print job
      * \return The order of extruders for a layer beginning with \p current_extruder
      */
-    std::vector<ExtruderUse> getUsedExtrudersOnLayerExcludingStartingExtruder(const SliceDataStorage& storage, const size_t start_extruder, const LayerIndex& layer_nr) const;
+    std::vector<ExtruderUse>
+        getUsedExtrudersOnLayer(const SliceDataStorage& storage, const size_t start_extruder, const LayerIndex& layer_nr, const std::vector<bool>& global_extruders_used) const;
 
     /*!
      * Calculate in which order to plan the meshes of a specific extruder
@@ -715,6 +717,26 @@ private:
         const SliceMeshStorage& mesh,
         const SliceLayerPart& part,
         coord_t infill_line_width);
+
+    /*!
+     * Find the first or last extruder used at the given layer. This may loop to lower layers if
+     * there is no extryder on the one that has been asked. If no extruder can be found at all, the
+     * very first used extruder will be returned.
+     *
+     * \param storage where the slice data is stored
+     * \param layer_nr The layer for which we want the extruder index
+     * \param last Indicates whether we want to retrieve the last or the first extruder being used
+     * \return The first or last exruder used at the given index
+     */
+    size_t findUsedExtruderIndex(const SliceDataStorage& storage, const LayerIndex& layer_nr, bool last) const;
+
+    /*!
+     * Get the extruders use at the given layer
+     *
+     * \param layer_nr The index of the layer at which we want the extruders uses
+     * \return The extruders use at the given layer, which may be empty in some cases
+     */
+    std::vector<ExtruderUse> getExtruderUse(const LayerIndex& layer_nr) const;
 };
 
 } // namespace cura

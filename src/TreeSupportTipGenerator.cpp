@@ -1651,7 +1651,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
                 {
                     std::lock_guard<std::mutex> critical_section_potential_support_roofs(critical_potential_support_roofs);
                     potential_support_roofs[layer_idx - dtt_roof].add((full_overhang_area));
-                    if(dtt_roof == 0)
+                    if (dtt_roof == 0)
                     {
                         support_roof_drawn_fractional_[layer_idx].add(full_overhang_area);
                     }
@@ -1784,7 +1784,7 @@ TreeSupportElement* TreeSupportTipGenerator::addPointAsInfluenceArea(
                 roof,
                 cradle,
                 safe_radius,
-                !roof && force_tip_to_roof_,
+                ! roof && force_tip_to_roof_,
                 skip_ovalisation,
                 support_tree_limit_branch_reach_,
                 support_tree_branch_reach_limit_);
@@ -1881,7 +1881,7 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(std::vector<std::set<Tree
                 std::lock_guard<std::mutex> critical_section_roof(critical_roof_tips_);
                 roof_tips_drawn_[insert_layer_idx - dtt_roof_tip].add(added_roofs);
 
-                if(dtt_roof_tip == 0)
+                if (dtt_roof_tip == 0)
                 {
                     support_roof_drawn_fractional_[insert_layer_idx].add(added_roofs);
                 }
@@ -2401,11 +2401,11 @@ void TreeSupportTipGenerator::generateTips(
                     {
                         Polygons all_roof_below = support_roof_drawn_[layer_idx - 1].unionPolygons(roof_tips_drawn_[layer_idx - 1]);
                         Polygons all_roof_fractional = support_roof_drawn_fractional_[layer_idx - 1].intersection(all_roof_below);
-                        storage.support.supportLayers[layer_idx].support_fractional_roof =
-                            storage.support.supportLayers[layer_idx].support_fractional_roof.unionPolygons(all_roof_fractional);
+                        storage.support.supportLayers[layer_idx].support_fractional_roof
+                            = storage.support.supportLayers[layer_idx].support_fractional_roof.unionPolygons(all_roof_fractional);
 
-                        // Fractional roof is a modifier applied to a roof area, which means if only the fractional roof area is set, there will be nothing as there is no roof to modify.
-                        // Because of that the fractional roof has ALSO to be added to the roof.
+                        // Fractional roof is a modifier applied to a roof area, which means if only the fractional roof area is set, there will be nothing as there is no roof to
+                        // modify. Because of that the fractional roof has ALSO to be added to the roof.
                         storage.support.supportLayers[layer_idx].support_roof.add(all_roof_fractional);
                     }
 
