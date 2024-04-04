@@ -165,6 +165,12 @@ struct TreeSupportCradle
                 if(!lines_[line_idx][up_idx].is_base_)
                 {
                     previous_layer_idx = lines_[line_idx][up_idx].layer_idx_;
+                    if (lines_[line_idx][up_idx].layer_idx_ > previous_layer_idx + up_idx ||
+                        lines_[line_idx][up_idx].line_.size() < 2 ||
+                        lines_[line_idx][up_idx].line_.polylineLength() < config_cradle_length_min_)
+                    {
+                        lines_[line_idx].clear();
+                    }
                     break;
                 }
             }

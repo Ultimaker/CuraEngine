@@ -974,9 +974,9 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                         for (auto [next_line_idx, next_line] : shortened_lines_to_center | ranges::views::enumerate)
                         {
                             Point2LL current_direction = next_line.front() - next_line.back();
-                            double angle = std::atan2(current_direction.X,current_direction.Y);
+                            double angle = std::atan2(current_direction.Y, current_direction.X);
 
-                            size_t angle_idx = std::min(size_t(((angle+std::numbers::pi)/(2.0*std::numbers::pi)) * double(cradle_line_count_)), cradle_line_count_ -1);
+                            size_t angle_idx = size_t(std::round(((angle+std::numbers::pi)/(2.0*std::numbers::pi)) * double(cradle_line_count_))) % cradle_line_count_;
                             Polygon line(next_line);
                             //Handle cradle_z_distance_layers by overwriting first element in the vector until valid distance is reached.
                             if(idx <= cradle_z_distance_layers_ + 1 && !cradle->lines_[angle_idx].empty())
@@ -1130,7 +1130,7 @@ void TreeSupportTipGenerator::cleanCradleLineOverlaps()
                             if (cosine < 0.99 || vSize2(outer_line.back() - inner_line.back()) + EPSILON * EPSILON < vSize2(outer_line.front() - inner_line.front()))
                             {
                                 coord_t inner_end_to_outer_distance = sqrt(LinearAlg2D::getDist2FromLineSegment(outer_line.front(), inner_line.back(), outer_line.back()));
-                                if(inner_end_to_outer_distance < min_distance_between_lines)
+                                if(inner_end_to_outer_distance < min_distance_between_lines && inner_end_to_outer_distance < vSize(outer_line.front() - inner_line.front()))
                                 {
                                     Point2LL new_end_inner = inner_line.back() + normal(inner_line.front()-inner_line.back(),min_distance_between_lines - inner_end_to_outer_distance);
                                     double error = min_distance_between_lines - sqrt(LinearAlg2D::getDist2FromLineSegment(outer_line.front(), new_end_inner, outer_line.back()));
@@ -1142,7 +1142,7 @@ void TreeSupportTipGenerator::cleanCradleLineOverlaps()
                                 else
                                 {
                                     coord_t outer_end_to_inner_distance = sqrt(LinearAlg2D::getDist2FromLineSegment(inner_line.front(), outer_line.back(), inner_line.back()));
-                                    if(outer_end_to_inner_distance < min_distance_between_lines)
+                                    if(outer_end_to_inner_distance < min_distance_between_lines && outer_end_to_inner_distance < vSize(outer_line.front() - inner_line.front()))
                                     {
                                         Point2LL new_end_outer = outer_line.back() + normal(outer_line.front()-outer_line.back(),min_distance_between_lines - outer_end_to_inner_distance);
                                         double error = min_distance_between_lines - sqrt(LinearAlg2D::getDistFromLine(new_end_outer,outer_line.front(), outer_line.back()));
@@ -1161,15 +1161,15 @@ void TreeSupportTipGenerator::cleanCradleLineOverlaps()
 
     cura::parallel_for<coord_t>(
     1,
-        cradle_data_.size(),
+    cradle_data_.size(),
     [&](const LayerIndex layer_idx)
     {
             for (size_t cradle_idx = 0; cradle_idx < cradle_data_[layer_idx].size(); cradle_idx++)
             {
-                auto& cradle = cradle_data_[layer_idx][cradle_idx];
+                TreeSupportCradle* cradle = cradle_data_[layer_idx][cradle_idx];
                 cradle->verifyLines();
                 // As cradle lines (causing lines below to be longer) may have been removed to prevent them intersecting, all cradle lines are now shortened again if required.
-                for (auto [line_idx, cradle_lines] : cradle_data_[layer_idx][cradle_idx]->lines_ | ranges::views::enumerate)
+                for (auto [line_idx, cradle_lines] : cradle->lines_ | ranges::views::enumerate)
                 {
                     if(!cradle_lines.empty())
                     {
@@ -1178,7 +1178,9 @@ void TreeSupportTipGenerator::cleanCradleLineOverlaps()
 
                         if(vSize2(line_end - cradle_lines.back().line_.front()) > cradle_length_ * cradle_length_)
                         {
-                            cradle_lines.back().line_.back() = line_front_uppermost + normal(line_end - line_front_uppermost, cradle_length_);
+                            coord_t current_cradle_xy_distance = cradle_xy_distance_[cradle_lines.back().layer_idx_ - layer_idx];
+                            coord_t current_cradle_length = cradle_length_ + max_cradle_xy_distance - current_cradle_xy_distance;
+                            cradle_lines.back().line_.back() = line_front_uppermost + normal(line_end - line_front_uppermost, current_cradle_length);
                             for (auto [up_idx, line] : cradle_lines | ranges::views::enumerate | ranges::views::reverse)
                             {
                                 Point2LL center = cradle->getCenter(line.layer_idx_);
@@ -1188,8 +1190,8 @@ void TreeSupportTipGenerator::cleanCradleLineOverlaps()
                                 {
                                     //As the center can move there is no guarantee that the point of the current line lies on the line below.
                                     Point2LL projected_line_end = LinearAlg2D::getClosestOnLine(line_end,line.line_.front(),line.line_.back());
-                                    const coord_t current_cradle_xy_distance = cradle_xy_distance_[line.layer_idx_ - layer_idx];
-                                    const coord_t current_cradle_length = cradle_length_ + max_cradle_xy_distance - current_cradle_xy_distance;
+                                    current_cradle_xy_distance = cradle_xy_distance_[line.layer_idx_ - layer_idx];
+                                    current_cradle_length = cradle_length_ + max_cradle_xy_distance - current_cradle_xy_distance;
                                     if(vSize2(line_front_inner - projected_line_end) > current_cradle_length * current_cradle_length)
                                     {
                                         line.line_.back() = projected_line_end;
@@ -1245,19 +1247,32 @@ void TreeSupportTipGenerator::generateCradleLineAreasAndBase(std::vector<std::ve
                             {
                                 continue;
                             }
-                            TreeSupportCradleLine* line = line_opt.value();
+                            TreeSupportCradleLine* cradle_line = line_opt.value();
+                            Polygon line = cradle_line->line_;
 
-                            // 2*cradle_line_count would be distance between cradle lines stays the same
-                            coord_t triangle_length = (cradle_line_width_ - config_.support_line_width) / 2 * tan(std::numbers::pi / 2 - std::numbers::pi / double(3 * cradle_line_count_));
+                            coord_t current_cradle_line_width = cradle_line_width_;
 
-                            Point2LL direction = line->line_.back() - line->line_.front();
-                            Point2LL center_front = line->line_.front() - normal(direction, cradle_line_width_ / 2);
+                            double assumed_half_center_angle = std::numbers::pi / (1.5 * cradle_line_count_);
+                            coord_t triangle_length = cradle_line_count_ <= 2 ? 0 : ((current_cradle_line_width - config_.support_line_width) / 2) *
+                                                                                        tan(std::numbers::pi / 2 - assumed_half_center_angle);
+
+                            const coord_t line_length = line.polylineLength();
+                            if(triangle_length >= line_length + cradle_line_width_)
+                            {
+                                triangle_length = line_length + cradle_line_width_;
+                                current_cradle_line_width = config_.support_line_width +
+                                    2 * triangle_length * tan(assumed_half_center_angle);
+                            }
+
+                            Point2LL direction = line.back() - line.front();
+                            Point2LL center_front = line.front() - normal(direction, cradle_line_width_ / 2);
 
 
                             Point2LL direction_up_center = normal(rotate(direction, std::numbers::pi / 2), config_.support_line_width / 2);
                             Point2LL center_up = center_front + direction_up_center;
                             Point2LL center_down = center_front - direction_up_center;
 
+                            coord_t tip_shift = 0;
                             for (auto existing_center : all_tips_center)
                             {
                                 Point2LL intersect;
@@ -1268,24 +1283,34 @@ void TreeSupportTipGenerator::generateCradleLineAreasAndBase(std::vector<std::ve
                                     || std::min(vSize(center_down - existing_center.first), vSize(center_up - existing_center.second)) < min_distance_between_lines)
                                 {
                                     // This cradle line is to close to another.
-                                    // Move it back
-                                    center_front = center_front + normal(direction, outer_radius - vSize(center_front - cradle.getCenter(line->layer_idx_)));
+                                    // Move it back todo If line gets smaller than min length => abort
+                                    coord_t tip_shift_here = outer_radius - vSize(center_front - cradle.getCenter(cradle_line->layer_idx_));
+                                    tip_shift += tip_shift_here;
+                                    center_front = center_front + normal(direction, tip_shift_here);
                                     center_up = center_front + direction_up_center;
                                     center_down = center_front - direction_up_center;
                                 }
                             }
 
                             Point2LL back_center = center_front + normal(direction, triangle_length);
-                            Point2LL direction_up_back = normal(rotate(direction, std::numbers::pi / 2), cradle_line_width_ / 2);
+                            Point2LL direction_up_back = normal(rotate(direction, std::numbers::pi / 2), current_cradle_line_width / 2);
 
                             Point2LL back_up = back_center + direction_up_back;
                             Point2LL back_down = back_center - direction_up_back;
 
-                            line->line_.front() = back_center + normal(direction, cradle_line_width_ / 2 - FUDGE_LENGTH / 2);
+                            line.front() = back_center + normal(direction, current_cradle_line_width / 2 - FUDGE_LENGTH / 2);
                             all_tips_center.emplace_back(center_up, center_down);
 
                             Polygon line_tip;
                             line_tip.add(back_down);
+                            if(current_cradle_line_width == cradle_line_width_)
+                            {
+                                coord_t distance_end_front = line_length - triangle_length + cradle_line_width_ - tip_shift;
+                                Point2LL line_end_down = back_down + normal(direction, distance_end_front);
+                                Point2LL line_end_up = back_up + normal(direction, distance_end_front);
+                                line_tip.add(line_end_down);
+                                line_tip.add(line_end_up);
+                            }
                             line_tip.add(back_up);
                             line_tip.add(center_up);
                             line_tip.add(center_down);
@@ -1293,9 +1318,9 @@ void TreeSupportTipGenerator::generateCradleLineAreasAndBase(std::vector<std::ve
                             {
                                 line_tip.reverse();
                             }
-                            line->area_.add(line_tip);
-                            line->area_=line->area_.unionPolygons(line->line_.offset(0).offsetPolyLine(cradle_line_width_ / 2, ClipperLib::jtMiter));
-                            Polygons anti_preferred = line->area_.offset(config_.xy_distance);
+                            cradle_line->area_.add(line_tip);
+
+                            Polygons anti_preferred = cradle_line->area_.offset(config_.xy_distance);
                             std::lock_guard<std::mutex> critical_section_cradle(critical_support_free_areas_and_cradle_areas);
                             for(size_t z_distance_idx = 0; z_distance_idx < config_.z_distance_top_layers; z_distance_idx++)
                             {
