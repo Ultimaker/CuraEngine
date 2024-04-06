@@ -656,12 +656,17 @@ std::vector<std::vector<std::vector<Polygons>>> TreeSupportTipGenerator::generat
                     continue;
                 }
 
-                std::vector<Polygons> accumulated_model(std::min(cradle_layers_ + 1, mesh.overhang_areas.size() - layer_idx), Polygons());
+                std::vector<Polygons> accumulated_model(std::min(cradle_layers_ + z_distance_delta_, mesh.overhang_areas.size() - layer_idx), Polygons());
                 std::vector<size_t> all_pointy_idx{ pointy_info.index };
 
                 Point2LL center_prev = Polygon(pointy_info.area.getOutsidePolygons()[0]).centerOfMass();
                 std::vector<Point2LL> additional_centers;
                 TreeSupportCradle* cradle_main = new TreeSupportCradle(layer_idx,center_prev,shadows[layer_idx].size(), cradle_base_roof_, cradle_layers_min_, cradle_length_min_);
+                for(size_t z_distance = 0; z_distance < config_.z_distance_top_layers; z_distance++)
+                {
+                    accumulated_model[z_distance] = pointy_info.area;
+                    cradle_main->centers_.emplace_back(center_prev);
+                }
                 Polygons shadow; // A combination of all outlines of the model that will be supported with a cradle.
                 bool aborted = false;
                 bool contacted_other_pointy = false;
@@ -726,10 +731,10 @@ std::vector<std::vector<std::vector<Polygons>>> TreeSupportTipGenerator::generat
                             // To reduce the impact an area is estimated where the cradle should be for these areas.
                             Polygons previous_area = shadow;
                             for (size_t cradle_up_layer_z_distance = cradle_up_layer;
-                                 cradle_up_layer_z_distance < std::min(cradle_up_layer + z_distance_delta_ - 1, accumulated_model.size());
+                                 cradle_up_layer_z_distance < std::min(cradle_up_layer + z_distance_delta_ - 1, accumulated_model.size() - config_.z_distance_top_layers);
                                  cradle_up_layer_z_distance++)
                             {
-                                accumulated_model[cradle_up_layer_z_distance] = unsupported_model[cradle_up_layer_z_distance].unionPolygons();
+                                accumulated_model[cradle_up_layer_z_distance + config_.z_distance_top_layers] = unsupported_model[cradle_up_layer_z_distance].unionPolygons();
                             }
                         }
                         break;
@@ -737,7 +742,7 @@ std::vector<std::vector<std::vector<Polygons>>> TreeSupportTipGenerator::generat
 
                     model_outline = model_outline.unionPolygons();
                     shadow = shadow.offset(-config_.maximum_move_distance).unionPolygons(model_outline);
-                    accumulated_model[cradle_up_layer] = shadow;
+                    accumulated_model[cradle_up_layer + config_.z_distance_top_layers] = shadow;
 
                     if(cradle_up_layer > 0)
                     {
@@ -804,31 +809,31 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                             config_.support_rests_on_model,
                             true);
 
-                        Polygons this_part_influence = model_shadow.offset(config_.xy_min_distance);
+                        Polygons this_part_influence = model_shadow.offset(current_cradle_xy_distance + cradle_line_width_ / 2);
 
                         for (size_t layer_offset = 1; layer_offset <= config_.z_distance_bottom_layers && layer_offset <= idx; layer_offset++)
                         {
-                            this_part_influence.add(accumulated_model[idx - layer_offset]);
+                            this_part_influence.add(accumulated_model[idx - layer_offset].offset(current_cradle_xy_distance + cradle_line_width_ / 2));
                         }
 
                         for (coord_t layer_offset = 1; layer_offset <= config_.z_distance_top_layers && layer_offset + idx < accumulated_model.size(); layer_offset++)
                         {
                             const coord_t required_range_x = coord_t(
-                                config_.xy_min_distance - ((layer_offset - (config_.z_distance_top_layers == 1 ? 0.5 : 0)) * config_.xy_min_distance / config_.z_distance_top_layers));
+                                (current_cradle_xy_distance + cradle_line_width_ / 2) - ((layer_offset - (config_.z_distance_top_layers == 1 ? 0.5 : 0)) * (current_cradle_xy_distance + cradle_line_width_ / 2) / config_.z_distance_top_layers));
                             this_part_influence.add(accumulated_model[idx + layer_offset].offset(required_range_x));
                         }
 
-                        this_part_influence = this_part_influence.unionPolygons().offset(FUDGE_LENGTH, ClipperLib::jtRound).unionPolygons();
+                        this_part_influence = this_part_influence.unionPolygons();
 
                         coord_t cradle_min_xy_distance_delta = std::max(config_.xy_min_distance - current_cradle_xy_distance, coord_t(0));
 
                         // Somewhere, Somehow there is a small rounding error which causes small slivers of collision of the model to remain.
                         //  To prevent this offset my the delta before removing the influence of the model.
                         relevant_forbidden = relevant_forbidden.offset(-cradle_min_xy_distance_delta)
-                                                 .difference(this_part_influence)
+                                                 .difference(this_part_influence.offset(cradle_min_xy_distance_delta + EPSILON).unionPolygons())
                                                  .offset(cradle_min_xy_distance_delta)
-                                                 .unionPolygons(model_shadow.offset(current_cradle_xy_distance + cradle_line_width_ / 2))
-                                                 .unionPolygons(volumes_.getSupportBlocker(layer_idx).offset(cradle_line_width_ / 2));
+                                                 .unionPolygons(this_part_influence)
+                                                 .unionPolygons(volumes_.getSupportBlocker(layer_idx + idx).offset(cradle_line_width_ / 2));
                         coord_t max_distance2 = 0;
                         for (auto line : model_shadow)
                         {
@@ -888,7 +893,7 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                         }
                         // If a line is drawn, but half of it removed as it would collide with the collision, there may not actually be a print line. The offset should prevent
                         // this.
-                        shortened_lines_to_center = relevant_forbidden.differencePolyLines(shortened_lines_to_center, false); //todo this causes issues with actually forbidden...
+                        shortened_lines_to_center = relevant_forbidden.differencePolyLines(shortened_lines_to_center, false);
 
                         // Evaluate which lines are still valid after the avoidance was subtracted
                         for (auto [line_idx, line] : shortened_lines_to_center | ranges::views::enumerate)
@@ -1266,7 +1271,6 @@ void TreeSupportTipGenerator::generateCradleLineAreasAndBase(std::vector<std::ve
 
                             Point2LL direction = line.back() - line.front();
                             Point2LL center_front = line.front() - normal(direction, cradle_line_width_ / 2);
-
 
                             Point2LL direction_up_center = normal(rotate(direction, std::numbers::pi / 2), config_.support_line_width / 2);
                             Point2LL center_up = center_front + direction_up_center;
