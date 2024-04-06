@@ -3064,7 +3064,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
         {
             if(data_pair.first->parents_.empty() &&
                 !data_pair.first->supports_roof_ &&
-                !data_pair.first->supports_cradle_ &&
+                !data_pair.first->cradle_line_ &&
                 layer_idx + 1< support_roof_storage_fractional.size() &&
                 config.z_distance_top % config.layer_height > 0)
             {

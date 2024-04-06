@@ -2143,6 +2143,7 @@ void TreeSupportTipGenerator::generateTips(
                 for(size_t cradle_overhang_idx = 0; cradle_overhang_idx < all_cradles_requiring_support[layer_idx][cradle_idx]->overhang_[layer_idx].size(); cradle_overhang_idx++)
                 {
                     overhang_processing.emplace_back(all_cradles_requiring_support[layer_idx][cradle_idx]->overhang_[layer_idx][cradle_overhang_idx]);
+                    core_overhang = core_overhang.difference(all_cradles_requiring_support[layer_idx][cradle_idx]->overhang_[layer_idx][cradle_overhang_idx].overhang_);
                 }
             }
 
