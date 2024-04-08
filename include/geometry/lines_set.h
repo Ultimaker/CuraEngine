@@ -7,26 +7,23 @@
 #include <vector>
 
 #include "geometry/point2ll.h"
+#include "geometry/polyline_type.h"
 
 namespace cura
 {
 
 class Shape;
-class OpenPolyline;
-template<class T>
-class LinesSet;
+class Polyline;
 
 /*!
- * \brief Base class for all geometry containers representing a set of polylines. All the polylines
- *        have to be of the same type, e.g. open polylines. Due to the nature of the Polyline
- *        classes, it is possible to cast a LinesSet directly to a
- *        std::vector<std::vector<ClipperLib::IntPoint>> so that we can call the Clipper functions
- *        which having to do an active data conversion. It is also possible to virtually change the
- *        inner type of lines without having to do a conversion.
+ * \brief Base class for all geometry containers representing a set of polylines.
  */
 template<class LineType>
-class LinesSet : public std::vector<LineType>
+class LinesSet
 {
+private:
+    std::vector<LineType> lines_;
+
 public:
     LinesSet() = default;
 
@@ -35,34 +32,112 @@ public:
     LinesSet(LinesSet&& other) = default;
 
     LinesSet(const std::vector<LineType>& lines)
-        : std::vector<LineType>(lines)
+        : lines_(lines)
     {
     }
 
     LinesSet(std::vector<LineType>&& lines)
-        : std::vector<LineType>(std::move(lines))
+        : lines_(std::move(lines))
     {
     }
 
-    LinesSet(const std::vector<std::vector<Point2LL>>& paths)
+    /*LinesSet(const std::vector<std::vector<Point2LL>>& paths)
         : std::vector<LineType>(*reinterpret_cast<const std::vector<LineType>*>(&paths))
     {
+    }*/
+
+    LinesSet(PolylineType type, std::vector<std::vector<Point2LL>>&& paths);
+
+    const std::vector<LineType>& getLines() const
+    {
+        return lines_;
     }
 
-    LinesSet& operator=(const LinesSet& other)
+    std::vector<LineType>& getLines()
     {
-        std::vector<LineType>::operator=(other);
-        return *this;
+        return lines_;
     }
 
-    LinesSet& operator=(LinesSet&& other)
+    std::vector<LineType>::const_iterator begin() const
     {
-        std::vector<LineType>::operator=(other);
-        return *this;
+        return lines_.begin();
+    }
+
+    std::vector<LineType>::iterator begin()
+    {
+        return lines_.begin();
+    }
+
+    std::vector<LineType>::const_iterator end() const
+    {
+        return lines_.end();
+    }
+
+    std::vector<LineType>::iterator end()
+    {
+        return lines_.end();
+    }
+
+    const LineType& back() const
+    {
+        return lines_.back();
+    }
+
+    LineType& back()
+    {
+        return lines_.back();
+    }
+
+    void push_back(const LineType& line, bool checkNonEmpty = false);
+
+    void push_back(LineType&& line, bool checkNonEmpty = false);
+
+    void push_back(PolylineType type, ClipperLib::Paths&& paths);
+
+    void push_back(LinesSet<LineType>&& lines_set);
+
+    size_t size() const
+    {
+        return lines_.size();
+    }
+
+    bool empty() const
+    {
+        return lines_.empty();
+    }
+
+    void reserve(size_t size)
+    {
+        lines_.reserve(size);
+    }
+
+    void resize(size_t size)
+    {
+        lines_.resize(size);
+    }
+
+    template<typename... Args>
+    void emplace_back(Args&&... args)
+    {
+        lines_.emplace_back(args...);
+    }
+
+    LinesSet& operator=(const LinesSet& other) = default;
+
+    LinesSet& operator=(LinesSet&& other) = default;
+
+    LineType& operator[](size_t index)
+    {
+        return lines_[index];
+    }
+
+    const LineType& operator[](size_t index) const
+    {
+        return lines_[index];
     }
 
 #warning rename this to asType
-    template<class OtherLineType>
+    /*template<class OtherLineType>
     const LinesSet<OtherLineType>& toType() const
     {
         // This does work as long as we don't add any attribute to the PointsSet class or any of its child
@@ -79,21 +154,17 @@ public:
     {
         // This does work as long as we don't add any attribute to the PointsSet class or any of its child
         return *reinterpret_cast<std::vector<std::vector<Point2LL>>*>(this);
-    }
+    }*/
 
     void add(const LinesSet& other)
     {
-        this->insert(this->end(), other.begin(), other.end());
+        lines_->insert(other.lines_.end(), other.lines_.begin(), other.lines_.end());
     }
-
-    void addIfNotEmpty(const LineType& line);
-
-    void addIfNotEmpty(LineType&& line);
 
     LineType& newLine()
     {
-        this->emplace_back();
-        return this->back();
+        lines_.emplace_back();
+        return lines_.back();
     }
 
     //!< Return the amount of points in all lines
@@ -109,12 +180,13 @@ public:
     /*!
      * Add a simple line consisting of two points
      */
+#warning rename to addSegment and move to mixed
     void addLine(const Point2LL& from, const Point2LL& to);
 
     coord_t length() const;
 
-    void splitIntoSegments(LinesSet<OpenPolyline>& result) const;
-    LinesSet<OpenPolyline> splitIntoSegments() const;
+    void splitIntoSegments(LinesSet<Polyline>& result) const;
+    LinesSet<Polyline> splitIntoSegments() const;
 
     /*!
      * Removes overlapping consecutive line segments which don't delimit a
@@ -136,6 +208,9 @@ public:
      * polygons.
      */
     Shape tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
+
+protected:
+    void addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
 };
 
 } // namespace cura

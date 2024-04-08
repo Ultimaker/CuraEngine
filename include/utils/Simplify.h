@@ -5,12 +5,14 @@
 #define UTILS_SIMPLIFY_H
 
 #include "../settings/Settings.h" //To load the parameters from a Settings object.
-#include "ExtrusionLine.h"
 #include "geometry/polygon.h"
 #include "linearAlg2D.h" //To calculate line deviations and intersecting lines.
 
 namespace cura
 {
+
+struct ExtrusionLine;
+struct ExtrusionJunction;
 
 /*!
  * Utility class to reduce the resolution of polygons and polylines, under
@@ -115,8 +117,7 @@ public:
      * \param polyline The polyline to simplify.
      * \return The simplified polyline.
      */
-    template<PolylineType PolylineTypeVal>
-    Polyline<PolylineTypeVal> polyline(const Polyline<PolylineTypeVal>& polyline) const;
+    Polyline polyline(const Polyline& polyline) const;
 
     /*!
      * Simplify a variable-line-width polyline.
@@ -418,8 +419,7 @@ protected:
      * \param polygon The polygon to add to.
      * \param vertex The vertex to add.
      */
-    template<PolylineType PolylineTypeVal>
-    void appendVertex(Polyline<PolylineTypeVal>& polygon, const Point2LL& vertex) const;
+    void appendVertex(Polyline& polygon, const Point2LL& vertex) const;
 
     /*!
      * Append a vertex to this extrusion line.

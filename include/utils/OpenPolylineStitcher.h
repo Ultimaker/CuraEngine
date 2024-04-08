@@ -5,14 +5,13 @@
 #define UTILS_OPEN_POLYLINE_STITCHER_H
 
 #include "PolylineStitcher.h"
-#include "geometry/open_polyline.h"
-#include "geometry/polygon.h"
-#include "geometry/shape.h"
+#include "geometry/lines_set.h"
+#include "geometry/polyline.h"
 
 namespace cura
 {
 
-using OpenPolylineStitcher = PolylineStitcher<LinesSet<OpenPolyline>, Shape, OpenPolyline, Point2LL>;
+using OpenPolylineStitcher = PolylineStitcher<LinesSet<Polyline>, LinesSet<Polyline>, OpenPolyline, Point2LL>;
 
 } // namespace cura
 #endif // UTILS_OPEN_POLYLINE_STITCHER_H

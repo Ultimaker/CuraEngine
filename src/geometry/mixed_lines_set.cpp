@@ -7,10 +7,10 @@
 namespace cura
 {
 
-void MixedLinesSet::push_back(const MixedLinesSet& lines)
+/*void MixedLinesSet::push_back(const MixedLinesSet& lines)
 {
     push_back(lines.getOpenLines());
     push_back(lines.getClosedLines());
-}
+}*/
 
 } // namespace cura

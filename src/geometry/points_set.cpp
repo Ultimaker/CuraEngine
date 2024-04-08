@@ -11,23 +11,23 @@ namespace cura
 {
 
 PointsSet::PointsSet(const std::initializer_list<Point2LL>& initializer)
-    : std::vector<Point2LL>(initializer)
+    : points_(initializer)
 {
 }
 
 PointsSet::PointsSet(const std::vector<Point2LL>& points)
-    : std::vector<Point2LL>(points)
+    : points_(points)
 {
 }
 
 PointsSet::PointsSet(std::vector<Point2LL>&& points)
-    : std::vector<Point2LL>(std::move(points))
+    : points_(std::move(points))
 {
 }
 
 void PointsSet::applyMatrix(const PointMatrix& matrix)
 {
-    for (Point2LL& point : (*this))
+    for (Point2LL& point : points_)
     {
         point = matrix.apply(point);
     }
@@ -35,7 +35,7 @@ void PointsSet::applyMatrix(const PointMatrix& matrix)
 
 void PointsSet::applyMatrix(const Point3Matrix& matrix)
 {
-    for (Point2LL& point : (*this))
+    for (Point2LL& point : points_)
     {
         point = matrix.apply(point);
     }
@@ -44,10 +44,10 @@ void PointsSet::applyMatrix(const Point3Matrix& matrix)
 Point2LL PointsSet::min() const
 {
     Point2LL ret = Point2LL(POINT_MAX, POINT_MAX);
-    for (Point2LL p : *this)
+    for (Point2LL point : points_)
     {
-        ret.X = std::min(ret.X, p.X);
-        ret.Y = std::min(ret.Y, p.Y);
+        ret.X = std::min(ret.X, point.X);
+        ret.Y = std::min(ret.Y, point.Y);
     }
     return ret;
 }
@@ -55,35 +55,35 @@ Point2LL PointsSet::min() const
 Point2LL PointsSet::max() const
 {
     Point2LL ret = Point2LL(POINT_MIN, POINT_MIN);
-    for (Point2LL p : *this)
+    for (Point2LL point : points_)
     {
-        ret.X = std::max(ret.X, p.X);
-        ret.Y = std::max(ret.Y, p.Y);
+        ret.X = std::max(ret.X, point.X);
+        ret.Y = std::max(ret.Y, point.Y);
     }
     return ret;
 }
 
 Point2LL PointsSet::closestPointTo(const Point2LL& p) const
 {
-    Point2LL ret = p;
+    const Point2LL* ret = &p;
     double bestDist = std::numeric_limits<double>::max();
-    for (size_t n = 0; n < size(); n++)
+    for (const Point2LL& point : points_)
     {
-        double dist = vSize2f(p - (*this)[n]);
+        double dist = vSize2f(p - point);
         if (dist < bestDist)
         {
-            ret = (*this)[n];
+            ret = &point;
             bestDist = dist;
         }
     }
-    return ret;
+    return *ret;
 }
 
 void PointsSet::translate(const Point2LL& translation)
 {
-    for (Point2LL& p : *this)
+    for (Point2LL& point : points_)
     {
-        p += translation;
+        point += translation;
     }
 }
 

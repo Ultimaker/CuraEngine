@@ -9,7 +9,7 @@
 namespace cura
 {
 
-using ClosedPolyline = GenericClosedPolyline<PolylineType::Closed>;
+// using ClosedPolyline = GenericClosedPolyline<PolylineType::Closed>;
 
 } // namespace cura
 

@@ -4,7 +4,7 @@
 #ifndef GEOMETRY_SHAPE_H
 #define GEOMETRY_SHAPE_H
 
-#include "geometry/lines_set.h"
+#include "geometry/mixed_lines_set.h"
 #include "geometry/polygon.h"
 #include "settings/types/Angle.h"
 
@@ -30,16 +30,11 @@ public:
     {
     }
 
-    Shape(const std::vector<ClipperLib::Path>& paths)
-        : LinesSet<Polygon>(paths)
-    {
-    }
+    explicit Shape(ClipperLib::Paths&& paths);
 
     Shape& operator=(const Shape& other);
 
     Shape& operator=(Shape&& other);
-
-    void add(const Shape& other);
 
     /*!
      * Convert ClipperLib::PolyTree to a Shape object,
@@ -49,6 +44,7 @@ public:
 
     Shape difference(const Shape& other) const;
 
+#warning rename this to union
     Shape unionPolygons(const Shape& other, ClipperLib::PolyFillType fill_type = ClipperLib::pftNonZero) const;
 
     /*!
@@ -66,13 +62,13 @@ public:
      *
      * \note Due to a clipper bug with polylines with nearly collinear segments, the polylines are cut up into separate polylines, and restitched back together at the end.
      *
-     * \param polylines The (non-closed!) polylines to limit to the area of this Polygons object
+     * \param polylines The polylines to limit to the area of this Polygons object
      * \param restitch Whether to stitch the resulting segments into longer polylines, or leave every segment as a single segment
      * \param max_stitch_distance The maximum distance for two polylines to be stitched together with a segment
      * \return The resulting polylines limited to the area of this Polygons object
      */
     template<class LineType>
-    LinesSet<OpenPolyline> intersectionPolyLines(const LinesSet<LineType>& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu) const;
+    MixedLinesSet intersection(const MixedLinesSet& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu) const;
 
     /*!
      * Add the front to each polygon so that the polygon is represented as a polyline
@@ -258,7 +254,7 @@ public:
      *
      * @param stream The stream to write to
      */
-    [[maybe_unused]] void writeWkt(std::ostream& stream) const;
+    //[[maybe_unused]] void writeWkt(std::ostream& stream) const;
 
     /*!
      * @brief Import the polygon from a WKT string
@@ -266,7 +262,7 @@ public:
      * @param wkt The WKT string to read from
      * @return Shape The polygons read from the stream
      */
-    [[maybe_unused]] static Shape fromWkt(const std::string& wkt);
+    //[[maybe_unused]] static Shape fromWkt(const std::string& wkt);
 
     /*!
      * @brief Remove self-intersections from the polygons

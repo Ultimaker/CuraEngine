@@ -9,8 +9,9 @@ namespace cura
 
 enum class PolylineType
 {
-    Open,
-    Closed,
+    Open, // Line is open and has no wise
+    ImplicitelyClosed, // Line is closed by having a virtual additional segment between last and first vertices
+    ExplicitelyClosed, // Line is closed by having the same point twice at beginning and end of list
     Filled
 };
 

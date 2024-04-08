@@ -30,7 +30,7 @@ constexpr int largest_neglected_gap_first_phase = MM2INT(0.01); //!< distance be
 constexpr int largest_neglected_gap_second_phase = MM2INT(0.02); //!< distance between two line segments regarded as connected
 constexpr int max_stitch1 = MM2INT(10.0); //!< maximal distance stitched between open polylines to form polygons
 
-void SlicerLayer::makeBasicPolygonLoops(std::vector<OpenPolyline>& open_polylines)
+void SlicerLayer::makeBasicPolygonLoops(LinesSet<Polyline>& open_polylines)
 {
     for (size_t start_segment_idx = 0; start_segment_idx < segments.size(); start_segment_idx++)
     {
@@ -43,9 +43,9 @@ void SlicerLayer::makeBasicPolygonLoops(std::vector<OpenPolyline>& open_polyline
     segments.clear();
 }
 
-void SlicerLayer::makeBasicPolygonLoop(std::vector<OpenPolyline>& open_polylines, const size_t start_segment_idx)
+void SlicerLayer::makeBasicPolygonLoop(LinesSet<Polyline>& open_polylines, const size_t start_segment_idx)
 {
-    OpenPolyline poly;
+    Polyline poly;
     poly.push_back(segments[start_segment_idx].start);
 
     for (int segment_idx = start_segment_idx; segment_idx != -1;)
@@ -56,7 +56,7 @@ void SlicerLayer::makeBasicPolygonLoop(std::vector<OpenPolyline>& open_polylines
         segment_idx = getNextSegmentIdx(segment, start_segment_idx);
         if (segment_idx == static_cast<int>(start_segment_idx))
         { // polyon is closed
-            polygons.push_back(poly);
+            polygons.push_back(Polygon(std::move(poly.getPoints())));
             return;
         }
     }
@@ -128,7 +128,7 @@ int SlicerLayer::getNextSegmentIdx(const SlicerSegment& segment, const size_t st
     return next_segment_idx;
 }
 
-void SlicerLayer::connectOpenPolylines(std::vector<OpenPolyline>& open_polylines)
+void SlicerLayer::connectOpenPolylines(LinesSet<Polyline>& open_polylines)
 {
     constexpr bool allow_reverse = false;
     // Search a bit fewer cells but at cost of covering more area.
@@ -137,7 +137,7 @@ void SlicerLayer::connectOpenPolylines(std::vector<OpenPolyline>& open_polylines
     connectOpenPolylinesImpl(open_polylines, largest_neglected_gap_second_phase, cell_size, allow_reverse);
 }
 
-void SlicerLayer::stitch(std::vector<OpenPolyline>& open_polylines)
+void SlicerLayer::stitch(LinesSet<Polyline>& open_polylines)
 {
     bool allow_reverse = true;
     connectOpenPolylinesImpl(open_polylines, max_stitch1, max_stitch1, allow_reverse);
@@ -190,7 +190,7 @@ bool SlicerLayer::PossibleStitch::operator<(const PossibleStitch& other) const
 }
 
 std::priority_queue<SlicerLayer::PossibleStitch>
-    SlicerLayer::findPossibleStitches(const std::vector<OpenPolyline>& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse) const
+    SlicerLayer::findPossibleStitches(const LinesSet<Polyline>& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse) const
 {
     std::priority_queue<PossibleStitch> stitch_queue;
 
@@ -336,7 +336,7 @@ std::priority_queue<SlicerLayer::PossibleStitch>
     return stitch_queue;
 }
 
-void SlicerLayer::planPolylineStitch(const std::vector<OpenPolyline>& open_polylines, Terminus& terminus_0, Terminus& terminus_1, bool reverse[2]) const
+void SlicerLayer::planPolylineStitch(const LinesSet<Polyline>& open_polylines, Terminus& terminus_0, Terminus& terminus_1, bool reverse[2]) const
 {
     size_t polyline_0_idx = terminus_0.getPolylineIdx();
     size_t polyline_1_idx = terminus_1.getPolylineIdx();
@@ -385,7 +385,7 @@ void SlicerLayer::planPolylineStitch(const std::vector<OpenPolyline>& open_polyl
     }
 }
 
-void SlicerLayer::joinPolylines(OpenPolyline& polyline_0, OpenPolyline& polyline_1, const bool reverse[2])
+void SlicerLayer::joinPolylines(Polyline& polyline_0, Polyline& polyline_1, const bool reverse[2])
 {
     if (reverse[0])
     {
@@ -452,7 +452,7 @@ void SlicerLayer::TerminusTrackingMap::updateMap(
     }
 }
 
-void SlicerLayer::connectOpenPolylinesImpl(std::vector<OpenPolyline>& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse)
+void SlicerLayer::connectOpenPolylinesImpl(LinesSet<Polyline>& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse)
 {
     // below code closes smallest gaps first
 
@@ -534,7 +534,7 @@ void SlicerLayer::connectOpenPolylinesImpl(std::vector<OpenPolyline>& open_polyl
     }
 }
 
-void SlicerLayer::stitch_extensive(std::vector<OpenPolyline>& open_polylines)
+void SlicerLayer::stitch_extensive(LinesSet<Polyline>& open_polylines)
 {
     // For extensive stitching find 2 open polygons that are touching 2 closed polygons.
     //  Then find the shortest path over this polygon that can be used to connect the open polygons,

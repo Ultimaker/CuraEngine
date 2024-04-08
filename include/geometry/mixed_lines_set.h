@@ -4,23 +4,21 @@
 #ifndef GEOMETRY_MIXED_LINES_SET_H
 #define GEOMETRY_MIXED_LINES_SET_H
 
-#include "geometry/closed_polyline.h"
 #include "geometry/lines_set.h"
-#include "geometry/open_polyline.h"
+#include "geometry/polyline.h"
 
 namespace cura
 {
 
+using MixedLinesSet = LinesSet<Polyline>;
+
+#if 0
 /*!
  * \brief Container that can hold either open or closed polylines. We often have to handle "a bunch
  *        of lines" which are either open or closed without taking care of what they actually are.
  */
-class MixedLinesSet
+class MixedLinesSet : public LinesSet<Polyline>
 {
-private:
-    LinesSet<OpenPolyline> open_lines_;
-    LinesSet<ClosedPolyline> closed_lines_;
-
 public:
     MixedLinesSet() = default;
 
@@ -122,7 +120,7 @@ public:
         return open_lines_.size() + closed_lines_.size();
     }
 };
-
+#endif
 } // namespace cura
 
 #endif // GEOMETRY_MIXED_LINES_SET_H

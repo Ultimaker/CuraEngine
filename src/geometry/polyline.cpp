@@ -13,8 +13,7 @@
 namespace cura
 {
 
-template<PolylineType PolylineTypeVal>
-void Polyline<PolylineTypeVal>::removeColinearEdges(const AngleRadians max_deviation_angle)
+void Polyline::removeColinearEdges(const AngleRadians max_deviation_angle)
 {
     // TODO: Can be made more efficient (for example, use pointer-types for process-/skip-indices, so we can swap them without copy).
 
@@ -30,7 +29,7 @@ void Polyline<PolylineTypeVal>::removeColinearEdges(const AngleRadians max_devia
         {
             go = false;
 
-            const ClipperLib::Path& rpath = *this;
+            const ClipperLib::Path& rpath = getPoints();
             const size_t pathlen = rpath.size();
             if (pathlen <= 3)
             {
@@ -39,7 +38,7 @@ void Polyline<PolylineTypeVal>::removeColinearEdges(const AngleRadians max_devia
 
             std::vector<bool> skip_indices(size(), false);
 
-            Polyline<PolylineTypeVal> new_path;
+            Polyline new_path(type_);
             for (size_t point_idx = 0; point_idx < pathlen; ++point_idx)
             {
                 // Don't iterate directly over process-indices, but do it this way, because there are points _in_ process-indices that should nonetheless be skipped:
@@ -83,7 +82,7 @@ void Polyline<PolylineTypeVal>::removeColinearEdges(const AngleRadians max_devia
                     ++point_idx;
                 }
             }
-            (*this) = new_path;
+            (*this) = std::move(new_path);
             num_removed_in_iteration += pathlen - size();
 
             process_indices.clear();
@@ -92,16 +91,14 @@ void Polyline<PolylineTypeVal>::removeColinearEdges(const AngleRadians max_devia
     } while (num_removed_in_iteration > 0);
 }
 
-template<PolylineType PolylineTypeVal>
-Polyline<PolylineTypeVal>::const_segments_iterator Polyline<PolylineTypeVal>::beginSegments() const
+Polyline::const_segments_iterator Polyline::beginSegments() const
 {
     return const_segments_iterator(begin(), begin(), end());
 }
 
-template<PolylineType PolylineTypeVal>
-Polyline<PolylineTypeVal>::const_segments_iterator Polyline<PolylineTypeVal>::endSegments() const
+Polyline::const_segments_iterator Polyline::endSegments() const
 {
-    if constexpr (type_ == PolylineType::Closed || type_ == PolylineType::Filled)
+    if (type_ == PolylineType::ImplicitelyClosed)
     {
         return const_segments_iterator(end(), begin(), end());
     }
@@ -111,16 +108,14 @@ Polyline<PolylineTypeVal>::const_segments_iterator Polyline<PolylineTypeVal>::en
     }
 }
 
-template<PolylineType PolylineTypeVal>
-Polyline<PolylineTypeVal>::segments_iterator Polyline<PolylineTypeVal>::beginSegments()
+Polyline::segments_iterator Polyline::beginSegments()
 {
     return segments_iterator(begin(), begin(), end());
 }
 
-template<PolylineType PolylineTypeVal>
-Polyline<PolylineTypeVal>::segments_iterator Polyline<PolylineTypeVal>::endSegments()
+Polyline::segments_iterator Polyline::endSegments()
 {
-    if constexpr (type_ == PolylineType::Closed || type_ == PolylineType::Filled)
+    if (type_ == PolylineType::ImplicitelyClosed)
     {
         return segments_iterator(end(), begin(), end());
     }
@@ -130,8 +125,7 @@ Polyline<PolylineTypeVal>::segments_iterator Polyline<PolylineTypeVal>::endSegme
     }
 }
 
-template<PolylineType PolylineTypeVal>
-coord_t Polyline<PolylineTypeVal>::length() const
+coord_t Polyline::length() const
 {
     return std::accumulate(
         beginSegments(),
@@ -143,8 +137,7 @@ coord_t Polyline<PolylineTypeVal>::length() const
         });
 }
 
-template<PolylineType PolylineTypeVal>
-bool Polyline<PolylineTypeVal>::shorterThan(const coord_t check_length) const
+bool Polyline::shorterThan(const coord_t check_length) const
 {
     coord_t length = 0;
     auto iterator_segment = std::find_if(
@@ -158,51 +151,56 @@ bool Polyline<PolylineTypeVal>::shorterThan(const coord_t check_length) const
     return iterator_segment == endSegments();
 }
 
-template<PolylineType PolylineTypeVal>
-void Polyline<PolylineTypeVal>::splitIntoSegments(LinesSet<OpenPolyline>& result) const
+void Polyline::splitIntoSegments(LinesSet<Polyline>& result) const
 {
+#warning reserve space before adding all the segments
     for (auto it = beginSegments(); it != endSegments(); ++it)
     {
-        result.emplace_back(std::initializer_list<Point2LL>{ (*it).start, (*it).end });
+        result.emplace_back(PolylineType::Open, std::initializer_list<Point2LL>{ (*it).start, (*it).end });
     }
 }
 
-template<PolylineType PolylineTypeVal>
-LinesSet<OpenPolyline> Polyline<PolylineTypeVal>::splitIntoSegments() const
+LinesSet<Polyline> Polyline::splitIntoSegments() const
 {
-    LinesSet<OpenPolyline> result;
+    LinesSet<Polyline> result;
     splitIntoSegments(result);
     return result;
 }
 
-template void Polyline<PolylineType::Open>::removeColinearEdges(const AngleRadians max_deviation_angle);
-template Polyline<PolylineType::Open>::const_segments_iterator Polyline<PolylineType::Open>::beginSegments() const;
-template Polyline<PolylineType::Open>::const_segments_iterator Polyline<PolylineType::Open>::endSegments() const;
-template Polyline<PolylineType::Open>::segments_iterator Polyline<PolylineType::Open>::beginSegments();
-template Polyline<PolylineType::Open>::segments_iterator Polyline<PolylineType::Open>::endSegments();
-template coord_t Polyline<PolylineType::Open>::length() const;
-template bool Polyline<PolylineType::Open>::shorterThan(const coord_t check_length) const;
-template void Polyline<PolylineType::Open>::splitIntoSegments(LinesSet<OpenPolyline>& result) const;
-template LinesSet<OpenPolyline> Polyline<PolylineType::Open>::splitIntoSegments() const;
+bool Polyline::inside(const Point2LL& p, bool border_result) const
+{
+    if (isClosed())
+    {
+        int res = ClipperLib::PointInPolygon(p, getPoints());
+        if (res == -1)
+        {
+            return border_result;
+        }
+        return res == 1;
+    }
+    else
+    {
+        return false;
+    }
+}
 
-template void Polyline<PolylineType::Closed>::removeColinearEdges(const AngleRadians max_deviation_angle);
-template Polyline<PolylineType::Closed>::const_segments_iterator Polyline<PolylineType::Closed>::beginSegments() const;
-template Polyline<PolylineType::Closed>::const_segments_iterator Polyline<PolylineType::Closed>::endSegments() const;
-template Polyline<PolylineType::Closed>::segments_iterator Polyline<PolylineType::Closed>::beginSegments();
-template Polyline<PolylineType::Closed>::segments_iterator Polyline<PolylineType::Closed>::endSegments();
-template coord_t Polyline<PolylineType::Closed>::length() const;
-template bool Polyline<PolylineType::Closed>::shorterThan(const coord_t check_length) const;
-template void Polyline<PolylineType::Closed>::splitIntoSegments(LinesSet<OpenPolyline>& result) const;
-template LinesSet<OpenPolyline> Polyline<PolylineType::Closed>::splitIntoSegments() const;
-
-template void Polyline<PolylineType::Filled>::removeColinearEdges(const AngleRadians max_deviation_angle);
-template Polyline<PolylineType::Filled>::const_segments_iterator Polyline<PolylineType::Filled>::beginSegments() const;
-template Polyline<PolylineType::Filled>::const_segments_iterator Polyline<PolylineType::Filled>::endSegments() const;
-template Polyline<PolylineType::Filled>::segments_iterator Polyline<PolylineType::Filled>::beginSegments();
-template Polyline<PolylineType::Filled>::segments_iterator Polyline<PolylineType::Filled>::endSegments();
-template coord_t Polyline<PolylineType::Filled>::length() const;
-template bool Polyline<PolylineType::Filled>::shorterThan(const coord_t check_length) const;
-template void Polyline<PolylineType::Filled>::splitIntoSegments(LinesSet<OpenPolyline>& result) const;
-template LinesSet<OpenPolyline> Polyline<PolylineType::Filled>::splitIntoSegments() const;
+bool Polyline::inside(const auto& polygon) const
+{
+    if (isClosed())
+    {
+        for (const auto& point : *this)
+        {
+            if (! ClipperLib::PointInPolygon(point, polygon))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
 
 } // namespace cura

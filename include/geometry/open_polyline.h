@@ -9,42 +9,45 @@
 namespace cura
 {
 
-class OpenPolyline : public Polyline<PolylineType::Open>
+/*class OpenPolyline : public Polyline
 {
 public:
-    OpenPolyline() = default;
+    OpenPolyline()
+        : Polyline{ PolylineType::Open }
+    {
+    }
 
     OpenPolyline(const OpenPolyline& other) = default;
 
     OpenPolyline(OpenPolyline&& other) = default;
 
     OpenPolyline(const std::initializer_list<Point2LL>& initializer)
-        : Polyline<PolylineType::Open>(initializer)
+        : Polyline(PolylineType::Open, initializer)
     {
     }
 
     OpenPolyline(const std::vector<Point2LL>& points)
-        : Polyline<PolylineType::Open>(points)
+        : Polyline(PolylineType::Open, points)
     {
     }
 
     OpenPolyline(std::vector<Point2LL>&& points)
-        : Polyline<PolylineType::Open>(points)
+        : Polyline(PolylineType::Open, points)
     {
     }
 
     OpenPolyline& operator=(const OpenPolyline& other)
     {
-        Polyline<PolylineType::Open>::operator=(other);
+        Polyline::operator=(other);
         return *this;
     }
 
     OpenPolyline& operator=(OpenPolyline&& other)
     {
-        Polyline<PolylineType::Open>::operator=(other);
+        Polyline::operator=(other);
         return *this;
     }
-};
+};*/
 
 } // namespace cura
 

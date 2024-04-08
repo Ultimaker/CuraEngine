@@ -62,7 +62,7 @@ public:
 
     int z = -1;
     Shape polygons;
-    LinesSet<OpenPolyline> openPolylines;
+    LinesSet<Polyline> openPolylines;
 
     /*!
      * \brief Connect the segments into polygons for this layer of this \p mesh.
@@ -77,7 +77,7 @@ protected:
      *
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
      */
-    void makeBasicPolygonLoops(std::vector<OpenPolyline>& open_polylines);
+    void makeBasicPolygonLoops(LinesSet<Polyline>& open_polylines);
 
     /*!
      * Connect the segments into a loop, starting from the segment with index \p start_segment_idx
@@ -85,7 +85,7 @@ protected:
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
      * \param[in] start_segment_idx The index into SlicerLayer::segments for the first segment from which to start the polygon loop
      */
-    void makeBasicPolygonLoop(std::vector<OpenPolyline>& open_polylines, const size_t start_segment_idx);
+    void makeBasicPolygonLoop(LinesSet<Polyline>& open_polylines, const size_t start_segment_idx);
 
     /*!
      * Get the next segment connected to the end of \p segment.
@@ -105,7 +105,7 @@ protected:
      *
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
      */
-    void connectOpenPolylines(std::vector<OpenPolyline>& open_polylines);
+    void connectOpenPolylines(LinesSet<Polyline>& open_polylines);
 
     /*!
      * Link up all the missing ends, closing up the smallest gaps first. This is an inefficient implementation which can run in O(n*n*n) time.
@@ -114,7 +114,7 @@ protected:
      *
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop yet
      */
-    void stitch(std::vector<OpenPolyline>& open_polylines);
+    void stitch(LinesSet<Polyline>& open_polylines);
 
     std::optional<GapCloserResult> findPolygonGapCloser(Point2LL ip0, Point2LL ip1);
 
@@ -127,7 +127,7 @@ protected:
      *
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop yet
      */
-    void stitch_extensive(std::vector<OpenPolyline>& open_polylines);
+    void stitch_extensive(LinesSet<Polyline>& open_polylines);
 
 private:
     /*!
@@ -436,7 +436,7 @@ private:
      * \param[in,out] terminus_1 the Terminus on polyline_1 to join at.
      * \param[out] reverse Whether the polylines need to be reversed.
      */
-    void planPolylineStitch(const std::vector<OpenPolyline>& open_polylines, Terminus& terminus_0, Terminus& terminus_1, bool reverse[2]) const;
+    void planPolylineStitch(const LinesSet<Polyline>& open_polylines, Terminus& terminus_0, Terminus& terminus_1, bool reverse[2]) const;
 
     /*! Joins polyline_1 onto polyline_0.
      *
@@ -454,7 +454,7 @@ private:
      *     polyline_0 and reverse[1] indicates whether to reverse
      *     polyline_1
      */
-    static void joinPolylines(OpenPolyline& polyline_0, OpenPolyline& polyline_1, const bool reverse[2]);
+    static void joinPolylines(Polyline& polyline_0, Polyline& polyline_1, const bool reverse[2]);
 
     /*!
      * Connecting polylines that are not closed yet.
@@ -474,7 +474,7 @@ private:
      * \param[in] allow_reverse If true, then this function is allowed
      *     to reverse edge directions to merge polylines.
      */
-    void connectOpenPolylinesImpl(std::vector<OpenPolyline>& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse);
+    void connectOpenPolylinesImpl(LinesSet<Polyline>& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse);
 };
 
 class Slicer

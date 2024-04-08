@@ -4,7 +4,7 @@
 #ifndef GEOMETRY_POLYGON_H
 #define GEOMETRY_POLYGON_H
 
-#include "generic_closed_polyline.h"
+#include "polyline.h"
 
 namespace cura
 {
@@ -13,28 +13,42 @@ class Shape;
 class ListPolyIt;
 class AngleDegrees;
 
-class Polygon : public GenericClosedPolyline<PolylineType::Filled>
+class Polygon : public Polyline
 {
 public:
-    Polygon() = default;
+    Polygon()
+        : Polyline{ PolylineType::Filled }
+    {
+    }
 
     Polygon(const Polygon& other) = default;
 
     Polygon(Polygon&& other) = default;
 
     Polygon(const std::initializer_list<Point2LL>& initializer)
-        : GenericClosedPolyline<PolylineType::Filled>(initializer)
+        : Polyline(PolylineType::Filled, initializer)
     {
     }
 
-    Polygon(const std::vector<Point2LL>& points)
-        : GenericClosedPolyline<PolylineType::Filled>(points)
+    explicit Polygon(const ClipperLib::Path& points)
+        : Polyline(PolylineType::Filled, points)
+    {
+    }
+
+    explicit Polygon(ClipperLib::Path&& points)
+        : Polyline(PolylineType::Filled, points)
     {
     }
 
     Polygon& operator=(const Polygon& other)
     {
-        GenericClosedPolyline::operator=(other);
+        Polyline::operator=(other);
+        return *this;
+    }
+
+    Polygon& operator=(Polygon&& other)
+    {
+        Polyline::operator=(other);
         return *this;
     }
 
@@ -50,7 +64,7 @@ public:
 
     double area() const
     {
-        return ClipperLib::Area(*this);
+        return ClipperLib::Area(getPoints());
     }
 
     Point2LL centerOfMass() const;

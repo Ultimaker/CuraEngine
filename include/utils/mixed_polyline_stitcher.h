@@ -12,12 +12,26 @@
 namespace cura
 {
 
-class MixedPolylineStitcher : public PolylineStitcher<LinesSet<OpenPolyline>, LinesSet<ClosedPolyline>, OpenPolyline, Point2LL>
+class MixedPolylineStitcher : public PolylineStitcher<LinesSet<Polyline>, LinesSet<Polyline>, Polyline, Point2LL>
 {
 public:
-    static void stitch(const LinesSet<OpenPolyline>& lines, MixedLinesSet& result, coord_t max_stitch_distance = MM2INT(0.1), coord_t snap_distance = 10)
+    static void stitch(const LinesSet<Polyline>& lines, MixedLinesSet& result, coord_t max_stitch_distance = MM2INT(0.1), coord_t snap_distance = 10)
     {
-        PolylineStitcher::stitch(lines, result.getOpenLines(), result.getClosedLines(), max_stitch_distance, snap_distance);
+        LinesSet<Polyline> open_lines;
+        LinesSet<Polyline> closed_lines;
+
+        PolylineStitcher::stitch(lines, open_lines, closed_lines, max_stitch_distance, snap_distance);
+
+        result.push_back(std::move(open_lines));
+
+        for (Polyline& closed_line : closed_lines)
+        {
+            // Base stitch method will create explicitely closed polylines, but won't tag them as such
+            // because it is a generic algporitm. Tag them now.
+            closed_line.setType(PolylineType::ExplicitelyClosed);
+        }
+
+        result.push_back(std::move(closed_lines));
     }
 };
 

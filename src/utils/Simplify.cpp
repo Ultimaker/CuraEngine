@@ -6,8 +6,8 @@
 #include <limits>
 #include <queue> //Priority queue to prioritise removing unimportant vertices.
 
-#include "geometry/closed_polyline.h"
-#include "geometry/open_polyline.h"
+#include "geometry/polyline.h"
+#include "utils/ExtrusionLine.h"
 
 namespace cura
 {
@@ -31,7 +31,7 @@ Shape Simplify::polygon(const Shape& polygons) const
     Shape result;
     for (size_t i = 0; i < polygons.size(); ++i)
     {
-        result.addIfNotEmpty(polygon(polygons[i]));
+        result.push_back(polygon(polygons[i]), true);
     }
     return result;
 }
@@ -54,30 +54,15 @@ LinesSet<LineType> Simplify::polyline(const LinesSet<LineType>& polylines) const
     LinesSet<LineType> result;
     for (size_t i = 0; i < polylines.size(); ++i)
     {
-        result.addIfNotEmpty(polyline(polylines[i]));
+        result.push_back(polyline(polylines[i]), true);
     }
     return result;
 }
 
-template LinesSet<OpenPolyline> Simplify::polyline(const LinesSet<OpenPolyline>& polylines) const;
-template LinesSet<ClosedPolyline> Simplify::polyline(const LinesSet<ClosedPolyline>& polylines) const;
-
-template<>
-Polyline<PolylineType::Open> Simplify::polyline(const Polyline<PolylineType::Open>& polyline) const
+Polyline Simplify::polyline(const Polyline& polyline) const
 {
-    return simplify(polyline, false);
-}
-
-template<>
-Polyline<PolylineType::Closed> Simplify::polyline(const Polyline<PolylineType::Closed>& polyline) const
-{
-    return simplify(polyline, true);
-}
-
-template<>
-Polyline<PolylineType::Filled> Simplify::polyline(const Polyline<PolylineType::Filled>& polyline) const
-{
-    return simplify(polyline, true);
+    assert(polyline.getType() != PolylineType::ExplicitelyClosed && "Simplify algorithm doesn't expect explicitely closed polylines");
+    return simplify(polyline, polyline.isClosed());
 }
 
 ExtrusionLine Simplify::polyline(const ExtrusionLine& polyline) const
@@ -114,8 +99,7 @@ ExtrusionLine Simplify::createEmpty(const ExtrusionLine& original) const
     return result;
 }
 
-template<PolylineType PolylineTypeVal>
-void Simplify::appendVertex(Polyline<PolylineTypeVal>& polygon, const Point2LL& vertex) const
+void Simplify::appendVertex(Polyline& polygon, const Point2LL& vertex) const
 {
     polygon.push_back(vertex);
 }

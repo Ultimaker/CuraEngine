@@ -36,17 +36,18 @@ bool shorterThan(const T& shape, const coord_t check_length)
 
 /*!
  * \brief Base class for all geometry containers representing a set of points.
- * \warning This class and all its subclasses must not contain any attribute. This way the memory
- *          footprint of all the objects is the same whatever their type, which allows us to
- *          directly cast them between each other, and also most important, into
- *          std::vector<Point2LL> which is the base type required by ClipperLib. This gives us the
- *          possibility to have nice container with transformation methods, and call the Clipper
- *          functions directly on them without having to make any active data conversion.
  */
-class PointsSet : public std::vector<Point2LL>
+class PointsSet
 {
+private:
+    std::vector<Point2LL> points_;
+
 public:
     PointsSet() = default;
+
+    PointsSet(const PointsSet& other) = default;
+
+    PointsSet(PointsSet&& other) = default;
 
     PointsSet(const std::initializer_list<Point2LL>& initializer);
 
@@ -60,22 +61,102 @@ public:
         return *this;
     }*/
 
-    const std::vector<Point2LL>& asRawVector() const
+    const std::vector<Point2LL>& getPoints() const
     {
-        // This does work as long as we don't add any attribute to the PointsSet class or any of its child
-        return *reinterpret_cast<const std::vector<Point2LL>*>(this);
+        return points_;
     }
 
-    std::vector<Point2LL>& asRawVector()
+    std::vector<Point2LL>& getPoints()
     {
-        // This does work as long as we don't add any attribute to the PointsSet class or any of its child
-        return *reinterpret_cast<std::vector<Point2LL>*>(this);
+        return points_;
     }
 
+    size_t size() const
+    {
+        return points_.size();
+    }
+
+    void push_back(const Point2LL& point)
+    {
+        points_.push_back(point);
+    }
+
+    void pop_back()
+    {
+        points_.pop_back();
+    }
+
+    std::vector<Point2LL>::const_iterator begin() const
+    {
+        return points_.begin();
+    }
+
+    std::vector<Point2LL>::iterator begin()
+    {
+        return points_.begin();
+    }
+
+    std::vector<Point2LL>::const_iterator end() const
+    {
+        return points_.end();
+    }
+
+    std::vector<Point2LL>::iterator end()
+    {
+        return points_.end();
+    }
+
+    const Point2LL& front() const
+    {
+        return points_.front();
+    }
+
+    Point2LL& front()
+    {
+        return points_.front();
+    }
+
+    const Point2LL& back() const
+    {
+        return points_.back();
+    }
+
+    Point2LL& back()
+    {
+        return points_.back();
+    }
+
+    bool empty() const
+    {
+        return points_.empty();
+    }
+
+    void resize(size_t size)
+    {
+        points_.resize(size);
+    }
+
+    Point2LL& operator[](size_t index)
+    {
+        return points_[index];
+    }
+
+    const Point2LL& operator[](size_t index) const
+    {
+        return points_[index];
+    }
+
+    PointsSet& operator=(const PointsSet& other) = default;
+
+    PointsSet& operator=(PointsSet&& other) = default;
+
+#warning seems to be unused
     Point2LL min() const;
 
+#warning seems to be unused
     Point2LL max() const;
 
+#warning seems to be unused
     Point2LL closestPointTo(const Point2LL& p) const;
 
     /*!

@@ -33,12 +33,12 @@ namespace cura
 
 Shape Polygon::intersection(const Polygon& other) const
 {
-    Shape ret;
+    ClipperLib::Paths ret_paths;
     ClipperLib::Clipper clipper(clipper_init);
-    clipper.AddPath(*this, ClipperLib::ptSubject, true);
-    clipper.AddPath(other, ClipperLib::ptClip, true);
-    clipper.Execute(ClipperLib::ctIntersection, ret.asRawVector());
-    return ret;
+    clipper.AddPath(getPoints(), ClipperLib::ptSubject, true);
+    clipper.AddPath(other.getPoints(), ClipperLib::ptClip, true);
+    clipper.Execute(ClipperLib::ctIntersection, ret_paths);
+    return Shape(std::move(ret_paths));
 }
 
 void Polygon::smooth2(int remove_length, Polygon& result) const
@@ -50,20 +50,20 @@ void Polygon::smooth2(int remove_length, Polygon& result) const
 
     for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
     {
-        const Point2LL& last = (*this)[poly_idx - 1];
-        const Point2LL& now = (*this)[poly_idx];
-        const Point2LL& next = (*this)[(poly_idx + 1) % size()];
+        const Point2LL& last = getPoints()[poly_idx - 1];
+        const Point2LL& now = getPoints()[poly_idx];
+        const Point2LL& next = getPoints()[(poly_idx + 1) % size()];
         if (shorterThen(last - now, remove_length) && shorterThen(now - next, remove_length))
         {
             poly_idx++; // skip the next line piece (dont escalate the removal of edges)
             if (poly_idx < size())
             {
-                result.push_back((*this)[poly_idx]);
+                result.push_back(getPoints()[poly_idx]);
             }
         }
         else
         {
-            result.push_back((*this)[poly_idx]);
+            result.push_back(getPoints()[poly_idx]);
         }
     }
 }
@@ -113,15 +113,15 @@ void Polygon::smooth(int remove_length, Polygon& result) const
         }
         return true;
     };
-    Point2LL v02 = (*this)[2] - (*this)[0];
+    Point2LL v02 = getPoints()[2] - getPoints()[0];
     Point2LL v02T = turn90CCW(v02);
     int64_t v02_size = vSize(v02);
     bool force_push = false;
     for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
     {
-        const Point2LL& p1 = (*this)[poly_idx];
-        const Point2LL& p2 = (*this)[(poly_idx + 1) % size()];
-        const Point2LL& p3 = (*this)[(poly_idx + 2) % size()];
+        const Point2LL& p1 = getPoints()[poly_idx];
+        const Point2LL& p2 = getPoints()[(poly_idx + 1) % size()];
+        const Point2LL& p3 = getPoints()[(poly_idx + 2) % size()];
         // v02 computed in last iteration
         // v02_size as well
         const Point2LL v12 = p2 - p1;
@@ -582,13 +582,13 @@ Point2LL Polygon::centerOfMass() const
 {
     if (size() > 0)
     {
-        Point2LL p0 = (*this)[0];
+        Point2LL p0 = getPoints()[0];
         if (size() > 1)
         {
             double x = 0, y = 0;
             for (size_t n = 1; n <= size(); n++)
             {
-                Point2LL p1 = (*this)[n % size()];
+                Point2LL p1 = getPoints()[n % size()];
                 double second_factor = static_cast<double>((p0.X * p1.Y) - (p1.X * p0.Y));
 
                 x += double(p0.X + p1.X) * second_factor;
@@ -620,12 +620,12 @@ Shape Polygon::offset(int distance, ClipperLib::JoinType join_type, double miter
     {
         return Shape({ *this });
     }
-    Shape ret;
+    ClipperLib::Paths ret;
     ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
-    clipper.AddPath(*this, join_type, ClipperLib::etClosedPolygon);
+    clipper.AddPath(getPoints(), join_type, ClipperLib::etClosedPolygon);
     clipper.MiterLimit = miter_limit;
-    clipper.Execute(ret.asRawVector(), distance);
-    return ret;
+    clipper.Execute(ret, distance);
+    return Shape(std::move(ret));
 }
 
 } // namespace cura
