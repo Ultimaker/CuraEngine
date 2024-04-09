@@ -466,7 +466,9 @@ public:
 
     /*!
      * \brief Get the Distance to top regarding the real radius this part will have. This is different from distance_to_top, which is can be used to calculate the top most layer of
-     * the branch. \param elem[in] The SupportElement one wants to know the effectiveDTT \return The Effective DTT.
+     * the branch.
+     * \param elem[in] The SupportElement one wants to know the effectiveDTT
+     * \return The Effective DTT.
      */
     [[nodiscard]] inline size_t getEffectiveDTT(const TreeSupportElement& elem) const
     {
@@ -486,7 +488,7 @@ public:
                                                                  /* tip  */ min_radius + (branch_radius - min_radius) * distance_to_top / tip_layers
                                                                  :
                                                                  /* base */ branch_radius +
-                                                                     /* gradual increase */ branch_radius * (distance_to_top - tip_layers) * diameter_angle_scale_factor)
+                                                                 /* gradual increase */ branch_radius * (distance_to_top - tip_layers) * diameter_angle_scale_factor)
                                 + branch_radius * buildplate_radius_increases * (std::max(diameter_scale_bp_radius - diameter_angle_scale_factor, 0.0));
         return std::min(uncapped_radius, max_radius);
     }
@@ -498,7 +500,7 @@ public:
      */
     [[nodiscard]] inline coord_t getRadius(const TreeSupportElement& elem) const
     {
-        return getRadius(getEffectiveDTT(elem), (elem.isResultOnLayerSet() || ! support_rests_on_model) && elem.to_buildplate_ ? elem.buildplate_radius_increases_ : 0);
+        return getRadius(getEffectiveDTT(elem), elem.hidden_radius_increase_ + ((elem.isResultOnLayerSet() || ! support_rests_on_model) && elem.to_buildplate_ ? elem.buildplate_radius_increases_ : 0));
     }
 
     /*!

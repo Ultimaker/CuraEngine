@@ -210,7 +210,7 @@ void TreeModelVolumes::precalculate(LayerIndex max_layer)
     // but as for every branch going towards the bp, the to model avoidance is required to check for possible merges with to model branches, this assumption is in-fact wrong.
     std::unordered_map<coord_t, LayerIndex> radius_until_layer;
     // while it is possible to calculate, up to which layer the avoidance should be calculated, this simulation is easier to understand, and does not need to be adjusted if
-    // something of the radius calculation is changed. Tested overhead was neligable (milliseconds for thounds of layers).
+    // something of the radius calculation is changed. Tested overhead was negligible (milliseconds for thousands of layers).
     for (LayerIndex simulated_dtt = 0; simulated_dtt <= max_layer; simulated_dtt++)
     {
         const LayerIndex current_layer = max_layer - simulated_dtt;
@@ -225,9 +225,16 @@ void TreeModelVolumes::precalculate(LayerIndex max_layer)
         {
             radius_until_layer[max_min_radius] = std::min(current_layer + max_cradle_dtt, max_layer);
         }
-        if (max_initial_layer_diameter_radius > max_min_radius &&  ! radius_until_layer.count(max_initial_layer_diameter_radius))
+
+        // all radiis between max_min_radius and max_initial_layer_diameter_radius can also occur
+        coord_t current_ceil_radius = max_min_radius;
+        while (current_ceil_radius < max_initial_layer_diameter_radius)
         {
-            radius_until_layer[max_initial_layer_diameter_radius] = std::min(current_layer + max_cradle_dtt, max_layer);
+            current_ceil_radius = ceilRadius(current_ceil_radius + 1);
+            if (! radius_until_layer.count(current_ceil_radius))
+            {
+                radius_until_layer[current_ceil_radius] = std::min(current_layer + max_cradle_dtt, max_layer);
+            }
         }
     }
 

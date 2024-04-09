@@ -930,6 +930,52 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
         }
         radius = config.getCollisionRadius(current_elem);
 
+        //If a hidden radius increase was used, also do some catching up.
+
+        if (current_elem.hidden_radius_increase_ > 0)
+        {
+            coord_t target_radius = config.getRadius(current_elem);
+            coord_t current_ceil_radius = volumes_.getRadiusNextCeil(radius, settings.use_min_distance_);
+
+            while (current_ceil_radius < target_radius && validWithRadius(volumes_.getRadiusNextCeil(current_ceil_radius + 1, settings.use_min_distance_)))
+            {
+                current_ceil_radius = volumes_.getRadiusNextCeil(current_ceil_radius + 1, settings.use_min_distance_);
+            }
+            double resulting_hidden_increases = current_elem.hidden_radius_increase_;
+            while (resulting_hidden_increases > 0
+                   && config.getRadius(current_elem.effective_radius_height_, resulting_hidden_increases + current_elem.buildplate_radius_increases_) <= current_ceil_radius
+                   && config.getRadius(current_elem.effective_radius_height_, resulting_hidden_increases + current_elem.buildplate_radius_increases_) <= config.getRadius(current_elem))
+            {
+                resulting_hidden_increases--;
+            }
+            double bp_increases = current_elem.hidden_radius_increase_ - std::max(0.0, resulting_hidden_increases);
+            current_elem.hidden_radius_increase_ = std::max(0.0, resulting_hidden_increases);
+            current_elem.buildplate_radius_increases_ += bp_increases;
+
+            if (current_elem.hidden_radius_increase_ > 0)
+            {
+                Polygons new_to_bp_data;
+                Polygons new_to_model_data;
+
+                if (current_elem.to_buildplate_)
+                {
+                    new_to_bp_data = to_bp_data.difference(volumes_.getCollision(config.getRadius(current_elem), layer_idx - 1, current_elem.use_min_xy_dist_));
+                    if (new_to_bp_data.area() > EPSILON)
+                    {
+                        to_bp_data = new_to_bp_data;
+                    }
+                }
+                if (config.support_rests_on_model && (! current_elem.to_buildplate_ || mergelayer))
+                {
+                    new_to_model_data = to_model_data.difference(volumes_.getCollision(config.getRadius(current_elem), layer_idx - 1, current_elem.use_min_xy_dist_));
+                    if (new_to_model_data.area() > EPSILON)
+                    {
+                        to_model_data = new_to_model_data;
+                    }
+                }
+            }
+        }
+
         const coord_t foot_radius_increase = config.branch_radius * (std::max(config.diameter_scale_bp_radius - config.diameter_angle_scale_factor, 0.0));
         const double planned_foot_increase = std::min(1.0, double(config.recommendedMinRadius(layer_idx - 1) - config.getRadius(current_elem)) / foot_radius_increase);
         // ^^^ Is nearly all of the time 1, but sometimes an increase of 1 could cause the radius to become bigger than recommendedMinRadius, which could cause the radius to become
@@ -945,7 +991,6 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
         // can be an argument made that the current workaround is preferable.
         const bool increase_bp_foot
             = planned_foot_increase > 0 && (current_elem.to_buildplate_ || (current_elem.to_model_gracious_ && config.support_rest_preference == RestPreference::GRACEFUL));
-
 
         if (increase_bp_foot && config.getRadius(current_elem) >= config.branch_radius && config.getRadius(current_elem) >= config.increase_radius_until_radius)
         {
@@ -3058,6 +3103,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
             }
         });
 
+    //todo check if roof actually contains lines todo disable ovalisation for roof tips
     for (const auto layer_idx : ranges::views::iota(0UL, layer_tree_polygons.size()))
     {
         for (std::pair<TreeSupportElement*, Polygons> data_pair : layer_tree_polygons[layer_idx])

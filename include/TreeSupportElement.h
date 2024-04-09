@@ -82,7 +82,8 @@ struct TreeSupportElement
         bool force_tips_to_roof,
         bool skip_ovalisation,
         bool influence_area_limit_active,
-        coord_t influence_area_limit_range
+        coord_t influence_area_limit_range,
+        double hidden_radius_increase
     ) :
         target_height_(target_height),
         target_position_(target_position),
@@ -107,40 +108,18 @@ struct TreeSupportElement
         skip_ovalisation_(skip_ovalisation),
         all_tips_({ target_position }),
         influence_area_limit_active_(influence_area_limit_active),
-        influence_area_limit_range_(influence_area_limit_range
-    )
+        influence_area_limit_range_(influence_area_limit_range),
+        hidden_radius_increase_(hidden_radius_increase)
     {
         RecreateInfluenceLimitArea();
     }
 
-    TreeSupportElement(const TreeSupportElement& elem, Polygons* newArea = nullptr) : // copy constructor with possibility to set a new area
-        target_height_(elem.target_height_),
-        target_position_(elem.target_position_),
-        next_position_(elem.next_position_),
-        next_height_(elem.next_height_),
-        effective_radius_height_(elem.effective_radius_height_),
-        to_buildplate_(elem.to_buildplate_),
-        distance_to_top_(elem.distance_to_top_),
-        area_(newArea != nullptr ? newArea : elem.area_),
-        result_on_layer_(elem.result_on_layer_),
-        increased_to_model_radius_(elem.increased_to_model_radius_),
-        to_model_gracious_(elem.to_model_gracious_),
-        buildplate_radius_increases_(elem.buildplate_radius_increases_),
-        use_min_xy_dist_(elem.use_min_xy_dist_),
-        supports_roof_(elem.supports_roof_),
-        supports_cradle_(elem.supports_cradle_),
-        dont_move_until_(elem.dont_move_until_),
-        can_use_safe_radius_(elem.can_use_safe_radius_),
-        can_avoid_anti_preferred_(elem.can_avoid_anti_preferred_),
-        last_area_increase_(elem.last_area_increase_),
-        missing_roof_layers_(elem.missing_roof_layers_),
-        skip_ovalisation_(elem.skip_ovalisation_),
-        all_tips_(elem.all_tips_),
-        influence_area_limit_area_(elem.influence_area_limit_area_),
-        influence_area_limit_range_(elem.influence_area_limit_range_),
-        influence_area_limit_active_(elem.influence_area_limit_active_)
+    TreeSupportElement(const TreeSupportElement& elem, Polygons* new_area) : // copy constructor that sets a new area
+        TreeSupportElement(elem)
     {
-        parents_.insert(parents_.begin(), elem.parents_.begin(), elem.parents_.end());
+        area_ = new_area;
+        additional_ovalization_targets_.clear();
+        cradle_line_ = nullptr;
     }
 
 
@@ -198,6 +177,13 @@ struct TreeSupportElement
             // 'buildplate_radius_increases' has to be recalculated, as when a smaller tree with a larger buildplate_radius_increases merge with a larger branch,
             //   the buildplate_radius_increases may have to be lower as otherwise the radius suddenly increases. This results often in a non integer value.
             buildplate_radius_increases_ = foot_increase_radius / (branch_radius * (diameter_scale_bp_radius - diameter_angle_scale_factor));
+
+            const coord_t hidden_increase_radius = std::abs(
+                std::max(
+                    getRadius(second.effective_radius_height_, second.buildplate_radius_increases_ + second.hidden_radius_increase_),
+                    getRadius(first.effective_radius_height_, first.buildplate_radius_increases_ + first.hidden_radius_increase_))
+                - getRadius(effective_radius_height_, buildplate_radius_increases_));
+            hidden_radius_increase_ = hidden_increase_radius / (branch_radius * (diameter_scale_bp_radius - diameter_angle_scale_factor));
         }
 
         // set last settings to the best out of both parents. If this is wrong, it will only cause a small performance penalty instead of weird behavior.
@@ -359,8 +345,15 @@ struct TreeSupportElement
      */
     std::vector<Point2LL> additional_ovalization_targets_;
 
+    /*!
+     * \brief Pointer to the cradle line it supports if it does support a cradle line.
+     */
     std::shared_ptr<CradlePresenceInformation> cradle_line_;
 
+    /*!
+     * \brief Counter about the times the radius was increased to reach the correct initial radius. Uses logic intended for buildplate_radius_increases_
+     */
+    double hidden_radius_increase_;
 
 
     bool operator==(const TreeSupportElement& other) const
