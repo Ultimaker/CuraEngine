@@ -70,7 +70,7 @@ struct TreeSupportSettings
                                                                                                                              : RestPreference::BUILDPLATE)
         , xy_distance(mesh_group_settings.get<coord_t>("support_xy_distance"))
         , bp_radius(mesh_group_settings.get<coord_t>("support_tree_bp_diameter") / 2)
-        , diameter_scale_bp_radius(std::min(sin(0.7) * static_cast<double>(layer_height / branch_radius), 1.0 / (branch_radius / (support_line_width / 2.0))))
+        , diameter_scale_bp_radius(std::min(sin(0.7) * static_cast<double>(layer_height) / static_cast<double>(branch_radius), 1.0 / (branch_radius / (support_line_width / 2.0))))
         , // Either 40° or as much as possible so that 2 lines will overlap by at least 50%, whichever is smaller.
         support_overrides(mesh_group_settings.get<SupportDistPriority>("support_xy_overrides_z"))
         , xy_min_distance(support_overrides == SupportDistPriority::Z_OVERRIDES_XY ? mesh_group_settings.get<coord_t>("support_xy_distance_overhang") : xy_distance)
