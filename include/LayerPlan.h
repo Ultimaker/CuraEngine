@@ -562,8 +562,9 @@ public:
      * \param reverse_print_direction Whether to reverse the optimized order and their printing direction.
      * \param order_requirements Pairs where first needs to be printed before second. Pointers are pointing to elements of \p lines
      */
+    template<class LineType>
     void addLinesByOptimizer(
-        const LinesSet<OpenPolyline>& lines,
+        const LinesSet<LineType>& lines,
         const GCodePathConfig& config,
         const SpaceFillType space_fill_type,
         const bool enable_travel_optimization = false,
@@ -572,7 +573,7 @@ public:
         const std::optional<Point2LL> near_start_location = std::optional<Point2LL>(),
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
         const bool reverse_print_direction = false,
-        const std::unordered_multimap<const OpenPolyline*, const OpenPolyline*>& order_requirements = PathOrderOptimizer<const OpenPolyline*>::no_order_requirements_);
+        const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_);
 
     /*!
      * Add lines to the gcode with optimized order.
@@ -597,7 +598,7 @@ public:
         const std::optional<Point2LL> near_start_location = std::optional<Point2LL>(),
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
         const bool reverse_print_direction = false,
-        const std::unordered_multimap<const OpenPolyline*, const OpenPolyline*>& order_requirements = PathOrderOptimizer<const OpenPolyline*>::no_order_requirements_);
+        const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_);
 
     /*!
      * Add lines to the g-code with monotonic order.
@@ -622,7 +623,7 @@ public:
      */
     void addLinesMonotonic(
         const Shape& area,
-        const std::vector<OpenPolyline>& lines,
+        const OpenLinesSet& lines,
         const GCodePathConfig& config,
         const SpaceFillType space_fill_type,
         const AngleRadians monotonic_direction,
@@ -632,25 +633,6 @@ public:
         const Ratio flow_ratio = 1.0_r,
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
 
-protected:
-    /*!
-     * Add order optimized lines to the gcode.
-     * \param lines The lines in order
-     * \param config The config of the lines
-     * \param space_fill_type The type of space filling used to generate the line segments (should be either Lines or PolyLines!)
-     * \param wipe_dist (optional) the distance wiped without extruding after laying down a line.
-     * \param flow_ratio The ratio with which to multiply the extrusion amount
-     * \param fan_speed optional fan speed override for this path
-     */
-    void addLinesInGivenOrder(
-        const std::vector<PathOrdering<const OpenPolyline*>>& lines,
-        const GCodePathConfig& config,
-        const SpaceFillType space_fill_type,
-        const coord_t wipe_dist,
-        const Ratio flow_ratio,
-        const double fan_speed);
-
-public:
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.
      *
@@ -805,6 +787,23 @@ private:
      * \return the combing boundary or an empty Shape if no combing is required
      */
     Shape computeCombBoundary(const CombBoundary boundary_type);
+
+    /*!
+     * Add order optimized lines to the gcode.
+     * \param lines The lines in order
+     * \param config The config of the lines
+     * \param space_fill_type The type of space filling used to generate the line segments (should be either Lines or PolyLines!)
+     * \param wipe_dist (optional) the distance wiped without extruding after laying down a line.
+     * \param flow_ratio The ratio with which to multiply the extrusion amount
+     * \param fan_speed optional fan speed override for this path
+     */
+    void addLinesInGivenOrder(
+        const std::vector<PathOrdering<const Polyline*>>& lines,
+        const GCodePathConfig& config,
+        const SpaceFillType space_fill_type,
+        const coord_t wipe_dist,
+        const Ratio flow_ratio,
+        const double fan_speed);
 };
 
 } // namespace cura

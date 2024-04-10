@@ -152,6 +152,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ToolpathVisualizer.cpp
         src/utils/VoronoiUtils.cpp
         src/utils/VoxelUtils.cpp
+        src/utils/mixed_polyline_stitcher.cpp
 
         src/geometry/polygon.cpp
         src/geometry/shape.cpp
@@ -160,6 +161,7 @@ set(engine_SRCS # Except main.cpp.
         src/geometry/parts_view.cpp
         src/geometry/lines_set.cpp
         src/geometry/polyline.cpp
+        src/geometry/closed_polyline.cpp
         src/geometry/mixed_lines_set.cpp
 )
 

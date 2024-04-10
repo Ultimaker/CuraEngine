@@ -6,7 +6,8 @@
 #include <limits>
 #include <queue> //Priority queue to prioritise removing unimportant vertices.
 
-#include "geometry/polyline.h"
+#include "geometry/closed_polyline.h"
+#include "geometry/open_polyline.h"
 #include "utils/ExtrusionLine.h"
 
 namespace cura
@@ -54,15 +55,42 @@ LinesSet<LineType> Simplify::polyline(const LinesSet<LineType>& polylines) const
     LinesSet<LineType> result;
     for (size_t i = 0; i < polylines.size(); ++i)
     {
-        result.push_back(polyline(polylines[i]), true);
+        result.push_back(polyline(polylines[i]));
     }
     return result;
 }
 
-Polyline Simplify::polyline(const Polyline& polyline) const
+MixedLinesSet Simplify::polyline(const MixedLinesSet& polylines) const
 {
-    assert(polyline.getType() != PolylineType::ExplicitelyClosed && "Simplify algorithm doesn't expect explicitely closed polylines");
-    return simplify(polyline, polyline.isClosed());
+    MixedLinesSet result;
+    for (const std::shared_ptr<Polyline>& polyline_ptr : polylines)
+    {
+        if (polyline_ptr)
+        {
+            if (std::shared_ptr<const OpenPolyline> open_polyline = std::dynamic_pointer_cast<const OpenPolyline>(polyline_ptr))
+            {
+                result.push_back(std::make_shared<OpenPolyline>(polyline(*open_polyline)));
+            }
+            if (std::shared_ptr<const ClosedPolyline> closed_polyline = std::dynamic_pointer_cast<const ClosedPolyline>(polyline_ptr))
+            {
+                result.push_back(std::make_shared<ClosedPolyline>(polyline(*closed_polyline)));
+            }
+        }
+    }
+    return result;
+}
+
+ClosedPolyline Simplify::polyline(const ClosedPolyline& polyline) const
+{
+    assert(polyline.addClosingSegment() && "Simplify algorithm doesn't expect explicitely closed polylines");
+    constexpr bool is_closed = false;
+    return simplify(polyline, is_closed);
+}
+
+OpenPolyline Simplify::polyline(const OpenPolyline& polyline) const
+{
+    constexpr bool is_closed = false;
+    return simplify(polyline, is_closed);
 }
 
 ExtrusionLine Simplify::polyline(const ExtrusionLine& polyline) const
@@ -87,16 +115,18 @@ size_t Simplify::previousNotDeleted(size_t index, const std::vector<bool>& to_de
     return index;
 }
 
-Polygon Simplify::createEmpty([[maybe_unused]] const Polygon& original) const
-{
-    return Polygon();
-}
-
+template<>
 ExtrusionLine Simplify::createEmpty(const ExtrusionLine& original) const
 {
     ExtrusionLine result(original.inset_idx_, original.is_odd_);
     result.is_closed_ = original.is_closed_;
     return result;
+}
+
+template<typename Polygonal>
+Polygonal Simplify::createEmpty(const Polygonal& /*original*/) const
+{
+    return Polygonal();
 }
 
 void Simplify::appendVertex(Polyline& polygon, const Point2LL& vertex) const
@@ -179,5 +209,8 @@ coord_t Simplify::getAreaDeviation(const ExtrusionJunction& before, const Extrus
         return ab_length > bc_length ? width_diff * bc_length : width_diff * ab_length;
     }
 }
+
+template LinesSet<OpenPolyline> Simplify::polyline(const LinesSet<OpenPolyline>& polylines) const;
+template LinesSet<ClosedPolyline> Simplify::polyline(const LinesSet<ClosedPolyline>& polylines) const;
 
 } // namespace cura

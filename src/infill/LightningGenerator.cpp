@@ -56,7 +56,7 @@ void LightningGenerator::generateInitialInternalOverhangs(const SliceMeshStorage
         Shape infill_area_here;
         for (auto& part : current_layer.parts)
         {
-            infill_area_here.add(part.getOwnInfillArea().offset(infill_wall_offset));
+            infill_area_here.push_back(part.getOwnInfillArea().offset(infill_wall_offset));
         }
 
         // Remove the part of the infill area that is already supported by the walls.
@@ -88,7 +88,7 @@ void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
     {
         for (const auto& part : mesh.layers[layer_id].parts)
         {
-            infill_outlines[layer_id].add(part.getOwnInfillArea().offset(infill_wall_offset));
+            infill_outlines[layer_id].push_back(part.getOwnInfillArea().offset(infill_wall_offset));
         }
     }
 

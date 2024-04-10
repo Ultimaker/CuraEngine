@@ -499,7 +499,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
             close_towards_start_penalty_function);
         if (crossing_1_in_cp.isValid())
         {
-            dest_crossing_poly_ = reinterpret_cast<const Polygon*>(crossing_1_in_cp.poly_);
+            dest_crossing_poly_ = crossing_1_in_cp.poly_;
             in_or_mid_ = result;
         }
         else

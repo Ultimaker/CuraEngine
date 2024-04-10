@@ -16,9 +16,9 @@
 #include <spdlog/spdlog.h>
 
 #include "InsetOrderOptimizer.h" // for makeOrderIncludeTransitive
-#include "path_ordering.h"
 #include "pathPlanning/CombPath.h" //To calculate the combing distance if we want to use combing.
 #include "pathPlanning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
+#include "path_ordering.h"
 #include "settings/EnumSettings.h" //To get the seam settings.
 #include "settings/ZSeamConfig.h" //To read the seam configuration.
 #include "utils/linearAlg2D.h" //To find the angle of corners to hide seams.
@@ -884,7 +884,7 @@ protected:
      * \param polygon A polygon to get a random vertex of.
      * \return A random index in that polygon.
      */
-    size_t getRandomPointInPolygon(const Polygon& polygon) const
+    size_t getRandomPointInPolygon(const PointsSet& polygon) const
     {
         return rand() % polygon.size();
     }

@@ -3,7 +3,7 @@
 
 #include "bridge.h"
 
-#include "geometry/open_polyline.h"
+#include "geometry/open_lines_set.h"
 #include "geometry/polygon.h"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
@@ -50,12 +50,12 @@ double bridgeAngle(
                 {
                     solid_below = solid_below.difference(prev_layer_part.getOwnInfillArea());
                 }
-                prev_layer_outline.add(solid_below); // not intersected with skin
+                prev_layer_outline.push_back(solid_below); // not intersected with skin
 
                 if (! boundary_box.hit(prev_layer_part.boundaryBox))
                     continue;
 
-                islands.add(skin_outline.intersection(solid_below));
+                islands.push_back(skin_outline.intersection(solid_below));
             }
         }
     }
@@ -74,12 +74,12 @@ double bridgeAngle(
             AABB support_roof_bb(support_layer->support_roof);
             if (boundary_box.hit(support_roof_bb))
             {
-                prev_layer_outline.add(support_layer->support_roof); // not intersected with skin
+                prev_layer_outline.push_back(support_layer->support_roof); // not intersected with skin
 
                 Shape supported_skin(skin_outline.intersection(support_layer->support_roof));
                 if (! supported_skin.empty())
                 {
-                    supported_regions.add(supported_skin);
+                    supported_regions.push_back(supported_skin);
                 }
             }
         }
@@ -90,12 +90,12 @@ double bridgeAngle(
                 AABB support_part_bb(support_part.getInfillArea());
                 if (boundary_box.hit(support_part_bb))
                 {
-                    prev_layer_outline.add(support_part.getInfillArea()); // not intersected with skin
+                    prev_layer_outline.push_back(support_part.getInfillArea()); // not intersected with skin
 
                     Shape supported_skin(skin_outline.intersection(support_part.getInfillArea()));
                     if (! supported_skin.empty())
                     {
-                        supported_regions.add(supported_skin);
+                        supported_regions.push_back(supported_skin);
                     }
                 }
             }
@@ -122,16 +122,16 @@ double bridgeAngle(
         const coord_t bb_max_dim = std::max(boundary_box.max_.X - boundary_box.min_.X, boundary_box.max_.Y - boundary_box.min_.Y);
         const Shape air_below(bb_poly.offset(bb_max_dim).difference(prev_layer_outline).offset(-10));
 
-        LinesSet<OpenPolyline> skin_perimeter_lines;
+        OpenLinesSet skin_perimeter_lines;
         for (const Polygon& poly : skin_outline)
         {
             if (! poly.empty())
             {
-                skin_perimeter_lines.push_back(poly.toType<OpenPolyline>());
+                skin_perimeter_lines.emplace_back(poly.toPseudoOpenPolyline());
             }
         }
 
-        LinesSet<OpenPolyline> skin_perimeter_lines_over_air(air_below.intersectionPolyLines(skin_perimeter_lines));
+        OpenLinesSet skin_perimeter_lines_over_air(air_below.intersection(skin_perimeter_lines));
 
         if (skin_perimeter_lines_over_air.size())
         {

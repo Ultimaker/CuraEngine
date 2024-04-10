@@ -233,7 +233,7 @@ coord_t SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, const LayerI
     Shape collide;
     for (const SliceLayerPart& part : mesh.layers[layer_nr].parts)
     {
-        collide.add(part.infill_area);
+        collide.push_back(part.infill_area);
     }
 
     Point2LL centerpoint = location;

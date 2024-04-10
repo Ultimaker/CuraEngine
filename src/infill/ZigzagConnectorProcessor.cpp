@@ -147,7 +147,7 @@ void ZigzagConnectorProcessor::addZagConnector(std::vector<Point2LL>& points, bo
     {
         return;
     }
-    Polygon polyline(points);
+    OpenPolyline polyline(points);
     if (is_endpiece && ! connected_endpieces_)
     {
         polyline.pop_back();
@@ -164,7 +164,7 @@ void cura::ZigzagConnectorProcessor::reset()
     current_connector_.clear();
 }
 
-void cura::ZigzagConnectorProcessor::addPolyline(const Polygon& polyline)
+void cura::ZigzagConnectorProcessor::addPolyline(const OpenPolyline& polyline)
 {
     result_.emplace_back(polyline);
     for (Point2LL& p : result_.back())

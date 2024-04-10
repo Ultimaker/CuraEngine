@@ -67,7 +67,7 @@ Shape SkinInfillAreaComputation::getOutlineOnLayer(const SliceLayerPart& part_he
     {
         if (part_here.boundaryBox.hit(part2.boundaryBox))
         {
-            result.add(part2.outline);
+            result.push_back(part2.outline);
         }
     }
     return result;
@@ -421,8 +421,8 @@ void SkinInfillAreaComputation::generateInfillSupport(SliceMeshStorage& mesh)
         Shape infill_above;
         for (SliceLayerPart& part_above : layer_above.parts)
         {
-            inside_above.add(part_above.infill_area);
-            infill_above.add(part_above.getOwnInfillArea());
+            inside_above.push_back(part_above.infill_area);
+            infill_above.push_back(part_above.getOwnInfillArea());
         }
 
         for (SliceLayerPart& part : layer.parts)
@@ -514,7 +514,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                         {
                             continue;
                         }
-                        relevent_upper_polygons.add(upper_layer_part.getOwnInfillArea());
+                        relevent_upper_polygons.push_back(upper_layer_part.getOwnInfillArea());
                     }
                     less_dense_infill = less_dense_infill.intersection(relevent_upper_polygons);
                 }
@@ -592,7 +592,7 @@ void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh)
                         if (part.boundaryBox.hit(lower_layer_part.boundaryBox))
                         {
                             Shape intersection = infill_area_per_combine[combine_count_here - 1].intersection(lower_layer_part.infill_area).offset(-200).offset(200);
-                            result.add(intersection); // add area to be thickened
+                            result.push_back(intersection); // add area to be thickened
                             infill_area_per_combine[combine_count_here - 1]
                                 = infill_area_per_combine[combine_count_here - 1].difference(intersection); // remove thickened area from less thick layer here
                             unsigned int max_lower_density_idx = density_idx;

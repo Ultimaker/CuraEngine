@@ -15,12 +15,12 @@ PointsSet::PointsSet(const std::initializer_list<Point2LL>& initializer)
 {
 }
 
-PointsSet::PointsSet(const std::vector<Point2LL>& points)
+PointsSet::PointsSet(const ClipperLib::Path& points)
     : points_(points)
 {
 }
 
-PointsSet::PointsSet(std::vector<Point2LL>&& points)
+PointsSet::PointsSet(ClipperLib::Path&& points)
     : points_(std::move(points))
 {
 }

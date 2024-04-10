@@ -117,7 +117,7 @@ TreeModelVolumes::TreeModelVolumes(
                     return; // Can't break as parallel_for wont allow it, this is equivalent to a continue.
                 }
                 Shape outline = extractOutlineFromMesh(mesh_l, layer_idx);
-                layer_outlines_[mesh_to_layeroutline_idx[mesh_idx_l]].second[layer_idx].add(outline);
+                layer_outlines_[mesh_to_layeroutline_idx[mesh_idx_l]].second[layer_idx].push_back(outline);
             });
     }
     // Merge all the layer outlines together.
@@ -140,17 +140,17 @@ TreeModelVolumes::TreeModelVolumes(
         {
             if (layer_idx < coord_t(additional_excluded_areas.size()))
             {
-                anti_overhang_[layer_idx].add(additional_excluded_areas[layer_idx]);
+                anti_overhang_[layer_idx].push_back(additional_excluded_areas[layer_idx]);
             }
 
             if (SUPPORT_TREE_AVOID_SUPPORT_BLOCKER)
             {
-                anti_overhang_[layer_idx].add(storage.support.supportLayers[layer_idx].anti_overhang);
+                anti_overhang_[layer_idx].push_back(storage.support.supportLayers[layer_idx].anti_overhang);
             }
 
             if (storage.primeTower.enabled_)
             {
-                anti_overhang_[layer_idx].add(storage.primeTower.getGroundPoly());
+                anti_overhang_[layer_idx].push_back(storage.primeTower.getGroundPoly());
             }
             anti_overhang_[layer_idx] = anti_overhang_[layer_idx].unionPolygons();
         });
@@ -655,12 +655,12 @@ void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& key
                     Shape collision_areas = machine_border_;
                     if (size_t(layer_idx) < layer_outlines_[outline_idx].second.size())
                     {
-                        collision_areas.add(layer_outlines_[outline_idx].second[layer_idx]);
+                        collision_areas.push_back(layer_outlines_[outline_idx].second[layer_idx]);
                     }
                     collision_areas = collision_areas.offset(
                         radius
                         + xy_distance); // jtRound is not needed here, as the overshoot can not cause errors in the algorithm, because no assumptions are made about the model.
-                    data[key].add(collision_areas); // if a key does not exist when it is accessed it is added!
+                    data[key].push_back(collision_areas); // if a key does not exist when it is accessed it is added!
                 }
 
                 // Add layers below, to ensure correct support_bottom_distance. Also save placeable areas of radius 0, if required for this mesh.
@@ -669,7 +669,7 @@ void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& key
                     key.second = layer_idx;
                     for (size_t layer_offset = 1; layer_offset <= z_distance_bottom_layers && layer_idx - coord_t(layer_offset) > min_layer_bottom; layer_offset++)
                     {
-                        data[key].add(data[RadiusLayerPair(radius, layer_idx - layer_offset)]);
+                        data[key].push_back(data[RadiusLayerPair(radius, layer_idx - layer_offset)]);
                     }
                     // Placeable areas also have to be calculated when a collision has to be calculated if called outside of precalculate to prevent an infinite loop when they are
                     // invalidly requested...
@@ -719,7 +719,7 @@ void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& key
                         const coord_t required_range_x = coord_t(xy_distance - ((layer_offset - (z_distance_top_layers == 1 ? 0.5 : 0)) * xy_distance / z_distance_top_layers));
                         // ^^^ The conditional -0.5 ensures that plastic can never touch on the diagonal downward when the z_distance_top_layers = 1.
                         //      It is assumed to be better to not support an overhang<90� than to risk fusing to it.
-                        data[key].add(layer_outlines_[outline_idx].second[layer_idx + layer_offset].offset(radius + required_range_x));
+                        data[key].push_back(layer_outlines_[outline_idx].second[layer_idx + layer_offset].offset(radius + required_range_x));
                     }
                     data[key] = data[key].unionPolygons(max_anti_overhang_layer >= layer_idx ? anti_overhang_[layer_idx].offset(radius) : Shape());
                 }

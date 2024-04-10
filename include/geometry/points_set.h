@@ -51,9 +51,9 @@ public:
 
     PointsSet(const std::initializer_list<Point2LL>& initializer);
 
-    PointsSet(const std::vector<Point2LL>& points);
+    PointsSet(const ClipperLib::Path& points);
 
-    PointsSet(std::vector<Point2LL>&& points);
+    PointsSet(ClipperLib::Path&& points);
 
     /*PointsSet& operator=(const PointsSet& other)
     {
@@ -71,6 +71,11 @@ public:
         return points_;
     }
 
+    void setPoints(std::vector<Point2LL>&& points)
+    {
+        points_ = points;
+    }
+
     size_t size() const
     {
         return points_.size();
@@ -81,9 +86,21 @@ public:
         points_.push_back(point);
     }
 
+    template<typename... Args>
+    void emplace_back(Args&&... args)
+    {
+        points_.emplace_back(args...);
+    }
+
     void pop_back()
     {
         points_.pop_back();
+    }
+
+    template<typename... Args>
+    void insert(Args&&... args)
+    {
+        points_.insert(args...);
     }
 
     std::vector<Point2LL>::const_iterator begin() const
@@ -106,6 +123,26 @@ public:
         return points_.end();
     }
 
+    std::vector<Point2LL>::const_reverse_iterator rbegin() const
+    {
+        return points_.rbegin();
+    }
+
+    std::vector<Point2LL>::reverse_iterator rbegin()
+    {
+        return points_.rbegin();
+    }
+
+    std::vector<Point2LL>::const_reverse_iterator rend() const
+    {
+        return points_.rend();
+    }
+
+    std::vector<Point2LL>::reverse_iterator rend()
+    {
+        return points_.rend();
+    }
+
     const Point2LL& front() const
     {
         return points_.front();
@@ -126,6 +163,16 @@ public:
         return points_.back();
     }
 
+    const Point2LL& at(size_t pos) const
+    {
+        return points_.at(pos);
+    }
+
+    Point2LL& at(size_t pos)
+    {
+        return points_.at(pos);
+    }
+
     bool empty() const
     {
         return points_.empty();
@@ -134,6 +181,16 @@ public:
     void resize(size_t size)
     {
         points_.resize(size);
+    }
+
+    void reserve(size_t size)
+    {
+        points_.reserve(size);
+    }
+
+    void clear()
+    {
+        points_.clear();
     }
 
     Point2LL& operator[](size_t index)

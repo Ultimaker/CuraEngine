@@ -361,7 +361,7 @@ void LightningTreeNode::convertToPolylines(LinesSet<OpenPolyline>& output, const
     result.emplace_back();
     convertToPolylines(0, result);
     removeJunctionOverlap(result, line_width);
-    output.add(result);
+    output.push_back(result);
 }
 
 void LightningTreeNode::convertToPolylines(size_t long_line_idx, LinesSet<OpenPolyline>& output) const

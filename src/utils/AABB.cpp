@@ -171,7 +171,7 @@ void AABB::expand(int dist)
 
 Polygon AABB::toPolygon() const
 {
-    return Polygon({ min_, Point2LL(max_.X, min_.Y), max_, Point2LL(min_.X, max_.Y) });
+    return Polygon({ min_, Point2LL(max_.X, min_.Y), max_, Point2LL(min_.X, max_.Y) }, false);
 }
 
 } // namespace cura

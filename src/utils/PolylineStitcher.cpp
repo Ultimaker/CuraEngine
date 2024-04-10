@@ -3,7 +3,8 @@
 
 #include "utils/PolylineStitcher.h"
 
-#include "geometry/closed_polyline.h"
+#include "geometry/closed_lines_set.h"
+#include "geometry/open_lines_set.h"
 #include "utils/ExtrusionLineStitcher.h"
 #include "utils/OpenPolylineStitcher.h"
 #include "utils/PolygonsPointIndex.h"
@@ -195,7 +196,7 @@ void PolylineStitcher<InputPaths, OutputPaths, Path, Junction>::stitch(
         }
         if (closest_is_closing_polygon)
         {
-            result_polygons.emplace_back(chain);
+            pushToClosedResult(result_polygons, chain);
         }
         else
         {
@@ -210,12 +211,7 @@ void PolylineStitcher<InputPaths, OutputPaths, Path, Junction>::stitch(
     }
 }
 
-template void OpenPolylineStitcher::stitch(
-    const LinesSet<OpenPolyline>& lines,
-    LinesSet<OpenPolyline>& result_lines,
-    Shape& result_polygons,
-    coord_t max_stitch_distance,
-    coord_t snap_distance);
+template void OpenPolylineStitcher::stitch(const OpenLinesSet& lines, OpenLinesSet& result_lines, Shape& result_polygons, coord_t max_stitch_distance, coord_t snap_distance);
 
 template void ExtrusionLineStitcher::stitch(
     const VariableWidthLines& lines,
@@ -224,10 +220,10 @@ template void ExtrusionLineStitcher::stitch(
     coord_t max_stitch_distance,
     coord_t snap_distance);
 
-template void PolylineStitcher<LinesSet<OpenPolyline>, LinesSet<ClosedPolyline>, OpenPolyline, Point2LL>::stitch(
-    const LinesSet<OpenPolyline>& lines,
-    LinesSet<OpenPolyline>& result_lines,
-    LinesSet<ClosedPolyline>& result_polygons,
+template void PolylineStitcher<OpenLinesSet, ClosedLinesSet, OpenPolyline, Point2LL>::stitch(
+    const OpenLinesSet& lines,
+    OpenLinesSet& result_lines,
+    ClosedLinesSet& result_polygons,
     coord_t max_stitch_distance,
     coord_t snap_distance);
 
@@ -238,7 +234,7 @@ bool OpenPolylineStitcher::canReverse(const PathsPointIndex<LinesSet<OpenPolylin
 }
 
 template<>
-bool PolylineStitcher<LinesSet<OpenPolyline>, LinesSet<ClosedPolyline>, OpenPolyline, Point2LL>::canReverse(const PathsPointIndex<LinesSet<OpenPolyline>>&)
+bool PolylineStitcher<OpenLinesSet, ClosedLinesSet, OpenPolyline, Point2LL>::canReverse(const PathsPointIndex<LinesSet<OpenPolyline>>&)
 {
     return true;
 }
@@ -256,7 +252,7 @@ bool OpenPolylineStitcher::canConnect(const OpenPolyline&, const OpenPolyline&)
 }
 
 template<>
-bool PolylineStitcher<LinesSet<OpenPolyline>, LinesSet<ClosedPolyline>, OpenPolyline, Point2LL>::canConnect(const OpenPolyline&, const OpenPolyline&)
+bool PolylineStitcher<OpenLinesSet, ClosedLinesSet, OpenPolyline, Point2LL>::canConnect(const OpenPolyline&, const OpenPolyline&)
 {
     return true;
 }
@@ -274,9 +270,29 @@ bool OpenPolylineStitcher::isOdd(const OpenPolyline&)
 }
 
 template<>
-bool PolylineStitcher<LinesSet<OpenPolyline>, LinesSet<ClosedPolyline>, OpenPolyline, Point2LL>::isOdd(const OpenPolyline&)
+bool PolylineStitcher<OpenLinesSet, ClosedLinesSet, OpenPolyline, Point2LL>::isOdd(const OpenPolyline&)
 {
     return false;
+}
+
+template<>
+void ExtrusionLineStitcher::pushToClosedResult(VariableWidthLines& result_polygons, const ExtrusionLine& polyline)
+{
+    result_polygons.push_back(polyline);
+}
+
+template<>
+void OpenPolylineStitcher::pushToClosedResult(Shape& result_polygons, const OpenPolyline& polyline)
+{
+#warning Check whether the polyline is explicitely closed
+    result_polygons.emplace_back(polyline.getPoints(), true);
+}
+
+template<>
+void PolylineStitcher<OpenLinesSet, ClosedLinesSet, OpenPolyline, Point2LL>::pushToClosedResult(ClosedLinesSet& result_polygons, const OpenPolyline& polyline)
+{
+#warning Check whether the polyline is explicitely closed
+    result_polygons.emplace_back(polyline.getPoints(), true);
 }
 
 } // namespace cura

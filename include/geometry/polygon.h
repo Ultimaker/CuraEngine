@@ -4,7 +4,7 @@
 #ifndef GEOMETRY_POLYGON_H
 #define GEOMETRY_POLYGON_H
 
-#include "polyline.h"
+#include "closed_polyline.h"
 
 namespace cura
 {
@@ -13,30 +13,27 @@ class Shape;
 class ListPolyIt;
 class AngleDegrees;
 
-class Polygon : public Polyline
+class Polygon : public ClosedPolyline
 {
 public:
-    Polygon()
-        : Polyline{ PolylineType::Filled }
-    {
-    }
+    Polygon() = default;
 
     Polygon(const Polygon& other) = default;
 
     Polygon(Polygon&& other) = default;
 
-    Polygon(const std::initializer_list<Point2LL>& initializer)
-        : Polyline(PolylineType::Filled, initializer)
+    Polygon(const std::initializer_list<Point2LL>& initializer, bool explicitely_closed)
+        : ClosedPolyline(initializer, explicitely_closed)
     {
     }
 
-    explicit Polygon(const ClipperLib::Path& points)
-        : Polyline(PolylineType::Filled, points)
+    explicit Polygon(const ClipperLib::Path& points, bool explicitely_closed)
+        : ClosedPolyline(points, explicitely_closed)
     {
     }
 
-    explicit Polygon(ClipperLib::Path&& points)
-        : Polyline(PolylineType::Filled, points)
+    explicit Polygon(ClipperLib::Path&& points, bool explicitely_closed)
+        : ClosedPolyline(points, explicitely_closed)
     {
     }
 

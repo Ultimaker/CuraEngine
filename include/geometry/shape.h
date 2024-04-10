@@ -4,7 +4,7 @@
 #ifndef GEOMETRY_SHAPE_H
 #define GEOMETRY_SHAPE_H
 
-#include "geometry/mixed_lines_set.h"
+#include "geometry/lines_set.h"
 #include "geometry/polygon.h"
 #include "settings/types/Angle.h"
 
@@ -19,6 +19,10 @@ class PartsView;
 class Shape : public LinesSet<Polygon>
 {
 public:
+    // Clipper returns implicitely closed polygons
+    static constexpr bool clipper_explicitely_closed_ = false;
+
+public:
     Shape() = default;
 
     Shape(const Shape& other) = default;
@@ -30,11 +34,21 @@ public:
     {
     }
 
-    explicit Shape(ClipperLib::Paths&& paths);
+    explicit Shape(ClipperLib::Paths&& paths, bool explicitely_closed = clipper_explicitely_closed_);
 
     Shape& operator=(const Shape& other);
 
     Shape& operator=(Shape&& other);
+
+    void emplace_back(ClipperLib::Paths&& paths, bool explicitely_closed = clipper_explicitely_closed_);
+
+    void emplace_back(ClipperLib::Path&& path, bool explicitely_closed = clipper_explicitely_closed_);
+
+    template<typename... Args>
+    void emplace_back(Args&&... args)
+    {
+        LinesSet::emplace_back(args...);
+    }
 
     /*!
      * Convert ClipperLib::PolyTree to a Shape object,
@@ -68,7 +82,8 @@ public:
      * \return The resulting polylines limited to the area of this Polygons object
      */
     template<class LineType>
-    MixedLinesSet intersection(const MixedLinesSet& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu) const;
+#warning Technically this should return a MixedLinesSet
+    LinesSet<OpenPolyline> intersection(const LinesSet<LineType>& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu) const;
 
     /*!
      * Add the front to each polygon so that the polygon is represented as a polyline
@@ -274,6 +289,11 @@ public:
      * @return Polygons - the cleaned polygons
      */
     Shape removeNearSelfIntersections() const;
+
+    /*!
+     * \brief Simplify the polygon lines using ClipperLib::SimplifyPolygons
+     */
+    void simplify(ClipperLib::PolyFillType fill_type = ClipperLib::pftEvenOdd);
 
 private:
     /*!

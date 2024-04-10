@@ -33,13 +33,10 @@ public:
      */
     static LinesSet<OpenPolyline> toPolylines(const Shape& poly)
     {
-#warning We should just cast it to a LineSet<ClosedPolyline> instead, but that's running for trouble yet
         LinesSet<OpenPolyline> result;
         for (const auto& path : poly)
         {
-            Polygon part(path);
-            part.push_back(path[0]);
-            result.push_back(part);
+            result.push_back(path.toPseudoOpenPolyline());
         }
         return result;
     }
@@ -159,8 +156,8 @@ public:
         Shape areas;
         LinesSet<OpenPolyline> lines;
         roof_computation.generate(toolpaths, areas, lines, config.settings, layer_idx, SectionType::SUPPORT, cross_fill_provider);
-        lines.add(toPolylines(areas));
-        lines.add(toPolylines(toolpaths));
+        lines.push_back(toPolylines(areas));
+        lines.push_back(toPolylines(toolpaths));
         return lines;
     }
 

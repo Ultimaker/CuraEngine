@@ -4,123 +4,55 @@
 #ifndef GEOMETRY_MIXED_LINES_SET_H
 #define GEOMETRY_MIXED_LINES_SET_H
 
-#include "geometry/lines_set.h"
-#include "geometry/polyline.h"
+#include <memory>
+
+#include "utils/Coord_t.h"
 
 namespace cura
 {
 
-using MixedLinesSet = LinesSet<Polyline>;
+class Polyline;
+class OpenPolyline;
+class ClosedPolyline;
+class Polygon;
+class Shape;
+template<class LineType>
+class LinesSet;
 
-#if 0
+
 /*!
- * \brief Container that can hold either open or closed polylines. We often have to handle "a bunch
- *        of lines" which are either open or closed without taking care of what they actually are.
+ * \brief Convenience definition for a container that can hold either open or closed polylines.
  */
-class MixedLinesSet : public LinesSet<Polyline>
+class MixedLinesSet : public std::vector<std::shared_ptr<Polyline>>
 {
 public:
-    MixedLinesSet() = default;
+    Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
-    MixedLinesSet(const MixedLinesSet& other) = default;
+    void push_back(const OpenPolyline& line);
 
-    MixedLinesSet(MixedLinesSet&& other) = default;
+    void push_back(OpenPolyline&& line);
 
-    MixedLinesSet(const LinesSet<OpenPolyline>& open_lines)
-        : open_lines_(open_lines)
-    {
-    }
+    void push_back(ClosedPolyline&& line);
 
-    MixedLinesSet(LinesSet<OpenPolyline>&& open_lines)
-        : open_lines_(std::move(open_lines))
-    {
-    }
+    void push_back(const Polygon& line);
 
-    MixedLinesSet(const LinesSet<ClosedPolyline>& closed_lines)
-        : closed_lines_(closed_lines)
-    {
-    }
+    void push_back(const std::shared_ptr<OpenPolyline>& line);
 
-    MixedLinesSet(LinesSet<ClosedPolyline>&& closed_lines)
-        : closed_lines_(std::move(closed_lines))
-    {
-    }
+    void push_back(const std::shared_ptr<Polyline>& line);
 
-    const LinesSet<OpenPolyline>& getOpenLines() const
-    {
-        return open_lines_;
-    }
+    void push_back(LinesSet<OpenPolyline>&& lines_set);
 
-    LinesSet<OpenPolyline>& getOpenLines()
-    {
-        return open_lines_;
-    }
+    void push_back(const LinesSet<OpenPolyline>& lines_set);
 
-    void setOpenLines(const LinesSet<OpenPolyline>& open_lines)
-    {
-        open_lines_ = open_lines;
-    }
+    void push_back(LinesSet<ClosedPolyline>&& lines_set);
 
-    void setOpenLines(LinesSet<OpenPolyline>&& open_lines)
-    {
-        open_lines_ = std::move(open_lines);
-    }
+    void push_back(const LinesSet<Polygon>& lines_set);
 
-    const LinesSet<ClosedPolyline>& getClosedLines() const
-    {
-        return closed_lines_;
-    }
+    void push_back(const Shape& shape);
 
-    LinesSet<ClosedPolyline>& getClosedLines()
-    {
-        return closed_lines_;
-    }
-
-    void setClosedLines(const LinesSet<ClosedPolyline>& closed_lines)
-    {
-        closed_lines_ = closed_lines;
-    }
-
-    void setClosedLines(LinesSet<ClosedPolyline>&& closed_lines)
-    {
-        closed_lines_ = std::move(closed_lines);
-    }
-
-    ClosedPolyline& push_back(const ClosedPolyline& line)
-    {
-        closed_lines_.push_back(line);
-        return closed_lines_.back();
-    }
-
-    void push_back(const LinesSet<ClosedPolyline>& lines)
-    {
-        closed_lines_.add(lines);
-    }
-
-    OpenPolyline& push_back(const OpenPolyline& line)
-    {
-        open_lines_.push_back(line);
-        return open_lines_.back();
-    }
-
-    void push_back(const LinesSet<OpenPolyline>& lines)
-    {
-        open_lines_.add(lines);
-    }
-
-    void push_back(const MixedLinesSet& lines);
-
-    coord_t length() const
-    {
-        return open_lines_.length() + closed_lines_.length();
-    }
-
-    size_t size() const
-    {
-        return open_lines_.size() + closed_lines_.size();
-    }
+    coord_t length() const;
 };
-#endif
+
 } // namespace cura
 
 #endif // GEOMETRY_MIXED_LINES_SET_H

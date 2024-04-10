@@ -126,12 +126,12 @@ void Infill::generate(
             if (small_infill_part.offset(-infill_line_width_ / 2).offset(infill_line_width_ / 2).area() < infill_line_width_ * infill_line_width_ * 10
                 && ! inner_contour_.intersection(small_infill_part.offset(infill_line_width_ / 4)).empty())
             {
-                inner_contour_.add(small_infill_part);
+                inner_contour_.push_back(small_infill_part);
             }
             else
             {
                 // the part must still be printed, so re-add it
-                small_infill.add(small_infill_part);
+                small_infill.push_back(small_infill_part);
             }
         }
         inner_contour_.unionPolygons();
@@ -186,8 +186,8 @@ void Infill::generate(
 
         zig_zaggify_ = zig_zaggify_real;
         multiplyInfill(generated_result_polygons, generated_result_lines);
-        result_polygons.add(generated_result_polygons);
-        result_lines.add(generated_result_lines);
+        result_polygons.push_back(generated_result_polygons);
+        result_lines.push_back(generated_result_lines);
     }
     else
     {
@@ -198,8 +198,8 @@ void Infill::generate(
 
         _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
 
-        result_polygons.add(generated_result_polygons);
-        result_lines.add(generated_result_lines);
+        result_polygons.push_back(generated_result_polygons);
+        result_lines.push_back(generated_result_lines);
     }
     scripta::log("infill_result_polygons_0", result_polygons, section_type, layer_idx);
     scripta::log("infill_result_lines_0", result_lines, section_type, layer_idx);
@@ -324,8 +324,8 @@ void Infill::_generate(
             mesh ? mesh->settings.get<std::string>("infill_pattern") : settings.get<std::string>("infill_pattern"),
             mesh ? mesh->settings : settings);
         toolpaths.insert(toolpaths.end(), toolpaths_.begin(), toolpaths_.end());
-        result_polygons.add(generated_result_polygons_);
-        result_lines.add(generated_result_lines_);
+        result_polygons.push_back(generated_result_polygons_);
+        result_lines.push_back(generated_result_lines_);
 #endif
         break;
     }
@@ -381,7 +381,7 @@ void Infill::multiplyInfill(Shape& result_polygons, LinesSet<OpenPolyline>& resu
             first_offset = inner_contour_.difference(first_offset);
         }
     }
-    result.add(first_offset);
+    result.push_back(first_offset);
 
     // Create the additional offsets from the first offsets, generated earlier, the direction of these offsets is
     // depended on whether these lines should be connected or not.
@@ -394,7 +394,7 @@ void Infill::multiplyInfill(Shape& result_polygons, LinesSet<OpenPolyline>& resu
         for (size_t infill_line = 1; infill_line < multiplier; ++infill_line)
         {
             Shape extra_polys = reference_polygons.offset(extra_offset);
-            result.add(extra_polys);
+            result.push_back(extra_polys);
             reference_polygons = std::move(extra_polys);
         }
     }
@@ -409,10 +409,10 @@ void Infill::multiplyInfill(Shape& result_polygons, LinesSet<OpenPolyline>& resu
         result_polygons.clear();
         result_lines.clear();
     }
-    result_polygons.add(result);
+    result_polygons.push_back(result);
     if (! zig_zaggify_)
     {
-        LinesSet<OpenPolyline> polylines = inner_contour_.intersectionPolyLines(*reinterpret_cast<const LinesSet<OpenPolyline>*>(&result_polygons));
+        LinesSet<OpenPolyline> polylines = inner_contour_.intersection(static_cast<LinesSet<Polygon>>(result_polygons));
         result_polygons.clear();
         OpenPolylineStitcher::stitch(polylines, result_lines, result_polygons, infill_line_width_);
     }
@@ -432,7 +432,7 @@ void Infill::generateLightningInfill(const std::shared_ptr<LightningLayer>& tree
     {
         return;
     }
-    result_lines.add(trees->convertToLines(inner_contour_, infill_line_width_));
+    result_lines.push_back(trees->convertToLines(inner_contour_, infill_line_width_));
 }
 
 void Infill::generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths, const Settings& settings)
@@ -519,7 +519,7 @@ void Infill::generateCubicSubDivInfill(LinesSet<OpenPolyline>& result, const Sli
     LinesSet<OpenPolyline> uncropped;
     mesh.base_subdiv_cube->generateSubdivisionLines(z_, uncropped);
     constexpr bool restitch = false; // cubic subdivision lines are always single line segments - not polylines consisting of multiple segments.
-    result = outer_contour_.offset(infill_overlap_).intersectionPolyLines(uncropped, restitch);
+    result = outer_contour_.offset(infill_overlap_).intersection(uncropped, restitch);
 }
 
 void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Shape& result_polygons, LinesSet<OpenPolyline>& result_lines)
@@ -535,7 +535,7 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
     {
         Shape cross_pattern_polygons;
         cross_pattern_polygons.push_back(cross_pattern_polygon);
-        result_polygons.add(inner_contour_.intersection(cross_pattern_polygons));
+        result_polygons.push_back(inner_contour_.intersection(cross_pattern_polygons));
     }
     else
     {
@@ -543,8 +543,9 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
         cross_pattern_polygon.push_back(cross_pattern_polygon[0]);
 
         LinesSet<OpenPolyline> cross_pattern_polylines;
-        cross_pattern_polylines.push_back(cross_pattern_polygon);
-        LinesSet<OpenPolyline> poly_lines = inner_contour_.intersectionPolyLines(cross_pattern_polylines);
+#warning No sure we should add the last point in this case
+        cross_pattern_polylines.push_back(cross_pattern_polygon.toPseudoOpenPolyline());
+        LinesSet<OpenPolyline> poly_lines = inner_contour_.intersection(cross_pattern_polylines);
         OpenPolylineStitcher::stitch(poly_lines, result_lines, result_polygons, infill_line_width_);
     }
 }

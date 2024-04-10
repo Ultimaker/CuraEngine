@@ -24,19 +24,29 @@
 #include "geometry/parts_view.h"
 #include "geometry/single_shape.h"
 #include "settings/types/Ratio.h"
+#include "utils/OpenPolylineStitcher.h"
 #include "utils/linearAlg2D.h"
-#include "utils/mixed_polyline_stitcher.h"
 
 namespace cura
 {
 
-Shape::Shape(ClipperLib::Paths&& paths)
+Shape::Shape(ClipperLib::Paths&& paths, bool explicitely_closed)
 {
-    reserve(paths.size());
-    for (const ClipperLib::Path& path : paths)
+    emplace_back(std::move(paths), explicitely_closed);
+}
+
+void Shape::emplace_back(ClipperLib::Paths&& paths, bool explicitely_closed)
+{
+    reserve(size() + paths.size());
+    for (ClipperLib::Path& path : paths)
     {
-        emplace_back(std::move(path));
+        emplace_back(std::move(path), explicitely_closed);
     }
+}
+
+void Shape::emplace_back(ClipperLib::Path&& path, bool explicitely_closed)
+{
+    static_cast<LinesSet<Polygon>*>(this)->emplace_back(std::move(path), explicitely_closed);
 }
 
 Shape& Shape::operator=(const Shape& other)
@@ -47,7 +57,7 @@ Shape& Shape::operator=(const Shape& other)
 
 Shape& Shape::operator=(Shape&& other)
 {
-    LinesSet<Polygon>::operator=(other);
+    LinesSet<Polygon>::operator=(std::move(other));
     return *this;
 }
 
@@ -65,7 +75,7 @@ Shape Shape::approxConvexHull(int extra_outset) const
         ClipperLib::ClipperOffset offsetter(1.2, 10.0);
         offsetter.AddPath(polygon.getPoints(), ClipperLib::jtRound, ClipperLib::etClosedPolygon);
         offsetter.Execute(offset_result, overshoot);
-        convex_hull.push_back(PolylineType::ImplicitelyClosed, std::move(offset_result));
+        convex_hull.emplace_back(std::move(offset_result));
     }
 
     return convex_hull.unionPolygons().offset(-overshoot + extra_outset, ClipperLib::jtRound);
@@ -121,7 +131,7 @@ void Shape::makeConvex()
     std::reverse(points.begin(), points.end());
     make_sorted_poly_convex(points);
 
-    *this = { convexified };
+    setLines({ std::move(convexified) });
 }
 
 Shape Shape::difference(const Shape& other) const
@@ -235,9 +245,9 @@ size_t Shape::findInside(const Point2LL& p, bool border_result) const
 }
 
 template<class LineType>
-MixedLinesSet Shape::intersection(const MixedLinesSet& polylines, bool restitch, const coord_t max_stitch_distance) const
+OpenLinesSet Shape::intersection(const LinesSet<LineType>& polylines, bool restitch, const coord_t max_stitch_distance) const
 {
-    LinesSet<Polyline> split_polylines = polylines.splitIntoSegments();
+    LinesSet<OpenPolyline> split_polylines = polylines.splitIntoSegments();
 
     ClipperLib::PolyTree result;
     ClipperLib::Clipper clipper(clipper_init);
@@ -247,20 +257,32 @@ MixedLinesSet Shape::intersection(const MixedLinesSet& polylines, bool restitch,
     ClipperLib::Paths result_paths;
     ClipperLib::OpenPathsFromPolyTree(result, result_paths);
 
+    OpenLinesSet result_lines(std::move(result_paths));
+
     if (restitch)
     {
-        MixedLinesSet input_lines;
-        input_lines.push_back(PolylineType::Open, std::move(result_paths));
+        OpenLinesSet result_open_lines;
+        Shape result_closed_lines;
 
-        MixedLinesSet result_lines;
         const coord_t snap_distance = 10_mu;
-        MixedPolylineStitcher::stitch(input_lines, result_lines, max_stitch_distance, snap_distance);
-        return result_lines;
+        OpenPolylineStitcher::stitch(result_lines, result_open_lines, result_closed_lines, max_stitch_distance, snap_distance);
+
+        result_lines = std::move(result_open_lines);
+        // if open polylines got stitched into closed polylines, split them back up into open polylines again, because the result only admits open polylines
+        for (ClosedPolyline& closed_line : result_closed_lines)
+        {
+            if (! closed_line.empty())
+            {
+                if (closed_line.size() > 2)
+                {
+                    closed_line.push_back(closed_line.front());
+                }
+                result_lines.emplace_back(std::move(closed_line.getPoints()));
+            }
+        }
     }
-    else
-    {
-        return MixedLinesSet(PolylineType::Open, std::move(result_paths));
-    }
+
+    return result_lines;
 }
 
 Shape Shape::xorPolygons(const Shape& other, ClipperLib::PolyFillType pft) const
@@ -742,10 +764,10 @@ void Shape::splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::
     {
         ClipperLib::PolyNode* child = node->Childs[n];
         SingleShape part;
-        part.emplace_back(child->Contour);
+        part.emplace_back(std::move(child->Contour));
         for (size_t i = 0; i < static_cast<size_t>(child->ChildCount()); i++)
         {
-            part.emplace_back(child->Childs[i]->Contour);
+            part.emplace_back(std::move(child->Childs[i]->Contour));
             splitIntoParts_processPolyTreeNode(child->Childs[i], ret);
         }
         ret.push_back(part);
@@ -773,7 +795,7 @@ void Shape::sortByNesting_processPolyTreeNode(ClipperLib::PolyNode* node, const 
         {
             ret.resize(nesting_idx + 1);
         }
-        ret[nesting_idx].emplace_back(child->Contour);
+        ret[nesting_idx].emplace_back(std::move(child->Contour));
         sortByNesting_processPolyTreeNode(child, nesting_idx + 1, ret);
     }
 }
@@ -792,7 +814,7 @@ PartsView Shape::splitIntoPartsView(bool unionAll)
 
     splitIntoPartsView_processPolyTreeNode(partsView, reordered, &resultPolyTree);
 
-    (*this) = reordered;
+    (*this) = std::move(reordered);
     return partsView;
 }
 
@@ -804,11 +826,11 @@ void Shape::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Shape& 
         partsView.emplace_back();
         size_t pos = partsView.size() - 1;
         partsView[pos].push_back(reordered.size());
-        reordered.emplace_back(child->Contour); // TODO: should this steal the internal representation for speed?
+        reordered.emplace_back(std::move(child->Contour));
         for (size_t i = 0; i < static_cast<size_t>(child->ChildCount()); i++)
         {
             partsView[pos].push_back(reordered.size());
-            reordered.emplace_back(child->Childs[i]->Contour);
+            reordered.emplace_back(std::move(child->Childs[i]->Contour));
             splitIntoPartsView_processPolyTreeNode(partsView, reordered, child->Childs[i]);
         }
     }
@@ -864,6 +886,22 @@ Shape Shape::removeNearSelfIntersections() const
     polys.removeColinearEdges();
 
     return polys;
+}
+
+void Shape::simplify(ClipperLib::PolyFillType fill_type)
+{
+    // This is the actual content from clipper.cpp::SimplifyPolygons, but rewritten here in order
+    // to avoid a list copy
+    ClipperLib::Clipper clipper;
+    ClipperLib::Paths ret;
+    clipper.StrictlySimple(true);
+    addPaths(clipper, ClipperLib::ptSubject);
+    clipper.Execute(ClipperLib::ctUnion, ret, fill_type, fill_type);
+
+    for (size_t i = 0; i < size(); ++i)
+    {
+        getLines()[i].setPoints(std::move(ret[i]));
+    }
 }
 
 void Shape::ensureManifold()
@@ -944,8 +982,8 @@ void Shape::applyMatrix(const Point3Matrix& matrix)
     }
 }
 
-/*template LinesSet<OpenPolyline> Shape::intersectionPolyLines(const LinesSet<OpenPolyline>& polylines, bool restitch, const coord_t max_stitch_distance) const;
-template LinesSet<OpenPolyline> Shape::intersectionPolyLines(const LinesSet<ClosedPolyline>& polylines, bool restitch, const coord_t max_stitch_distance) const;
-template LinesSet<OpenPolyline> Shape::intersectionPolyLines(const LinesSet<Polygon>& polylines, bool restitch, const coord_t max_stitch_distance) const;*/
+template LinesSet<OpenPolyline> Shape::intersection(const LinesSet<OpenPolyline>& polylines, bool restitch, const coord_t max_stitch_distance) const;
+template LinesSet<OpenPolyline> Shape::intersection(const LinesSet<ClosedPolyline>& polylines, bool restitch, const coord_t max_stitch_distance) const;
+template LinesSet<OpenPolyline> Shape::intersection(const LinesSet<Polygon>& polylines, bool restitch, const coord_t max_stitch_distance) const;
 
 } // namespace cura

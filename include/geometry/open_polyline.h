@@ -9,31 +9,44 @@
 namespace cura
 {
 
-/*class OpenPolyline : public Polyline
+class OpenPolyline : public Polyline
 {
 public:
-    OpenPolyline()
-        : Polyline{ PolylineType::Open }
-    {
-    }
+    OpenPolyline() = default;
 
     OpenPolyline(const OpenPolyline& other) = default;
 
     OpenPolyline(OpenPolyline&& other) = default;
 
     OpenPolyline(const std::initializer_list<Point2LL>& initializer)
-        : Polyline(PolylineType::Open, initializer)
+        : Polyline(initializer)
     {
     }
 
-    OpenPolyline(const std::vector<Point2LL>& points)
-        : Polyline(PolylineType::Open, points)
+    OpenPolyline(const ClipperLib::Path& points)
+        : Polyline(points)
     {
     }
 
-    OpenPolyline(std::vector<Point2LL>&& points)
-        : Polyline(PolylineType::Open, points)
+    OpenPolyline(ClipperLib::Path&& points)
+        : Polyline(std::move(points))
     {
+    }
+
+    virtual bool addClosingSegment() const override
+    {
+        return false; // Definitely not
+    }
+
+    virtual size_t segmentsCount() const override
+    {
+        return size() > 1 ? size() - 1 : 0;
+    }
+
+    OpenPolyline& operator=(OpenPolyline&& other)
+    {
+        Polyline::operator=(std::move(other));
+        return *this;
     }
 
     OpenPolyline& operator=(const OpenPolyline& other)
@@ -41,13 +54,7 @@ public:
         Polyline::operator=(other);
         return *this;
     }
-
-    OpenPolyline& operator=(OpenPolyline&& other)
-    {
-        Polyline::operator=(other);
-        return *this;
-    }
-};*/
+};
 
 } // namespace cura
 

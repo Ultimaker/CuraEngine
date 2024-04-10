@@ -569,8 +569,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
             {
                 for (const Polygon& poly : part.outline)
                 {
-                    layer.openPolyLines.push_back(OpenPolyline(poly));
-                    layer.openPolyLines.back().push_back(layer.openPolyLines.back()[0]); // add the segment which closes the polygon
+                    layer.openPolyLines.push_back(poly.toPseudoOpenPolyline());
                 }
             }
             layer.parts.clear();
@@ -627,8 +626,8 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
                 if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
                     const Shape& own_infill_area = other_part.getOwnInfillArea();
-                    std::vector<OpenPolyline> cut_lines = own_infill_area.intersectionPolyLines(layer.openPolyLines);
-                    new_polylines.add(cut_lines);
+                    OpenLinesSet cut_lines = own_infill_area.intersection(layer.openPolyLines);
+                    new_polylines.push_back(cut_lines);
                     // NOTE: closed polygons will be represented as polylines, which will be closed automatically in the PathOrderOptimizer
                     if (! own_infill_area.empty())
                     {

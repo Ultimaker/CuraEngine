@@ -10,48 +10,60 @@ namespace cura
 {
 
 template<>
-const Polygon& PathOrdering<const Polygon*>::getVertexData()
+const PointsSet& PathOrdering<const Polygon*>::getVertexData()
 {
     return *vertices_;
 }
 
 template<>
-const Polygon& PathOrdering<Polygon*>::getVertexData()
+const PointsSet& PathOrdering<Polygon*>::getVertexData()
 {
     return *vertices_;
 }
 
 template<>
-const Polygon& PathOrdering<const OpenPolyline*>::getVertexData()
+const PointsSet& PathOrdering<const OpenPolyline*>::getVertexData()
 {
-    return *reinterpret_cast<const Polygon*>(vertices_);
+    return *vertices_;
 }
 
 template<>
-const Polygon& PathOrdering<OpenPolyline*>::getVertexData()
+const PointsSet& PathOrdering<OpenPolyline*>::getVertexData()
 {
-    return *reinterpret_cast<Polygon*>(vertices_);
+    return *vertices_;
 }
 
 template<>
-const Polygon& PathOrdering<const SkinPart*>::getVertexData()
+const PointsSet& PathOrdering<ClosedPolyline*>::getVertexData()
+{
+    return *vertices_;
+}
+
+template<>
+const PointsSet& PathOrdering<Polyline const*>::getVertexData()
+{
+    return *vertices_;
+}
+
+template<>
+const PointsSet& PathOrdering<const SkinPart*>::getVertexData()
 {
     return vertices_->outline.outerPolygon();
 }
 
 template<>
-const Polygon& PathOrdering<const SliceLayerPart*>::getVertexData()
+const PointsSet& PathOrdering<const SliceLayerPart*>::getVertexData()
 {
     return vertices_->outline.outerPolygon();
 }
 
 template<>
-const Polygon& PathOrdering<const SupportInfillPart*>::getVertexData()
+const PointsSet& PathOrdering<const SupportInfillPart*>::getVertexData()
 {
     return vertices_->outline_.outerPolygon();
 }
 template<>
-const Polygon& PathOrdering<const ExtrusionLine*>::getVertexData()
+const PointsSet& PathOrdering<const ExtrusionLine*>::getVertexData()
 {
     if (! cached_vertices_)
     {

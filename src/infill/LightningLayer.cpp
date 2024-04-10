@@ -229,7 +229,7 @@ LinesSet<OpenPolyline> LightningLayer::convertToLines(const Shape& limit_to_outl
     {
         tree->convertToPolylines(result_lines, line_width);
     }
-    result_lines = limit_to_outline.intersectionPolyLines(result_lines);
+    result_lines = limit_to_outline.intersection(result_lines);
 
     return result_lines;
 }

@@ -65,6 +65,9 @@ public:
     static bool canConnect(const Path& a, const Path& b);
 
     static bool isOdd(const Path& line);
+
+private:
+    static void pushToClosedResult(OutputPaths& result_polygons, const Path& polyline);
 };
 
 } // namespace cura

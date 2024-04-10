@@ -14,7 +14,7 @@
 #include "TopSurface.h"
 #include "WipeScriptConfig.h"
 #include "geometry/mixed_lines_set.h"
-#include "geometry/open_polyline.h"
+#include "geometry/open_lines_set.h"
 #include "geometry/point2ll.h"
 #include "geometry/polygon.h"
 #include "geometry/single_shape.h"
@@ -169,7 +169,7 @@ public:
     coord_t printZ; //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
     coord_t thickness; //!< The thickness of this layer. Can be different when using variable layer heights.
     std::vector<SliceLayerPart> parts; //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
-    LinesSet<Polyline> openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
+    OpenLinesSet openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
 
     /*!
      * \brief The parts of the model that are exposed at the very top of the
@@ -376,7 +376,7 @@ public:
     SupportStorage support;
 
     std::vector<MixedLinesSet> skirt_brim[MAX_EXTRUDERS]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
-    LinesSet<Polyline> support_brim; //!< brim lines for support, going from the edge of the support inward. \note Not ordered by inset.
+    LinesSet<ClosedPolyline> support_brim; //!< brim lines for support, going from the edge of the support inward. \note Not ordered by inset.
 
     // Storage for the outline of the raft-parts. Will be filled with lines when the GCode is generated.
     Shape raftBaseOutline;

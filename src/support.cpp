@@ -61,13 +61,13 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
         switch (modifier_type)
         {
         case ANTI_OVERHANG:
-            support_layer.anti_overhang.add(slicer_layer.polygons);
+            support_layer.anti_overhang.push_back(slicer_layer.polygons);
             break;
         case SUPPORT_DROP_DOWN:
-            support_layer.support_mesh_drop_down.add(slicer_layer.polygons);
+            support_layer.support_mesh_drop_down.push_back(slicer_layer.polygons);
             break;
         case SUPPORT_VANILLA:
-            support_layer.support_mesh.add(slicer_layer.polygons);
+            support_layer.support_mesh.push_back(slicer_layer.polygons);
             break;
         }
     }
@@ -274,7 +274,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
                         //
                         if (upper_part_boundary_box.hit(this_part_boundary_box))
                         {
-                            relevant_upper_polygons.add(upper_infill_parts[upper_part_idx].outline_);
+                            relevant_upper_polygons.push_back(upper_infill_parts[upper_part_idx].outline_);
                         }
                     }
 
@@ -377,7 +377,7 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
                             continue;
                         }
 
-                        result.add(intersection); // add area to be thickened
+                        result.push_back(intersection); // add area to be thickened
                         infill_area_per_combine[combine_count_here - 1]
                             = infill_area_per_combine[combine_count_here - 1].difference(intersection); // remove thickened area from less thick layer here
 
@@ -669,7 +669,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
         generateSupportAreasForMesh(storage, *infill_settings, *roof_settings, *bottom_settings, mesh_idx, storage.print_layer_count, mesh_support_areas_per_layer);
         for (size_t layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
         {
-            global_support_areas_per_layer[layer_idx].add(mesh_support_areas_per_layer[layer_idx]);
+            global_support_areas_per_layer[layer_idx].push_back(mesh_support_areas_per_layer[layer_idx]);
         }
     }
 
@@ -1183,7 +1183,7 @@ void AreaSupport::generateSupportAreasForMesh(
                 if (layer_idx < layer_count - tower_top_layer_count && layer_idx >= tower_top_layer_count + bottom_empty_layer_count)
                 {
                     Shape tiny_tower_here;
-                    tiny_tower_here.add(polygon_part);
+                    tiny_tower_here.push_back(polygon_part);
                     tower_roofs.emplace_back(tiny_tower_here);
                 }
             }
@@ -1687,11 +1687,11 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
         Shape mesh_outlines;
         for (auto layer_idx_below = bottom_layer_idx_below; layer_idx_below < layer_idx - z_distance_bottom + 1; layer_idx_below += 1)
         {
-            mesh_outlines.add(mesh.layers[layer_idx_below].getOutlines());
+            mesh_outlines.push_back(mesh.layers[layer_idx_below].getOutlines());
         }
         Shape bottoms;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, bottom_line_width, bottom_outline_offset, minimum_bottom_area, bottoms);
-        support_layers[layer_idx].support_bottom.add(bottoms);
+        support_layers[layer_idx].support_bottom.push_back(bottoms);
         scripta::log("support_interface_bottoms", bottoms, SectionType::SUPPORT, layer_idx);
     }
 }
@@ -1720,14 +1720,14 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         Shape mesh_outlines;
         for (auto layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top - 1; layer_idx_above -= 1)
         {
-            mesh_outlines.add(mesh.layers[layer_idx_above].getOutlines());
+            mesh_outlines.push_back(mesh.layers[layer_idx_above].getOutlines());
         }
         Shape roofs;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roof_outline_offset, minimum_roof_area, roofs);
-        support_layers[layer_idx].support_roof.add(roofs);
+        support_layers[layer_idx].support_roof.push_back(roofs);
         if (layer_idx > 0 && layer_idx < support_layers.size() - 1)
         {
-            support_layers[layer_idx].support_fractional_roof.add(roofs.difference(support_layers[layer_idx + 1].support_roof));
+            support_layers[layer_idx].support_fractional_roof.push_back(roofs.difference(support_layers[layer_idx + 1].support_roof));
         }
         scripta::log("support_interface_roofs", roofs, SectionType::SUPPORT, layer_idx);
     }

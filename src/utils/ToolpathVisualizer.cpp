@@ -25,7 +25,7 @@ void ToolpathVisualizer::toolpaths(const std::vector<ExtrusionSegment>& all_segm
             s.from_.w_ *= w / .9;
             s.to_.w_ *= w / .9;
             Shape covered = s.toPolygons(false);
-            polys.add(covered);
+            polys.push_back(covered);
         }
         int c = 255 - 200 * (w - .25);
         SVG::ColorObject clr(c, c, c);

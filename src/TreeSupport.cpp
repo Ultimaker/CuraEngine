@@ -131,11 +131,11 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             [&](const LayerIndex layer_idx)
             {
                 Shape exlude_at_layer;
-                exlude_at_layer.add(storage.support.supportLayers[layer_idx].support_bottom);
-                exlude_at_layer.add(storage.support.supportLayers[layer_idx].support_roof);
+                exlude_at_layer.push_back(storage.support.supportLayers[layer_idx].support_bottom);
+                exlude_at_layer.push_back(storage.support.supportLayers[layer_idx].support_roof);
                 for (auto part : storage.support.supportLayers[layer_idx].support_infill_parts)
                 {
-                    exlude_at_layer.add(part.outline_);
+                    exlude_at_layer.push_back(part.outline_);
                 }
                 exclude[layer_idx] = exlude_at_layer.unionPolygons();
                 scripta::log("tree_support_exclude", exclude[layer_idx], SectionType::SUPPORT, layer_idx);
@@ -1724,7 +1724,7 @@ void TreeSupport::generateBranchAreas(
                         vertex = Point2LL(matrix[0] * vertex.X + matrix[1] * vertex.Y, matrix[2] * vertex.X + matrix[3] * vertex.Y);
                         circle.push_back(center_position + vertex);
                     }
-                    poly.add(circle.offset(0));
+                    poly.push_back(circle.offset(0));
                 }
 
                 poly = poly.unionPolygons()
@@ -1891,7 +1891,7 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
                             p += direction;
                         }
                     }
-                    max_allowed_area.add(result);
+                    max_allowed_area.push_back(result);
                     do_something = do_something || updated_last_iteration.count(parent) || config.getCollisionRadius(*parent) != config.getRadius(*parent);
                 }
 
@@ -1989,7 +1989,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
             {
                 Shape area = parts[idx];
                 reversePolygon(area);
-                holes_original.add(area);
+                holes_original.push_back(area);
             }
             support_holes[layer_idx] = holes_original;
         });
@@ -2031,7 +2031,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
 
             for (auto poly : holeparts[layer_idx - 1])
             {
-                holes_below.add(poly);
+                holes_below.push_back(poly);
             }
 
             for (auto [idx, hole] : holeparts[layer_idx] | ranges::views::enumerate)
@@ -2092,7 +2092,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
             }
             else
             {
-                valid_holes[layer_idx].add(hole);
+                valid_holes[layer_idx].push_back(hole);
                 holeparts[layer_idx][idx] = Shape(); // all remaining holes will have to be removed later, so removing the hole means it is confirmed valid!
             }
         }
@@ -2114,7 +2114,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
 
             support_layer_storage[layer_idx] = support_layer_storage[layer_idx].getOutsidePolygons();
             reversePolygon(valid_holes[layer_idx]);
-            support_layer_storage[layer_idx].add(valid_holes[layer_idx]);
+            support_layer_storage[layer_idx].push_back(valid_holes[layer_idx]);
         });
 
 
@@ -2155,7 +2155,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
 
             for (FakeRoofArea& f_roof : fake_roof_areas[layer_idx])
             {
-                fake_roof_lines.add(
+                fake_roof_lines.push_back(
                     TreeSupportUtils::generateSupportInfillLines(f_roof.area_, config, false, layer_idx, f_roof.line_distance_, storage.support.cross_fill_provider, false)
                         .offset(config.support_line_width / 2));
             }
@@ -2228,7 +2228,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                         = static_cast<size_t>(std::max(0, (static_cast<int>(layer_idx) - static_cast<int>(layers_below)) - static_cast<int>(config.z_distance_bottom_layers)));
                     constexpr bool no_support = false;
                     constexpr bool no_prime_tower = false;
-                    floor_layer.add(layer_outset.intersection(storage.getLayerOutlines(sample_layer, no_support, no_prime_tower)));
+                    floor_layer.push_back(layer_outset.intersection(storage.getLayerOutlines(sample_layer, no_support, no_prime_tower)));
                     if (layers_below < config.support_bottom_layers)
                     {
                         layers_below = std::min(layers_below + 1UL, config.support_bottom_layers);
@@ -2353,7 +2353,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
     {
         for (std::pair<LayerIndex, Shape> pair : dropped_down_areas[i])
         {
-            support_layer_storage[pair.first].add(pair.second);
+            support_layer_storage[pair.first].push_back(pair.second);
         }
     }
 
@@ -2399,15 +2399,15 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
                 {
                     if (data_pair.first->missing_roof_layers_ > data_pair.first->distance_to_top_)
                     {
-                        support_roof_storage_fractional[layer_idx + 1].add(data_pair.second);
+                        support_roof_storage_fractional[layer_idx + 1].push_back(data_pair.second);
                     }
                     else
                     {
-                        support_layer_storage_fractional[layer_idx + 1].add(data_pair.second);
+                        support_layer_storage_fractional[layer_idx + 1].push_back(data_pair.second);
                     }
                 }
 
-                ((data_pair.first->missing_roof_layers_ > data_pair.first->distance_to_top_) ? support_roof_storage : support_layer_storage)[layer_idx].add(data_pair.second);
+                ((data_pair.first->missing_roof_layers_ > data_pair.first->distance_to_top_) ? support_roof_storage : support_layer_storage)[layer_idx].push_back(data_pair.second);
             }
             if (layer_idx + 1 < support_roof_storage_fractional.size())
             {
@@ -2420,7 +2420,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
     {
         if (support_layer_storage.size() > layer_idx)
         {
-            support_layer_storage[layer_idx].add(additional_required_support_area[layer_idx]);
+            support_layer_storage[layer_idx].push_back(additional_required_support_area[layer_idx]);
         }
         scripta::log("tree_support_layer_storage", support_layer_storage[layer_idx], SectionType::SUPPORT, layer_idx);
     }

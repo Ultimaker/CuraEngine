@@ -182,7 +182,7 @@ bool PolygonUtils::lineSegmentPolygonsIntersection(
     return closest_dist2 < within_max_dist2;
 }
 
-Point2LL PolygonUtils::getVertexInwardNormal(const Polygon& poly, unsigned int point_idx)
+Point2LL PolygonUtils::getVertexInwardNormal(const Polyline& poly, unsigned int point_idx)
 {
     Point2LL p1 = poly[point_idx];
 
@@ -220,7 +220,7 @@ Point2LL PolygonUtils::getVertexInwardNormal(const Polygon& poly, unsigned int p
     return n;
 }
 
-Point2LL PolygonUtils::getBoundaryPointWithOffset(const Polygon& poly, unsigned int point_idx, int64_t offset)
+Point2LL PolygonUtils::getBoundaryPointWithOffset(const Polyline& poly, unsigned int point_idx, int64_t offset)
 {
     return poly[point_idx] + normal(getVertexInwardNormal(poly, point_idx), -offset);
 }
@@ -231,7 +231,7 @@ Point2LL PolygonUtils::moveInsideDiagonally(ClosestPoint point_on_boundary, int6
     {
         return no_point;
     }
-#warning Check that it does not actually copy the pointsset to the polygon object
+
     const Polygon& poly = *point_on_boundary.poly_;
     Point2LL p0 = poly[point_on_boundary.point_idx_];
     Point2LL p1 = poly[(point_on_boundary.point_idx_ + 1) % poly.size()];
@@ -584,7 +584,7 @@ Point2LL PolygonUtils::moveInside(const ClosestPoint& cpp, const int distance)
     { // the point which is assumed to be on the boundary doesn't have to be moved
         return cpp.location_;
     }
-    const Polygon& poly = *cpp.poly_;
+    const Polyline& poly = *cpp.poly_;
     unsigned int point_idx = cpp.point_idx_;
     const Point2LL& on_boundary = cpp.location_;
 
@@ -1075,7 +1075,7 @@ std::vector<std::pair<ClosestPoint, ClosestPoint>>
     return ret;
 }
 
-bool PolygonUtils::getNextPointWithDistance(Point2LL from, int64_t dist, const Polygon& poly, int start_idx, int poly_start_idx, GivenDistPoint& result)
+bool PolygonUtils::getNextPointWithDistance(Point2LL from, int64_t dist, const OpenPolyline& poly, int start_idx, int poly_start_idx, GivenDistPoint& result)
 {
     Point2LL prev_poly_point = poly[(start_idx + poly_start_idx) % poly.size()];
 
@@ -1149,9 +1149,10 @@ bool PolygonUtils::getNextPointWithDistance(Point2LL from, int64_t dist, const P
     return false;
 }
 
-ClosestPoint PolygonUtils::walk(const ClosestPoint& from, coord_t distance)
+template<class LineType>
+GenericClosestPoint<LineType> PolygonUtils::walk(const GenericClosestPoint<LineType>& from, coord_t distance)
 {
-    const Polygon& poly = *from.poly_;
+    const LineType& poly = *from.poly_;
     Point2LL last_vertex = from.p();
     Point2LL next_vertex;
     size_t last_point_idx = from.point_idx_;
@@ -1169,7 +1170,7 @@ ClosestPoint PolygonUtils::walk(const ClosestPoint& from, coord_t distance)
         last_point_idx = point_idx;
     }
     Point2LL result = next_vertex + normal(last_vertex - next_vertex, -distance);
-    return ClosestPoint(result, last_point_idx, &poly, from.poly_idx_);
+    return GenericClosestPoint<LineType>(result, last_point_idx, &poly, from.poly_idx_);
 }
 
 std::optional<ClosestPoint> PolygonUtils::getNextParallelIntersection(const ClosestPoint& start, const Point2LL& line_to, const coord_t dist, const bool forward)
@@ -1523,7 +1524,7 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Shape& polygon)
 {
     if (epsilon < 1)
     {
-        ClipperLib::SimplifyPolygons(polygon.asRawVector());
+        polygon.simplify();
         return;
     }
 
@@ -1567,7 +1568,7 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Shape& polygon)
         }
     }
 
-    ClipperLib::SimplifyPolygons(polygon.asRawVector());
+    polygon.simplify();
 }
 
 Shape PolygonUtils::unionManySmall(const Shape& polygon)
@@ -1665,7 +1666,7 @@ Shape PolygonUtils::generateOutset(const Shape& inner_poly, size_t count, coord_
     for (size_t index = 0; index < count; ++index)
     {
         current_outset = index == 0 ? inner_poly.offset(line_width / 2) : current_outset.offset(line_width);
-        outset.add(current_outset);
+        outset.push_back(current_outset);
     }
 
     return outset;
@@ -1678,11 +1679,14 @@ Shape PolygonUtils::generateInset(const Shape& outer_poly, coord_t line_width, c
     Shape current_inset = outer_poly.offset(-(initial_inset + line_width / 2));
     while (! current_inset.empty())
     {
-        inset.add(current_inset);
+        inset.push_back(current_inset);
         current_inset = current_inset.offset(-line_width);
     }
 
     return inset;
 }
+
+template GenericClosestPoint<Polygon> PolygonUtils::walk(const GenericClosestPoint<Polygon>& from, coord_t distance);
+template GenericClosestPoint<OpenPolyline> PolygonUtils::walk(const GenericClosestPoint<OpenPolyline>& from, coord_t distance);
 
 } // namespace cura

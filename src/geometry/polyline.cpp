@@ -5,8 +5,7 @@
 
 #include <numeric>
 
-#include "geometry/lines_set.h"
-#include "geometry/open_polyline.h"
+#include "geometry/open_lines_set.h"
 #include "settings/types/Angle.h"
 #include "utils/linearAlg2D.h"
 
@@ -38,7 +37,7 @@ void Polyline::removeColinearEdges(const AngleRadians max_deviation_angle)
 
             std::vector<bool> skip_indices(size(), false);
 
-            Polyline new_path(type_);
+            std::vector<Point2LL> new_path;
             for (size_t point_idx = 0; point_idx < pathlen; ++point_idx)
             {
                 // Don't iterate directly over process-indices, but do it this way, because there are points _in_ process-indices that should nonetheless be skipped:
@@ -82,7 +81,7 @@ void Polyline::removeColinearEdges(const AngleRadians max_deviation_angle)
                     ++point_idx;
                 }
             }
-            (*this) = std::move(new_path);
+            setPoints(std::move(new_path));
             num_removed_in_iteration += pathlen - size();
 
             process_indices.clear();
@@ -98,7 +97,7 @@ Polyline::const_segments_iterator Polyline::beginSegments() const
 
 Polyline::const_segments_iterator Polyline::endSegments() const
 {
-    if (type_ == PolylineType::ImplicitelyClosed)
+    if (addClosingSegment())
     {
         return const_segments_iterator(end(), begin(), end());
     }
@@ -115,7 +114,7 @@ Polyline::segments_iterator Polyline::beginSegments()
 
 Polyline::segments_iterator Polyline::endSegments()
 {
-    if (type_ == PolylineType::ImplicitelyClosed)
+    if (addClosingSegment())
     {
         return segments_iterator(end(), begin(), end());
     }
@@ -151,56 +150,20 @@ bool Polyline::shorterThan(const coord_t check_length) const
     return iterator_segment == endSegments();
 }
 
-void Polyline::splitIntoSegments(LinesSet<Polyline>& result) const
+void Polyline::splitIntoSegments(OpenLinesSet& result) const
 {
 #warning reserve space before adding all the segments
     for (auto it = beginSegments(); it != endSegments(); ++it)
     {
-        result.emplace_back(PolylineType::Open, std::initializer_list<Point2LL>{ (*it).start, (*it).end });
+        result.emplace_back(std::initializer_list<Point2LL>{ (*it).start, (*it).end });
     }
 }
 
-LinesSet<Polyline> Polyline::splitIntoSegments() const
+OpenLinesSet Polyline::splitIntoSegments() const
 {
-    LinesSet<Polyline> result;
+    OpenLinesSet result;
     splitIntoSegments(result);
     return result;
-}
-
-bool Polyline::inside(const Point2LL& p, bool border_result) const
-{
-    if (isClosed())
-    {
-        int res = ClipperLib::PointInPolygon(p, getPoints());
-        if (res == -1)
-        {
-            return border_result;
-        }
-        return res == 1;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-bool Polyline::inside(const auto& polygon) const
-{
-    if (isClosed())
-    {
-        for (const auto& point : *this)
-        {
-            if (! ClipperLib::PointInPolygon(point, polygon))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-    else
-    {
-        return false;
-    }
 }
 
 } // namespace cura

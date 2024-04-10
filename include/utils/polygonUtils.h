@@ -20,14 +20,16 @@ namespace cura
 /*!
  * Result of finding the closest point to a given within a set of polygons, with extra information on where the point is.
  */
-struct ClosestPoint
+#warning Rename to ClosedPoint, and ClosedPoint to ClosedPointPolygon
+template<class LineType>
+struct GenericClosestPoint
 {
     Point2LL location_; //!< Result location
-    const PointsSet* poly_{ nullptr }; //!< Line in which the result was found (or nullptr if no result was found)
+    const LineType* poly_{ nullptr }; //!< Line in which the result was found (or nullptr if no result was found)
     size_t poly_idx_; //!< The index of the polygon in some Polygons where ClosestPoint::poly can be found
     size_t point_idx_; //!< Index to the first point in the polygon of the line segment on which the result was found
 
-    ClosestPoint(Point2LL p, size_t pos, const PointsSet* poly)
+    GenericClosestPoint(Point2LL p, size_t pos, const LineType* poly)
         : location_(p)
         , poly_(poly)
         , poly_idx_(NO_INDEX)
@@ -35,7 +37,7 @@ struct ClosestPoint
     {
     }
 
-    ClosestPoint(Point2LL p, size_t pos, const PointsSet* poly, size_t poly_idx)
+    GenericClosestPoint(Point2LL p, size_t pos, const LineType* poly, size_t poly_idx)
         : location_(p)
         , poly_(poly)
         , poly_idx_(poly_idx)
@@ -43,14 +45,14 @@ struct ClosestPoint
     {
     }
 
-    ClosestPoint(const PointsSet* poly)
+    GenericClosestPoint(const LineType* poly)
         : poly_(poly)
         , poly_idx_(NO_INDEX)
         , point_idx_(NO_INDEX)
     {
     }
 
-    ClosestPoint()
+    GenericClosestPoint()
         : poly_idx_(NO_INDEX)
         , point_idx_(NO_INDEX)
     {
@@ -66,13 +68,15 @@ struct ClosestPoint
         return point_idx_ != NO_INDEX;
     }
 
-    bool operator==(const ClosestPoint& rhs) const
+    bool operator==(const GenericClosestPoint& rhs) const
     {
         // no need to compare on poy_idx
         // it's sometimes unused while poly is always initialized
         return poly_ == rhs.poly_ && point_idx_ == rhs.point_idx_ && location_ == rhs.location_;
     }
 };
+
+using ClosestPoint = GenericClosestPoint<Polygon>;
 
 } // namespace cura
 
@@ -175,7 +179,7 @@ public:
      * \param poly The polygon.
      * \param point_idx The index of the point in the polygon.
      */
-    static Point2LL getVertexInwardNormal(const Polygon& poly, unsigned int point_idx);
+    static Point2LL getVertexInwardNormal(const Polyline& poly, unsigned int point_idx);
 
     /*!
      * Get a point from the \p poly with a given \p offset.
@@ -185,7 +189,7 @@ public:
      * \param offset The distance the point has to be moved outward from the polygon.
      * \return A point at the given distance inward from the point on the boundary polygon.
      */
-    static Point2LL getBoundaryPointWithOffset(const Polygon& poly, unsigned int point_idx, int64_t offset);
+    static Point2LL getBoundaryPointWithOffset(const Polyline& poly, unsigned int point_idx, int64_t offset);
 
     /*!
      * Move a point away from the boundary by looking at the boundary normal of the nearest vert.
@@ -517,12 +521,13 @@ public:
      * \param start_idx the index of the prev poly point on the poly.
      * \param poly_start_idx The index of the point in the polygon which is to be handled as the start of the polygon. No point further than this point will be the result.
      */
-    static bool getNextPointWithDistance(Point2LL from, int64_t dist, const Polygon& poly, int start_idx, int poly_start_idx, GivenDistPoint& result);
+    static bool getNextPointWithDistance(Point2LL from, int64_t dist, const OpenPolyline& poly, int start_idx, int poly_start_idx, GivenDistPoint& result);
 
     /*!
      * Walk a given \p distance along the polygon from a given point \p from on the polygon
      */
-    static ClosestPoint walk(const ClosestPoint& from, coord_t distance);
+    template<class LineType>
+    static GenericClosestPoint<LineType> walk(const GenericClosestPoint<LineType>& from, coord_t distance);
 
     /*!
      * Get the point on a polygon which intersects a line parallel to a line going through the starting point and through another point.

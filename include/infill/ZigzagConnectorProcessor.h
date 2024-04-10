@@ -171,7 +171,7 @@ protected:
      *
      * \param polyline The polyline to add
      */
-    void addPolyline(const Polygon& polyline);
+    void addPolyline(const OpenPolyline& polyline);
 
     /*!
      * Checks whether the current connector should be added or not.

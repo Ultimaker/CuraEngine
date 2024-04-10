@@ -119,7 +119,7 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
         for (LayerIndex layer_nr = 0; layer_nr < cutting_mesh_volume.layers.size(); layer_nr++)
         {
             Shape& cutting_mesh_polygons = cutting_mesh_volume.layers[layer_nr].polygons;
-            LinesSet<OpenPolyline>& cutting_mesh_polylines = cutting_mesh_volume.layers[layer_nr].openPolylines;
+            OpenLinesSet& cutting_mesh_polylines = cutting_mesh_volume.layers[layer_nr].openPolylines;
             Shape cutting_mesh_area_recomputed;
             Shape* cutting_mesh_area;
             coord_t surface_line_width = cutting_mesh.settings_.get<coord_t>("wall_line_width_0");
@@ -135,9 +135,8 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
                     // they have to be polylines, because they might break up further when doing the cutting
                     for (Polygon& poly : cutting_mesh_polygons)
                     {
-#warning this should not be required
-                        poly.push_back(poly[0]);
-                        cutting_mesh_polylines.push_back(poly.toType<OpenPolyline>());
+                        poly.push_back(poly.front());
+                        cutting_mesh_polylines.emplace_back(poly.getPoints());
                     }
 
                     cutting_mesh_polygons.clear();
@@ -164,10 +163,10 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
                 Shape& carved_mesh_layer = carved_volume.layers[layer_nr].polygons;
 
                 Shape intersection = cutting_mesh_polygons.intersection(carved_mesh_layer);
-                new_outlines.add(intersection);
+                new_outlines.push_back(intersection);
                 if (cutting_mesh.settings_.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL) // niet te geleuven
                 {
-                    new_polylines.add(carved_mesh_layer.intersectionPolyLines(cutting_mesh_polylines));
+                    new_polylines.push_back(carved_mesh_layer.intersection(cutting_mesh_polylines));
                 }
 
                 carved_mesh_layer = carved_mesh_layer.difference(*cutting_mesh_area);

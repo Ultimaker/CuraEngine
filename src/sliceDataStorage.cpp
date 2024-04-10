@@ -85,7 +85,7 @@ void SliceLayer::getOutlines(Shape& result, bool external_polys_only) const
         }
         else
         {
-            result.add(part.print_outline);
+            result.push_back(part.print_outline);
         }
     }
 }
@@ -356,10 +356,10 @@ Shape SliceDataStorage::getLayerOutlines(
             {
                 for (const SupportInfillPart& support_infill_part : support_layer.support_infill_parts)
                 {
-                    total.add(support_infill_part.outline_);
+                    total.push_back(support_infill_part.outline_);
                 }
-                total.add(support_layer.support_bottom);
-                total.add(support_layer.support_roof);
+                total.push_back(support_layer.support_bottom);
+                total.push_back(support_layer.support_roof);
             }
         }
         int prime_tower_outer_extruder_nr = primeTower.extruder_order_[0];
@@ -367,7 +367,7 @@ Shape SliceDataStorage::getLayerOutlines(
         {
             if (primeTower.enabled_)
             {
-                total.add(primeTower.getOuterPoly(layer_nr));
+                total.push_back(primeTower.getOuterPoly(layer_nr));
             }
         }
         return total;
@@ -775,7 +775,7 @@ void SupportLayer::fillInfillParts(
         const size_t overhang_layer_nr = layer_nr + (mesh_z_distance_top / infill_layer_height) + 1;
         if (overhang_layer_nr < mesh->overhang_areas.size())
         {
-            overhang_z_dist_above.add(mesh->overhang_areas[overhang_layer_nr]);
+            overhang_z_dist_above.push_back(mesh->overhang_areas[overhang_layer_nr]);
         }
     }
     overhang_z_dist_above = overhang_z_dist_above.unionPolygons();

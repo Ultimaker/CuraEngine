@@ -266,7 +266,7 @@ LinesSet<OpenPolyline> TreeSupportTipGenerator::ensureMaximumDistancePolyline(co
         coord_t current_distance = std::max(distance, coord_t(FUDGE_LENGTH * 2));
         if (length < 2 * distance && min_points <= 1)
         {
-            ClosestPoint middle_point(part[0], 0, &part);
+            GenericClosestPoint<OpenPolyline> middle_point(part[0], 0, &part);
             middle_point = PolygonUtils::walk(middle_point, coord_t(length / 2));
             line.push_back(middle_point.location_);
         }
@@ -447,7 +447,7 @@ void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, st
             {
                 {
                     std::lock_guard<std::mutex> critical_section_storage(critical);
-                    result[layer_idx - lag_ctr].add(remaining_overhang);
+                    result[layer_idx - lag_ctr].push_back(remaining_overhang);
                 }
 
                 Shape relevant_forbidden_below = volumes_.getCollision(roof ? 0 : config_.getRadius(0), layer_idx - lag_ctr, ! xy_overrides_).offset(EPSILON);
@@ -530,10 +530,10 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
                 if (full_overhang_area.area() > EPSILON)
                 {
                     std::lock_guard<std::mutex> critical_section_potential_support_roofs(critical_potential_support_roofs);
-                    potential_support_roofs[layer_idx - dtt_roof].add((full_overhang_area));
+                    potential_support_roofs[layer_idx - dtt_roof].push_back((full_overhang_area));
                     if (dtt_roof == 0)
                     {
-                        support_roof_drawn_fractional_[layer_idx].add(full_overhang_area);
+                        support_roof_drawn_fractional_[layer_idx].push_back(full_overhang_area);
                     }
                 }
                 else
@@ -590,8 +590,8 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
                              -LayerIndex{ std::min(layer_idx, LayerIndex{ support_roof_layers_ }) },
                              LayerIndex{ std::min(LayerIndex{ potential_support_roofs.size() - layer_idx }, LayerIndex{ support_roof_layers_ + 1 }) }))
                     {
-                        fuzzy_area.add(support_roof_drawn_[layer_idx + layer_offset]);
-                        fuzzy_area.add(potential_support_roofs[layer_idx + layer_offset]);
+                        fuzzy_area.push_back(support_roof_drawn_[layer_idx + layer_offset]);
+                        fuzzy_area.push_back(potential_support_roofs[layer_idx + layer_offset]);
                     }
                     fuzzy_area = fuzzy_area.unionPolygons();
                     fuzzy_area.removeSmallAreas(std::max(minimum_roof_area_, tip_roof_size_));
@@ -600,7 +600,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
                     {
                         if (! potential_roof.intersection(fuzzy_area).empty())
                         {
-                            additional_support_roofs[layer_idx].add(potential_roof);
+                            additional_support_roofs[layer_idx].push_back(potential_roof);
                         }
                     }
                 }
@@ -608,7 +608,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
                 {
                     Shape valid_roof = potential_support_roofs[layer_idx].difference(forbidden_here);
                     valid_roof.removeSmallAreas(std::max(minimum_roof_area_, tip_roof_size_));
-                    additional_support_roofs[layer_idx].add(valid_roof);
+                    additional_support_roofs[layer_idx].push_back(valid_roof);
                 }
             }
         });
@@ -749,11 +749,11 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
             added_roofs = added_roofs.unionPolygons();
             {
                 std::lock_guard<std::mutex> critical_section_roof(critical_roof_tips_);
-                roof_tips_drawn_[insert_layer_idx - dtt_roof_tip].add(added_roofs);
+                roof_tips_drawn_[insert_layer_idx - dtt_roof_tip].push_back(added_roofs);
 
                 if (dtt_roof_tip == 0)
                 {
-                    support_roof_drawn_fractional_[insert_layer_idx].add(added_roofs);
+                    support_roof_drawn_fractional_[insert_layer_idx].push_back(added_roofs);
                 }
             }
         }
@@ -1157,11 +1157,11 @@ void TreeSupportTipGenerator::generateTips(
                     if (layer_idx < additional_support_areas.size()
                         && TreeSupportUtils::generateSupportInfillLines(roof_area, config_, true, layer_idx, support_roof_line_distance_, cross_fill_provider_, false).empty())
                     {
-                        additional_support_areas[layer_idx].add(roof_area);
+                        additional_support_areas[layer_idx].push_back(roof_area);
                     }
                     else
                     {
-                        storage.support.supportLayers[layer_idx].support_roof.add(roof_area);
+                        storage.support.supportLayers[layer_idx].support_roof.push_back(roof_area);
                     }
                 }
 
@@ -1192,7 +1192,7 @@ void TreeSupportTipGenerator::generateTips(
 
                         // Fractional roof is a modifier applied to a roof area, which means if only the fractional roof area is set, there will be nothing as there is no roof to
                         // modify. Because of that the fractional roof has ALSO to be added to the roof.
-                        storage.support.supportLayers[layer_idx].support_roof.add(all_roof_fractional);
+                        storage.support.supportLayers[layer_idx].support_roof.push_back(all_roof_fractional);
                     }
 
                     Shape all_roof = support_roof_drawn_[layer_idx].unionPolygons(roof_tips_drawn_[layer_idx]);

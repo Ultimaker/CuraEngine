@@ -5,15 +5,15 @@
 #define GEOMETRY_POLYLINE_H
 
 #include "geometry/points_set.h"
-#include "geometry/polyline_type.h"
 #include "geometry/segment_iterator.h"
 
 namespace cura
 {
 
-template<class T>
+template<class LineType>
 class LinesSet;
 class AngleRadians;
+class OpenPolyline;
 
 /*!
  * \brief Base class for various types of polylines. A polyline is basically a set of points, but
@@ -32,106 +32,48 @@ class AngleRadians;
  */
 class Polyline : public PointsSet
 {
-private:
-#warning possibly remove the enum and just use a "closed" boolean
-    PolylineType type_;
-
 public:
     using segments_iterator = SegmentIterator<false>;
     using const_segments_iterator = SegmentIterator<true>;
 
-    Polyline(PolylineType type = PolylineType::Open)
-        : PointsSet()
-        , type_(type)
-    {
-    }
+    Polyline() = default;
 
     Polyline(const Polyline& other) = default;
 
     Polyline(Polyline&& other) = default;
 
-    Polyline(PolylineType type, const std::initializer_list<Point2LL>& initializer)
+    Polyline(const std::initializer_list<Point2LL>& initializer)
         : PointsSet(initializer)
-        , type_(type)
     {
     }
 
-    Polyline(PolylineType type, const std::vector<Point2LL>& points)
+    Polyline(const std::vector<Point2LL>& points)
         : PointsSet(points)
-        , type_(type)
     {
     }
 
-    Polyline(PolylineType type, std::vector<Point2LL>&& points)
+    Polyline(ClipperLib::Path&& points)
         : PointsSet(points)
-        , type_(type)
     {
     }
 
-    virtual ~Polyline() = default; // This is required to tag the class as polymorphic
+    virtual ~Polyline() = default;
+
+    virtual bool addClosingSegment() const = 0;
+
+    virtual size_t segmentsCount() const = 0;
 
     Polyline& operator=(const Polyline& other)
     {
         PointsSet::operator=(other);
-        type_ = other.type_;
         return *this;
     }
 
     Polyline& operator=(Polyline&& other)
     {
         PointsSet::operator=(other);
-        type_ = other.type_;
         return *this;
     }
-
-    PolylineType getType() const
-    {
-        return type_;
-    }
-
-    /*!
-     * \brief Force setting the polyline type
-     * \param type The new type to be set
-     * \warning Forcibly setting the type changes the meaning of the vertices list. Use this method
-     *          only if you are doing something specific, otherwise use convertToType()
-     */
-    void setType(PolylineType type)
-    {
-        type_ = type;
-    }
-
-    void convertToType(PolylineType type)
-    {
-#warning implement me
-    }
-
-    bool isClosed() const
-    {
-        return type_ != PolylineType::Open;
-    }
-
-    bool isOpen() const
-    {
-        return type_ == PolylineType::Open;
-    }
-
-    /*template<class OtherType>
-    OtherType& toType()
-    {
-        return *reinterpret_cast<OtherType*>(this);
-    }
-
-    template<class OtherType>
-    const OtherType& toType() const
-    {
-        return *reinterpret_cast<const OtherType*>(this);
-    }*/
-
-    /*Polyline& operator=(const Polyline& other)
-    {
-        std::vector<point_t>::operator=(other);
-        return *this;
-    }*/
 
     const_segments_iterator beginSegments() const;
 
@@ -145,8 +87,8 @@ public:
      * Split these poly line objects into several line segment objects consisting of only two verts
      * and store them in the \p result
      */
-    void splitIntoSegments(LinesSet<Polyline>& result) const;
-    LinesSet<Polyline> splitIntoSegments() const;
+    void splitIntoSegments(LinesSet<OpenPolyline>& result) const;
+    LinesSet<OpenPolyline> splitIntoSegments() const;
 
     /*!
      * On Y-axis positive upward displays, Orientation will return true if the polygon's orientation is counter-clockwise.
@@ -199,36 +141,6 @@ public:
             push_back(front());
         }
     }*/
-
-    /*!
-     * Check if we are inside the polygon. We do this by tracing from the point towards the positive X direction,
-     * every line we cross increments the crossings counter. If we have an even number of crossings then we are not inside the polygon.
-     * Care needs to be taken, if p.Y exactly matches a vertex to the right of p, then we need to count 1 intersect if the
-     * outline passes vertically past; and 0 (or 2) intersections if that point on the outline is a 'top' or 'bottom' vertex.
-     * The easiest way to do this is to break out two cases for increasing and decreasing Y ( from p0 to p1 ).
-     * A segment is tested if pa.Y <= p.Y < pb.Y, where pa and pb are the points (from p0,p1) with smallest & largest Y.
-     * When both have the same Y, no intersections are counted but there is a special test to see if the point falls
-     * exactly on the line.
-     *
-     * Returns false if outside, true if inside; if the point lies exactly on the border, will return 'border_result'.
-     *
-     * \deprecated This function is no longer used, since the Clipper function is used by the function PolygonRef::inside(.)
-     *
-     * \param p The point for which to check if it is inside this polygon
-     * \param border_result What to return when the point is exactly on the border
-     * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
-     */
-    // bool _inside(Point2LL p, bool border_result = false) const;
-
-    /*!
-     * Clipper function.
-     * Returns false if outside, true if inside; if the point lies exactly on the border, will return 'border_result'.
-     *
-     * http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Functions/PointInPolygon.htm
-     */
-    bool inside(const Point2LL& p, bool border_result = false) const;
-
-    bool inside(const auto& polygon) const;
 
 private:
     /*!

@@ -451,7 +451,7 @@ void ArcusCommunication::sendPolygon(const PrintFeatureType& type, const Polygon
 
 void ArcusCommunication::sendPolygons(const PrintFeatureType& type, const Shape& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
 {
-    for (const std::vector<Point2LL>& polygon : polygons)
+    for (const Polygon& polygon : polygons)
     {
         path_compiler->sendPolygon(type, polygon, line_width, line_thickness, velocity);
     }

@@ -1340,14 +1340,13 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     struct BrimLineReference
     {
         const size_t inset_idx;
-        const OpenPolyline* poly;
+        const Polyline* poly;
     };
 
     size_t total_line_count = 0;
-    for (const SkirtBrimLine& line : storage.skirt_brim[extruder_nr])
+    for (const MixedLinesSet& lines : storage.skirt_brim[extruder_nr])
     {
-        total_line_count += line.closed_polygons.size();
-        total_line_count += line.open_polylines.size();
+        total_line_count += lines.size();
 
         // For layer_nr != 0 add only the innermost brim line (which is only the case if skirt_height > 1)
         if (layer_nr != 0)
@@ -1355,9 +1354,8 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
             break;
         }
     }
-    LinesSet<OpenPolyline> all_brim_lines;
 
-
+    MixedLinesSet all_brim_lines;
     all_brim_lines.reserve(total_line_count);
 
     const coord_t line_w = train.settings_.get<coord_t>("skirt_brim_line_width") * train.settings_.get<Ratio>("initial_layer_line_width_factor");
@@ -1367,7 +1365,8 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
 
     for (size_t inset_idx = 0; inset_idx < storage.skirt_brim[extruder_nr].size(); inset_idx++)
     {
-        const SkirtBrimLine& offset = storage.skirt_brim[extruder_nr][inset_idx];
+        const MixedLinesSet& offset = storage.skirt_brim[extruder_nr][inset_idx];
+        /*
         auto push_lines = [&all_brim_lines, &grid, &inset_idx]<class LineType>(const LinesSet<LineType>& lines)
         {
             for (const LineType& line : lines)
@@ -1392,6 +1391,20 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
 
         push_lines(offset.closed_polygons);
         push_lines(offset.open_polylines);
+        */
+
+        for (const std::shared_ptr<Polyline>& line : offset)
+        {
+            if (line->segmentsCount() > 0)
+            {
+                all_brim_lines.push_back(line);
+                for (const Point2LL& p : *line)
+                {
+                    grid.insert(p, BrimLineReference{ inset_idx, line.get() });
+                }
+            }
+        }
+
 
         // For layer_nr != 0 add only the innermost brim line (which is only the case if skirt_height > 1)
         if (layer_nr != 0)
@@ -1401,7 +1414,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     }
 
     const auto smart_brim_ordering = train.settings_.get<bool>("brim_smart_ordering") && train.settings_.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM;
-    std::unordered_multimap<const OpenPolyline*, const OpenPolyline*> order_requirements;
+    std::unordered_multimap<const Polyline*, const Polyline*> order_requirements;
     for (const std::pair<SquareGrid::GridPoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<BrimLineReference>>& p : grid)
     {
         const BrimLineReference& here = p.second.val;
@@ -1467,7 +1480,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
             start_close_to,
             fan_speed,
             reverse_print_direction,
-            layer_nr == 0 ? order_requirements : PathOrderOptimizer<const OpenPolyline*>::no_order_requirements_);
+            layer_nr == 0 ? order_requirements : PathOrderOptimizer<const Polyline*>::no_order_requirements_);
     }
 
 
@@ -1478,11 +1491,11 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     if ((layer_nr == 0) && (extruder_nr == mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr_))
     {
         total_line_count += storage.support_brim.size();
-        LinesSet<OpenPolyline> support_brim_lines = storage.support_brim;
+        // LinesSet<ClosedPolyline> support_brim_lines = storage.support_brim;
 #warning Check for bugs !!
         // support_brim_lines.toPolylines();
         gcode_layer.addLinesByOptimizer(
-            support_brim_lines,
+            storage.support_brim,
             gcode_layer.configs_storage_.skirt_brim_config_per_extruder[extruder_nr],
             SpaceFillType::PolyLines,
             enable_travel_optimization,
@@ -1715,7 +1728,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
     {
         if (! part.outline.empty())
         {
-            polygons.add(part.outline);
+            polygons.push_back(part.outline);
         }
     }
 
@@ -2171,9 +2184,9 @@ bool FffGcodeWriter::processSingleLayerInfill(
             {
                 const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, min_skin_below_wall_count);
                 Shape tool = infill_below_skin.offset(static_cast<int>(cut_offset));
-                infill_lines_here = tool.intersectionPolyLines(infill_lines_here);
+                infill_lines_here = tool.intersection(infill_lines_here);
             }
-            infill_lines.add(infill_lines_here);
+            infill_lines.push_back(infill_lines_here);
             // normal processing for the infill that isn't below skin
             in_outline = infill_not_below_skin;
             if (density_idx == last_idx)
@@ -2236,10 +2249,10 @@ bool FffGcodeWriter::processSingleLayerInfill(
         {
             const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, wall_line_count);
             Shape tool = sparse_in_outline.offset(static_cast<int>(cut_offset));
-            infill_lines_here = tool.intersectionPolyLines(infill_lines_here);
+            infill_lines_here = tool.intersection(infill_lines_here);
         }
-        infill_lines.add(infill_lines_here);
-        infill_polygons.add(infill_polygons_here);
+        infill_lines.push_back(infill_lines_here);
+        infill_polygons.push_back(infill_polygons_here);
     }
 
     wall_tool_paths.emplace_back(part.infill_wall_toolpaths); // The extra infill walls were generated separately. Add these too.
@@ -2407,9 +2420,9 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(
                                 // subtract the expanded overlap region from the regions accumulated from higher layers
                                 skin_above_combined = skin_above_combined.difference(overlap_expanded);
                                 // subtract the expanded overlap region from this skin part and add the remainder to the overlap region
-                                skin_above_combined.add(relevant_outline.difference(overlap_expanded));
+                                skin_above_combined.push_back(relevant_outline.difference(overlap_expanded));
                                 // and add the overlap area as well
-                                skin_above_combined.add(overlap);
+                                skin_above_combined.push_back(overlap);
                             }
                             else // this layer is the 1st layer above the layer whose infill we're printing
                             {
@@ -2429,17 +2442,17 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(
                                 //     ------- -------------------------------------
 
                                 skin_above_combined = skin_above_combined.difference(relevant_outline.offset(tiny_infill_offset));
-                                skin_above_combined.add(relevant_outline);
+                                skin_above_combined.push_back(relevant_outline);
                             }
                         }
                         else // no overlap
                         {
-                            skin_above_combined.add(relevant_outline);
+                            skin_above_combined.push_back(relevant_outline);
                         }
                     }
                     else // this is the first skin region we have looked at
                     {
-                        skin_above_combined.add(relevant_outline);
+                        skin_above_combined.push_back(relevant_outline);
                     }
                 }
             }
@@ -2614,7 +2627,7 @@ bool FffGcodeWriter::processInsets(
                 {
                     if (boundaryBox.hit(prevLayerPart.boundaryBox))
                     {
-                        outlines_below.add(prevLayerPart.outline);
+                        outlines_below.push_back(prevLayerPart.outline);
                     }
                 }
             }
@@ -2640,7 +2653,7 @@ bool FffGcodeWriter::processInsets(
                     AABB support_roof_bb(support_layer.support_roof);
                     if (boundaryBox.hit(support_roof_bb))
                     {
-                        outlines_below.add(support_layer.support_roof);
+                        outlines_below.push_back(support_layer.support_roof);
                     }
                 }
                 else
@@ -2650,7 +2663,7 @@ bool FffGcodeWriter::processInsets(
                         AABB support_part_bb(support_part.getInfillArea());
                         if (boundaryBox.hit(support_part_bb))
                         {
-                            outlines_below.add(support_part.getInfillArea());
+                            outlines_below.push_back(support_part.getInfillArea());
                         }
                     }
                 }

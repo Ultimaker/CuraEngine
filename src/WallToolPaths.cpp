@@ -97,7 +97,7 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
         auto smoother = actions::smooth(settings_);
         for (Polygon& polygon : prepared_outline)
         {
-            polygon = smoother(polygon.asRawVector());
+            polygon.setPoints(smoother(polygon.getPoints()));
         }
     }
 

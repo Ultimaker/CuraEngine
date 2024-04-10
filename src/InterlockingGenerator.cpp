@@ -235,7 +235,7 @@ std::vector<Shape> InterlockingGenerator::computeUnionedVolumeRegions() const
                 break;
             }
             const SlicerLayer& layer = mesh->layers[static_cast<size_t>(layer_nr)];
-            layer_region.add(layer.polygons);
+            layer_region.push_back(layer.polygons);
         }
         layer_region = layer_region.offset(ignored_gap_).offset(-ignored_gap_); // Morphological close to merge meshes into single volume
         layer_region.applyMatrix(rotation_);
@@ -302,7 +302,7 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
             {
                 Shape areas_here = cell_area_per_mesh_per_layer[static_cast<size_t>(layer_nr / beam_layer_count_) % cell_area_per_mesh_per_layer.size()][mesh_idx];
                 areas_here.translate(Point2LL(bottom_corner.x_, bottom_corner.y_));
-                structure_per_layer[mesh_idx][static_cast<size_t>(layer_nr / beam_layer_count_)].add(areas_here);
+                structure_per_layer[mesh_idx][static_cast<size_t>(layer_nr / beam_layer_count_)].push_back(areas_here);
             }
         }
     }

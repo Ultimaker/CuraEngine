@@ -7,13 +7,14 @@
 #include <vector>
 
 #include "geometry/point2ll.h"
-#include "geometry/polyline_type.h"
 
 namespace cura
 {
 
 class Shape;
-class Polyline;
+template<class LineType>
+class LinesSet;
+class OpenPolyline;
 
 /*!
  * \brief Base class for all geometry containers representing a set of polylines.
@@ -41,12 +42,7 @@ public:
     {
     }
 
-    /*LinesSet(const std::vector<std::vector<Point2LL>>& paths)
-        : std::vector<LineType>(*reinterpret_cast<const std::vector<LineType>*>(&paths))
-    {
-    }*/
-
-    LinesSet(PolylineType type, std::vector<std::vector<Point2LL>>&& paths);
+    LinesSet(ClipperLib::Paths&& paths);
 
     const std::vector<LineType>& getLines() const
     {
@@ -56,6 +52,11 @@ public:
     std::vector<LineType>& getLines()
     {
         return lines_;
+    }
+
+    void setLines(std::vector<LineType>&& lines)
+    {
+        lines_ = lines;
     }
 
     std::vector<LineType>::const_iterator begin() const
@@ -88,13 +89,34 @@ public:
         return lines_.back();
     }
 
+    const LineType& front() const
+    {
+        return lines_.front();
+    }
+
+    LineType& front()
+    {
+        return lines_.front();
+    }
+
     void push_back(const LineType& line, bool checkNonEmpty = false);
 
     void push_back(LineType&& line, bool checkNonEmpty = false);
 
-    void push_back(PolylineType type, ClipperLib::Paths&& paths);
+    void push_back(ClipperLib::Paths&& paths);
 
-    void push_back(LinesSet<LineType>&& lines_set);
+    template<class OtherLineType>
+    void push_back(LinesSet<OtherLineType>&& lines_set);
+
+    void push_back(const LinesSet& other)
+    {
+        lines_.insert(other.lines_.end(), other.lines_.begin(), other.lines_.end());
+    }
+
+    void pop_back()
+    {
+        lines_.pop_back();
+    }
 
     size_t size() const
     {
@@ -116,15 +138,33 @@ public:
         lines_.resize(size);
     }
 
+    void clear()
+    {
+        lines_.clear();
+    }
+
     template<typename... Args>
     void emplace_back(Args&&... args)
     {
         lines_.emplace_back(args...);
     }
 
-    LinesSet& operator=(const LinesSet& other) = default;
+    std::vector<LineType>::iterator erase(std::vector<LineType>::const_iterator first, std::vector<LineType>::const_iterator last)
+    {
+        lines_.erase(first, last);
+    }
 
-    LinesSet& operator=(LinesSet&& other) = default;
+    LinesSet& operator=(LinesSet&& other)
+    {
+        lines_ = std::move(other.lines_);
+        return *this;
+    }
+
+    LinesSet& operator=(const LinesSet& other)
+    {
+        lines_ = other.lines_;
+        return *this;
+    }
 
     LineType& operator[](size_t index)
     {
@@ -134,31 +174,6 @@ public:
     const LineType& operator[](size_t index) const
     {
         return lines_[index];
-    }
-
-#warning rename this to asType
-    /*template<class OtherLineType>
-    const LinesSet<OtherLineType>& toType() const
-    {
-        // This does work as long as we don't add any attribute to the PointsSet class or any of its child
-        return *reinterpret_cast<const LinesSet<OtherLineType>*>(this);
-    }
-
-    const std::vector<std::vector<Point2LL>>& asRawVector() const
-    {
-        // This does work as long as we don't add any attribute to the PointsSet class or any of its child
-        return *reinterpret_cast<const std::vector<std::vector<Point2LL>>*>(this);
-    }
-
-    std::vector<std::vector<Point2LL>>& asRawVector()
-    {
-        // This does work as long as we don't add any attribute to the PointsSet class or any of its child
-        return *reinterpret_cast<std::vector<std::vector<Point2LL>>*>(this);
-    }*/
-
-    void add(const LinesSet& other)
-    {
-        lines_->insert(other.lines_.end(), other.lines_.begin(), other.lines_.end());
     }
 
     LineType& newLine()
@@ -185,8 +200,8 @@ public:
 
     coord_t length() const;
 
-    void splitIntoSegments(LinesSet<Polyline>& result) const;
-    LinesSet<Polyline> splitIntoSegments() const;
+    void splitIntoSegments(LinesSet<OpenPolyline>& result) const;
+    LinesSet<OpenPolyline> splitIntoSegments() const;
 
     /*!
      * Removes overlapping consecutive line segments which don't delimit a
@@ -199,7 +214,7 @@ public:
      */
     void removeDegenerateVerts();
 
-    Shape offset(coord_t distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
+    Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
     /*!
      * Utility method for creating the tube (or 'donut') of a shape.
@@ -209,8 +224,9 @@ public:
      */
     Shape tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 
-protected:
     void addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
+
+    void addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
 };
 
 } // namespace cura

@@ -90,7 +90,7 @@ void GyroidInfill::generateTotalGyroidInfill(LinesSet<OpenPolyline>& result_line
                             LinesSet<OpenPolyline> line;
                             line.addLine(last, current);
                             constexpr bool restitch = false; // only a single line doesn't need stitching
-                            line = in_outline.intersectionPolyLines(line, restitch);
+                            line = in_outline.intersection(line, restitch);
                             if (line.size() > 0)
                             {
                                 // some of the line is inside the boundary
@@ -182,7 +182,7 @@ void GyroidInfill::generateTotalGyroidInfill(LinesSet<OpenPolyline>& result_line
                             LinesSet<OpenPolyline> line;
                             line.addLine(last, current);
                             constexpr bool restitch = false; // only a single line doesn't need stitching
-                            line = in_outline.intersectionPolyLines(line, restitch);
+                            line = in_outline.intersection(line, restitch);
                             if (line.size() > 0)
                             {
                                 // some of the line is inside the boundary

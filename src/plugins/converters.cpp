@@ -247,20 +247,20 @@ infill_generate_response::native_value_type infill_generate_response::operator()
             Polygon hole{};
             for (auto& path_msg : hole_msg.path())
             {
-                hole.push_back(Point2LL{ path_msg.x(), path_msg.y() });
+                hole.emplace_back(path_msg.x(), path_msg.y());
             }
             polygon.push_back(hole);
         }
 
-        result_polygons.add(polygon);
+        result_polygons.push_back(polygon);
     }
 
     for (auto& polygon : message.poly_lines().paths())
     {
-        Polygon poly_line;
+        OpenPolyline poly_line;
         for (auto& p : polygon.path())
         {
-            poly_line.emplace_back(Point2LL{ p.x(), p.y() });
+            poly_line.emplace_back(p.x(), p.y());
         }
         result_lines.emplace_back(poly_line);
     }

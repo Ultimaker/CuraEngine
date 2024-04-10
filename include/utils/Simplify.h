@@ -5,12 +5,15 @@
 #define UTILS_SIMPLIFY_H
 
 #include "../settings/Settings.h" //To load the parameters from a Settings object.
+#include "geometry/mixed_lines_set.h"
 #include "geometry/polygon.h"
 #include "linearAlg2D.h" //To calculate line deviations and intersecting lines.
 
 namespace cura
 {
 
+template<class LineType>
+class LinesSet;
 struct ExtrusionLine;
 struct ExtrusionJunction;
 
@@ -111,13 +114,30 @@ public:
     LinesSet<LineType> polyline(const LinesSet<LineType>& polylines) const;
 
     /*!
+     * Simplify a batch of polylines.
+     *
+     * The endpoints of each polyline cannot be altered.
+     * \param polylines The polylines to simplify.
+     * \return The simplified polylines.
+     */
+    MixedLinesSet polyline(const MixedLinesSet& polylines) const;
+
+    /*!
      * Simplify a polyline.
      *
      * The endpoints of the polyline cannot be altered.
      * \param polyline The polyline to simplify.
      * \return The simplified polyline.
      */
-    Polyline polyline(const Polyline& polyline) const;
+    OpenPolyline polyline(const OpenPolyline& polyline) const;
+
+    /*!
+     * Simplify a polyline.
+     *
+     * \param polyline The polyline to simplify.
+     * \return The simplified polyline.
+     */
+    ClosedPolyline polyline(const ClosedPolyline& polyline) const;
 
     /*!
      * Simplify a variable-line-width polyline.
@@ -397,20 +417,13 @@ protected:
     size_t previousNotDeleted(size_t index, const std::vector<bool>& to_delete) const;
 
     /*!
-     * Create an empty polygon with the same properties as an original polygon,
+     * Create an empty polygonal with the same properties as an original polygon,
      * but without the vertex data.
-     * \param original The polygon to copy the properties from.
-     * \return An empty polygon.
+     * \param original The polygonal to copy the properties from.
+     * \return An empty polygonal.
      */
-    Polygon createEmpty(const Polygon& original) const;
-
-    /*!
-     * Create an empty extrusion line with the same properties as an original
-     * extrusion line, but without the vertex data.
-     * \param original The extrusion line to copy the properties from.
-     * \return An empty extrusion line.
-     */
-    ExtrusionLine createEmpty(const ExtrusionLine& original) const;
+    template<typename Polygonal>
+    Polygonal createEmpty(const Polygonal& original) const;
 
     /*!
      * Append a vertex to this polygon.

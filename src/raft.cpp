@@ -80,7 +80,7 @@ void Raft::generate(SliceDataStorage& storage)
                 for (auto& part : outline_parts)
                 {
                     part.makeConvex();
-                    outline.add(part);
+                    outline.push_back(part);
                 }
 
                 outline = outline.unionPolygons();

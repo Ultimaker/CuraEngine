@@ -207,11 +207,11 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                 {
                     if (combing_mode == CombingMode::ALL) // Add the increased outline offset (skin, infill and part of the inner walls)
                     {
-                        comb_boundary.add(part.outline.offset(offset));
+                        comb_boundary.push_back(part.outline.offset(offset));
                     }
                     else if (combing_mode == CombingMode::NO_SKIN) // Add the increased outline offset, subtract skin (infill and part of the inner walls)
                     {
-                        comb_boundary.add(part.outline.offset(offset).difference(part.inner_area.difference(part.infill_area)));
+                        comb_boundary.push_back(part.outline.offset(offset).difference(part.inner_area.difference(part.infill_area)));
                     }
                     else if (combing_mode == CombingMode::NO_OUTER_SURFACES)
                     {
@@ -220,15 +220,15 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                         {
                             for (const SkinPart& skin_part : outer_surface_part.skin_parts)
                             {
-                                top_and_bottom_most_fill.add(skin_part.top_most_surface_fill);
-                                top_and_bottom_most_fill.add(skin_part.bottom_most_surface_fill);
+                                top_and_bottom_most_fill.push_back(skin_part.top_most_surface_fill);
+                                top_and_bottom_most_fill.push_back(skin_part.bottom_most_surface_fill);
                             }
                         }
-                        comb_boundary.add(part.outline.offset(offset).difference(top_and_bottom_most_fill));
+                        comb_boundary.push_back(part.outline.offset(offset).difference(top_and_bottom_most_fill));
                     }
                     else if (combing_mode == CombingMode::INFILL) // Add the infill (infill only)
                     {
-                        comb_boundary.add(part.infill_area);
+                        comb_boundary.push_back(part.infill_area);
                     }
                 }
             }
@@ -807,7 +807,7 @@ void LayerPlan::addWallLine(
         LinesSet<OpenPolyline> line_polys;
         line_polys.addLine(p0, p1);
         constexpr bool restitch = false; // only a single line doesn't need stitching
-        auto roofing_line_segments = roofing_mask_.intersectionPolyLines(line_polys, restitch);
+        auto roofing_line_segments = roofing_mask_.intersection(line_polys, restitch);
 
         if (roofing_line_segments.empty())
         {
@@ -880,7 +880,7 @@ void LayerPlan::addWallLine(
             LinesSet<OpenPolyline> line_polys;
             line_polys.addLine(p0, p1);
             constexpr bool restitch = false; // only a single line doesn't need stitching
-            line_polys = bridge_wall_mask_.intersectionPolyLines(line_polys, restitch);
+            line_polys = bridge_wall_mask_.intersection(line_polys, restitch);
 
             // line_polys now contains the wall lines that need to be printed using bridge_config
 
@@ -898,7 +898,7 @@ void LayerPlan::addWallLine(
                         smallest_dist2 = dist2;
                     }
                 }
-                const Polygon& bridge = line_polys[nearest];
+                const OpenPolyline& bridge = line_polys[nearest];
 
                 // set b0 to the nearest vertex and b1 the furthest
                 Point2LL b0 = bridge[0];
@@ -1052,7 +1052,7 @@ void LayerPlan::addWall(
                     LinesSet<OpenPolyline> line_polys;
                     line_polys.addLine(p0.p_, p1.p_);
                     constexpr bool restitch = false; // only a single line doesn't need stitching
-                    line_polys = bridge_wall_mask_.intersectionPolyLines(line_polys, restitch);
+                    line_polys = bridge_wall_mask_.intersection(line_polys, restitch);
 
                     while (line_polys.size() > 0)
                     {
@@ -1068,7 +1068,7 @@ void LayerPlan::addWall(
                                 smallest_dist2 = dist2;
                             }
                         }
-                        const Polygon& bridge = line_polys[nearest];
+                        const OpenPolyline& bridge = line_polys[nearest];
 
                         // set b0 to the nearest vertex and b1 the furthest
                         Point2LL b0 = bridge[0];
@@ -1287,9 +1287,9 @@ void LayerPlan::addWalls(
     }
 }
 
-
+template<class LineType>
 void LayerPlan::addLinesByOptimizer(
-    const LinesSet<OpenPolyline>& lines,
+    const LinesSet<LineType>& lines,
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
     const bool enable_travel_optimization,
@@ -1298,7 +1298,7 @@ void LayerPlan::addLinesByOptimizer(
     const std::optional<Point2LL> near_start_location,
     const double fan_speed,
     const bool reverse_print_direction,
-    const std::unordered_multimap<const OpenPolyline*, const OpenPolyline*>& order_requirements)
+    const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements)
 {
     Shape boundary;
     if (enable_travel_optimization && ! comb_boundary_minimum_.empty())
@@ -1318,21 +1318,31 @@ void LayerPlan::addLinesByOptimizer(
             }
             dist += 100; // ensure boundary is slightly outside all skin/infill lines
         }
-        boundary.add(comb_boundary_minimum_.offset(dist));
+        boundary.push_back(comb_boundary_minimum_.offset(dist));
         // simplify boundary to cut down processing time
         boundary = Simplify(MM2INT(0.1), MM2INT(0.1), 0).polygon(boundary);
     }
     constexpr bool detect_loops = true;
-    PathOrderOptimizer<const OpenPolyline*> order_optimizer(
+    PathOrderOptimizer<const Polyline*> order_optimizer(
         near_start_location.value_or(getLastPlannedPositionOrStartingPosition()),
         ZSeamConfig(),
         detect_loops,
         &boundary,
         reverse_print_direction,
         order_requirements);
-    for (const OpenPolyline& polyline : lines)
+    if constexpr (std::is_same<LineType, OpenPolyline>::value)
     {
-        order_optimizer.addPolyline(&polyline);
+        for (const OpenPolyline& polyline : lines)
+        {
+            order_optimizer.addPolyline(&polyline);
+        }
+    }
+    if constexpr (std::is_same<LineType, ClosedPolyline>::value)
+    {
+        for (const ClosedPolyline& polyline : lines)
+        {
+            order_optimizer.addPolygon(&polyline);
+        }
     }
     order_optimizer.optimize();
 
@@ -1349,7 +1359,7 @@ void LayerPlan::addLinesByOptimizer(
     const std::optional<Point2LL> near_start_location,
     const double fan_speed,
     const bool reverse_print_direction,
-    const std::unordered_multimap<const OpenPolyline*, const OpenPolyline*>& order_requirements)
+    const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements)
 {
     Shape boundary;
     if (enable_travel_optimization && ! comb_boundary_minimum_.empty())
@@ -1369,33 +1379,37 @@ void LayerPlan::addLinesByOptimizer(
             }
             dist += 100; // ensure boundary is slightly outside all skin/infill lines
         }
-        boundary.add(comb_boundary_minimum_.offset(dist));
+        boundary.push_back(comb_boundary_minimum_.offset(dist));
         // simplify boundary to cut down processing time
         boundary = Simplify(MM2INT(0.1), MM2INT(0.1), 0).polygon(boundary);
     }
     constexpr bool detect_loops = false; // We already know which lines are closed
-    PathOrderOptimizer<const OpenPolyline*> order_optimizer(
+    PathOrderOptimizer<const Polyline*> order_optimizer(
         near_start_location.value_or(getLastPlannedPositionOrStartingPosition()),
         ZSeamConfig(),
         detect_loops,
         &boundary,
         reverse_print_direction,
         order_requirements);
-    for (const OpenPolyline& open_polyline : lines.getOpenLines())
+    for (const std::shared_ptr<const Polyline>& line : lines)
     {
-        order_optimizer.addPolyline(&open_polyline);
+        if (const std::shared_ptr<const OpenPolyline> open_line = dynamic_pointer_cast<const OpenPolyline>(line))
+        {
+            order_optimizer.addPolyline(open_line.get());
+        }
+        else if (const std::shared_ptr<const ClosedPolyline> closed_line = dynamic_pointer_cast<const ClosedPolyline>(line))
+        {
+            order_optimizer.addPolygon(closed_line.get());
+        }
     }
-    for (const ClosedPolyline& closed_polyline : lines.getClosedLines())
-    {
-        order_optimizer.addPolygon(&closed_polyline.toType<OpenPolyline>());
-    }
+
     order_optimizer.optimize();
 
     addLinesInGivenOrder(order_optimizer.paths_, config, space_fill_type, wipe_dist, flow_ratio, fan_speed);
 }
 
 void LayerPlan::addLinesInGivenOrder(
-    const std::vector<PathOrdering<const OpenPolyline*>>& lines,
+    const std::vector<PathOrdering<const Polyline*>>& lines,
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
     const coord_t wipe_dist,
@@ -1406,8 +1420,8 @@ void LayerPlan::addLinesInGivenOrder(
     coord_t line_width_2 = half_line_width * half_line_width;
     for (size_t order_idx = 0; order_idx < lines.size(); order_idx++)
     {
-        const PathOrdering<const OpenPolyline*>& path = lines[order_idx];
-        const OpenPolyline& polyline = *path.vertices_;
+        const PathOrdering<const Polyline*>& path = lines[order_idx];
+        const Polyline& polyline = *path.vertices_;
         const size_t start_idx = path.start_vertex_;
         assert(start_idx == 0 || start_idx == polyline.size() - 1 || path.is_closed_);
         const Point2LL start = polyline[start_idx];
@@ -1475,8 +1489,8 @@ void LayerPlan::addLinesInGivenOrder(
             // Don't wipe if next starting point is very near
             if (wipe && (order_idx < lines.size() - 1))
             {
-                const PathOrdering<const OpenPolyline*>& next_path = lines[order_idx + 1];
-                const Polygon& next_polygon = *next_path.vertices_;
+                const PathOrdering<const Polyline*>& next_path = lines[order_idx + 1];
+                const Polyline& next_polygon = *next_path.vertices_;
                 const size_t next_start = next_path.start_vertex_;
                 const Point2LL& next_p0 = next_polygon[next_start];
                 if (vSize2(next_p0 - p1) <= line_width * line_width * 4)
@@ -1499,7 +1513,7 @@ void LayerPlan::addLinesInGivenOrder(
 
 void LayerPlan::addLinesMonotonic(
     const Shape& area,
-    const std::vector<OpenPolyline>& lines,
+    const OpenLinesSet& lines,
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
     const AngleRadians monotonic_direction,
@@ -1521,13 +1535,13 @@ void LayerPlan::addLinesMonotonic(
     }
     line_order.optimize();
 
-    const auto is_inside_exclusion = [&exclude_areas, &exclude_dist2](const Polygon& path)
+    const auto is_inside_exclusion = [&exclude_areas, &exclude_dist2](const OpenPolyline& path)
     {
         return vSize2(path[1] - path[0]) < exclude_dist2 && exclude_areas.inside((path[0] + path[1]) / 2);
     };
 
     // Order monotonically, except for line-segments which stay in the excluded areas (read: close to the walls) consecutively.
-    PathOrderMonotonic<const OpenPolyline*> order(monotonic_direction, max_adjacent_distance, last_position);
+    PathOrderMonotonic<const Polyline*> order(monotonic_direction, max_adjacent_distance, last_position);
     LinesSet<OpenPolyline> left_over;
     bool last_would_have_been_excluded = false;
     for (size_t line_idx = 0; line_idx < line_order.paths_.size(); ++line_idx)
@@ -2661,5 +2675,29 @@ void LayerPlan::setRoofingMask(const Shape& polys)
 {
     roofing_mask_ = polys;
 }
+
+template void LayerPlan::addLinesByOptimizer(
+    const LinesSet<OpenPolyline>& lines,
+    const GCodePathConfig& config,
+    const SpaceFillType space_fill_type,
+    const bool enable_travel_optimization,
+    const coord_t wipe_dist,
+    const Ratio flow_ratio,
+    const std::optional<Point2LL> near_start_location,
+    const double fan_speed,
+    const bool reverse_print_direction,
+    const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements);
+
+template void LayerPlan::addLinesByOptimizer(
+    const LinesSet<ClosedPolyline>& lines,
+    const GCodePathConfig& config,
+    const SpaceFillType space_fill_type,
+    const bool enable_travel_optimization,
+    const coord_t wipe_dist,
+    const Ratio flow_ratio,
+    const std::optional<Point2LL> near_start_location,
+    const double fan_speed,
+    const bool reverse_print_direction,
+    const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements);
 
 } // namespace cura

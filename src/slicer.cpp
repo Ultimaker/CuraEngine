@@ -30,7 +30,7 @@ constexpr int largest_neglected_gap_first_phase = MM2INT(0.01); //!< distance be
 constexpr int largest_neglected_gap_second_phase = MM2INT(0.02); //!< distance between two line segments regarded as connected
 constexpr int max_stitch1 = MM2INT(10.0); //!< maximal distance stitched between open polylines to form polygons
 
-void SlicerLayer::makeBasicPolygonLoops(LinesSet<Polyline>& open_polylines)
+void SlicerLayer::makeBasicPolygonLoops(OpenLinesSet& open_polylines)
 {
     for (size_t start_segment_idx = 0; start_segment_idx < segments.size(); start_segment_idx++)
     {
@@ -43,9 +43,9 @@ void SlicerLayer::makeBasicPolygonLoops(LinesSet<Polyline>& open_polylines)
     segments.clear();
 }
 
-void SlicerLayer::makeBasicPolygonLoop(LinesSet<Polyline>& open_polylines, const size_t start_segment_idx)
+void SlicerLayer::makeBasicPolygonLoop(OpenLinesSet& open_polylines, const size_t start_segment_idx)
 {
-    Polyline poly;
+    OpenPolyline poly;
     poly.push_back(segments[start_segment_idx].start);
 
     for (int segment_idx = start_segment_idx; segment_idx != -1;)
@@ -56,7 +56,7 @@ void SlicerLayer::makeBasicPolygonLoop(LinesSet<Polyline>& open_polylines, const
         segment_idx = getNextSegmentIdx(segment, start_segment_idx);
         if (segment_idx == static_cast<int>(start_segment_idx))
         { // polyon is closed
-            polygons.push_back(Polygon(std::move(poly.getPoints())));
+            polygons.push_back(Polygon(std::move(poly.getPoints()), true));
             return;
         }
     }
@@ -128,7 +128,7 @@ int SlicerLayer::getNextSegmentIdx(const SlicerSegment& segment, const size_t st
     return next_segment_idx;
 }
 
-void SlicerLayer::connectOpenPolylines(LinesSet<Polyline>& open_polylines)
+void SlicerLayer::connectOpenPolylines(OpenLinesSet& open_polylines)
 {
     constexpr bool allow_reverse = false;
     // Search a bit fewer cells but at cost of covering more area.
@@ -137,7 +137,7 @@ void SlicerLayer::connectOpenPolylines(LinesSet<Polyline>& open_polylines)
     connectOpenPolylinesImpl(open_polylines, largest_neglected_gap_second_phase, cell_size, allow_reverse);
 }
 
-void SlicerLayer::stitch(LinesSet<Polyline>& open_polylines)
+void SlicerLayer::stitch(OpenLinesSet& open_polylines)
 {
     bool allow_reverse = true;
     connectOpenPolylinesImpl(open_polylines, max_stitch1, max_stitch1, allow_reverse);
@@ -190,7 +190,7 @@ bool SlicerLayer::PossibleStitch::operator<(const PossibleStitch& other) const
 }
 
 std::priority_queue<SlicerLayer::PossibleStitch>
-    SlicerLayer::findPossibleStitches(const LinesSet<Polyline>& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse) const
+    SlicerLayer::findPossibleStitches(const OpenLinesSet& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse) const
 {
     std::priority_queue<PossibleStitch> stitch_queue;
 
@@ -336,7 +336,7 @@ std::priority_queue<SlicerLayer::PossibleStitch>
     return stitch_queue;
 }
 
-void SlicerLayer::planPolylineStitch(const LinesSet<Polyline>& open_polylines, Terminus& terminus_0, Terminus& terminus_1, bool reverse[2]) const
+void SlicerLayer::planPolylineStitch(const OpenLinesSet& open_polylines, Terminus& terminus_0, Terminus& terminus_1, bool reverse[2]) const
 {
     size_t polyline_0_idx = terminus_0.getPolylineIdx();
     size_t polyline_1_idx = terminus_1.getPolylineIdx();
@@ -385,7 +385,7 @@ void SlicerLayer::planPolylineStitch(const LinesSet<Polyline>& open_polylines, T
     }
 }
 
-void SlicerLayer::joinPolylines(Polyline& polyline_0, Polyline& polyline_1, const bool reverse[2])
+void SlicerLayer::joinPolylines(OpenPolyline& polyline_0, OpenPolyline& polyline_1, const bool reverse[2])
 {
     if (reverse[0])
     {
@@ -452,7 +452,7 @@ void SlicerLayer::TerminusTrackingMap::updateMap(
     }
 }
 
-void SlicerLayer::connectOpenPolylinesImpl(LinesSet<Polyline>& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse)
+void SlicerLayer::connectOpenPolylinesImpl(OpenLinesSet& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse)
 {
     // below code closes smallest gaps first
 
@@ -493,7 +493,7 @@ void SlicerLayer::connectOpenPolylinesImpl(LinesSet<Polyline>& open_polylines, c
         {
             // finished polygon
             OpenPolyline& polyline_0 = open_polylines[best_polyline_0_idx];
-            polygons.push_back(std::move(polyline_0)); // Will also clear the polyline
+            polygons.push_back(Polygon(std::move(polyline_0.getPoints()), true)); // Will also clear the polyline
             Terminus cur_terms[2] = { { best_polyline_0_idx, false }, { best_polyline_0_idx, true } };
             for (size_t idx = 0U; idx != 2U; ++idx)
             {
@@ -534,7 +534,7 @@ void SlicerLayer::connectOpenPolylinesImpl(LinesSet<Polyline>& open_polylines, c
     }
 }
 
-void SlicerLayer::stitch_extensive(LinesSet<Polyline>& open_polylines)
+void SlicerLayer::stitch_extensive(OpenLinesSet& open_polylines)
 {
     // For extensive stitching find 2 open polygons that are touching 2 closed polygons.
     //  Then find the shortest path over this polygon that can be used to connect the open polygons,
@@ -585,7 +585,7 @@ void SlicerLayer::stitch_extensive(LinesSet<Polyline>& open_polylines)
             {
                 if (best_result->pointIdxA == best_result->pointIdxB)
                 {
-                    polygons.push_back(open_polylines[best_polyline_1_idx]);
+                    polygons.push_back(Polygon(open_polylines[best_polyline_1_idx].getPoints(), true));
                     open_polylines[best_polyline_1_idx].clear();
                 }
                 else if (best_result->AtoB)
@@ -600,7 +600,7 @@ void SlicerLayer::stitch_extensive(LinesSet<Polyline>& open_polylines)
                 else
                 {
                     unsigned int n = polygons.size();
-                    polygons.push_back(open_polylines[best_polyline_1_idx]);
+                    polygons.push_back(Polygon(open_polylines[best_polyline_1_idx].getPoints(), true));
                     for (unsigned int j = best_result->pointIdxB; j != best_result->pointIdxA; j = (j + 1) % polygons[best_result->polygonIdx].size())
                         polygons[n].push_back(polygons[best_result->polygonIdx][j]);
                     open_polylines[best_polyline_1_idx].clear();
@@ -735,7 +735,7 @@ std::optional<ClosePolygonResult> SlicerLayer::findPolygonPointClosestTo(Point2L
 
 void SlicerLayer::makePolygons(const Mesh* mesh)
 {
-    std::vector<OpenPolyline> open_polylines;
+    OpenLinesSet open_polylines;
 
     makeBasicPolygonLoops(open_polylines);
 
@@ -759,16 +759,13 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     {
         for (const OpenPolyline& polyline : open_polylines)
         {
-            polygons.addIfNotEmpty(polyline);
+            polygons.push_back(Polygon(polyline.getPoints(), false), true);
         }
     }
 
     for (const OpenPolyline& polyline : open_polylines)
     {
-        if (! polyline.empty())
-        {
-            openPolylines.push_back(std::move(polyline));
-        }
+        openPolylines.push_back(std::move(polyline), true);
     }
 
     // Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.
@@ -1079,12 +1076,12 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
                         {
                             if (hole_offset_max_diameter == 0)
                             {
-                                holes.add(poly.offset(xy_offset_hole));
+                                holes.push_back(poly.offset(xy_offset_hole));
                             }
                             else if (abs_area < max_hole_area)
                             {
                                 const auto distance = static_cast<int>(std::lerp(xy_offset_hole, 0, abs_area / max_hole_area));
-                                holes.add(poly.offset(distance));
+                                holes.push_back(poly.offset(distance));
                             }
                             else
                             {
@@ -1097,7 +1094,7 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
                         }
                     }
 
-                    layers[layer_nr].polygons.add(outline.difference(holes.unionPolygons()));
+                    layers[layer_nr].polygons.push_back(outline.difference(holes.unionPolygons()));
                 }
             }
         });
