@@ -2933,10 +2933,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
             constexpr bool convert_every_part = true; // Convert every part into a PolygonsPart for the support.
 
             storage.support.supportLayers[layer_idx].fillInfillParts(
-                layer_idx,
-                support_layer_storage,
-                config.layer_height,
-                storage.meshes,
+                support_layer_storage[layer_idx],
                 config.support_line_width,
                 config.support_wall_count,
                 false,
