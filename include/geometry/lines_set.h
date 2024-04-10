@@ -110,7 +110,7 @@ public:
 
     void push_back(const LinesSet& other)
     {
-        lines_.insert(other.lines_.end(), other.lines_.begin(), other.lines_.end());
+        lines_.insert(lines_.end(), other.lines_.begin(), other.lines_.end());
     }
 
     void pop_back()
@@ -151,7 +151,7 @@ public:
 
     std::vector<LineType>::iterator erase(std::vector<LineType>::const_iterator first, std::vector<LineType>::const_iterator last)
     {
-        lines_.erase(first, last);
+        return lines_.erase(first, last);
     }
 
     LinesSet& operator=(LinesSet&& other)

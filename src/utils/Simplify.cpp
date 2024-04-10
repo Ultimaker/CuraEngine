@@ -82,9 +82,7 @@ MixedLinesSet Simplify::polyline(const MixedLinesSet& polylines) const
 
 ClosedPolyline Simplify::polyline(const ClosedPolyline& polyline) const
 {
-    assert(polyline.addClosingSegment() && "Simplify algorithm doesn't expect explicitely closed polylines");
-    constexpr bool is_closed = false;
-    return simplify(polyline, is_closed);
+    return simplify(polyline, polyline.isExplicitelyClosed());
 }
 
 OpenPolyline Simplify::polyline(const OpenPolyline& polyline) const

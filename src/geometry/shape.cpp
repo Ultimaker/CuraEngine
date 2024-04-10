@@ -853,7 +853,7 @@ Shape Shape::removeNearSelfIntersections() const
         map_poly& wpoly = mwpoly.back();
         for (auto& path : polygon)
         {
-            wpoly.push_back(std::move(*reinterpret_cast<std::vector<mapbox::geometry::point<coord_t>>*>(&path)));
+            wpoly.push_back(std::move(*reinterpret_cast<std::vector<mapbox::geometry::point<coord_t>>*>(&path.getPoints())));
             for (auto& point : wpoly.back())
             {
                 point.x /= 4;
