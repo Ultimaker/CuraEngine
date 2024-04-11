@@ -1008,7 +1008,8 @@ std::unique_ptr<LocToLineGrid> PolygonUtils::createLocToLineGrid(const Shape& po
  *
  * We could skip the duplication by keeping a vector of vectors of bools.
  */
-std::optional<ClosestPointPolygon> PolygonUtils::findClose(Point2LL from, const Shape& polygons, const LocToLineGrid& loc_to_line, const std::function<int(Point2LL)>& penalty_function)
+std::optional<ClosestPointPolygon>
+    PolygonUtils::findClose(Point2LL from, const Shape& polygons, const LocToLineGrid& loc_to_line, const std::function<int(Point2LL)>& penalty_function)
 {
     std::vector<PolygonsPointIndex> near_lines = loc_to_line.getNearby(from, loc_to_line.getCellSize());
 
