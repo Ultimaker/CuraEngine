@@ -242,12 +242,7 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Shape& covered_area, std
         const int reference_idx = std::get<int>(offset.reference_outline_or_index_);
         const coord_t offset_dist = extruder_config.line_width_;
 
-        Shape local_brim = storage_.skirt_brim[offset.extruder_nr_][reference_idx].offset(offset_dist, ClipperLib::jtRound);
-
-#warning Is this required now we do all the offsetting in one pass ?
-        local_brim.unionPolygons();
-
-        brim.push_back(local_brim);
+        brim.push_back(storage_.skirt_brim[offset.extruder_nr_][reference_idx].offset(offset_dist, ClipperLib::jtRound));
     }
 
     // limit brim lines to allowed areas, stitch them and store them in the result

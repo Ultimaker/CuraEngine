@@ -23,7 +23,6 @@ void MixedPolylineStitcher::stitch(const LinesSet<OpenPolyline>& lines, MixedLin
     {
         // Base stitch method will create explicitely closed polylines, but won't tag them as such
         // because it is a generic algorithm. Tag them now.
-#warning Make sure that what is said here is true
         closed_line.setExplicitelyClosed(true);
     }
 

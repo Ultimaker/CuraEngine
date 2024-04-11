@@ -19,12 +19,12 @@ class OpenPolyline;
  * \brief Base class for various types of polylines. A polyline is basically a set of points, but
  *        we geometrically interpret them forming a chain of segments between each other.
  *
- *  * Open Polyline : this represents a line that does not closes, i.e. the last point is different
- *                    from the initial point
+ *  * Open Polyline : this represents a line that does not close, i.e. the last point is different
+ *                    from the initial point (think of the U letter)
  *  * Closed Polyline : a closed polyline has a final segment joining the last point and the
- *                      initial one
- *  * Filled Polyline : this is a particular type of closed polyline, for which we consider that the
- *                      "inside" part of the line forms a surface
+ *                      initial one (think of the O letter)
+ *  * Polygon : this is a particular type of closed polyline, for which we consider that the
+ *              "inside" part of the line forms a surface
  *
  *  \note Historically, the open and closed polylines were not explicitely differenciated, so
  *        sometimes we would use an open polyline with an extra point at the end, which virtually
@@ -134,13 +134,6 @@ public:
      */
     void simplify(const coord_t smallest_line_segment_squared = MM2INT(0.01) * MM2INT(0.01), const coord_t allowed_error_distance_squared = 25);
 
-    /*void pseudoClose()
-    {
-        if (size() >= 2)
-        {
-            push_back(front());
-        }
-    }*/
 
 private:
     /*!

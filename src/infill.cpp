@@ -540,10 +540,7 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
     else
     {
         // make the polyline closed in order to handle cross_pattern_polygon as a polyline, rather than a closed polygon
-        cross_pattern_polygon.push_back(cross_pattern_polygon[0]);
-
         LinesSet<OpenPolyline> cross_pattern_polylines;
-#warning No sure we should add the last point in this case
         cross_pattern_polylines.push_back(cross_pattern_polygon.toPseudoOpenPolyline());
         LinesSet<OpenPolyline> poly_lines = inner_contour_.intersection(cross_pattern_polylines);
         OpenPolylineStitcher::stitch(poly_lines, result_lines, result_polygons, infill_line_width_);

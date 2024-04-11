@@ -284,14 +284,12 @@ void ExtrusionLineStitcher::pushToClosedResult(VariableWidthLines& result_polygo
 template<>
 void OpenPolylineStitcher::pushToClosedResult(Shape& result_polygons, const OpenPolyline& polyline)
 {
-#warning Check whether the polyline is explicitely closed
     result_polygons.emplace_back(polyline.getPoints(), true);
 }
 
 template<>
 void PolylineStitcher<OpenLinesSet, ClosedLinesSet, OpenPolyline, Point2LL>::pushToClosedResult(ClosedLinesSet& result_polygons, const OpenPolyline& polyline)
 {
-#warning Check whether the polyline is explicitely closed
     result_polygons.emplace_back(polyline.getPoints(), true);
 }
 
