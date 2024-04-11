@@ -471,6 +471,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
     const auto infill_wall_count = mesh.settings.get<size_t>("infill_wall_line_count");
     const auto infill_wall_width = mesh.settings.get<coord_t>("infill_line_width");
     const auto infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
+    const auto is_connected = mesh.settings.get<bool>("zig_zaggify_infill") || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::ZIG_ZAG;
     for (LayerIndex layer_idx = 0; layer_idx < static_cast<LayerIndex>(mesh.layers.size()); layer_idx++)
     { // loop also over layers which don't contain infill cause of bottom_ and top_layer to initialize their infill_area_per_combine_per_density
         SliceLayer& layer = mesh.layers[layer_idx];
@@ -497,7 +498,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                 continue;
             }
             Polygons less_dense_infill = infill_area; // one step less dense with each infill_step
-            Polygons sum_more_dense;
+            Polygons sum_more_dense;  // NOTE: Only used for zig-zag or connected fills.
             for (size_t infill_step = 0; infill_step < max_infill_steps; infill_step++)
             {
                 LayerIndex min_layer = layer_idx + infill_step * gradual_infill_step_layer_count + static_cast<size_t>(layer_skip_count);
@@ -532,7 +533,10 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                 const Polygons more_dense_infill = infill_area.difference(less_dense_infill);
                 infill_area_per_combine_current_density.push_back(
                     simplifier.polygon(more_dense_infill.difference(sum_more_dense).offset(-infill_wall_width).offset(infill_wall_width)));
-                sum_more_dense = sum_more_dense.unionPolygons(more_dense_infill);
+                if (is_connected)
+                {
+                    sum_more_dense = sum_more_dense.unionPolygons(more_dense_infill);
+                }
             }
             part.infill_area_per_combine_per_density.emplace_back();
             std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
