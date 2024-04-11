@@ -6,6 +6,7 @@
 #include <numeric>
 
 #include "geometry/open_polyline.h"
+#include "geometry/polygon.h"
 #include "geometry/shape.h"
 
 
@@ -19,7 +20,7 @@ Shape MixedLinesSet::offset(coord_t distance, ClipperLib::JoinType join_type, do
         // Return a shape that contains only actual polygons
         Shape result;
 
-        for (const std::shared_ptr<Polyline>& line : (*this))
+        for (const PolylinePtr& line : (*this))
         {
             if (const std::shared_ptr<const Polygon> polygon = dynamic_pointer_cast<const Polygon>(line))
             {
@@ -34,7 +35,7 @@ Shape MixedLinesSet::offset(coord_t distance, ClipperLib::JoinType join_type, do
         Shape polygons;
         ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
 
-        for (const std::shared_ptr<Polyline>& line : (*this))
+        for (const PolylinePtr& line : (*this))
         {
             if (const std::shared_ptr<const Polygon> polygon = dynamic_pointer_cast<const Polygon>(line))
             {
@@ -82,32 +83,32 @@ Shape MixedLinesSet::offset(coord_t distance, ClipperLib::JoinType join_type, do
 
 void MixedLinesSet::push_back(const OpenPolyline& line)
 {
-    std::vector<std::shared_ptr<Polyline>>::push_back(std::make_shared<OpenPolyline>(line));
+    std::vector<PolylinePtr>::push_back(std::make_shared<OpenPolyline>(line));
 }
 
 void MixedLinesSet::push_back(OpenPolyline&& line)
 {
-    std::vector<std::shared_ptr<Polyline>>::push_back(std::make_shared<OpenPolyline>(std::move(line)));
+    std::vector<PolylinePtr>::push_back(std::make_shared<OpenPolyline>(std::move(line)));
 }
 
 void MixedLinesSet::push_back(ClosedPolyline&& line)
 {
-    std::vector<std::shared_ptr<Polyline>>::push_back(std::make_shared<ClosedPolyline>(std::move(line)));
+    std::vector<PolylinePtr>::push_back(std::make_shared<ClosedPolyline>(std::move(line)));
 }
 
 void MixedLinesSet::push_back(const Polygon& line)
 {
-    std::vector<std::shared_ptr<Polyline>>::push_back(std::make_shared<Polygon>(std::move(line)));
+    std::vector<PolylinePtr>::push_back(std::make_shared<Polygon>(std::move(line)));
 }
 
 void MixedLinesSet::push_back(const std::shared_ptr<OpenPolyline>& line)
 {
-    std::vector<std::shared_ptr<Polyline>>::push_back(line);
+    std::vector<PolylinePtr>::push_back(line);
 }
 
-void MixedLinesSet::push_back(const std::shared_ptr<Polyline>& line)
+void MixedLinesSet::push_back(const PolylinePtr& line)
 {
-    std::vector<std::shared_ptr<Polyline>>::push_back(line);
+    std::vector<PolylinePtr>::push_back(line);
 }
 
 void MixedLinesSet::push_back(LinesSet<OpenPolyline>&& lines_set)
@@ -157,7 +158,7 @@ coord_t MixedLinesSet::length() const
         begin(),
         end(),
         coord_t(0),
-        [](coord_t value, const std::shared_ptr<Polyline>& line)
+        [](coord_t value, const PolylinePtr& line)
         {
             return value + line->length();
         });

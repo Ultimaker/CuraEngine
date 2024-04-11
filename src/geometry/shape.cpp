@@ -4,24 +4,15 @@
 #include "geometry/shape.h"
 
 #include <mapbox/geometry/wagyu/wagyu.hpp>
+#include <numeric>
 #include <unordered_set>
 
-#include <boost/geometry/geometries/point_xy.hpp>
-#include <boost/geometry/geometries/polygon.hpp>
-#include <boost/geometry/io/wkt/read.hpp>
-#include <fmt/format.h>
-#include <range/v3/to_container.hpp>
-#include <range/v3/view/c_str.hpp>
-#include <range/v3/view/concat.hpp>
 #include <range/v3/view/filter.hpp>
-#include <range/v3/view/join.hpp>
 #include <range/v3/view/sliding.hpp>
-#include <range/v3/view/take.hpp>
-#include <range/v3/view/transform.hpp>
 
-#include "geometry/closed_polyline.h"
 #include "geometry/mixed_lines_set.h"
 #include "geometry/parts_view.h"
+#include "geometry/polygon.h"
 #include "geometry/single_shape.h"
 #include "settings/types/Ratio.h"
 #include "utils/OpenPolylineStitcher.h"
@@ -33,6 +24,11 @@ namespace cura
 Shape::Shape(ClipperLib::Paths&& paths, bool explicitely_closed)
 {
     emplace_back(std::move(paths), explicitely_closed);
+}
+
+Shape::Shape(const std::initializer_list<Polygon>& initializer)
+    : LinesSet<Polygon>(initializer)
+{
 }
 
 void Shape::emplace_back(ClipperLib::Paths&& paths, bool explicitely_closed)
@@ -546,58 +542,7 @@ Shape Shape::toPolygons(ClipperLib::PolyTree& poly_tree)
     ClipperLib::PolyTreeToPaths(poly_tree, ret);
     return Shape(std::move(ret));
 }
-/*
-[[maybe_unused]] Shape Shape::fromWkt(const std::string& wkt)
-{
-    typedef boost::geometry::model::d2::point_xy<double> point_type;
-    typedef boost::geometry::model::polygon<point_type> polygon_type;
 
-    polygon_type poly;
-    boost::geometry::read_wkt(wkt, poly);
-
-    Shape ret;
-
-    Polygon outer;
-    for (const auto& point : poly.outer())
-    {
-        outer.push_back(Point2LL(point.x(), point.y()));
-    }
-    ret.push_back(outer);
-
-    for (const auto& hole : poly.inners())
-    {
-        Polygon inner;
-        for (const auto& point : hole)
-        {
-            inner.push_back(Point2LL(point.x(), point.y()));
-        }
-        ret.push_back(inner);
-    }
-
-    return ret;
-}
-
-[[maybe_unused]] void Shape::writeWkt(std::ostream& stream) const
-{
-    stream << "POLYGON (";
-    const auto paths_str = (*this)
-                         | ranges::views::transform(
-                               [](const auto& path)
-                               {
-                                   const auto line_string = ranges::views::concat(path, path | ranges::views::take(1))
-                                                          | ranges::views::transform(
-                                                                [](const auto& point)
-                                                                {
-                                                                    return fmt::format("{} {}", point.X, point.Y);
-                                                                })
-                                                          | ranges::views::join(ranges::views::c_str(", ")) | ranges::to<std::string>();
-                                   return "(" + line_string + ")";
-                               })
-                         | ranges::views::join(ranges::views::c_str(", ")) | ranges::to<std::string>();
-    stream << paths_str;
-    stream << ")";
-}
-*/
 Shape Shape::smooth_outward(const AngleDegrees max_angle, int shortcut_length) const
 {
     Shape ret;

@@ -63,7 +63,7 @@ LinesSet<LineType> Simplify::polyline(const LinesSet<LineType>& polylines) const
 MixedLinesSet Simplify::polyline(const MixedLinesSet& polylines) const
 {
     MixedLinesSet result;
-    for (const std::shared_ptr<Polyline>& polyline_ptr : polylines)
+    for (const PolylinePtr& polyline_ptr : polylines)
     {
         if (std::shared_ptr<const OpenPolyline> open_polyline = std::dynamic_pointer_cast<const OpenPolyline>(polyline_ptr))
         {

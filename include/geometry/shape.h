@@ -5,7 +5,6 @@
 #define GEOMETRY_SHAPE_H
 
 #include "geometry/lines_set.h"
-#include "geometry/polygon.h"
 #include "settings/types/Angle.h"
 
 namespace cura
@@ -15,6 +14,8 @@ class Polygon;
 class Ratio;
 class SingleShape;
 class PartsView;
+class PointMatrix;
+class Point3Matrix;
 
 class Shape : public LinesSet<Polygon>
 {
@@ -29,10 +30,7 @@ public:
 
     Shape(Shape&& other) = default;
 
-    Shape(const std::initializer_list<Polygon>& initializer)
-        : LinesSet<Polygon>(initializer)
-    {
-    }
+    Shape(const std::initializer_list<Polygon>& initializer);
 
     explicit Shape(ClipperLib::Paths&& paths, bool explicitely_closed = clipper_explicitely_closed_);
 
@@ -79,9 +77,9 @@ public:
      * \param restitch Whether to stitch the resulting segments into longer polylines, or leave every segment as a single segment
      * \param max_stitch_distance The maximum distance for two polylines to be stitched together with a segment
      * \return The resulting polylines limited to the area of this Polygons object
+     * \todo This should technically return a MixedLinesSet, because it can definitely contain open and closed polylines, but that is a heavy change
      */
     template<class LineType>
-#warning Technically this should return a MixedLinesSet
     LinesSet<OpenPolyline> intersection(const LinesSet<LineType>& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu) const;
 
     /*!

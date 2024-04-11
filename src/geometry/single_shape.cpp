@@ -3,6 +3,8 @@
 
 #include "geometry/single_shape.h"
 
+#include "geometry/polygon.h"
+
 namespace cura
 {
 

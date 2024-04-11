@@ -47,7 +47,7 @@ public:
     {
     }
 
-    Polyline(const std::vector<Point2LL>& points)
+    Polyline(const ClipperLib::Path& points)
         : PointsSet(points)
     {
     }
@@ -59,8 +59,18 @@ public:
 
     virtual ~Polyline() = default;
 
+    /*!
+     * \brief Indicates whether this polyline has a virtual closing segment between the last point
+     *        in the set and the first one
+     * \return  True if a segment between the last and first point should be considered
+     */
     virtual bool addClosingSegment() const = 0;
 
+    /*!
+     * \brief Gets the total number of "full" segments in the polyline. Calling this is also safe if
+     *        there are not enough points to make a valid polyline, so it can also be a good
+     *        indicator of a "valid" polyline.
+     */
     virtual size_t segmentsCount() const = 0;
 
     Polyline& operator=(const Polyline& other)

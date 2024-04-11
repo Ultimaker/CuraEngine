@@ -1393,7 +1393,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         push_lines(offset.open_polylines);
         */
 
-        for (const std::shared_ptr<Polyline>& line : offset)
+        for (const PolylinePtr& line : offset)
         {
             if (line->segmentsCount() > 0)
             {

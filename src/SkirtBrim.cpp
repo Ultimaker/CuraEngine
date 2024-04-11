@@ -261,7 +261,7 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Shape& covered_area, std
         std::remove_if(
             result.begin(),
             result.end(),
-            [](const std::shared_ptr<Polyline>& line)
+            [](const PolylinePtr& line)
             {
                 if (const std::shared_ptr<const OpenPolyline> open_line = dynamic_pointer_cast<const OpenPolyline>(line))
                 {

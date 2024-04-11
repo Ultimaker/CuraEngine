@@ -290,7 +290,7 @@ TEST_P(InfillTest, TestInfillSanity)
     Shape result_polygon_lines = params.result_polygons;
     for (Polygon& poly : result_polygon_lines)
     {
-        poly.add(poly.front());
+        poly.push_back(poly.front());
     }
     ASSERT_LE(std::abs(padded_shape_outline.intersectionPolyLines(result_polygon_lines, restitch).polyLineLength() - result_polygon_lines.polyLineLength()), maximum_error)
         << "Infill (lines) should not be outside target polygon.";

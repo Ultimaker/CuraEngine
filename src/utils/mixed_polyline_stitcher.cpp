@@ -4,6 +4,7 @@
 #include "utils/mixed_polyline_stitcher.h"
 
 #include "geometry/mixed_lines_set.h"
+#include "geometry/polygon.h"
 #include "geometry/shape.h"
 
 

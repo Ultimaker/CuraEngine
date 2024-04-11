@@ -50,17 +50,7 @@ public:
         return ! explicitely_closed_;
     }
 
-    virtual size_t segmentsCount() const override
-    {
-        if (explicitely_closed_)
-        {
-            return size() >= 3 ? size() - 1 : 0;
-        }
-        else
-        {
-            return size() >= 2 ? size() : 0;
-        }
-    }
+    virtual size_t segmentsCount() const override;
 
     ClosedPolyline& operator=(const ClosedPolyline& other)
     {

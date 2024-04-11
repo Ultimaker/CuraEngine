@@ -3,6 +3,7 @@
 
 #include "geometry/parts_view.h"
 
+#include "geometry/polygon.h"
 #include "geometry/single_shape.h"
 
 namespace cura

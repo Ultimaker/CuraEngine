@@ -22,7 +22,7 @@ const static int clipper_init = (0);
 class PointsSet
 {
 private:
-    std::vector<Point2LL> points_;
+    ClipperLib::Path points_;
 
 public:
     PointsSet() = default;
@@ -37,17 +37,17 @@ public:
 
     PointsSet(ClipperLib::Path&& points);
 
-    const std::vector<Point2LL>& getPoints() const
+    const ClipperLib::Path& getPoints() const
     {
         return points_;
     }
 
-    std::vector<Point2LL>& getPoints()
+    ClipperLib::Path& getPoints()
     {
         return points_;
     }
 
-    void setPoints(std::vector<Point2LL>&& points)
+    void setPoints(ClipperLib::Path&& points)
     {
         points_ = points;
     }

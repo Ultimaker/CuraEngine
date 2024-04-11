@@ -7,6 +7,7 @@
 
 #include "Application.h"
 #include "Slice.h"
+#include "geometry/polygon.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/LayerIndex.h"
 #include "slicer.h"

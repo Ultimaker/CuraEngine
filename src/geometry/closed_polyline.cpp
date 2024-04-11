@@ -8,6 +8,18 @@
 namespace cura
 {
 
+size_t ClosedPolyline::segmentsCount() const
+{
+    if (explicitely_closed_)
+    {
+        return size() >= 3 ? size() - 1 : 0;
+    }
+    else
+    {
+        return size() >= 2 ? size() : 0;
+    }
+}
+
 bool ClosedPolyline::inside(const Point2LL& p, bool border_result) const
 {
     int res = ClipperLib::PointInPolygon(p, getPoints());

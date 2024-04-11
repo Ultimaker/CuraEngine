@@ -5,7 +5,6 @@
 #define GEOMETRY_SINGLE_SHAPE_H
 
 #include "geometry/shape.h"
-#include "point2ll.h"
 
 namespace cura
 {

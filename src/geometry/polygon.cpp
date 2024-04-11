@@ -3,30 +3,11 @@
 
 #include "geometry/polygon.h"
 
-// #include <unordered_set>
-
-// #include <boost/geometry/geometries/point_xy.hpp>
-// #include <boost/geometry/geometries/polygon.hpp>
-// #include <boost/geometry/io/wkt/read.hpp>
-// #include <fmt/format.h>
-// #include <range/v3/range/primitives.hpp>
-// #include <range/v3/to_container.hpp>
-// #include <range/v3/view/c_str.hpp>
-// #include <range/v3/view/concat.hpp>
-// #include <range/v3/view/filter.hpp>
-// #include <range/v3/view/join.hpp>
-// #include <range/v3/view/sliding.hpp>
-// #include <range/v3/view/take.hpp>
-// #include <range/v3/view/transform.hpp>
-// #include <range/v3/view/zip.hpp>
-// #include <spdlog/spdlog.h>
-#include "utils/ListPolyIt.h"
-#include "utils/linearAlg2D.h"
-
-// #include "utils/PolylineStitcher.h"
 #include "geometry/point3_matrix.h"
 #include "geometry/point_matrix.h"
 #include "geometry/shape.h"
+#include "utils/ListPolyIt.h"
+#include "utils/linearAlg2D.h"
 
 namespace cura
 {
