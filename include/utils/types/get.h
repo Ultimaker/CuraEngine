@@ -103,7 +103,9 @@ constexpr auto& get(cura::utils::point3d auto& point) noexcept
 {
     constexpr std::string_view idx = C.value;
     static_assert(idx.size() == 1, "Only one character allowed");
-    static_assert(idx.starts_with("X") || idx.starts_with("x") || idx.starts_with("Y") || idx.starts_with("y") || idx.starts_with("Z") || idx.starts_with("z"), "Index out of bounds");
+    static_assert(
+        idx.starts_with("X") || idx.starts_with("x") || idx.starts_with("Y") || idx.starts_with("y") || idx.starts_with("Z") || idx.starts_with("z"),
+        "Index out of bounds");
     if constexpr (idx.starts_with("X") || idx.starts_with("x"))
     {
         return std::get<0>(point);

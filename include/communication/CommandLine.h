@@ -1,15 +1,15 @@
-//  Copyright (c) 2018-2022 Ultimaker B.V.
-//  CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2024 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef COMMANDLINE_H
 #define COMMANDLINE_H
 
-#include "Communication.h" //The class we're implementing.
-
+#include <filesystem>
 #include <rapidjson/document.h> //Loading JSON documents to get settings from them.
 #include <string> //To store the command line arguments.
-#include <unordered_set>
 #include <vector> //To store the command line arguments.
+
+#include "Communication.h" //The class we're implementing.
 
 namespace cura
 {
@@ -59,7 +59,7 @@ public:
      * The command line doesn't do anything with the current position so this is
      * ignored.
      */
-    void sendCurrentPosition(const Point&) override;
+    void sendCurrentPosition(const Point2LL&) override;
 
     /*
      * \brief Indicate to the command line that we finished slicing.
@@ -93,7 +93,7 @@ public:
      *
      * The command line doesn't show any layer view so this is ignored.
      */
-    void sendLineTo(const PrintFeatureType&, const Point&, const coord_t&, const coord_t&, const Velocity&) override;
+    void sendLineTo(const PrintFeatureType&, const Point2LL&, const coord_t&, const coord_t&, const Velocity&) override;
 
     /*
      * \brief Complete a layer to show it in layer view.
@@ -125,7 +125,7 @@ public:
     /*
      * \brief Show an update of our slicing progress.
      */
-    void sendProgress(const float& progress) const override;
+    void sendProgress(double progress) const override;
 
     /*
      * \brief Set which extruder is being used for the following calls to
@@ -151,21 +151,21 @@ public:
     void sliceNext() override;
 
 private:
+#ifdef __EMSCRIPTEN__
+    std::string progressHandler;
+#endif
+
+    std::vector<std::filesystem::path> search_directories_;
+
     /*
      * \brief The command line arguments that the application was called with.
      */
-    std::vector<std::string> arguments;
+    std::vector<std::string> arguments_;
 
     /*
      * The last progress update that we output to stdcerr.
      */
-    unsigned int last_shown_progress;
-
-    /*
-     * \brief Get the default search directories to search for definition files.
-     * \return The default search directories to search for definition files.
-     */
-    std::unordered_set<std::string> defaultSearchDirectories();
+    unsigned int last_shown_progress_;
 
     /*
      * \brief Load a JSON file and store the settings inside it.
@@ -177,7 +177,7 @@ private:
      * 1, the file could not be opened. If it's 2, there was a syntax error in
      * the file.
      */
-    int loadJSON(const std::string& json_filename, Settings& settings, bool force_read_parent = false, bool force_read_nondefault = false);
+    int loadJSON(const std::filesystem::path& json_filename, Settings& settings, bool force_read_parent = false, bool force_read_nondefault = false);
 
     /*
      * \brief Load a JSON document and store the settings inside it.
@@ -190,7 +190,7 @@ private:
      */
     int loadJSON(
         const rapidjson::Document& document,
-        const std::unordered_set<std::string>& search_directories,
+        const std::vector<std::filesystem::path>& search_directories,
         Settings& settings,
         bool force_read_parent = false,
         bool force_read_nondefault = false);
@@ -211,7 +211,7 @@ private:
      * \param search_directories The directories to search in.
      * \return The first definition file that matches the definition ID.
      */
-    const std::string findDefinitionFile(const std::string& definition_id, const std::unordered_set<std::string>& search_directories);
+    static std::string findDefinitionFile(const std::string& definition_id, const std::vector<std::filesystem::path>& search_directories);
 };
 
 } // namespace cura

@@ -1,8 +1,13 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#ifdef ENABLE_PLUGINS
 
 #include "plugins/converters.h"
+
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/filter.hpp>
+#include <range/v3/view/transform.hpp>
 
 #include "GCodePathConfig.h"
 #include "WallToolPaths.h"
@@ -11,10 +16,6 @@
 #include "settings/Settings.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/polygon.h"
-
-#include <range/v3/range/conversion.hpp>
-#include <range/v3/view/filter.hpp>
-#include <range/v3/view/transform.hpp>
 
 namespace cura::plugins
 {
@@ -85,9 +86,11 @@ handshake_response::native_value_type handshake_response::operator()(const hands
              .broadcast_subscriptions = std::set<int>(message.broadcast_subscriptions().begin(), message.broadcast_subscriptions().end()) };
 }
 
-simplify_request::value_type
-    simplify_request::operator()(const simplify_request::native_value_type& polygons, const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation)
-        const
+simplify_request::value_type simplify_request::operator()(
+    const simplify_request::native_value_type& polygons,
+    const coord_t max_resolution,
+    [[maybe_unused]] const coord_t max_deviation,
+    [[maybe_unused]] const coord_t max_area_deviation) const
 {
     value_type message{};
     if (polygons.empty())
@@ -133,7 +136,7 @@ simplify_response::native_value_type
         Polygon o{};
         for (const auto& point : paths.outline().path())
         {
-            o.add(Point{ point.x(), point.y() });
+            o.add(Point2LL{ point.x(), point.y() });
         }
         poly.add(o);
 
@@ -142,7 +145,7 @@ simplify_response::native_value_type
             Polygon h{};
             for (const auto& point : hole.path())
             {
-                h.add(Point{ point.x(), point.y() });
+                h.add(Point2LL{ point.x(), point.y() });
             }
             poly.add(h);
         }
@@ -234,7 +237,7 @@ infill_generate_response::native_value_type infill_generate_response::operator()
         Polygon outline{};
         for (auto& path_msg : polygon_msg.outline().path())
         {
-            outline.add(Point{ path_msg.x(), path_msg.y() });
+            outline.add(Point2LL{ path_msg.x(), path_msg.y() });
         }
         polygon.add(outline);
 
@@ -244,7 +247,7 @@ infill_generate_response::native_value_type infill_generate_response::operator()
             Polygon hole{};
             for (auto& path_msg : hole_msg.path())
             {
-                hole.add(Point{ path_msg.x(), path_msg.y() });
+                hole.add(Point2LL{ path_msg.x(), path_msg.y() });
             }
             polygon.add(hole);
         }
@@ -257,7 +260,7 @@ infill_generate_response::native_value_type infill_generate_response::operator()
         Polygon poly_line;
         for (auto& p : polygon.path())
         {
-            poly_line.emplace_back(Point{ p.x(), p.y() });
+            poly_line.emplace_back(Point2LL{ p.x(), p.y() });
         }
         result_lines.emplace_back(poly_line);
     }
@@ -358,6 +361,7 @@ gcode_paths_modify_request::value_type
         gcode_path->set_layer_thickness(path.config.getLayerThickness());
         gcode_path->set_flow_ratio(path.config.getFlowRatio());
         gcode_path->set_is_bridge_path(path.config.isBridgePath());
+        gcode_path->set_z_offset(path.config.z_offset);
     }
 
     return message;
@@ -417,7 +421,8 @@ gcode_paths_modify_request::value_type
 
 [[nodiscard]] GCodePathConfig gcode_paths_modify_response::buildConfig(const v0::GCodePath& path)
 {
-    return { .type = getPrintFeatureType(path.feature()),
+    return { .z_offset = path.z_offset(),
+             .type = getPrintFeatureType(path.feature()),
              .line_width = path.line_width(),
              .layer_thickness = path.layer_thickness(),
              .flow = path.flow_ratio(),
@@ -448,6 +453,7 @@ gcode_paths_modify_response::native_value_type
     for (const auto& gcode_path_msg : message.gcode_paths())
     {
         GCodePath path{
+            .z_offset = gcode_path_msg.z_offset(),
             .config = buildConfig(gcode_path_msg),
             .mesh = gcode_path_msg.mesh_name().empty() ? nullptr : meshes.at(gcode_path_msg.mesh_name()),
             .space_fill_type = getSpaceFillType(gcode_path_msg.space_fill_type()),
@@ -469,7 +475,7 @@ gcode_paths_modify_response::native_value_type
                     | ranges::views::transform(
                           [](const auto& point_msg)
                           {
-                              return Point{ point_msg.x(), point_msg.y() };
+                              return Point2LL{ point_msg.x(), point_msg.y() };
                           })
                     | ranges::to_vector;
 
@@ -479,3 +485,5 @@ gcode_paths_modify_response::native_value_type
     return paths;
 }
 } // namespace cura::plugins
+
+#endif // ENABLE_PLUGINS

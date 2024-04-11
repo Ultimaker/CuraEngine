@@ -7,6 +7,7 @@
 #include <fstream>
 #include <optional>
 
+#include "ExtruderUse.h"
 #include "FanSpeedLayerTime.h"
 #include "LayerPlanBuffer.h"
 #include "gcodeExport.h"
@@ -64,9 +65,9 @@ private:
      * For each raft/filler layer, the extruders to be used in that layer in the order in which they are going to be used.
      * The first number is the first raft layer. Indexing is shifted compared to normal negative layer numbers for raft/filler layers.
      */
-    std::vector<std::vector<size_t>> extruder_order_per_layer_negative_layers;
+    std::vector<std::vector<ExtruderUse>> extruder_order_per_layer_negative_layers;
 
-    std::vector<std::vector<size_t>> extruder_order_per_layer; //!< For each layer, the extruders to be used in that layer in the order in which they are going to be used
+    std::vector<std::vector<ExtruderUse>> extruder_order_per_layer; //!< For each layer, the extruders to be used in that layer in the order in which they are going to be used
 
     std::vector<std::vector<size_t>> mesh_order_per_extruder; //!< For each extruder, the order of the meshes (first element is first mesh to be printed)
 
@@ -169,7 +170,7 @@ private:
      *
      * \param[in] storage where to get settings from.
      */
-    size_t getStartExtruder(const SliceDataStorage& storage);
+    size_t getStartExtruder(const SliceDataStorage& storage) const;
 
     /*!
      * Set the infill angles and skin angles in the SliceDataStorage.
@@ -286,7 +287,7 @@ private:
     void calculatePrimeLayerPerExtruder(const SliceDataStorage& storage);
 
     /*!
-     * Gets a list of extruders that are used on the given layer, but excluding the given starting extruder.
+     * Gets a list of extruders that are used on the given layer.
      * When it's on the first layer, the prime blob will also be taken into account.
      *
      * \note At the planning stage we only have information on areas, not how those are filled.
@@ -296,7 +297,7 @@ private:
      * \param current_extruder The current extruder with which we last printed
      * \return The order of extruders for a layer beginning with \p current_extruder
      */
-    std::vector<size_t> getUsedExtrudersOnLayerExcludingStartingExtruder(const SliceDataStorage& storage, const size_t start_extruder, const LayerIndex& layer_nr) const;
+    std::vector<ExtruderUse> getUsedExtrudersOnLayer(const SliceDataStorage& storage, const size_t start_extruder, const LayerIndex& layer_nr) const;
 
     /*!
      * Calculate in which order to plan the meshes of a specific extruder
@@ -312,12 +313,11 @@ private:
     /*!
      * Add a single layer from a single mesh-volume to the layer plan \p gcodeLayer in mesh surface mode.
      *
-     * \param[in] storage where the slice data is stored.
      * \param mesh The mesh to add to the layer plan \p gcodeLayer.
      * \param mesh_config the line config with which to print a print feature
      * \param gcodeLayer The initial planning of the gcode of the layer.
      */
-    void addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcodeLayer) const;
+    void addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcodeLayer) const;
 
     /*!
      * Add the open polylines from a single layer from a single mesh-volume to the layer plan \p gcodeLayer for mesh the surface modes.
@@ -398,13 +398,8 @@ private:
      * \param part The part for which to create gcode.
      * \return Whether this function added anything to the layer plan.
      */
-    bool processMultiLayerInfill(
-        const SliceDataStorage& storage,
-        LayerPlan& gcodeLayer,
-        const SliceMeshStorage& mesh,
-        const size_t extruder_nr,
-        const MeshPathConfigs& mesh_config,
-        const SliceLayerPart& part) const;
+    bool processMultiLayerInfill(LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const size_t extruder_nr, const MeshPathConfigs& mesh_config, const SliceLayerPart& part)
+        const;
 
     /*!
      * \brief Add normal sparse infill for a given part in a layer.
@@ -549,7 +544,6 @@ private:
      * \param[in] storage where the slice data is stored.
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcode_layer.
-     * \param mesh_config The mesh-config for which to add to the layer plan \p gcode_layer.
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param area The area to fill
      * \param config the line config with which to print the print feature
@@ -566,7 +560,6 @@ private:
         const SliceDataStorage& storage,
         LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
-        const MeshPathConfigs& mesh_config,
         const size_t extruder_nr,
         const Polygons& area,
         const GCodePathConfig& config,
@@ -601,7 +594,7 @@ private:
      * \param last_position The position the print head is in before going to fill the part
      * \return The location near where to start filling the part
      */
-    std::optional<Point> getSeamAvoidingLocation(const Polygons& filling_part, int filling_angle, Point last_position) const;
+    std::optional<Point2LL> getSeamAvoidingLocation(const Polygons& filling_part, int filling_angle, Point2LL last_position) const;
 
     /*!
      * Add the g-code for ironing the top surface.
@@ -641,8 +634,8 @@ private:
      * layer.
      *
      * \param[in] storage Where the slice data is stored.
-     * \param[in] support_roof_outlines which polygons to generate roofs for -- originally split-up because of fractional (layer-height) layers
-     * \param[in] current_roof_config config to be used -- most importantly, support has slightly different configs for fractional (layer-height) layers
+     * \param[in] support_roof_outlines which polygons to generate roofs for.
+     * \param[in] current_roof_config config to be used.
      * \param gcodeLayer The initial planning of the g-code of the layer.
      * \return Whether any support skin was added to the layer plan.
      */
@@ -722,6 +715,26 @@ private:
         const SliceMeshStorage& mesh,
         const SliceLayerPart& part,
         coord_t infill_line_width);
+
+    /*!
+     * Find the first or last extruder used at the given layer. This may loop to lower layers if
+     * there is no extryder on the one that has been asked. If no extruder can be found at all, the
+     * very first used extruder will be returned.
+     *
+     * \param storage where the slice data is stored
+     * \param layer_nr The layer for which we want the extruder index
+     * \param last Indicates whether we want to retrieve the last or the first extruder being used
+     * \return The first or last exruder used at the given index
+     */
+    size_t findUsedExtruderIndex(const SliceDataStorage& storage, const LayerIndex& layer_nr, bool last) const;
+
+    /*!
+     * Get the extruders use at the given layer
+     *
+     * \param layer_nr The index of the layer at which we want the extruders uses
+     * \return The extruders use at the given layer, which may be empty in some cases
+     */
+    std::vector<ExtruderUse> getExtruderUse(const LayerIndex& layer_nr) const;
 };
 
 } // namespace cura

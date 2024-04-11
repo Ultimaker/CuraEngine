@@ -1,13 +1,14 @@
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef TREESUPPORTCIRCLE_H
 #define TREESUPPORTCIRCLE_H
 
+#include <cmath>
+
+#include <range/v3/view/iota.hpp>
+
 #include "utils/Coord_t.h"
 #include "utils/polygon.h"
-
-#include <cmath>
-#include <range/v3/view/iota.hpp>
 
 namespace cura
 {

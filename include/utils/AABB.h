@@ -1,10 +1,10 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_AABB_H
 #define UTILS_AABB_H
 
-#include "IntPoint.h"
+#include "Point2LL.h"
 
 namespace cura
 {
@@ -17,10 +17,10 @@ class Polygons;
 class AABB
 {
 public:
-    Point min, max;
+    Point2LL min_, max_;
 
     AABB(); //!< initializes with invalid min and max
-    AABB(const Point& min, const Point& max); //!< initializes with given min and max
+    AABB(const Point2LL& min, const Point2LL& max); //!< initializes with given min and max
     AABB(const Polygons& polys); //!< Computes the boundary box for the given polygons
     AABB(ConstPolygonRef poly); //!< Computes the boundary box for the given polygons
 
@@ -33,7 +33,7 @@ public:
      * \return ``true`` if the bounding box contains the specified point, or
      * ``false`` otherwise.
      */
-    bool contains(const Point& point) const;
+    bool contains(const Point2LL& point) const;
 
     /*!
      * Whether this bounding box contains the other bounding box.
@@ -49,12 +49,12 @@ public:
     /*!
      * Get the middle of the bounding box.
      */
-    Point getMiddle() const;
+    Point2LL getMiddle() const;
 
     /*!
      * If point outside of bounding box: positive distance-squared to the bounding box edges, otherwise negative.
      */
-    coord_t distanceSquared(const Point& p) const;
+    coord_t distanceSquared(const Point2LL& p) const;
 
     /*!
      * If other aabb outside of this bounding box: positive distance-squared to the bounding box edges,
@@ -64,9 +64,9 @@ public:
 
     /*!
      * Check whether this aabb overlaps with another.
-     * 
+     *
      * In the boundary case false is returned.
-     * 
+     *
      * \param other the aabb to check for overlaps with
      * \return Whether the two aabbs overlap
      */
@@ -74,27 +74,27 @@ public:
 
     /*!
      * \brief Includes the specified point in the bounding box.
-     * 
+     *
      * The bounding box is expanded if the point is not within the bounding box.
-     * 
+     *
      * \param point The point to include in the bounding box.
      */
-    void include(Point point);
+    void include(Point2LL point);
 
     /*!
      * \brief Includes the specified bounding box in the bounding box.
-     * 
+     *
      * The bounding box is expanded to include the other bounding box.
-     * 
+     *
      * This performs a union on two bounding boxes.
-     * 
+     *
      * \param other The bounding box to include in this one.
      */
     void include(const AABB other);
 
     /*!
      * Expand the borders of the bounding box in each direction with the given amount
-     * 
+     *
      * \param dist The distance by which to expand the borders of the bounding box
      */
     void expand(int dist);
@@ -106,6 +106,5 @@ public:
     Polygon toPolygon() const;
 };
 
-}//namespace cura
-#endif//UTILS_AABB_H
-
+} // namespace cura
+#endif // UTILS_AABB_H

@@ -18,8 +18,8 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/AABB.h"
 #include "utils/AABB3D.h"
-#include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
+#include "utils/Point2LL.h"
 #include "utils/polygon.h"
 
 // libArachne
@@ -227,11 +227,37 @@ public:
      */
     void excludeAreasFromSupportInfillAreas(const Polygons& exclude_polygons, const AABB& exclude_polygons_boundary_box);
 
+    /* Fill up the infill parts for the support with the given support polygons. The support polygons will be split into parts.
+     *
+     * \param area The support polygon to fill up with infill parts.
+     * \param support_fill_per_layer The support polygons to fill up with infill parts.
+     * \param support_line_width Line width of the support extrusions.
+     * \param wall_line_count Wall-line count around the fill.
+     * \param use_fractional_config (optional, default to false) If the area should be added as fractional support.
+     * \param unionAll (optional, default to false) Wether to 'union all' for the split into parts bit.
+     * \param custom_line_distance (optional, default to 0) Distance between lines of the infill pattern. custom_line_distance of 0 means use the default instead.
+     */
+    void fillInfillParts(
+        const Polygons& area,
+        const coord_t support_line_width,
+        const coord_t wall_line_count,
+        const bool use_fractional_config = false,
+        const bool unionAll = false,
+        const coord_t custom_line_distance = 0)
+    {
+        for (const PolygonsPart& island_outline : area.splitIntoParts(unionAll))
+        {
+            support_infill_parts.emplace_back(island_outline, support_line_width, use_fractional_config, wall_line_count, custom_line_distance);
+        }
+    }
+
     /* Fill up the infill parts for the support with the given support polygons. The support polygons will be split into parts. This also takes into account fractional-height
      * support layers.
      *
-     * \param layer_nr Current layer index.
-     * \param support_fill_per_layer All of the (infill) support (since the layer above might be needed).
+     * \param layer_nr The layer-index of the support layer to be filled.
+     * \param support_fill_per_layer The support polygons to fill up with infill parts.
+     * \param infill_layer_height The layer height of the support-fill.
+     * \param meshes The model meshes to be supported, needed here to handle fractional support layer height.
      * \param support_line_width Line width of the support extrusions.
      * \param wall_line_count Wall-line count around the fill.
      * \param grow_layer_above (optional, default to 0) In cases where support shrinks per layer up, an appropriate offset may be nescesary.
@@ -241,6 +267,8 @@ public:
     void fillInfillParts(
         const LayerIndex layer_nr,
         const std::vector<Polygons>& support_fill_per_layer,
+        const coord_t infill_layer_height,
+        const std::vector<std::shared_ptr<SliceMeshStorage>>& meshes,
         const coord_t support_line_width,
         const coord_t wall_line_count,
         const coord_t grow_layer_above = 0,
@@ -328,7 +356,7 @@ public:
     /*!
      * \return the mesh's user specified z seam hint
      */
-    Point getZSeamHint() const;
+    Point2LL getZSeamHint() const;
 };
 
 /*!
@@ -345,7 +373,7 @@ class SliceDataStorage : public NoCopy
 public:
     size_t print_layer_count; //!< The total number of layers (except the raft and filler layers)
 
-    Point3 model_size, model_min, model_max;
+    Point3LL model_size, model_min, model_max;
     AABB3D machine_size; //!< The bounding box with the width, height and depth of the printer.
     std::vector<std::shared_ptr<SliceMeshStorage>> meshes;
 
@@ -355,7 +383,11 @@ public:
 
     std::vector<SkirtBrimLine> skirt_brim[MAX_EXTRUDERS]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
     Polygons support_brim; //!< brim lines for support, going from the edge of the support inward. \note Not ordered by inset.
-    Polygons raftOutline; // Storage for the outline of the raft. Will be filled with lines when the GCode is generated.
+
+    // Storage for the outline of the raft-parts. Will be filled with lines when the GCode is generated.
+    Polygons raftBaseOutline;
+    Polygons raftInterfaceOutline;
+    Polygons raftSurfaceOutline;
 
     int max_print_height_second_to_last_extruder; //!< Used in multi-extrusion: the layer number beyond which all models are printed with the same extruder
     std::vector<int> max_print_height_per_extruder; //!< For each extruder the highest layer number at which it is used.
@@ -385,14 +417,18 @@ public:
      * \param layer_nr The index of the layer for which to get the outlines
      * (negative layer numbers indicate the raft).
      * \param include_support Whether to include support in the outline.
-     * \param include_prime_tower Whether to include the prime tower in the
-     * outline.
+     * \param include_prime_tower Whether to include the prime tower in the outline.
+     * \param include_models Whether to include the models in the outline
      * \param external_polys_only Whether to disregard all hole polygons.
      * \param extruder_nr (optional) only give back outlines for this extruder (where the walls are printed with this extruder)
      */
-    Polygons
-        getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only = false, const int extruder_nr = -1)
-            const;
+    Polygons getLayerOutlines(
+        const LayerIndex layer_nr,
+        const bool include_support,
+        const bool include_prime_tower,
+        const bool external_polys_only = false,
+        const int extruder_nr = -1,
+        const bool include_models = true) const;
 
     /*!
      * Get the extruders used.

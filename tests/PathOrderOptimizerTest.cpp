@@ -2,6 +2,7 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "PathOrderOptimizer.h" //The code under test.
+
 #include <gtest/gtest.h> //To run the tests.
 
 // NOLINTBEGIN(*-magic-numbers)
@@ -21,18 +22,19 @@ public:
      */
     Polygon triangle;
 
-    PathOrderOptimizerTest() : optimizer(Point(0, 0))
+    PathOrderOptimizerTest()
+        : optimizer(Point2LL(0, 0))
     {
     }
 
     void SetUp() override
     {
-        optimizer = PathOrderOptimizer<ConstPolygonPointer>(Point(0, 0));
+        optimizer = PathOrderOptimizer<ConstPolygonPointer>(Point2LL(0, 0));
 
         triangle.clear();
-        triangle.add(Point(0, 0));
-        triangle.add(Point(50, 0));
-        triangle.add(Point(25, 50));
+        triangle.add(Point2LL(0, 0));
+        triangle.add(Point2LL(50, 0));
+        triangle.add(Point2LL(25, 50));
     }
 };
 // NOLINTEND(misc-non-private-member-variables-in-classes)
@@ -43,7 +45,7 @@ public:
 TEST_F(PathOrderOptimizerTest, OptimizeWhileEmpty)
 {
     optimizer.optimize(); // Don't crash.
-    EXPECT_EQ(optimizer.paths.size(), 0) << "Still empty!";
+    EXPECT_EQ(optimizer.paths_.size(), 0) << "Still empty!";
 }
 
 /*!
@@ -53,11 +55,11 @@ TEST_F(PathOrderOptimizerTest, OptimizeWhileEmpty)
 TEST_F(PathOrderOptimizerTest, ThreeTrianglesShortestOrder)
 {
     Polygon near = triangle; // Copy, then translate.
-    near.translate(Point(100, 100));
+    near.translate(Point2LL(100, 100));
     Polygon middle = triangle;
-    middle.translate(Point(500, 500));
+    middle.translate(Point2LL(500, 500));
     Polygon far = triangle;
-    far.translate(Point(1000, 1000));
+    far.translate(Point2LL(1000, 1000));
 
     // Add them out of order so that it's clear that the optimization changes the order.
     optimizer.addPolygon(middle);
@@ -66,9 +68,9 @@ TEST_F(PathOrderOptimizerTest, ThreeTrianglesShortestOrder)
 
     optimizer.optimize();
 
-    EXPECT_EQ(optimizer.paths[0].vertices->front(), Point(100, 100)) << "Nearest triangle first.";
-    EXPECT_EQ(optimizer.paths[1].vertices->front(), Point(500, 500)) << "Middle triangle second.";
-    EXPECT_EQ(optimizer.paths[2].vertices->front(), Point(1000, 1000)) << "Far triangle last.";
+    EXPECT_EQ(optimizer.paths_[0].vertices_->front(), Point2LL(100, 100)) << "Nearest triangle first.";
+    EXPECT_EQ(optimizer.paths_[1].vertices_->front(), Point2LL(500, 500)) << "Middle triangle second.";
+    EXPECT_EQ(optimizer.paths_[2].vertices_->front(), Point2LL(1000, 1000)) << "Far triangle last.";
 }
 
 } // namespace cura

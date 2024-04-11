@@ -121,10 +121,10 @@ struct MMtoStream
  * \param coord double to output
  * \param ss The output stream to write the string to
  */
-static inline void writeDoubleToStream(const unsigned int precision, const double coord, std::ostream& ss)
+static inline void writeDoubleToStream(const uint8_t precision, const double coord, std::ostream& ss)
 {
     char format[5] = "%.xF"; // write a float with [x] digits after the dot
-    format[2] = '0' + precision; // set [x]
+    format[2] = '0' + static_cast<char>(precision); // set [x]
     constexpr size_t buffer_size = 400;
     char buffer[buffer_size];
     int char_count = sprintf(buffer, format, coord);
@@ -166,7 +166,7 @@ static inline void writeDoubleToStream(const unsigned int precision, const doubl
  */
 struct PrecisionedDouble
 {
-    unsigned int precision; //!< Number of digits after the decimal mark with which to convert to string
+    uint8_t precision; //!< Number of digits after the decimal mark with which to convert to string
     double value; //!< The double value
 
     friend inline std::ostream& operator<<(std::ostream& out, const PrecisionedDouble precision_and_input)
