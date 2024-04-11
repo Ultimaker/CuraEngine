@@ -1071,17 +1071,6 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     {
         skirt_brim.generateSupportBrim();
     }
-
-    for (const auto& extruder : Application::getInstance().current_slice_->scene.extruders)
-    {
-#warning Using auto here apparently makes a copy and then the loop is useless -> double-check
-        /*Simplify simplifier(extruder.settings_);
-        for (auto skirt_brim_line : storage.skirt_brim[extruder.extruder_nr_])
-        {
-            skirt_brim_line.closed_polygons = simplifier.polygon(skirt_brim_line.closed_polygons);
-            skirt_brim_line.open_polylines = simplifier.polyline(skirt_brim_line.open_polylines);
-        }*/
-    }
 }
 
 

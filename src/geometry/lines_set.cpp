@@ -75,7 +75,7 @@ size_t LinesSet<LineType>::pointCount() const
 }
 
 template<>
-void LinesSet<OpenPolyline>::addLine(const Point2LL& from, const Point2LL& to)
+void LinesSet<OpenPolyline>::addSegment(const Point2LL& from, const Point2LL& to)
 {
     lines_.emplace_back(std::initializer_list<Point2LL>{ from, to });
 }
@@ -341,10 +341,16 @@ void LinesSet<LineType>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::Poly
 {
     for (const LineType& line : getLines())
     {
-#warning No dynamic cast is required here...
         // In this context, the "Closed" argument means "Is a surface" so it should be only
         // true for actual filled polygons. Closed polylines are to be treated as lines here.
-        clipper.AddPath(line.getPoints(), PolyTyp, dynamic_cast<const Polygon*>(&line) != nullptr);
+        if constexpr (std::is_same<LineType, Polygon>::value)
+        {
+            clipper.AddPath(line.getPoints(), PolyTyp, true);
+        }
+        else
+        {
+            clipper.AddPath(line.getPoints(), PolyTyp, false);
+        }
     }
 }
 

@@ -87,7 +87,7 @@ GroundingLocation LightningLayer::getBestGroundingLocation(
     const SparseLightningTreeNodeGrid& tree_node_locator,
     const LightningTreeNodeSPtr& exclude_tree)
 {
-    ClosestPoint cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
+    ClosestPointPolygon cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
     Point2LL node_location = cpp.p();
     const coord_t within_dist = vSize(node_location - unsupported_location);
 
@@ -120,7 +120,7 @@ GroundingLocation LightningLayer::getBestGroundingLocation(
     }
     else
     {
-        return GroundingLocation{ sub_tree, std::optional<ClosestPoint>() };
+        return GroundingLocation{ sub_tree, std::optional<ClosestPointPolygon>() };
     }
 }
 

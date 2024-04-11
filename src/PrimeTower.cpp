@@ -629,7 +629,7 @@ void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const int extruder_nr
         int current_start_location_idx = ((((extruder_nr + 1) * gcode_layer.getLayerNr()) % number_of_prime_tower_start_locations_) + number_of_prime_tower_start_locations_)
                                        % number_of_prime_tower_start_locations_;
 
-        const ClosestPoint wipe_location = prime_tower_start_locations_[current_start_location_idx];
+        const ClosestPointPolygon wipe_location = prime_tower_start_locations_[current_start_location_idx];
         const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
         const coord_t inward_dist = train.settings_.get<coord_t>("machine_nozzle_size") * 3 / 2;
         const coord_t start_dist = train.settings_.get<coord_t>("machine_nozzle_size") * 2;

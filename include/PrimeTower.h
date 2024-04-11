@@ -38,7 +38,7 @@ private:
 
     Point2LL post_wipe_point_; //!< Location to post-wipe the unused nozzle off on
 
-    std::vector<ClosestPoint> prime_tower_start_locations_; //!< The differernt locations where to pre-wipe the active nozzle
+    std::vector<ClosestPointPolygon> prime_tower_start_locations_; //!< The differernt locations where to pre-wipe the active nozzle
     const unsigned int number_of_prime_tower_start_locations_ = 21; //!< The required size of \ref PrimeTower::wipe_locations
 
     MovesByExtruder prime_moves_; //!< For each extruder, the moves to be processed for actual priming.

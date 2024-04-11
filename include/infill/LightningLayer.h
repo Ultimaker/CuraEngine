@@ -21,7 +21,7 @@ using SparseLightningTreeNodeGrid = SparsePointGridInclusive<std::weak_ptr<Light
 struct GroundingLocation
 {
     LightningTreeNodeSPtr tree_node; //!< not null if the gounding location is on a tree
-    std::optional<ClosestPoint> boundary_location; //!< in case the gounding location is on the boundary
+    std::optional<ClosestPointPolygon> boundary_location; //!< in case the gounding location is on the boundary
     Point2LL p() const;
 };
 

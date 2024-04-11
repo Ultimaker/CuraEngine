@@ -82,19 +82,19 @@ void GyroidInfill::generateTotalGyroidInfill(LinesSet<OpenPolyline>& result_line
                         if (last_inside && current_inside)
                         {
                             // line doesn't hit the boundary, add the whole line
-                            result.addLine(last, current);
+                            result.addSegment(last, current);
                         }
                         else if (last_inside != current_inside)
                         {
                             // line hits the boundary, add the part that's inside the boundary
                             LinesSet<OpenPolyline> line;
-                            line.addLine(last, current);
+                            line.addSegment(last, current);
                             constexpr bool restitch = false; // only a single line doesn't need stitching
                             line = in_outline.intersection(line, restitch);
                             if (line.size() > 0)
                             {
                                 // some of the line is inside the boundary
-                                result.addLine(line[0][0], line[0][1]);
+                                result.addSegment(line[0][0], line[0][1]);
                                 if (zig_zaggify)
                                 {
                                     chain_end[chain_end_index] = line[0][(line[0][0] != last && line[0][0] != current) ? 0 : 1];
@@ -174,19 +174,19 @@ void GyroidInfill::generateTotalGyroidInfill(LinesSet<OpenPolyline>& result_line
                         if (last_inside && current_inside)
                         {
                             // line doesn't hit the boundary, add the whole line
-                            result.addLine(last, current);
+                            result.addSegment(last, current);
                         }
                         else if (last_inside != current_inside)
                         {
                             // line hits the boundary, add the part that's inside the boundary
                             LinesSet<OpenPolyline> line;
-                            line.addLine(last, current);
+                            line.addSegment(last, current);
                             constexpr bool restitch = false; // only a single line doesn't need stitching
                             line = in_outline.intersection(line, restitch);
                             if (line.size() > 0)
                             {
                                 // some of the line is inside the boundary
-                                result.addLine(line[0][0], line[0][1]);
+                                result.addSegment(line[0][0], line[0][1]);
                                 if (zig_zaggify)
                                 {
                                     chain_end[chain_end_index] = line[0][(line[0][0] != last && line[0][0] != current) ? 0 : 1];

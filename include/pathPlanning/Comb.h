@@ -118,7 +118,7 @@ private:
          * \param comber[in] The combing calculator which has references to the offsets and boundaries to use in combing.
          * \return A pair of which the first is the crossing point on the inside boundary and the second the crossing point on the outside boundary
          */
-        std::shared_ptr<std::pair<ClosestPoint, ClosestPoint>>
+        std::shared_ptr<std::pair<ClosestPointPolygon, ClosestPointPolygon>>
             findBestCrossing(const ExtruderTrain& train, const Shape& outside, const Polygon& from, const Point2LL estimated_start, const Point2LL estimated_end, Comb& comber);
     };
 

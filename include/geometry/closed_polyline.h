@@ -21,7 +21,6 @@ private:
     bool explicitely_closed_{ false };
 
 public:
-#warning try to set bool explicitely_closed as argument
     ClosedPolyline() = default;
 
     ClosedPolyline(const ClosedPolyline& other) = default;

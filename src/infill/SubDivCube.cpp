@@ -100,7 +100,7 @@ void SubDivCube::generateSubdivisionLines(const coord_t z, LinesSet<OpenPolyline
         LinesSet<OpenPolyline>& line_group = directional_line_groups[dir_idx];
         for (unsigned int line_idx = 0; line_idx < line_group.size(); line_idx++)
         {
-            result.addLine(line_group[line_idx][0], line_group[line_idx][1]);
+            result.addSegment(line_group[line_idx][0], line_group[line_idx][1]);
         }
     }
 }
@@ -238,7 +238,7 @@ coord_t SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, const LayerI
 
     Point2LL centerpoint = location;
     bool inside = collide.inside(centerpoint);
-    ClosestPoint border_point = PolygonUtils::moveInside2(collide, centerpoint);
+    ClosestPointPolygon border_point = PolygonUtils::moveInside2(collide, centerpoint);
     Point2LL diff = border_point.location_ - location;
     *distance2 = vSize2(diff);
     if (inside)
@@ -283,7 +283,7 @@ void SubDivCube::addLineAndCombine(LinesSet<OpenPolyline>& group, Point2LL from,
             continue;
         }
     }
-    group.addLine(from, to);
+    group.addSegment(from, to);
 }
 
 } // namespace cura

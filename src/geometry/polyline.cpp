@@ -152,7 +152,7 @@ bool Polyline::shorterThan(const coord_t check_length) const
 
 void Polyline::splitIntoSegments(OpenLinesSet& result) const
 {
-#warning reserve space before adding all the segments
+    result.reserve(result.size() + segmentsCount());
     for (auto it = beginSegments(); it != endSegments(); ++it)
     {
         result.emplace_back(std::initializer_list<Point2LL>{ (*it).start, (*it).end });

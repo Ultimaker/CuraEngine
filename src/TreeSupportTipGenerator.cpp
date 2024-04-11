@@ -266,7 +266,7 @@ LinesSet<OpenPolyline> TreeSupportTipGenerator::ensureMaximumDistancePolyline(co
         coord_t current_distance = std::max(distance, coord_t(FUDGE_LENGTH * 2));
         if (length < 2 * distance && min_points <= 1)
         {
-            GenericClosestPoint<OpenPolyline> middle_point(part[0], 0, &part);
+            ClosestPoint<OpenPolyline> middle_point(part[0], 0, &part);
             middle_point = PolygonUtils::walk(middle_point, coord_t(length / 2));
             line.push_back(middle_point.location_);
         }

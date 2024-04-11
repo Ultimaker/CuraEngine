@@ -805,7 +805,7 @@ void LayerPlan::addWallLine(
         // to the first and last point of the intersected line segments alternating between
         // roofing and default_config's.
         LinesSet<OpenPolyline> line_polys;
-        line_polys.addLine(p0, p1);
+        line_polys.addSegment(p0, p1);
         constexpr bool restitch = false; // only a single line doesn't need stitching
         auto roofing_line_segments = roofing_mask_.intersection(line_polys, restitch);
 
@@ -878,7 +878,7 @@ void LayerPlan::addWallLine(
             // determine which segments of the line are bridges
 
             LinesSet<OpenPolyline> line_polys;
-            line_polys.addLine(p0, p1);
+            line_polys.addSegment(p0, p1);
             constexpr bool restitch = false; // only a single line doesn't need stitching
             line_polys = bridge_wall_mask_.intersection(line_polys, restitch);
 
@@ -1050,7 +1050,7 @@ void LayerPlan::addWall(
                     // determine which segments of the line are bridges
 
                     LinesSet<OpenPolyline> line_polys;
-                    line_polys.addLine(p0.p_, p1.p_);
+                    line_polys.addSegment(p0.p_, p1.p_);
                     constexpr bool restitch = false; // only a single line doesn't need stitching
                     line_polys = bridge_wall_mask_.intersection(line_polys, restitch);
 
@@ -1112,7 +1112,7 @@ void LayerPlan::addWall(
 
     bool first_line = true;
     const coord_t small_feature_max_length = settings.get<coord_t>("small_feature_max_length");
-    const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr_ == 0 || wall.inset_idx_ == 0) && cura::shorterThan(wall, small_feature_max_length);
+    const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr_ == 0 || wall.inset_idx_ == 0) && wall.shorterThan(small_feature_max_length);
     Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr_ == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
     const Velocity min_speed = fan_speed_layer_time_settings_per_extruder_[getLastPlannedExtruderTrain()->extruder_nr_].cool_min_speed;
     small_feature_speed_factor = std::max((double)small_feature_speed_factor, (double)(min_speed / default_config.getSpeed()));
@@ -1673,7 +1673,7 @@ void LayerPlan::spiralizeWallSlice(
         if (smooth_contours && ! is_bottom_layer && wall_point_idx < n_points)
         {
             // now find the point on the last wall that is closest to p
-            ClosestPoint cpp = PolygonUtils::findClosest(p, last_wall_polygons);
+            ClosestPointPolygon cpp = PolygonUtils::findClosest(p, last_wall_polygons);
 
             // if we found a point and it's not further away than max_dist2, use it
             if (cpp.isValid() && vSize2(cpp.location_ - p) <= max_dist2)

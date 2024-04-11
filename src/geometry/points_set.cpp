@@ -41,44 +41,6 @@ void PointsSet::applyMatrix(const Point3Matrix& matrix)
     }
 }
 
-Point2LL PointsSet::min() const
-{
-    Point2LL ret = Point2LL(POINT_MAX, POINT_MAX);
-    for (Point2LL point : points_)
-    {
-        ret.X = std::min(ret.X, point.X);
-        ret.Y = std::min(ret.Y, point.Y);
-    }
-    return ret;
-}
-
-Point2LL PointsSet::max() const
-{
-    Point2LL ret = Point2LL(POINT_MIN, POINT_MIN);
-    for (Point2LL point : points_)
-    {
-        ret.X = std::max(ret.X, point.X);
-        ret.Y = std::max(ret.Y, point.Y);
-    }
-    return ret;
-}
-
-Point2LL PointsSet::closestPointTo(const Point2LL& p) const
-{
-    const Point2LL* ret = &p;
-    double bestDist = std::numeric_limits<double>::max();
-    for (const Point2LL& point : points_)
-    {
-        double dist = vSize2f(p - point);
-        if (dist < bestDist)
-        {
-            ret = &point;
-            bestDist = dist;
-        }
-    }
-    return *ret;
-}
-
 void PointsSet::translate(const Point2LL& translation)
 {
     for (Point2LL& point : points_)

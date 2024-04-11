@@ -58,7 +58,6 @@ public:
 
     Shape difference(const Shape& other) const;
 
-#warning rename this to union
     Shape unionPolygons(const Shape& other, ClipperLib::PolyFillType fill_type = ClipperLib::pftNonZero) const;
 
     /*!
@@ -84,12 +83,6 @@ public:
     template<class LineType>
 #warning Technically this should return a MixedLinesSet
     LinesSet<OpenPolyline> intersection(const LinesSet<LineType>& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu) const;
-
-    /*!
-     * Add the front to each polygon so that the polygon is represented as a polyline
-     */
-#warning This could probably be removed
-    void toPolylines();
 
     /*!
      * Split this poly line object into several line segment objects

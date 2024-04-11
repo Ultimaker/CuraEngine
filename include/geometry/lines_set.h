@@ -195,8 +195,7 @@ public:
     /*!
      * Add a simple line consisting of two points
      */
-#warning rename to addSegment and move to mixed
-    void addLine(const Point2LL& from, const Point2LL& to);
+    void addSegment(const Point2LL& from, const Point2LL& to);
 
     coord_t length() const;
 

@@ -14,12 +14,7 @@ namespace cura
  * \brief Convenience definition for a container that can hold only closed polylines. This makes it
  *        explicit what the lines actually represent.
  */
-#warning Try with a using instead
-class ClosedLinesSet : public LinesSet<ClosedPolyline>
-{
-public:
-    ClosedLinesSet() = default;
-};
+using ClosedLinesSet = LinesSet<ClosedPolyline>;
 
 } // namespace cura
 

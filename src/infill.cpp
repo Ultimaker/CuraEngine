@@ -576,7 +576,7 @@ void Infill::addLineInfill(
             { // segment is too short to create infill
                 continue;
             }
-            result.addLine(rotation_matrix.unapply(Point2LL(x, crossings[crossing_idx])), rotation_matrix.unapply(Point2LL(x, crossings[crossing_idx + 1])));
+            result.addSegment(rotation_matrix.unapply(Point2LL(x, crossings[crossing_idx])), rotation_matrix.unapply(Point2LL(x, crossings[crossing_idx + 1])));
         }
         scanline_idx += 1;
     }

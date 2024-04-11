@@ -286,7 +286,7 @@ void WallToolPaths::removeSmallLines(std::vector<VariableWidthLines>& toolpaths)
             {
                 min_width = std::min(min_width, j.w_);
             }
-            if (line.is_odd_ && ! line.is_closed_ && shorterThan(line, min_width / 2))
+            if (line.is_odd_ && ! line.is_closed_ && line.shorterThan(min_width / 2))
             { // remove line
                 line = std::move(inset.back());
                 inset.erase(--inset.end());

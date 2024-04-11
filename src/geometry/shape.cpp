@@ -303,17 +303,6 @@ Shape Shape::execute(ClipperLib::PolyFillType pft) const
     clipper.Execute(ClipperLib::ctXor, ret, pft);
     return Shape(std::move(ret));
 }
-/*
-void Polygons::toPolylines()
-{
-    for (PolygonRef poly : *this)
-    {
-        if (poly.empty())
-            continue;
-        poly.emplace_back(poly.front());
-    }
-}
-*/
 
 Shape Shape::offsetMulti(const std::vector<coord_t>& offset_dists) const
 {

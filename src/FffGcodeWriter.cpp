@@ -1491,9 +1491,6 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     if ((layer_nr == 0) && (extruder_nr == mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr_))
     {
         total_line_count += storage.support_brim.size();
-        // LinesSet<ClosedPolyline> support_brim_lines = storage.support_brim;
-#warning Check for bugs !!
-        // support_brim_lines.toPolylines();
         gcode_layer.addLinesByOptimizer(
             storage.support_brim,
             gcode_layer.configs_storage_.skirt_brim_config_per_extruder[extruder_nr],

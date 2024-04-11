@@ -44,4 +44,20 @@ coord_t ExtrusionLine::getMinimalWidth() const
         ->w_;
 }
 
+bool ExtrusionLine::shorterThan(const coord_t check_length) const
+{
+    const ExtrusionJunction* p0 = &back();
+    int64_t length = 0;
+    for (const ExtrusionJunction& p1 : (*this))
+    {
+        length += vSize(*p0 - p1);
+        if (length >= check_length)
+        {
+            return false;
+        }
+        p0 = &p1;
+    }
+    return true;
+}
+
 } // namespace cura

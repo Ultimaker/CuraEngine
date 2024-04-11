@@ -65,16 +65,13 @@ MixedLinesSet Simplify::polyline(const MixedLinesSet& polylines) const
     MixedLinesSet result;
     for (const std::shared_ptr<Polyline>& polyline_ptr : polylines)
     {
-        if (polyline_ptr)
+        if (std::shared_ptr<const OpenPolyline> open_polyline = std::dynamic_pointer_cast<const OpenPolyline>(polyline_ptr))
         {
-            if (std::shared_ptr<const OpenPolyline> open_polyline = std::dynamic_pointer_cast<const OpenPolyline>(polyline_ptr))
-            {
-                result.push_back(std::make_shared<OpenPolyline>(polyline(*open_polyline)));
-            }
-            if (std::shared_ptr<const ClosedPolyline> closed_polyline = std::dynamic_pointer_cast<const ClosedPolyline>(polyline_ptr))
-            {
-                result.push_back(std::make_shared<ClosedPolyline>(polyline(*closed_polyline)));
-            }
+            result.push_back(std::make_shared<OpenPolyline>(polyline(*open_polyline)));
+        }
+        if (std::shared_ptr<const ClosedPolyline> closed_polyline = std::dynamic_pointer_cast<const ClosedPolyline>(polyline_ptr))
+        {
+            result.push_back(std::make_shared<ClosedPolyline>(polyline(*closed_polyline)));
         }
     }
     return result;

@@ -15,17 +15,6 @@ namespace cura
  *        explicit what the lines actually represent.
  */
 using OpenLinesSet = LinesSet<OpenPolyline>;
-#warning Try with a using instead
-/*class OpenLinesSet : public LinesSet<OpenPolyline>
-{
-public:
-    OpenLinesSet() = default;
-
-    OpenLinesSet(const LinesSet<OpenPolyline>& other)
-        : LinesSet(other)
-    {
-    }
-};*/
 
 } // namespace cura
 

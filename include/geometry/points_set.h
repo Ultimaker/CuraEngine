@@ -16,24 +16,6 @@ class Point3Matrix;
 const static int clipper_init = (0);
 #define NO_INDEX (std::numeric_limits<size_t>::max())
 
-#warning Move this somewhere else, or remove it...
-template<typename T>
-bool shorterThan(const T& shape, const coord_t check_length)
-{
-    const auto* p0 = &shape.back();
-    int64_t length = 0;
-    for (const auto& p1 : shape)
-    {
-        length += vSize(*p0 - p1);
-        if (length >= check_length)
-        {
-            return false;
-        }
-        p0 = &p1;
-    }
-    return true;
-}
-
 /*!
  * \brief Base class for all geometry containers representing a set of points.
  */
@@ -54,12 +36,6 @@ public:
     PointsSet(const ClipperLib::Path& points);
 
     PointsSet(ClipperLib::Path&& points);
-
-    /*PointsSet& operator=(const PointsSet& other)
-    {
-        std::vector<point_t>::operator=(other);
-        return *this;
-    }*/
 
     const std::vector<Point2LL>& getPoints() const
     {
@@ -206,15 +182,6 @@ public:
     PointsSet& operator=(const PointsSet& other) = default;
 
     PointsSet& operator=(PointsSet&& other) = default;
-
-#warning seems to be unused
-    Point2LL min() const;
-
-#warning seems to be unused
-    Point2LL max() const;
-
-#warning seems to be unused
-    Point2LL closestPointTo(const Point2LL& p) const;
 
     /*!
      * Translate all the points in some direction.
