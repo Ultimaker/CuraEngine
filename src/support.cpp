@@ -295,7 +295,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
                 support_infill_part.infill_area_per_combine_per_density_.emplace_back();
                 std::vector<Polygons>& support_area_current_density = support_infill_part.infill_area_per_combine_per_density_.back();
                 const Polygons more_dense_support = infill_area.difference(less_dense_support);
-                support_area_current_density.push_back(simplifier.polygon(more_dense_support.difference(sum_more_dense).offset(-wall_width).offset(wall_width)));
+                support_area_current_density.push_back(simplifier.polygon(more_dense_support.difference(sum_more_dense)));
                 if (is_connected)
                 {
                     sum_more_dense = sum_more_dense.unionPolygons(more_dense_support);
@@ -304,7 +304,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
 
             support_infill_part.infill_area_per_combine_per_density_.emplace_back();
             std::vector<Polygons>& support_area_current_density = support_infill_part.infill_area_per_combine_per_density_.back();
-            support_area_current_density.push_back(simplifier.polygon(infill_area.difference(sum_more_dense).offset(-wall_width).offset(wall_width)));
+            support_area_current_density.push_back(simplifier.polygon(infill_area.difference(sum_more_dense)));
 
             assert(support_infill_part.infill_area_per_combine_per_density_.size() != 0 && "support_infill_part.infill_area_per_combine_per_density should now be initialized");
 #ifdef DEBUG
