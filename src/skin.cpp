@@ -498,7 +498,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                 continue;
             }
             Polygons less_dense_infill = infill_area; // one step less dense with each infill_step
-            Polygons sum_more_dense;  // NOTE: Only used for zig-zag or connected fills.
+            Polygons sum_more_dense; // NOTE: Only used for zig-zag or connected fills.
             for (size_t infill_step = 0; infill_step < max_infill_steps; infill_step++)
             {
                 LayerIndex min_layer = layer_idx + infill_step * gradual_infill_step_layer_count + static_cast<size_t>(layer_skip_count);
