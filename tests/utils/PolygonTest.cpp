@@ -5,7 +5,6 @@
 
 #include <gtest/gtest.h>
 
-#include "geometry/closed_polyline.h"
 #include "geometry/open_polyline.h"
 #include "geometry/single_shape.h"
 #include "utils/Coord_t.h"
@@ -82,9 +81,9 @@ public:
         small_area.emplace_back(10, 10);
         small_area.emplace_back(0, 10);
     }
-    void twoPolygonsAreEqual(Shape& polygon1, Shape& polygon2) const
+    void twoPolygonsAreEqual(Shape& shape1, Shape& shape2) const
     {
-        auto poly_cmp = [](const ClipperLib::Path& a, const ClipperLib::Path& b)
+        auto poly_cmp = [](const Polygon& a, const Polygon& b)
         {
             return std::lexicographical_compare(
                 a.begin(),
@@ -96,15 +95,15 @@ public:
                     return p1 < p2;
                 });
         };
-        std::sort(polygon1.begin(), polygon1.end(), poly_cmp);
-        std::sort(polygon2.begin(), polygon2.end(), poly_cmp);
+        std::sort(shape1.begin(), shape1.end(), poly_cmp);
+        std::sort(shape2.begin(), shape2.end(), poly_cmp);
 
-        std::vector<ClipperLib::Path> difference;
-        std::set_difference(polygon1.begin(), polygon1.end(), polygon2.begin(), polygon2.end(), std::back_inserter(difference), poly_cmp);
+        LinesSet<Polygon> difference;
+        std::set_difference(shape1.begin(), shape1.end(), shape2.begin(), shape2.end(), std::back_inserter(difference), poly_cmp);
         ASSERT_TRUE(difference.empty()) << "Paths in polygon1 not found in polygon2:" << difference;
 
         difference.clear();
-        std::set_difference(polygon2.begin(), polygon2.end(), polygon1.begin(), polygon1.end(), std::back_inserter(difference), poly_cmp);
+        std::set_difference(shape2.begin(), shape2.end(), shape1.begin(), shape1.end(), std::back_inserter(difference), poly_cmp);
         ASSERT_TRUE(difference.empty()) << "Paths in polygon2 not found in polygon1:" << difference;
     }
 };
@@ -567,24 +566,24 @@ TEST_F(PolygonTest, removeSmallAreas_complex)
 TEST_F(PolygonTest, openCloseLines)
 {
     // make some line
-    OpenPolyline openPolyline;
-    openPolyline.emplace_back(0, 0);
-    openPolyline.emplace_back(1000, 0);
-    openPolyline.emplace_back(1000, 1000);
-    openPolyline.emplace_back(0, 1000);
+    OpenPolyline open_polyline;
+    open_polyline.emplace_back(0, 0);
+    open_polyline.emplace_back(1000, 0);
+    open_polyline.emplace_back(1000, 1000);
+    open_polyline.emplace_back(0, 1000);
 
     // Make some casts and check that the results are consistent
-    EXPECT_EQ(openPolyline.length(), 3000);
+    EXPECT_EQ(open_polyline.length(), 3000);
 
-    ClosedPolyline& closedPolyline = openPolyline.toType<ClosedPolyline>();
-    EXPECT_EQ(closedPolyline.length(), 4000);
+    ClosedPolyline closed_polyline(open_polyline.getPoints(), false);
+    EXPECT_EQ(closed_polyline.length(), 4000);
 
-    Polygon& polygon = openPolyline.toType<Polygon>();
+    Polygon polygon(closed_polyline.getPoints(), false);
     EXPECT_EQ(polygon.area(), 1000000);
 
     // Check advanced calculations on segment length
-    EXPECT_TRUE(openPolyline.shorterThan(3500));
-    EXPECT_FALSE(closedPolyline.shorterThan(3500));
+    EXPECT_TRUE(open_polyline.shorterThan(3500));
+    EXPECT_FALSE(closed_polyline.shorterThan(3500));
 }
 
 } // namespace cura

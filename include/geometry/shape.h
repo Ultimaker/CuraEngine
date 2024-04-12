@@ -286,6 +286,21 @@ public:
      */
     void simplify(ClipperLib::PolyFillType fill_type = ClipperLib::pftEvenOdd);
 
+#ifdef BUILD_TESTS
+    /*!
+     * @brief Import the polygon from a WKT string
+     * @param wkt The WKT string to read from
+     * @return Polygons The polygons read from the stream
+     */
+    [[maybe_unused]] static Shape fromWkt(const std::string& wkt);
+
+    /*!
+     * @brief Export the polygon to a WKT string
+     * @param stream The stream to write to
+     */
+    [[maybe_unused]] void writeWkt(std::ostream& stream) const;
+#endif
+
 private:
     /*!
      * recursive part of \ref Polygons::removeEmptyHoles and \ref Polygons::getEmptyHoles

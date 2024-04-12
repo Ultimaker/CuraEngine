@@ -228,7 +228,7 @@ public:
      * the polygon.
      * \return Always returns 0.
      */
-    static unsigned int moveInside(const Polygon& polygon, Point2LL& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
+    static unsigned int moveInside(const ClosedPolyline& polygon, Point2LL& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
 
     /*!
      * Moves the point \p from onto the nearest polygon or leaves the point as-is, when the comb boundary is not within the root of \p max_dist2 distance.

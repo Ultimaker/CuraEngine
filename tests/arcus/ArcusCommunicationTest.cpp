@@ -1,15 +1,17 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <google/protobuf/message.h>
+#include <memory>
+
+#include <gtest/gtest.h>
+
 #include "FffProcessor.h"
 #include "MockSocket.h" //To mock out the communication with the front-end.
 #include "communication/ArcusCommunicationPrivate.h" //To access the private fields of this communication class.
+#include "geometry/polygon.h" //Create test shapes to send over the socket.
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
-#include "geometry/polygon.h" //Create test shapes to send over the socket.
-#include <google/protobuf/message.h>
-#include <gtest/gtest.h>
-#include <memory>
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
@@ -47,24 +49,24 @@ public:
         test_square.emplace_back(1000, 0);
         test_square.emplace_back(1000, 1000);
         test_square.emplace_back(0, 1000);
-        test_shapes.add(test_square);
+        test_shapes.push_back(test_square);
 
         test_square2.emplace_back(1100, 1500);
         test_square2.emplace_back(2000, 1500);
         test_square2.emplace_back(2000, -500);
         test_square2.emplace_back(1100, -500);
-        test_shapes.add(test_square2);
+        test_shapes.push_back(test_square2);
 
         test_triangle.emplace_back(0, 2100);
         test_triangle.emplace_back(500, 1100);
         test_triangle.emplace_back(1500, 2100);
-        test_shapes.add(test_triangle);
+        test_shapes.push_back(test_triangle);
 
         for (double a = 0; a < 1.0; a += .05)
         {
-            test_circle.add(Point2LL(2050, 2050) + Point2LL(std::cos(a * 2 * std::numbers::pi) * 500, std::sin(a * 2 * std::numbers::pi) * 500));
+            test_circle.push_back(Point2LL(2050, 2050) + Point2LL(std::cos(a * 2 * std::numbers::pi) * 500, std::sin(a * 2 * std::numbers::pi) * 500));
         }
-        test_shapes.add(test_circle);
+        test_shapes.push_back(test_circle);
 
         test_convex_shape.emplace_back(-300, 0);
         test_convex_shape.emplace_back(-100, 500);
@@ -75,7 +77,7 @@ public:
         test_convex_shape.emplace_back(-1500, 1500);
         test_convex_shape.emplace_back(-1600, 1100);
         test_convex_shape.emplace_back(-700, 200);
-        test_shapes.add(test_convex_shape);
+        test_shapes.push_back(test_convex_shape);
     }
 
     void TearDown() override

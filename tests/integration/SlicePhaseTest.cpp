@@ -7,10 +7,10 @@
 
 #include "Application.h" // To set up a slice with settings.
 #include "Slice.h" // To set up a scene to slice.
+#include "geometry/polygon.h" // Creating polygons to compare to sliced layers.
 #include "slicer.h" // Starts the slicing phase that we want to test.
 #include "utils/Coord_t.h"
 #include "utils/Matrix4x3D.h" // To load STL files.
-#include "geometry/polygon.h" // Creating polygons to compare to sliced layers.
 #include "utils/polygonUtils.h" // Comparing similarity of polygons.
 
 namespace cura
@@ -158,7 +158,7 @@ TEST_F(SlicePhaseTest, Cylinder1000)
         circle.emplace_back(x, y);
     }
     Shape circles;
-    circles.add(circle);
+    circles.push_back(circle);
 
     for (size_t layer_nr = 0; layer_nr < num_layers; layer_nr++)
     {

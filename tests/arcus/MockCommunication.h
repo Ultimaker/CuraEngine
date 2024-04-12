@@ -7,9 +7,10 @@
 #include <gmock/gmock.h>
 
 #include "communication/Communication.h" //The interface we're implementing.
+#include "geometry/polygon.h" //In the signature of Communication.
+#include "geometry/shape.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
-#include "geometry/polygon.h" //In the signature of Communication.
 
 namespace cura
 {
@@ -24,7 +25,7 @@ public:
     MOCK_CONST_METHOD0(isSequential, bool());
     MOCK_CONST_METHOD1(sendProgress, void(double progress));
     MOCK_METHOD3(sendLayerComplete, void(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness));
-    MOCK_METHOD5(sendPolygons, void(const PrintFeatureType& type, const Polygons& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity));
+    MOCK_METHOD5(sendPolygons, void(const PrintFeatureType& type, const Shape& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity));
     MOCK_METHOD5(sendPolygon, void(const PrintFeatureType& type, const Polygon& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity));
     MOCK_METHOD5(sendLineTo, void(const PrintFeatureType& type, const Point2LL& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity));
     MOCK_METHOD1(sendCurrentPosition, void(const Point2LL& position));

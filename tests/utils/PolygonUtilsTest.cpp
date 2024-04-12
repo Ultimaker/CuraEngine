@@ -5,9 +5,9 @@
 
 #include <gtest/gtest.h>
 
-#include "utils/Coord_t.h"
 #include "geometry/point2ll.h" // Creating and testing with points.
 #include "geometry/polygon.h" // Creating polygons to test with.
+#include "utils/Coord_t.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
@@ -71,7 +71,7 @@ TEST_P(MoveInsideTest, MoveInside2)
 {
     const MoveInsideParameters parameters = GetParam();
     Shape polys;
-    polys.add(test_square);
+    polys.push_back(test_square);
     Point2LL result = parameters.close_to;
     PolygonUtils::moveInside2(polys, result, parameters.distance);
     ASSERT_LE(vSize(result - parameters.supposed), 10) << parameters.close_to << " moved with " << parameters.distance << " micron inside to " << result << "rather than "
@@ -165,7 +165,7 @@ TEST_F(MoveInsideTest, cornerEdgeTest2)
     const Point2LL supposed2(72, 100);
     constexpr coord_t distance = 28;
     Shape polys;
-    polys.add(test_square);
+    polys.push_back(test_square);
     Point2LL result = close_to;
     PolygonUtils::moveInside2(polys, result, distance);
 
@@ -179,7 +179,7 @@ TEST_F(MoveInsideTest, pointyCorner)
     const Point2LL from(55, 100); // Above pointy bit.
     Point2LL result(from);
     Shape inside;
-    inside.add(pointy_square);
+    inside.push_back(pointy_square);
     ClosestPointPolygon cpp = PolygonUtils::ensureInsideOrOutside(inside, result, 10);
 
     ASSERT_NE(cpp.point_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
@@ -193,7 +193,7 @@ TEST_F(MoveInsideTest, pointyCornerFail)
     const Point2LL from(55, 170); // Above pointy bit.
     Point2LL result(from);
     Shape inside;
-    inside.add(pointy_square);
+    inside.push_back(pointy_square);
 
     ClosestPointPolygon cpp = PolygonUtils::moveInside2(inside, result, 10);
     ASSERT_NE(cpp.point_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
@@ -207,7 +207,7 @@ TEST_F(MoveInsideTest, outsidePointyCorner)
     Point2LL result(from);
     const Point2LL supposed(50, 70); // 10 below pointy bit.
     Shape inside;
-    inside.add(pointy_square);
+    inside.push_back(pointy_square);
 
     const ClosestPointPolygon cpp = PolygonUtils::ensureInsideOrOutside(inside, result, -10);
     ASSERT_NE(cpp.point_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
@@ -222,7 +222,7 @@ TEST_F(MoveInsideTest, outsidePointyCornerFail)
     Point2LL result(from);
     const Point2LL supposed(50, 70); // 10 below pointy bit.
     Shape inside;
-    inside.add(pointy_square);
+    inside.push_back(pointy_square);
 
     const ClosestPointPolygon cpp = PolygonUtils::moveInside2(inside, result, -10);
     ASSERT_NE(cpp.point_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
@@ -266,7 +266,7 @@ TEST_P(FindCloseTest, FindClose)
 {
     const FindCloseParameters parameters = GetParam();
     Shape polygons;
-    polygons.add(test_square);
+    polygons.push_back(test_square);
     auto loc_to_line = PolygonUtils::createLocToLineGrid(polygons, parameters.cell_size);
 
     std::optional<ClosestPointPolygon> cpp;
@@ -323,28 +323,28 @@ public:
         test_square.emplace_back(100, 0);
         test_square.emplace_back(100, 100);
         test_square.emplace_back(0, 100);
-        test_squares.add(test_square);
+        test_squares.push_back(test_square);
 
         Polygon line;
         line.emplace_back(0, 0);
         line.emplace_back(100, 0);
-        test_line.add(line);
+        test_line.push_back(line);
 
         Polygon line_extra_vertices;
         line_extra_vertices.emplace_back(100, 0);
         line_extra_vertices.emplace_back(25, 0);
         line_extra_vertices.emplace_back(0, 0);
         line_extra_vertices.emplace_back(75, 0);
-        test_line_extra_vertices.add(line_extra_vertices);
+        test_line_extra_vertices.push_back(line_extra_vertices);
     }
 };
 
 TEST_F(PolygonUtilsTest, spreadDotsSegment)
 {
     std::vector<ClosestPointPolygon> supposed;
-    supposed.emplace_back(Point2LL(50, 0), 0, test_squares[0], 0);
-    supposed.emplace_back(Point2LL(100, 0), 1, test_squares[0], 0);
-    supposed.emplace_back(Point2LL(100, 50), 1, test_squares[0], 0);
+    supposed.emplace_back(Point2LL(50, 0), 0, &test_squares[0], 0);
+    supposed.emplace_back(Point2LL(100, 0), 1, &test_squares[0], 0);
+    supposed.emplace_back(Point2LL(100, 50), 1, &test_squares[0], 0);
 
     std::vector<ClosestPointPolygon> result;
     PolygonUtils::spreadDots(PolygonsPointIndex(&test_squares, 0, 0), PolygonsPointIndex(&test_squares, 0, 2), 3, result);
@@ -359,14 +359,14 @@ TEST_F(PolygonUtilsTest, spreadDotsSegment)
 TEST_F(PolygonUtilsTest, spreadDotsFull)
 {
     std::vector<ClosestPointPolygon> supposed;
-    supposed.emplace_back(Point2LL(0, 0), 0, test_squares[0], 0);
-    supposed.emplace_back(Point2LL(50, 0), 0, test_squares[0], 0);
-    supposed.emplace_back(Point2LL(100, 0), 1, test_squares[0], 0);
-    supposed.emplace_back(Point2LL(100, 50), 1, test_squares[0], 0);
-    supposed.emplace_back(Point2LL(100, 100), 2, test_squares[0], 0);
-    supposed.emplace_back(Point2LL(50, 100), 2, test_squares[0], 0);
-    supposed.emplace_back(Point2LL(0, 100), 3, test_squares[0], 0);
-    supposed.emplace_back(Point2LL(0, 50), 3, test_squares[0], 0);
+    supposed.emplace_back(Point2LL(0, 0), 0, &test_squares[0], 0);
+    supposed.emplace_back(Point2LL(50, 0), 0, &test_squares[0], 0);
+    supposed.emplace_back(Point2LL(100, 0), 1, &test_squares[0], 0);
+    supposed.emplace_back(Point2LL(100, 50), 1, &test_squares[0], 0);
+    supposed.emplace_back(Point2LL(100, 100), 2, &test_squares[0], 0);
+    supposed.emplace_back(Point2LL(50, 100), 2, &test_squares[0], 0);
+    supposed.emplace_back(Point2LL(0, 100), 3, &test_squares[0], 0);
+    supposed.emplace_back(Point2LL(0, 50), 3, &test_squares[0], 0);
 
     std::vector<ClosestPointPolygon> result;
     PolygonUtils::spreadDots(PolygonsPointIndex(&test_squares, 0, 0), PolygonsPointIndex(&test_squares, 0, 0), 8, result);
@@ -408,7 +408,7 @@ public:
         test_square.emplace_back(100, 0);
         test_square.emplace_back(100, 100);
         test_square.emplace_back(0, 100);
-        test_squares.add(test_square);
+        test_squares.push_back(test_square);
     }
 };
 // NOLINTEND(misc-non-private-member-variables-in-classes)

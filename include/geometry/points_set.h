@@ -25,6 +25,10 @@ private:
     ClipperLib::Path points_;
 
 public:
+    // Requires for some std calls as a container
+    typedef Point2LL value_type;
+
+public:
     PointsSet() = default;
 
     PointsSet(const PointsSet& other) = default;
@@ -195,6 +199,15 @@ public:
      */
     void applyMatrix(const PointMatrix& matrix);
     void applyMatrix(const Point3Matrix& matrix);
+
+    /*!
+     * \brief Display operator, useful for debugging/testing
+     */
+    template<class CharT, class TraitsT>
+    friend std::basic_ostream<CharT, TraitsT>& operator<<(std::basic_ostream<CharT, TraitsT>& os, const PointsSet& polygon)
+    {
+        return os << "PointsSet(" << polygon.getPoints() << ")";
+    }
 };
 
 } // namespace cura

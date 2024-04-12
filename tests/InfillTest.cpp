@@ -76,7 +76,7 @@ public:
     Shape outline_polygons;
 
     // Resulting infill:
-    Shape result_lines;
+    OpenLinesSet result_lines;
     Shape result_polygons;
 
     std::string name;
@@ -89,7 +89,7 @@ public:
     {
     }
 
-    InfillTestParameters(const InfillParameters& params, const size_t& test_polygon_id, Shape outline_polygons, Shape result_lines, Shape result_polygons)
+    InfillTestParameters(const InfillParameters& params, const size_t& test_polygon_id, Shape outline_polygons, OpenLinesSet result_lines, Shape result_polygons)
         : valid(true)
         , fail_reason("__")
         , params(params)
@@ -177,7 +177,7 @@ InfillTestParameters generateInfillToTest(const InfillParameters& params, const 
     Settings infill_settings;
     std::vector<VariableWidthLines> result_paths;
     Shape result_polygons;
-    Shape result_lines;
+    OpenLinesSet result_lines;
     infill.generate(result_paths, result_polygons, result_lines, infill_settings, 1, SectionType::INFILL, nullptr, nullptr);
 
     InfillTestParameters result = InfillTestParameters(params, test_polygon_id, outline_polygons, result_lines, result_polygons);
@@ -267,7 +267,7 @@ TEST_P(InfillTest, TestInfillSanity)
     long double worst_case_zig_zag_added_area = 0;
     if (params.params.zig_zagify || params.params.pattern == EFillMethod::ZIG_ZAG)
     {
-        worst_case_zig_zag_added_area = params.outline_polygons.polygonLength() * INFILL_LINE_WIDTH;
+        worst_case_zig_zag_added_area = params.outline_polygons.length() * INFILL_LINE_WIDTH;
     }
 
     const double min_available_area = std::abs(params.outline_polygons.offset(static_cast<int>(-params.params.line_distance) / 2).area());
@@ -275,8 +275,8 @@ TEST_P(InfillTest, TestInfillSanity)
     const long double min_expected_infill_area = (min_available_area * static_cast<long double>(INFILL_LINE_WIDTH)) / params.params.line_distance;
     const long double max_expected_infill_area = (max_available_area * INFILL_LINE_WIDTH) / params.params.line_distance + worst_case_zig_zag_added_area;
 
-    const long double out_infill_area = ((params.result_polygons.polygonLength() + params.result_lines.polyLineLength()) * static_cast<long double>(INFILL_LINE_WIDTH))
-                                      / getPatternMultiplier(params.params.pattern);
+    const long double out_infill_area
+        = ((params.result_polygons.length() + params.result_lines.length()) * static_cast<long double>(INFILL_LINE_WIDTH)) / getPatternMultiplier(params.params.pattern);
 
     ASSERT_GT((coord_t)max_available_area, (coord_t)out_infill_area) << "Infill area should allways be less than the total area available.";
     ASSERT_GT((coord_t)out_infill_area, (coord_t)min_expected_infill_area) << "Infill area should be greater than the minimum area expected to be covered.";
@@ -285,14 +285,14 @@ TEST_P(InfillTest, TestInfillSanity)
     const coord_t maximum_error = 10_mu; // potential rounding error
     const Shape padded_shape_outline = params.outline_polygons.offset(INFILL_LINE_WIDTH / 2);
     constexpr bool restitch = false; // No need to restitch polylines - that would introduce stitching errors.
-    ASSERT_LE(std::abs(padded_shape_outline.intersectionPolyLines(params.result_lines, restitch).polyLineLength() - params.result_lines.polyLineLength()), maximum_error)
+    ASSERT_LE(std::abs(padded_shape_outline.intersection(params.result_lines, restitch).length() - params.result_lines.length()), maximum_error)
         << "Infill (lines) should not be outside target polygon.";
     Shape result_polygon_lines = params.result_polygons;
     for (Polygon& poly : result_polygon_lines)
     {
         poly.push_back(poly.front());
     }
-    ASSERT_LE(std::abs(padded_shape_outline.intersectionPolyLines(result_polygon_lines, restitch).polyLineLength() - result_polygon_lines.polyLineLength()), maximum_error)
+    ASSERT_LE(std::abs(padded_shape_outline.intersection(result_polygon_lines, restitch).length() - result_polygon_lines.length()), maximum_error)
         << "Infill (lines) should not be outside target polygon.";
 }
 

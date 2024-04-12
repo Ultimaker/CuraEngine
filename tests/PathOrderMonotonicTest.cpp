@@ -2,24 +2,28 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "PathOrderMonotonic.h"
-#include "ReadTestPolygons.h"
-#include "infill.h"
-#include "slicer.h"
-#include "utils/Coord_t.h"
-#include "utils/math.h"
-#include "geometry/polygon.h"
-#include <gtest/gtest.h>
+
 #include <filesystem>
 #include <polyclipping/clipper.hpp>
 #include <string>
 
 #include <scripta/logger.h>
 
+#include <gtest/gtest.h>
+
+#include "ReadTestPolygons.h"
+#include "geometry/polygon.h"
+#include "infill.h"
+#include "slicer.h"
+#include "utils/Coord_t.h"
+#include "utils/math.h"
+
 // To diagnose failing tests with visual images, uncomment the following line:
 // #define TEST_PATHS_SVG_OUTPUT
 #ifdef TEST_PATHS_SVG_OUTPUT
-#include "utils/SVG.h"
 #include <cstdlib>
+
+#include "utils/SVG.h"
 #endif // TEST_PATHS_SVG_OUTPUT
 
 namespace cura
@@ -30,22 +34,22 @@ class PathOrderMonotonicTest : public testing::TestWithParam<std::tuple<std::str
 {
 };
 
-inline Point2LL startVertex(const PathOrdering<ConstPolygonPointer>& path)
+inline Point2LL startVertex(const PathOrdering<const OpenPolyline*>& path)
 {
     return (*path.vertices_)[path.start_vertex_];
 }
 
-inline Point2LL endVertex(const PathOrdering<ConstPolygonPointer>& path)
+inline Point2LL endVertex(const PathOrdering<const OpenPolyline*>& path)
 {
     return (*path.vertices_)[path.vertices_->size() - (1 + path.start_vertex_)];
 }
 
-coord_t projectPathAlongAxis(const PathOrdering<ConstPolygonPointer>& path, const Point2LL& vector)
+coord_t projectPathAlongAxis(const PathOrdering<const OpenPolyline*>& path, const Point2LL& vector)
 {
     return dot(startVertex(path), vector);
 }
 
-coord_t projectEndAlongAxis(const PathOrdering<ConstPolygonPointer>& path, const Point2LL& vector)
+coord_t projectEndAlongAxis(const PathOrdering<const OpenPolyline*>& path, const Point2LL& vector)
 {
     return dot(endVertex(path), vector);
 }
@@ -54,7 +58,8 @@ bool rangeOverlaps(const std::pair<coord_t, coord_t>& range_b, const std::pair<c
 {
     const coord_t len_b = std::abs(range_b.first - range_b.second);
     const coord_t len_a = std::abs(range_a.first - range_a.second);
-    const coord_t len_total = std::max({ range_b.first, range_b.second, range_a.first, range_a.second }) - std::min({ range_b.first, range_b.second, range_a.first, range_a.second });
+    const coord_t len_total
+        = std::max({ range_b.first, range_b.second, range_a.first, range_a.second }) - std::min({ range_b.first, range_b.second, range_a.first, range_a.second });
     return len_total < (len_b + len_a);
 }
 
@@ -71,7 +76,7 @@ constexpr coord_t shift = 0;
 constexpr coord_t max_resolution = 10;
 constexpr coord_t max_deviation = 5;
 
-bool getInfillLines(const std::string& filename, const AngleRadians& angle, Shape& output)
+bool getInfillLines(const std::string& filename, const AngleRadians& angle, OpenLinesSet& output)
 {
     std::vector<Shape> shapes;
     if (! readTestPolygons(filename, shapes))
@@ -81,7 +86,20 @@ bool getInfillLines(const std::string& filename, const AngleRadians& angle, Shap
 
     for (const auto& shape : shapes)
     {
-        Infill infill_comp(pattern, zig_zagify, connect_polygons, shape, infill_line_width, line_distance, infill_overlap, infill_multiplier, AngleDegrees(angle), z, shift, max_resolution, max_deviation);
+        Infill infill_comp(
+            pattern,
+            zig_zagify,
+            connect_polygons,
+            shape,
+            infill_line_width,
+            line_distance,
+            infill_overlap,
+            infill_multiplier,
+            AngleDegrees(angle),
+            z,
+            shift,
+            max_resolution,
+            max_deviation);
         Settings infill_settings;
         std::vector<VariableWidthLines> result_paths;
         Shape dummy_polys;
@@ -91,7 +109,11 @@ bool getInfillLines(const std::string& filename, const AngleRadians& angle, Shap
 }
 
 #ifdef TEST_PATHS_SVG_OUTPUT
-void writeDebugSVG(const std::string& original_filename, const AngleRadians& angle, const Point& monotonic_vec, const std::vector<std::vector<PathOrdering<ConstPolygonPointer>>>& sections)
+void writeDebugSVG(
+    const std::string& original_filename,
+    const AngleRadians& angle,
+    const Point& monotonic_vec,
+    const std::vector<std::vector<PathOrdering<ConstPolygonPointer>>>& sections)
 {
     constexpr int buff_size = 1024;
     char buff[buff_size];
@@ -136,7 +158,7 @@ TEST_P(PathOrderMonotonicTest, SectionsTest)
     const auto params = GetParam();
     const double angle_radians{ std::get<1>(params) };
     const auto& filename = std::get<0>(params);
-    Shape polylines;
+    OpenLinesSet polylines;
     ASSERT_TRUE(getInfillLines(filename, angle_radians, polylines)) << "Input test-file could not be read, check setup.";
 
     const Point2LL& pt_r = polylines.begin()->at(0);
@@ -146,15 +168,15 @@ TEST_P(PathOrderMonotonicTest, SectionsTest)
     const Point2LL perpendicular_axis{ turn90CCW(monotonic_axis) };
 
     constexpr coord_t max_adjacent_distance = line_distance + 1;
-    PathOrderMonotonic<ConstPolygonPointer> object_under_test(angle_from_first_line, max_adjacent_distance, monotonic_axis * -1000);
+    PathOrderMonotonic<const OpenPolyline*> object_under_test(angle_from_first_line, max_adjacent_distance, monotonic_axis * -1000);
     for (const auto& polyline : polylines)
     {
-        object_under_test.addPolyline(ConstPolygonPointer(polyline));
+        object_under_test.addPolyline(&polyline);
     }
     object_under_test.optimize();
 
     // Collect sections:
-    std::vector<std::vector<PathOrdering<ConstPolygonPointer>>> sections;
+    std::vector<std::vector<PathOrdering<const OpenPolyline*>>> sections;
     sections.emplace_back();
     coord_t last_path_mono_projection = projectPathAlongAxis(object_under_test.paths_.front(), monotonic_axis);
     for (const auto& path : object_under_test.paths_)
@@ -202,7 +224,8 @@ TEST_P(PathOrderMonotonicTest, SectionsTest)
                     const coord_t mono_b = projectPathAlongAxis(*it_b, monotonic_axis);
                     if (mono_a < mono_b)
                     {
-                        EXPECT_FALSE(rangeOverlaps(perp_b_range, perp_a_range)) << "Perpendicular range overlaps for neighboring lines in different sections (next line of A / line in B).";
+                        EXPECT_FALSE(rangeOverlaps(perp_b_range, perp_a_range))
+                            << "Perpendicular range overlaps for neighboring lines in different sections (next line of A / line in B).";
                     }
                 }
             }
@@ -210,14 +233,28 @@ TEST_P(PathOrderMonotonicTest, SectionsTest)
     }
 }
 
-const std::vector<std::string> polygon_filenames = {
-    std::filesystem::path(__FILE__).parent_path().append("resources/polygon_concave.txt").string(),   std::filesystem::path(__FILE__).parent_path().append("resources/polygon_concave_hole.txt").string(),
-    std::filesystem::path(__FILE__).parent_path().append("resources/polygon_square.txt").string(),    std::filesystem::path(__FILE__).parent_path().append("resources/polygon_square_hole.txt").string(),
-    std::filesystem::path(__FILE__).parent_path().append("resources/polygon_triangle.txt").string(),  std::filesystem::path(__FILE__).parent_path().append("resources/polygon_two_squares.txt").string(),
-    std::filesystem::path(__FILE__).parent_path().append("resources/polygon_slant_gap.txt").string(), std::filesystem::path(__FILE__).parent_path().append("resources/polygon_sawtooth.txt").string(),
-    std::filesystem::path(__FILE__).parent_path().append("resources/polygon_letter_y.txt").string()
-};
-const std::vector<AngleRadians> angle_radians = { 0, 0.1, 0.25 * std::numbers::pi, 1.0, 0.5 * std::numbers::pi, 0.75 * std::numbers::pi, std::numbers::pi, 1.25 * std::numbers::pi, 4.0, 1.5 * std::numbers::pi, 1.75 * std::numbers::pi, 5.0, (2.0 * std::numbers::pi) - 0.1 };
+const std::vector<std::string> polygon_filenames = { std::filesystem::path(__FILE__).parent_path().append("resources/polygon_concave.txt").string(),
+                                                     std::filesystem::path(__FILE__).parent_path().append("resources/polygon_concave_hole.txt").string(),
+                                                     std::filesystem::path(__FILE__).parent_path().append("resources/polygon_square.txt").string(),
+                                                     std::filesystem::path(__FILE__).parent_path().append("resources/polygon_square_hole.txt").string(),
+                                                     std::filesystem::path(__FILE__).parent_path().append("resources/polygon_triangle.txt").string(),
+                                                     std::filesystem::path(__FILE__).parent_path().append("resources/polygon_two_squares.txt").string(),
+                                                     std::filesystem::path(__FILE__).parent_path().append("resources/polygon_slant_gap.txt").string(),
+                                                     std::filesystem::path(__FILE__).parent_path().append("resources/polygon_sawtooth.txt").string(),
+                                                     std::filesystem::path(__FILE__).parent_path().append("resources/polygon_letter_y.txt").string() };
+const std::vector<AngleRadians> angle_radians = { 0,
+                                                  0.1,
+                                                  0.25 * std::numbers::pi,
+                                                  1.0,
+                                                  0.5 * std::numbers::pi,
+                                                  0.75 * std::numbers::pi,
+                                                  std::numbers::pi,
+                                                  1.25 * std::numbers::pi,
+                                                  4.0,
+                                                  1.5 * std::numbers::pi,
+                                                  1.75 * std::numbers::pi,
+                                                  5.0,
+                                                  (2.0 * std::numbers::pi) - 0.1 };
 
 INSTANTIATE_TEST_SUITE_P(PathOrderMonotonicTestInstantiation, PathOrderMonotonicTest, testing::Combine(testing::ValuesIn(polygon_filenames), testing::ValuesIn(angle_radians)));
 // NOLINTEND(*-magic-numbers)

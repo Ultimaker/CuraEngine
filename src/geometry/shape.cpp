@@ -7,6 +7,19 @@
 #include <numeric>
 #include <unordered_set>
 
+#ifdef BUILD_TESTS
+#include <boost/geometry/geometries/point_xy.hpp>
+#include <boost/geometry/geometries/polygon.hpp>
+#include <boost/geometry/io/wkt/read.hpp>
+#include <fmt/format.h>
+#include <range/v3/to_container.hpp>
+#include <range/v3/view/c_str.hpp>
+#include <range/v3/view/concat.hpp>
+#include <range/v3/view/join.hpp>
+#include <range/v3/view/take.hpp>
+#include <range/v3/view/transform.hpp>
+#endif
+
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/sliding.hpp>
 
@@ -915,6 +928,59 @@ void Shape::applyMatrix(const Point3Matrix& matrix)
         polygon.applyMatrix(matrix);
     }
 }
+
+#ifdef BUILD_TESTS
+[[maybe_unused]] Shape Shape::fromWkt(const std::string& wkt)
+{
+    typedef boost::geometry::model::d2::point_xy<double> point_type;
+    typedef boost::geometry::model::polygon<point_type> polygon_type;
+
+    polygon_type poly;
+    boost::geometry::read_wkt(wkt, poly);
+
+    Shape ret;
+
+    Polygon outer;
+    for (const auto& point : poly.outer())
+    {
+        outer.emplace_back(point.x(), point.y());
+    }
+    ret.push_back(outer);
+
+    for (const auto& hole : poly.inners())
+    {
+        Polygon inner;
+        for (const auto& point : hole)
+        {
+            inner.emplace_back(point.x(), point.y());
+        }
+        ret.push_back(inner);
+    }
+
+    return ret;
+}
+
+[[maybe_unused]] void Shape::writeWkt(std::ostream& stream) const
+{
+    stream << "POLYGON (";
+    const auto paths_str = getLines()
+                         | ranges::views::transform(
+                               [](const Polygon& path)
+                               {
+                                   const auto line_string = ranges::views::concat(path, path | ranges::views::take(1))
+                                                          | ranges::views::transform(
+                                                                [](const Point2LL& point)
+                                                                {
+                                                                    return fmt::format("{} {}", point.X, point.Y);
+                                                                })
+                                                          | ranges::views::join(ranges::views::c_str(", ")) | ranges::to<std::string>();
+                                   return "(" + line_string + ")";
+                               })
+                         | ranges::views::join(ranges::views::c_str(", ")) | ranges::to<std::string>();
+    stream << paths_str;
+    stream << ")";
+}
+#endif
 
 template LinesSet<OpenPolyline> Shape::intersection(const LinesSet<OpenPolyline>& polylines, bool restitch, const coord_t max_stitch_distance) const;
 template LinesSet<OpenPolyline> Shape::intersection(const LinesSet<ClosedPolyline>& polylines, bool restitch, const coord_t max_stitch_distance) const;

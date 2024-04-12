@@ -6,6 +6,8 @@
 
 #include <vector>
 
+#include <range/v3/view/drop.hpp>
+
 #include "geometry/point2ll.h"
 
 namespace cura
@@ -24,6 +26,10 @@ class LinesSet
 {
 private:
     std::vector<LineType> lines_;
+
+public:
+    // Requires for some std calls as a container
+    typedef LineType value_type;
 
 public:
     LinesSet() = default;
@@ -226,6 +232,29 @@ public:
     void addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
 
     void addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
+
+    /*!
+     * \brief Display operator, useful for debugging/testing
+     */
+    template<class CharT, class TraitsT>
+    friend std::basic_ostream<CharT, TraitsT>& operator<<(std::basic_ostream<CharT, TraitsT>& os, const LinesSet& lines)
+    {
+        os << "LinesSet[";
+
+        for (const LineType& line : lines | ranges::views::drop(1))
+        {
+            os << line;
+            os << ", ";
+        }
+
+        if (lines.size() > 1)
+        {
+            os << lines.back();
+        }
+
+        os << "]";
+        return os;
+    }
 };
 
 } // namespace cura
