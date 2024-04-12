@@ -451,7 +451,7 @@ size_t PolygonUtils::moveInside(const Shape& polygons, Point2LL& from, int dista
 }
 
 // Version that works on single PolygonRef.
-unsigned int PolygonUtils::moveInside(const ClosedPolyline &polygon, Point2LL& from, int distance, int64_t maxDist2)
+unsigned int PolygonUtils::moveInside(const ClosedPolyline& polygon, Point2LL& from, int distance, int64_t maxDist2)
 {
     // TODO: This is copied from the moveInside of Polygons.
     /*
