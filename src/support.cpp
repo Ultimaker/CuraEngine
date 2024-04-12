@@ -35,6 +35,7 @@
 #include "slicer.h"
 #include "utils/Simplify.h"
 #include "utils/ThreadPool.h"
+#include "utils/linearAlg2D.h"
 #include "utils/math.h"
 
 namespace cura

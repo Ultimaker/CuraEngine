@@ -45,7 +45,7 @@ void SlicerLayer::makeBasicPolygonLoops(OpenLinesSet& open_polylines)
 
 void SlicerLayer::makeBasicPolygonLoop(OpenLinesSet& open_polylines, const size_t start_segment_idx)
 {
-    OpenPolyline poly;
+    Polygon poly(true);
     poly.push_back(segments[start_segment_idx].start);
 
     for (int segment_idx = start_segment_idx; segment_idx != -1;)
@@ -56,12 +56,12 @@ void SlicerLayer::makeBasicPolygonLoop(OpenLinesSet& open_polylines, const size_
         segment_idx = getNextSegmentIdx(segment, start_segment_idx);
         if (segment_idx == static_cast<int>(start_segment_idx))
         { // polyon is closed
-            polygons.push_back(Polygon(std::move(poly.getPoints()), true));
+            polygons.push_back(std::move(poly));
             return;
         }
     }
     // polygon couldn't be closed
-    open_polylines.push_back(poly);
+    open_polylines.emplace_back(std::move(poly.getPoints()));
 }
 
 int SlicerLayer::tryFaceNextSegmentIdx(const SlicerSegment& segment, const int face_idx, const size_t start_segment_idx) const

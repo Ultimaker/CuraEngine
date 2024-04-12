@@ -7,8 +7,8 @@
 #include <cstddef>
 #include <vector>
 
-#include "geometry/polygon.h"
 #include "settings/types/LayerIndex.h"
+#include "utils/Coord_t.h"
 
 namespace cura
 {
@@ -17,6 +17,8 @@ class Settings;
 class SliceDataStorage;
 class SliceMeshStorage;
 class Slicer;
+class Polygon;
+class Shape;
 
 class AreaSupport
 {

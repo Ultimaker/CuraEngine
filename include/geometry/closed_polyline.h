@@ -21,7 +21,11 @@ private:
     bool explicitely_closed_{ false };
 
 public:
-    ClosedPolyline() = default;
+    ClosedPolyline(bool explicitely_closed = false)
+        : Polyline()
+        , explicitely_closed_(explicitely_closed)
+    {
+    }
 
     ClosedPolyline(const ClosedPolyline& other) = default;
 

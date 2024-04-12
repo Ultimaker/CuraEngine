@@ -316,19 +316,4 @@ private:
 
 } // namespace cura
 
-namespace std
-{
-#if 0
-template<>
-struct hash<cura::Polygon*>
-{
-    size_t operator()(const cura::PolygonPointer& poly) const
-    {
-        const cura::ConstPolygonRef ref = *static_cast<cura::PolygonPointer>(poly);
-        return std::hash<const ClipperLib::Path*>()(&*ref);
-    }
-};
-#endif
-} // namespace std
-
 #endif // GEOMETRY_SHAPE_H
