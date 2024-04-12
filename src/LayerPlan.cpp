@@ -1422,6 +1422,10 @@ void LayerPlan::addLinesInGivenOrder(
     {
         const PathOrdering<const Polyline*>& path = lines[order_idx];
         const Polyline& polyline = *path.vertices_;
+        if (polyline.segmentsCount() == 0)
+        {
+            continue;
+        }
         const size_t start_idx = path.start_vertex_;
         assert(start_idx == 0 || start_idx == polyline.size() - 1 || path.is_closed_);
         const Point2LL start = polyline[start_idx];
