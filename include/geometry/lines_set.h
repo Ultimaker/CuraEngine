@@ -160,15 +160,15 @@ public:
         return lines_.erase(first, last);
     }
 
-    LinesSet& operator=(LinesSet&& other)
-    {
-        lines_ = std::move(other.lines_);
-        return *this;
-    }
-
     LinesSet& operator=(const LinesSet& other)
     {
         lines_ = other.lines_;
+        return *this;
+    }
+
+    LinesSet& operator=(LinesSet&& other)
+    {
+        lines_ = std::move(other.lines_);
         return *this;
     }
 

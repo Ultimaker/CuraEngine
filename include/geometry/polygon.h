@@ -48,7 +48,7 @@ public:
 
     Polygon& operator=(Polygon&& other)
     {
-        Polyline::operator=(other);
+        Polyline::operator=(std::move(other));
         return *this;
     }
 
