@@ -1551,6 +1551,11 @@ void LayerPlan::addLinesMonotonic(
     for (size_t line_idx = 0; line_idx < line_order.paths_.size(); ++line_idx)
     {
         const OpenPolyline& polyline = *line_order.paths_[line_idx].vertices_;
+        if (polyline.segmentsCount() == 0)
+        {
+            continue;
+        }
+
         const bool inside_exclusion = is_inside_exclusion(polyline);
         const bool next_would_have_been_included = inside_exclusion && (line_idx < line_order.paths_.size() - 1 && is_inside_exclusion(*line_order.paths_[line_idx + 1].vertices_));
         if (inside_exclusion && last_would_have_been_excluded && next_would_have_been_included)
