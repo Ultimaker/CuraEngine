@@ -717,7 +717,7 @@ void Shape::splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::
             part.emplace_back(std::move(child->Childs[i]->Contour));
             splitIntoParts_processPolyTreeNode(child->Childs[i], ret);
         }
-        ret.push_back(part);
+        ret.push_back(std::move(part));
     }
 }
 
