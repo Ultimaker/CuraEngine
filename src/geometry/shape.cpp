@@ -678,16 +678,9 @@ double Shape::area() const
         0.0,
         [](double total, const Polygon& poly)
         {
+            // note: holes already have negative area
             return total + poly.area();
         });
-
-    double area = 0.0;
-    for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
-    {
-        area += operator[](poly_idx).area();
-        // note: holes already have negative area
-    }
-    return area;
 }
 
 std::vector<SingleShape> Shape::splitIntoParts(bool unionAll) const
