@@ -9,11 +9,11 @@
 namespace cura
 {
 
-// Custom iterator to loop over the segments of an existing polygon/polyline
+// Custom iterator to loop over the segments of a polyline
 template<bool IsConst>
 struct SegmentIterator
 {
-    // Transitory structure used to iterate over segments within a polygon/polyline
+    // Transitory structure used to iterate over segments within a polyline
     struct Segment
     {
         using PointType = typename std::conditional<IsConst, const Point2LL, Point2LL>::type;
@@ -22,6 +22,7 @@ struct SegmentIterator
         PointType& end;
     };
 
+    // Define type values so that std library methods can use this iterator
     using iterator_category = std::random_access_iterator_tag;
     using value_type = Segment;
     using difference_type = std::ptrdiff_t;

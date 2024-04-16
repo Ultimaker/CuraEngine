@@ -28,26 +28,51 @@ private:
     std::vector<LineType> lines_;
 
 public:
-    // Requires for some std calls as a container
+    // Required for some std calls as a container
     typedef LineType value_type;
 
 public:
+    /*! \brief Builds an empty set */
     LinesSet() = default;
 
+    /*!
+     * \brief Creates a copy of the given lines set
+     * \warning A copy of the points list is made, so this constructor can be very slow
+     */
     LinesSet(const LinesSet& other) = default;
 
+    /*!
+     * \brief Constructor that takes the inner lines list from the given set
+     * \warning This constructor is fast because it does not allocate data, but it will clear
+     *          the source object
+     */
     LinesSet(LinesSet&& other) = default;
 
+    /*!
+     * \brief Constructor with an existing set of lines
+     * \warning A copy of the lines set is made, so this constructor can be very slow
+     */
     LinesSet(const std::vector<LineType>& lines)
         : lines_(lines)
     {
     }
 
+    /*!
+     * \brief Constructor that takes ownership of the data from the given set of lines
+     * \warning This constructor is fast because it does not allocate data, but it will clear
+     *          the source object
+     */
     LinesSet(std::vector<LineType>&& lines)
         : lines_(std::move(lines))
     {
     }
 
+    /*!
+     * \brief Constructor that takes ownership of the data from the given set of lines
+     * \warning This constructor is actually only defined for a LinesSet containing OpenPolyline
+     *          objects, because closed ones require an additional argument
+     */
+    template<typename U = LineType, typename = typename std::enable_if<std::is_same<U, OpenPolyline>::value>::type>
     LinesSet(ClipperLib::Paths&& paths);
 
     const std::vector<LineType>& getLines() const
@@ -105,15 +130,35 @@ public:
         return lines_.front();
     }
 
+    /*!
+     * \brief Pushes the given line at the end of the set
+     * \param checkNonEmpty If true, we will check that the line is not empty,
+     *                      and discard it in case it is
+     * \warning A copy of the line is made, so this method may be slow
+     */
     void push_back(const LineType& line, bool checkNonEmpty = false);
 
+    /*!
+     * \brief Pushes the given line at the end of the set and takes ownership of the inner data
+     * \param checkNonEmpty If true, we will check that the line is not empty,
+     *                      and discard it in case it is
+     * \warning This method is fast because it does not allocate data, but it will clear
+     *          the source object
+     */
     void push_back(LineType&& line, bool checkNonEmpty = false);
 
-    void push_back(ClipperLib::Paths&& paths);
-
+    /*!
+     * \brief Pushes an entier set at the end and takes ownership of the inner data
+     * \warning This method is fast because it does not allocate data, but it will clear
+     *          the source object
+     */
     template<class OtherLineType>
     void push_back(LinesSet<OtherLineType>&& lines_set);
 
+    /*!
+     * \brief Pushes an entier set at the end
+     * \warning A copy of all the lines is made, so this method may be slow
+     */
     void push_back(const LinesSet& other)
     {
         lines_.insert(lines_.end(), other.lines_.begin(), other.lines_.end());
@@ -188,35 +233,25 @@ public:
         return lines_.back();
     }
 
-    //!< Return the amount of points in all lines
+    /*! \brief Return the amount of points in all lines */
     size_t pointCount() const;
 
     /*!
      * Remove a line from the list and move the last line to its place
-     *
      * \warning changes the order of the lines!
      */
     void removeAt(size_t index);
 
-    /*!
-     * Add a simple line consisting of two points
-     */
+    /*! \brief Add a simple line consisting of two points */
     void addSegment(const Point2LL& from, const Point2LL& to);
 
+    /*! \brief Get the total length of all the lines */
     coord_t length() const;
 
     void splitIntoSegments(LinesSet<OpenPolyline>& result) const;
     LinesSet<OpenPolyline> splitIntoSegments() const;
 
-    /*!
-     * Removes overlapping consecutive line segments which don't delimit a
-     * positive area.
-     *
-     * This function is meant to work on polygons, not polylines. When misused
-     * on polylines, it may cause too many vertices to be removed.
-     * See \ref removeDegenerateVertsPolyline for a version that works on
-     * polylines.
-     */
+    /*! \brief Removes overlapping consecutive line segments which don't delimit a positive area */
     void removeDegenerateVerts();
 
     Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
@@ -229,8 +264,16 @@ public:
      */
     Shape tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 
+    /*!
+     * \brief Utility method to add all the lines to a ClipperLib::Clipper object
+     * \note This method needs to be public but you shouldn't need to use it from outside
+     */
     void addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
 
+    /*!
+     * \brief Utility method to add all the lines to a ClipperLib::ClipperOffset object
+     * \note This method needs to be public but you shouldn't need to use it from outside
+     */
     void addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
 
     /*!

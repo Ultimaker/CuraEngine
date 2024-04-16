@@ -9,35 +9,67 @@
 namespace cura
 {
 
+/*!
+ *  @brief Represents a polyline that is explicitely not closed
+ *  @note Open polylines are sometimes used to represent actually closed polylines. In this case
+ *        the first and last point are at the very same position. This should not be done, but
+ *        it exists all around the engine for historical reasons. The behavior is however deprecated
+ *        and should not be used in the future
+ */
 class OpenPolyline : public Polyline
 {
 public:
+    /*! @brief Builds an empty polyline */
     OpenPolyline() = default;
 
+    /*!
+     * \brief Creates a copy of the given polyline
+     * \warning A copy of the points list is made, so this constructor is somehow "slow"
+     */
     OpenPolyline(const OpenPolyline& other) = default;
 
+    /*!
+     * \brief Constructor that takes ownership of the inner points list from the given polyline
+     * \warning This constructor is fast because it does not allocate data, but it will clear
+     *          the source object
+     */
     OpenPolyline(OpenPolyline&& other) = default;
 
+    /*!
+     * \brief Constructor with a points initializer list, provided for convenience
+     * \warning A copy of the points list is made, so this constructor is somehow "slow"
+     */
     OpenPolyline(const std::initializer_list<Point2LL>& initializer)
         : Polyline(initializer)
     {
     }
 
+    /*!
+     * \brief Constructor with an existing list of points
+     * \warning A copy of the points list is made, so this constructor is somehow "slow"
+     */
     OpenPolyline(const ClipperLib::Path& points)
         : Polyline(points)
     {
     }
 
+    /*!
+     * \brief Constructor that takes ownership of the given list of points
+     * \warning This constructor is fast because it does not allocate data, but it will clear
+     *          the source object
+     */
     OpenPolyline(ClipperLib::Path&& points)
         : Polyline(std::move(points))
     {
     }
 
+    /*! @see Polyline::addClosingSegment() */
     virtual bool addClosingSegment() const override
     {
         return false; // Definitely not
     }
 
+    /*! @see Polyline::segmentsCount() */
     virtual size_t segmentsCount() const override
     {
         return size() > 1 ? size() - 1 : 0;

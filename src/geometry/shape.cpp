@@ -163,6 +163,11 @@ Shape Shape::unionPolygons(const Shape& other, ClipperLib::PolyFillType fill_typ
     return Shape(std::move(ret));
 }
 
+Shape Shape::unionPolygons() const
+{
+    return unionPolygons(Shape());
+}
+
 Shape Shape::intersection(const Shape& other) const
 {
     ClipperLib::Paths ret;
@@ -177,7 +182,7 @@ Shape Shape::offset(coord_t distance, ClipperLib::JoinType join_type, double mit
 {
     if (distance == 0)
     {
-        return Shape(getLines());
+        return Shape(*this);
     }
     ClipperLib::Paths ret;
     ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
@@ -563,13 +568,6 @@ Shape Shape::processEvenOdd(ClipperLib::PolyFillType poly_fill_type) const
     return Shape(std::move(ret));
 }
 
-Shape Shape::toPolygons(ClipperLib::PolyTree& poly_tree)
-{
-    ClipperLib::Paths ret;
-    ClipperLib::PolyTreeToPaths(poly_tree, ret);
-    return Shape(std::move(ret));
-}
-
 Shape Shape::smooth_outward(const AngleDegrees max_angle, int shortcut_length) const
 {
     Shape ret;
@@ -886,38 +884,6 @@ void Shape::ensureManifold()
     {
         *this = difference(removal_dots);
     }
-}
-
-Point2LL Shape::min() const
-{
-    Point2LL ret = Point2LL(POINT_MAX, POINT_MAX);
-
-    for (const Polygon& polygon : *this)
-    {
-        for (const Point2LL& p : polygon)
-        {
-            ret.X = std::min(ret.X, p.X);
-            ret.Y = std::min(ret.Y, p.Y);
-        }
-    }
-
-    return ret;
-}
-
-Point2LL Shape::max() const
-{
-    Point2LL ret = Point2LL(POINT_MIN, POINT_MIN);
-
-    for (const Polygon& polygon : *this)
-    {
-        for (const Point2LL& p : polygon)
-        {
-            ret.X = std::max(ret.X, p.X);
-            ret.Y = std::max(ret.Y, p.Y);
-        }
-    }
-
-    return ret;
 }
 
 void Shape::applyMatrix(const PointMatrix& matrix)

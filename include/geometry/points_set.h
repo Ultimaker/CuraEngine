@@ -25,20 +25,43 @@ private:
     ClipperLib::Path points_;
 
 public:
-    // Requires for some std calls as a container
+    // Required for some std calls as a container
     typedef Point2LL value_type;
 
 public:
+    /*! \brief Builds an empty set */
     PointsSet() = default;
 
+    /*!
+     * \brief Creates a copy of the given points set
+     * \warning A copy of the points set is made, so this constructor is somehow "slow"
+     */
     PointsSet(const PointsSet& other) = default;
 
+    /*!
+     * \brief Constructor that takes ownership of the inner points from the given set
+     * \warning This constructor is fast because it does not allocate data, but it will clear
+     *          the source object
+     */
     PointsSet(PointsSet&& other) = default;
 
+    /*!
+     * \brief Constructor with a points initializer list, provided for convenience
+     * \warning A copy of the points list is made, so this constructor is somehow "slow"
+     */
     PointsSet(const std::initializer_list<Point2LL>& initializer);
 
+    /*!
+     * \brief Constructor with an existing list of points
+     * \warning A copy of the points list is made, so this constructor is somehow "slow"
+     */
     PointsSet(const ClipperLib::Path& points);
 
+    /*!
+     * \brief Constructor that takes ownership of the given list of points
+     * \warning This constructor is fast because it does not allocate data, but it will clear
+     *          the source object
+     */
     PointsSet(ClipperLib::Path&& points);
 
     const ClipperLib::Path& getPoints() const
@@ -188,21 +211,16 @@ public:
     PointsSet& operator=(PointsSet&& other) = default;
 
     /*!
-     * Translate all the points in some direction.
-     *
+     * \brief Translate all the points in some direction.
      * \param translation The direction in which to move the points
      */
     void translate(const Point2LL& translation);
 
-    /*!
-     * Apply a matrix to each vertex in this set
-     */
+    /*! \brief Apply a matrix to each vertex in this set */
     void applyMatrix(const PointMatrix& matrix);
     void applyMatrix(const Point3Matrix& matrix);
 
-    /*!
-     * \brief Display operator, useful for debugging/testing
-     */
+    /*! \brief Display operator, useful for debugging/testing */
     template<class CharT, class TraitsT>
     friend std::basic_ostream<CharT, TraitsT>& operator<<(std::basic_ostream<CharT, TraitsT>& os, const PointsSet& polygon)
     {

@@ -36,22 +36,45 @@ public:
     using segments_iterator = SegmentIterator<false>;
     using const_segments_iterator = SegmentIterator<true>;
 
+    /*! \brief Builds an empty polyline */
     Polyline() = default;
 
+    /*!
+     * \brief Creates a copy of the given polyline
+     * \warning A copy of the points list is made, so this constructor is somehow "slow"
+     */
     Polyline(const Polyline& other) = default;
 
+    /*!
+     * \brief Constructor that takes ownership of the inner points list from the given polyline
+     * \warning This constructor is fast because it does not allocate data, but it will clear
+     *          the source object
+     */
     Polyline(Polyline&& other) = default;
 
+    /*!
+     * \brief Constructor with a points initializer list, provided for convenience
+     * \warning A copy of the points list is made, so this constructor is somehow "slow"
+     */
     Polyline(const std::initializer_list<Point2LL>& initializer)
         : PointsSet(initializer)
     {
     }
 
+    /*!
+     * \brief Constructor with an existing list of points
+     * \warning A copy of the points list is made, so this constructor is somehow "slow"
+     */
     Polyline(const ClipperLib::Path& points)
         : PointsSet(points)
     {
     }
 
+    /*!
+     * \brief Constructor that takes ownership of the given list of points
+     * \warning This constructor is fast because it does not allocate data, but it will clear
+     *          the source object
+     */
     Polyline(ClipperLib::Path&& points)
         : PointsSet(points)
     {
@@ -60,8 +83,8 @@ public:
     virtual ~Polyline() = default;
 
     /*!
-     * \brief Indicates whether this polyline has a virtual closing segment between the last point
-     *        in the set and the first one
+     * \brief Indicates whether this polyline has an additional closing segment between the last
+     *        point in the set and the first one
      * \return  True if a segment between the last and first point should be considered
      */
     virtual bool addClosingSegment() const = 0;
@@ -85,12 +108,16 @@ public:
         return *this;
     }
 
+    /*! \brief Provides a begin iterator to iterate over all the segments of the line */
     const_segments_iterator beginSegments() const;
 
+    /*! \brief Provides an end iterator to iterate over all the segments of the line */
     const_segments_iterator endSegments() const;
 
+    /*! \brief Provides a begin iterator to iterate over all the segments of the line */
     segments_iterator beginSegments();
 
+    /*! \brief Provides an end iterator to iterate over all the segments of the line */
     segments_iterator endSegments();
 
     /*!

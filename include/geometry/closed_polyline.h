@@ -11,49 +11,93 @@ namespace cura
 
 class OpenPolyline;
 
+/*! @brief This describes a polyline which forms a closed path.
+ *
+ *  The path may be closed:
+ *    * Explicitely, which means the last point is at the same position as the first point.
+ *      In this case, in order to iterate over the segments, you just have to iterate over
+ *      the actual points.
+ *    * Implicitely, which means the last and first point are at different positions. In this
+ *      case, to iterate over the segments, you have to consider an additional segment
+ *      between the last and first point
+ *
+ *  The difference is made because it is easier to iterate over segments when the path is
+ *  explicitely closed, but ClipperLib uses implicitely closed paths. It is also a bit healthier
+ *  to use implicitely closed because there is no risk that the first and last point become different
+ */
 class ClosedPolyline : public Polyline
 {
 private:
-    /*! If true, that means the last point in the list is at the same position as the start point,
-     *  making it explicitely closed.
-     *  If false, you have to add an additional segment between the end point and the start point to
-     *  actually have the line closed. */
     bool explicitely_closed_{ false };
 
 public:
+    /*!
+     * \brief Builds an empty closed polyline
+     * \param explicitely_closed Indicates whether the line will be explicitely closed
+     * \warning By default, the line is tagged as explicitely closed. We need this default
+     *          constructor in various places, but be careful that the interpretation of the points
+     *          added later will depend on this.
+     */
     ClosedPolyline(bool explicitely_closed = false)
         : Polyline()
         , explicitely_closed_(explicitely_closed)
     {
     }
 
+    /*!
+     * \brief Creates a copy of the given polyline
+     * \warning A copy of the points list is made, so this constructor is somehow "slow"
+     */
     ClosedPolyline(const ClosedPolyline& other) = default;
 
+    /*!
+     * \brief Constructor that takes ownership of the inner points list from the given polyline
+     * \warning This constructor is fast because it does not allocate data, but it will clear
+     *          the source object
+     */
     ClosedPolyline(ClosedPolyline&& other) = default;
 
+    /*!
+     * \brief Constructor with a points initializer list, provided for convenience
+     * \param explicitely_closed Specify whether the given points form an explicitely closed line
+     * \warning A copy of the points list is made, so this constructor is somehow "slow"
+     */
     ClosedPolyline(const std::initializer_list<Point2LL>& initializer, bool explicitely_closed)
         : Polyline(initializer)
         , explicitely_closed_(explicitely_closed)
     {
     }
 
+    /*!
+     * \brief Constructor with an existing list of points
+     * \param explicitely_closed Specify whether the given points form an explicitely closed line
+     * \warning A copy of the points list is made, so this constructor is somehow "slow"
+     */
     explicit ClosedPolyline(const ClipperLib::Path& points, bool explicitely_closed)
         : Polyline(points)
         , explicitely_closed_(explicitely_closed)
     {
     }
 
+    /*!
+     * \brief Constructor that takes ownership of the given list of points
+     * \param explicitely_closed Specify whether the given points form an explicitely closed line
+     * \warning This constructor is fast because it does not allocate data, but it will clear
+     *          the source object
+     */
     explicit ClosedPolyline(ClipperLib::Path&& points, bool explicitely_closed)
         : Polyline(points)
         , explicitely_closed_(explicitely_closed)
     {
     }
 
+    /*! @see Polyline::addClosingSegment() */
     virtual bool addClosingSegment() const
     {
         return ! explicitely_closed_;
     }
 
+    /*! @see Polyline::addClosingSegment() */
     virtual size_t segmentsCount() const override;
 
     ClosedPolyline& operator=(const ClosedPolyline& other)

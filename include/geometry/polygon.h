@@ -13,28 +13,64 @@ class Shape;
 class ListPolyIt;
 class AngleDegrees;
 
+/*!
+ * \brief A Polygon is a specific type of polyline, for which we consider that the "inside" part of
+ *        the line forms a surface
+ */
 class Polygon : public ClosedPolyline
 {
 public:
+    /*!
+     * \brief Builds an empty polygon
+     * \param explicitely_closed Indicates whether the contour line will be explicitely closed
+     * \warning By default, the contour line is tagged as explicitely closed. We need this default
+     *          constructor in various places, but be careful that the interpretation of the points
+     *          added later will depend on this.
+     */
     Polygon(bool explicitely_closed = false)
         : ClosedPolyline(explicitely_closed)
     {
     }
 
+    /*!
+     * \brief Creates a copy of the given polygon
+     * \warning A copy of the points list is made, so this constructor is somehow "slow"
+     */
     Polygon(const Polygon& other) = default;
 
+    /*!
+     * \brief Constructor that takes ownership of the inner points list from the given polygon
+     * \warning This constructor is fast because it does not allocate data, but it will clear
+     *          the source object
+     */
     Polygon(Polygon&& other) = default;
 
+    /*!
+     * \brief Constructor with a points initializer list, provided for convenience
+     * \param explicitely_closed Specify whether the given points form an explicitely closed line
+     * \warning A copy of the points list is made, so this constructor is somehow "slow"
+     */
     Polygon(const std::initializer_list<Point2LL>& initializer, bool explicitely_closed)
         : ClosedPolyline(initializer, explicitely_closed)
     {
     }
 
+    /*!
+     * \brief Constructor with an existing list of points
+     * \param explicitely_closed Specify whether the given points form an explicitely closed line
+     * \warning A copy of the points list is made, so this constructor is somehow "slow"
+     */
     explicit Polygon(const ClipperLib::Path& points, bool explicitely_closed)
         : ClosedPolyline(points, explicitely_closed)
     {
     }
 
+    /*!
+     * \brief Constructor that takes ownership of the given list of points
+     * \param explicitely_closed Specify whether the given points form an explicitely closed line
+     * \warning This constructor is fast because it does not allocate data, but it will clear
+     *          the source object
+     */
     explicit Polygon(ClipperLib::Path&& points, bool explicitely_closed)
         : ClosedPolyline(points, explicitely_closed)
     {
@@ -53,12 +89,9 @@ public:
     }
 
     /*!
-     * Compute the morphological intersection between this polygon and another.
-     *
-     * Note that the result may consist of multiple polygons, if you have bad
-     * luck.
-     *
+     * \brief Compute the morphological intersection between this polygon and another.
      * \param other The polygon with which to intersect this polygon.
+     * \note The result may consist of multiple polygons, if you have bad luck.
      */
     Shape intersection(const Polygon& other) const;
 

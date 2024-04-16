@@ -12,8 +12,9 @@
 namespace cura
 {
 
-template<class LineType>
-LinesSet<LineType>::LinesSet(ClipperLib::Paths&& paths)
+template<>
+template<>
+LinesSet<OpenPolyline>::LinesSet<OpenPolyline>(ClipperLib::Paths&& paths)
 {
     reserve(paths.size());
     for (ClipperLib::Path& path : paths)
@@ -37,16 +38,6 @@ void LinesSet<LineType>::push_back(LineType&& line, bool checkNonEmpty)
     if (! checkNonEmpty || ! line.empty())
     {
         lines_.push_back(line);
-    }
-}
-
-template<class LineType>
-void LinesSet<LineType>::push_back(ClipperLib::Paths&& paths)
-{
-    reserve(size() + paths.size());
-    for (ClipperLib::Path& path : paths)
-    {
-        lines_.emplace_back(std::move(path));
     }
 }
 
@@ -151,7 +142,7 @@ Shape LinesSet<ClosedPolyline>::offset(coord_t distance, ClipperLib::JoinType jo
     }
     ClipperLib::Paths ret;
     ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
-    addPaths(clipper, join_type, ClipperLib::etClosedPolygon);
+    addPaths(clipper, join_type, ClipperLib::etClosedLine);
     clipper.MiterLimit = miter_limit;
     clipper.Execute(ret, static_cast<double>(distance));
     return Shape(std::move(ret));
@@ -296,7 +287,6 @@ void LinesSet<LineType>::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib
     }
 }
 
-template LinesSet<OpenPolyline>::LinesSet(ClipperLib::Paths&& paths);
 template size_t LinesSet<OpenPolyline>::pointCount() const;
 template void LinesSet<OpenPolyline>::removeAt(size_t index);
 template void LinesSet<OpenPolyline>::splitIntoSegments(OpenLinesSet& result) const;

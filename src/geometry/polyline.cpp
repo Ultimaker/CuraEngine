@@ -155,7 +155,7 @@ void Polyline::splitIntoSegments(OpenLinesSet& result) const
     result.reserve(result.size() + segmentsCount());
     for (auto it = beginSegments(); it != endSegments(); ++it)
     {
-        result.emplace_back(std::initializer_list<Point2LL>{ (*it).start, (*it).end });
+        result.emplace_back(OpenPolyline({ (*it).start, (*it).end }));
     }
 }
 

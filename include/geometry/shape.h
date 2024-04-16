@@ -17,21 +17,47 @@ class PartsView;
 class PointMatrix;
 class Point3Matrix;
 
+/*!
+ *  @brief A Shape is a set of polygons that together form a complex shape. Some of the polygons may
+ *         be contained inside others, being actually "holes" of the shape. For example, if you
+ *         wanted to represent the "8" digit with polygons, you would need 1 for the outline and 2
+ *         for the "holes" so the shape would contain a total of 3 polygons.
+ */
 class Shape : public LinesSet<Polygon>
 {
 public:
-    // Clipper returns implicitely closed polygons
+    // Clipper expects and returns implicitely closed polygons
     static constexpr bool clipper_explicitely_closed_ = false;
 
 public:
+    /*! \brief Constructor of an empty shape */
     Shape() = default;
 
+    /*!
+     * \brief Creates a copy of the given shape
+     * \warning A copy of the points list is made, so this constructor can be very slow
+     */
     Shape(const Shape& other) = default;
 
+    /*!
+     * \brief Constructor that takes the inner polygons list from the given shape
+     * \warning This constructor is fast because it does not allocate data, but it will clear
+     *          the source object
+     */
     Shape(Shape&& other) = default;
 
+    /*!
+     * \brief Constructor with an existing set of polygons
+     * \warning A copy of the polygons set is made, so this constructor can be very slow
+     */
     Shape(const std::vector<Polygon>& polygons);
 
+    /*!
+     * \brief Constructor that takes ownership of the given list of points
+     * \param explicitely_closed Specify whether the given points form an explicitely closed line
+     * \warning This constructor is fast because it does not allocate data, but it will clear
+     *          the source object
+     */
     explicit Shape(ClipperLib::Paths&& paths, bool explicitely_closed = clipper_explicitely_closed_);
 
     Shape& operator=(const Shape& other);
@@ -48,11 +74,6 @@ public:
         LinesSet::emplace_back(args...);
     }
 
-    /*!
-     * Convert ClipperLib::PolyTree to a Shape object,
-     * which uses ClipperLib::Paths instead of ClipperLib::PolyTree
-     */
-    static Shape toPolygons(ClipperLib::PolyTree& poly_tree);
 
     Shape difference(const Shape& other) const;
 
@@ -61,16 +82,15 @@ public:
     /*!
      * Union all polygons with each other (When polygons.add(polygon) has been called for overlapping polygons)
      */
-    Shape unionPolygons() const
-    {
-        return unionPolygons(Shape());
-    }
+    Shape unionPolygons() const;
 
     Shape intersection(const Shape& other) const;
 
-    /*! @brief Overridden definition of offset()
+    /*!
+     *  @brief Overridden definition of LinesSet<Polygon>::offset()
      *  @note The behavior of this method is exactly the same, but it just exists because it allows
-     *        for a performance optimization */
+     *        for a performance optimization
+     */
     Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
     /*!
@@ -86,20 +106,6 @@ public:
      */
     template<class LineType>
     LinesSet<OpenPolyline> intersection(const LinesSet<LineType>& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu) const;
-
-    /*!
-     * Split this poly line object into several line segment objects
-     * and store them in the \p result
-     */
-    void splitPolylinesIntoSegments(Shape& result) const;
-    Shape splitPolylinesIntoSegments() const;
-
-    /*!
-     * Split this polygon object into several line segment objects
-     * and store them in the \p result
-     */
-    void splitPolygonsIntoSegments(Shape& result) const;
-    Shape splitPolygonsIntoSegments() const;
 
     Shape xorPolygons(const Shape& other, ClipperLib::PolyFillType pft = ClipperLib::pftEvenOdd) const;
 
@@ -135,16 +141,14 @@ public:
     size_t findInside(const Point2LL& p, bool border_result = false) const;
 
     /*!
-     * Approximates the convex hull of the polygons.
+     * \brief Approximates the convex hull of the polygons.
      * \p extra_outset Extra offset outward
      * \return the convex hull (approximately)
      *
      */
     Shape approxConvexHull(int extra_outset = 0) const;
 
-    /*!
-     * Make each of the polygons convex
-     */
+    /*! \brief Make each of the polygons convex */
     void makeConvex();
 
     /*!
@@ -250,30 +254,11 @@ public:
      */
     void ensureManifold();
 
-    Point2LL min() const;
-
-    Point2LL max() const;
-
     void applyMatrix(const PointMatrix& matrix);
 
     void applyMatrix(const Point3Matrix& matrix);
 
     Shape offsetMulti(const std::vector<coord_t>& offset_dists) const;
-
-    /*!
-     * @brief Export the polygon to a WKT string
-     *
-     * @param stream The stream to write to
-     */
-    //[[maybe_unused]] void writeWkt(std::ostream& stream) const;
-
-    /*!
-     * @brief Import the polygon from a WKT string
-     *
-     * @param wkt The WKT string to read from
-     * @return Shape The polygons read from the stream
-     */
-    //[[maybe_unused]] static Shape fromWkt(const std::string& wkt);
 
     /*!
      * @brief Remove self-intersections from the polygons
