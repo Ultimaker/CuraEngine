@@ -264,6 +264,8 @@ public:
      */
     Shape tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 
+    void translate(const Point2LL& delta);
+
     /*!
      * \brief Utility method to add all the lines to a ClipperLib::Clipper object
      * \note This method needs to be public but you shouldn't need to use it from outside

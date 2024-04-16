@@ -184,28 +184,12 @@ public:
 
     void removeColinearEdges(const AngleRadians max_deviation_angle = AngleRadians(0.0005));
 
-    void scale(const Ratio& ratio);
-
-    void translate(const Point2LL& delta);
-
     /*!
      * Remove all but the polygons on the very outside.
      * Exclude holes and parts within holes.
      * \return the resulting polygons.
      */
     Shape getOutsidePolygons() const;
-
-    /*!
-     * Exclude holes which have no parts inside of them.
-     * \return the resulting polygons.
-     */
-    Shape removeEmptyHoles() const;
-
-    /*!
-     * Return hole polygons which have no parts inside of them.
-     * \return the resulting polygons.
-     */
-    Shape getEmptyHoles() const;
 
     /*!
      * Split up the polygons into groups according to the even-odd rule.
