@@ -39,8 +39,8 @@ Shape::Shape(ClipperLib::Paths&& paths, bool explicitely_closed)
     emplace_back(std::move(paths), explicitely_closed);
 }
 
-Shape::Shape(const std::initializer_list<Polygon>& initializer)
-    : LinesSet<Polygon>(initializer)
+Shape::Shape(const std::vector<Polygon>& polygons)
+    : LinesSet<Polygon>(polygons)
 {
 }
 
@@ -170,6 +170,20 @@ Shape Shape::intersection(const Shape& other) const
     addPaths(clipper, ClipperLib::ptSubject);
     other.addPaths(clipper, ClipperLib::ptClip);
     clipper.Execute(ClipperLib::ctIntersection, ret);
+    return Shape(std::move(ret));
+}
+
+Shape Shape::offset(coord_t distance, ClipperLib::JoinType join_type, double miter_limit) const
+{
+    if (distance == 0)
+    {
+        return Shape(getLines());
+    }
+    ClipperLib::Paths ret;
+    ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
+    unionPolygons().addPaths(clipper, join_type, ClipperLib::etClosedPolygon);
+    clipper.MiterLimit = miter_limit;
+    clipper.Execute(ret, static_cast<double>(distance));
     return Shape(std::move(ret));
 }
 

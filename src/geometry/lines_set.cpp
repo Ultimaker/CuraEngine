@@ -162,13 +162,11 @@ Shape LinesSet<Polygon>::offset(coord_t distance, ClipperLib::JoinType join_type
 {
     if (distance == 0)
     {
-        Shape result;
-        result.push_back(getLines());
-        return result;
+        return Shape(getLines());
     }
     ClipperLib::Paths ret;
     ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
-    addPaths(clipper, join_type, ClipperLib::etClosedPolygon);
+    Shape(getLines()).unionPolygons().addPaths(clipper, join_type, ClipperLib::etClosedPolygon);
     clipper.MiterLimit = miter_limit;
     clipper.Execute(ret, static_cast<double>(distance));
     return Shape(std::move(ret));
@@ -202,71 +200,6 @@ Shape LinesSet<OpenPolyline>::offset(coord_t distance, ClipperLib::JoinType join
 
     return result;
 }
-
-#if 0
-template<>
-Shape LinesSet<ClosedPolyline>::offset(coord_t distance, ClipperLib::JoinType joinType, double miter_limit) const
-{
-#error Implement me if required
-    Shape result;
-
-    if (distance != 0)
-    {
-        Shape polygons;
-        ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
-
-        for (const LineType& line : lines_)
-        {
-            if (const Polygon* polygon = dynamic_cast<const Polygon*>(&line))
-            {
-                // Union all polygons first and add them later
-                polygons.push_back(*polygon);
-
-                /*temp = Shape(asRawVector()).unionPolygons();
-                actual_polygons = &temp.asRawVector();
-                end_type = ClipperLib::etClosedPolygon;*/
-            }
-            else
-            {
-                ClipperLib::EndType end_type;
-
-                if (line.addClosingSegment())
-                {
-                    end_type = ClipperLib::etClosedLine;
-                }
-                else if (joinType == ClipperLib::jtMiter)
-                {
-                    end_type = ClipperLib::etOpenSquare;
-                }
-                else
-                {
-                    end_type = ClipperLib::etOpenRound;
-                }
-
-                clipper.AddPath(line.getPoints(), joinType, end_type);
-            }
-        }
-
-        if (! polygons.empty())
-        {
-            polygons = polygons.unionPolygons();
-
-            for (const Polygon& polygon : polygons)
-            {
-                clipper.AddPath(polygon.getPoints(), joinType, ClipperLib::etClosedPolygon);
-            }
-        }
-
-        clipper.MiterLimit = miter_limit;
-
-        ClipperLib::Paths result;
-        clipper.Execute(result, static_cast<double>(distance));
-        return Shape(std::move(result));
-    }
-
-    return result;
-}
-#endif
 
 template<class LineType>
 void LinesSet<LineType>::removeDegenerateVerts()
@@ -372,6 +305,7 @@ template coord_t LinesSet<OpenPolyline>::length() const;
 template Shape LinesSet<OpenPolyline>::tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 template void LinesSet<OpenPolyline>::removeDegenerateVerts();
 template void LinesSet<OpenPolyline>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
+template void LinesSet<OpenPolyline>::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
 template void LinesSet<OpenPolyline>::push_back(const OpenPolyline& line, bool checkNonEmpty);
 template void LinesSet<OpenPolyline>::push_back(OpenPolyline&& line, bool checkNonEmpty);
 template void LinesSet<OpenPolyline>::push_back(LinesSet<OpenPolyline>&& lines_set);
@@ -384,6 +318,7 @@ template coord_t LinesSet<ClosedPolyline>::length() const;
 template Shape LinesSet<ClosedPolyline>::tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 template void LinesSet<ClosedPolyline>::removeDegenerateVerts();
 template void LinesSet<ClosedPolyline>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
+template void LinesSet<ClosedPolyline>::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
 template void LinesSet<ClosedPolyline>::push_back(const ClosedPolyline& line, bool checkNonEmpty);
 template void LinesSet<ClosedPolyline>::push_back(ClosedPolyline&& line, bool checkNonEmpty);
 template void LinesSet<ClosedPolyline>::push_back(LinesSet<ClosedPolyline>&& lines_set);
@@ -397,6 +332,7 @@ template coord_t LinesSet<Polygon>::length() const;
 template Shape LinesSet<Polygon>::tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 template void LinesSet<Polygon>::removeDegenerateVerts();
 template void LinesSet<Polygon>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
+template void LinesSet<Polygon>::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
 template void LinesSet<Polygon>::push_back(const Polygon& line, bool checkNonEmpty);
 template void LinesSet<Polygon>::push_back(Polygon&& line, bool checkNonEmpty);
 template void LinesSet<Polygon>::push_back(LinesSet<Polygon>&& lines_set);

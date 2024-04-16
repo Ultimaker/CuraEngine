@@ -30,7 +30,7 @@ public:
 
     Shape(Shape&& other) = default;
 
-    Shape(const std::initializer_list<Polygon>& initializer);
+    Shape(const std::vector<Polygon>& polygons);
 
     explicit Shape(ClipperLib::Paths&& paths, bool explicitely_closed = clipper_explicitely_closed_);
 
@@ -67,6 +67,11 @@ public:
     }
 
     Shape intersection(const Shape& other) const;
+
+    /*! @brief Overridden definition of offset()
+     *  @note The behavior of this method is exactly the same, but it just exists because it allows
+     *        for a performance optimization */
+    Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
     /*!
      * Intersect polylines with the area covered by the shape.

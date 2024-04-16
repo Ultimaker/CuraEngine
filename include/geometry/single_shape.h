@@ -25,7 +25,7 @@ public:
 
     /*!
      * Tests whether the given point is inside this polygon part.
-     * \param p The point to test whether it is inside.
+     * \param p The point to test whether it is insisinglehde.
      * \param border_result If the point is exactly on the border, this will be
      * returned instead.
      */
@@ -34,4 +34,4 @@ public:
 
 } // namespace cura
 
-#endif // GEOMETRY_MONO_SHAPE_H
+#endif // GEOMETRY_SINGLE_SHAPE_H
