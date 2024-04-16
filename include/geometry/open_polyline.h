@@ -75,6 +75,12 @@ public:
         return size() > 1 ? size() - 1 : 0;
     }
 
+    /*! @see Polyline::isValid() */
+    virtual bool isValid() const override
+    {
+        return size() >= 2;
+    }
+
     OpenPolyline& operator=(OpenPolyline&& other)
     {
         Polyline::operator=(std::move(other));

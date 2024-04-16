@@ -96,6 +96,12 @@ public:
      */
     virtual size_t segmentsCount() const = 0;
 
+    /*!
+     * \brief Indicates whether the points set form a valid polyline, i.e. if it has enough points
+     *        according to its type.
+     */
+    virtual bool isValid() const = 0;
+
     Polyline& operator=(const Polyline& other)
     {
         PointsSet::operator=(other);

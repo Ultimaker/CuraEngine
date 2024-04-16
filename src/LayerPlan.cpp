@@ -1422,7 +1422,7 @@ void LayerPlan::addLinesInGivenOrder(
     {
         const PathOrdering<const Polyline*>& path = lines[order_idx];
         const Polyline& polyline = *path.vertices_;
-        if (polyline.segmentsCount() == 0)
+        if (! polyline.isValid())
         {
             continue;
         }
@@ -1551,7 +1551,7 @@ void LayerPlan::addLinesMonotonic(
     for (size_t line_idx = 0; line_idx < line_order.paths_.size(); ++line_idx)
     {
         const OpenPolyline& polyline = *line_order.paths_[line_idx].vertices_;
-        if (polyline.segmentsCount() == 0)
+        if (! polyline.isValid())
         {
             continue;
         }

@@ -20,6 +20,11 @@ size_t ClosedPolyline::segmentsCount() const
     }
 }
 
+bool ClosedPolyline::isValid() const
+{
+    return size() >= (explicitely_closed_ ? 4 : 3);
+}
+
 bool ClosedPolyline::inside(const Point2LL& p, bool border_result) const
 {
     int res = ClipperLib::PointInPolygon(p, getPoints());

@@ -100,6 +100,9 @@ public:
     /*! @see Polyline::addClosingSegment() */
     virtual size_t segmentsCount() const override;
 
+    /*! @see Polyline::isValid() */
+    virtual bool isValid() const override;
+
     ClosedPolyline& operator=(const ClosedPolyline& other)
     {
         Polyline::operator=(other);
