@@ -83,14 +83,23 @@ bool ZigzagConnectorProcessor::shouldAddCurrentConnector(int start_scanline_idx,
     return should_add;
 }
 
-bool ZigzagConnectorProcessor::handleConnectorToCloseToSegment(const coord_t scanline_x, const coord_t min_distance_to_scanline)
+bool ZigzagConnectorProcessor::handleConnectorTooCloseToSegment(const coord_t scanline_x, const coord_t min_distance_to_scanline)
 {
-    bool all_within_min_dist = ! current_connector_.empty();
-    for (const auto& point : current_connector_)
+    if (current_connector_.empty())
     {
-        all_within_min_dist &= std::abs(point.X - scanline_x) < min_distance_to_scanline;
+        return false;
     }
-    return all_within_min_dist;
+    else
+    {
+        return std::find_if(
+                   current_connector_.begin(),
+                   current_connector_.end(),
+                   [scanline_x, min_distance_to_scanline](const Point2LL& point)
+                   {
+                       return std::abs(point.X - scanline_x) >= min_distance_to_scanline;
+                   })
+            == current_connector_.end();
+    }
 }
 
 void ZigzagConnectorProcessor::registerScanlineSegmentIntersection(const Point2LL& intersection, int scanline_index, coord_t min_distance_to_scanline)
@@ -106,7 +115,7 @@ void ZigzagConnectorProcessor::registerScanlineSegmentIntersection(const Point2L
     else
     {
         // add the current connector if needed
-        if (shouldAddCurrentConnector(last_connector_index_, scanline_index) && ! handleConnectorToCloseToSegment(intersection.X, min_distance_to_scanline))
+        if (shouldAddCurrentConnector(last_connector_index_, scanline_index) && ! handleConnectorTooCloseToSegment(intersection.X, min_distance_to_scanline))
         {
             const bool is_this_endpiece = scanline_index == last_connector_index_;
             current_connector_.push_back(intersection);

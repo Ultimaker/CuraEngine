@@ -175,7 +175,7 @@ protected:
      */
     void addZagConnector(std::vector<Point2LL>& points, bool is_endpiece);
 
-    bool handleConnectorToCloseToSegment(const coord_t scanline_x, const coord_t min_distance_to_scanline);
+    bool handleConnectorTooCloseToSegment(const coord_t scanline_x, const coord_t min_distance_to_scanline);
 
 protected:
     const PointMatrix& rotation_matrix_; //!< The rotation matrix used to enforce the infill angle
