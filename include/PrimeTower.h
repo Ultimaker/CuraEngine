@@ -60,7 +60,6 @@ private:
 public:
     bool enabled_; //!< Whether the prime tower is enabled.
     bool would_have_actual_tower_; //!< Whether there is an actual tower.
-    bool multiple_extruders_on_first_layer_; //!< Whether multiple extruders are allowed on the first layer of the prime tower (e.g. when a raft is there)
 
     /*
      * In which order, from outside to inside, will we be printing the prime

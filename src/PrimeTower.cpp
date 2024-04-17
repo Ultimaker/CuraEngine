@@ -32,22 +32,6 @@ PrimeTower::PrimeTower()
     const Scene& scene = Application::getInstance().current_slice_->scene;
     PrimeTowerMethod method = scene.current_mesh_group->settings.get<PrimeTowerMethod>("prime_tower_mode");
 
-    {
-        EPlatformAdhesion adhesion_type = scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type");
-
-        // When we have multiple extruders sharing the same heater/nozzle, we expect that all the extruders have been
-        //'primed' by the print-start gcode script, but we don't know which one has been left at the tip of the nozzle
-        // and whether it needs 'purging' (before extruding a pure material) or not, so we need to prime (actually purge)
-        // each extruder before it is used for the model. This can done by the (per-extruder) brim lines or (per-extruder)
-        // skirt lines when they are used, but we need to do that inside the first prime-tower layer when they are not
-        // used (sacrifying for this purpose the usual single-extruder first layer, that would be better for prime-tower
-        // adhesion).
-
-        multiple_extruders_on_first_layer_ = (method == PrimeTowerMethod::INTERLEAVED) || (method == PrimeTowerMethod::NORMAL)
-                                          || (scene.current_mesh_group->settings.get<bool>("machine_extruders_share_nozzle")
-                                              && ((adhesion_type != EPlatformAdhesion::SKIRT) && (adhesion_type != EPlatformAdhesion::BRIM)));
-    }
-
     enabled_ = scene.current_mesh_group->settings.get<bool>("prime_tower_enable") && scene.current_mesh_group->settings.get<coord_t>("prime_tower_min_volume") > 10
             && scene.current_mesh_group->settings.get<coord_t>("prime_tower_size") > 10;
 
