@@ -22,6 +22,7 @@ class Point3Matrix;
  *         be contained inside others, being actually "holes" of the shape. For example, if you
  *         wanted to represent the "8" digit with polygons, you would need 1 for the outline and 2
  *         for the "holes" so the shape would contain a total of 3 polygons.
+ *  @sa https://github.com/Ultimaker/CuraEngine/wiki/Geometric-Base-Types#shape
  */
 class Shape : public LinesSet<Polygon>
 {

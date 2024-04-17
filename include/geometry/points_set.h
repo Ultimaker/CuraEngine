@@ -18,6 +18,7 @@ const static int clipper_init = (0);
 
 /*!
  * \brief Base class for all geometry containers representing a set of points.
+ * \sa https://github.com/Ultimaker/CuraEngine/wiki/Geometric-Base-Types#pointsset
  */
 class PointsSet
 {

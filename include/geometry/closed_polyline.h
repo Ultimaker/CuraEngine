@@ -12,6 +12,7 @@ namespace cura
 class OpenPolyline;
 
 /*! @brief This describes a polyline which forms a closed path.
+ *  @sa https://github.com/Ultimaker/CuraEngine/wiki/Geometric-Base-Types#closedpolyline
  *
  *  The path may be closed:
  *    * Explicitely, which means the last point is at the same position as the first point.

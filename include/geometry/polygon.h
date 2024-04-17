@@ -16,6 +16,7 @@ class AngleDegrees;
 /*!
  * \brief A Polygon is a specific type of polyline, for which we consider that the "inside" part of
  *        the line forms a surface
+ * \sa https://github.com/Ultimaker/CuraEngine/wiki/Geometric-Base-Types#polygon
  */
 class Polygon : public ClosedPolyline
 {

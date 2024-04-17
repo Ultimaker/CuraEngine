@@ -11,6 +11,7 @@ namespace cura
 
 /*!
  *  @brief Represents a polyline that is explicitely not closed
+ *  @sa https://github.com/Ultimaker/CuraEngine/wiki/Geometric-Base-Types#openpolyline
  *  @note Open polylines are sometimes used to represent actually closed polylines. In this case
  *        the first and last point are at the very same position. This should not be done, but
  *        it exists all around the engine for historical reasons. The behavior is however deprecated

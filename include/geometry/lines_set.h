@@ -20,6 +20,7 @@ class OpenPolyline;
 
 /*!
  * \brief Base class for all geometry containers representing a set of polylines.
+ * \sa https://github.com/Ultimaker/CuraEngine/wiki/Geometric-Base-Types#linesset
  */
 template<class LineType>
 class LinesSet

@@ -18,6 +18,7 @@ class OpenPolyline;
 /*!
  * \brief Base class for various types of polylines. A polyline is basically a set of points, but
  *        we geometrically interpret them forming a chain of segments between each other.
+ *  \sa https://github.com/Ultimaker/CuraEngine/wiki/Geometric-Base-Types#pointsset
  *
  *  * Open Polyline : this represents a line that does not close, i.e. the last point is different
  *                    from the initial point (think of the U letter)

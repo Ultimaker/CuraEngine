@@ -24,6 +24,7 @@ using OpenPolylinePtr = std::shared_ptr<OpenPolyline>;
 
 /*!
  * \brief Convenience definition for a container that can hold any type of polyline.
+ * \sa https://github.com/Ultimaker/CuraEngine/wiki/Geometric-Base-Types#mixedlinesset
  */
 class MixedLinesSet : public std::vector<PolylinePtr>
 {
