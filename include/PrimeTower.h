@@ -59,7 +59,6 @@ private:
 
 public:
     bool enabled_; //!< Whether the prime tower is enabled.
-    bool would_have_actual_tower_; //!< Whether there is an actual tower.
 
     /*
      * In which order, from outside to inside, will we be printing the prime

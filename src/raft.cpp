@@ -125,20 +125,6 @@ void Raft::generate(SliceDataStorage& storage)
         settings.get<bool>("raft_surface_remove_inside_corners"),
         settings.get<coord_t>("raft_surface_smoothing"),
         nominal_raft_line_width);
-
-    if (storage.primeTower.enabled_ && ! storage.primeTower.would_have_actual_tower_)
-    {
-        // Find out if the prime-tower part of the raft still needs to be printed, even if there is no actual tower.
-        // This will only happen if the different raft layers are printed by different extruders.
-        const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-        const size_t base_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_;
-        const size_t interface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr_;
-        const size_t surface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr_;
-        if (base_extruder_nr == interface_extruder_nr && base_extruder_nr == surface_extruder_nr)
-        {
-            return;
-        }
-    }
 }
 
 coord_t Raft::getTotalThickness()
