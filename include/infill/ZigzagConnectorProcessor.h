@@ -137,7 +137,7 @@ public:
      * \param intersection The intersection
      * \param scanline_index Index of the current scanline
      */
-    virtual void registerScanlineSegmentIntersection(const Point2LL& intersection, int scanline_index);
+    virtual void registerScanlineSegmentIntersection(const Point2LL& intersection, int scanline_index, coord_t min_distance_to_scanline);
 
     /*!
      * Handle the end of a polygon and prepare for the next.
@@ -167,17 +167,6 @@ protected:
     bool shouldAddCurrentConnector(int start_scanline_idx, int end_scanline_idx) const;
 
     /*!
-     * Checks whether two points are separated at least by "threshold" microns.
-     * If they are far away from each other enough, the line represented by the two points
-     * will be added; In case they are close, the second point will be set to be the same
-     * as the first and this line won't be added.
-     *
-     * \param first_point The first of the points
-     * \param second_point The second of the points
-     */
-    void checkAndAddZagConnectorLine(Point2LL* first_point, Point2LL* second_point);
-
-    /*!
      * Adds a Zag connector represented by the given points. The last line of the connector will not be
      * added if the given connector is an end piece and "connected_endpieces" is not enabled.
      *
@@ -185,6 +174,8 @@ protected:
      * \param is_endpiece Whether this connector is an end piece
      */
     void addZagConnector(std::vector<Point2LL>& points, bool is_endpiece);
+
+    bool handleConnectorTooCloseToSegment(const coord_t scanline_x, const coord_t min_distance_to_scanline);
 
 protected:
     const PointMatrix& rotation_matrix_; //!< The rotation matrix used to enforce the infill angle
