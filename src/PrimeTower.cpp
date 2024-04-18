@@ -35,8 +35,6 @@ PrimeTower::PrimeTower()
     enabled_ = scene.current_mesh_group->settings.get<bool>("prime_tower_enable") && scene.current_mesh_group->settings.get<coord_t>("prime_tower_min_volume") > 10
             && scene.current_mesh_group->settings.get<coord_t>("prime_tower_size") > 10;
 
-    would_have_actual_tower_ = enabled_; // Assume so for now.
-
     extruder_count_ = scene.extruders.size();
     extruder_order_.resize(extruder_count_);
     for (unsigned int extruder_nr = 0; extruder_nr < extruder_count_; extruder_nr++)
@@ -94,10 +92,11 @@ void PrimeTower::generatePaths(const SliceDataStorage& storage)
 {
     checkUsed(storage);
 
+    // Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
     const int raft_total_extra_layers = Raft::getTotalExtraLayers();
-    would_have_actual_tower_ = storage.max_print_height_second_to_last_extruder
-                            >= -raft_total_extra_layers; // Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
-    if (would_have_actual_tower_ && enabled_)
+    enabled_ &= storage.max_print_height_second_to_last_extruder >= -raft_total_extra_layers;
+
+    if (enabled_)
     {
         generateGroundpoly();
 
@@ -308,7 +307,7 @@ void PrimeTower::addToGcode(
     const size_t prev_extruder_nr,
     const size_t new_extruder_nr) const
 {
-    if (! (enabled_ && would_have_actual_tower_))
+    if (! enabled_)
     {
         return;
     }
