@@ -59,6 +59,10 @@ namespace cura
 template<typename Path>
 class PathOrderOptimizer
 {
+private:
+    std::vector<ClipperLib::Paths> mesh_paths_{};
+    size_t min_size_support_zeam_ = 0;
+
 public:
     using OrderablePath = PathOrdering<Path>;
     /*!
@@ -118,6 +122,8 @@ public:
         , reverse_direction_(reverse_direction)
         , _group_outer_walls(group_outer_walls)
         , order_requirements_(&order_requirements)
+        , mesh_paths_ {}
+
     {
     }
 
@@ -131,6 +137,12 @@ public:
         paths_.emplace_back(polygon, is_closed);
     }
 
+    void addMeshPathsinfo(const std::vector<ClipperLib::Paths>& polylines, const size_t min_distance)
+    {
+        constexpr bool is_closed = true;
+        mesh_paths_ = polylines;
+        min_size_support_zeam_ = min_distance;
+    }
     /*!
      * Add a new polyline to be optimized.
      * \param polyline The polyline to optimize.
@@ -199,7 +211,7 @@ public:
 
         // For some Z seam types the start position can be pre-computed.
         // This is faster since we don't need to re-compute the start position at each step then.
-        precompute_start &= seam_config_.type_ == EZSeamType::RANDOM || seam_config_.type_ == EZSeamType::USER_SPECIFIED || seam_config_.type_ == EZSeamType::SHARPEST_CORNER;
+        precompute_start &= seam_config_.type_ == EZSeamType::SUPPORT || seam_config_.type_ == EZSeamType::RANDOM || seam_config_.type_ == EZSeamType::USER_SPECIFIED || seam_config_.type_ == EZSeamType::SHARPEST_CORNER;
         if (precompute_start)
         {
             for (auto& path : paths_)
@@ -561,6 +573,24 @@ protected:
         return best_candidate->vertices_;
     }
 
+    bool isVertexCloseToPolygonPath(Point2LL point)
+    {
+        for( const auto& points : ranges::front(mesh_paths_))
+        {
+            for (const auto& polygon_point : points)
+            {
+                double distance = std::sqrt(std::pow(static_cast<double>(polygon_point.X - point.X), 2) + std::pow(static_cast<double>(polygon_point.Y - point.Y), 2));
+
+                if (distance <= min_size_support_zeam_)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     OrderablePath* findClosestPath(Point2LL start_position, std::vector<OrderablePath*> candidate_paths)
     {
         coord_t best_distance2 = std::numeric_limits<coord_t>::max();
@@ -603,6 +633,21 @@ protected:
 
         return best_candidate;
     }
+
+
+    size_t pathIfzeamSupportIsCloseToModel(size_t best_pos, const OrderablePath& path)
+    {
+        if (!mesh_paths_.empty())
+        {
+            Point2LL current_candidate = (*path.converted_)[best_pos];
+            if (isVertexCloseToPolygonPath(current_candidate))
+            {
+                best_pos = pathIfzeamSupportIsCloseToModel(best_pos+1, path);
+            }
+        }
+        return best_pos;
+    }
+
 
     /*!
      * Find the vertex which will be the starting point of printing a polygon or
@@ -674,7 +719,8 @@ protected:
             // angles > 0 are convex (right turning)
 
             double corner_shift;
-            if (seam_config_.type_ == EZSeamType::SHORTEST)
+
+            if ((seam_config_.type_ == EZSeamType::SHORTEST) || (seam_config_.type_ == EZSeamType::SUPPORT))
             {
                 // the more a corner satisfies our criteria, the closer it appears to be
                 // shift 10mm for a very acute corner
@@ -740,6 +786,11 @@ protected:
             }
         }
 
+        if (seam_config_.type_ == EZSeamType::SUPPORT)
+        {
+            best_i = pathIfzeamSupportIsCloseToModel(best_i, path);
+
+        }
         return best_i;
     }
 

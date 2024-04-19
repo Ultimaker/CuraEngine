@@ -106,6 +106,7 @@ private:
     const ZSeamConfig& z_seam_config_;
     const std::vector<VariableWidthLines>& paths_;
     const LayerIndex layer_nr_;
+    std::vector<ClipperLib::Paths> mesh_paths_;
 
     std::vector<std::vector<ConstPolygonPointer>> inset_polys_; // vector of vectors holding the inset polygons
     Polygons retraction_region_; // After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see

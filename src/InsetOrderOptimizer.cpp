@@ -70,6 +70,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , z_seam_config_(z_seam_config)
     , paths_(paths)
     , layer_nr_(gcode_layer.getLayerNr())
+    , mesh_paths_{}
 {
 }
 
@@ -110,6 +111,21 @@ bool InsetOrderOptimizer::addToLayer()
         else
         {
             order_optimizer.addPolyline(&line);
+        }
+    }
+    if (z_seam_config_.type_== EZSeamType::SUPPORT)
+    {
+        for (std::shared_ptr<SliceMeshStorage> mesh_ptr : storage_.meshes)
+        {
+            auto& mesh = *mesh_ptr;
+            for (auto &part : mesh.layers[layer_nr_].parts)
+            {
+                mesh_paths_.push_back(part.print_outline.paths);
+            }
+        }
+        if (!mesh_paths_.empty())
+        {
+            order_optimizer.addMeshPathsinfo(mesh_paths_,settings_.get<coord_t >("support_z_seam_min_distance"));
         }
     }
 

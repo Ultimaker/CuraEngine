@@ -513,6 +513,8 @@ EZSeamType Settings::get<EZSeamType>(const std::string& key) const
         return EZSeamType::SHARPEST_CORNER;
     case "plugin"_sw:
         return EZSeamType::PLUGIN;
+    case "support"_sw:
+        return EZSeamType::SUPPORT;
     default:
         return EZSeamType::SHORTEST;
     }

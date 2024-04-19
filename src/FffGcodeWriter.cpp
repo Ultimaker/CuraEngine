@@ -33,6 +33,7 @@
 #include "utils/Simplify.h" //Removing micro-segments created by offsetting.
 #include "utils/ThreadPool.h"
 #include "utils/linearAlg2D.h"
+#include "utils/polygonUtils.h"
 #include "utils/math.h"
 #include "utils/orderOptimizer.h"
 
@@ -3451,7 +3452,16 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             const GCodePathConfig& config = configs[0];
             constexpr bool retract_before_outer_wall = false;
             constexpr coord_t wipe_dist = 0;
-            const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+            ZSeamConfig z_seam_config;
+            Point2LL start_pos;
+
+            start_pos = gcode_layer.getLastPlannedPositionOrStartingPosition();
+            z_seam_config = ZSeamConfig(EZSeamType::SUPPORT,
+                                        start_pos,
+                                        EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE,
+                                        false);
+
+
             InsetOrderOptimizer wall_orderer(
                 *this,
                 storage,
