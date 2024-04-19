@@ -368,8 +368,16 @@ std::optional<std::pair<Point2LL, bool>> LayerPlan::getFirstTravelDestinationSta
     return ret;
 }
 
-GCodePath& LayerPlan::addTravel(const Point2LL& p, const bool force_retract, const coord_t z_offset)
+GCodePath& LayerPlan::addTravel(const Point2LL& pos, const bool force_retract, const coord_t z_offset, const Point2LL* next)
 {
+    if (next)
+    {
+        // First travel to intermediate position
+        Point2LL direction = *next - pos;
+        direction = (direction * 1000) / vSize(direction);
+        addTravel(pos - direction * 15);
+    }
+
     const GCodePathConfig& travel_config = configs_storage_.travel_config_per_extruder[getExtruder()];
 
     const RetractionConfig& retraction_config
@@ -392,7 +400,7 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const bool force_retract, con
     if (is_first_travel_of_layer)
     {
         bypass_combing = true; // first travel move is bogus; it is added after this and the previous layer have been planned in LayerPlanBuffer::addConnectingTravelMove
-        first_travel_destination_ = p;
+        first_travel_destination_ = pos;
         first_travel_destination_is_inside_ = is_inside_;
         if (layer_nr_ == 0 && retraction_enable && mesh_or_extruder_settings.get<bool>("retraction_hop_enabled"))
         {
@@ -401,7 +409,7 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const bool force_retract, con
         }
         forceNewPathStart(); // force a new travel path after this first bogus move
     }
-    else if (force_retract && last_planned_position_ && ! shorterThen(*last_planned_position_ - p, retraction_config.retraction_min_travel_distance))
+    else if (force_retract && last_planned_position_ && ! shorterThen(*last_planned_position_ - pos, retraction_config.retraction_min_travel_distance))
     {
         // path is not shorter than min travel distance, force a retraction
         path->retract = true;
@@ -427,7 +435,7 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const bool force_retract, con
             perform_z_hops_only_when_collides,
             *extruder,
             *last_planned_position_,
-            p,
+            pos,
             combPaths,
             was_inside_,
             is_inside_,
@@ -473,7 +481,7 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const bool force_retract, con
                         last_point = comb_point;
                     }
                 }
-                distance += vSize(last_point - p);
+                distance += vSize(last_point - pos);
                 const coord_t retract_threshold = mesh_or_extruder_settings.get<coord_t>("retraction_combing_max_distance");
                 path->retract = retract || (retract_threshold > 0 && distance > retract_threshold && retraction_enable);
                 // don't perform a z-hop
@@ -489,14 +497,14 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const bool force_retract, con
     // CURA-6675:
     // Retraction Minimal Travel Distance should work for all travel moves. If the travel move is shorter than the
     // Retraction Minimal Travel Distance, retraction should be disabled.
-    if (! is_first_travel_of_layer && last_planned_position_ && shorterThen(*last_planned_position_ - p, retraction_config.retraction_min_travel_distance))
+    if (! is_first_travel_of_layer && last_planned_position_ && shorterThen(*last_planned_position_ - pos, retraction_config.retraction_min_travel_distance))
     {
         path->retract = false;
         path->perform_z_hop = false;
     }
 
     // no combing? retract only when path is not shorter than minimum travel distance
-    if (! combed && ! is_first_travel_of_layer && last_planned_position_ && ! shorterThen(*last_planned_position_ - p, retraction_config.retraction_min_travel_distance))
+    if (! combed && ! is_first_travel_of_layer && last_planned_position_ && ! shorterThen(*last_planned_position_ - pos, retraction_config.retraction_min_travel_distance))
     {
         if (was_inside_) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
         { // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
@@ -516,7 +524,7 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const bool force_retract, con
     // must start new travel path as retraction can be enabled or not depending on path length, etc.
     forceNewPathStart();
 
-    GCodePath& ret = addTravel_simple(p, path);
+    GCodePath& ret = addTravel_simple(pos, path);
     was_inside_ = is_inside_;
     return ret;
 }
@@ -1007,9 +1015,10 @@ void LayerPlan::addWall(
     bool always_retract,
     const bool is_closed,
     const bool is_reversed,
-    const bool is_linked_path)
+    const bool is_linked_path,
+    const bool smooth_approach)
 {
-    if (wall.empty())
+    if (wall.size() < 2)
     {
         return;
     }
@@ -1110,7 +1119,6 @@ void LayerPlan::addWall(
         }
     };
 
-    bool first_line = true;
     const coord_t small_feature_max_length = settings.get<coord_t>("small_feature_max_length");
     const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr_ == 0 || wall.inset_idx_ == 0) && wall.shorterThan(small_feature_max_length);
     Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr_ == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
@@ -1119,10 +1127,12 @@ void LayerPlan::addWall(
     const coord_t max_area_deviation = std::max(settings.get<int>("meshfix_maximum_extrusion_area_deviation"), 1); // Square micrometres!
     const coord_t max_resolution = std::max(settings.get<coord_t>("meshfix_maximum_resolution"), coord_t(1));
 
-    ExtrusionJunction p0 = wall[start_idx];
-
     const int direction = is_reversed ? -1 : 1;
     const size_t max_index = is_closed ? wall.size() + 1 : wall.size();
+
+    ExtrusionJunction p0 = wall[start_idx];
+    addTravel(p0.p_, always_retract, 0, smooth_approach ? &(wall[(wall.size() + start_idx + direction) % wall.size()].p_) : nullptr);
+
     for (size_t point_idx = 1; point_idx < max_index; point_idx++)
     {
         const ExtrusionJunction& p1 = wall[(wall.size() + start_idx + point_idx * direction) % wall.size()];
@@ -1130,12 +1140,6 @@ void LayerPlan::addWall(
         if (! bridge_wall_mask_.empty())
         {
             computeDistanceToBridgeStart((wall.size() + start_idx + point_idx * direction - 1) % wall.size());
-        }
-
-        if (first_line)
-        {
-            addTravel(p0.p_, always_retract);
-            first_line = false;
         }
 
         /*

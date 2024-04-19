@@ -149,7 +149,8 @@ bool InsetOrderOptimizer::addToLayer()
             retract_before,
             path.is_closed_,
             backwards,
-            linked_path);
+            linked_path,
+            is_outer_wall);
         added_something = true;
     }
     return added_something;

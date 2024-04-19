@@ -311,10 +311,13 @@ public:
      * The first travel move in a layer will result in a bogus travel move with
      * no combing and no retraction. This travel move needs to be fixed
      * afterwards.
-     * \param p The point to travel to.
+     * \param pos The point to travel to.
      * \param force_retract Whether to force a retraction to occur.
+     * \param next Optionally, the next point of the segment we are moving to. When given, we will
+     * add (when possible) an intermediate point where to go in order to start printing the segment
+     * with proper nozzle speed and unretraction.
      */
-    GCodePath& addTravel(const Point2LL& p, const bool force_retract = false, const coord_t z_offset = 0);
+    GCodePath& addTravel(const Point2LL& pos, const bool force_retract = false, const coord_t z_offset = 0, const Point2LL* next = nullptr);
 
     /*!
      * Add a travel path to a certain point and retract if needed.
@@ -500,6 +503,8 @@ public:
      * polyline).
      * \param is_reversed Whether to print this wall in reverse direction.
      * \param is_linked_path Whether the path is a continuation off the previous path
+     * \param smooth_approach Whether we should make a smoothed approach to the first point,
+     * or just move straight to it
      */
     void addWall(
         const ExtrusionLine& wall,
@@ -513,7 +518,8 @@ public:
         bool always_retract,
         const bool is_closed,
         const bool is_reversed,
-        const bool is_linked_path);
+        const bool is_linked_path,
+        const bool smooth_approach = false);
 
     /*!
      * Add an infill wall to the g-code
