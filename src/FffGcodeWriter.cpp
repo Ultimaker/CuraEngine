@@ -33,9 +33,9 @@
 #include "utils/Simplify.h" //Removing micro-segments created by offsetting.
 #include "utils/ThreadPool.h"
 #include "utils/linearAlg2D.h"
-#include "utils/polygonUtils.h"
 #include "utils/math.h"
 #include "utils/orderOptimizer.h"
+#include "utils/polygonUtils.h"
 
 namespace cura
 {
@@ -3456,10 +3456,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             Point2LL start_pos;
 
             start_pos = gcode_layer.getLastPlannedPositionOrStartingPosition();
-            z_seam_config = ZSeamConfig(EZSeamType::SUPPORT,
-                                        start_pos,
-                                        EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE,
-                                        false);
+            z_seam_config = ZSeamConfig(EZSeamType::SUPPORT, start_pos, EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
 
 
             InsetOrderOptimizer wall_orderer(

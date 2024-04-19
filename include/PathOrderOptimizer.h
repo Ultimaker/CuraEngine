@@ -122,7 +122,7 @@ public:
         , reverse_direction_(reverse_direction)
         , _group_outer_walls(group_outer_walls)
         , order_requirements_(&order_requirements)
-        , mesh_paths_ {}
+        , mesh_paths_{}
 
     {
     }
@@ -211,7 +211,8 @@ public:
 
         // For some Z seam types the start position can be pre-computed.
         // This is faster since we don't need to re-compute the start position at each step then.
-        precompute_start &= seam_config_.type_ == EZSeamType::SUPPORT || seam_config_.type_ == EZSeamType::RANDOM || seam_config_.type_ == EZSeamType::USER_SPECIFIED || seam_config_.type_ == EZSeamType::SHARPEST_CORNER;
+        precompute_start &= seam_config_.type_ == EZSeamType::SUPPORT || seam_config_.type_ == EZSeamType::RANDOM || seam_config_.type_ == EZSeamType::USER_SPECIFIED
+                         || seam_config_.type_ == EZSeamType::SHARPEST_CORNER;
         if (precompute_start)
         {
             for (auto& path : paths_)
@@ -575,7 +576,7 @@ protected:
 
     bool isVertexCloseToPolygonPath(Point2LL point)
     {
-        for( const auto& points : ranges::front(mesh_paths_))
+        for (const auto& points : ranges::front(mesh_paths_))
         {
             for (const auto& polygon_point : points)
             {
@@ -637,12 +638,12 @@ protected:
 
     size_t pathIfzeamSupportIsCloseToModel(size_t best_pos, const OrderablePath& path)
     {
-        if (!mesh_paths_.empty())
+        if (! mesh_paths_.empty())
         {
             Point2LL current_candidate = (*path.converted_)[best_pos];
             if (isVertexCloseToPolygonPath(current_candidate))
             {
-                best_pos = pathIfzeamSupportIsCloseToModel(best_pos+1, path);
+                best_pos = pathIfzeamSupportIsCloseToModel(best_pos + 1, path);
             }
         }
         return best_pos;
@@ -789,7 +790,6 @@ protected:
         if (seam_config_.type_ == EZSeamType::SUPPORT)
         {
             best_i = pathIfzeamSupportIsCloseToModel(best_i, path);
-
         }
         return best_i;
     }

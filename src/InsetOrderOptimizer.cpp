@@ -113,19 +113,19 @@ bool InsetOrderOptimizer::addToLayer()
             order_optimizer.addPolyline(&line);
         }
     }
-    if (z_seam_config_.type_== EZSeamType::SUPPORT)
+    if (z_seam_config_.type_ == EZSeamType::SUPPORT)
     {
         for (std::shared_ptr<SliceMeshStorage> mesh_ptr : storage_.meshes)
         {
             auto& mesh = *mesh_ptr;
-            for (auto &part : mesh.layers[layer_nr_].parts)
+            for (auto& part : mesh.layers[layer_nr_].parts)
             {
                 mesh_paths_.push_back(part.print_outline.paths);
             }
         }
-        if (!mesh_paths_.empty())
+        if (! mesh_paths_.empty())
         {
-            order_optimizer.addMeshPathsinfo(mesh_paths_,settings_.get<coord_t >("support_z_seam_min_distance"));
+            order_optimizer.addMeshPathsinfo(mesh_paths_, settings_.get<coord_t>("support_z_seam_min_distance"));
         }
     }
 
