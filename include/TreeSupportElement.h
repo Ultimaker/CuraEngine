@@ -105,6 +105,7 @@ struct TreeSupportElement
         can_avoid_anti_preferred_(false), //todo init?
         last_area_increase_(AreaIncreaseSettings(AvoidanceType::FAST, 0, false, false, false, false, false)),
         missing_roof_layers_(force_tips_to_roof ? dont_move_until : 0),
+        roof_with_enforced_walls(false),
         skip_ovalisation_(skip_ovalisation),
         all_tips_({ target_position }),
         influence_area_limit_active_(influence_area_limit_active),
@@ -145,6 +146,7 @@ struct TreeSupportElement
         dont_move_until_(std::max(first.dont_move_until_, second.dont_move_until_)),
         can_use_safe_radius_(first.can_use_safe_radius_ || second.can_use_safe_radius_),
         missing_roof_layers_(std::min(first.missing_roof_layers_, second.missing_roof_layers_)),
+        roof_with_enforced_walls(first.roof_with_enforced_walls && second.roof_with_enforced_walls),
         skip_ovalisation_(false)
     {
         if (first.target_height_ > second.target_height_)
@@ -314,6 +316,11 @@ struct TreeSupportElement
      * \brief Amount of roof layers that were not yet added, because the branch needed to move.
      */
     size_t missing_roof_layers_;
+
+    /*!
+     * \brief True if interface with walls has to be used, even though regular interface does not have walls.
+     */
+    bool roof_with_enforced_walls;
 
     /*!
      * \brief Skip the ovalisation to parent and children when generating the final circles.

@@ -209,28 +209,41 @@ public:
 class SupportLayer
 {
 public:
+    enum class PartsFilter{NoFilter, RegularParts, FractionalParts};
     std::vector<SupportInfillPart> support_infill_parts; //!< a list of support infill parts
     Polygons support_bottom; //!< Piece of support below the support and above the model. This must not overlap with any of the support_infill_parts or support_roof.
-    Polygons support_roof; //!< Piece of support above the support and below the model. This must not overlap with any of the support_infill_parts or support_bottom.
-                           //   NOTE: This is _all_ of the support_roof, and as such, overlaps with support_fractional_roof!
-    Polygons support_fractional_roof; //!< If the support distance is not exactly a multiple of the layer height,
-                                      //   the first part of support just underneath the model needs to be printed at a fracional layer height.
+    std::vector<SupportInfillPart> support_roof; //!< Piece of support above the support and below the model. This must not overlap with any of the support_infill_parts or support_bottom.
     Polygons support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support
     Polygons support_mesh; //!< Areas from support meshes which should NOT be supported by more support
     Polygons anti_overhang; //!< Areas where no overhang should be detected.
 
+    Polygons getTotalAreaFromParts(const std::vector<SupportInfillPart>& parts, PartsFilter filter = PartsFilter::NoFilter) const
+    {
+        Polygons result;
+        for (const SupportInfillPart& part : parts)
+        {
+            if(filter == PartsFilter::NoFilter ||
+                (part.use_fractional_config_ && filter == PartsFilter::FractionalParts) ||
+                (!part.use_fractional_config_ && filter == PartsFilter::RegularParts))
+            {
+                result.add(part.outline_);
+            }
+        }
+        return result.unionPolygons();
+    }
+
     /*!
      * Exclude the given polygons from the support infill areas and update the SupportInfillParts.
      *
+     * \param parts[in,out] The vector of support parts from which the excluded polygons should be removed from.
      * \param exclude_polygons The polygons to exclude
      * \param exclude_polygons_boundary_box The boundary box for the polygons to exclude
      */
-    void excludeAreasFromSupportInfillAreas(const Polygons& exclude_polygons, const AABB& exclude_polygons_boundary_box);
+    void excludeAreasFromSupportParts(std::vector<SupportInfillPart>& parts, const Polygons& exclude_polygons, const AABB& exclude_polygons_boundary_box);
 
     /* Fill up the infill parts for the support with the given support polygons. The support polygons will be split into parts.
      *
      * \param area The support polygon to fill up with infill parts.
-     * \param support_fill_per_layer The support polygons to fill up with infill parts.
      * \param support_line_width Line width of the support extrusions.
      * \param wall_line_count Wall-line count around the fill.
      * \param use_fractional_config (optional, default to false) If the area should be added as fractional support.
@@ -249,6 +262,30 @@ public:
         for (const PolygonsPart& island_outline : area.splitIntoParts(unionAll))
         {
             support_infill_parts.emplace_back(island_outline, support_line_width, use_fractional_config, wall_line_count, custom_line_distance, custom_pattern);
+        }
+    }
+
+    /* Fill up the roof parts for the support with the given support polygons. The support polygons will be split into parts.
+     *
+     * \param area The support polygon to fill up with infill parts.
+     * \param support_line_width Line width of the support extrusions.
+     * \param wall_line_count Wall-line count around the fill.
+     * \param use_fractional_config (optional, default to false) If the area should be added as fractional support.
+     * \param unionAll (optional, default to false) Wether to 'union all' for the split into parts bit.
+     * \param custom_line_distance (optional, default to 0) Distance between lines of the infill pattern. custom_line_distance of 0 means use the default instead.
+     * \param custom_pattern (optional, default to EFillMethod::NONE) Set if a non default infill pattern should be used
+     */
+    void fillRoofParts(const Polygons& area,
+                         const coord_t support_line_width,
+                         const coord_t wall_line_count,
+                         const bool use_fractional_config = false,
+                         const bool unionAll = false,
+                         const coord_t custom_line_distance = 0,
+                         EFillMethod custom_pattern = EFillMethod::NONE)
+    {
+        for (const PolygonsPart& island_outline : area.splitIntoParts(unionAll))
+        {
+            support_roof.emplace_back(island_outline, support_line_width, use_fractional_config, wall_line_count, custom_line_distance, custom_pattern);
         }
     }
 

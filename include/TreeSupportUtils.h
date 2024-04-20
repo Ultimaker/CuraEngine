@@ -92,7 +92,7 @@ public:
      * \param layer_idx[in] The current layer index.
      * \param support_infill_distance[in] The distance that should be between the infill lines.
      * \param cross_fill_provider[in] A SierpinskiFillProvider required for cross infill.
-     * \param include_walls[in] If the result should also contain walls, or only the infill.
+     * \param wall_count[in] Amount of walls the result should contain.
      * \param special_pattern[in] Use a different pattern. None means the default pattern as in config will be used.
      * \param disable_connect[in] If the connecting of Infill lines has to be disabled.
      * \return A Polygons object that represents the resulting infill lines.
@@ -103,7 +103,7 @@ public:
         bool roof,
         LayerIndex layer_idx,
         coord_t support_infill_distance,
-        std::shared_ptr<SierpinskiFillProvider> cross_fill_provider, bool include_walls, EFillMethod special_pattern = EFillMethod::NONE, bool disable_connect = false)
+        std::shared_ptr<SierpinskiFillProvider> cross_fill_provider, size_t wall_count, EFillMethod special_pattern = EFillMethod::NONE, bool disable_connect = false)
     {
         Polygons gaps;
         // As we effectively use lines to place our supportPoints we may use the Infill class for it, while not made for it, it works perfectly.
@@ -115,7 +115,7 @@ public:
         constexpr coord_t support_roof_overlap = 0;
         constexpr size_t infill_multiplier = 1;
         const int support_shift = roof ? 0 : support_infill_distance / 2;
-        const size_t wall_line_count = include_walls ? (! roof ? config.support_wall_count : config.support_roof_wall_count) : 0;
+        const size_t wall_line_count = wall_count;
         constexpr coord_t narrow_area_width = 0;
         const Point2LL infill_origin;
         constexpr bool skip_stitching = false;

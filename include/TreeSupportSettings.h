@@ -98,7 +98,7 @@ struct TreeSupportSettings
         , min_feature_size(mesh_group_settings.get<coord_t>("min_feature_size"))
         , min_wall_line_width(settings.get<coord_t>("min_wall_line_width"))
         , fill_outline_gaps(settings.get<bool>("fill_outline_gaps"))
-        , support_skin_layers(retrieveSetting<coord_t>(mesh_group_settings,"support_tree_support_skin_height")/layer_height)
+        , support_skin_layers(round_up_divide(retrieveSetting<coord_t>(mesh_group_settings,"support_tree_support_skin_height"), layer_height))
         , support_skin_line_distance(retrieveSetting<coord_t>(mesh_group_settings,"support_tree_support_skin_line_distance"))
         , support_tree_skin_for_large_tips_radius_threshold(retrieveSetting<coord_t>(mesh_group_settings,"support_tree_skin_for_large_tips_threshold") / 2)
         , simplifier(Simplify(mesh_group_settings))

@@ -1712,10 +1712,13 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     const coord_t z_distance_top = round_up_divide(mesh.settings.get<coord_t>("support_top_distance"), layer_height); // Number of layers between support roof and model.
     const coord_t roof_line_width = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings_.get<coord_t>("support_roof_line_width");
     const coord_t roof_outline_offset = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings_.get<coord_t>("support_roof_offset");
+    const coord_t roof_line_distance = mesh.settings.get<coord_t>("support_roof_line_distance");
+    const coord_t roof_wall_line_count = mesh.settings.get<size_t>("support_roof_wall_count");
 
     const double minimum_roof_area = mesh.settings.get<double>("minimum_roof_area");
 
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
+    Polygons roofs_before;
     for (LayerIndex layer_idx = static_cast<int>(support_layers.size() - z_distance_top) - 1; layer_idx >= 0; --layer_idx)
     {
         const LayerIndex top_layer_idx_above{
@@ -1728,11 +1731,13 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         }
         Polygons roofs;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roof_outline_offset, minimum_roof_area, roofs);
-        support_layers[layer_idx].support_roof.add(roofs);
-        if (layer_idx > 0 && layer_idx < support_layers.size() - 1)
+        // If roof is added as fractional, even though non can exist because remaining z distance is 0 it will be regular roof.
+        support_layers[layer_idx].fillRoofParts(layer_idx > 0 ? roofs.intersection(roofs_before) : roofs, roof_line_width, roof_wall_line_count);
+        if (layer_idx > 0)
         {
-            support_layers[layer_idx].support_fractional_roof.add(roofs.difference(support_layers[layer_idx + 1].support_roof));
+            support_layers[layer_idx].fillRoofParts(roofs.difference(roofs_before), roof_line_width, roof_wall_line_count, true);
         }
+        roofs_before = roofs;
         scripta::log("support_interface_roofs", roofs, SectionType::SUPPORT, layer_idx);
     }
 
@@ -1748,7 +1753,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         int upper = std::min(static_cast<int>(layer_idx + roof_layer_count + z_distance_top + 5), static_cast<int>(global_support_areas_per_layer.size()) - 1);
         for (Polygons& global_support : global_support_areas_per_layer | ranges::views::slice(lower, upper))
         {
-            global_support = global_support.difference(support_layer.support_roof);
+            global_support = global_support.difference(support_layer.getTotalAreaFromParts(support_layer.support_roof));
         }
     }
 }

@@ -33,7 +33,6 @@ public:
      * \param storage[in] Background storage, required for adding roofs.
      * \param mesh[in] The mesh that is currently processed. Contains the overhangs.
      * \param move_bounds[out] The storage for the tips.
-     * \param additional_support_areas[out] Areas that should have been roofs, but are now support, as they would not generate any lines as roof. Should already be initialised.
      * \param placed_support_lines_support_areas[out] Support-lines that were already placed represented as the area the lines will take when printed.
      * \param support_free_areas[out] Areas where no support (including roof) of any kind is to be drawn.
      * \param cradle_data_export[out] Generated cradle lines.
@@ -43,7 +42,6 @@ public:
         SliceDataStorage& storage,
         const SliceMeshStorage& mesh,
         std::vector<std::set<TreeSupportElement*>>& move_bounds,
-        std::vector<Polygons>& additional_support_areas,
         std::vector<std::vector<FakeRoofArea>>& placed_fake_roof_areas,
         std::vector<Polygons>& support_free_areas,
         std::vector<std::vector<TreeSupportCradle*>>& cradle_data_export);
@@ -57,6 +55,13 @@ private:
         TO_MODEL_GRACIOUS_SAFE,
         TO_BP,
         TO_BP_SAFE
+    };
+
+    enum class TipRoofType
+    {
+        NONE,
+        SUPPORTS_ROOF,
+        IS_ROOF
     };
 
     struct UnsupportedAreaInformation
@@ -224,7 +229,7 @@ private:
         double hidden_radius_increase,
         LayerIndex insert_layer,
         size_t dont_move_until,
-        bool roof,
+        TipRoofType roof,
         bool cradle,
         bool skip_ovalisation,
         std::vector<Point2LL> additional_ovalization_targets = std::vector<Point2LL>());
@@ -254,9 +259,8 @@ private:
      * \brief Remove tips that should not have been added in the first place.
      * \param move_bounds[in,out] The already added tips
      * \param storage[in] Background storage, required for adding roofs.
-     * \param additional_support_areas[in] Areas that should have been roofs, but are now support, as they would not generate any lines as roof.
      */
-    void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<Polygons>& additional_support_areas);
+    void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage);
 
     /*!
      * \brief Contains config settings to avoid loading them in every function. This was done to improve readability of the code.
@@ -310,11 +314,6 @@ private:
     const coord_t roof_outset_;
 
     /*!
-     * \brief Whether tips should be printed as roof
-     */
-    const bool force_tip_to_roof_;
-
-    /*!
      * \brief Whether the maximum distance a branch should from a point they support should be limited. Can be violated if required.
      */
     const bool support_tree_limit_branch_reach_;
@@ -339,10 +338,6 @@ private:
      */
     size_t max_overhang_insert_lag_;
 
-    /*!
-     * \brief Area of a tip in mm2.
-     */
-    const double tip_roof_size_;
 
     /*!
      * \brief Whether only support that can rest on a flat surface should be supported.
@@ -354,6 +349,11 @@ private:
      * further up/down.
      */
     const bool force_minimum_roof_area_ = SUPPORT_TREE_MINIMUM_ROOF_AREA_HARD_LIMIT;
+
+    /*!
+     * \brief Whether tips should be larger to enable reaching initial_layer_diameter.
+     */
+    const bool force_initial_layer_radius_;
 
     /*!
      * \brief Distance between branches when the branches support a support pattern
@@ -376,16 +376,13 @@ private:
     std::vector<Polygons> support_roof_drawn_;
 
     /*!
-     * \brief Areas that will be saved as support roof
+     * \brief Areas that should have fractional roof above it.
      */
     std::vector<Polygons> support_roof_drawn_fractional_;
 
     /*!
-     * \brief Areas that will be saved as support roof, originating from tips being replaced with roof areas.
+     * \brief Representation of all cradles ordered by layer_idx.
      */
-    std::vector<Polygons> roof_tips_drawn_;
-
-
     std::vector<std::vector<TreeSupportCradle*>> cradle_data_;
 
     /*!
