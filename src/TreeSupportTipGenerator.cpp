@@ -154,7 +154,7 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, T
         }
     }
 
-    for (int cradle_xy_dist_fill = cradle_xy_distance_.size(); cradle_xy_dist_fill < cradle_layers_ + 1; cradle_xy_dist_fill++)
+    for (int cradle_xy_dist_fill = cradle_xy_distance_.size(); cradle_xy_dist_fill <= cradle_layers_ + 1; cradle_xy_dist_fill++)
     {
         cradle_xy_distance_.emplace_back(config_.xy_min_distance);
     }
@@ -795,7 +795,7 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                 for (auto [idx, model_shadow] : accumulated_model | ranges::views::enumerate)
                 {
                     Point2LL center = cradle->getCenter(layer_idx + idx);
-                    const coord_t current_cradle_xy_distance = cradle_xy_distance_[idx]; // todo fix crash out of bounds
+                    const coord_t current_cradle_xy_distance = cradle_xy_distance_[idx];
                     const coord_t current_cradle_length = cradle_length_ + max_cradle_xy_distance - current_cradle_xy_distance;
 
                     if(cradle->lines_.empty())
