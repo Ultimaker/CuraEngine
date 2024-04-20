@@ -2308,11 +2308,11 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
 
 
 
-    std::vector<Polygons> cradle_support_base_areas(support_layer_storage.size());
-    std::vector<Polygons> cradle_support_line_areas(support_layer_storage.size());
-    std::vector<Polygons> cradle_support_line_roof_areas(support_layer_storage.size());
+    std::vector<Polygons> cradle_base_areas(support_layer_storage.size()); // Copy of all cradle base areas. Already added to correct storage.
+    std::vector<Polygons> cradle_support_line_areas(support_layer_storage.size()); // All cradle lines that have to be added as support
+    std::vector<Polygons> cradle_support_line_roof_areas(support_layer_storage.size());// All cradle lines that have to be added as roof
 
-    std::vector<Polygons> cradle_line_xy_distance_areas(support_layer_storage.size());
+    std::vector<Polygons> cradle_line_xy_distance_areas(support_layer_storage.size()); // All cradle lines offset by xy distance.
 
     std::mutex critical_cradle_line_xy_distance_areas;
     std::mutex critical_cradle_support_line_areas;
@@ -2332,6 +2332,7 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                     if(cradle_data[layer_idx][cradle_idx]->is_roof_)
                     {
                         std::lock_guard<std::mutex> critical_section_cradle(critical_support_roof_storage);
+                        cradle_base_areas[layer_idx-base_idx].add(base);
                         support_roof_storage[layer_idx-base_idx].add(base);
                         if(base_idx == 0 && layer_idx + 1 < support_roof_storage_fractional.size())
                         {
@@ -2341,7 +2342,7 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                     else
                     {
                         std::lock_guard<std::mutex> critical_section_cradle(critical_support_layer_storage);
-                        cradle_support_base_areas[layer_idx-base_idx].add(base);
+                        cradle_base_areas[layer_idx-base_idx].add(base);
                         support_layer_storage[layer_idx-base_idx].add(base);
                     }
                 }
@@ -2430,7 +2431,8 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                 support_roof_extra_wall_storage_fractional[layer_idx] = support_roof_extra_wall_storage_fractional[layer_idx].unionPolygons();
 
                 cradle_line_xy_distance_areas[layer_idx] = cradle_line_xy_distance_areas[layer_idx].unionPolygons();
-
+                cradle_base_areas[layer_idx] = cradle_base_areas[layer_idx].unionPolygons();
+                cradle_support_line_roof_areas[layer_idx] = cradle_support_line_roof_areas[layer_idx].unionPolygons();
                 //If areas are overwriting others in can will influence where support skin will be generated. So the differences have to be calculated here.
                 if (!storage.support.supportLayers[layer_idx].support_roof.empty())
                 {
@@ -2474,10 +2476,20 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                 }
 
 
-                Polygons roof_extra_wall = support_roof_extra_wall_storage[layer_idx].difference(remove_from_next_roof).unionPolygons(cradle_support_line_roof_areas[layer_idx]);
-                storage.support.supportLayers[layer_idx].fillRoofParts(roof_extra_wall, config.support_roof_line_width, config.support_wall_count, false);
+                Polygons roof_extra_wall = support_roof_extra_wall_storage[layer_idx].difference(remove_from_next_roof);
+                Polygons roof = support_roof_storage[layer_idx];
+                Polygons cradle_lines_roof = cradle_support_line_roof_areas[layer_idx].difference(cradle_base_areas[layer_idx]);
+                if(config.support_roof_wall_count)
+                {
+                    roof = roof.unionPolygons(cradle_lines_roof);
+                }
+                else
+                {
+                    roof_extra_wall = roof_extra_wall.unionPolygons(cradle_lines_roof);
+                }
 
-                Polygons roof = support_roof_storage[layer_idx].difference(remove_from_next_roof.unionPolygons(roof_extra_wall));
+                roof = roof.difference(remove_from_next_roof.unionPolygons(roof_extra_wall));
+                storage.support.supportLayers[layer_idx].fillRoofParts(roof_extra_wall, config.support_roof_line_width, config.support_wall_count, false);
                 storage.support.supportLayers[layer_idx].fillRoofParts(roof, config.support_roof_line_width, config.support_roof_wall_count, false);
 
                 remove_from_next_roof.add(roof_extra_wall);
@@ -2526,7 +2538,7 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                     needs_supporting.add(fake_roofs[layer_idx + 1].difference(support_shell_capable_of_supporting_roof));
                     needs_supporting.add(cradle_support_line_areas[layer_idx + 1]);
                 }
-                needs_supporting.add(cradle_support_base_areas[layer_idx]); // cradle bases should be skin.
+                needs_supporting.add(cradle_base_areas[layer_idx]); // cradle bases should be skin.
 
                 needs_supporting = needs_supporting.unionPolygons();
 
