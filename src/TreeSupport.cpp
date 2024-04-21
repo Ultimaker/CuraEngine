@@ -2332,8 +2332,6 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
     const coord_t open_close_distance = config.fill_outline_gaps ? config.min_feature_size/ 2 - 5 : config.min_wall_line_width/ 2 - 5; // based on calculation in WallToolPath
     const double small_area_length = INT2MM(static_cast<double>(config.support_line_width) / 2);
 
-
-
     std::vector<Polygons> cradle_base_areas(support_layer_storage.size()); // Copy of all cradle base areas. Already added to correct storage.
     std::vector<Polygons> cradle_support_line_areas(support_layer_storage.size()); // All cradle lines that have to be added as support
     std::vector<Polygons> cradle_support_line_roof_areas(support_layer_storage.size());// All cradle lines that have to be added as roof
@@ -2375,43 +2373,70 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
 
                 for(size_t line_idx = 0; line_idx < cradle_data[layer_idx][cradle_idx]->lines_.size(); line_idx++)
                 {
-                    for(size_t height_idx = 0; height_idx < cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size(); height_idx++)
+                    if (! cradle_data[layer_idx][cradle_idx]->lines_[line_idx].empty())
                     {
-                        Polygons line_area = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].area_;
-                        bool is_roof = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].is_roof_;
-                        LayerIndex cradle_line_layer_idx = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].layer_idx_;
-                        if(is_roof)
+                        Polygons previous_line_area = cradle_data[layer_idx][cradle_idx]->lines_[line_idx].back().area_;
+                        LayerIndex previous_layer_idx = cradle_data[layer_idx][cradle_idx]->lines_[line_idx].back().layer_idx_;
+                        for (int64_t height_idx = cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size() - 1; height_idx >= 0; height_idx--)
                         {
-                            std::lock_guard<std::mutex> critical_section_cradle(critical_support_roof_storage);
-
-                            if(cradle_support_line_roof_areas.size()<=layer_idx)
+                            Polygons line_area = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].area_;
+                            bool is_roof = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].is_roof_;
+                            LayerIndex cradle_line_layer_idx = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].layer_idx_;
+                            bool is_base = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].is_base_;
+                            if(!is_base)
                             {
-                                cradle_support_line_roof_areas.resize(layer_idx+1 + cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size()-height_idx);
+                                for(LayerIndex xy_dist_layer_idx = previous_layer_idx - 1; xy_dist_layer_idx > cradle_line_layer_idx; xy_dist_layer_idx--)
+                                {
+                                    Polygons line_areas = TreeSupportUtils::safeOffsetInc(
+                                        previous_line_area,
+                                        config.xy_distance,
+                                        volumes_.getCollision(0, xy_dist_layer_idx),
+                                        config.xy_min_distance + config.min_feature_size,
+                                        0,
+                                        0,
+                                        config.min_feature_size,
+                                        &config.simplifier);
+                                    std::lock_guard<std::mutex> critical_section_cradle(critical_cradle_line_xy_distance_areas);
+                                    cradle_line_xy_distance_areas[xy_dist_layer_idx].add(line_areas);
+                                }
                             }
-                            cradle_support_line_roof_areas[cradle_line_layer_idx].add(line_area);
-                        }
-                        else
-                        {
-                            std::lock_guard<std::mutex> critical_section_cradle(critical_cradle_support_line_areas);
 
-                            if(cradle_support_line_areas.size()<=layer_idx)
+                            if (is_roof)
                             {
-                                cradle_support_line_areas.resize(layer_idx+1 + cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size()-height_idx);
+                                std::lock_guard<std::mutex> critical_section_cradle(critical_support_roof_storage);
+
+                                if (cradle_support_line_roof_areas.size() <= layer_idx)
+                                {
+                                    cradle_support_line_roof_areas.resize(layer_idx + 1 + cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size() - height_idx);
+                                }
+                                cradle_support_line_roof_areas[cradle_line_layer_idx].add(line_area);
                             }
-                            cradle_support_line_areas[cradle_line_layer_idx].add(line_area);
-                        }
-                        if(!cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].is_base_)
-                        {
-                            Polygons line_areas = TreeSupportUtils::safeOffsetInc(line_area,
-                                                                                  config.xy_distance,
-                                                                                  volumes_.getCollision(0,cradle_line_layer_idx),
-                                                                                  config.xy_min_distance + config.min_feature_size,
-                                                                                  0,
-                                                                                  0,
-                                                                                  config.min_feature_size,
-                                                                                  &config.simplifier);
-                            std::lock_guard<std::mutex> critical_section_cradle(critical_cradle_line_xy_distance_areas);
-                            cradle_line_xy_distance_areas[cradle_line_layer_idx].add(line_areas);
+                            else
+                            {
+                                std::lock_guard<std::mutex> critical_section_cradle(critical_cradle_support_line_areas);
+
+                                if (cradle_support_line_areas.size() <= layer_idx)
+                                {
+                                    cradle_support_line_areas.resize(layer_idx + 1 + cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size() - height_idx);
+                                }
+                                cradle_support_line_areas[cradle_line_layer_idx].add(line_area);
+                            }
+                            if (!is_base)
+                            {
+                                Polygons line_areas = TreeSupportUtils::safeOffsetInc(
+                                    line_area,
+                                    config.xy_distance,
+                                    volumes_.getCollision(0, cradle_line_layer_idx),
+                                    config.xy_min_distance + config.min_feature_size,
+                                    0,
+                                    0,
+                                    config.min_feature_size,
+                                    &config.simplifier);
+                                std::lock_guard<std::mutex> critical_section_cradle(critical_cradle_line_xy_distance_areas);
+                                cradle_line_xy_distance_areas[cradle_line_layer_idx].add(line_areas);
+                            }
+                            previous_layer_idx = cradle_line_layer_idx;
+                            previous_line_area = line_area;
                         }
                     }
                 }
