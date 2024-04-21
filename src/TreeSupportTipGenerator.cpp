@@ -1843,19 +1843,21 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(std::vector<std::set<Tree
                 }
             }
 
-            if(overhang_data.is_cradle_)
-            {
-                if((overhang_data.isCradleLine() && large_cradle_line_tips_) || (!overhang_data.isCradleLine() && (! cradle_base_roof_ || large_cradle_line_tips_)))
-                {
-                    tip_radius =  cradle_tip_dtt_;
-                }
-            }
+
 
             size_t tip_dtt = tip_radius >= config_.branch_radius ? config_.tip_layers :
                                                                  (config_.tip_layers * (tip_radius - config_.min_radius))/(config_.branch_radius - config_.min_radius);
 
             coord_t hidden_radius = tip_radius > config_.branch_radius ? tip_radius - config_.branch_radius : 0;
             double hidden_radius_increases = hidden_radius  / (config_.branch_radius * (std::max(config_.diameter_scale_bp_radius - config_.diameter_angle_scale_factor, 0.0)));
+
+            if(overhang_data.is_cradle_ && tip_dtt < cradle_tip_dtt_)
+            {
+                if((overhang_data.isCradleLine() && large_cradle_line_tips_) || (!overhang_data.isCradleLine() && (! cradle_base_roof_ || large_cradle_line_tips_)))
+                {
+                    tip_dtt =  cradle_tip_dtt_;
+                }
+            }
 
             TreeSupportElement* elem = addPointAsInfluenceArea(
                 move_bounds,
