@@ -1597,6 +1597,26 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
         dropOverhangAreas(mesh, dropped_overhangs, true);
     }
 
+    std::vector<Polygons> all_cradle_areas(cradle_data_.size());
+    for(LayerIndex layer_idx = 0; layer_idx < cradle_data_.size(); layer_idx++)
+    {
+        for(size_t cradle_idx = 0; cradle_idx < cradle_data_[layer_idx].size(); cradle_idx++)
+        {
+
+            for (auto [line_idx, lines] : cradle_data_[layer_idx][cradle_idx]->lines_ | ranges::views::enumerate)
+            {
+                for (auto [height_idx, line] : lines | ranges::views::enumerate)
+                {
+                    all_cradle_areas[line.layer_idx_].add(line.area_);
+                }
+            }
+            for (auto [base_idx, base] : cradle_data_[layer_idx][cradle_idx]->base_below_ | ranges::views::enumerate)
+            {
+                all_cradle_areas[layer_idx-base_idx].add(base);
+            }
+        }
+    }
+
     cura::parallel_for<coord_t>(
         0,
         mesh.overhang_areas.size() - z_distance_delta_,
@@ -1630,6 +1650,9 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
                 1,
                 config_.support_line_distance / 2,
                 &config_.simplifier);
+
+            //If an area is already supported by cradle don't put roof there.
+            full_overhang_area = full_overhang_area.difference(all_cradle_areas[layer_idx].unionPolygons().offset(config_.xy_distance + FUDGE_LENGTH).unionPolygons());
 
             for (LayerIndex dtt_roof = 0; dtt_roof < support_roof_layers_ && layer_idx - dtt_roof >= 1; dtt_roof++)
             {
@@ -2096,7 +2119,7 @@ void TreeSupportTipGenerator::generateTips(
             }
             all_cradle_areas[layer_idx] = all_cradle_areas[layer_idx].unionPolygons().offset(EPSILON).unionPolygons();
             core_overhang = core_overhang.difference(support_free_areas[layer_idx]);
-            core_overhang = core_overhang.difference(all_cradle_areas[layer_idx]);
+            core_overhang = core_overhang.difference(all_cradle_areas[layer_idx].offset(config_.xy_distance + FUDGE_LENGTH).unionPolygons());
 
             for(size_t cradle_idx = 0; cradle_idx < all_cradles_requiring_support[layer_idx].size(); cradle_idx++)
             {
