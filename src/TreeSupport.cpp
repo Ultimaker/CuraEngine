@@ -998,22 +998,48 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
 
         if (ceil_radius_before != volumes_.ceilRadius(radius, settings.use_min_distance_))
         {
+            if(anti_preferred_applied)
+            {
+                increased = increased.difference(volumes_.getAntiPreferredAreas(layer_idx-1, radius));
+            }
             if (current_elem.to_buildplate_)
             {
-                to_bp_data = TreeSupportUtils::safeUnion(increased.difference(volumes_.getAvoidance(radius, layer_idx - 1, settings.type_, false, settings.use_min_distance_)));
+                bool avoidance_handled = false;
+                to_bp_data = increased;
+                if(settings.use_anti_preferred_)
+                {
+                    to_bp_data = to_bp_data.difference(volumes_.getAntiPreferredAvoidance(radius, layer_idx - 1, settings.type_, ! current_elem.to_buildplate_, settings.use_min_distance_));
+                    avoidance_handled = true;
+                }
+                if(! avoidance_handled)
+                {
+                    to_bp_data = to_bp_data.difference(volumes_.getAvoidance(radius, layer_idx - 1, settings.type_, false, settings.use_min_distance_));
+                }
+                to_bp_data =  TreeSupportUtils::safeUnion(to_bp_data);
             }
             if (config.support_rests_on_model && (! current_elem.to_buildplate_ || mergelayer))
             {
-                to_model_data = TreeSupportUtils::safeUnion(increased.difference(
-                    volumes_.getAvoidance(radius, layer_idx - 1, current_elem.to_model_gracious_ ? settings.type_ : AvoidanceType::COLLISION, true, settings.use_min_distance_)));
+                bool avoidance_handled = false;
+                to_model_data = increased;
+                if(settings.use_anti_preferred_)
+                {
+                    to_model_data = to_model_data.difference(volumes_.getAntiPreferredAvoidance(radius, layer_idx - 1,  current_elem.to_model_gracious_ ? settings.type_ : AvoidanceType::COLLISION, true, settings.use_min_distance_));
+                    avoidance_handled = true;
+                }
+                if(! avoidance_handled)
+                {
+                    to_bp_data = to_bp_data.difference(volumes_.getAvoidance(radius, layer_idx - 1, current_elem.to_model_gracious_ ? settings.type_ : AvoidanceType::COLLISION, true, settings.use_min_distance_));
+                }
+                to_model_data =  TreeSupportUtils::safeUnion(to_model_data);
             }
             check_layer_data = current_elem.to_buildplate_ ? to_bp_data : to_model_data;
             if (check_layer_data.area() < 1)
             {
                 spdlog::error(
-                    "Lost area by doing catch up from {} to radius {}",
+                    "Lost area by doing catch up from {} to radius {} planned increase was {}",
                     ceil_radius_before,
-                    volumes_.ceilRadius(config.getCollisionRadius(current_elem), settings.use_min_distance_));
+                    volumes_.ceilRadius(config.getCollisionRadius(current_elem), settings.use_min_distance_),
+                    planned_foot_increase);
             }
         }
     }

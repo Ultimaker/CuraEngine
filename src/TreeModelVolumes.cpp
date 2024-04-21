@@ -654,27 +654,30 @@ void TreeModelVolumes::precalculateAntiPreferred()
 
                 if (support_rest_preference_ == RestPreference::BUILDPLATE)
                 {
-                    latest_avoidance = safeOffset(latest_avoidance, -max_move_, ClipperLib::jtRound, -max_step_move, col.unionPolygons(anti));
+                    latest_avoidance = safeOffset(latest_avoidance, - max_move_, ClipperLib::jtRound, -max_step_move, col.unionPolygons(anti));
                     Polygons next_latest_avoidance = simplifier_.polygon(latest_avoidance);
                     latest_avoidance = next_latest_avoidance.unionPolygons(latest_avoidance);
+                    latest_avoidance = latest_avoidance.unionPolygons(getAvoidance(radius,layer,AvoidanceType::FAST_SAFE, false, true));
                     data[layer] = std::pair<RadiusLayerPair, Polygons>(key, latest_avoidance);
                 }
 
                 if(support_rests_on_model_)
                 {
-                    latest_avoidance_to_model = safeOffset(latest_avoidance_to_model, -max_move_, ClipperLib::jtRound, -max_step_move, col.unionPolygons(anti));
+                    latest_avoidance_to_model = safeOffset(latest_avoidance_to_model, - max_move_, ClipperLib::jtRound, -max_step_move, col.unionPolygons(anti));
                     Polygons next_latest_avoidance_to_model = simplifier_.polygon(latest_avoidance_to_model);
                     latest_avoidance_to_model = next_latest_avoidance_to_model.unionPolygons(latest_avoidance_to_model);
                     latest_avoidance_to_model = latest_avoidance_to_model.difference(getPlaceableAreas(radius,layer));
+                    latest_avoidance_to_model = latest_avoidance_to_model.unionPolygons(getAvoidance(radius,layer,AvoidanceType::FAST_SAFE, true, true));
                     data_to_model[layer] = std::pair<RadiusLayerPair, Polygons>(key, latest_avoidance_to_model);
 
                 }
 
                 if(max_layer_idx_without_blocker_ <= layer && support_rests_on_model_)
                 {
-                    latest_avoidance_collision = safeOffset(latest_avoidance_collision, -max_move_, ClipperLib::jtRound, -max_step_move, col.unionPolygons(anti));
+                    latest_avoidance_collision = safeOffset(latest_avoidance_collision, - max_move_, ClipperLib::jtRound, -max_step_move, col.unionPolygons(anti));
                     Polygons placeable0RadiusCompensated = getAccumulatedPlaceable0(layer).offset(-std::max(radius, increase_until_radius_), ClipperLib::jtRound);
                     latest_avoidance_collision = latest_avoidance_collision.difference(placeable0RadiusCompensated).unionPolygons(getCollision(radius, layer, true));
+                    latest_avoidance_collision = latest_avoidance_collision.unionPolygons(getAvoidance(radius,layer,AvoidanceType::COLLISION, true, true));
                     data_collision[layer] = std::pair<RadiusLayerPair, Polygons>(key, latest_avoidance_collision);
                 }
             }
