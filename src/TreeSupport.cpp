@@ -2319,6 +2319,7 @@ void TreeSupport::dropNonGraciousAreas(
 }
 
 void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_storage,
+                                      std::vector<Polygons>& support_layer_storage_fractional,
                                       std::vector<Polygons>& support_skin_storage,
                                       std::vector<Polygons>& support_roof_storage,
                                       std::vector<Polygons>& support_roof_extra_wall_storage,
@@ -2470,10 +2471,24 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                 fake_roof = fake_roof.unionPolygons();
                 fake_roofs[layer_idx] = fake_roof;
 
+
+                Polygons remove_from_support = cradle_line_xy_distance_areas[layer_idx];
+                remove_from_support.add(fake_roof_lines);
+                remove_from_support.add(support_free_areas[layer_idx]);
+                remove_from_support = remove_from_support.unionPolygons();
+
                 support_layer_storage[layer_idx] = config.simplifier.polygon(PolygonUtils::unionManySmall(support_layer_storage[layer_idx].smooth(FUDGE_LENGTH))).offset(-open_close_distance).offset(open_close_distance * 2).offset(-open_close_distance);
-                support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(fake_roof_lines);
-                support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(cradle_line_xy_distance_areas[layer_idx].unionPolygons());
+                support_layer_storage_fractional[layer_idx] = support_layer_storage_fractional[layer_idx].unionPolygons();
+                Polygons original_fractional = support_layer_storage_fractional[layer_idx];
+                support_layer_storage_fractional[layer_idx] = support_layer_storage_fractional[layer_idx].difference(support_layer_storage[layer_idx]);
+                //ensure there is at lease one line space for fractional support. Overlap is removed later!
+                support_layer_storage_fractional[layer_idx] = support_layer_storage_fractional[layer_idx].offset(config.support_line_width).intersection(original_fractional);
+
+                support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(remove_from_support);
+                support_layer_storage_fractional[layer_idx] = support_layer_storage_fractional[layer_idx].difference(remove_from_support);
                 support_layer_storage[layer_idx].removeSmallAreas(small_area_length * small_area_length, false);
+                support_layer_storage_fractional[layer_idx].removeSmallAreas(small_area_length * small_area_length, false);
+
 
                 support_roof_storage[layer_idx] = support_roof_storage[layer_idx].unionPolygons();
                 support_roof_storage_fractional[layer_idx] = support_roof_storage_fractional[layer_idx].unionPolygons();
@@ -2498,19 +2513,21 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
                         all_roof.add(support_roof_extra_wall_storage_fractional[layer_idx]);
                         all_roof = all_roof.unionPolygons();
                         support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(all_roof);
+                        support_layer_storage_fractional[layer_idx] = support_layer_storage_fractional[layer_idx].difference(all_roof);
                         break;
                     }
 
                     case InterfacePreference::SUPPORT_AREA_OVERWRITES_INTERFACE:
                     {
                         Polygons existing_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
+                        Polygons support_areas = support_layer_storage[layer_idx].unionPolygons(support_layer_storage_fractional[layer_idx]);
                         Polygons invalid_roof = existing_roof.intersection(support_layer_storage[layer_idx]);
                         AABB invalid_roof_aabb = AABB(invalid_roof);
                         storage.support.supportLayers[layer_idx].excludeAreasFromSupportParts(storage.support.supportLayers[layer_idx].support_roof, invalid_roof, invalid_roof_aabb);
-                        support_roof_storage[layer_idx] = support_roof_storage[layer_idx].difference(support_layer_storage[layer_idx]);
-                        support_roof_extra_wall_storage[layer_idx] = support_roof_extra_wall_storage[layer_idx].difference(support_layer_storage[layer_idx]);
-                        support_roof_storage_fractional[layer_idx] = support_roof_storage_fractional[layer_idx].difference(support_layer_storage[layer_idx]);
-                        support_roof_extra_wall_storage_fractional[layer_idx] = support_roof_extra_wall_storage_fractional[layer_idx].difference(support_layer_storage[layer_idx]);
+                        support_roof_storage[layer_idx] = support_roof_storage[layer_idx].difference(support_areas);
+                        support_roof_extra_wall_storage[layer_idx] = support_roof_extra_wall_storage[layer_idx].difference(support_areas);
+                        support_roof_storage_fractional[layer_idx] = support_roof_storage_fractional[layer_idx].difference(support_areas);
+                        support_roof_extra_wall_storage_fractional[layer_idx] = support_roof_extra_wall_storage_fractional[layer_idx].difference(support_areas);
                         break;
                     }
                     default:
@@ -2522,7 +2539,6 @@ void TreeSupport::generateSupportSkin(std::vector<Polygons>& support_layer_stora
 
                 if(!support_free_areas[layer_idx].empty())
                 {
-                    support_layer_storage[layer_idx] =  support_layer_storage[layer_idx].difference(support_free_areas[layer_idx]);
                     remove_from_next_roof.add(support_free_areas[layer_idx]);
                 }
 
@@ -2943,13 +2959,17 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
                     Polygons existing_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
                     support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(existing_roof);
                     support_skin_storage[layer_idx] = support_skin_storage[layer_idx].difference(existing_roof);
-                        break;
+                    support_layer_storage_fractional[layer_idx] = support_layer_storage_fractional[layer_idx].difference(existing_roof);
+                    break;
                 }
 
                 case InterfacePreference::SUPPORT_AREA_OVERWRITES_INTERFACE:
                 {
                     Polygons existing_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
-                    Polygons invalid_roof = existing_roof.intersection(support_layer_storage[layer_idx].unionPolygons(support_skin_storage[layer_idx]));
+                    Polygons support_areas = support_layer_storage[layer_idx];
+                    support_areas.add(support_skin_storage[layer_idx]);
+                    support_areas.add(support_layer_storage_fractional[layer_idx]);
+                    Polygons invalid_roof = existing_roof.intersection(support_areas.unionPolygons());
                     AABB invalid_roof_aabb = AABB(invalid_roof);
                     storage.support.supportLayers[layer_idx].excludeAreasFromSupportParts(storage.support.supportLayers[layer_idx].support_roof, invalid_roof, invalid_roof_aabb);
                     break;
@@ -2976,6 +2996,8 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
 
                     support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(interface_lines);
                     support_skin_storage[layer_idx] = support_skin_storage[layer_idx].difference(interface_lines);
+                    support_layer_storage_fractional[layer_idx] = support_layer_storage_fractional[layer_idx].difference(interface_lines);
+
                 }
                 break;
 
@@ -3049,15 +3071,61 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
         {
             constexpr bool convert_every_part = true; // Convert every part into a PolygonsPart for the support.
 
+            // This only works because fractional support is always just projected upwards regular support or skin.
+            // Also technically violates skin height, but there is no good way to prevent that.
+            Polygons fractional_support;
+            Polygons fractional_skin;
+            Polygons support_areas = support_layer_storage[layer_idx];
+            Polygons skin_areas = support_skin_storage[layer_idx];
+
+            if(layer_idx > 0)
+            {
+                fractional_support = support_layer_storage_fractional[layer_idx].intersection(support_layer_storage[layer_idx - 1]);
+                fractional_skin = support_layer_storage_fractional[layer_idx].intersection(support_skin_storage[layer_idx - 1]);
+
+                //To remove the lines it needs to be known what the lines are. This can not be done in the loop above, so it needs to be done here again for fractional support.
+                // todo deduplicate code
+                if(interface_pref == InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE)
+                {
+                    Polygons existing_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
+                    Polygons tree_lines;
+                    tree_lines =
+                        tree_lines.unionPolygons
+                        (
+                            TreeSupportUtils::generateSupportInfillLines(fractional_support, config, false, layer_idx, config.support_line_distance, storage.support.cross_fill_provider, config.support_wall_count)
+                                .offsetPolyLine(config.support_line_width / 2)
+                        );
+
+                    Polygons support_skin_lines;
+                    support_skin_lines =
+                        support_skin_lines.unionPolygons
+                        (
+                            TreeSupportUtils::generateSupportInfillLines(fractional_skin, config, false, layer_idx, config.support_skin_line_distance, storage.support.cross_fill_provider, std::max(0, config.support_wall_count - 1), EFillMethod::LINES)
+                                .offsetPolyLine(config.support_line_width / 2)
+                        );
+                    Polygons invalid_roof = existing_roof.intersection(tree_lines);
+                    AABB invalid_roof_aabb = AABB(invalid_roof);
+                    storage.support.supportLayers[layer_idx].excludeAreasFromSupportParts(storage.support.supportLayers[layer_idx].support_roof, invalid_roof, invalid_roof_aabb);
+                }
+
+                //Remove overlap between fractional and regular support that may have been created in generateSupportSkin.
+                support_areas = support_areas.difference(support_layer_storage_fractional[layer_idx]);
+                skin_areas = skin_areas.difference(support_layer_storage_fractional[layer_idx]);
+            }
+            else
+            {
+                fractional_support = support_layer_storage_fractional[layer_idx];
+            }
+
             storage.support.supportLayers[layer_idx].fillInfillParts(
-                support_layer_storage[layer_idx],
+                support_areas,
                 config.support_line_width,
                 config.support_wall_count,
                 false,
                 convert_every_part);
 
             storage.support.supportLayers[layer_idx].fillInfillParts(
-                support_skin_storage[layer_idx],
+                skin_areas,
                 config.support_line_width,
                 std::max(config.support_wall_count - 1,0),
                 false,
@@ -3065,20 +3133,6 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
                 config.support_skin_line_distance,
                 EFillMethod::ZIG_ZAG);
 
-            // This only works because fractional support is always just projected upwards regular support or skin.
-            // Also technically violates skin height, but there is no good way to prevent that.
-            Polygons fractional_support;
-            Polygons fractional_skin;
-
-            if(layer_idx > 0)
-            {
-                fractional_support = support_layer_storage_fractional[layer_idx].intersection(support_layer_storage[layer_idx - 1]);
-                fractional_skin = support_layer_storage_fractional[layer_idx].intersection(support_skin_storage[layer_idx - 1]);
-            }
-            else
-            {
-                fractional_support = support_layer_storage_fractional[layer_idx];
-            }
 
             storage.support.supportLayers[layer_idx].fillInfillParts(
                 fractional_support,
@@ -3277,7 +3331,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
         }
     }
 
-    generateSupportSkin(support_layer_storage,support_skin_storage,
+    generateSupportSkin(support_layer_storage, support_layer_storage_fractional, support_skin_storage,
                         support_roof_storage, support_roof_extra_wall_storage,
                         support_roof_storage_fractional, support_roof_extra_wall_storage_fractional,
                         storage,layer_tree_polygons,cradle_data);

@@ -330,6 +330,7 @@ private:
 
      */
     void generateSupportSkin(std::vector<Polygons>& support_layer_storage,
+                             std::vector<Polygons>& support_layer_storage_fractional,
                              std::vector<Polygons>& support_skin_storage,
                              std::vector<Polygons>& support_roof_storage,
                              std::vector<Polygons>& support_roof_extra_wall_storage,
