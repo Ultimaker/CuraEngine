@@ -840,7 +840,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
                     to_bp_data_2 = to_bp_data_2.difference(volumes_.getAntiPreferredAvoidance(next_radius, layer_idx - 1, settings.type_, ! current_elem.to_buildplate_, settings.use_min_distance_));
                     avoidance_handled = settings.type_ != AvoidanceType::SLOW;
                 }
-                else if(anti_preferred_applied)
+                else if(anti_preferred_applied && next_radius > actual_radius)
                 {
                     to_bp_data_2 = to_bp_data_2.difference(volumes_.getAntiPreferredAreas(layer_idx-1, next_radius));
                 }
@@ -878,6 +878,8 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
             return check_layer_data_2.area() > 1;
         };
         coord_t ceil_radius_before = volumes_.ceilRadius(radius, settings.use_min_distance_);
+        coord_t ceil_actual_radius_before = volumes_.ceilRadius(actual_radius, settings.use_min_distance_);
+
 
         // If the Collision Radius is smaller than the actual radius, check if it can catch up without violating the avoidance.
         if (config.getCollisionRadius(current_elem) < config.increase_radius_until_radius && config.getCollisionRadius(current_elem) < config.getRadius(current_elem))
@@ -926,7 +928,6 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
         radius = config.getCollisionRadius(current_elem);
 
         //If a hidden radius increase was used, also do some catching up.
-
         if (current_elem.hidden_radius_increase_ > 0)
         {
             coord_t target_radius = config.getRadius(current_elem);
@@ -993,12 +994,13 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
             {
                 current_elem.buildplate_radius_increases_ += planned_foot_increase;
                 radius = config.getCollisionRadius(current_elem);
+                actual_radius = config.getRadius(current_elem);
             }
         }
 
         if (ceil_radius_before != volumes_.ceilRadius(radius, settings.use_min_distance_))
         {
-            if(anti_preferred_applied)
+            if(anti_preferred_applied && ceil_actual_radius_before < volumes_.ceilRadius(actual_radius, settings.use_min_distance_))
             {
                 increased = increased.difference(volumes_.getAntiPreferredAreas(layer_idx-1, radius));
             }
