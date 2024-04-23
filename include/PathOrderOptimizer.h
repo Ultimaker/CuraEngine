@@ -684,7 +684,7 @@ protected:
                     return best_pos;
                 }
             }
-            number_of_paths_analysed +=1;
+            number_of_paths_analysed += 1;
         }
         else
         {
