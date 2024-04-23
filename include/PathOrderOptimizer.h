@@ -573,6 +573,21 @@ protected:
         return best_candidate->vertices_;
     }
 
+    /**
+     * @brief Checks if the given vertex is close to any polygon path defined by the front of the mesh_paths_.
+     *
+     * The function iteratively checks the shortest distance from the point to each line segment in the polygon.
+     * A line segment is defined by each pair of consecutive points in the polygon.
+     * If the shortest distance is less than or equal to min_size_support_zeam_, the function returns true.
+     * This implies that the vertex is considered "close" to the polygon path.
+     * The check is performed against all polygons in the front of the mesh_paths_.
+     *
+     * @param point Vertex of interest, provided as a 2D point in the LongLong (LL) coordinate space.
+     * @return Returns true if the vertex is close to any line segment in the polygon path, false otherwise.
+     *
+     * @note The closeness is judged based on the minimum Zeam support size.
+     * @note The distance check is performed on the squared distance to avoid costly square root operations.
+     */
     bool isVertexCloseToPolygonPath(Point2LL point)
     {
         for (const auto& points : ranges::front(mesh_paths_))
@@ -663,10 +678,28 @@ protected:
         return best_candidate;
     }
 
+    /**
+     * @brief Analyze the positions in a path and determine the next optimal position based on a proximity criterion.
+     *
+     * This function iteratively examines positions along the given path, checking if the position is close to 3D model.
+     * Each position is specified by an index, starting with `best_pos`. If the position is close to the model according to
+     * `isVertexCloseToPolygonPath` function, the function recursively calls itself with the next position. This process is
+     * repeated until all positions have been checked or `number_of_paths_analysed` becomes equal to `path_size`.
+     * If `number_of_paths_analysed` becomes equal to `path_size`, it logs a warning and returns the current best position.
+     *
+     * @param best_pos The index of the initial position for analysis in the path.
+     * @param path An OrderablePath instance containing the path to be examined.
+     * @param number_of_paths_analysed Optionally, the initial index of paths analysed. Defaults to 0.
+     * @return The index of the next optimal position in the path sequence. May be the same as the input `best_pos`,
+     *         or may be incremented to a different location based on the proximity criterion.
+     *
+     * @note This function uses recursion to evaluate each position in the path.
+     * @note The process stops prematurely if no start path is found for the support z seam distance.
+     *       This typically happens when the distance of the support seam from the model is bigger than all the support wall points.
+     */
 
-    size_t pathIfzeamSupportIsCloseToModel(size_t best_pos, const OrderablePath& path)
+    size_t pathIfzeamSupportIsCloseToModel(size_t best_pos, const OrderablePath& path, size_t number_of_paths_analysed)
     {
-        static size_t number_of_paths_analysed = 0;
         size_t path_size = path.converted_->size();
         if (path_size > number_of_paths_analysed)
         {
@@ -676,15 +709,10 @@ protected:
                 if (isVertexCloseToPolygonPath(current_candidate))
                 {
                     size_t next_best_position = (path_size > best_pos + 1) ? best_pos + 1 : 0;
-                    best_pos = pathIfzeamSupportIsCloseToModel(next_best_position, path);
-                }
-                else
-                {
-                    number_of_paths_analysed = 0;
-                    return best_pos;
+                    number_of_paths_analysed += 1;
+                    best_pos = pathIfzeamSupportIsCloseToModel(next_best_position, path, number_of_paths_analysed);
                 }
             }
-            number_of_paths_analysed += 1;
         }
         else
         {
@@ -692,7 +720,6 @@ protected:
             // We can also calculate the best point to start at this point.
             // This usually happens when the distance of support seam from model is bigger than the whole support wall points.
         }
-        number_of_paths_analysed = 0;
         return best_pos;
     }
 
@@ -836,7 +863,7 @@ protected:
 
         if (seam_config_.type_ == EZSeamType::SUPPORT)
         {
-            best_i = pathIfzeamSupportIsCloseToModel(best_i, path);
+            best_i = pathIfzeamSupportIsCloseToModel(best_i, path, 0);
         }
         return best_i;
     }
