@@ -677,17 +677,22 @@ protected:
                 {
                     size_t next_best_position = (path_size > best_pos + 1) ? best_pos + 1 : 0;
                     best_pos = pathIfzeamSupportIsCloseToModel(next_best_position, path);
-                    number_of_paths_analysed += 1;
+                }
+                else
+                {
+                    number_of_paths_analysed = 0;
+                    return best_pos;
                 }
             }
+            number_of_paths_analysed +=1;
         }
         else
         {
-            number_of_paths_analysed = 0;
-            spdlog::warn("no start path found for support z seam distance");
+            spdlog::warn("No start path found for support z seam distance");
             // We can also calculate the best point to start at this point.
             // This usually happens when the distance of support seam from model is bigger than the whole support wall points.
         }
+        number_of_paths_analysed = 0;
         return best_pos;
     }
 
