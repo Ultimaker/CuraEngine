@@ -1393,7 +1393,7 @@ void TreeSupportTipGenerator::generateCradleLineAreasAndBase(std::vector<std::ve
                                     connected_cradle_base.addLine(cradle.getCenter(line_opt.value()->layer_idx_),line_opt.value()->line_.front());
                                 }
                             }
-                            cradle_base = connected_cradle_base.offsetPolyLine(cradle_line_width_ /2).unionPolygons(cradle_base);
+                            cradle_base = connected_cradle_base.offsetPolyLine(cradle_line_width_ / 2 + EPSILON).unionPolygons(cradle_base);
                         }
                     }
 
