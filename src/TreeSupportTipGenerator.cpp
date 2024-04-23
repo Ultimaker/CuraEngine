@@ -486,6 +486,7 @@ void TreeSupportTipGenerator::calculateFloatingParts(const SliceMeshStorage& mes
     LayerIndex start_layer = 1;
     floating_parts_cache_.resize(max_layer+1);
     floating_parts_map_.resize(max_layer+1);
+    floating_parts_map_below_.resize(max_layer+1);
     std::mutex critical_sections;
 
     Polygons completely_supported = volumes_.getCollision(0,0,true);
@@ -521,6 +522,7 @@ void TreeSupportTipGenerator::calculateFloatingParts(const SliceMeshStorage& mes
                     std::lock_guard<std::mutex> critical_section_add(critical_sections);
                     floating_parts_cache_[layer_idx].emplace_back(part,floating_parts_cache_[layer_idx].size(),0,overhang_area);
                     floating_parts_map_ [layer_idx].emplace_back(std::vector<size_t>());
+                    floating_parts_map_below_ [layer_idx].emplace_back(std::vector<size_t>());
                     return ;
                 }
 
@@ -539,6 +541,7 @@ void TreeSupportTipGenerator::calculateFloatingParts(const SliceMeshStorage& mes
                     }
                 }
 
+
                 if(min_resting_on_layers < cradle_layers_ && add && overhang_area + supported_overhang_area < cradle_area_threshold_)
                 {
                     std::lock_guard<std::mutex> critical_section_add(critical_sections);
@@ -548,6 +551,7 @@ void TreeSupportTipGenerator::calculateFloatingParts(const SliceMeshStorage& mes
                     }
 
                     floating_parts_map_[layer_idx].emplace_back(std::vector<size_t>());
+                    floating_parts_map_below_[layer_idx].emplace_back(idx_of_floating_below);
                     floating_parts_cache_[layer_idx].emplace_back(part, floating_parts_cache_[layer_idx].size(),min_resting_on_layers+1,overhang_area + supported_overhang_area);
                 }
                 else
@@ -563,7 +567,7 @@ void TreeSupportTipGenerator::calculateFloatingParts(const SliceMeshStorage& mes
 
 }
 
-std::vector<TreeSupportTipGenerator::UnsupportedAreaInformation> TreeSupportTipGenerator::getUnsupportedArea(LayerIndex layer_idx, size_t idx_of_area_below)
+std::vector<TreeSupportTipGenerator::UnsupportedAreaInformation> TreeSupportTipGenerator::getUnsupportedArea(LayerIndex layer_idx, size_t idx_of_area, bool above)
 {
     std::vector<UnsupportedAreaInformation> result;
 
@@ -582,11 +586,18 @@ std::vector<TreeSupportTipGenerator::UnsupportedAreaInformation> TreeSupportTipG
     if (has_result)
     {
         std::lock_guard<std::mutex> critical_section(*critical_floating_parts_cache_);
-        if (floating_parts_cache_[layer_idx].size())
+        if (!floating_parts_cache_[layer_idx].empty() && above)
         {
-            for (size_t resting_idx : floating_parts_map_[layer_idx - 1][idx_of_area_below])
+            for (size_t resting_idx : floating_parts_map_[layer_idx - 1][idx_of_area])
             {
                 result.emplace_back(floating_parts_cache_[layer_idx][resting_idx]);
+            }
+        }
+        else if (!floating_parts_cache_[layer_idx - 1].empty() && !above)
+        {
+            for (size_t resting_idx : floating_parts_map_below_[layer_idx][idx_of_area])
+            {
+                result.emplace_back(floating_parts_cache_[layer_idx - 1][resting_idx]);
             }
         }
     }
@@ -595,11 +606,9 @@ std::vector<TreeSupportTipGenerator::UnsupportedAreaInformation> TreeSupportTipG
         spdlog::error("Requested not calculated unsupported area.");
         return result;
     }
-
     return result;
-
-
 }
+
 
 std::vector<TreeSupportTipGenerator::UnsupportedAreaInformation> TreeSupportTipGenerator::getFullyUnsupportedArea(LayerIndex layer_idx)
 {
@@ -665,7 +674,7 @@ std::vector<std::vector<std::vector<Polygons>>> TreeSupportTipGenerator::generat
 
                 Point2LL center_prev = Polygon(pointy_info.area.getOutsidePolygons()[0]).centerOfMass();
                 std::vector<Point2LL> additional_centers;
-                TreeSupportCradle* cradle_main = new TreeSupportCradle(layer_idx,center_prev,shadows[layer_idx].size(), cradle_base_roof_, cradle_layers_min_, cradle_length_min_);
+                TreeSupportCradle* cradle_main = new TreeSupportCradle(layer_idx,center_prev,shadows[layer_idx].size(), cradle_base_roof_, cradle_layers_min_, cradle_length_min_, cradle_line_count_);
                 for(size_t z_distance = 0; z_distance < config_.z_distance_top_layers; z_distance++)
                 {
                     accumulated_model[z_distance] = pointy_info.area;
@@ -689,7 +698,7 @@ std::vector<std::vector<std::vector<Polygons>>> TreeSupportTipGenerator::generat
                     {
                         for (size_t pointy_idx : all_pointy_idx)
                         {
-                            for (auto next_pointy_data : getUnsupportedArea(layer_idx + cradle_up_layer - 1 + z_distance_delta_, pointy_idx))
+                            for (auto next_pointy_data : getUnsupportedArea(layer_idx + cradle_up_layer - 1 + z_distance_delta_, pointy_idx, true))
                             {
                                 if (next_pointy_data.height
                                     != (cradle_up_layer - 1) + pointy_info.height) // If the area belongs to another pointy overhang stop and let this other overhang handle it
@@ -709,6 +718,30 @@ std::vector<std::vector<std::vector<Polygons>>> TreeSupportTipGenerator::generat
                                 else
                                 {
                                     blocked_by_dedupe = true;
+                                }
+
+                                std::vector<size_t> all_pointy_idx_below {next_pointy_data.index};
+                                for (int64_t cradle_down_layer = cradle_up_layer; cradle_down_layer > 0 && ! all_pointy_idx_below.empty(); cradle_down_layer--)
+                                {
+                                    std::vector<size_t> next_all_pointy_idx_below;
+
+                                    for (size_t pointy_idx_below : all_pointy_idx_below)
+                                    {
+                                        for (auto prev_pointy_data : getUnsupportedArea(layer_idx + cradle_down_layer - 1 + z_distance_delta_, pointy_idx_below, false))
+                                        {
+                                            if(prev_pointy_data.index != pointy_idx || cradle_down_layer != cradle_up_layer)
+                                            {
+                                                // Only add if area below does not have it's own cradle.
+                                                if(prev_pointy_data.height < cradle_layers_min_)
+                                                {
+                                                    accumulated_model[cradle_down_layer].add(prev_pointy_data.area);
+                                                    next_all_pointy_idx_below.emplace_back(prev_pointy_data.index);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    all_pointy_idx_below = next_all_pointy_idx_below;
+                                    accumulated_model[cradle_down_layer] = accumulated_model[cradle_down_layer].unionPolygons();
                                 }
                             }
                         }
@@ -790,7 +823,7 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
         {
             for (auto [center_idx, cradle] : cradle_data_[layer_idx] | ranges::views::enumerate)
             {
-                std::vector<Point2LL> removed_directions;
+                std::vector<bool> removed_directions(cradle_line_count_);
                 const auto& accumulated_model = shadow_data[layer_idx][cradle->shadow_idx_];
                 for (auto [idx, model_shadow] : accumulated_model | ranges::views::enumerate)
                 {
@@ -835,7 +868,7 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                         //  To prevent this offset my the delta before removing the influence of the model.
                         relevant_forbidden = relevant_forbidden.offset(-cradle_min_xy_distance_delta)
                                                  .difference(this_part_influence.offset(cradle_min_xy_distance_delta + EPSILON).unionPolygons())
-                                                 .offset(cradle_min_xy_distance_delta)
+                                                 .offset(cradle_min_xy_distance_delta + cradle_line_width_ / 2 + FUDGE_LENGTH)
                                                  .unionPolygons(this_part_influence)
                                                  .unionPolygons(volumes_.getSupportBlocker(layer_idx + idx).offset(cradle_line_width_ / 2));
                         coord_t max_distance2 = 0;
@@ -863,9 +896,6 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                         {
                             lines_to_center = model_shadow.offset(current_cradle_xy_distance + cradle_line_width_ / 2).unionPolygons().differencePolyLines(lines_to_center, false);
                         }
-                        // Store valid distances from the center in relation to the direction of the line.
-                        // Used to detect if a line may be intersecting another model part.
-                        std::vector<std::pair<Point2LL, coord_t>> vector_distance_map;
 
                         // shorten lines to be at most SUPPORT_TREE_CRADLE_WIDTH long, with the location closest to the center not changing
                         Polygons shortened_lines_to_center;
@@ -890,14 +920,11 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                                 shortened_lines_to_center.addLine(correct_length, closer);
                             }
 
-                            if (further != closer)
-                            {
-                                vector_distance_map.emplace_back((further - closer), vSize(center - closer));
-                            }
                         }
                         // If a line is drawn, but half of it removed as it would collide with the collision, there may not actually be a print line. The offset should prevent
                         // this.
                         shortened_lines_to_center = relevant_forbidden.differencePolyLines(shortened_lines_to_center, false);
+                        std::vector<Polygon> ordered_lines_to_center(cradle_line_count_);
 
                         // Evaluate which lines are still valid after the avoidance was subtracted
                         for (auto [line_idx, line] : shortened_lines_to_center | ranges::views::enumerate)
@@ -907,13 +934,17 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                             Point2LL further = front_closer ? line.back() : line.front();
                             Point2LL current_direction = further - closer;
                             coord_t distance_from_center = vSize(closer - center);
+                            size_t angle_idx = cradle->getIndexForLineEnd(further, layer_idx + idx);
 
-                            shortened_lines_to_center[line_idx].clear();
-                            shortened_lines_to_center[line_idx].add(closer);
-                            shortened_lines_to_center[line_idx].add(further);
+                            if(removed_directions[angle_idx])
+                            {
+                                continue;
+                            }
+
                             bool keep_line = false;
                             bool found_candidate = false;
                             bool too_short = (vSize(closer - further)) < cradle_length_min_;
+                            bool too_long_jump = !cradle->lines_[angle_idx].empty() && vSize(cradle->lines_[angle_idx].back().line_.front() - closer) > sqrt(cradle_area_threshold_) / 2;
                             // a cradle line should also be removed if there will be no way to support it
                             if(idx >= cradle_z_distance_layers_ + 1)
                             {
@@ -925,67 +956,44 @@ void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::v
                                     true);
                                 too_short |= actually_forbidden.differencePolyLines(shortened_lines_to_center[line_idx].offset(0)).polyLineLength() < config_.support_line_width;
                             }
-                            if (! too_short)
+                            if (! too_short && !too_long_jump)
                             {
-                                for (auto [direction_idx, direction] : vector_distance_map | ranges::views::enumerate)
+                                if(ordered_lines_to_center[angle_idx].empty())
                                 {
-                                    double cosine = (dot(direction.first, current_direction)) / double(vSize(current_direction) * vSize(direction.first));
-                                    if (cosine > 0.99)
+                                    ordered_lines_to_center[angle_idx].add(closer);
+                                    ordered_lines_to_center[angle_idx].add(further);
+                                }
+                                else
+                                {
+                                    // Prefer lines not touching the center. Otherwise, prefer the line closest to the center
+                                    if(distance_from_center > FUDGE_LENGTH)
                                     {
-                                        found_candidate = true;
-                                        // found line, check if there is one that is closer, if not then check if distance to center is expected
-                                        bool found_close_line = direction.second + config_.xy_min_distance + config_.min_feature_size > distance_from_center;
-                                        if (found_close_line)
+                                        if(vSize(ordered_lines_to_center[angle_idx].front() - center) < FUDGE_LENGTH)
                                         {
-                                            keep_line = true;
-                                            break;
+                                            ordered_lines_to_center[angle_idx].clear();
+                                            ordered_lines_to_center[angle_idx].add(closer);
+                                            ordered_lines_to_center[angle_idx].add(further);
+                                        }
+                                        else if(distance_from_center < vSize(ordered_lines_to_center[angle_idx].front() - center))
+                                        {
+                                            ordered_lines_to_center[angle_idx].clear();
+                                            ordered_lines_to_center[angle_idx].add(closer);
+                                            ordered_lines_to_center[angle_idx].add(further);
                                         }
                                     }
+
                                 }
                             }
 
-                            bool was_removed = false;
-
-                            for (auto [direction_idx, direction] : removed_directions | ranges::views::enumerate)
-                            {
-                                double cosine = (dot(direction, current_direction)) / (vSize(current_direction) * vSize(direction));
-                                if (cosine > 0.99)
-                                {
-                                    was_removed = true;
-                                }
-                            }
-
-                            if (too_short || was_removed || (! keep_line && found_candidate))
-                            {
-                                if (! was_removed)
-                                {
-                                    removed_directions.emplace_back(current_direction);
-                                }
-                                shortened_lines_to_center[line_idx].clear();
-                            }
                         }
 
-                        size_t line_remove_idx = 0;
-
-                        while (line_remove_idx < shortened_lines_to_center.size())
+                        for (auto [angle_idx, next_line] : ordered_lines_to_center | ranges::views::enumerate)
                         {
-                            if (shortened_lines_to_center[line_remove_idx].empty())
+                            if (next_line.empty())
                             {
-                                shortened_lines_to_center.remove(line_remove_idx);
+                                removed_directions[angle_idx] = true;
+                                continue;
                             }
-                            else
-                            {
-                                line_remove_idx++;
-                            }
-                        }
-
-
-                        for (auto [next_line_idx, next_line] : shortened_lines_to_center | ranges::views::enumerate)
-                        {
-                            Point2LL current_direction = next_line.front() - next_line.back();
-                            double angle = std::atan2(current_direction.Y, current_direction.X);
-
-                            size_t angle_idx = size_t(std::round(((angle+std::numbers::pi)/(2.0*std::numbers::pi)) * double(cradle_line_count_))) % cradle_line_count_;
                             Polygon line(next_line);
                             //Handle cradle_z_distance_layers by overwriting first element in the vector until valid distance is reached.
                             if(idx <= cradle_z_distance_layers_ + 1 && !cradle->lines_[angle_idx].empty())
@@ -1472,6 +1480,7 @@ void TreeSupportTipGenerator::generateCradleLineAreasAndBase(std::vector<std::ve
                                     }
                                     break;
                                 }
+                                roof_area_before = full_overhang_area;
                             }
                         }
                     }
@@ -2380,7 +2389,7 @@ void TreeSupportTipGenerator::generateTips(
                             {
                                 roof_wall_count = config_.support_wall_count;
                             }
-                            storage.support.supportLayers[layer_idx].fillRoofParts(roof_area, config_.support_roof_line_width, roof_wall_count, false);
+                            storage.support.supportLayers[layer_idx].fillRoofParts(roof_area, config_.support_roof_line_width, roof_wall_count, true);
                         }
                     }
                     else

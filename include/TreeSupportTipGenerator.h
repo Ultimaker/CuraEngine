@@ -142,10 +142,11 @@ private:
     /*!
      * \brief Provides areas that do not have a connection to the buildplate or a certain height.
      * \param layer_idx The layer said area is on.
-     * \param idx_of_area_below The index of the area below. Only areas that rest on this area will be returned
+     * \param idx_of_area The index of the area. Only areas that either rest on this area or this area rests on (depending on above) will be returned
+     * \param above Should the areas above it, that rest on this area should be returned (if true) or if areas that this area rests on (if false) should be returned.
      * \return A vector containing the areas, how many layers of material they have below them and the idx of each area usable to get the next one layer above.
      */
-    std::vector<UnsupportedAreaInformation> getUnsupportedArea(LayerIndex layer_idx, size_t idx_of_area_below);
+    std::vector<UnsupportedAreaInformation> getUnsupportedArea(LayerIndex layer_idx, size_t idx_of_area, bool above);
 
     /*!
      * \brief Provides areas that do not have a connection to the buildplate or any other non support material below it.
@@ -463,6 +464,8 @@ private:
 
     mutable std::vector<std::vector<UnsupportedAreaInformation>> floating_parts_cache_;
     mutable std::vector<std::vector<std::vector<size_t>>> floating_parts_map_;
+    mutable std::vector<std::vector<std::vector<size_t>>> floating_parts_map_below_;
+
     std::unique_ptr<std::mutex> critical_floating_parts_cache_ = std::make_unique<std::mutex>();
 
 
