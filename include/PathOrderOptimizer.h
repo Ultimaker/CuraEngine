@@ -211,8 +211,7 @@ public:
 
         // For some Z seam types the start position can be pre-computed.
         // This is faster since we don't need to re-compute the start position at each step then.
-        precompute_start &= seam_config_.type_ == EZSeamType::RANDOM || seam_config_.type_ == EZSeamType::USER_SPECIFIED
-                         || seam_config_.type_ == EZSeamType::SHARPEST_CORNER;
+        precompute_start &= seam_config_.type_ == EZSeamType::RANDOM || seam_config_.type_ == EZSeamType::USER_SPECIFIED || seam_config_.type_ == EZSeamType::SHARPEST_CORNER;
         if (precompute_start)
         {
             for (auto& path : paths_)
@@ -610,7 +609,7 @@ protected:
                 // Calculate squared distance from external point to its nearest point on the line segment
                 double dx_nearest = x - nearestX;
                 double dy_nearest = y - nearestY;
-                double squared_distance = dx_nearest*dx_nearest + dy_nearest*dy_nearest;
+                double squared_distance = dx_nearest * dx_nearest + dy_nearest * dy_nearest;
 
                 if (squared_distance <= min_size_support_zeam_ * min_size_support_zeam_)
                 {
@@ -678,7 +677,7 @@ protected:
                 {
                     size_t next_best_position = (path_size > best_pos + 1) ? best_pos + 1 : 0;
                     best_pos = pathIfzeamSupportIsCloseToModel(next_best_position, path);
-                    number_of_paths_analysed +=1;
+                    number_of_paths_analysed += 1;
                 }
             }
         }
