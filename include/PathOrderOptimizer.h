@@ -211,7 +211,7 @@ public:
 
         // For some Z seam types the start position can be pre-computed.
         // This is faster since we don't need to re-compute the start position at each step then.
-        precompute_start &= seam_config_.type_ == EZSeamType::SUPPORT || seam_config_.type_ == EZSeamType::RANDOM || seam_config_.type_ == EZSeamType::USER_SPECIFIED
+        precompute_start &= seam_config_.type_ == EZSeamType::RANDOM || seam_config_.type_ == EZSeamType::USER_SPECIFIED
                          || seam_config_.type_ == EZSeamType::SHARPEST_CORNER;
         if (precompute_start)
         {
@@ -578,17 +578,46 @@ protected:
     {
         for (const auto& points : ranges::front(mesh_paths_))
         {
-            for (const auto& polygon_point : points)
-            {
-                double distance = std::sqrt(std::pow(static_cast<double>(polygon_point.X - point.X), 2) + std::pow(static_cast<double>(polygon_point.Y - point.Y), 2));
+            const int len = points.size();
 
-                if (distance <= min_size_support_zeam_)
+            for (int i = 0; i < len; ++i)
+            {
+                const auto& polygon_point1 = points[i];
+                const auto& polygon_point2 = points[(i + 1) % len]; // Ensures looping back to the first point to create the final segment
+
+                // Definitions
+                double x = static_cast<double>(point.X);
+                double y = static_cast<double>(point.Y);
+                double x1 = static_cast<double>(polygon_point1.X);
+                double y1 = static_cast<double>(polygon_point1.Y);
+                double x2 = static_cast<double>(polygon_point2.X);
+                double y2 = static_cast<double>(polygon_point2.Y);
+
+                // Calculate the shortest distance from the point to the line segment
+                double dx = x2 - x1;
+                double dy = y2 - y1;
+
+                // Calculate the t parameter
+                double t = ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy);
+
+                // If t is outside bounds [0,1], point is closest to an endpoint of the segment
+                t = std::max(0.0, std::min(1.0, t));
+
+                // Compute the coordinates of the point on the line segment nearest to the external point
+                double nearestX = x1 + t * dx;
+                double nearestY = y1 + t * dy;
+
+                // Calculate squared distance from external point to its nearest point on the line segment
+                double dx_nearest = x - nearestX;
+                double dy_nearest = y - nearestY;
+                double squared_distance = dx_nearest*dx_nearest + dy_nearest*dy_nearest;
+
+                if (squared_distance <= min_size_support_zeam_ * min_size_support_zeam_)
                 {
                     return true;
                 }
             }
         }
-
         return false;
     }
 
@@ -638,13 +667,27 @@ protected:
 
     size_t pathIfzeamSupportIsCloseToModel(size_t best_pos, const OrderablePath& path)
     {
-        if (! mesh_paths_.empty())
+        static size_t number_of_paths_analysed = 0;
+        size_t path_size = path.converted_->size();
+        if (path_size > number_of_paths_analysed)
         {
-            Point2LL current_candidate = (*path.converted_)[best_pos];
-            if (isVertexCloseToPolygonPath(current_candidate))
+            if (! mesh_paths_.empty())
             {
-                best_pos = pathIfzeamSupportIsCloseToModel(best_pos + 1, path);
+                Point2LL current_candidate = (path.converted_)->at(best_pos);
+                if (isVertexCloseToPolygonPath(current_candidate))
+                {
+                    size_t next_best_position = (path_size > best_pos + 1) ? best_pos + 1 : 0;
+                    best_pos = pathIfzeamSupportIsCloseToModel(next_best_position, path);
+                    number_of_paths_analysed +=1;
+                }
             }
+        }
+        else
+        {
+            number_of_paths_analysed = 0;
+            spdlog::warn("no start path found for support z seam distance");
+            // We can also calculate the best point to start at this point.
+            // This usually happens when the distance of support seam from model is bigger than the whole support wall points.
         }
         return best_pos;
     }
