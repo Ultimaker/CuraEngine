@@ -751,7 +751,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
     bool anti_preferred_applied = false;
     if (! anti_preferred_areas.empty())
     {
-        bool is_fast = settings.increase_speed_ >= config.maximum_move_distance;
+        bool is_fast = settings.type_ != AvoidanceType::SLOW;
         // Ensure that branches can not lag through cradle lines. Proper way to do this would be in the beginning with custom increased areas.
         coord_t anti_radius_extra = std::max(settings.increase_speed_ - volumes_.ceilRadius(actual_radius * 2, true), coord_t(0));
         if (anti_radius_extra)
@@ -860,7 +860,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
                         volumes_.getAntiPreferredAvoidance(next_radius, layer_idx - 1, settings.type_, ! current_elem.to_buildplate_, settings.use_min_distance_));
                     avoidance_handled = settings.type_ != AvoidanceType::SLOW; // There is no slow anti-preferred avoidance.
                 }
-                else if (anti_preferred_applied)
+                else if (anti_preferred_applied && next_radius > actual_radius)
                 {
                     to_model_data_2 = to_model_data_2.difference(volumes_.getAntiPreferredAreas(layer_idx - 1, next_radius));
                 }
@@ -883,7 +883,9 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
 
 
         // If the Collision Radius is smaller than the actual radius, check if it can catch up without violating the avoidance.
-        if (config.getCollisionRadius(current_elem) < config.increase_radius_until_radius && config.getCollisionRadius(current_elem) < config.getRadius(current_elem))
+        const bool collision_radius_catch_up = config.getCollisionRadius(current_elem) < config.increase_radius_until_radius &&
+                                               config.getCollisionRadius(current_elem) < config.getRadius(current_elem);
+        if (collision_radius_catch_up)
         {
             coord_t target_radius = std::min(config.getRadius(current_elem), config.increase_radius_until_radius);
             coord_t current_ceil_radius = volumes_.getRadiusNextCeil(radius, settings.use_min_distance_);
@@ -929,7 +931,8 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
         radius = config.getCollisionRadius(current_elem);
 
         // If a hidden radius increase was used, also do some catching up.
-        if (current_elem.hidden_radius_increase_ > 0)
+        const bool hidden_radius_catch_up = current_elem.hidden_radius_increase_ > 0;
+        if (hidden_radius_catch_up)
         {
             coord_t target_radius = config.getRadius(current_elem);
             coord_t current_ceil_radius = volumes_.getRadiusNextCeil(radius, settings.use_min_distance_);
@@ -950,7 +953,8 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
             current_elem.hidden_radius_increase_ = std::max(0.0, resulting_hidden_increases);
             current_elem.buildplate_radius_increases_ += bp_increases;
 
-            if (current_elem.hidden_radius_increase_ > 0)
+            //Try to ensure the branch stays away from potential walls if possible.
+            if (config.getCollisionRadius(current_elem) < config.getRadius(current_elem))
             {
                 Polygons new_to_bp_data;
                 Polygons new_to_model_data;
@@ -1004,17 +1008,17 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
         {
             if (anti_preferred_applied && ceil_actual_radius_before < volumes_.ceilRadius(actual_radius, settings.use_min_distance_))
             {
-                increased = increased.difference(volumes_.getAntiPreferredAreas(layer_idx - 1, radius));
+                increased = increased.difference(volumes_.getAntiPreferredAreas(layer_idx - 1, actual_radius));
             }
             if (current_elem.to_buildplate_)
             {
                 bool avoidance_handled = false;
                 to_bp_data = increased;
-                if (settings.use_anti_preferred_)
+                if (settings.use_anti_preferred_ && current_elem.can_use_safe_radius_)
                 {
                     to_bp_data = to_bp_data.difference(
                         volumes_.getAntiPreferredAvoidance(radius, layer_idx - 1, settings.type_, ! current_elem.to_buildplate_, settings.use_min_distance_));
-                    avoidance_handled = true;
+                    avoidance_handled = settings.type_ != AvoidanceType::SLOW; // There is no slow anti-preferred avoidance.
                 }
                 if (! avoidance_handled)
                 {
@@ -1026,7 +1030,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
             {
                 bool avoidance_handled = false;
                 to_model_data = increased;
-                if (settings.use_anti_preferred_)
+                if (settings.use_anti_preferred_ && current_elem.can_use_safe_radius_)
                 {
                     to_model_data = to_model_data.difference(volumes_.getAntiPreferredAvoidance(
                         radius,
@@ -1034,13 +1038,12 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
                         current_elem.to_model_gracious_ ? settings.type_ : AvoidanceType::COLLISION,
                         true,
                         settings.use_min_distance_));
-                    avoidance_handled = true;
+                    avoidance_handled = settings.type_ != AvoidanceType::SLOW; // There is no slow anti-preferred avoidance.
                 }
                 if (! avoidance_handled)
                 {
                     to_bp_data = to_bp_data.difference(
-                        volumes_
-                            .getAvoidance(radius, layer_idx - 1, current_elem.to_model_gracious_ ? settings.type_ : AvoidanceType::COLLISION, true, settings.use_min_distance_));
+                        volumes_.getAvoidance(radius, layer_idx - 1, current_elem.to_model_gracious_ ? settings.type_ : AvoidanceType::COLLISION, true, settings.use_min_distance_));
                 }
                 to_model_data = TreeSupportUtils::safeUnion(to_model_data);
             }
@@ -1048,10 +1051,11 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
             if (check_layer_data.area() < 1)
             {
                 spdlog::error(
-                    "Lost area by doing catch up from {} to radius {} planned increase was {}",
+                    "Lost area by doing catch up from {} to radius {} collision_radius_catch_up: {} hidden_radius_catch_up: {}",
                     ceil_radius_before,
                     volumes_.ceilRadius(config.getCollisionRadius(current_elem), settings.use_min_distance_),
-                    planned_foot_increase);
+                    collision_radius_catch_up,
+                    hidden_radius_catch_up);
             }
         }
     }
@@ -1682,10 +1686,6 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>&
                 for (size_t height_idx = 0; height_idx < cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size(); height_idx++)
                 {
                     LayerIndex cradle_layer_idx = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].layer_idx_;
-                    if (cradle_layer_idx == 84)
-                    {
-                        printf("");
-                    }
                     all_cradles_with_line_presence[cradle_layer_idx].emplace_back(cradle_data[layer_idx][cradle_idx], cradle_layer_idx, line_idx);
                 }
             }

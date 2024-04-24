@@ -590,6 +590,8 @@ void TreeModelVolumes::addAreaToAntiPreferred(const Polygons area, LayerIndex la
 
 void TreeModelVolumes::precalculateAntiPreferred()
 {
+    const TreeSupportSettings config(layer_outlines_[current_outline_idx_].first);
+
     cura::parallel_for<size_t>(
         0,
         precalculated_avoidance_radii.size(),
@@ -648,7 +650,7 @@ void TreeModelVolumes::precalculateAntiPreferred()
                 }
 
                 Polygons col = getCollisionHolefree(radius, layer, true);
-                anti = anti.unionPolygons().offset(radius).unionPolygons();
+                anti = anti.unionPolygons().offset(std::max(radius, config.branch_radius)).unionPolygons();
                 data_raw_anti[layer] = std::pair<RadiusLayerPair, Polygons>(key, anti);
 
                 if (support_rest_preference_ == RestPreference::BUILDPLATE)
