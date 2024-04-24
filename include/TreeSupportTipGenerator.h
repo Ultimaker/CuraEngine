@@ -7,6 +7,7 @@
 #include "TreeModelVolumes.h"
 #include "TreeSupport.h"
 #include "TreeSupportBaseCircle.h"
+#include "TreeSupportCradle.h"
 #include "TreeSupportElement.h"
 #include "TreeSupportEnums.h"
 #include "TreeSupportSettings.h"
@@ -16,7 +17,6 @@
 #include "sliceDataStorage.h"
 #include "utils/Coord_t.h"
 #include "utils/polygon.h"
-#include "TreeSupportCradle.h"
 
 namespace cura
 {
@@ -66,11 +66,11 @@ private:
 
     struct UnsupportedAreaInformation
     {
-        UnsupportedAreaInformation(const Polygons area, size_t index, size_t height, coord_t accumulated_supportable_overhang) :
-            area{ area },
-            index{ index },
-            height{ height },
-            accumulated_supportable_overhang { accumulated_supportable_overhang }
+        UnsupportedAreaInformation(const Polygons area, size_t index, size_t height, coord_t accumulated_supportable_overhang)
+            : area{ area }
+            , index{ index }
+            , height{ height }
+            , accumulated_supportable_overhang{ accumulated_supportable_overhang }
         {
         }
         const Polygons area;
@@ -223,7 +223,7 @@ private:
      * \param skip_ovalisation[in] Whether the tip may be ovalized when drawn later.
      * \param additional_ovalization_targets[in] Additional targets the ovalization should reach.
      */
-    TreeSupportElement*  addPointAsInfluenceArea(
+    TreeSupportElement* addPointAsInfluenceArea(
         std::vector<std::set<TreeSupportElement*>>& move_bounds,
         std::pair<Point2LL, TreeSupportTipGenerator::LineStatus> p,
         size_t dtt,
@@ -247,14 +247,15 @@ private:
      * \param dont_move_until[in] Until which dtt the branch should not move if possible.
      * \param connect_points [in] If the points of said line should be connected by ovalization.
      */
-    void addLinesAsInfluenceAreas(std::vector<std::set<TreeSupportElement *>>& move_bounds,
-                                                              std::vector<TreeSupportTipGenerator::LineInformation> lines,
-                                                              size_t roof_tip_layers,
-                                                              LayerIndex insert_layer_idx,
-                                                              coord_t tip_radius,
-                                                              OverhangInformation& overhang_data,
-                                                              size_t dont_move_until,
-                                                              bool connect_points);
+    void addLinesAsInfluenceAreas(
+        std::vector<std::set<TreeSupportElement*>>& move_bounds,
+        std::vector<TreeSupportTipGenerator::LineInformation> lines,
+        size_t roof_tip_layers,
+        LayerIndex insert_layer_idx,
+        coord_t tip_radius,
+        OverhangInformation& overhang_data,
+        size_t dont_move_until,
+        bool connect_points);
 
     /*!
      * \brief Remove tips that should not have been added in the first place.
@@ -364,7 +365,7 @@ private:
     /*!
      * \brief Required to generate cross infill patterns. Key: Distance between lines
      */
-    std::unordered_map<std::pair<coord_t,coord_t>, std::shared_ptr<SierpinskiFillProvider>> cross_fill_providers_;
+    std::unordered_map<std::pair<coord_t, coord_t>, std::shared_ptr<SierpinskiFillProvider>> cross_fill_providers_;
 
     /*!
      * \brief Map that saves locations of already inserted tips. Used to prevent tips far to close together from being added.
@@ -467,8 +468,6 @@ private:
     mutable std::vector<std::vector<std::vector<size_t>>> floating_parts_map_below_;
 
     std::unique_ptr<std::mutex> critical_floating_parts_cache_ = std::make_unique<std::mutex>();
-
-
 };
 
 } // namespace cura

@@ -103,14 +103,17 @@ public:
         bool roof,
         LayerIndex layer_idx,
         coord_t support_infill_distance,
-        std::shared_ptr<SierpinskiFillProvider> cross_fill_provider, size_t wall_count, EFillMethod special_pattern = EFillMethod::NONE, bool disable_connect = false)
+        std::shared_ptr<SierpinskiFillProvider> cross_fill_provider,
+        size_t wall_count,
+        EFillMethod special_pattern = EFillMethod::NONE,
+        bool disable_connect = false)
     {
         Polygons gaps;
         // As we effectively use lines to place our supportPoints we may use the Infill class for it, while not made for it, it works perfectly.
 
         const EFillMethod pattern = (special_pattern != EFillMethod::NONE) ? special_pattern : roof ? config.roof_pattern : config.support_pattern;
 
-        const bool zig_zaggify_infill =!disable_connect && (roof ? pattern == EFillMethod::ZIG_ZAG : config.zig_zaggify_support);
+        const bool zig_zaggify_infill = ! disable_connect && (roof ? pattern == EFillMethod::ZIG_ZAG : config.zig_zaggify_support);
         const bool connect_polygons = false;
         constexpr coord_t support_roof_overlap = 0;
         constexpr size_t infill_multiplier = 1;

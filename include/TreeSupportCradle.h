@@ -4,40 +4,38 @@
 
 #ifndef CURAENGINE_TREESUPPORTCRADLE_H
 #define CURAENGINE_TREESUPPORTCRADLE_H
+#include <spdlog/spdlog.h>
+
 #include "TreeSupportElement.h"
 #include "TreeSupportEnums.h"
 #include "utils/Coord_t.h"
 #include "utils/polygon.h"
-#include <spdlog/spdlog.h>
 
 namespace cura
 {
-//todo rename file as now general TreeSupportTipDataStructures
+// todo rename file as now general TreeSupportTipDataStructures
 struct TreeSupportCradle;
 
 struct OverhangInformation
 {
-
-    OverhangInformation(Polygons overhang, bool roof):
-        overhang_(overhang),
-        is_roof_(roof),
-        is_cradle_(false),
-        cradle_layer_idx_(-1),
-        cradle_line_idx_(-1),
-        cradle_(nullptr)
+    OverhangInformation(Polygons overhang, bool roof)
+        : overhang_(overhang)
+        , is_roof_(roof)
+        , is_cradle_(false)
+        , cradle_layer_idx_(-1)
+        , cradle_line_idx_(-1)
+        , cradle_(nullptr)
     {
-
     }
 
-    OverhangInformation(Polygons overhang, bool roof, TreeSupportCradle* cradle, int32_t cradle_layer_idx = -1,int32_t cradle_line_idx = -1):
-        overhang_(overhang),
-        is_roof_(roof),
-        is_cradle_(true),
-        cradle_layer_idx_(cradle_layer_idx),
-        cradle_line_idx_(cradle_line_idx),
-        cradle_(cradle)
+    OverhangInformation(Polygons overhang, bool roof, TreeSupportCradle* cradle, int32_t cradle_layer_idx = -1, int32_t cradle_line_idx = -1)
+        : overhang_(overhang)
+        , is_roof_(roof)
+        , is_cradle_(true)
+        , cradle_layer_idx_(cradle_layer_idx)
+        , cradle_line_idx_(cradle_line_idx)
+        , cradle_(cradle)
     {
-
     }
 
     Polygons overhang_;
@@ -49,13 +47,12 @@ struct OverhangInformation
 
     bool isCradleLine()
     {
-        return is_cradle_ && cradle_line_idx_ >= 0 && cradle_layer_idx_>=0;
+        return is_cradle_ && cradle_line_idx_ >= 0 && cradle_layer_idx_ >= 0;
     }
-
 };
 struct TreeSupportCradleLine
 {
-    //required to shrink a vector using resize
+    // required to shrink a vector using resize
     TreeSupportCradleLine()
     {
         spdlog::error("Dummy TreeSupportCradleLine constructor called");
@@ -113,12 +110,12 @@ struct TreeSupportCradle
 
     TreeSupportCradle(LayerIndex layer_idx, Point2LL center, size_t shadow_idx, bool roof, size_t cradle_layers_min, coord_t cradle_length_min, size_t cradle_line_count)
         : layer_idx_(layer_idx)
-        , centers_({center})
+        , centers_({ center })
         , shadow_idx_(shadow_idx)
         , is_roof_(roof)
         , config_cradle_layers_min_(cradle_layers_min)
         , config_cradle_length_min_(cradle_length_min)
-        ,cradle_line_count_(cradle_line_count)
+        , cradle_line_count_(cradle_line_count)
     {
     }
 
@@ -140,12 +137,12 @@ struct TreeSupportCradle
 
     Point2LL getCenter(LayerIndex layer_idx_req)
     {
-        if(layer_idx_req<layer_idx_)
+        if (layer_idx_req < layer_idx_)
         {
             return centers_.front();
         }
         size_t index = layer_idx_req - layer_idx_;
-        if(centers_.size()<=index)
+        if (centers_.size() <= index)
         {
             return centers_.back();
         }
@@ -156,7 +153,7 @@ struct TreeSupportCradle
     {
         Point2LL current_direction = line_end - getCenter(layer_idx_req);
         double angle = std::atan2(current_direction.Y, current_direction.X);
-        size_t angle_idx = size_t(std::round(((angle+std::numbers::pi)/(2.0*std::numbers::pi)) * double(cradle_line_count_))) % cradle_line_count_;
+        size_t angle_idx = size_t(std::round(((angle + std::numbers::pi) / (2.0 * std::numbers::pi)) * double(cradle_line_count_))) % cradle_line_count_;
         return angle_idx;
     }
 
@@ -173,12 +170,11 @@ struct TreeSupportCradle
 
             for (size_t up_idx = 0; up_idx < lines_[line_idx].size(); up_idx++)
             {
-                if(!lines_[line_idx][up_idx].is_base_)
+                if (! lines_[line_idx][up_idx].is_base_)
                 {
                     previous_layer_idx = lines_[line_idx][up_idx].layer_idx_;
-                    if (lines_[line_idx][up_idx].layer_idx_ > previous_layer_idx + up_idx ||
-                        lines_[line_idx][up_idx].line_.size() < 2 ||
-                        lines_[line_idx][up_idx].line_.polylineLength() < config_cradle_length_min_)
+                    if (lines_[line_idx][up_idx].layer_idx_ > previous_layer_idx + up_idx || lines_[line_idx][up_idx].line_.size() < 2
+                        || lines_[line_idx][up_idx].line_.polylineLength() < config_cradle_length_min_)
                     {
                         lines_[line_idx].clear();
                     }
@@ -187,22 +183,25 @@ struct TreeSupportCradle
             }
             for (size_t up_idx = 1; up_idx < lines_[line_idx].size(); up_idx++)
             {
-                if(!lines_[line_idx][up_idx].is_base_)
+                if (! lines_[line_idx][up_idx].is_base_)
                 {
-                    if (lines_[line_idx][up_idx].layer_idx_ > previous_layer_idx + up_idx ||
-                        lines_[line_idx][up_idx].line_.size()<2 ||
-                        lines_[line_idx][up_idx].line_.polylineLength() < config_cradle_length_min_)
+                    if (lines_[line_idx][up_idx].layer_idx_ > previous_layer_idx + up_idx || lines_[line_idx][up_idx].line_.size() < 2
+                        || lines_[line_idx][up_idx].line_.polylineLength() < config_cradle_length_min_)
                     {
                         if (up_idx <= config_cradle_layers_min_)
                         {
-                            spdlog::debug("Removing cradle line of cradle on layer {} line at {}. Invalid line was on layer {}",layer_idx_,line_idx,lines_[line_idx][up_idx].layer_idx_);
+                            spdlog::debug(
+                                "Removing cradle line of cradle on layer {} line at {}. Invalid line was on layer {}",
+                                layer_idx_,
+                                line_idx,
+                                lines_[line_idx][up_idx].layer_idx_);
                             lines_[line_idx].clear();
                             break;
                         }
                         else
                         {
-                            spdlog::debug("Partially removing cradle line of cradle on layer {} line at {} at height {}",layer_idx_,line_idx,up_idx);
-                            lines_[line_idx].resize(up_idx-1);
+                            spdlog::debug("Partially removing cradle line of cradle on layer {} line at {} at height {}", layer_idx_, line_idx, up_idx);
+                            lines_[line_idx].resize(up_idx - 1);
                             break;
                         }
                     }
@@ -214,28 +213,28 @@ struct TreeSupportCradle
 
 struct CradlePresenceInformation
 {
-    CradlePresenceInformation(TreeSupportCradle* cradle,LayerIndex layer_idx,size_t line_idx):
-    cradle_(cradle),
-    layer_idx_(layer_idx),
-    line_idx_(line_idx)
-    {}
+    CradlePresenceInformation(TreeSupportCradle* cradle, LayerIndex layer_idx, size_t line_idx)
+        : cradle_(cradle)
+        , layer_idx_(layer_idx)
+        , line_idx_(line_idx)
+    {
+    }
     TreeSupportCradle* cradle_;
     LayerIndex layer_idx_;
     size_t line_idx_;
 
     TreeSupportCradleLine* getCradleLine()
     {
-        return cradle_->getCradleLineOfIndex(layer_idx_,line_idx_).value();
+        return cradle_->getCradleLineOfIndex(layer_idx_, line_idx_).value();
     }
 
     bool cradleLineExists()
     {
-        return cradle_->getCradleLineOfIndex(layer_idx_,line_idx_).has_value();
+        return cradle_->getCradleLineOfIndex(layer_idx_, line_idx_).has_value();
     }
-
 };
 
 
-}
+} // namespace cura
 
 #endif // CURAENGINE_TREESUPPORTCRADLE_H

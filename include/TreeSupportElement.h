@@ -20,34 +20,25 @@ namespace cura
 struct CradlePresenceInformation;
 struct AreaIncreaseSettings
 {
-    AreaIncreaseSettings() :
-        type_(AvoidanceType::FAST),
-        increase_speed_(0),
-        increase_radius_(false),
-        no_error_(false),
-        use_min_distance_(false),
-        use_anti_preferred_(false),
-        move_(false)
+    AreaIncreaseSettings()
+        : type_(AvoidanceType::FAST)
+        , increase_speed_(0)
+        , increase_radius_(false)
+        , no_error_(false)
+        , use_min_distance_(false)
+        , use_anti_preferred_(false)
+        , move_(false)
     {
     }
 
-    AreaIncreaseSettings
-    (
-        AvoidanceType type,
-        coord_t increase_speed,
-        bool increase_radius,
-        bool simplify,
-        bool use_min_distance,
-        bool use_anti_preferred,
-        bool move
-    ) :
-        type_(type),
-        increase_speed_(increase_speed),
-        increase_radius_(increase_radius),
-        no_error_(simplify),
-        use_min_distance_(use_min_distance),
-        use_anti_preferred_(use_anti_preferred),
-        move_(move)
+    AreaIncreaseSettings(AvoidanceType type, coord_t increase_speed, bool increase_radius, bool simplify, bool use_min_distance, bool use_anti_preferred, bool move)
+        : type_(type)
+        , increase_speed_(increase_speed)
+        , increase_radius_(increase_radius)
+        , no_error_(simplify)
+        , use_min_distance_(use_min_distance)
+        , use_anti_preferred_(use_anti_preferred)
+        , move_(move)
     {
     }
 
@@ -83,39 +74,40 @@ struct TreeSupportElement
         bool skip_ovalisation,
         bool influence_area_limit_active,
         coord_t influence_area_limit_range,
-        double hidden_radius_increase
-    ) :
-        target_height_(target_height),
-        target_position_(target_position),
-        next_position_(target_position),
-        next_height_(target_height),
-        effective_radius_height_(0),
-        to_buildplate_(to_buildplate),
-        distance_to_top_(distance_to_top),
-        area_(nullptr),
-        result_on_layer_(target_position),
-        increased_to_model_radius_(0),
-        to_model_gracious_(to_model_gracious),
-        buildplate_radius_increases_(0),
-        use_min_xy_dist_(use_min_xy_dist),
-        supports_roof_(supports_roof),
-        supports_cradle_(supports_cradle),
-        dont_move_until_(dont_move_until),
-        can_use_safe_radius_(can_use_safe_radius),
-        can_avoid_anti_preferred_(false), //todo init?
-        last_area_increase_(AreaIncreaseSettings(AvoidanceType::FAST, 0, false, false, false, false, false)),
-        missing_roof_layers_(force_tips_to_roof ? dont_move_until : 0),
-        roof_with_enforced_walls(false),
-        skip_ovalisation_(skip_ovalisation),
-        all_tips_({ target_position }),
-        influence_area_limit_active_(influence_area_limit_active),
-        influence_area_limit_range_(influence_area_limit_range),
-        hidden_radius_increase_(hidden_radius_increase)
+        double hidden_radius_increase)
+        : target_height_(target_height)
+        , target_position_(target_position)
+        , next_position_(target_position)
+        , next_height_(target_height)
+        , effective_radius_height_(0)
+        , to_buildplate_(to_buildplate)
+        , distance_to_top_(distance_to_top)
+        , area_(nullptr)
+        , result_on_layer_(target_position)
+        , increased_to_model_radius_(0)
+        , to_model_gracious_(to_model_gracious)
+        , buildplate_radius_increases_(0)
+        , use_min_xy_dist_(use_min_xy_dist)
+        , supports_roof_(supports_roof)
+        , supports_cradle_(supports_cradle)
+        , dont_move_until_(dont_move_until)
+        , can_use_safe_radius_(can_use_safe_radius)
+        , can_avoid_anti_preferred_(false)
+        , // todo init?
+        last_area_increase_(AreaIncreaseSettings(AvoidanceType::FAST, 0, false, false, false, false, false))
+        , missing_roof_layers_(force_tips_to_roof ? dont_move_until : 0)
+        , roof_with_enforced_walls(false)
+        , skip_ovalisation_(skip_ovalisation)
+        , all_tips_({ target_position })
+        , influence_area_limit_active_(influence_area_limit_active)
+        , influence_area_limit_range_(influence_area_limit_range)
+        , hidden_radius_increase_(hidden_radius_increase)
     {
         RecreateInfluenceLimitArea();
     }
 
-    TreeSupportElement(const TreeSupportElement& elem, Polygons* new_area) : // copy constructor that sets a new area
+    TreeSupportElement(const TreeSupportElement& elem, Polygons* new_area)
+        : // copy constructor that sets a new area
         TreeSupportElement(elem)
     {
         area_ = new_area;
@@ -134,20 +126,19 @@ struct TreeSupportElement
         const std::function<coord_t(size_t, double)>& getRadius,
         double diameter_scale_bp_radius,
         coord_t branch_radius,
-        double diameter_angle_scale_factor
-    ) :
-        next_position_(next_position),
-        next_height_(next_height),
-        area_(nullptr),
-        increased_to_model_radius_(increased_to_model_radius),
-        use_min_xy_dist_(first.use_min_xy_dist_ || second.use_min_xy_dist_),
-        supports_roof_(first.supports_roof_ || second.supports_roof_),
-        supports_cradle_(first.supports_cradle_ || second.supports_cradle_),
-        dont_move_until_(std::max(first.dont_move_until_, second.dont_move_until_)),
-        can_use_safe_radius_(first.can_use_safe_radius_ || second.can_use_safe_radius_),
-        missing_roof_layers_(std::min(first.missing_roof_layers_, second.missing_roof_layers_)),
-        roof_with_enforced_walls(first.roof_with_enforced_walls && second.roof_with_enforced_walls),
-        skip_ovalisation_(false)
+        double diameter_angle_scale_factor)
+        : next_position_(next_position)
+        , next_height_(next_height)
+        , area_(nullptr)
+        , increased_to_model_radius_(increased_to_model_radius)
+        , use_min_xy_dist_(first.use_min_xy_dist_ || second.use_min_xy_dist_)
+        , supports_roof_(first.supports_roof_ || second.supports_roof_)
+        , supports_cradle_(first.supports_cradle_ || second.supports_cradle_)
+        , dont_move_until_(std::max(first.dont_move_until_, second.dont_move_until_))
+        , can_use_safe_radius_(first.can_use_safe_radius_ || second.can_use_safe_radius_)
+        , missing_roof_layers_(std::min(first.missing_roof_layers_, second.missing_roof_layers_))
+        , roof_with_enforced_walls(first.roof_with_enforced_walls && second.roof_with_enforced_walls)
+        , skip_ovalisation_(false)
     {
         if (first.target_height_ > second.target_height_)
         {
@@ -196,7 +187,7 @@ struct TreeSupportElement
             first.last_area_increase_.no_error_ || second.last_area_increase_.no_error_,
             first.last_area_increase_.use_min_distance_ && second.last_area_increase_.use_min_distance_,
             first.can_avoid_anti_preferred_ && second.can_avoid_anti_preferred_,
-                first.last_area_increase_.move_ || second.last_area_increase_.move_);
+            first.last_area_increase_.move_ || second.last_area_increase_.move_);
 
         all_tips_ = first.all_tips_;
         all_tips_.insert(all_tips_.end(), second.all_tips_.begin(), second.all_tips_.end());
@@ -456,7 +447,6 @@ struct TreeSupportElement
         result.area_ = nullptr;
         return result;
     }
-
 };
 
 } // namespace cura

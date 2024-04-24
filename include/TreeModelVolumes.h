@@ -184,8 +184,6 @@ public:
     const Polygons& getSupportBlocker(LayerIndex layer_idx);
 
 
-
-
 private:
     /*!
      * \brief Convenience typedef for the keys to the caches

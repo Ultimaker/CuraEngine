@@ -48,12 +48,11 @@ using PropertyAreas = std::map<TreeSupportElement, Polygons>;
 
 struct FakeRoofArea
 {
-    FakeRoofArea(Polygons area, coord_t line_distance, bool fractional):
-        area_(area)
+    FakeRoofArea(Polygons area, coord_t line_distance, bool fractional)
+        : area_(area)
         , line_distance_(line_distance)
         , fractional_(fractional)
     {
-
     }
     /*!
      * \brief Area that should be a fake roof.
@@ -117,7 +116,11 @@ private:
      * \param cradle_data_model[out] All generated cradles, with its corresponding cradle lines.
 
      */
-    void generateInitialAreas(const SliceMeshStorage& mesh, std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage,std::vector<std::vector<TreeSupportCradle*>>& cradle_data_model);
+    void generateInitialAreas(
+        const SliceMeshStorage& mesh,
+        std::vector<std::set<TreeSupportElement*>>& move_bounds,
+        SliceDataStorage& storage,
+        std::vector<std::vector<TreeSupportCradle*>>& cradle_data_model);
 
 
     /*!
@@ -233,7 +236,8 @@ private:
 
      * \param to_bp_areas[in,out] The Elements of the current Layer that will reach the buildplate.
      *  Value is the influence area where the center of a circle of support may be placed.
-     * \param to_model_areas[in,out] The Elements of the current Layer that do not have to reach the buildplate. Also contains main as every element that can reach the buildplate is
+     * \param to_model_areas[in,out] The Elements of the current Layer that do not have to reach the buildplate. Also contains main as every element that can reach the buildplate
+     is
      * not forced to. Value is the influence area where the center of a circle of support may be placed.
      * \param influence_areas[in,out] The Elements of the current Layer without
      * avoidances removed. This is the largest possible influence area for this layer. Value is the influence area where the center of a circle of support may be placed.
@@ -241,13 +245,14 @@ private:
      * \param move_bounds[in,out] All currently existing influence areas
      * \param cradle_data[in] Information about all cradle lines on this layer.
      */
-    void handleCradleLineValidity(PropertyAreasUnordered& to_bp_areas,
-                                                          PropertyAreas& to_model_areas,
-                                                          PropertyAreas& influence_areas,
-                                                          PropertyAreas& bypass_merge_areas,
-                                                          LayerIndex layer_idx,
-                                                          std::vector<std::set<TreeSupportElement*>>& move_bounds,
-                                                          std::vector<std::vector<CradlePresenceInformation>>& cradle_data);
+    void handleCradleLineValidity(
+        PropertyAreasUnordered& to_bp_areas,
+        PropertyAreas& to_model_areas,
+        PropertyAreas& influence_areas,
+        PropertyAreas& bypass_merge_areas,
+        LayerIndex layer_idx,
+        std::vector<std::set<TreeSupportElement*>>& move_bounds,
+        std::vector<std::vector<CradlePresenceInformation>>& cradle_data);
 
     /*!
      * \brief Propagates influence downwards, and merges overlapping ones.
@@ -317,7 +322,8 @@ private:
         const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order);
 
     /*!
-     * \brief Generates support areas with high density infill to support interface above. Also unions the Polygons in support_layer_storage. Has to be called even if no support skin will generate.
+     * \brief Generates support areas with high density infill to support interface above. Also unions the Polygons in support_layer_storage. Has to be called even if no support
+     skin will generate.
      * \param support_layer_storage[in,out] Areas where support should be generated.
      * \param support_skin_storage[out] Areas where high density support should be generated.
      * \param support_roof_storage[in] Areas where support was replaced with roof.
@@ -329,16 +335,17 @@ private:
      * \param cradle_data[in] All currently existing cradles, with its corresponding cradle lines.
 
      */
-    void generateSupportSkin(std::vector<Polygons>& support_layer_storage,
-                             std::vector<Polygons>& support_layer_storage_fractional,
-                             std::vector<Polygons>& support_skin_storage,
-                             std::vector<Polygons>& support_roof_storage,
-                             std::vector<Polygons>& support_roof_extra_wall_storage,
-                             std::vector<Polygons>& support_roof_storage_fractional,
-                             std::vector<Polygons>& support_roof_extra_wall_storage_fractional,
-                             SliceDataStorage& storage,
-                             std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons,
-                             std::vector<std::vector<TreeSupportCradle*>>& cradle_data);
+    void generateSupportSkin(
+        std::vector<Polygons>& support_layer_storage,
+        std::vector<Polygons>& support_layer_storage_fractional,
+        std::vector<Polygons>& support_skin_storage,
+        std::vector<Polygons>& support_roof_storage,
+        std::vector<Polygons>& support_roof_extra_wall_storage,
+        std::vector<Polygons>& support_roof_storage_fractional,
+        std::vector<Polygons>& support_roof_extra_wall_storage_fractional,
+        SliceDataStorage& storage,
+        std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons,
+        std::vector<std::vector<TreeSupportCradle*>>& cradle_data);
 
     /*!
      * \brief Filters out holses that would cause support to be printed mid-air.
@@ -354,10 +361,11 @@ private:
      * \param support_roof_storage[in] Areas where support was replaced with roof.
      * \param storage[in,out] The storage where the support should be stored.
      */
-    void finalizeInterfaceAndSupportAreas(std::vector<Polygons>& support_layer_storage,
-                                          std::vector<Polygons>& support_skin_storage,
-                                          std::vector<Polygons>& support_layer_storage_fractional,
-                                          SliceDataStorage& storage);
+    void finalizeInterfaceAndSupportAreas(
+        std::vector<Polygons>& support_layer_storage,
+        std::vector<Polygons>& support_skin_storage,
+        std::vector<Polygons>& support_layer_storage_fractional,
+        SliceDataStorage& storage);
 
     /*!
      * \brief Draws circles around result_on_layer points of the influence areas and applies some post processing.
