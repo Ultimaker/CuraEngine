@@ -7,6 +7,7 @@
 
 #include "Application.h"
 #include "FffProcessor.h" //To start a slice.
+#include "ambientOcclusion.h"
 #include "communication/Communication.h" //To flush g-code and layer view when we're done.
 #include "progress/Progress.h"
 #include "sliceDataStorage.h"
@@ -72,6 +73,13 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     bool empty = true;
     for (Mesh& mesh : mesh_group.meshes)
     {
+        //also do AO of the mesh
+        if (mesh.settings_.get<bool>("oa_seam_placement"))
+        {
+            AmbientOcclusion ao(mesh);
+            // Call the calculate function.
+            ao.calculate();
+        }
         if (! mesh.settings_.get<bool>("infill_mesh") && ! mesh.settings_.get<bool>("anti_overhang_mesh"))
         {
             empty = false;
