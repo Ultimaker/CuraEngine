@@ -20,10 +20,10 @@ class MeshVertex
 public:
     Point3LL p_; //!< location of the vertex
     std::vector<uint32_t> connected_faces_; //!< list of the indices of connected faces
-    float vertexA0; //0 (no light) and 1 (full light)
+    float vertexA0; // 0 (no light) and 1 (full light)
     MeshVertex(Point3LL p)
-        : p_(p),
-          vertexA0(1)
+        : p_(p)
+        , vertexA0(1)
     {
         connected_faces_.reserve(8);
     } //!< doesn't set connected_faces

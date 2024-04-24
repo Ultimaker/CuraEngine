@@ -73,7 +73,7 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     bool empty = true;
     for (Mesh& mesh : mesh_group.meshes)
     {
-        //also do AO of the mesh
+        // also do AO of the mesh
         if (mesh.settings_.get<bool>("oa_seam_placement"))
         {
             AmbientOcclusion ao(mesh);

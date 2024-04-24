@@ -4,9 +4,9 @@
 #ifndef AMBIENTOCCLUSION_H
 #define AMBIENTOCCLUSION_H
 
+#include "mesh.h"
 #include "utils/AABB3D.h"
 #include "utils/Matrix4x3D.h"
-#include "mesh.h"
 
 
 namespace cura
@@ -15,16 +15,19 @@ namespace cura
 class AmbientOcclusion
 {
 public:
-    AmbientOcclusion(Mesh& mesh): mesh_(mesh){}
+    AmbientOcclusion(Mesh& mesh)
+        : mesh_(mesh)
+    {
+    }
     void calculate();
 
 private:
-    Mesh mesh_ {};
+    Mesh mesh_{};
     Point3D getRandomDirection();
     bool doesRayIntersectMesh(Point3LL p, Point3D direction);
     void normalizeAmbientOcclusionValues();
-    bool rayIntersectsTriangle(Point3LL p, Point3D direction,MeshFace face);
-    template <typename T, typename V>
+    bool rayIntersectsTriangle(Point3LL p, Point3D direction, MeshFace face);
+    template<typename T, typename V>
     T crossProduct(const T& v1, const V& v2)
     {
         T cross_product;
@@ -33,7 +36,7 @@ private:
         cross_product.z_ = v1.x_ * v2.y_ - v1.y_ * v2.x_;
         return cross_product;
     }
-    template <typename T, typename V>
+    template<typename T, typename V>
     float dotProduct(const T& v1, const V& v2)
     {
         return v1.x_ * v2.x_ + v1.y_ * v2.y_ + v1.z_ * v2.z_;
