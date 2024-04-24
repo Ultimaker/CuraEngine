@@ -2573,21 +2573,22 @@ void TreeSupport::generateSupportSkin(
             {
                 remove_from_next_roof.add(support_free_areas[layer_idx]);
             }
-
+            remove_from_next_roof = remove_from_next_roof.unionPolygons();
 
             Polygons roof_extra_wall = support_roof_extra_wall_storage[layer_idx].difference(remove_from_next_roof);
             Polygons roof = support_roof_storage[layer_idx];
             Polygons cradle_lines_roof = cradle_support_line_roof_areas[layer_idx];
             if (config.support_roof_wall_count)
             {
+                roof = roof.difference(remove_from_next_roof);
                 roof = roof.unionPolygons(cradle_lines_roof);
             }
             else
             {
                 roof_extra_wall = roof_extra_wall.unionPolygons(cradle_lines_roof);
+                roof = roof.difference(remove_from_next_roof.unionPolygons(roof_extra_wall));
             }
 
-            roof = roof.difference(remove_from_next_roof.unionPolygons(roof_extra_wall));
             storage.support.supportLayers[layer_idx].fillRoofParts(roof_extra_wall, config.support_roof_line_width, config.support_wall_count, false);
             storage.support.supportLayers[layer_idx].fillRoofParts(roof, config.support_roof_line_width, config.support_roof_wall_count, false);
 
