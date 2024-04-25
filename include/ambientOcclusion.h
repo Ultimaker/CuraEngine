@@ -7,6 +7,7 @@
 #include "mesh.h"
 #include "utils/AABB3D.h"
 #include "utils/Matrix4x3D.h"
+#include "random"
 
 
 namespace cura
@@ -24,7 +25,7 @@ public:
 private:
     Mesh& mesh_;
     Point3D getRandomDirection();
-    bool doesRayIntersectMesh(Point3LL p, Point3D direction);
+    void doesRayIntersectMesh(Point3LL p, Point3D direction);
     void normalizeAmbientOcclusionValues();
     bool rayIntersectsTriangle(Point3LL p, Point3D direction, MeshFace face);
     template<typename T, typename V>
@@ -41,6 +42,8 @@ private:
     {
         return v1.x_ * v2.x_ + v1.y_ * v2.y_ + v1.z_ * v2.z_;
     }
+    std::pair<Point3LL, Point3D> getRandomPointAndDirection();
+    Point3LL getPoint(size_t chosen_face, std::mt19937 gen);
 };
 
 } // namespace cura

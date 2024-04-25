@@ -20,10 +20,8 @@ class MeshVertex
 public:
     Point3LL p_; //!< location of the vertex
     std::vector<uint32_t> connected_faces_; //!< list of the indices of connected faces
-    float vertexA0; // 0 (no light) and 1 (full light)
     MeshVertex(Point3LL p)
         : p_(p)
-        , vertexA0(0.5)
     {
         connected_faces_.reserve(8);
     } //!< doesn't set connected_faces
@@ -55,6 +53,7 @@ class MeshFace
 public:
     int vertex_index_[3] = { -1 }; //!< counter-clockwise ordering
     int connected_face_index_[3]; //!< same ordering as vertex_index (connected_face 0 is connected via vertex 0 and 1, etc.)
+    float faceAO = 0;// 0 (no light) and 1 (full light)
 };
 
 

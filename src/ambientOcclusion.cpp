@@ -3,8 +3,6 @@
 
 #include "ambientOcclusion.h"
 
-#include <random>
-
 #include "utils/Point3D.h"
 #include "utils/ThreadPool.h"
 
@@ -16,7 +14,7 @@ namespace cura
 #endif
 
 /*
- * Start by initializing the AO value for each vertex to zero.
+ * Start by initializing the AO value for each face to zero.
 For each vertex in the mesh:
 Shoot a large number of rays (e.g., a few hundred) in random directions from the vertex. The higher the number of rays, the higher the quality of the AO approximation.
 For each ray, detect if it intersects the geometry of the mesh. This involves performing intersection tests with each face in the mesh.
@@ -28,67 +26,92 @@ likely involve finding the maximum AO value and dividing all AO values by that m
 void AmbientOcclusion::calculate()
 {
     // Initialization of AO values
-    for (MeshVertex& v : mesh_.vertices_)
+    for (MeshFace& f : mesh_.faces_)
     {
-        v.vertexA0 = 0;
+        f.faceAO = 0;
     }
 
-    int numRays = 200;
+    size_t numRays = 10000;
 
     cura::parallel_for<size_t>(
         0,
-        mesh_.vertices_.size(),
-        [&](size_t mesh_vertex_index)
+        numRays,
+        [&](size_t rayNumber)
         {
-            int obstructions = 0;
-            for (int ray = 0; ray < numRays; ray++)
-            {
-                // Cast a ray in a random direction
-                Point3D direction = getRandomDirection();
-                //------------------------------------------------------------------------------
-                // Move the starting point slightly along the ray direction
-                Point3LL offset_p = mesh_.vertices_[mesh_vertex_index].p_;
-                float small_step = 0.0001;
-                offset_p.x_ += direction.x_ * small_step;
-                offset_p.y_ += direction.y_ * small_step;
-                offset_p.z_ += direction.z_ * small_step;
-                //------------------------------------------------------------------------------
-                if (doesRayIntersectMesh(offset_p, direction))
-                {
-                    obstructions++;
-                }
-            }
-            mesh_.vertices_[mesh_vertex_index].vertexA0 = obstructions / float(numRays);
+            std::pair<Point3LL, Point3D> pointPair = getRandomPointAndDirection();
+            Point3LL startPoint = pointPair.first;
+            Point3D direction = pointPair.second;
+            doesRayIntersectMesh(startPoint, direction);
         });
 
     normalizeAmbientOcclusionValues();
 }
 
+
 // Get a random direction vector. This should generate a random point on a unit sphere.
-Point3D AmbientOcclusion::getRandomDirection()
+std::pair<Point3LL, Point3D> AmbientOcclusion::getRandomPointAndDirection()
 {
-    // This can be achieved by generating random spherical coordinates and converting them to Cartesian coordinates.
+    // Choose two distinct faces randomly among 6 faces of the bounding box
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(0.0, 1.0);
+    std::uniform_int_distribution<> dis(0, 5);
 
-    // Generate the azimuthal angle theta (uniformly distributed on [0, 2*pi])
-    float theta = 2 * M_PI * dis(gen);
+    size_t chosen_face_start = dis(gen);
+    size_t chosen_face_end;
+    do {
+        chosen_face_end = dis(gen);
+    } while(chosen_face_end == chosen_face_start);
 
-    // Generate the polar angle phi (uniformly distributed on [0, pi])
-    // Instead of using uniformly distributed random number, we take the acos of a uniformly distributed random number
-    float phi = acos(1 - 2 * dis(gen));
+    Point3LL startPoint;
+    Point3LL endPoint;
 
-    // Conversion to Cartesian coordinates
-    float x = sin(phi) * cos(theta);
-    float y = sin(phi) * sin(theta);
-    float z = cos(phi);
+    startPoint = getPoint(chosen_face_start, gen);
 
-    return Point3D(x, y, z);
+    // Switch for endPoint
+    endPoint = getPoint(chosen_face_end, gen);
+    // Compute direction vector from start to end points
+    Point3D direction = endPoint - startPoint;
+    direction = direction.normalized(); // Needed if your doesRayIntersectMesh method assumes a normalized direction vector
+    return std::make_pair(startPoint, direction);
 }
 
+Point3LL AmbientOcclusion::getPoint(size_t chosen_face, std::mt19937 gen)
+{
+    Point3LL pointOnFace;
+    std::uniform_real_distribution<> dis_f(0.0, 1.0);
+    switch(chosen_face)
+    {
+    case 0:
+        // Face x = min.x
+        pointOnFace = Point3LL(mesh_.min().x_, dis_f(gen) * (mesh_.max().y_ - mesh_.min().y_) + mesh_.min().y_, dis_f(gen) * (mesh_.max().z_ - mesh_.min().z_) + mesh_.min().z_);
+        break;
+    case 1:
+        // Face x = max.x
+        pointOnFace = Point3LL(mesh_.max().x_, dis_f(gen) * (mesh_.max().y_ - mesh_.min().y_) + mesh_.min().y_, dis_f(gen) * (mesh_.max().z_ - mesh_.min().z_) + mesh_.min().z_);
+        break;
+    case 2:
+        // Face y = min.y
+        pointOnFace = Point3LL(dis_f(gen) * (mesh_.max().x_ - mesh_.min().x_) + mesh_.min().x_, mesh_.min().y_, dis_f(gen) * (mesh_.max().z_ - mesh_.min().z_) + mesh_.min().z_);
+        break;
+    case 3:
+        // Face y = max.y
+        pointOnFace = Point3LL(dis_f(gen) * (mesh_.max().x_ - mesh_.min().x_) + mesh_.min().x_, mesh_.max().y_, dis_f(gen) * (mesh_.max().z_ - mesh_.min().z_) + mesh_.min().z_);
+        break;
+    case 4:
+        // Face z = min.z
+        pointOnFace = Point3LL(dis_f(gen) * (mesh_.max().x_ - mesh_.min().x_) + mesh_.min().x_, dis_f(gen) * (mesh_.max().y_ - mesh_.min().y_) + mesh_.min().y_, mesh_.min().z_);
+        break;
+    case 5:
+        // Face z = max.z
+        pointOnFace = Point3LL(dis_f(gen) * (mesh_.max().x_ - mesh_.min().x_) + mesh_.min().x_, dis_f(gen) * (mesh_.max().y_ - mesh_.min().y_) + mesh_.min().y_, mesh_.max().z_);
+        break;
+    }
+    return  pointOnFace;
+}
+
+
 // Check if a ray from point p in given direction intersects the mesh
-bool AmbientOcclusion::doesRayIntersectMesh(Point3LL p, Point3D direction)
+void AmbientOcclusion::doesRayIntersectMesh(Point3LL p, Point3D direction)
 {
     // An efficient approach to this would likely involve an acceleration structure like a KD-tree or BVH.
     // However, for simplicity, we can just interpolate through each face in the mesh and check for intersection
@@ -96,10 +119,9 @@ bool AmbientOcclusion::doesRayIntersectMesh(Point3LL p, Point3D direction)
     {
         if (rayIntersectsTriangle(p, direction, face))
         {
-            return true;
+            face.faceAO +=1;
         }
     }
-    return false;
 }
 
 // Normalize AO values
@@ -107,16 +129,16 @@ void AmbientOcclusion::normalizeAmbientOcclusionValues()
 {
     // Get the maximal AO value in vertices
     float max_ao = 0;
-    for (auto& v : mesh_.vertices_)
+    for (auto& face : mesh_.faces_)
     {
-        if (v.vertexA0 > max_ao)
-            max_ao = v.vertexA0;
+        if (face.faceAO > max_ao)
+            max_ao = face.faceAO;
     }
 
     // Scale all AO values by maximal value
-    for (auto& v : mesh_.vertices_)
+    for (auto& face : mesh_.faces_)
     {
-        v.vertexA0 /= max_ao;
+        face.faceAO /= max_ao;
     }
 }
 
