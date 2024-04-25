@@ -53,7 +53,7 @@ class MeshFace
 public:
     int vertex_index_[3] = { -1 }; //!< counter-clockwise ordering
     int connected_face_index_[3]; //!< same ordering as vertex_index (connected_face 0 is connected via vertex 0 and 1, etc.)
-    float faceAO = 0;// 0 (no light) and 1 (full light)
+    float faceAO = 0; // 0 (no light) and 1 (full light)
 };
 
 

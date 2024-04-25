@@ -58,9 +58,10 @@ std::pair<Point3LL, Point3D> AmbientOcclusion::getRandomPointAndDirection()
 
     size_t chosen_face_start = dis(gen);
     size_t chosen_face_end;
-    do {
+    do
+    {
         chosen_face_end = dis(gen);
-    } while(chosen_face_end == chosen_face_start);
+    } while (chosen_face_end == chosen_face_start);
 
     Point3LL startPoint;
     Point3LL endPoint;
@@ -79,7 +80,7 @@ Point3LL AmbientOcclusion::getPoint(size_t chosen_face, std::mt19937 gen)
 {
     Point3LL pointOnFace;
     std::uniform_real_distribution<> dis_f(0.0, 1.0);
-    switch(chosen_face)
+    switch (chosen_face)
     {
     case 0:
         // Face x = min.x
@@ -106,7 +107,7 @@ Point3LL AmbientOcclusion::getPoint(size_t chosen_face, std::mt19937 gen)
         pointOnFace = Point3LL(dis_f(gen) * (mesh_.max().x_ - mesh_.min().x_) + mesh_.min().x_, dis_f(gen) * (mesh_.max().y_ - mesh_.min().y_) + mesh_.min().y_, mesh_.max().z_);
         break;
     }
-    return  pointOnFace;
+    return pointOnFace;
 }
 
 
@@ -119,7 +120,7 @@ void AmbientOcclusion::doesRayIntersectMesh(Point3LL p, Point3D direction)
     {
         if (rayIntersectsTriangle(p, direction, face))
         {
-            face.faceAO +=1;
+            face.faceAO += 1;
         }
     }
 }

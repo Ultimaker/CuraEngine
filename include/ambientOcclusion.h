@@ -5,9 +5,9 @@
 #define AMBIENTOCCLUSION_H
 
 #include "mesh.h"
+#include "random"
 #include "utils/AABB3D.h"
 #include "utils/Matrix4x3D.h"
-#include "random"
 
 
 namespace cura
