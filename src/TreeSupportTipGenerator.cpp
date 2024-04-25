@@ -1660,8 +1660,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
 
             // Roof does not have a radius, so remove it using offset. Note that there is no 0 radius avoidance, and it would not be identical with the avoidance offset with
             // -radius. This is intentional here, as support roof is still valid if only a part of the tip may reach it.
-            Polygons forbidden_here = volumes_
-                                          .getAvoidance(
+            Polygons forbidden_here = volumes_.getAvoidance(
                 0,
                 layer_idx,
                 (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
@@ -2023,6 +2022,7 @@ void TreeSupportTipGenerator::generateTips(
     std::vector<Polygons>& support_free_areas,
     std::vector<std::vector<TreeSupportCradle*>>& cradle_data_export)
 {
+    const auto t_start = std::chrono::high_resolution_clock::now();
     std::vector<std::set<TreeSupportElement*>> new_tips(move_bounds.size());
 
     const coord_t circle_length_to_half_linewidth_change
@@ -2040,11 +2040,14 @@ void TreeSupportTipGenerator::generateTips(
     {
         generateCradle(mesh, support_free_areas);
     }
+    const auto t_cradle = std::chrono::high_resolution_clock::now();
 
     if (support_roof_layers_)
     {
         calculateRoofAreas(mesh);
     }
+    const auto t_roof = std::chrono::high_resolution_clock::now();
+
 
     std::vector<std::vector<TreeSupportCradle*>> all_cradles_requiring_support(move_bounds.size());
     std::vector<Polygons> all_cradle_areas(move_bounds.size());
@@ -2406,6 +2409,7 @@ void TreeSupportTipGenerator::generateTips(
                     only_lines);
             }
         });
+    const auto t_influenced = std::chrono::high_resolution_clock::now();
 
     cura::parallel_for<coord_t>(
         0,
@@ -2481,6 +2485,19 @@ void TreeSupportTipGenerator::generateTips(
     {
         move_bounds[layer_idx].insert(tips_on_layer.begin(), tips_on_layer.end());
     }
+    
+    const auto t_end = std::chrono::high_resolution_clock::now();
+    const auto dur_cradle = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_cradle - t_start).count();
+    const auto dur_roof = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_roof - t_cradle).count();
+    const auto dur_inf = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_influenced - t_roof).count();
+    const auto dur_clean = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_influenced).count();
+    spdlog::info(
+        "Subtasks of generateInitialAreas: Generating cradle: {} ms Generating roof: {} ms Creating Influence Areas: {} ms Checking result validity: {} ms ",
+        dur_cradle,
+        dur_roof,
+        dur_inf,
+        dur_clean);
+
 }
 
 } // namespace cura
