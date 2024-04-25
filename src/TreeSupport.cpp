@@ -749,6 +749,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
     // Removing cradle areas from influence areas if possible.
     Polygons anti_preferred_areas = volumes_.getAntiPreferredAreas(layer_idx - 1, actual_radius);
     bool anti_preferred_applied = false;
+    bool anti_preferred_exists = volumes_.getFirstAntiPreferredLayerIdx() < layer_idx;
     if (! anti_preferred_areas.empty())
     {
         bool is_fast = settings.type_ != AvoidanceType::SLOW;
@@ -788,7 +789,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
 
     // Remove areas where the branch should not be if possible.
     // Has to be also subtracted from increased, as otherwise a merge directly below the anti-preferred area may force a branch inside it.
-    if (volumes_.getFirstAntiPreferredLayerIdx() < layer_idx && settings.use_anti_preferred_)
+    if (anti_preferred_exists && settings.use_anti_preferred_)
     {
         const Polygons anti_preferred = volumes_.getAntiPreferredAvoidance(radius, layer_idx - 1, settings.type_, ! current_elem.to_buildplate_, settings.use_min_distance_);
         if (current_elem.to_buildplate_)
@@ -813,7 +814,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
         }
     }
 
-    if (volumes_.getFirstAntiPreferredLayerIdx() >= layer_idx)
+    if (!anti_preferred_exists)
     {
         current_elem.can_avoid_anti_preferred_ = true;
     }
@@ -834,13 +835,13 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
 
                 to_bp_data_2 = increased;
                 bool avoidance_handled = false;
-                if (settings.use_anti_preferred_ && current_elem.can_use_safe_radius_)
+                if (settings.use_anti_preferred_ && current_elem.can_use_safe_radius_ && anti_preferred_exists)
                 {
                     to_bp_data_2 = to_bp_data_2.difference(
                         volumes_.getAntiPreferredAvoidance(next_radius, layer_idx - 1, settings.type_, ! current_elem.to_buildplate_, settings.use_min_distance_));
                     avoidance_handled = settings.type_ != AvoidanceType::SLOW;
                 }
-                else if (anti_preferred_applied && next_radius > actual_radius)
+                else if (anti_preferred_applied && next_radius > actual_radius && anti_preferred_exists)
                 {
                     to_bp_data_2 = to_bp_data_2.difference(volumes_.getAntiPreferredAreas(layer_idx - 1, next_radius));
                 }
@@ -854,13 +855,17 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
             {
                 to_model_data_2 = increased;
                 bool avoidance_handled = false;
-                if (settings.use_anti_preferred_ && current_elem.can_use_safe_radius_)
+                if (settings.use_anti_preferred_ && current_elem.can_use_safe_radius_ && anti_preferred_exists)
                 {
                     to_model_data_2 = to_model_data_2.difference(
-                        volumes_.getAntiPreferredAvoidance(next_radius, layer_idx - 1, settings.type_, ! current_elem.to_buildplate_, settings.use_min_distance_));
+                        volumes_.getAntiPreferredAvoidance(next_radius,
+                                                           layer_idx - 1,
+                                                           current_elem.to_model_gracious_ ? settings.type_ : AvoidanceType::COLLISION,
+                                                           true,
+                                                           settings.use_min_distance_));
                     avoidance_handled = settings.type_ != AvoidanceType::SLOW; // There is no slow anti-preferred avoidance.
                 }
-                else if (anti_preferred_applied && next_radius > actual_radius)
+                else if (anti_preferred_applied && next_radius > actual_radius && anti_preferred_exists)
                 {
                     to_model_data_2 = to_model_data_2.difference(volumes_.getAntiPreferredAreas(layer_idx - 1, next_radius));
                 }
@@ -1006,7 +1011,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
 
         if (ceil_radius_before != volumes_.ceilRadius(radius, settings.use_min_distance_))
         {
-            if (anti_preferred_applied && ceil_actual_radius_before < volumes_.ceilRadius(actual_radius, settings.use_min_distance_))
+            if (anti_preferred_applied && ceil_actual_radius_before < volumes_.ceilRadius(actual_radius, settings.use_min_distance_) && anti_preferred_exists)
             {
                 increased = increased.difference(volumes_.getAntiPreferredAreas(layer_idx - 1, actual_radius));
             }
@@ -1014,7 +1019,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
             {
                 bool avoidance_handled = false;
                 to_bp_data = increased;
-                if (settings.use_anti_preferred_ && current_elem.can_use_safe_radius_)
+                if (settings.use_anti_preferred_ && current_elem.can_use_safe_radius_ && anti_preferred_exists)
                 {
                     to_bp_data = to_bp_data.difference(
                         volumes_.getAntiPreferredAvoidance(radius, layer_idx - 1, settings.type_, ! current_elem.to_buildplate_, settings.use_min_distance_));
@@ -1030,7 +1035,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
             {
                 bool avoidance_handled = false;
                 to_model_data = increased;
-                if (settings.use_anti_preferred_ && current_elem.can_use_safe_radius_)
+                if (settings.use_anti_preferred_ && current_elem.can_use_safe_radius_ && anti_preferred_exists)
                 {
                     to_model_data = to_model_data.difference(volumes_.getAntiPreferredAvoidance(
                         radius,
@@ -1042,7 +1047,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
                 }
                 if (! avoidance_handled)
                 {
-                    to_bp_data = to_bp_data.difference(
+                    to_model_data = to_model_data.difference(
                         volumes_.getAvoidance(radius, layer_idx - 1, current_elem.to_model_gracious_ ? settings.type_ : AvoidanceType::COLLISION, true, settings.use_min_distance_));
                 }
                 to_model_data = TreeSupportUtils::safeUnion(to_model_data);
@@ -1283,7 +1288,7 @@ void TreeSupport::increaseAreas(
                 insertSetting(AreaIncreaseSettings(AvoidanceType::FAST_SAFE, fast_speed, ! increase_radius, no_error, ! use_min_radius, use_anti_preferred, move), true);
             }
 
-            if (! elem.can_avoid_anti_preferred_)
+            if (! elem.can_avoid_anti_preferred_ && layer_idx > volumes_.getFirstAntiPreferredLayerIdx() )
             {
                 std::deque<AreaIncreaseSettings> old_order = order;
                 for (AreaIncreaseSettings settings : old_order)

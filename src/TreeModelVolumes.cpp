@@ -36,6 +36,7 @@ TreeModelVolumes::TreeModelVolumes(
     , progress_offset_{ progress_offset }
     , machine_border_{ calculateMachineBorderCollision(storage.getMachineBorder()) }
     , machine_area_{ storage.getMachineBorder() }
+    , first_anti_preferred_layer_idx_{ storage.support.supportLayers.size() }
 {
     anti_overhang_ = std::vector<Polygons>(storage.support.supportLayers.size(), Polygons());
     std::unordered_map<size_t, size_t> mesh_to_layeroutline_idx;
@@ -582,9 +583,7 @@ void TreeModelVolumes::addAreaToAntiPreferred(const Polygons area, LayerIndex la
     RadiusLayerPair key(0, layer_idx);
     std::lock_guard<std::mutex> critical_section(*critical_anti_preferred_);
     anti_preferred_[key] = anti_preferred_[key].unionPolygons(area);
-
-    // todo calculated all required radiis and invalidate all non 0 radiis
-    // todo add function to recalculate anti-pref for non 0 radiis
+    first_anti_preferred_layer_idx_ = std::min(first_anti_preferred_layer_idx_, layer_idx);
 }
 
 
@@ -642,7 +641,7 @@ void TreeModelVolumes::precalculateAntiPreferred()
                     }
 
                     std::lock_guard<std::mutex> critical_section(*critical_anti_preferred_);
-                    first_anti_preferred_layer_idx = layer;
+                    first_anti_preferred_layer_idx_ = layer;
                 }
                 if (! encountered_anti)
                 {
@@ -815,7 +814,7 @@ coord_t TreeModelVolumes::getRadiusNextCeil(coord_t radius, bool min_xy_dist) co
 
 LayerIndex TreeModelVolumes::getFirstAntiPreferredLayerIdx()
 {
-    return first_anti_preferred_layer_idx;
+    return first_anti_preferred_layer_idx_;
 }
 
 

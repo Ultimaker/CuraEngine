@@ -519,7 +519,7 @@ private:
      */
     size_t max_cradle_dtt = 0;
 
-    LayerIndex first_anti_preferred_layer_idx = 0;
+    LayerIndex first_anti_preferred_layer_idx_ = 0;
 
     /*!
      * \brief radii for which avoidance was already precalculated. Used to calculate anti preferred avoidance.
