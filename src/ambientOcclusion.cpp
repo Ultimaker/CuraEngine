@@ -21,8 +21,9 @@ For each vertex in the mesh:
 Shoot a large number of rays (e.g., a few hundred) in random directions from the vertex. The higher the number of rays, the higher the quality of the AO approximation.
 For each ray, detect if it intersects the geometry of the mesh. This involves performing intersection tests with each face in the mesh.
 If the ray is obstructed, count it as an obstruction.
-After all rays are tested, divide the number of obstructed rays by the total number of rays to get the AO for that vertex—ranges between 0(signalizing full occlusion) and 1(no occlusion).
-Normalize AO values. Because these AO values are typically used as multipliers on color values, we usually want to normalize them to a 0.0 to 1.0 scale. This would likely involve finding the maximum AO value and dividing all AO values by that maximum.
+After all rays are tested, divide the number of obstructed rays by the total number of rays to get the AO for that vertex—ranges between 0(signalizing full occlusion) and 1(no
+occlusion). Normalize AO values. Because these AO values are typically used as multipliers on color values, we usually want to normalize them to a 0.0 to 1.0 scale. This would
+likely involve finding the maximum AO value and dividing all AO values by that maximum.
  */
 void AmbientOcclusion::calculate()
 {
