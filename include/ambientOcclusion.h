@@ -22,7 +22,7 @@ public:
     void calculate();
 
 private:
-    Mesh mesh_{};
+    Mesh& mesh_;
     Point3D getRandomDirection();
     bool doesRayIntersectMesh(Point3LL p, Point3D direction);
     void normalizeAmbientOcclusionValues();

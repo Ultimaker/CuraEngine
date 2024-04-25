@@ -23,7 +23,7 @@ public:
     float vertexA0; // 0 (no light) and 1 (full light)
     MeshVertex(Point3LL p)
         : p_(p)
-        , vertexA0(1)
+         , vertexA0(0.5)
     {
         connected_faces_.reserve(8);
     } //!< doesn't set connected_faces

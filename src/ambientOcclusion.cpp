@@ -3,6 +3,8 @@
 
 #include "ambientOcclusion.h"
 
+#include <random>
+
 #include "utils/Point3D.h"
 #include "utils/ThreadPool.h"
 
@@ -19,9 +21,8 @@ For each vertex in the mesh:
 Shoot a large number of rays (e.g., a few hundred) in random directions from the vertex. The higher the number of rays, the higher the quality of the AO approximation.
 For each ray, detect if it intersects the geometry of the mesh. This involves performing intersection tests with each face in the mesh.
 If the ray is obstructed, count it as an obstruction.
-After all rays are tested, divide the number of obstructed rays by the total number of rays to get the AO for that vertex—ranges between 0(signalizing full occlusion) and 1(no
-occlusion). Normalize AO values. Because these AO values are typically used as multipliers on color values, we usually want to normalize them to a 0.0 to 1.0 scale. This would
-likely involve finding the maximum AO value and dividing all AO values by that maximum.
+After all rays are tested, divide the number of obstructed rays by the total number of rays to get the AO for that vertex—ranges between 0(signalizing full occlusion) and 1(no occlusion).
+Normalize AO values. Because these AO values are typically used as multipliers on color values, we usually want to normalize them to a 0.0 to 1.0 scale. This would likely involve finding the maximum AO value and dividing all AO values by that maximum.
  */
 void AmbientOcclusion::calculate()
 {
@@ -31,23 +32,34 @@ void AmbientOcclusion::calculate()
         v.vertexA0 = 0;
     }
 
-    int numRays = 2000;
+    int numRays = 200;
 
-    for (MeshVertex& v : mesh_.vertices_)
-    {
-        int obstructions = 0;
-        for (int ray = 0; ray < numRays; ray++)
+    cura::parallel_for<size_t>(
+        0,
+        mesh_.vertices_.size(),
+        [&](size_t mesh_vertex_index)
         {
-            // Cast a ray in a random direction
-            Point3D direction = getRandomDirection();
-
-            if (doesRayIntersectMesh(v.p_, direction))
+            int obstructions = 0;
+            for (int ray = 0; ray < numRays; ray++)
             {
-                obstructions++;
+                // Cast a ray in a random direction
+                Point3D direction = getRandomDirection();
+                //------------------------------------------------------------------------------
+                // Move the starting point slightly along the ray direction
+                Point3LL offset_p = mesh_.vertices_[mesh_vertex_index].p_;
+                float small_step = 0.0001;
+                offset_p.x_ += direction.x_ * small_step;
+                offset_p.y_ += direction.y_ * small_step;
+                offset_p.z_ += direction.z_ * small_step;
+                //------------------------------------------------------------------------------
+                if (doesRayIntersectMesh(offset_p, direction))
+                {
+                    obstructions++;
+                }
             }
-        }
-        v.vertexA0 = obstructions / float(numRays);
-    }
+            mesh_.vertices_[mesh_vertex_index].vertexA0 = obstructions / float(numRays);
+        });
+
     normalizeAmbientOcclusionValues();
 }
 
@@ -55,8 +67,16 @@ void AmbientOcclusion::calculate()
 Point3D AmbientOcclusion::getRandomDirection()
 {
     // This can be achieved by generating random spherical coordinates and converting them to Cartesian coordinates.
-    float theta = 2 * M_PI * (rand() / float(RAND_MAX)); // Azimuthal angle, [0, 2*pi]
-    float phi = acos(2 * (rand() / float(RAND_MAX)) - 1); // Polar angle, [0, pi]
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(0.0, 1.0);
+
+    // Generate the azimuthal angle theta (uniformly distributed on [0, 2*pi])
+    float theta = 2 * M_PI * dis(gen);
+
+    // Generate the polar angle phi (uniformly distributed on [0, pi])
+    // Instead of using uniformly distributed random number, we take the acos of a uniformly distributed random number
+    float phi = acos(1 - 2 * dis(gen));
 
     // Conversion to Cartesian coordinates
     float x = sin(phi) * cos(theta);
