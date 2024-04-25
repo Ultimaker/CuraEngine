@@ -2227,7 +2227,6 @@ void TreeSupportTipGenerator::generateTips(
                     {
                         continue;
                     }
-                    all_cradle_areas[layer_idx] = all_cradle_areas[layer_idx].unionPolygons();
                     std::vector<LineInformation> overhang_lines;
                     Polygons polylines = ensureMaximumDistancePolyline(generateLines(remaining_overhang_part, false, layer_idx), current_tip_radius, 1, false);
                     // ^^^ Support_line_width to form a line here as otherwise most will be unsupported.
@@ -2253,8 +2252,8 @@ void TreeSupportTipGenerator::generateTips(
                     for (size_t lag_ctr = 1; lag_ctr <= max_overhang_insert_lag_ && ! overhang_lines.empty() && layer_idx - coord_t(lag_ctr) >= 1; lag_ctr++)
                     {
                         LayerIndex layer_idx_lag = layer_idx - lag_ctr;
-                        coord_t current_tip_radius_lag = std::max(config_.min_radius, config_.recommendedMinRadius(layer_idx_lag)); // todo setting
-
+                        coord_t current_tip_radius_lag
+                            = (force_initial_layer_radius_ && config_.recommendedMinRadius(layer_idx_lag) > config_.min_radius) ? config_.recommendedMinRadius(layer_idx_lag) : config_.min_radius;
                         // get least restricted avoidance for layer_idx-lag_ctr
                         Polygons relevant_forbidden_below = volumes_.getAvoidance(
                             config_.getRadius(0),
@@ -2321,8 +2320,11 @@ void TreeSupportTipGenerator::generateTips(
                 {
                     std::optional<TreeSupportCradleLine*> cradle_line_opt
                         = overhang_data.cradle_->getCradleLineOfIndex(overhang_data.cradle_layer_idx_, overhang_data.cradle_line_idx_);
-                    Polygons line = cradle_line_opt.value()->line_.offset(0);
-                    polylines = ensureMaximumDistancePolyline(line, ! overhang_data.is_roof_ ? config_.min_radius * 2 : support_supporting_branch_distance_, 1, false);
+                    if(cradle_line_opt)
+                    {
+                        Polygons line = cradle_line_opt.value()->line_.offset(0);
+                        polylines = ensureMaximumDistancePolyline(line, ! overhang_data.is_roof_ ? config_.min_radius * 2 : support_supporting_branch_distance_, 1, false);
+                    }
                 }
                 else
                 {
