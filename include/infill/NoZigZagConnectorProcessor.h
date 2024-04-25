@@ -29,7 +29,7 @@ public:
     }
 
     void registerVertex(const Point2LL& vertex);
-    void registerScanlineSegmentIntersection(const Point2LL& intersection, int scanline_index);
+    void registerScanlineSegmentIntersection(const Point2LL& intersection, int scanline_index, coord_t min_distance_to_scanline);
     void registerPolyFinished();
 };
 
