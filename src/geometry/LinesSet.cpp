@@ -24,18 +24,18 @@ LinesSet<OpenPolyline>::LinesSet<OpenPolyline>(ClipperLib::Paths&& paths)
 }
 
 template<class LineType>
-void LinesSet<LineType>::push_back(const LineType& line, bool checkNonEmpty)
+void LinesSet<LineType>::push_back(const LineType& line, CheckNonEmptyParam checkNonEmpty)
 {
-    if (! checkNonEmpty || ! line.empty())
+    if (checkNonEmpty == CheckNonEmptyParam::EvenIfEmpty || ! line.empty())
     {
         lines_.push_back(line);
     }
 }
 
 template<class LineType>
-void LinesSet<LineType>::push_back(LineType&& line, bool checkNonEmpty)
+void LinesSet<LineType>::push_back(LineType&& line, CheckNonEmptyParam checkNonEmpty)
 {
-    if (! checkNonEmpty || ! line.empty())
+    if (checkNonEmpty == CheckNonEmptyParam::EvenIfEmpty || ! line.empty())
     {
         lines_.push_back(line);
     }
@@ -327,8 +327,8 @@ template void LinesSet<OpenPolyline>::translate(const Point2LL& delta);
 template void LinesSet<OpenPolyline>::removeDegenerateVerts();
 template void LinesSet<OpenPolyline>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
 template void LinesSet<OpenPolyline>::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
-template void LinesSet<OpenPolyline>::push_back(const OpenPolyline& line, bool checkNonEmpty);
-template void LinesSet<OpenPolyline>::push_back(OpenPolyline&& line, bool checkNonEmpty);
+template void LinesSet<OpenPolyline>::push_back(const OpenPolyline& line, CheckNonEmptyParam checkNonEmpty);
+template void LinesSet<OpenPolyline>::push_back(OpenPolyline&& line, CheckNonEmptyParam checkNonEmpty);
 template void LinesSet<OpenPolyline>::push_back(LinesSet<OpenPolyline>&& lines_set);
 
 template size_t LinesSet<ClosedPolyline>::pointCount() const;
@@ -341,8 +341,8 @@ template void LinesSet<ClosedPolyline>::translate(const Point2LL& delta);
 template void LinesSet<ClosedPolyline>::removeDegenerateVerts();
 template void LinesSet<ClosedPolyline>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
 template void LinesSet<ClosedPolyline>::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
-template void LinesSet<ClosedPolyline>::push_back(const ClosedPolyline& line, bool checkNonEmpty);
-template void LinesSet<ClosedPolyline>::push_back(ClosedPolyline&& line, bool checkNonEmpty);
+template void LinesSet<ClosedPolyline>::push_back(const ClosedPolyline& line, CheckNonEmptyParam checkNonEmpty);
+template void LinesSet<ClosedPolyline>::push_back(ClosedPolyline&& line, CheckNonEmptyParam checkNonEmpty);
 template void LinesSet<ClosedPolyline>::push_back(LinesSet<ClosedPolyline>&& lines_set);
 template void LinesSet<ClosedPolyline>::push_back(LinesSet<Polygon>&& lines_set);
 
@@ -356,8 +356,8 @@ template void LinesSet<Polygon>::translate(const Point2LL& delta);
 template void LinesSet<Polygon>::removeDegenerateVerts();
 template void LinesSet<Polygon>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
 template void LinesSet<Polygon>::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
-template void LinesSet<Polygon>::push_back(const Polygon& line, bool checkNonEmpty);
-template void LinesSet<Polygon>::push_back(Polygon&& line, bool checkNonEmpty);
+template void LinesSet<Polygon>::push_back(const Polygon& line, CheckNonEmptyParam checkNonEmpty);
+template void LinesSet<Polygon>::push_back(Polygon&& line, CheckNonEmptyParam checkNonEmpty);
 template void LinesSet<Polygon>::push_back(LinesSet<Polygon>&& lines_set);
 
 } // namespace cura

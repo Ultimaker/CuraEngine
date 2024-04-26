@@ -35,7 +35,7 @@ Shape Simplify::polygon(const Shape& polygons) const
     Shape result;
     for (size_t i = 0; i < polygons.size(); ++i)
     {
-        result.push_back(polygon(polygons[i]), true);
+        result.push_back(polygon(polygons[i]), CheckNonEmptyParam::OnlyIfNotEmpty);
     }
     return result;
 }

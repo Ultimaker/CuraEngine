@@ -18,6 +18,12 @@ template<class LineType>
 class LinesSet;
 class OpenPolyline;
 
+enum class CheckNonEmptyParam
+{
+    OnlyIfNotEmpty,
+    EvenIfEmpty
+};
+
 /*!
  * \brief Base class for all geometry containers representing a set of polylines.
  * \sa https://github.com/Ultimaker/CuraEngine/wiki/Geometric-Base-Types#linesset
@@ -133,20 +139,18 @@ public:
 
     /*!
      * \brief Pushes the given line at the end of the set
-     * \param checkNonEmpty If true, we will check that the line is not empty,
-     *                      and discard it in case it is
+     * \param checkNonEmpty Indicates whether we should check for the line to be non-empty before adding it
      * \warning A copy of the line is made, so this method may be slow
      */
-    void push_back(const LineType& line, bool checkNonEmpty = false);
+    void push_back(const LineType& line, CheckNonEmptyParam checkNonEmpty = CheckNonEmptyParam::EvenIfEmpty);
 
     /*!
      * \brief Pushes the given line at the end of the set and takes ownership of the inner data
-     * \param checkNonEmpty If true, we will check that the line is not empty,
-     *                      and discard it in case it is
+     * \param checkNonEmpty Indicates whether we should check for the line to be non-empty before adding it
      * \warning This method is fast because it does not allocate data, but it will clear
      *          the source object
      */
-    void push_back(LineType&& line, bool checkNonEmpty = false);
+    void push_back(LineType&& line, CheckNonEmptyParam checkNonEmpty = CheckNonEmptyParam::EvenIfEmpty);
 
     /*!
      * \brief Pushes an entier set at the end and takes ownership of the inner data
