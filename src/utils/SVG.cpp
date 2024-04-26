@@ -87,7 +87,7 @@ SVG::SVG(std::string filename, AABB aabb, double scale, Point2LL canvas_size, Co
     out_ = fopen(filename.c_str(), "w");
     if (! out_)
     {
-        spdlog::error("The file %s could not be opened for writing.", filename);
+        spdlog::error("The file {} could not be opened for writing.", filename);
     }
     if (output_is_html_)
     {

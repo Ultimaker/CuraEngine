@@ -15,11 +15,14 @@
 #include "utils/linearAlg2D.h"
 
 #ifdef DEBUG
+#include <filesystem>
 #include <spdlog/spdlog.h>
 
 #include "utils/AABB.h"
 #include "utils/SVG.h"
 #endif
+
+namespace fs = std::filesystem;
 
 namespace cura
 {
@@ -693,12 +696,13 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(
                     static bool has_run = false;
                     if (! has_run)
                     {
+                        fs::path const debug_file_name = fs::temp_directory_path() / "debug.html";
                         try
                         {
                             int offset_performed = offset / 2;
                             AABB aabb(polygons);
                             aabb.expand(std::abs(preferred_dist_inside) * 2);
-                            SVG svg("debug.html", aabb);
+                            SVG svg(debug_file_name.string(), aabb);
                             svg.writeComment("Original polygon in black");
                             svg.writePolygons(polygons, SVG::Color::BLACK);
                             for (auto poly : polygons)
@@ -729,7 +733,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(
                         catch (...)
                         {
                         }
-                        spdlog::error("Clipper::offset failed. See generated debug.html! Black is original Blue is offsetted polygon");
+                        spdlog::error("Clipper::offset failed. See generated {}! Black is original Blue is offsetted polygon", debug_file_name.string());
                         has_run = true;
                     }
 #endif
