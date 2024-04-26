@@ -1,11 +1,11 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "geometry/polygon.h"
+#include "geometry/Polygon.h"
 
-#include "geometry/point3_matrix.h"
-#include "geometry/point_matrix.h"
-#include "geometry/shape.h"
+#include "geometry/Point3Matrix.h"
+#include "geometry/PointMatrix.h"
+#include "geometry/Shape.h"
 #include "utils/ListPolyIt.h"
 #include "utils/linearAlg2D.h"
 

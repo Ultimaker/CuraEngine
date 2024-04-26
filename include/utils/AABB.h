@@ -4,7 +4,7 @@
 #ifndef UTILS_AABB_H
 #define UTILS_AABB_H
 
-#include "geometry/point2ll.h"
+#include "geometry/Point2LL.h"
 
 namespace cura
 {

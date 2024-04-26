@@ -4,7 +4,7 @@
 #ifndef GEOMETRY_SHAPE_H
 #define GEOMETRY_SHAPE_H
 
-#include "geometry/lines_set.h"
+#include "geometry/LinesSet.h"
 #include "settings/types/Angle.h"
 
 namespace cura

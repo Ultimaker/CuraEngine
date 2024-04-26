@@ -4,7 +4,7 @@
 #ifndef COMMUNICATION_H
 #define COMMUNICATION_H
 
-#include "geometry/point2ll.h"
+#include "geometry/Point2LL.h"
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Velocity.h"
 

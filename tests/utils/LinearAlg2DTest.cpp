@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-#include "geometry/point3_matrix.h"
+#include "geometry/Point3Matrix.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura

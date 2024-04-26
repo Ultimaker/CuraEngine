@@ -4,8 +4,8 @@
 #ifndef GEOMETRY_CLOSED_LINES_SET_H
 #define GEOMETRY_CLOSED_LINES_SET_H
 
-#include "geometry/closed_polyline.h"
-#include "geometry/lines_set.h"
+#include "geometry/ClosedPolyline.h"
+#include "geometry/LinesSet.h"
 
 namespace cura
 {

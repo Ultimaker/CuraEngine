@@ -4,7 +4,7 @@
 #ifndef GEOMETRY_SINGLE_SHAPE_H
 #define GEOMETRY_SINGLE_SHAPE_H
 
-#include "geometry/shape.h"
+#include "geometry/Shape.h"
 
 namespace cura
 {

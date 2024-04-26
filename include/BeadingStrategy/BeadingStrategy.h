@@ -8,7 +8,7 @@
 
 #include "../settings/types/Angle.h"
 #include "../settings/types/Ratio.h" //For the wall transition threshold.
-#include "geometry/point2ll.h"
+#include "geometry/Point2LL.h"
 
 namespace cura
 {

@@ -8,14 +8,13 @@
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
-#include "geometry/shape.h"
+#include "geometry/Shape.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "support.h"
-//#include "utils/OpenPolylineStitcher.h"
+#include "utils/MixedPolylineStitcher.h"
 #include "utils/Simplify.h"
-#include "utils/mixed_polyline_stitcher.h"
 
 namespace cura
 {

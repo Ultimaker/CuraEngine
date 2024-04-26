@@ -3,7 +3,7 @@
 
 #include "utils/PolygonsPointIndex.h"
 
-#include "geometry/shape.h"
+#include "geometry/Shape.h"
 
 namespace cura
 {

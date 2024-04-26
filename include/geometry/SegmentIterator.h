@@ -4,7 +4,7 @@
 #ifndef GEOMETRY_SEGMENT_ITERATOR_H
 #define GEOMETRY_SEGMENT_ITERATOR_H
 
-#include "geometry/point2ll.h"
+#include "geometry/Point2LL.h"
 
 namespace cura
 {

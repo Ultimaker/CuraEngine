@@ -5,8 +5,8 @@
 
 #include <functional>
 
-#include "geometry/polygon.h"
-#include "geometry/shape.h"
+#include "geometry/Polygon.h"
+#include "geometry/Shape.h"
 #include "settings/types/Angle.h" //For the infill angle.
 #include "sliceDataStorage.h"
 #include "utils/math.h"

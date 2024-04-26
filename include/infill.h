@@ -8,7 +8,7 @@
 
 #include <range/v3/range/concepts.hpp>
 
-#include "geometry/point2ll.h"
+#include "geometry/Point2LL.h"
 #include "infill/LightningGenerator.h"
 #include "infill/ZigzagConnectorProcessor.h"
 #include "settings/EnumSettings.h" //For infill types.

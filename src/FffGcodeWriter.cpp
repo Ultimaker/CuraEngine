@@ -27,8 +27,8 @@
 #include "WallToolPaths.h"
 #include "bridge.h"
 #include "communication/Communication.h" //To send layer view data.
-#include "geometry/open_polyline.h"
-#include "geometry/point_matrix.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/PointMatrix.h"
 #include "infill.h"
 #include "progress/Progress.h"
 #include "raft.h"

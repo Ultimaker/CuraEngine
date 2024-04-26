@@ -11,7 +11,7 @@
 #include <spdlog/spdlog.h>
 
 #include "WallToolPaths.h"
-#include "geometry/point_matrix.h"
+#include "geometry/PointMatrix.h"
 #include "infill/GyroidInfill.h"
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/LightningGenerator.h"

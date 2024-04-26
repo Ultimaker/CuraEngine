@@ -5,8 +5,8 @@
 #define UTILS_MIXED_POLYLINE_STITCHER_H
 
 #include "PolylineStitcher.h"
-#include "geometry/closed_lines_set.h"
-#include "geometry/open_lines_set.h"
+#include "geometry/ClosedLinesSet.h"
+#include "geometry/OpenLinesSet.h"
 
 namespace cura
 {

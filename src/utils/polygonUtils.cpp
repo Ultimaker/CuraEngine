@@ -10,9 +10,9 @@
 
 #include <range/v3/view/enumerate.hpp>
 
-#include "geometry/open_polyline.h"
-#include "geometry/point_matrix.h"
-#include "geometry/single_shape.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/PointMatrix.h"
+#include "geometry/SingleShape.h"
 #include "infill.h"
 #include "utils/SparsePointGridInclusive.h"
 #include "utils/linearAlg2D.h"

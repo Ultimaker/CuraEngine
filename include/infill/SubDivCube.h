@@ -4,10 +4,10 @@
 #ifndef INFILL_SUBDIVCUBE_H
 #define INFILL_SUBDIVCUBE_H
 
-#include "geometry/point2ll.h"
-#include "geometry/point3_matrix.h"
-#include "geometry/point3ll.h"
-#include "geometry/point_matrix.h"
+#include "geometry/Point2LL.h"
+#include "geometry/Point3Matrix.h"
+#include "geometry/Point3LL.h"
+#include "geometry/PointMatrix.h"
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Ratio.h"
 

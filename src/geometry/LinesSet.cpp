@@ -1,13 +1,13 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "geometry/lines_set.h"
+#include "geometry/LinesSet.h"
 
 #include <numeric>
 
-#include "geometry/open_lines_set.h"
-#include "geometry/polygon.h"
-#include "geometry/shape.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/Polygon.h"
+#include "geometry/Shape.h"
 
 namespace cura
 {

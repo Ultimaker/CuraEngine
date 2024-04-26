@@ -4,7 +4,7 @@
 #ifndef UTILS_SIMPLIFY_H
 #define UTILS_SIMPLIFY_H
 
-#include "geometry/point2ll.h"
+#include "geometry/Point2LL.h"
 #include "utils/Coord_t.h"
 
 

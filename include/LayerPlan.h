@@ -10,7 +10,7 @@
 #include "PathOrderOptimizer.h"
 #include "SpaceFillType.h"
 #include "gcodeExport.h"
-#include "geometry/polygon.h"
+#include "geometry/Polygon.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/NozzleTempInsert.h"
 #include "pathPlanning/TimeMaterialEstimates.h"

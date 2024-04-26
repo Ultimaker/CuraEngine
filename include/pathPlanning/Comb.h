@@ -7,9 +7,9 @@
 #include <limits> // To find the maximum for coord_t.
 #include <memory> // shared_ptr
 
-#include "geometry/parts_view.h"
-#include "geometry/polygon.h"
-#include "geometry/single_shape.h"
+#include "geometry/PartsView.h"
+#include "geometry/Polygon.h"
+#include "geometry/SingleShape.h"
 #include "settings/types/LayerIndex.h" // To store the layer on which we comb.
 #include "utils/polygonUtils.h"
 

@@ -13,11 +13,11 @@
 #include "SupportInfillPart.h"
 #include "TopSurface.h"
 #include "WipeScriptConfig.h"
-#include "geometry/mixed_lines_set.h"
-#include "geometry/open_lines_set.h"
-#include "geometry/point2ll.h"
-#include "geometry/polygon.h"
-#include "geometry/single_shape.h"
+#include "geometry/MixedLinesSet.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/Point2LL.h"
+#include "geometry/Polygon.h"
+#include "geometry/SingleShape.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
 #include "settings/types/Angle.h" //Infill angles.
 #include "settings/types/LayerIndex.h"

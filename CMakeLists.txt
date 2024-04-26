@@ -152,17 +152,17 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ToolpathVisualizer.cpp
         src/utils/VoronoiUtils.cpp
         src/utils/VoxelUtils.cpp
-        src/utils/mixed_polyline_stitcher.cpp
+        src/utils/MixedPolylineStitcher.cpp
 
-        src/geometry/polygon.cpp
-        src/geometry/shape.cpp
-        src/geometry/points_set.cpp
-        src/geometry/single_shape.cpp
-        src/geometry/parts_view.cpp
-        src/geometry/lines_set.cpp
-        src/geometry/polyline.cpp
-        src/geometry/closed_polyline.cpp
-        src/geometry/mixed_lines_set.cpp
+        src/geometry/Polygon.cpp
+        src/geometry/Shape.cpp
+        src/geometry/PointsSet.cpp
+        src/geometry/SingleShape.cpp
+        src/geometry/PartsView.cpp
+        src/geometry/LinesSet.cpp
+        src/geometry/Polyline.cpp
+        src/geometry/ClosedPolyline.cpp
+        src/geometry/MixedLinesSet.cpp
 )
 
 add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})

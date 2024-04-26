@@ -9,8 +9,8 @@
 #endif
 #include <vector>
 
-#include "geometry/point2ll.h"
-#include "geometry/polygon.h"
+#include "geometry/Point2LL.h"
+#include "geometry/Polygon.h"
 #include "linearAlg2D.h"
 #include "polygonUtils.h"
 #include "settings/types/Ratio.h"

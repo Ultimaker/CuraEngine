@@ -8,8 +8,8 @@
 #include <queue>
 #include <unordered_map>
 
-#include "geometry/open_lines_set.h"
-#include "geometry/shape.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/Shape.h"
 #include "settings/EnumSettings.h"
 
 /*

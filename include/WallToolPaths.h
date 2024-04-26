@@ -7,7 +7,7 @@
 #include <memory>
 
 #include "BeadingStrategy/BeadingStrategyFactory.h"
-#include "geometry/polygon.h"
+#include "geometry/Polygon.h"
 #include "settings/Settings.h"
 #include "utils/ExtrusionLine.h"
 #include "utils/section_type.h"

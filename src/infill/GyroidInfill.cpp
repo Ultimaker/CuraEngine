@@ -3,9 +3,9 @@
 
 #include "infill/GyroidInfill.h"
 
-#include "geometry/open_polyline.h"
-#include "geometry/polygon.h"
-#include "geometry/shape.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/Polygon.h"
+#include "geometry/Shape.h"
 #include "utils/AABB.h"
 #include "utils/linearAlg2D.h"
 

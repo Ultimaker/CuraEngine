@@ -7,8 +7,8 @@
 #include <gmock/gmock.h>
 
 #include "communication/Communication.h" //The interface we're implementing.
-#include "geometry/polygon.h" //In the signature of Communication.
-#include "geometry/shape.h"
+#include "geometry/Polygon.h" //In the signature of Communication.
+#include "geometry/Shape.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
 

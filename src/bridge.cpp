@@ -3,8 +3,8 @@
 
 #include "bridge.h"
 
-#include "geometry/open_lines_set.h"
-#include "geometry/polygon.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/Polygon.h"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "utils/AABB.h"

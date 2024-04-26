@@ -3,8 +3,8 @@
 
 #include "utils/PolylineStitcher.h"
 
-#include "geometry/closed_lines_set.h"
-#include "geometry/open_lines_set.h"
+#include "geometry/ClosedLinesSet.h"
+#include "geometry/OpenLinesSet.h"
 #include "utils/ExtrusionLineStitcher.h"
 #include "utils/OpenPolylineStitcher.h"
 #include "utils/PolygonsPointIndex.h"

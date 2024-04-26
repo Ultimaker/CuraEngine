@@ -1,7 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "geometry/shape.h"
+#include "geometry/Shape.h"
 
 #include <mapbox/geometry/wagyu/wagyu.hpp>
 #include <numeric>
@@ -23,10 +23,10 @@
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/sliding.hpp>
 
-#include "geometry/mixed_lines_set.h"
-#include "geometry/parts_view.h"
-#include "geometry/polygon.h"
-#include "geometry/single_shape.h"
+#include "geometry/MixedLinesSet.h"
+#include "geometry/PartsView.h"
+#include "geometry/Polygon.h"
+#include "geometry/SingleShape.h"
 #include "settings/types/Ratio.h"
 #include "utils/OpenPolylineStitcher.h"
 #include "utils/linearAlg2D.h"

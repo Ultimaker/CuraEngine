@@ -4,7 +4,7 @@
 #ifndef GEOMETRY_CLOSED_POLYLINE_H
 #define GEOMETRY_CLOSED_POLYLINE_H
 
-#include "geometry/polyline.h"
+#include "geometry/Polyline.h"
 
 namespace cura
 {

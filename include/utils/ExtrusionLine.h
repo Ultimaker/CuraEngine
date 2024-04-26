@@ -10,8 +10,8 @@
 #include <range/v3/view/sliding.hpp>
 
 #include "ExtrusionJunction.h"
-#include "geometry/polygon.h"
-#include "geometry/shape.h"
+#include "geometry/Polygon.h"
+#include "geometry/Shape.h"
 
 namespace cura
 {

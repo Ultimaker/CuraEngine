@@ -4,8 +4,8 @@
 
 #include "ConicalOverhang.h"
 
-#include "geometry/polygon.h"
-#include "geometry/single_shape.h"
+#include "geometry/Polygon.h"
+#include "geometry/SingleShape.h"
 #include "mesh.h"
 #include "settings/types/Angle.h" //To process the overhang angle.
 #include "settings/types/LayerIndex.h"

@@ -12,7 +12,7 @@
 
 #include "Application.h"
 #include "Slice.h"
-#include "geometry/point_matrix.h"
+#include "geometry/PointMatrix.h"
 #include "settings/types/LayerIndex.h"
 #include "slicer.h"
 #include "utils/VoxelUtils.h"

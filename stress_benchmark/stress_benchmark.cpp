@@ -20,7 +20,7 @@
 #include <spdlog/spdlog.h>
 
 #include "WallsComputation.h"
-#include "geometry/polygon.h"
+#include "geometry/Polygon.h"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"

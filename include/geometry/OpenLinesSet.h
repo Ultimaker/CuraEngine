@@ -4,8 +4,8 @@
 #ifndef GEOMETRY_OPEN_LINES_SET_H
 #define GEOMETRY_OPEN_LINES_SET_H
 
-#include "geometry/lines_set.h"
-#include "geometry/open_polyline.h"
+#include "geometry/LinesSet.h"
+#include "geometry/OpenPolyline.h"
 
 namespace cura
 {

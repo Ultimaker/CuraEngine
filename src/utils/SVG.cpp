@@ -7,8 +7,8 @@
 
 #include <spdlog/spdlog.h>
 
-#include "geometry/polygon.h"
-#include "geometry/single_shape.h"
+#include "geometry/Polygon.h"
+#include "geometry/SingleShape.h"
 #include "utils/ExtrusionLine.h"
 #include "utils/Point3D.h"
 

@@ -11,7 +11,7 @@
 
 #include "GCodePathConfig.h"
 #include "WallToolPaths.h"
-#include "geometry/polygon.h"
+#include "geometry/Polygon.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/SpeedDerivatives.h"
 #include "settings/Settings.h"

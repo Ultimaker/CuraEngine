@@ -4,7 +4,7 @@
 #ifndef GEOMETRY_POINTS_SET_H
 #define GEOMETRY_POINTS_SET_H
 
-#include "geometry/point2ll.h"
+#include "geometry/Point2LL.h"
 #include "utils/Coord_t.h"
 
 namespace cura

@@ -4,8 +4,8 @@
 #ifndef GEOMETRY_POLYLINE_H
 #define GEOMETRY_POLYLINE_H
 
-#include "geometry/points_set.h"
-#include "geometry/segment_iterator.h"
+#include "geometry/PointsSet.h"
+#include "geometry/SegmentIterator.h"
 
 namespace cura
 {

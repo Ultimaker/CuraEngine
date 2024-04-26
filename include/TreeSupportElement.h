@@ -10,7 +10,7 @@
 #include "TreeModelVolumes.h"
 #include "TreeSupportBaseCircle.h"
 #include "TreeSupportEnums.h"
-#include "geometry/shape.h"
+#include "geometry/Shape.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
 

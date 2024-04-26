@@ -6,8 +6,8 @@
 
 #include <vector>
 
-#include "geometry/polygon.h"
-#include "geometry/single_shape.h"
+#include "geometry/Polygon.h"
+#include "geometry/SingleShape.h"
 #include "utils/AABB.h"
 #include "utils/ExtrusionLine.h"
 

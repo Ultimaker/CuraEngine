@@ -6,9 +6,9 @@
 #include <limits>
 #include <queue> //Priority queue to prioritise removing unimportant vertices.
 
-#include "geometry/closed_polyline.h"
-#include "geometry/mixed_lines_set.h"
-#include "geometry/open_polyline.h"
+#include "geometry/ClosedPolyline.h"
+#include "geometry/MixedLinesSet.h"
+#include "geometry/OpenPolyline.h"
 #include "settings/Settings.h" //To load the parameters from a Settings object.
 #include "utils/ExtrusionLine.h"
 #include "utils/linearAlg2D.h" //To calculate line deviations and intersecting lines.

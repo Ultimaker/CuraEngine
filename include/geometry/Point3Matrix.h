@@ -4,8 +4,8 @@
 #ifndef GEOMETRY_POINT3_MATRIX_H
 #define GEOMETRY_POINT3_MATRIX_H
 
-#include "point3ll.h"
-#include "point_matrix.h"
+#include "geometry/Point3LL.h"
+#include "geometry/PointMatrix.h"
 
 namespace cura
 {

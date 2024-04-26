@@ -10,7 +10,7 @@
 #include "TreeSupportEnums.h"
 #include "TreeSupportSettings.h"
 #include "boost/functional/hash.hpp" // For combining hashes
-#include "geometry/polygon.h"
+#include "geometry/Polygon.h"
 #include "polyclipping/clipper.hpp"
 #include "settings/EnumSettings.h"
 #include "sliceDataStorage.h"

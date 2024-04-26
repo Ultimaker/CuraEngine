@@ -12,7 +12,7 @@
 #include <gtest/gtest.h>
 
 #include "ReadTestPolygons.h"
-#include "geometry/polygon.h"
+#include "geometry/Polygon.h"
 #include "infill.h"
 #include "slicer.h"
 #include "utils/Coord_t.h"

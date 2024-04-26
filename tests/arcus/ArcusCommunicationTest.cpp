@@ -9,7 +9,7 @@
 #include "FffProcessor.h"
 #include "MockSocket.h" //To mock out the communication with the front-end.
 #include "communication/ArcusCommunicationPrivate.h" //To access the private fields of this communication class.
-#include "geometry/polygon.h" //Create test shapes to send over the socket.
+#include "geometry/Polygon.h" //Create test shapes to send over the socket.
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
 

@@ -12,7 +12,7 @@
 #include "PolygonsPointIndex.h"
 #include "SparseLineGrid.h"
 #include "SparsePointGridInclusive.h"
-#include "geometry/polygon.h"
+#include "geometry/Polygon.h"
 
 namespace cura
 {
