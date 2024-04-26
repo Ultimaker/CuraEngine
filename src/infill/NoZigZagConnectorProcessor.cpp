@@ -14,7 +14,7 @@ void NoZigZagConnectorProcessor::registerVertex(const Point2LL&)
     // No need to add anything.
 }
 
-void NoZigZagConnectorProcessor::registerScanlineSegmentIntersection(const Point2LL&, int)
+void NoZigZagConnectorProcessor::registerScanlineSegmentIntersection(const Point2LL&, int, coord_t)
 {
     // No need to add anything.
 }
