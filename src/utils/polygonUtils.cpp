@@ -16,9 +16,7 @@
 
 #ifdef DEBUG
 #include <spdlog/spdlog.h>
-
 #include "utils/AABB.h"
-#include "utils/SVG.h"
 #endif
 
 namespace cura
@@ -689,50 +687,6 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(
                 bool overall_is_inside = polygons.inside(overall_inside.location_);
                 if (overall_is_inside != (preferred_dist_inside > 0))
                 {
-#ifdef DEBUG
-                    static bool has_run = false;
-                    if (! has_run)
-                    {
-                        try
-                        {
-                            int offset_performed = offset / 2;
-                            AABB aabb(polygons);
-                            aabb.expand(std::abs(preferred_dist_inside) * 2);
-                            SVG svg("debug.html", aabb);
-                            svg.writeComment("Original polygon in black");
-                            svg.writePolygons(polygons, SVG::Color::BLACK);
-                            for (auto poly : polygons)
-                            {
-                                for (auto point : poly)
-                                {
-                                    svg.writePoint(point, true, 2);
-                                }
-                            }
-                            std::stringstream ss;
-                            svg.writeComment("Reference polygon in yellow");
-                            svg.writePolygon(closest_poly, SVG::Color::YELLOW);
-                            ss << "Offsetted polygon in blue with offset " << offset_performed;
-                            svg.writeComment(ss.str());
-                            svg.writePolygons(insetted, SVG::Color::BLUE);
-                            for (auto poly : insetted)
-                            {
-                                for (auto point : poly)
-                                {
-                                    svg.writePoint(point, true, 2);
-                                }
-                            }
-                            svg.writeComment("From location");
-                            svg.writePoint(from, true, 5, SVG::Color::GREEN);
-                            svg.writeComment("Location computed to be inside the black polygon");
-                            svg.writePoint(inside.location_, true, 5, SVG::Color::RED);
-                        }
-                        catch (...)
-                        {
-                        }
-                        spdlog::error("Clipper::offset failed. See generated debug.html! Black is original Blue is offsetted polygon");
-                        has_run = true;
-                    }
-#endif
                     return ClosestPolygonPoint();
                 }
                 inside = overall_inside;
