@@ -46,7 +46,7 @@ Shape MixedLinesSet::offset(coord_t distance, ClipperLib::JoinType join_type, do
             {
                 ClipperLib::EndType end_type;
 
-                if (line->addClosingSegment())
+                if (line->hasClosingSegment())
                 {
                     end_type = ClipperLib::etClosedLine;
                 }

@@ -99,7 +99,7 @@ Polyline::const_segments_iterator Polyline::beginSegments() const
 
 Polyline::const_segments_iterator Polyline::endSegments() const
 {
-    if (addClosingSegment())
+    if (hasClosingSegment())
     {
         return const_segments_iterator(end(), begin(), end());
     }
@@ -116,7 +116,7 @@ Polyline::segments_iterator Polyline::beginSegments()
 
 Polyline::segments_iterator Polyline::endSegments()
 {
-    if (addClosingSegment())
+    if (hasClosingSegment())
     {
         return segments_iterator(end(), begin(), end());
     }

@@ -50,7 +50,7 @@ bool ClosedPolyline::inside(const ClipperLib::Path& polygon) const
 OpenPolyline ClosedPolyline::toPseudoOpenPolyline() const
 {
     OpenPolyline open_polyline(getPoints());
-    if (addClosingSegment())
+    if (hasClosingSegment())
     {
         open_polyline.push_back(open_polyline.getPoints().front());
     }

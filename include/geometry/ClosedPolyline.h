@@ -81,8 +81,8 @@ public:
     {
     }
 
-    /*! @see Polyline::addClosingSegment() */
-    virtual bool addClosingSegment() const
+    /*! @see Polyline::hasClosingSegment() */
+    virtual bool hasClosingSegment() const
     {
         return ! explicitely_closed_;
     }

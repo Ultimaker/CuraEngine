@@ -72,7 +72,7 @@ public:
      *        point in the set and the first one
      * \return  True if a segment between the last and first point should be considered
      */
-    virtual bool addClosingSegment() const = 0;
+    virtual bool hasClosingSegment() const = 0;
 
     /*!
      * \brief Gets the total number of "full" segments in the polyline. Calling this is also safe if

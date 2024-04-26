@@ -64,8 +64,8 @@ public:
     {
     }
 
-    /*! @see Polyline::addClosingSegment() */
-    virtual bool addClosingSegment() const override
+    /*! @see Polyline::hasClosingSegment() */
+    virtual bool hasClosingSegment() const override
     {
         return false; // Definitely not
     }
