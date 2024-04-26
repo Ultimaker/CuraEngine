@@ -43,33 +43,19 @@ public:
     /*! \brief Builds an empty set */
     LinesSet() = default;
 
-    /*!
-     * \brief Creates a copy of the given lines set
-     * \warning A copy of the points list is made, so this constructor can be very slow
-     */
+    /*! \brief Creates a copy of the given lines set */
     LinesSet(const LinesSet& other) = default;
 
-    /*!
-     * \brief Constructor that takes the inner lines list from the given set
-     * \warning This constructor is fast because it does not allocate data, but it will clear
-     *          the source object
-     */
+    /*! \brief Constructor that takes the inner lines list from the given set */
     LinesSet(LinesSet&& other) = default;
 
-    /*!
-     * \brief Constructor with an existing set of lines
-     * \warning A copy of the lines set is made, so this constructor can be very slow
-     */
+    /*! \brief Constructor with an existing set of lines */
     LinesSet(const std::vector<LineType>& lines)
         : lines_(lines)
     {
     }
 
-    /*!
-     * \brief Constructor that takes ownership of the data from the given set of lines
-     * \warning This constructor is fast because it does not allocate data, but it will clear
-     *          the source object
-     */
+    /*! \brief Constructor that takes ownership of the data from the given set of lines */
     LinesSet(std::vector<LineType>&& lines)
         : lines_(std::move(lines))
     {
@@ -141,30 +127,20 @@ public:
     /*!
      * \brief Pushes the given line at the end of the set
      * \param checkNonEmpty Indicates whether we should check for the line to be non-empty before adding it
-     * \warning A copy of the line is made, so this method may be slow
      */
     void push_back(const LineType& line, CheckNonEmptyParam checkNonEmpty = CheckNonEmptyParam::EvenIfEmpty);
 
     /*!
      * \brief Pushes the given line at the end of the set and takes ownership of the inner data
      * \param checkNonEmpty Indicates whether we should check for the line to be non-empty before adding it
-     * \warning This method is fast because it does not allocate data, but it will clear
-     *          the source object
      */
     void push_back(LineType&& line, CheckNonEmptyParam checkNonEmpty = CheckNonEmptyParam::EvenIfEmpty);
 
-    /*!
-     * \brief Pushes an entier set at the end and takes ownership of the inner data
-     * \warning This method is fast because it does not allocate data, but it will clear
-     *          the source object
-     */
+    /*! \brief Pushes an entier set at the end and takes ownership of the inner data */
     template<class OtherLineType>
     void push_back(LinesSet<OtherLineType>&& lines_set);
 
-    /*!
-     * \brief Pushes an entier set at the end
-     * \warning A copy of all the lines is made, so this method may be slow
-     */
+    /*! \brief Pushes an entier set at the end */
     void push_back(const LinesSet& other)
     {
         lines_.insert(lines_.end(), other.lines_.begin(), other.lines_.end());

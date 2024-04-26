@@ -41,42 +41,25 @@ public:
     /*! \brief Builds an empty polyline */
     Polyline() = default;
 
-    /*!
-     * \brief Creates a copy of the given polyline
-     * \warning A copy of the points list is made, so this constructor is somehow "slow"
-     */
+    /*! \brief Creates a copy of the given polyline */
     Polyline(const Polyline& other) = default;
 
-    /*!
-     * \brief Constructor that takes ownership of the inner points list from the given polyline
-     * \warning This constructor is fast because it does not allocate data, but it will clear
-     *          the source object
-     */
+    /*! \brief Constructor that takes ownership of the inner points list from the given polyline */
     Polyline(Polyline&& other) = default;
 
-    /*!
-     * \brief Constructor with a points initializer list, provided for convenience
-     * \warning A copy of the points list is made, so this constructor is somehow "slow"
-     */
+    /*! \brief Constructor with a points initializer list, provided for convenience */
     Polyline(const std::initializer_list<Point2LL>& initializer)
         : PointsSet(initializer)
     {
     }
 
-    /*!
-     * \brief Constructor with an existing list of points
-     * \warning A copy of the points list is made, so this constructor is somehow "slow"
-     */
+    /*! \brief Constructor with an existing list of points */
     Polyline(const ClipperLib::Path& points)
         : PointsSet(points)
     {
     }
 
-    /*!
-     * \brief Constructor that takes ownership of the given list of points
-     * \warning This constructor is fast because it does not allocate data, but it will clear
-     *          the source object
-     */
+    /*! \brief Constructor that takes ownership of the given list of points */
     Polyline(ClipperLib::Path&& points)
         : PointsSet(points)
     {

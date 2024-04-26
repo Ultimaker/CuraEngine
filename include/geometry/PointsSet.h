@@ -33,36 +33,19 @@ public:
     /*! \brief Builds an empty set */
     PointsSet() = default;
 
-    /*!
-     * \brief Creates a copy of the given points set
-     * \warning A copy of the points set is made, so this constructor is somehow "slow"
-     */
+    /*! \brief Creates a copy of the given points set */
     PointsSet(const PointsSet& other) = default;
 
-    /*!
-     * \brief Constructor that takes ownership of the inner points from the given set
-     * \warning This constructor is fast because it does not allocate data, but it will clear
-     *          the source object
-     */
+    /*! \brief Constructor that takes ownership of the inner points from the given set */
     PointsSet(PointsSet&& other) = default;
 
-    /*!
-     * \brief Constructor with a points initializer list, provided for convenience
-     * \warning A copy of the points list is made, so this constructor is somehow "slow"
-     */
+    /*! \brief Constructor with a points initializer list, provided for convenience" */
     PointsSet(const std::initializer_list<Point2LL>& initializer);
 
-    /*!
-     * \brief Constructor with an existing list of points
-     * \warning A copy of the points list is made, so this constructor is somehow "slow"
-     */
+    /*! \brief Constructor with an existing list of points */
     PointsSet(const ClipperLib::Path& points);
 
-    /*!
-     * \brief Constructor that takes ownership of the given list of points
-     * \warning This constructor is fast because it does not allocate data, but it will clear
-     *          the source object
-     */
+    /*! \brief Constructor that takes ownership of the given list of points */
     PointsSet(ClipperLib::Path&& points);
 
     const ClipperLib::Path& getPoints() const

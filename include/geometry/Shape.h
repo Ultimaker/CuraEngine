@@ -34,30 +34,18 @@ public:
     /*! \brief Constructor of an empty shape */
     Shape() = default;
 
-    /*!
-     * \brief Creates a copy of the given shape
-     * \warning A copy of the points list is made, so this constructor can be very slow
-     */
+    /*! \brief Creates a copy of the given shape */
     Shape(const Shape& other) = default;
 
-    /*!
-     * \brief Constructor that takes the inner polygons list from the given shape
-     * \warning This constructor is fast because it does not allocate data, but it will clear
-     *          the source object
-     */
+    /*! \brief Constructor that takes the inner polygons list from the given shape */
     Shape(Shape&& other) = default;
 
-    /*!
-     * \brief Constructor with an existing set of polygons
-     * \warning A copy of the polygons set is made, so this constructor can be very slow
-     */
+    /*! \brief Constructor with an existing set of polygons */
     Shape(const std::vector<Polygon>& polygons);
 
     /*!
      * \brief Constructor that takes ownership of the given list of points
      * \param explicitely_closed Specify whether the given points form an explicitely closed line
-     * \warning This constructor is fast because it does not allocate data, but it will clear
-     *          the source object
      */
     explicit Shape(ClipperLib::Paths&& paths, bool explicitely_closed = clipper_explicitely_closed_);
 

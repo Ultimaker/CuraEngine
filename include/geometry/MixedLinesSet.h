@@ -38,73 +38,37 @@ public:
      */
     Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
-    /*!
-     *  @brief Adds a copy of the given polyline to the set
-     *  @note As we have to copy the whole points data, this is not very efficient
-     */
+    /*! @brief Adds a copy of the given polyline to the set */
     void push_back(const OpenPolyline& line);
 
-    /*!
-     *  @brief Adds a copy of the given polyline to the set
-     *  @note As we have to copy the whole points data, this is not very efficient
-     */
+    /*! @brief Adds a copy of the given polyline to the set */
     void push_back(const Polygon& line);
 
-    /*!
-     *  @brief Adds a copy of the given polyline to the set
-     *  @note As we can move the points data, this is much more efficient than the above methods,
-     *        but will clear the source data
-     */
+    /*! @brief Adds a copy of the given polyline to the set */
     void push_back(OpenPolyline&& line);
 
-    /*!
-     *  @brief Adds a copy of the given polyline to the set
-     *  @note As we can move the points data, this is much more efficient than the above methods,
-     *        but will clear the source data
-     */
+    /*! @brief Adds a copy of the given polyline to the set */
     void push_back(ClosedPolyline&& line);
 
-    /*!
-     *  @brief Adds the given shared pointer to the set. The pointer reference count will be incremeted but no data is actually copied.
-     *  @note The is even more efficient than the above methods because it only involves copying a pointer
-     */
+    /*! @brief Adds the given shared pointer to the set. The pointer reference count will be incremeted but no data is actually copied. */
     void push_back(const OpenPolylinePtr& line);
 
-    /*!
-     *  @brief Adds the given shared pointer to the set. The pointer reference count will be incremeted but no data is actually copied.
-     *  @note The is even more efficient than the above methods because it only involves copying a pointer
-     */
+    /*! @brief Adds the given shared pointer to the set. The pointer reference count will be incremeted but no data is actually copied. */
     void push_back(const PolylinePtr& line);
 
-    /*!
-     *  @brief Adds a copy of all the polygons contained in the shape
-     *  @note As we have to copy the whole points data, this is really not efficient
-     */
+    /*! @brief Adds a copy of all the polygons contained in the shape */
     void push_back(const Shape& shape);
 
-    /*!
-     *  @brief Adds a copy of all the polygons contained in the set
-     *  @note As we have to copy the whole points data, this is really not efficient
-     */
+    /*! @brief Adds a copy of all the polygons contained in the set */
     void push_back(const LinesSet<Polygon>& lines_set);
 
-    /*!
-     *  @brief Adds a copy of all the polylines contained in the set
-     *  @note As we have to copy the whole points data, this is really not efficient
-     */
+    /*! @brief Adds a copy of all the polylines contained in the set */
     void push_back(const OpenLinesSet& lines_set);
 
-    /*!
-     *  @brief Adds a copy of all the polylines contained in the set
-     *  @note As we can move the points data, this is much more efficient than the above methods,
-     *        but will clear the source data
-     */
+    /*! @brief Adds a copy of all the polylines contained in the set */
     void push_back(OpenLinesSet&& lines_set);
 
-    /*! @brief Adds a copy of all the polylines contained in the set
-     *  @note As we can move the points data, this is much more efficient than the above methods,
-     *        but will clear the source data
-     */
+    /*! @brief Adds a copy of all the polylines contained in the set */
     void push_back(ClosedLinesSet&& lines_set);
 
     /*! \brief Computes the total lenght of all the polylines in the set */
