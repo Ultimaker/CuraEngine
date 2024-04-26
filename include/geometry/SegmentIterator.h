@@ -9,14 +9,20 @@
 namespace cura
 {
 
-// Custom iterator to loop over the segments of a polyline
-template<bool IsConst>
+enum class ConstnessType
+{
+    Const,
+    Modifiable,
+};
+
+/*! @brief Custom iterator to loop over the segments of a polyline */
+template<ConstnessType IsConst>
 struct SegmentIterator
 {
-    // Transitory structure used to iterate over segments within a polyline
+    /*! @brief Transitory structure used to iterate over segments within a polyline */
     struct Segment
     {
-        using PointType = typename std::conditional<IsConst, const Point2LL, Point2LL>::type;
+        using PointType = typename std::conditional<IsConst == ConstnessType::Const, const Point2LL, Point2LL>::type;
 
         PointType& start;
         PointType& end;
@@ -28,7 +34,8 @@ struct SegmentIterator
     using difference_type = std::ptrdiff_t;
     using pointer = Segment*;
     using reference = Segment&;
-    using source_iterator_type = typename std::conditional<IsConst, typename std::vector<Point2LL>::const_iterator, typename std::vector<Point2LL>::iterator>::type;
+    using source_iterator_type =
+        typename std::conditional<IsConst == ConstnessType::Const, typename std::vector<Point2LL>::const_iterator, typename std::vector<Point2LL>::iterator>::type;
 
 private:
     source_iterator_type current_pos_;

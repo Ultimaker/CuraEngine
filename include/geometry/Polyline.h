@@ -35,8 +35,8 @@ class OpenPolyline;
 class Polyline : public PointsSet
 {
 public:
-    using segments_iterator = SegmentIterator<false>;
-    using const_segments_iterator = SegmentIterator<true>;
+    using segments_iterator = SegmentIterator<ConstnessType::Modifiable>;
+    using const_segments_iterator = SegmentIterator<ConstnessType::Const>;
 
     /*! \brief Builds an empty polyline */
     Polyline() = default;
