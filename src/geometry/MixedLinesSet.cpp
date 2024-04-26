@@ -111,7 +111,7 @@ void MixedLinesSet::push_back(const PolylinePtr& line)
     std::vector<PolylinePtr>::push_back(line);
 }
 
-void MixedLinesSet::push_back(LinesSet<OpenPolyline>&& lines_set)
+void MixedLinesSet::push_back(OpenLinesSet&& lines_set)
 {
     reserve(size() + lines_set.size());
     for (OpenPolyline& line : lines_set)
@@ -120,7 +120,7 @@ void MixedLinesSet::push_back(LinesSet<OpenPolyline>&& lines_set)
     }
 }
 
-void MixedLinesSet::push_back(const LinesSet<OpenPolyline>& lines_set)
+void MixedLinesSet::push_back(const OpenLinesSet& lines_set)
 {
     reserve(size() + lines_set.size());
     for (const OpenPolyline& line : lines_set)
@@ -129,7 +129,7 @@ void MixedLinesSet::push_back(const LinesSet<OpenPolyline>& lines_set)
     }
 }
 
-void MixedLinesSet::push_back(LinesSet<ClosedPolyline>&& lines_set)
+void MixedLinesSet::push_back(ClosedLinesSet&& lines_set)
 {
     reserve(size() + lines_set.size());
     for (ClosedPolyline& line : lines_set)

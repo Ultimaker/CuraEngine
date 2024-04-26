@@ -11,6 +11,7 @@
 #include <spdlog/spdlog.h>
 
 #include "WallToolPaths.h"
+#include "geometry/OpenPolyline.h"
 #include "geometry/PointMatrix.h"
 #include "infill/GyroidInfill.h"
 #include "infill/ImageBasedDensityProvider.h"
@@ -84,7 +85,7 @@ Shape Infill::generateWallToolPaths(
 void Infill::generate(
     std::vector<VariableWidthLines>& toolpaths,
     Shape& result_polygons,
-    LinesSet<OpenPolyline>& result_lines,
+    OpenLinesSet& result_lines,
     const Settings& settings,
     int layer_idx,
     SectionType section_type,
@@ -180,7 +181,7 @@ void Infill::generate(
             zig_zaggify_ = false;
         }
         Shape generated_result_polygons;
-        LinesSet<OpenPolyline> generated_result_lines;
+        OpenLinesSet generated_result_lines;
 
         _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
 
@@ -194,7 +195,7 @@ void Infill::generate(
         //_generate may clear() the generated_result_lines, but this is an output variable that may contain data before we start.
         // So make sure we provide it with a Shape that is safe to clear and only add stuff to result_lines.
         Shape generated_result_polygons;
-        LinesSet<OpenPolyline> generated_result_lines;
+        OpenLinesSet generated_result_lines;
 
         _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
 
@@ -252,7 +253,7 @@ void Infill::generate(
 void Infill::_generate(
     std::vector<VariableWidthLines>& toolpaths,
     Shape& result_polygons,
-    LinesSet<OpenPolyline>& result_lines,
+    OpenLinesSet& result_lines,
     const Settings& settings,
     const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
     const std::shared_ptr<LightningLayer>& lightning_trees,
@@ -349,14 +350,14 @@ void Infill::_generate(
         && (zig_zaggify_ || pattern_ == EFillMethod::CROSS || pattern_ == EFillMethod::CROSS_3D || pattern_ == EFillMethod::CUBICSUBDIV || pattern_ == EFillMethod::GYROID
             || pattern_ == EFillMethod::ZIG_ZAG))
     { // don't stich for non-zig-zagged line infill types
-        LinesSet<OpenPolyline> stitched_lines;
+        OpenLinesSet stitched_lines;
         OpenPolylineStitcher::stitch(result_lines, stitched_lines, result_polygons, infill_line_width_);
         result_lines = std::move(stitched_lines);
     }
     result_lines = simplifier.polyline(result_lines);
 }
 
-void Infill::multiplyInfill(Shape& result_polygons, LinesSet<OpenPolyline>& result_lines)
+void Infill::multiplyInfill(Shape& result_polygons, OpenLinesSet& result_lines)
 {
     if (pattern_ == EFillMethod::CONCENTRIC)
     {
@@ -412,20 +413,20 @@ void Infill::multiplyInfill(Shape& result_polygons, LinesSet<OpenPolyline>& resu
     result_polygons.push_back(result);
     if (! zig_zaggify_)
     {
-        LinesSet<OpenPolyline> polylines = inner_contour_.intersection(static_cast<LinesSet<Polygon>>(result_polygons));
+        OpenLinesSet polylines = inner_contour_.intersection(static_cast<LinesSet<Polygon>>(result_polygons));
         result_polygons.clear();
         OpenPolylineStitcher::stitch(polylines, result_lines, result_polygons, infill_line_width_);
     }
 }
 
-void Infill::generateGyroidInfill(LinesSet<OpenPolyline>& result_lines, Shape& result_polygons)
+void Infill::generateGyroidInfill(OpenLinesSet& result_lines, Shape& result_polygons)
 {
-    LinesSet<OpenPolyline> line_segments;
+    OpenLinesSet line_segments;
     GyroidInfill::generateTotalGyroidInfill(line_segments, zig_zaggify_, line_distance_, inner_contour_, z_);
     OpenPolylineStitcher::stitch(line_segments, result_lines, result_polygons, infill_line_width_);
 }
 
-void Infill::generateLightningInfill(const std::shared_ptr<LightningLayer>& trees, LinesSet<OpenPolyline>& result_lines)
+void Infill::generateLightningInfill(const std::shared_ptr<LightningLayer>& trees, OpenLinesSet& result_lines)
 {
     // Don't need to support areas smaller than line width, as they are always within radius:
     if (std::abs(inner_contour_.area()) < infill_line_width_ || ! trees)
@@ -463,13 +464,13 @@ void Infill::generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths
     }
 }
 
-void Infill::generateGridInfill(LinesSet<OpenPolyline>& result)
+void Infill::generateGridInfill(OpenLinesSet& result)
 {
     generateLineInfill(result, line_distance_, fill_angle_, 0);
     generateLineInfill(result, line_distance_, fill_angle_ + 90, 0);
 }
 
-void Infill::generateCubicInfill(LinesSet<OpenPolyline>& result)
+void Infill::generateCubicInfill(OpenLinesSet& result)
 {
     const coord_t shift = one_over_sqrt_2 * z_;
     generateLineInfill(result, line_distance_, fill_angle_, shift);
@@ -477,19 +478,19 @@ void Infill::generateCubicInfill(LinesSet<OpenPolyline>& result)
     generateLineInfill(result, line_distance_, fill_angle_ + 240, shift);
 }
 
-void Infill::generateTetrahedralInfill(LinesSet<OpenPolyline>& result)
+void Infill::generateTetrahedralInfill(OpenLinesSet& result)
 {
     generateHalfTetrahedralInfill(0.0, 0, result);
     generateHalfTetrahedralInfill(0.0, 90, result);
 }
 
-void Infill::generateQuarterCubicInfill(LinesSet<OpenPolyline>& result)
+void Infill::generateQuarterCubicInfill(OpenLinesSet& result)
 {
     generateHalfTetrahedralInfill(0.0, 0, result);
     generateHalfTetrahedralInfill(0.5, 90, result);
 }
 
-void Infill::generateHalfTetrahedralInfill(double pattern_z_shift, int angle_shift, LinesSet<OpenPolyline>& result)
+void Infill::generateHalfTetrahedralInfill(double pattern_z_shift, int angle_shift, OpenLinesSet& result)
 {
     const coord_t period = line_distance_ * 2;
     coord_t shift = coord_t(one_over_sqrt_2 * (z_ + pattern_z_shift * period * 2)) % period;
@@ -500,29 +501,29 @@ void Infill::generateHalfTetrahedralInfill(double pattern_z_shift, int angle_shi
     generateLineInfill(result, period, fill_angle_ + angle_shift, -shift);
 }
 
-void Infill::generateTriangleInfill(LinesSet<OpenPolyline>& result)
+void Infill::generateTriangleInfill(OpenLinesSet& result)
 {
     generateLineInfill(result, line_distance_, fill_angle_, 0);
     generateLineInfill(result, line_distance_, fill_angle_ + 60, 0);
     generateLineInfill(result, line_distance_, fill_angle_ + 120, 0);
 }
 
-void Infill::generateTrihexagonInfill(LinesSet<OpenPolyline>& result)
+void Infill::generateTrihexagonInfill(OpenLinesSet& result)
 {
     generateLineInfill(result, line_distance_, fill_angle_, 0);
     generateLineInfill(result, line_distance_, fill_angle_ + 60, 0);
     generateLineInfill(result, line_distance_, fill_angle_ + 120, line_distance_ / 2);
 }
 
-void Infill::generateCubicSubDivInfill(LinesSet<OpenPolyline>& result, const SliceMeshStorage& mesh)
+void Infill::generateCubicSubDivInfill(OpenLinesSet& result, const SliceMeshStorage& mesh)
 {
-    LinesSet<OpenPolyline> uncropped;
+    OpenLinesSet uncropped;
     mesh.base_subdiv_cube->generateSubdivisionLines(z_, uncropped);
     constexpr bool restitch = false; // cubic subdivision lines are always single line segments - not polylines consisting of multiple segments.
     result = outer_contour_.offset(infill_overlap_).intersection(uncropped, restitch);
 }
 
-void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Shape& result_polygons, LinesSet<OpenPolyline>& result_lines)
+void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Shape& result_polygons, OpenLinesSet& result_lines)
 {
     Polygon cross_pattern_polygon = cross_fill_provider.generate(pattern_, z_, infill_line_width_, pocket_size_);
 
@@ -540,15 +541,15 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
     else
     {
         // make the polyline closed in order to handle cross_pattern_polygon as a polyline, rather than a closed polygon
-        LinesSet<OpenPolyline> cross_pattern_polylines;
+        OpenLinesSet cross_pattern_polylines;
         cross_pattern_polylines.push_back(cross_pattern_polygon.toPseudoOpenPolyline());
-        LinesSet<OpenPolyline> poly_lines = inner_contour_.intersection(cross_pattern_polylines);
+        OpenLinesSet poly_lines = inner_contour_.intersection(cross_pattern_polylines);
         OpenPolylineStitcher::stitch(poly_lines, result_lines, result_polygons, infill_line_width_);
     }
 }
 
 void Infill::addLineInfill(
-    LinesSet<OpenPolyline>& result,
+    OpenLinesSet& result,
     const PointMatrix& rotation_matrix,
     const int scanline_min_idx,
     const int line_distance,
@@ -589,7 +590,7 @@ coord_t Infill::getShiftOffsetFromInfillOriginAndRotation(const double& infill_r
     return 0;
 }
 
-void Infill::generateLineInfill(LinesSet<OpenPolyline>& result, int line_distance, const double& infill_rotation, coord_t shift)
+void Infill::generateLineInfill(OpenLinesSet& result, int line_distance, const double& infill_rotation, coord_t shift)
 {
     shift += getShiftOffsetFromInfillOriginAndRotation(infill_rotation);
     PointMatrix rotation_matrix(infill_rotation);
@@ -599,7 +600,7 @@ void Infill::generateLineInfill(LinesSet<OpenPolyline>& result, int line_distanc
 }
 
 
-void Infill::generateZigZagInfill(LinesSet<OpenPolyline>& result, const coord_t line_distance, const double& infill_rotation)
+void Infill::generateZigZagInfill(OpenLinesSet& result, const coord_t line_distance, const double& infill_rotation)
 {
     const coord_t shift = getShiftOffsetFromInfillOriginAndRotation(infill_rotation);
 
@@ -632,7 +633,7 @@ void Infill::generateZigZagInfill(LinesSet<OpenPolyline>& result, const coord_t 
  *  while I also call a boundary segment leaving from an even scanline toward the right as belonging to an even scansegment.
  */
 void Infill::generateLinearBasedInfill(
-    LinesSet<OpenPolyline>& result,
+    OpenLinesSet& result,
     const int line_distance,
     const PointMatrix& rotation_matrix,
     ZigzagConnectorProcessor& zigzag_connector_processor,
@@ -845,7 +846,7 @@ void Infill::resolveIntersection(const coord_t at_distance, const Point2LL& inte
     }
 }
 
-void Infill::connectLines(LinesSet<OpenPolyline>& result_lines)
+void Infill::connectLines(OpenLinesSet& result_lines)
 {
     UnionFind<InfillLineSegment*> connected_lines; // Keeps track of which lines are connected to which.
     for (const std::vector<std::vector<InfillLineSegment*>>& crossings_on_polygon : crossings_on_line_)

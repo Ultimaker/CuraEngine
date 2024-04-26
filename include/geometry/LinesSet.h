@@ -8,6 +8,7 @@
 
 #include <range/v3/view/drop.hpp>
 
+#include "geometry/OpenLinesSet.h"
 #include "geometry/Point2LL.h"
 
 namespace cura
@@ -253,8 +254,8 @@ public:
     /*! \brief Get the total length of all the lines */
     coord_t length() const;
 
-    void splitIntoSegments(LinesSet<OpenPolyline>& result) const;
-    LinesSet<OpenPolyline> splitIntoSegments() const;
+    void splitIntoSegments(OpenLinesSet& result) const;
+    OpenLinesSet splitIntoSegments() const;
 
     /*! \brief Removes overlapping consecutive line segments which don't delimit a positive area */
     void removeDegenerateVerts();

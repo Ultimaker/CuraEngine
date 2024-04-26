@@ -7,6 +7,7 @@
 
 #include "Application.h"
 #include "Slice.h"
+#include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/LayerIndex.h"
@@ -151,7 +152,7 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
             }
 
             Shape new_outlines;
-            LinesSet<OpenPolyline> new_polylines;
+            OpenLinesSet new_polylines;
             for (unsigned int carved_mesh_idx = 0; carved_mesh_idx < volumes.size(); carved_mesh_idx++)
             {
                 const Mesh& carved_mesh = meshes[carved_mesh_idx];

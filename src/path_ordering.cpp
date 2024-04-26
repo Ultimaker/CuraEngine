@@ -4,6 +4,7 @@
 #include "path_ordering.h" //The definitions we're implementing here.
 
 #include "WallToolPaths.h"
+#include "geometry/OpenPolyline.h"
 #include "sliceDataStorage.h" //For SliceLayerPart.
 
 namespace cura

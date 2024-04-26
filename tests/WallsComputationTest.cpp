@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 
 #include "InsetOrderOptimizer.h" //Unit also under test.
+#include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h" //To create example polygons.
 #include "settings/Settings.h" //Settings to generate walls with.
 #include "sliceDataStorage.h" //Sl
@@ -19,7 +20,6 @@
 #ifdef WALLS_COMPUTATION_TEST_SVG_OUTPUT
 #include <cstdlib>
 
-#include "geometry/Polygon.h"
 #include "utils/SVG.h"
 #endif // WALLS_COMPUTATION_TEST_SVG_OUTPUT
 

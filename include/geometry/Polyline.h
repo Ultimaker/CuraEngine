@@ -4,6 +4,7 @@
 #ifndef GEOMETRY_POLYLINE_H
 #define GEOMETRY_POLYLINE_H
 
+#include "geometry/OpenLinesSet.h"
 #include "geometry/PointsSet.h"
 #include "geometry/SegmentIterator.h"
 
@@ -131,8 +132,8 @@ public:
      * Split these poly line objects into several line segment objects consisting of only two verts
      * and store them in the \p result
      */
-    void splitIntoSegments(LinesSet<OpenPolyline>& result) const;
-    LinesSet<OpenPolyline> splitIntoSegments() const;
+    void splitIntoSegments(OpenLinesSet& result) const;
+    OpenLinesSet splitIntoSegments() const;
 
     /*!
      * On Y-axis positive upward displays, Orientation will return true if the polygon's orientation is counter-clockwise.

@@ -5,6 +5,7 @@
 
 #include "geometry/ClosedLinesSet.h"
 #include "geometry/OpenLinesSet.h"
+#include "geometry/OpenPolyline.h"
 #include "utils/ExtrusionLineStitcher.h"
 #include "utils/OpenPolylineStitcher.h"
 #include "utils/PolygonsPointIndex.h"
@@ -228,13 +229,13 @@ template void PolylineStitcher<OpenLinesSet, ClosedLinesSet, OpenPolyline, Point
     coord_t snap_distance);
 
 template<>
-bool OpenPolylineStitcher::canReverse(const PathsPointIndex<LinesSet<OpenPolyline>>&)
+bool OpenPolylineStitcher::canReverse(const PathsPointIndex<OpenLinesSet>&)
 {
     return true;
 }
 
 template<>
-bool PolylineStitcher<OpenLinesSet, ClosedLinesSet, OpenPolyline, Point2LL>::canReverse(const PathsPointIndex<LinesSet<OpenPolyline>>&)
+bool PolylineStitcher<OpenLinesSet, ClosedLinesSet, OpenPolyline, Point2LL>::canReverse(const PathsPointIndex<OpenLinesSet>&)
 {
     return true;
 }

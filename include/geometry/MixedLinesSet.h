@@ -6,18 +6,17 @@
 
 #include <memory>
 
+#include "geometry/ClosedLinesSet.h"
+#include "geometry/OpenLinesSet.h"
 #include "utils/Coord_t.h"
 
 namespace cura
 {
 
 class Polyline;
-class OpenPolyline;
 class ClosedPolyline;
 class Polygon;
 class Shape;
-template<class LineType>
-class LinesSet;
 
 using PolylinePtr = std::shared_ptr<Polyline>;
 using OpenPolylinePtr = std::shared_ptr<OpenPolyline>;
@@ -93,20 +92,20 @@ public:
      *  @brief Adds a copy of all the polylines contained in the set
      *  @note As we have to copy the whole points data, this is really not efficient
      */
-    void push_back(const LinesSet<OpenPolyline>& lines_set);
+    void push_back(const OpenLinesSet& lines_set);
 
     /*!
      *  @brief Adds a copy of all the polylines contained in the set
      *  @note As we can move the points data, this is much more efficient than the above methods,
      *        but will clear the source data
      */
-    void push_back(LinesSet<OpenPolyline>&& lines_set);
+    void push_back(OpenLinesSet&& lines_set);
 
     /*! @brief Adds a copy of all the polylines contained in the set
      *  @note As we can move the points data, this is much more efficient than the above methods,
      *        but will clear the source data
      */
-    void push_back(LinesSet<ClosedPolyline>&& lines_set);
+    void push_back(ClosedLinesSet&& lines_set);
 
     /*! \brief Computes the total lenght of all the polylines in the set */
     coord_t length() const;

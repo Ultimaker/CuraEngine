@@ -408,7 +408,7 @@ bool Simplify::remove(Polygonal& polygon, std::vector<bool>& to_delete, const si
     return false;
 }
 
-template LinesSet<OpenPolyline> Simplify::polyline(const LinesSet<OpenPolyline>& polylines) const;
-template LinesSet<ClosedPolyline> Simplify::polyline(const LinesSet<ClosedPolyline>& polylines) const;
+template OpenLinesSet Simplify::polyline(const OpenLinesSet& polylines) const;
+template ClosedLinesSet Simplify::polyline(const ClosedLinesSet& polylines) const;
 
 } // namespace cura

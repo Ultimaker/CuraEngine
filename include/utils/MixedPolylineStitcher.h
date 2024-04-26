@@ -16,7 +16,7 @@ class MixedLinesSet;
 class MixedPolylineStitcher : public PolylineStitcher<OpenLinesSet, ClosedLinesSet, OpenPolyline, Point2LL>
 {
 public:
-    static void stitch(const LinesSet<OpenPolyline>& lines, MixedLinesSet& result, coord_t max_stitch_distance = MM2INT(0.1), coord_t snap_distance = 10);
+    static void stitch(const OpenLinesSet& lines, MixedLinesSet& result, coord_t max_stitch_distance = MM2INT(0.1), coord_t snap_distance = 10);
 };
 
 } // namespace cura

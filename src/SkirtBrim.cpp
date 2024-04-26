@@ -8,6 +8,7 @@
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
+#include "geometry/OpenPolyline.h"
 #include "geometry/Shape.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/Ratio.h"
@@ -247,7 +248,7 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Shape& covered_area, std
     // limit brim lines to allowed areas, stitch them and store them in the result
     brim = Simplify(Application::getInstance().current_slice_->scene.extruders[offset.extruder_nr_].settings_).polygon(brim);
 
-    LinesSet<OpenPolyline> brim_lines = allowed_areas_per_extruder[offset.extruder_nr_].intersection(brim, false);
+    OpenLinesSet brim_lines = allowed_areas_per_extruder[offset.extruder_nr_].intersection(brim, false);
     length_added = brim_lines.length();
 
     Shape newly_covered = brim_lines.offset(extruder_config.line_width_ / 2 + 10, ClipperLib::jtRound);

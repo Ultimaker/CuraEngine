@@ -355,16 +355,16 @@ const std::optional<Point2LL>& LightningTreeNode::getLastGroundingLocation() con
     return last_grounding_location_;
 }
 
-void LightningTreeNode::convertToPolylines(LinesSet<OpenPolyline>& output, const coord_t line_width) const
+void LightningTreeNode::convertToPolylines(OpenLinesSet& output, const coord_t line_width) const
 {
-    LinesSet<OpenPolyline> result;
+    OpenLinesSet result;
     result.emplace_back();
     convertToPolylines(0, result);
     removeJunctionOverlap(result, line_width);
     output.push_back(result);
 }
 
-void LightningTreeNode::convertToPolylines(size_t long_line_idx, LinesSet<OpenPolyline>& output) const
+void LightningTreeNode::convertToPolylines(size_t long_line_idx, OpenLinesSet& output) const
 {
     if (children_.empty())
     {
@@ -386,7 +386,7 @@ void LightningTreeNode::convertToPolylines(size_t long_line_idx, LinesSet<OpenPo
     }
 }
 
-void LightningTreeNode::removeJunctionOverlap(LinesSet<OpenPolyline>& result_lines, const coord_t line_width) const
+void LightningTreeNode::removeJunctionOverlap(OpenLinesSet& result_lines, const coord_t line_width) const
 {
     const coord_t reduction = line_width / 2; // TODO make configurable?
     for (auto poly_it = result_lines.begin(); poly_it != result_lines.end();)

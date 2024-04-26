@@ -4,6 +4,7 @@
 #include "utils/MixedPolylineStitcher.h"
 
 #include "geometry/MixedLinesSet.h"
+#include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
 
@@ -11,7 +12,7 @@
 namespace cura
 {
 
-void MixedPolylineStitcher::stitch(const LinesSet<OpenPolyline>& lines, MixedLinesSet& result, coord_t max_stitch_distance, coord_t snap_distance)
+void MixedPolylineStitcher::stitch(const OpenLinesSet& lines, MixedLinesSet& result, coord_t max_stitch_distance, coord_t snap_distance)
 {
     OpenLinesSet open_lines;
     ClosedLinesSet closed_lines;

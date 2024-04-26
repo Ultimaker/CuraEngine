@@ -12,6 +12,7 @@
 #include <gtest/gtest.h>
 
 #include "ReadTestPolygons.h"
+#include "geometry/OpenPolyline.h"
 #include "slicer.h"
 #include "utils/Coord_t.h"
 

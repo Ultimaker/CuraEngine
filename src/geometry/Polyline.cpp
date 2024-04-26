@@ -5,7 +5,9 @@
 
 #include <numeric>
 
+#include "geometry/LinesSet.h"
 #include "geometry/OpenLinesSet.h"
+#include "geometry/OpenPolyline.h"
 #include "settings/types/Angle.h"
 #include "utils/linearAlg2D.h"
 

@@ -4,6 +4,7 @@
 #include "bridge.h"
 
 #include "geometry/OpenLinesSet.h"
+#include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"

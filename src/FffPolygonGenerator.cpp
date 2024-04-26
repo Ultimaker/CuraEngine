@@ -576,7 +576,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
         }
 
         std::vector<SingleShape> new_parts;
-        LinesSet<OpenPolyline> new_polylines;
+        OpenLinesSet new_polylines;
 
         for (const size_t other_mesh_idx : mesh_order)
         { // limit the infill mesh's outline to within the infill of all meshes with lower order

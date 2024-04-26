@@ -3,6 +3,7 @@
 
 #include "layerPart.h"
 
+#include "geometry/OpenPolyline.h"
 #include "progress/Progress.h"
 #include "settings/EnumSettings.h" //For ESurfaceMode.
 #include "settings/Settings.h"

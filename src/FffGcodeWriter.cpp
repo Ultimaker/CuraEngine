@@ -618,7 +618,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         Application::getInstance().communication_->sendLayerComplete(layer_nr, z, layer_height);
 
-        LinesSet<OpenPolyline> raft_lines;
+        OpenLinesSet raft_lines;
         AngleDegrees fill_angle = (num_surface_layers + num_interface_layers) % 2 ? 45 : 135; // 90 degrees rotated from the interface layer.
         constexpr bool zig_zaggify_infill = false;
         constexpr bool connect_polygons = true; // causes less jerks, so better adhesion
@@ -805,7 +805,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         raft_outline_path = storage.raftInterfaceOutline.offset(-small_offset);
         raft_outline_path = Simplify(interface_settings).polygon(raft_outline_path); // Remove those micron-movements.
         const coord_t infill_outline_width = gcode_layer.configs_storage_.raft_interface_config.getLineWidth();
-        LinesSet<OpenPolyline> raft_lines;
+        OpenLinesSet raft_lines;
         AngleDegrees fill_angle = (num_surface_layers + num_interface_layers - raft_interface_layer) % 2 ? 45 : 135; // 90 degrees rotated from the first top layer.
         constexpr bool zig_zaggify_infill = true;
         constexpr bool connect_polygons = true; // why not?
@@ -976,7 +976,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         raft_outline_path = storage.raftSurfaceOutline.offset(-small_offset);
         raft_outline_path = Simplify(interface_settings).polygon(raft_outline_path); // Remove those micron-movements.
         const coord_t infill_outline_width = gcode_layer.configs_storage_.raft_surface_config.getLineWidth();
-        LinesSet<OpenPolyline> raft_lines;
+        OpenLinesSet raft_lines;
         AngleDegrees fill_angle
             = (num_surface_layers - raft_surface_layer) % 2 ? 45 : 135; // Alternate between -45 and +45 degrees, ending up 90 degrees rotated from the default skin angle.
         constexpr bool zig_zaggify_infill = true;
@@ -1910,7 +1910,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
         const bool connect_polygons = mesh.settings.get<bool>("connect_infill_polygons");
         const size_t infill_multiplier = mesh.settings.get<size_t>("infill_multiplier");
         Shape infill_polygons;
-        LinesSet<OpenPolyline> infill_lines;
+        OpenLinesSet infill_lines;
         std::vector<VariableWidthLines> infill_paths = part.infill_wall_toolpaths;
         for (size_t density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
         { // combine different density infill areas (for gradual infill)
@@ -2031,7 +2031,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
     // Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
     Shape infill_polygons;
     std::vector<std::vector<VariableWidthLines>> wall_tool_paths; // All wall toolpaths binned by inset_idx (inner) and by density_idx (outer)
-    LinesSet<OpenPolyline> infill_lines;
+    OpenLinesSet infill_lines;
 
     const auto pattern = mesh.settings.get<EFillMethod>("infill_pattern");
     const bool zig_zaggify_infill = mesh.settings.get<bool>("zig_zaggify_infill") || pattern == EFillMethod::ZIG_ZAG;
@@ -2084,7 +2084,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
             continue;
         }
 
-        LinesSet<OpenPolyline> infill_lines_here;
+        OpenLinesSet infill_lines_here;
         Shape infill_polygons_here;
 
         // the highest density infill combines with the next to create a grid with density_factor 1
@@ -3123,7 +3123,7 @@ void FffGcodeWriter::processSkinPrintFeature(
     double fan_speed) const
 {
     Shape skin_polygons;
-    LinesSet<OpenPolyline> skin_lines;
+    OpenLinesSet skin_lines;
     std::vector<VariableWidthLines> skin_paths;
 
     constexpr int infill_multiplier = 1;
@@ -3498,7 +3498,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
             Shape support_polygons;
             std::vector<VariableWidthLines> wall_toolpaths_here;
-            LinesSet<OpenPolyline> support_lines;
+            OpenLinesSet support_lines;
             const size_t max_density_idx = part.infill_area_per_combine_per_density_.size() - 1;
             for (size_t density_idx = max_density_idx; (density_idx + 1) > 0; --density_idx)
             {
@@ -3754,7 +3754,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, con
         pocket_size);
     Shape roof_polygons;
     std::vector<VariableWidthLines> roof_paths;
-    LinesSet<OpenPolyline> roof_lines;
+    OpenLinesSet roof_lines;
     roof_computation.generate(roof_paths, roof_polygons, roof_lines, roof_extruder.settings_, gcode_layer.getLayerNr(), SectionType::SUPPORT);
     if ((gcode_layer.getLayerNr() == 0 && wall.empty()) || (gcode_layer.getLayerNr() > 0 && roof_paths.empty() && roof_polygons.empty() && roof_lines.empty()))
     {
@@ -3871,7 +3871,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
         pocket_size);
     Shape bottom_polygons;
     std::vector<VariableWidthLines> bottom_paths;
-    LinesSet<OpenPolyline> bottom_lines;
+    OpenLinesSet bottom_lines;
     bottom_computation.generate(bottom_paths, bottom_polygons, bottom_lines, bottom_extruder.settings_, gcode_layer.getLayerNr(), SectionType::SUPPORT);
     if (bottom_paths.empty() && bottom_polygons.empty() && bottom_lines.empty())
     {

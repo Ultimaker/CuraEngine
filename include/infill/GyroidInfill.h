@@ -2,15 +2,12 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "../utils/Coord_t.h"
+#include "geometry/OpenLinesSet.h"
 
 namespace cura
 {
 
 class Shape;
-class OpenPolyline;
-
-template<class T>
-class LinesSet;
 
 class GyroidInfill
 {
@@ -37,7 +34,7 @@ public:
      * \param z The Z coordinate of this layer. Different Z coordinates cause the pattern to vary, producing a 3D
      * pattern.
      */
-    static void generateTotalGyroidInfill(LinesSet<OpenPolyline>& result_lines, bool zig_zaggify, coord_t line_distance, const Shape& in_outline, coord_t z);
+    static void generateTotalGyroidInfill(OpenLinesSet& result_lines, bool zig_zaggify, coord_t line_distance, const Shape& in_outline, coord_t z);
 
 private:
 };
