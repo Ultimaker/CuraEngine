@@ -15,7 +15,7 @@ enum class ConstnessType
     Modifiable,
 };
 
-/*! @brief Custom iterator to loop over the segments of a polyline */
+/*! @brief Custom iterator to loop over the segments of a polyline/polygon */
 template<ConstnessType IsConst>
 struct SegmentIterator
 {
