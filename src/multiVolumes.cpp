@@ -121,7 +121,7 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
         for (LayerIndex layer_nr = 0; layer_nr < cutting_mesh_volume.layers.size(); layer_nr++)
         {
             Shape& cutting_mesh_polygons = cutting_mesh_volume.layers[layer_nr].polygons;
-            OpenLinesSet& cutting_mesh_polylines = cutting_mesh_volume.layers[layer_nr].openPolylines;
+            OpenLinesSet& cutting_mesh_polylines = cutting_mesh_volume.layers[layer_nr].open_polylines;
             Shape cutting_mesh_area_recomputed;
             Shape* cutting_mesh_area;
             coord_t surface_line_width = cutting_mesh.settings_.get<coord_t>("wall_line_width_0");

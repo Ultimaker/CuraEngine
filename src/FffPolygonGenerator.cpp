@@ -569,7 +569,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
             {
                 for (const Polygon& poly : part.outline)
                 {
-                    layer.openPolyLines.push_back(poly.toPseudoOpenPolyline());
+                    layer.open_polylines.push_back(poly.toPseudoOpenPolyline());
                 }
             }
             layer.parts.clear();
@@ -626,12 +626,12 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
                 if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
                     const Shape& own_infill_area = other_part.getOwnInfillArea();
-                    OpenLinesSet cut_lines = own_infill_area.intersection(layer.openPolyLines);
+                    OpenLinesSet cut_lines = own_infill_area.intersection(layer.open_polylines);
                     new_polylines.push_back(cut_lines);
                     // NOTE: closed polygons will be represented as polylines, which will be closed automatically in the PathOrderOptimizer
                     if (! own_infill_area.empty())
                     {
-                        other_part.infill_area_own = own_infill_area.difference(layer.openPolyLines.offset(surface_line_width / 2));
+                        other_part.infill_area_own = own_infill_area.difference(layer.open_polylines.offset(surface_line_width / 2));
                     }
                 }
             }
@@ -651,10 +651,10 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
 
         if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
         {
-            layer.openPolyLines = new_polylines;
+            layer.open_polylines = new_polylines;
         }
 
-        if (layer.parts.size() > 0 || (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.openPolyLines.size() > 0))
+        if (layer.parts.size() > 0 || (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.open_polylines.size() > 0))
         {
             mesh.layer_nr_max_filled_layer = layer_idx; // last set by the highest non-empty layer
         }
@@ -752,7 +752,7 @@ bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const LayerInd
             continue;
         }
         SliceLayer& layer = mesh.layers[layer_idx];
-        if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.openPolyLines.size() > 0)
+        if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.open_polylines.size() > 0)
         {
             return false;
         }
@@ -958,7 +958,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
     {
         constexpr bool around_support = true;
         constexpr bool around_prime_tower = false;
-        storage.oozeShield.push_back(storage.getLayerOutlines(layer_nr, around_support, around_prime_tower).offset(ooze_shield_dist, ClipperLib::jtRound).getOutsidePolygons());
+        storage.ooze_shield.push_back(storage.getLayerOutlines(layer_nr, around_support, around_prime_tower).offset(ooze_shield_dist, ClipperLib::jtRound).getOutsidePolygons());
     }
 
     const AngleDegrees angle = mesh_group_settings.get<AngleDegrees>("ooze_shield_angle");
@@ -968,18 +968,18 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
             = tan(mesh_group_settings.get<AngleRadians>("ooze_shield_angle")) * mesh_group_settings.get<coord_t>("layer_height"); // Allow for a 60deg angle in the oozeShield.
         for (LayerIndex layer_nr = 1; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
         {
-            storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].unionPolygons(storage.oozeShield[layer_nr - 1].offset(-allowed_angle_offset));
+            storage.ooze_shield[layer_nr] = storage.ooze_shield[layer_nr].unionPolygons(storage.ooze_shield[layer_nr - 1].offset(-allowed_angle_offset));
         }
         for (LayerIndex layer_nr = storage.max_print_height_second_to_last_extruder; layer_nr > 0; layer_nr--)
         {
-            storage.oozeShield[layer_nr - 1] = storage.oozeShield[layer_nr - 1].unionPolygons(storage.oozeShield[layer_nr].offset(-allowed_angle_offset));
+            storage.ooze_shield[layer_nr - 1] = storage.ooze_shield[layer_nr - 1].unionPolygons(storage.ooze_shield[layer_nr].offset(-allowed_angle_offset));
         }
     }
 
     const double largest_printed_area = 1.0; // TODO: make var a parameter, and perhaps even a setting?
     for (LayerIndex layer_nr = 0; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
     {
-        storage.oozeShield[layer_nr].removeSmallAreas(largest_printed_area);
+        storage.ooze_shield[layer_nr].removeSmallAreas(largest_printed_area);
     }
     if (mesh_group_settings.get<bool>("prime_tower_enable"))
     {
@@ -996,7 +996,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
         }
         for (LayerIndex layer_nr = 0; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
         {
-            storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].difference(storage.primeTower.getOuterPoly(layer_nr).offset(max_line_width / 2));
+            storage.ooze_shield[layer_nr] = storage.ooze_shield[layer_nr].difference(storage.primeTower.getOuterPoly(layer_nr).offset(max_line_width / 2));
         }
     }
 }

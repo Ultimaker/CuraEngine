@@ -114,7 +114,7 @@ size_t Simplify::previousNotDeleted(size_t index, const std::vector<bool>& to_de
 }
 
 template<>
-ExtrusionLine Simplify::createEmpty(const ExtrusionLine& original) const
+ExtrusionLine Simplify::createEmpty(const ExtrusionLine& original)
 {
     ExtrusionLine result(original.inset_idx_, original.is_odd_);
     result.is_closed_ = original.is_closed_;
@@ -122,7 +122,7 @@ ExtrusionLine Simplify::createEmpty(const ExtrusionLine& original) const
 }
 
 template<typename Polygonal>
-Polygonal Simplify::createEmpty(const Polygonal& /*original*/) const
+Polygonal Simplify::createEmpty(const Polygonal& /*original*/)
 {
     return Polygonal();
 }

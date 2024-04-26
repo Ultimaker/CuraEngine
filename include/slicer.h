@@ -62,7 +62,7 @@ public:
 
     int z = -1;
     Shape polygons;
-    OpenLinesSet openPolylines;
+    OpenLinesSet open_polylines;
 
     /*!
      * \brief Connect the segments into polygons for this layer of this \p mesh.

@@ -276,7 +276,7 @@ private:
      * \return An empty polygonal.
      */
     template<typename Polygonal>
-    Polygonal createEmpty(const Polygonal& original) const;
+    static Polygonal createEmpty(const Polygonal& original);
 
     template<typename Polygonal>
     bool detectSmall(const Polygonal& polygon, const coord_t& min_size) const;

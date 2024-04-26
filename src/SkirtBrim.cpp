@@ -23,7 +23,7 @@ namespace cura
 SkirtBrim::SkirtBrim(SliceDataStorage& storage)
     : storage_(storage)
     , adhesion_type_(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type"))
-    , has_ooze_shield_(storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0)
+    , has_ooze_shield_(storage.ooze_shield.size() > 0 && storage.ooze_shield[0].size() > 0)
     , has_draft_shield_(storage.draft_protection_shield.size() > 0)
     , extruders_(Application::getInstance().current_slice_->scene.extruders)
     , extruder_count_(extruders_.size())
@@ -320,7 +320,7 @@ Shape SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
         Shape shields;
         if (has_ooze_shield_)
         {
-            shields = storage_.oozeShield[0];
+            shields = storage_.ooze_shield[0];
         }
         if (has_draft_shield_)
         {
@@ -442,7 +442,7 @@ void SkirtBrim::generateShieldBrim(Shape& brim_covered_area, std::vector<Shape>&
         Shape shield_brim;
         if (has_ooze_shield_)
         {
-            shield_brim = storage_.oozeShield[0].difference(storage_.oozeShield[0].offset(-primary_skirt_brim_width - primary_extruder_skirt_brim_line_width));
+            shield_brim = storage_.ooze_shield[0].difference(storage_.ooze_shield[0].offset(-primary_skirt_brim_width - primary_extruder_skirt_brim_line_width));
         }
         if (has_draft_shield_)
         {
@@ -472,7 +472,7 @@ void SkirtBrim::generateShieldBrim(Shape& brim_covered_area, std::vector<Shape>&
     {
         if (has_ooze_shield_)
         {
-            const Shape covered_area = storage_.oozeShield[0].offset(extruder_config.line_width_ / 2);
+            const Shape covered_area = storage_.ooze_shield[0].offset(extruder_config.line_width_ / 2);
             brim_covered_area = brim_covered_area.unionPolygons(covered_area);
             allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(covered_area);
         }

@@ -173,7 +173,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
         }
     }
     if (settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ == extruder_nr
-        && layer.openPolyLines.size() > 0)
+        && layer.open_polylines.size() > 0)
     {
         return true;
     }
@@ -290,15 +290,15 @@ Shape SliceDataStorage::getLayerOutlines(
         switch (layer_type)
         {
         case Raft::LayerType::RaftBase:
-            raftOutline = &raftBaseOutline;
+            raftOutline = &raft_base_outline;
             use_current_extruder_for_raft |= extruder_nr == int(mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_);
             break;
         case Raft::LayerType::RaftInterface:
-            raftOutline = &raftInterfaceOutline;
+            raftOutline = &raft_interface_outline;
             use_current_extruder_for_raft |= extruder_nr == int(mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr_);
             break;
         case Raft::LayerType::RaftSurface:
-            raftOutline = &raftSurfaceOutline;
+            raftOutline = &raft_surface_outline;
             use_current_extruder_for_raft |= extruder_nr == int(mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr_);
             break;
         default:
@@ -346,7 +346,7 @@ Shape SliceDataStorage::getLayerOutlines(
                 layer.getOutlines(total, external_polys_only);
                 if (mesh->settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
-                    total = total.unionPolygons(layer.openPolyLines.offset(MM2INT(0.1)));
+                    total = total.unionPolygons(layer.open_polylines.offset(MM2INT(0.1)));
                 }
             }
         }

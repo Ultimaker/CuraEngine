@@ -25,11 +25,11 @@ AABB::AABB(const Point2LL& min, const Point2LL& max)
 {
 }
 
-AABB::AABB(const Shape& polys)
+AABB::AABB(const Shape& shape)
     : min_(POINT_MAX, POINT_MAX)
     , max_(POINT_MIN, POINT_MIN)
 {
-    calculate(polys);
+    calculate(shape);
 }
 
 AABB::AABB(const Polygon& poly)
@@ -69,11 +69,11 @@ coord_t AABB::distanceSquared(const AABB& other) const
     });
 }
 
-void AABB::calculate(const Shape& polys)
+void AABB::calculate(const Shape& shape)
 {
     min_ = Point2LL(POINT_MAX, POINT_MAX);
     max_ = Point2LL(POINT_MIN, POINT_MIN);
-    for (const Polygon& poly : polys)
+    for (const Polygon& poly : shape)
     {
         for (const Point2LL& point : poly)
         {

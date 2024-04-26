@@ -30,9 +30,9 @@ namespace cura
 
 void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, SlicerLayer* layer)
 {
-    OpenPolylineStitcher::stitch(layer->openPolylines, storageLayer.openPolyLines, layer->polygons, settings.get<coord_t>("wall_line_width_0"));
+    OpenPolylineStitcher::stitch(layer->open_polylines, storageLayer.open_polylines, layer->polygons, settings.get<coord_t>("wall_line_width_0"));
 
-    storageLayer.openPolyLines = Simplify(settings).polyline(storageLayer.openPolyLines);
+    storageLayer.open_polylines = Simplify(settings).polyline(storageLayer.open_polylines);
 
     const bool union_all_remove_holes = settings.get<bool>("meshfix_union_all_remove_holes");
     if (union_all_remove_holes)
@@ -99,7 +99,7 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
     for (LayerIndex layer_nr = total_layers - 1; layer_nr >= 0; layer_nr--)
     {
         SliceLayer& layer_storage = mesh.layers[layer_nr];
-        if (layer_storage.parts.size() > 0 || (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer_storage.openPolyLines.size() > 0))
+        if (layer_storage.parts.size() > 0 || (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer_storage.open_polylines.size() > 0))
         {
             mesh.layer_nr_max_filled_layer = layer_nr; // last set by the highest non-empty layer
             break;

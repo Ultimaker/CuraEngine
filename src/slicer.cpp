@@ -766,7 +766,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
 
     for (const OpenPolyline& polyline : open_polylines)
     {
-        openPolylines.push_back(std::move(polyline), CheckNonEmptyParam::OnlyIfNotEmpty);
+        open_polylines.push_back(std::move(polyline), CheckNonEmptyParam::OnlyIfNotEmpty);
     }
 
     // Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.
@@ -786,15 +786,15 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
 
     // Clean up polylines for Surface Mode printing
     auto itPolylines = std::remove_if(
-        openPolylines.begin(),
-        openPolylines.end(),
+        open_polylines.begin(),
+        open_polylines.end(),
         [snap_distance](const OpenPolyline& line)
         {
             return line.shorterThan(snap_distance);
         });
-    openPolylines.erase(itPolylines, openPolylines.end());
+    open_polylines.erase(itPolylines, open_polylines.end());
 
-    openPolylines.removeDegenerateVerts();
+    open_polylines.removeDegenerateVerts();
 }
 
 Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_count, bool use_variable_layer_heights, std::vector<AdaptiveLayer>* adaptive_layers)

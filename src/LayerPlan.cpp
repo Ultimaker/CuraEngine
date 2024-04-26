@@ -163,15 +163,15 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
         switch (layer_type_)
         {
         case Raft::LayerType::RaftBase:
-            comb_boundary = storage_.raftBaseOutline.offset(MM2INT(0.1));
+            comb_boundary = storage_.raft_base_outline.offset(MM2INT(0.1));
             break;
 
         case Raft::LayerType::RaftInterface:
-            comb_boundary = storage_.raftInterfaceOutline.offset(MM2INT(0.1));
+            comb_boundary = storage_.raft_interface_outline.offset(MM2INT(0.1));
             break;
 
         case Raft::LayerType::RaftSurface:
-            comb_boundary = storage_.raftSurfaceOutline.offset(MM2INT(0.1));
+            comb_boundary = storage_.raft_surface_outline.offset(MM2INT(0.1));
             break;
 
         case Raft::LayerType::Airgap:

@@ -63,8 +63,7 @@ public:
                       //!< collision between different parts on different layers. It's an optimization used during
                       //!< skin calculations.
     SingleShape outline; //!< The outline is the first member that is filled, and it's filled with polygons that match
-                         //!< a cross-section of the 3D model. The first polygon is the outer boundary polygon and the
-                         //!< rest are holes.
+                         //!< a cross-section of the 3D model.
     Shape print_outline; //!< An approximation to the outline of what's actually printed, based on the outer wall.
                          //!< Too small parts will be omitted compared to the outline.
     Shape spiral_wall; //!< The centerline of the wall used by spiralize mode. Only computed if spiralize mode is enabled.
@@ -169,7 +168,7 @@ public:
     coord_t printZ; //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
     coord_t thickness; //!< The thickness of this layer. Can be different when using variable layer heights.
     std::vector<SliceLayerPart> parts; //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
-    OpenLinesSet openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
+    OpenLinesSet open_polylines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
 
     /*!
      * \brief The parts of the model that are exposed at the very top of the
@@ -379,9 +378,9 @@ public:
     ClosedLinesSet support_brim; //!< brim lines for support, going from the edge of the support inward. \note Not ordered by inset.
 
     // Storage for the outline of the raft-parts. Will be filled with lines when the GCode is generated.
-    Shape raftBaseOutline;
-    Shape raftInterfaceOutline;
-    Shape raftSurfaceOutline;
+    Shape raft_base_outline;
+    Shape raft_interface_outline;
+    Shape raft_surface_outline;
 
     int max_print_height_second_to_last_extruder; //!< Used in multi-extrusion: the layer number beyond which all models are printed with the same extruder
     std::vector<int> max_print_height_per_extruder; //!< For each extruder the highest layer number at which it is used.
@@ -392,7 +391,7 @@ public:
 
     PrimeTower primeTower;
 
-    std::vector<Shape> oozeShield; // oozeShield per layer
+    std::vector<Shape> ooze_shield; // oozeShield per layer
     Shape draft_protection_shield; //!< The polygons for a heightened skirt which protects from warping by gusts of wind and acts as a heated chamber.
 
     /*!
