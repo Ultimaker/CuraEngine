@@ -10,38 +10,8 @@
 namespace cura
 {
 
-template<>
-const PointsSet& PathOrdering<const Polygon*>::getVertexData()
-{
-    return *vertices_;
-}
-
-template<>
-const PointsSet& PathOrdering<Polygon*>::getVertexData()
-{
-    return *vertices_;
-}
-
-template<>
-const PointsSet& PathOrdering<const OpenPolyline*>::getVertexData()
-{
-    return *vertices_;
-}
-
-template<>
-const PointsSet& PathOrdering<OpenPolyline*>::getVertexData()
-{
-    return *vertices_;
-}
-
-template<>
-const PointsSet& PathOrdering<ClosedPolyline*>::getVertexData()
-{
-    return *vertices_;
-}
-
-template<>
-const PointsSet& PathOrdering<Polyline const*>::getVertexData()
+template<typename PathType>
+const PointsSet& PathOrdering<PathType>::getVertexData()
 {
     return *vertices_;
 }
@@ -72,5 +42,12 @@ const PointsSet& PathOrdering<const ExtrusionLine*>::getVertexData()
     }
     return *cached_vertices_;
 }
+
+template const PointsSet& PathOrdering<Polygon*>::getVertexData();
+template const PointsSet& PathOrdering<Polygon const*>::getVertexData();
+template const PointsSet& PathOrdering<const OpenPolyline*>::getVertexData();
+template const PointsSet& PathOrdering<OpenPolyline*>::getVertexData();
+template const PointsSet& PathOrdering<ClosedPolyline*>::getVertexData();
+template const PointsSet& PathOrdering<Polyline const*>::getVertexData();
 
 } // namespace cura
