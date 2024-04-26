@@ -267,7 +267,7 @@ public:
      * kept, not the shape. \param outer_offset Offset relative to the original shape-outline towards the outside of the shape. Comparable to normal offset. \return The resulting
      * polygons.
      */
-    Shape tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
+    Shape createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 
     void translate(const Point2LL& delta);
 

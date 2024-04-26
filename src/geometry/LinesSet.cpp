@@ -123,7 +123,7 @@ coord_t LinesSet<LineType>::length() const
 }
 
 template<class LineType>
-Shape LinesSet<LineType>::tubeShape(const coord_t inner_offset, const coord_t outer_offset) const
+Shape LinesSet<LineType>::createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const
 {
     return offset(outer_offset).difference(offset(-inner_offset));
 }
@@ -322,7 +322,7 @@ template void LinesSet<OpenPolyline>::removeAt(size_t index);
 template void LinesSet<OpenPolyline>::splitIntoSegments(OpenLinesSet& result) const;
 template OpenLinesSet LinesSet<OpenPolyline>::splitIntoSegments() const;
 template coord_t LinesSet<OpenPolyline>::length() const;
-template Shape LinesSet<OpenPolyline>::tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
+template Shape LinesSet<OpenPolyline>::createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 template void LinesSet<OpenPolyline>::translate(const Point2LL& delta);
 template void LinesSet<OpenPolyline>::removeDegenerateVerts();
 template void LinesSet<OpenPolyline>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
@@ -336,7 +336,7 @@ template void LinesSet<ClosedPolyline>::removeAt(size_t index);
 template void LinesSet<ClosedPolyline>::splitIntoSegments(OpenLinesSet& result) const;
 template OpenLinesSet LinesSet<ClosedPolyline>::splitIntoSegments() const;
 template coord_t LinesSet<ClosedPolyline>::length() const;
-template Shape LinesSet<ClosedPolyline>::tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
+template Shape LinesSet<ClosedPolyline>::createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 template void LinesSet<ClosedPolyline>::translate(const Point2LL& delta);
 template void LinesSet<ClosedPolyline>::removeDegenerateVerts();
 template void LinesSet<ClosedPolyline>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
@@ -351,7 +351,7 @@ template void LinesSet<Polygon>::removeAt(size_t index);
 template void LinesSet<Polygon>::splitIntoSegments(OpenLinesSet& result) const;
 template OpenLinesSet LinesSet<Polygon>::splitIntoSegments() const;
 template coord_t LinesSet<Polygon>::length() const;
-template Shape LinesSet<Polygon>::tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
+template Shape LinesSet<Polygon>::createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 template void LinesSet<Polygon>::translate(const Point2LL& delta);
 template void LinesSet<Polygon>::removeDegenerateVerts();
 template void LinesSet<Polygon>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;

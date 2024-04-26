@@ -1527,7 +1527,7 @@ void LayerPlan::addLinesMonotonic(
     const Ratio flow_ratio,
     const double fan_speed)
 {
-    const Shape exclude_areas = area.tubeShape(exclude_distance, exclude_distance);
+    const Shape exclude_areas = area.createTubeShape(exclude_distance, exclude_distance);
     const coord_t exclude_dist2 = exclude_distance * exclude_distance;
     const Point2LL last_position = getLastPlannedPositionOrStartingPosition();
 
