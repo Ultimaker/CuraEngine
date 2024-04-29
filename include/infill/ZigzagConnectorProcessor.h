@@ -6,7 +6,8 @@
 
 #include <vector>
 
-#include "geometry/point2ll.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/Point2LL.h"
 
 namespace cura
 {
@@ -14,9 +15,6 @@ namespace cura
 class Polygon;
 class Shape;
 class PointMatrix;
-class OpenPolyline;
-template<class T>
-class LinesSet;
 
 /*!
  * Processor class for processing the connections between lines which makes the infill a zigzag pattern.
@@ -117,13 +115,7 @@ public:
      * \param skip_some_zags Whether to skip some zags
      * \param zag_skip_count Skip 1 zag in every N zags
      */
-    ZigzagConnectorProcessor(
-        const PointMatrix& rotation_matrix,
-        LinesSet<OpenPolyline>& result,
-        bool use_endpieces,
-        bool connected_endpieces,
-        bool skip_some_zags,
-        int zag_skip_count)
+    ZigzagConnectorProcessor(const PointMatrix& rotation_matrix, OpenLinesSet& result, bool use_endpieces, bool connected_endpieces, bool skip_some_zags, int zag_skip_count)
         : rotation_matrix_(rotation_matrix)
         , result_(result)
         , use_endpieces_(use_endpieces)
@@ -203,7 +195,7 @@ protected:
 
 protected:
     const PointMatrix& rotation_matrix_; //!< The rotation matrix used to enforce the infill angle
-    LinesSet<OpenPolyline>& result_; //!< The result of the computation
+    OpenLinesSet& result_; //!< The result of the computation
 
     const bool use_endpieces_; //!< Whether to include end pieces or not
     const bool connected_endpieces_; //!< Whether the end pieces should be connected with the rest part of the infill

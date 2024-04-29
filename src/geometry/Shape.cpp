@@ -1,7 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "geometry/shape.h"
+#include "geometry/Shape.h"
 
 #include <mapbox/geometry/wagyu/wagyu.hpp>
 #include <numeric>
@@ -23,10 +23,11 @@
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/sliding.hpp>
 
-#include "geometry/mixed_lines_set.h"
-#include "geometry/parts_view.h"
-#include "geometry/polygon.h"
-#include "geometry/single_shape.h"
+#include "geometry/MixedLinesSet.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/PartsView.h"
+#include "geometry/Polygon.h"
+#include "geometry/SingleShape.h"
 #include "settings/types/Ratio.h"
 #include "utils/OpenPolylineStitcher.h"
 #include "utils/linearAlg2D.h"
@@ -320,7 +321,7 @@ OpenLinesSet Shape::intersection(const LinesSet<LineType>& polylines, bool resti
         return OpenLinesSet();
     }
 
-    LinesSet<OpenPolyline> split_polylines = polylines.splitIntoSegments();
+    OpenLinesSet split_polylines = polylines.splitIntoSegments();
 
     ClipperLib::PolyTree result;
     ClipperLib::Clipper clipper(clipper_init);
@@ -972,8 +973,8 @@ void Shape::applyMatrix(const Point3Matrix& matrix)
 }
 #endif
 
-template LinesSet<OpenPolyline> Shape::intersection(const LinesSet<OpenPolyline>& polylines, bool restitch, const coord_t max_stitch_distance) const;
-template LinesSet<OpenPolyline> Shape::intersection(const LinesSet<ClosedPolyline>& polylines, bool restitch, const coord_t max_stitch_distance) const;
-template LinesSet<OpenPolyline> Shape::intersection(const LinesSet<Polygon>& polylines, bool restitch, const coord_t max_stitch_distance) const;
+template OpenLinesSet Shape::intersection(const OpenLinesSet& polylines, bool restitch, const coord_t max_stitch_distance) const;
+template OpenLinesSet Shape::intersection(const ClosedLinesSet& polylines, bool restitch, const coord_t max_stitch_distance) const;
+template OpenLinesSet Shape::intersection(const LinesSet<Polygon>& polylines, bool restitch, const coord_t max_stitch_distance) const;
 
 } // namespace cura

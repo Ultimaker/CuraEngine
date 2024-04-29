@@ -20,7 +20,7 @@ class LinesSet;
 class NoZigZagConnectorProcessor : public ZigzagConnectorProcessor
 {
 public:
-    NoZigZagConnectorProcessor(const PointMatrix& rotation_matrix, LinesSet<OpenPolyline>& result)
+    NoZigZagConnectorProcessor(const PointMatrix& rotation_matrix, OpenLinesSet& result)
         : ZigzagConnectorProcessor(
             rotation_matrix,
             result,

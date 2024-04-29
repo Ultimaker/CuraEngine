@@ -27,7 +27,7 @@
 #include "cura/plugins/slots/postprocess/v0/modify.pb.h"
 #include "cura/plugins/slots/simplify/v0/modify.grpc.pb.h"
 #include "cura/plugins/slots/simplify/v0/modify.pb.h"
-#include "geometry/polygon.h"
+#include "geometry/Polygon.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/SpeedDerivatives.h"
 #include "plugins/metadata.h"
@@ -108,7 +108,7 @@ struct infill_generate_request : public details::converter<infill_generate_reque
 
 struct infill_generate_response
     : public details::
-          converter<infill_generate_response, slots::infill::v0::generate::CallResponse, std::tuple<std::vector<std::vector<ExtrusionLine>>, Shape, LinesSet<OpenPolyline>>>
+          converter<infill_generate_response, slots::infill::v0::generate::CallResponse, std::tuple<std::vector<std::vector<ExtrusionLine>>, Shape, OpenLinesSet>>
 {
     native_value_type operator()(const value_type& message) const;
 };

@@ -5,10 +5,10 @@
 
 #include <cassert>
 
-#include "geometry/open_polyline.h"
-#include "geometry/point_matrix.h"
-#include "geometry/polygon.h"
-#include "geometry/shape.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/PointMatrix.h"
+#include "geometry/Polygon.h"
+#include "geometry/Shape.h"
 
 using namespace cura;
 

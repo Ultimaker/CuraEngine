@@ -1,9 +1,9 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "geometry/closed_polyline.h"
+#include "geometry/ClosedPolyline.h"
 
-#include "geometry/open_polyline.h"
+#include "geometry/OpenPolyline.h"
 
 namespace cura
 {
@@ -50,7 +50,7 @@ bool ClosedPolyline::inside(const ClipperLib::Path& polygon) const
 OpenPolyline ClosedPolyline::toPseudoOpenPolyline() const
 {
     OpenPolyline open_polyline(getPoints());
-    if (addClosingSegment())
+    if (hasClosingSegment())
     {
         open_polyline.push_back(open_polyline.getPoints().front());
     }

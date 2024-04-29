@@ -4,8 +4,8 @@
 
 #include "ConicalOverhang.h"
 
-#include "geometry/polygon.h"
-#include "geometry/single_shape.h"
+#include "geometry/Polygon.h"
+#include "geometry/SingleShape.h"
 #include "mesh.h"
 #include "settings/types/Angle.h" //To process the overhang angle.
 #include "settings/types/LayerIndex.h"
@@ -18,7 +18,7 @@ namespace cura
 void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
 {
     const AngleRadians angle = mesh.settings_.get<AngleRadians>("conical_overhang_angle");
-    const double maxHoleArea = mesh.settings_.get<double>("conical_overhang_hole_size");
+    const double max_hole_area = mesh.settings_.get<double>("conical_overhang_hole_size");
     const double tan_angle = tan(angle); // the XY-component of the angle
     const coord_t layer_thickness = mesh.settings_.get<coord_t>("layer_height");
     coord_t max_dist_from_lower_layer = std::llround(tan_angle * static_cast<double>(layer_thickness)); // max dist which can be bridged
@@ -41,31 +41,31 @@ void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
         else
         {
             // Get the current layer and split it into parts
-            std::vector<SingleShape> layerParts = layer.polygons.splitIntoParts();
+            std::vector<SingleShape> layer_parts = layer.polygons.splitIntoParts();
             // Get a copy of the layer above to prune away before we shrink it
             Shape above = layer_above.polygons;
 
             // Now go through all the holes in the current layer and check if they intersect anything in the layer above
             // If not, then they're the top of a hole and should be cut from the layer above before the union
-            for (unsigned int part = 0; part < layerParts.size(); part++)
+            for (unsigned int part = 0; part < layer_parts.size(); part++)
             {
-                if (layerParts[part].size() > 1) // first poly is the outer contour, 1..n are the holes
+                if (layer_parts[part].size() > 1) // first poly is the outer contour, 1..n are the holes
                 {
-                    for (unsigned int hole_nr = 1; hole_nr < layerParts[part].size(); ++hole_nr)
+                    for (unsigned int hole_nr = 1; hole_nr < layer_parts[part].size(); ++hole_nr)
                     {
-                        Shape holePoly;
-                        holePoly.push_back(layerParts[part][hole_nr]);
-                        if (maxHoleArea > 0.0 && INT2MM2(std::abs(holePoly.area())) < maxHoleArea)
+                        Shape hole_poly;
+                        hole_poly.push_back(layer_parts[part][hole_nr]);
+                        if (max_hole_area > 0.0 && INT2MM2(std::abs(hole_poly.area())) < max_hole_area)
                         {
-                            Shape holeWithAbove = holePoly.intersection(above);
-                            if (! holeWithAbove.empty())
+                            Shape hole_with_above = hole_poly.intersection(above);
+                            if (! hole_with_above.empty())
                             {
                                 // The hole had some intersection with the above layer, check if it's a complete overlap
-                                Shape holeDifference = holePoly.xorPolygons(holeWithAbove);
-                                if (holeDifference.empty())
+                                Shape hole_difference = hole_poly.xorPolygons(hole_with_above);
+                                if (hole_difference.empty())
                                 {
                                     // The hole was returned unchanged, so the layer above must completely cover it.  Remove the hole from the layer above.
-                                    above = above.difference(holePoly);
+                                    above = above.difference(hole_poly);
                                 }
                             }
                         }

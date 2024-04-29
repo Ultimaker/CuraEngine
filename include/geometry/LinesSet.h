@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef GEOMETRY_LINES_SET_H
@@ -8,7 +8,8 @@
 
 #include <range/v3/view/drop.hpp>
 
-#include "geometry/point2ll.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/Point2LL.h"
 
 namespace cura
 {
@@ -17,6 +18,12 @@ class Shape;
 template<class LineType>
 class LinesSet;
 class OpenPolyline;
+
+enum class CheckNonEmptyParam
+{
+    OnlyIfNotEmpty,
+    EvenIfEmpty
+};
 
 /*!
  * \brief Base class for all geometry containers representing a set of polylines.
@@ -36,33 +43,19 @@ public:
     /*! \brief Builds an empty set */
     LinesSet() = default;
 
-    /*!
-     * \brief Creates a copy of the given lines set
-     * \warning A copy of the points list is made, so this constructor can be very slow
-     */
+    /*! \brief Creates a copy of the given lines set */
     LinesSet(const LinesSet& other) = default;
 
-    /*!
-     * \brief Constructor that takes the inner lines list from the given set
-     * \warning This constructor is fast because it does not allocate data, but it will clear
-     *          the source object
-     */
+    /*! \brief Constructor that takes the inner lines list from the given set */
     LinesSet(LinesSet&& other) = default;
 
-    /*!
-     * \brief Constructor with an existing set of lines
-     * \warning A copy of the lines set is made, so this constructor can be very slow
-     */
+    /*! \brief Constructor with an existing set of lines */
     LinesSet(const std::vector<LineType>& lines)
         : lines_(lines)
     {
     }
 
-    /*!
-     * \brief Constructor that takes ownership of the data from the given set of lines
-     * \warning This constructor is fast because it does not allocate data, but it will clear
-     *          the source object
-     */
+    /*! \brief Constructor that takes ownership of the data from the given set of lines */
     LinesSet(std::vector<LineType>&& lines)
         : lines_(std::move(lines))
     {
@@ -133,33 +126,21 @@ public:
 
     /*!
      * \brief Pushes the given line at the end of the set
-     * \param checkNonEmpty If true, we will check that the line is not empty,
-     *                      and discard it in case it is
-     * \warning A copy of the line is made, so this method may be slow
+     * \param checkNonEmpty Indicates whether we should check for the line to be non-empty before adding it
      */
-    void push_back(const LineType& line, bool checkNonEmpty = false);
+    void push_back(const LineType& line, CheckNonEmptyParam checkNonEmpty = CheckNonEmptyParam::EvenIfEmpty);
 
     /*!
      * \brief Pushes the given line at the end of the set and takes ownership of the inner data
-     * \param checkNonEmpty If true, we will check that the line is not empty,
-     *                      and discard it in case it is
-     * \warning This method is fast because it does not allocate data, but it will clear
-     *          the source object
+     * \param checkNonEmpty Indicates whether we should check for the line to be non-empty before adding it
      */
-    void push_back(LineType&& line, bool checkNonEmpty = false);
+    void push_back(LineType&& line, CheckNonEmptyParam checkNonEmpty = CheckNonEmptyParam::EvenIfEmpty);
 
-    /*!
-     * \brief Pushes an entier set at the end and takes ownership of the inner data
-     * \warning This method is fast because it does not allocate data, but it will clear
-     *          the source object
-     */
+    /*! \brief Pushes an entier set at the end and takes ownership of the inner data */
     template<class OtherLineType>
     void push_back(LinesSet<OtherLineType>&& lines_set);
 
-    /*!
-     * \brief Pushes an entier set at the end
-     * \warning A copy of all the lines is made, so this method may be slow
-     */
+    /*! \brief Pushes an entier set at the end */
     void push_back(const LinesSet& other)
     {
         lines_.insert(lines_.end(), other.lines_.begin(), other.lines_.end());
@@ -249,8 +230,8 @@ public:
     /*! \brief Get the total length of all the lines */
     coord_t length() const;
 
-    void splitIntoSegments(LinesSet<OpenPolyline>& result) const;
-    LinesSet<OpenPolyline> splitIntoSegments() const;
+    void splitIntoSegments(OpenLinesSet& result) const;
+    OpenLinesSet splitIntoSegments() const;
 
     /*! \brief Removes overlapping consecutive line segments which don't delimit a positive area */
     void removeDegenerateVerts();
@@ -259,11 +240,15 @@ public:
 
     /*!
      * Utility method for creating the tube (or 'donut') of a shape.
-     * \param inner_offset Offset relative to the original shape-outline towards the inside of the shape. Sort-of like a negative normal offset, except it's the offset part that's
-     * kept, not the shape. \param outer_offset Offset relative to the original shape-outline towards the outside of the shape. Comparable to normal offset. \return The resulting
-     * polygons.
+     *
+     * \param inner_offset Offset relative to the original shape-outline towards the inside of the
+     *        shape. Sort-of like a negative normal offset, except it's the offset part that's kept,
+     *        not the shape.
+     * \param outer_offset Offset relative to the original shape-outline towards the outside of the
+     *        shape. Comparable to normal offset.
+     * \return The resulting polygons.
      */
-    Shape tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
+    Shape createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 
     void translate(const Point2LL& delta);
 

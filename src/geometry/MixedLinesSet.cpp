@@ -1,13 +1,13 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "geometry/mixed_lines_set.h"
+#include "geometry/MixedLinesSet.h"
 
 #include <numeric>
 
-#include "geometry/open_polyline.h"
-#include "geometry/polygon.h"
-#include "geometry/shape.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/Polygon.h"
+#include "geometry/Shape.h"
 
 
 namespace cura
@@ -46,7 +46,7 @@ Shape MixedLinesSet::offset(coord_t distance, ClipperLib::JoinType join_type, do
             {
                 ClipperLib::EndType end_type;
 
-                if (line->addClosingSegment())
+                if (line->hasClosingSegment())
                 {
                     end_type = ClipperLib::etClosedLine;
                 }
@@ -111,7 +111,7 @@ void MixedLinesSet::push_back(const PolylinePtr& line)
     std::vector<PolylinePtr>::push_back(line);
 }
 
-void MixedLinesSet::push_back(LinesSet<OpenPolyline>&& lines_set)
+void MixedLinesSet::push_back(OpenLinesSet&& lines_set)
 {
     reserve(size() + lines_set.size());
     for (OpenPolyline& line : lines_set)
@@ -120,7 +120,7 @@ void MixedLinesSet::push_back(LinesSet<OpenPolyline>&& lines_set)
     }
 }
 
-void MixedLinesSet::push_back(const LinesSet<OpenPolyline>& lines_set)
+void MixedLinesSet::push_back(const OpenLinesSet& lines_set)
 {
     reserve(size() + lines_set.size());
     for (const OpenPolyline& line : lines_set)
@@ -129,7 +129,7 @@ void MixedLinesSet::push_back(const LinesSet<OpenPolyline>& lines_set)
     }
 }
 
-void MixedLinesSet::push_back(LinesSet<ClosedPolyline>&& lines_set)
+void MixedLinesSet::push_back(ClosedLinesSet&& lines_set)
 {
     reserve(size() + lines_set.size());
     for (ClosedPolyline& line : lines_set)

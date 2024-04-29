@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "ExtruderUse.h"
-#include "geometry/polygon.h"
+#include "geometry/Polygon.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/polygonUtils.h"

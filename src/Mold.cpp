@@ -7,8 +7,8 @@
 #include "ExtruderTrain.h"
 #include "Scene.h"
 #include "Slice.h"
-#include "geometry/open_polyline.h"
-#include "geometry/point2ll.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/Point2LL.h"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "slicer.h"
@@ -77,8 +77,8 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
 
 
             SlicerLayer& layer = slicer.layers[layer_nr];
-            Shape model_outlines = layer.polygons.unionPolygons(layer.openPolylines.offset(open_polyline_width / 2));
-            layer.openPolylines.clear();
+            Shape model_outlines = layer.polygons.unionPolygons(layer.open_polylines.offset(open_polyline_width / 2));
+            layer.open_polylines.clear();
             all_original_mold_outlines.push_back(model_outlines);
 
             if (angle >= 90)

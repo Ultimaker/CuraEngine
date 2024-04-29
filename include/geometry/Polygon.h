@@ -1,10 +1,10 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef GEOMETRY_POLYGON_H
 #define GEOMETRY_POLYGON_H
 
-#include "closed_polyline.h"
+#include "geometry/ClosedPolyline.h"
 
 namespace cura
 {
@@ -33,23 +33,15 @@ public:
     {
     }
 
-    /*!
-     * \brief Creates a copy of the given polygon
-     * \warning A copy of the points list is made, so this constructor is somehow "slow"
-     */
+    /*! \brief Creates a copy of the given polygon */
     Polygon(const Polygon& other) = default;
 
-    /*!
-     * \brief Constructor that takes ownership of the inner points list from the given polygon
-     * \warning This constructor is fast because it does not allocate data, but it will clear
-     *          the source object
-     */
+    /*! \brief Constructor that takes ownership of the inner points list from the given polygon */
     Polygon(Polygon&& other) = default;
 
     /*!
      * \brief Constructor with a points initializer list, provided for convenience
      * \param explicitely_closed Specify whether the given points form an explicitely closed line
-     * \warning A copy of the points list is made, so this constructor is somehow "slow"
      */
     Polygon(const std::initializer_list<Point2LL>& initializer, bool explicitely_closed)
         : ClosedPolyline(initializer, explicitely_closed)
@@ -59,7 +51,6 @@ public:
     /*!
      * \brief Constructor with an existing list of points
      * \param explicitely_closed Specify whether the given points form an explicitely closed line
-     * \warning A copy of the points list is made, so this constructor is somehow "slow"
      */
     explicit Polygon(const ClipperLib::Path& points, bool explicitely_closed)
         : ClosedPolyline(points, explicitely_closed)
@@ -69,8 +60,6 @@ public:
     /*!
      * \brief Constructor that takes ownership of the given list of points
      * \param explicitely_closed Specify whether the given points form an explicitely closed line
-     * \warning This constructor is fast because it does not allocate data, but it will clear
-     *          the source object
      */
     explicit Polygon(ClipperLib::Path&& points, bool explicitely_closed)
         : ClosedPolyline(points, explicitely_closed)

@@ -8,8 +8,8 @@
 #include <queue>
 #include <unordered_map>
 
-#include "geometry/open_lines_set.h"
-#include "geometry/shape.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/Shape.h"
 #include "settings/EnumSettings.h"
 
 /*
@@ -62,7 +62,7 @@ public:
 
     int z = -1;
     Shape polygons;
-    OpenLinesSet openPolylines;
+    OpenLinesSet open_polylines;
 
     /*!
      * \brief Connect the segments into polygons for this layer of this \p mesh.

@@ -6,7 +6,8 @@
 
 #include <benchmark/benchmark.h>
 
-#include "geometry/open_lines_set.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/OpenPolyline.h"
 #include "infill.h"
 
 namespace cura

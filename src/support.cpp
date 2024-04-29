@@ -1043,10 +1043,10 @@ void AreaSupport::generateSupportAreasForMesh(
             sloped_areas_per_layer[layer_idx] =
                 // Take the outer areas of the previous layer, where the outer areas are (mostly) just _inside_ the shape.
                 storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower)
-                    .tubeShape(sloped_area_detection_width, 10)
+                    .createTubeShape(sloped_area_detection_width, 10)
                     // Intersect those with the outer areas of the current layer, where the outer areas are (mostly) _outside_ the shape.
                     // This will detect every slope (and some/most vertical walls) between those two layers.
-                    .intersection(outlines.tubeShape(10, sloped_area_detection_width))
+                    .intersection(outlines.createTubeShape(10, sloped_area_detection_width))
                     // Do an opening operation so we're not stuck with tiny patches.
                     // The later offset is extended with the line-width, so all patches are merged together if there's less than a line-width between them.
                     .offset(-10)

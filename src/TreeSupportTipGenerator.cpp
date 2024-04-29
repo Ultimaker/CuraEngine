@@ -16,6 +16,7 @@
 
 #include "Application.h" //To get settings.
 #include "TreeSupportUtils.h"
+#include "geometry/OpenPolyline.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "settings/EnumSettings.h"
 #include "utils/Simplify.h"
@@ -105,7 +106,7 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, T
 }
 
 
-std::vector<TreeSupportTipGenerator::LineInformation> TreeSupportTipGenerator::convertLinesToInternal(const LinesSet<OpenPolyline>& polylines, LayerIndex layer_idx)
+std::vector<TreeSupportTipGenerator::LineInformation> TreeSupportTipGenerator::convertLinesToInternal(const OpenLinesSet& polylines, LayerIndex layer_idx)
 {
     // NOTE: The volumes below (on which '.inside(p, true)' is called each time below) are the same each time. The values being calculated here are strictly local as well.
     //       So they could in theory be pre-calculated here (outside of the loop). However, when I refatored it to be that way, it seemed to cause deadlocks each time for some
@@ -159,9 +160,9 @@ std::vector<TreeSupportTipGenerator::LineInformation> TreeSupportTipGenerator::c
     return result;
 }
 
-LinesSet<OpenPolyline> TreeSupportTipGenerator::convertInternalToLines(std::vector<TreeSupportTipGenerator::LineInformation> lines)
+OpenLinesSet TreeSupportTipGenerator::convertInternalToLines(std::vector<TreeSupportTipGenerator::LineInformation> lines)
 {
-    LinesSet<OpenPolyline> result;
+    OpenLinesSet result;
     for (const LineInformation& line : lines)
     {
         OpenPolyline path;
@@ -251,9 +252,9 @@ std::pair<std::vector<TreeSupportTipGenerator::LineInformation>, std::vector<Tre
         std::vector<std::vector<std::pair<Point2LL, TreeSupportTipGenerator::LineStatus>>>>(keep, set_free);
 }
 
-LinesSet<OpenPolyline> TreeSupportTipGenerator::ensureMaximumDistancePolyline(const LinesSet<OpenPolyline>& input, coord_t distance, size_t min_points, bool enforce_distance) const
+OpenLinesSet TreeSupportTipGenerator::ensureMaximumDistancePolyline(const OpenLinesSet& input, coord_t distance, size_t min_points, bool enforce_distance) const
 {
-    LinesSet<OpenPolyline> result;
+    OpenLinesSet result;
     for (OpenPolyline part : input)
     {
         if (part.size() == 0)
@@ -889,7 +890,7 @@ void TreeSupportTipGenerator::generateTips(
                 = relevant_forbidden.offset(EPSILON)
                       .unionPolygons(); // Prevent rounding errors down the line, points placed directly on the line of the forbidden area may not be added otherwise.
 
-            std::function<LinesSet<OpenPolyline>(const Shape&, bool, LayerIndex)> generateLines = [&](const Shape& area, bool roof, LayerIndex generate_layer_idx)
+            std::function<OpenLinesSet(const Shape&, bool, LayerIndex)> generateLines = [&](const Shape& area, bool roof, LayerIndex generate_layer_idx)
             {
                 coord_t upper_line_distance = support_supporting_branch_distance_;
                 coord_t line_distance = std::max(roof ? support_roof_line_distance_ : support_tree_branch_distance_, upper_line_distance);
@@ -987,7 +988,7 @@ void TreeSupportTipGenerator::generateTips(
                     }
 
                     std::vector<LineInformation> overhang_lines;
-                    LinesSet<OpenPolyline> polylines = ensureMaximumDistancePolyline(generateLines(remaining_overhang_part, false, layer_idx), config_.min_radius, 1, false);
+                    OpenLinesSet polylines = ensureMaximumDistancePolyline(generateLines(remaining_overhang_part, false, layer_idx), config_.min_radius, 1, false);
                     // ^^^ Support_line_width to form a line here as otherwise most will be unsupported.
                     // Technically this violates branch distance, but not only is this the only reasonable choice,
                     //   but it ensures consistent behavior as some infill patterns generate each line segment as its own polyline part causing a similar line forming behavior.
@@ -1070,7 +1071,7 @@ void TreeSupportTipGenerator::generateTips(
 
                 // The tip positions are determined here.
                 // todo can cause inconsistent support density if a line exactly aligns with the model
-                LinesSet<OpenPolyline> polylines = ensureMaximumDistancePolyline(
+                OpenLinesSet polylines = ensureMaximumDistancePolyline(
                     generateLines(overhang_outset, roof_allowed_for_this_part, layer_idx + roof_allowed_for_this_part),
                     ! roof_allowed_for_this_part ? config_.min_radius * 2
                     : use_fake_roof_             ? support_supporting_branch_distance_

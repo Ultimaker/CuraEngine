@@ -3,9 +3,9 @@
 
 #include "infill/GyroidInfill.h"
 
-#include "geometry/open_polyline.h"
-#include "geometry/polygon.h"
-#include "geometry/shape.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/Polygon.h"
+#include "geometry/Shape.h"
 #include "utils/AABB.h"
 #include "utils/linearAlg2D.h"
 
@@ -20,7 +20,7 @@ GyroidInfill::~GyroidInfill()
 {
 }
 
-void GyroidInfill::generateTotalGyroidInfill(LinesSet<OpenPolyline>& result_lines, bool zig_zaggify, coord_t line_distance, const Shape& in_outline, coord_t z)
+void GyroidInfill::generateTotalGyroidInfill(OpenLinesSet& result_lines, bool zig_zaggify, coord_t line_distance, const Shape& in_outline, coord_t z)
 {
     // generate infill based on the gyroid equation: sin_x * cos_y + sin_y * cos_z + sin_z * cos_x = 0
     // kudos to the author of the Slic3r implementation equation code, the equation code here is based on that
@@ -41,7 +41,7 @@ void GyroidInfill::generateTotalGyroidInfill(LinesSet<OpenPolyline>& result_line
     const double sin_z = std::sin(z_rads);
     std::vector<coord_t> odd_line_coords;
     std::vector<coord_t> even_line_coords;
-    LinesSet<OpenPolyline> result;
+    OpenLinesSet result;
     std::vector<Point2LL> chains[2]; // [start_points[], end_points[]]
     std::vector<unsigned> connected_to[2]; // [chain_indices[], chain_indices[]]
     std::vector<int> line_numbers; // which row/column line a chain is part of
@@ -87,7 +87,7 @@ void GyroidInfill::generateTotalGyroidInfill(LinesSet<OpenPolyline>& result_line
                         else if (last_inside != current_inside)
                         {
                             // line hits the boundary, add the part that's inside the boundary
-                            LinesSet<OpenPolyline> line;
+                            OpenLinesSet line;
                             line.addSegment(last, current);
                             constexpr bool restitch = false; // only a single line doesn't need stitching
                             line = in_outline.intersection(line, restitch);
@@ -179,7 +179,7 @@ void GyroidInfill::generateTotalGyroidInfill(LinesSet<OpenPolyline>& result_line
                         else if (last_inside != current_inside)
                         {
                             // line hits the boundary, add the part that's inside the boundary
-                            LinesSet<OpenPolyline> line;
+                            OpenLinesSet line;
                             line.addSegment(last, current);
                             constexpr bool restitch = false; // only a single line doesn't need stitching
                             line = in_outline.intersection(line, restitch);

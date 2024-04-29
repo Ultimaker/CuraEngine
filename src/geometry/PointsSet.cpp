@@ -1,10 +1,10 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "geometry/points_set.h"
+#include "geometry/PointsSet.h"
 
-#include "geometry/point3_matrix.h"
-#include "geometry/point_matrix.h"
+#include "geometry/Point3Matrix.h"
+#include "geometry/PointMatrix.h"
 
 namespace cura
 {

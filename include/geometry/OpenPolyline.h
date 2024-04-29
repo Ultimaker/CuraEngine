@@ -1,10 +1,10 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef GEOMETRY_OPEN_POLYLINE_H
 #define GEOMETRY_OPEN_POLYLINE_H
 
-#include "geometry/polyline.h"
+#include "geometry/Polyline.h"
 
 namespace cura
 {
@@ -64,8 +64,8 @@ public:
     {
     }
 
-    /*! @see Polyline::addClosingSegment() */
-    virtual bool addClosingSegment() const override
+    /*! @see Polyline::hasClosingSegment() */
+    virtual bool hasClosingSegment() const override
     {
         return false; // Definitely not
     }

@@ -6,7 +6,7 @@
 #include <cmath> // isfinite
 #include <sstream> // ostream
 
-#include "geometry/polygon.h"
+#include "geometry/Polygon.h"
 #include "utils/AABB.h" // for debug output svg html
 #include "utils/SVG.h"
 
@@ -14,9 +14,9 @@ namespace cura
 {
 
 
-void ListPolyIt::convertPolygonsToLists(const Shape& polys, ListPolygons& result)
+void ListPolyIt::convertPolygonsToLists(const Shape& shape, ListPolygons& result)
 {
-    for (const Polygon& poly : polys)
+    for (const Polygon& poly : shape)
     {
         result.emplace_back();
         convertPolygonToList(poly, result.back());

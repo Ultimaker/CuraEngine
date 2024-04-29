@@ -11,7 +11,8 @@
 
 #include "GCodePathConfig.h"
 #include "WallToolPaths.h"
-#include "geometry/polygon.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/Polygon.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/SpeedDerivatives.h"
 #include "settings/Settings.h"
@@ -212,7 +213,7 @@ infill_generate_response::native_value_type infill_generate_response::operator()
 {
     VariableWidthLines toolpaths;
     Shape result_polygons;
-    LinesSet<OpenPolyline> result_lines;
+    OpenLinesSet result_lines;
 
     for (auto& tool_path : message.tool_paths().tool_paths())
     {

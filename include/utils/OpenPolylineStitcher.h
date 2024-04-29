@@ -5,8 +5,8 @@
 #define UTILS_OPEN_POLYLINE_STITCHER_H
 
 #include "PolylineStitcher.h"
-#include "geometry/open_lines_set.h"
-#include "geometry/shape.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/Shape.h"
 
 namespace cura
 {

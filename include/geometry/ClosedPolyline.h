@@ -4,7 +4,7 @@
 #ifndef GEOMETRY_CLOSED_POLYLINE_H
 #define GEOMETRY_CLOSED_POLYLINE_H
 
-#include "geometry/polyline.h"
+#include "geometry/Polyline.h"
 
 namespace cura
 {
@@ -45,23 +45,15 @@ public:
     {
     }
 
-    /*!
-     * \brief Creates a copy of the given polyline
-     * \warning A copy of the points list is made, so this constructor is somehow "slow"
-     */
+    /*! \brief Creates a copy of the given polyline */
     ClosedPolyline(const ClosedPolyline& other) = default;
 
-    /*!
-     * \brief Constructor that takes ownership of the inner points list from the given polyline
-     * \warning This constructor is fast because it does not allocate data, but it will clear
-     *          the source object
-     */
+    /*! \brief Constructor that takes ownership of the inner points list from the given polyline */
     ClosedPolyline(ClosedPolyline&& other) = default;
 
     /*!
      * \brief Constructor with a points initializer list, provided for convenience
      * \param explicitely_closed Specify whether the given points form an explicitely closed line
-     * \warning A copy of the points list is made, so this constructor is somehow "slow"
      */
     ClosedPolyline(const std::initializer_list<Point2LL>& initializer, bool explicitely_closed)
         : Polyline(initializer)
@@ -72,7 +64,6 @@ public:
     /*!
      * \brief Constructor with an existing list of points
      * \param explicitely_closed Specify whether the given points form an explicitely closed line
-     * \warning A copy of the points list is made, so this constructor is somehow "slow"
      */
     explicit ClosedPolyline(const ClipperLib::Path& points, bool explicitely_closed)
         : Polyline(points)
@@ -83,8 +74,6 @@ public:
     /*!
      * \brief Constructor that takes ownership of the given list of points
      * \param explicitely_closed Specify whether the given points form an explicitely closed line
-     * \warning This constructor is fast because it does not allocate data, but it will clear
-     *          the source object
      */
     explicit ClosedPolyline(ClipperLib::Path&& points, bool explicitely_closed)
         : Polyline(points)
@@ -92,8 +81,8 @@ public:
     {
     }
 
-    /*! @see Polyline::addClosingSegment() */
-    virtual bool addClosingSegment() const
+    /*! @see Polyline::hasClosingSegment() */
+    virtual bool hasClosingSegment() const
     {
         return ! explicitely_closed_;
     }
@@ -130,26 +119,6 @@ public:
     {
         explicitely_closed_ = explicitely_closed;
     }
-
-    /*!
-     * Check if we are inside the polygon. We do this by tracing from the point towards the positive X direction,
-     * every line we cross increments the crossings counter. If we have an even number of crossings then we are not inside the polygon.
-     * Care needs to be taken, if p.Y exactly matches a vertex to the right of p, then we need to count 1 intersect if the
-     * outline passes vertically past; and 0 (or 2) intersections if that point on the outline is a 'top' or 'bottom' vertex.
-     * The easiest way to do this is to break out two cases for increasing and decreasing Y ( from p0 to p1 ).
-     * A segment is tested if pa.Y <= p.Y < pb.Y, where pa and pb are the points (from p0,p1) with smallest & largest Y.
-     * When both have the same Y, no intersections are counted but there is a special test to see if the point falls
-     * exactly on the line.
-     *
-     * Returns false if outside, true if inside; if the point lies exactly on the border, will return 'border_result'.
-     *
-     * \deprecated This function is no longer used, since the Clipper function is used by the function PolygonRef::inside(.)
-     *
-     * \param p The point for which to check if it is inside this polygon
-     * \param border_result What to return when the point is exactly on the border
-     * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
-     */
-    // bool _inside(Point2LL p, bool border_result = false) const;
 
     /*!
      * Clipper function.

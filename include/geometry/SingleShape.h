@@ -1,10 +1,10 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef GEOMETRY_SINGLE_SHAPE_H
 #define GEOMETRY_SINGLE_SHAPE_H
 
-#include "geometry/shape.h"
+#include "geometry/Shape.h"
 
 namespace cura
 {

@@ -5,7 +5,7 @@
 
 #include <cstdio>
 
-#include "geometry/shape.h"
+#include "geometry/Shape.h"
 #include "utils/Coord_t.h"
 
 // NOTE: See the documentation in the header-file for an explanation of this simple file format.

@@ -7,8 +7,8 @@
 #include <cassert>
 #include <cmath> // atan2
 
-#include "geometry/point3_matrix.h"
-#include "geometry/point_matrix.h"
+#include "geometry/Point3Matrix.h"
+#include "geometry/PointMatrix.h"
 #include "utils/math.h"
 
 namespace cura

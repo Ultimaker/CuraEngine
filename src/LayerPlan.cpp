@@ -18,6 +18,7 @@
 #include "Slice.h"
 #include "WipeScriptConfig.h"
 #include "communication/Communication.h"
+#include "geometry/OpenPolyline.h"
 #include "pathPlanning/Comb.h"
 #include "pathPlanning/CombPaths.h"
 #include "plugins/slots.h"
@@ -162,15 +163,15 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
         switch (layer_type_)
         {
         case Raft::LayerType::RaftBase:
-            comb_boundary = storage_.raftBaseOutline.offset(MM2INT(0.1));
+            comb_boundary = storage_.raft_base_outline.offset(MM2INT(0.1));
             break;
 
         case Raft::LayerType::RaftInterface:
-            comb_boundary = storage_.raftInterfaceOutline.offset(MM2INT(0.1));
+            comb_boundary = storage_.raft_interface_outline.offset(MM2INT(0.1));
             break;
 
         case Raft::LayerType::RaftSurface:
-            comb_boundary = storage_.raftSurfaceOutline.offset(MM2INT(0.1));
+            comb_boundary = storage_.raft_surface_outline.offset(MM2INT(0.1));
             break;
 
         case Raft::LayerType::Airgap:
@@ -812,7 +813,7 @@ void LayerPlan::addWallLine(
         // the default_config. Since the original line segment was straight we can simply print
         // to the first and last point of the intersected line segments alternating between
         // roofing and default_config's.
-        LinesSet<OpenPolyline> line_polys;
+        OpenLinesSet line_polys;
         line_polys.addSegment(p0, p1);
         constexpr bool restitch = false; // only a single line doesn't need stitching
         auto roofing_line_segments = roofing_mask_.intersection(line_polys, restitch);
@@ -885,7 +886,7 @@ void LayerPlan::addWallLine(
 
             // determine which segments of the line are bridges
 
-            LinesSet<OpenPolyline> line_polys;
+            OpenLinesSet line_polys;
             line_polys.addSegment(p0, p1);
             constexpr bool restitch = false; // only a single line doesn't need stitching
             line_polys = bridge_wall_mask_.intersection(line_polys, restitch);
@@ -1058,7 +1059,7 @@ void LayerPlan::addWall(
 
                     // determine which segments of the line are bridges
 
-                    LinesSet<OpenPolyline> line_polys;
+                    OpenLinesSet line_polys;
                     line_polys.addSegment(p0.p_, p1.p_);
                     constexpr bool restitch = false; // only a single line doesn't need stitching
                     line_polys = bridge_wall_mask_.intersection(line_polys, restitch);
@@ -1531,7 +1532,7 @@ void LayerPlan::addLinesMonotonic(
     const Ratio flow_ratio,
     const double fan_speed)
 {
-    const Shape exclude_areas = area.tubeShape(exclude_distance, exclude_distance);
+    const Shape exclude_areas = area.createTubeShape(exclude_distance, exclude_distance);
     const coord_t exclude_dist2 = exclude_distance * exclude_distance;
     const Point2LL last_position = getLastPlannedPositionOrStartingPosition();
 
@@ -1550,7 +1551,7 @@ void LayerPlan::addLinesMonotonic(
 
     // Order monotonically, except for line-segments which stay in the excluded areas (read: close to the walls) consecutively.
     PathOrderMonotonic<const Polyline*> order(monotonic_direction, max_adjacent_distance, last_position);
-    LinesSet<OpenPolyline> left_over;
+    OpenLinesSet left_over;
     bool last_would_have_been_excluded = false;
     for (size_t line_idx = 0; line_idx < line_order.paths_.size(); ++line_idx)
     {
@@ -2690,7 +2691,7 @@ void LayerPlan::setRoofingMask(const Shape& polys)
 }
 
 template void LayerPlan::addLinesByOptimizer(
-    const LinesSet<OpenPolyline>& lines,
+    const OpenLinesSet& lines,
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
     const bool enable_travel_optimization,
@@ -2702,7 +2703,7 @@ template void LayerPlan::addLinesByOptimizer(
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements);
 
 template void LayerPlan::addLinesByOptimizer(
-    const LinesSet<ClosedPolyline>& lines,
+    const ClosedLinesSet& lines,
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
     const bool enable_travel_optimization,

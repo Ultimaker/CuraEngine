@@ -5,8 +5,8 @@
 
 #include <gtest/gtest.h>
 
-#include "geometry/point2ll.h" // Creating and testing with points.
-#include "geometry/polygon.h" // Creating polygons to test with.
+#include "geometry/Point2LL.h" // Creating and testing with points.
+#include "geometry/Polygon.h" // Creating polygons to test with.
 #include "utils/Coord_t.h"
 
 // NOLINTBEGIN(*-magic-numbers)

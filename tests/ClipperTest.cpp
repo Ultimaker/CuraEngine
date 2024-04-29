@@ -9,7 +9,7 @@
 // #define TEST_INFILL_SVG_OUTPUT
 #ifdef TEST_INFILL_SVG_OUTPUT
 #include "utils/SVG.h"
-#include "geometry/polygon.h"
+#include "geometry/Polygon.h"
 #include <cstdlib>
 #endif // TEST_INFILL_SVG_OUTPUT
 

@@ -4,7 +4,7 @@
 #ifndef GEOMETRY_POINT_MATRIX_H
 #define GEOMETRY_POINT_MATRIX_H
 
-#include "point2ll.h"
+#include "geometry/Point2LL.h"
 
 
 namespace cura

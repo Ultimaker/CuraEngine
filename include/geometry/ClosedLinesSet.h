@@ -4,11 +4,12 @@
 #ifndef GEOMETRY_CLOSED_LINES_SET_H
 #define GEOMETRY_CLOSED_LINES_SET_H
 
-#include "geometry/closed_polyline.h"
-#include "geometry/lines_set.h"
-
 namespace cura
 {
+
+template<class LineType>
+class LinesSet;
+class ClosedPolyline;
 
 /*!
  * \brief Convenience definition for a container that can hold only closed polylines. This makes it

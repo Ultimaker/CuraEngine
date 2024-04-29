@@ -10,12 +10,12 @@
 namespace cura
 {
 
-Shape ExtrusionSegment::toPolygons()
+Shape ExtrusionSegment::toShape()
 {
-    return toPolygons(is_reduced_);
+    return toShape(is_reduced_);
 }
 
-Shape ExtrusionSegment::toPolygons(bool reduced)
+Shape ExtrusionSegment::toShape(bool reduced)
 {
     Shape ret;
     const Point2LL vec = to_.p_ - from_.p_;

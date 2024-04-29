@@ -1,12 +1,12 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "geometry/polygon.h" // The class under test.
+#include "geometry/Polygon.h" // The class under test.
 
 #include <gtest/gtest.h>
 
-#include "geometry/open_polyline.h"
-#include "geometry/single_shape.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/SingleShape.h"
 #include "utils/Coord_t.h"
 #include "utils/SVG.h" // helper functions
 #include "utils/polygonUtils.h" // helper functions

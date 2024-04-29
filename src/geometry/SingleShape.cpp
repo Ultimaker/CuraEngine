@@ -1,9 +1,9 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "geometry/single_shape.h"
+#include "geometry/SingleShape.h"
 
-#include "geometry/polygon.h"
+#include "geometry/Polygon.h"
 
 namespace cura
 {

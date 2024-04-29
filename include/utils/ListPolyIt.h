@@ -7,7 +7,7 @@
 #include <list>
 #include <vector>
 
-#include "geometry/point2ll.h"
+#include "geometry/Point2LL.h"
 
 
 namespace cura
@@ -115,7 +115,7 @@ public:
      * \param polys The polygons to convert
      * \param result The converted polygons
      */
-    static void convertPolygonsToLists(const Shape& polys, ListPolygons& result);
+    static void convertPolygonsToLists(const Shape& shape, ListPolygons& result);
 
     /*!
      * Convert Polygons to ListPolygons

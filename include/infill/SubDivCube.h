@@ -4,10 +4,11 @@
 #ifndef INFILL_SUBDIVCUBE_H
 #define INFILL_SUBDIVCUBE_H
 
-#include "geometry/point2ll.h"
-#include "geometry/point3_matrix.h"
-#include "geometry/point3ll.h"
-#include "geometry/point_matrix.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/Point2LL.h"
+#include "geometry/Point3LL.h"
+#include "geometry/Point3Matrix.h"
+#include "geometry/PointMatrix.h"
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Ratio.h"
 
@@ -16,10 +17,6 @@ namespace cura
 
 class Polygon;
 class SliceMeshStorage;
-class OpenPolyline;
-
-template<class T>
-class LinesSet;
 
 class SubDivCube
 {
@@ -43,7 +40,7 @@ public:
      * \param z the specified layer height
      * \param result (output) The resulting lines
      */
-    void generateSubdivisionLines(const coord_t z, LinesSet<OpenPolyline>& result);
+    void generateSubdivisionLines(const coord_t z, OpenLinesSet& result);
 
 private:
     /*!
@@ -52,7 +49,7 @@ private:
      * \param result (output) The resulting lines
      * \param directional_line_groups Array of 3 times a polylines. Used to keep track of line segments that are all pointing the same direction for line segment combining
      */
-    void generateSubdivisionLines(const coord_t z, LinesSet<OpenPolyline> (&directional_line_groups)[3]);
+    void generateSubdivisionLines(const coord_t z, OpenLinesSet (&directional_line_groups)[3]);
 
     struct CubeProperties
     {
@@ -98,7 +95,7 @@ private:
      * Adds the defined line to the specified polygons. It assumes that the specified polygons are all parallel lines. Combines line segments with touching ends closer than
      * epsilon. \param[out] group the polygons to add the line to \param from the first endpoint of the line \param to the second endpoint of the line
      */
-    void addLineAndCombine(LinesSet<OpenPolyline>& group, Point2LL from, Point2LL to);
+    void addLineAndCombine(OpenLinesSet& group, Point2LL from, Point2LL to);
 
     size_t depth_; //!< the recursion depth of the cube (0 is most recursed)
     Point3LL center_; //!< center location of the cube in absolute coordinates
