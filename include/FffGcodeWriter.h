@@ -295,9 +295,11 @@ private:
      *
      * \param[in] storage where the slice data is stored.
      * \param current_extruder The current extruder with which we last printed
+     * \param global_extruders_used The extruders that are at some point used for the print job
      * \return The order of extruders for a layer beginning with \p current_extruder
      */
-    std::vector<ExtruderUse> getUsedExtrudersOnLayer(const SliceDataStorage& storage, const size_t start_extruder, const LayerIndex& layer_nr) const;
+    std::vector<ExtruderUse>
+        getUsedExtrudersOnLayer(const SliceDataStorage& storage, const size_t start_extruder, const LayerIndex& layer_nr, const std::vector<bool>& global_extruders_used) const;
 
     /*!
      * Calculate in which order to plan the meshes of a specific extruder

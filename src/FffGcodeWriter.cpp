@@ -1537,12 +1537,13 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     }
 
     size_t extruder_count = Application::getInstance().current_slice_->scene.extruders.size();
+    const std::vector<bool> extruders_used = storage.getExtrudersUsed();
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     PrimeTowerMethod prime_tower_mode = mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode");
     for (LayerIndex layer_nr = -Raft::getTotalExtraLayers(); layer_nr < static_cast<LayerIndex>(storage.print_layer_count); layer_nr++)
     {
         std::vector<std::vector<ExtruderUse>>& extruder_order_per_layer_here = (layer_nr < 0) ? extruder_order_per_layer_negative_layers : extruder_order_per_layer;
-        std::vector<ExtruderUse> extruder_order = getUsedExtrudersOnLayer(storage, last_extruder, layer_nr);
+        std::vector<ExtruderUse> extruder_order = getUsedExtrudersOnLayer(storage, last_extruder, layer_nr, extruders_used);
         extruder_order_per_layer_here.push_back(extruder_order);
 
         if (! extruder_order.empty())
@@ -1567,10 +1568,14 @@ void FffGcodeWriter::calculatePrimeLayerPerExtruder(const SliceDataStorage& stor
     }
 }
 
-std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(const SliceDataStorage& storage, const size_t start_extruder, const LayerIndex& layer_nr) const
+std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
+    const SliceDataStorage& storage,
+    const size_t start_extruder,
+    const LayerIndex& layer_nr,
+    const std::vector<bool>& global_extruders_used) const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    size_t extruder_count = Application::getInstance().current_slice_->scene.extruders.size();
+    size_t extruder_count = global_extruders_used.size();
     assert(static_cast<int>(extruder_count) > 0);
     std::vector<ExtruderUse> ret;
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
@@ -1595,7 +1600,7 @@ std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(const SliceData
     ordered_extruders.push_back(start_extruder);
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
-        if (extruder_nr != start_extruder)
+        if (extruder_nr != start_extruder && global_extruders_used[extruder_nr])
         {
             ordered_extruders.push_back(extruder_nr);
         }
