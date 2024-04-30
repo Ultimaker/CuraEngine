@@ -1,5 +1,7 @@
-version: "5.7.0-alpha.1"
+version: "5.8.0-alpha.0"
 requirements:
-  - "arcus/5.3.1"
-  - "curaengine_grpc_definitions/(latest)@ultimaker/testing"
   - "scripta/0.1.0@ultimaker/testing"
+requirements_arcus:
+  - "arcus/5.3.1"
+requirements_plugins:
+  - "curaengine_grpc_definitions/(latest)@ultimaker/testing"

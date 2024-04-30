@@ -120,7 +120,9 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(
         }
         // We don't generate insets and infill area for the parts yet because later the skirt/brim and prime
         // tower will remove themselves from the support, so the outlines of the parts can be changed.
-        storage.support.supportLayers[layer_nr].fillInfillParts(layer_nr, global_support_areas_per_layer, support_line_width_here, wall_line_count_this_layer);
+        const coord_t layer_height = infill_extruder.settings_.get<coord_t>("layer_height");
+        storage.support.supportLayers[layer_nr]
+            .fillInfillParts(layer_nr, global_support_areas_per_layer, layer_height, storage.meshes, support_line_width_here, wall_line_count_this_layer);
     }
 }
 
@@ -185,6 +187,8 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
     const size_t max_density_steps = infill_extruder.settings_.get<size_t>("gradual_support_infill_steps");
 
     const coord_t wall_width = infill_extruder.settings_.get<coord_t>("support_line_width");
+    const bool is_connected = infill_extruder.settings_.get<bool>("zig_zaggify_infill") || infill_extruder.settings_.get<EFillMethod>("infill_pattern") == EFillMethod::ZIG_ZAG;
+    const Simplify simplifier(infill_extruder.settings_);
 
     // no early-out for this function; it needs to initialize the [infill_area_per_combine_per_density]
     double layer_skip_count{ 8.0 }; // skip every so many layers as to ignore small gaps in the model making computation more easy
@@ -232,6 +236,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
 
             // calculate density areas for this island
             Polygons less_dense_support = infill_area; // one step less dense with each density_step
+            Polygons sum_more_dense; // NOTE: Only used for zig-zag or connected fills.
             for (unsigned int density_step = 0; density_step < max_density_steps; ++density_step)
             {
                 LayerIndex actual_min_layer{ layer_nr + density_step * gradual_support_step_layer_count + static_cast<LayerIndex::value_type>(layer_skip_count) };
@@ -290,12 +295,16 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
                 support_infill_part.infill_area_per_combine_per_density_.emplace_back();
                 std::vector<Polygons>& support_area_current_density = support_infill_part.infill_area_per_combine_per_density_.back();
                 const Polygons more_dense_support = infill_area.difference(less_dense_support);
-                support_area_current_density.push_back(more_dense_support);
+                support_area_current_density.push_back(simplifier.polygon(more_dense_support.difference(sum_more_dense)));
+                if (is_connected)
+                {
+                    sum_more_dense = sum_more_dense.unionPolygons(more_dense_support);
+                }
             }
 
             support_infill_part.infill_area_per_combine_per_density_.emplace_back();
             std::vector<Polygons>& support_area_current_density = support_infill_part.infill_area_per_combine_per_density_.back();
-            support_area_current_density.push_back(infill_area);
+            support_area_current_density.push_back(simplifier.polygon(infill_area.difference(sum_more_dense)));
 
             assert(support_infill_part.infill_area_per_combine_per_density_.size() != 0 && "support_infill_part.infill_area_per_combine_per_density should now be initialized");
 #ifdef DEBUG
@@ -1680,10 +1689,6 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
     const coord_t bottom_line_width = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").settings_.get<coord_t>("support_bottom_line_width");
     const coord_t bottom_outline_offset = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").settings_.get<coord_t>("support_bottom_offset");
 
-    const size_t scan_count = std::max(size_t(1), (bottom_layer_count - 1)); // How many measurements to take to generate bottom areas.
-    const double z_skip = std::max(
-        1.0,
-        double(bottom_layer_count - 1) / double(scan_count)); // How many layers to skip between measurements. Using float for better spread, but this is later rounded.
     const double minimum_bottom_area = mesh.settings.get<double>("minimum_bottom_area");
 
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
@@ -1691,9 +1696,9 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
     {
         const unsigned int bottom_layer_idx_below = std::max(0, int(layer_idx) - int(bottom_layer_count) - int(z_distance_bottom));
         Polygons mesh_outlines;
-        for (double layer_idx_below = bottom_layer_idx_below; std::round(layer_idx_below) < (int)(layer_idx - z_distance_bottom); layer_idx_below += z_skip)
+        for (auto layer_idx_below = bottom_layer_idx_below; layer_idx_below < layer_idx - z_distance_bottom + 1; layer_idx_below += 1)
         {
-            mesh_outlines.add(mesh.layers[std::round(layer_idx_below)].getOutlines());
+            mesh_outlines.add(mesh.layers[layer_idx_below].getOutlines());
         }
         Polygons bottoms;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, bottom_line_width, bottom_outline_offset, minimum_bottom_area, bottoms);
@@ -1715,10 +1720,6 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     const coord_t roof_line_width = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings_.get<coord_t>("support_roof_line_width");
     const coord_t roof_outline_offset = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings_.get<coord_t>("support_roof_offset");
 
-    const size_t scan_count = std::max(size_t(1), (roof_layer_count - 1)); // How many measurements to take to generate roof areas.
-    const double z_skip = std::max(
-        1.0,
-        double(roof_layer_count - 1) / double(scan_count)); // How many layers to skip between measurements. Using float for better spread, but this is later rounded.
     const double minimum_roof_area = mesh.settings.get<double>("minimum_roof_area");
 
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
@@ -1728,9 +1729,9 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
             std::min(LayerIndex{ support_layers.size() - 1 }, LayerIndex{ layer_idx + roof_layer_count + z_distance_top })
         }; // Maximum layer of the model that generates support roof.
         Polygons mesh_outlines;
-        for (double layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top; layer_idx_above -= z_skip)
+        for (auto layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top - 1; layer_idx_above -= 1)
         {
-            mesh_outlines.add(mesh.layers[std::round(layer_idx_above)].getOutlines());
+            mesh_outlines.add(mesh.layers[layer_idx_above].getOutlines());
         }
         Polygons roofs;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roof_outline_offset, minimum_roof_area, roofs);

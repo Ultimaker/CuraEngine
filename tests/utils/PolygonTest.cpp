@@ -2,10 +2,12 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/polygon.h" // The class under test.
+
+#include <gtest/gtest.h>
+
 #include "utils/Coord_t.h"
 #include "utils/SVG.h" // helper functions
 #include "utils/polygonUtils.h" // helper functions
-#include <gtest/gtest.h>
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
@@ -79,7 +81,18 @@ public:
     }
     void twoPolygonsAreEqual(Polygons& polygon1, Polygons& polygon2) const
     {
-        auto poly_cmp = [](const ClipperLib::Path& a, const ClipperLib::Path& b) { return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end(), [](const Point2LL& p1, const Point2LL& p2) { return p1 < p2; }); };
+        auto poly_cmp = [](const ClipperLib::Path& a, const ClipperLib::Path& b)
+        {
+            return std::lexicographical_compare(
+                a.begin(),
+                a.end(),
+                b.begin(),
+                b.end(),
+                [](const Point2LL& p1, const Point2LL& p2)
+                {
+                    return p1 < p2;
+                });
+        };
         std::sort(polygon1.begin(), polygon1.end(), poly_cmp);
         std::sort(polygon2.begin(), polygon2.end(), poly_cmp);
 
@@ -223,18 +236,6 @@ TEST_F(PolygonTest, differenceClockwiseTest)
         area += (next.X - point.X) * (point.Y + next.Y);
     }
     EXPECT_GT(area, 0) << "Inner polygon should be clockwise.";
-}
-
-TEST_F(PolygonTest, getEmptyHolesTest)
-{
-    const Polygons holes = clockwise_donut.getEmptyHoles();
-
-    ASSERT_EQ(holes.size(), 1);
-    ASSERT_EQ(holes[0].size(), clockwise_small.size()) << "Empty hole should have the same amount of vertices as the original polygon.";
-    for (size_t point_index = 0; point_index < holes[0].size(); point_index++)
-    {
-        EXPECT_EQ(holes[0][point_index], clockwise_small[point_index]) << "Coordinates of the empty hole must be the same as the original polygon.";
-    }
 }
 
 /*

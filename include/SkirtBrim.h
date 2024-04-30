@@ -29,14 +29,16 @@ private:
     {
         Offset(
             const std::variant<Polygons*, int>& reference_outline_or_index,
-            const bool external_only,
+            const bool outside,
+            const bool inside,
             const coord_t offset_value,
             const coord_t total_offset,
             const size_t inset_idx,
-            const int extruder_nr,
+            const size_t extruder_nr,
             const bool is_last)
             : reference_outline_or_index_(reference_outline_or_index)
-            , external_only_(external_only)
+            , outside_(outside)
+            , inside_(inside)
             , offset_value_(offset_value)
             , total_offset_(total_offset)
             , inset_idx_(inset_idx)
@@ -46,12 +48,27 @@ private:
         }
 
         std::variant<Polygons*, int> reference_outline_or_index_;
-        bool external_only_; //!< Wether to only offset outward from the reference polygons
+        bool outside_; //!< Wether to offset outward from the reference polygons
+        bool inside_; //!< Wether to offset inward from the reference polygons
         coord_t offset_value_; //!< Distance by which to offset from the reference
         coord_t total_offset_; //!< Total distance from the model
         int inset_idx_; //!< The outset index of this brimline
-        int extruder_nr_; //!< The extruder by which to print this brim line
+        size_t extruder_nr_; //!< The extruder by which to print this brim line
         bool is_last_; //!< Whether this is the last planned offset for this extruder.
+    };
+
+    /*!
+     * Container to store the pre-extracted settings of an extruder
+     */
+    struct ExtruderConfig
+    {
+        bool extruder_is_used_; //!< Whether the extruder is actually used in this print
+        bool outside_polys_; //!< Whether to generate brim on the outside
+        bool inside_polys_; //!< Whether to generate brim on the inside
+        coord_t line_width_; //!< The skirt/brim line width
+        coord_t skirt_brim_minimal_length_; //!< The minimal brim length
+        int line_count_; //!< The (minimal) number of brim lines to generate
+        coord_t gap_; //!< The gap between the part and the first brim/skirt line
     };
 
     /*!
@@ -68,15 +85,10 @@ private:
     const bool has_ooze_shield_; //!< Whether the meshgroup has an ooze shield
     const bool has_draft_shield_; //!< Whether the meshgroup has a draft shield
     const std::vector<ExtruderTrain>& extruders_; //!< The extruders of the current slice
-    const int extruder_count_; //!< The total number of extruders
-    const std::vector<bool> extruder_is_used_; //!< For each extruder whether it is actually used in this print
-    int first_used_extruder_nr_; //!< The first extruder which is used
+    size_t extruder_count_; //!< The total number of extruders
+    size_t first_used_extruder_nr_; //!< The first extruder which is used
     int skirt_brim_extruder_nr_; //!< The extruder with which the skirt/brim is printed or -1 if printed with both
-    std::vector<bool> external_polys_only_; //!< For each extruder whether to only generate brim on the outside
-    std::vector<coord_t> line_widths_; //!< For each extruder the skirt/brim line width
-    std::vector<coord_t> skirt_brim_minimal_length_; //!< For each extruder the minimal brim length
-    std::vector<int> line_count_; //!< For each extruder the (minimal) number of brim lines to generate
-    std::vector<coord_t> gap_; //!< For each extruder the gap between the part and the first brim/skirt line
+    std::vector<ExtruderConfig> extruders_configs_; //!< The brim setup for each extruder
 
 public:
     /*!
@@ -158,7 +170,7 @@ private:
      * \param extruder_nr The extruder for which to compute disallowed areas
      * \return The disallowed areas
      */
-    Polygons getInternalHoleExclusionArea(const Polygons& outline, const int extruder_nr);
+    Polygons getInternalHoleExclusionArea(const Polygons& outline, const int extruder_nr) const;
 
     /*!
      * Generate a brim line with offset parameters given by \p offset from the \p starting_outlines and store it in the \ref storage.
@@ -185,6 +197,16 @@ private:
      * \param[in,out] total_length The total length of the brim lines for each extruder.
      */
     void generateSecondarySkirtBrim(Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length);
+
+    /*!
+     * Generate the allowed areas for each extruder. Allowed areas represent where the brim/skirt is allowed to grow
+     * while adding new outset lines. This is basically the whole build plate, removing the areas where models are
+     * located, offsetted with some specific margins.
+     *
+     * \param[in] starting_outlines The previously generated starting outlines for each extruder
+     * \return The list of allowed areas for each extruder
+     */
+    std::vector<Polygons> generateAllowedAreas(const std::vector<Polygons>& starting_outlines) const;
 
 public:
     /*!

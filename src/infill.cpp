@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "infill.h"
@@ -317,6 +317,7 @@ void Infill::_generate(
         break;
     case EFillMethod::PLUGIN:
     {
+#ifdef ENABLE_PLUGINS // FIXME: I don't like this conditional block outside of the plugin scope.
         auto [toolpaths_, generated_result_polygons_, generated_result_lines_] = slots::instance().generate<plugins::v0::SlotID::INFILL_GENERATE>(
             inner_contour_,
             mesh ? mesh->settings.get<std::string>("infill_pattern") : settings.get<std::string>("infill_pattern"),
@@ -324,6 +325,7 @@ void Infill::_generate(
         toolpaths.insert(toolpaths.end(), toolpaths_.begin(), toolpaths_.end());
         result_polygons.add(generated_result_polygons_);
         result_lines.add(generated_result_lines_);
+#endif
         break;
     }
     default:
@@ -744,12 +746,12 @@ void Infill::generateLinearBasedInfill(
 
             for (int scanline_idx = scanline_idx0; scanline_idx != scanline_idx1 + direction; scanline_idx += direction)
             {
-                int x = scanline_idx * line_distance + shift;
-                int y = p1.Y + (p0.Y - p1.Y) * (x - p1.X) / (p0.X - p1.X);
+                const int x = scanline_idx * line_distance + shift;
+                const int y = p1.Y + (p0.Y - p1.Y) * (x - p1.X) / (p0.X - p1.X);
                 assert(scanline_idx - scanline_min_idx >= 0 && scanline_idx - scanline_min_idx < int(cut_list.size()) && "reading infill cutlist index out of bounds!");
                 cut_list[scanline_idx - scanline_min_idx].push_back(y);
                 Point2LL scanline_linesegment_intersection(x, y);
-                zigzag_connector_processor.registerScanlineSegmentIntersection(scanline_linesegment_intersection, scanline_idx);
+                zigzag_connector_processor.registerScanlineSegmentIntersection(scanline_linesegment_intersection, scanline_idx, line_distance / 4);
                 crossings_per_scanline[scanline_idx - min_scanline_index].emplace_back(scanline_linesegment_intersection, poly_idx, point_idx);
             }
             zigzag_connector_processor.registerVertex(p1);

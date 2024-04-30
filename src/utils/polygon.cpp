@@ -3,6 +3,7 @@
 
 #include "utils/polygon.h"
 
+#include <mapbox/geometry/wagyu/wagyu.hpp>
 #include <unordered_set>
 
 #include <boost/geometry/geometries/point_xy.hpp>
@@ -567,34 +568,6 @@ Polygons Polygons::getOutsidePolygons() const
         ClipperLib::PolyNode* child = poly_tree.Childs[outer_poly_idx];
         ret.emplace_back(child->Contour);
     }
-    return ret;
-}
-
-Polygons Polygons::removeEmptyHoles() const
-{
-    Polygons ret;
-    ClipperLib::Clipper clipper(clipper_init);
-    ClipperLib::PolyTree poly_tree;
-    constexpr bool paths_are_closed_polys = true;
-    clipper.AddPaths(paths, ClipperLib::ptSubject, paths_are_closed_polys);
-    clipper.Execute(ClipperLib::ctUnion, poly_tree);
-
-    bool remove_holes = true;
-    removeEmptyHoles_processPolyTreeNode(poly_tree, remove_holes, ret);
-    return ret;
-}
-
-Polygons Polygons::getEmptyHoles() const
-{
-    Polygons ret;
-    ClipperLib::Clipper clipper(clipper_init);
-    ClipperLib::PolyTree poly_tree;
-    constexpr bool paths_are_closed_polys = true;
-    clipper.AddPaths(paths, ClipperLib::ptSubject, paths_are_closed_polys);
-    clipper.Execute(ClipperLib::ctUnion, poly_tree);
-
-    bool remove_holes = false;
-    removeEmptyHoles_processPolyTreeNode(poly_tree, remove_holes, ret);
     return ret;
 }
 
@@ -1580,6 +1553,58 @@ void Polygons::sortByNesting_processPolyTreeNode(ClipperLib::PolyNode* node, con
 Polygons Polygons::tubeShape(const coord_t inner_offset, const coord_t outer_offset) const
 {
     return this->offset(outer_offset).difference(this->offset(-inner_offset));
+}
+
+Polygons Polygons::removeNearSelfIntersections() const
+{
+    using map_pt = mapbox::geometry::point<coord_t>;
+    using map_ring = mapbox::geometry::linear_ring<coord_t>;
+    using map_poly = mapbox::geometry::polygon<coord_t>;
+    using map_mpoly = mapbox::geometry::multi_polygon<coord_t>;
+
+    map_mpoly mwpoly;
+
+    mapbox::geometry::wagyu::wagyu<coord_t> wagyu;
+
+    for (auto& polygon : splitIntoParts())
+    {
+        mwpoly.emplace_back();
+        map_poly& wpoly = mwpoly.back();
+        for (auto& path : polygon)
+        {
+            wpoly.push_back(std::move(*reinterpret_cast<std::vector<mapbox::geometry::point<coord_t>>*>(&path)));
+            for (auto& point : wpoly.back())
+            {
+                point.x /= 4;
+                point.y /= 4;
+            }
+            wagyu.add_ring(wpoly.back());
+        }
+    }
+
+    map_mpoly sln;
+
+    wagyu.execute(mapbox::geometry::wagyu::clip_type_union, sln, mapbox::geometry::wagyu::fill_type_even_odd, mapbox::geometry::wagyu::fill_type_even_odd);
+
+    Polygons polys;
+
+    for (auto& poly : sln)
+    {
+        for (auto& ring : poly)
+        {
+            ring.pop_back();
+            for (auto& point : ring)
+            {
+                point.x *= 4;
+                point.y *= 4;
+            }
+            polys.add(*reinterpret_cast<std::vector<ClipperLib::IntPoint>*>(&ring)); // NOTE: 'add' already moves the vector
+        }
+    }
+    polys = polys.unionPolygons();
+    polys.removeColinearEdges();
+
+    return polys;
 }
 
 size_t PartsView::getPartContaining(size_t poly_idx, size_t* boundary_poly_idx) const
