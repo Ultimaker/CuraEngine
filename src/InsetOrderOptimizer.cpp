@@ -74,7 +74,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(
 {
 }
 
-bool InsetOrderOptimizer::addToLayer()
+bool InsetOrderOptimizer::addToLayer(const bool is_support)
 {
     // Settings & configs:
     const auto pack_by_inset = ! settings_.get<bool>("optimize_wall_printing_order");
@@ -113,14 +113,14 @@ bool InsetOrderOptimizer::addToLayer()
             order_optimizer.addPolyline(&line);
         }
     }
-    if (z_seam_config_.type_ == EZSeamType::SUPPORT)
+    if (is_support && settings_.get<bool>("support_z_seam_away_from_model"))
     {
         for (std::shared_ptr<SliceMeshStorage> mesh_ptr : storage_.meshes)
         {
             auto& mesh = *mesh_ptr;
             for (auto& part : mesh.layers[layer_nr_].parts)
             {
-                mesh_paths_.push_back(part.print_outline.paths);
+                mesh_paths_.push_back(part.print_outline);
             }
         }
         if (! mesh_paths_.empty())

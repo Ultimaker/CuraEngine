@@ -60,7 +60,7 @@ template<typename Path>
 class PathOrderOptimizer
 {
 private:
-    std::vector<ClipperLib::Paths> mesh_paths_{};
+    std::vector<Polygons> mesh_paths_{};
     size_t min_size_support_zeam_ = 0;
 
 public:
@@ -137,11 +137,15 @@ public:
         paths_.emplace_back(polygon, is_closed);
     }
 
-    void addMeshPathsinfo(const std::vector<ClipperLib::Paths>& polylines, const size_t min_distance)
+    void addMeshPathsinfo(const std::vector<Polygons>& mesh_polygons, const size_t min_distance)
     {
         constexpr bool is_closed = true;
-        mesh_paths_ = polylines;
         min_size_support_zeam_ = min_distance;
+        //offset polygon with th min_size_support z seam
+        for (auto& polygons :mesh_polygons)
+        {
+            mesh_paths_.push_back(polygons.offset(min_size_support_zeam_, ClipperLib::jtRound));
+        }
     }
     /*!
      * Add a new polyline to be optimized.
@@ -573,63 +577,15 @@ protected:
         return best_candidate->vertices_;
     }
 
-    /**
-     * @brief Checks if the given vertex is close to any polygon path defined by the front of the mesh_paths_.
-     *
-     * The function iteratively checks the shortest distance from the point to each line segment in the polygon.
-     * A line segment is defined by each pair of consecutive points in the polygon.
-     * If the shortest distance is less than or equal to min_size_support_zeam_, the function returns true.
-     * This implies that the vertex is considered "close" to the polygon path.
-     * The check is performed against all polygons in the front of the mesh_paths_.
-     *
-     * @param point Vertex of interest, provided as a 2D point in the LongLong (LL) coordinate space.
-     * @return Returns true if the vertex is close to any line segment in the polygon path, false otherwise.
-     *
-     * @note The closeness is judged based on the minimum Zeam support size.
-     * @note The distance check is performed on the squared distance to avoid costly square root operations.
-     */
-    bool isVertexCloseToPolygonPath(Point2LL point)
+
+    bool isInDisallowedPaths(Point2LL point, std::vector<Polygons>& paths)
     {
-        for (const auto& points : ranges::front(mesh_paths_))
+
+        for (const auto& polygons : paths)
         {
-            const int len = points.size();
-
-            for (int i = 0; i < len; ++i)
+            if (polygons.inside(point, true))
             {
-                const auto& polygon_point1 = points[i];
-                const auto& polygon_point2 = points[(i + 1) % len]; // Ensures looping back to the first point to create the final segment
-
-                // Definitions
-                double x = static_cast<double>(point.X);
-                double y = static_cast<double>(point.Y);
-                double x1 = static_cast<double>(polygon_point1.X);
-                double y1 = static_cast<double>(polygon_point1.Y);
-                double x2 = static_cast<double>(polygon_point2.X);
-                double y2 = static_cast<double>(polygon_point2.Y);
-
-                // Calculate the shortest distance from the point to the line segment
-                double dx = x2 - x1;
-                double dy = y2 - y1;
-
-                // Calculate the t parameter
-                double t = ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy);
-
-                // If t is outside bounds [0,1], point is closest to an endpoint of the segment
-                t = std::max(0.0, std::min(1.0, t));
-
-                // Compute the coordinates of the point on the line segment nearest to the external point
-                double nearestX = x1 + t * dx;
-                double nearestY = y1 + t * dy;
-
-                // Calculate squared distance from external point to its nearest point on the line segment
-                double dx_nearest = x - nearestX;
-                double dy_nearest = y - nearestY;
-                double squared_distance = dx_nearest * dx_nearest + dy_nearest * dy_nearest;
-
-                if (squared_distance <= min_size_support_zeam_ * min_size_support_zeam_)
-                {
-                    return true;
-                }
+                return true;
             }
         }
         return false;
@@ -706,7 +662,7 @@ protected:
             if (! mesh_paths_.empty())
             {
                 Point2LL current_candidate = (path.converted_)->at(best_pos);
-                if (isVertexCloseToPolygonPath(current_candidate))
+                if (isInDisallowedPaths(current_candidate, mesh_paths_))
                 {
                     size_t next_best_position = (path_size > best_pos + 1) ? best_pos + 1 : 0;
                     number_of_paths_analysed += 1;
@@ -795,7 +751,7 @@ protected:
 
             double corner_shift;
 
-            if ((seam_config_.type_ == EZSeamType::SHORTEST) || (seam_config_.type_ == EZSeamType::SUPPORT))
+            if (seam_config_.type_ == EZSeamType::SHORTEST)
             {
                 // the more a corner satisfies our criteria, the closer it appears to be
                 // shift 10mm for a very acute corner
@@ -861,7 +817,7 @@ protected:
             }
         }
 
-        if (seam_config_.type_ == EZSeamType::SUPPORT)
+        if (min_size_support_zeam_ !=  0)
         {
             best_i = pathIfzeamSupportIsCloseToModel(best_i, path, 0);
         }

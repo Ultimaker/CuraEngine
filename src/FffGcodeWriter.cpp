@@ -3457,15 +3457,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             const GCodePathConfig& config = configs[0];
             constexpr bool retract_before_outer_wall = false;
             constexpr coord_t wipe_dist = 0;
-            EZSeamType z_seam_type = EZSeamType::SHORTEST;
-            ZSeamConfig z_seam_config;
-            Point2LL start_pos = gcode_layer.getLastPlannedPositionOrStartingPosition();
-            if (infill_extruder.settings_.get<bool>("support_z_seam_away_from_model"))
-            {
-                z_seam_type = EZSeamType::SUPPORT;
-            }
-
-            z_seam_config = ZSeamConfig(z_seam_type, start_pos, EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+            ZSeamConfig z_seam_config = ZSeamConfig(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
 
 
             InsetOrderOptimizer wall_orderer(
@@ -3487,7 +3479,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 extruder_nr,
                 z_seam_config,
                 wall_toolpaths);
-            added_something |= wall_orderer.addToLayer();
+            added_something |= wall_orderer.addToLayer(true);
         }
 
         if ((default_support_line_distance <= 0 && support_structure != ESupportStructure::TREE) || part.infill_area_per_combine_per_density_.empty())
