@@ -50,7 +50,8 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const size_t wall_0_extruder_nr,
     const size_t wall_x_extruder_nr,
     const ZSeamConfig& z_seam_config,
-    const std::vector<VariableWidthLines>& paths)
+    const std::vector<VariableWidthLines>& paths,
+    const bool is_outer_shell)
     : gcode_writer_(gcode_writer)
     , storage_(storage)
     , gcode_layer_(gcode_layer)
@@ -70,6 +71,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , z_seam_config_(z_seam_config)
     , paths_(paths)
     , layer_nr_(gcode_layer.getLayerNr())
+    , is_outer_shell_(is_outer_shell)
 {
 }
 
@@ -136,6 +138,7 @@ bool InsetOrderOptimizer::addToLayer()
         const size_t start_index = (backwards != path.backwards_) ? path.vertices_->size() - (path.start_vertex_ + 1) : path.start_vertex_;
         const bool linked_path = ! path.is_closed_;
 
+
         gcode_layer_.setIsInside(true); // Going to print walls, which are always inside.
         gcode_layer_.addWall(
             *path.vertices_,
@@ -150,7 +153,7 @@ bool InsetOrderOptimizer::addToLayer()
             path.is_closed_,
             backwards,
             linked_path,
-            is_outer_wall);
+            is_outer_shell_ && is_outer_wall);
         added_something = true;
     }
     return added_something;

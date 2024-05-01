@@ -14,8 +14,7 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 //#include <iostream> // auto-serialization / auto-toString()
 #include <limits>
 #include <polyclipping/clipper.hpp>
-//#include <stdint.h>
-
+#include "numbers"
 #include "geometry/Point3LL.h"
 
 #ifdef __GNUC__

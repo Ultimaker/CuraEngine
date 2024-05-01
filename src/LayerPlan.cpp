@@ -369,16 +369,28 @@ std::optional<std::pair<Point2LL, bool>> LayerPlan::getFirstTravelDestinationSta
     return ret;
 }
 
-GCodePath& LayerPlan::addTravel(const Point2LL& pos, const bool force_retract, const coord_t z_offset, const Point2LL* next)
+void LayerPlan::addFirstWallTravel(const Point2LL& pos,  const bool force_retract, const Point2LL* next)
 {
-    if (next)
+    //find amount of retraction already done
+    Point2LL extrusion_start_point; // Point where extrusion needs to start
+    const ExtruderTrain* extruder = getLastPlannedExtruderTrain();
+    const Settings& mesh_or_extruder_settings = current_mesh_ ? current_mesh_->settings : extruder->settings_;
+
+    if (next && (*next != pos))
     {
         // First travel to intermediate position
         Point2LL direction = *next - pos;
         direction = (direction * 1000) / vSize(direction);
-        addTravel(pos - direction * 15);
+        extrusion_start_point = pos - direction * (mesh_or_extruder_settings.get<coord_t>("z_seam_approach_distance")/1000);
+        addTravel(extrusion_start_point, force_retract);
     }
+    // Add simple travel to point, next will already be printed while extruding
+    addTravel_simple(pos);
+}
 
+
+GCodePath& LayerPlan::addTravel(const Point2LL& pos, const bool force_retract, const coord_t z_offset)
+{
     const GCodePathConfig& travel_config = configs_storage_.travel_config_per_extruder[getExtruder()];
 
     const RetractionConfig& retraction_config
@@ -1132,7 +1144,14 @@ void LayerPlan::addWall(
     const size_t max_index = is_closed ? wall.size() + 1 : wall.size();
 
     ExtrusionJunction p0 = wall[start_idx];
-    addTravel(p0.p_, always_retract, 0, smooth_approach ? &(wall[(wall.size() + start_idx + direction) % wall.size()].p_) : nullptr);
+    if (smooth_approach)
+    {
+        addFirstWallTravel(p0.p_, always_retract,  &(wall[(wall.size() + start_idx + direction) % wall.size()].p_));
+    }
+    else
+    {
+        addTravel(p0.p_, always_retract);
+    }
 
     for (size_t point_idx = 1; point_idx < max_index; point_idx++)
     {
@@ -1217,34 +1236,34 @@ void LayerPlan::addWall(
             computeDistanceToBridgeStart((start_idx + wall.size() - 1) % wall.size());
         }
 
-        if (wall_0_wipe_dist > 0 && ! is_linked_path)
-        { // apply outer wall wipe
-            p0 = wall[start_idx];
-            int distance_traversed = 0;
-            for (unsigned int point_idx = 1;; point_idx++)
-            {
-                if (point_idx > wall.size() && distance_traversed == 0) // Wall has a total circumference of 0. This loop would never end.
-                {
-                    break; // No wipe if the wall has no circumference.
-                }
-                ExtrusionJunction p1 = wall[(start_idx + point_idx) % wall.size()];
-                int p0p1_dist = vSize(p1 - p0);
-                if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
-                {
-                    Point2LL vector = p1.p_ - p0.p_;
-                    Point2LL half_way = p0.p_ + normal(vector, wall_0_wipe_dist - distance_traversed);
-                    addTravel_simple(half_way);
-                    break;
-                }
-                else
-                {
-                    addTravel_simple(p1.p_);
-                    distance_traversed += p0p1_dist;
-                }
-                p0 = p1;
-            }
-            forceNewPathStart();
-        }
+//        if (wall_0_wipe_dist > 0 && ! is_linked_path)
+//        { // apply outer wall wipe
+//            p0 = wall[start_idx];
+//            int distance_traversed = 0;
+//            for (unsigned int point_idx = 1;; point_idx++)
+//            {
+//                if (point_idx > wall.size() && distance_traversed == 0) // Wall has a total circumference of 0. This loop would never end.
+//                {
+//                    break; // No wipe if the wall has no circumference.
+//                }
+//                ExtrusionJunction p1 = wall[(start_idx + point_idx) % wall.size()];
+//                int p0p1_dist = vSize(p1 - p0);
+//                if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
+//                {
+//                    Point2LL vector = p1.p_ - p0.p_;
+//                    Point2LL half_way = p0.p_ + normal(vector, wall_0_wipe_dist - distance_traversed);
+//                    addTravel_simple(half_way);
+//                    break;
+//                }
+//                else
+//                {
+//                    addTravel_simple(p1.p_);
+//                    distance_traversed += p0p1_dist;
+//                }
+//                p0 = p1;
+//            }
+//            forceNewPathStart();
+//        }
     }
     else
     {

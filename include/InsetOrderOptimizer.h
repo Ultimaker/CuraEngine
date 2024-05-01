@@ -36,6 +36,7 @@ public:
      * line widths, flows, speeds, etc to print this mesh with.
      * \param part The part from which to read the previously generated insets.
      * \param layer_nr The current layer number.
+     * \param is_outer_shell determines if the element added is the outer wall/shell of the mesh
      */
     InsetOrderOptimizer(
         const FffGcodeWriter& gcode_writer,
@@ -55,7 +56,8 @@ public:
         const size_t wall_0_extruder_nr,
         const size_t wall_x_extruder_nr,
         const ZSeamConfig& z_seam_config,
-        const std::vector<VariableWidthLines>& paths);
+        const std::vector<VariableWidthLines>& paths,
+        const bool is_outer_shell = false);
 
     /*!
      * Adds the insets to the given layer plan.
@@ -106,6 +108,7 @@ private:
     const ZSeamConfig& z_seam_config_;
     const std::vector<VariableWidthLines>& paths_;
     const LayerIndex layer_nr_;
+    const bool is_outer_shell_;
 
     std::vector<std::vector<const Polygon*>> inset_polys_; // vector of vectors holding the inset polygons
     Shape retraction_region_; // After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see
@@ -137,6 +140,7 @@ private:
      * \return A vector of ExtrusionLines with walls that should be printed
      */
     std::vector<ExtrusionLine> getWallsToBeAdded(const bool reverse, const bool use_one_extruder);
+
 };
 } // namespace cura
 

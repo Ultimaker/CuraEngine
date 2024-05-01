@@ -2765,7 +2765,8 @@ bool FffGcodeWriter::processInsets(
             mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_,
             mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr_,
             z_seam_config,
-            part.wall_toolpaths);
+            part.wall_toolpaths,
+            true);
         added_something |= wall_orderer.addToLayer();
     }
     return added_something;
