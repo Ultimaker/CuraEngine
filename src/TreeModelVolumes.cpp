@@ -82,7 +82,7 @@ TreeModelVolumes::TreeModelVolumes(
         const coord_t extra_cradle_distance = round_divide(retrieveSetting<coord_t>(data_pair.first, "support_tree_cradle_z_distance"), config.layer_height);
         max_cradle_layers
             = std::max(coord_t(max_cradle_layers), extra_cradle_distance + retrieveSetting<coord_t>(data_pair.first, "support_tree_cradle_height") / config.layer_height);
-        max_cradle_dtt = std::max(max_cradle_dtt, size_t(config.tip_layers * retrieveSetting<double>(data_pair.first, "support_tree_cradle_base_tip_percentage") / 100.0));
+        max_cradle_dtt = std::max(max_cradle_dtt, config.tip_layers); // todo better estimation
     }
 
     // Figure out the rest of the setting(-like variable)s relevant to the class a whole.

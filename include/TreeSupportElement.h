@@ -93,8 +93,8 @@ struct TreeSupportElement
         , dont_move_until_(dont_move_until)
         , can_use_safe_radius_(can_use_safe_radius)
         , can_avoid_anti_preferred_(false)
-        , // todo init?
-        last_area_increase_(AreaIncreaseSettings(AvoidanceType::FAST, 0, false, false, false, false, false))
+        , ensure_valid_anti_preferred_(false)
+        , last_area_increase_(AreaIncreaseSettings(AvoidanceType::FAST, 0, false, false, false, false, false))
         , missing_roof_layers_(force_tips_to_roof ? dont_move_until : 0)
         , roof_with_enforced_walls(false)
         , skip_ovalisation_(skip_ovalisation)
@@ -136,6 +136,8 @@ struct TreeSupportElement
         , supports_cradle_(first.supports_cradle_ || second.supports_cradle_)
         , dont_move_until_(std::max(first.dont_move_until_, second.dont_move_until_))
         , can_use_safe_radius_(first.can_use_safe_radius_ || second.can_use_safe_radius_)
+        , can_avoid_anti_preferred_(first.can_avoid_anti_preferred_ || second.can_avoid_anti_preferred_)
+        , ensure_valid_anti_preferred_(first.ensure_valid_anti_preferred_ || second.ensure_valid_anti_preferred_)
         , missing_roof_layers_(std::min(first.missing_roof_layers_, second.missing_roof_layers_))
         , roof_with_enforced_walls(first.roof_with_enforced_walls && second.roof_with_enforced_walls)
         , skip_ovalisation_(false)
@@ -299,6 +301,11 @@ struct TreeSupportElement
     bool can_avoid_anti_preferred_;
 
     /*!
+     * \brief If the influence area ensures no collision with anti preferred on this layer.
+     */
+    bool ensure_valid_anti_preferred_;
+
+    /*!
      * \brief Settings used to increase the influence area to its current state.
      */
     AreaIncreaseSettings last_area_increase_;
@@ -445,6 +452,7 @@ struct TreeSupportElement
         result.skip_ovalisation_ = false;
         result.result_on_layer_ = Point2LL(-1, -1);
         result.area_ = nullptr;
+        result.ensure_valid_anti_preferred_ = false;
         return result;
     }
 };

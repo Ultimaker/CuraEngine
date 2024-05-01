@@ -159,10 +159,20 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         const auto t_precalc = std::chrono::high_resolution_clock::now();
 
         std::vector<std::vector<TreeSupportCradle*>> cradle_data;
+
+        SupportCradleGeneration cradle_gen(storage, volumes_);
+        for (size_t mesh_idx : processing.second)
+        {
+            cradle_gen.addMeshToCradleCalculation(*storage.meshes[mesh_idx], mesh_idx);
+        }
+        cradle_gen.generate(storage);
+        const auto t_cradle = std::chrono::high_resolution_clock::now();
+
         // ### Place tips of the support tree
         for (size_t mesh_idx : processing.second)
         {
-            std::vector<std::vector<TreeSupportCradle*>> cradle_data_mesh;
+            std::vector<std::vector<TreeSupportCradle*>> cradle_data_mesh(move_bounds.size());
+            cradle_gen.pushCradleData(cradle_data_mesh, support_free_areas, mesh_idx); // todo the support free areas here are HORRIBLE
             generateInitialAreas(*storage.meshes[mesh_idx], move_bounds, storage, cradle_data_mesh);
             if (cradle_data.size() < cradle_data_mesh.size())
             {
@@ -189,17 +199,20 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 
         const auto t_draw = std::chrono::high_resolution_clock::now();
         const auto dur_pre_gen = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_precalc - t_start).count();
-        const auto dur_gen = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_gen - t_precalc).count();
+        const auto dur_cradle = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_cradle - t_precalc).count();
+
+        const auto dur_gen = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_gen - t_cradle).count();
         const auto dur_path = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_path - t_gen).count();
         const auto dur_place = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_place - t_path).count();
         const auto dur_draw = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_draw - t_place).count();
         const auto dur_total = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_draw - t_start).count();
         spdlog::info(
             "Total time used creating Tree support for the currently grouped meshes: {} ms. Different subtasks:\n"
-            "Calculating Avoidance: {} ms Creating initial influence areas: {} ms Influence area creation: {} ms Placement of Points in InfluenceAreas: {} ms Drawing result as "
+            "Calculating Avoidance: {} ms Calculating Cradle: {} ms Creating initial influence areas: {} ms Influence area creation: {} ms Placement of Points in InfluenceAreas: {} ms Drawing result as "
             "support {} ms",
             dur_total,
             dur_pre_gen,
+            dur_cradle,
             dur_gen,
             dur_path,
             dur_place,
@@ -748,7 +761,6 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
     coord_t actual_radius = config.getRadius(current_elem);
     // Removing cradle areas from influence areas if possible.
     Polygons anti_preferred_areas = volumes_.getAntiPreferredAreas(layer_idx - 1, actual_radius);
-    bool anti_preferred_applied = false;
     bool anti_preferred_exists = volumes_.getFirstAntiPreferredLayerIdx() < layer_idx;
     if (! anti_preferred_areas.empty())
     {
@@ -770,7 +782,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
                 to_model_data = to_model_data_without_anti;
                 Polygons increased_without_anti = increased.difference(anti_preferred_areas);
                 increased = increased_without_anti;
-                anti_preferred_applied = true;
+                current_elem.ensure_valid_anti_preferred_ = true;
             }
         }
         else
@@ -781,9 +793,13 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
                 to_model_data = to_model_data_without_anti;
                 Polygons increased_without_anti = increased.difference(anti_preferred_areas);
                 increased = increased_without_anti;
-                anti_preferred_applied = true;
+                current_elem.ensure_valid_anti_preferred_ = true;
             }
         }
+    }
+    else
+    {
+        current_elem.ensure_valid_anti_preferred_ = true;
     }
     check_layer_data = current_elem.to_buildplate_ ? to_bp_data : to_model_data;
 
@@ -802,7 +818,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
             to_model_data = to_model_data.difference(anti_preferred);
         }
 
-        if (! anti_preferred_applied)
+        if (! current_elem.ensure_valid_anti_preferred_)
         {
             increased = increased.difference(volumes_.getAntiPreferredAreas(layer_idx - 1, radius));
         }
@@ -817,6 +833,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
     if (!anti_preferred_exists)
     {
         current_elem.can_avoid_anti_preferred_ = true;
+        current_elem.ensure_valid_anti_preferred_ = true;
     }
 
     if (settings.increase_radius_ && check_layer_data.area() > 1)
@@ -841,7 +858,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
                         volumes_.getAntiPreferredAvoidance(next_radius, layer_idx - 1, settings.type_, ! current_elem.to_buildplate_, settings.use_min_distance_));
                     avoidance_handled = settings.type_ != AvoidanceType::SLOW;
                 }
-                else if (anti_preferred_applied && next_radius > actual_radius && anti_preferred_exists)
+                else if (current_elem.ensure_valid_anti_preferred_ && next_radius > actual_radius && anti_preferred_exists)
                 {
                     to_bp_data_2 = to_bp_data_2.difference(volumes_.getAntiPreferredAreas(layer_idx - 1, next_radius));
                 }
@@ -865,7 +882,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
                                                            settings.use_min_distance_));
                     avoidance_handled = settings.type_ != AvoidanceType::SLOW; // There is no slow anti-preferred avoidance.
                 }
-                else if (anti_preferred_applied && next_radius > actual_radius && anti_preferred_exists)
+                else if (current_elem.ensure_valid_anti_preferred_ && next_radius > actual_radius && anti_preferred_exists)
                 {
                     to_model_data_2 = to_model_data_2.difference(volumes_.getAntiPreferredAreas(layer_idx - 1, next_radius));
                 }
@@ -1011,7 +1028,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
 
         if (ceil_radius_before != volumes_.ceilRadius(radius, settings.use_min_distance_))
         {
-            if (anti_preferred_applied && ceil_actual_radius_before < volumes_.ceilRadius(actual_radius, settings.use_min_distance_) && anti_preferred_exists)
+            if (current_elem.ensure_valid_anti_preferred_ && ceil_actual_radius_before < volumes_.ceilRadius(actual_radius, settings.use_min_distance_) && anti_preferred_exists)
             {
                 increased = increased.difference(volumes_.getAntiPreferredAreas(layer_idx - 1, actual_radius));
             }
@@ -1549,100 +1566,103 @@ void TreeSupport::handleCradleLineValidity(
     std::vector<std::set<TreeSupportElement*>>& move_bounds,
     std::vector<std::vector<CradlePresenceInformation>>& cradle_data)
 {
+    // cant skip just because cradle_data is empty as there may be tips that have to be removed as the line they support was removed further up
     if (cradle_data.size() <= layer_idx)
     {
         return;
     }
 
-    std::unordered_set<size_t> removed_lines_idx;
-    // Evaluate which lines have to be removed for all influence areas to be valid.
-    // Goal is to remove as few lines as possible
-    // Correctly solving this is very hard.
-    // So for now any solution will do. Todo find a better way. Also parallelize
+    if(!cradle_data[layer_idx].empty())
+    {
+        std::unordered_set<size_t> removed_lines_idx;
+        // Evaluate which lines have to be removed for all influence areas to be valid.
+        // Goal is to remove as few lines as possible
+        // Correctly solving this is very hard.
+        // So for now any solution will do. Todo find a better way. Also parallelize
 
-    std::vector<const TreeSupportElement*> all_elements_on_layer;
-    all_elements_on_layer.insert(all_elements_on_layer.end(), move_bounds[layer_idx].begin(), move_bounds[layer_idx].end());
-    for (auto& elem_influence_pair : influence_areas)
-    {
-        all_elements_on_layer.emplace_back(&elem_influence_pair.first);
-    }
-    for (auto& elem_influence_pair : bypass_merge_areas)
-    {
-        all_elements_on_layer.emplace_back(&elem_influence_pair.first);
-    }
-
-    for (const TreeSupportElement* elem : all_elements_on_layer)
-    {
-        if (! elem->can_avoid_anti_preferred_ || config.getCollisionRadius(*elem) != config.getRadius(*elem))
+        std::vector<const TreeSupportElement*> all_elements_on_layer;
+        all_elements_on_layer.insert(all_elements_on_layer.end(), move_bounds[layer_idx].begin(), move_bounds[layer_idx].end());
+        for (auto& elem_influence_pair : influence_areas)
         {
-            const coord_t safe_movement_distance = (elem->use_min_xy_dist_ ? config.xy_min_distance : config.xy_distance) + config.getCollisionRadius(*elem)
-                                                 + (std::min(config.z_distance_top_layers, config.z_distance_bottom_layers) > 0 ? config.min_feature_size : 0);
-
-            bool immutable = elem->area_ != nullptr;
-            bool to_bp = elem->to_buildplate_;
-
-            Polygons relevant_influence;
-            Polygons full_influence;
-            if (! immutable)
+            all_elements_on_layer.emplace_back(&elem_influence_pair.first);
+        }
+        for (auto& elem_influence_pair : bypass_merge_areas)
+        {
+            all_elements_on_layer.emplace_back(&elem_influence_pair.first);
+        }
+        for (const TreeSupportElement* elem : all_elements_on_layer)
+        {
+            if (! elem->ensure_valid_anti_preferred_)
             {
-                relevant_influence = to_bp ? to_bp_areas[*elem] : to_model_areas[*elem];
-                full_influence = bypass_merge_areas.contains(*elem) ? bypass_merge_areas[*elem] : influence_areas[*elem];
-            }
-            else
-            {
-                relevant_influence = elem->area_->difference(volumes_.getCollision(config.getCollisionRadius(*elem), layer_idx, elem->use_min_xy_dist_));
-                full_influence = relevant_influence;
-            }
-            AABB relevant_influence_aabb = AABB(relevant_influence);
+                const coord_t safe_movement_distance = (elem->use_min_xy_dist_ ? config.xy_min_distance : config.xy_distance) + config.getCollisionRadius(*elem)
+                                                     + (std::min(config.z_distance_top_layers, config.z_distance_bottom_layers) > 0 ? config.min_feature_size : 0);
 
-            for (auto [cradle_idx, cradle] : cradle_data[layer_idx] | ranges::views::enumerate)
-            {
-                if (cradle.cradleLineExists() && ! cradle.getCradleLine()->is_base_ && ! removed_lines_idx.contains(cradle_idx))
+                bool immutable = elem->area_ != nullptr;
+                bool to_bp = elem->to_buildplate_;
+
+                Polygons relevant_influence;
+                Polygons full_influence;
+                if (! immutable)
                 {
-                    // The branch created by the influence area cant lag though the model... So the offset needs to be safe...
-                    AABB cradle_area_aabb = AABB(cradle.getCradleLine()->area_);
-                    cradle_area_aabb.expand(config.getRadius(*elem) + config.xy_distance);
-                    if (cradle_area_aabb.hit(relevant_influence_aabb))
-                    {
-                        Polygons cradle_influence = TreeSupportUtils::safeOffsetInc(
-                            cradle.getCradleLine()->area_,
-                            config.getRadius(*elem) + config.xy_distance,
-                            volumes_.getCollision(config.getCollisionRadius(*elem), layer_idx, true),
-                            safe_movement_distance,
-                            0,
-                            1,
-                            config.support_line_distance / 2,
-                            &config.simplifier);
-                        Polygons next_relevant_influence = relevant_influence.difference(cradle_influence);
+                    relevant_influence = to_bp ? to_bp_areas[*elem] : to_model_areas[*elem];
+                    full_influence = bypass_merge_areas.contains(*elem) ? bypass_merge_areas[*elem] : influence_areas[*elem];
+                }
+                else
+                {
+                    relevant_influence = elem->area_->difference(volumes_.getCollision(config.getCollisionRadius(*elem), layer_idx, elem->use_min_xy_dist_));
+                    full_influence = relevant_influence;
+                }
+                AABB relevant_influence_aabb = AABB(relevant_influence);
 
-                        if (next_relevant_influence.area() > EPSILON)
+                for (auto [cradle_idx, cradle] : cradle_data[layer_idx] | ranges::views::enumerate)
+                {
+                    if (cradle.cradleLineExists() && ! cradle.getCradleLine()->is_base_ && ! removed_lines_idx.contains(cradle_idx))
+                    {
+                        // The branch created by the influence area cant lag though the model... So the offset needs to be safe...
+                        AABB cradle_area_aabb = AABB(cradle.getCradleLine()->area_);
+                        cradle_area_aabb.expand(config.getRadius(*elem) + config.xy_distance);
+                        if (cradle_area_aabb.hit(relevant_influence_aabb))
                         {
-                            relevant_influence = next_relevant_influence;
-                            full_influence = full_influence.difference(cradle_influence).unionPolygons(relevant_influence);
-                        }
-                        else
-                        {
-                            // todo Check if non remove options are available eg shortening cradle line...
-                            removed_lines_idx.emplace(cradle_idx);
-                            cradle.getCradleLine()->addLineToRemoved(cradle.getCradleLine()->line_);
-                            cradle.getCradleLine()->line_.clear();
-                            spdlog::debug("Flagging to remove cradle line {} {} ", cradle.layer_idx_, cradle.line_idx_);
+                            Polygons cradle_influence = TreeSupportUtils::safeOffsetInc(
+                                cradle.getCradleLine()->area_,
+                                config.getRadius(*elem) + config.xy_distance,
+                                volumes_.getCollision(config.getCollisionRadius(*elem), layer_idx, true),
+                                safe_movement_distance,
+                                0,
+                                1,
+                                config.support_line_distance / 2,
+                                &config.simplifier);
+                            Polygons next_relevant_influence = relevant_influence.difference(cradle_influence);
+
+                            if (next_relevant_influence.area() > EPSILON)
+                            {
+                                relevant_influence = next_relevant_influence;
+                                full_influence = full_influence.difference(cradle_influence).unionPolygons(relevant_influence);
+                            }
+                            else
+                            {
+                                // todo Check if non remove options are available eg shortening cradle line...
+                                removed_lines_idx.emplace(cradle_idx);
+                                cradle.getCradleLine()->addLineToRemoved(cradle.getCradleLine()->line_);
+                                cradle.getCradleLine()->line_.clear();
+                                spdlog::debug("Flagging to remove cradle line {} {} ", cradle.layer_idx_, cradle.line_idx_);
+                            }
                         }
                     }
                 }
-            }
-            if (! immutable)
-            {
-                (bypass_merge_areas.contains(*elem) ? bypass_merge_areas[*elem] : influence_areas[*elem]) = full_influence;
-                (to_bp ? to_bp_areas[*elem] : to_model_areas[*elem]) = relevant_influence;
+                if (! immutable)
+                {
+                    (bypass_merge_areas.contains(*elem) ? bypass_merge_areas[*elem] : influence_areas[*elem]) = full_influence;
+                    (to_bp ? to_bp_areas[*elem] : to_model_areas[*elem]) = relevant_influence;
+                }
             }
         }
-    }
-    for (auto [cradle_idx, cradle] : cradle_data[layer_idx] | ranges::views::enumerate)
-    {
-        if (cradle.cradleLineExists())
+        for (auto [cradle_idx, cradle] : cradle_data[layer_idx] | ranges::views::enumerate)
         {
-            cradle.cradle_->verifyLines();
+            if (cradle.cradleLineExists())
+            {
+                cradle.cradle_->verifyLines();
+            }
         }
     }
 

@@ -35,7 +35,7 @@ public:
      * \param move_bounds[out] The storage for the tips.
      * \param placed_support_lines_support_areas[out] Support-lines that were already placed represented as the area the lines will take when printed.
      * \param support_free_areas[out] Areas where no support (including roof) of any kind is to be drawn.
-     * \param cradle_data_export[out] Generated cradle lines.
+     * \param cradle_data[in] Generated cradle lines.
      * \return All lines of the \p polylines object, with information for each point regarding in which avoidance it is currently valid in.
      */
     void generateTips(
@@ -44,7 +44,7 @@ public:
         std::vector<std::set<TreeSupportElement*>>& move_bounds,
         std::vector<std::vector<FakeRoofArea>>& placed_fake_roof_areas,
         std::vector<Polygons>& support_free_areas,
-        std::vector<std::vector<TreeSupportCradle*>>& cradle_data_export);
+        std::vector<std::vector<TreeSupportCradle*>>& cradle_data);
 
 private:
     enum class LineStatus
@@ -64,20 +64,6 @@ private:
         IS_ROOF
     };
 
-    struct UnsupportedAreaInformation
-    {
-        UnsupportedAreaInformation(const Polygons area, size_t index, size_t height, coord_t accumulated_supportable_overhang)
-            : area{ area }
-            , index{ index }
-            , height{ height }
-            , accumulated_supportable_overhang{ accumulated_supportable_overhang }
-        {
-        }
-        const Polygons area;
-        size_t index;
-        size_t height;
-        coord_t accumulated_supportable_overhang;
-    };
 
     using LineInformation = std::vector<std::pair<Point2LL, TreeSupportTipGenerator::LineStatus>>;
 
@@ -140,64 +126,6 @@ private:
     std::shared_ptr<SierpinskiFillProvider> getCrossFillProvider(const SliceMeshStorage& mesh, coord_t line_distance, coord_t line_width);
 
     /*!
-     * \brief Provides areas that do not have a connection to the buildplate or a certain height.
-     * \param layer_idx The layer said area is on.
-     * \param idx_of_area The index of the area. Only areas that either rest on this area or this area rests on (depending on above) will be returned
-     * \param above Should the areas above it, that rest on this area should be returned (if true) or if areas that this area rests on (if false) should be returned.
-     * \return A vector containing the areas, how many layers of material they have below them and the idx of each area usable to get the next one layer above.
-     */
-    std::vector<UnsupportedAreaInformation> getUnsupportedArea(LayerIndex layer_idx, size_t idx_of_area, bool above);
-
-    /*!
-     * \brief Provides areas that do not have a connection to the buildplate or any other non support material below it.
-     * \param layer_idx The layer said area is on.
-     * \return A vector containing the areas, how many layers of material they have below them (always 0) and the idx of each area usable to get the next one layer above.
-     */
-    std::vector<UnsupportedAreaInformation> getFullyUnsupportedArea(LayerIndex layer_idx);
-
-    /*!
-     * \brief Calculates which parts of the model to not connect with the buildplate and how many layers of material is below them (height).
-     * Results are stored in a cache.
-     * Only area up to the required maximum height are stored.
-     * \param mesh[in] The mesh that is currently processed.
-     */
-    void calculateFloatingParts(const SliceMeshStorage& mesh);
-
-    /*!
-     * \brief Generate the center points of all generated cradles.
-     * \param shadow_data[in] The accumulated model of given pointy overhangs
-     * \returns The accumulated model of given pointy overhangs
-     */
-    std::vector<std::vector<std::vector<Polygons>>> generateCradleCenters(const SliceMeshStorage& mesh);
-
-    /*!
-     * \brief Generate lines from center and model information
-     * Only area up to the required maximum height are stored.
-     * \param shadow_data[in] The accumulated model of given pointy overhangs
-     */
-    void generateCradleLines(std::vector<std::vector<std::vector<Polygons>>>& shadow_data);
-
-    /*!
-     * \brief Ensures cradle-lines do not intersect with each other.
-     */
-    void cleanCradleLineOverlaps();
-
-    /*!
-     * \brief Finishes the cradle areas that represent cradle base and lines and calculates overhang for them.
-     * \param shadow_data[in] The accumulated model of given pointy overhangs
-     * \param support_free_areas[out] Areas where support will have to be removed, to guarantee that a line is around it.
-     */
-    void generateCradleLineAreasAndBase(std::vector<std::vector<std::vector<Polygons>>>& shadow_data, std::vector<Polygons>& support_free_areas);
-
-
-    /*!
-     * \brief Generate a cradle to stabilize pointy overhang
-     * \param mesh[in] The mesh that is currently processed.
-     * \param support_free_areas[out] Areas where no support may be.
-     */
-    void generateCradle(const SliceMeshStorage& mesh, std::vector<Polygons>& support_free_areas);
-
-    /*!
      * \brief Drops overhang areas further down until they are valid (at most max_overhang_insert_lag layers)
      * \param mesh[in] The mesh that is currently processed.
      * \param result[out] The dropped overhang ares
@@ -208,8 +136,9 @@ private:
     /*!
      * \brief Calculates which areas should be supported with roof, and saves these in roof support_roof_drawn
      * \param mesh[in] The mesh that is currently processed.
+     * \param cradle_data[in] Cradles for this mesh if applicable
      */
-    void calculateRoofAreas(const SliceMeshStorage& mesh);
+    void calculateRoofAreas(const SliceMeshStorage& mesh, std::vector<std::vector<TreeSupportCradle*>>& cradle_data);
 
     /*!
      * \brief Add a point as a tip
@@ -261,8 +190,9 @@ private:
      * \brief Remove tips that should not have been added in the first place.
      * \param move_bounds[in,out] The already added tips
      * \param storage[in] Background storage, required for adding roofs.
+     * \param cradle_data[in] Cradles for this mesh if applicable
      */
-    void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage);
+    void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<std::vector<TreeSupportCradle*>>& cradle_data);
 
     /*!
      * \brief Contains config settings to avoid loading them in every function. This was done to improve readability of the code.
@@ -383,91 +313,13 @@ private:
     std::vector<Polygons> support_roof_drawn_fractional_;
 
     /*!
-     * \brief Representation of all cradles ordered by layer_idx.
-     */
-    std::vector<std::vector<TreeSupportCradle*>> cradle_data_;
-
-    /*!
-     * \brief Amount of layers of the cradle to support pointy overhangs.
-     */
-    size_t cradle_layers_;
-
-    /*!
-     * \brief Minimum amount of layers of the cradle to support pointy overhangs.
-     */
-    size_t cradle_layers_min_;
-
-    /*!
-     * \brief Amount of lines used for the cradle.
-     */
-    size_t cradle_line_count_;
-
-    /*!
-     * \brief Length of lines used for the cradle.
-     */
-    coord_t cradle_length_;
-
-    /*!
-     * \brief Minimum length of lines used for the cradle. TODO Width is effectively added to length ... fix or document?
-     */
-    coord_t cradle_length_min_;
-
-    /*!
-     * \brief Width of lines used for the cradle.
-     */
-    coord_t cradle_line_width_;
-
-    /*!
-     * \brief If cradle lines should be drawn as roof.
-     */
-    bool cradle_lines_roof_;
-
-    /*!
-     * \brief If the cradle base should be drawn as roof.
-     */
-    bool cradle_base_roof_;
-
-    /*!
-     * \brief If the (roof) cradle base should contain all cradle lines at cradle_tip_dtt size.
-     */
-    bool large_cradle_base_;
-
-
-    /*!
-     * \brief Maximum area of an overhang to still receive a cradle. Unit is square-microns!
-     */
-    double cradle_area_threshold_;
-
-    /*!
-     * \brief Distance to top of tips that support either the pointy overhang or the cradle lines at the bottom-most layer.
-     */
-    size_t cradle_tip_dtt_;
-
-    /*!
      * \brief If the cradle lines should also be supported by larger tips.
      */
     bool large_cradle_line_tips_;
 
-    /*!
-     * \brief Distances the cradle lines should be from the model. First value corresponds to cradle line on the same layer as the first model line.
-     */
-    std::vector<coord_t> cradle_xy_distance_;
-
-    /*!
-     * \brief Distances in lines between the cradle and the support they are supported by.
-     */
-    size_t cradle_z_distance_layers_;
-
-    std::mutex critical_cradle_;
     std::mutex critical_move_bounds_;
-    std::mutex critical_roof_tips_;
     std::mutex critical_cross_fill_;
 
-    mutable std::vector<std::vector<UnsupportedAreaInformation>> floating_parts_cache_;
-    mutable std::vector<std::vector<std::vector<size_t>>> floating_parts_map_;
-    mutable std::vector<std::vector<std::vector<size_t>>> floating_parts_map_below_;
-
-    std::unique_ptr<std::mutex> critical_floating_parts_cache_ = std::make_unique<std::mutex>();
 };
 
 } // namespace cura

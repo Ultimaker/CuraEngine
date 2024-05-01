@@ -53,35 +53,10 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, T
     , already_inserted_(mesh.overhang_areas.size())
     , support_roof_drawn_(mesh.overhang_areas.size(), Polygons())
     , support_roof_drawn_fractional_(mesh.overhang_areas.size(), Polygons())
-    , cradle_data_(mesh.overhang_areas.size())
     , force_minimum_roof_area_(use_fake_roof_ || SUPPORT_TREE_MINIMUM_ROOF_AREA_HARD_LIMIT)
     , force_initial_layer_radius_(retrieveSetting<bool>(mesh.settings, "support_tree_enforce_initial_layer_diameter"))
-    , cradle_layers_(retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_height") / config_.layer_height)
-    , cradle_layers_min_(retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_min_height") / config_.layer_height)
-    , cradle_line_count_(retrieveSetting<size_t>(mesh.settings, "support_tree_cradle_line_count"))
-    , cradle_length_(retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_length"))
-    , cradle_length_min_(retrieveSetting<coord_t>(mesh.settings, "support_tree_min_cradle_length"))
-    , cradle_line_width_(retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_line_width"))
-    , cradle_lines_roof_(! use_fake_roof_ && retrieveSetting<std::string>(mesh.settings, "support_tree_roof_cradle") != "none")
-    , cradle_base_roof_(
-          ! use_fake_roof_
-          && (retrieveSetting<std::string>(mesh.settings, "support_tree_roof_cradle") == "cradle_and_base"
-              || retrieveSetting<std::string>(mesh.settings, "support_tree_roof_cradle") == "large_cradle_and_base"))
-    , large_cradle_base_(! use_fake_roof_ && retrieveSetting<std::string>(mesh.settings, "support_tree_roof_cradle") == "large_cradle_and_base")
-    , cradle_area_threshold_(1000 * 1000 * retrieveSetting<double>(mesh.settings, "support_tree_maximum_pointy_area"))
-    , cradle_tip_dtt_(config_.tip_layers * retrieveSetting<double>(mesh.settings, "support_tree_cradle_base_tip_percentage") / 100.0)
     , large_cradle_line_tips_(retrieveSetting<bool>(mesh.settings, "support_tree_large_cradle_line_tips"))
-    , cradle_z_distance_layers_(round_divide(retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_z_distance"), config_.layer_height))
 {
-    if (cradle_layers_)
-    {
-        cradle_layers_ += cradle_z_distance_layers_;
-    }
-    if (cradle_length_ - cradle_line_width_ > 0)
-    {
-        cradle_length_ -= cradle_line_width_;
-        cradle_length_min_ -= cradle_line_width_;
-    }
 
     const double support_overhang_angle = mesh.settings.get<AngleRadians>("support_angle");
     const coord_t max_overhang_speed = (support_overhang_angle < TAU / 4) ? (coord_t)(tan(support_overhang_angle) * config_.layer_height) : std::numeric_limits<coord_t>::max();
@@ -125,38 +100,6 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, T
         dtt_when_tips_can_merge = config_.tip_layers; // arbitrary default for when there is no guarantee that the while loop above will terminate
     }
     support_supporting_branch_distance_ = 2 * config_.getRadius(dtt_when_tips_can_merge) + config_.support_line_width + FUDGE_LENGTH;
-
-
-    for (size_t cradle_z_dist_ctr = 0; cradle_z_dist_ctr < cradle_z_distance_layers_ + 1; cradle_z_dist_ctr++)
-    {
-        cradle_xy_distance_.emplace_back(config_.xy_min_distance);
-    }
-
-    for (int i = 0; i < 9; i++)
-    {
-        std::stringstream setting_name_dist;
-        setting_name_dist << "support_tree_cradle_xy_dist_";
-        setting_name_dist << i;
-        coord_t next_cradle_xy_dist = retrieveSetting<coord_t>(mesh.settings, setting_name_dist.str());
-        std::stringstream setting_name_height;
-        setting_name_height << "support_tree_cradle_xy_height_";
-        setting_name_height << i;
-        coord_t next_cradle_xy_dist_height = retrieveSetting<coord_t>(mesh.settings, setting_name_height.str());
-        if (next_cradle_xy_dist_height == 0)
-        {
-            break;
-        }
-
-        for (int layer_delta = 0; layer_delta < round_up_divide(next_cradle_xy_dist_height, config_.layer_height); layer_delta++)
-        {
-            cradle_xy_distance_.emplace_back(next_cradle_xy_dist);
-        }
-    }
-
-    for (int cradle_xy_dist_fill = cradle_xy_distance_.size(); cradle_xy_dist_fill <= cradle_layers_ + 1; cradle_xy_dist_fill++)
-    {
-        cradle_xy_distance_.emplace_back(config_.xy_min_distance);
-    }
 }
 
 
@@ -469,1097 +412,6 @@ std::shared_ptr<SierpinskiFillProvider> TreeSupportTipGenerator::getCrossFillPro
     return nullptr;
 }
 
-void TreeSupportTipGenerator::calculateFloatingParts(const SliceMeshStorage& mesh)
-{
-    LayerIndex max_layer = 0;
-
-    for (LayerIndex layer_idx = 0; layer_idx < mesh.overhang_areas.size(); layer_idx++)
-    {
-        if (! mesh.overhang_areas[layer_idx].empty())
-        {
-            max_layer = layer_idx;
-        }
-    }
-    max_layer = std::min(max_layer + cradle_layers_, LayerIndex(mesh.overhang_areas.size() - 1));
-
-    LayerIndex start_layer = 1;
-    floating_parts_cache_.resize(max_layer + 1);
-    floating_parts_map_.resize(max_layer + 1);
-    floating_parts_map_below_.resize(max_layer + 1);
-    std::mutex critical_sections;
-
-    Polygons completely_supported = volumes_.getCollision(0, 0, true);
-    Polygons layer_below = completely_supported; // technically wrong, but the xy distance error on layer 1 should not matter
-    for (size_t layer_idx = start_layer; layer_idx < max_layer; layer_idx++)
-    {
-        Polygons next_completely_supported;
-
-        // As the collision contains z distance and xy distance it cant be used to clearly identify which parts of the model are connected to the buildplate.
-        Polygons layer = mesh.layers[layer_idx].getOutlines();
-
-        const std::vector<PolygonsPart> layer_parts = layer.splitIntoParts();
-        cura::parallel_for<size_t>(
-            0,
-            layer_parts.size(),
-            [&](const size_t part_idx)
-            {
-                const PolygonsPart& part = layer_parts[part_idx];
-                AABB part_aabb(part);
-                bool has_support_below = ! PolygonUtils::clipPolygonWithAABB(layer_below, part_aabb).intersection(part).empty();
-
-                if (! completely_supported.intersection(part).empty() || (! has_support_below && part.area() > cradle_area_threshold_))
-                {
-                    std::lock_guard<std::mutex> critical_section_add(critical_sections);
-                    next_completely_supported.add(part);
-                    return;
-                }
-
-                Polygons overhang = mesh.overhang_areas[layer_idx].intersection(part);
-                coord_t overhang_area = std::max(overhang.area(), std::numbers::pi * config_.min_wall_line_width * config_.min_wall_line_width);
-                if (! has_support_below)
-                {
-                    std::lock_guard<std::mutex> critical_section_add(critical_sections);
-                    floating_parts_cache_[layer_idx].emplace_back(part, floating_parts_cache_[layer_idx].size(), 0, overhang_area);
-                    floating_parts_map_[layer_idx].emplace_back(std::vector<size_t>());
-                    floating_parts_map_below_[layer_idx].emplace_back(std::vector<size_t>());
-                    return;
-                }
-
-                size_t min_resting_on_layers = 0;
-                coord_t supported_overhang_area = 0;
-                bool add = false;
-                std::vector<size_t> idx_of_floating_below;
-                for (auto [idx, floating] : floating_parts_cache_[layer_idx - 1] | ranges::views::enumerate)
-                {
-                    if (layer_idx > 1 && floating.height < cradle_layers_ - 1 && ! floating.area.intersection(part).empty())
-                    {
-                        idx_of_floating_below.emplace_back(idx);
-                        supported_overhang_area += floating.accumulated_supportable_overhang;
-                        min_resting_on_layers = std::max(min_resting_on_layers, floating.height);
-                        add = true;
-                    }
-                }
-
-
-                if (min_resting_on_layers < cradle_layers_ && add && overhang_area + supported_overhang_area < cradle_area_threshold_)
-                {
-                    std::lock_guard<std::mutex> critical_section_add(critical_sections);
-                    for (size_t idx : idx_of_floating_below)
-                    {
-                        floating_parts_map_[layer_idx - 1][idx].emplace_back(floating_parts_cache_[layer_idx].size());
-                    }
-
-                    floating_parts_map_[layer_idx].emplace_back(std::vector<size_t>());
-                    floating_parts_map_below_[layer_idx].emplace_back(idx_of_floating_below);
-                    floating_parts_cache_[layer_idx]
-                        .emplace_back(part, floating_parts_cache_[layer_idx].size(), min_resting_on_layers + 1, overhang_area + supported_overhang_area);
-                }
-                else
-                {
-                    std::lock_guard<std::mutex> critical_section_add(critical_sections);
-                    next_completely_supported.add(part);
-                }
-            });
-        layer_below = layer;
-        completely_supported = next_completely_supported;
-    }
-}
-
-std::vector<TreeSupportTipGenerator::UnsupportedAreaInformation> TreeSupportTipGenerator::getUnsupportedArea(LayerIndex layer_idx, size_t idx_of_area, bool above)
-{
-    std::vector<UnsupportedAreaInformation> result;
-
-    if (layer_idx == 0)
-    {
-        return result;
-    }
-
-    bool has_result = false;
-
-    {
-        std::lock_guard<std::mutex> critical_section(*critical_floating_parts_cache_);
-        has_result = layer_idx < floating_parts_cache_.size();
-    }
-
-    if (has_result)
-    {
-        std::lock_guard<std::mutex> critical_section(*critical_floating_parts_cache_);
-        if (! floating_parts_cache_[layer_idx].empty() && above)
-        {
-            for (size_t resting_idx : floating_parts_map_[layer_idx - 1][idx_of_area])
-            {
-                result.emplace_back(floating_parts_cache_[layer_idx][resting_idx]);
-            }
-        }
-        else if (! floating_parts_cache_[layer_idx - 1].empty() && ! above)
-        {
-            for (size_t resting_idx : floating_parts_map_below_[layer_idx][idx_of_area])
-            {
-                result.emplace_back(floating_parts_cache_[layer_idx - 1][resting_idx]);
-            }
-        }
-    }
-    else
-    {
-        spdlog::error("Requested not calculated unsupported area.");
-        return result;
-    }
-    return result;
-}
-
-
-std::vector<TreeSupportTipGenerator::UnsupportedAreaInformation> TreeSupportTipGenerator::getFullyUnsupportedArea(LayerIndex layer_idx)
-{
-    std::vector<UnsupportedAreaInformation> result;
-
-    if (layer_idx == 0)
-    {
-        return result;
-    }
-
-    bool has_result = false;
-    {
-        std::lock_guard<std::mutex> critical_section(*critical_floating_parts_cache_);
-        has_result = layer_idx < floating_parts_cache_.size();
-    }
-
-    if (has_result)
-    {
-        std::lock_guard<std::mutex> critical_section(*critical_floating_parts_cache_);
-        for (auto [idx, floating_data] : floating_parts_cache_[layer_idx] | ranges::views::enumerate)
-        {
-            if (floating_data.height == 0)
-            {
-                result.emplace_back(floating_data);
-            }
-        }
-    }
-    else
-    {
-        spdlog::error("Requested not calculated unsupported area.", layer_idx);
-        return result;
-    }
-    return result;
-}
-
-std::vector<std::vector<std::vector<Polygons>>> TreeSupportTipGenerator::generateCradleCenters(const SliceMeshStorage& mesh)
-{
-    std::mutex critical_dedupe;
-    std::vector<std::unordered_set<size_t>> dedupe(mesh.overhang_areas.size());
-    std::vector<std::vector<std::vector<Polygons>>> shadows(mesh.overhang_areas.size());
-    cura::parallel_for<coord_t>(
-        1,
-        mesh.overhang_areas.size() - (z_distance_delta_ + 1),
-        [&](const LayerIndex layer_idx)
-        {
-            if (mesh.overhang_areas[layer_idx + z_distance_delta_].empty() || getFullyUnsupportedArea(layer_idx + z_distance_delta_).empty())
-            {
-                return;
-            }
-
-            for (auto pointy_info : getFullyUnsupportedArea(layer_idx + z_distance_delta_))
-            {
-                AABB overhang_aabb(mesh.overhang_areas[layer_idx + z_distance_delta_]);
-                if (PolygonUtils::clipPolygonWithAABB(mesh.overhang_areas[layer_idx + z_distance_delta_], overhang_aabb).intersection(pointy_info.area).empty())
-                {
-                    // It will be assumed that if it touches this mesh's overhang, it will be part of that mesh.
-                    continue;
-                }
-
-                std::vector<Polygons> accumulated_model(std::min(cradle_layers_ + z_distance_delta_, mesh.overhang_areas.size() - layer_idx), Polygons());
-                std::vector<size_t> all_pointy_idx{ pointy_info.index };
-
-                Point2LL center_prev = Polygon(pointy_info.area.getOutsidePolygons()[0]).centerOfMass();
-                std::vector<Point2LL> additional_centers;
-                TreeSupportCradle* cradle_main
-                    = new TreeSupportCradle(layer_idx, center_prev, shadows[layer_idx].size(), cradle_base_roof_, cradle_layers_min_, cradle_length_min_, cradle_line_count_);
-                for (size_t z_distance = 0; z_distance < config_.z_distance_top_layers; z_distance++)
-                {
-                    accumulated_model[z_distance] = pointy_info.area;
-                    cradle_main->centers_.emplace_back(center_prev);
-                }
-                Polygons shadow; // A combination of all outlines of the model that will be supported with a cradle.
-                bool aborted = false;
-                bool contacted_other_pointy = false;
-                std::vector<Polygons> unsupported_model(accumulated_model.size());
-                for (size_t cradle_up_layer = 0; cradle_up_layer < accumulated_model.size(); cradle_up_layer++)
-                {
-                    // shadow model up => not cradle where model
-                    // then drop cradle down
-                    // cut into parts => get close to original pointy that are far enough from each other.
-                    std::vector<size_t> next_pointy_idx;
-                    Polygons model_outline;
-                    bool blocked_by_dedupe = false;
-                    // The cradle base is below the bottommost unsupported and the first cradle layer is around it, so this will be needed only for the second one and up
-                    if (cradle_up_layer > 1)
-                    {
-                        for (size_t pointy_idx : all_pointy_idx)
-                        {
-                            for (auto next_pointy_data : getUnsupportedArea(layer_idx + cradle_up_layer - 1 + z_distance_delta_, pointy_idx, true))
-                            {
-                                if (next_pointy_data.height
-                                    != (cradle_up_layer - 1) + pointy_info.height) // If the area belongs to another pointy overhang stop and let this other overhang handle it
-                                {
-                                    contacted_other_pointy = true;
-                                    continue;
-                                }
-                                unsupported_model[cradle_up_layer].add(next_pointy_data.area);
-                                // Ensure each area is only handles once
-                                std::lock_guard<std::mutex> critical_section_cradle(critical_dedupe);
-                                if (! dedupe[layer_idx + cradle_up_layer].contains(next_pointy_data.index))
-                                {
-                                    dedupe[layer_idx + cradle_up_layer].emplace(next_pointy_data.index);
-                                    model_outline.add(next_pointy_data.area);
-                                    next_pointy_idx.emplace_back(next_pointy_data.index);
-                                }
-                                else
-                                {
-                                    blocked_by_dedupe = true;
-                                }
-
-                                std::vector<size_t> all_pointy_idx_below{ next_pointy_data.index };
-                                for (int64_t cradle_down_layer = cradle_up_layer; cradle_down_layer > 0 && ! all_pointy_idx_below.empty(); cradle_down_layer--)
-                                {
-                                    std::vector<size_t> next_all_pointy_idx_below;
-
-                                    for (size_t pointy_idx_below : all_pointy_idx_below)
-                                    {
-                                        for (auto prev_pointy_data : getUnsupportedArea(layer_idx + cradle_down_layer - 1 + z_distance_delta_, pointy_idx_below, false))
-                                        {
-                                            if (prev_pointy_data.index != pointy_idx || cradle_down_layer != cradle_up_layer)
-                                            {
-                                                // Only add if area below does not have it's own cradle.
-                                                if (prev_pointy_data.height < cradle_layers_min_)
-                                                {
-                                                    accumulated_model[cradle_down_layer].add(prev_pointy_data.area);
-                                                    next_all_pointy_idx_below.emplace_back(prev_pointy_data.index);
-                                                }
-                                            }
-                                        }
-                                    }
-                                    all_pointy_idx_below = next_all_pointy_idx_below;
-                                    accumulated_model[cradle_down_layer] = accumulated_model[cradle_down_layer].unionPolygons();
-                                }
-                            }
-                        }
-                        all_pointy_idx = next_pointy_idx;
-                    }
-                    else
-                    {
-                        model_outline.add(pointy_info.area);
-                    }
-
-                    if (model_outline.empty())
-                    {
-                        if (cradle_up_layer < cradle_layers_min_)
-                        {
-                            aborted = true;
-                            break;
-                        }
-
-                        if (! blocked_by_dedupe)
-                        {
-                            // The model is surrounded with cradle based on the area above (z distance).
-                            // When an area that should have a cradle merges with a buildplate supported area above, it will no longer exist for a cradle.
-                            // But if the cradle stops there will be z distance layer between the end of the cradle and said merge.
-                            // To reduce the impact an area is estimated where the cradle should be for these areas.
-                            Polygons previous_area = shadow;
-                            for (size_t cradle_up_layer_z_distance = cradle_up_layer;
-                                 cradle_up_layer_z_distance < std::min(cradle_up_layer + z_distance_delta_ - 1, accumulated_model.size() - config_.z_distance_top_layers);
-                                 cradle_up_layer_z_distance++)
-                            {
-                                accumulated_model[cradle_up_layer_z_distance + config_.z_distance_top_layers] = unsupported_model[cradle_up_layer_z_distance].unionPolygons();
-                            }
-                        }
-                        break;
-                    }
-
-                    model_outline = model_outline.unionPolygons();
-                    shadow = shadow.offset(-config_.maximum_move_distance).unionPolygons(model_outline);
-                    accumulated_model[cradle_up_layer + config_.z_distance_top_layers] = shadow;
-
-                    if (cradle_up_layer > 0)
-                    {
-                        Point2LL shadow_center = Polygon(shadow.getOutsidePolygons()[0]).centerOfMass();
-                        coord_t center_move_distance = std::min(config_.maximum_move_distance_slow, cradle_line_width_ / 3);
-                        center_move_distance = std::min(center_move_distance, vSize(shadow_center - center_prev));
-                        center_prev = center_prev + normal(shadow_center - center_prev, center_move_distance);
-                        cradle_main->centers_.emplace_back(center_prev);
-                    }
-                }
-
-                if (aborted)
-                {
-                    // If aborted remove all model information for the cradle generation except the pointy overhang, as it may be needed to cut a small hole in the large interface
-                    // base. todo reimplement that
-
-                    Polygons cradle_0 = accumulated_model[0];
-                    accumulated_model.clear();
-                    accumulated_model.emplace_back(cradle_0);
-                    delete cradle_main;
-                }
-                else
-                {
-                    cradle_data_[layer_idx].emplace_back(cradle_main);
-                }
-                shadows[layer_idx].emplace_back(accumulated_model);
-            }
-        });
-
-    return shadows;
-}
-
-void TreeSupportTipGenerator::generateCradleLines(std::vector<std::vector<std::vector<Polygons>>>& shadow_data)
-{
-    const coord_t max_cradle_xy_distance = *std::max_element(cradle_xy_distance_.begin(), cradle_xy_distance_.end());
-
-    cura::parallel_for<coord_t>(
-        1,
-        cradle_data_.size(),
-        [&](const LayerIndex layer_idx)
-        {
-            for (auto [center_idx, cradle] : cradle_data_[layer_idx] | ranges::views::enumerate)
-            {
-                std::vector<bool> removed_directions(cradle_line_count_);
-                const auto& accumulated_model = shadow_data[layer_idx][cradle->shadow_idx_];
-                for (auto [idx, model_shadow] : accumulated_model | ranges::views::enumerate)
-                {
-                    Point2LL center = cradle->getCenter(layer_idx + idx);
-                    const coord_t current_cradle_xy_distance = cradle_xy_distance_[idx];
-                    const coord_t current_cradle_length = cradle_length_ + max_cradle_xy_distance - current_cradle_xy_distance;
-
-                    if (cradle->lines_.empty())
-                    {
-                        cradle->lines_.resize(cradle_line_count_);
-                    }
-
-                    if (idx > cradle_z_distance_layers_ && ! model_shadow.empty())
-                    {
-                        Polygons relevant_forbidden = volumes_.getAvoidance(
-                            0,
-                            layer_idx + idx,
-                            (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
-                            config_.support_rests_on_model,
-                            true);
-
-                        Polygons this_part_influence = model_shadow.offset(current_cradle_xy_distance + cradle_line_width_ / 2);
-
-                        for (size_t layer_offset = 1; layer_offset <= config_.z_distance_bottom_layers && layer_offset <= idx; layer_offset++)
-                        {
-                            this_part_influence.add(accumulated_model[idx - layer_offset].offset(current_cradle_xy_distance + cradle_line_width_ / 2));
-                        }
-
-                        for (coord_t layer_offset = 1; layer_offset <= config_.z_distance_top_layers && layer_offset + idx < accumulated_model.size(); layer_offset++)
-                        {
-                            const coord_t required_range_x = coord_t(
-                                (current_cradle_xy_distance + cradle_line_width_ / 2)
-                                - ((layer_offset - (config_.z_distance_top_layers == 1 ? 0.5 : 0)) * (current_cradle_xy_distance + cradle_line_width_ / 2)
-                                   / config_.z_distance_top_layers));
-                            this_part_influence.add(accumulated_model[idx + layer_offset].offset(required_range_x));
-                        }
-
-                        this_part_influence = this_part_influence.unionPolygons();
-
-                        coord_t cradle_min_xy_distance_delta = std::max(config_.xy_min_distance - current_cradle_xy_distance, coord_t(0));
-
-                        // Somewhere, Somehow there is a small rounding error which causes small slivers of collision of the model to remain.
-                        //  To prevent this offset my the delta before removing the influence of the model.
-                        relevant_forbidden = relevant_forbidden.offset(-cradle_min_xy_distance_delta)
-                                                 .difference(this_part_influence.offset(cradle_min_xy_distance_delta + EPSILON).unionPolygons())
-                                                 .offset(cradle_min_xy_distance_delta + cradle_line_width_ / 2 + FUDGE_LENGTH)
-                                                 .unionPolygons(this_part_influence)
-                                                 .unionPolygons(volumes_.getSupportBlocker(layer_idx + idx).offset(cradle_line_width_ / 2));
-                        coord_t max_distance2 = 0;
-                        for (auto line : model_shadow)
-                        {
-                            for (Point2LL p : line)
-                            {
-                                max_distance2 = std::max(max_distance2, vSize2(center - p));
-                            }
-                        }
-
-                        Polygon max_outer_points = PolygonUtils::makeCircle(
-                            center,
-                            sqrt(max_distance2) + current_cradle_length * 2.0,
-                            std::min((2.0 * std::numbers::pi) / double(cradle_line_count_), 1.9 * std::numbers::pi));
-
-                        // create lines that go from the furthest possible location to the center
-                        Polygons lines_to_center;
-                        for (Point2LL p : max_outer_points)
-                        {
-                            Point2LL direction = p - center;
-                            lines_to_center.addLine(p, center + normal(direction, config_.support_line_width));
-                        }
-
-                        // Subtract the model shadow up until this layer from the lines.
-                        if (idx > 0)
-                        {
-                            lines_to_center = model_shadow.offset(current_cradle_xy_distance + cradle_line_width_ / 2).unionPolygons().differencePolyLines(lines_to_center, false);
-                        }
-
-                        // shorten lines to be at most SUPPORT_TREE_CRADLE_WIDTH long, with the location closest to the center not changing
-                        Polygons shortened_lines_to_center;
-                        for (auto [line_idx, line] : lines_to_center | ranges::views::enumerate)
-                        {
-                            bool front_closer = vSize2(line.front() - center) < vSize2(line.back() - center);
-                            Point2LL closer = front_closer ? line.front() : line.back();
-                            Point2LL further = front_closer ? line.back() : line.front();
-                            coord_t cradle_line_length = Polygon(line).polylineLength();
-                            if (cradle_line_length < cradle_length_min_)
-                            {
-                                continue;
-                            }
-                            if (Polygon(line).polylineLength() <= current_cradle_length)
-                            {
-                                shortened_lines_to_center.add(line);
-                            }
-                            else
-                            {
-                                double scale = (double(current_cradle_length) / double(vSize(further - closer)));
-                                Point2LL correct_length = closer + (further - closer) * scale;
-                                shortened_lines_to_center.addLine(correct_length, closer);
-                            }
-                        }
-                        // If a line is drawn, but half of it removed as it would collide with the collision, there may not actually be a print line. The offset should prevent
-                        // this.
-                        shortened_lines_to_center = relevant_forbidden.differencePolyLines(shortened_lines_to_center, false);
-                        std::vector<Polygon> ordered_lines_to_center(cradle_line_count_);
-
-                        // Evaluate which lines are still valid after the avoidance was subtracted
-                        for (auto [line_idx, line] : shortened_lines_to_center | ranges::views::enumerate)
-                        {
-                            bool front_closer = vSize2(line.front() - center) < vSize2(line.back() - center);
-                            Point2LL closer = front_closer ? line.front() : line.back();
-                            Point2LL further = front_closer ? line.back() : line.front();
-                            Point2LL current_direction = further - closer;
-                            coord_t distance_from_center = vSize(closer - center);
-                            size_t angle_idx = cradle->getIndexForLineEnd(further, layer_idx + idx);
-
-                            if (removed_directions[angle_idx])
-                            {
-                                continue;
-                            }
-
-                            bool keep_line = false;
-                            bool found_candidate = false;
-                            bool too_short = (vSize(closer - further)) < cradle_length_min_;
-                            bool too_long_jump
-                                = ! cradle->lines_[angle_idx].empty() && vSize(cradle->lines_[angle_idx].back().line_.front() - closer) > sqrt(cradle_area_threshold_) / 2;
-                            // a cradle line should also be removed if there will be no way to support it
-                            if (idx >= cradle_z_distance_layers_ + 1)
-                            {
-                                const Polygons actually_forbidden = volumes_.getAvoidance(
-                                    config_.getRadius(0),
-                                    layer_idx + idx - (cradle_z_distance_layers_ + 1),
-                                    (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
-                                    config_.support_rests_on_model,
-                                    true);
-                                too_short |= actually_forbidden.differencePolyLines(shortened_lines_to_center[line_idx].offset(0)).polyLineLength() < config_.support_line_width;
-                            }
-                            if (! too_short && ! too_long_jump)
-                            {
-                                if (ordered_lines_to_center[angle_idx].empty())
-                                {
-                                    ordered_lines_to_center[angle_idx].add(closer);
-                                    ordered_lines_to_center[angle_idx].add(further);
-                                }
-                                else
-                                {
-                                    // Prefer lines not touching the center. Otherwise, prefer the line closest to the center
-                                    if (distance_from_center > FUDGE_LENGTH)
-                                    {
-                                        if (vSize(ordered_lines_to_center[angle_idx].front() - center) < FUDGE_LENGTH)
-                                        {
-                                            ordered_lines_to_center[angle_idx].clear();
-                                            ordered_lines_to_center[angle_idx].add(closer);
-                                            ordered_lines_to_center[angle_idx].add(further);
-                                        }
-                                        else if (distance_from_center < vSize(ordered_lines_to_center[angle_idx].front() - center))
-                                        {
-                                            ordered_lines_to_center[angle_idx].clear();
-                                            ordered_lines_to_center[angle_idx].add(closer);
-                                            ordered_lines_to_center[angle_idx].add(further);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        for (auto [angle_idx, next_line] : ordered_lines_to_center | ranges::views::enumerate)
-                        {
-                            if (next_line.empty())
-                            {
-                                removed_directions[angle_idx] = true;
-                                continue;
-                            }
-                            Polygon line(next_line);
-                            // Handle cradle_z_distance_layers by overwriting first element in the vector until valid distance is reached.
-                            if (idx <= cradle_z_distance_layers_ + 1 && ! cradle->lines_[angle_idx].empty())
-                            {
-                                cradle->lines_[angle_idx][0] = TreeSupportCradleLine(line, layer_idx + idx, cradle_lines_roof_);
-                            }
-                            else
-                            {
-                                cradle->lines_[angle_idx].emplace_back(TreeSupportCradleLine(line, layer_idx + idx, cradle_lines_roof_));
-                            }
-                        }
-                    }
-                }
-
-                // enlarge cradle lines below to minimize overhang of cradle lines.
-                for (auto [line_idx, cradle_lines] : cradle->lines_ | ranges::views::enumerate)
-                {
-                    if (! cradle_lines.empty())
-                    {
-                        Point2LL line_end = cradle_lines.back().line_.back();
-                        for (auto [up_idx, line] : cradle_lines | ranges::views::enumerate | ranges::views::reverse)
-                        {
-                            Point2LL center = cradle->getCenter(line.layer_idx_);
-                            if (vSize2(line_end - center) > vSize2(line.line_.back() - center))
-                            {
-                                Polygons line_extension;
-                                line_extension.addLine(line.line_.back(), line_end);
-                                coord_t line_length_before = line_extension.polyLineLength();
-                                Polygons actually_forbidden = volumes_.getAvoidance(
-                                    0,
-                                    line.layer_idx_,
-                                    (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
-                                    config_.support_rests_on_model,
-                                    true);
-                                line_extension = actually_forbidden.differencePolyLines(line_extension);
-
-                                if (line_extension.polyLineLength() + EPSILON < line_length_before)
-                                {
-                                    for (auto line_part : line_extension)
-                                    {
-                                        bool front_closer = vSize2(line_part.front() - center) < vSize2(line_part.back() - center);
-                                        Point2LL closer = front_closer ? line_part.front() : line_part.back();
-                                        Point2LL further = front_closer ? line_part.back() : line_part.front();
-
-                                        if (vSize2(closer - line.line_.back() < EPSILON * EPSILON))
-                                        {
-                                            line_end = further;
-                                        }
-                                    }
-                                }
-                                // As the center can move there is no guarantee that the point of the current line lies on the line below.
-                                line_end = LinearAlg2D::getClosestOnLine(line_end, line.line_.front(), line.line_.back());
-                                line.line_.back() = line_end;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-}
-
-
-void TreeSupportTipGenerator::cleanCradleLineOverlaps()
-{
-    const coord_t min_distance_between_lines
-        = cradle_line_width_ + std::max(config_.xy_distance, (config_.fill_outline_gaps ? config_.min_feature_size / 2 - 5 : config_.min_wall_line_width / 2 - 5));
-    const coord_t max_cradle_xy_distance = *std::max_element(cradle_xy_distance_.begin(), cradle_xy_distance_.end());
-    std::vector<std::vector<TreeSupportCradleLine*>> all_cradles_per_layer(cradle_data_.size() + cradle_layers_);
-    for (LayerIndex layer_idx = 0; layer_idx < cradle_data_.size(); layer_idx++)
-    {
-        for (size_t cradle_idx = 0; cradle_idx < cradle_data_[layer_idx].size(); cradle_idx++)
-        {
-            for (size_t cradle_line_idx = 0; cradle_line_idx < cradle_data_[layer_idx][cradle_idx]->lines_.size(); cradle_line_idx++)
-            {
-                for (size_t height = 0; height < cradle_data_[layer_idx][cradle_idx]->lines_[cradle_line_idx].size(); height++)
-                {
-                    TreeSupportCradleLine* result = &cradle_data_[layer_idx][cradle_idx]->lines_[cradle_line_idx][height];
-                    all_cradles_per_layer[layer_idx + height].emplace_back(result);
-                }
-            }
-        }
-    }
-
-    std::vector<Polygons> removed_lines(cradle_data_.size());
-
-    cura::parallel_for<coord_t>(
-        1,
-        all_cradles_per_layer.size(),
-        [&](const LayerIndex layer_idx)
-        {
-            std::vector<TreeSupportCradleLine*> all_cradles_on_layer = all_cradles_per_layer[layer_idx];
-
-            std::function<void(size_t, Point2LL)> handleNewEnd = [&](size_t cradle_line_idx, Point2LL new_end)
-            {
-                auto& line = (*all_cradles_on_layer[cradle_line_idx]);
-                if (LinearAlg2D::pointIsProjectedBeyondLine(new_end, line.line_.front(), line.line_.back()) || vSize(new_end - line.line_.front()) < cradle_length_min_)
-                {
-                    all_cradles_on_layer[cradle_line_idx]->addLineToRemoved(line.line_);
-                    all_cradles_on_layer[cradle_line_idx]->line_.clear();
-                }
-                else
-                {
-                    all_cradles_on_layer[cradle_line_idx]->line_.back() = new_end;
-                }
-            };
-
-            for (size_t cradle_idx = 0; cradle_idx < all_cradles_on_layer.size(); cradle_idx++)
-            {
-                AABB bounding_box_current = AABB(all_cradles_on_layer[cradle_idx]->line_);
-                bounding_box_current.expand(min_distance_between_lines);
-                for (size_t cradle_idx_inner = cradle_idx + 1; cradle_idx_inner < all_cradles_on_layer.size(); cradle_idx_inner++)
-                {
-                    if (all_cradles_on_layer[cradle_idx_inner]->line_.empty() || all_cradles_on_layer[cradle_idx]->line_.empty())
-                    {
-                        continue;
-                    }
-                    if (bounding_box_current.hit(AABB(all_cradles_on_layer[cradle_idx_inner]->line_)))
-                    {
-                        Polygon& outer_line = (*all_cradles_on_layer[cradle_idx]).line_;
-                        Polygon& inner_line = (*all_cradles_on_layer[cradle_idx_inner]).line_;
-                        Point2LL intersect;
-                        if (LinearAlg2D::lineLineIntersection(outer_line.front(), outer_line.back(), inner_line.front(), inner_line.back(), intersect)
-                            && ! LinearAlg2D::pointIsProjectedBeyondLine(intersect, outer_line.front(), outer_line.back())
-                            && ! LinearAlg2D::pointIsProjectedBeyondLine(intersect, inner_line.front(), inner_line.back()))
-                        {
-                            coord_t inner_intersect_dist = vSize(inner_line.front() - intersect);
-                            coord_t outer_intersect_dist = vSize(outer_line.front() - intersect);
-
-                            if (inner_intersect_dist > outer_intersect_dist)
-                            {
-                                // this does not ensure that the line ends will not touch. Line ends not touching is handled later
-                                Point2LL new_end_inner = intersect + normal((inner_line.front() - intersect), min_distance_between_lines);
-                                handleNewEnd(cradle_idx_inner, new_end_inner);
-                            }
-                            if (outer_intersect_dist > inner_intersect_dist)
-                            {
-                                Point2LL new_end_outer = intersect + normal((outer_line.front() - intersect), min_distance_between_lines);
-                                handleNewEnd(cradle_idx, new_end_outer);
-                            }
-                        }
-
-                        if (! outer_line.empty() && ! inner_line.empty())
-                        {
-                            // Touching lines have the same issue Lines touch if the end is to close to another line
-                            Point2LL inner_direction = inner_line.back() - inner_line.front();
-                            Point2LL outer_direction = outer_line.back() - outer_line.front();
-                            double cosine = std::abs((dot(inner_direction, outer_direction)) / double(vSize(outer_direction) * vSize(inner_direction)));
-                            // If both lines point in the same/opposite direction check that them being to close is not the end line of one to the start of the other
-                            if (cosine < 0.99 || vSize2(outer_line.back() - inner_line.back()) + EPSILON * EPSILON < vSize2(outer_line.front() - inner_line.front()))
-                            {
-                                coord_t inner_end_to_outer_distance = sqrt(LinearAlg2D::getDist2FromLineSegment(outer_line.front(), inner_line.back(), outer_line.back()));
-                                if (inner_end_to_outer_distance < min_distance_between_lines && inner_end_to_outer_distance < vSize(outer_line.front() - inner_line.front()))
-                                {
-                                    Point2LL new_end_inner
-                                        = inner_line.back() + normal(inner_line.front() - inner_line.back(), min_distance_between_lines - inner_end_to_outer_distance);
-                                    double error = min_distance_between_lines - sqrt(LinearAlg2D::getDist2FromLineSegment(outer_line.front(), new_end_inner, outer_line.back()));
-                                    double error_correction_factor = 1.0 + error / double(min_distance_between_lines - inner_end_to_outer_distance);
-                                    new_end_inner
-                                        = inner_line.back()
-                                        + normal(inner_line.front() - inner_line.back(), (min_distance_between_lines - inner_end_to_outer_distance) * error_correction_factor);
-                                    handleNewEnd(cradle_idx_inner, new_end_inner);
-                                }
-                                else
-                                {
-                                    coord_t outer_end_to_inner_distance = sqrt(LinearAlg2D::getDist2FromLineSegment(inner_line.front(), outer_line.back(), inner_line.back()));
-                                    if (outer_end_to_inner_distance < min_distance_between_lines && outer_end_to_inner_distance < vSize(outer_line.front() - inner_line.front()))
-                                    {
-                                        Point2LL new_end_outer
-                                            = outer_line.back() + normal(outer_line.front() - outer_line.back(), min_distance_between_lines - outer_end_to_inner_distance);
-                                        double error = min_distance_between_lines - sqrt(LinearAlg2D::getDistFromLine(new_end_outer, outer_line.front(), outer_line.back()));
-                                        double error_correction_factor = 1.0 + error / double(min_distance_between_lines - outer_end_to_inner_distance);
-                                        new_end_outer
-                                            = outer_line.back()
-                                            + normal(outer_line.front() - outer_line.back(), (min_distance_between_lines - outer_end_to_inner_distance) * error_correction_factor);
-                                        handleNewEnd(cradle_idx, new_end_outer);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-    cura::parallel_for<coord_t>(
-        1,
-        cradle_data_.size(),
-        [&](const LayerIndex layer_idx)
-        {
-            for (size_t cradle_idx = 0; cradle_idx < cradle_data_[layer_idx].size(); cradle_idx++)
-            {
-                TreeSupportCradle* cradle = cradle_data_[layer_idx][cradle_idx];
-                cradle->verifyLines();
-                // As cradle lines (causing lines below to be longer) may have been removed to prevent them intersecting, all cradle lines are now shortened again if required.
-                for (auto [line_idx, cradle_lines] : cradle->lines_ | ranges::views::enumerate)
-                {
-                    if (! cradle_lines.empty())
-                    {
-                        Point2LL line_end = cradle_lines.back().line_.back();
-                        Point2LL line_front_uppermost = cradle_lines.back().line_.front();
-
-                        if (vSize2(line_end - cradle_lines.back().line_.front()) > cradle_length_ * cradle_length_)
-                        {
-                            coord_t current_cradle_xy_distance = cradle_xy_distance_[cradle_lines.back().layer_idx_ - layer_idx];
-                            coord_t current_cradle_length = cradle_length_ + max_cradle_xy_distance - current_cradle_xy_distance;
-                            cradle_lines.back().line_.back() = line_front_uppermost + normal(line_end - line_front_uppermost, current_cradle_length);
-                            for (auto [up_idx, line] : cradle_lines | ranges::views::enumerate | ranges::views::reverse)
-                            {
-                                Point2LL center = cradle->getCenter(line.layer_idx_);
-                                Point2LL line_back_inner = line.line_.back();
-                                Point2LL line_front_inner = line.line_.front();
-                                if (vSize2(line_back_inner - line_front_inner) > cradle_length_ * cradle_length_)
-                                {
-                                    // As the center can move there is no guarantee that the point of the current line lies on the line below.
-                                    Point2LL projected_line_end = LinearAlg2D::getClosestOnLine(line_end, line.line_.front(), line.line_.back());
-                                    current_cradle_xy_distance = cradle_xy_distance_[line.layer_idx_ - layer_idx];
-                                    current_cradle_length = cradle_length_ + max_cradle_xy_distance - current_cradle_xy_distance;
-                                    if (vSize2(line_front_inner - projected_line_end) > current_cradle_length * current_cradle_length)
-                                    {
-                                        line.line_.back() = projected_line_end;
-                                    }
-                                    else
-                                    {
-                                        line.line_.back() = line_front_inner + normal(line_back_inner - line_front_inner, current_cradle_length);
-                                    }
-                                }
-                                line_end = line.line_.back();
-                            }
-                        }
-                    }
-                }
-            }
-        });
-}
-
-
-void TreeSupportTipGenerator::generateCradleLineAreasAndBase(std::vector<std::vector<std::vector<Polygons>>>& shadow_data, std::vector<Polygons>& support_free_areas)
-{
-    const coord_t min_distance_between_lines
-        = FUDGE_LENGTH + (config_.fill_outline_gaps ? config_.min_feature_size / 2 - 5 : config_.min_wall_line_width / 2 - 5); // based on calculation in WallToolPath
-    // Some angles needed to move cradle lines outwards to prevent them from toughing.
-    double center_angle = (2.0 * std::numbers::pi) / double(cradle_line_count_);
-    double outer_angle = (std::numbers::pi - center_angle) / 2;
-    coord_t outer_radius = (double(min_distance_between_lines + config_.support_line_width) / sin(center_angle)) * sin(outer_angle);
-    const coord_t small_hole_size
-        = EPSILON + (config_.fill_outline_gaps ? config_.min_feature_size / 2 - 5 : config_.min_wall_line_width / 2 - 5); // based on calculation in WallToolPath
-    std::mutex critical_support_free_areas_and_cradle_areas;
-
-    cura::parallel_for<coord_t>(
-        0,
-        cradle_data_.size(),
-        [&](const LayerIndex layer_idx)
-        {
-            std::vector<TreeSupportCradle*> valid_cradles;
-            for (size_t cradle_idx = 0; cradle_idx < cradle_data_[layer_idx].size(); cradle_idx++)
-            {
-                TreeSupportCradle& cradle = *cradle_data_[layer_idx][cradle_idx];
-                for (size_t cradle_height = 0; cradle_height <= cradle_layers_; cradle_height++)
-                {
-                    Polygons line_tips;
-
-                    std::vector<std::pair<Point2LL, Point2LL>> all_tips_center;
-                    // generate trapezoid line tip with front width of support line width, back cradle_width.
-
-                    for (size_t line_idx = 0; line_idx < cradle.lines_.size(); line_idx++)
-                    {
-                        std::optional<TreeSupportCradleLine*> line_opt = cradle.getCradleLineOfIndex(layer_idx + cradle_height, line_idx);
-                        if (! line_opt)
-                        {
-                            continue;
-                        }
-                        TreeSupportCradleLine* cradle_line = line_opt.value();
-                        Polygon line = cradle_line->line_;
-
-                        coord_t current_cradle_line_width = cradle_line_width_;
-
-                        double assumed_half_center_angle = std::numbers::pi / (1.5 * cradle_line_count_);
-                        coord_t triangle_length
-                            = cradle_line_count_ <= 2 ? 0 : ((current_cradle_line_width - config_.support_line_width) / 2) * tan(std::numbers::pi / 2 - assumed_half_center_angle);
-
-                        const coord_t line_length = line.polylineLength();
-                        if (triangle_length >= line_length + cradle_line_width_)
-                        {
-                            triangle_length = line_length + cradle_line_width_;
-                            current_cradle_line_width = config_.support_line_width + 2 * triangle_length * tan(assumed_half_center_angle);
-                        }
-
-                        Point2LL direction = line.back() - line.front();
-                        Point2LL center_front = line.front() - normal(direction, cradle_line_width_ / 2);
-
-                        Point2LL direction_up_center = normal(rotate(direction, std::numbers::pi / 2), config_.support_line_width / 2);
-                        Point2LL center_up = center_front + direction_up_center;
-                        Point2LL center_down = center_front - direction_up_center;
-
-                        coord_t tip_shift = 0;
-                        for (auto existing_center : all_tips_center)
-                        {
-                            Point2LL intersect;
-                            bool centers_touch = LinearAlg2D::lineLineIntersection(center_up, center_down, existing_center.first, existing_center.second, intersect)
-                                              && ! LinearAlg2D::pointIsProjectedBeyondLine(intersect, existing_center.first, existing_center.second)
-                                              && ! LinearAlg2D::pointIsProjectedBeyondLine(intersect, center_up, center_down);
-                            if (centers_touch || std::min(vSize(center_down - existing_center.first), vSize(center_up - existing_center.second)) < min_distance_between_lines)
-                            {
-                                // This cradle line is to close to another.
-                                // Move it back todo If line gets smaller than min length => abort
-                                coord_t tip_shift_here = outer_radius - vSize(center_front - cradle.getCenter(cradle_line->layer_idx_));
-                                tip_shift += tip_shift_here;
-                                center_front = center_front + normal(direction, tip_shift_here);
-                                center_up = center_front + direction_up_center;
-                                center_down = center_front - direction_up_center;
-                            }
-                        }
-
-                        Point2LL back_center = center_front + normal(direction, triangle_length);
-                        Point2LL direction_up_back = normal(rotate(direction, std::numbers::pi / 2), current_cradle_line_width / 2);
-
-                        Point2LL back_up = back_center + direction_up_back;
-                        Point2LL back_down = back_center - direction_up_back;
-
-                        line.front() = back_center + normal(direction, current_cradle_line_width / 2 - FUDGE_LENGTH / 2);
-                        all_tips_center.emplace_back(center_up, center_down);
-
-                        Polygon line_tip;
-                        line_tip.add(back_down);
-                        if (current_cradle_line_width == cradle_line_width_)
-                        {
-                            coord_t distance_end_front = line_length - triangle_length + cradle_line_width_ - tip_shift;
-                            Point2LL line_end_down = back_down + normal(direction, distance_end_front);
-                            Point2LL line_end_up = back_up + normal(direction, distance_end_front);
-                            line_tip.add(line_end_down);
-                            line_tip.add(line_end_up);
-                        }
-                        line_tip.add(back_up);
-                        line_tip.add(center_up);
-                        line_tip.add(center_down);
-                        if (line_tip.area() < 0)
-                        {
-                            line_tip.reverse();
-                        }
-                        cradle_line->area_.add(line_tip);
-
-                        Polygons anti_preferred = cradle_line->area_.offset(config_.xy_distance);
-                        std::lock_guard<std::mutex> critical_section_cradle(critical_support_free_areas_and_cradle_areas);
-                        for (size_t z_distance_idx = 0; z_distance_idx < config_.z_distance_top_layers; z_distance_idx++)
-                        {
-                            volumes_.addAreaToAntiPreferred(anti_preferred, layer_idx + cradle_height + z_distance_idx);
-                        }
-                    }
-                }
-
-                Polygons shadow = shadow_data[layer_idx][cradle.shadow_idx_][0];
-                Polygons cradle_base = shadow;
-
-                if (! use_fake_roof_ && support_roof_layers_)
-                {
-                    Polygons cut_line_base;
-                    Polygons first_cradle_areas;
-                    if (large_cradle_base_)
-                    {
-                        // If a large cradle base is used there needs to be a small hole cut into it to ensure that there will be a line for the pointy overhang to rest
-                        // on. This line is just a diagonal though the original pointy overhang area (from min to max). Technically this line is covering more than just
-                        // the overhang, but that should not cause any issues.
-                        Point2LL min_p = cradle_base.min();
-                        Point2LL max_p = cradle_base.max();
-                        Polygons rest_line;
-                        rest_line.addLine(min_p, max_p);
-                        cut_line_base = rest_line.offsetPolyLine(small_hole_size);
-                    }
-                    {
-                        std::lock_guard<std::mutex> critical_section_cradle(critical_support_free_areas_and_cradle_areas);
-                        for (size_t interface_down = 0; interface_down < layer_idx && interface_down < support_roof_layers_; interface_down++)
-                        {
-                            support_free_areas[layer_idx - interface_down].add(cut_line_base);
-                            volumes_.addAreaToAntiPreferred(cradle_base, layer_idx - interface_down);
-                        }
-                    }
-                    if (large_cradle_base_)
-                    {
-                        cradle_base = cradle_base.offset(config_.getRadius(cradle_tip_dtt_), ClipperLib::jtRound);
-                        Polygons center_removed = cradle_base.difference(cut_line_base);
-                        if (center_removed.area() > 1)
-                        {
-                            cradle_base = center_removed;
-                        }
-                    }
-                    else if (cradle_base_roof_)
-                    {
-                        // collect all inner points and connect to center for thin cradle base
-                        Polygons connected_cradle_base;
-                        for (size_t line_idx = 0; line_idx < cradle.lines_.size(); line_idx++)
-                        {
-                            std::optional<TreeSupportCradleLine*> line_opt = cradle.getCradleLineOfIndex(layer_idx + cradle_z_distance_layers_ + 1, line_idx);
-                            if (line_opt)
-                            {
-                                connected_cradle_base.addLine(cradle.getCenter(line_opt.value()->layer_idx_), line_opt.value()->line_.front());
-                            }
-                        }
-                        cradle_base = connected_cradle_base.offsetPolyLine(cradle_line_width_ / 2 + EPSILON).unionPolygons(cradle_base);
-                    }
-                }
-
-                cradle_base = cradle_base.unionPolygons();
-
-                if (cradle_lines_roof_)
-                {
-                    Polygons forbidden_here = volumes_.getAvoidance(
-                        0,
-                        layer_idx,
-                        (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
-                        config_.support_rests_on_model,
-                        ! xy_overrides_);
-                    std::vector<std::pair<Polygons, int32_t>> roofs;
-                    roofs.emplace_back(cradle_base, -1);
-
-                    for (size_t line_idx = 0; line_idx < cradle.lines_.size(); line_idx++)
-                    {
-                        std::optional<TreeSupportCradleLine*> line_opt = cradle.getCradleLineOfIndex(layer_idx + cradle_z_distance_layers_ + 1, line_idx);
-                        if (! line_opt)
-                        {
-                            continue;
-                        }
-
-                        coord_t line_base_offset = large_cradle_base_ ? std::max(coord_t(0), config_.getRadius(cradle_tip_dtt_) - cradle_line_width_ / 2) : 0;
-                        roofs.emplace_back(line_opt.value()->area_.offset(line_base_offset, ClipperLib::jtRound), line_idx);
-                    }
-
-
-                    for (auto roof_area_pair : roofs)
-                    {
-                        Polygons roof_area_before = roof_area_pair.first;
-                        Polygons full_overhang_area = TreeSupportUtils::safeOffsetInc(
-                            roof_area_pair.first,
-                            roof_outset_,
-                            forbidden_here,
-                            config_.support_line_width,
-                            0,
-                            1,
-                            config_.support_line_distance / 2,
-                            &config_.simplifier);
-                        for (LayerIndex dtt_roof = 0; dtt_roof <= support_roof_layers_ && layer_idx - dtt_roof >= 1; dtt_roof++)
-                        {
-                            const Polygons forbidden_next = volumes_.getAvoidance(
-                                0,
-                                layer_idx - (dtt_roof + 1),
-                                (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
-                                config_.support_rests_on_model,
-                                ! xy_overrides_);
-
-                            full_overhang_area = full_overhang_area.difference(forbidden_next);
-
-                            if (full_overhang_area.area() > EPSILON && dtt_roof < support_roof_layers_)
-                            {
-                                if (roof_area_pair.second != -1) // If is_line
-                                {
-                                    TreeSupportCradleLine roof_base_line(cradle.lines_[roof_area_pair.second].front());
-                                    roof_base_line.area_ = full_overhang_area;
-                                    roof_base_line.is_base_ = true;
-                                    roof_base_line.layer_idx_ = layer_idx - dtt_roof;
-                                    cradle.lines_[roof_area_pair.second].emplace_front(roof_base_line);
-                                }
-                                else
-                                {
-                                    if (dtt_roof < cradle.base_below_.size())
-                                    {
-                                        cradle.base_below_[dtt_roof].add(full_overhang_area);
-                                    }
-                                    else
-                                    {
-                                        cradle.base_below_.emplace_back(full_overhang_area);
-                                    }
-                                }
-                                const Polygons forbidden_before = volumes_.getAvoidance(
-                                    0,
-                                    layer_idx - dtt_roof,
-                                    (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
-                                    config_.support_rests_on_model,
-                                    ! xy_overrides_);
-
-                                Polygons supported_by_roof_below = TreeSupportUtils::safeOffsetInc(
-                                    full_overhang_area,
-                                    config_.maximum_move_distance,
-                                    forbidden_before,
-                                    config_.xy_min_distance + config_.min_feature_size,
-                                    0,
-                                    1,
-                                    config_.support_line_distance / 2,
-                                    &config_.simplifier);
-                                Polygons overhang_part = roof_area_before.difference(supported_by_roof_below);
-                                if (overhang_part.area() > EPSILON)
-                                {
-                                    OverhangInformation cradle_overhang(overhang_part, false, cradle_data_[layer_idx][cradle_idx], layer_idx - dtt_roof, roof_area_pair.second);
-                                    cradle.overhang_[layer_idx - dtt_roof].emplace_back(cradle_overhang);
-                                }
-                            }
-                            else
-                            {
-                                if (roof_area_before.area() > 1)
-                                {
-                                    LayerIndex line_layer_idx
-                                        = roof_area_pair.second < 0 ? LayerIndex(-1) : cradle_data_[layer_idx][cradle_idx]->lines_[roof_area_pair.second].front().layer_idx_;
-                                    OverhangInformation cradle_overhang(roof_area_before, true, cradle_data_[layer_idx][cradle_idx], line_layer_idx, roof_area_pair.second);
-                                    cradle.overhang_[layer_idx - dtt_roof].emplace_back(cradle_overhang);
-                                }
-                                break;
-                            }
-                            roof_area_before = full_overhang_area;
-                        }
-                    }
-                }
-                else
-                {
-                    Polygons forbidden_here = volumes_.getAvoidance(
-                        0,
-                        layer_idx,
-                        (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
-                        config_.support_rests_on_model,
-                        ! xy_overrides_);
-
-                    coord_t offset_radius = config_.getRadius(cradle_tip_dtt_);
-                    if (cradle_base.offset(offset_radius, ClipperLib::jtRound).difference(forbidden_here).area() > 1)
-                    {
-                        OverhangInformation cradle_overhang(cradle_base, false, cradle_data_[layer_idx][cradle_idx]);
-                        cradle.overhang_[layer_idx].emplace_back(cradle_overhang);
-                    }
-
-                    for (size_t line_idx = 0; line_idx < cradle.lines_.size(); line_idx++)
-                    {
-                        if (! cradle.lines_[line_idx].empty())
-                        {
-                            LayerIndex support_cradle_on_layer_idx = cradle.lines_[line_idx].front().layer_idx_ - (cradle_z_distance_layers_ + 1);
-                            OverhangInformation line_overhang(
-                                cradle.lines_[line_idx].front().area_,
-                                false,
-                                cradle_data_[layer_idx][cradle_idx],
-                                cradle.lines_[line_idx].front().layer_idx_,
-                                line_idx);
-                            cradle.overhang_[support_cradle_on_layer_idx].emplace_back(line_overhang);
-                        }
-                    }
-                }
-                if (! cradle.overhang_.empty())
-                {
-                    valid_cradles.emplace_back(cradle_data_[layer_idx][cradle_idx]);
-                }
-                else
-                {
-                    delete cradle_data_[layer_idx][cradle_idx];
-                }
-            }
-            cradle_data_[layer_idx] = valid_cradles;
-        });
-}
-
-
-void TreeSupportTipGenerator::generateCradle(const SliceMeshStorage& mesh, std::vector<Polygons>& support_free_areas)
-{
-    calculateFloatingParts(mesh);
-
-
-    // todo move up cradle if no line contacts model
-    // todo generate additional overhang if model may bend... Is this a TreeSupport Feature though?
-
-    std::vector<std::vector<std::vector<Polygons>>> shadow_data = generateCradleCenters(mesh);
-    generateCradleLines(shadow_data);
-    cleanCradleLineOverlaps();
-    generateCradleLineAreasAndBase(shadow_data, support_free_areas);
-}
-
 void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, std::vector<Polygons>& result, bool roof)
 {
     std::mutex critical;
@@ -1618,7 +470,7 @@ void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, st
         });
 }
 
-void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& mesh)
+void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& mesh, std::vector<std::vector<TreeSupportCradle*>>& cradle_data)
 {
     std::vector<Polygons> potential_support_roofs(mesh.overhang_areas.size(), Polygons());
     std::mutex critical_potential_support_roofs;
@@ -1629,19 +481,19 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
         dropOverhangAreas(mesh, dropped_overhangs, true);
     }
 
-    std::vector<Polygons> all_cradle_areas(cradle_data_.size());
-    for (LayerIndex layer_idx = 0; layer_idx < cradle_data_.size(); layer_idx++)
+    std::vector<Polygons> all_cradle_areas(cradle_data.size());
+    for (LayerIndex layer_idx = 0; layer_idx < cradle_data.size(); layer_idx++)
     {
-        for (size_t cradle_idx = 0; cradle_idx < cradle_data_[layer_idx].size(); cradle_idx++)
+        for (size_t cradle_idx = 0; cradle_idx < cradle_data[layer_idx].size(); cradle_idx++)
         {
-            for (auto [line_idx, lines] : cradle_data_[layer_idx][cradle_idx]->lines_ | ranges::views::enumerate)
+            for (auto [line_idx, lines] : cradle_data[layer_idx][cradle_idx]->lines_ | ranges::views::enumerate)
             {
                 for (auto [height_idx, line] : lines | ranges::views::enumerate)
                 {
                     all_cradle_areas[line.layer_idx_].add(line.area_);
                 }
             }
-            for (auto [base_idx, base] : cradle_data_[layer_idx][cradle_idx]->base_below_ | ranges::views::enumerate)
+            for (auto [base_idx, base] : cradle_data[layer_idx][cradle_idx]->base_below_ | ranges::views::enumerate)
             {
                 all_cradle_areas[layer_idx - base_idx].add(base);
             }
@@ -1891,6 +743,15 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
                 }
             }
 
+            if (overhang_data.is_cradle_ && tip_radius < overhang_data.cradle_->config_->cradle_support_base_area_radius_)
+            {
+                if ((overhang_data.isCradleLine() && large_cradle_line_tips_) || (! overhang_data.isCradleLine() && (! overhang_data.is_roof_ || large_cradle_line_tips_)))
+                {
+                    tip_radius = overhang_data.cradle_->config_->cradle_support_base_area_radius_;
+                }
+            }
+
+
 
             size_t tip_dtt = tip_radius >= config_.branch_radius ? config_.tip_layers
                                                                  : (config_.tip_layers * (tip_radius - config_.min_radius)) / (config_.branch_radius - config_.min_radius);
@@ -1908,7 +769,7 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
                 roof_type = TipRoofType::SUPPORTS_ROOF;
             }
 
-            if (! overhang_data.is_roof_ && overhang_data.is_cradle_ && ! overhang_data.isCradleLine() && cradle_base_roof_)
+            if (! overhang_data.is_roof_ && overhang_data.is_cradle_ && ! overhang_data.isCradleLine() && overhang_data.cradle_->is_roof_)
             {
                 roof_type = TipRoofType::IS_ROOF;
                 // No information about the amount of missing roof layers for cradle bases is stored.
@@ -1917,13 +778,6 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
                 dont_move_until = 1;
             }
 
-            if (overhang_data.is_cradle_ && tip_dtt < cradle_tip_dtt_)
-            {
-                if ((overhang_data.isCradleLine() && large_cradle_line_tips_) || (! overhang_data.isCradleLine() && (! overhang_data.is_roof_ || large_cradle_line_tips_)))
-                {
-                    tip_dtt = cradle_tip_dtt_;
-                }
-            }
 
             TreeSupportElement* elem = addPointAsInfluenceArea(
                 move_bounds,
@@ -1949,10 +803,10 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
 }
 
 
-void TreeSupportTipGenerator::removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage)
+void TreeSupportTipGenerator::removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<std::vector<TreeSupportCradle*>>& cradle_data)
 {
     std::vector<Polygons> all_cradle_roofs(storage.support.supportLayers.size());
-    for (auto [layer_idx, cradles] : cradle_data_ | ranges::views::enumerate)
+    for (auto [layer_idx, cradles] : cradle_data | ranges::views::enumerate)
     {
         for (auto cradle : cradles)
         {
@@ -2020,7 +874,7 @@ void TreeSupportTipGenerator::generateTips(
     std::vector<std::set<TreeSupportElement*>>& move_bounds,
     std::vector<std::vector<FakeRoofArea>>& placed_fake_roof_areas,
     std::vector<Polygons>& support_free_areas,
-    std::vector<std::vector<TreeSupportCradle*>>& cradle_data_export)
+    std::vector<std::vector<TreeSupportCradle*>>& cradle_data)
 {
     const auto t_start = std::chrono::high_resolution_clock::now();
     std::vector<std::set<TreeSupportElement*>> new_tips(move_bounds.size());
@@ -2036,38 +890,47 @@ void TreeSupportTipGenerator::generateTips(
     // ^^^ Extra support offset to compensate for larger tip radiis. Also outset a bit more when z overwrites xy, because supporting something with a part of a support line is
     // better than not supporting it at all.
 
-    if (cradle_layers_ > 0)
+
+    if(cradle_data.size() < mesh.overhang_areas.size())
     {
-        generateCradle(mesh, support_free_areas);
+        cradle_data.resize(mesh.overhang_areas.size());
     }
-    const auto t_cradle = std::chrono::high_resolution_clock::now();
 
     if (support_roof_layers_)
     {
-        calculateRoofAreas(mesh);
+        calculateRoofAreas(mesh, cradle_data);
     }
     const auto t_roof = std::chrono::high_resolution_clock::now();
 
 
-    std::vector<std::vector<TreeSupportCradle*>> all_cradles_requiring_support(move_bounds.size());
-    std::vector<Polygons> all_cradle_areas(move_bounds.size());
-    for (LayerIndex layer_idx = 0; layer_idx < cradle_data_.size(); layer_idx++)
+    std::vector<std::vector<TreeSupportCradle*>> all_cradles_requiring_support(cradle_data.size());
+    std::vector<Polygons> all_cradle_areas(cradle_data.size());
+    for (LayerIndex layer_idx = 0; layer_idx < cradle_data.size(); layer_idx++)
     {
-        for (size_t cradle_idx = 0; cradle_idx < cradle_data_[layer_idx].size(); cradle_idx++)
+        for (size_t cradle_idx = 0; cradle_idx < cradle_data[layer_idx].size(); cradle_idx++)
         {
-            for (auto overhang_pair : cradle_data_[layer_idx][cradle_idx]->overhang_)
+            for (auto overhang_pair : cradle_data[layer_idx][cradle_idx]->overhang_)
             {
-                all_cradles_requiring_support[overhang_pair.first].emplace_back(cradle_data_[layer_idx][cradle_idx]);
+                if(all_cradles_requiring_support.size() <= overhang_pair.first) //should not happen, but just to be sure
+                {
+                    all_cradles_requiring_support.resize(overhang_pair.first+1);
+                }
+                all_cradles_requiring_support[overhang_pair.first].emplace_back(cradle_data[layer_idx][cradle_idx]);
             }
 
-            for (auto [line_idx, lines] : cradle_data_[layer_idx][cradle_idx]->lines_ | ranges::views::enumerate)
+            for (auto [line_idx, lines] : cradle_data[layer_idx][cradle_idx]->lines_ | ranges::views::enumerate)
             {
                 for (auto [height_idx, line] : lines | ranges::views::enumerate)
                 {
+                    if(all_cradle_areas.size() <= line.layer_idx_) //should not happen, but just to be sure
+                    {
+                        all_cradle_areas.resize(line.layer_idx_+1);
+                    }
+
                     all_cradle_areas[line.layer_idx_].add(line.area_);
                 }
             }
-            for (auto [base_idx, base] : cradle_data_[layer_idx][cradle_idx]->base_below_ | ranges::views::enumerate)
+            for (auto [base_idx, base] : cradle_data[layer_idx][cradle_idx]->base_below_ | ranges::views::enumerate)
             {
                 all_cradle_areas[layer_idx - base_idx].add(base);
             }
@@ -2372,7 +1235,7 @@ void TreeSupportTipGenerator::generateTips(
                     polylines = TreeSupportUtils::movePointsOutside(
                         polylines,
                         relevant_forbidden,
-                        (overhang_data.isCradleLine() ? cradle_line_width_ / 2 : 0) + config_.getRadius(0) + FUDGE_LENGTH / 2);
+                        (overhang_data.isCradleLine() ? overhang_data.cradle_->config_->cradle_line_width_ / 2 : 0) + config_.getRadius(0) + FUDGE_LENGTH / 2);
                 }
 
                 overhang_lines = convertLinesToInternal(polylines, layer_idx);
@@ -2474,14 +1337,8 @@ void TreeSupportTipGenerator::generateTips(
             }
         });
 
-    cradle_data_export.resize(cradle_data_.size());
 
-    for (auto [layer_idx, cradles] : cradle_data_ | ranges::views::enumerate)
-    {
-        cradle_data_export[layer_idx] = cradles;
-    }
-
-    removeUselessAddedPoints(new_tips, storage);
+    removeUselessAddedPoints(new_tips, storage, cradle_data);
 
     for (auto [layer_idx, tips_on_layer] : new_tips | ranges::views::enumerate)
     {
@@ -2489,13 +1346,11 @@ void TreeSupportTipGenerator::generateTips(
     }
     
     const auto t_end = std::chrono::high_resolution_clock::now();
-    const auto dur_cradle = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_cradle - t_start).count();
-    const auto dur_roof = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_roof - t_cradle).count();
+    const auto dur_roof = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_roof - t_start).count();
     const auto dur_inf = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_influenced - t_roof).count();
     const auto dur_clean = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_influenced).count();
     spdlog::info(
-        "Subtasks of generateInitialAreas: Generating cradle: {} ms Generating roof: {} ms Creating Influence Areas: {} ms Checking result validity: {} ms ",
-        dur_cradle,
+        "Subtasks of generateInitialAreas: Generating roof: {} ms Creating Influence Areas: {} ms Checking result validity: {} ms ",
         dur_roof,
         dur_inf,
         dur_clean);
