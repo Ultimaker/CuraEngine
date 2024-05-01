@@ -140,7 +140,6 @@ private:
      * \return A vector of ExtrusionLines with walls that should be printed
      */
     std::vector<ExtrusionLine> getWallsToBeAdded(const bool reverse, const bool use_one_extruder);
-
 };
 } // namespace cura
 
