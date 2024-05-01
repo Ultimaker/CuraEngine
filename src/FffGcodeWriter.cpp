@@ -3457,7 +3457,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             const GCodePathConfig& config = configs[0];
             constexpr bool retract_before_outer_wall = false;
             constexpr coord_t wipe_dist = 0;
-            ZSeamConfig z_seam_config = ZSeamConfig(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+            ZSeamConfig z_seam_config
+                = ZSeamConfig(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
 
 
             InsetOrderOptimizer wall_orderer(

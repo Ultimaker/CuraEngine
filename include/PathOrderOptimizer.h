@@ -141,8 +141,8 @@ public:
     {
         constexpr bool is_closed = true;
         min_size_support_zeam_ = min_distance;
-        //offset polygon with th min_size_support z seam
-        for (auto& polygons :mesh_polygons)
+        // offset polygon with th min_size_support z seam
+        for (auto& polygons : mesh_polygons)
         {
             mesh_paths_.push_back(polygons.offset(min_size_support_zeam_, ClipperLib::jtRound));
         }
@@ -580,7 +580,6 @@ protected:
 
     bool isInDisallowedPaths(Point2LL point, std::vector<Polygons>& paths)
     {
-
         for (const auto& polygons : paths)
         {
             if (polygons.inside(point, true))
@@ -817,7 +816,7 @@ protected:
             }
         }
 
-        if (min_size_support_zeam_ !=  0)
+        if (min_size_support_zeam_ != 0)
         {
             best_i = pathIfzeamSupportIsCloseToModel(best_i, path, 0);
         }
