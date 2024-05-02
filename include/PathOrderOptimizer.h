@@ -62,7 +62,7 @@ class PathOrderOptimizer
 public:
     using OrderablePath = PathOrdering<Path>;
     /* Areas defined here are not allowed to have the start the prints */
-    Polygons disallowed_area {};
+    Polygons disallowed_area{};
     /*!
      * After optimizing, this contains the paths that need to be printed in the
      * correct order.
@@ -791,7 +791,7 @@ protected:
             }
         }
 
-        if (!disallowed_area.empty())
+        if (! disallowed_area.empty())
         {
             best_i = pathIfZseamIsInDisallowedArea(best_i, path, 0);
         }
