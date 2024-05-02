@@ -2399,6 +2399,7 @@ void TreeSupport::generateSupportSkin(
     std::vector<Polygons> cradle_support_line_roof_areas(support_layer_storage.size()); // All cradle lines that have to be added as roof
 
     std::vector<Polygons> cradle_line_xy_distance_areas(support_layer_storage.size()); // All cradle lines offset by xy distance.
+    std::vector<Polygons> missing_cradle_line_xy_distance_areas(support_layer_storage.size()); // All missing (because of cradle z distance) cradle lines offset by xy distance.
 
     std::mutex critical_cradle_line_xy_distance_areas;
     std::mutex critical_cradle_support_line_areas;
@@ -2419,16 +2420,21 @@ void TreeSupport::generateSupportSkin(
                         std::lock_guard<std::mutex> critical_section_cradle(critical_support_roof_storage);
                         cradle_base_areas[layer_idx - base_idx].add(base);
                         (config.support_roof_wall_count ? support_roof_storage : support_roof_extra_wall_storage)[layer_idx - base_idx].add(base);
-                        if (base_idx == 0 && layer_idx + 1 < support_roof_extra_wall_storage_fractional.size())
+                        if (base_idx == 0 && config.z_distance_top % config.layer_height != 0 && layer_idx + 1 < support_roof_extra_wall_storage_fractional.size())
                         {
                             (config.support_roof_wall_count ? support_roof_storage_fractional : support_roof_extra_wall_storage_fractional)[layer_idx + 1].add(base);
                         }
                     }
                     else
                     {
+                        // Dead code. Currently, Cradles that are not roofs do not have a base area, just a tip. This is just here for the case that this changes
                         std::lock_guard<std::mutex> critical_section_cradle(critical_support_layer_storage);
                         cradle_base_areas[layer_idx - base_idx].add(base);
                         support_layer_storage[layer_idx - base_idx].add(base);
+                        if (base_idx == 0 && config.z_distance_top % config.layer_height != 0 && layer_idx + 1 < support_layer_storage_fractional.size())
+                        {
+                            support_layer_storage_fractional[layer_idx + 1].add(base);
+                        }
                     }
                 }
 
@@ -2444,7 +2450,9 @@ void TreeSupport::generateSupportSkin(
                             bool is_roof = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].is_roof_;
                             LayerIndex cradle_line_layer_idx = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].layer_idx_;
                             bool is_base = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].is_base_;
-                            if (! is_base)
+                            bool was_line_above = height_idx + 1 < cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size() &&
+                                                  ! cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx + 1].is_base_;
+                            if (was_line_above)
                             {
                                 for (LayerIndex xy_dist_layer_idx = previous_layer_idx - 1; xy_dist_layer_idx > cradle_line_layer_idx; xy_dist_layer_idx--)
                                 {
@@ -2458,7 +2466,7 @@ void TreeSupport::generateSupportSkin(
                                         config.min_feature_size,
                                         &config.simplifier);
                                     std::lock_guard<std::mutex> critical_section_cradle(critical_cradle_line_xy_distance_areas);
-                                    cradle_line_xy_distance_areas[xy_dist_layer_idx].add(line_areas);
+                                    missing_cradle_line_xy_distance_areas[xy_dist_layer_idx].add(line_areas);
                                 }
                             }
 
@@ -2527,6 +2535,7 @@ void TreeSupport::generateSupportSkin(
 
 
             Polygons remove_from_support = cradle_line_xy_distance_areas[layer_idx];
+            remove_from_support.add(missing_cradle_line_xy_distance_areas[layer_idx]);
             remove_from_support.add(fake_roof_lines);
             remove_from_support.add(support_free_areas[layer_idx]);
             remove_from_support = remove_from_support.unionPolygons();
@@ -2600,6 +2609,9 @@ void TreeSupport::generateSupportSkin(
             }
             remove_from_next_roof = remove_from_next_roof.unionPolygons();
 
+            Polygons remove_from_next_fractional_roof = remove_from_next_roof;
+            remove_from_next_roof = remove_from_next_roof.unionPolygons(missing_cradle_line_xy_distance_areas[layer_idx]);
+
             Polygons roof_extra_wall = support_roof_extra_wall_storage[layer_idx].difference(remove_from_next_roof);
             Polygons roof = support_roof_storage[layer_idx];
             Polygons cradle_lines_roof = cradle_support_line_roof_areas[layer_idx];
@@ -2617,14 +2629,14 @@ void TreeSupport::generateSupportSkin(
             storage.support.supportLayers[layer_idx].fillRoofParts(roof_extra_wall, config.support_roof_line_width, config.support_wall_count, false);
             storage.support.supportLayers[layer_idx].fillRoofParts(roof, config.support_roof_line_width, config.support_roof_wall_count, false);
 
-            remove_from_next_roof.add(roof_extra_wall);
-            remove_from_next_roof.add(roof);
-            remove_from_next_roof = remove_from_next_roof.unionPolygons();
+            remove_from_next_fractional_roof.add(roof_extra_wall);
+            remove_from_next_fractional_roof.add(roof);
+            remove_from_next_fractional_roof = remove_from_next_fractional_roof.unionPolygons();
 
-            Polygons fractional_roof_extra_wall = support_roof_extra_wall_storage_fractional[layer_idx].difference(remove_from_next_roof);
+            Polygons fractional_roof_extra_wall = support_roof_extra_wall_storage_fractional[layer_idx].difference(remove_from_next_fractional_roof);
             storage.support.supportLayers[layer_idx].fillRoofParts(fractional_roof_extra_wall, config.support_roof_line_width, config.support_wall_count, true);
 
-            Polygons fractional_roof = support_roof_storage_fractional[layer_idx].difference(remove_from_next_roof.unionPolygons(fractional_roof_extra_wall));
+            Polygons fractional_roof = support_roof_storage_fractional[layer_idx].difference(remove_from_next_fractional_roof.unionPolygons(fractional_roof_extra_wall));
             storage.support.supportLayers[layer_idx].fillRoofParts(fractional_roof, config.support_roof_line_width, config.support_roof_wall_count, true);
         });
 
