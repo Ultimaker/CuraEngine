@@ -4,6 +4,7 @@
 #include "SkeletalTrapezoidation.h"
 
 #include <functional>
+#include <numbers>
 #include <queue>
 #include <sstream>
 #include <stack>

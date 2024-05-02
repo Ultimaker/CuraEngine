@@ -107,8 +107,7 @@ struct infill_generate_request : public details::converter<infill_generate_reque
 };
 
 struct infill_generate_response
-    : public details::
-          converter<infill_generate_response, slots::infill::v0::generate::CallResponse, std::tuple<std::vector<std::vector<ExtrusionLine>>, Shape, OpenLinesSet>>
+    : public details::converter<infill_generate_response, slots::infill::v0::generate::CallResponse, std::tuple<std::vector<std::vector<ExtrusionLine>>, Shape, OpenLinesSet>>
 {
     native_value_type operator()(const value_type& message) const;
 };

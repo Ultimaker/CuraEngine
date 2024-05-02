@@ -3,6 +3,8 @@
 
 #include "mesh.h"
 
+#include <numbers>
+
 #include <spdlog/spdlog.h>
 
 #include "utils/Point3D.h"
