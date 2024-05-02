@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_POLYGON_UTILS_H
@@ -7,6 +7,7 @@
 #include <functional> // function
 #include <limits>
 #include <memory> // unique_ptr
+#include <numbers>
 #include <optional>
 
 #include "PolygonsPointIndex.h"

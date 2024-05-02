@@ -3,6 +3,7 @@
 
 #include "geometry/Polyline.h"
 
+#include <numbers>
 #include <numeric>
 
 #include "geometry/LinesSet.h"

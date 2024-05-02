@@ -1,10 +1,11 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "utils/polygonUtils.h"
 
 #include <array>
 #include <list>
+#include <numbers>
 #include <sstream>
 #include <unordered_set>
 

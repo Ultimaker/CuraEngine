@@ -1,10 +1,11 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "settings/Settings.h" //The class under test.
 
-#include <cmath> //For std::numbers::pi.
+#include <cmath>
 #include <memory> //For shared_ptr.
+#include <numbers>
 
 #include <gtest/gtest.h>
 

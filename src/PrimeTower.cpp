@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "PrimeTower.h"
@@ -12,7 +12,6 @@
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "LayerPlan.h"
-#include "PrintFeature.h"
 #include "Scene.h"
 #include "Slice.h"
 #include "gcodeExport.h"

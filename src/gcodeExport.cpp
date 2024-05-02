@@ -5,7 +5,6 @@
 
 #include <cassert>
 #include <cmath>
-#include <cstdarg>
 #include <iomanip>
 #include <numbers>
 

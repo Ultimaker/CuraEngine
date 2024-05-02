@@ -1,14 +1,15 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef BEADING_STRATEGY_H
 #define BEADING_STRATEGY_H
 
 #include <memory>
+#include <numbers>
 
-#include "../settings/types/Angle.h"
-#include "../settings/types/Ratio.h" //For the wall transition threshold.
 #include "geometry/Point2LL.h"
+#include "settings/types/Angle.h"
+#include "settings/types/Ratio.h" //For the wall transition threshold.
 
 namespace cura
 {
@@ -45,9 +46,7 @@ public:
 
     BeadingStrategy(const BeadingStrategy& other);
 
-    virtual ~BeadingStrategy()
-    {
-    }
+    virtual ~BeadingStrategy() = default;
 
     /*!
      * Retrieve the bead widths with which to cover a given thickness.

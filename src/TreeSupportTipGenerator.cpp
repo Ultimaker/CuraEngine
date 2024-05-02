@@ -1,18 +1,17 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "TreeSupportTipGenerator.h"
 
 #include <chrono>
+#include <cstdio>
 #include <fstream>
 #include <numbers>
-#include <stdio.h>
 #include <string>
 
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/iota.hpp>
-#include <range/v3/view/reverse.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get settings.
@@ -20,7 +19,6 @@
 #include "geometry/OpenPolyline.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "settings/EnumSettings.h"
-#include "utils/Simplify.h"
 #include "utils/ThreadPool.h"
 #include "utils/algorithm.h"
 #include "utils/math.h" //For round_up_divide and PI.

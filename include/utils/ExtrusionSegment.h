@@ -1,14 +1,13 @@
-// Copyright (c) 2020 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 
 #ifndef UTILS_EXTRUSION_SEGMENT_H
 #define UTILS_EXTRUSION_SEGMENT_H
 
-#include <utility>
+#include <numbers>
 
 #include "ExtrusionJunction.h"
-#include "geometry/Point2LL.h"
 #include "geometry/Polygon.h"
 #include "polygonUtils.h"
 
