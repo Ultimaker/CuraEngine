@@ -1177,14 +1177,15 @@ void TreeSupportTipGenerator::generateTips(
                 Polygons polylines;
                 // The tip positions are determined here.
                 if (overhang_data.isCradleLine() &&
-                    overhang_data.cradle_->config_->cradle_line_width_ < std::max(current_tip_radius, overhang_data.cradle_->config_->cradle_support_base_area_radius_))
+                    overhang_data.cradle_->config_->cradle_line_width_ / 2 < std::max(current_tip_radius, overhang_data.cradle_->config_->cradle_support_base_area_radius_))
                 {
                     std::optional<TreeSupportCradleLine*> cradle_line_opt
                         = overhang_data.cradle_->getCradleLineOfIndex(overhang_data.cradle_layer_idx_, overhang_data.cradle_line_idx_);
                     if(cradle_line_opt)
                     {
                         Polygons line = cradle_line_opt.value()->line_.offset(0);
-                        polylines = ensureMaximumDistancePolyline(line, current_tip_radius * 2, 2, false);
+                        coord_t cradle_line_tip_radius = std::max(current_tip_radius, overhang_data.cradle_->config_->cradle_support_base_area_radius_);
+                        polylines = ensureMaximumDistancePolyline(line, cradle_line_tip_radius, 2, false);
                     }
                 }
                 else
@@ -1192,9 +1193,8 @@ void TreeSupportTipGenerator::generateTips(
                     // todo can cause inconsistent support density if a line exactly aligns with the model
                     polylines = ensureMaximumDistancePolyline(
                         generateLines(overhang_outset, overhang_data.is_roof_, layer_idx + overhang_data.is_roof_),
-                        ! overhang_data.is_roof_ ? config_.min_radius * 2
-                        : use_fake_roof_         ? support_supporting_branch_distance_
-                                                 : connect_length,
+                        ! overhang_data.is_roof_ ? current_tip_radius * 2
+                        : (use_fake_roof_ && ! overhang_data.isCradleLine() ? support_supporting_branch_distance_ : connect_length),
                         1,
                         false);
                 }
