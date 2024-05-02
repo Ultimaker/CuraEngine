@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_POLYGON_CONNECTOR_H
@@ -14,6 +14,7 @@
 #include "linearAlg2D.h"
 #include "polygonUtils.h"
 #include "settings/types/Ratio.h"
+#include "utils/math.h"
 
 namespace cura
 {

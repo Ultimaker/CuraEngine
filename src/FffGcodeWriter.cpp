@@ -13,9 +13,6 @@
 #include <unordered_set>
 
 #include <range/v3/view/concat.hpp>
-#include <range/v3/view/sliding.hpp>
-#include <range/v3/view/transform.hpp>
-#include <range/v3/view/zip.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h"

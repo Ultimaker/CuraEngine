@@ -4,6 +4,9 @@
 #ifndef GEOMETRY_POINT_MATRIX_H
 #define GEOMETRY_POINT_MATRIX_H
 
+#include <array>
+#include <numbers>
+
 #include "geometry/Point2LL.h"
 
 
@@ -13,7 +16,7 @@ namespace cura
 class PointMatrix
 {
 public:
-    double matrix[4];
+    std::array<double, 4> matrix{};
 
     PointMatrix()
     {
@@ -23,7 +26,7 @@ public:
         matrix[3] = 1;
     }
 
-    PointMatrix(double rotation)
+    explicit PointMatrix(double rotation)
     {
         rotation = rotation / 180 * std::numbers::pi;
         matrix[0] = cos(rotation);
@@ -32,7 +35,7 @@ public:
         matrix[3] = matrix[0];
     }
 
-    PointMatrix(const Point2LL& p)
+    explicit PointMatrix(const Point2LL& p)
     {
         matrix[0] = static_cast<double>(p.X);
         matrix[1] = static_cast<double>(p.Y);
@@ -51,24 +54,24 @@ public:
         return ret;
     }
 
-    Point2LL apply(const Point2LL& p) const
+    [[nodiscard]] Point2LL apply(const Point2LL& p) const
     {
-        const double x = static_cast<double>(p.X);
-        const double y = static_cast<double>(p.Y);
-        return Point2LL(std::llrint(x * matrix[0] + y * matrix[1]), std::llrint(x * matrix[2] + y * matrix[3]));
+        const auto x = static_cast<double>(p.X);
+        const auto y = static_cast<double>(p.Y);
+        return { std::llrint(x * matrix[0] + y * matrix[1]), std::llrint(x * matrix[2] + y * matrix[3]) };
     }
 
     /*!
      * \warning only works on a rotation matrix! Output is incorrect for other types of matrix
      */
-    Point2LL unapply(const Point2LL& p) const
+    [[nodiscard]] Point2LL unapply(const Point2LL& p) const
     {
-        const double x = static_cast<double>(p.X);
-        const double y = static_cast<double>(p.Y);
-        return Point2LL(std::llrint(x * matrix[0] + y * matrix[2]), std::llrint(x * matrix[1] + y * matrix[3]));
+        const auto x = static_cast<double>(p.X);
+        const auto y = static_cast<double>(p.Y);
+        return { std::llrint(x * matrix[0] + y * matrix[2]), std::llrint(x * matrix[1] + y * matrix[3]) };
     }
 
-    PointMatrix inverse() const
+    [[nodiscard]] PointMatrix inverse() const
     {
         PointMatrix ret;
         double det = matrix[0] * matrix[3] - matrix[1] * matrix[2];

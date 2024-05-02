@@ -27,6 +27,7 @@
 #include "sliceDataStorage.h"
 #include "utils/Simplify.h"
 #include "utils/linearAlg2D.h"
+#include "utils/math.h"
 #include "utils/polygonUtils.h"
 #include "utils/section_type.h"
 

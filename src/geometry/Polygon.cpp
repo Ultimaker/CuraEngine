@@ -3,6 +3,8 @@
 
 #include "geometry/Polygon.h"
 
+#include <numbers>
+
 #include "geometry/Point3Matrix.h"
 #include "geometry/PointMatrix.h"
 #include "geometry/Shape.h"

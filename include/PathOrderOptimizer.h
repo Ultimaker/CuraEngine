@@ -1,9 +1,10 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef PATHORDEROPTIMIZER_H
 #define PATHORDEROPTIMIZER_H
 
+#include <numbers>
 #include <unordered_set>
 
 #include <range/v3/algorithm/partition_copy.hpp>
@@ -15,7 +16,6 @@
 #include <range/v3/view/reverse.hpp>
 #include <spdlog/spdlog.h>
 
-#include "InsetOrderOptimizer.h" // for makeOrderIncludeTransitive
 #include "pathPlanning/CombPath.h" //To calculate the combing distance if we want to use combing.
 #include "pathPlanning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
 #include "path_ordering.h"
@@ -402,7 +402,7 @@ protected:
             }
 
             auto local_current_position = current_position;
-            while (candidates.size() != 0)
+            while (! candidates.empty())
             {
                 Path best_candidate = findClosestPathVertices(local_current_position, candidates);
 
@@ -633,10 +633,7 @@ protected:
             {
                 return path.converted_->size() - 1; // Back end is closer.
             }
-            else
-            {
-                return 0; // Front end is closer.
-            }
+            return 0; // Front end is closer.
         }
 
         // Rest of the function only deals with (closed) polygons. We need to be able to find the seam location of those polygons.

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SLICER_H
@@ -9,6 +9,7 @@
 #include <unordered_map>
 
 #include "geometry/OpenLinesSet.h"
+#include "geometry/OpenPolyline.h"
 #include "geometry/Shape.h"
 #include "settings/EnumSettings.h"
 
