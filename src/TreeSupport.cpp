@@ -2023,9 +2023,10 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
                 return;
             }
 
-            Shape outer_walls
-                = TreeSupportUtils::toPolylines(support_layer_storage[layer_idx - 1].getOutsidePolygons())
-                      .createTubeShape(closing_dist, 0); //.unionPolygons(volumes_.getCollision(0, layer_idx - 1, true).offset(-(config.support_line_width+config.xy_min_distance)));
+            Shape outer_walls = TreeSupportUtils::toPolylines(support_layer_storage[layer_idx - 1].getOutsidePolygons())
+                                    .createTubeShape(
+                                        closing_dist,
+                                        0); //.unionPolygons(volumes_.getCollision(0, layer_idx - 1, true).offset(-(config.support_line_width+config.xy_min_distance)));
 
             Shape holes_below;
 
