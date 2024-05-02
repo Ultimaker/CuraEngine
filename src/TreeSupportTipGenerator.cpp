@@ -750,8 +750,6 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
                 }
             }
 
-
-
             size_t tip_dtt = tip_radius >= config_.branch_radius ? config_.tip_layers
                                                                  : (config_.tip_layers * (tip_radius - config_.min_radius)) / (config_.branch_radius - config_.min_radius);
 
@@ -1178,14 +1176,15 @@ void TreeSupportTipGenerator::generateTips(
                 bool only_lines = true;
                 Polygons polylines;
                 // The tip positions are determined here.
-                if (overhang_data.isCradleLine())
+                if (overhang_data.isCradleLine() &&
+                    overhang_data.cradle_->config_->cradle_line_width_ < std::max(current_tip_radius, overhang_data.cradle_->config_->cradle_support_base_area_radius_))
                 {
                     std::optional<TreeSupportCradleLine*> cradle_line_opt
                         = overhang_data.cradle_->getCradleLineOfIndex(overhang_data.cradle_layer_idx_, overhang_data.cradle_line_idx_);
                     if(cradle_line_opt)
                     {
                         Polygons line = cradle_line_opt.value()->line_.offset(0);
-                        polylines = ensureMaximumDistancePolyline(line, ! overhang_data.is_roof_ ? config_.min_radius * 2 : support_supporting_branch_distance_, 1, false);
+                        polylines = ensureMaximumDistancePolyline(line, current_tip_radius * 2, 2, false);
                     }
                 }
                 else
@@ -1206,7 +1205,7 @@ void TreeSupportTipGenerator::generateTips(
                 //   but it ensures consistent behaviour as some infill patterns generate each line segment as its own polyline part causing a similar line forming behaviour.
                 // This is not done when a roof is above as the roof will support the model and the trees only need to support the roof
 
-                if (polylines.pointCount() <= min_support_points)
+                if (polylines.pointCount() <= min_support_points && (!overhang_data.isCradleLine() || polylines.pointCount() < 2))
                 {
                     only_lines = false;
                     // Add the outer wall (of the overhang) to ensure it is correct supported instead.
