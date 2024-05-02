@@ -481,7 +481,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
         dropOverhangAreas(mesh, dropped_overhangs, true);
     }
 
-    std::vector<Polygons> all_cradle_areas(cradle_data.size());
+    std::vector<Polygons> all_cradle_areas(cradle_data.size()); // All cradle areas. Later offset by min xy distance.
     for (LayerIndex layer_idx = 0; layer_idx < cradle_data.size(); layer_idx++)
     {
         for (size_t cradle_idx = 0; cradle_idx < cradle_data[layer_idx].size(); cradle_idx++)
@@ -505,6 +505,10 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
         mesh.overhang_areas.size() - z_distance_delta_,
         [&](const LayerIndex layer_idx)
         {
+
+            // Needed for fuzzy roof search below.
+            all_cradle_areas[layer_idx] = all_cradle_areas[layer_idx].unionPolygons().offset(config_.xy_distance + FUDGE_LENGTH).unionPolygons();
+
             if (mesh.overhang_areas[layer_idx + z_distance_delta_].empty())
             {
                 return; // This is a continue if imagined in a loop context.
@@ -533,7 +537,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
                 &config_.simplifier);
 
             // If an area is already supported by cradle don't put roof there.
-            full_overhang_area = full_overhang_area.difference(all_cradle_areas[layer_idx].unionPolygons().offset(config_.xy_distance + FUDGE_LENGTH).unionPolygons());
+            full_overhang_area = full_overhang_area.difference(all_cradle_areas[layer_idx]);
 
             for (LayerIndex dtt_roof = 0; dtt_roof < support_roof_layers_ && layer_idx - dtt_roof >= 1; dtt_roof++)
             {
@@ -602,7 +606,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
                     layer_idx,
                     (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
                     config_.support_rests_on_model,
-                    ! xy_overrides_);
+                    ! xy_overrides_).unionPolygons(all_cradle_areas[layer_idx]);
 
                 if (! force_minimum_roof_area_)
                 {

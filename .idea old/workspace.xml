@@ -1,0 +1,620 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="CMakePresetLoader">{
+  &quot;useNewFormat&quot;: true
+}</component>
+  <component name="CMakeReloadState">
+    <option name="reloaded" value="true" />
+  </component>
+  <component name="CMakeRunConfigurationManager">
+    <generated>
+      <config projectName="CuraEngine" targetName="SlicePhaseTest" />
+      <config projectName="CuraEngine" targetName="StringTest" />
+      <config projectName="CuraEngine" targetName="TimeEstimateCalculatorTest" />
+      <config projectName="CuraEngine" targetName="SettingsTest" />
+      <config projectName="CuraEngine" targetName="ExtruderPlanTest" />
+      <config projectName="CuraEngine" targetName="_CuraEngine" />
+      <config projectName="CuraEngine" targetName="InfillTest" />
+      <config projectName="CuraEngine" targetName="IntPointTest" />
+      <config projectName="CuraEngine" targetName="PolygonUtilsTest" />
+      <config projectName="CuraEngine" targetName="PathOrderMonotonicTest" />
+      <config projectName="CuraEngine" targetName="ArcusCommunicationPrivateTest" />
+      <config projectName="CuraEngine" targetName="SparseGridTest" />
+      <config projectName="CuraEngine" targetName="ClipperTest" />
+      <config projectName="CuraEngine" targetName="PathOrderOptimizerTest" />
+      <config projectName="CuraEngine" targetName="PolygonConnectorTest" />
+      <config projectName="CuraEngine" targetName="WallsComputationTest" />
+      <config projectName="CuraEngine" targetName="GCodeExportTest" />
+      <config projectName="CuraEngine" targetName="SimplifyTest" />
+      <config projectName="CuraEngine" targetName="MinimumSpanningTreeTest" />
+      <config projectName="CuraEngine" targetName="AABBTest" />
+      <config projectName="CuraEngine" targetName="SmoothTest" />
+      <config projectName="CuraEngine" targetName="UnionFindTest" />
+      <config projectName="CuraEngine" targetName="ArcusCommunicationTest" />
+      <config projectName="CuraEngine" targetName="AABB3DTest" />
+      <config projectName="CuraEngine" targetName="test_helpers" />
+      <config projectName="CuraEngine" targetName="LinearAlg2DTest" />
+      <config projectName="CuraEngine" targetName="CuraEngine" />
+      <config projectName="CuraEngine" targetName="LayerPlanTest" />
+      <config projectName="CuraEngine" targetName="PolygonTest" />
+    </generated>
+  </component>
+  <component name="CMakeSettings">
+    <configurations>
+      <configuration PROFILE_NAME="Debug-Visual Studio" ENABLED="true" GENERATION_DIR="build/debug" CONFIG_NAME="Debug" TOOLCHAIN_NAME="Visual Studio" GENERATION_OPTIONS="--preset debug" BUILD_OPTIONS="--preset debug" NO_GENERATOR="true" />
+      <configuration PROFILE_NAME="Release-Visual Studio" ENABLED="true" GENERATION_DIR="build/release" CONFIG_NAME="Release" TOOLCHAIN_NAME="Visual Studio" GENERATION_OPTIONS="-G Ninja --preset release" BUILD_OPTIONS="--preset release" />
+      <configuration PROFILE_NAME="RelWithDebInfo-Visual Studio" ENABLED="true" GENERATION_DIR="build/relwithdebinfo" CONFIG_NAME="RelWithDebInfo" TOOLCHAIN_NAME="Visual Studio" GENERATION_OPTIONS="--preset relwithdebinfo" BUILD_OPTIONS="--preset relwithdebinfo" NO_GENERATOR="true" />
+    </configurations>
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="8172499e-b765-42d8-ae20-b06ddebb1d49" name="Changes" comment="Fix bug related to cradle and fractional roof again" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="ConanProjectSettings">
+    <option name="conanPath" value="" />
+    <option name="installArgs" value="--build=missing --update" />
+    <option name="profileMapping">
+      <map>
+        <entry>
+          <key>
+            <CMakeProfile>
+              <option name="name" value="Release-Visual Studio" />
+              <option name="targetDir" value="C:\Users\Thomas\Documents\Cura\CuraEngineGit\CuraEngine\build\release" />
+            </CMakeProfile>
+          </key>
+          <value>
+            <ConanProfile>
+              <option name="name" value="cura.jinja" />
+            </ConanProfile>
+          </value>
+        </entry>
+        <entry>
+          <key>
+            <CMakeProfile>
+              <option name="name" value="RelWithDebInfo-Visual Studio" />
+              <option name="targetDir" value="C:\Users\Thomas\Documents\Cura\CuraEngineGit\CuraEngine\cmake-build-relwithdebinfo-visual-studio" />
+            </CMakeProfile>
+          </key>
+          <value>
+            <ConanProfile>
+              <option name="name" value="cura_relWD.jinja" />
+            </ConanProfile>
+          </value>
+        </entry>
+        <entry>
+          <key>
+            <CMakeProfile>
+              <option name="name" value="Debug-Visual Studio" />
+              <option name="targetDir" value="C:\Users\Thomas\Documents\Cura\CuraEngineGit\CuraEngine\build\debug" />
+            </CMakeProfile>
+          </key>
+          <value>
+            <ConanProfile>
+              <option name="name" value="cura_debug.jinja" />
+            </ConanProfile>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="5.6" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RESET_MODE" value="HARD" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectApplicationVersion">
+    <option name="ide" value="CLion" />
+    <option name="majorVersion" value="2022" />
+    <option name="minorVersion" value="2.4" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
+  <component name="ProjectId" id="2MnEPKXzoXFXrK4WLzuzJjDyyhu" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "CMake Application.CuraEngine.executor": "Debug",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "cf.advertisement.text.has.clang-format": "true",
+    "cf.advertisement.text.overridden": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "com.jfrog.conanplugin.addconansupport": "true",
+    "com.jfrog.conanplugin.automanage.cmake.advanced.settings": "true",
+    "com.jfrog.conanplugin.conanexecutable": "conan",
+    "com.jfrog.conanplugin.hasbeensetup": "true",
+    "ctest.advertisement.all.test.configuration.is.created": "true",
+    "last_opened_file_path": "C:/Users/Thomas/Documents/Cura/CuraEngineGit/CuraEngine",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "advanced.settings",
+    "structure.view.defaults.are.configured": "true",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RunManager" selected="CMake Application.CuraEngine">
+    <configuration name="AABB3DTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="AABB3DTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="AABB3DTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="AABBTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="AABBTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="AABBTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ArcusCommunicationPrivateTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="ArcusCommunicationPrivateTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="ArcusCommunicationPrivateTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ArcusCommunicationTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="ArcusCommunicationTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="ArcusCommunicationTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ClipperTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="ClipperTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="ClipperTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ExtruderPlanTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="ExtruderPlanTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="ExtruderPlanTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="GCodeExportTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="GCodeExportTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="GCodeExportTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="InfillTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="InfillTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="InfillTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="IntPointTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="IntPointTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="IntPointTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="LayerPlanTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="LayerPlanTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="LayerPlanTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="LinearAlg2DTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="LinearAlg2DTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="LinearAlg2DTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="MinimumSpanningTreeTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="MinimumSpanningTreeTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="MinimumSpanningTreeTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="PathOrderMonotonicTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="PathOrderMonotonicTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="PathOrderMonotonicTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="PathOrderOptimizerTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="PathOrderOptimizerTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="PathOrderOptimizerTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="PolygonConnectorTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="PolygonConnectorTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="PolygonConnectorTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="PolygonTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="PolygonTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="PolygonTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="PolygonUtilsTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="PolygonUtilsTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="PolygonUtilsTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="SettingsTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="SettingsTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="SettingsTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="SimplifyTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="SimplifyTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="SimplifyTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="SlicePhaseTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="SlicePhaseTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="SlicePhaseTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="SmoothTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="SmoothTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="SmoothTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="SparseGridTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="SparseGridTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="SparseGridTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="StringTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="StringTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="StringTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TimeEstimateCalculatorTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="TimeEstimateCalculatorTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="TimeEstimateCalculatorTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="UnionFindTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="UnionFindTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="UnionFindTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="WallsComputationTest" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="WallsComputationTest" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="WallsComputationTest" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="CuraEngine" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="connect 127.0.0.1:49675" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="CuraEngine" CONFIG_NAME="Debug-Visual Studio" RUN_TARGET_PROJECT_NAME="CuraEngine" RUN_TARGET_NAME="CuraEngine">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="test_helpers" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="CuraEngine" TARGET_NAME="test_helpers" CONFIG_NAME="Debug-Visual Studio">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="All CTest" type="CTestRunConfiguration" factoryName="CTestRun" PROGRAM_PARAMS="--extra-verbose" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$CMakeCurrentLocalGenerationDir$" PASS_PARENT_ENVS_2="true" CONFIG_NAME="Debug-Visual Studio" RUN_PATH="$CTestCurrentExecutableName$" EXPLICIT_BUILD_TARGET_NAME="all" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <list>
+      <item itemvalue="CMake Application.CuraEngine" />
+      <item itemvalue="CMake Application.test_helpers" />
+      <item itemvalue="CTest Application.All CTest" />
+      <item itemvalue="Google Test.AABB3DTest" />
+      <item itemvalue="Google Test.AABBTest" />
+      <item itemvalue="Google Test.ArcusCommunicationPrivateTest" />
+      <item itemvalue="Google Test.ArcusCommunicationTest" />
+      <item itemvalue="Google Test.ClipperTest" />
+      <item itemvalue="Google Test.ExtruderPlanTest" />
+      <item itemvalue="Google Test.GCodeExportTest" />
+      <item itemvalue="Google Test.InfillTest" />
+      <item itemvalue="Google Test.IntPointTest" />
+      <item itemvalue="Google Test.LayerPlanTest" />
+      <item itemvalue="Google Test.LinearAlg2DTest" />
+      <item itemvalue="Google Test.MinimumSpanningTreeTest" />
+      <item itemvalue="Google Test.PathOrderMonotonicTest" />
+      <item itemvalue="Google Test.PathOrderOptimizerTest" />
+      <item itemvalue="Google Test.PolygonConnectorTest" />
+      <item itemvalue="Google Test.PolygonTest" />
+      <item itemvalue="Google Test.PolygonUtilsTest" />
+      <item itemvalue="Google Test.SettingsTest" />
+      <item itemvalue="Google Test.SimplifyTest" />
+      <item itemvalue="Google Test.SlicePhaseTest" />
+      <item itemvalue="Google Test.SmoothTest" />
+      <item itemvalue="Google Test.SparseGridTest" />
+      <item itemvalue="Google Test.StringTest" />
+      <item itemvalue="Google Test.TimeEstimateCalculatorTest" />
+      <item itemvalue="Google Test.UnionFindTest" />
+      <item itemvalue="Google Test.WallsComputationTest" />
+    </list>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="8172499e-b765-42d8-ae20-b06ddebb1d49" name="Changes" comment="" />
+      <created>1678394920451</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1678394920451</updated>
+      <workItem from="1678394921766" duration="3814000" />
+      <workItem from="1681329896332" duration="2041000" />
+      <workItem from="1700328914910" duration="32963000" />
+      <workItem from="1702726081990" duration="2254000" />
+      <workItem from="1702814596963" duration="8742000" />
+      <workItem from="1702837071130" duration="40020000" />
+      <workItem from="1703078564708" duration="968000" />
+      <workItem from="1703085836051" duration="614000" />
+      <workItem from="1703086845230" duration="21649000" />
+      <workItem from="1703386662153" duration="2438000" />
+      <workItem from="1703420333632" duration="31000" />
+      <workItem from="1703420378024" duration="157000" />
+      <workItem from="1703420546056" duration="133000" />
+      <workItem from="1703420689610" duration="38000" />
+      <workItem from="1703420736046" duration="28000" />
+      <workItem from="1703420775749" duration="193000" />
+      <workItem from="1703421293252" duration="7000" />
+      <workItem from="1703421338910" duration="522000" />
+      <workItem from="1703421892099" duration="1526000" />
+      <workItem from="1703428774472" duration="52697000" />
+      <workItem from="1705042379552" duration="73000" />
+      <workItem from="1705042477797" duration="158000" />
+      <workItem from="1705042688687" duration="95000" />
+      <workItem from="1705042900358" duration="372000" />
+      <workItem from="1705043289130" duration="96000" />
+    </task>
+    <task id="LOCAL-00001" summary="Revert &quot;Revert &quot;Merge remote-tracking branch 'upstream/main' into tree_support_2&quot;&quot;&#10;&#10;This reverts commit fa11a4bb">
+      <created>1678421241480</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1678421241480</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Fix issues cause by merge and fix issue caused by previous refactor.">
+      <created>1700343676433</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1700343676433</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Change the way settings are retrieved to enable using a fake plugin to supply the UI with the settings">
+      <created>1700431581566</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1700431581566</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Add first version of support_tree_cradle_xy_distance setting.">
+      <created>1700431675358</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1700431675358</updated>
+    </task>
+    <task id="LOCAL-00005" summary="Fix tree support fake roof for large areas">
+      <created>1700465653211</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1700465653211</updated>
+    </task>
+    <task id="LOCAL-00006" summary="Add documentation for the new parameter introduced in previous commit. Also added documentation for the custom_line_distance variable of SupportInfillPart">
+      <created>1700466016952</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1700466016952</updated>
+    </task>
+    <task id="LOCAL-00007" summary="Fix fractional roof not working correctly with cradles">
+      <created>1702835717484</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1702835717484</updated>
+    </task>
+    <task id="LOCAL-00008" summary="Fix cradle xy distance">
+      <created>1702922709142</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1702922709142</updated>
+    </task>
+    <task id="LOCAL-00009" summary="Fix cradle sometimes not being supported correctly">
+      <created>1702932319666</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1702932319666</updated>
+    </task>
+    <task id="LOCAL-00010" summary="Fix crashes in caused by tree support.">
+      <option name="closed" value="true" />
+      <created>1703420088921</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1703420088921</updated>
+    </task>
+    <task id="LOCAL-00011" summary="More cradle fixes">
+      <created>1703462493363</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1703462493363</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Some fixes to support skin">
+      <created>1703463612471</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1703463612471</updated>
+    </task>
+    <task id="LOCAL-00013" summary="Un-goat a comment (fix typo).">
+      <created>1703463697385</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1703463697385</updated>
+    </task>
+    <task id="LOCAL-00014" summary="Un-goat a comment (fix typo).">
+      <created>1703465537553</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1703465537553</updated>
+    </task>
+    <task id="LOCAL-00015" summary="Un-goat a comment (fix typo).">
+      <created>1703465554816</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1703465554816</updated>
+    </task>
+    <task id="LOCAL-00016" summary="Un-goat some comments (fix typo).">
+      <created>1703465577649</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1703465577649</updated>
+    </task>
+    <task id="LOCAL-00017" summary="Fix crashes caused by tree support.">
+      <created>1704066229353</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1704066229353</updated>
+    </task>
+    <task id="LOCAL-00018" summary="Fix compile error caused by previous commit">
+      <created>1704120994568</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1704120994568</updated>
+    </task>
+    <task id="LOCAL-00019" summary="Made cradle xy distance a vector to enable more flexibility">
+      <created>1704561588725</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1704561588725</updated>
+    </task>
+    <task id="LOCAL-00020" summary="Changed support skin pattern to ZigZag and reduced support skin wall line count by one to improve strength of support skin.">
+      <created>1704563429670</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1704563429670</updated>
+    </task>
+    <task id="LOCAL-00021" summary="Fix bug related to cradle and fractional roof again">
+      <created>1704771760712</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1704771760713</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="VCPKGProject">
+    <isAutomaticCheckingOnLaunch value="false" />
+    <isAutomaticFoundErrors value="true" />
+    <isAutomaticReloadCMake value="true" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="tree_support_2" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Revert &quot;Revert &quot;Merge remote-tracking branch 'upstream/main' into tree_support_2&quot;&quot;&#10;&#10;This reverts commit fa11a4bb" />
+    <MESSAGE value="Fix issues cause by merge and fix issue caused by previous refactor." />
+    <MESSAGE value="Change the way settings are retrieved to enable using a fake plugin to supply the UI with the settings" />
+    <MESSAGE value="Add first version of support_tree_cradle_xy_distance setting." />
+    <MESSAGE value="Fix tree support fake roof for large areas" />
+    <MESSAGE value="Add documentation for the new parameter introduced in previous commit. Also added documentation for the custom_line_distance variable of SupportInfillPart" />
+    <MESSAGE value="Fix fractional roof not working correctly with cradles" />
+    <MESSAGE value="Fix cradle xy distance" />
+    <MESSAGE value="Fix cradle sometimes not being supported correctly" />
+    <MESSAGE value="Fix crashes in caused by tree support." />
+    <MESSAGE value="More cradle fixes" />
+    <MESSAGE value="Some fixes to support skin" />
+    <MESSAGE value="Un-goat comments (fix typo)." />
+    <MESSAGE value="Un-goat a comment (fix typo)." />
+    <MESSAGE value="Un-goat some comments (fix typo)." />
+    <MESSAGE value="Fix crashes caused by tree support." />
+    <MESSAGE value="Fix compile error caused by previous commit" />
+    <MESSAGE value="Made cradle xy distance a vector to enable more flexibility" />
+    <MESSAGE value="Changed support skin pattern to ZigZag and reduced support skin wall line count by one to improve strength of support skin." />
+    <MESSAGE value="Fix bug related to cradle and fractional roof again" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fix bug related to cradle and fractional roof again" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/WallToolPaths.cpp</url>
+          <line>357</line>
+          <option name="timeStamp" value="12" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>
