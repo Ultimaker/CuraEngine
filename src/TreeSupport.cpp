@@ -1636,8 +1636,8 @@ void TreeSupport::handleCradleLineValidity(
 
                             if (next_relevant_influence.area() > EPSILON)
                             {
-                                relevant_influence = next_relevant_influence;
-                                full_influence = full_influence.difference(cradle_influence).unionPolygons(relevant_influence);
+                                relevant_influence = TreeSupportUtils::safeUnion(next_relevant_influence);
+                                full_influence = TreeSupportUtils::safeUnion(full_influence.difference(cradle_influence), relevant_influence);
                             }
                             else
                             {
