@@ -121,7 +121,7 @@ public:
         , reverse_direction_(reverse_direction)
         , _group_outer_walls(group_outer_walls)
         , order_requirements_(&order_requirements)
-        , disallowed_area{disallowed_areas}
+        , disallowed_area{ disallowed_areas }
 
     {
     }

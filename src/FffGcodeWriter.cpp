@@ -3459,7 +3459,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             constexpr coord_t wipe_dist = 0;
             ZSeamConfig z_seam_config
                 = ZSeamConfig(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
-            Polygons disallowed_area {};
+            Polygons disallowed_area{};
             if (infill_extruder.settings_.get<bool>("support_z_seam_away_from_model"))
             {
                 for (std::shared_ptr<SliceMeshStorage> mesh_ptr : storage.meshes)

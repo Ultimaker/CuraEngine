@@ -71,7 +71,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , z_seam_config_(z_seam_config)
     , paths_(paths)
     , layer_nr_(gcode_layer.getLayerNr())
-    , disallowed_areas_{disallowed_areas}
+    , disallowed_areas_{ disallowed_areas }
 {
 }
 
@@ -100,8 +100,15 @@ bool InsetOrderOptimizer::addToLayer()
     const auto group_outer_walls = settings_.get<bool>("group_outer_walls");
     // When we alternate walls, also alternate the direction at which the first wall starts in.
     // On even layers we start with normal direction, on odd layers with inverted direction.
-    PathOrderOptimizer<const ExtrusionLine*>
-        order_optimizer(gcode_layer_.getLastPlannedPositionOrStartingPosition(), z_seam_config_, detect_loops, combing_boundary, reverse, order, group_outer_walls, disallowed_areas_);
+    PathOrderOptimizer<const ExtrusionLine*> order_optimizer(
+        gcode_layer_.getLastPlannedPositionOrStartingPosition(),
+        z_seam_config_,
+        detect_loops,
+        combing_boundary,
+        reverse,
+        order,
+        group_outer_walls,
+        disallowed_areas_);
 
     for (const auto& line : walls_to_be_added)
     {
