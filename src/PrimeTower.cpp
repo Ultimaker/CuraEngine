@@ -186,7 +186,6 @@ void PrimeTower::generatePaths_denseInfill(std::vector<coord_t>& cumulative_inse
                 }
                 extra_radius = line_width * extra_rings;
                 outer_poly_base_.push_back(outer_poly_.offset(extra_radius));
-
                 base_extra_moves_[extruder_nr].push_back(PolygonUtils::generateOutset(outer_poly_, extra_rings, line_width));
             }
         }
@@ -448,7 +447,7 @@ void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t ext
     {
         // Actual prime pattern
         const GCodePathConfig& config = gcode_layer.configs_storage_.prime_tower_config_per_extruder[extruder_nr];
-        const Polygons& pattern = prime_moves_.at(extruder_nr);
+        const Shape& pattern = prime_moves_.at(extruder_nr);
         gcode_layer.addPolygonsByOptimizer(pattern, config);
     }
 }
@@ -458,11 +457,11 @@ bool PrimeTower::addToGcode_base(LayerPlan& gcode_layer, const size_t extruder_n
     const size_t raft_total_extra_layers = Raft::getTotalExtraLayers();
     LayerIndex absolute_layer_number = gcode_layer.getLayerNr() + raft_total_extra_layers;
 
-    const std::vector<Polygons>& pattern_extra_brim = base_extra_moves_.at(extruder_nr);
+    const auto& pattern_extra_brim = base_extra_moves_.at(extruder_nr);
     if (absolute_layer_number < pattern_extra_brim.size())
     {
         // Extra rings for stronger base
-        const Shape& pattern = pattern_extra_brim[absolute_layer_number];
+        const auto& pattern = pattern_extra_brim[absolute_layer_number];
         if (! pattern.empty())
         {
             const GCodePathConfig& config = gcode_layer.configs_storage_.prime_tower_config_per_extruder[extruder_nr];
@@ -481,7 +480,7 @@ bool PrimeTower::addToGcode_inset(LayerPlan& gcode_layer, const size_t extruder_
 
     if (absolute_layer_number == 0) // Extra-adhesion on very first layer only
     {
-        const Polygons& pattern_extra_inset = inset_extra_moves_.at(extruder_nr);
+        const Shape& pattern_extra_inset = inset_extra_moves_.at(extruder_nr);
         if (! pattern_extra_inset.empty())
         {
             const GCodePathConfig& config = gcode_layer.configs_storage_.prime_tower_config_per_extruder[extruder_nr];

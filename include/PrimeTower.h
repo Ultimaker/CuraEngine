@@ -29,7 +29,7 @@ class PrimeTower
 {
 private:
     using MovesByExtruder = std::map<size_t, Shape>;
-    using MovesByLayer = std::map<size_t, std::vector<MovesByExtruder>>;
+    using MovesByLayer = std::map<size_t, std::vector<Shape>>;
 
     size_t extruder_count_; //!< Number of extruders
 
