@@ -4,8 +4,8 @@
 #include "slicer.h"
 
 #include <algorithm> // remove_if
-#include <numbers>
 #include <cstdio>
+#include <numbers>
 
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>

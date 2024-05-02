@@ -3,6 +3,8 @@
 
 #include "Mold.h"
 
+#include <numbers>
+
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "Scene.h"
@@ -12,8 +14,6 @@
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "slicer.h"
-
-#include <numbers>
 
 namespace cura
 {

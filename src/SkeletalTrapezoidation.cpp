@@ -4,11 +4,11 @@
 #include "SkeletalTrapezoidation.h"
 
 #include <functional>
+#include <numbers>
 #include <queue>
 #include <sstream>
 #include <stack>
 #include <unordered_set>
-#include <numbers>
 
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
