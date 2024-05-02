@@ -402,7 +402,7 @@ protected:
             }
 
             auto local_current_position = current_position;
-            while (!candidates.empty())
+            while (! candidates.empty())
             {
                 Path best_candidate = findClosestPathVertices(local_current_position, candidates);
 

@@ -148,7 +148,7 @@ INLINE double vSizeMM(const Point2LL& p0)
 
 INLINE Point2LL normal(const Point2LL& p0, coord_t len)
 {
-    coord_t _len { vSize(p0) };
+    coord_t _len{ vSize(p0) };
     if (_len < 1)
     {
         return { len, 0 };
