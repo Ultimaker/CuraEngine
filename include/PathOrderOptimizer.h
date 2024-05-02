@@ -59,12 +59,10 @@ namespace cura
 template<typename Path>
 class PathOrderOptimizer
 {
-private:
-    std::vector<Polygons> mesh_paths_{};
-    size_t min_size_support_zeam_ = 0;
-
 public:
     using OrderablePath = PathOrdering<Path>;
+    /* Areas defined here are not allowed to have the start the prints */
+    Polygons disallowed_area {};
     /*!
      * After optimizing, this contains the paths that need to be printed in the
      * correct order.
@@ -122,7 +120,7 @@ public:
         , reverse_direction_(reverse_direction)
         , _group_outer_walls(group_outer_walls)
         , order_requirements_(&order_requirements)
-        , mesh_paths_{}
+        , disallowed_area{}
 
     {
     }
@@ -137,16 +135,6 @@ public:
         paths_.emplace_back(polygon, is_closed);
     }
 
-    void addMeshPathsinfo(const std::vector<Polygons>& mesh_polygons, const size_t min_distance)
-    {
-        constexpr bool is_closed = true;
-        min_size_support_zeam_ = min_distance;
-        // offset polygon with th min_size_support z seam
-        for (auto& polygons : mesh_polygons)
-        {
-            mesh_paths_.push_back(polygons.offset(min_size_support_zeam_, ClipperLib::jtRound));
-        }
-    }
     /*!
      * Add a new polyline to be optimized.
      * \param polyline The polyline to optimize.
@@ -577,19 +565,6 @@ protected:
         return best_candidate->vertices_;
     }
 
-
-    bool isInDisallowedPaths(Point2LL point, std::vector<Polygons>& paths)
-    {
-        for (const auto& polygons : paths)
-        {
-            if (polygons.inside(point, true))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
     OrderablePath* findClosestPath(Point2LL start_position, std::vector<OrderablePath*> candidate_paths)
     {
         coord_t best_distance2 = std::numeric_limits<coord_t>::max();
@@ -653,19 +628,19 @@ protected:
      *       This typically happens when the distance of the support seam from the model is bigger than all the support wall points.
      */
 
-    size_t pathIfzeamSupportIsCloseToModel(size_t best_pos, const OrderablePath& path, size_t number_of_paths_analysed)
+    size_t pathIfZseamIsInDisallowedArea(size_t best_pos, const OrderablePath& path, size_t number_of_paths_analysed)
     {
         size_t path_size = path.converted_->size();
         if (path_size > number_of_paths_analysed)
         {
-            if (! mesh_paths_.empty())
+            if (! disallowed_area.empty())
             {
                 Point2LL current_candidate = (path.converted_)->at(best_pos);
-                if (isInDisallowedPaths(current_candidate, mesh_paths_))
+                if (disallowed_area.inside(current_candidate, true))
                 {
                     size_t next_best_position = (path_size > best_pos + 1) ? best_pos + 1 : 0;
                     number_of_paths_analysed += 1;
-                    best_pos = pathIfzeamSupportIsCloseToModel(next_best_position, path, number_of_paths_analysed);
+                    best_pos = pathIfZseamIsInDisallowedArea(next_best_position, path, number_of_paths_analysed);
                 }
             }
         }
@@ -816,9 +791,9 @@ protected:
             }
         }
 
-        if (min_size_support_zeam_ != 0)
+        if (!disallowed_area.empty())
         {
-            best_i = pathIfzeamSupportIsCloseToModel(best_i, path, 0);
+            best_i = pathIfZseamIsInDisallowedArea(best_i, path, 0);
         }
         return best_i;
     }

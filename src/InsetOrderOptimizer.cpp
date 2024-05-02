@@ -120,12 +120,13 @@ bool InsetOrderOptimizer::addToLayer(const bool is_support)
             auto& mesh = *mesh_ptr;
             for (auto& part : mesh.layers[layer_nr_].parts)
             {
-                mesh_paths_.push_back(part.print_outline);
+                mesh_paths_.add(part.print_outline);
             }
         }
         if (! mesh_paths_.empty())
         {
-            order_optimizer.addMeshPathsinfo(mesh_paths_, settings_.get<coord_t>("support_z_seam_min_distance"));
+            coord_t min_distance = settings_.get<coord_t>("support_z_seam_min_distance");
+            order_optimizer.disallowed_area = mesh_paths_.offset(min_distance, ClipperLib::jtRound);
         }
     }
 
