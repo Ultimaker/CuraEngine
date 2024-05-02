@@ -1024,7 +1024,11 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                             support_rests_on_model,
                             ! xy_overrides);
                         std::vector<std::pair<Polygons, int32_t>> roofs;
-                        roofs.emplace_back(cradle_base, -1);
+
+                        if(cradle.is_roof_)
+                        {
+                            roofs.emplace_back(cradle_base, -1);
+                        }
 
                         for (size_t line_idx = 0; line_idx < cradle.lines_.size(); line_idx++)
                         {
@@ -1108,7 +1112,12 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                                 }
                                 else
                                 {
-                                    if (roof_area_before.area() > 1)
+
+                                    if(dtt_roof == 0 && roof_area_pair.second < 0) // There was no roof base!
+                                    {
+                                        cradle.is_roof_ = false; //Try a regular base
+                                    }
+                                    else if (roof_area_before.area() > 1)
                                     {
                                         LayerIndex line_layer_idx
                                             = roof_area_pair.second < 0 ? LayerIndex(-1) : cradle_data_[mesh_idx][layer_idx][cradle_idx]->lines_[roof_area_pair.second].front().layer_idx_;
@@ -1121,7 +1130,8 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                             }
                         }
                     }
-                    else
+
+                    if(!cradle.is_roof_)
                     {
                         Polygons forbidden_here = volumes_.getAvoidance(
                             0,
@@ -1136,7 +1146,9 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                             OverhangInformation cradle_overhang(cradle_base, false, cradle_data_[mesh_idx][layer_idx][cradle_idx]);
                             cradle.overhang_[layer_idx].emplace_back(cradle_overhang);
                         }
-
+                    }
+                    if(!cradle.config_->cradle_lines_roof_)
+                    {
                         for (size_t line_idx = 0; line_idx < cradle.lines_.size(); line_idx++)
                         {
                             if (! cradle.lines_[line_idx].empty())

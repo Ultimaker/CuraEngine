@@ -597,8 +597,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
             {
                 // Roof does not have a radius, so remove it using offset. Note that there is no 0 radius avoidance, and it would not be identical with the avoidance offset with
                 // -radius. This is intentional here, as support roof is still valid if only a part of the tip may reach it.
-                Polygons forbidden_here = volumes_
-                                              .getAvoidance(
+                Polygons forbidden_here = volumes_.getAvoidance(
                     0,
                     layer_idx,
                     (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
