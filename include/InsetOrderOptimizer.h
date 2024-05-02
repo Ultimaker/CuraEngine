@@ -55,7 +55,8 @@ public:
         const size_t wall_0_extruder_nr,
         const size_t wall_x_extruder_nr,
         const ZSeamConfig& z_seam_config,
-        const std::vector<VariableWidthLines>& paths);
+        const std::vector<VariableWidthLines>& paths,
+        const Polygons& disallowed_areas = {});
 
     /*!
      * Adds the insets to the given layer plan.
@@ -64,7 +65,7 @@ public:
      * class, so this optimize function needs no additional information.
      * \return Whether anything was added to the layer plan.
      */
-    bool addToLayer(const bool is_support = false);
+    bool addToLayer();
 
     /*!
      * Get the order constraints of the insets when printing walls per region / hole.
@@ -106,7 +107,7 @@ private:
     const ZSeamConfig& z_seam_config_;
     const std::vector<VariableWidthLines>& paths_;
     const LayerIndex layer_nr_;
-    Polygons mesh_paths_;
+    Polygons disallowed_areas_;
 
     std::vector<std::vector<ConstPolygonPointer>> inset_polys_; // vector of vectors holding the inset polygons
     Polygons retraction_region_; // After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see

@@ -50,7 +50,8 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const size_t wall_0_extruder_nr,
     const size_t wall_x_extruder_nr,
     const ZSeamConfig& z_seam_config,
-    const std::vector<VariableWidthLines>& paths)
+    const std::vector<VariableWidthLines>& paths,
+    const Polygons& disallowed_areas)
     : gcode_writer_(gcode_writer)
     , storage_(storage)
     , gcode_layer_(gcode_layer)
@@ -70,11 +71,11 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , z_seam_config_(z_seam_config)
     , paths_(paths)
     , layer_nr_(gcode_layer.getLayerNr())
-    , mesh_paths_{}
+    , disallowed_areas_{disallowed_areas}
 {
 }
 
-bool InsetOrderOptimizer::addToLayer(const bool is_support)
+bool InsetOrderOptimizer::addToLayer()
 {
     // Settings & configs:
     const auto pack_by_inset = ! settings_.get<bool>("optimize_wall_printing_order");
@@ -100,7 +101,7 @@ bool InsetOrderOptimizer::addToLayer(const bool is_support)
     // When we alternate walls, also alternate the direction at which the first wall starts in.
     // On even layers we start with normal direction, on odd layers with inverted direction.
     PathOrderOptimizer<const ExtrusionLine*>
-        order_optimizer(gcode_layer_.getLastPlannedPositionOrStartingPosition(), z_seam_config_, detect_loops, combing_boundary, reverse, order, group_outer_walls);
+        order_optimizer(gcode_layer_.getLastPlannedPositionOrStartingPosition(), z_seam_config_, detect_loops, combing_boundary, reverse, order, group_outer_walls, disallowed_areas_);
 
     for (const auto& line : walls_to_be_added)
     {
@@ -111,22 +112,6 @@ bool InsetOrderOptimizer::addToLayer(const bool is_support)
         else
         {
             order_optimizer.addPolyline(&line);
-        }
-    }
-    if (is_support && settings_.get<bool>("support_z_seam_away_from_model"))
-    {
-        for (std::shared_ptr<SliceMeshStorage> mesh_ptr : storage_.meshes)
-        {
-            auto& mesh = *mesh_ptr;
-            for (auto& part : mesh.layers[layer_nr_].parts)
-            {
-                mesh_paths_.add(part.print_outline);
-            }
-        }
-        if (! mesh_paths_.empty())
-        {
-            coord_t min_distance = settings_.get<coord_t>("support_z_seam_min_distance");
-            order_optimizer.disallowed_area = mesh_paths_.offset(min_distance, ClipperLib::jtRound);
         }
     }
 

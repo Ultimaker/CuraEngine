@@ -3459,7 +3459,23 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             constexpr coord_t wipe_dist = 0;
             ZSeamConfig z_seam_config
                 = ZSeamConfig(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
-
+            Polygons disallowed_area {};
+            if (infill_extruder.settings_.get<bool>("support_z_seam_away_from_model"))
+            {
+                for (std::shared_ptr<SliceMeshStorage> mesh_ptr : storage.meshes)
+                {
+                    auto& mesh = *mesh_ptr;
+                    for (auto& part : mesh.layers[gcode_layer.getLayerNr()].parts)
+                    {
+                        disallowed_area.add(part.print_outline);
+                    }
+                }
+                if (! disallowed_area.empty())
+                {
+                    coord_t min_distance = infill_extruder.settings_.get<coord_t>("support_z_seam_min_distance");
+                    disallowed_area = disallowed_area.offset(min_distance, ClipperLib::jtRound);
+                }
+            }
 
             InsetOrderOptimizer wall_orderer(
                 *this,
@@ -3479,8 +3495,9 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 extruder_nr,
                 extruder_nr,
                 z_seam_config,
-                wall_toolpaths);
-            added_something |= wall_orderer.addToLayer(true);
+                wall_toolpaths,
+                disallowed_area);
+            added_something |= wall_orderer.addToLayer();
         }
 
         if ((default_support_line_distance <= 0 && support_structure != ESupportStructure::TREE) || part.infill_area_per_combine_per_density_.empty())
