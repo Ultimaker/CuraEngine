@@ -7,6 +7,7 @@
 #include <limits> // numeric_limits
 #include <list>
 #include <memory>
+#include <numbers>
 #include <numeric>
 #include <optional>
 #include <unordered_set>

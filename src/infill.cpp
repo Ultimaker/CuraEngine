@@ -5,6 +5,7 @@
 
 #include <algorithm> //For std::sort.
 #include <functional>
+#include <numbers>
 #include <unordered_set>
 
 #include <scripta/logger.h>

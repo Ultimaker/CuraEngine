@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <numbers>
 
 #include <spdlog/spdlog.h>
 

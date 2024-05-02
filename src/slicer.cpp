@@ -1,11 +1,11 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "slicer.h"
 
 #include <algorithm> // remove_if
 #include <numbers>
-#include <stdio.h>
+#include <cstdio>
 
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>

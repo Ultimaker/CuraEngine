@@ -7,6 +7,7 @@
 #include <fstream>
 #include <stdio.h>
 #include <string>
+#include <numbers>
 
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/enumerate.hpp>

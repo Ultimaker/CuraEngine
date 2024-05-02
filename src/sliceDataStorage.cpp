@@ -1,7 +1,9 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "sliceDataStorage.h"
+
+#include <numbers>
 
 #include <spdlog/spdlog.h>
 
@@ -16,7 +18,6 @@
 #include "infill/SubDivCube.h" // For the destructor
 #include "raft.h"
 #include "utils/math.h" //For PI.
-
 
 namespace cura
 {

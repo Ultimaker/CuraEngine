@@ -8,6 +8,7 @@
 #include <sstream>
 #include <stack>
 #include <unordered_set>
+#include <numbers>
 
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>

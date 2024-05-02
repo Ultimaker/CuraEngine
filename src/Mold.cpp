@@ -13,6 +13,8 @@
 #include "sliceDataStorage.h"
 #include "slicer.h"
 
+#include <numbers>
+
 namespace cura
 {
 
