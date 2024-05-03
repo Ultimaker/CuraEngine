@@ -15,6 +15,7 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #include <polyclipping/clipper.hpp>
 
 #include "geometry/Point3LL.h"
+#include "utils/types/generic.h"
 
 #ifdef __GNUC__
 #define DEPRECATED(func) func __attribute__((deprecated))
@@ -58,13 +59,13 @@ INLINE Point2LL operator*(const Point2LL& p0, const coord_t i)
     return { p0.X * i, p0.Y * i };
 }
 
-template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type> // Use only for numeric types.
+template<utils::numeric T> // Use only for numeric types.
 INLINE Point2LL operator*(const Point2LL& p0, const T i)
 {
     return { std::llrint(static_cast<T>(p0.X) * i), std::llrint(static_cast<T>(p0.Y) * i) };
 }
 
-template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type> // Use only for numeric types.
+template<utils::numeric T>
 INLINE Point2LL operator*(const T i, const Point2LL& p0)
 {
     return p0 * i;
@@ -153,12 +154,12 @@ INLINE double vSizeMM(const Point2LL& p0)
 {
     double fx = INT2MM(p0.X);
     double fy = INT2MM(p0.Y);
-    return sqrt(fx * fx + fy * fy);
+    return std::sqrt(fx * fx + fy * fy);
 }
 
 INLINE Point2LL normal(const Point2LL& p0, coord_t length)
 {
-    coord_t len{ vSize(p0) };
+    const coord_t len{ vSize(p0) };
     if (len < 1)
     {
         return { length, 0 };
@@ -210,6 +211,7 @@ inline Point3LL operator+(const Point3LL& p3, const Point2LL& p2)
 {
     return { p3.x_ + p2.X, p3.y_ + p2.Y, p3.z_ };
 }
+
 inline Point3LL& operator+=(Point3LL& p3, const Point2LL& p2)
 {
     p3.x_ += p2.X;
@@ -222,11 +224,11 @@ inline Point2LL operator+(const Point2LL& p2, const Point3LL& p3)
     return { p3.x_ + p2.X, p3.y_ + p2.Y };
 }
 
-
 inline Point3LL operator-(const Point3LL& p3, const Point2LL& p2)
 {
     return { p3.x_ - p2.X, p3.y_ - p2.Y, p3.z_ };
 }
+
 inline Point3LL& operator-=(Point3LL& p3, const Point2LL& p2)
 {
     p3.x_ -= p2.X;
@@ -246,7 +248,7 @@ namespace std
 template<>
 struct hash<cura::Point2LL>
 {
-    size_t operator()(const cura::Point2LL& pp) const
+    size_t operator()(const cura::Point2LL& pp) const noexcept
     {
         static int prime = 31;
         int result = 89;

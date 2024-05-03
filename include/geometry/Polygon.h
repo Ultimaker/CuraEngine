@@ -72,23 +72,23 @@ public:
 
     Polygon& operator=(const Polygon& other) = default;
 
-    Polygon& operator=(Polygon&& other) = default;
+    Polygon& operator=(Polygon&& other)  noexcept = default;
 
     /*!
      * \brief Compute the morphological intersection between this polygon and another.
      * \param other The polygon with which to intersect this polygon.
      * \note The result may consist of multiple polygons, if you have bad luck.
      */
-    Shape intersection(const Polygon& other) const;
+    [[nodiscard]] Shape intersection(const Polygon& other) const;
 
-    double area() const
+    [[nodiscard]] double area() const
     {
         return ClipperLib::Area(getPoints());
     }
 
-    Point2LL centerOfMass() const;
+    [[nodiscard]] Point2LL centerOfMass() const;
 
-    Shape offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
+    [[nodiscard]] Shape offset(int distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
     /*!
      * Smooth out small perpendicular segments and store the result in \p result.
@@ -110,7 +110,7 @@ public:
      * \param shortcut_length The desired length of the shortcut line segment introduced (shorter shortcuts may be unavoidable)
      * \param result The resulting polygon
      */
-    void smooth_outward(const AngleDegrees angle, int shortcut_length, Polygon& result) const;
+    void smoothOutward(const AngleDegrees angle, int shortcut_length, Polygon& result) const;
 
     /*!
      * Smooth out the polygon and store the result in \p result.
@@ -138,7 +138,7 @@ public:
      * \param shortcut_length The desired length ofthe shortcutting line
      * \param cos_angle The cosine on the angle in L 012
      */
-    static void smooth_corner_simple(
+    static void smoothCornerSimple(
         const Point2LL& p0,
         const Point2LL& p1,
         const Point2LL& p2,
@@ -165,7 +165,7 @@ public:
      * \param shortcut_length The desired length ofthe shortcutting line
      * \return Whether this whole polygon whould be removed by the smoothing
      */
-    static bool smooth_corner_complex(const Point2LL& p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length);
+    static bool smoothCornerComplex(const Point2LL& p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length);
 
     /*!
      * Try to take a step away from the corner point in order to take a bigger shortcut.
@@ -183,7 +183,7 @@ public:
      * \param[in,out] forward_is_too_far Whether trying another step forward is blocked by the shortcut length condition. Updated for the next iteration.
      * \param[in,out] backward_is_too_far Whether trying another step backward is blocked by the shortcut length condition. Updated for the next iteration.
      */
-    static void smooth_outward_step(
+    static void smoothOutwardStep(
         const Point2LL& p1,
         const int64_t shortcut_length2,
         ListPolyIt& p0_it,

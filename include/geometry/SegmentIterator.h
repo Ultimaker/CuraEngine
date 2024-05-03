@@ -22,7 +22,7 @@ struct SegmentIterator
     /*! @brief Transitory structure used to iterate over segments within a polyline */
     struct Segment
     {
-        using PointType = typename std::conditional<IsConst == ConstnessType::Const, const Point2LL, Point2LL>::type;
+        using PointType = std::conditional_t<IsConst == ConstnessType::Const, const Point2LL, Point2LL>;
 
         PointType& start;
         PointType& end;
@@ -35,7 +35,7 @@ struct SegmentIterator
     using pointer = Segment*;
     using reference = Segment&;
     using source_iterator_type =
-        typename std::conditional<IsConst == ConstnessType::Const, typename std::vector<Point2LL>::const_iterator, typename std::vector<Point2LL>::iterator>::type;
+        std::conditional_t<IsConst == ConstnessType::Const, typename std::vector<Point2LL>::const_iterator, typename std::vector<Point2LL>::iterator>;
 
 private:
     source_iterator_type current_pos_;
@@ -56,10 +56,7 @@ public:
         {
             return Segment{ *current_pos_, *begin_ };
         }
-        else
-        {
-            return Segment{ *current_pos_, *std::next(current_pos_) };
-        }
+        return Segment{ *current_pos_, *std::next(current_pos_) };
     }
 
     SegmentIterator& operator++()
