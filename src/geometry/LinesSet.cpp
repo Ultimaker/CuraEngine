@@ -152,7 +152,7 @@ Shape LinesSet<ClosedPolyline>::offset(coord_t distance, ClipperLib::JoinType jo
     addPaths(clipper, join_type, ClipperLib::etClosedLine);
     clipper.MiterLimit = miter_limit;
     clipper.Execute(ret, static_cast<double>(distance));
-    return Shape { std::move(ret) };
+    return Shape{ std::move(ret) };
 }
 
 template<>
