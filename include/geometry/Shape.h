@@ -30,7 +30,6 @@ public:
     // Clipper expects and returns implicitely closed polygons
     static constexpr bool clipper_explicitely_closed_ = false;
 
-public:
     /*! \brief Constructor of an empty shape */
     Shape() = default;
 
@@ -49,38 +48,38 @@ public:
      */
     explicit Shape(ClipperLib::Paths&& paths, bool explicitely_closed = clipper_explicitely_closed_);
 
-    Shape& operator=(const Shape& other);
+    Shape& operator=(const Shape& other) = default;
 
-    Shape& operator=(Shape&& other);
+    Shape& operator=(Shape&& other) noexcept = default;
+
+    ~Shape() override = default;
 
     void emplace_back(ClipperLib::Paths&& paths, bool explicitely_closed = clipper_explicitely_closed_);
 
     void emplace_back(ClipperLib::Path&& path, bool explicitely_closed = clipper_explicitely_closed_);
 
-    template<typename... Args>
-    void emplace_back(Args&&... args)
+    void emplace_back(auto&&... args)
     {
-        LinesSet::emplace_back(args...);
+        LinesSet<Polygon>::emplace_back(std::forward<decltype(args)>(args)...);
     }
 
+    [[nodiscard]] Shape difference(const Shape& other) const;
 
-    Shape difference(const Shape& other) const;
-
-    Shape unionPolygons(const Shape& other, ClipperLib::PolyFillType fill_type = ClipperLib::pftNonZero) const;
+    [[nodiscard]] Shape unionPolygons(const Shape& other, ClipperLib::PolyFillType fill_type = ClipperLib::pftNonZero) const;
 
     /*!
      * Union all polygons with each other (When polygons.add(polygon) has been called for overlapping polygons)
      */
-    Shape unionPolygons() const;
+    [[nodiscard]] Shape unionPolygons() const;
 
-    Shape intersection(const Shape& other) const;
+    [[nodiscard]] Shape intersection(const Shape& other) const;
 
     /*!
      *  @brief Overridden definition of LinesSet<Polygon>::offset()
      *  @note The behavior of this method is exactly the same, but it just exists because it allows
      *        for a performance optimization
      */
-    Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
+    [[nodiscard]] Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
     /*!
      * Intersect polylines with the area covered by the shape.
@@ -96,9 +95,9 @@ public:
     template<class LineType>
     OpenLinesSet intersection(const LinesSet<LineType>& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu) const;
 
-    Shape xorPolygons(const Shape& other, ClipperLib::PolyFillType pft = ClipperLib::pftEvenOdd) const;
+    [[nodiscard]] Shape xorPolygons(const Shape& other, ClipperLib::PolyFillType pft = ClipperLib::pftEvenOdd) const;
 
-    Shape execute(ClipperLib::PolyFillType pft = ClipperLib::pftEvenOdd) const;
+    [[nodiscard]] Shape execute(ClipperLib::PolyFillType pft = ClipperLib::pftEvenOdd) const;
 
     /*!
      * Check if we are inside the polygon.
@@ -112,7 +111,7 @@ public:
      * \param border_result What to return when the point is exactly on the border
      * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
      */
-    bool inside(const Point2LL& p, bool border_result = false) const;
+    [[nodiscard]] bool inside(const Point2LL& p, bool border_result = false) const;
 
     /*!
      * Find the polygon inside which point \p p resides.
@@ -127,7 +126,7 @@ public:
      * \param border_result Whether a point exactly on a polygon counts as inside
      * \return The index of the polygon inside which the point \p p resides
      */
-    size_t findInside(const Point2LL& p, bool border_result = false) const;
+    [[nodiscard]] size_t findInside(const Point2LL& p, bool border_result = false) const;
 
     /*!
      * \brief Approximates the convex hull of the polygons.
@@ -135,7 +134,7 @@ public:
      * \return the convex hull (approximately)
      *
      */
-    Shape approxConvexHull(int extra_outset = 0) const;
+    [[nodiscard]] Shape approxConvexHull(int extra_outset = 0) const;
 
     /*! \brief Make each of the polygons convex */
     void makeConvex();
@@ -145,7 +144,7 @@ public:
      *
      * \return The area in square micron
      */
-    double area() const;
+    [[nodiscard]] double area() const;
 
     /*!
      * Smooth out small perpendicular segments
@@ -158,7 +157,7 @@ public:
      * \param remove_length The length of the largest segment removed
      * \return The smoothed polygon
      */
-    Shape smooth(int remove_length) const;
+    [[nodiscard]] Shape smooth(int remove_length) const;
 
     /*!
      * Smooth out sharp inner corners, by taking a shortcut which bypasses the corner
@@ -167,9 +166,9 @@ public:
      * \param shortcut_length The desired length of the shortcut line segment introduced (shorter shortcuts may be unavoidable)
      * \return The resulting polygons
      */
-    Shape smooth_outward(const AngleDegrees angle, int shortcut_length) const;
+    [[nodiscard]] Shape smoothOutward(const AngleDegrees angle, int shortcut_length) const;
 
-    Shape smooth2(int remove_length, int min_area) const; //!< removes points connected to small lines
+    [[nodiscard]] Shape smooth2(int remove_length, int min_area) const; //!< removes points connected to small lines
 
     void removeColinearEdges(const AngleRadians max_deviation_angle = AngleRadians(0.0005));
 
@@ -178,20 +177,20 @@ public:
      * Exclude holes and parts within holes.
      * \return the resulting polygons.
      */
-    Shape getOutsidePolygons() const;
+    [[nodiscard]] Shape getOutsidePolygons() const;
 
     /*!
      * Split up the polygons into groups according to the even-odd rule.
      * Each SingleShape in the result has an outline as first polygon, whereas the rest are holes.
      */
-    std::vector<SingleShape> splitIntoParts(bool unionAll = false) const;
+    [[nodiscard]] std::vector<SingleShape> splitIntoParts(bool union_all = false) const;
 
     /*!
      * Sort the polygons into bins where each bin has polygons which are contained within one of the polygons in the previous bin.
      *
      * \warning When polygons are crossing each other the result is undefined.
      */
-    std::vector<Shape> sortByNesting() const;
+    [[nodiscard]] std::vector<Shape> sortByNesting() const;
 
     /*!
      * Split up the polygons into groups according to the even-odd rule.
@@ -199,7 +198,7 @@ public:
      *
      * \warning Note that this function reorders the polygons!
      */
-    PartsView splitIntoPartsView(bool unionAll = false);
+    PartsView splitIntoPartsView(bool union_all = false);
 
     /*!
      * Removes polygons with area smaller than \p min_area_size (note that min_area_size is in mm^2, not in micron^2).
@@ -212,9 +211,9 @@ public:
      * Removes the same polygons from this set (and also empty polygons).
      * Shape are considered the same if all points lie within [same_distance] of their counterparts.
      */
-    Shape removePolygon(const Shape& to_be_removed, int same_distance = 0) const;
+    [[nodiscard]] Shape removePolygon(const Shape& to_be_removed, int same_distance = 0) const;
 
-    Shape processEvenOdd(ClipperLib::PolyFillType poly_fill_type = ClipperLib::PolyFillType::pftEvenOdd) const;
+    [[nodiscard]] Shape processEvenOdd(ClipperLib::PolyFillType poly_fill_type = ClipperLib::PolyFillType::pftEvenOdd) const;
 
     /*!
      * Ensure the polygon is manifold, by removing small areas where the polygon touches itself.
@@ -231,7 +230,7 @@ public:
 
     void applyMatrix(const Point3Matrix& matrix);
 
-    Shape offsetMulti(const std::vector<coord_t>& offset_dists) const;
+    [[nodiscard]] Shape offsetMulti(const std::vector<coord_t>& offset_dists) const;
 
     /*!
      * @brief Remove self-intersections from the polygons
@@ -242,7 +241,7 @@ public:
      *
      * @return Polygons - the cleaned polygons
      */
-    Shape removeNearSelfIntersections() const;
+    [[nodiscard]] Shape removeNearSelfIntersections() const;
 
     /*!
      * \brief Simplify the polygon lines using ClipperLib::SimplifyPolygons
@@ -271,10 +270,10 @@ private:
      * \param remove_holes Whether to remove empty holes or everything but the empty holes
      * \param ret Where to store polygons which are not empty holes
      */
-    void removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& node, const bool remove_holes, Shape& ret) const;
-    void splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<SingleShape>& ret) const;
-    void sortByNesting_processPolyTreeNode(ClipperLib::PolyNode* node, const size_t nesting_idx, std::vector<Shape>& ret) const;
-    void splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Shape& reordered, ClipperLib::PolyNode* node) const;
+    void removeEmptyHolesProcessPolyTreeNode(const ClipperLib::PolyNode& node, const bool remove_holes, Shape& ret) const;
+    void splitIntoPartsProcessPolyTreeNode(ClipperLib::PolyNode* node, std::vector<SingleShape>& ret) const;
+    void sortByNestingProcessPolyTreeNode(ClipperLib::PolyNode* node, const size_t nesting_idx, std::vector<Shape>& ret) const;
+    void splitIntoPartsViewProcessPolyTreeNode(PartsView& parts_view, Shape& reordered, ClipperLib::PolyNode* node) const;
 };
 
 } // namespace cura

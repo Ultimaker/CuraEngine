@@ -85,7 +85,7 @@ void WallsComputation::generateWalls(SliceLayerPart* part, SectionType section_t
         part->inner_area = wall_tool_paths.getInnerContour();
     }
 
-    part->outline = SingleShape({ Simplify(settings_).polygon(part->outline) });
+    part->outline = SingleShape{ Simplify(settings_).polygon(part->outline) };
     part->print_outline = part->outline;
 }
 

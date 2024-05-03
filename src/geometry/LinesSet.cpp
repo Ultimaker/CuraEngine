@@ -14,32 +14,21 @@
 namespace cura
 {
 
-template<>
-template<>
-LinesSet<OpenPolyline>::LinesSet(ClipperLib::Paths&& paths)
-{
-    reserve(paths.size());
-    for (ClipperLib::Path& path : paths)
-    {
-        lines_.emplace_back(std::move(path));
-    }
-}
-
 template<class LineType>
-void LinesSet<LineType>::push_back(const LineType& line, CheckNonEmptyParam checkNonEmpty)
+void LinesSet<LineType>::push_back(const LineType& line, CheckNonEmptyParam check_non_empty)
 {
-    if (checkNonEmpty == CheckNonEmptyParam::EvenIfEmpty || ! line.empty())
+    if (check_non_empty == CheckNonEmptyParam::EvenIfEmpty || ! line.empty())
     {
         lines_.push_back(line);
     }
 }
 
 template<class LineType>
-void LinesSet<LineType>::push_back(LineType&& line, CheckNonEmptyParam checkNonEmpty)
+void LinesSet<LineType>::push_back(LineType&& line, CheckNonEmptyParam check_non_empty)
 {
-    if (checkNonEmpty == CheckNonEmptyParam::EvenIfEmpty || ! line.empty())
+    if (check_non_empty == CheckNonEmptyParam::EvenIfEmpty || ! line.empty())
     {
-        lines_.push_back(line);
+        lines_.push_back(std::move(line));
     }
 }
 
@@ -60,7 +49,7 @@ size_t LinesSet<LineType>::pointCount() const
     return std::accumulate(
         lines_.begin(),
         lines_.end(),
-        size_t(0),
+        0ULL,
         [](size_t total, const LineType& line)
         {
             return total + line.size();
@@ -117,7 +106,7 @@ coord_t LinesSet<LineType>::length() const
     return std::accumulate(
         lines_.begin(),
         lines_.end(),
-        0,
+        0LL,
         [](coord_t total, const LineType& line)
         {
             return total += line.length();
@@ -147,9 +136,9 @@ Shape LinesSet<ClosedPolyline>::offset(coord_t distance, ClipperLib::JoinType jo
 {
     if (empty())
     {
-        return Shape();
+        return {};
     }
-    else if (distance == 0)
+    if (distance == 0)
     {
         Shape result;
         for (const ClosedPolyline& line : getLines())
@@ -158,15 +147,12 @@ Shape LinesSet<ClosedPolyline>::offset(coord_t distance, ClipperLib::JoinType jo
         }
         return result;
     }
-    else
-    {
-        ClipperLib::Paths ret;
-        ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
-        addPaths(clipper, join_type, ClipperLib::etClosedLine);
-        clipper.MiterLimit = miter_limit;
-        clipper.Execute(ret, static_cast<double>(distance));
-        return Shape(std::move(ret));
-    }
+    ClipperLib::Paths ret;
+    ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
+    addPaths(clipper, join_type, ClipperLib::etClosedLine);
+    clipper.MiterLimit = miter_limit;
+    clipper.Execute(ret, static_cast<double>(distance));
+    return Shape { std::move(ret) };
 }
 
 template<>
@@ -174,21 +160,18 @@ Shape LinesSet<Polygon>::offset(coord_t distance, ClipperLib::JoinType join_type
 {
     if (empty())
     {
-        return Shape();
+        return {};
     }
-    else if (distance == 0)
+    if (distance == 0)
     {
-        return Shape(getLines());
+        return { getLines() };
     }
-    else
-    {
-        ClipperLib::Paths ret;
-        ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
-        Shape(getLines()).unionPolygons().addPaths(clipper, join_type, ClipperLib::etClosedPolygon);
-        clipper.MiterLimit = miter_limit;
-        clipper.Execute(ret, static_cast<double>(distance));
-        return Shape(std::move(ret));
-    }
+    ClipperLib::Paths ret;
+    ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
+    Shape(getLines()).unionPolygons().addPaths(clipper, join_type, ClipperLib::etClosedPolygon);
+    clipper.MiterLimit = miter_limit;
+    clipper.Execute(ret, static_cast<double>(distance));
+    return Shape{ std::move(ret) };
 }
 
 template<>
@@ -196,32 +179,17 @@ Shape OpenLinesSet::offset(coord_t distance, ClipperLib::JoinType join_type, dou
 {
     if (empty() || distance == 0)
     {
-        return Shape();
+        return {};
     }
-    else
-    {
-        Shape result;
 
-        ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
-        ClipperLib::EndType end_type;
-        if (join_type == ClipperLib::jtMiter)
-        {
-            end_type = ClipperLib::etOpenSquare;
-        }
-        else
-        {
-            end_type = ClipperLib::etOpenRound;
-        }
+    ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
+    const ClipperLib::EndType end_type{ join_type == ClipperLib::jtMiter ? ClipperLib::etOpenSquare : ClipperLib::etOpenRound };
+    addPaths(clipper, join_type, end_type);
+    clipper.MiterLimit = miter_limit;
+    ClipperLib::Paths result_paths;
+    clipper.Execute(result_paths, static_cast<double>(distance));
 
-        addPaths(clipper, join_type, end_type);
-
-        clipper.MiterLimit = miter_limit;
-        ClipperLib::Paths result_paths;
-        clipper.Execute(result_paths, static_cast<double>(distance));
-        result = Shape(std::move(result_paths));
-
-        return result;
-    }
+    return Shape{ std::move(result_paths) };
 }
 
 template<class LineType>
@@ -233,7 +201,7 @@ void LinesSet<LineType>::removeDegenerateVerts()
         const bool for_polyline = (dynamic_cast<OpenPolyline*>(&poly) != nullptr);
         ClipperLib::Path result;
 
-        auto isDegenerate = [](const Point2LL& last, const Point2LL& now, const Point2LL& next)
+        auto is_degenerate = [](const Point2LL& last, const Point2LL& now, const Point2LL& next)
         {
             Point2LL last_line = now - last;
             Point2LL next_line = next - now;
@@ -248,7 +216,7 @@ void LinesSet<LineType>::removeDegenerateVerts()
             result.push_back(poly[i]); // Add everything before the start vertex.
         }
 
-        bool isChanged = false;
+        bool is_changed = false;
         for (size_t idx = start_vertex; idx < end_vertex; idx++)
         {
             const Point2LL& last = (result.size() == 0) ? poly.back() : result.back();
@@ -257,11 +225,11 @@ void LinesSet<LineType>::removeDegenerateVerts()
                 break;
             }
             const Point2LL& next = (idx + 1 >= poly.size()) ? result[0] : poly[idx + 1];
-            if (isDegenerate(last, poly[idx], next))
+            if (is_degenerate(last, poly[idx], next))
             { // lines are in the opposite direction
                 // don't add vert to the result
-                isChanged = true;
-                while (result.size() > 1 && isDegenerate(result[result.size() - 2], result.back(), next))
+                is_changed = true;
+                while (result.size() > 1 && is_degenerate(result[result.size() - 2], result.back(), next))
                 {
                     result.pop_back();
                 }
@@ -277,7 +245,7 @@ void LinesSet<LineType>::removeDegenerateVerts()
             result.push_back(poly[i]); // Add everything after the end vertex.
         }
 
-        if (isChanged)
+        if (is_changed)
         {
             if (for_polyline || result.size() > 2)
             {
@@ -293,7 +261,7 @@ void LinesSet<LineType>::removeDegenerateVerts()
 }
 
 template<class LineType>
-void LinesSet<LineType>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const
+void LinesSet<LineType>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const
 {
     for (const LineType& line : getLines())
     {
@@ -301,21 +269,21 @@ void LinesSet<LineType>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::Poly
         // true for actual filled polygons. Closed polylines are to be treated as lines here.
         if constexpr (std::is_same<LineType, Polygon>::value)
         {
-            clipper.AddPath(line.getPoints(), PolyTyp, true);
+            clipper.AddPath(line.getPoints(), poly_typ, true);
         }
         else
         {
-            clipper.AddPath(line.getPoints(), PolyTyp, false);
+            clipper.AddPath(line.getPoints(), poly_typ, false);
         }
     }
 }
 
 template<class LineType>
-void LinesSet<LineType>::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const
+void LinesSet<LineType>::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType joint_type, ClipperLib::EndType endType) const
 {
     for (const LineType& line : getLines())
     {
-        clipper.AddPath(line.getPoints(), jointType, endType);
+        clipper.AddPath(line.getPoints(), joint_type, endType);
     }
 }
 

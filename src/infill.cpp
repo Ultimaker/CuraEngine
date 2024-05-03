@@ -136,7 +136,7 @@ void Infill::generate(
                 small_infill.push_back(small_infill_part);
             }
         }
-        inner_contour_.unionPolygons();
+        inner_contour_ = inner_contour_.unionPolygons();
 
         // Fill narrow area with walls.
         const size_t narrow_wall_count = small_area_width_ / infill_line_width_ + 1;

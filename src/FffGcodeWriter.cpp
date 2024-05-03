@@ -998,7 +998,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             raft_outline_path = raft_outline_path.difference(storage.primeTower.getOuterPoly(layer_nr));
         }
 
-        for (const Shape raft_island : raft_outline_path.splitIntoParts())
+        for (const Shape& raft_island : raft_outline_path.splitIntoParts())
         {
             Infill infill_comp(
                 EFillMethod::ZIG_ZAG,
@@ -2689,7 +2689,7 @@ bool FffGcodeWriter::processInsets(
             gcode_layer.setOverhangMask(overhang_region);
         }
 
-        const auto roofing_mask = [&]() -> Shape
+        const auto roofing_mask_fn = [&]() -> Shape
         {
             const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
 
@@ -2711,7 +2711,7 @@ bool FffGcodeWriter::processInsets(
             return roofing_mask;
         }();
 
-        gcode_layer.setRoofingMask(roofing_mask);
+        gcode_layer.setRoofingMask(roofing_mask_fn);
     }
     else
     {

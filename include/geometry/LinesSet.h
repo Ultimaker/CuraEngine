@@ -37,11 +37,14 @@ private:
 
 public:
     // Required for some std calls as a container
-    typedef LineType value_type;
+    using value_type = LineType;
+    using iterator = typename std::vector<LineType>::iterator;
+    using const_iterator = typename std::vector<LineType>::const_iterator;
 
-public:
     /*! \brief Builds an empty set */
-    LinesSet() = default;
+    LinesSet() noexcept = default;
+
+    virtual ~LinesSet() = default;
 
     /*! \brief Creates a copy of the given lines set */
     LinesSet(const LinesSet& other) = default;
@@ -66,8 +69,16 @@ public:
      * \warning This constructor is actually only defined for a LinesSet containing OpenPolyline
      *          objects, because closed ones require an additional argument
      */
-    template<typename U = LineType, typename = typename std::enable_if<std::is_same<U, OpenPolyline>::value>::type>
-    LinesSet(ClipperLib::Paths&& paths);
+    template<typename U = LineType>
+        requires std::is_same_v<U, OpenPolyline>
+    LinesSet(ClipperLib::Paths&& paths)
+    {
+        reserve(paths.size());
+        for (ClipperLib::Path& path : paths)
+        {
+            lines_.emplace_back(std::move(path));
+        }
+    }
 
     const std::vector<LineType>& getLines() const
     {
@@ -84,22 +95,22 @@ public:
         lines_ = lines;
     }
 
-    std::vector<LineType>::const_iterator begin() const
+    const_iterator begin() const
     {
         return lines_.begin();
     }
 
-    std::vector<LineType>::iterator begin()
+    iterator begin()
     {
         return lines_.begin();
     }
 
-    std::vector<LineType>::const_iterator end() const
+    const_iterator end() const
     {
         return lines_.end();
     }
 
-    std::vector<LineType>::iterator end()
+    iterator end()
     {
         return lines_.end();
     }
@@ -126,15 +137,15 @@ public:
 
     /*!
      * \brief Pushes the given line at the end of the set
-     * \param checkNonEmpty Indicates whether we should check for the line to be non-empty before adding it
+     * \param check_non_empty Indicates whether we should check for the line to be non-empty before adding it
      */
-    void push_back(const LineType& line, CheckNonEmptyParam checkNonEmpty = CheckNonEmptyParam::EvenIfEmpty);
+    void push_back(const LineType& line, CheckNonEmptyParam check_non_empty = CheckNonEmptyParam::EvenIfEmpty);
 
     /*!
      * \brief Pushes the given line at the end of the set and takes ownership of the inner data
-     * \param checkNonEmpty Indicates whether we should check for the line to be non-empty before adding it
+     * \param check_non_empty Indicates whether we should check for the line to be non-empty before adding it
      */
-    void push_back(LineType&& line, CheckNonEmptyParam checkNonEmpty = CheckNonEmptyParam::EvenIfEmpty);
+    void push_back(LineType&& line, CheckNonEmptyParam check_non_empty = CheckNonEmptyParam::EvenIfEmpty);
 
     /*! \brief Pushes an entier set at the end and takes ownership of the inner data */
     template<class OtherLineType>
@@ -151,12 +162,12 @@ public:
         lines_.pop_back();
     }
 
-    size_t size() const
+    [[nodiscard]] size_t size() const
     {
         return lines_.size();
     }
 
-    bool empty() const
+    [[nodiscard]] bool empty() const
     {
         return lines_.empty();
     }
@@ -176,13 +187,12 @@ public:
         lines_.clear();
     }
 
-    template<typename... Args>
-    void emplace_back(Args&&... args)
+    void emplace_back(auto&&... args)
     {
-        lines_.emplace_back(args...);
+        lines_.emplace_back(std::forward<decltype(args)>(args)...);
     }
 
-    std::vector<LineType>::iterator erase(std::vector<LineType>::const_iterator first, std::vector<LineType>::const_iterator last)
+    iterator erase(const_iterator first, const_iterator last)
     {
         return lines_.erase(first, last);
     }
@@ -193,7 +203,7 @@ public:
         return *this;
     }
 
-    LinesSet& operator=(LinesSet&& other)
+    LinesSet& operator=(LinesSet&& other) noexcept
     {
         lines_ = std::move(other.lines_);
         return *this;
