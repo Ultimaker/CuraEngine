@@ -13,6 +13,7 @@ Checks: >
   -cppcoreguidelines-avoid-capturing-lambda-coroutines,
   -llvm-header-guard,
   -bugprone-easily-swappable-parameters
+  -fuchsia-default-arguments
 WarningsAsErrors: '-*'
 HeaderFilterRegex: ''
 FormatStyle: none
