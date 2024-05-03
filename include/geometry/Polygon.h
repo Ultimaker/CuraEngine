@@ -72,7 +72,7 @@ public:
 
     Polygon& operator=(const Polygon& other) = default;
 
-    Polygon& operator=(Polygon&& other)  noexcept = default;
+    Polygon& operator=(Polygon&& other) noexcept = default;
 
     /*!
      * \brief Compute the morphological intersection between this polygon and another.

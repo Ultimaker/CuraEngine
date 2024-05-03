@@ -34,8 +34,7 @@ struct SegmentIterator
     using difference_type = std::ptrdiff_t;
     using pointer = Segment*;
     using reference = Segment&;
-    using source_iterator_type =
-        std::conditional_t<IsConst == ConstnessType::Const, typename std::vector<Point2LL>::const_iterator, typename std::vector<Point2LL>::iterator>;
+    using source_iterator_type = std::conditional_t<IsConst == ConstnessType::Const, typename std::vector<Point2LL>::const_iterator, typename std::vector<Point2LL>::iterator>;
 
 private:
     source_iterator_type current_pos_;
