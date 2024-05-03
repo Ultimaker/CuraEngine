@@ -1226,7 +1226,7 @@ void SupportCradleGeneration::pushCradleData(std::vector<std::vector<TreeSupport
     }
     for (auto [layer_idx, support_free_on_layer] : support_free_areas_ | ranges::views::enumerate)
     {
-        support_free_areas_[layer_idx].add(support_free_on_layer);
+        support_free_areas[layer_idx].add(support_free_on_layer);
     }
 }
 
