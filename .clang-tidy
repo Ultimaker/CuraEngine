@@ -12,8 +12,8 @@ Checks: >
   -fuchsia-overloaded-operator,
   -cppcoreguidelines-avoid-capturing-lambda-coroutines,
   -llvm-header-guard,
-  -bugprone-easily-swappable-parameters
-  -fuchsia-default-arguments
+  -bugprone-easily-swappable-parameters,
+  -*-default-arguments-declarations
 WarningsAsErrors: '-*'
 HeaderFilterRegex: ''
 FormatStyle: none
