@@ -62,7 +62,7 @@ class PathOrderOptimizer
 public:
     using OrderablePath = PathOrdering<Path>;
     /* Areas defined here are not allowed to have the start the prints */
-    Polygons disallowed_area_for_seams;
+    Shape disallowed_area_for_seams;
     /*!
      * After optimizing, this contains the paths that need to be printed in the
      * correct order.
@@ -113,7 +113,7 @@ public:
         const bool reverse_direction = false,
         const std::unordered_multimap<Path, Path>& order_requirements = no_order_requirements_,
         const bool group_outer_walls = false,
-        const Polygons& disallowed_areas_for_seams = {})
+        const Shape& disallowed_areas_for_seams = {})
         : start_point_(start_point)
         , seam_config_(seam_config)
         , combing_boundary_((combing_boundary != nullptr && ! combing_boundary->empty()) ? combing_boundary : nullptr)
