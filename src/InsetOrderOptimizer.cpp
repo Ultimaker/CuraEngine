@@ -51,7 +51,9 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const size_t wall_x_extruder_nr,
     const ZSeamConfig& z_seam_config,
     const std::vector<VariableWidthLines>& paths,
-    const bool is_outer_shell)
+    const bool is_outer_shell,
+    const Polygons& disallowed_areas_for_seams)
+
     : gcode_writer_(gcode_writer)
     , storage_(storage)
     , gcode_layer_(gcode_layer)
@@ -71,7 +73,9 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , z_seam_config_(z_seam_config)
     , paths_(paths)
     , layer_nr_(gcode_layer.getLayerNr())
-    , is_outer_shell_(is_outer_shell)
+    , is_outer_shell_(is_outer_shell),
+    , disallowed_areas_for_seams_{ disallowed_areas_for_seams }
+
 {
 }
 
@@ -100,8 +104,15 @@ bool InsetOrderOptimizer::addToLayer()
     const auto group_outer_walls = settings_.get<bool>("group_outer_walls");
     // When we alternate walls, also alternate the direction at which the first wall starts in.
     // On even layers we start with normal direction, on odd layers with inverted direction.
-    PathOrderOptimizer<const ExtrusionLine*>
-        order_optimizer(gcode_layer_.getLastPlannedPositionOrStartingPosition(), z_seam_config_, detect_loops, combing_boundary, reverse, order, group_outer_walls);
+    PathOrderOptimizer<const ExtrusionLine*> order_optimizer(
+        gcode_layer_.getLastPlannedPositionOrStartingPosition(),
+        z_seam_config_,
+        detect_loops,
+        combing_boundary,
+        reverse,
+        order,
+        group_outer_walls,
+        disallowed_areas_for_seams_);
 
     for (const auto& line : walls_to_be_added)
     {

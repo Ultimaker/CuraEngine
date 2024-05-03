@@ -658,7 +658,7 @@ Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
             disallowed_all_extruders = disallowed_all_extruders.unionPolygons(extruder_border);
         }
     }
-    disallowed_all_extruders.processEvenOdd(ClipperLib::pftNonZero); // prevent overlapping disallowed areas from XORing
+    disallowed_all_extruders = disallowed_all_extruders.processEvenOdd(ClipperLib::pftNonZero); // prevent overlapping disallowed areas from XORing
 
     Shape border_all_extruders = border; // each extruders border areas must be limited to the global border, which is the union of all extruders borders
     if (mesh_group_settings.has("nozzle_offsetting_for_disallowed_areas") && mesh_group_settings.get<bool>("nozzle_offsetting_for_disallowed_areas"))

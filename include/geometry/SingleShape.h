@@ -21,6 +21,11 @@ class Polygon;
 class SingleShape : public Shape
 {
 public:
+    SingleShape() = default;
+
+    explicit SingleShape(Shape&& shape)
+        : Shape{ shape } {};
+
     Polygon& outerPolygon();
 
     const Polygon& outerPolygon() const;

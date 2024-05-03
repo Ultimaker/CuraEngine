@@ -3,6 +3,8 @@
 
 #include "geometry/Shape.h"
 
+#include <algorithm>
+#include <cstddef>
 #include <mapbox/geometry/wagyu/wagyu.hpp>
 #include <numeric>
 #include <unordered_set>
@@ -57,18 +59,6 @@ void Shape::emplace_back(ClipperLib::Paths&& paths, bool explicitely_closed)
 void Shape::emplace_back(ClipperLib::Path&& path, bool explicitely_closed)
 {
     static_cast<LinesSet<Polygon>*>(this)->emplace_back(std::move(path), explicitely_closed);
-}
-
-Shape& Shape::operator=(const Shape& other)
-{
-    LinesSet<Polygon>::operator=(other);
-    return *this;
-}
-
-Shape& Shape::operator=(Shape&& other)
-{
-    LinesSet<Polygon>::operator=(std::move(other));
-    return *this;
 }
 
 Shape Shape::approxConvexHull(int extra_outset) const
@@ -141,53 +131,47 @@ void Shape::makeConvex()
     std::reverse(points.begin(), points.end());
     make_sorted_poly_convex(points);
 
-    setLines({ std::move(convexified) });
+    setLines({ convexified });
 }
 
 Shape Shape::difference(const Shape& other) const
 {
     if (empty())
     {
-        return Shape();
+        return {};
     }
-    else if (other.empty())
+    if (other.empty())
     {
-        return Shape(*this);
+        return *this;
     }
-    else
-    {
-        ClipperLib::Paths ret;
-        ClipperLib::Clipper clipper(clipper_init);
-        addPaths(clipper, ClipperLib::ptSubject);
-        other.addPaths(clipper, ClipperLib::ptClip);
-        clipper.Execute(ClipperLib::ctDifference, ret);
-        return Shape(std::move(ret));
-    }
+    ClipperLib::Paths ret;
+    ClipperLib::Clipper clipper(clipper_init);
+    addPaths(clipper, ClipperLib::ptSubject);
+    other.addPaths(clipper, ClipperLib::ptClip);
+    clipper.Execute(ClipperLib::ctDifference, ret);
+    return Shape(std::move(ret));
 }
 
 Shape Shape::unionPolygons(const Shape& other, ClipperLib::PolyFillType fill_type) const
 {
     if (empty() && other.empty())
     {
-        return Shape();
+        return {};
     }
-    else if (empty() && other.size() <= 1)
+    if (empty() && other.size() <= 1)
     {
         return other;
     }
-    else if (other.empty() && size() <= 1)
+    if (other.empty() && size() <= 1)
     {
         return *this;
     }
-    else
-    {
-        ClipperLib::Paths ret;
-        ClipperLib::Clipper clipper(clipper_init);
-        addPaths(clipper, ClipperLib::ptSubject);
-        other.addPaths(clipper, ClipperLib::ptSubject);
-        clipper.Execute(ClipperLib::ctUnion, ret, fill_type, fill_type);
-        return Shape(std::move(ret));
-    }
+    ClipperLib::Paths ret;
+    ClipperLib::Clipper clipper(clipper_init);
+    addPaths(clipper, ClipperLib::ptSubject);
+    other.addPaths(clipper, ClipperLib::ptSubject);
+    clipper.Execute(ClipperLib::ctUnion, ret, fill_type, fill_type);
+    return Shape{ std::move(ret) };
 }
 
 Shape Shape::unionPolygons() const
@@ -199,38 +183,33 @@ Shape Shape::intersection(const Shape& other) const
 {
     if (empty() || other.empty())
     {
-        return Shape();
+        return {};
     }
-    else
-    {
-        ClipperLib::Paths ret;
-        ClipperLib::Clipper clipper(clipper_init);
-        addPaths(clipper, ClipperLib::ptSubject);
-        other.addPaths(clipper, ClipperLib::ptClip);
-        clipper.Execute(ClipperLib::ctIntersection, ret);
-        return Shape(std::move(ret));
-    }
+    ClipperLib::Paths ret;
+    ClipperLib::Clipper clipper(clipper_init);
+    addPaths(clipper, ClipperLib::ptSubject);
+    other.addPaths(clipper, ClipperLib::ptClip);
+    clipper.Execute(ClipperLib::ctIntersection, ret);
+    return Shape{ std::move(ret) };
 }
 
 Shape Shape::offset(coord_t distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
     if (empty())
     {
-        return Shape();
+        return {};
     }
-    else if (distance == 0)
+    if (distance == 0)
     {
         return *this;
     }
-    else
-    {
-        ClipperLib::Paths ret;
-        ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
-        unionPolygons().addPaths(clipper, join_type, ClipperLib::etClosedPolygon);
-        clipper.MiterLimit = miter_limit;
-        clipper.Execute(ret, static_cast<double>(distance));
-        return Shape(std::move(ret));
-    }
+
+    ClipperLib::Paths ret;
+    ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
+    unionPolygons().addPaths(clipper, join_type, ClipperLib::etClosedPolygon);
+    clipper.MiterLimit = miter_limit;
+    clipper.Execute(ret, static_cast<double>(distance));
+    return Shape{ std::move(ret) };
 }
 
 bool Shape::inside(const Point2LL& p, bool border_result) const
@@ -250,9 +229,9 @@ bool Shape::inside(const Point2LL& p, bool border_result) const
 
 size_t Shape::findInside(const Point2LL& p, bool border_result) const
 {
-    if (size() < 1)
+    if (empty())
     {
-        return false;
+        return 0;
     }
 
     // NOTE: Keep these vectors fixed-size, they replace an (non-standard, sized at runtime) arrays.
@@ -278,10 +257,7 @@ size_t Shape::findInside(const Point2LL& p, bool border_result) const
                 {
                     x = p0.X + (p1.X - p0.X) * (p.Y - p0.Y) / (p1.Y - p0.Y);
                 }
-                if (x < min_x[poly_idx])
-                {
-                    min_x[poly_idx] = x;
-                }
+                min_x[poly_idx] = std::min(x, min_x[poly_idx]);
             }
             else if (border_result && comp == 0)
             {
@@ -318,7 +294,7 @@ OpenLinesSet Shape::intersection(const LinesSet<LineType>& polylines, bool resti
 {
     if (empty() || polylines.empty())
     {
-        return OpenLinesSet();
+        return {};
     }
 
     OpenLinesSet split_polylines = polylines.splitIntoSegments();
@@ -365,19 +341,16 @@ Shape Shape::xorPolygons(const Shape& other, ClipperLib::PolyFillType pft) const
     {
         return other;
     }
-    else if (other.empty())
+    if (other.empty())
     {
         return *this;
     }
-    else
-    {
-        ClipperLib::Paths ret;
-        ClipperLib::Clipper clipper(clipper_init);
-        addPaths(clipper, ClipperLib::ptSubject);
-        other.addPaths(clipper, ClipperLib::ptClip);
-        clipper.Execute(ClipperLib::ctXor, ret, pft);
-        return Shape(std::move(ret));
-    }
+    ClipperLib::Paths ret;
+    ClipperLib::Clipper clipper(clipper_init);
+    addPaths(clipper, ClipperLib::ptSubject);
+    other.addPaths(clipper, ClipperLib::ptClip);
+    clipper.Execute(ClipperLib::ctXor, ret, pft);
+    return Shape{ std::move(ret) };
 }
 
 Shape Shape::execute(ClipperLib::PolyFillType pft) const
@@ -386,7 +359,7 @@ Shape Shape::execute(ClipperLib::PolyFillType pft) const
     ClipperLib::Clipper clipper(clipper_init);
     addPaths(clipper, ClipperLib::ptSubject);
     clipper.Execute(ClipperLib::ctXor, ret, pft);
-    return Shape(std::move(ret));
+    return Shape{ std::move(ret) };
 }
 
 Shape Shape::offsetMulti(const std::vector<coord_t>& offset_dists) const
@@ -441,9 +414,9 @@ Shape Shape::getOutsidePolygons() const
 {
     if (empty())
     {
-        return Shape();
+        return {};
     }
-    else if (size() == 1)
+    if (size() == 1)
     {
         return *this;
     }
@@ -462,7 +435,7 @@ Shape Shape::getOutsidePolygons() const
     return ret;
 }
 
-void Shape::removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& node, const bool remove_holes, Shape& ret) const
+void Shape::removeEmptyHolesProcessPolyTreeNode(const ClipperLib::PolyNode& node, const bool remove_holes, Shape& ret) const
 {
     for (size_t outer_poly_idx = 0; outer_poly_idx < static_cast<size_t>(node.ChildCount()); outer_poly_idx++)
     {
@@ -477,7 +450,7 @@ void Shape::removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& nod
             if ((hole_node.ChildCount() > 0) == remove_holes)
             {
                 ret.emplace_back(std::move(hole_node.Contour));
-                removeEmptyHoles_processPolyTreeNode(hole_node, remove_holes, ret);
+                removeEmptyHolesProcessPolyTreeNode(hole_node, remove_holes, ret);
             }
         }
     }
@@ -516,15 +489,9 @@ void Shape::removeSmallAreas(const double min_area_size, const bool remove_holes
                         std::swap(*new_end, *it);
                         continue;
                     }
-                    else
-                    { // Don't self-swap the last Path
-                        break;
-                    }
+                    break;
                 }
-                else
-                {
-                    small_holes.push_back(&(*it));
-                }
+                small_holes.push_back(&(*it));
             }
             it++; // Skipped on removal such that the polygon just swaped in is checked next
         }
@@ -554,34 +521,37 @@ Shape Shape::removePolygon(const Shape& to_be_removed, int same_distance) const
     {
         const Polygon& poly_keep = (*this)[poly_keep_idx];
         bool should_be_removed = false;
-        if (poly_keep.size() > 0)
-            //             for (int hole_poly_idx = 0; hole_poly_idx < to_be_removed.size(); hole_poly_idx++)
+        if (! poly_keep.empty())
+        {
             for (const Polygon& poly_rem : to_be_removed)
             {
-                //                 PolygonRef poly_rem = to_be_removed[hole_poly_idx];
-                if (poly_rem.size() != poly_keep.size() || poly_rem.size() == 0)
+                if (poly_rem.size() != poly_keep.size() || poly_rem.empty())
+                {
                     continue;
+                }
 
                 // find closest point, supposing this point aligns the two shapes in the best way
                 size_t closest_point_idx = 0;
-                coord_t smallestDist2 = -1;
+                coord_t smallest_dist2 = -1;
                 for (size_t point_rem_idx = 0; point_rem_idx < poly_rem.size(); point_rem_idx++)
                 {
                     coord_t dist2 = vSize2(poly_rem[point_rem_idx] - poly_keep[0]);
-                    if (dist2 < smallestDist2 || smallestDist2 < 0)
+                    if (dist2 < smallest_dist2 || smallest_dist2 < 0)
                     {
-                        smallestDist2 = dist2;
+                        smallest_dist2 = dist2;
                         closest_point_idx = point_rem_idx;
                     }
                 }
                 bool poly_rem_is_poly_keep = true;
                 // compare the two polygons on all points
-                if (smallestDist2 > same_distance * same_distance)
+                if (smallest_dist2 > static_cast<cura::coord_t>(same_distance * same_distance))
+                {
                     continue;
+                }
                 for (size_t point_idx = 0; point_idx < poly_rem.size(); point_idx++)
                 {
                     coord_t dist2 = vSize2(poly_rem[(closest_point_idx + point_idx) % poly_rem.size()] - poly_keep[point_idx]);
-                    if (dist2 > same_distance * same_distance)
+                    if (dist2 > static_cast<cura::coord_t>(same_distance * same_distance))
                     {
                         poly_rem_is_poly_keep = false;
                         break;
@@ -593,8 +563,11 @@ Shape Shape::removePolygon(const Shape& to_be_removed, int same_distance) const
                     break;
                 }
             }
+        }
         if (! should_be_removed)
+        {
             result.push_back(poly_keep);
+        }
     }
     return result;
 }
@@ -605,10 +578,10 @@ Shape Shape::processEvenOdd(ClipperLib::PolyFillType poly_fill_type) const
     ClipperLib::Clipper clipper(clipper_init);
     addPaths(clipper, ClipperLib::ptSubject);
     clipper.Execute(ClipperLib::ctUnion, ret, poly_fill_type);
-    return Shape(std::move(ret));
+    return Shape{ std::move(ret) };
 }
 
-Shape Shape::smooth_outward(const AngleDegrees max_angle, int shortcut_length) const
+Shape Shape::smoothOutward(const AngleDegrees max_angle, int shortcut_length) const
 {
     Shape ret;
     for (const Polygon& poly : (*this))
@@ -660,7 +633,7 @@ Shape Shape::smooth2(int remove_length, int min_area) const
     Shape ret;
     for (const Polygon& poly : (*this))
     {
-        if (poly.size() == 0)
+        if (poly.empty())
         {
             continue;
         }
@@ -708,22 +681,26 @@ double Shape::area() const
         });
 }
 
-std::vector<SingleShape> Shape::splitIntoParts(bool unionAll) const
+std::vector<SingleShape> Shape::splitIntoParts(bool union_all) const
 {
     std::vector<SingleShape> ret;
     ClipperLib::Clipper clipper(clipper_init);
-    ClipperLib::PolyTree resultPolyTree;
+    ClipperLib::PolyTree result_poly_tree;
     addPaths(clipper, ClipperLib::ptSubject);
-    if (unionAll)
-        clipper.Execute(ClipperLib::ctUnion, resultPolyTree, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
+    if (union_all)
+    {
+        clipper.Execute(ClipperLib::ctUnion, result_poly_tree, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
+    }
     else
-        clipper.Execute(ClipperLib::ctUnion, resultPolyTree);
+    {
+        clipper.Execute(ClipperLib::ctUnion, result_poly_tree);
+    }
 
-    splitIntoParts_processPolyTreeNode(&resultPolyTree, ret);
+    splitIntoPartsProcessPolyTreeNode(&result_poly_tree, ret);
     return ret;
 }
 
-void Shape::splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<SingleShape>& ret) const
+void Shape::splitIntoPartsProcessPolyTreeNode(ClipperLib::PolyNode* node, std::vector<SingleShape>& ret) const
 {
     for (size_t n = 0; n < static_cast<size_t>(node->ChildCount()); n++)
     {
@@ -733,7 +710,7 @@ void Shape::splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::
         for (size_t i = 0; i < static_cast<size_t>(child->ChildCount()); i++)
         {
             part.emplace_back(std::move(child->Childs[i]->Contour));
-            splitIntoParts_processPolyTreeNode(child->Childs[i], ret);
+            splitIntoPartsProcessPolyTreeNode(child->Childs[i], ret);
         }
         ret.push_back(std::move(part));
     }
@@ -743,15 +720,15 @@ std::vector<Shape> Shape::sortByNesting() const
 {
     std::vector<Shape> ret;
     ClipperLib::Clipper clipper(clipper_init);
-    ClipperLib::PolyTree resultPolyTree;
+    ClipperLib::PolyTree result_poly_tree;
     addPaths(clipper, ClipperLib::ptSubject);
-    clipper.Execute(ClipperLib::ctUnion, resultPolyTree);
+    clipper.Execute(ClipperLib::ctUnion, result_poly_tree);
 
-    sortByNesting_processPolyTreeNode(&resultPolyTree, 0, ret);
+    sortByNestingProcessPolyTreeNode(&result_poly_tree, 0, ret);
     return ret;
 }
 
-void Shape::sortByNesting_processPolyTreeNode(ClipperLib::PolyNode* node, const size_t nesting_idx, std::vector<Shape>& ret) const
+void Shape::sortByNestingProcessPolyTreeNode(ClipperLib::PolyNode* node, const size_t nesting_idx, std::vector<Shape>& ret) const
 {
     for (size_t n = 0; n < static_cast<size_t>(node->ChildCount()); n++)
     {
@@ -761,29 +738,33 @@ void Shape::sortByNesting_processPolyTreeNode(ClipperLib::PolyNode* node, const 
             ret.resize(nesting_idx + 1);
         }
         ret[nesting_idx].emplace_back(std::move(child->Contour));
-        sortByNesting_processPolyTreeNode(child, nesting_idx + 1, ret);
+        sortByNestingProcessPolyTreeNode(child, nesting_idx + 1, ret);
     }
 }
 
-PartsView Shape::splitIntoPartsView(bool unionAll)
+PartsView Shape::splitIntoPartsView(bool union_all)
 {
     Shape reordered;
-    PartsView partsView(*this);
+    PartsView parts_view(*this);
     ClipperLib::Clipper clipper(clipper_init);
-    ClipperLib::PolyTree resultPolyTree;
+    ClipperLib::PolyTree result_poly_tree;
     addPaths(clipper, ClipperLib::ptSubject);
-    if (unionAll)
-        clipper.Execute(ClipperLib::ctUnion, resultPolyTree, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
+    if (union_all)
+    {
+        clipper.Execute(ClipperLib::ctUnion, result_poly_tree, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
+    }
     else
-        clipper.Execute(ClipperLib::ctUnion, resultPolyTree);
+    {
+        clipper.Execute(ClipperLib::ctUnion, result_poly_tree);
+    }
 
-    splitIntoPartsView_processPolyTreeNode(partsView, reordered, &resultPolyTree);
+    splitIntoPartsViewProcessPolyTreeNode(parts_view, reordered, &result_poly_tree);
 
     (*this) = std::move(reordered);
-    return partsView;
+    return parts_view;
 }
 
-void Shape::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Shape& reordered, ClipperLib::PolyNode* node) const
+void Shape::splitIntoPartsViewProcessPolyTreeNode(PartsView& partsView, Shape& reordered, ClipperLib::PolyNode* node) const
 {
     for (size_t n = 0; n < static_cast<size_t>(node->ChildCount()); n++)
     {
@@ -796,7 +777,7 @@ void Shape::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Shape& 
         {
             partsView[pos].push_back(reordered.size());
             reordered.emplace_back(std::move(child->Childs[i]->Contour));
-            splitIntoPartsView_processPolyTreeNode(partsView, reordered, child->Childs[i]);
+            splitIntoPartsViewProcessPolyTreeNode(partsView, reordered, child->Childs[i]);
         }
     }
 }
