@@ -61,6 +61,8 @@ class PathOrderOptimizer
 {
 public:
     using OrderablePath = PathOrdering<Path>;
+    /* Areas defined here are not allowed to have the start the prints */
+    Polygons disallowed_area_for_seams;
     /*!
      * After optimizing, this contains the paths that need to be printed in the
      * correct order.
@@ -110,7 +112,8 @@ public:
         const Shape* combing_boundary = nullptr,
         const bool reverse_direction = false,
         const std::unordered_multimap<Path, Path>& order_requirements = no_order_requirements_,
-        const bool group_outer_walls = false)
+        const bool group_outer_walls = false,
+        const Polygons& disallowed_areas_for_seams = {})
         : start_point_(start_point)
         , seam_config_(seam_config)
         , combing_boundary_((combing_boundary != nullptr && ! combing_boundary->empty()) ? combing_boundary : nullptr)
@@ -118,6 +121,8 @@ public:
         , reverse_direction_(reverse_direction)
         , _group_outer_walls(group_outer_walls)
         , order_requirements_(&order_requirements)
+        , disallowed_area_for_seams{ disallowed_areas_for_seams }
+
     {
     }
 
@@ -604,6 +609,52 @@ protected:
         return best_candidate;
     }
 
+    /**
+     * @brief Analyze the positions in a path and determine the next optimal position based on a proximity criterion.
+     *
+     * This function iteratively examines positions along the given path, checking if the position is close to 3D model.
+     * Each position is specified by an index, starting with `best_pos`. If the position is close to the model according to
+     * `isVertexCloseToPolygonPath` function, the function recursively calls itself with the next position. This process is
+     * repeated until all positions have been checked or `number_of_paths_analysed` becomes equal to `path_size`.
+     * If `number_of_paths_analysed` becomes equal to `path_size`, it logs a warning and returns the current best position.
+     *
+     * @param best_pos The index of the initial position for analysis in the path.
+     * @param path An OrderablePath instance containing the path to be examined.
+     * @param number_of_paths_analysed Optionally, the initial index of paths analysed. Defaults to 0.
+     * @return The index of the next optimal position in the path sequence. May be the same as the input `best_pos`,
+     *         or may be incremented to a different location based on the proximity criterion.
+     *
+     * @note This function uses recursion to evaluate each position in the path.
+     * @note The process stops prematurely if no start path is found for the support z seam distance.
+     *       This typically happens when the distance of the support seam from the model is bigger than all the support wall points.
+     */
+
+    size_t pathIfZseamIsInDisallowedArea(size_t best_pos, const OrderablePath& path, size_t number_of_paths_analysed)
+    {
+        size_t path_size = path.converted_->size();
+        if (path_size > number_of_paths_analysed)
+        {
+            if (! disallowed_area_for_seams.empty())
+            {
+                Point2LL current_candidate = (path.converted_)->at(best_pos);
+                if (disallowed_area_for_seams.inside(current_candidate, true))
+                {
+                    size_t next_best_position = (path_size > best_pos + 1) ? best_pos + 1 : 0;
+                    number_of_paths_analysed += 1;
+                    best_pos = pathIfZseamIsInDisallowedArea(next_best_position, path, number_of_paths_analysed);
+                }
+            }
+        }
+        else
+        {
+            spdlog::warn("No start path found for support z seam distance");
+            // We can also calculate the best point to start at this point.
+            // This usually happens when the distance of support seam from model is bigger than the whole support wall points.
+        }
+        return best_pos;
+    }
+
+
     /*!
      * Find the vertex which will be the starting point of printing a polygon or
      * polyline.
@@ -671,6 +722,7 @@ protected:
             // angles > 0 are convex (right turning)
 
             double corner_shift;
+
             if (seam_config_.type_ == EZSeamType::SHORTEST)
             {
                 // the more a corner satisfies our criteria, the closer it appears to be
@@ -737,6 +789,10 @@ protected:
             }
         }
 
+        if (! disallowed_area_for_seams.empty())
+        {
+            best_i = pathIfZseamIsInDisallowedArea(best_i, path, 0);
+        }
         return best_i;
     }
 
