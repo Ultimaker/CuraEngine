@@ -2600,9 +2600,14 @@ void TreeSupport::generateSupportSkin(
                     break;
                 }
             }
-            Polygons remove_from_next_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
-            remove_from_next_roof.add(cradle_line_xy_distance_areas[layer_idx]);
+            Polygons cradle_lines_roof = cradle_support_line_roof_areas[layer_idx].unionPolygons();
+            Polygons remove_from_next_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof).unionPolygons();
+            //Remove only already added roof from line areas. Should not be needed, but better safe than sorry.
+            cradle_lines_roof = cradle_lines_roof.difference(remove_from_next_roof);
+            cradle_support_line_areas[layer_idx] = cradle_support_line_areas[layer_idx].unionPolygons().difference(remove_from_next_roof);
 
+            //Collect remaining parts that non cradle line roof areas may not intersect with.
+            remove_from_next_roof.add(cradle_line_xy_distance_areas[layer_idx]);
             if (! support_free_areas[layer_idx].empty())
             {
                 remove_from_next_roof.add(support_free_areas[layer_idx]);
@@ -2614,7 +2619,6 @@ void TreeSupport::generateSupportSkin(
 
             Polygons roof_extra_wall = support_roof_extra_wall_storage[layer_idx].difference(remove_from_next_roof);
             Polygons roof = support_roof_storage[layer_idx];
-            Polygons cradle_lines_roof = cradle_support_line_roof_areas[layer_idx];
             if (config.support_roof_wall_count)
             {
                 roof = roof.difference(remove_from_next_roof);
