@@ -62,7 +62,7 @@ class PathOrderOptimizer
 public:
     using OrderablePath = PathOrdering<Path>;
     /* Areas defined here are not allowed to have the start the prints */
-    Polygons disallowed_area;
+    Polygons disallowed_area_for_seams;
     /*!
      * After optimizing, this contains the paths that need to be printed in the
      * correct order.
@@ -113,7 +113,7 @@ public:
         const bool reverse_direction = false,
         const std::unordered_multimap<Path, Path>& order_requirements = no_order_requirements_,
         const bool group_outer_walls = false,
-        const Polygons& disallowed_areas = {})
+        const Polygons& disallowed_areas_for_seams = {})
         : start_point_(start_point)
         , seam_config_(seam_config)
         , combing_boundary_((combing_boundary != nullptr && ! combing_boundary->empty()) ? combing_boundary : nullptr)
@@ -121,7 +121,7 @@ public:
         , reverse_direction_(reverse_direction)
         , _group_outer_walls(group_outer_walls)
         , order_requirements_(&order_requirements)
-        , disallowed_area{ disallowed_areas }
+        , disallowed_area_for_seams{ disallowed_areas_for_seams }
 
     {
     }
@@ -634,10 +634,10 @@ protected:
         size_t path_size = path.converted_->size();
         if (path_size > number_of_paths_analysed)
         {
-            if (! disallowed_area.empty())
+            if (! disallowed_area_for_seams.empty())
             {
                 Point2LL current_candidate = (path.converted_)->at(best_pos);
-                if (disallowed_area.inside(current_candidate, true))
+                if (disallowed_area_for_seams.inside(current_candidate, true))
                 {
                     size_t next_best_position = (path_size > best_pos + 1) ? best_pos + 1 : 0;
                     number_of_paths_analysed += 1;
@@ -792,7 +792,7 @@ protected:
             }
         }
 
-        if (! disallowed_area.empty())
+        if (! disallowed_area_for_seams.empty())
         {
             best_i = pathIfZseamIsInDisallowedArea(best_i, path, 0);
         }

@@ -51,7 +51,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const size_t wall_x_extruder_nr,
     const ZSeamConfig& z_seam_config,
     const std::vector<VariableWidthLines>& paths,
-    const Polygons& disallowed_areas)
+    const Polygons& disallowed_areas_for_seams)
     : gcode_writer_(gcode_writer)
     , storage_(storage)
     , gcode_layer_(gcode_layer)
@@ -71,7 +71,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , z_seam_config_(z_seam_config)
     , paths_(paths)
     , layer_nr_(gcode_layer.getLayerNr())
-    , disallowed_areas_{ disallowed_areas }
+    , disallowed_areas_for_seams_{ disallowed_areas_for_seams }
 {
 }
 
@@ -108,7 +108,7 @@ bool InsetOrderOptimizer::addToLayer()
         reverse,
         order,
         group_outer_walls,
-        disallowed_areas_);
+        disallowed_areas_for_seams_);
 
     for (const auto& line : walls_to_be_added)
     {

@@ -56,7 +56,7 @@ public:
         const size_t wall_x_extruder_nr,
         const ZSeamConfig& z_seam_config,
         const std::vector<VariableWidthLines>& paths,
-        const Polygons& disallowed_areas = {});
+        const Polygons& disallowed_areas_for_seams = {});
 
     /*!
      * Adds the insets to the given layer plan.
@@ -107,7 +107,7 @@ private:
     const ZSeamConfig& z_seam_config_;
     const std::vector<VariableWidthLines>& paths_;
     const LayerIndex layer_nr_;
-    Polygons disallowed_areas_;
+    Polygons disallowed_areas_for_seams_;
 
     std::vector<std::vector<ConstPolygonPointer>> inset_polys_; // vector of vectors holding the inset polygons
     Polygons retraction_region_; // After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see

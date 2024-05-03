@@ -3459,7 +3459,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             constexpr coord_t wipe_dist = 0;
             ZSeamConfig z_seam_config
                 = ZSeamConfig(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
-            Polygons disallowed_area{};
+            Polygons disallowed_area_for_seams{};
             if (infill_extruder.settings_.get<bool>("support_z_seam_away_from_model"))
             {
                 for (std::shared_ptr<SliceMeshStorage> mesh_ptr : storage.meshes)
@@ -3467,13 +3467,13 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     auto& mesh = *mesh_ptr;
                     for (auto& part : mesh.layers[gcode_layer.getLayerNr()].parts)
                     {
-                        disallowed_area.add(part.print_outline);
+                        disallowed_area_for_seams.add(part.print_outline);
                     }
                 }
-                if (! disallowed_area.empty())
+                if (! disallowed_area_for_seams.empty())
                 {
                     coord_t min_distance = infill_extruder.settings_.get<coord_t>("support_z_seam_min_distance");
-                    disallowed_area = disallowed_area.offset(min_distance, ClipperLib::jtRound);
+                    disallowed_area_for_seams = disallowed_area_for_seams.offset(min_distance, ClipperLib::jtRound);
                 }
             }
 
@@ -3496,7 +3496,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 extruder_nr,
                 z_seam_config,
                 wall_toolpaths,
-                disallowed_area);
+                disallowed_area_for_seams);
             added_something |= wall_orderer.addToLayer();
         }
 
