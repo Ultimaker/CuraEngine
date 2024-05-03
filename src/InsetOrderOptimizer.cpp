@@ -73,7 +73,8 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , z_seam_config_(z_seam_config)
     , paths_(paths)
     , layer_nr_(gcode_layer.getLayerNr())
-    , is_outer_shell_(is_outer_shell),
+    , is_outer_shell_(is_outer_shell)
+    ,
     , disallowed_areas_for_seams_{ disallowed_areas_for_seams }
 
 {
