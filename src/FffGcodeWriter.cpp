@@ -35,6 +35,7 @@
 #include "utils/linearAlg2D.h"
 #include "utils/math.h"
 #include "utils/orderOptimizer.h"
+#include "utils/polygonUtils.h"
 
 namespace cura
 {
@@ -3456,7 +3457,26 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             const GCodePathConfig& config = configs[0];
             constexpr bool retract_before_outer_wall = false;
             constexpr coord_t wipe_dist = 0;
-            const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+            ZSeamConfig z_seam_config
+                = ZSeamConfig(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+            Polygons disallowed_area_for_seams{};
+            if (infill_extruder.settings_.get<bool>("support_z_seam_away_from_model"))
+            {
+                for (std::shared_ptr<SliceMeshStorage> mesh_ptr : storage.meshes)
+                {
+                    auto& mesh = *mesh_ptr;
+                    for (auto& part : mesh.layers[gcode_layer.getLayerNr()].parts)
+                    {
+                        disallowed_area_for_seams.add(part.print_outline);
+                    }
+                }
+                if (! disallowed_area_for_seams.empty())
+                {
+                    coord_t min_distance = infill_extruder.settings_.get<coord_t>("support_z_seam_min_distance");
+                    disallowed_area_for_seams = disallowed_area_for_seams.offset(min_distance, ClipperLib::jtRound);
+                }
+            }
+
             InsetOrderOptimizer wall_orderer(
                 *this,
                 storage,
@@ -3475,7 +3495,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 extruder_nr,
                 extruder_nr,
                 z_seam_config,
-                wall_toolpaths);
+                wall_toolpaths,
+                disallowed_area_for_seams);
             added_something |= wall_orderer.addToLayer();
         }
 
