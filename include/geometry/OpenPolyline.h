@@ -84,7 +84,7 @@ public:
         return size() >= 2;
     }
 
-    OpenPolyline& operator=(OpenPolyline&& other)  noexcept = default;
+    OpenPolyline& operator=(OpenPolyline&& other) noexcept = default;
 
     OpenPolyline& operator=(const OpenPolyline& other) = default;
 };

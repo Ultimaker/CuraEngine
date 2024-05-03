@@ -33,8 +33,8 @@ public:
 
     ~PartsView() = default;
 
-     PartsView& operator=(PartsView&& parts_view) = delete;
-     PartsView& operator=(const PartsView& parts_view) = delete;
+    PartsView& operator=(PartsView&& parts_view) = delete;
+    PartsView& operator=(const PartsView& parts_view) = delete;
 
     /*!
      * Get the index of the SingleShape of which the polygon with index \p poly_idx is part.
