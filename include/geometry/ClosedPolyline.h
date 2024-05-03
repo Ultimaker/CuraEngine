@@ -32,6 +32,8 @@ private:
     bool explicitely_closed_{ false };
 
 public:
+    ClosedPolyline() = default;
+
     /*!
      * \brief Builds an empty closed polyline
      * \param explicitely_closed Indicates whether the line will be explicitely closed
@@ -39,9 +41,8 @@ public:
      *          constructor in various places, but be careful that the interpretation of the points
      *          added later will depend on this.
      */
-    ClosedPolyline(bool explicitely_closed = false)
-        : Polyline()
-        , explicitely_closed_(explicitely_closed)
+    explicit ClosedPolyline(const bool explicitely_closed)
+        : explicitely_closed_{ explicitely_closed }
     {
     }
 
@@ -56,8 +57,8 @@ public:
      * \param explicitely_closed Specify whether the given points form an explicitely closed line
      */
     ClosedPolyline(const std::initializer_list<Point2LL>& initializer, bool explicitely_closed)
-        : Polyline(initializer)
-        , explicitely_closed_(explicitely_closed)
+        : Polyline{ initializer }
+        , explicitely_closed_{ explicitely_closed }
     {
     }
 
@@ -66,8 +67,8 @@ public:
      * \param explicitely_closed Specify whether the given points form an explicitely closed line
      */
     explicit ClosedPolyline(const ClipperLib::Path& points, bool explicitely_closed)
-        : Polyline(points)
-        , explicitely_closed_(explicitely_closed)
+        : Polyline{ points }
+        , explicitely_closed_{ explicitely_closed }
     {
     }
 
@@ -76,36 +77,30 @@ public:
      * \param explicitely_closed Specify whether the given points form an explicitely closed line
      */
     explicit ClosedPolyline(ClipperLib::Path&& points, bool explicitely_closed)
-        : Polyline(points)
-        , explicitely_closed_(explicitely_closed)
+        : Polyline{ std::move(points) }
+        , explicitely_closed_{ explicitely_closed }
     {
     }
 
+    ~ClosedPolyline() override = default;
+
     /*! @see Polyline::hasClosingSegment() */
-    virtual bool hasClosingSegment() const
+    [[nodiscard]] bool hasClosingSegment() const override
     {
         return ! explicitely_closed_;
     }
 
     /*! @see Polyline::addClosingSegment() */
-    virtual size_t segmentsCount() const override;
+    [[nodiscard]] size_t segmentsCount() const override;
 
     /*! @see Polyline::isValid() */
-    virtual bool isValid() const override;
+    [[nodiscard]] bool isValid() const override;
 
-    ClosedPolyline& operator=(const ClosedPolyline& other)
-    {
-        Polyline::operator=(other);
-        return *this;
-    }
+    ClosedPolyline& operator=(const ClosedPolyline& other) = default;
 
-    ClosedPolyline& operator=(ClosedPolyline&& other)
-    {
-        Polyline::operator=(other);
-        return *this;
-    }
+    ClosedPolyline& operator=(ClosedPolyline&& other) = default;
 
-    bool isExplicitelyClosed() const
+    [[nodiscard]] bool isExplicitelyClosed() const
     {
         return explicitely_closed_;
     }
@@ -126,9 +121,9 @@ public:
      *
      * http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Functions/PointInPolygon.htm
      */
-    bool inside(const Point2LL& p, bool border_result = false) const;
+    [[nodiscard]] bool inside(const Point2LL& p, bool border_result = false) const;
 
-    bool inside(const ClipperLib::Path& polygon) const;
+    [[nodiscard]] bool inside(const ClipperLib::Path& polygon) const;
 
     /*!
      * \brief Converts the closed polyline to an open polyline which happens to have its end and start points at the same
@@ -137,7 +132,7 @@ public:
      *        between open and closed polylines
      * \return An open polyline instance, with the end point at the same position of the start point
      */
-    OpenPolyline toPseudoOpenPolyline() const;
+    [[nodiscard]] OpenPolyline toPseudoOpenPolyline() const;
 };
 
 } // namespace cura

@@ -41,7 +41,7 @@ public:
      * \warning A copy of the points list is made, so this constructor is somehow "slow"
      */
     OpenPolyline(const std::initializer_list<Point2LL>& initializer)
-        : Polyline(initializer)
+        : Polyline{ initializer }
     {
     }
 
@@ -49,8 +49,8 @@ public:
      * \brief Constructor with an existing list of points
      * \warning A copy of the points list is made, so this constructor is somehow "slow"
      */
-    OpenPolyline(const ClipperLib::Path& points)
-        : Polyline(points)
+    explicit OpenPolyline(const ClipperLib::Path& points)
+        : Polyline{ points }
     {
     }
 
@@ -59,40 +59,34 @@ public:
      * \warning This constructor is fast because it does not allocate data, but it will clear
      *          the source object
      */
-    OpenPolyline(ClipperLib::Path&& points)
-        : Polyline(std::move(points))
+    explicit OpenPolyline(ClipperLib::Path&& points)
+        : Polyline{ std::move(points) }
     {
     }
 
+    ~OpenPolyline() override = default;
+
     /*! @see Polyline::hasClosingSegment() */
-    virtual bool hasClosingSegment() const override
+    [[nodiscard]] bool hasClosingSegment() const override
     {
         return false; // Definitely not
     }
 
     /*! @see Polyline::segmentsCount() */
-    virtual size_t segmentsCount() const override
+    [[nodiscard]] size_t segmentsCount() const override
     {
         return size() > 1 ? size() - 1 : 0;
     }
 
     /*! @see Polyline::isValid() */
-    virtual bool isValid() const override
+    [[nodiscard]] bool isValid() const override
     {
         return size() >= 2;
     }
 
-    OpenPolyline& operator=(OpenPolyline&& other)
-    {
-        Polyline::operator=(std::move(other));
-        return *this;
-    }
+    OpenPolyline& operator=(OpenPolyline&& other)  noexcept = default;
 
-    OpenPolyline& operator=(const OpenPolyline& other)
-    {
-        Polyline::operator=(other);
-        return *this;
-    }
+    OpenPolyline& operator=(const OpenPolyline& other) = default;
 };
 
 } // namespace cura

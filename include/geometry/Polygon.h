@@ -21,6 +21,8 @@ class AngleDegrees;
 class Polygon : public ClosedPolyline
 {
 public:
+    Polygon() = default;
+
     /*!
      * \brief Builds an empty polygon
      * \param explicitely_closed Indicates whether the contour line will be explicitely closed
@@ -28,8 +30,8 @@ public:
      *          constructor in various places, but be careful that the interpretation of the points
      *          added later will depend on this.
      */
-    Polygon(bool explicitely_closed = false)
-        : ClosedPolyline(explicitely_closed)
+    explicit Polygon(const bool explicitely_closed)
+        : ClosedPolyline{ explicitely_closed }
     {
     }
 
@@ -43,8 +45,8 @@ public:
      * \brief Constructor with a points initializer list, provided for convenience
      * \param explicitely_closed Specify whether the given points form an explicitely closed line
      */
-    Polygon(const std::initializer_list<Point2LL>& initializer, bool explicitely_closed)
-        : ClosedPolyline(initializer, explicitely_closed)
+    Polygon(const std::initializer_list<Point2LL>& initializer, const bool explicitely_closed)
+        : ClosedPolyline{ initializer, explicitely_closed }
     {
     }
 
@@ -52,8 +54,8 @@ public:
      * \brief Constructor with an existing list of points
      * \param explicitely_closed Specify whether the given points form an explicitely closed line
      */
-    explicit Polygon(const ClipperLib::Path& points, bool explicitely_closed)
-        : ClosedPolyline(points, explicitely_closed)
+    explicit Polygon(const ClipperLib::Path& points, const bool explicitely_closed)
+        : ClosedPolyline{ points, explicitely_closed }
     {
     }
 
@@ -61,22 +63,16 @@ public:
      * \brief Constructor that takes ownership of the given list of points
      * \param explicitely_closed Specify whether the given points form an explicitely closed line
      */
-    explicit Polygon(ClipperLib::Path&& points, bool explicitely_closed)
-        : ClosedPolyline(points, explicitely_closed)
+    explicit Polygon(ClipperLib::Path&& points, const bool explicitely_closed)
+        : ClosedPolyline{ std::move(points), explicitely_closed }
     {
     }
 
-    Polygon& operator=(const Polygon& other)
-    {
-        Polyline::operator=(other);
-        return *this;
-    }
+    ~Polygon() override = default;
 
-    Polygon& operator=(Polygon&& other)
-    {
-        Polyline::operator=(std::move(other));
-        return *this;
-    }
+    Polygon& operator=(const Polygon& other) = default;
+
+    Polygon& operator=(Polygon&& other) = default;
 
     /*!
      * \brief Compute the morphological intersection between this polygon and another.

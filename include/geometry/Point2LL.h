@@ -42,36 +42,44 @@ INLINE Point2LL operator-(const Point2LL& p0)
 {
     return { -p0.X, -p0.Y };
 }
+
 INLINE Point2LL operator+(const Point2LL& p0, const Point2LL& p1)
 {
     return { p0.X + p1.X, p0.Y + p1.Y };
 }
+
 INLINE Point2LL operator-(const Point2LL& p0, const Point2LL& p1)
 {
     return { p0.X - p1.X, p0.Y - p1.Y };
 }
+
 INLINE Point2LL operator*(const Point2LL& p0, const coord_t i)
 {
     return { p0.X * i, p0.Y * i };
 }
+
 template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type> // Use only for numeric types.
 INLINE Point2LL operator*(const Point2LL& p0, const T i)
 {
     return { std::llrint(static_cast<T>(p0.X) * i), std::llrint(static_cast<T>(p0.Y) * i) };
 }
+
 template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type> // Use only for numeric types.
 INLINE Point2LL operator*(const T i, const Point2LL& p0)
 {
     return p0 * i;
 }
+
 INLINE Point2LL operator/(const Point2LL& p0, const coord_t i)
 {
     return { p0.X / i, p0.Y / i };
 }
+
 INLINE Point2LL operator/(const Point2LL& p0, const Point2LL& p1)
 {
     return { p0.X / p1.X, p0.Y / p1.Y };
 }
+
 INLINE Point2LL operator%(const Point2LL& p0, const coord_t i)
 {
     return { p0.X % i, p0.Y % i };
@@ -83,6 +91,7 @@ INLINE Point2LL& operator+=(Point2LL& p0, const Point2LL& p1)
     p0.Y += p1.Y;
     return p0;
 }
+
 INLINE Point2LL& operator-=(Point2LL& p0, const Point2LL& p1)
 {
     p0.X -= p1.X;
@@ -111,6 +120,7 @@ INLINE coord_t vSize2(const Point2LL& p0)
 {
     return p0.X * p0.X + p0.Y * p0.Y;
 }
+
 INLINE double vSize2f(const Point2LL& p0)
 {
     return static_cast<double>(p0.X) * static_cast<double>(p0.X) + static_cast<double>(p0.Y) * static_cast<double>(p0.Y);
@@ -146,14 +156,14 @@ INLINE double vSizeMM(const Point2LL& p0)
     return sqrt(fx * fx + fy * fy);
 }
 
-INLINE Point2LL normal(const Point2LL& p0, coord_t len)
+INLINE Point2LL normal(const Point2LL& p0, coord_t length)
 {
-    coord_t _len{ vSize(p0) };
-    if (_len < 1)
+    coord_t len{ vSize(p0) };
+    if (len < 1)
     {
-        return { len, 0 };
+        return { length, 0 };
     }
-    return p0 * len / _len;
+    return p0 * length / len;
 }
 
 INLINE Point2LL turn90CCW(const Point2LL& p0)

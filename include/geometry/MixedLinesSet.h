@@ -36,7 +36,7 @@ public:
      * \return A shape containing the offsetted polylines. This may contain many unjoined polygons,
      *         but no overlapping ones.
      */
-    Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
+    [[nodiscard]] Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
     /*! @brief Adds a copy of the given polyline to the set */
     void push_back(const OpenPolyline& line);
@@ -72,7 +72,7 @@ public:
     void push_back(ClosedLinesSet&& lines_set);
 
     /*! \brief Computes the total lenght of all the polylines in the set */
-    coord_t length() const;
+    [[nodiscard]] coord_t length() const;
 };
 
 } // namespace cura

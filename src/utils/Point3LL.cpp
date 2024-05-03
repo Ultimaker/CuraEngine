@@ -63,14 +63,4 @@ Point3LL& Point3LL::operator/=(const Point3LL& p)
     return *this;
 }
 
-bool Point3LL::operator==(const Point3LL& p) const
-{
-    return x_ == p.x_ && y_ == p.y_ && z_ == p.z_;
-}
-
-bool Point3LL::operator!=(const Point3LL& p) const
-{
-    return x_ != p.x_ || y_ != p.y_ || z_ != p.z_;
-}
-
 } // namespace cura
