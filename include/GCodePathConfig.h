@@ -28,7 +28,7 @@ struct GCodePathConfig
     double fan_speed{ FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
     double extrusion_mm3_per_mm{ calculateExtrusion() }; //!< current mm^3 filament moved per mm line traversed
     static constexpr double FAN_SPEED_DEFAULT = -1;
-    bool is_unretraction_path{ false }; //whether current config is used for unretraction path
+    bool is_unretraction_path{ false }; // whether current config is used for unretraction path
 
     [[nodiscard]] constexpr bool operator==(const GCodePathConfig& other) const noexcept = default;
     [[nodiscard]] constexpr auto operator<=>(const GCodePathConfig& other) const = default;
@@ -73,7 +73,6 @@ struct GCodePathConfig
 
 private:
     [[nodiscard]] double calculateExtrusion() const noexcept;
-
 };
 
 

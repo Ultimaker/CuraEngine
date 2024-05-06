@@ -871,7 +871,8 @@ void GCodeExport::writeTravel(const Point3LL& p, const Velocity& speed)
     writeTravel(p.x_, p.y_, p.z_ + is_z_hopped_, speed);
 }
 
-Point2LL pointAtDistanceFromP0(const Point2LL& p0, const Point2LL& p1, coord_t d) {
+Point2LL pointAtDistanceFromP0(const Point2LL& p0, const Point2LL& p1, coord_t d)
+{
     coord_t dx = p1.X - p0.X;
     coord_t dy = p1.Y - p0.Y;
 
@@ -882,7 +883,7 @@ Point2LL pointAtDistanceFromP0(const Point2LL& p0, const Point2LL& p1, coord_t d
     coord_t x = p0.X + dx * d;
     coord_t y = p0.Y + dy * d;
 
-    return Point2LL{x, y};
+    return Point2LL{ x, y };
 }
 void GCodeExport::writeTravelToSeam(const Point2LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
 {

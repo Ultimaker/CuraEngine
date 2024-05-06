@@ -370,12 +370,7 @@ std::optional<std::pair<Point2LL, bool>> LayerPlan::getFirstTravelDestinationSta
     return ret;
 }
 
-void LayerPlan::addFirstWallTravel(const Point2LL& pos,
-                                   const bool force_retract,
-                                   const Point2LL* next,
-                                   const GCodePathConfig& config,
-                                   const Ratio& flow,
-                                   const Ratio& width_factor)
+void LayerPlan::addFirstWallTravel(const Point2LL& pos, const bool force_retract, const Point2LL* next, const GCodePathConfig& config, const Ratio& flow, const Ratio& width_factor)
 {
     const ExtruderTrain* extruder = getLastPlannedExtruderTrain();
     const Settings& mesh_or_extruder_settings = current_mesh_ ? current_mesh_->settings : extruder->settings_;
@@ -385,11 +380,11 @@ void LayerPlan::addFirstWallTravel(const Point2LL& pos,
         // First travel to intermediate position
         Point2LL direction = *next - pos;
         direction = (direction * 1000) / vSize(direction);
-        Point2LL approach_point = pos - direction * (mesh_or_extruder_settings.get<coord_t>("z_seam_approach_distance")/1000);
+        Point2LL approach_point = pos - direction * (mesh_or_extruder_settings.get<coord_t>("z_seam_approach_distance") / 1000);
         addTravel(approach_point, force_retract);
     }
     // Add special travel to start of seam location so that it starts printing seamlessly
-    addTravelBeforeSeam(pos,  config, SpaceFillType::Lines, flow, width_factor);
+    addTravelBeforeSeam(pos, config, SpaceFillType::Lines, flow, width_factor);
 }
 
 
@@ -593,26 +588,21 @@ void LayerPlan::addExtrusionMove(
     last_planned_position_ = p;
 }
 
-void LayerPlan::addTravelBeforeSeam(const Point2LL pos,
-                                    GCodePathConfig config,
-                                    const SpaceFillType space_fill_type,
-                                    const Ratio& flow,
-                                    const Ratio width_factor)
+void LayerPlan::addTravelBeforeSeam(const Point2LL pos, GCodePathConfig config, const SpaceFillType space_fill_type, const Ratio& flow, const Ratio width_factor)
 {
     forceNewPathStart();
 
     std::vector<GCodePath>& paths = extruder_plans_.back().paths_;
     config.setPrintFeatureType(cura::PrintFeatureType::MoveUnretraction);
 
-    paths.emplace_back(GCodePath{
-                                    .z_offset = 0,
-                                    .config = config,
-                                    .mesh = current_mesh_,
-                                    .space_fill_type = space_fill_type,
-                                    .flow = flow*0,
-                                    .width_factor = width_factor,
-                                    .spiralize = false,
-                                    .is_approach_move = true });
+    paths.emplace_back(GCodePath{ .z_offset = 0,
+                                  .config = config,
+                                  .mesh = current_mesh_,
+                                  .space_fill_type = space_fill_type,
+                                  .flow = flow * 0,
+                                  .width_factor = width_factor,
+                                  .spiralize = false,
+                                  .is_approach_move = true });
 
     paths.back().points.push_back(pos);
     forceNewPathStart();
@@ -1175,7 +1165,13 @@ void LayerPlan::addWall(
     ExtrusionJunction p0 = wall[start_idx];
     if (smooth_approach)
     {
-        addFirstWallTravel(p0.p_, always_retract,  &(wall[(wall.size() + start_idx + direction) % wall.size()].p_), default_config, flow_ratio, p0.w_ * nominal_line_width_multiplier);
+        addFirstWallTravel(
+            p0.p_,
+            always_retract,
+            &(wall[(wall.size() + start_idx + direction) % wall.size()].p_),
+            default_config,
+            flow_ratio,
+            p0.w_ * nominal_line_width_multiplier);
     }
     else
     {
@@ -2188,7 +2184,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             GCodePath& path = paths[path_idx];
             if (path.is_approach_move)
             {
-                gcode.writeTravelToSeam(Point2LL(gcode.getPosition().x_, gcode.getPosition().y_), path.config.getSpeed(),path.getExtrusionMM3perMM(), path.config.type );
+                gcode.writeTravelToSeam(Point2LL(gcode.getPosition().x_, gcode.getPosition().y_), path.config.getSpeed(), path.getExtrusionMM3perMM(), path.config.type);
             }
 
             if (path.perform_prime)
@@ -2418,7 +2414,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                             spiral_path.getLineWidthForLayerView(),
                             spiral_path.config.getLayerThickness(),
                             extrude_speed);
-                        //gcode.writeTravelToSeam(Point2LL(gcode.getPosition().x_, gcode.getPosition().y_), path.config.getSpeed(),path.getExtrusionMM3perMM(), path.config.type );
+                        // gcode.writeTravelToSeam(Point2LL(gcode.getPosition().x_, gcode.getPosition().y_), path.config.getSpeed(),path.getExtrusionMM3perMM(), path.config.type );
                         gcode.writeExtrusion(spiral_path.points[point_idx], extrude_speed, spiral_path.getExtrusionMM3perMM(), spiral_path.config.type, update_extrusion_offset);
                     }
                     // for layer display only - the loop finished at the seam vertex but as we started from
