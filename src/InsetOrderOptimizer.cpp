@@ -52,7 +52,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const ZSeamConfig& z_seam_config,
     const std::vector<VariableWidthLines>& paths,
     const bool is_outer_shell,
-    const Polygons& disallowed_areas_for_seams)
+    const Shape& disallowed_areas_for_seams)
 
     : gcode_writer_(gcode_writer)
     , storage_(storage)

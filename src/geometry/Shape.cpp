@@ -595,7 +595,7 @@ Shape Shape::smoothOutward(const AngleDegrees max_angle, int shortcut_length) co
             ret.push_back(poly);
             continue;
         }
-        poly.smooth_outward(max_angle, shortcut_length, ret.newLine());
+        poly.smoothOutward(max_angle, shortcut_length, ret.newLine());
         if (ret.back().size() < 3)
         {
             ret.resize(ret.size() - 1);

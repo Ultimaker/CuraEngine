@@ -21,10 +21,20 @@ class PartsView : public std::vector<std::vector<size_t>>
 public:
     Shape& polygons_;
 
-    PartsView(Shape& polygons)
-        : polygons_(polygons)
+    PartsView() = delete;
+
+    explicit PartsView(Shape& polygons)
+        : polygons_{ polygons }
     {
     }
+
+    PartsView(PartsView&& parts_view) = default;
+    PartsView(const PartsView& parts_view) = default;
+
+    ~PartsView() = default;
+
+    PartsView& operator=(PartsView&& parts_view) = delete;
+    PartsView& operator=(const PartsView& parts_view) = delete;
 
     /*!
      * Get the index of the SingleShape of which the polygon with index \p poly_idx is part.
@@ -50,7 +60,7 @@ public:
      * \param part_idx The index of the part
      * \return The SingleShape with index \p poly_idx
      */
-    SingleShape assemblePart(size_t part_idx) const;
+    [[nodiscard]] SingleShape assemblePart(size_t part_idx) const;
 };
 
 } // namespace cura

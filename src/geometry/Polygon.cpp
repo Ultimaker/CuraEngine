@@ -3,10 +3,10 @@
 
 #include "geometry/Polygon.h"
 
+#include <cstddef>
 #include <numbers>
 
 #include "geometry/Point3Matrix.h"
-#include "geometry/PointMatrix.h"
 #include "geometry/Shape.h"
 #include "utils/ListPolyIt.h"
 #include "utils/linearAlg2D.h"
@@ -21,12 +21,12 @@ Shape Polygon::intersection(const Polygon& other) const
     clipper.AddPath(getPoints(), ClipperLib::ptSubject, true);
     clipper.AddPath(other.getPoints(), ClipperLib::ptClip, true);
     clipper.Execute(ClipperLib::ctIntersection, ret_paths);
-    return Shape(std::move(ret_paths));
+    return Shape{ std::move(ret_paths) };
 }
 
 void Polygon::smooth2(int remove_length, Polygon& result) const
 {
-    if (size() > 0)
+    if (! empty())
     {
         result.push_back(front());
     }
@@ -66,7 +66,7 @@ void Polygon::smooth(int remove_length, Polygon& result) const
     //          |
     //          |
     //          0
-    if (size() > 0)
+    if (! empty())
     {
         result.push_back(front());
     }
@@ -97,14 +97,14 @@ void Polygon::smooth(int remove_length, Polygon& result) const
         return true;
     };
     Point2LL v02 = getPoints()[2] - getPoints()[0];
-    Point2LL v02T = turn90CCW(v02);
+    Point2LL v02_t = turn90CCW(v02);
     int64_t v02_size = vSize(v02);
     bool force_push = false;
     for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
     {
-        const Point2LL& p1 = getPoints()[poly_idx];
-        const Point2LL& p2 = getPoints()[(poly_idx + 1) % size()];
-        const Point2LL& p3 = getPoints()[(poly_idx + 2) % size()];
+        const Point2LL& p1 = getPoints().at(poly_idx);
+        const Point2LL& p2 = getPoints().at((poly_idx + 1) % size());
+        const Point2LL& p3 = getPoints().at((poly_idx + 2) % size());
         // v02 computed in last iteration
         // v02_size as well
         const Point2LL v12 = p2 - p1;
@@ -113,9 +113,9 @@ void Polygon::smooth(int remove_length, Polygon& result) const
         const int64_t v13_size = vSize(v13);
 
         // v02T computed in last iteration
-        const int64_t dot1 = dot(v02T, v12);
-        const Point2LL v13T = turn90CCW(v13);
-        const int64_t dot2 = dot(v13T, v12);
+        const int64_t dot1 = dot(v02_t, v12);
+        const Point2LL v13_t = turn90CCW(v13);
+        const int64_t dot2 = dot(v13_t, v12);
         bool push_point = force_push || ! is_zigzag(v02_size, v12_size, v13_size, dot1, dot2);
         force_push = false;
         if (push_point)
@@ -127,13 +127,13 @@ void Polygon::smooth(int remove_length, Polygon& result) const
             // do not add the current one to the result
             force_push = true; // ensure the next point is added; it cannot also be a zigzag
         }
-        v02T = v13T;
+        v02_t = v13_t;
         v02 = v13;
         v02_size = v13_size;
     }
 }
 
-void Polygon::smooth_outward(const AngleDegrees min_angle, int shortcut_length, Polygon& result) const
+void Polygon::smoothOutward(const AngleDegrees min_angle, int shortcut_length, Polygon& result) const
 {
     // example of smoothed out corner:
     //
@@ -152,7 +152,7 @@ void Polygon::smooth_outward(const AngleDegrees min_angle, int shortcut_length, 
     //         0
 
     int shortcut_length2 = shortcut_length * shortcut_length;
-    double cos_min_angle = cos(min_angle / 180 * std::numbers::pi);
+    double cos_min_angle = std::cos(min_angle / 180 * std::numbers::pi);
 
     ListPolygon poly;
     ListPolyIt::convertPolygonToList(*this, poly);
@@ -162,7 +162,7 @@ void Polygon::smooth_outward(const AngleDegrees min_angle, int shortcut_length, 
         do
         {
             ListPolyIt next = p1_it.next();
-            if (vSize2(p1_it.p() - next.p()) < 10 * 10)
+            if (vSize2(p1_it.p() - next.p()) < 100LL)
             {
                 p1_it.remove();
             }
@@ -189,11 +189,11 @@ void Polygon::smooth_outward(const AngleDegrees min_angle, int shortcut_length, 
             Point2LL v02 = p2_it.p() - p0_it.p();
             if (vSize2(v02) >= shortcut_length2)
             {
-                smooth_corner_simple(p0, p1, p2, p0_it, p1_it, p2_it, v10, v12, v02, shortcut_length, cos_angle);
+                smoothCornerSimple(p0, p1, p2, p0_it, p1_it, p2_it, v10, v12, v02, shortcut_length, cos_angle);
             }
             else
             {
-                bool remove_poly = smooth_corner_complex(p1, p0_it, p2_it, shortcut_length); // edits p0_it and p2_it!
+                bool remove_poly = smoothCornerComplex(p1, p0_it, p2_it, shortcut_length); // edits p0_it and p2_it!
                 if (remove_poly)
                 {
                     // don't convert ListPolygon into result
@@ -212,7 +212,7 @@ void Polygon::smooth_outward(const AngleDegrees min_angle, int shortcut_length, 
     ListPolyIt::convertListPolygonToPolygon(poly, result);
 }
 
-void Polygon::smooth_corner_simple(
+void Polygon::smoothCornerSimple(
     const Point2LL& p0,
     const Point2LL& p1,
     const Point2LL& p2,
@@ -253,7 +253,7 @@ void Polygon::smooth_corner_simple(
         //       m
         // use trigonometry on the right-angled triangle am1
         double a1m_angle = acos(cos_angle) / 2;
-        const int64_t a1_size = shortcut_length / 2 / sin(a1m_angle);
+        const int64_t a1_size = shortcut_length / 2 / std::sin(a1m_angle);
         if (a1_size * a1_size < vSize2(v10) && a1_size * a1_size < vSize2(v12))
         {
             Point2LL a = p1 + normal(v10, a1_size);
@@ -313,7 +313,7 @@ void Polygon::smooth_corner_simple(
     }
 }
 
-void Polygon::smooth_outward_step(
+void Polygon::smoothOutwardStep(
     const Point2LL& p1,
     const int64_t shortcut_length2,
     ListPolyIt& p0_it,
@@ -353,32 +353,28 @@ void Polygon::smooth_outward_step(
         backward_is_too_far = false;
         return;
     }
-    else
+    const ListPolyIt p0_2_it = p0_it.prev();
+    const Point2LL p0_2 = p0_2_it.p();
+    bool p0_is_left = LinearAlg2D::pointIsLeftOfLine(p0, p0_2, p2) >= 0;
+    if (! p0_is_left)
     {
-        const ListPolyIt p0_2_it = p0_it.prev();
-        const Point2LL p0_2 = p0_2_it.p();
-        bool p0_is_left = LinearAlg2D::pointIsLeftOfLine(p0, p0_2, p2) >= 0;
-        if (! p0_is_left)
-        {
-            backward_is_blocked = true;
-            return;
-        }
-
-        const Point2LL v02_2 = p2_it.p() - p0_2;
-        if (vSize2(v02_2) > shortcut_length2)
-        {
-            backward_is_too_far = true;
-            return;
-        }
-
-        p0_it = p0_2_it; // make one step in the backward direction
-        forward_is_blocked = false; // invalidate data about forward walking
-        forward_is_too_far = false;
+        backward_is_blocked = true;
         return;
     }
+
+    const Point2LL v02_2 = p2_it.p() - p0_2;
+    if (vSize2(v02_2) > shortcut_length2)
+    {
+        backward_is_too_far = true;
+        return;
+    }
+
+    p0_it = p0_2_it; // make one step in the backward direction
+    forward_is_blocked = false; // invalidate data about forward walking
+    forward_is_too_far = false;
 }
 
-bool Polygon::smooth_corner_complex(const Point2LL& p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length)
+bool Polygon::smoothCornerComplex(const Point2LL& p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length)
 {
     // walk away from the corner until the shortcut > shortcut_length or it would smooth a piece inward
     // - walk in both directions untill shortcut > shortcut_length
@@ -414,12 +410,9 @@ bool Polygon::smooth_corner_complex(const Point2LL& p1, ListPolyIt& p0_it, ListP
                 backward_is_too_far = false; // invalidate data
                 continue;
             }
-            else
-            {
-                break;
-            }
+            break;
         }
-        smooth_outward_step(p1, shortcut_length2, p0_it, p2_it, forward_is_blocked, backward_is_blocked, forward_is_too_far, backward_is_too_far);
+        smoothOutwardStep(p1, shortcut_length2, p0_it, p2_it, forward_is_blocked, backward_is_blocked, forward_is_too_far, backward_is_too_far);
         if (p0_it.prev() == p2_it || p0_it == p2_it)
         { // stop if we went all the way around the polygon
             // this should only be the case for hole polygons (?)
@@ -438,11 +431,8 @@ bool Polygon::smooth_corner_complex(const Point2LL& p1, ListPolyIt& p0_it, ListP
                 //     \                                                .
                 break;
             }
-            else
-            {
-                // this whole polygon can be removed
-                return true;
-            }
+            // this whole polygon can be removed
+            return true;
         }
     }
 
@@ -466,7 +456,7 @@ bool Polygon::smooth_corner_complex(const Point2LL& p1, ListPolyIt& p0_it, ListP
         //  |a
         //  |
         //  0
-        const int64_t v02_size = sqrt(v02_size2);
+        const auto v02_size = static_cast<int64_t>(std::sqrt(v02_size2));
 
         const ListPolyIt p0_2_it = p0_it.prev();
         const ListPolyIt p2_2_it = p2_it.next();
@@ -563,19 +553,20 @@ bool Polygon::smooth_corner_complex(const Point2LL& p1, ListPolyIt& p0_it, ListP
 
 Point2LL Polygon::centerOfMass() const
 {
-    if (size() > 0)
+    if (! empty())
     {
         Point2LL p0 = getPoints()[0];
         if (size() > 1)
         {
-            double x = 0, y = 0;
+            double x{ 0 };
+            double y{ 0 };
             for (size_t n = 1; n <= size(); n++)
             {
                 Point2LL p1 = getPoints()[n % size()];
-                double second_factor = static_cast<double>((p0.X * p1.Y) - (p1.X * p0.Y));
+                auto second_factor = static_cast<double>((p0.X * p1.Y) - (p1.X * p0.Y));
 
-                x += double(p0.X + p1.X) * second_factor;
-                y += double(p0.Y + p1.Y) * second_factor;
+                x += static_cast<double>(p0.X + p1.X) * second_factor;
+                y += static_cast<double>(p0.Y + p1.Y) * second_factor;
                 p0 = p1;
             }
 
@@ -584,17 +575,11 @@ Point2LL Polygon::centerOfMass() const
             x = x / 6 / current_area;
             y = y / 6 / current_area;
 
-            return Point2LL(std::llrint(x), std::llrint(y));
+            return { std::llrint(x), std::llrint(y) };
         }
-        else
-        {
-            return p0;
-        }
+        return p0;
     }
-    else
-    {
-        return Point2LL();
-    }
+    return {};
 }
 
 Shape Polygon::offset(int distance, ClipperLib::JoinType join_type, double miter_limit) const
@@ -608,7 +593,7 @@ Shape Polygon::offset(int distance, ClipperLib::JoinType join_type, double miter
     clipper.AddPath(getPoints(), join_type, ClipperLib::etClosedPolygon);
     clipper.MiterLimit = miter_limit;
     clipper.Execute(ret, distance);
-    return Shape(std::move(ret));
+    return Shape{ std::move(ret) };
 }
 
 } // namespace cura

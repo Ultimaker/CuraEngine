@@ -54,56 +54,48 @@ public:
     }
 
     /*! \brief Constructor with an existing list of points */
-    Polyline(const ClipperLib::Path& points)
+    explicit Polyline(const ClipperLib::Path& points)
         : PointsSet(points)
     {
     }
 
     /*! \brief Constructor that takes ownership of the given list of points */
-    Polyline(ClipperLib::Path&& points)
-        : PointsSet(points)
+    explicit Polyline(ClipperLib::Path&& points)
+        : PointsSet{ std::move(points) }
     {
     }
 
-    virtual ~Polyline() = default;
+    ~Polyline() override = default;
 
     /*!
      * \brief Indicates whether this polyline has an additional closing segment between the last
      *        point in the set and the first one
      * \return  True if a segment between the last and first point should be considered
      */
-    virtual bool hasClosingSegment() const = 0;
+    [[nodiscard]] virtual bool hasClosingSegment() const = 0;
 
     /*!
      * \brief Gets the total number of "full" segments in the polyline. Calling this is also safe if
      *        there are not enough points to make a valid polyline, so it can also be a good
      *        indicator of a "valid" polyline.
      */
-    virtual size_t segmentsCount() const = 0;
+    [[nodiscard]] virtual size_t segmentsCount() const = 0;
 
     /*!
      * \brief Indicates whether the points set form a valid polyline, i.e. if it has enough points
      *        according to its type.
      */
-    virtual bool isValid() const = 0;
+    [[nodiscard]] virtual bool isValid() const = 0;
 
-    Polyline& operator=(const Polyline& other)
-    {
-        PointsSet::operator=(other);
-        return *this;
-    }
+    Polyline& operator=(const Polyline& other) = default;
 
-    Polyline& operator=(Polyline&& other)
-    {
-        PointsSet::operator=(other);
-        return *this;
-    }
+    Polyline& operator=(Polyline&& other) = default;
 
     /*! \brief Provides a begin iterator to iterate over all the segments of the line */
-    const_segments_iterator beginSegments() const;
+    [[nodiscard]] const_segments_iterator beginSegments() const;
 
     /*! \brief Provides an end iterator to iterate over all the segments of the line */
-    const_segments_iterator endSegments() const;
+    [[nodiscard]] const_segments_iterator endSegments() const;
 
     /*! \brief Provides a begin iterator to iterate over all the segments of the line */
     segments_iterator beginSegments();
@@ -116,21 +108,21 @@ public:
      * and store them in the \p result
      */
     void splitIntoSegments(OpenLinesSet& result) const;
-    OpenLinesSet splitIntoSegments() const;
+    [[nodiscard]] OpenLinesSet splitIntoSegments() const;
 
     /*!
      * On Y-axis positive upward displays, Orientation will return true if the polygon's orientation is counter-clockwise.
      *
      * from http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Functions/Orientation.htm
      */
-    bool orientation() const
+    [[nodiscard]] bool orientation() const
     {
         return ClipperLib::Orientation(getPoints());
     }
 
-    coord_t length() const;
+    [[nodiscard]] coord_t length() const;
 
-    bool shorterThan(const coord_t check_length) const;
+    [[nodiscard]] bool shorterThan(const coord_t check_length) const;
 
     void reverse()
     {
@@ -161,15 +153,6 @@ public:
      removed
      */
     void simplify(const coord_t smallest_line_segment_squared = MM2INT(0.01) * MM2INT(0.01), const coord_t allowed_error_distance_squared = 25);
-
-
-private:
-    /*!
-     * Private implementation for both simplify and simplifyPolygons.
-     *
-     * Made private to avoid accidental use of the wrong function.
-     */
-    void _simplify(const coord_t smallest_line_segment_squared = 100, const coord_t allowed_error_distance_squared = 25, bool processing_polylines = false);
 };
 
 } // namespace cura

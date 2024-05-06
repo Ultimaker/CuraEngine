@@ -3,6 +3,8 @@
 
 #include "geometry/ClosedPolyline.h"
 
+#include <range/v3/algorithm/all_of.hpp>
+
 #include "geometry/OpenPolyline.h"
 
 namespace cura
@@ -14,10 +16,7 @@ size_t ClosedPolyline::segmentsCount() const
     {
         return size() >= 3 ? size() - 1 : 0;
     }
-    else
-    {
-        return size() >= 2 ? size() : 0;
-    }
+    return size() >= 2 ? size() : 0;
 }
 
 bool ClosedPolyline::isValid() const
@@ -37,14 +36,12 @@ bool ClosedPolyline::inside(const Point2LL& p, bool border_result) const
 
 bool ClosedPolyline::inside(const ClipperLib::Path& polygon) const
 {
-    for (const auto& point : *this)
-    {
-        if (! ClipperLib::PointInPolygon(point, polygon))
+    return ranges::all_of(
+        *this,
+        [&polygon](const auto& point)
         {
-            return false;
-        }
-    }
-    return true;
+            return ClipperLib::PointInPolygon(point, polygon);
+        });
 }
 
 OpenPolyline ClosedPolyline::toPseudoOpenPolyline() const

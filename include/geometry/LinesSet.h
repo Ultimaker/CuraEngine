@@ -53,13 +53,13 @@ public:
     LinesSet(LinesSet&& other) = default;
 
     /*! \brief Constructor with an existing set of lines */
-    LinesSet(const std::vector<LineType>& lines)
+    explicit LinesSet(const std::vector<LineType>& lines)
         : lines_(lines)
     {
     }
 
     /*! \brief Constructor that takes ownership of the data from the given set of lines */
-    LinesSet(std::vector<LineType>&& lines)
+    explicit LinesSet(std::vector<LineType>&& lines)
         : lines_(std::move(lines))
     {
     }
@@ -70,7 +70,8 @@ public:
      *          objects, because closed ones require an additional argument
      */
     template<typename U = LineType>
-    requires std::is_same_v<U, OpenPolyline> LinesSet(ClipperLib::Paths&& paths)
+    requires std::is_same_v<U, OpenPolyline>
+    explicit LinesSet(ClipperLib::Paths&& paths)
     {
         reserve(paths.size());
         for (ClipperLib::Path& path : paths)
@@ -196,17 +197,9 @@ public:
         return lines_.erase(first, last);
     }
 
-    LinesSet& operator=(const LinesSet& other)
-    {
-        lines_ = other.lines_;
-        return *this;
-    }
+    LinesSet& operator=(const LinesSet& other) = default;
 
-    LinesSet& operator=(LinesSet&& other) noexcept
-    {
-        lines_ = std::move(other.lines_);
-        return *this;
-    }
+    LinesSet& operator=(LinesSet&& other) noexcept = default;
 
     LineType& operator[](size_t index)
     {
@@ -225,7 +218,7 @@ public:
     }
 
     /*! \brief Return the amount of points in all lines */
-    size_t pointCount() const;
+    [[nodiscard]] size_t pointCount() const;
 
     /*!
      * Remove a line from the list and move the last line to its place
@@ -237,15 +230,15 @@ public:
     void addSegment(const Point2LL& from, const Point2LL& to);
 
     /*! \brief Get the total length of all the lines */
-    coord_t length() const;
+    [[nodiscard]] coord_t length() const;
 
     void splitIntoSegments(OpenLinesSet& result) const;
-    OpenLinesSet splitIntoSegments() const;
+    [[nodiscard]] OpenLinesSet splitIntoSegments() const;
 
     /*! \brief Removes overlapping consecutive line segments which don't delimit a positive area */
     void removeDegenerateVerts();
 
-    Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
+    [[nodiscard]] Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
     /*!
      * Utility method for creating the tube (or 'donut') of a shape.
@@ -257,7 +250,7 @@ public:
      *        shape. Comparable to normal offset.
      * \return The resulting polygons.
      */
-    Shape createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
+    [[nodiscard]] Shape createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 
     void translate(const Point2LL& delta);
 
@@ -265,13 +258,13 @@ public:
      * \brief Utility method to add all the lines to a ClipperLib::Clipper object
      * \note This method needs to be public but you shouldn't need to use it from outside
      */
-    void addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
+    void addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const;
 
     /*!
      * \brief Utility method to add all the lines to a ClipperLib::ClipperOffset object
      * \note This method needs to be public but you shouldn't need to use it from outside
      */
-    void addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
+    void addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType joint_type, ClipperLib::EndType end_type) const;
 
     /*!
      * \brief Display operator, useful for debugging/testing

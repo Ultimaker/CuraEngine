@@ -344,7 +344,7 @@ void GyroidInfill::generateTotalGyroidInfill(OpenLinesSet& result_lines, bool zi
 
                         if (chain_index != connector_start_chain_index && connected_to[(point_index + 1) % 2][chain_index] != connector_start_chain_index)
                         {
-                            result.push_back(connector_points);
+                            result.push_back(OpenPolyline{ connector_points });
                             drawing = false;
                             connector_points.clear();
                             // remember the connection
@@ -393,9 +393,9 @@ void GyroidInfill::generateTotalGyroidInfill(OpenLinesSet& result_lines, bool zi
             {
                 // output the connector line segments from the last chain to the first point in the outline
                 connector_points.push_back(outline_poly[0]);
-                result.push_back(connector_points);
+                result.push_back(OpenPolyline{ connector_points });
                 // output the connector line segments from the first point in the outline to the first chain
-                result.push_back(path_to_first_chain);
+                result.push_back(OpenPolyline{ path_to_first_chain });
             }
 
             if (chain_ends_remaining < 1)

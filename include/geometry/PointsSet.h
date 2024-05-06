@@ -27,9 +27,12 @@ private:
 
 public:
     // Required for some std calls as a container
-    typedef Point2LL value_type;
+    using value_type = Point2LL;
+    using iterator = typename std::vector<value_type>::iterator;
+    using const_iterator = typename std::vector<value_type>::const_iterator;
+    using reverse_iterator = typename std::vector<value_type>::reverse_iterator;
+    using const_reverse_iterator = typename std::vector<value_type>::const_reverse_iterator;
 
-public:
     /*! \brief Builds an empty set */
     PointsSet() = default;
 
@@ -42,13 +45,15 @@ public:
     /*! \brief Constructor with a points initializer list, provided for convenience" */
     PointsSet(const std::initializer_list<Point2LL>& initializer);
 
+    virtual ~PointsSet() = default;
+
     /*! \brief Constructor with an existing list of points */
-    PointsSet(const ClipperLib::Path& points);
+    explicit PointsSet(const ClipperLib::Path& points);
 
     /*! \brief Constructor that takes ownership of the given list of points */
-    PointsSet(ClipperLib::Path&& points);
+    explicit PointsSet(ClipperLib::Path&& points);
 
-    const ClipperLib::Path& getPoints() const
+    [[nodiscard]] const ClipperLib::Path& getPoints() const
     {
         return points_;
     }
@@ -63,7 +68,7 @@ public:
         points_ = points;
     }
 
-    size_t size() const
+    [[nodiscard]] size_t size() const
     {
         return points_.size();
     }
@@ -73,10 +78,9 @@ public:
         points_.push_back(point);
     }
 
-    template<typename... Args>
-    void emplace_back(Args&&... args)
+    void emplace_back(auto&&... args)
     {
-        points_.emplace_back(args...);
+        points_.emplace_back(std::forward<decltype(args)>(args)...);
     }
 
     void pop_back()
@@ -84,53 +88,52 @@ public:
         points_.pop_back();
     }
 
-    template<typename... Args>
-    void insert(Args&&... args)
+    void insert(auto&&... args)
     {
-        points_.insert(args...);
+        points_.insert(std::forward<decltype(args)>(args)...);
     }
 
-    std::vector<Point2LL>::const_iterator begin() const
-    {
-        return points_.begin();
-    }
-
-    std::vector<Point2LL>::iterator begin()
+    [[nodiscard]] const_iterator begin() const
     {
         return points_.begin();
     }
 
-    std::vector<Point2LL>::const_iterator end() const
+    iterator begin()
+    {
+        return points_.begin();
+    }
+
+    [[nodiscard]] const_iterator end() const
     {
         return points_.end();
     }
 
-    std::vector<Point2LL>::iterator end()
+    iterator end()
     {
         return points_.end();
     }
 
-    std::vector<Point2LL>::const_reverse_iterator rbegin() const
+    [[nodiscard]] const_reverse_iterator rbegin() const
     {
         return points_.rbegin();
     }
 
-    std::vector<Point2LL>::reverse_iterator rbegin()
+    reverse_iterator rbegin()
     {
         return points_.rbegin();
     }
 
-    std::vector<Point2LL>::const_reverse_iterator rend() const
+    [[nodiscard]] const_reverse_iterator rend() const
     {
         return points_.rend();
     }
 
-    std::vector<Point2LL>::reverse_iterator rend()
+    reverse_iterator rend()
     {
         return points_.rend();
     }
 
-    const Point2LL& front() const
+    [[nodiscard]] const Point2LL& front() const
     {
         return points_.front();
     }
@@ -140,7 +143,7 @@ public:
         return points_.front();
     }
 
-    const Point2LL& back() const
+    [[nodiscard]] const Point2LL& back() const
     {
         return points_.back();
     }
@@ -150,27 +153,27 @@ public:
         return points_.back();
     }
 
-    const Point2LL& at(size_t pos) const
+    [[nodiscard]] const Point2LL& at(const size_t pos) const
     {
         return points_.at(pos);
     }
 
-    Point2LL& at(size_t pos)
+    Point2LL& at(const size_t pos)
     {
         return points_.at(pos);
     }
 
-    bool empty() const
+    [[nodiscard]] bool empty() const
     {
         return points_.empty();
     }
 
-    void resize(size_t size)
+    void resize(const size_t size)
     {
         points_.resize(size);
     }
 
-    void reserve(size_t size)
+    void reserve(const size_t size)
     {
         points_.reserve(size);
     }

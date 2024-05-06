@@ -30,55 +30,47 @@ Shape MixedLinesSet::offset(coord_t distance, ClipperLib::JoinType join_type, do
 
         return result;
     }
-    else
+    Shape polygons;
+    ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
+
+    for (const PolylinePtr& line : (*this))
     {
-        Shape polygons;
-        ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
-
-        for (const PolylinePtr& line : (*this))
+        if (const std::shared_ptr<const Polygon> polygon = dynamic_pointer_cast<const Polygon>(line))
         {
-            if (const std::shared_ptr<const Polygon> polygon = dynamic_pointer_cast<const Polygon>(line))
+            // Union all polygons first and add them later
+            polygons.push_back(*polygon);
+        }
+        else
+        {
+            static auto end_type_fn = [&line, &join_type]()
             {
-                // Union all polygons first and add them later
-                polygons.push_back(*polygon);
-            }
-            else
-            {
-                ClipperLib::EndType end_type;
-
                 if (line->hasClosingSegment())
                 {
-                    end_type = ClipperLib::etClosedLine;
+                    return ClipperLib::etClosedLine;
                 }
-                else if (join_type == ClipperLib::jtMiter)
-                {
-                    end_type = ClipperLib::etOpenSquare;
-                }
-                else
-                {
-                    end_type = ClipperLib::etOpenRound;
-                }
+                return join_type == ClipperLib::jtMiter ? ClipperLib::etOpenSquare : ClipperLib::etOpenRound;
+            };
 
-                clipper.AddPath(line->getPoints(), join_type, end_type);
-            }
+            const ClipperLib::EndType end_type{ end_type_fn() };
+            clipper.AddPath(line->getPoints(), join_type, end_type);
         }
-
-        if (! polygons.empty())
-        {
-            polygons = polygons.unionPolygons();
-
-            for (const Polygon& polygon : polygons)
-            {
-                clipper.AddPath(polygon.getPoints(), join_type, ClipperLib::etClosedPolygon);
-            }
-        }
-
-        clipper.MiterLimit = miter_limit;
-
-        ClipperLib::Paths result;
-        clipper.Execute(result, static_cast<double>(distance));
-        return Shape(std::move(result));
     }
+
+    if (! polygons.empty())
+    {
+        polygons = polygons.unionPolygons();
+
+        for (const Polygon& polygon : polygons)
+        {
+            clipper.AddPath(polygon.getPoints(), join_type, ClipperLib::etClosedPolygon);
+        }
+    }
+
+    clipper.MiterLimit = miter_limit;
+
+    ClipperLib::Paths result;
+    clipper.Execute(result, static_cast<double>(distance));
+    return Shape{ std::move(result) };
 }
 
 void MixedLinesSet::push_back(const OpenPolyline& line)
@@ -98,7 +90,7 @@ void MixedLinesSet::push_back(ClosedPolyline&& line)
 
 void MixedLinesSet::push_back(const Polygon& line)
 {
-    std::vector<PolylinePtr>::push_back(std::make_shared<Polygon>(std::move(line)));
+    std::vector<PolylinePtr>::push_back(std::make_shared<Polygon>(line));
 }
 
 void MixedLinesSet::push_back(const std::shared_ptr<OpenPolyline>& line)
@@ -157,7 +149,7 @@ coord_t MixedLinesSet::length() const
     return std::accumulate(
         begin(),
         end(),
-        coord_t(0),
+        0LL,
         [](coord_t value, const PolylinePtr& line)
         {
             return value + line->length();
