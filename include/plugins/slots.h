@@ -10,7 +10,6 @@
 #include <tuple>
 #include <utility>
 
-#include "WallToolPaths.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
 #include "cura/plugins/slots/gcode_paths/v0/modify.grpc.pb.h"
 #include "cura/plugins/slots/infill/v0/generate.grpc.pb.h"
