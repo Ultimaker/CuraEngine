@@ -58,7 +58,8 @@ public:
         const ZSeamConfig& z_seam_config,
         const std::vector<VariableWidthLines>& paths,
         const bool is_outer_shell = false,
-        const Polygons& disallowed_areas_for_seams = {});
+        const Shape& disallowed_areas_for_seams = {});
+
 
     /*!
      * Adds the insets to the given layer plan.

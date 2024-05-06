@@ -3480,6 +3480,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 extruder_nr,
                 z_seam_config,
                 wall_toolpaths,
+                false,
                 disallowed_area_for_seams);
             added_something |= wall_orderer.addToLayer();
         }

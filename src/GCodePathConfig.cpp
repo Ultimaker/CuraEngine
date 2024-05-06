@@ -67,6 +67,10 @@ namespace cura
 {
     return INT2MM(line_width) * INT2MM(layer_thickness) * double(flow);
 }
+void GCodePathConfig::setPrintFeatureType(PrintFeatureType type_)
+{
+    type = type_;
+}
 
 
 } // namespace cura

@@ -611,6 +611,7 @@ void GCodeExport::writeTypeComment(const PrintFeatureType& type)
         break;
     case PrintFeatureType::MoveCombing:
     case PrintFeatureType::MoveRetraction:
+    case PrintFeatureType::MoveUnretraction:
     case PrintFeatureType::NoneType:
     case PrintFeatureType::NumPrintFeatureTypes:
         // do nothing
@@ -868,6 +869,50 @@ void GCodeExport::writeTravel(const Point3LL& p, const Velocity& speed)
         return;
     }
     writeTravel(p.x_, p.y_, p.z_ + is_z_hopped_, speed);
+}
+
+Point2LL pointAtDistanceFromP0(const Point2LL& p0, const Point2LL& p1, coord_t d) {
+    coord_t dx = p1.X - p0.X;
+    coord_t dy = p1.Y - p0.Y;
+
+    coord_t len = sqrt(dx * dx + dy * dy);
+    dx /= len;
+    dy /= len;
+
+    coord_t x = p0.X + dx * d;
+    coord_t y = p0.Y + dy * d;
+
+    return Point2LL{x, y};
+}
+void GCodeExport::writeTravelToSeam(const Point2LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
+{
+    if (p != Point2LL{ current_position_.x_, current_position_.y_ })
+    { // Find length of filament needed to unretract
+        if (extruder_attr_[current_extruder_].retraction_e_amount_current_)
+        {
+            // Convert to volume
+            coord_t retraction_volume = eToMm3(extruder_attr_[current_extruder_].retraction_e_amount_current_, current_extruder_);
+            coord_t retraction_length = retraction_volume / extruder_attr_[current_extruder_].filament_area_;
+
+            Point2LL travelToPoint = pointAtDistanceFromP0(p, { current_position_.x_, current_position_.y_ }, retraction_length);
+            writeTravel(travelToPoint.X, travelToPoint.Y, current_layer_z_ + is_z_hopped_, speed);
+        }
+        *output_stream_ << "G1 X" << MMtoStream{ p.X } << " Y" << MMtoStream{ p.Y } << " Z" << MMtoStream{ current_layer_z_ };
+        current_position_ = Point3LL(p.X, p.Y, current_layer_z_);
+        estimate_calculator_.plan(
+            TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
+            speed,
+            feature);
+
+        if (getCurrentExtrudedVolume() > 10000.0 && flavor_ != EGCodeFlavor::BFB && flavor_ != EGCodeFlavor::MAKERBOT)
+        {
+            resetExtrusionValue();
+        }
+        if (extruder_attr_[current_extruder_].retraction_e_amount_current_)
+        {
+            extruder_attr_[current_extruder_].retraction_e_amount_current_ = 0.0;
+        }
+    }
 }
 
 void GCodeExport::writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)

@@ -370,10 +370,13 @@ std::optional<std::pair<Point2LL, bool>> LayerPlan::getFirstTravelDestinationSta
     return ret;
 }
 
-void LayerPlan::addFirstWallTravel(const Point2LL& pos, const bool force_retract, const Point2LL* next)
+void LayerPlan::addFirstWallTravel(const Point2LL& pos,
+                                   const bool force_retract,
+                                   const Point2LL* next,
+                                   const GCodePathConfig& config,
+                                   const Ratio& flow,
+                                   const Ratio& width_factor)
 {
-    // find amount of retraction already done
-    Point2LL extrusion_start_point; // Point where extrusion needs to start
     const ExtruderTrain* extruder = getLastPlannedExtruderTrain();
     const Settings& mesh_or_extruder_settings = current_mesh_ ? current_mesh_->settings : extruder->settings_;
 
@@ -382,11 +385,11 @@ void LayerPlan::addFirstWallTravel(const Point2LL& pos, const bool force_retract
         // First travel to intermediate position
         Point2LL direction = *next - pos;
         direction = (direction * 1000) / vSize(direction);
-        extrusion_start_point = pos - direction * (mesh_or_extruder_settings.get<coord_t>("z_seam_approach_distance") / 1000);
-        addTravel(extrusion_start_point, force_retract);
+        Point2LL approach_point = pos - direction * (mesh_or_extruder_settings.get<coord_t>("z_seam_approach_distance")/1000);
+        addTravel(approach_point, force_retract);
     }
-    // Add simple travel to point, next will already be printed while extruding
-    addTravel_simple(pos);
+    // Add special travel to start of seam location so that it starts printing seamlessly
+    addTravelBeforeSeam(pos,  config, SpaceFillType::Lines, flow, width_factor);
 }
 
 
@@ -588,6 +591,31 @@ void LayerPlan::addExtrusionMove(
         first_extrusion_acc_jerk_ = std::make_pair(path->config.getAcceleration(), path->config.getJerk());
     }
     last_planned_position_ = p;
+}
+
+void LayerPlan::addTravelBeforeSeam(const Point2LL pos,
+                                    GCodePathConfig config,
+                                    const SpaceFillType space_fill_type,
+                                    const Ratio& flow,
+                                    const Ratio width_factor)
+{
+    forceNewPathStart();
+
+    std::vector<GCodePath>& paths = extruder_plans_.back().paths_;
+    config.setPrintFeatureType(cura::PrintFeatureType::MoveUnretraction);
+
+    paths.emplace_back(GCodePath{
+                                    .z_offset = 0,
+                                    .config = config,
+                                    .mesh = current_mesh_,
+                                    .space_fill_type = space_fill_type,
+                                    .flow = flow*0,
+                                    .width_factor = width_factor,
+                                    .spiralize = false,
+                                    .is_approach_move = true });
+
+    paths.back().points.push_back(pos);
+    forceNewPathStart();
 }
 
 void LayerPlan::addPolygon(
@@ -1147,7 +1175,7 @@ void LayerPlan::addWall(
     ExtrusionJunction p0 = wall[start_idx];
     if (smooth_approach)
     {
-        addFirstWallTravel(p0.p_, always_retract, &(wall[(wall.size() + start_idx + direction) % wall.size()].p_));
+        addFirstWallTravel(p0.p_, always_retract,  &(wall[(wall.size() + start_idx + direction) % wall.size()].p_), default_config, flow_ratio, p0.w_ * nominal_line_width_multiplier);
     }
     else
     {
@@ -1237,34 +1265,34 @@ void LayerPlan::addWall(
             computeDistanceToBridgeStart((start_idx + wall.size() - 1) % wall.size());
         }
 
-        //        if (wall_0_wipe_dist > 0 && ! is_linked_path)
-        //        { // apply outer wall wipe
-        //            p0 = wall[start_idx];
-        //            int distance_traversed = 0;
-        //            for (unsigned int point_idx = 1;; point_idx++)
-        //            {
-        //                if (point_idx > wall.size() && distance_traversed == 0) // Wall has a total circumference of 0. This loop would never end.
-        //                {
-        //                    break; // No wipe if the wall has no circumference.
-        //                }
-        //                ExtrusionJunction p1 = wall[(start_idx + point_idx) % wall.size()];
-        //                int p0p1_dist = vSize(p1 - p0);
-        //                if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
-        //                {
-        //                    Point2LL vector = p1.p_ - p0.p_;
-        //                    Point2LL half_way = p0.p_ + normal(vector, wall_0_wipe_dist - distance_traversed);
-        //                    addTravel_simple(half_way);
-        //                    break;
-        //                }
-        //                else
-        //                {
-        //                    addTravel_simple(p1.p_);
-        //                    distance_traversed += p0p1_dist;
-        //                }
-        //                p0 = p1;
-        //            }
-        //            forceNewPathStart();
-        //        }
+        if (wall_0_wipe_dist > 0 && ! is_linked_path)
+        { // apply outer wall wipe
+            p0 = wall[start_idx];
+            int distance_traversed = 0;
+            for (unsigned int point_idx = 1;; point_idx++)
+            {
+                if (point_idx > wall.size() && distance_traversed == 0) // Wall has a total circumference of 0. This loop would never end.
+                {
+                    break; // No wipe if the wall has no circumference.
+                }
+                ExtrusionJunction p1 = wall[(start_idx + point_idx) % wall.size()];
+                int p0p1_dist = vSize(p1 - p0);
+                if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
+                {
+                    Point2LL vector = p1.p_ - p0.p_;
+                    Point2LL half_way = p0.p_ + normal(vector, wall_0_wipe_dist - distance_traversed);
+                    addTravel_simple(half_way);
+                    break;
+                }
+                else
+                {
+                    addTravel_simple(p1.p_);
+                    distance_traversed += p0p1_dist;
+                }
+                p0 = p1;
+            }
+            forceNewPathStart();
+        }
     }
     else
     {
@@ -2158,6 +2186,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             cumulative_path_time = 0.; // reset to 0 for current path.
 
             GCodePath& path = paths[path_idx];
+            if (path.is_approach_move)
+            {
+                gcode.writeTravelToSeam(Point2LL(gcode.getPosition().x_, gcode.getPosition().y_), path.config.getSpeed(),path.getExtrusionMM3perMM(), path.config.type );
+            }
 
             if (path.perform_prime)
             {
@@ -2386,6 +2418,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                             spiral_path.getLineWidthForLayerView(),
                             spiral_path.config.getLayerThickness(),
                             extrude_speed);
+                        //gcode.writeTravelToSeam(Point2LL(gcode.getPosition().x_, gcode.getPosition().y_), path.config.getSpeed(),path.getExtrusionMM3perMM(), path.config.type );
                         gcode.writeExtrusion(spiral_path.points[point_idx], extrude_speed, spiral_path.getExtrusionMM3perMM(), spiral_path.config.type, update_extrusion_offset);
                     }
                     // for layer display only - the loop finished at the seam vertex but as we started from
@@ -2433,6 +2466,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             scripta::CellVDI{ "unretract_before_last_travel_move", &GCodePath::unretract_before_last_travel_move },
             scripta::CellVDI{ "perform_z_hop", &GCodePath::perform_z_hop },
             scripta::CellVDI{ "perform_prime", &GCodePath::perform_prime },
+            scripta::CellVDI{ "is_approach_move", &GCodePath::is_approach_move },
             scripta::CellVDI{ "fan_speed", &GCodePath::getFanSpeed },
             scripta::CellVDI{ "is_travel_path", &GCodePath::isTravelPath },
             scripta::CellVDI{ "extrusion_mm3_per_mm", &GCodePath::getExtrusionMM3perMM });
@@ -2626,6 +2660,7 @@ void LayerPlan::applyModifyPlugin()
             scripta::CellVDI{ "unretract_before_last_travel_move", &GCodePath::unretract_before_last_travel_move },
             scripta::CellVDI{ "perform_z_hop", &GCodePath::perform_z_hop },
             scripta::CellVDI{ "perform_prime", &GCodePath::perform_prime },
+            scripta::CellVDI{ "is_approach_move", &GCodePath::is_approach_move },
             scripta::CellVDI{ "fan_speed", &GCodePath::getFanSpeed },
             scripta::CellVDI{ "is_travel_path", &GCodePath::isTravelPath },
             scripta::CellVDI{ "extrusion_mm3_per_mm", &GCodePath::getExtrusionMM3perMM });
@@ -2646,6 +2681,7 @@ void LayerPlan::applyModifyPlugin()
             scripta::CellVDI{ "unretract_before_last_travel_move", &GCodePath::unretract_before_last_travel_move },
             scripta::CellVDI{ "perform_z_hop", &GCodePath::perform_z_hop },
             scripta::CellVDI{ "perform_prime", &GCodePath::perform_prime },
+            scripta::CellVDI{ "is_approach_move", &GCodePath::is_approach_move },
             scripta::CellVDI{ "fan_speed", &GCodePath::getFanSpeed },
             scripta::CellVDI{ "is_travel_path", &GCodePath::isTravelPath },
             scripta::CellVDI{ "extrusion_mm3_per_mm", &GCodePath::getExtrusionMM3perMM });
