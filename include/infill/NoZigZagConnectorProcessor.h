@@ -23,12 +23,12 @@ class NoZigZagConnectorProcessor : public ZigzagConnectorProcessor
 public:
     NoZigZagConnectorProcessor(const PointMatrix& rotation_matrix, OpenLinesSet& result)
         : ZigzagConnectorProcessor(
-              rotation_matrix,
-              result,
-              false,
-              false, // settings for zig-zag end pieces, no use here
-              false,
-              0) // settings for skipping some zags, no use here
+            rotation_matrix,
+            result,
+            false,
+            false, // settings for zig-zag end pieces, no use here
+            false,
+            0) // settings for skipping some zags, no use here
     {
     }
 
