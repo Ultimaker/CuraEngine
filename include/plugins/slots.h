@@ -16,7 +16,6 @@
 #include "cura/plugins/slots/postprocess/v0/modify.grpc.pb.h"
 #include "cura/plugins/slots/simplify/v0/modify.grpc.pb.h"
 #include "cura/plugins/v0/slot_id.pb.h"
-#include "plugins/converters.h"
 #include "plugins/slotproxy.h"
 #include "plugins/types.h"
 #include "plugins/validator.h"

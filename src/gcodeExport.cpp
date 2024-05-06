@@ -18,6 +18,7 @@
 #include "WipeScriptConfig.h"
 #include "communication/Communication.h" //To send layer view data.
 #include "settings/types/LayerIndex.h"
+#include "sliceDataStorage.h"
 #include "utils/Date.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
 

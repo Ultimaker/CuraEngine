@@ -9,11 +9,9 @@
 
 #include "ExtruderUse.h"
 #include "FanSpeedLayerTime.h"
+#include "GCodePathConfig.h"
 #include "LayerPlanBuffer.h"
 #include "gcodeExport.h"
-#include "settings/MeshPathConfigs.h"
-#include "settings/PathConfigStorage.h" //For the MeshPathConfigs subclass.
-#include "utils/ExtrusionLine.h" //Processing variable-width paths.
 #include "utils/NoCopy.h"
 #include "utils/gettime.h"
 
@@ -27,6 +25,7 @@ class SliceDataStorage;
 class SliceMeshStorage;
 class SliceLayer;
 class SliceLayerPart;
+struct MeshPathConfigs;
 
 /*!
  * Secondary stage in Fused Filament Fabrication processing: The generated polygons are used in the gcode generation.
