@@ -27,6 +27,8 @@
 #include "cura/plugins/slots/postprocess/v0/modify.pb.h"
 #include "cura/plugins/slots/simplify/v0/modify.grpc.pb.h"
 #include "cura/plugins/slots/simplify/v0/modify.pb.h"
+#include "geometry/LinesSet.h"
+#include "geometry/OpenLinesSet.h"
 #include "geometry/Polygon.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/SpeedDerivatives.h"

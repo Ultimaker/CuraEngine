@@ -17,6 +17,8 @@
 #include "cura/plugins/slots/postprocess/v0/modify.grpc.pb.h"
 #include "cura/plugins/slots/simplify/v0/modify.grpc.pb.h"
 #include "cura/plugins/v0/slot_id.pb.h"
+#include "geometry/LinesSet.h"
+#include "geometry/OpenLinesSet.h"
 #include "geometry/Point2LL.h"
 #include "geometry/Polygon.h"
 #include "infill.h"

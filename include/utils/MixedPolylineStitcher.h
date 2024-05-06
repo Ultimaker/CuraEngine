@@ -6,6 +6,7 @@
 
 #include "PolylineStitcher.h"
 #include "geometry/ClosedLinesSet.h"
+#include "geometry/LinesSet.h"
 #include "geometry/OpenLinesSet.h"
 
 namespace cura

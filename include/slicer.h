@@ -8,6 +8,7 @@
 #include <queue>
 #include <unordered_map>
 
+#include "geometry/LinesSet.h"
 #include "geometry/OpenLinesSet.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Shape.h"
