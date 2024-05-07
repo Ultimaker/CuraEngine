@@ -15,7 +15,7 @@
 
 /*
 The layer-part creation step is the first step in creating actual useful data for 3D printing.
-It takes the result of the Slice step, which is an unordered list of polygons, and makes groups of polygons,
+It takes the result of the Slice step, which is an unordered list of polygons_, and makes groups of polygons_,
 each of these groups is called a "part", which sometimes are also known as "islands". These parts represent
 isolated areas in the 2D layer with possible holes.
 
@@ -30,17 +30,17 @@ namespace cura
 
 void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, SlicerLayer* layer)
 {
-    OpenPolylineStitcher::stitch(layer->open_polylines_, storageLayer.open_polylines, layer->polygons, settings.get<coord_t>("wall_line_width_0"));
+    OpenPolylineStitcher::stitch(layer->open_polylines_, storageLayer.open_polylines, layer->polygons_, settings.get<coord_t>("wall_line_width_0"));
 
     storageLayer.open_polylines = Simplify(settings).polyline(storageLayer.open_polylines);
 
     const bool union_all_remove_holes = settings.get<bool>("meshfix_union_all_remove_holes");
     if (union_all_remove_holes)
     {
-        for (unsigned int i = 0; i < layer->polygons.size(); i++)
+        for (unsigned int i = 0; i < layer->polygons_.size(); i++)
         {
-            if (layer->polygons[i].orientation())
-                layer->polygons[i].reverse();
+            if (layer->polygons_[i].orientation())
+                layer->polygons_[i].reverse();
         }
     }
 
@@ -49,8 +49,8 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
     const ESurfaceMode surface_only = settings.get<ESurfaceMode>("magic_mesh_surface_mode");
     if (surface_only == ESurfaceMode::SURFACE && ! union_layers)
     { // Don't do anything with overlapping areas; no union nor xor
-        result.reserve(layer->polygons.size());
-        for (const Polygon& poly : layer->polygons)
+        result.reserve(layer->polygons_.size());
+        for (const Polygon& poly : layer->polygons_)
         {
             if (poly.empty())
             {
@@ -62,7 +62,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
     }
     else
     {
-        result = layer->polygons.splitIntoParts(union_layers || union_all_remove_holes);
+        result = layer->polygons_.splitIntoParts(union_layers || union_all_remove_holes);
     }
 
     for (auto& part : result)

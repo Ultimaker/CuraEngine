@@ -124,8 +124,8 @@ void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>
     // Only alter layers when they are present in both meshes, zip should take care if that.
     for (auto [layer_nr, layer] : ranges::views::zip(mesh_a_.layers, mesh_b_.layers) | ranges::views::enumerate)
     {
-        Shape& polys_a = std::get<0>(layer).polygons;
-        Shape& polys_b = std::get<1>(layer).polygons;
+        Shape& polys_a = std::get<0>(layer).polygons_;
+        Shape& polys_b = std::get<1>(layer).polygons_;
 
         const auto [from_border_a, from_border_b] = growBorderAreasPerpendicular(polys_a, polys_b, detect);
 
@@ -188,7 +188,7 @@ std::vector<std::unordered_set<GridPoint3>> InterlockingGenerator::getShellVoxel
         for (size_t layer_nr = 0; layer_nr < mesh->layers.size(); layer_nr++)
         {
             SlicerLayer& layer = mesh->layers[layer_nr];
-            rotated_polygons_per_layer[layer_nr] = layer.polygons;
+            rotated_polygons_per_layer[layer_nr] = layer.polygons_;
             rotated_polygons_per_layer[layer_nr].applyMatrix(rotation_);
         }
 
@@ -235,7 +235,7 @@ std::vector<Shape> InterlockingGenerator::computeUnionedVolumeRegions() const
                 break;
             }
             const SlicerLayer& layer = mesh->layers[static_cast<size_t>(layer_nr)];
-            layer_region.push_back(layer.polygons);
+            layer_region.push_back(layer.polygons_);
         }
         layer_region = layer_region.offset(ignored_gap_).offset(-ignored_gap_); // Morphological close to merge meshes into single volume
         layer_region.applyMatrix(rotation_);
@@ -334,9 +334,9 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
             const Shape& areas_other = structure_per_layer[! mesh_idx][layer_nr / static_cast<size_t>(beam_layer_count_)];
 
             SlicerLayer& layer = mesh->layers[layer_nr];
-            layer.polygons = layer.polygons
-                                 .difference(areas_other) // reduce layer areas inward with beams from other mesh
-                                 .unionPolygons(areas_here); // extend layer areas outward with newly added beams
+            layer.polygons_ = layer.polygons_
+                                  .difference(areas_other) // reduce layer areas inward with beams from other mesh
+                                  .unionPolygons(areas_here); // extend layer areas outward with newly added beams
         }
     }
 }

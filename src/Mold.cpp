@@ -79,29 +79,29 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
 
 
             SlicerLayer& layer = slicer.layers[layer_nr];
-            Shape model_outlines = layer.polygons.unionPolygons(layer.open_polylines_.offset(open_polyline_width / 2));
+            Shape model_outlines = layer.polygons_.unionPolygons(layer.open_polylines_.offset(open_polyline_width / 2));
             layer.open_polylines_.clear();
             all_original_mold_outlines.push_back(model_outlines);
 
             if (angle >= 90)
             {
-                layer.polygons = model_outlines.offset(width, ClipperLib::jtRound);
+                layer.polygons_ = model_outlines.offset(width, ClipperLib::jtRound);
             }
             else
             {
                 Shape& mold_outline_above = mold_outline_above_per_mesh[mesh_idx]; // the outside of the mold on the layer above
-                layer.polygons = mold_outline_above.offset(-inset).unionPolygons(model_outlines.offset(width, ClipperLib::jtRound));
+                layer.polygons_ = mold_outline_above.offset(-inset).unionPolygons(model_outlines.offset(width, ClipperLib::jtRound));
             }
 
             // add roofs
             if (roof_layer_count > 0 && layer_nr > 0)
             {
                 LayerIndex layer_nr_below = std::max(0, static_cast<int>(layer_nr - roof_layer_count));
-                Shape roofs = slicer.layers[layer_nr_below].polygons.offset(width, ClipperLib::jtRound); // TODO: don't compute offset twice!
-                layer.polygons = layer.polygons.unionPolygons(roofs);
+                Shape roofs = slicer.layers[layer_nr_below].polygons_.offset(width, ClipperLib::jtRound); // TODO: don't compute offset twice!
+                layer.polygons_ = layer.polygons_.unionPolygons(roofs);
             }
 
-            mold_outline_above_per_mesh[mesh_idx] = layer.polygons;
+            mold_outline_above_per_mesh[mesh_idx] = layer.polygons_;
         }
         all_original_mold_outlines = all_original_mold_outlines.unionPolygons();
 
@@ -117,7 +117,7 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
             }
             Slicer& slicer = *slicer_list[mesh_idx];
             SlicerLayer& layer = slicer.layers[layer_nr];
-            layer.polygons = layer.polygons.difference(all_original_mold_outlines);
+            layer.polygons_ = layer.polygons_.difference(all_original_mold_outlines);
         }
     }
 }

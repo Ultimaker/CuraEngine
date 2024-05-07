@@ -59,11 +59,11 @@ public:
 class SlicerLayer
 {
 public:
-    std::vector<SlicerSegment> segments;
-    std::unordered_map<int, int> face_idx_to_segment_idx; // topology
+    std::vector<SlicerSegment> segments_;
+    std::unordered_map<int, int> face_idx_to_segment_idx_; // topology
 
-    int z = -1;
-    Shape polygons;
+    int z_ = -1;
+    Shape polygons_;
     OpenLinesSet open_polylines_;
 
     /*!
