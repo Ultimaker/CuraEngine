@@ -30,7 +30,7 @@ namespace cura
 
 void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, SlicerLayer* layer)
 {
-    OpenPolylineStitcher::stitch(layer->open_polylines, storageLayer.open_polylines, layer->polygons, settings.get<coord_t>("wall_line_width_0"));
+    OpenPolylineStitcher::stitch(layer->open_polylines_, storageLayer.open_polylines, layer->polygons, settings.get<coord_t>("wall_line_width_0"));
 
     storageLayer.open_polylines = Simplify(settings).polyline(storageLayer.open_polylines);
 

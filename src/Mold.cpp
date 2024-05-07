@@ -79,8 +79,8 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
 
 
             SlicerLayer& layer = slicer.layers[layer_nr];
-            Shape model_outlines = layer.polygons.unionPolygons(layer.open_polylines.offset(open_polyline_width / 2));
-            layer.open_polylines.clear();
+            Shape model_outlines = layer.polygons.unionPolygons(layer.open_polylines_.offset(open_polyline_width / 2));
+            layer.open_polylines_.clear();
             all_original_mold_outlines.push_back(model_outlines);
 
             if (angle >= 90)
