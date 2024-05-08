@@ -842,16 +842,20 @@ void Shape::simplify(ClipperLib::PolyFillType fill_type)
     }
 
     // This is the actual content from clipper.cpp::SimplifyPolygons, but rewritten here in order
-    // to avoid a list copy
+    // to avoid having to put all the polygons in a transitory list
     ClipperLib::Clipper clipper;
     ClipperLib::Paths ret;
     clipper.StrictlySimple(true);
     addPaths(clipper, ClipperLib::ptSubject);
     clipper.Execute(ClipperLib::ctUnion, ret, fill_type, fill_type);
 
-    for (size_t i = 0; i < size(); ++i)
+    resize(ret.size());
+
+    for (size_t i = 0; i < ret.size(); i++)
     {
-        getLines()[i].setPoints(std::move(ret[i]));
+        Polygon& polygon = getLines()[i];
+        polygon.setExplicitelyClosed(clipper_explicitely_closed_); // Required for polygon newly created by resize()
+        polygon.setPoints(std::move(ret[i]));
     }
 }
 
