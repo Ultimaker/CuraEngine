@@ -58,7 +58,7 @@ LinesSet<LineType> Simplify::polyline(const LinesSet<LineType>& polylines) const
     LinesSet<LineType> result;
     for (size_t i = 0; i < polylines.size(); ++i)
     {
-        result.push_back(polyline(polylines[i]));
+        result.push_back(polyline(polylines[i]), CheckNonEmptyParam::OnlyIfNotEmpty);
     }
     return result;
 }
