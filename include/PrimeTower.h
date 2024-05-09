@@ -77,8 +77,6 @@ public:
      */
     PrimeTower();
 
-    void initializeExtruders(const std::vector<bool>& used_extruders);
-
     /*!
      * Check whether we actually use the prime tower.
      */
