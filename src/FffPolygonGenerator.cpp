@@ -49,6 +49,7 @@
 #include "utils/ThreadPool.h"
 #include "utils/gettime.h"
 #include "utils/math.h"
+#include "PrimeTower.h"
 #include "geometry/OpenPolyline.h"
 #include "utils/Simplify.h"
 // clang-format on

@@ -8,8 +8,6 @@
 #include <memory>
 #include <optional>
 
-#include "PrimeTower.h"
-#include "RetractionConfig.h"
 #include "SupportInfillPart.h"
 #include "TopSurface.h"
 #include "WipeScriptConfig.h"
@@ -27,15 +25,13 @@
 #include "utils/AABB3D.h"
 #include "utils/NoCopy.h"
 
-// libArachne
-#include "utils/ExtrusionLine.h"
-
 namespace cura
 {
 
 class Mesh;
 class SierpinskiFillProvider;
 class LightningGenerator;
+class PrimeTower;
 
 /*!
  * A SkinPart is a connected area designated as top and/or bottom skin.

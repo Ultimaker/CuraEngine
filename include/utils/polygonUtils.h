@@ -78,37 +78,6 @@ struct ClosestPoint
 
 using ClosestPointPolygon = ClosestPoint<Polygon>;
 
-} // namespace cura
-
-namespace std
-{
-template<>
-struct hash<cura::ClosestPointPolygon>
-{
-    size_t operator()(const cura::ClosestPointPolygon& cpp) const
-    {
-        return std::hash<cura::Point2LL>()(cpp.p());
-    }
-};
-} // namespace std
-
-
-namespace std
-{
-template<typename S, typename T>
-struct hash<std::pair<S, T>>
-{
-    size_t operator()(const std::pair<S, T>& pair) const
-    {
-        return 31 * std::hash<S>()(pair.first) + 59 * std::hash<T>()(pair.second);
-    }
-};
-} // namespace std
-
-
-namespace cura
-{
-
 /*!
  * A point within a polygon and the index of which segment in the polygon the point lies on.
  */
@@ -741,7 +710,29 @@ private:
     static ClosestPointPolygon _moveInside2(const ClosestPointPolygon& closest_polygon_point, const int distance, Point2LL& from, const int64_t max_dist2);
 };
 
-
 } // namespace cura
 
-#endif // POLYGON_OPTIMIZER_H
+namespace std
+{
+
+/*template<typename S, typename T>
+struct hash<std::pair<S, T>>
+{
+    size_t operator()(const std::pair<S, T>& pair) const
+    {
+        return 31 * std::hash<S>()(pair.first) + 59 * std::hash<T>()(pair.second);
+    }
+};*/
+
+template<>
+struct hash<cura::ClosestPointPolygon>
+{
+    size_t operator()(const cura::ClosestPointPolygon& cpp) const
+    {
+        return std::hash<cura::Point2LL>()(cpp.p());
+    }
+};
+
+} // namespace std
+
+#endif // UTILS_POLYGON_UTILS_H

@@ -6,15 +6,17 @@
 
 #include <future>
 #include <mutex>
+#include <optional>
 #include <unordered_map>
 #include <unordered_set>
 
-#include "TreeSupportSettings.h"
-#include "geometry/Polygon.h" //For polygon parameters.
+#include "TreeSupportEnums.h"
+#include "geometry/Shape.h"
 #include "settings/EnumSettings.h" //To store whether X/Y or Z distance gets priority.
 #include "settings/types/LayerIndex.h" //Part of the RadiusLayerPair.
-#include "sliceDataStorage.h"
+#include "utils/PairHash.h"
 #include "utils/Simplify.h"
+
 
 namespace cura
 {
@@ -22,6 +24,7 @@ constexpr coord_t EPSILON = 5;
 constexpr coord_t FUDGE_LENGTH = 50;
 
 class SliceDataStorage;
+class SliceMeshStorage;
 class LayerIndex;
 class Settings;
 
@@ -168,7 +171,6 @@ private:
      * \return Shape object representing the outline
      */
     Shape extractOutlineFromMesh(const SliceMeshStorage& mesh, LayerIndex layer_idx) const;
-
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer.
@@ -525,5 +527,6 @@ private:
 };
 
 } // namespace cura
+
 
 #endif // TREEMODELVOLUMES_H

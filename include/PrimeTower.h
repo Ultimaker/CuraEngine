@@ -228,7 +228,6 @@ private:
     void gotoStartLocation(LayerPlan& gcode_layer, const int extruder) const;
 };
 
-
 } // namespace cura
 
 #endif // PRIME_TOWER_H
