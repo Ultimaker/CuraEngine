@@ -1431,12 +1431,14 @@ double PolygonUtils::relativeHammingDistance(const Shape& poly_a, const Shape& p
     return hamming_distance / total_area;
 }
 
-Polygon PolygonUtils::makeCircle(const Point2LL mid, const coord_t radius, const AngleRadians a_step)
+Polygon PolygonUtils::makeCircle(const Point2LL mid, const coord_t radius, const AngleRadians step_angle)
 {
     Polygon circle;
-    for (double a = 0; a < 2 * std::numbers::pi; a += a_step)
+    const size_t steps = (2 * std::numbers::pi) / step_angle;
+    for (size_t step = 0; step < steps; ++step)
     {
-        circle.emplace_back(mid + Point2LL(radius * cos(a), radius * sin(a)));
+        const double angle = step * step_angle;
+        circle.emplace_back(mid + Point2LL(radius * cos(angle), radius * sin(angle)));
     }
     return circle;
 }

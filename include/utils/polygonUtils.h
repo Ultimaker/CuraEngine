@@ -671,10 +671,10 @@ public:
      * This creates a regular polygon that is supposed to approximate a circle.
      * \param mid The center of the circle.
      * \param radius The radius of the circle.
-     * \param a_step The angle between segments of the circle.
+     * \param step_angle The angle between segments of the circle.
      * \return A new Polygon containing the circle.
      */
-    static Polygon makeCircle(const Point2LL mid, const coord_t radius, const AngleRadians a_step = std::numbers::pi / 8);
+    static Polygon makeCircle(const Point2LL mid, const coord_t radius, const AngleRadians step_angle = std::numbers::pi / 8);
 
     /*!
      * Create a "wheel" shape.
