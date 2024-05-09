@@ -1,17 +1,17 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "PrimeTower.h"
 
 #include <algorithm>
 #include <limits>
+#include <numbers>
 
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "LayerPlan.h"
-#include "PrintFeature.h"
 #include "Scene.h"
 #include "Slice.h"
 #include "gcodeExport.h"
@@ -30,7 +30,6 @@ PrimeTower::PrimeTower()
     : wipe_from_middle_(false)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
-    PrimeTowerMethod method = scene.current_mesh_group->settings.get<PrimeTowerMethod>("prime_tower_mode");
 
     enabled_ = scene.current_mesh_group->settings.get<bool>("prime_tower_enable") && scene.current_mesh_group->settings.get<coord_t>("prime_tower_min_volume") > 10
             && scene.current_mesh_group->settings.get<coord_t>("prime_tower_size") > 10;
@@ -41,28 +40,22 @@ PrimeTower::PrimeTower()
     {
         extruder_order_[extruder_nr] = extruder_nr; // Start with default order, then sort.
     }
+
     // Sort from high adhesion to low adhesion.
-    const Scene* scene_pointer = &scene; // Communicate to lambda via pointer to prevent copy.
     std::stable_sort(
         extruder_order_.begin(),
         extruder_order_.end(),
-        [scene_pointer](const unsigned int& extruder_nr_a, const unsigned int& extruder_nr_b) -> bool
+        [&scene](const unsigned int& extruder_nr_a, const unsigned int& extruder_nr_b) -> bool
         {
-            const Ratio adhesion_a = scene_pointer->extruders[extruder_nr_a].settings_.get<Ratio>("material_adhesion_tendency");
-            const Ratio adhesion_b = scene_pointer->extruders[extruder_nr_b].settings_.get<Ratio>("material_adhesion_tendency");
+            const Ratio adhesion_a = scene.extruders[extruder_nr_a].settings_.get<Ratio>("material_adhesion_tendency");
+            const Ratio adhesion_b = scene.extruders[extruder_nr_b].settings_.get<Ratio>("material_adhesion_tendency");
             return adhesion_a < adhesion_b;
         });
 }
 
-void PrimeTower::checkUsed(const SliceDataStorage& storage)
+void PrimeTower::checkUsed()
 {
-    std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
-    size_t used_extruder_count = 0;
-    for (bool is_used : extruder_is_used)
-    {
-        used_extruder_count += is_used;
-    }
-    if (used_extruder_count <= 1)
+    if (extruder_count_ <= 1)
     {
         enabled_ = false;
     }
@@ -90,7 +83,7 @@ void PrimeTower::generateGroundpoly()
 
 void PrimeTower::generatePaths(const SliceDataStorage& storage)
 {
-    checkUsed(storage);
+    checkUsed();
 
     // Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
     const int raft_total_extra_layers = Raft::getTotalExtraLayers();
@@ -121,9 +114,13 @@ void PrimeTower::generatePaths_denseInfill(std::vector<coord_t>& cumulative_inse
     const coord_t base_height = std::max(scene.settings.get<coord_t>("prime_tower_base_height"), has_raft ? layer_height : 0);
     const double base_curve_magnitude = mesh_group_settings.get<double>("prime_tower_base_curve_magnitude");
 
-    prime_moves_.resize(extruder_count_);
-    base_extra_moves_.resize(extruder_count_);
-    inset_extra_moves_.resize(extruder_count_);
+    for (size_t extruder_nr : extruder_order_)
+    {
+        // By default, add empty moves for every extruder
+        prime_moves_[extruder_nr];
+        base_extra_moves_[extruder_nr];
+        inset_extra_moves_[extruder_nr];
+    }
 
     coord_t cumulative_inset = 0; // Each tower shape is going to be printed inside the other. This is the inset we're doing for each extruder.
     for (size_t extruder_nr : extruder_order_)
@@ -163,7 +160,6 @@ void PrimeTower::generatePaths_denseInfill(std::vector<coord_t>& cumulative_inse
                 }
                 extra_radius = line_width * extra_rings;
                 outer_poly_base_.push_back(outer_poly_.offset(extra_radius));
-
                 base_extra_moves_[extruder_nr].push_back(PolygonUtils::generateOutset(outer_poly_, extra_rings, line_width));
             }
         }
@@ -209,8 +205,6 @@ void PrimeTower::generatePaths_sparseInfill(const std::vector<coord_t>& cumulati
 
     if (method == PrimeTowerMethod::INTERLEAVED || method == PrimeTowerMethod::NORMAL)
     {
-        const size_t nb_extruders = scene.extruders.size();
-
         // Pre-compute radiuses of each extruder ring
         std::vector<coord_t> rings_radii;
         const coord_t tower_size = mesh_group_settings.get<coord_t>("prime_tower_size");
@@ -225,9 +219,9 @@ void PrimeTower::generatePaths_sparseInfill(const std::vector<coord_t>& cumulati
         // Generate all possible extruders combinations, e.g. if there are 4 extruders, we have combinations
         // 0 / 0-1 / 0-1-2 / 0-1-2-3 / 1 / 1-2 / 1-2-3 / 2 / 2-3 / 3
         // A combination is represented by a bitmask
-        for (size_t first_extruder_idx = 0; first_extruder_idx < nb_extruders; ++first_extruder_idx)
+        for (size_t first_extruder_idx = 0; first_extruder_idx < extruder_count_; ++first_extruder_idx)
         {
-            size_t nb_extruders_sparse = method == PrimeTowerMethod::NORMAL ? first_extruder_idx + 1 : nb_extruders;
+            size_t nb_extruders_sparse = method == PrimeTowerMethod::NORMAL ? first_extruder_idx + 1 : extruder_count_;
 
             for (size_t last_extruder_idx = first_extruder_idx; last_extruder_idx < nb_extruders_sparse; ++last_extruder_idx)
             {
@@ -427,7 +421,7 @@ void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t ext
     {
         // Actual prime pattern
         const GCodePathConfig& config = gcode_layer.configs_storage_.prime_tower_config_per_extruder[extruder_nr];
-        const Shape& pattern = prime_moves_[extruder_nr];
+        const Shape& pattern = prime_moves_.at(extruder_nr);
         gcode_layer.addPolygonsByOptimizer(pattern, config);
     }
 }
@@ -437,11 +431,11 @@ bool PrimeTower::addToGcode_base(LayerPlan& gcode_layer, const size_t extruder_n
     const size_t raft_total_extra_layers = Raft::getTotalExtraLayers();
     LayerIndex absolute_layer_number = gcode_layer.getLayerNr() + raft_total_extra_layers;
 
-    const std::vector<Shape>& pattern_extra_brim = base_extra_moves_[extruder_nr];
+    const auto& pattern_extra_brim = base_extra_moves_.at(extruder_nr);
     if (absolute_layer_number < pattern_extra_brim.size())
     {
         // Extra rings for stronger base
-        const Shape& pattern = pattern_extra_brim[absolute_layer_number];
+        const auto& pattern = pattern_extra_brim[absolute_layer_number];
         if (! pattern.empty())
         {
             const GCodePathConfig& config = gcode_layer.configs_storage_.prime_tower_config_per_extruder[extruder_nr];
@@ -460,7 +454,7 @@ bool PrimeTower::addToGcode_inset(LayerPlan& gcode_layer, const size_t extruder_
 
     if (absolute_layer_number == 0) // Extra-adhesion on very first layer only
     {
-        const Shape& pattern_extra_inset = inset_extra_moves_[extruder_nr];
+        const Shape& pattern_extra_inset = inset_extra_moves_.at(extruder_nr);
         if (! pattern_extra_inset.empty())
         {
             const GCodePathConfig& config = gcode_layer.configs_storage_.prime_tower_config_per_extruder[extruder_nr];

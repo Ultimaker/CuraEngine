@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-#include "geometry/polygon.h" // To create polygons to test with.
+#include "geometry/Polygon.h" // To create polygons to test with.
 #include "utils/Coord_t.h"
 
 // NOLINTBEGIN(*-magic-numbers)

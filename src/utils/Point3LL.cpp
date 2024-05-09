@@ -1,7 +1,7 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "geometry/point3ll.h" //The headers we're implementing.
+#include "geometry/Point3LL.h" //The headers we're implementing.
 
 namespace cura
 {
@@ -61,16 +61,6 @@ Point3LL& Point3LL::operator/=(const Point3LL& p)
     y_ /= p.y_;
     z_ /= p.z_;
     return *this;
-}
-
-bool Point3LL::operator==(const Point3LL& p) const
-{
-    return x_ == p.x_ && y_ == p.y_ && z_ == p.z_;
-}
-
-bool Point3LL::operator!=(const Point3LL& p) const
-{
-    return x_ != p.x_ || y_ != p.y_ || z_ != p.z_;
 }
 
 } // namespace cura

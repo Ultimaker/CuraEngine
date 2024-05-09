@@ -5,6 +5,7 @@
 
 #include "ExtruderTrain.h"
 #include "LayerPlan.h"
+#include "geometry/OpenPolyline.h"
 #include "infill.h"
 #include "sliceDataStorage.h"
 

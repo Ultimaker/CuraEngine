@@ -5,6 +5,7 @@
 
 #include <iterator> // advance
 
+#include "geometry/OpenPolyline.h"
 #include "infill/LightningDistanceField.h"
 #include "infill/LightningTreeNode.h"
 #include "sliceDataStorage.h"
@@ -217,9 +218,9 @@ void LightningLayer::reconnectRoots(
 }
 
 // Returns 'added someting'.
-LinesSet<OpenPolyline> LightningLayer::convertToLines(const Shape& limit_to_outline, const coord_t line_width) const
+OpenLinesSet LightningLayer::convertToLines(const Shape& limit_to_outline, const coord_t line_width) const
 {
-    LinesSet<OpenPolyline> result_lines;
+    OpenLinesSet result_lines;
     if (tree_roots.empty())
     {
         return result_lines;

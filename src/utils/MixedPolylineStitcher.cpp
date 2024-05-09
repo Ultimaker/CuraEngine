@@ -1,17 +1,18 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/mixed_polyline_stitcher.h"
+#include "utils/MixedPolylineStitcher.h"
 
-#include "geometry/mixed_lines_set.h"
-#include "geometry/polygon.h"
-#include "geometry/shape.h"
+#include "geometry/MixedLinesSet.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/Polygon.h"
+#include "geometry/Shape.h"
 
 
 namespace cura
 {
 
-void MixedPolylineStitcher::stitch(const LinesSet<OpenPolyline>& lines, MixedLinesSet& result, coord_t max_stitch_distance, coord_t snap_distance)
+void MixedPolylineStitcher::stitch(const OpenLinesSet& lines, MixedLinesSet& result, coord_t max_stitch_distance, coord_t snap_distance)
 {
     OpenLinesSet open_lines;
     ClosedLinesSet closed_lines;

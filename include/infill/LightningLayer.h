@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef LIGHTNING_LAYER_H
@@ -9,9 +9,11 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../utils/SquareGrid.h"
-#include "../utils/polygonUtils.h"
+#include "geometry/LinesSet.h"
+#include "geometry/OpenLinesSet.h"
 #include "infill/LightningTreeNode.h"
+#include "utils/SquareGrid.h"
+#include "utils/polygonUtils.h"
 
 namespace cura
 {
@@ -68,13 +70,12 @@ public:
         const coord_t supporting_radius,
         const coord_t wall_supporting_radius);
 
-    LinesSet<OpenPolyline> convertToLines(const Shape& limit_to_outline, const coord_t line_width) const;
+    OpenLinesSet convertToLines(const Shape& limit_to_outline, const coord_t line_width) const;
 
     coord_t getWeightedDistance(const Point2LL& boundary_loc, const Point2LL& unsupported_location);
 
     void fillLocator(SparseLightningTreeNodeGrid& tree_node_locator);
 };
-
 } // namespace cura
 
 #endif // LIGHTNING_LAYER_H

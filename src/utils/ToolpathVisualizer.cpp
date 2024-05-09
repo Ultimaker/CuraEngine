@@ -24,7 +24,7 @@ void ToolpathVisualizer::toolpaths(const std::vector<ExtrusionSegment>& all_segm
             ExtrusionSegment s = all_segments[segment_idx];
             s.from_.w_ *= w / .9;
             s.to_.w_ *= w / .9;
-            Shape covered = s.toPolygons(false);
+            Shape covered = s.toShape(false);
             polys.push_back(covered);
         }
         int c = 255 - 200 * (w - .25);
@@ -71,7 +71,7 @@ void ToolpathVisualizer::width_legend(const Shape& input, coord_t nozzle_size, c
     legend_btm.p_ += (legend_mid.p_ - legend_btm.p_) / 4;
     legend_top.p_ += (legend_mid.p_ - legend_top.p_) / 4;
     ExtrusionSegment legend_segment(legend_btm, legend_top, true, false);
-    svg_.writeAreas(legend_segment.toPolygons(false), SVG::ColorObject(200, 200, 200), SVG::Color::NONE); // real outline
+    svg_.writeAreas(legend_segment.toShape(false), SVG::ColorObject(200, 200, 200), SVG::Color::NONE); // real outline
     std::vector<ExtrusionSegment> all_segments_plus;
     all_segments_plus.emplace_back(legend_segment); // colored
 
@@ -143,7 +143,7 @@ void ToolpathVisualizer::widths(
                 //                 }
                 s.from_.w_ *= w / .9;
                 s.to_.w_ *= w / .9;
-                Shape covered = s.toPolygons();
+                Shape covered = s.toShape();
                 svg_.writeAreas(covered, SVG::ColorObject(clr.x_, clr.y_, clr.z_), SVG::Color::NONE);
             }
         }

@@ -1,10 +1,10 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef GEOMETRY_SINGLE_SHAPE_H
 #define GEOMETRY_SINGLE_SHAPE_H
 
-#include "geometry/shape.h"
+#include "geometry/Shape.h"
 
 namespace cura
 {
@@ -21,9 +21,14 @@ class Polygon;
 class SingleShape : public Shape
 {
 public:
+    SingleShape() = default;
+
+    explicit SingleShape(Shape&& shape)
+        : Shape{ std::move(shape) } {};
+
     Polygon& outerPolygon();
 
-    const Polygon& outerPolygon() const;
+    [[nodiscard]] const Polygon& outerPolygon() const;
 
     /*!
      * Tests whether the given point is inside this polygon part.
@@ -31,7 +36,7 @@ public:
      * \param border_result If the point is exactly on the border, this will be
      * returned instead.
      */
-    bool inside(const Point2LL& p, bool border_result = false) const;
+    [[nodiscard]] bool inside(const Point2LL& p, bool border_result = false) const;
 };
 
 } // namespace cura

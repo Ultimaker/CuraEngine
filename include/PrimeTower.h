@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "ExtruderUse.h"
-#include "geometry/polygon.h"
+#include "geometry/Polygon.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/polygonUtils.h"
@@ -28,8 +28,8 @@ class LayerPlan;
 class PrimeTower
 {
 private:
-    using MovesByExtruder = std::vector<Shape>;
-    using MovesByLayer = std::vector<MovesByExtruder>;
+    using MovesByExtruder = std::map<size_t, Shape>;
+    using MovesByLayer = std::map<size_t, std::vector<Shape>>;
 
     size_t extruder_count_; //!< Number of extruders
 
@@ -77,10 +77,12 @@ public:
      */
     PrimeTower();
 
+    void initializeExtruders(const std::vector<bool>& used_extruders);
+
     /*!
      * Check whether we actually use the prime tower.
      */
-    void checkUsed(const SliceDataStorage& storage);
+    void checkUsed();
 
     /*!
      * Generate the prime tower area to be used on each layer

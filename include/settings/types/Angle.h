@@ -1,12 +1,11 @@
-// Copyright (c) 2021 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef ANGLE_H
 #define ANGLE_H
 
 #include <cmath> //For fmod.
-
-#include "../../utils/math.h" //For PI.
+#include <numbers>
 
 #define TAU (2.0 * std::numbers::pi)
 
@@ -27,10 +26,7 @@ public:
     /*
      * \brief Default constructor setting the angle to 0.
      */
-    AngleDegrees()
-        : value_(0.0)
-    {
-    }
+    AngleDegrees() noexcept = default;
 
     /*
      * \brief Converts radians to degrees.
@@ -41,7 +37,7 @@ public:
      * \brief Casts a double to an AngleDegrees instance.
      */
     AngleDegrees(double value)
-        : value_(std::fmod(std::fmod(value, 360) + 360, 360))
+        : value_{ std::fmod(std::fmod(value, 360) + 360, 360) }
     {
     }
 
@@ -60,11 +56,13 @@ public:
     {
         return std::fmod(std::fmod(value_ + other.value_, 360) + 360, 360);
     }
+
     template<class T>
     AngleDegrees operator+(const T& other) const
     {
         return operator+(AngleDegrees(static_cast<double>(other)));
     }
+
     AngleDegrees& operator+=(const AngleDegrees& other)
     {
         value_ = std::fmod(std::fmod(value_ + other.value_, 360) + 360, 360);
@@ -74,11 +72,13 @@ public:
     {
         return std::fmod(std::fmod(value_ - other.value_, 360) + 360, 360);
     }
+
     template<class T>
     AngleDegrees operator-(const T& other) const
     {
         return operator-(AngleDegrees(static_cast<double>(other)));
     }
+
     AngleDegrees& operator-=(const AngleDegrees& other)
     {
         value_ = std::fmod(std::fmod(value_ - other.value_, 360) + 360, 360);
@@ -90,7 +90,7 @@ public:
      *
      * This value should always be between 0 and 360.
      */
-    double value_ = 0;
+    double value_{ 0 };
 };
 
 /*
@@ -105,10 +105,7 @@ public:
     /*
      * \brief Default constructor setting the angle to 0.
      */
-    AngleRadians()
-        : value_(0.0)
-    {
-    }
+    AngleRadians() noexcept = default;
 
     /*!
      * \brief Converts an angle from degrees into radians.
@@ -138,15 +135,18 @@ public:
     {
         return std::fmod(std::fmod(value_ + other.value_, TAU) + TAU, TAU);
     }
+
     AngleRadians& operator+=(const AngleRadians& other)
     {
         value_ = std::fmod(std::fmod(value_ + other.value_, TAU) + TAU, TAU);
         return *this;
     }
+
     AngleRadians operator-(const AngleRadians& other) const
     {
         return std::fmod(std::fmod(value_ - other.value_, TAU) + TAU, TAU);
     }
+
     AngleRadians& operator-=(const AngleRadians& other)
     {
         value_ = std::fmod(std::fmod(value_ - other.value_, TAU) + TAU, TAU);
@@ -158,15 +158,16 @@ public:
      *
      * This value should always be between 0 and 2 * pi.
      */
-    double value_ = 0;
+    double value_{ 0 };
 };
 
 inline AngleDegrees::AngleDegrees(const AngleRadians& value)
     : value_(value * 360 / TAU)
 {
 }
+
 inline AngleRadians::AngleRadians(const AngleDegrees& value)
-    : value_(double(value) * TAU / 360.0)
+    : value_(static_cast<double>(value) * TAU / 360.0)
 {
 }
 

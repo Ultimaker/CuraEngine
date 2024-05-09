@@ -5,8 +5,9 @@
 #define UTILS_MIXED_POLYLINE_STITCHER_H
 
 #include "PolylineStitcher.h"
-#include "geometry/closed_lines_set.h"
-#include "geometry/open_lines_set.h"
+#include "geometry/ClosedLinesSet.h"
+#include "geometry/LinesSet.h"
+#include "geometry/OpenLinesSet.h"
 
 namespace cura
 {
@@ -16,7 +17,7 @@ class MixedLinesSet;
 class MixedPolylineStitcher : public PolylineStitcher<OpenLinesSet, ClosedLinesSet, OpenPolyline, Point2LL>
 {
 public:
-    static void stitch(const LinesSet<OpenPolyline>& lines, MixedLinesSet& result, coord_t max_stitch_distance = MM2INT(0.1), coord_t snap_distance = 10);
+    static void stitch(const OpenLinesSet& lines, MixedLinesSet& result, coord_t max_stitch_distance = MM2INT(0.1), coord_t snap_distance = 10);
 };
 
 } // namespace cura

@@ -1,15 +1,17 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <google/protobuf/message.h>
 #include <memory>
+#include <numbers>
 
 #include <gtest/gtest.h>
 
 #include "FffProcessor.h"
 #include "MockSocket.h" //To mock out the communication with the front-end.
 #include "communication/ArcusCommunicationPrivate.h" //To access the private fields of this communication class.
-#include "geometry/polygon.h" //Create test shapes to send over the socket.
+#include "geometry/Polygon.h" //Create test shapes to send over the socket.
+#include "geometry/Shape.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
 

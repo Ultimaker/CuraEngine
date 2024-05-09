@@ -5,7 +5,7 @@
 #define TOPSURFACE_H
 
 #include "GCodePathConfig.h"
-#include "geometry/shape.h"
+#include "geometry/Shape.h"
 
 namespace cura
 {

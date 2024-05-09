@@ -1,11 +1,12 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef GEOMETRY_POLYLINE_H
 #define GEOMETRY_POLYLINE_H
 
-#include "geometry/points_set.h"
-#include "geometry/segment_iterator.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/PointsSet.h"
+#include "geometry/SegmentIterator.h"
 
 namespace cura
 {
@@ -34,92 +35,67 @@ class OpenPolyline;
 class Polyline : public PointsSet
 {
 public:
-    using segments_iterator = SegmentIterator<false>;
-    using const_segments_iterator = SegmentIterator<true>;
+    using segments_iterator = SegmentIterator<ConstnessType::Modifiable>;
+    using const_segments_iterator = SegmentIterator<ConstnessType::Const>;
 
     /*! \brief Builds an empty polyline */
     Polyline() = default;
 
-    /*!
-     * \brief Creates a copy of the given polyline
-     * \warning A copy of the points list is made, so this constructor is somehow "slow"
-     */
+    /*! \brief Creates a copy of the given polyline */
     Polyline(const Polyline& other) = default;
 
-    /*!
-     * \brief Constructor that takes ownership of the inner points list from the given polyline
-     * \warning This constructor is fast because it does not allocate data, but it will clear
-     *          the source object
-     */
+    /*! \brief Constructor that takes ownership of the inner points list from the given polyline */
     Polyline(Polyline&& other) = default;
 
-    /*!
-     * \brief Constructor with a points initializer list, provided for convenience
-     * \warning A copy of the points list is made, so this constructor is somehow "slow"
-     */
+    /*! \brief Constructor with a points initializer list, provided for convenience */
     Polyline(const std::initializer_list<Point2LL>& initializer)
         : PointsSet(initializer)
     {
     }
 
-    /*!
-     * \brief Constructor with an existing list of points
-     * \warning A copy of the points list is made, so this constructor is somehow "slow"
-     */
-    Polyline(const ClipperLib::Path& points)
+    /*! \brief Constructor with an existing list of points */
+    explicit Polyline(const ClipperLib::Path& points)
         : PointsSet(points)
     {
     }
 
-    /*!
-     * \brief Constructor that takes ownership of the given list of points
-     * \warning This constructor is fast because it does not allocate data, but it will clear
-     *          the source object
-     */
-    Polyline(ClipperLib::Path&& points)
-        : PointsSet(points)
+    /*! \brief Constructor that takes ownership of the given list of points */
+    explicit Polyline(ClipperLib::Path&& points)
+        : PointsSet{ std::move(points) }
     {
     }
 
-    virtual ~Polyline() = default;
+    ~Polyline() override = default;
 
     /*!
      * \brief Indicates whether this polyline has an additional closing segment between the last
      *        point in the set and the first one
      * \return  True if a segment between the last and first point should be considered
      */
-    virtual bool addClosingSegment() const = 0;
+    [[nodiscard]] virtual bool hasClosingSegment() const = 0;
 
     /*!
      * \brief Gets the total number of "full" segments in the polyline. Calling this is also safe if
      *        there are not enough points to make a valid polyline, so it can also be a good
      *        indicator of a "valid" polyline.
      */
-    virtual size_t segmentsCount() const = 0;
+    [[nodiscard]] virtual size_t segmentsCount() const = 0;
 
     /*!
      * \brief Indicates whether the points set form a valid polyline, i.e. if it has enough points
      *        according to its type.
      */
-    virtual bool isValid() const = 0;
+    [[nodiscard]] virtual bool isValid() const = 0;
 
-    Polyline& operator=(const Polyline& other)
-    {
-        PointsSet::operator=(other);
-        return *this;
-    }
+    Polyline& operator=(const Polyline& other) = default;
 
-    Polyline& operator=(Polyline&& other)
-    {
-        PointsSet::operator=(other);
-        return *this;
-    }
+    Polyline& operator=(Polyline&& other) = default;
 
     /*! \brief Provides a begin iterator to iterate over all the segments of the line */
-    const_segments_iterator beginSegments() const;
+    [[nodiscard]] const_segments_iterator beginSegments() const;
 
     /*! \brief Provides an end iterator to iterate over all the segments of the line */
-    const_segments_iterator endSegments() const;
+    [[nodiscard]] const_segments_iterator endSegments() const;
 
     /*! \brief Provides a begin iterator to iterate over all the segments of the line */
     segments_iterator beginSegments();
@@ -131,22 +107,22 @@ public:
      * Split these poly line objects into several line segment objects consisting of only two verts
      * and store them in the \p result
      */
-    void splitIntoSegments(LinesSet<OpenPolyline>& result) const;
-    LinesSet<OpenPolyline> splitIntoSegments() const;
+    void splitIntoSegments(OpenLinesSet& result) const;
+    [[nodiscard]] OpenLinesSet splitIntoSegments() const;
 
     /*!
      * On Y-axis positive upward displays, Orientation will return true if the polygon's orientation is counter-clockwise.
      *
      * from http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Functions/Orientation.htm
      */
-    bool orientation() const
+    [[nodiscard]] bool orientation() const
     {
         return ClipperLib::Orientation(getPoints());
     }
 
-    coord_t length() const;
+    [[nodiscard]] coord_t length() const;
 
-    bool shorterThan(const coord_t check_length) const;
+    [[nodiscard]] bool shorterThan(const coord_t check_length) const;
 
     void reverse()
     {
@@ -177,15 +153,6 @@ public:
      removed
      */
     void simplify(const coord_t smallest_line_segment_squared = MM2INT(0.01) * MM2INT(0.01), const coord_t allowed_error_distance_squared = 25);
-
-
-private:
-    /*!
-     * Private implementation for both simplify and simplifyPolygons.
-     *
-     * Made private to avoid accidental use of the wrong function.
-     */
-    void _simplify(const coord_t smallest_line_segment_squared = 100, const coord_t allowed_error_distance_squared = 25, bool processing_polylines = false);
 };
 
 } // namespace cura

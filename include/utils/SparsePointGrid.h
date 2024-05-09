@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "SparseGrid.h"
-#include "geometry/point2ll.h"
+#include "geometry/Point2LL.h"
 
 namespace cura
 {

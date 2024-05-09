@@ -3,9 +3,9 @@
 
 #include <gtest/gtest.h>
 
-#include "geometry/point2ll.h"
-#include "geometry/point3_matrix.h"
-#include "geometry/point_matrix.h"
+#include "geometry/Point2LL.h"
+#include "geometry/Point3Matrix.h"
+#include "geometry/PointMatrix.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura

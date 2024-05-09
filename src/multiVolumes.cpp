@@ -7,7 +7,8 @@
 
 #include "Application.h"
 #include "Slice.h"
-#include "geometry/polygon.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/Polygon.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/LayerIndex.h"
 #include "slicer.h"
@@ -54,11 +55,11 @@ void carveMultipleVolumes(std::vector<Slicer*>& volumes)
                 SlicerLayer& layer2 = volume_2.layers[layerNr];
                 if (alternate_carve_order && layerNr % 2 == 0 && volume_1.mesh->settings_.get<int>("infill_mesh_order") == volume_2.mesh->settings_.get<int>("infill_mesh_order"))
                 {
-                    layer2.polygons = layer2.polygons.difference(layer1.polygons);
+                    layer2.polygons_ = layer2.polygons_.difference(layer1.polygons_);
                 }
                 else
                 {
-                    layer1.polygons = layer1.polygons.difference(layer2.polygons);
+                    layer1.polygons_ = layer1.polygons_.difference(layer2.polygons_);
                 }
             }
         }
@@ -98,11 +99,11 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*>& volumes)
                     continue;
                 }
                 SlicerLayer& other_volume_layer = other_volume->layers[layer_nr];
-                all_other_volumes = all_other_volumes.unionPolygons(other_volume_layer.polygons.offset(offset_to_merge_other_merged_volumes), fill_type);
+                all_other_volumes = all_other_volumes.unionPolygons(other_volume_layer.polygons_.offset(offset_to_merge_other_merged_volumes), fill_type);
             }
 
             SlicerLayer& volume_layer = volume->layers[layer_nr];
-            volume_layer.polygons = volume_layer.polygons.unionPolygons(all_other_volumes.intersection(volume_layer.polygons.offset(overlap / 2)), fill_type);
+            volume_layer.polygons_ = volume_layer.polygons_.unionPolygons(all_other_volumes.intersection(volume_layer.polygons_.offset(overlap / 2)), fill_type);
         }
     }
 }
@@ -119,8 +120,8 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
         Slicer& cutting_mesh_volume = *volumes[carving_mesh_idx];
         for (LayerIndex layer_nr = 0; layer_nr < cutting_mesh_volume.layers.size(); layer_nr++)
         {
-            Shape& cutting_mesh_polygons = cutting_mesh_volume.layers[layer_nr].polygons;
-            OpenLinesSet& cutting_mesh_polylines = cutting_mesh_volume.layers[layer_nr].openPolylines;
+            Shape& cutting_mesh_polygons = cutting_mesh_volume.layers[layer_nr].polygons_;
+            OpenLinesSet& cutting_mesh_polylines = cutting_mesh_volume.layers[layer_nr].open_polylines_;
             Shape cutting_mesh_area_recomputed;
             Shape* cutting_mesh_area;
             coord_t surface_line_width = cutting_mesh.settings_.get<coord_t>("wall_line_width_0");
@@ -151,7 +152,7 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
             }
 
             Shape new_outlines;
-            LinesSet<OpenPolyline> new_polylines;
+            OpenLinesSet new_polylines;
             for (unsigned int carved_mesh_idx = 0; carved_mesh_idx < volumes.size(); carved_mesh_idx++)
             {
                 const Mesh& carved_mesh = meshes[carved_mesh_idx];
@@ -161,7 +162,7 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
                     continue;
                 }
                 Slicer& carved_volume = *volumes[carved_mesh_idx];
-                Shape& carved_mesh_layer = carved_volume.layers[layer_nr].polygons;
+                Shape& carved_mesh_layer = carved_volume.layers[layer_nr].polygons_;
 
                 Shape intersection = cutting_mesh_polygons.intersection(carved_mesh_layer);
                 new_outlines.push_back(intersection);

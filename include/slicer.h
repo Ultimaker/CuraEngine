@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SLICER_H
@@ -8,8 +8,10 @@
 #include <queue>
 #include <unordered_map>
 
-#include "geometry/open_lines_set.h"
-#include "geometry/shape.h"
+#include "geometry/LinesSet.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/Shape.h"
 #include "settings/EnumSettings.h"
 
 /*
@@ -57,12 +59,12 @@ public:
 class SlicerLayer
 {
 public:
-    std::vector<SlicerSegment> segments;
-    std::unordered_map<int, int> face_idx_to_segment_idx; // topology
+    std::vector<SlicerSegment> segments_;
+    std::unordered_map<int, int> face_idx_to_segment_idx_; // topology
 
-    int z = -1;
-    Shape polygons;
-    OpenLinesSet openPolylines;
+    int z_ = -1;
+    Shape polygons_;
+    OpenLinesSet open_polylines_;
 
     /*!
      * \brief Connect the segments into polygons for this layer of this \p mesh.

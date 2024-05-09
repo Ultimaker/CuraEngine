@@ -1,9 +1,10 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "PathOrderMonotonic.h"
 
 #include <filesystem>
+#include <numbers>
 #include <polyclipping/clipper.hpp>
 #include <string>
 
@@ -12,7 +13,8 @@
 #include <gtest/gtest.h>
 
 #include "ReadTestPolygons.h"
-#include "geometry/polygon.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/Polygon.h"
 #include "infill.h"
 #include "slicer.h"
 #include "utils/Coord_t.h"

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef CURAENGINE_INFILL_BENCHMARK_H
@@ -6,7 +6,9 @@
 
 #include <benchmark/benchmark.h>
 
-#include "geometry/open_lines_set.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/LinesSet.h"
 #include "infill.h"
 
 namespace cura

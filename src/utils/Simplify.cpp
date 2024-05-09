@@ -6,9 +6,9 @@
 #include <limits>
 #include <queue> //Priority queue to prioritise removing unimportant vertices.
 
-#include "geometry/closed_polyline.h"
-#include "geometry/mixed_lines_set.h"
-#include "geometry/open_polyline.h"
+#include "geometry/ClosedPolyline.h"
+#include "geometry/MixedLinesSet.h"
+#include "geometry/OpenPolyline.h"
 #include "settings/Settings.h" //To load the parameters from a Settings object.
 #include "utils/ExtrusionLine.h"
 #include "utils/linearAlg2D.h" //To calculate line deviations and intersecting lines.
@@ -35,7 +35,7 @@ Shape Simplify::polygon(const Shape& polygons) const
     Shape result;
     for (size_t i = 0; i < polygons.size(); ++i)
     {
-        result.push_back(polygon(polygons[i]), true);
+        result.push_back(polygon(polygons[i]), CheckNonEmptyParam::OnlyIfNotEmpty);
     }
     return result;
 }
@@ -58,7 +58,7 @@ LinesSet<LineType> Simplify::polyline(const LinesSet<LineType>& polylines) const
     LinesSet<LineType> result;
     for (size_t i = 0; i < polylines.size(); ++i)
     {
-        result.push_back(polyline(polylines[i]));
+        result.push_back(polyline(polylines[i]), CheckNonEmptyParam::OnlyIfNotEmpty);
     }
     return result;
 }
@@ -114,7 +114,7 @@ size_t Simplify::previousNotDeleted(size_t index, const std::vector<bool>& to_de
 }
 
 template<>
-ExtrusionLine Simplify::createEmpty(const ExtrusionLine& original) const
+ExtrusionLine Simplify::createEmpty(const ExtrusionLine& original)
 {
     ExtrusionLine result(original.inset_idx_, original.is_odd_);
     result.is_closed_ = original.is_closed_;
@@ -122,7 +122,7 @@ ExtrusionLine Simplify::createEmpty(const ExtrusionLine& original) const
 }
 
 template<typename Polygonal>
-Polygonal Simplify::createEmpty(const Polygonal& /*original*/) const
+Polygonal Simplify::createEmpty(const Polygonal& /*original*/)
 {
     return Polygonal();
 }
@@ -408,7 +408,7 @@ bool Simplify::remove(Polygonal& polygon, std::vector<bool>& to_delete, const si
     return false;
 }
 
-template LinesSet<OpenPolyline> Simplify::polyline(const LinesSet<OpenPolyline>& polylines) const;
-template LinesSet<ClosedPolyline> Simplify::polyline(const LinesSet<ClosedPolyline>& polylines) const;
+template OpenLinesSet Simplify::polyline(const OpenLinesSet& polylines) const;
+template ClosedLinesSet Simplify::polyline(const ClosedLinesSet& polylines) const;
 
 } // namespace cura

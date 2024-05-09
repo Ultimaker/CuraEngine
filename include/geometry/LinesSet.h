@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef GEOMETRY_LINES_SET_H
@@ -8,7 +8,8 @@
 
 #include <range/v3/view/drop.hpp>
 
-#include "geometry/point2ll.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/Point2LL.h"
 
 namespace cura
 {
@@ -17,6 +18,13 @@ class Shape;
 template<class LineType>
 class LinesSet;
 class OpenPolyline;
+
+enum class CheckNonEmptyParam
+{
+    OnlyIfValid,
+    OnlyIfNotEmpty,
+    EvenIfEmpty
+};
 
 /*!
  * \brief Base class for all geometry containers representing a set of polylines.
@@ -30,40 +38,29 @@ private:
 
 public:
     // Required for some std calls as a container
-    typedef LineType value_type;
+    using value_type = LineType;
+    using iterator = typename std::vector<LineType>::iterator;
+    using const_iterator = typename std::vector<LineType>::const_iterator;
 
-public:
     /*! \brief Builds an empty set */
-    LinesSet() = default;
+    LinesSet() noexcept = default;
 
-    /*!
-     * \brief Creates a copy of the given lines set
-     * \warning A copy of the points list is made, so this constructor can be very slow
-     */
+    virtual ~LinesSet() = default;
+
+    /*! \brief Creates a copy of the given lines set */
     LinesSet(const LinesSet& other) = default;
 
-    /*!
-     * \brief Constructor that takes the inner lines list from the given set
-     * \warning This constructor is fast because it does not allocate data, but it will clear
-     *          the source object
-     */
+    /*! \brief Constructor that takes the inner lines list from the given set */
     LinesSet(LinesSet&& other) = default;
 
-    /*!
-     * \brief Constructor with an existing set of lines
-     * \warning A copy of the lines set is made, so this constructor can be very slow
-     */
-    LinesSet(const std::vector<LineType>& lines)
+    /*! \brief Constructor with an existing set of lines */
+    explicit LinesSet(const std::vector<LineType>& lines)
         : lines_(lines)
     {
     }
 
-    /*!
-     * \brief Constructor that takes ownership of the data from the given set of lines
-     * \warning This constructor is fast because it does not allocate data, but it will clear
-     *          the source object
-     */
-    LinesSet(std::vector<LineType>&& lines)
+    /*! \brief Constructor that takes ownership of the data from the given set of lines */
+    explicit LinesSet(std::vector<LineType>&& lines)
         : lines_(std::move(lines))
     {
     }
@@ -73,8 +70,16 @@ public:
      * \warning This constructor is actually only defined for a LinesSet containing OpenPolyline
      *          objects, because closed ones require an additional argument
      */
-    template<typename U = LineType, typename = typename std::enable_if<std::is_same<U, OpenPolyline>::value>::type>
-    LinesSet(ClipperLib::Paths&& paths);
+    template<typename U = LineType>
+    requires std::is_same_v<U, OpenPolyline>
+    explicit LinesSet(ClipperLib::Paths&& paths)
+    {
+        reserve(paths.size());
+        for (ClipperLib::Path& path : paths)
+        {
+            lines_.emplace_back(std::move(path));
+        }
+    }
 
     const std::vector<LineType>& getLines() const
     {
@@ -91,22 +96,22 @@ public:
         lines_ = lines;
     }
 
-    std::vector<LineType>::const_iterator begin() const
+    const_iterator begin() const
     {
         return lines_.begin();
     }
 
-    std::vector<LineType>::iterator begin()
+    iterator begin()
     {
         return lines_.begin();
     }
 
-    std::vector<LineType>::const_iterator end() const
+    const_iterator end() const
     {
         return lines_.end();
     }
 
-    std::vector<LineType>::iterator end()
+    iterator end()
     {
         return lines_.end();
     }
@@ -133,33 +138,21 @@ public:
 
     /*!
      * \brief Pushes the given line at the end of the set
-     * \param checkNonEmpty If true, we will check that the line is not empty,
-     *                      and discard it in case it is
-     * \warning A copy of the line is made, so this method may be slow
+     * \param check_non_empty Indicates whether we should check for the line to be non-empty before adding it
      */
-    void push_back(const LineType& line, bool checkNonEmpty = false);
+    void push_back(const LineType& line, CheckNonEmptyParam check_non_empty = CheckNonEmptyParam::EvenIfEmpty);
 
     /*!
      * \brief Pushes the given line at the end of the set and takes ownership of the inner data
-     * \param checkNonEmpty If true, we will check that the line is not empty,
-     *                      and discard it in case it is
-     * \warning This method is fast because it does not allocate data, but it will clear
-     *          the source object
+     * \param check_non_empty Indicates whether we should check for the line to be non-empty before adding it
      */
-    void push_back(LineType&& line, bool checkNonEmpty = false);
+    void push_back(LineType&& line, CheckNonEmptyParam check_non_empty = CheckNonEmptyParam::EvenIfEmpty);
 
-    /*!
-     * \brief Pushes an entier set at the end and takes ownership of the inner data
-     * \warning This method is fast because it does not allocate data, but it will clear
-     *          the source object
-     */
+    /*! \brief Pushes an entier set at the end and takes ownership of the inner data */
     template<class OtherLineType>
     void push_back(LinesSet<OtherLineType>&& lines_set);
 
-    /*!
-     * \brief Pushes an entier set at the end
-     * \warning A copy of all the lines is made, so this method may be slow
-     */
+    /*! \brief Pushes an entier set at the end */
     void push_back(const LinesSet& other)
     {
         lines_.insert(lines_.end(), other.lines_.begin(), other.lines_.end());
@@ -170,12 +163,12 @@ public:
         lines_.pop_back();
     }
 
-    size_t size() const
+    [[nodiscard]] size_t size() const
     {
         return lines_.size();
     }
 
-    bool empty() const
+    [[nodiscard]] bool empty() const
     {
         return lines_.empty();
     }
@@ -195,28 +188,19 @@ public:
         lines_.clear();
     }
 
-    template<typename... Args>
-    void emplace_back(Args&&... args)
+    void emplace_back(auto&&... args)
     {
-        lines_.emplace_back(args...);
+        lines_.emplace_back(std::forward<decltype(args)>(args)...);
     }
 
-    std::vector<LineType>::iterator erase(std::vector<LineType>::const_iterator first, std::vector<LineType>::const_iterator last)
+    iterator erase(const_iterator first, const_iterator last)
     {
         return lines_.erase(first, last);
     }
 
-    LinesSet& operator=(const LinesSet& other)
-    {
-        lines_ = other.lines_;
-        return *this;
-    }
+    LinesSet& operator=(const LinesSet& other) = default;
 
-    LinesSet& operator=(LinesSet&& other)
-    {
-        lines_ = std::move(other.lines_);
-        return *this;
-    }
+    LinesSet& operator=(LinesSet&& other) noexcept = default;
 
     LineType& operator[](size_t index)
     {
@@ -235,7 +219,7 @@ public:
     }
 
     /*! \brief Return the amount of points in all lines */
-    size_t pointCount() const;
+    [[nodiscard]] size_t pointCount() const;
 
     /*!
      * Remove a line from the list and move the last line to its place
@@ -247,23 +231,27 @@ public:
     void addSegment(const Point2LL& from, const Point2LL& to);
 
     /*! \brief Get the total length of all the lines */
-    coord_t length() const;
+    [[nodiscard]] coord_t length() const;
 
-    void splitIntoSegments(LinesSet<OpenPolyline>& result) const;
-    LinesSet<OpenPolyline> splitIntoSegments() const;
+    void splitIntoSegments(OpenLinesSet& result) const;
+    [[nodiscard]] OpenLinesSet splitIntoSegments() const;
 
     /*! \brief Removes overlapping consecutive line segments which don't delimit a positive area */
     void removeDegenerateVerts();
 
-    Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
+    [[nodiscard]] Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
     /*!
      * Utility method for creating the tube (or 'donut') of a shape.
-     * \param inner_offset Offset relative to the original shape-outline towards the inside of the shape. Sort-of like a negative normal offset, except it's the offset part that's
-     * kept, not the shape. \param outer_offset Offset relative to the original shape-outline towards the outside of the shape. Comparable to normal offset. \return The resulting
-     * polygons.
+     *
+     * \param inner_offset Offset relative to the original shape-outline towards the inside of the
+     *        shape. Sort-of like a negative normal offset, except it's the offset part that's kept,
+     *        not the shape.
+     * \param outer_offset Offset relative to the original shape-outline towards the outside of the
+     *        shape. Comparable to normal offset.
+     * \return The resulting polygons.
      */
-    Shape tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
+    [[nodiscard]] Shape createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 
     void translate(const Point2LL& delta);
 
@@ -271,13 +259,13 @@ public:
      * \brief Utility method to add all the lines to a ClipperLib::Clipper object
      * \note This method needs to be public but you shouldn't need to use it from outside
      */
-    void addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
+    void addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const;
 
     /*!
      * \brief Utility method to add all the lines to a ClipperLib::ClipperOffset object
      * \note This method needs to be public but you shouldn't need to use it from outside
      */
-    void addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
+    void addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType joint_type, ClipperLib::EndType end_type) const;
 
     /*!
      * \brief Display operator, useful for debugging/testing
@@ -301,6 +289,9 @@ public:
         os << "]";
         return os;
     }
+
+private:
+    bool checkAdd(const LineType& line, CheckNonEmptyParam check_non_empty);
 };
 
 } // namespace cura

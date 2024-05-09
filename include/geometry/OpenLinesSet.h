@@ -4,11 +4,12 @@
 #ifndef GEOMETRY_OPEN_LINES_SET_H
 #define GEOMETRY_OPEN_LINES_SET_H
 
-#include "geometry/lines_set.h"
-#include "geometry/open_polyline.h"
-
 namespace cura
 {
+
+template<class LineType>
+class LinesSet;
+class OpenPolyline;
 
 /*!
  * \brief Convenience definition for a container that can hold only open polylines. This makes it

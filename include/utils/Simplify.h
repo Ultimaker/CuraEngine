@@ -4,7 +4,7 @@
 #ifndef UTILS_SIMPLIFY_H
 #define UTILS_SIMPLIFY_H
 
-#include "geometry/point2ll.h"
+#include "geometry/Point2LL.h"
 #include "utils/Coord_t.h"
 
 
@@ -276,7 +276,7 @@ private:
      * \return An empty polygonal.
      */
     template<typename Polygonal>
-    Polygonal createEmpty(const Polygonal& original) const;
+    static Polygonal createEmpty(const Polygonal& original);
 
     template<typename Polygonal>
     bool detectSmall(const Polygonal& polygon, const coord_t& min_size) const;

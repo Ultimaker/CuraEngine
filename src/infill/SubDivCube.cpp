@@ -5,8 +5,9 @@
 
 #include <functional>
 
-#include "geometry/polygon.h"
-#include "geometry/shape.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/Polygon.h"
+#include "geometry/Shape.h"
 #include "settings/types/Angle.h" //For the infill angle.
 #include "sliceDataStorage.h"
 #include "utils/math.h"
@@ -85,19 +86,19 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh, const Point2LL& infill
     mesh.base_subdiv_cube = std::make_shared<SubDivCube>(mesh, center, curr_recursion_depth - 1);
 }
 
-void SubDivCube::generateSubdivisionLines(const coord_t z, LinesSet<OpenPolyline>& result)
+void SubDivCube::generateSubdivisionLines(const coord_t z, OpenLinesSet& result)
 {
     if (cube_properties_per_recursion_step_.empty()) // Infill is set to 0%.
     {
         return;
     }
-    LinesSet<OpenPolyline> directional_line_groups[3];
+    OpenLinesSet directional_line_groups[3];
 
     generateSubdivisionLines(z, directional_line_groups);
 
     for (int dir_idx = 0; dir_idx < 3; dir_idx++)
     {
-        LinesSet<OpenPolyline>& line_group = directional_line_groups[dir_idx];
+        OpenLinesSet& line_group = directional_line_groups[dir_idx];
         for (unsigned int line_idx = 0; line_idx < line_group.size(); line_idx++)
         {
             result.addSegment(line_group[line_idx][0], line_group[line_idx][1]);
@@ -105,7 +106,7 @@ void SubDivCube::generateSubdivisionLines(const coord_t z, LinesSet<OpenPolyline
     }
 }
 
-void SubDivCube::generateSubdivisionLines(const coord_t z, LinesSet<OpenPolyline> (&directional_line_groups)[3])
+void SubDivCube::generateSubdivisionLines(const coord_t z, OpenLinesSet (&directional_line_groups)[3])
 {
     CubeProperties cube_properties = cube_properties_per_recursion_step_[depth_];
 
@@ -263,7 +264,7 @@ void SubDivCube::rotatePoint120(Point2LL& target)
     target.X = x;
 }
 
-void SubDivCube::addLineAndCombine(LinesSet<OpenPolyline>& group, Point2LL from, Point2LL to)
+void SubDivCube::addLineAndCombine(OpenLinesSet& group, Point2LL from, Point2LL to)
 {
     int epsilon = 10; // the smallest distance of two points which are viewed as coincident (dist > 0 due to rounding errors)
     for (unsigned int idx = 0; idx < group.size(); idx++)

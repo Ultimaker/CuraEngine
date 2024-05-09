@@ -3,6 +3,8 @@
 
 #include "utils/Simplify.h" // The unit under test.
 
+#include <numbers>
+
 #include <gtest/gtest.h>
 
 #include "utils/Coord_t.h"

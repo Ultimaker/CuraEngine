@@ -9,11 +9,9 @@
 
 #include "ExtruderUse.h"
 #include "FanSpeedLayerTime.h"
+#include "GCodePathConfig.h"
 #include "LayerPlanBuffer.h"
 #include "gcodeExport.h"
-#include "settings/MeshPathConfigs.h"
-#include "settings/PathConfigStorage.h" //For the MeshPathConfigs subclass.
-#include "utils/ExtrusionLine.h" //Processing variable-width paths.
 #include "utils/NoCopy.h"
 #include "utils/gettime.h"
 
@@ -27,6 +25,7 @@ class SliceDataStorage;
 class SliceMeshStorage;
 class SliceLayer;
 class SliceLayerPart;
+struct MeshPathConfigs;
 
 /*!
  * Secondary stage in Fused Filament Fabrication processing: The generated polygons are used in the gcode generation.
@@ -299,9 +298,11 @@ private:
      *
      * \param[in] storage where the slice data is stored.
      * \param current_extruder The current extruder with which we last printed
+     * \param global_extruders_used The extruders that are at some point used for the print job
      * \return The order of extruders for a layer beginning with \p current_extruder
      */
-    std::vector<ExtruderUse> getUsedExtrudersOnLayer(const SliceDataStorage& storage, const size_t start_extruder, const LayerIndex& layer_nr) const;
+    std::vector<ExtruderUse>
+        getUsedExtrudersOnLayer(const SliceDataStorage& storage, const size_t start_extruder, const LayerIndex& layer_nr, const std::vector<bool>& global_extruders_used) const;
 
     /*!
      * Calculate in which order to plan the meshes of a specific extruder

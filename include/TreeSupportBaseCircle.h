@@ -7,7 +7,7 @@
 
 #include <range/v3/view/iota.hpp>
 
-#include "geometry/polygon.h"
+#include "geometry/Polygon.h"
 #include "settings/types/Angle.h"
 #include "utils/Coord_t.h"
 

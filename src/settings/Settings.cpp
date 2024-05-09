@@ -1,13 +1,14 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "settings/Settings.h"
 
 #include <cctype>
+#include <cstdio>
 #include <fstream>
+#include <numbers>
 #include <regex> // regex parsing for temp flow graph
 #include <sstream> // ostringstream
-#include <stdio.h>
 #include <string> //Parsing strings (stod, stoul).
 
 #include <range/v3/range/conversion.hpp>
@@ -18,8 +19,8 @@
 #include "BeadingStrategy/BeadingStrategyFactory.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
-#include "geometry/polygon.h"
-#include "geometry/shape.h"
+#include "geometry/Polygon.h"
+#include "geometry/Shape.h"
 #include "settings/EnumSettings.h"
 #include "settings/FlowTempGraph.h"
 #include "settings/types/Angle.h"

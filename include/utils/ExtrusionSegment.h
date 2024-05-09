@@ -1,15 +1,14 @@
-// Copyright (c) 2020 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 
 #ifndef UTILS_EXTRUSION_SEGMENT_H
 #define UTILS_EXTRUSION_SEGMENT_H
 
-#include <utility>
+#include <numbers>
 
 #include "ExtrusionJunction.h"
-#include "geometry/point2ll.h"
-#include "geometry/polygon.h"
+#include "geometry/Polygon.h"
 #include "polygonUtils.h"
 
 namespace cura
@@ -55,7 +54,7 @@ public:
      * Converts this segment to an outline of the area that the segment covers.
      * \return The area that would be covered by this extrusion segment.
      */
-    Shape toPolygons();
+    Shape toShape();
 
     /*!
      * Converts this segment to an outline of the area that the segment covers.
@@ -63,7 +62,7 @@ public:
      * it will be included in the next extrusion move. Overrides class field
      * \ref is_reduced .
      */
-    Shape toPolygons(bool reduced);
+    Shape toShape(bool reduced);
 
     /*!
      * Discretize a variable-line-width extrusion segment into multiple

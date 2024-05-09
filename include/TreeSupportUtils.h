@@ -12,7 +12,10 @@
 #include "TreeSupportEnums.h"
 #include "TreeSupportSettings.h"
 #include "boost/functional/hash.hpp" // For combining hashes
-#include "geometry/polygon.h"
+#include "geometry/LinesSet.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/Polygon.h"
 #include "infill.h"
 #include "polyclipping/clipper.hpp"
 #include "settings/EnumSettings.h"
@@ -31,9 +34,9 @@ public:
      * \param poly[in] The Polygons object, of which its lines should be extended.
      * \return A Polygons object with explicit line from the last vertex of a Polygon to the first one added.
      */
-    static LinesSet<OpenPolyline> toPolylines(const Shape& poly)
+    static OpenLinesSet toPolylines(const Shape& poly)
     {
-        LinesSet<OpenPolyline> result;
+        OpenLinesSet result;
         for (const auto& path : poly)
         {
             result.push_back(path.toPseudoOpenPolyline());
@@ -48,9 +51,9 @@ public:
      * \param toolpaths[in] The toolpaths.
      * \return A Polygons object.
      */
-    [[nodiscard]] static LinesSet<OpenPolyline> toPolylines(const std::vector<VariableWidthLines> toolpaths)
+    [[nodiscard]] static OpenLinesSet toPolylines(const std::vector<VariableWidthLines> toolpaths)
     {
-        LinesSet<OpenPolyline> result;
+        OpenLinesSet result;
         for (const VariableWidthLines& lines : toolpaths)
         {
             for (const ExtrusionLine& line : lines)
@@ -91,7 +94,7 @@ public:
      * todo doku
      * \return A Polygons object that represents the resulting infill lines.
      */
-    [[nodiscard]] static LinesSet<OpenPolyline> generateSupportInfillLines(
+    [[nodiscard]] static OpenLinesSet generateSupportInfillLines(
         const Shape& area,
         const TreeSupportSettings& config,
         bool roof,
@@ -154,7 +157,7 @@ public:
             pocket_size);
 
         Shape areas;
-        LinesSet<OpenPolyline> lines;
+        OpenLinesSet lines;
         roof_computation.generate(toolpaths, areas, lines, config.settings, layer_idx, SectionType::SUPPORT, cross_fill_provider);
         lines.push_back(toPolylines(areas));
         lines.push_back(toPolylines(toolpaths));
@@ -286,9 +289,9 @@ public:
      * \param max_allowed_distance[in] The maximum distance a point may be moved. If not possible the point will be moved as far as possible in the direction of the outside of the
      * provided area. \return A Polyline object containing the moved points.
      */
-    [[nodiscard]] static LinesSet<OpenPolyline> movePointsOutside(const LinesSet<OpenPolyline>& polylines, const Shape& area, coord_t max_allowed_distance)
+    [[nodiscard]] static OpenLinesSet movePointsOutside(const OpenLinesSet& polylines, const Shape& area, coord_t max_allowed_distance)
     {
-        LinesSet<OpenPolyline> result;
+        OpenLinesSet result;
 
         for (const OpenPolyline& line : polylines)
         {

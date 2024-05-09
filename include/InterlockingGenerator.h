@@ -8,8 +8,8 @@
 #include <unordered_set>
 #include <vector>
 
-#include "geometry/point_matrix.h"
-#include "geometry/polygon.h"
+#include "geometry/PointMatrix.h"
+#include "geometry/Polygon.h"
 #include "utils/VoxelUtils.h"
 
 namespace cura
