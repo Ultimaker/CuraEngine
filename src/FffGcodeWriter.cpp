@@ -1563,8 +1563,6 @@ std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
     assert(static_cast<int>(extruder_count) > 0);
     std::vector<ExtruderUse> ret;
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
-    const auto prime_tower_mode = mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode");
-    const auto prime_tower_enable = mesh_group_settings.get<bool>("prime_tower_enable");
     const LayerIndex raft_base_layer_nr = -Raft::getTotalExtraLayers();
 
     if (layer_nr < 0 && layer_nr < raft_base_layer_nr + Raft::getBottomLayers())
@@ -1618,28 +1616,9 @@ std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
     {
         ExtruderPrime prime = ExtruderPrime::None;
 
-        if (prime_tower_enable)
+        if (storage.prime_tower_)
         {
-            switch (prime_tower_mode)
-            {
-            case PrimeTowerMethod::NORMAL:
-                if (extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder)
-                {
-                    prime = ExtruderPrime::Prime;
-                }
-                else if (layer_nr < storage.max_print_height_second_to_last_extruder)
-                {
-                    prime = ExtruderPrime::Sparse;
-                }
-                break;
-
-            case PrimeTowerMethod::INTERLEAVED:
-                if (extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder)
-                {
-                    prime = ExtruderPrime::Prime;
-                }
-                break;
-            }
+            prime = storage.prime_tower_->getExtruderPrime(extruder_is_used_on_this_layer, extruder_nr, last_extruder, storage, layer_nr);
         }
 
         if (extruder_is_used_on_this_layer[extruder_nr] || prime != ExtruderPrime::None)
@@ -1649,10 +1628,9 @@ std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
         }
     }
 
-    if (prime_tower_mode == PrimeTowerMethod::INTERLEAVED && ret.size() == 1 && ret.front().prime == ExtruderPrime::None
-        && layer_nr <= storage.max_print_height_second_to_last_extruder)
+    if (storage.prime_tower_)
     {
-        ret.front().prime = ExtruderPrime::Sparse;
+        storage.prime_tower_->polishExtruderUse(ret, storage, layer_nr);
     }
 
     assert(ret.size() <= (size_t)extruder_count && "Not more extruders may be planned in a layer than there are extruders!");

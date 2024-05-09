@@ -600,6 +600,11 @@ PrimeTower* PrimeTower::createPrimeTower(SliceDataStorage& storage)
     return prime_tower;
 }
 
+bool PrimeTower::extruderRequiresPrime(const std::vector<bool>& extruder_is_used_on_this_layer, size_t extruder_nr, size_t last_extruder)
+{
+    return extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder;
+}
+
 void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const int extruder_nr) const
 {
     if (gcode_layer.getLayerNr() != 0)

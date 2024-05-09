@@ -19,6 +19,15 @@ public:
      * \param storage A storage where it retrieves the prime tower settings.
      */
     PrimeTowerInterleaved(SliceDataStorage& storage, size_t extruder_count);
+
+    virtual ExtruderPrime getExtruderPrime(
+        const std::vector<bool>& extruder_is_used_on_this_layer,
+        size_t extruder_nr,
+        size_t last_extruder,
+        const SliceDataStorage& storage,
+        const LayerIndex& layer_nr) const override;
+
+    virtual void polishExtruderUse(std::vector<ExtruderUse>& extruder_use, const SliceDataStorage& storage, const LayerIndex& layer_nr) const override;
 };
 
 } // namespace cura

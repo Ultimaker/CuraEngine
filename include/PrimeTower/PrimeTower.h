@@ -102,7 +102,21 @@ public:
      */
     const Shape& getGroundPoly() const;
 
+    virtual ExtruderPrime getExtruderPrime(
+        const std::vector<bool>& extruder_is_used_on_this_layer,
+        size_t extruder_nr,
+        size_t last_extruder,
+        const SliceDataStorage& storage,
+        const LayerIndex& layer_nr) const = 0;
+
+    virtual void polishExtruderUse(std::vector<ExtruderUse>& /*extruder_use*/, const SliceDataStorage& /*storage*/, const LayerIndex& /*layer_nr*/) const
+    {
+    }
+
     static PrimeTower* createPrimeTower(SliceDataStorage& storage);
+
+protected:
+    static bool extruderRequiresPrime(const std::vector<bool>& extruder_is_used_on_this_layer, size_t extruder_nr, size_t last_extruder);
 
 private:
     /*!
