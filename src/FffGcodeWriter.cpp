@@ -644,9 +644,9 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         std::vector<ParameterizedRaftPath> raft_outline_paths;
         raft_outline_paths.emplace_back(ParameterizedRaftPath{ line_spacing, storage.raft_base_outline });
-        if (storage.primeTower.enabled_)
+        if (storage.prime_tower_)
         {
-            const Shape& raft_outline_prime_tower = storage.primeTower.getOuterPoly(layer_nr);
+            const Shape& raft_outline_prime_tower = storage.prime_tower_->getOuterPoly(layer_nr);
             if (line_spacing_prime_tower == line_spacing)
             {
                 // Base layer is shared with prime tower base
@@ -809,10 +809,10 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr int zag_skip_count = 0;
         constexpr coord_t pocket_size = 0;
 
-        if (storage.primeTower.enabled_)
+        if (storage.prime_tower_)
         {
             // Interface layer excludes prime tower base
-            raft_outline_path = raft_outline_path.difference(storage.primeTower.getOuterPoly(layer_nr));
+            raft_outline_path = raft_outline_path.difference(storage.prime_tower_->getOuterPoly(layer_nr));
         }
 
         Infill infill_comp(
@@ -969,10 +969,10 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr size_t zag_skip_count = 0;
         constexpr coord_t pocket_size = 0;
 
-        if (storage.primeTower.enabled_)
+        if (storage.prime_tower_)
         {
             // Surface layers exclude prime tower base
-            raft_outline_path = raft_outline_path.difference(storage.primeTower.getOuterPoly(layer_nr));
+            raft_outline_path = raft_outline_path.difference(storage.prime_tower_->getOuterPoly(layer_nr));
         }
 
         for (const Shape& raft_island : raft_outline_path.splitIntoParts())
@@ -3961,14 +3961,12 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
 
 void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t prev_extruder) const
 {
-    if (! storage.primeTower.enabled_)
+    if (storage.prime_tower_)
     {
-        return;
+        LayerIndex layer_nr = gcode_layer.getLayerNr();
+        const std::vector<ExtruderUse> extruder_order = getExtruderUse(layer_nr);
+        storage.prime_tower_->addToGcode(storage, gcode_layer, extruder_order, prev_extruder, gcode_layer.getExtruder());
     }
-
-    LayerIndex layer_nr = gcode_layer.getLayerNr();
-    const std::vector<ExtruderUse> extruder_order = getExtruderUse(layer_nr);
-    storage.primeTower.addToGcode(storage, gcode_layer, extruder_order, prev_extruder, gcode_layer.getExtruder());
 }
 
 void FffGcodeWriter::finalize()

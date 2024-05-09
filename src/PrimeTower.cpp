@@ -26,22 +26,19 @@
 namespace cura
 {
 
-PrimeTower::PrimeTower()
+PrimeTower::PrimeTower(SliceDataStorage& storage, size_t extruder_count)
     : wipe_from_middle_(false)
+    , extruder_order_(extruder_count)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
 
-    enabled_ = scene.current_mesh_group->settings.get<bool>("prime_tower_enable") && scene.current_mesh_group->settings.get<coord_t>("prime_tower_min_volume") > 10
-            && scene.current_mesh_group->settings.get<coord_t>("prime_tower_size") > 10;
-
-    extruder_count_ = scene.extruders.size();
-    extruder_order_.resize(extruder_count_);
-    for (unsigned int extruder_nr = 0; extruder_nr < extruder_count_; extruder_nr++)
+    // First by a basic list of used extruders numbers
+    for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
-        extruder_order_[extruder_nr] = extruder_nr; // Start with default order, then sort.
+        extruder_order_[extruder_nr] = extruder_nr;
     }
 
-    // Sort from high adhesion to low adhesion.
+    // Then sort from high adhesion to low adhesion.
     std::stable_sort(
         extruder_order_.begin(),
         extruder_order_.end(),
@@ -51,23 +48,13 @@ PrimeTower::PrimeTower()
             const Ratio adhesion_b = scene.extruders[extruder_nr_b].settings_.get<Ratio>("material_adhesion_tendency");
             return adhesion_a < adhesion_b;
         });
-}
 
-void PrimeTower::checkUsed()
-{
-    if (extruder_count_ <= 1)
-    {
-        enabled_ = false;
-    }
+    generatePaths(storage);
+    subtractFromSupport(storage);
 }
 
 void PrimeTower::generateGroundpoly()
 {
-    if (! enabled_)
-    {
-        return;
-    }
-
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const coord_t tower_size = mesh_group_settings.get<coord_t>("prime_tower_size");
@@ -83,23 +70,14 @@ void PrimeTower::generateGroundpoly()
 
 void PrimeTower::generatePaths(const SliceDataStorage& storage)
 {
-    checkUsed();
+    generateGroundpoly();
 
-    // Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
-    const int raft_total_extra_layers = Raft::getTotalExtraLayers();
-    enabled_ &= storage.max_print_height_second_to_last_extruder >= -raft_total_extra_layers;
+    std::vector<coord_t> cumulative_insets;
+    generatePaths_denseInfill(cumulative_insets);
 
-    if (enabled_)
-    {
-        generateGroundpoly();
+    generateStartLocations();
 
-        std::vector<coord_t> cumulative_insets;
-        generatePaths_denseInfill(cumulative_insets);
-
-        generateStartLocations();
-
-        generatePaths_sparseInfill(cumulative_insets);
-    }
+    generatePaths_sparseInfill(cumulative_insets);
 }
 
 void PrimeTower::generatePaths_denseInfill(std::vector<coord_t>& cumulative_insets)
@@ -219,9 +197,9 @@ void PrimeTower::generatePaths_sparseInfill(const std::vector<coord_t>& cumulati
         // Generate all possible extruders combinations, e.g. if there are 4 extruders, we have combinations
         // 0 / 0-1 / 0-1-2 / 0-1-2-3 / 1 / 1-2 / 1-2-3 / 2 / 2-3 / 3
         // A combination is represented by a bitmask
-        for (size_t first_extruder_idx = 0; first_extruder_idx < extruder_count_; ++first_extruder_idx)
+        for (size_t first_extruder_idx = 0; first_extruder_idx < extruder_order_.size(); ++first_extruder_idx)
         {
-            size_t nb_extruders_sparse = method == PrimeTowerMethod::NORMAL ? first_extruder_idx + 1 : extruder_count_;
+            size_t nb_extruders_sparse = method == PrimeTowerMethod::NORMAL ? first_extruder_idx + 1 : extruder_order_.size();
 
             for (size_t last_extruder_idx = first_extruder_idx; last_extruder_idx < nb_extruders_sparse; ++last_extruder_idx)
             {
@@ -301,11 +279,6 @@ void PrimeTower::addToGcode(
     const size_t prev_extruder_nr,
     const size_t new_extruder_nr) const
 {
-    if (! enabled_)
-    {
-        return;
-    }
-
     if (gcode_layer.getPrimeTowerIsPlanned(new_extruder_nr))
     { // don't print the prime tower if it has been printed already with this extruder.
         return;
@@ -597,6 +570,21 @@ const Shape& PrimeTower::getOuterPoly(const LayerIndex& layer_nr) const
 const Shape& PrimeTower::getGroundPoly() const
 {
     return getOuterPoly(-Raft::getTotalExtraLayers());
+}
+
+PrimeTower* PrimeTower::createPrimeTower(SliceDataStorage& storage)
+{
+    PrimeTower* prime_tower = nullptr;
+    const Scene& scene = Application::getInstance().current_slice_->scene;
+    const int raft_total_extra_layers = Raft::getTotalExtraLayers();
+
+    if (scene.extruders.size() > 1 && scene.current_mesh_group->settings.get<bool>("prime_tower_enable")
+        && scene.current_mesh_group->settings.get<coord_t>("prime_tower_min_volume") > 10 && scene.current_mesh_group->settings.get<coord_t>("prime_tower_size") > 10
+        && storage.max_print_height_second_to_last_extruder >= -raft_total_extra_layers)
+    {
+        prime_tower = new PrimeTower(storage, scene.extruders.size());
+    }
+    return prime_tower;
 }
 
 void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const int extruder_nr) const

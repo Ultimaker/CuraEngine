@@ -364,9 +364,9 @@ Shape SliceDataStorage::getLayerOutlines(
                 total.push_back(support_layer.support_roof);
             }
         }
-        if (include_prime_tower && primeTower.enabled_ && (extruder_nr == -1 || (! primeTower.extruder_order_.empty() && extruder_nr == primeTower.extruder_order_[0])))
+        if (include_prime_tower && prime_tower_ && (extruder_nr == -1 || (! prime_tower_->extruder_order_.empty() && extruder_nr == prime_tower_->extruder_order_[0])))
         {
-            total.push_back(primeTower.getOuterPoly(layer_nr));
+            total.push_back(prime_tower_->getOuterPoly(layer_nr));
         }
         return total;
     }
@@ -689,6 +689,11 @@ Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
 
     border = border_all_extruders.difference(disallowed_all_extruders);
     return border;
+}
+
+void SliceDataStorage::initializePrimeTower()
+{
+    prime_tower_ = PrimeTower::createPrimeTower(*this);
 }
 
 

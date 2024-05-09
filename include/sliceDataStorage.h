@@ -391,7 +391,8 @@ public:
     std::vector<int> spiralize_seam_vertex_indices; //!< the index of the seam vertex for each layer
     std::vector<Shape*> spiralize_wall_outlines; //!< the wall outline polygons for each layer
 
-    PrimeTower primeTower;
+    //!< Pointer to primer tower handler object (a null pointer indicates that there is no prime tower)
+    PrimeTower* prime_tower_{ nullptr };
 
     std::vector<Shape> ooze_shield; // oozeShield per layer
     Shape draft_protection_shield; //!< The polygons for a heightened skirt which protects from warping by gusts of wind and acts as a heated chamber.
@@ -404,6 +405,7 @@ public:
 
     ~SliceDataStorage()
     {
+        delete prime_tower_;
     }
 
     /*!
@@ -456,6 +458,8 @@ public:
      * \return the Shape representing the usable area of the print bed.
      */
     Shape getMachineBorder(int extruder_nr = -1) const;
+
+    void initializePrimeTower();
 
 private:
     /*!

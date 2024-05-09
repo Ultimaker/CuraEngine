@@ -31,8 +31,6 @@ private:
     using MovesByExtruder = std::map<size_t, Shape>;
     using MovesByLayer = std::map<size_t, std::vector<Shape>>;
 
-    size_t extruder_count_; //!< Number of extruders
-
     bool wipe_from_middle_; //!< Whether to wipe on the inside of the hollow prime tower
     Point2LL middle_; //!< The middle of the prime tower
 
@@ -58,8 +56,6 @@ private:
     std::vector<Shape> outer_poly_base_; //!< The outline of the layers having extra width for the base
 
 public:
-    bool enabled_; //!< Whether the prime tower is enabled.
-
     /*
      * In which order, from outside to inside, will we be printing the prime
      * towers for maximum strength?
@@ -75,12 +71,7 @@ public:
      *
      * \param storage A storage where it retrieves the prime tower settings.
      */
-    PrimeTower();
-
-    /*!
-     * Check whether we actually use the prime tower.
-     */
-    void checkUsed();
+    PrimeTower(SliceDataStorage& storage, size_t extruder_count);
 
     /*!
      * Generate the prime tower area to be used on each layer
@@ -130,6 +121,8 @@ public:
      * Get the outer polygon for the very first layer, which may be the priming polygon only, or a larger polygon if there is a base
      */
     const Shape& getGroundPoly() const;
+
+    static PrimeTower* createPrimeTower(SliceDataStorage& storage);
 
 private:
     /*!
