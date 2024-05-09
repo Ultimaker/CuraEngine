@@ -1523,7 +1523,6 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     size_t extruder_count = Application::getInstance().current_slice_->scene.extruders.size();
     const std::vector<bool> extruders_used = storage.getExtrudersUsed();
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    PrimeTowerMethod prime_tower_mode = mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode");
     for (LayerIndex layer_nr = -Raft::getTotalExtraLayers(); layer_nr < static_cast<LayerIndex>(storage.print_layer_count); layer_nr++)
     {
         std::vector<std::vector<ExtruderUse>>& extruder_order_per_layer_here = (layer_nr < 0) ? extruder_order_per_layer_negative_layers : extruder_order_per_layer;
@@ -1563,7 +1562,7 @@ std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
     assert(static_cast<int>(extruder_count) > 0);
     std::vector<ExtruderUse> ret;
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
-    const auto method = mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode");
+    const auto prime_tower_mode = mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode");
     const auto prime_tower_enable = mesh_group_settings.get<bool>("prime_tower_enable");
     const LayerIndex raft_base_layer_nr = -Raft::getTotalExtraLayers();
 
@@ -1620,7 +1619,7 @@ std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
 
         if (prime_tower_enable)
         {
-            switch (method)
+            switch (prime_tower_mode)
             {
             case PrimeTowerMethod::NORMAL:
                 if (extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder)
@@ -1649,7 +1648,8 @@ std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
         }
     }
 
-    if (method == PrimeTowerMethod::INTERLEAVED && ret.size() == 1 && ret.front().prime == ExtruderPrime::None && layer_nr <= storage.max_print_height_second_to_last_extruder)
+    if (prime_tower_mode == PrimeTowerMethod::INTERLEAVED && ret.size() == 1 && ret.front().prime == ExtruderPrime::None
+        && layer_nr <= storage.max_print_height_second_to_last_extruder)
     {
         ret.front().prime = ExtruderPrime::Sparse;
     }
