@@ -8,7 +8,7 @@
 #include <range/v3/view/reverse.hpp>
 #include <spdlog/spdlog.h>
 
-#include "PrimeTower.h"
+#include "PrimeTower/PrimeTower.h"
 #include "TreeSupport.h"
 #include "TreeSupportEnums.h"
 #include "progress/Progress.h"

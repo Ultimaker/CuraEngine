@@ -1,7 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "PrimeTower.h"
+#include "PrimeTower/PrimeTower.h"
 
 #include <algorithm>
 #include <limits>
@@ -12,6 +12,8 @@
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "LayerPlan.h"
+#include "PrimeTower/PrimeTowerInterleaved.h"
+#include "PrimeTower/PrimeTowerNormal.h"
 #include "Scene.h"
 #include "Slice.h"
 #include "gcodeExport.h"
@@ -576,13 +578,24 @@ PrimeTower* PrimeTower::createPrimeTower(SliceDataStorage& storage)
 {
     PrimeTower* prime_tower = nullptr;
     const Scene& scene = Application::getInstance().current_slice_->scene;
-    const int raft_total_extra_layers = Raft::getTotalExtraLayers();
+    const size_t raft_total_extra_layers = Raft::getTotalExtraLayers();
 
     if (scene.extruders.size() > 1 && scene.current_mesh_group->settings.get<bool>("prime_tower_enable")
         && scene.current_mesh_group->settings.get<coord_t>("prime_tower_min_volume") > 10 && scene.current_mesh_group->settings.get<coord_t>("prime_tower_size") > 10
-        && storage.max_print_height_second_to_last_extruder >= -raft_total_extra_layers)
+        && storage.max_print_height_second_to_last_extruder >= -static_cast<int>(raft_total_extra_layers))
     {
-        prime_tower = new PrimeTower(storage, scene.extruders.size());
+        const Settings& mesh_group_settings = scene.current_mesh_group->settings;
+        const PrimeTowerMethod method = mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode");
+
+        switch (method)
+        {
+        case PrimeTowerMethod::NORMAL:
+            prime_tower = new PrimeTowerNormal(storage, scene.extruders.size());
+            break;
+        case PrimeTowerMethod::INTERLEAVED:
+            prime_tower = new PrimeTowerInterleaved(storage, scene.extruders.size());
+            break;
+        }
     }
     return prime_tower;
 }

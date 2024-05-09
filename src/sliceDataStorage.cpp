@@ -10,7 +10,7 @@
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "FffProcessor.h" //To create a mesh group with if none is provided.
-#include "PrimeTower.h"
+#include "PrimeTower/PrimeTower.h"
 #include "Slice.h"
 #include "geometry/OpenPolyline.h"
 #include "infill/DensityProvider.h" // for destructor

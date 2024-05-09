@@ -74,18 +74,6 @@ public:
     PrimeTower(SliceDataStorage& storage, size_t extruder_count);
 
     /*!
-     * Generate the prime tower area to be used on each layer
-     *
-     * Fills \ref PrimeTower::inner_poly and sets \ref PrimeTower::middle
-     */
-    void generateGroundpoly();
-
-    /*!
-     * Generate the area where the prime tower should be.
-     */
-    void generatePaths(const SliceDataStorage& storage);
-
-    /*!
      * Add path plans for the prime tower to the \p gcode_layer
      *
      * \param storage where to get settings from; where to get the maximum height of the prime tower from
@@ -100,14 +88,6 @@ public:
         const std::vector<ExtruderUse>& required_extruder_prime,
         const size_t prev_extruder_nr,
         const size_t new_extruder_nr) const;
-
-    /*!
-     * \brief Subtract the prime tower from the support areas in storage.
-     *
-     * \param storage The storage where to find the support from which to
-     * subtract a prime tower.
-     */
-    void subtractFromSupport(SliceDataStorage& storage);
 
     /*!
      * Get the outer polygon for the given layer, which may be the priming polygon only, or a larger polygon for layers with a base
@@ -226,6 +206,26 @@ private:
      * starting at the location everytime which can result in z-seam blobs.
      */
     void gotoStartLocation(LayerPlan& gcode_layer, const int extruder) const;
+
+    /*!
+     * Generate the prime tower area to be used on each layer
+     *
+     * Fills \ref PrimeTower::inner_poly and sets \ref PrimeTower::middle
+     */
+    void generateGroundpoly();
+
+    /*!
+     * Generate the area where the prime tower should be.
+     */
+    void generatePaths(const SliceDataStorage& storage);
+
+    /*!
+     * \brief Subtract the prime tower from the support areas in storage.
+     *
+     * \param storage The storage where to find the support from which to
+     * subtract a prime tower.
+     */
+    void subtractFromSupport(SliceDataStorage& storage);
 };
 
 } // namespace cura

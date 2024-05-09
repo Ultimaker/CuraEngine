@@ -64,7 +64,9 @@ set(engine_SRCS # Except main.cpp.
         src/multiVolumes.cpp
         src/path_ordering.cpp
         src/Preheat.cpp
-        src/PrimeTower.cpp
+        src/PrimeTower/PrimeTower.cpp
+        src/PrimeTower/PrimeTowerNormal.cpp
+        src/PrimeTower/PrimeTowerInterleaved.cpp
         src/raft.cpp
         src/Scene.cpp
         src/SkeletalTrapezoidation.cpp

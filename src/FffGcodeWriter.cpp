@@ -21,7 +21,7 @@
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
 #include "PathOrderMonotonic.h" //Monotonic ordering of skin lines.
-#include "PrimeTower.h"
+#include "PrimeTower/PrimeTower.h"
 #include "Slice.h"
 #include "WallToolPaths.h"
 #include "bridge.h"
