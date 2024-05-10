@@ -81,28 +81,6 @@ jobs:
           fetch-depth: 1
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Determine the corresponding Cura branch
-        id: curabranch
-        run: |
-          status_code=$(curl -s -o /dev/null -w "%{http_code}" "https://api.github.com/repos/ultimaker/cura/branches/${{ github.head_ref }}")
-          if [ "$status_code" -eq 200 ]; then
-            echo "The branch exists in Cura"
-            echo "branch=${{ github.head_ref }}" >> $GITHUB_OUTPUT
-          else
-            echo "branch=main" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Checkout Cura
-        uses: actions/checkout@v3
-        with:
-          repository: 'Ultimaker/Cura'
-          ref: ${{ steps.curabranch.outputs.branch}}
-          path: 'Cura'
-          fetch-depth: 1
-          sparse-checkout: |
-            resources/definitions
-            resources/extruders
-
       - name: Sync pip requirements
         run: curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/.github/workflows/requirements-runner.txt
         working-directory: CuraEngine/.github/workflows
@@ -159,7 +137,7 @@ jobs:
             ${{ runner.os }}-conan-downloads-
 
       - name: Install dependencies
-        run: conan install . ${{ needs.conan-recipe-version.outputs.recipe_id_full }} -s build_type=Release --build=missing --update -g GitHubActionsRunEnv -g GitHubActionsBuildEnv -c tools.build:skip_test=True
+        run: conan install . ${{ needs.conan-recipe-version.outputs.recipe_id_full }} -s build_type=Release --build=missing --update -g GitHubActionsRunEnv -g GitHubActionsBuildEnv -c tools.build:skip_test=True -o with_cura_resources=True
         working-directory: CuraEngine
 
       - name: Set Environment variables from Conan install (bash)
@@ -167,7 +145,6 @@ jobs:
         run: |
           . ./activate_github_actions_runenv.sh
           . ./activate_github_actions_buildenv.sh
-          echo "CURA_ENGINE_SEARCH_PATH=$GITHUB_WORKSPACE/Cura/resources/definitions:$GITHUB_WORKSPACE/Cura/resources/extruders" >> $GITHUB_ENV
         working-directory: CuraEngine/build/Release/generators
 
       - name: Build CuraEngine and tests
@@ -180,7 +157,7 @@ jobs:
         run: |
           for file in `ls ../NightlyTestModels/*.stl`;
           do
-              ( time ./build/Release/CuraEngine slice --force-read-parent --force-read-nondefault -v -p -j ../Cura/resources/definitions/ultimaker_s3.def.json -l $file -o ../`basename $file .stl`.gcode ) 2> ../`basename $file .stl`.time
+              ( time ./build/Release/CuraEngine slice --force-read-parent --force-read-nondefault -v -p -j $CURA_RESOURCES/definitions/ultimaker_s3.def.json -l $file -o ../`basename $file .stl`.gcode ) 2> ../`basename $file .stl`.time
           done
         working-directory: CuraEngine
 
