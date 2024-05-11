@@ -98,9 +98,10 @@ void PrimeTower::generatePaths_denseInfill(std::vector<coord_t>& cumulative_inse
     {
         // By default, add empty moves for every extruder
         prime_moves_[extruder_nr];
-        base_extra_moves_[extruder_nr];
+        base_extra_moves_[extruder_nr].init(true);
         inset_extra_moves_[extruder_nr];
     }
+    outer_poly_base_.init(true);
 
     coord_t cumulative_inset = 0; // Each tower shape is going to be printed inside the other. This is the inset we're doing for each extruder.
     for (size_t extruder_nr : extruder_order_)
@@ -403,14 +404,12 @@ void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t ext
 
 bool PrimeTower::addToGcode_base(LayerPlan& gcode_layer, const size_t extruder_nr) const
 {
-    const size_t raft_total_extra_layers = Raft::getTotalExtraLayers();
-    LayerIndex absolute_layer_number = gcode_layer.getLayerNr() + raft_total_extra_layers;
-
-    const auto& pattern_extra_brim = base_extra_moves_.at(extruder_nr);
-    if (absolute_layer_number < pattern_extra_brim.size())
+    const LayerVector<Shape>& pattern_extra_brim = base_extra_moves_.at(extruder_nr);
+    auto iterator = pattern_extra_brim.iterator_at(gcode_layer.getLayerNr());
+    if (iterator != pattern_extra_brim.end())
     {
         // Extra rings for stronger base
-        const auto& pattern = pattern_extra_brim[absolute_layer_number];
+        const Shape& pattern = *iterator;
         if (! pattern.empty())
         {
             const GCodePathConfig& config = gcode_layer.configs_storage_.prime_tower_config_per_extruder[extruder_nr];
@@ -558,10 +557,10 @@ void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
 
 const Shape& PrimeTower::getOuterPoly(const LayerIndex& layer_nr) const
 {
-    const LayerIndex absolute_layer_nr = layer_nr + Raft::getTotalExtraLayers();
-    if (absolute_layer_nr < outer_poly_base_.size())
+    auto iterator = outer_poly_base_.iterator_at(layer_nr);
+    if (iterator != outer_poly_base_.end())
     {
-        return outer_poly_base_[absolute_layer_nr];
+        return *iterator;
     }
     else
     {

@@ -30,7 +30,7 @@ class PrimeTower
 {
 private:
     using MovesByExtruder = std::map<size_t, Shape>;
-    using MovesByLayer = std::map<size_t, std::vector<Shape>>;
+    using MovesByLayer = std::map<size_t, LayerVector<Shape>>;
 
     bool wipe_from_middle_; //!< Whether to wipe on the inside of the hollow prime tower
     Point2LL middle_; //!< The middle of the prime tower
@@ -54,7 +54,7 @@ private:
     MovesByExtruder inset_extra_moves_; //!< For each extruder, the extra inset moves to be processed for better adhesion on initial layer
 
     Shape outer_poly_; //!< The outline of the outermost prime tower.
-    std::vector<Shape> outer_poly_base_; //!< The outline of the layers having extra width for the base
+    LayerVector<Shape> outer_poly_base_; //!< The outline of the layers having extra width for the base
 
 public:
     /*

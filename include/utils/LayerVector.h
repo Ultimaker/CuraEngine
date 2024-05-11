@@ -27,7 +27,8 @@ class LayerVector
     using iterator = typename std::vector<value_type>::iterator;
     using const_iterator = typename std::vector<value_type>::const_iterator;
     using reference = value_type&;
-    using const_reference = value_type&;
+    using const_reference = const value_type&;
+    using difference_type = typename std::vector<value_type>::difference_type;
 
 public:
     LayerVector()
@@ -52,6 +53,26 @@ public:
         }
     }
 
+    const_iterator begin() const
+    {
+        return vector_.begin();
+    }
+
+    iterator begin()
+    {
+        return vector_.begin();
+    }
+
+    const_iterator end() const
+    {
+        return vector_.end();
+    }
+
+    iterator end()
+    {
+        return vector_.end();
+    }
+
     const_reference operator[](const LayerIndex& pos) const
     {
         return vector_[static_cast<size_t>(pos + delta_)];
@@ -72,10 +93,30 @@ public:
         return vector_.at(static_cast<size_t>(pos + delta_));
     }
 
+    [[nodiscard]] const_iterator iterator_at(const LayerIndex& pos) const
+    {
+        LayerIndex::value_type index = pos + delta_;
+        if (index >= 0 && static_cast<size_t>(index) < size())
+        {
+            return std::next(begin(), static_cast<difference_type>(index));
+        }
+        return end();
+    }
+
+    [[nodiscard]] iterator iterator_at(const LayerIndex& pos)
+    {
+        LayerIndex::value_type index = pos + delta_;
+        if (index >= 0 && static_cast<size_t>(index) < size())
+        {
+            return std::next(begin(), static_cast<difference_type>(index));
+        }
+        return end();
+    }
+
     value_type get(const LayerIndex& pos) const noexcept
     {
         LayerIndex::value_type index = pos + delta_;
-        if (index >= 0 && static_cast<size_t>(index) < vector_.size())
+        if (index >= 0 && static_cast<size_t>(index) < size())
         {
             return vector_[static_cast<size_t>(index)];
         }
