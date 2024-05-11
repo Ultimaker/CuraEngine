@@ -170,7 +170,7 @@ public:
 
 private:
     std::vector<value_type> vector_;
-    LayerIndex::value_type delta_{ 0 };
+    size_t delta_{ 0 };
 };
 
 } // namespace cura

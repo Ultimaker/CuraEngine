@@ -330,12 +330,12 @@ void LayerPlan::moveInsideCombBoundary(const coord_t distance, const std::option
     }
 }
 
-bool LayerPlan::getPrimeTowerIsPlanned(unsigned int extruder_nr) const
+bool LayerPlan::getPrimeTowerIsPlanned(size_t extruder_nr) const
 {
     return has_prime_tower_planned_per_extruder_[extruder_nr];
 }
 
-void LayerPlan::setPrimeTowerIsPlanned(unsigned int extruder_nr)
+void LayerPlan::setPrimeTowerIsPlanned(size_t extruder_nr)
 {
     has_prime_tower_planned_per_extruder_[extruder_nr] = true;
 }

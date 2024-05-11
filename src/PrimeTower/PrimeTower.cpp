@@ -51,7 +51,7 @@ PrimeTower::PrimeTower(SliceDataStorage& storage, size_t extruder_count)
             return adhesion_a < adhesion_b;
         });
 
-    generatePaths(storage);
+    generatePaths();
     subtractFromSupport(storage);
 }
 
@@ -70,7 +70,7 @@ void PrimeTower::generateGroundpoly()
     post_wipe_point_ = Point2LL(x - tower_size / 2, y + tower_size / 2);
 }
 
-void PrimeTower::generatePaths(const SliceDataStorage& storage)
+void PrimeTower::generatePaths()
 {
     generateGroundpoly();
 
@@ -545,7 +545,7 @@ std::vector<size_t> PrimeTower::findExtrudersSparseInfill(
 
 void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
 {
-    for (size_t layer = 0; layer <= (size_t)storage.max_print_height_second_to_last_extruder + 1 && layer < storage.support.supportLayers.size(); layer++)
+    for (size_t layer = 0; static_cast<int>(layer) <= storage.max_print_height_second_to_last_extruder + 1 && layer < storage.support.supportLayers.size(); layer++)
     {
         const Shape outside_polygon = getOuterPoly(layer).getOutsidePolygons();
         AABB outside_polygon_boundary_box(outside_polygon);
@@ -604,12 +604,12 @@ bool PrimeTower::extruderRequiresPrime(const std::vector<bool>& extruder_is_used
     return extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder;
 }
 
-void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const int extruder_nr) const
+void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const size_t extruder_nr) const
 {
     if (gcode_layer.getLayerNr() != 0)
     {
-        int current_start_location_idx = ((((extruder_nr + 1) * gcode_layer.getLayerNr()) % number_of_prime_tower_start_locations_) + number_of_prime_tower_start_locations_)
-                                       % number_of_prime_tower_start_locations_;
+        size_t current_start_location_idx = ((((extruder_nr + 1) * gcode_layer.getLayerNr()) % number_of_prime_tower_start_locations_) + number_of_prime_tower_start_locations_)
+                                          % number_of_prime_tower_start_locations_;
 
         const ClosestPointPolygon wipe_location = prime_tower_start_locations_[current_start_location_idx];
         const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];

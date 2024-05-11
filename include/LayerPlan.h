@@ -200,14 +200,14 @@ public:
      * Whether the prime tower is already planned for the specified extruder.
      * \param extruder_nr The extruder to check.
      */
-    bool getPrimeTowerIsPlanned(unsigned int extruder_nr) const;
+    bool getPrimeTowerIsPlanned(size_t extruder_nr) const;
 
     /*!
      * Mark the prime tower as planned for the specified extruder.
      * \param extruder_nr The extruder to mark as having its prime tower
      * planned.
      */
-    void setPrimeTowerIsPlanned(unsigned int extruder_nr);
+    void setPrimeTowerIsPlanned(size_t extruder_nr);
 
     /*!
      * Whether the prime tower extra base is already planned.

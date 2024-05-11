@@ -222,7 +222,7 @@ private:
      * This function picks a start location for this extruder on the prime tower's perimeter and travels there to avoid
      * starting at the location everytime which can result in z-seam blobs.
      */
-    void gotoStartLocation(LayerPlan& gcode_layer, const int extruder) const;
+    void gotoStartLocation(LayerPlan& gcode_layer, const size_t extruder) const;
 
     /*!
      * Generate the prime tower area to be used on each layer
@@ -234,7 +234,7 @@ private:
     /*!
      * Generate the area where the prime tower should be.
      */
-    void generatePaths(const SliceDataStorage& storage);
+    void generatePaths();
 
     /*!
      * \brief Subtract the prime tower from the support areas in storage.
