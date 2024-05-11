@@ -11,6 +11,7 @@
 #include "geometry/Polygon.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/LayerIndex.h"
+#include "utils/LayerVector.h"
 #include "utils/polygonUtils.h"
 
 namespace cura
@@ -73,6 +74,8 @@ public:
      */
     PrimeTower(SliceDataStorage& storage, size_t extruder_count);
 
+    virtual ~PrimeTower() = default;
+
     /*!
      * Add path plans for the prime tower to the \p gcode_layer
      *
@@ -109,7 +112,7 @@ public:
         const SliceDataStorage& storage,
         const LayerIndex& layer_nr) const = 0;
 
-    virtual void polishExtruderUse(std::vector<ExtruderUse>& /*extruder_use*/, const SliceDataStorage& /*storage*/, const LayerIndex& /*layer_nr*/) const
+    virtual void polishExtrudersUse(LayerVector<std::vector<ExtruderUse>>& /*extruders_use*/, const SliceDataStorage& /*storage*/) const
     {
     }
 

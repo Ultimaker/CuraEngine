@@ -12,6 +12,7 @@
 #include "GCodePathConfig.h"
 #include "LayerPlanBuffer.h"
 #include "gcodeExport.h"
+#include "utils/LayerVector.h"
 #include "utils/NoCopy.h"
 #include "utils/gettime.h"
 
@@ -60,13 +61,8 @@ private:
      */
     std::ofstream output_file;
 
-    /*!
-     * For each raft/filler layer, the extruders to be used in that layer in the order in which they are going to be used.
-     * The first number is the first raft layer. Indexing is shifted compared to normal negative layer numbers for raft/filler layers.
-     */
-    std::vector<std::vector<ExtruderUse>> extruder_order_per_layer_negative_layers;
-
-    std::vector<std::vector<ExtruderUse>> extruder_order_per_layer; //!< For each layer, the extruders to be used in that layer in the order in which they are going to be used
+    //!< For each layer, the extruders to be used in that layer in the order in which they are going to be used
+    LayerVector<std::vector<ExtruderUse>> extruder_order_per_layer;
 
     std::vector<std::vector<size_t>> mesh_order_per_extruder; //!< For each extruder, the order of the meshes (first element is first mesh to be printed)
 
@@ -732,14 +728,6 @@ private:
      * \return The first or last exruder used at the given index
      */
     size_t findUsedExtruderIndex(const SliceDataStorage& storage, const LayerIndex& layer_nr, bool last) const;
-
-    /*!
-     * Get the extruders use at the given layer
-     *
-     * \param layer_nr The index of the layer at which we want the extruders uses
-     * \return The extruders use at the given layer, which may be empty in some cases
-     */
-    std::vector<ExtruderUse> getExtruderUse(const LayerIndex& layer_nr) const;
 };
 
 } // namespace cura

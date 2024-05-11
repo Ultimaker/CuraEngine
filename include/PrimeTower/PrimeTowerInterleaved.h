@@ -27,7 +27,7 @@ public:
         const SliceDataStorage& storage,
         const LayerIndex& layer_nr) const override;
 
-    virtual void polishExtruderUse(std::vector<ExtruderUse>& extruder_use, const SliceDataStorage& storage, const LayerIndex& layer_nr) const override;
+    virtual void polishExtrudersUse(LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage) const override;
 };
 
 } // namespace cura

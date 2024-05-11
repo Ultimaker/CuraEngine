@@ -17,8 +17,8 @@ ExtruderPrime PrimeTowerInterleaved::getExtruderPrime(
     const std::vector<bool>& extruder_is_used_on_this_layer,
     size_t extruder_nr,
     size_t last_extruder,
-    const SliceDataStorage& storage,
-    const LayerIndex& layer_nr) const
+    const SliceDataStorage& /*storage*/,
+    const LayerIndex& /*layer_nr*/) const
 {
     if (extruderRequiresPrime(extruder_is_used_on_this_layer, extruder_nr, last_extruder))
     {
@@ -30,11 +30,15 @@ ExtruderPrime PrimeTowerInterleaved::getExtruderPrime(
     }
 }
 
-void PrimeTowerInterleaved::polishExtruderUse(std::vector<ExtruderUse>& extruder_use, const SliceDataStorage& storage, const LayerIndex& layer_nr) const
+void PrimeTowerInterleaved::polishExtrudersUse(LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage) const
 {
-    if (extruder_use.size() == 1 && extruder_use.front().prime == ExtruderPrime::None && layer_nr <= storage.max_print_height_second_to_last_extruder)
+    for (LayerIndex layer_nr = -Raft::getTotalExtraLayers(); layer_nr < storage.print_layer_count; ++layer_nr)
     {
-        extruder_use.front().prime = ExtruderPrime::Sparse;
+        std::vector<ExtruderUse>& extruders_use_at_layer = extruders_use[layer_nr];
+        if (extruders_use_at_layer.size() == 1 && extruders_use_at_layer.front().prime == ExtruderPrime::None && layer_nr <= storage.max_print_height_second_to_last_extruder)
+        {
+            extruders_use_at_layer.front().prime = ExtruderPrime::Sparse;
+        }
     }
 }
 
