@@ -469,7 +469,7 @@ TEST_F(ArcPathCalculation_DiscretizationTest, SpeedCalculationTest_SingleArc)
         EXPECT_EQ(arc_points[0].second, pt.second) << "The speed does not stay constant over the arc.";
     }
     EXPECT_NEAR(arc_points[0].second * (arc_length / total_distance), xy_speed, error_margin);
-    EXPECT_LE(arc_points[0].second * (hop_height / total_distance), high_z_speed, error_margin);
+    EXPECT_LE(arc_points[0].second * (hop_height / total_distance), high_z_speed + error_margin);
 }
 
 TEST_F(ArcPathCalculation_DiscretizationTest, SpeedCalculationTest_MultipleTurnArounds)
@@ -488,7 +488,7 @@ TEST_F(ArcPathCalculation_DiscretizationTest, SpeedCalculationTest_MultipleTurnA
         EXPECT_EQ(arc_points[0].second, pt.second) << "The speed does not stay constant over the arc.";
     }
     EXPECT_NEAR(arc_points[0].second * ((arc.n_turns_ * circumference + arc_length) / total_distance), xy_speed, error_margin);
-    EXPECT_LE(arc_points[0].second * (hop_height / total_distance), low_z_speed, error_margin);
+    EXPECT_LE(arc_points[0].second * (hop_height / total_distance), low_z_speed + error_margin);
 }
 
 } // namespace cura
