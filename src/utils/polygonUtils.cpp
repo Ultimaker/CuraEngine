@@ -1428,7 +1428,7 @@ double PolygonUtils::relativeHammingDistance(const Polygons& poly_a, const Polyg
 Polygon PolygonUtils::makeCircle(const Point2LL mid, const coord_t radius, const AngleRadians a_step)
 {
     Polygon circle;
-    for (double a = 0; a < 2 * std::numbers::pi; a += a_step)
+    for (double a = 0; a + a_step / 2 < 2 * std::numbers::pi; a += a_step)
     {
         circle.emplace_back(mid + Point2LL(radius * cos(a), radius * sin(a)));
     }

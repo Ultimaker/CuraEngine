@@ -1061,6 +1061,9 @@ public:
      */
     Polygons intersectionPolyLines(const Polygons& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu) const;
 
+    Polygons differencePolyLines(const Polygons& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu) const;
+
+
     /*!
      * Add the front to each polygon so that the polygon is represented as a polyline
      */
@@ -1288,7 +1291,7 @@ public:
      * kept, not the shape. \param outer_offset Offset relative to the original shape-outline towards the outside of the shape. Comparable to normal offset. \return The resulting
      * polygons.
      */
-    Polygons tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
+    Polygons tubeShape(const coord_t inner_offset, const coord_t outer_offset, const ClipperLib::JoinType jt = ClipperLib::jtMiter) const;
 
 private:
     /*!
