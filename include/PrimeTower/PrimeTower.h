@@ -119,26 +119,6 @@ public:
     static PrimeTower* createPrimeTower(SliceDataStorage& storage);
 
 protected:
-    static bool extruderRequiresPrime(const std::vector<bool>& extruder_is_used_on_this_layer, size_t extruder_nr, size_t last_extruder);
-
-private:
-    /*!
-     * \see PrimeTower::generatePaths
-     *
-     * Generate the extrude paths for each extruder on even and odd layers
-     * Fill the ground poly with dense infill.
-     * \param cumulative_insets [in, out] The insets added to each extruder to compute the radius of its ring
-     */
-    void generatePaths_denseInfill(std::vector<coord_t>& cumulative_insets);
-
-    /*!
-     * \see WipeTower::generatePaths
-     *
-     * \brief Generate the sparse extrude paths for each extruders combination
-     * \param cumulative_insets The insets added to each extruder to compute the radius of its ring
-     */
-    void generatePaths_sparseInfill(const std::vector<coord_t>& cumulative_insets);
-
     /*!
      * \brief Generate the sparse extrude paths for an extruders combination
      *
@@ -153,7 +133,41 @@ private:
         const size_t last_extruder_idx,
         const std::vector<coord_t>& rings_radii,
         const coord_t line_width,
-        const size_t actual_extruder_nr);
+        const size_t actual_extruder_nr) const;
+
+    virtual bool requiresBaseExtraPrint(size_t extruder_nr) const = 0;
+
+    virtual bool requiresFirstLayerExtraInnerPrint(size_t extruder_nr) const = 0;
+
+    virtual std::map<size_t, std::map<size_t, Shape>> generateSparseInfillImpl(const std::vector<coord_t>& rings_radii) const = 0;
+
+    /*!
+     * \brief Find the list of extruders that don't actually need to be primed during this layer, and for which
+     *        we want to print only the sparse infill to keep the prime tower consistent.
+     * \param gcode_layer The current gcode export
+     * \param required_extruder_prime The pre-computed list of extruders uses during this layer
+     * \param method The current prime tower strategy
+     * \param initial_list_idx A list potentially containing extruders that we already know can be used for
+     *                         sparse infill
+     * \return The indexes of extruders to be used for sparse infill
+     */
+    virtual std::vector<size_t>
+        findExtrudersSparseInfill(LayerPlan& gcode_layer, const std::vector<ExtruderUse>& required_extruder_prime, const std::vector<size_t>& initial_list_idx = {}) const = 0;
+
+    static bool extruderRequiresPrime(const std::vector<bool>& extruder_is_used_on_this_layer, size_t extruder_nr, size_t last_extruder);
+
+private:
+    /*!
+     * \brief Generate the extrude paths for each extruder on even and odd layers. Fill the ground poly with dense infill.
+     * \param cumulative_insets [in, out] The insets added to each extruder to compute the radius of its ring
+     */
+    void generateDenseInfill(std::vector<coord_t>& cumulative_insets);
+
+    /*!
+     * \brief Generate the sparse extrude paths for each extruders combination
+     * \param cumulative_insets The insets added to each extruder to compute the radius of its ring
+     */
+    void generateSparseInfill(const std::vector<coord_t>& cumulative_insets);
 
     /*!
      * Generate start locations on the prime tower. The locations are evenly spread around the prime tower's perimeter.
@@ -200,22 +214,6 @@ private:
      * \param current_extruder_nr The extruder currently being used
      */
     void addToGcode_sparseInfill(LayerPlan& gcode_layer, const std::vector<size_t>& extruders_to_prime_idx, const size_t current_extruder_nr) const;
-
-    /*!
-     * \brief Find the list of extruders that don't actually need to be primed during this layer, and for which
-     *        we want to print only the sparse infill to keep the prime tower consistent.
-     * \param gcode_layer The current gcode export
-     * \param required_extruder_prime The pre-computed list of extruders uses during this layer
-     * \param method The current prime tower strategy
-     * \param initial_list_idx A list potentially containing extruders that we already know can be used for
-     *                         sparse infill
-     * \return The indexes of extruders to be used for sparse infill
-     */
-    std::vector<size_t> findExtrudersSparseInfill(
-        LayerPlan& gcode_layer,
-        const std::vector<ExtruderUse>& required_extruder_prime,
-        cura::PrimeTowerMethod method,
-        const std::vector<size_t>& initial_list_idx = {}) const;
 
     /*!
      * For an extruder switch that happens not on the first layer, the extruder needs to be primed on the prime tower.
