@@ -20,6 +20,18 @@ on:
     tags:
       - '[0-9]+.[0-9]+.[0-9]*'
       - '[0-9]+.[0-9]+.[0-9]'
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - 'include/**'
+      - 'src/**'
+      - 'test_package/**'
+      - 'conanfile.py'
+      - 'conandata.yml'
+      - 'CMakeLists.txt'
+      - '.github/workflows/conan-package.yml'
+    branches:
+      - main
 
 jobs:
   conan-recipe-version:
@@ -37,7 +49,7 @@ jobs:
 
   conan-package-create-macos:
     needs: [ conan-recipe-version, conan-package-export ]
-    if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) }}
+    if: ${{ ((github.event_name == 'push' || github.event_name == 'pull_request') && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) }}
     uses: ultimaker/cura-workflows/.github/workflows/conan-package-create-macos.yml@main
     with:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
@@ -45,7 +57,7 @@ jobs:
 
   conan-package-create-windows:
     needs: [ conan-recipe-version, conan-package-export ]
-    if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) }}
+    if: ${{ ((github.event_name == 'push' || github.event_name == 'pull_request') && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) }}
     uses: ultimaker/cura-workflows/.github/workflows/conan-package-create-windows.yml@main
     with:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
@@ -53,7 +65,7 @@ jobs:
 
   conan-package-create-linux:
     needs: [ conan-recipe-version, conan-package-export ]
-    if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) }}
+    if: ${{ ((github.event_name == 'push' || github.event_name == 'pull_request') && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) }}
     uses: ultimaker/cura-workflows/.github/workflows/conan-package-create-linux.yml@main
     with:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
