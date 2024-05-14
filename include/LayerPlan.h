@@ -1,5 +1,6 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
+// Modified by BigRep GmbH
 
 #ifndef LAYER_PLAN_H
 #define LAYER_PLAN_H
@@ -780,6 +781,15 @@ private:
      * \return the combing boundary or an empty Polygons if no combing is required
      */
     Polygons computeCombBoundary(const CombBoundary boundary_type);
+
+    /*!
+     * Find the previous position at which the print head was before the current position
+     *
+     * \param paths The planned paths for the extrusion, travels etc.
+     * \param path_idx The current path index
+     * \return The previous position (2D) of the print head
+     */
+    Point2LL getPreviousPosition(const std::vector<GCodePath>& paths, const int path_idx) const;
 };
 
 } // namespace cura
