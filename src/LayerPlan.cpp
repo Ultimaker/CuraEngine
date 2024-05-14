@@ -1,5 +1,6 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
+// Modified by BigRep GmbH
 
 #include "LayerPlan.h"
 
@@ -236,6 +237,48 @@ Polygons LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
         }
     }
     return comb_boundary;
+}
+
+Point2LL LayerPlan::getPreviousPosition(const std::vector<GCodePath>& paths, const int path_idx) const
+{
+    Point2LL starting_position = layer_start_pos_per_extruder_[last_planned_extruder_->extruder_nr_];
+
+    if (path_idx == 0)
+    {
+        return starting_position;
+    }
+
+    // the current position will be the last point in the last path
+    // for the previous point we need to fetch what ever point was there before
+    size_t steps_back = 1;
+    size_t n_prev_pts = paths[path_idx - steps_back].points.size();
+
+    while (n_prev_pts == 0)
+    {
+        ++steps_back;
+        n_prev_pts = paths[path_idx - steps_back].points.size();
+    }
+
+    if (path_idx - steps_back < 0)
+    {
+        return starting_position;
+    }
+
+    if (n_prev_pts == 1)
+    {
+        ++steps_back;
+        n_prev_pts = paths[path_idx - steps_back].points.size();
+        while (n_prev_pts == 0 && path_idx - steps_back < 0)
+        {
+            ++steps_back;
+            n_prev_pts = paths[path_idx - steps_back].points.size();
+        }
+        return path_idx - steps_back >= 0 ? paths[path_idx - steps_back].points[n_prev_pts - 1] : starting_position;
+    }
+    else // n_prev_pts > 1
+    {
+        return path_idx - steps_back >= 0 ? paths[path_idx - steps_back].points[n_prev_pts - 2] : starting_position;
+    }
 }
 
 void LayerPlan::setIsInside(bool _is_inside)
@@ -1965,6 +2008,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     const bool jerk_enabled = mesh_group_settings.get<bool>("jerk_enabled");
     const bool jerk_travel_enabled = mesh_group_settings.get<bool>("jerk_travel_enabled");
     std::shared_ptr<const SliceMeshStorage> current_mesh;
+    // used for spiral z-hop
+    double last_speed = 0;
 
     for (size_t extruder_plan_idx = 0; extruder_plan_idx < extruder_plans_.size(); extruder_plan_idx++)
     {
@@ -2140,14 +2185,55 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             if (path.retract)
             {
                 retraction_config = path.mesh ? &path.mesh->retraction_wipe_config : retraction_config;
-                gcode.writeRetraction(retraction_config->retraction_config);
-                insertTempOnTime(extruder_plan.getRetractTime(path), path_idx);
+
+                const bool retraction_while_spiral = Application::getInstance().current_slice_->scene.settings.get<bool>("retract_during_spiral");
+                const bool do_spiral_z_hop = Application::getInstance().current_slice_->scene.settings.get<std::string>("z_hop_type") == "spiral";
+                // options:
+                // perform no z hop with retraction before
+                // spiral z hop with retraction before
+                // spiral z hop with retraction in spiral
+                // vertical hop with retraction before
+
+                // if the retraction is not done during the spiral, do a normal retraction before
+                if (! do_spiral_z_hop || ! retraction_while_spiral)
+                {
+                    gcode.writeRetraction(retraction_config->retraction_config);
+                    insertTempOnTime(extruder_plan.getRetractTime(path), path_idx);
+                }
+
                 if (path.perform_z_hop)
                 {
-                    gcode.writeZhopStart(z_hop_height);
-                    z_hop_height = retraction_config->retraction_config.zHop; // back to normal z hop
+                    if (do_spiral_z_hop)
+                    {
+                        Point2LL previous_point = getPreviousPosition(paths, path_idx);
+                        const double xy_speed = last_speed == 0 ? path.config.getSpeed().value * path.speed_factor : last_speed;
+                        const std::vector<std::pair<Point3LL, Velocity>> spiral_points
+                            = gcode.writeSpiralZhopStart(previous_point, path.points[0], z_hop_height, xy_speed, storage_.machine_size, retraction_config->retraction_config);
+
+                        const auto current_pos = Point3LL{ gcode.getPositionXY().X, gcode.getPositionXY().Y, gcode.getPositionZ() };
+                        // The spiral point vector might be empty, in the case where no spiral was possible (i.e. when it would have been outside of the printer bounds)
+                        double total_spiral_time = spiral_points.size() > 0 ? (current_pos - spiral_points[0].first).vSizeMM() / spiral_points[0].second : 0;
+
+                        for (size_t pt_idx = 0; pt_idx < spiral_points.size(); ++pt_idx)
+                        {
+                            const auto& [point, velocity] = spiral_points[pt_idx];
+                            if (pt_idx > 0)
+                            {
+                                total_spiral_time += (point - spiral_points[pt_idx - 1].first).vSizeMM() / velocity;
+                            }
+                            // Send this to the optimized layer plan for the gcode preview
+                            communication->sendLineTo(path.config.type, Point2LL{ point.x_, point.y_ }, path.getLineWidthForLayerView(), path.config.getLayerThickness(), velocity);
+                        }
+                        insertTempOnTime(total_spiral_time, path_idx);
+                        z_hop_height = retraction_config->retraction_config.zHop; // back to normal z hop
+                    }
+                    else // vertical hop with retraction before
+                    {
+                        gcode.writeZhopStart(z_hop_height);
+                        z_hop_height = retraction_config->retraction_config.zHop; // back to normal z hop
+                    }
                 }
-                else
+                else // perform no z hop with retraction before
                 {
                     gcode.writeZhopEnd();
                     if (z_ > 0 && path.z_offset != 0)
@@ -2176,6 +2262,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             // for some movements such as prime tower purge, the speed may get changed by this factor
             speed *= path.speed_factor;
+            last_speed = speed;
 
             // This seems to be the best location to place this, but still not ideal.
             if (path.mesh != current_mesh)
@@ -2241,6 +2328,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         insertTempOnTime(time, path_idx);
 
                         const double extrude_speed = speed * path.speed_back_pressure_factor;
+                        last_speed = extrude_speed;
                         communication->sendLineTo(path.config.type, path.points[point_idx], path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
                         gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config.type, update_extrusion_offset);
 
@@ -2278,6 +2366,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         gcode.setZ(std::round(z_ + layer_thickness_ * length / totalLength));
 
                         const double extrude_speed = speed * spiral_path.speed_back_pressure_factor;
+                        last_speed = extrude_speed;
                         communication->sendLineTo(
                             spiral_path.config.type,
                             spiral_path.points[point_idx],
