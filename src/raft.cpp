@@ -195,23 +195,19 @@ size_t Raft::getSurfaceLayers()
 
 Raft::LayerType Raft::getLayerType(LayerIndex layer_index)
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    const ExtruderTrain& base_train = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr");
-    const ExtruderTrain& interface_train = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr");
-    const ExtruderTrain& surface_train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
     const auto airgap = Raft::getFillerLayerCount();
-    const auto interface_layers = interface_train.settings_.get<size_t>("raft_interface_layers");
-    const auto surface_layers = surface_train.settings_.get<size_t>("raft_surface_layers");
+    const auto interface_layers = Raft::getInterfaceLayers();
+    const auto surface_layers = Raft::getSurfaceLayers();
 
     if (layer_index < -airgap - surface_layers - interface_layers)
     {
         return LayerType::RaftBase;
     }
-    if (layer_index < -airgap - surface_layers)
+    else if (layer_index < -airgap - surface_layers)
     {
         return LayerType::RaftInterface;
     }
-    if (layer_index < -airgap)
+    else if (layer_index < -airgap)
     {
         return LayerType::RaftSurface;
     }

@@ -1580,8 +1580,9 @@ std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
     const auto method = mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode");
     const auto prime_tower_enable = mesh_group_settings.get<bool>("prime_tower_enable");
     const LayerIndex raft_base_layer_nr = -Raft::getTotalExtraLayers();
+    Raft::LayerType layer_type = Raft::getLayerType(layer_nr);
 
-    if (layer_nr < 0 && layer_nr < raft_base_layer_nr + Raft::getBottomLayers())
+    if (layer_type == Raft::RaftBase)
     {
         // Raft base layers area treated apart because they don't have a proper prime tower
         const size_t raft_base_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_;
