@@ -150,7 +150,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         gcode.writeTravel(p, extruder_settings.get<Velocity>("speed_travel"));
     }
 
-
     calculateExtruderOrderPerLayer(storage);
     calculatePrimeLayerPerExtruder(storage);
 
@@ -743,6 +742,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
         }
 
+        endRaftLayer(storage, gcode_layer, layer_nr, current_extruder_nr, false);
+
         layer_plan_buffer.handle(gcode_layer, gcode);
     }
 
@@ -1090,17 +1091,17 @@ void FffGcodeWriter::startRaftLayer(const SliceDataStorage& storage, LayerPlan& 
     }
 }
 
-void FffGcodeWriter::endRaftLayer(const SliceDataStorage& storage, LayerPlan& gcode_layer, const LayerIndex layer_nr, size_t& current_extruder)
+void FffGcodeWriter::endRaftLayer(const SliceDataStorage& storage, LayerPlan& gcode_layer, const LayerIndex layer_nr, size_t& current_extruder, const bool append_to_prime_tower)
 {
     // If required, fill prime tower with current extruder
-    setExtruder_addPrime(storage, gcode_layer, current_extruder);
+    setExtruder_addPrime(storage, gcode_layer, current_extruder, append_to_prime_tower);
 
     // If required, fill prime tower for other extruders
     for (const ExtruderUse& extruder_use : getExtruderUse(layer_nr))
     {
-        if (! gcode_layer.getPrimeTowerIsPlanned(extruder_use.extruder_nr) && extruder_use.prime != ExtruderPrime::None)
+        if (! append_to_prime_tower || (! gcode_layer.getPrimeTowerIsPlanned(extruder_use.extruder_nr) && extruder_use.prime != ExtruderPrime::None))
         {
-            setExtruder_addPrime(storage, gcode_layer, extruder_use.extruder_nr);
+            setExtruder_addPrime(storage, gcode_layer, extruder_use.extruder_nr, append_to_prime_tower);
             current_extruder = extruder_use.extruder_nr;
         }
     }
@@ -1553,7 +1554,17 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
 
 void FffGcodeWriter::calculatePrimeLayerPerExtruder(const SliceDataStorage& storage)
 {
-    for (LayerIndex layer_nr = -Raft::getTotalExtraLayers(); layer_nr < static_cast<LayerIndex>(storage.print_layer_count); ++layer_nr)
+    LayerIndex first_print_layer = -Raft::getTotalExtraLayers();
+    for (size_t extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; ++extruder_nr)
+    {
+        if (getExtruderNeedPrimeBlobDuringFirstLayer(storage, extruder_nr))
+        {
+            // Extruders requiring a prime blob have to be primed at first layer
+            extruder_prime_layer_nr[extruder_nr] = std::min(extruder_prime_layer_nr[extruder_nr], first_print_layer);
+        }
+    }
+
+    for (LayerIndex layer_nr = first_print_layer; layer_nr < static_cast<LayerIndex>(storage.print_layer_count); ++layer_nr)
     {
         const std::vector<bool> used_extruders = storage.getExtrudersUsed(layer_nr);
         for (size_t extruder_nr = 0; extruder_nr < used_extruders.size(); ++extruder_nr)
@@ -3921,7 +3932,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     return true;
 }
 
-void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t extruder_nr) const
+void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t extruder_nr, const bool append_to_prime_tower) const
 {
     const size_t previous_extruder = gcode_layer.getExtruder();
     const bool extruder_changed = gcode_layer.setExtruder(extruder_nr);
@@ -3954,7 +3965,10 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
         }
     }
 
-    addPrimeTower(storage, gcode_layer, previous_extruder);
+    if (append_to_prime_tower)
+    {
+        addPrimeTower(storage, gcode_layer, previous_extruder);
+    }
 }
 
 void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t prev_extruder) const
