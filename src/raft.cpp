@@ -221,7 +221,7 @@ Raft::LayerType Raft::getLayerType(LayerIndex layer_index)
     }
 }
 
-size_t Raft::getLayersAmount(const std::string& extruder_nr, const std::string& layers_nr)
+size_t Raft::getLayersAmount(const std::string& extruder_nr_setting_name, const std::string& target_raft_section)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
@@ -229,8 +229,8 @@ size_t Raft::getLayersAmount(const std::string& extruder_nr, const std::string& 
         return 0;
     }
 
-    const ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>(extruder_nr);
-    return train.settings_.get<size_t>(layers_nr);
+    const ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>(extruder_nr_setting_name);
+    return train.settings_.get<size_t>(target_raft_section);
 }
 
 
