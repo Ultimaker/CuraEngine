@@ -170,10 +170,10 @@ coord_t Raft::getFillerLayerHeight()
 
 size_t Raft::getTotalExtraLayers()
 {
-    return getBottomLayers() + getInterfaceLayers() + getSurfaceLayers() + getFillerLayerCount();
+    return getBaseLayers() + getInterfaceLayers() + getSurfaceLayers() + getFillerLayerCount();
 }
 
-size_t Raft::getBottomLayers()
+size_t Raft::getBaseLayers()
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)

@@ -56,10 +56,10 @@ public:
     static size_t getTotalExtraLayers();
 
     /*!
-     *  \brief Get the amount of bottom for the raft interface.
-     *  \note This is currently hard-coded to 1 because we have yet no setting for the bottom
+     *  \brief Get the amount of layers for the raft base.
+     *  \note This is currently hard-coded to 1 because we have yet no setting for the base
      */
-    static size_t getBottomLayers();
+    static size_t getBaseLayers();
 
     /*! \brief Get the amount of layers for the raft interface. */
     static size_t getInterfaceLayers();
