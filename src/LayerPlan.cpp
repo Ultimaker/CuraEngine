@@ -2184,7 +2184,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             GCodePath& path = paths[path_idx];
             if (path.is_approach_move)
             {
-                gcode.writeTravelToSeam(Point2LL(gcode.getPosition().x_, gcode.getPosition().y_), path.config.getSpeed(), path.getExtrusionMM3perMM(), path.config.type);
+                gcode.writeTravelToSeam(Point2LL(gcode.getPosition().x_, gcode.getPosition().y_), path.config.getSpeed(), path.getExtrusionMM3perMM(), path.config.type_);
             }
 
             if (path.perform_prime)
@@ -2286,10 +2286,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     }
                 }
             }
-            const auto& extruder_changed = ! last_extrusion_config.has_value() || (last_extrusion_config.value().type != path.config.type);
+            const auto& extruder_changed = ! last_extrusion_config.has_value() || (last_extrusion_config.value().type_ != path.config.type_);
             if (! path.config.isTravelPath() && extruder_changed)
             {
-                gcode.writeTypeComment(path.config.type);
+                gcode.writeTypeComment(path.config.type_);
                 if (path.config.isBridgePath())
                 {
                     gcode.writeComment("BRIDGE");
@@ -2371,8 +2371,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         insertTempOnTime(time, path_idx);
 
                         const double extrude_speed = speed * path.speed_back_pressure_factor;
-                        communication->sendLineTo(path.config.type, path.points[point_idx], path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
-                        gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config.type, update_extrusion_offset);
+                        communication->sendLineTo(path.config.type_, path.points[point_idx], path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
+                        gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config.type_, update_extrusion_offset);
 
                         prev_point = path.points[point_idx];
                     }
@@ -2409,13 +2409,13 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
                         const double extrude_speed = speed * spiral_path.speed_back_pressure_factor;
                         communication->sendLineTo(
-                            spiral_path.config.type,
+                            spiral_path.config.type_,
                             spiral_path.points[point_idx],
                             spiral_path.getLineWidthForLayerView(),
                             spiral_path.config.getLayerThickness(),
                             extrude_speed);
                         // gcode.writeTravelToSeam(Point2LL(gcode.getPosition().x_, gcode.getPosition().y_), path.config.getSpeed(),path.getExtrusionMM3perMM(), path.config.type );
-                        gcode.writeExtrusion(spiral_path.points[point_idx], extrude_speed, spiral_path.getExtrusionMM3perMM(), spiral_path.config.type, update_extrusion_offset);
+                        gcode.writeExtrusion(spiral_path.points[point_idx], extrude_speed, spiral_path.getExtrusionMM3perMM(), spiral_path.config.type_, update_extrusion_offset);
                     }
                     // for layer display only - the loop finished at the seam vertex but as we started from
                     // the location of the previous layer's seam vertex the loop may have a gap if this layer's
@@ -2427,7 +2427,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     // the less the vertices are shifted and the less obvious is the ridge. If the layer display
                     // really displayed a spiral rather than slices of a spiral, this would not be required.
                     communication
-                        ->sendLineTo(spiral_path.config.type, spiral_path.points[0], spiral_path.getLineWidthForLayerView(), spiral_path.config.getLayerThickness(), speed);
+                        ->sendLineTo(spiral_path.config.type_, spiral_path.points[0], spiral_path.getLineWidthForLayerView(), spiral_path.config.getLayerThickness(), speed);
                 }
                 path_idx--; // the last path_idx didnt spiralize, so it's not part of the current spiralize path
             }
@@ -2614,13 +2614,13 @@ bool LayerPlan::writePathWithCoasting(
             auto [_, time] = extruder_plan.getPointToPointTime(prev_pt, path.points[point_idx], path);
             insertTempOnTime(time, path_idx);
 
-            communication->sendLineTo(path.config.type, path.points[point_idx], path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
-            gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config.type);
+            communication->sendLineTo(path.config.type_, path.points[point_idx], path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
+            gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config.type_);
 
             prev_pt = path.points[point_idx];
         }
-        communication->sendLineTo(path.config.type, start, path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
-        gcode.writeExtrusion(start, extrude_speed, path.getExtrusionMM3perMM(), path.config.type);
+        communication->sendLineTo(path.config.type_, start, path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
+        gcode.writeExtrusion(start, extrude_speed, path.getExtrusionMM3perMM(), path.config.type_);
     }
 
     // write coasting path
