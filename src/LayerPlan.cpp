@@ -76,8 +76,10 @@ const Shape* LayerPlan::getCombBoundaryInside() const
 void LayerPlan::forceNewPathStart()
 {
     std::vector<GCodePath>& paths = extruder_plans_.back().paths_;
-    if (paths.size() > 0)
-        paths[paths.size() - 1].done = true;
+    if (! paths.empty())
+    {
+        paths.back().done = true;
+    }
 }
 
 LayerPlan::LayerPlan(
@@ -374,19 +376,24 @@ void LayerPlan::addFirstWallTravel(const Point2LL& pos, const bool force_retract
 {
     const ExtruderTrain* extruder = getLastPlannedExtruderTrain();
     const Settings& mesh_or_extruder_settings = current_mesh_ ? current_mesh_->settings : extruder->settings_;
+    const coord_t z_seam_approach_distance = mesh_or_extruder_settings.get<coord_t>("z_seam_approach_distance");
 
-    if (next && (*next != pos))
+    if (z_seam_approach_distance != 0 && next && (*next != pos))
     {
         // First travel to intermediate position
         Point2LL direction = *next - pos;
         direction = (direction * 1000) / vSize(direction);
-        Point2LL approach_point = pos - direction * (mesh_or_extruder_settings.get<coord_t>("z_seam_approach_distance") / 1000);
+        Point2LL approach_point = pos - direction * (z_seam_approach_distance / 1000);
         addTravel(approach_point, force_retract);
-    }
-    // Add special travel to start of seam location so that it starts printing seamlessly
-    addTravelBeforeSeam(pos, config, SpaceFillType::Lines, flow, width_factor);
-}
 
+        // Add special travel to start of seam location so that it starts printing seamlessly
+        addTravelBeforeSeam(pos, config, SpaceFillType::Lines, flow, width_factor);
+    }
+    else
+    {
+        addTravel(pos, force_retract);
+    }
+}
 
 GCodePath& LayerPlan::addTravel(const Point2LL& pos, const bool force_retract, const coord_t z_offset)
 {
@@ -476,6 +483,7 @@ GCodePath& LayerPlan::addTravel(const Point2LL& pos, const bool force_retract, c
             }
 
             const coord_t maximum_travel_resolution = mesh_or_extruder_settings.get<coord_t>("meshfix_maximum_travel_resolution");
+            const coord_t z_seam_approach_distance = mesh_or_extruder_settings.get<coord_t>("z_seam_approach_distance");
             coord_t distance = 0;
             Point2LL last_point((last_planned_position_) ? *last_planned_position_ : Point2LL(0, 0));
             for (CombPath& combPath : combPaths)
@@ -502,7 +510,7 @@ GCodePath& LayerPlan::addTravel(const Point2LL& pos, const bool force_retract, c
             // This should be true when traveling towards an outer wall to make sure that the unretraction will happen before the
             // last travel move BEFORE going to that wall. This way, the nozzle doesn't sit still on top of the outer wall's
             // path while it is unretracting, avoiding possible blips.
-            path->unretract_before_last_travel_move = path->retract && unretract_before_last_travel_move;
+            path->unretract_before_last_travel_move = path->retract && unretract_before_last_travel_move && z_seam_approach_distance == 0;
         }
     }
 
@@ -588,24 +596,13 @@ void LayerPlan::addExtrusionMove(
     last_planned_position_ = p;
 }
 
-void LayerPlan::addTravelBeforeSeam(const Point2LL pos, GCodePathConfig config, const SpaceFillType space_fill_type, const Ratio& flow, const Ratio width_factor)
+void LayerPlan::addTravelBeforeSeam(const Point2LL& pos, GCodePathConfig config, const SpaceFillType space_fill_type, const Ratio flow, const Ratio width_factor)
 {
-    forceNewPathStart();
-
-    std::vector<GCodePath>& paths = extruder_plans_.back().paths_;
     config.setPrintFeatureType(cura::PrintFeatureType::MoveUnretraction);
 
-    paths.emplace_back(GCodePath{ .z_offset = 0,
-                                  .config = config,
-                                  .mesh = current_mesh_,
-                                  .space_fill_type = space_fill_type,
-                                  .flow = flow * 0,
-                                  .width_factor = width_factor,
-                                  .spiralize = false,
-                                  .is_approach_move = true });
-
-    paths.back().points.push_back(pos);
-    forceNewPathStart();
+    GCodePath* path = getLatestPathWithConfig(config, SpaceFillType::None);
+    path->points.push_back(pos);
+    last_planned_position_ = pos;
 }
 
 void LayerPlan::addPolygon(
@@ -703,8 +700,6 @@ void LayerPlan::addPolygonsByOptimizer(
 }
 
 static constexpr double max_non_bridge_line_volume = MM2INT(100); // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
-
-static int i = 0;
 
 void LayerPlan::addWallLine(
     const Point2LL& p0,
@@ -2182,11 +2177,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             cumulative_path_time = 0.; // reset to 0 for current path.
 
             GCodePath& path = paths[path_idx];
-            if (path.is_approach_move)
-            {
-                gcode.writeTravelToSeam(Point2LL(gcode.getPosition().x_, gcode.getPosition().y_), path.config.getSpeed(), path.getExtrusionMM3perMM(), path.config.type_);
-            }
-
             if (path.perform_prime)
             {
                 gcode.writePrimeTrain(extruder.settings_.get<Velocity>("speed_travel"));
@@ -2347,6 +2337,11 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 {
                     gcode.writeTravel(path.points.back(), speed);
                 }
+                continue;
+            }
+            else if (path.is_approach_move)
+            {
+                gcode.writeApproachToSeam(path.points.back(), path.config.getSpeed(), path.getExtrusionMM3perMM(), path.config.type_);
                 continue;
             }
 

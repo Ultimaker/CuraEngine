@@ -50,6 +50,7 @@ struct GCodePath
     double fan_speed{ GCodePathConfig::FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
     TimeMaterialEstimates estimates{}; //!< Naive time and material estimates
     bool is_approach_move{ false }; // Whether the current path needs unretracting while reaching the seam position
+
     /*!
      * Whether this config is the config of a travel path.
      *

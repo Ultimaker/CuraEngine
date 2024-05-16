@@ -885,10 +885,12 @@ Point2LL pointAtDistanceFromP0(const Point2LL& p0, const Point2LL& p1, coord_t d
 
     return Point2LL{ x, y };
 }
-void GCodeExport::writeTravelToSeam(const Point2LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
+
+void GCodeExport::writeApproachToSeam(const Point2LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
 {
     if (p != Point2LL{ current_position_.x_, current_position_.y_ })
-    { // Find length of filament needed to unretract
+    {
+        // Find length of filament needed to unretract
         if (extruder_attr_[current_extruder_].retraction_e_amount_current_)
         {
             // Convert to volume

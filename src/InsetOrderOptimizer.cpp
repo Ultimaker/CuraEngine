@@ -53,7 +53,6 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const std::vector<VariableWidthLines>& paths,
     const bool is_outer_shell,
     const Shape& disallowed_areas_for_seams)
-
     : gcode_writer_(gcode_writer)
     , storage_(storage)
     , gcode_layer_(gcode_layer)
@@ -148,7 +147,6 @@ bool InsetOrderOptimizer::addToLayer()
         const bool backwards = path.backwards_ != (revert_inset != revert_layer);
         const size_t start_index = (backwards != path.backwards_) ? path.vertices_->size() - (path.start_vertex_ + 1) : path.start_vertex_;
         const bool linked_path = ! path.is_closed_;
-
 
         gcode_layer_.setIsInside(true); // Going to print walls, which are always inside.
         gcode_layer_.addWall(
