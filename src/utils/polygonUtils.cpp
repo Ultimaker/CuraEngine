@@ -693,7 +693,7 @@ ClosestPointPolygon PolygonUtils::ensureInsideOrOutside(
                 bool overall_is_inside = polygons.inside(overall_inside.location_);
                 if (overall_is_inside != (preferred_dist_inside > 0))
                 {
-                    return ClosestPolygonPoint();
+                    return ClosestPointPolygon();
                 }
                 inside = overall_inside;
             }
