@@ -766,69 +766,75 @@ void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage
 {
     Scene& scene = Application::getInstance().current_slice_->scene;
     const size_t num_extruders = scene.extruders.size();
+    bool wait_start_extruder = false;
 
-    if (getFlavor() == EGCodeFlavor::GRIFFIN)
+    switch (getFlavor())
     {
-        processInitialLayerBedTemperature();
-
-        ExtruderTrain& train = scene.extruders[start_extruder_nr];
-        constexpr bool wait = true;
-        const Temperature print_temp_0 = train.settings_.get<Temperature>("material_print_temperature_layer_0");
-        const Temperature print_temp_here = (print_temp_0 != 0) ? print_temp_0 : train.settings_.get<Temperature>("material_print_temperature");
-        writeTemperatureCommand(start_extruder_nr, print_temp_here, wait);
-    }
-    else if (getFlavor() != EGCodeFlavor::ULTIGCODE)
-    {
+    case EGCodeFlavor::ULTIGCODE:
+        return;
+    case EGCodeFlavor::GRIFFIN:
+        wait_start_extruder = true;
+        break;
+    default:
         if (num_extruders > 1 || getFlavor() == EGCodeFlavor::REPRAP)
         {
             std::ostringstream tmp;
             tmp << "T" << start_extruder_nr;
             writeLine(tmp.str().c_str());
         }
+        break;
+    }
 
-        processInitialLayerBedTemperature();
+    processInitialLayerBedTemperature();
 
-        if (scene.current_mesh_group->settings.get<bool>("material_print_temp_prepend") || (scene.current_mesh_group != scene.mesh_groups.begin()))
+    std::vector<size_t> extruders_to_process;
+    extruders_to_process.push_back(start_extruder_nr);
+    if (scene.current_mesh_group->settings.get<bool>("material_print_temp_prepend") || (scene.current_mesh_group != scene.mesh_groups.begin()))
+    {
+        std::vector<bool> extruders_used = storage.getExtrudersUsed();
+        for (size_t extruder_nr = 0; extruder_nr < extruders_used.size(); ++extruder_nr)
         {
-            for (unsigned extruder_nr = 0; extruder_nr < num_extruders; extruder_nr++)
+            if (extruder_nr != start_extruder_nr && extruders_used[extruder_nr])
             {
-                if (storage.getExtrudersUsed()[extruder_nr])
-                {
-                    const ExtruderTrain& train = scene.extruders[extruder_nr];
-                    Temperature extruder_temp;
-                    if (extruder_nr == start_extruder_nr)
-                    {
-                        const Temperature print_temp_0 = train.settings_.get<Temperature>("material_print_temperature_layer_0");
-                        extruder_temp = (print_temp_0 != 0) ? print_temp_0 : train.settings_.get<Temperature>("material_print_temperature");
-                    }
-                    else
-                    {
-                        extruder_temp = train.settings_.get<Temperature>("material_standby_temperature");
-                    }
-                    writeTemperatureCommand(extruder_nr, extruder_temp);
-                }
+                extruders_to_process.push_back(extruder_nr);
             }
-            if (scene.current_mesh_group->settings.get<bool>("material_print_temp_wait"))
+        }
+    }
+
+    for (size_t extruder_nr : extruders_to_process)
+    {
+        const ExtruderTrain& train = scene.extruders[extruder_nr];
+        Temperature extruder_temp;
+        bool wait = false;
+        if (extruder_nr == start_extruder_nr)
+        {
+            const Temperature print_temp_0 = train.settings_.get<Temperature>("material_print_temperature_layer_0");
+            extruder_temp = (print_temp_0 != 0) ? print_temp_0 : train.settings_.get<Temperature>("material_print_temperature");
+            wait = wait_start_extruder;
+        }
+        else
+        {
+            extruder_temp = train.settings_.get<Temperature>("material_standby_temperature");
+        }
+        writeTemperatureCommand(extruder_nr, extruder_temp, wait);
+    }
+
+    if (scene.current_mesh_group->settings.get<bool>("material_print_temp_wait"))
+    {
+        for (size_t extruder_nr : extruders_to_process)
+        {
+            const ExtruderTrain& train = scene.extruders[extruder_nr];
+            Temperature extruder_temp;
+            if (extruder_nr == start_extruder_nr)
             {
-                for (unsigned extruder_nr = 0; extruder_nr < num_extruders; extruder_nr++)
-                {
-                    if (storage.getExtrudersUsed()[extruder_nr])
-                    {
-                        const ExtruderTrain& train = scene.extruders[extruder_nr];
-                        Temperature extruder_temp;
-                        if (extruder_nr == start_extruder_nr)
-                        {
-                            const Temperature print_temp_0 = train.settings_.get<Temperature>("material_print_temperature_layer_0");
-                            extruder_temp = (print_temp_0 != 0) ? print_temp_0 : train.settings_.get<Temperature>("material_print_temperature");
-                        }
-                        else
-                        {
-                            extruder_temp = train.settings_.get<Temperature>("material_standby_temperature");
-                        }
-                        writeTemperatureCommand(extruder_nr, extruder_temp, true);
-                    }
-                }
+                const Temperature print_temp_0 = train.settings_.get<Temperature>("material_print_temperature_layer_0");
+                extruder_temp = (print_temp_0 != 0) ? print_temp_0 : train.settings_.get<Temperature>("material_print_temperature");
             }
+            else
+            {
+                extruder_temp = train.settings_.get<Temperature>("material_standby_temperature");
+            }
+            writeTemperatureCommand(extruder_nr, extruder_temp, true);
         }
     }
 }
