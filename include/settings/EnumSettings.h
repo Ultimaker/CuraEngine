@@ -275,7 +275,7 @@ enum class BrimLocation
 /*!
  * Convenience binary operator to allow testing brim location easily, like (actual_location & BrimLocation::OUTSIDE)
  */
-static int operator&(BrimLocation location1, BrimLocation location2)
+[[maybe_unused]] static int operator&(BrimLocation location1, BrimLocation location2)
 {
     return static_cast<int>(location1) & static_cast<int>(location2);
 }

@@ -9,8 +9,11 @@
 #include <optional>
 #include <vector>
 
-#include "../utils/polygon.h"
-#include "../utils/polygonUtils.h"
+#include "geometry/LinesSet.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/Polygon.h"
+#include "geometry/Shape.h"
+#include "utils/polygonUtils.h"
 
 namespace cura
 {
@@ -98,7 +101,7 @@ public:
      */
     void propagateToNextLayer(
         std::vector<LightningTreeNodeSPtr>& next_trees,
-        const Polygons& next_outlines,
+        const Shape& next_outlines,
         const LocToLineGrid& outline_locator,
         const coord_t prune_distance,
         const coord_t smooth_magnitude,
@@ -200,7 +203,7 @@ protected:
     /*! Reconnect trees from the layer above to the new outlines of the lower layer.
      * \return Wether or not the root is kept (false is no, true is yes).
      */
-    bool realign(const Polygons& outlines, const LocToLineGrid& outline_locator, std::vector<LightningTreeNodeSPtr>& rerooted_parts);
+    bool realign(const Shape& outlines, const LocToLineGrid& outline_locator, std::vector<LightningTreeNodeSPtr>& rerooted_parts);
 
     struct RectilinearJunction
     {
@@ -239,7 +242,7 @@ public:
      *
      * \param output all branches in this tree connected into polylines
      */
-    void convertToPolylines(Polygons& output, const coord_t line_width) const;
+    void convertToPolylines(OpenLinesSet& output, const coord_t line_width) const;
 
     /*! If this was ever a direct child of the root, it'll have a previous grounding location.
      *
@@ -258,9 +261,9 @@ protected:
      * \param long_line a reference to a polyline in \p output which to continue building on in the recursion
      * \param output all branches in this tree connected into polylines
      */
-    void convertToPolylines(size_t long_line_idx, Polygons& output) const;
+    void convertToPolylines(size_t long_line_idx, OpenLinesSet& output) const;
 
-    void removeJunctionOverlap(Polygons& polylines, const coord_t line_width) const;
+    void removeJunctionOverlap(OpenLinesSet& polylines, const coord_t line_width) const;
 
     bool is_root_;
     Point2LL p_;

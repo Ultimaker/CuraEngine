@@ -18,10 +18,8 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
-#include "FffProcessor.h"
 #include "communication/ArcusCommunication.h" //To connect via Arcus to the front-end.
 #include "communication/CommandLine.h" //To use the command line to slice stuff.
-#include "plugins/slots.h"
 #include "progress/Progress.h"
 #include "utils/ThreadPool.h"
 #include "utils/string.h" //For stringcasecompare.

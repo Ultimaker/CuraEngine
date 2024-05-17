@@ -1,9 +1,10 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef PATHORDEROPTIMIZER_H
 #define PATHORDEROPTIMIZER_H
 
+#include <numbers>
 #include <unordered_set>
 
 #include <range/v3/algorithm/partition_copy.hpp>
@@ -15,10 +16,9 @@
 #include <range/v3/view/reverse.hpp>
 #include <spdlog/spdlog.h>
 
-#include "InsetOrderOptimizer.h" // for makeOrderIncludeTransitive
-#include "PathOrdering.h"
 #include "pathPlanning/CombPath.h" //To calculate the combing distance if we want to use combing.
 #include "pathPlanning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
+#include "path_ordering.h"
 #include "settings/EnumSettings.h" //To get the seam settings.
 #include "settings/ZSeamConfig.h" //To read the seam configuration.
 #include "utils/linearAlg2D.h" //To find the angle of corners to hide seams.
@@ -62,7 +62,7 @@ class PathOrderOptimizer
 public:
     using OrderablePath = PathOrdering<Path>;
     /* Areas defined here are not allowed to have the start the prints */
-    Polygons disallowed_area_for_seams;
+    Shape disallowed_area_for_seams;
     /*!
      * After optimizing, this contains the paths that need to be printed in the
      * correct order.
@@ -109,11 +109,11 @@ public:
         const Point2LL& start_point,
         const ZSeamConfig seam_config = ZSeamConfig(),
         const bool detect_loops = false,
-        const Polygons* combing_boundary = nullptr,
+        const Shape* combing_boundary = nullptr,
         const bool reverse_direction = false,
         const std::unordered_multimap<Path, Path>& order_requirements = no_order_requirements_,
         const bool group_outer_walls = false,
-        const Polygons& disallowed_areas_for_seams = {})
+        const Shape& disallowed_areas_for_seams = {})
         : start_point_(start_point)
         , seam_config_(seam_config)
         , combing_boundary_((combing_boundary != nullptr && ! combing_boundary->empty()) ? combing_boundary : nullptr)
@@ -162,7 +162,7 @@ public:
         // Get the vertex data and store it in the paths.
         for (auto& path : paths_)
         {
-            path.converted_ = path.getVertexData();
+            path.converted_ = &path.getVertexData();
             vertices_to_paths_.emplace(path.vertices_, &path);
         }
 
@@ -262,7 +262,7 @@ protected:
     /*!
      * Boundary to avoid when making travel moves.
      */
-    const Polygons* combing_boundary_;
+    const Shape* combing_boundary_;
 
     /*!
      * Whether to check polylines to see if they are closed, before optimizing.
@@ -407,7 +407,7 @@ protected:
             }
 
             auto local_current_position = current_position;
-            while (candidates.size() != 0)
+            while (! candidates.empty())
             {
                 Path best_candidate = findClosestPathVertices(local_current_position, candidates);
 
@@ -684,10 +684,7 @@ protected:
             {
                 return path.converted_->size() - 1; // Back end is closer.
             }
-            else
-            {
-                return 0; // Front end is closer.
-            }
+            return 0; // Front end is closer.
         }
 
         // Rest of the function only deals with (closed) polygons. We need to be able to find the seam location of those polygons.
@@ -712,7 +709,7 @@ protected:
 
         size_t best_i;
         double best_score = std::numeric_limits<double>::infinity();
-        for (const auto& [i, here] : **path.converted_ | ranges::views::drop_last(1) | ranges::views::enumerate)
+        for (const auto& [i, here] : *path.converted_ | ranges::views::drop_last(1) | ranges::views::enumerate)
         {
             // For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
             // For SHARPEST_CORNER, use a fixed starting score of 0.
@@ -940,7 +937,7 @@ protected:
      * \param polygon A polygon to get a random vertex of.
      * \return A random index in that polygon.
      */
-    size_t getRandomPointInPolygon(ConstPolygonRef const& polygon) const
+    size_t getRandomPointInPolygon(const PointsSet& polygon) const
     {
         return rand() % polygon.size();
     }

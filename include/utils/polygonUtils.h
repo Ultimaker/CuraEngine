@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_POLYGON_UTILS_H
@@ -7,12 +7,13 @@
 #include <functional> // function
 #include <limits>
 #include <memory> // unique_ptr
+#include <numbers>
 #include <optional>
 
 #include "PolygonsPointIndex.h"
 #include "SparseLineGrid.h"
 #include "SparsePointGridInclusive.h"
-#include "polygon.h"
+#include "geometry/Polygon.h"
 
 namespace cura
 {
@@ -20,14 +21,15 @@ namespace cura
 /*!
  * Result of finding the closest point to a given within a set of polygons, with extra information on where the point is.
  */
-struct ClosestPolygonPoint
+template<class LineType>
+struct ClosestPoint
 {
     Point2LL location_; //!< Result location
-    ConstPolygonPointer poly_; //!< Polygon in which the result was found (or nullptr if no result was found)
-    size_t poly_idx_; //!< The index of the polygon in some Polygons where ClosestPolygonPoint::poly can be found
+    const LineType* poly_{ nullptr }; //!< Line in which the result was found (or nullptr if no result was found)
+    size_t poly_idx_; //!< The index of the polygon in some Polygons where ClosestPoint::poly can be found
     size_t point_idx_; //!< Index to the first point in the polygon of the line segment on which the result was found
 
-    ClosestPolygonPoint(Point2LL p, size_t pos, ConstPolygonRef poly)
+    ClosestPoint(Point2LL p, size_t pos, const LineType* poly)
         : location_(p)
         , poly_(poly)
         , poly_idx_(NO_INDEX)
@@ -35,7 +37,7 @@ struct ClosestPolygonPoint
     {
     }
 
-    ClosestPolygonPoint(Point2LL p, size_t pos, ConstPolygonRef poly, size_t poly_idx)
+    ClosestPoint(Point2LL p, size_t pos, const LineType* poly, size_t poly_idx)
         : location_(p)
         , poly_(poly)
         , poly_idx_(poly_idx)
@@ -43,14 +45,14 @@ struct ClosestPolygonPoint
     {
     }
 
-    ClosestPolygonPoint(ConstPolygonRef poly)
+    ClosestPoint(const LineType* poly)
         : poly_(poly)
         , poly_idx_(NO_INDEX)
         , point_idx_(NO_INDEX)
     {
     }
 
-    ClosestPolygonPoint()
+    ClosestPoint()
         : poly_idx_(NO_INDEX)
         , point_idx_(NO_INDEX)
     {
@@ -66,7 +68,7 @@ struct ClosestPolygonPoint
         return point_idx_ != NO_INDEX;
     }
 
-    bool operator==(const ClosestPolygonPoint& rhs) const
+    bool operator==(const ClosestPoint& rhs) const
     {
         // no need to compare on poy_idx
         // it's sometimes unused while poly is always initialized
@@ -74,14 +76,16 @@ struct ClosestPolygonPoint
     }
 };
 
+using ClosestPointPolygon = ClosestPoint<Polygon>;
+
 } // namespace cura
 
 namespace std
 {
 template<>
-struct hash<cura::ClosestPolygonPoint>
+struct hash<cura::ClosestPointPolygon>
 {
-    size_t operator()(const cura::ClosestPolygonPoint& cpp) const
+    size_t operator()(const cura::ClosestPointPolygon& cpp) const
     {
         return std::hash<cura::Point2LL>()(cpp.p());
     }
@@ -147,14 +151,14 @@ public:
      * \param n_dots number of dots to spread out
      * \param result Where to store the generated points
      */
-    static void spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, unsigned int n_dots, std::vector<ClosestPolygonPoint>& result);
+    static void spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, unsigned int n_dots, std::vector<ClosestPointPolygon>& result);
 
     /*!
      * Generate a grid of dots inside of the area of the \p polygons.
      */
-    static std::vector<Point2LL> spreadDotsArea(const Polygons& polygons, coord_t grid_size);
+    static std::vector<Point2LL> spreadDotsArea(const Shape& polygons, coord_t grid_size);
 
-    static std::vector<Point2LL> spreadDotsArea(const Polygons& polygons, Point2LL grid_size);
+    static std::vector<Point2LL> spreadDotsArea(const Shape& polygons, Point2LL grid_size);
 
     /*!
      * Whether a polygon intersects with a line-segment. If true, the closest collision point to 'b' is stored in the result.
@@ -162,7 +166,7 @@ public:
     static bool lineSegmentPolygonsIntersection(
         const Point2LL& a,
         const Point2LL& b,
-        const Polygons& current_outlines,
+        const Shape& current_outlines,
         const LocToLineGrid& outline_locator,
         Point2LL& result,
         const coord_t within_max_dist);
@@ -175,7 +179,7 @@ public:
      * \param poly The polygon.
      * \param point_idx The index of the point in the polygon.
      */
-    static Point2LL getVertexInwardNormal(ConstPolygonRef poly, unsigned int point_idx);
+    static Point2LL getVertexInwardNormal(const Polyline& poly, unsigned int point_idx);
 
     /*!
      * Get a point from the \p poly with a given \p offset.
@@ -185,7 +189,7 @@ public:
      * \param offset The distance the point has to be moved outward from the polygon.
      * \return A point at the given distance inward from the point on the boundary polygon.
      */
-    static Point2LL getBoundaryPointWithOffset(ConstPolygonRef poly, unsigned int point_idx, int64_t offset);
+    static Point2LL getBoundaryPointWithOffset(const Polyline& poly, unsigned int point_idx, int64_t offset);
 
     /*!
      * Move a point away from the boundary by looking at the boundary normal of the nearest vert.
@@ -193,7 +197,7 @@ public:
      * \param point_on_boundary The object holding the point on the boundary along with the information of which line segment the point is on.
      * \param offset The distance the point has to be moved inward from the polygon.
      */
-    static Point2LL moveInsideDiagonally(ClosestPolygonPoint point_on_boundary, int64_t inset);
+    static Point2LL moveInsideDiagonally(ClosestPointPolygon point_on_boundary, int64_t inset);
 
     /*!
      * Moves the point \p from onto the nearest polygon or leaves the point as-is, when the comb boundary is not within the root of \p max_dist2 distance.
@@ -207,7 +211,7 @@ public:
      * \param max_dist2 The squared maximal allowed distance from the point to the nearest polygon.
      * \return The index to the polygon onto which we have moved the point.
      */
-    static size_t moveInside(const Polygons& polygons, Point2LL& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
+    static size_t moveInside(const Shape& polygons, Point2LL& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
 
     /**
      * \brief Moves the point \p from onto the nearest polygon or leaves the
@@ -225,7 +229,7 @@ public:
      * the polygon.
      * \return Always returns 0.
      */
-    static unsigned int moveInside(const ConstPolygonRef polygon, Point2LL& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
+    static unsigned int moveInside(const ClosedPolyline& polygon, Point2LL& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
 
     /*!
      * Moves the point \p from onto the nearest polygon or leaves the point as-is, when the comb boundary is not within the root of \p max_dist2 distance.
@@ -235,7 +239,7 @@ public:
      *
      * \warning If \p loc_to_line_grid is used, it's best to have all and only \p polygons in there.
      * If \p from is not closest to \p polygons this function may
-     * return a ClosestPolygonPoint on a polygon in \p loc_to_line_grid which is not in \p polygons.
+     * return a ClosestPointPolygon on a polygon in \p loc_to_line_grid which is not in \p polygons.
      *
      * \param polygons The polygons onto which to move the point
      * \param from[in,out] The point to move.
@@ -246,12 +250,12 @@ public:
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      * \return The point on the polygon closest to \p from
      */
-    static ClosestPolygonPoint moveInside2(
-        const Polygons& polygons,
+    static ClosestPointPolygon moveInside2(
+        const Shape& polygons,
         Point2LL& from,
         const int distance = 0,
         const int64_t max_dist2 = std::numeric_limits<int64_t>::max(),
-        const Polygons* loc_to_line_polygons = nullptr,
+        const Shape* loc_to_line_polygons = nullptr,
         const LocToLineGrid* loc_to_line_grid = nullptr,
         const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
 
@@ -274,9 +278,9 @@ public:
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      * \return The point on the polygon closest to \p from
      */
-    static ClosestPolygonPoint moveInside2(
-        const Polygons& loc_to_line_polygons,
-        ConstPolygonRef polygon,
+    static ClosestPointPolygon moveInside2(
+        const Shape& loc_to_line_polygons,
+        const Polygon& polygon,
         Point2LL& from,
         const int distance = 0,
         const int64_t max_dist2 = std::numeric_limits<int64_t>::max(),
@@ -298,7 +302,7 @@ public:
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      * \return The index to the polygon onto which we have moved the point.
      */
-    static unsigned int moveOutside(const Polygons& polygons, Point2LL& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
+    static unsigned int moveOutside(const Shape& polygons, Point2LL& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
 
     /*!
      * Compute a point at a distance from a point on the boundary in orthogonal direction to the boundary.
@@ -308,7 +312,7 @@ public:
      * \param distance The distance by which to move the point.
      * \return A point at a \p distance from the point in \p cpp orthogonal to the boundary there.
      */
-    static Point2LL moveInside(const ClosestPolygonPoint& cpp, const int distance);
+    static Point2LL moveInside(const ClosestPointPolygon& cpp, const int distance);
 
     /*!
      * The opposite of moveInside.
@@ -320,7 +324,7 @@ public:
      * \param distance The distance by which to move the point.
      * \return A point at a \p distance from the point in \p cpp orthogonal to the boundary there.
      */
-    static Point2LL moveOutside(const ClosestPolygonPoint& cpp, const int distance);
+    static Point2LL moveOutside(const ClosestPointPolygon& cpp, const int distance);
 
     /*!
      * Moves the point \p from onto the nearest polygon or leaves the point as-is, when the comb boundary is not within \p distance.
@@ -345,12 +349,12 @@ public:
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      * \return The point on the polygon closest to \p from
      */
-    static ClosestPolygonPoint ensureInsideOrOutside(
-        const Polygons& polygons,
+    static ClosestPointPolygon ensureInsideOrOutside(
+        const Shape& polygons,
         Point2LL& from,
         int preferred_dist_inside,
         int64_t max_dist2 = std::numeric_limits<int64_t>::max(),
-        const Polygons* loc_to_line_polygons = nullptr,
+        const Shape* loc_to_line_polygons = nullptr,
         const LocToLineGrid* loc_to_line_grid = nullptr,
         const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
 
@@ -377,12 +381,12 @@ public:
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      * \return The point on the polygon closest to \p from
      */
-    static ClosestPolygonPoint ensureInsideOrOutside(
-        const Polygons& polygons,
+    static ClosestPointPolygon ensureInsideOrOutside(
+        const Shape& polygons,
         Point2LL& from,
-        const ClosestPolygonPoint& closest_polygon_point,
+        const ClosestPointPolygon& closest_polygon_point,
         int preferred_dist_inside,
-        const Polygons* loc_to_line_polygons = nullptr,
+        const Shape* loc_to_line_polygons = nullptr,
         const LocToLineGrid* loc_to_line_grid = nullptr,
         const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
 
@@ -390,7 +394,7 @@ public:
      *
      * \warning Assumes \p poly1_result and \p poly2_result have their pos and poly fields initialized!
      */
-    static void walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result);
+    static void walkToNearestSmallestConnection(ClosestPointPolygon& poly1_result, ClosestPointPolygon& poly2_result);
 
     /*!
      * Find the nearest closest point on a polygon from a given index.
@@ -400,7 +404,7 @@ public:
      * \param start_idx The index of the point in the polygon from which to start looking.
      * \return The nearest point from \p start_idx going along the \p polygon (in both directions) with a locally minimal distance to \p from.
      */
-    static ClosestPolygonPoint findNearestClosest(Point2LL from, ConstPolygonRef polygon, int start_idx);
+    static ClosestPointPolygon findNearestClosest(Point2LL from, const Polygon& polygon, int start_idx);
 
     /*!
      * Find the nearest closest point on a polygon from a given index walking in one direction along the polygon.
@@ -411,7 +415,7 @@ public:
      * \param direction The direction to walk: 1 for walking along the \p polygon, -1 for walking in opposite direction
      * \return The nearest point from \p start_idx going along the \p polygon with a locally minimal distance to \p from.
      */
-    static ClosestPolygonPoint findNearestClosest(const Point2LL from, ConstPolygonRef polygon, int start_idx, int direction);
+    static ClosestPointPolygon findNearestClosest(const Point2LL from, const Polygon& polygon, int start_idx, int direction);
 
     /*!
      * Find the point closest to \p from in all polygons in \p polygons.
@@ -420,7 +424,7 @@ public:
      *
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      */
-    static ClosestPolygonPoint findClosest(Point2LL from, const Polygons& polygons, const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
+    static ClosestPointPolygon findClosest(Point2LL from, const Shape& polygons, const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
 
     /*!
      * Find the point closest to \p from in the polygon \p polygon.
@@ -429,7 +433,7 @@ public:
      *
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      */
-    static ClosestPolygonPoint findClosest(Point2LL from, ConstPolygonRef polygon, const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
+    static ClosestPointPolygon findClosest(Point2LL from, const Polygon& polygon, const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
 
     /*!
      * Find the nearest vertex to \p from in \p polys
@@ -437,7 +441,7 @@ public:
      * \param polys The polygons in which to search
      * \return The nearest vertex on the polygons
      */
-    static PolygonsPointIndex findNearestVert(const Point2LL from, const Polygons& polys);
+    static PolygonsPointIndex findNearestVert(const Point2LL from, const Shape& polys);
 
     /*!
      * Find the nearest vertex to \p from in \p poly
@@ -445,7 +449,7 @@ public:
      * \param poly The polygon in which to search
      * \return The index to the nearest vertex on the polygon
      */
-    static unsigned int findNearestVert(const Point2LL from, ConstPolygonRef poly);
+    static unsigned int findNearestVert(const Point2LL from, const Polygon& poly);
 
     /*!
      * Create a SparsePointGridInclusive mapping from locations to line segments occurring in the \p polygons
@@ -456,7 +460,7 @@ public:
      * \param square_size The cell size used to bundle line segments (also used to chop up lines so that multiple cells contain the same long line)
      * \return A bucket grid mapping spatial locations to poly-point indices into \p polygons
      */
-    static std::unique_ptr<LocToLineGrid> createLocToLineGrid(const Polygons& polygons, int square_size);
+    static std::unique_ptr<LocToLineGrid> createLocToLineGrid(const Shape& polygons, int square_size);
 
     /*!
      * Find the line segment closest to a given point \p from within a cell-block of a size defined in the SparsePointGridInclusive \p loc_to_line
@@ -470,8 +474,8 @@ public:
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      * \return The nearest point on the polygon if the polygon was within a distance equal to the cell_size of the SparsePointGridInclusive
      */
-    static std::optional<ClosestPolygonPoint>
-        findClose(Point2LL from, const Polygons& polygons, const LocToLineGrid& loc_to_line, const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
+    static std::optional<ClosestPointPolygon>
+        findClose(Point2LL from, const Shape& polygons, const LocToLineGrid& loc_to_line, const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
 
     /*!
      * Find the line segment closest to any point on \p from within cell-blocks of a size defined in the SparsePointGridInclusive \p destination_loc_to_line
@@ -486,9 +490,9 @@ public:
      * \return A collection of near crossing from the \p from polygon to the \p destination polygon. Each element in the sollection is a pair with as first a cpp in the \p from
      * polygon and as second a cpp in the \p destination polygon.
      */
-    static std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findClose(
-        ConstPolygonRef from,
-        const Polygons& destination,
+    static std::vector<std::pair<ClosestPointPolygon, ClosestPointPolygon>> findClose(
+        const Polygon& from,
+        const Shape& destination,
         const LocToLineGrid& destination_loc_to_line,
         const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
 
@@ -517,12 +521,13 @@ public:
      * \param start_idx the index of the prev poly point on the poly.
      * \param poly_start_idx The index of the point in the polygon which is to be handled as the start of the polygon. No point further than this point will be the result.
      */
-    static bool getNextPointWithDistance(Point2LL from, int64_t dist, ConstPolygonRef poly, int start_idx, int poly_start_idx, GivenDistPoint& result);
+    static bool getNextPointWithDistance(Point2LL from, int64_t dist, const OpenPolyline& poly, int start_idx, int poly_start_idx, GivenDistPoint& result);
 
     /*!
      * Walk a given \p distance along the polygon from a given point \p from on the polygon
      */
-    static ClosestPolygonPoint walk(const ClosestPolygonPoint& from, coord_t distance);
+    template<class LineType>
+    static ClosestPoint<LineType> walk(const ClosestPoint<LineType>& from, coord_t distance);
 
     /*!
      * Get the point on a polygon which intersects a line parallel to a line going through the starting point and through another point.
@@ -536,7 +541,7 @@ public:
      * \param forward Whether to look forward from \p start in the direction of the polygon, or go in the other direction.
      * \return The earliest point on the polygon in the given direction which crosses a line parallel to the given one at the distance \p dist - if any
      */
-    static std::optional<ClosestPolygonPoint> getNextParallelIntersection(const ClosestPolygonPoint& start, const Point2LL& line_to, const coord_t dist, const bool forward);
+    static std::optional<ClosestPointPolygon> getNextParallelIntersection(const ClosestPointPolygon& start, const Point2LL& line_to, const coord_t dist, const bool forward);
 
     /*!
      * Checks whether a given line segment collides with a given polygon(s).
@@ -559,7 +564,7 @@ public:
      * polygon(s)
      */
     static bool
-        polygonCollidesWithLineSegment(ConstPolygonRef poly, const Point2LL& transformed_startPoint, const Point2LL& transformed_endPoint, PointMatrix transformation_matrix);
+        polygonCollidesWithLineSegment(const Polygon& poly, const Point2LL& transformed_startPoint, const Point2LL& transformed_endPoint, PointMatrix transformation_matrix);
 
     /*!
      * Checks whether a given line segment collides with a given polygon(s).
@@ -575,7 +580,7 @@ public:
      * \return whether the line segment collides with the boundary of the
      * polygon(s)
      */
-    static bool polygonCollidesWithLineSegment(ConstPolygonRef poly, const Point2LL& startPoint, const Point2LL& endPoint);
+    static bool polygonCollidesWithLineSegment(const Polygon& poly, const Point2LL& startPoint, const Point2LL& endPoint);
 
     /*!
      * Checks whether a given line segment collides with a given polygon(s).
@@ -597,8 +602,7 @@ public:
      * \return whether the line segment collides with the boundary of the
      * polygon(s)
      */
-    static bool
-        polygonCollidesWithLineSegment(const Polygons& polys, const Point2LL& transformed_startPoint, const Point2LL& transformed_endPoint, PointMatrix transformation_matrix);
+    static bool polygonCollidesWithLineSegment(const Shape& polys, const Point2LL& transformed_startPoint, const Point2LL& transformed_endPoint, PointMatrix transformation_matrix);
 
     /*!
      * Checks whether a given line segment collides with a given polygon(s).
@@ -614,7 +618,7 @@ public:
      * \return whether the line segment collides with the boundary of the
      * polygon(s)
      */
-    static bool polygonCollidesWithLineSegment(const Polygons& polys, const Point2LL& startPoint, const Point2LL& endPoint);
+    static bool polygonCollidesWithLineSegment(const Shape& polys, const Point2LL& startPoint, const Point2LL& endPoint);
 
     /*!
      * Checks whether two polygon groups intersect - does a BB hit check first and if that succeeds, the full intersection
@@ -623,7 +627,7 @@ public:
      * \param poly_b Another polygon group
      * \return true if \p poly_a and \p poly_b intersect, false otherwise
      */
-    static bool polygonsIntersect(const ConstPolygonRef& poly_a, const ConstPolygonRef& poly_b);
+    static bool polygonsIntersect(const Polygon& poly_a, const Polygon& poly_b);
 
     /*!
      * Checks whether two polygons are adjacent (closer than \p max_gap)
@@ -633,7 +637,7 @@ public:
      * \param[in] max_gap Polygons must be closer together than this distance to be considered adjacent.
      * \return true if a vertex in \p inner_poly is sufficiently close to a line in \p outer_poly, false otherwise
      */
-    static bool polygonOutlinesAdjacent(const ConstPolygonRef inner_poly, const ConstPolygonRef outer_poly, const coord_t max_gap);
+    static bool polygonOutlinesAdjacent(const Polygon& inner_poly, const Polygon& outer_poly, const coord_t max_gap);
 
     /*!
      * Searches \p possible_adjacent_polys for polygons that are closer to \p poly than \p max_gap. The indices of adjacent polygons are stored in \p adjacent_poly_indices.
@@ -643,11 +647,8 @@ public:
      * \param[in] possible_adjacent_polys The vector of polygons we are testing.
      * \param[in] max_gap Polygons must be closer together than this distance to be considered adjacent.
      */
-    static void findAdjacentPolygons(
-        std::vector<unsigned>& adjacent_poly_indices,
-        const ConstPolygonRef& poly,
-        const std::vector<ConstPolygonPointer>& possible_adjacent_polys,
-        const coord_t max_gap);
+    static void
+        findAdjacentPolygons(std::vector<unsigned>& adjacent_poly_indices, const Polygon& poly, const std::vector<const Polygon*>& possible_adjacent_polys, const coord_t max_gap);
 
     /*!
      * Calculate the Hamming Distance between two polygons relative to their own
@@ -662,7 +663,7 @@ public:
      * two polygons. This will be between 0.0 (the polygons are exactly equal)
      * and 1.0 (the polygons are completely disjunct).
      */
-    static double relativeHammingDistance(const Polygons& poly_a, const Polygons& poly_b);
+    static double relativeHammingDistance(const Shape& poly_a, const Shape& poly_b);
 
     /*!
      * Create an approximation of a circle.
@@ -691,11 +692,11 @@ public:
     /*!
      * Connect all polygons to their holes using zero widths hole channels, so that the polygons and their outlines are connected together
      */
-    static Polygons connect(const Polygons& input);
+    static Shape connect(const Shape& input);
 
-    static void fixSelfIntersections(const coord_t epsilon, Polygons& thiss);
+    static void fixSelfIntersections(const coord_t epsilon, Shape& polygon);
 
-    static Polygons unionManySmall(const Polygons& p);
+    static Shape unionManySmall(const Shape& polygon);
 
 
     /*!
@@ -704,7 +705,7 @@ public:
      * \param aabb The AABB with which the polygon that has to be intersected with
      * \return A new Polygon that is said intersection
      */
-    static Polygons clipPolygonWithAABB(const Polygons& src, const AABB& aabb);
+    static Shape clipPolygonWithAABB(const Shape& src, const AABB& aabb);
 
     /*!
      * Generate a few outset polygons around the given base, according to the given line width
@@ -714,7 +715,7 @@ public:
      * \param line_width The actual line width to distance the polygons from each other (and from the base)
      * \return The generated outset polygons
      */
-    static Polygons generateOutset(const Polygons& inner_poly, size_t count, coord_t line_width);
+    static Shape generateOutset(const Shape& inner_poly, size_t count, coord_t line_width);
 
     /*!
      * Generate inset polygons inside the given base, until there is no space left, according to the given line width
@@ -724,20 +725,20 @@ public:
      * \param initial_inset The inset distance to be added to the first generated polygon
      * \return The generated inset polygons
      */
-    static Polygons generateInset(const Polygons& outer_poly, coord_t line_width, coord_t initial_inset = 0);
+    static Shape generateInset(const Shape& outer_poly, coord_t line_width, coord_t initial_inset = 0);
 
 private:
     /*!
      * Helper function for PolygonUtils::moveInside2: moves a point \p from which was moved onto \p closest_polygon_point towards inside/outside when it's not already
      * inside/outside by enough distance.
      *
-     * \param closest_polygon_point The ClosestPolygonPoint we have to move inside
+     * \param closest_polygon_point The ClosestPointPolygon we have to move inside
      * \param distance The distance by which to move the point.
      * \param from[in,out] The point to move.
      * \param max_dist2 The squared maximal allowed distance from the point to the nearest polygon.
      * \return The point on the polygon closest to \p from
      */
-    static ClosestPolygonPoint _moveInside2(const ClosestPolygonPoint& closest_polygon_point, const int distance, Point2LL& from, const int64_t max_dist2);
+    static ClosestPointPolygon _moveInside2(const ClosestPointPolygon& closest_polygon_point, const int distance, Point2LL& from, const int64_t max_dist2);
 };
 
 

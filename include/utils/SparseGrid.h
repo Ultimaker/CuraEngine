@@ -10,8 +10,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "Point2LL.h"
 #include "SquareGrid.h"
+#include "geometry/Point2LL.h"
 
 namespace cura
 {

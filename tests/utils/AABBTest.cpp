@@ -2,9 +2,13 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/AABB.h"
-#include "utils/polygon.h"
-#include <gtest/gtest.h>
+
 #include <polyclipping/clipper.hpp>
+
+#include <gtest/gtest.h>
+
+#include "geometry/Polygon.h"
+#include "geometry/Shape.h"
 
 namespace cura
 {
@@ -34,15 +38,18 @@ TEST(AABBTest, TestConstructPoint)
 
 TEST(AABBTest, TestConstructPolygons)
 {
-    Polygons empty_polygon;
+    Shape empty_polygon;
     AABB polygons_box_a(empty_polygon);
 
     EXPECT_FALSE(polygons_box_a.contains(Point2LL(0, 0))) << "Box constructed from empty polygon shouldn't contain anything.";
 
-    Polygons polygons;
-    polygons.add(Polygon(ClipperLib::Path({ ClipperLib::IntPoint{ -10, -10 }, ClipperLib::IntPoint{ 10, -10 }, ClipperLib::IntPoint{ -5, -5 }, ClipperLib::IntPoint{ -10, 10 } })));
-    polygons.add(Polygon(ClipperLib::Path({ ClipperLib::IntPoint{ 11, 11 }, ClipperLib::IntPoint{ -11, 11 }, ClipperLib::IntPoint{ 4, 4 }, ClipperLib::IntPoint{ 11, -11 } })));
-    polygons.add(Polygon(ClipperLib::Path({ ClipperLib::IntPoint{ 2, 2 }, ClipperLib::IntPoint{ 2, 3 }, ClipperLib::IntPoint{ 3, 3 }, ClipperLib::IntPoint{ 3, 2 } })));
+    Shape polygons;
+    polygons.push_back(
+        Polygon(ClipperLib::Path({ ClipperLib::IntPoint{ -10, -10 }, ClipperLib::IntPoint{ 10, -10 }, ClipperLib::IntPoint{ -5, -5 }, ClipperLib::IntPoint{ -10, 10 } }), false));
+    polygons.push_back(
+        Polygon(ClipperLib::Path({ ClipperLib::IntPoint{ 11, 11 }, ClipperLib::IntPoint{ -11, 11 }, ClipperLib::IntPoint{ 4, 4 }, ClipperLib::IntPoint{ 11, -11 } }), false));
+    polygons.push_back(
+        Polygon(ClipperLib::Path({ ClipperLib::IntPoint{ 2, 2 }, ClipperLib::IntPoint{ 2, 3 }, ClipperLib::IntPoint{ 3, 3 }, ClipperLib::IntPoint{ 3, 2 } }), false));
 
     AABB polygons_box_b(polygons);
 

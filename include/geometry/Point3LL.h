@@ -1,17 +1,17 @@
 // Copyright (c) 2018 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_POINT3_H
-#define UTILS_POINT3_H
+#ifndef GEOMETRY_POINT3LL_H
+#define GEOMETRY_POINT3LL_H
 
 #include <cassert>
 #include <cmath> //For sqrt.
 #include <iostream> //Auto-serialization.
 #include <limits> //For numeric_limits::min and max.
-#include <stdint.h> //For int32_t and int64_t.
 #include <type_traits> // for operations on any arithmetic number type
 
-#include "Coord_t.h"
+#include "utils/Coord_t.h"
+#include "utils/types/generic.h"
 
 
 namespace cura
@@ -20,10 +20,12 @@ namespace cura
 class Point3LL
 {
 public:
-    coord_t x_, y_, z_;
-    Point3LL()
-    {
-    }
+    coord_t x_{};
+    coord_t y_{};
+    coord_t z_{};
+
+    Point3LL() = default;
+
     Point3LL(const coord_t x, const coord_t y, const coord_t z)
         : x_(x)
         , y_(y)
@@ -31,41 +33,53 @@ public:
     {
     }
 
+    Point3LL(Point3LL&& point) = default;
+    Point3LL(const Point3LL& point) = default;
+    Point3LL& operator=(const Point3LL& point) = default;
+    Point3LL& operator=(Point3LL&& point) = default;
+
+    virtual ~Point3LL() = default;
+
     Point3LL operator+(const Point3LL& p) const;
     Point3LL operator-() const;
     Point3LL operator-(const Point3LL& p) const;
     Point3LL operator*(const Point3LL& p) const; //!< Element-wise multiplication. For dot product, use .dot()!
     Point3LL operator/(const Point3LL& p) const;
-    template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
-    Point3LL operator*(const num_t i) const
+
+    template<utils::numeric T>
+    Point3LL operator*(const T& i) const
     {
-        return Point3LL(std::llround(static_cast<num_t>(x_) * i), std::llround(static_cast<num_t>(y_) * i), std::llround(static_cast<num_t>(z_) * i));
+        return { std::llround(static_cast<T>(x_) * i), std::llround(static_cast<T>(y_) * i), std::llround(static_cast<T>(z_) * i) };
     }
-    template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
-    Point3LL operator/(const num_t i) const
+
+    template<utils::numeric T>
+    Point3LL operator/(const T& i) const
     {
-        return Point3LL(x_ / i, y_ / i, z_ / i);
+        return { x_ / i, y_ / i, z_ / i };
     }
-    template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
-    Point3LL operator%(const num_t i) const
+
+    template<utils::numeric T>
+    Point3LL operator%(const T& i) const
     {
-        return Point3LL(x_ % i, y_ % i, z_ % i);
+        return { x_ % i, y_ % i, z_ % i };
     }
 
     Point3LL& operator+=(const Point3LL& p);
     Point3LL& operator-=(const Point3LL& p);
     Point3LL& operator*=(const Point3LL& p);
     Point3LL& operator/=(const Point3LL& p);
-    template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
-    Point3LL& operator*=(const num_t i)
+
+    template<utils::numeric T>
+    Point3LL& operator*=(const T i)
     {
         x_ *= i;
         y_ *= i;
         z_ *= i;
         return *this;
     }
-    template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
-    Point3LL& operator/=(const num_t i)
+
+    template<utils::numeric T>
+    Point3LL& operator/=(const T i)
     {
         x_ /= i;
         y_ /= i;
@@ -73,9 +87,7 @@ public:
         return *this;
     }
 
-    bool operator==(const Point3LL& p) const;
-    bool operator!=(const Point3LL& p) const;
-
+    auto operator<=>(const Point3LL&) const = default;
 
     template<class CharT, class TraitsT>
     friend std::basic_ostream<CharT, TraitsT>& operator<<(std::basic_ostream<CharT, TraitsT>& os, const Point3LL& p)
@@ -83,38 +95,47 @@ public:
         return os << "(" << p.x_ << ", " << p.y_ << ", " << p.z_ << ")";
     }
 
-
-    coord_t max() const
+    [[nodiscard]] coord_t max() const
     {
         if (x_ > y_ && x_ > z_)
+        {
             return x_;
+        }
         if (y_ > z_)
+        {
             return y_;
+        }
         return z_;
     }
 
-    bool testLength(coord_t len) const
+    [[nodiscard]] bool testLength(coord_t len) const
     {
         if (x_ > len || x_ < -len)
+        {
             return false;
+        }
         if (y_ > len || y_ < -len)
+        {
             return false;
+        }
         if (z_ > len || z_ < -len)
+        {
             return false;
+        }
         return vSize2() <= len * len;
     }
 
-    coord_t vSize2() const
+    [[nodiscard]] coord_t vSize2() const
     {
         return x_ * x_ + y_ * y_ + z_ * z_;
     }
 
-    coord_t vSize() const
+    [[nodiscard]] coord_t vSize() const
     {
         return std::llrint(sqrt(static_cast<double>(vSize2())));
     }
 
-    double vSizeMM() const
+    [[nodiscard]] double vSizeMM() const
     {
         double fx = INT2MM(x_);
         double fy = INT2MM(y_);
@@ -122,7 +143,7 @@ public:
         return sqrt(fx * fx + fy * fy + fz * fz);
     }
 
-    coord_t dot(const Point3LL& p) const
+    [[nodiscard]] coord_t dot(const Point3LL& p) const
     {
         return x_ * p.x_ + y_ * p.y_ + z_ * p.z_;
     }
@@ -153,8 +174,8 @@ public:
  */
 static Point3LL no_point3(std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min());
 
-template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
-inline Point3LL operator*(const num_t i, const Point3LL& rhs)
+template<utils::numeric T>
+inline Point3LL operator*(const T i, const Point3LL& rhs)
 {
     return rhs * i;
 }
@@ -167,7 +188,7 @@ namespace std
 template<>
 struct hash<cura::Point3LL>
 {
-    size_t operator()(const cura::Point3LL& pp) const
+    size_t operator()(const cura::Point3LL& pp) const noexcept
     {
         static int prime = 31;
         int result = 89;
@@ -180,4 +201,4 @@ struct hash<cura::Point3LL>
 } // namespace std
 
 
-#endif // UTILS_POINT3_H
+#endif // GEOMETRY_POINT3LL_H
