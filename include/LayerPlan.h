@@ -808,7 +808,7 @@ private:
         const Ratio flow_ratio,
         const double fan_speed);
 
-    void addTravelBeforeSeam(const Point2LL& p, GCodePathConfig config, const SpaceFillType space_fill_type, const Ratio flow, const Ratio width_factor);
+    void addTravelBeforeSeam(const Point2LL& p, const GCodePathConfig& config);
 
     /*!
      * Begin the first wall with a travel move, executing specific procedures to optimize the process.

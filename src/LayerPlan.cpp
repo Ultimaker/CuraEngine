@@ -387,7 +387,7 @@ void LayerPlan::addFirstWallTravel(const Point2LL& pos, const bool force_retract
         addTravel(approach_point, force_retract);
 
         // Add special travel to start of seam location so that it starts printing seamlessly
-        addTravelBeforeSeam(pos, config, SpaceFillType::Lines, flow, width_factor);
+        addTravelBeforeSeam(pos, config);
     }
     else
     {
@@ -596,12 +596,15 @@ void LayerPlan::addExtrusionMove(
     last_planned_position_ = p;
 }
 
-void LayerPlan::addTravelBeforeSeam(const Point2LL& pos, GCodePathConfig config, const SpaceFillType space_fill_type, const Ratio flow, const Ratio width_factor)
+void LayerPlan::addTravelBeforeSeam(const Point2LL& pos, const GCodePathConfig& config)
 {
-    config.setPrintFeatureType(cura::PrintFeatureType::MoveUnretraction);
+    GCodePathConfig unretraction_config = config;
+    unretraction_config.setPrintFeatureType(cura::PrintFeatureType::MoveUnretraction);
 
-    GCodePath* path = getLatestPathWithConfig(config, SpaceFillType::None);
+    GCodePath* path = getLatestPathWithConfig(unretraction_config, SpaceFillType::None);
+    path->is_approach_move = true;
     path->points.push_back(pos);
+
     last_planned_position_ = pos;
 }
 
@@ -2409,7 +2412,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                             spiral_path.getLineWidthForLayerView(),
                             spiral_path.config.getLayerThickness(),
                             extrude_speed);
-                        // gcode.writeTravelToSeam(Point2LL(gcode.getPosition().x_, gcode.getPosition().y_), path.config.getSpeed(),path.getExtrusionMM3perMM(), path.config.type );
                         gcode.writeExtrusion(spiral_path.points[point_idx], extrude_speed, spiral_path.getExtrusionMM3perMM(), spiral_path.config.type_, update_extrusion_offset);
                     }
                     // for layer display only - the loop finished at the seam vertex but as we started from
