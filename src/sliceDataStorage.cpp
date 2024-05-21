@@ -482,8 +482,8 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) 
         }
         if (adhesion_type == EPlatformAdhesion::RAFT)
         {
-            const LayerIndex raft_layers = Raft::getTotalExtraLayers();
-            if (layer_nr == -raft_layers) // Base layer.
+            const Raft::LayerType layer_type = Raft::getLayerType(layer_nr);
+            if (layer_type == Raft::RaftBase)
             {
                 ret[mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_] = true;
                 // When using a raft, all prime blobs need to be on the lowest layer (the build plate).
@@ -495,11 +495,11 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) 
                     }
                 }
             }
-            else if (layer_nr == -raft_layers + 1) // Interface layer.
+            else if (layer_type == Raft::RaftInterface)
             {
                 ret[mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr_] = true;
             }
-            else if (layer_nr < -static_cast<LayerIndex>(Raft::getFillerLayerCount())) // Any of the surface layers.
+            else if (layer_type == Raft::RaftSurface)
             {
                 ret[mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr_] = true;
             }

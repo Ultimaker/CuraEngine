@@ -30,28 +30,9 @@ PrimeTower::PrimeTower()
     : wipe_from_middle_(false)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
-    PrimeTowerMethod method = scene.current_mesh_group->settings.get<PrimeTowerMethod>("prime_tower_mode");
-
-    {
-        EPlatformAdhesion adhesion_type = scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type");
-
-        // When we have multiple extruders sharing the same heater/nozzle, we expect that all the extruders have been
-        //'primed' by the print-start gcode script, but we don't know which one has been left at the tip of the nozzle
-        // and whether it needs 'purging' (before extruding a pure material) or not, so we need to prime (actually purge)
-        // each extruder before it is used for the model. This can done by the (per-extruder) brim lines or (per-extruder)
-        // skirt lines when they are used, but we need to do that inside the first prime-tower layer when they are not
-        // used (sacrifying for this purpose the usual single-extruder first layer, that would be better for prime-tower
-        // adhesion).
-
-        multiple_extruders_on_first_layer_ = (method == PrimeTowerMethod::INTERLEAVED) || (method == PrimeTowerMethod::NORMAL)
-                                          || (scene.current_mesh_group->settings.get<bool>("machine_extruders_share_nozzle")
-                                              && ((adhesion_type != EPlatformAdhesion::SKIRT) && (adhesion_type != EPlatformAdhesion::BRIM)));
-    }
 
     enabled_ = scene.current_mesh_group->settings.get<bool>("prime_tower_enable") && scene.current_mesh_group->settings.get<coord_t>("prime_tower_min_volume") > 10
             && scene.current_mesh_group->settings.get<coord_t>("prime_tower_size") > 10;
-
-    would_have_actual_tower_ = enabled_; // Assume so for now.
 }
 
 void PrimeTower::initializeExtruders(const std::vector<bool>& used_extruders)
@@ -112,10 +93,11 @@ void PrimeTower::generatePaths(const SliceDataStorage& storage)
 {
     checkUsed();
 
+    // Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
     const int raft_total_extra_layers = Raft::getTotalExtraLayers();
-    would_have_actual_tower_ = storage.max_print_height_second_to_last_extruder
-                            >= -raft_total_extra_layers; // Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
-    if (would_have_actual_tower_ && enabled_)
+    enabled_ &= storage.max_print_height_second_to_last_extruder >= -raft_total_extra_layers;
+
+    if (enabled_)
     {
         generateGroundpoly();
 
@@ -328,7 +310,7 @@ void PrimeTower::addToGcode(
     const size_t prev_extruder_nr,
     const size_t new_extruder_nr) const
 {
-    if (! (enabled_ && would_have_actual_tower_))
+    if (! enabled_)
     {
         return;
     }
