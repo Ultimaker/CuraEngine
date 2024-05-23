@@ -998,12 +998,10 @@ void GCodeExport::writeApproachToSeam(const Point2LL& pos, const Velocity& speed
                 // 0 intersection means the full segment is outside the model => We have to create a path inside by following the external wall
 #warning take care that we could find no closest point
                 ClosestPointPolygon closest_point = PolygonUtils::findClosest(pos, model_outline);
-                unretract_move.insert(unretract_move.begin(), closest_point.location_);
                 walk_around_polygon = closest_point.poly_;
                 segment_iterator = walk_around_polygon->loopOverSegments(
                     walk_around_polygon->beginSegments(),
-                    static_cast<Polyline::const_segments_iterator::difference_type>(closest_point.point_idx_) + 1);
-                // segment_iterator = std::next(walk_around_polygon->beginSegments(), static_cast<Polyline::const_segments_iterator::difference_type>(closest_point.point_idx_));
+                    static_cast<Polyline::const_segments_iterator::difference_type>(closest_point.point_idx_) + 2);
             }
 
             do
@@ -1021,7 +1019,7 @@ void GCodeExport::writeApproachToSeam(const Point2LL& pos, const Velocity& speed
 
                 unretract_move.insert(unretract_move.begin(), unretract_move.front() - new_segment);
 
-                segment_iterator = walk_around_polygon->loopOverSegments(segment_iterator, +1);
+                segment_iterator = walk_around_polygon->loopOverSegments(segment_iterator, 1);
             } while (unretract_move.length() < unretraction_path_length);
         }
 
