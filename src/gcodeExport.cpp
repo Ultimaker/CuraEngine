@@ -913,10 +913,10 @@ void GCodeExport::writeApproachToSeam(const Point2LL& pos, const Velocity& speed
         Shape model_outline = current_part->outline.offset(-wall_line_width * 1.5);
 
         // Compute required unretraction duration
-        const double unretraction_amount
+        const double total_unretraction_amount
             = eToMm(extruder_attr_[current_extruder_].retraction_e_amount_current_) + mm3ToMm(extruder_attr_[current_extruder_].prime_volume_); // in mm
         const double unretraction_speed = extruder_attr_[current_extruder_].last_retraction_prime_speed_; // in mm/s
-        const double unretraction_duration = unretraction_amount / unretraction_speed; // in seconds
+        const double total_unretraction_duration = total_unretraction_amount / unretraction_speed; // in seconds
 
         // Compute straight approach vector
         const Point2LL approach_vector = pos - current_position; // in µm
@@ -926,12 +926,12 @@ void GCodeExport::writeApproachToSeam(const Point2LL& pos, const Velocity& speed
 
         // If true, we have enough time to unretract during the approach, split it into one travel move and one unretraction move.
         // If false, We don't have enough time to unretract during the approach, so first make a partial static unretract, then do the full move while unretracting
-        bool approach_longer_than_unretract = approach_duration > unretraction_duration;
+        bool approach_longer_than_unretract = approach_duration > total_unretraction_duration;
         coord_t unretraction_path_length; // in µm
 
         if (approach_longer_than_unretract)
         {
-            unretraction_path_length = static_cast<coord_t>((unretraction_duration * speed) * 1000.0);
+            unretraction_path_length = static_cast<coord_t>((total_unretraction_duration * speed) * 1000.0);
         }
         else
         {
