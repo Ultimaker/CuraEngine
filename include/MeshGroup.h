@@ -18,9 +18,21 @@ class Matrix4x3D;
  * One MeshGroup is a whole which is printed at once.
  * Generally there is one single MeshGroup, though when using one-at-a-time printing, multiple MeshGroups are processed consecutively.
  */
-class MeshGroup : public NoCopy
+class MeshGroup
 {
 public:
+    MeshGroup() = default;
+
+    ~MeshGroup() = default;
+
+    MeshGroup(MeshGroup&& other) noexcept = default;
+
+    MeshGroup& operator=(MeshGroup&& other) noexcept = default;
+
+    /* Copying a MeshGroup is not allowed */
+    MeshGroup(const MeshGroup& other) = delete;
+    MeshGroup& operator=(const MeshGroup& other) = delete;
+
     std::vector<Mesh> meshes;
     Settings settings;
 
