@@ -1275,7 +1275,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
         }
     }
 
-    gcode_layer.applyModifyPlugin();
+    // gcode_layer.applyModifyPlugin();
     time_keeper.registerTime("Modify plugin");
 
     gcode_layer.applyBackPressureCompensation();

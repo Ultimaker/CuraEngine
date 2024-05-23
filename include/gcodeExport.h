@@ -496,7 +496,7 @@ public:
      * It estimates the time in \ref GCodeExport::estimateCalculator
      * It updates \ref GCodeExport::current_e_value and \ref GCodeExport::currentSpeed
      */
-    void writeUnretractionAndPrime(const std::optional<Point2LL>& pos = {}, const std::optional<Velocity>& override_speed = {}, const std::optional<double> &override_amount = {});
+    void writeUnretractionAndPrime(const std::optional<Point2LL>& pos = {}, const std::optional<Velocity>& override_speed = {}, const std::optional<double>& override_amount = {});
     void writeRetraction(const RetractionConfig& config, bool force = false, bool extruder_switch = false);
 
     /*!
@@ -631,7 +631,7 @@ public:
      */
     void insertWipeScript(const WipeScriptConfig& wipe_config);
 
-    void writeApproachToSeam(const Point2LL& pos, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature);
+    void writeApproachToSeam(const Point2LL& pos, const Velocity& speed, const std::vector<SliceLayerPart>& current_mesh_parts, const coord_t wall_line_width);
 };
 
 } // namespace cura

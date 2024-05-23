@@ -352,6 +352,7 @@ gcode_paths_modify_request::value_type
         gcode_path->set_perform_prime(path.perform_prime);
         gcode_path->set_skip_agressive_merge_hint(path.skip_agressive_merge_hint);
         gcode_path->set_done(path.done);
+        // gcode_path->set_is_approach_move(path.is_approach_move);
         gcode_path->set_fan_speed(path.getFanSpeed());
         gcode_path->set_mesh_name(path.mesh ? path.mesh->mesh_name : "");
         gcode_path->set_feature(getPrintFeature(path.config.type_));
@@ -470,6 +471,7 @@ gcode_paths_modify_response::native_value_type
             .skip_agressive_merge_hint = gcode_path_msg.skip_agressive_merge_hint(),
             .done = gcode_path_msg.done(),
             .fan_speed = gcode_path_msg.fan_speed(),
+            //.is_approach_move = gcode_path_msg.is_approach_move(),
         };
 
         path.points = gcode_path_msg.path().path()

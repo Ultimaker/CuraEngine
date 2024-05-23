@@ -157,6 +157,12 @@ INLINE double vSizeMM(const Point2LL& p0)
     return std::sqrt(fx * fx + fy * fy);
 }
 
+INLINE Point2LL vResize(const Point2LL& point, coord_t size)
+{
+    double size_factor = static_cast<double>(size) / vSize(point);
+    return point * size_factor;
+}
+
 INLINE Point2LL normal(const Point2LL& p0, coord_t length)
 {
     const coord_t len{ vSize(p0) };

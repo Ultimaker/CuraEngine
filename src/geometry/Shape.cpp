@@ -227,68 +227,6 @@ bool Shape::inside(const Point2LL& p, bool border_result) const
     return (poly_count_inside % 2) == 1;
 }
 
-size_t Shape::findInside(const Point2LL& p, bool border_result) const
-{
-    if (empty())
-    {
-        return 0;
-    }
-
-    // NOTE: Keep these vectors fixed-size, they replace an (non-standard, sized at runtime) arrays.
-    std::vector<int64_t> min_x(size(), std::numeric_limits<int64_t>::max());
-    std::vector<int64_t> crossings(size());
-
-    for (size_t poly_idx = 0; poly_idx < size(); poly_idx++)
-    {
-        const Polygon& poly = (*this)[poly_idx];
-        Point2LL p0 = poly.back();
-        for (const Point2LL& p1 : poly)
-        {
-            short comp = LinearAlg2D::pointLiesOnTheRightOfLine(p, p0, p1);
-            if (comp == 1)
-            {
-                crossings[poly_idx]++;
-                int64_t x;
-                if (p1.Y == p0.Y)
-                {
-                    x = p0.X;
-                }
-                else
-                {
-                    x = p0.X + (p1.X - p0.X) * (p.Y - p0.Y) / (p1.Y - p0.Y);
-                }
-                min_x[poly_idx] = std::min(x, min_x[poly_idx]);
-            }
-            else if (border_result && comp == 0)
-            {
-                return poly_idx;
-            }
-            p0 = p1;
-        }
-    }
-
-    int64_t min_x_uneven = std::numeric_limits<int64_t>::max();
-    size_t ret = NO_INDEX;
-    size_t n_unevens = 0;
-    for (size_t array_idx = 0; array_idx < size(); array_idx++)
-    {
-        if (crossings[array_idx] % 2 == 1)
-        {
-            n_unevens++;
-            if (min_x[array_idx] < min_x_uneven)
-            {
-                min_x_uneven = min_x[array_idx];
-                ret = array_idx;
-            }
-        }
-    }
-    if (n_unevens % 2 == 0)
-    {
-        ret = NO_INDEX;
-    }
-    return ret;
-}
-
 template<class LineType>
 OpenLinesSet Shape::intersection(const LinesSet<LineType>& polylines, bool restitch, const coord_t max_stitch_distance) const
 {

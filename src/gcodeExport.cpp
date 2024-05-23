@@ -17,9 +17,11 @@
 #include "Slice.h"
 #include "WipeScriptConfig.h"
 #include "communication/Communication.h" //To send layer view data.
+#include "geometry/OpenPolyline.h"
 #include "geometry/Point2D.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/Date.h"
+#include "utils/linearAlg2D.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
 
 namespace cura
@@ -885,42 +887,167 @@ void GCodeExport::writeTravel(const Point3LL& p, const Velocity& speed)
     writeTravel(p.x_, p.y_, p.z_ + is_z_hopped_, speed);
 }
 
-void GCodeExport::writeApproachToSeam(const Point2LL& pos, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
+void GCodeExport::writeApproachToSeam(const Point2LL& pos, const Velocity& speed, const std::vector<SliceLayerPart>& current_mesh_parts, const coord_t wall_line_width)
 {
     Point2LL current_position{ current_position_.x_, current_position_.y_ };
 
     if (pos != current_position)
     {
+        // Find current model part
+        const SliceLayerPart* current_part = nullptr;
+        for (const SliceLayerPart& slice_layer_part : current_mesh_parts)
+        {
+            if (! current_part && slice_layer_part.outline.inside(pos, true))
+            {
+                current_part = &slice_layer_part;
+            }
+        }
+
+        if (! current_part)
+        {
+            spdlog::error("Unable to find associated mesh layer part");
+            assert(false && "Unable to find associated mesh layer part");
+            std::exit(1);
+        }
+
+        Shape model_outline = current_part->outline.offset(-wall_line_width * 1.5);
+
+        // Compute required unretraction duration
         const double unretraction_amount
             = eToMm(extruder_attr_[current_extruder_].retraction_e_amount_current_) + mm3ToMm(extruder_attr_[current_extruder_].prime_volume_); // in mm
         const double unretraction_speed = extruder_attr_[current_extruder_].last_retraction_prime_speed_; // in mm/s
         const double unretraction_duration = unretraction_amount / unretraction_speed; // in seconds
 
-        const Point2D approach_vector = Point2D(pos - current_position) / 1000.0; // in mm
-        const double approach_distance = approach_vector.size(); // in mm
-        const double approach_duration = approach_distance / speed; // in seconds
-        const Point2D approach_direction_vector = approach_vector.normalized(); // unitary vector, no unit
+        // Compute straight approach vector
+        const Point2LL approach_vector = pos - current_position; // in µm
+        const coord_t approach_distance = vSize(approach_vector); // in µm
+        const double approach_duration = (approach_distance / 1000.0) / speed; // in seconds
+        const Point2D approach_direction_vector = Point2D(approach_vector).normalized(); // unitary vector, no unit
 
-        if (approach_duration > unretraction_duration)
+        // If true, we have enough time to unretract during the approach, split it into one travel move and one unretraction move.
+        // If false, We don't have enough time to unretract during the approach, so first make a partial static unretract, then do the full move while unretracting
+        bool approach_longer_than_unretract = approach_duration > unretraction_duration;
+        coord_t unretraction_path_length; // in µm
+
+        if (approach_longer_than_unretract)
         {
-            // We have enough time to unretract during the approach, split it in two segments
-            const double unretraction_distance = unretraction_duration * speed; // in mm
-            const Point2D unretraction_vector = approach_direction_vector * unretraction_distance; // in mm
-            const Point2LL unretraction_start_position = pos - (unretraction_vector * 1000.0).toPoint2LL();
-
-            writeTravel(unretraction_start_position, speed);
-
-            writeUnretractionAndPrime(pos, speed);
+            unretraction_path_length = static_cast<coord_t>((unretraction_duration * speed) * 1000.0);
         }
         else
         {
-            // We don't have enough time to unretract during the approach, first make a partial static unretract
-            const double unretraction_amount_during_approach = approach_duration * unretraction_speed; // in mm
-            const double static_unretraction_amount = unretraction_amount - unretraction_amount_during_approach;
+            unretraction_path_length = approach_distance;
+        }
 
-            writeUnretractionAndPrime({}, {}, static_unretraction_amount);
+        // Generate best-case scenario full straight segment
+        const Point2LL full_straight_vector = (approach_direction_vector * unretraction_path_length).toPoint2LL(); // in µm
+        const OpenPolyline full_straight_segment({ pos - full_straight_vector, pos }); // in µm
+        OpenPolyline unretract_move({ pos }); // in µm
 
-            writeUnretractionAndPrime(pos, speed);
+        // Compute intersections of the full straight segment with the model
+        struct ModelIntersection
+        {
+            coord_t distance2_to_pos; // in µm2
+            Point2LL intersection; // in µm
+            const Polygon* intersected_polygon;
+            Polyline::const_segments_iterator segment_iterator;
+        };
+
+        std::vector<ModelIntersection> intersections;
+        for (const Polygon& polygon : model_outline)
+        {
+            for (auto segment_it = polygon.beginSegments(); segment_it != polygon.endSegments(); ++segment_it)
+            {
+                std::optional<Point2LL> intersection // in µm
+                    = LinearAlg2D::segmentSegmentIntersection(full_straight_segment[0], full_straight_segment[1], (*segment_it).start, (*segment_it).end);
+                if (intersection.has_value())
+                {
+                    const coord_t distance2_to_pos = vSize2(pos - intersection.value()); // in µm2
+                    intersections.emplace_back(distance2_to_pos, intersection.value(), &polygon, segment_it);
+                }
+            }
+        }
+
+        // Now interpret the intersections: as the model outline has been offsetted inwards, the target position should now be outside the outline.
+        if (intersections.size() == 1)
+        {
+            // 1 intersection means the segment comes once inside the model and doesn't get out => that's the best case scenario, keep it as is
+            unretract_move = full_straight_segment;
+        }
+        else
+        {
+            const Polygon* walk_around_polygon{ nullptr };
+            Polyline::const_segments_iterator segment_iterator;
+            if (! intersections.empty())
+            {
+                // 2+ intersection means the segment comes inside the model but later gets out => keep the first part and generate the rest by following the external wall
+                // Sort intersection by closeness to the target position: the first in the list is the closest
+                std::sort(
+                    intersections.begin(),
+                    intersections.end(),
+                    [](const ModelIntersection& intersection1, const ModelIntersection& intersection2)
+                    {
+                        return intersection1.distance2_to_pos < intersection2.distance2_to_pos;
+                    });
+
+                unretract_move.insert(unretract_move.begin(), intersections[1].intersection);
+                walk_around_polygon = intersections[1].intersected_polygon;
+                segment_iterator = intersections[1].segment_iterator;
+            }
+            else
+            {
+                // 0 intersection means the full segment is outside the model => We have to create a path inside by following the external wall
+#warning take care that we could find no closest point
+                ClosestPointPolygon closest_point = PolygonUtils::findClosest(pos, model_outline);
+                unretract_move.insert(unretract_move.begin(), closest_point.location_);
+                walk_around_polygon = closest_point.poly_;
+                segment_iterator = walk_around_polygon->loopOverSegments(
+                    walk_around_polygon->beginSegments(),
+                    static_cast<Polyline::const_segments_iterator::difference_type>(closest_point.point_idx_) + 1);
+                // segment_iterator = std::next(walk_around_polygon->beginSegments(), static_cast<Polyline::const_segments_iterator::difference_type>(closest_point.point_idx_));
+            }
+
+            do
+            {
+                const coord_t current_unretraction_path_length = unretract_move.length(); // in µm
+                Point2LL new_segment = unretract_move.front() - (*segment_iterator).start; // in µm
+                const coord_t new_segment_length = vSize(new_segment); // in µm
+                const coord_t new_retraction_path_length = current_unretraction_path_length + new_segment_length; // in µm
+
+                if (new_retraction_path_length > unretraction_path_length)
+                {
+                    // Shorten segment
+                    new_segment = vResize(new_segment, unretraction_path_length - current_unretraction_path_length);
+                }
+
+                unretract_move.insert(unretract_move.begin(), unretract_move.front() - new_segment);
+
+                segment_iterator = walk_around_polygon->loopOverSegments(segment_iterator, +1);
+            } while (unretract_move.length() < unretraction_path_length);
+        }
+
+        // Whatever comes after, travel at print speed to start of unretract move
+        if (vSize2(unretract_move.front() - current_position_) > (1000 * 1000))
+        {
+            writeTravel(unretract_move.front(), speed);
+        }
+
+        const coord_t actual_unretraction_path_length = unretract_move.length(); // in µm
+        const double actual_unretraction_duration = (actual_unretraction_path_length / 1000.0) * speed; // in seconds
+        const double actual_unretracted_amount = actual_unretraction_duration * unretraction_speed; // in mm
+        const double missing_unretraction_amount = unretraction_amount - actual_unretracted_amount; // in mm
+
+        if (missing_unretraction_amount > 0.001)
+        {
+            // Unretraction path is too short for some reason, first make a partial static unretract
+            writeUnretractionAndPrime({}, {}, missing_unretraction_amount);
+        }
+
+        // Now process the different parts of the unretraction move
+        for (auto it = unretract_move.beginSegments(); it != unretract_move.endSegments(); ++it)
+        {
+            double unretraction_factor = static_cast<double>(vSize((*it).end - (*it).start)) / actual_unretraction_path_length;
+            double unretraction_amount_segment = unretraction_factor * actual_unretracted_amount;
+            writeUnretractionAndPrime((*it).end, speed, unretraction_amount_segment);
         }
     }
 }
