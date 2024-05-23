@@ -9,6 +9,7 @@
 #include <fmt/format.h>
 
 #include "utils/types/generic.h"
+#include "geometry/Polygon.h"
 
 namespace cura
 {
