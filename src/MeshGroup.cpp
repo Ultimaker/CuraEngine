@@ -293,11 +293,8 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const Mat
             spdlog::info("loading '{}' took {:03.3f} seconds", filename, load_timer.restart());
             return true;
         }
-        else
-        {
-            spdlog::warn("loading '{}' failed", filename);
-            return false;
-        }
+        spdlog::warn("loading '{}' failed", filename);
+        return false;
     }
     spdlog::warn("Unable to recognize the extension of the file. Currently only .stl and .STL are supported.");
     return false;
