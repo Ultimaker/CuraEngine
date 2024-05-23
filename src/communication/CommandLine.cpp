@@ -361,7 +361,27 @@ void CommandLine::sliceNext()
                 }
                 case 'r':
                 {
-                    // read in resolved values
+                    /*
+                     * read in resolved values from a json file. The json format of the file resolved settings is the following:
+                     *
+                     * ```
+                     * {
+                     *     "global": [SETTINGS],
+                     *     "extruder.0": [SETTINGS],
+                     *     "extruder.1": [SETTINGS],
+                     *     "model.stl": [SETTINGS]
+                     * }
+                     * ```
+                     * where `[SETTINGS]` follow the schema
+                     * ```
+                     * {
+                     *     [key: string]: bool | string | number | number[] | number[][]
+                     * }
+                     * ```
+                     * There can be any number of extruders (denoted with `extruder.n`) and any number of models (denoted with `[modelname].stl`).
+                     * The key of the model values will also be the filename of the relevant model, when running CuraEngine with this option the
+                     * model file with that same name _must_ be in the same folder as the resolved settings json.
+                     */
 
                     argument_index++;
                     if (argument_index >= arguments_.size())
