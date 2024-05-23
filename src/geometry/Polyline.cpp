@@ -127,27 +127,6 @@ Polyline::segments_iterator Polyline::endSegments()
     }
 }
 
-Polyline::const_segments_iterator Polyline::loopOverSegments(const const_segments_iterator& start, const_segments_iterator::difference_type diff) const
-{
-    const auto segments_count = static_cast<const_segments_iterator::difference_type>(segmentsCount());
-    if (segments_count > 1)
-    {
-        const const_segments_iterator::difference_type start_index = std::distance(beginSegments(), start);
-        const_segments_iterator::difference_type target_index = start_index + diff;
-        while (target_index < 0)
-        {
-            target_index += segments_count;
-        }
-        target_index = target_index % segments_count;
-
-        return std::next(beginSegments(), target_index);
-    }
-    else
-    {
-        return start;
-    }
-}
-
 coord_t Polyline::length() const
 {
     return std::accumulate(
