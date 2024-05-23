@@ -9,8 +9,8 @@
 #include <range/v3/view/drop.hpp>
 
 #include "geometry/OpenLinesSet.h"
-#include "geometry/Polygon.h"
 #include "geometry/Point2LL.h"
+#include "geometry/Polygon.h"
 
 namespace cura
 {
