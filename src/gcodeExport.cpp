@@ -1030,14 +1030,14 @@ void GCodeExport::writeApproachToSeam(const Point2LL& pos, const Velocity& speed
         }
 
         const coord_t actual_unretraction_path_length = unretract_move.length(); // in µm
-        const double actual_unretraction_duration = (actual_unretraction_path_length / 1000.0) * speed; // in seconds
+        const double actual_unretraction_duration = (actual_unretraction_path_length / 1000.0) / speed; // in seconds
         const double actual_unretracted_amount = actual_unretraction_duration * unretraction_speed; // in mm
-        const double missing_unretraction_amount = unretraction_amount - actual_unretracted_amount; // in mm
+        const double missing_unretraction_amount = total_unretraction_amount - actual_unretracted_amount; // in mm
 
         if (missing_unretraction_amount > 0.001)
         {
             // Unretraction path is too short for some reason, first make a partial static unretract
-            writeUnretractionAndPrime({}, {}, missing_unretraction_amount);
+            writeUnretractionAndPrime({}, {}, mmToE(missing_unretraction_amount));
         }
 
         // Now process the different parts of the unretraction move
