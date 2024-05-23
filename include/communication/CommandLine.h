@@ -6,6 +6,7 @@
 
 #include <filesystem>
 #include <optional>
+#include <unordered_map>
 #include <rapidjson/document.h> //Loading JSON documents to get settings from them.
 #include <string> //To store the command line arguments.
 #include <vector> //To store the command line arguments.
@@ -219,7 +220,7 @@ private:
      * \param element The path to the file to read the JSON values from.
      * \return The resolved JSON values.
      */
-    static std::optional<std::unordered_map<std::string, std::unordered_map<std::string, std::string>>> readResolvedJsonValues(const std::filesystem::path& element);
+    static std::optional<std::unordered_map<std::string, std::unordered_map<std::string, std::string>>> readResolvedJsonValues(const std::filesystem::path& json_filename);
 
     /*
      * \brief Read the resolved JSON values from a document.
