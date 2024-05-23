@@ -1045,7 +1045,7 @@ void GCodeExport::writeApproachToSeam(const Point2LL& pos, const Velocity& speed
         {
             double unretraction_factor = static_cast<double>(vSize((*it).end - (*it).start)) / actual_unretraction_path_length;
             double unretraction_amount_segment = unretraction_factor * actual_unretracted_amount;
-            writeUnretractionAndPrime((*it).end, speed, unretraction_amount_segment);
+            writeUnretractionAndPrime((*it).end, speed, mmToE(unretraction_amount_segment));
         }
     }
 }
