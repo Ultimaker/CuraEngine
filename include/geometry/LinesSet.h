@@ -10,7 +10,6 @@
 
 #include "geometry/OpenLinesSet.h"
 #include "geometry/Point2LL.h"
-#include "geometry/Polygon.h"
 
 namespace cura
 {

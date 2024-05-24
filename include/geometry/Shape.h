@@ -6,6 +6,7 @@
 
 #include "geometry/LinesSet.h"
 #include "settings/types/Angle.h"
+#include "geometry/Polygon.h"
 
 namespace cura
 {
