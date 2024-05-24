@@ -295,7 +295,12 @@ struct TreeSupportCradle
     {
         Point2LL current_direction = line_end - getCenter(layer_idx_req);
         double angle = std::atan2(current_direction.Y, current_direction.X);
-        size_t angle_idx = size_t(std::round(((angle + std::numbers::pi) / (2.0 * std::numbers::pi)) * double(config_->cradle_line_count_))) % config_->cradle_line_count_;
+        if(angle < 0)
+        {
+            angle = 2.0 * std::numbers::pi + angle;
+        }
+        double step_size = (2.0 * std::numbers::pi) / double(config_->cradle_line_count_);
+        size_t angle_idx = size_t(std::round(angle / step_size)) % config_->cradle_line_count_;
         return angle_idx;
     }
 
