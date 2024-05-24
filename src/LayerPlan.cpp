@@ -2345,7 +2345,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             else if (path.is_approach_move)
             {
                 const coord_t wall_line_width = path.mesh->settings.get<coord_t>("wall_line_width_0");
-                gcode.writeApproachToSeam(path.points.back(), path.config.getSpeed(), path.mesh->layers[layer_nr_].parts, wall_line_width);
+                const coord_t z_seam_approach_inset = path.mesh->settings.get<coord_t>("z_seam_approach_inset");
+                gcode.writeApproachToSeam(path.points.back(), path.config.getSpeed(), path.mesh->layers[layer_nr_].parts, wall_line_width, z_seam_approach_inset);
                 continue;
             }
 

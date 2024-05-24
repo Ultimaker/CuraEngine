@@ -159,7 +159,7 @@ INLINE double vSizeMM(const Point2LL& p0)
 
 INLINE Point2LL vResize(const Point2LL& point, coord_t size)
 {
-    double size_factor = static_cast<double>(size) / vSize(point);
+    double size_factor = static_cast<double>(size) / static_cast<double>(vSize(point));
     return point * size_factor;
 }
 

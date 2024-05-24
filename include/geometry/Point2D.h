@@ -20,6 +20,8 @@ public:
 
     Point2D(const Point2LL& other);
 
+    [[nodiscard]] Point2D operator*(const coord_t scale) const;
+
     [[nodiscard]] Point2D operator*(const double scale) const;
 
     [[nodiscard]] Point2D operator/(const double scale) const;

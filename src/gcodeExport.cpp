@@ -887,7 +887,12 @@ void GCodeExport::writeTravel(const Point3LL& p, const Velocity& speed)
     writeTravel(p.x_, p.y_, p.z_ + is_z_hopped_, speed);
 }
 
-void GCodeExport::writeApproachToSeam(const Point2LL& pos, const Velocity& speed, const std::vector<SliceLayerPart>& current_mesh_parts, const coord_t wall_line_width)
+void GCodeExport::writeApproachToSeam(
+    const Point2LL& pos,
+    const Velocity& speed,
+    const std::vector<SliceLayerPart>& current_mesh_parts,
+    const coord_t wall_line_width,
+    const coord_t z_seam_approach_inset)
 {
     Point2LL current_position{ current_position_.x_, current_position_.y_ };
 
@@ -910,7 +915,9 @@ void GCodeExport::writeApproachToSeam(const Point2LL& pos, const Velocity& speed
             std::exit(1);
         }
 
-        Shape model_outline = current_part->outline.offset(-wall_line_width * 1.5);
+        coord_t inset = wall_line_width / 2; // Move to the middle of the wall extrusion line
+        inset += std::max(z_seam_approach_inset, 10_mu); // Move inside the model, with a minimum value because 0 may cause unwanted intersections
+        Shape model_outline = current_part->outline.offset(-inset);
 
         // Compute required unretraction duration
         const double total_unretraction_amount
@@ -921,7 +928,7 @@ void GCodeExport::writeApproachToSeam(const Point2LL& pos, const Velocity& speed
         // Compute straight approach vector
         const Point2LL approach_vector = pos - current_position; // in µm
         const coord_t approach_distance = vSize(approach_vector); // in µm
-        const double approach_duration = (approach_distance / 1000.0) / speed; // in seconds
+        const double approach_duration = INT2MM(approach_distance) / speed; // in seconds
         const Point2D approach_direction_vector = Point2D(approach_vector).normalized(); // unitary vector, no unit
 
         // If true, we have enough time to unretract during the approach, split it into one travel move and one unretraction move.
@@ -931,7 +938,7 @@ void GCodeExport::writeApproachToSeam(const Point2LL& pos, const Velocity& speed
 
         if (approach_longer_than_unretract)
         {
-            unretraction_path_length = static_cast<coord_t>((total_unretraction_duration * speed) * 1000.0);
+            unretraction_path_length = MM2INT(total_unretraction_duration * speed);
         }
         else
         {
@@ -996,31 +1003,36 @@ void GCodeExport::writeApproachToSeam(const Point2LL& pos, const Velocity& speed
             else
             {
                 // 0 intersection means the full segment is outside the model => We have to create a path inside by following the external wall
-#warning take care that we could find no closest point
                 ClosestPointPolygon closest_point = PolygonUtils::findClosest(pos, model_outline);
-                walk_around_polygon = closest_point.poly_;
-                segment_iterator = walk_around_polygon->loopOverSegments(
-                    walk_around_polygon->beginSegments(),
-                    static_cast<Polyline::const_segments_iterator::difference_type>(closest_point.point_idx_) + 2);
+                if (closest_point.isValid())
+                {
+                    walk_around_polygon = closest_point.poly_;
+                    segment_iterator = walk_around_polygon->loopOverSegments(
+                        walk_around_polygon->beginSegments(),
+                        static_cast<Polyline::const_segments_iterator::difference_type>(closest_point.point_idx_) + 2);
+                }
             }
 
-            do
+            if (walk_around_polygon)
             {
-                const coord_t current_unretraction_path_length = unretract_move.length(); // in µm
-                Point2LL new_segment = unretract_move.front() - (*segment_iterator).start; // in µm
-                const coord_t new_segment_length = vSize(new_segment); // in µm
-                const coord_t new_retraction_path_length = current_unretraction_path_length + new_segment_length; // in µm
-
-                if (new_retraction_path_length > unretraction_path_length)
+                do
                 {
-                    // Shorten segment
-                    new_segment = vResize(new_segment, unretraction_path_length - current_unretraction_path_length);
-                }
+                    const coord_t current_unretraction_path_length = unretract_move.length(); // in µm
+                    Point2LL new_segment = unretract_move.front() - (*segment_iterator).start; // in µm
+                    const coord_t new_segment_length = vSize(new_segment); // in µm
+                    const coord_t new_retraction_path_length = current_unretraction_path_length + new_segment_length; // in µm
 
-                unretract_move.insert(unretract_move.begin(), unretract_move.front() - new_segment);
+                    if (new_retraction_path_length > unretraction_path_length)
+                    {
+                        // Shorten segment
+                        new_segment = vResize(new_segment, unretraction_path_length - current_unretraction_path_length);
+                    }
 
-                segment_iterator = walk_around_polygon->loopOverSegments(segment_iterator, 1);
-            } while (unretract_move.length() < unretraction_path_length);
+                    unretract_move.insert(unretract_move.begin(), unretract_move.front() - new_segment);
+
+                    segment_iterator = walk_around_polygon->loopOverSegments(segment_iterator, 1);
+                } while (unretract_move.length() < unretraction_path_length);
+            }
         }
 
         // Whatever comes after, travel at print speed to start of unretract move
@@ -1030,7 +1042,7 @@ void GCodeExport::writeApproachToSeam(const Point2LL& pos, const Velocity& speed
         }
 
         const coord_t actual_unretraction_path_length = unretract_move.length(); // in µm
-        const double actual_unretraction_duration = (actual_unretraction_path_length / 1000.0) / speed; // in seconds
+        const double actual_unretraction_duration = INT2MM(actual_unretraction_path_length) / speed; // in seconds
         const double actual_unretracted_amount = actual_unretraction_duration * unretraction_speed; // in mm
         const double missing_unretraction_amount = total_unretraction_amount - actual_unretracted_amount; // in mm
 
@@ -1043,7 +1055,7 @@ void GCodeExport::writeApproachToSeam(const Point2LL& pos, const Velocity& speed
         // Now process the different parts of the unretraction move
         for (auto it = unretract_move.beginSegments(); it != unretract_move.endSegments(); ++it)
         {
-            double unretraction_factor = static_cast<double>(vSize((*it).end - (*it).start)) / actual_unretraction_path_length;
+            double unretraction_factor = static_cast<double>(vSize((*it).end - (*it).start)) / static_cast<double>(actual_unretraction_path_length);
             double unretraction_amount_segment = unretraction_factor * actual_unretracted_amount;
             writeUnretractionAndPrime((*it).end, speed, mmToE(unretraction_amount_segment));
         }

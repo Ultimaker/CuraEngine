@@ -16,7 +16,12 @@ using coord_t = ClipperLib::cInt;
 static inline coord_t operator"" _mu(unsigned long long i)
 {
     return static_cast<coord_t>(i);
-};
+}
+
+static inline double toDouble(const coord_t value)
+{
+    return static_cast<double>(value);
+}
 
 #define INT2MM(n) (static_cast<double>(n) / 1000.0)
 #define INT2MM2(n) (static_cast<double>(n) / 1000000.0)

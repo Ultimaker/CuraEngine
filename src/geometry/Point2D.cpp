@@ -20,6 +20,11 @@ Point2D::Point2D(const Point2LL& other)
 {
 }
 
+Point2D Point2D::operator*(const coord_t scale) const
+{
+    return Point2D(x_ * static_cast<double>(scale), y_ * static_cast<double>(scale));
+}
+
 Point2D Point2D::operator*(const double scale) const
 {
     return Point2D(x_ * scale, y_ * scale);
@@ -54,7 +59,7 @@ void Point2D::normalize()
 
 Point2LL Point2D::toPoint2LL() const
 {
-    return Point2LL(std::llround(x_), std::llround(y_));
+    return Point2LL(std::llrint(x_), std::llrint(y_));
 }
 
 } // namespace cura

@@ -631,7 +631,12 @@ public:
      */
     void insertWipeScript(const WipeScriptConfig& wipe_config);
 
-    void writeApproachToSeam(const Point2LL& pos, const Velocity& speed, const std::vector<SliceLayerPart>& current_mesh_parts, const coord_t wall_line_width);
+    void writeApproachToSeam(
+        const Point2LL& pos,
+        const Velocity& speed,
+        const std::vector<SliceLayerPart>& current_mesh_parts,
+        const coord_t wall_line_width,
+        const coord_t z_seam_approach_inset);
 };
 
 } // namespace cura
