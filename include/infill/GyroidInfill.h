@@ -1,12 +1,12 @@
-// Copyright (c) 2020 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "../utils/Coord_t.h"
+#include "geometry/LinesSet.h"
 #include "geometry/OpenLinesSet.h"
+#include "utils/Coord_t.h"
 
 namespace cura
 {
-
 class Shape;
 
 class GyroidInfill
@@ -38,5 +38,4 @@ public:
 
 private:
 };
-
 } // namespace cura

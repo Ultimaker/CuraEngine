@@ -20,6 +20,7 @@
 #include "geometry/OpenPolyline.h"
 #include "geometry/Point2D.h"
 #include "settings/types/LayerIndex.h"
+#include "sliceDataStorage.h"
 #include "utils/Date.h"
 #include "utils/linearAlg2D.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble

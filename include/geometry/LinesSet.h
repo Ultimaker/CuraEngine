@@ -21,6 +21,7 @@ class OpenPolyline;
 
 enum class CheckNonEmptyParam
 {
+    OnlyIfValid,
     OnlyIfNotEmpty,
     EvenIfEmpty
 };
@@ -288,6 +289,9 @@ public:
         os << "]";
         return os;
     }
+
+private:
+    bool checkAdd(const LineType& line, CheckNonEmptyParam check_non_empty);
 };
 
 } // namespace cura

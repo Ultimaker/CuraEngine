@@ -10,22 +10,16 @@
 #include <tuple>
 #include <utility>
 
-#include "WallToolPaths.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
 #include "cura/plugins/slots/gcode_paths/v0/modify.grpc.pb.h"
 #include "cura/plugins/slots/infill/v0/generate.grpc.pb.h"
 #include "cura/plugins/slots/postprocess/v0/modify.grpc.pb.h"
 #include "cura/plugins/slots/simplify/v0/modify.grpc.pb.h"
 #include "cura/plugins/v0/slot_id.pb.h"
-#include "geometry/Point2LL.h"
-#include "geometry/Polygon.h"
-#include "infill.h"
-#include "plugins/converters.h"
 #include "plugins/slotproxy.h"
 #include "plugins/types.h"
 #include "plugins/validator.h"
 #include "utils/Simplify.h" // TODO: Remove once the simplify slot has been removed
-#include "utils/types/char_range_literal.h"
 
 namespace cura
 {

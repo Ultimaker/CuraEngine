@@ -62,13 +62,13 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
         switch (modifier_type)
         {
         case ANTI_OVERHANG:
-            support_layer.anti_overhang.push_back(slicer_layer.polygons);
+            support_layer.anti_overhang.push_back(slicer_layer.polygons_);
             break;
         case SUPPORT_DROP_DOWN:
-            support_layer.support_mesh_drop_down.push_back(slicer_layer.polygons);
+            support_layer.support_mesh_drop_down.push_back(slicer_layer.polygons_);
             break;
         case SUPPORT_VANILLA:
-            support_layer.support_mesh.push_back(slicer_layer.polygons);
+            support_layer.support_mesh.push_back(slicer_layer.polygons_);
             break;
         }
     }

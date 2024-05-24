@@ -31,19 +31,19 @@ void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
         { // magically nothing happens when max_dist_from_lower_layer == 0
             // below magic code solves that
             constexpr coord_t safe_dist = 20;
-            Shape diff = layer_above.polygons.difference(layer.polygons.offset(-safe_dist));
-            layer.polygons = layer.polygons.unionPolygons(diff);
-            layer.polygons = layer.polygons.smooth(safe_dist);
-            layer.polygons = Simplify(safe_dist, safe_dist / 2, 0).polygon(layer.polygons);
+            Shape diff = layer_above.polygons_.difference(layer.polygons_.offset(-safe_dist));
+            layer.polygons_ = layer.polygons_.unionPolygons(diff);
+            layer.polygons_ = layer.polygons_.smooth(safe_dist);
+            layer.polygons_ = Simplify(safe_dist, safe_dist / 2, 0).polygon(layer.polygons_);
             // somehow layer.polygons get really jagged lines with a lot of vertices
             // without the above steps slicing goes really slow
         }
         else
         {
             // Get the current layer and split it into parts
-            std::vector<SingleShape> layer_parts = layer.polygons.splitIntoParts();
+            std::vector<SingleShape> layer_parts = layer.polygons_.splitIntoParts();
             // Get a copy of the layer above to prune away before we shrink it
-            Shape above = layer_above.polygons;
+            Shape above = layer_above.polygons_;
 
             // Now go through all the holes in the current layer and check if they intersect anything in the layer above
             // If not, then they're the top of a hole and should be cut from the layer above before the union
@@ -73,7 +73,7 @@ void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
                 }
             }
             // And now union with offset of the resulting above layer
-            layer.polygons = layer.polygons.unionPolygons(above.offset(-max_dist_from_lower_layer));
+            layer.polygons_ = layer.polygons_.unionPolygons(above.offset(-max_dist_from_lower_layer));
         }
     }
 }

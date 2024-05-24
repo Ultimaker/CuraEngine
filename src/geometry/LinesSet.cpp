@@ -15,9 +15,25 @@ namespace cura
 {
 
 template<class LineType>
+bool LinesSet<LineType>::checkAdd(const LineType& line, CheckNonEmptyParam check_non_empty)
+{
+    switch (check_non_empty)
+    {
+    case CheckNonEmptyParam::EvenIfEmpty:
+        return true;
+    case CheckNonEmptyParam::OnlyIfNotEmpty:
+        return ! line.empty();
+    case CheckNonEmptyParam::OnlyIfValid:
+        return line.isValid();
+    }
+
+    return false;
+}
+
+template<class LineType>
 void LinesSet<LineType>::push_back(const LineType& line, CheckNonEmptyParam check_non_empty)
 {
-    if (check_non_empty == CheckNonEmptyParam::EvenIfEmpty || ! line.empty())
+    if (checkAdd(line, check_non_empty))
     {
         lines_.push_back(line);
     }
@@ -26,7 +42,7 @@ void LinesSet<LineType>::push_back(const LineType& line, CheckNonEmptyParam chec
 template<class LineType>
 void LinesSet<LineType>::push_back(LineType&& line, CheckNonEmptyParam check_non_empty)
 {
-    if (check_non_empty == CheckNonEmptyParam::EvenIfEmpty || ! line.empty())
+    if (checkAdd(line, check_non_empty))
     {
         lines_.push_back(std::move(line));
     }

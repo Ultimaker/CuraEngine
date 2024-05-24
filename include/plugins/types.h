@@ -11,8 +11,6 @@
 #include <fmt/format.h>
 
 #include "cura/plugins/v0/slot_id.pb.h"
-#include "geometry/Point2LL.h"
-#include "geometry/Polygon.h"
 
 namespace fmt
 {
