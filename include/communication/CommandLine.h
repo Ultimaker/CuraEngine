@@ -17,6 +17,9 @@ namespace cura
 {
 class Settings;
 
+using setting_map = std::unordered_map<std::string, std::string>;
+using container_setting_map = std::unordered_map<std::string, setting_map>;
+
 /*
  * \brief When slicing via the command line, interprets the command line
  * arguments to initiate a slice.
@@ -220,14 +223,14 @@ private:
      * \param element The path to the file to read the JSON values from.
      * \return The resolved JSON values.
      */
-    static std::optional<std::unordered_map<std::string, std::unordered_map<std::string, std::string>>> readResolvedJsonValues(const std::filesystem::path& json_filename);
+    static std::optional<container_setting_map> readResolvedJsonValues(const std::filesystem::path& json_filename);
 
     /*
      * \brief Read the resolved JSON values from a document.
      * \param document The document to read the JSON values from.
      * \return The resolved JSON values.
      */
-    static std::optional<std::unordered_map<std::string, std::unordered_map<std::string, std::string>>> readResolvedJsonValues(const rapidjson::Document& document);
+    static std::optional<container_setting_map> readResolvedJsonValues(const rapidjson::Document& document);
 };
 
 } // namespace cura

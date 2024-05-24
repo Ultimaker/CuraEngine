@@ -386,7 +386,7 @@ void CommandLine::sliceNext()
                     argument_index++;
                     if (argument_index >= arguments_.size())
                     {
-                        spdlog::error("Missing setting name and value with -s argument.");
+                        spdlog::error("Missing setting name and value with -r argument.");
                         exit(1);
                     }
                     argument = arguments_[argument_index];
@@ -406,8 +406,8 @@ void CommandLine::sliceNext()
                     // Split the settings into global, extruder and model settings. This is needed since the order in which the settings are applied is important.
                     // first global settings, then extruder settings, then model settings. The order of these stacks is not enforced in the JSON files.
                     std::unordered_map<std::string, std::string> global_settings;
-                    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> extruder_settings;
-                    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> model_settings;
+                    container_setting_map extruder_settings;
+                    container_setting_map model_settings;
                     std::unordered_map<std::string, std::string> limit_to_extruder;
 
                     for (const auto& [key, values] : settings.value())
@@ -450,7 +450,7 @@ void CommandLine::sliceNext()
 
                     for (const auto& [key, values] : model_settings)
                     {
-                        const auto model_name = key;
+                        const auto& model_name = key;
 
                         cura::MeshGroup mesh_group;
                         for (const auto& [setting_key, setting_value] : values)
@@ -712,7 +712,7 @@ void CommandLine::loadJSONSettings(const rapidjson::Value& element, Settings& se
     }
 }
 
-std::optional<std::unordered_map<std::string, std::unordered_map<std::string, std::string>>> CommandLine::readResolvedJsonValues(const std::filesystem::path& json_filename)
+std::optional<container_setting_map> CommandLine::readResolvedJsonValues(const std::filesystem::path& json_filename)
 {
     std::ifstream file(json_filename, std::ios::binary);
     if (! file)
@@ -735,14 +735,14 @@ std::optional<std::unordered_map<std::string, std::unordered_map<std::string, st
     return readResolvedJsonValues(json_document);
 }
 
-std::optional<std::unordered_map<std::string, std::unordered_map<std::string, std::string>>> CommandLine::readResolvedJsonValues(const rapidjson::Document& document)
+std::optional<container_setting_map> CommandLine::readResolvedJsonValues(const rapidjson::Document& document)
 {
     if (! document.IsObject())
     {
         return std::nullopt;
     }
 
-    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> result;
+    container_setting_map result;
     for (rapidjson::Value::ConstMemberIterator resolved_key = document.MemberBegin(); resolved_key != document.MemberEnd(); resolved_key++)
     {
         std::unordered_map<std::string, std::string> values;
