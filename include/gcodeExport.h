@@ -8,6 +8,7 @@
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //To allow tests to use protected members.
 #endif
+#include <optional>
 #include <sstream> // for stream.str()
 #include <stdio.h>
 
@@ -26,6 +27,7 @@ namespace cura
 
 class RetractionConfig;
 class SliceDataStorage;
+class SliceLayerPart;
 struct WipeScriptConfig;
 
 // The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
