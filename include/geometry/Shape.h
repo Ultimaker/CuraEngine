@@ -5,8 +5,8 @@
 #define GEOMETRY_SHAPE_H
 
 #include "geometry/LinesSet.h"
-#include "settings/types/Angle.h"
 #include "geometry/Polygon.h"
+#include "settings/types/Angle.h"
 
 namespace cura
 {
