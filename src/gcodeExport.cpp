@@ -766,6 +766,8 @@ void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage
 {
     Scene& scene = Application::getInstance().current_slice_->scene;
     const size_t num_extruders = scene.extruders.size();
+    const bool material_print_temp_prepend = scene.current_mesh_group->settings.get<bool>("material_print_temp_prepend");
+    const bool material_print_temp_wait = scene.current_mesh_group->settings.get<bool>("material_print_temp_wait");
     bool wait_start_extruder = false;
 
     switch (getFlavor())
@@ -787,41 +789,17 @@ void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage
 
     processInitialLayerBedTemperature();
 
-    std::vector<size_t> extruders_to_process;
-    extruders_to_process.push_back(start_extruder_nr);
-    if (scene.current_mesh_group->settings.get<bool>("material_print_temp_prepend") || (scene.current_mesh_group != scene.mesh_groups.begin()))
+    struct ExtruderInitialize
     {
-        std::vector<bool> extruders_used = storage.getExtrudersUsed();
-        for (size_t extruder_nr = 0; extruder_nr < extruders_used.size(); ++extruder_nr)
-        {
-            if (extruder_nr != start_extruder_nr && extruders_used[extruder_nr])
-            {
-                extruders_to_process.push_back(extruder_nr);
-            }
-        }
-    }
+        size_t nr;
+        Temperature temperature;
+    };
 
-    for (size_t extruder_nr : extruders_to_process)
+    std::vector<ExtruderInitialize> all_extruders;
+    std::vector<bool> extruders_used = storage.getExtrudersUsed();
+    for (size_t extruder_nr = 0; extruder_nr < extruders_used.size(); ++extruder_nr)
     {
-        const ExtruderTrain& train = scene.extruders[extruder_nr];
-        Temperature extruder_temp;
-        bool wait = false;
-        if (extruder_nr == start_extruder_nr)
-        {
-            const Temperature print_temp_0 = train.settings_.get<Temperature>("material_print_temperature_layer_0");
-            extruder_temp = (print_temp_0 != 0) ? print_temp_0 : train.settings_.get<Temperature>("material_print_temperature");
-            wait = wait_start_extruder;
-        }
-        else
-        {
-            extruder_temp = train.settings_.get<Temperature>("material_standby_temperature");
-        }
-        writeTemperatureCommand(extruder_nr, extruder_temp, wait);
-    }
-
-    if (scene.current_mesh_group->settings.get<bool>("material_print_temp_wait"))
-    {
-        for (size_t extruder_nr : extruders_to_process)
+        if (extruders_used[extruder_nr])
         {
             const ExtruderTrain& train = scene.extruders[extruder_nr];
             Temperature extruder_temp;
@@ -834,7 +812,27 @@ void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage
             {
                 extruder_temp = train.settings_.get<Temperature>("material_standby_temperature");
             }
-            writeTemperatureCommand(extruder_nr, extruder_temp, true);
+
+            all_extruders.push_back({ extruder_nr, extruder_temp });
+        }
+    }
+
+    // First set all the required temperatures at once, but without waiting so that all heaters start heating right now
+    const bool prepend_all_temperatures = material_print_temp_prepend || (scene.current_mesh_group != scene.mesh_groups.begin());
+    for (ExtruderInitialize& extruder : all_extruders)
+    {
+        if (extruder.nr == start_extruder_nr || prepend_all_temperatures)
+        {
+            writeTemperatureCommand(extruder.nr, extruder.temperature, false, true);
+        }
+    }
+
+    // Now wait for all the required temperatures one after the other
+    for (ExtruderInitialize& extruder : all_extruders)
+    {
+        if (material_print_temp_wait || (extruder.nr == start_extruder_nr && wait_start_extruder))
+        {
+            writeTemperatureCommand(extruder.nr, extruder.temperature, true, true);
         }
     }
 }
@@ -1481,7 +1479,7 @@ void GCodeExport::writeFanCommand(double speed)
     current_fan_speed_ = speed;
 }
 
-void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperature& temperature, const bool wait)
+void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperature& temperature, const bool wait, const bool force_same_temperature)
 {
     const ExtruderTrain& extruder_train = Application::getInstance().current_slice_->scene.extruders[extruder];
 
@@ -1517,7 +1515,7 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperatu
         }
     }
 
-    if ((! wait || extruder_attr_[extruder].waited_for_temperature_) && extruder_attr_[extruder].current_temperature_ == temperature)
+    if ((! wait || extruder_attr_[extruder].waited_for_temperature_) && ! force_same_temperature && extruder_attr_[extruder].current_temperature_ == temperature)
     {
         return;
     }
