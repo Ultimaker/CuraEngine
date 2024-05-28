@@ -8,12 +8,16 @@
 #include <filesystem>
 #include <fstream> //To check if files exist.
 #include <numeric> //For std::accumulate.
+#include <optional>
 #include <rapidjson/error/en.h> //Loading JSON documents to get settings from them.
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 #include <string>
+#include <string_view>
+#include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 #include <range/v3/all.hpp>
 #include <spdlog/details/os.h>
@@ -22,6 +26,7 @@
 #include "Application.h" //To get the extruders for material estimates.
 #include "ExtruderTrain.h"
 #include "FffProcessor.h" //To start a slice and get time estimates.
+#include "MeshGroup.h"
 #include "Slice.h"
 #include "utils/Matrix4x3D.h" //For the mesh_rotation_matrix setting.
 #include "utils/format/filesystem_path.h"
@@ -354,6 +359,127 @@ void CommandLine::sliceNext()
                     last_settings->add(key, value);
                     break;
                 }
+                case 'r':
+                {
+                    /*
+                     * read in resolved values from a json file. The json format of the file resolved settings is the following:
+                     *
+                     * ```
+                     * {
+                     *     "global": [SETTINGS],
+                     *     "extruder.0": [SETTINGS],
+                     *     "extruder.1": [SETTINGS],
+                     *     "model.stl": [SETTINGS]
+                     * }
+                     * ```
+                     * where `[SETTINGS]` follow the schema
+                     * ```
+                     * {
+                     *     [key: string]: bool | string | number | number[] | number[][]
+                     * }
+                     * ```
+                     * There can be any number of extruders (denoted with `extruder.n`) and any number of models (denoted with `[modelname].stl`).
+                     * The key of the model values will also be the filename of the relevant model, when running CuraEngine with this option the
+                     * model file with that same name _must_ be in the same folder as the resolved settings json.
+                     */
+
+                    argument_index++;
+                    if (argument_index >= arguments_.size())
+                    {
+                        spdlog::error("Missing setting name and value with -r argument.");
+                        exit(1);
+                    }
+                    argument = arguments_[argument_index];
+                    const auto settings = readResolvedJsonValues(std::filesystem::path{ argument });
+
+                    if (! settings.has_value())
+                    {
+                        spdlog::error("Failed to load JSON file: {}", argument);
+                        exit(1);
+                    }
+
+                    constexpr std::string_view global_identifier = "global";
+                    constexpr std::string_view extruder_identifier = "extruder.";
+                    constexpr std::string_view model_identifier = "model.";
+                    constexpr std::string_view limit_to_extruder_identifier = "limit_to_extruder";
+
+                    // Split the settings into global, extruder and model settings. This is needed since the order in which the settings are applied is important.
+                    // first global settings, then extruder settings, then model settings. The order of these stacks is not enforced in the JSON files.
+                    std::unordered_map<std::string, std::string> global_settings;
+                    container_setting_map extruder_settings;
+                    container_setting_map model_settings;
+                    std::unordered_map<std::string, std::string> limit_to_extruder;
+
+                    for (const auto& [key, values] : settings.value())
+                    {
+                        if (key == global_identifier)
+                        {
+                            global_settings = values;
+                        }
+                        else if (key.starts_with(extruder_identifier))
+                        {
+                            extruder_settings[key] = values;
+                        }
+                        else if (key == limit_to_extruder_identifier)
+                        {
+                            limit_to_extruder = values;
+                        }
+                        else
+                        {
+                            model_settings[key] = values;
+                        }
+                    }
+
+                    for (const auto& [setting_key, setting_value] : global_settings)
+                    {
+                        slice.scene.settings.add(setting_key, setting_value);
+                    }
+
+                    for (const auto& [key, values] : extruder_settings)
+                    {
+                        const auto extruder_nr = std::stoi(key.substr(extruder_identifier.size()));
+                        while (slice.scene.extruders.size() <= static_cast<size_t>(extruder_nr))
+                        {
+                            slice.scene.extruders.emplace_back(extruder_nr, &slice.scene.settings);
+                        }
+                        for (const auto& [setting_key, setting_value] : values)
+                        {
+                            slice.scene.extruders[extruder_nr].settings_.add(setting_key, setting_value);
+                        }
+                    }
+
+                    for (const auto& [key, values] : model_settings)
+                    {
+                        const auto& model_name = key;
+
+                        cura::MeshGroup mesh_group;
+                        for (const auto& [setting_key, setting_value] : values)
+                        {
+                            mesh_group.settings.add(setting_key, setting_value);
+                        }
+
+                        const auto transformation = mesh_group.settings.get<Matrix4x3D>("mesh_rotation_matrix");
+                        const auto extruder_nr = mesh_group.settings.get<size_t>("extruder_nr");
+
+                        if (! loadMeshIntoMeshGroup(&mesh_group, model_name.c_str(), transformation, slice.scene.extruders[extruder_nr].settings_))
+                        {
+                            spdlog::error("Failed to load model: {}. (error number {})", model_name, errno);
+                            exit(1);
+                        }
+
+                        slice.scene.mesh_groups.push_back(std::move(mesh_group));
+                    }
+                    for (const auto& [key, value] : limit_to_extruder)
+                    {
+                        const auto extruder_nr = std::stoi(value.substr(extruder_identifier.size()));
+                        if (extruder_nr >= 0)
+                        {
+                            slice.scene.limit_to_extruder[key] = &slice.scene.extruders[extruder_nr];
+                        }
+                    }
+
+                    break;
+                }
                 default:
                 {
                     spdlog::error("Unknown option: -{}", argument[1]);
@@ -584,6 +710,55 @@ void CommandLine::loadJSONSettings(const rapidjson::Value& element, Settings& se
         }
         settings.add(name, value_string);
     }
+}
+
+std::optional<container_setting_map> CommandLine::readResolvedJsonValues(const std::filesystem::path& json_filename)
+{
+    std::ifstream file(json_filename, std::ios::binary);
+    if (! file)
+    {
+        spdlog::error("Couldn't open JSON file: {}", json_filename);
+        return std::nullopt;
+    }
+
+    std::vector<char> read_buffer(std::istreambuf_iterator<char>(file), {});
+    rapidjson::MemoryStream memory_stream(read_buffer.data(), read_buffer.size());
+
+    rapidjson::Document json_document;
+    json_document.ParseStream(memory_stream);
+    if (json_document.HasParseError())
+    {
+        spdlog::error("Error parsing JSON (offset {}): {}", json_document.GetErrorOffset(), GetParseError_En(json_document.GetParseError()));
+        return std::nullopt;
+    }
+
+    return readResolvedJsonValues(json_document);
+}
+
+std::optional<container_setting_map> CommandLine::readResolvedJsonValues(const rapidjson::Document& document)
+{
+    if (! document.IsObject())
+    {
+        return std::nullopt;
+    }
+
+    container_setting_map result;
+    for (rapidjson::Value::ConstMemberIterator resolved_key = document.MemberBegin(); resolved_key != document.MemberEnd(); resolved_key++)
+    {
+        std::unordered_map<std::string, std::string> values;
+        for (rapidjson::Value::ConstMemberIterator resolved_value = resolved_key->value.MemberBegin(); resolved_value != resolved_key->value.MemberEnd(); resolved_value++)
+        {
+            std::string value_string;
+            if (! jsonValue2Str(resolved_value->value, value_string))
+            {
+                spdlog::warn("Unrecognized data type in JSON setting {}", resolved_value->name.GetString());
+                continue;
+            }
+            values.emplace(resolved_value->name.GetString(), value_string);
+        }
+        result.emplace(resolved_key->name.GetString(), std::move(values));
+    }
+    return result;
 }
 
 std::string CommandLine::findDefinitionFile(const std::string& definition_id, const std::vector<std::filesystem::path>& search_directories)

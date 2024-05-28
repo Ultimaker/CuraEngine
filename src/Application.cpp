@@ -131,6 +131,7 @@ void Application::printHelp() const
     fmt::print("  -p\n\tLog progress information.\n");
     fmt::print("  -d Add definition search paths seperated by a `:` (Unix) or `;` (Windows)\n");
     fmt::print("  -j\n\tLoad settings.def.json file to register all settings and their defaults.\n");
+    fmt::print("  -r\n\tLoad a json file containing resolved setting values.\n");
     fmt::print("  -s <setting>=<value>\n\tSet a setting to a value for the last supplied object, \n\textruder train, or general settings.\n");
     fmt::print("  -l <model_file>\n\tLoad an STL model. \n");
     fmt::print("  -g\n\tSwitch setting focus to the current mesh group only.\n\tUsed for one-at-a-time printing.\n");
