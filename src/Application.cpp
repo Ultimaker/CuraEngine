@@ -41,6 +41,8 @@ Application::Application()
     {
         spdlog::cfg::helpers::load_levels(spdlog_val);
     };
+
+    int NEWVARIABLE;
 }
 
 Application::~Application()
