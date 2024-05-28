@@ -2,21 +2,25 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "WallsComputation.h" //Unit under test.
+
+#include <unordered_set>
+
+#include <range/v3/view/join.hpp>
+#include <scripta/logger.h>
+
+#include <gtest/gtest.h>
+
 #include "InsetOrderOptimizer.h" //Unit also under test.
+#include "geometry/OpenPolyline.h"
+#include "geometry/Polygon.h" //To create example polygons.
 #include "settings/Settings.h" //Settings to generate walls with.
 #include "sliceDataStorage.h" //Sl
 #include "slicer.h"
-#include "utils/polygon.h" //To create example polygons.
-#include <gtest/gtest.h>
-#include <range/v3/view/join.hpp>
-#include <unordered_set>
-
-#include <scripta/logger.h>
 
 #ifdef WALLS_COMPUTATION_TEST_SVG_OUTPUT
-#include "utils/SVG.h"
-#include "utils/polygon.h"
 #include <cstdlib>
+
+#include "utils/SVG.h"
 #endif // WALLS_COMPUTATION_TEST_SVG_OUTPUT
 
 // NOLINTBEGIN(*-magic-numbers)
@@ -41,14 +45,15 @@ public:
     /*!
      * Basic 10x10mm square shape to work with.
      */
-    Polygons square_shape;
+    Shape square_shape;
 
     /*!
      * A rectangle enclosing two triangular holes;
      */
-    Polygons ff_holes;
+    Shape ff_holes;
 
-    WallsComputationTest() : walls_computation(settings, LayerIndex(100))
+    WallsComputationTest()
+        : walls_computation(settings, LayerIndex(100))
     {
         square_shape.emplace_back();
         square_shape.back().emplace_back(0, 0);
@@ -104,7 +109,7 @@ TEST_F(WallsComputationTest, GenerateWallsForLayerSinglePart)
     SliceLayer layer;
     layer.parts.emplace_back();
     SliceLayerPart& part = layer.parts.back();
-    part.outline.add(square_shape);
+    part.outline.push_back(square_shape);
 
     // Run the test.
     walls_computation.generateWalls(&layer, SectionType::WALL);
@@ -113,7 +118,8 @@ TEST_F(WallsComputationTest, GenerateWallsForLayerSinglePart)
     EXPECT_FALSE(part.wall_toolpaths.empty()) << "There must be some walls.";
     EXPECT_GT(part.print_outline.area(), 0) << "The print outline must encompass the outer wall, so it must be more than 0.";
     EXPECT_LE(part.print_outline.area(), square_shape.area()) << "The print outline must stay within the bounds of the original part.";
-    EXPECT_GT(part.inner_area.area(), 0) << "The inner area must be within the innermost wall. There are not enough walls to fill the entire part, so there is a positive inner area.";
+    EXPECT_GT(part.inner_area.area(), 0)
+        << "The inner area must be within the innermost wall. There are not enough walls to fill the entire part, so there is a positive inner area.";
     EXPECT_EQ(layer.parts.size(), 1) << "There is still just 1 part.";
 }
 
@@ -126,7 +132,7 @@ TEST_F(WallsComputationTest, GenerateWallsZeroWalls)
     SliceLayer layer;
     layer.parts.emplace_back();
     SliceLayerPart& part = layer.parts.back();
-    part.outline.add(square_shape);
+    part.outline.push_back(square_shape);
 
     // Run the test.
     walls_computation.generateWalls(&layer, SectionType::WALL);
@@ -147,7 +153,7 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     SliceLayer layer;
     layer.parts.emplace_back();
     SliceLayerPart& part = layer.parts.back();
-    part.outline.add(ff_holes);
+    part.outline.push_back(ff_holes);
 
     // Run the test.
     walls_computation.generateWalls(&layer, SectionType::WALL);

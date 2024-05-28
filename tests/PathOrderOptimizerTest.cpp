@@ -15,7 +15,7 @@ public:
     /*!
      * A blank optimizer with no polygons added yet. Fresh and virgin.
      */
-    PathOrderOptimizer<ConstPolygonPointer> optimizer;
+    PathOrderOptimizer<const Polygon*> optimizer;
 
     /*!
      * A simple isosceles triangle. Base length and height 50.
@@ -29,12 +29,12 @@ public:
 
     void SetUp() override
     {
-        optimizer = PathOrderOptimizer<ConstPolygonPointer>(Point2LL(0, 0));
+        optimizer = PathOrderOptimizer<const Polygon*>(Point2LL(0, 0));
 
         triangle.clear();
-        triangle.add(Point2LL(0, 0));
-        triangle.add(Point2LL(50, 0));
-        triangle.add(Point2LL(25, 50));
+        triangle.push_back(Point2LL(0, 0));
+        triangle.push_back(Point2LL(50, 0));
+        triangle.push_back(Point2LL(25, 50));
     }
 };
 // NOLINTEND(misc-non-private-member-variables-in-classes)
@@ -62,9 +62,9 @@ TEST_F(PathOrderOptimizerTest, ThreeTrianglesShortestOrder)
     far.translate(Point2LL(1000, 1000));
 
     // Add them out of order so that it's clear that the optimization changes the order.
-    optimizer.addPolygon(middle);
-    optimizer.addPolygon(far);
-    optimizer.addPolygon(near);
+    optimizer.addPolygon(&middle);
+    optimizer.addPolygon(&far);
+    optimizer.addPolygon(&near);
 
     optimizer.optimize();
 

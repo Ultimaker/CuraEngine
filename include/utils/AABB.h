@@ -4,14 +4,13 @@
 #ifndef UTILS_AABB_H
 #define UTILS_AABB_H
 
-#include "Point2LL.h"
+#include "geometry/Point2LL.h"
 
 namespace cura
 {
 
-class ConstPolygonRef;
 class Polygon;
-class Polygons;
+class Shape;
 
 /* Axis aligned boundary box */
 class AABB
@@ -21,11 +20,11 @@ public:
 
     AABB(); //!< initializes with invalid min and max
     AABB(const Point2LL& min, const Point2LL& max); //!< initializes with given min and max
-    AABB(const Polygons& polys); //!< Computes the boundary box for the given polygons
-    AABB(ConstPolygonRef poly); //!< Computes the boundary box for the given polygons
+    AABB(const Shape& shape); //!< Computes the boundary box for the given shape
+    AABB(const Polygon& poly); //!< Computes the boundary box for the given polygons
 
-    void calculate(const Polygons& polys); //!< Calculates the aabb for the given polygons (throws away old min and max data of this aabb)
-    void calculate(ConstPolygonRef poly); //!< Calculates the aabb for the given polygon (throws away old min and max data of this aabb)
+    void calculate(const Shape& shape); //!< Calculates the aabb for the given shape (throws away old min and max data of this aabb)
+    void calculate(const Polygon& poly); //!< Calculates the aabb for the given polygon (throws away old min and max data of this aabb)
 
     /*!
      * Whether the bounding box contains the specified point.
@@ -79,7 +78,9 @@ public:
      *
      * \param point The point to include in the bounding box.
      */
-    void include(Point2LL point);
+    void include(const Point2LL& point);
+
+    void include(const Polygon& polygon);
 
     /*!
      * \brief Includes the specified bounding box in the bounding box.
@@ -90,7 +91,7 @@ public:
      *
      * \param other The bounding box to include in this one.
      */
-    void include(const AABB other);
+    void include(const AABB& other);
 
     /*!
      * Expand the borders of the bounding box in each direction with the given amount

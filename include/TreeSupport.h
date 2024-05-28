@@ -10,11 +10,11 @@
 #include "TreeSupportEnums.h"
 #include "TreeSupportSettings.h"
 #include "boost/functional/hash.hpp" // For combining hashes
+#include "geometry/Polygon.h"
 #include "polyclipping/clipper.hpp"
 #include "settings/EnumSettings.h"
 #include "sliceDataStorage.h"
 #include "utils/Coord_t.h"
-#include "utils/polygon.h"
 
 namespace cura
 {
@@ -42,12 +42,12 @@ constexpr auto SUPPORT_TREE_EXPONENTIAL_FACTOR = 1.5;
 constexpr size_t SUPPORT_TREE_PRE_EXPONENTIAL_STEPS = 1;
 constexpr coord_t SUPPORT_TREE_COLLISION_RESOLUTION = 500; // Only has an effect if SUPPORT_TREE_USE_EXPONENTIAL_COLLISION_RESOLUTION is false
 
-using PropertyAreasUnordered = std::unordered_map<TreeSupportElement, Polygons>;
-using PropertyAreas = std::map<TreeSupportElement, Polygons>;
+using PropertyAreasUnordered = std::unordered_map<TreeSupportElement, Shape>;
+using PropertyAreas = std::map<TreeSupportElement, Shape>;
 
 struct FakeRoofArea
 {
-    FakeRoofArea(Polygons area, coord_t line_distance, bool fractional)
+    FakeRoofArea(Shape area, coord_t line_distance, bool fractional)
         : area_(area)
         , line_distance_(line_distance)
         , fractional_(fractional)
@@ -56,7 +56,7 @@ struct FakeRoofArea
     /*!
      * \brief Area that should be a fake roof.
      */
-    Polygons area_;
+    Shape area_;
 
     /*!
      * \brief Distance between support lines
@@ -185,10 +185,10 @@ private:
         AreaIncreaseSettings settings,
         LayerIndex layer_idx,
         TreeSupportElement* parent,
-        const Polygons& relevant_offset,
-        Polygons& to_bp_data,
-        Polygons& to_model_data,
-        Polygons& increased,
+        const Shape& relevant_offset,
+        Shape& to_bp_data,
+        Shape& to_model_data,
+        Shape& increased,
         const coord_t overspeed,
         const bool mergelayer);
 
@@ -262,7 +262,7 @@ private:
      */
     void generateBranchAreas(
         std::vector<std::pair<LayerIndex, TreeSupportElement*>>& linear_data,
-        std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons,
+        std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons,
         const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order);
 
     /*!
@@ -270,7 +270,7 @@ private:
      *
      * \param layer_tree_polygons[in,out] Resulting branch areas with the layerindex they appear on.
      */
-    void smoothBranchAreas(std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons);
+    void smoothBranchAreas(std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons);
 
     /*!
      * \brief Drop down areas that do rest non-gracefully on the model to ensure the branch actually rests on something.
@@ -281,13 +281,13 @@ private:
      * \param inverse_tree_order[in] A mapping that returns the child of every influence area.
      */
     void dropNonGraciousAreas(
-        std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons,
+        std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons,
         const std::vector<std::pair<LayerIndex, TreeSupportElement*>>& linear_data,
-        std::vector<std::vector<std::pair<LayerIndex, Polygons>>>& dropped_down_areas,
+        std::vector<std::vector<std::pair<LayerIndex, Shape>>>& dropped_down_areas,
         const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order);
 
 
-    void filterFloatingLines(std::vector<Polygons>& support_layer_storage);
+    void filterFloatingLines(std::vector<Shape>& support_layer_storage);
 
     /*!
      * \brief Generates Support Floor, ensures Support Roof can not cut of branches, and saves the branches as support to storage
@@ -297,9 +297,9 @@ private:
      * \param storage[in,out] The storage where the support should be stored.
      */
     void finalizeInterfaceAndSupportAreas(
-        std::vector<Polygons>& support_layer_storage,
-        std::vector<Polygons>& support_roof_storage,
-        std::vector<Polygons>& support_layer_storage_fractional,
+        std::vector<Shape>& support_layer_storage,
+        std::vector<Shape>& support_roof_storage,
+        std::vector<Shape>& support_layer_storage_fractional,
         SliceDataStorage& storage);
 
     /*!
@@ -318,7 +318,7 @@ private:
     /*!
      * \brief Areas that should have been support roof, but where the roof settings would not allow any lines to be generated.
      */
-    std::vector<Polygons> additional_required_support_area;
+    std::vector<Shape> additional_required_support_area;
 
     /*!
      * \brief Areas that use a higher density pattern of regular support to support the model (fake_roof).

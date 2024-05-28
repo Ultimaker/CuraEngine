@@ -5,7 +5,7 @@
 #ifndef UTILS_EXTRUSION_JUNCTION_H
 #define UTILS_EXTRUSION_JUNCTION_H
 
-#include "Point2LL.h"
+#include "geometry/Point2LL.h"
 
 namespace cura
 {

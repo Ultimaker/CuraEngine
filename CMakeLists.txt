@@ -62,7 +62,7 @@ set(engine_SRCS # Except main.cpp.
         src/MeshGroup.cpp
         src/Mold.cpp
         src/multiVolumes.cpp
-        src/PathOrderPath.cpp
+        src/path_ordering.cpp
         src/Preheat.cpp
         src/PrimeTower.cpp
         src/raft.cpp
@@ -135,7 +135,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ExtrusionLine.cpp
         src/utils/ExtrusionSegment.cpp
         src/utils/gettime.cpp
-        src/utils/LinearAlg2D.cpp
+        src/utils/linearAlg2D.cpp
         src/utils/ListPolyIt.cpp
         src/utils/Matrix4x3D.cpp
         src/utils/MinimumSpanningTree.cpp
@@ -144,7 +144,6 @@ set(engine_SRCS # Except main.cpp.
         src/utils/PolygonsPointIndex.cpp
         src/utils/PolygonsSegmentIndex.cpp
         src/utils/polygonUtils.cpp
-        src/utils/polygon.cpp
         src/utils/PolylineStitcher.cpp
         src/utils/Simplify.cpp
         src/utils/SVG.cpp
@@ -153,6 +152,17 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ToolpathVisualizer.cpp
         src/utils/VoronoiUtils.cpp
         src/utils/VoxelUtils.cpp
+        src/utils/MixedPolylineStitcher.cpp
+
+        src/geometry/Polygon.cpp
+        src/geometry/Shape.cpp
+        src/geometry/PointsSet.cpp
+        src/geometry/SingleShape.cpp
+        src/geometry/PartsView.cpp
+        src/geometry/LinesSet.cpp
+        src/geometry/Polyline.cpp
+        src/geometry/ClosedPolyline.cpp
+        src/geometry/MixedLinesSet.cpp
 )
 
 add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})

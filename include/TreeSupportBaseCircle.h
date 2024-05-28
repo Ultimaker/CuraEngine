@@ -7,8 +7,9 @@
 
 #include <range/v3/view/iota.hpp>
 
+#include "geometry/Polygon.h"
+#include "settings/types/Angle.h"
 #include "utils/Coord_t.h"
-#include "utils/polygon.h"
 
 namespace cura
 {

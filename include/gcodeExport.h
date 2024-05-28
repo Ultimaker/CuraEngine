@@ -11,21 +11,21 @@
 #include <sstream> // for stream.str()
 #include <stdio.h>
 
+#include "geometry/Point2LL.h"
 #include "settings/EnumSettings.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Temperature.h" //Bed temperature.
 #include "settings/types/Velocity.h"
-#include "sliceDataStorage.h"
 #include "timeEstimate.h"
 #include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
 #include "utils/NoCopy.h"
-#include "utils/Point2LL.h"
 
 namespace cura
 {
 
 class RetractionConfig;
+class SliceDataStorage;
 struct WipeScriptConfig;
 
 // The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.

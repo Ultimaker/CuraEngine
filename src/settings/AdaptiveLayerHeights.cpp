@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "settings/AdaptiveLayerHeights.h"
@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <numbers>
 
 #include "Application.h"
 #include "Slice.h"

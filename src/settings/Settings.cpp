@@ -1,13 +1,14 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "settings/Settings.h"
 
 #include <cctype>
+#include <cstdio>
 #include <fstream>
+#include <numbers>
 #include <regex> // regex parsing for temp flow graph
 #include <sstream> // ostringstream
-#include <stdio.h>
 #include <string> //Parsing strings (stod, stoul).
 
 #include <range/v3/range/conversion.hpp>
@@ -18,6 +19,8 @@
 #include "BeadingStrategy/BeadingStrategyFactory.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
+#include "geometry/Polygon.h"
+#include "geometry/Shape.h"
 #include "settings/EnumSettings.h"
 #include "settings/FlowTempGraph.h"
 #include "settings/types/Angle.h"
@@ -27,7 +30,6 @@
 #include "settings/types/Temperature.h" //For temperature settings.
 #include "settings/types/Velocity.h" //For velocity settings.
 #include "utils/Matrix4x3D.h"
-#include "utils/polygon.h"
 #include "utils/string.h" //For Escaped.
 #include "utils/types/string_switch.h" //For string switch.
 
@@ -257,11 +259,11 @@ FlowTempGraph Settings::get<FlowTempGraph>(const std::string& key) const
 }
 
 template<>
-Polygons Settings::get<Polygons>(const std::string& key) const
+Shape Settings::get<Shape>(const std::string& key) const
 {
     std::string value_string = get<std::string>(key);
 
-    Polygons result;
+    Shape result;
     if (value_string.empty())
     {
         return result; // Empty at this point.
@@ -287,8 +289,7 @@ Polygons Settings::get<Polygons>(const std::string& key) const
         {
             std::string polygon_str = *polygon_match_iter++;
 
-            result.emplace_back();
-            PolygonRef poly = result.back();
+            Polygon& poly = result.newLine();
 
             std::regex point2D_regex(R"(\[([^,\[]*),([^,\]]*)\])"); // matches to a list of exactly two things
 

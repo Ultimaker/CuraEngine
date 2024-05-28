@@ -10,11 +10,11 @@
 #include <unordered_set>
 
 #include "TreeSupportSettings.h"
+#include "geometry/Polygon.h" //For polygon parameters.
 #include "settings/EnumSettings.h" //To store whether X/Y or Z distance gets priority.
 #include "settings/types/LayerIndex.h" //Part of the RadiusLayerPair.
 #include "sliceDataStorage.h"
 #include "utils/Simplify.h"
-#include "utils/polygon.h" //For polygon parameters.
 
 namespace cura
 {
@@ -41,7 +41,7 @@ public:
         size_t current_mesh_idx,
         double progress_multiplier,
         double progress_offset,
-        const std::vector<Polygons>& additional_excluded_areas = std::vector<Polygons>());
+        const std::vector<Shape>& additional_excluded_areas = std::vector<Shape>());
     TreeModelVolumes(TreeModelVolumes&&) = default;
     TreeModelVolumes& operator=(TreeModelVolumes&&) = default;
 
@@ -66,9 +66,9 @@ public:
      * \param radius The radius of the node of interest
      * \param layer_idx The layer of interest
      * \param min_xy_dist Is the minimum xy distance used.
-     * \return Polygons object
+     * \return Shape object
      */
-    const Polygons& getCollision(coord_t radius, LayerIndex layer_idx, bool min_xy_dist = false);
+    const Shape& getCollision(coord_t radius, LayerIndex layer_idx, bool min_xy_dist = false);
 
     /*!
      * \brief Provides the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer. Holes are removed.
@@ -79,9 +79,9 @@ public:
      * \param radius The radius of the node of interest
      * \param layer_idx The layer of interest
      * \param min_xy_dist Is the minimum xy distance used.
-     * \return Polygons object
+     * \return Shape object
      */
-    const Polygons& getCollisionHolefree(coord_t radius, LayerIndex layer_idx, bool min_xy_dist = false);
+    const Shape& getCollisionHolefree(coord_t radius, LayerIndex layer_idx, bool min_xy_dist = false);
 
 
     /*!
@@ -89,9 +89,9 @@ public:
      *
      * The result is a 2D area that represents where if support were to be placed in and just dropped down it would not rest on support blocker.
      * \param layer_idx The layer of interest
-     * \return Polygons object
+     * \return Shape object
      */
-    const Polygons& getAccumulatedPlaceable0(LayerIndex layer_idx);
+    const Shape& getAccumulatedPlaceable0(LayerIndex layer_idx);
 
     /*!
      * \brief Provides the areas that have to be avoided by the tree's branches
@@ -108,24 +108,24 @@ public:
      * \param slow Is the propagation with the maximum move distance slow required.
      * \param to_model Does the avoidance allow good connections with the model.
      * \param min_xy_dist is the minimum xy distance used.
-     * \return Polygons object
+     * \return Shape object
      */
-    const Polygons& getAvoidance(coord_t radius, LayerIndex layer_idx, AvoidanceType type, bool to_model = false, bool min_xy_dist = false);
+    const Shape& getAvoidance(coord_t radius, LayerIndex layer_idx, AvoidanceType type, bool to_model = false, bool min_xy_dist = false);
 
     /*!
      * \brief Provides the area represents all areas on the model where the branch does completely fit on the given layer.
      * \param radius The radius of the node of interest
      * \param layer_idx The layer of interest
-     * \return Polygons object
+     * \return Shape object
      */
-    const Polygons& getPlaceableAreas(coord_t radius, LayerIndex layer_idx);
+    const Shape& getPlaceableAreas(coord_t radius, LayerIndex layer_idx);
 
     /*!
      * \brief Provides the area that represents the walls, as in the printed area, of the model. This is an abstract representation not equal with the outline. See
      * calculateWallRestrictions for better description. \param radius The radius of the node of interest. \param layer_idx The layer of interest. \param min_xy_dist is the minimum
-     * xy distance used. \return Polygons object
+     * xy distance used. \return Shape object
      */
-    const Polygons& getWallRestriction(coord_t radius, LayerIndex layer_idx, bool min_xy_dist);
+    const Shape& getWallRestriction(coord_t radius, LayerIndex layer_idx, bool min_xy_dist);
 
     /*!
      * \brief Round \p radius upwards to either a multiple of radius_sample_resolution_ or a exponentially increasing value
@@ -165,9 +165,9 @@ private:
      * \brief Extracts the relevant outline from a mesh
      * \param[in] mesh The mesh which outline will be extracted
      * \param layer_idx The layer which should be extracted from the mesh
-     * \return Polygons object representing the outline
+     * \return Shape object representing the outline
      */
-    Polygons extractOutlineFromMesh(const SliceMeshStorage& mesh, LayerIndex layer_idx) const;
+    Shape extractOutlineFromMesh(const SliceMeshStorage& mesh, LayerIndex layer_idx) const;
 
 
     /*!
@@ -243,7 +243,7 @@ private:
         calculateCollisionHolefree(std::deque<RadiusLayerPair>{ RadiusLayerPair(key) });
     }
 
-    Polygons safeOffset(const Polygons& me, coord_t distance, ClipperLib::JoinType jt, coord_t max_safe_step_distance, const Polygons& collision) const;
+    Shape safeOffset(const Shape& me, coord_t distance, ClipperLib::JoinType jt, coord_t max_safe_step_distance, const Shape& collision) const;
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model.
@@ -337,7 +337,7 @@ private:
      * \return A wrapped optional reference of the requested area (if it was found, an empty optional if nothing was found)
      */
     template<typename KEY>
-    const std::optional<std::reference_wrapper<const Polygons>> getArea(const std::unordered_map<KEY, Polygons>& cache, const KEY key) const;
+    const std::optional<std::reference_wrapper<const Shape>> getArea(const std::unordered_map<KEY, Shape>& cache, const KEY key) const;
 
     bool checkSettingsEquality(const Settings& me, const Settings& other) const;
 
@@ -348,9 +348,9 @@ private:
      *
      * \return A wrapped optional reference of the requested area (if it was found, an empty optional if nothing was found)
      */
-    LayerIndex getMaxCalculatedLayer(coord_t radius, const std::unordered_map<RadiusLayerPair, Polygons>& map) const;
+    LayerIndex getMaxCalculatedLayer(coord_t radius, const std::unordered_map<RadiusLayerPair, Shape>& map) const;
 
-    static Polygons calculateMachineBorderCollision(const Polygons&& machine_border);
+    static Shape calculateMachineBorderCollision(const Shape&& machine_border);
 
     /*!
      * \brief The maximum distance that the center point of a tree branch may move in consecutive layers if it has to avoid the model.
@@ -427,25 +427,25 @@ private:
     coord_t increase_until_radius_;
 
     /*!
-     * \brief Polygons representing the limits of the printable area of the
+     * \brief Shape representing the limits of the printable area of the
      * machine
      */
-    Polygons machine_border_;
+    Shape machine_border_;
 
     /*!
-     * \brief Polygons representing the printable area of the machine
+     * \brief Shape representing the printable area of the machine
      */
-    Polygons machine_area_;
+    Shape machine_area_;
 
     /*!
      * \brief Storage for layer outlines and the corresponding settings of the meshes grouped by meshes with identical setting.
      */
-    std::vector<std::pair<Settings, std::vector<Polygons>>> layer_outlines_;
+    std::vector<std::pair<Settings, std::vector<Shape>>> layer_outlines_;
 
     /*!
      * \brief Storage for areas that should be avoided, like support blocker or previous generated trees.
      */
-    std::vector<Polygons> anti_overhang_;
+    std::vector<Shape> anti_overhang_;
 
     /*!
      * \brief Radii that can be ignored by ceilRadius as they will never be requested.
@@ -471,52 +471,52 @@ private:
      * (ie there is no difference in behaviour for the user between
      * calculating the values each time vs caching the results).
      */
-    mutable std::unordered_map<RadiusLayerPair, Polygons> collision_cache_;
+    mutable std::unordered_map<RadiusLayerPair, Shape> collision_cache_;
     std::unique_ptr<std::mutex> critical_collision_cache_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<RadiusLayerPair, Polygons> collision_cache_holefree_;
+    mutable std::unordered_map<RadiusLayerPair, Shape> collision_cache_holefree_;
     std::unique_ptr<std::mutex> critical_collision_cache_holefree_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<LayerIndex, Polygons> accumulated_placeables_cache_radius_0_;
+    mutable std::unordered_map<LayerIndex, Shape> accumulated_placeables_cache_radius_0_;
     std::unique_ptr<std::mutex> critical_accumulated_placeables_cache_radius_0_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_collision_;
+    mutable std::unordered_map<RadiusLayerPair, Shape> avoidance_cache_collision_;
     std::unique_ptr<std::mutex> critical_avoidance_cache_collision_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_;
+    mutable std::unordered_map<RadiusLayerPair, Shape> avoidance_cache_;
     std::unique_ptr<std::mutex> critical_avoidance_cache_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_slow_;
+    mutable std::unordered_map<RadiusLayerPair, Shape> avoidance_cache_slow_;
     std::unique_ptr<std::mutex> critical_avoidance_cache_slow_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_to_model_;
+    mutable std::unordered_map<RadiusLayerPair, Shape> avoidance_cache_to_model_;
     std::unique_ptr<std::mutex> critical_avoidance_cache_to_model_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_to_model_slow_;
+    mutable std::unordered_map<RadiusLayerPair, Shape> avoidance_cache_to_model_slow_;
     std::unique_ptr<std::mutex> critical_avoidance_cache_to_model_slow_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<RadiusLayerPair, Polygons> placeable_areas_cache_;
+    mutable std::unordered_map<RadiusLayerPair, Shape> placeable_areas_cache_;
     std::unique_ptr<std::mutex> critical_placeable_areas_cache_ = std::make_unique<std::mutex>();
 
     /*!
      * \brief Caches to avoid holes smaller than the radius until which the radius is always increased, as they are free of holes. Also called safe avoidances, as they are safe
      * regarding not running into holes.
      */
-    mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_hole_;
+    mutable std::unordered_map<RadiusLayerPair, Shape> avoidance_cache_hole_;
     std::unique_ptr<std::mutex> critical_avoidance_cache_holefree_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_hole_to_model_;
+    mutable std::unordered_map<RadiusLayerPair, Shape> avoidance_cache_hole_to_model_;
     std::unique_ptr<std::mutex> critical_avoidance_cache_holefree_to_model_ = std::make_unique<std::mutex>();
 
     /*!
      * \brief Caches to represent walls not allowed to be passed over.
      */
-    mutable std::unordered_map<RadiusLayerPair, Polygons> wall_restrictions_cache_;
+    mutable std::unordered_map<RadiusLayerPair, Shape> wall_restrictions_cache_;
     std::unique_ptr<std::mutex> critical_wall_restrictions_cache_ = std::make_unique<std::mutex>();
 
     // A different cache for min_xy_dist as the maximal safe distance an influence area can be increased(guaranteed overlap of two walls in consecutive layer) is much smaller when
     // min_xy_dist is used. This causes the area of the wall restriction to be thinner and as such just using the min_xy_dist wall restriction would be slower.
-    mutable std::unordered_map<RadiusLayerPair, Polygons> wall_restrictions_cache_min_;
+    mutable std::unordered_map<RadiusLayerPair, Shape> wall_restrictions_cache_min_;
     std::unique_ptr<std::mutex> critical_wall_restrictions_cache_min_ = std::make_unique<std::mutex>();
 
     std::unique_ptr<std::mutex> critical_progress_ = std::make_unique<std::mutex>();

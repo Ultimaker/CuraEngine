@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SLICER_H
@@ -8,8 +8,11 @@
 #include <queue>
 #include <unordered_map>
 
+#include "geometry/LinesSet.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/Shape.h"
 #include "settings/EnumSettings.h"
-#include "utils/polygon.h"
 
 /*
     The Slicer creates layers of polygons from an optimized 3D model.
@@ -56,12 +59,12 @@ public:
 class SlicerLayer
 {
 public:
-    std::vector<SlicerSegment> segments;
-    std::unordered_map<int, int> face_idx_to_segment_idx; // topology
+    std::vector<SlicerSegment> segments_;
+    std::unordered_map<int, int> face_idx_to_segment_idx_; // topology
 
-    int z = -1;
-    Polygons polygons;
-    Polygons openPolylines;
+    int z_ = -1;
+    Shape polygons_;
+    OpenLinesSet open_polylines_;
 
     /*!
      * \brief Connect the segments into polygons for this layer of this \p mesh.
@@ -76,7 +79,7 @@ protected:
      *
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
      */
-    void makeBasicPolygonLoops(Polygons& open_polylines);
+    void makeBasicPolygonLoops(OpenLinesSet& open_polylines);
 
     /*!
      * Connect the segments into a loop, starting from the segment with index \p start_segment_idx
@@ -84,7 +87,7 @@ protected:
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
      * \param[in] start_segment_idx The index into SlicerLayer::segments for the first segment from which to start the polygon loop
      */
-    void makeBasicPolygonLoop(Polygons& open_polylines, const size_t start_segment_idx);
+    void makeBasicPolygonLoop(OpenLinesSet& open_polylines, const size_t start_segment_idx);
 
     /*!
      * Get the next segment connected to the end of \p segment.
@@ -104,7 +107,7 @@ protected:
      *
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
      */
-    void connectOpenPolylines(Polygons& open_polylines);
+    void connectOpenPolylines(OpenLinesSet& open_polylines);
 
     /*!
      * Link up all the missing ends, closing up the smallest gaps first. This is an inefficient implementation which can run in O(n*n*n) time.
@@ -113,7 +116,7 @@ protected:
      *
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop yet
      */
-    void stitch(Polygons& open_polylines);
+    void stitch(OpenLinesSet& open_polylines);
 
     std::optional<GapCloserResult> findPolygonGapCloser(Point2LL ip0, Point2LL ip1);
 
@@ -126,7 +129,7 @@ protected:
      *
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop yet
      */
-    void stitch_extensive(Polygons& open_polylines);
+    void stitch_extensive(OpenLinesSet& open_polylines);
 
 private:
     /*!
@@ -417,7 +420,7 @@ private:
      *     the order of a polyline.
      * \return The stitches that are allowed in order from best to worst.
      */
-    std::priority_queue<PossibleStitch> findPossibleStitches(const Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse) const;
+    std::priority_queue<PossibleStitch> findPossibleStitches(const OpenLinesSet& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse) const;
 
     /*! Plans the best way to perform a stitch.
      *
@@ -435,7 +438,7 @@ private:
      * \param[in,out] terminus_1 the Terminus on polyline_1 to join at.
      * \param[out] reverse Whether the polylines need to be reversed.
      */
-    void planPolylineStitch(const Polygons& open_polylines, Terminus& terminus_0, Terminus& terminus_1, bool reverse[2]) const;
+    void planPolylineStitch(const OpenLinesSet& open_polylines, Terminus& terminus_0, Terminus& terminus_1, bool reverse[2]) const;
 
     /*! Joins polyline_1 onto polyline_0.
      *
@@ -453,7 +456,7 @@ private:
      *     polyline_0 and reverse[1] indicates whether to reverse
      *     polyline_1
      */
-    void joinPolylines(PolygonRef& polyline_0, PolygonRef& polyline_1, const bool reverse[2]) const;
+    static void joinPolylines(OpenPolyline& polyline_0, OpenPolyline& polyline_1, const bool reverse[2]);
 
     /*!
      * Connecting polylines that are not closed yet.
@@ -473,7 +476,7 @@ private:
      * \param[in] allow_reverse If true, then this function is allowed
      *     to reverse edge directions to merge polylines.
      */
-    void connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse);
+    void connectOpenPolylinesImpl(OpenLinesSet& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse);
 };
 
 class Slicer
