@@ -30,16 +30,10 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
     const coord_t min_wall_line_width = mesh.settings.get<coord_t>("min_wall_line_width");
     const size_t cradle_layers = retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_height") / layer_height;
     const double cradle_area_threshold = 1000 * 1000 * retrieveSetting<double>(mesh.settings, "support_tree_maximum_pointy_area");
-    LayerIndex max_layer = 0;
-
-    for (LayerIndex layer_idx = 0; layer_idx < mesh.overhang_areas.size(); layer_idx++)
-    {
-        if (! mesh.overhang_areas[layer_idx].empty())
-        {
-            max_layer = layer_idx;
-        }
-    }
-    max_layer = std::min(max_layer + cradle_layers, LayerIndex(mesh.overhang_areas.size() - 1));
+    LayerIndex max_layer = mesh.layers.size();
+    const coord_t stable_radius = 50000;
+    const double deformation_constant = 2.5 * double(layer_height) / 1000.0;
+    const double support_deformation_threshold = 600;
 
     LayerIndex start_layer = 1;
     floating_parts_cache_[mesh_idx].resize(max_layer + 1);
@@ -47,12 +41,9 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
     floating_parts_map_below_[mesh_idx].resize(max_layer + 1);
     std::mutex critical_sections;
 
-    Polygons completely_supported = volumes_.getCollision(0, 0, true);
-    Polygons layer_below = completely_supported; // technically wrong, but the xy distance error on layer 1 should not matter
+    Polygons layer_below = volumes_.getCollision(0, 0, true); // technically wrong, but the xy distance error on layer 1 should not matter
     for (size_t layer_idx = start_layer; layer_idx < max_layer; layer_idx++)
     {
-        Polygons next_completely_supported;
-
         // As the collision contains z distance and xy distance it cant be used to clearly identify which parts of the model are connected to the buildplate.
         Polygons layer = mesh.layers[layer_idx].getOutlines();
 
@@ -66,41 +57,72 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
                 AABB part_aabb(part);
                 bool has_support_below = ! PolygonUtils::clipPolygonWithAABB(layer_below, part_aabb).intersection(part).empty();
 
-                if (! completely_supported.intersection(part).empty() || (! has_support_below && part.area() > cradle_area_threshold))
-                {
-                    std::lock_guard<std::mutex> critical_section_add(critical_sections);
-                    next_completely_supported.add(part);
-                    return;
-                }
-
                 Polygons overhang = mesh.overhang_areas[layer_idx].intersection(part);
                 coord_t overhang_area = std::max(overhang.area(), std::numbers::pi * min_wall_line_width * min_wall_line_width);
-                if (! has_support_below)
+                if (! has_support_below || layer_idx == start_layer)
                 {
                     std::lock_guard<std::mutex> critical_section_add(critical_sections);
-                    floating_parts_cache_[mesh_idx][layer_idx].emplace_back(part, floating_parts_cache_[mesh_idx][layer_idx].size(), 0, overhang_area);
+                    floating_parts_cache_[mesh_idx][layer_idx].emplace_back(part, floating_parts_cache_[mesh_idx][layer_idx].size(), 0, overhang_area, 0);
                     floating_parts_map_[mesh_idx][layer_idx].emplace_back(std::vector<size_t>());
                     floating_parts_map_below_[mesh_idx][layer_idx].emplace_back(std::vector<size_t>());
                     return;
                 }
 
+
+                coord_t radius_min = 0;
+                coord_t radius_max = 2*stable_radius;
+                while(radius_max-radius_min > 500)
+                {
+                    if(part.getOutsidePolygons().offset(-(radius_min+radius_max)/2).empty())
+                    {
+                        radius_max = (radius_min+radius_max)/2;
+                    }
+                    else
+                    {
+                        radius_min = (radius_min+radius_max)/2;
+                    }
+                }
+                double deform_radius =  double(radius_max+radius_min) / 2000.0;
+
+                double deform_part = 2.0*deformation_constant/deform_radius;
+
                 size_t min_resting_on_layers = 0;
                 coord_t supported_overhang_area = 0;
                 bool add = false;
                 std::vector<size_t> idx_of_floating_below;
+                double deform_total = 0;
+
                 for (auto [idx, floating] : floating_parts_cache_[mesh_idx][layer_idx - 1] | ranges::views::enumerate)
                 {
-                    if (layer_idx > 1 && floating.height < cradle_layers - 1 && ! floating.area.intersection(part).empty())
+                    if (layer_idx > 1 && ! floating.area.intersection(part).empty())
                     {
                         idx_of_floating_below.emplace_back(idx);
+                        if(deform_total == 0)
+                        {
+                            deform_total = floating.deformation;
+                        }
+                        else
+                        {
+                            deform_total = std::min(deform_total, floating.deformation);
+                        }
                         supported_overhang_area += floating.accumulated_supportable_overhang;
                         min_resting_on_layers = std::max(min_resting_on_layers, floating.height);
                         add = true;
                     }
                 }
+                std::cout << "at " << layer_idx<< ": " << deform_total << " deformation with part deform " << deform_part << " with constant " << deformation_constant << " deform rad of " << deform_radius
+                          <<std::endl ;
+
+                if(deform_total > support_deformation_threshold)
+                {
+                    deform_total = 0;
+                }
+
+                deform_total *= 1.0 + 0.05* double(layer_height) / 1000.0;
+                deform_total += deform_part;
 
 
-                if (min_resting_on_layers < cradle_layers && add && overhang_area + supported_overhang_area < cradle_area_threshold)
+                if (add)
                 {
                     std::lock_guard<std::mutex> critical_section_add(critical_sections);
                     for (size_t idx : idx_of_floating_below)
@@ -111,18 +133,17 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
                     floating_parts_map_[mesh_idx][layer_idx].emplace_back(std::vector<size_t>());
                     floating_parts_map_below_[mesh_idx][layer_idx].emplace_back(idx_of_floating_below);
                     floating_parts_cache_[mesh_idx][layer_idx]
-                        .emplace_back(part, floating_parts_cache_[mesh_idx][layer_idx].size(), min_resting_on_layers + 1, overhang_area + supported_overhang_area);
+                        .emplace_back(part, floating_parts_cache_[mesh_idx][layer_idx].size(), min_resting_on_layers + 1, overhang_area + supported_overhang_area, deform_total);
                 }
                 else
                 {
                     std::lock_guard<std::mutex> critical_section_add(critical_sections);
-                    next_completely_supported.add(part);
                 }
             });
         layer_below = layer;
-        completely_supported = next_completely_supported;
     }
 }
+
 
 std::vector<SupportCradleGeneration::UnsupportedAreaInformation> SupportCradleGeneration::getUnsupportedArea(size_t mesh_idx, LayerIndex layer_idx, size_t idx_of_area, bool above)
 {
@@ -187,7 +208,7 @@ std::vector<SupportCradleGeneration::UnsupportedAreaInformation> SupportCradleGe
         std::lock_guard<std::mutex> critical_section(*critical_floating_parts_cache_);
         for (auto [idx, floating_data] : floating_parts_cache_[mesh_idx][layer_idx] | ranges::views::enumerate)
         {
-            if (floating_data.height == 0)
+            if (floating_data.height == 0 || floating_data.deformation > 600)
             {
                 result.emplace_back(floating_data);
             }
@@ -221,21 +242,24 @@ std::vector<std::vector<TreeSupportCradle*>> SupportCradleGeneration::generateCr
     std::vector<std::vector<TreeSupportCradle*>> result(mesh.overhang_areas.size());
     cura::parallel_for<coord_t>(
         1,
-        mesh.overhang_areas.size() - (z_distance_delta_ + 1),
+        mesh.layers.size() - (z_distance_delta_ + 1),
         [&](const LayerIndex layer_idx)
         {
-            if (mesh.overhang_areas[layer_idx + z_distance_delta_].empty() || getFullyUnsupportedArea(mesh_idx, layer_idx + z_distance_delta_).empty())
+            if (getFullyUnsupportedArea(mesh_idx, layer_idx + z_distance_delta_).empty())
             {
                 return;
             }
 
             for (auto pointy_info : getFullyUnsupportedArea(mesh_idx, layer_idx + z_distance_delta_))
             {
-                AABB overhang_aabb(mesh.overhang_areas[layer_idx + z_distance_delta_]);
-                if (PolygonUtils::clipPolygonWithAABB(mesh.overhang_areas[layer_idx + z_distance_delta_], overhang_aabb).intersection(pointy_info.area).empty())
+                if(pointy_info.height  == 0)
                 {
-                    // It will be assumed that if it touches this mesh's overhang, it will be part of that mesh.
-                    continue;
+                    AABB overhang_aabb(mesh.overhang_areas[layer_idx + z_distance_delta_]);
+                    if (PolygonUtils::clipPolygonWithAABB(mesh.overhang_areas[layer_idx + z_distance_delta_], overhang_aabb).intersection(pointy_info.area).empty())
+                    {
+                        // It will be assumed that if it touches this mesh's overhang, it will be part of that mesh.
+                        continue;
+                    }
                 }
 
                 std::vector<Polygons> accumulated_model(std::min(cradle_config->cradle_layers_ + z_distance_delta_, mesh.overhang_areas.size() - layer_idx), Polygons());

@@ -243,24 +243,9 @@ LayerIndex TreeSupport::precalculate(const SliceDataStorage& storage, std::vecto
         const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
         const size_t z_distance_top_layers = round_up_divide(z_distance_top,
                                                              layer_height) + 1; // Support must always be 1 layer below overhang.
-        if (mesh.overhang_areas.size() <= z_distance_top_layers)
-        {
-            continue;
-        }
 
-        for (const auto layer_idx : ranges::views::iota(1UL, mesh.overhang_areas.size() - z_distance_top_layers) | ranges::views::reverse)
-        {
-            // Look for max relevant layer.
-            const Polygons& overhang = mesh.overhang_areas[layer_idx + z_distance_top_layers];
-            if (! overhang.empty())
-            {
-                if (layer_idx > max_layer) // iterates over multiple meshes
-                {
-                    max_layer = 1 + layer_idx; // plus one to avoid problems if something is of by one
-                }
-                break;
-            }
-        }
+        max_layer = std::max(max_layer, LayerIndex(mesh.layers.size())-1);
+
     }
 
     // ### The actual precalculation happens in TreeModelVolumes.

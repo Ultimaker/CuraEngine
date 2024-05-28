@@ -414,17 +414,19 @@ private:
 
     struct UnsupportedAreaInformation
     {
-        UnsupportedAreaInformation(const Polygons area, size_t index, size_t height, coord_t accumulated_supportable_overhang)
+        UnsupportedAreaInformation(const Polygons area, size_t index, size_t height, coord_t accumulated_supportable_overhang, double deformation)
             : area{ area }
             , index{ index }
             , height{ height }
             , accumulated_supportable_overhang{ accumulated_supportable_overhang }
+            , deformation{ deformation }
         {
         }
         const Polygons area;
         size_t index;
         size_t height;
         coord_t accumulated_supportable_overhang;
+        double deformation;
     };
 
 
