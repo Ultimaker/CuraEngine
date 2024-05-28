@@ -35,7 +35,7 @@ public:
     coord_t getOptimalThickness(coord_t bead_count) const override;
     coord_t getTransitionThickness(coord_t lower_bead_count) const override;
     coord_t getOptimalBeadCount(coord_t thickness) const override;
-    virtual std::string toString() const override;
+    std::string toString() const override;
 
     coord_t getTransitioningLength(coord_t lower_bead_count) const override;
 
