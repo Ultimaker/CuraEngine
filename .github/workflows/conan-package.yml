@@ -54,7 +54,7 @@ jobs:
 
   conan-package-create-macos:
     needs: [ conan-recipe-version, conan-package-export ]
-    if: ${{ ((github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) || github.event_name == 'pull_request') }}
+    if: ${{ ((github.event_name == 'push' && (github.ref_name == 'main' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) || github.event_name == 'pull_request') }}
     uses: ultimaker/cura-workflows/.github/workflows/conan-package-create-macos.yml@main
     with:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
@@ -62,7 +62,7 @@ jobs:
 
   conan-package-create-windows:
     needs: [ conan-recipe-version, conan-package-export ]
-    if: ${{ ((github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) || github.event_name == 'pull_request') }}
+    if: ${{ ((github.event_name == 'push' && (github.ref_name == 'main' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) || github.event_name == 'pull_request') }}
     uses: ultimaker/cura-workflows/.github/workflows/conan-package-create-windows.yml@main
     with:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
@@ -70,8 +70,17 @@ jobs:
 
   conan-package-create-linux:
     needs: [ conan-recipe-version, conan-package-export ]
-    if: ${{ ((github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) || github.event_name == 'pull_request') }}
+    if: ${{ ((github.event_name == 'push' && (github.ref_name == 'main' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) || github.event_name == 'pull_request') }}
     uses: ultimaker/cura-workflows/.github/workflows/conan-package-create-linux.yml@main
+    with:
+      recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
+    secrets: inherit
+
+# FIXME: Remove the references to the NP-202_conan_wasm_package branch once https://github.com/Ultimaker/cura-workflows/pull/19 is merged to main
+  conan-package-create-wasm:
+    needs: [ conan-recipe-version, conan-package-export ]
+    if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'NP-202_conan_wasm_package' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) }}
+    uses: ultimaker/cura-workflows/.github/workflows/conan-package-create-wasm.yml@NP-202_conan_wasm_package
     with:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
     secrets: inherit
