@@ -34,7 +34,7 @@ PrimeTower::PrimeTower(SliceDataStorage& storage, size_t extruder_count)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
 
-    // First by a basic list of used extruders numbers
+    // First make a basic list of used extruders numbers
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         extruder_order_[extruder_nr] = extruder_nr;
@@ -276,16 +276,12 @@ void PrimeTower::addToGcode(
         return;
     }
 
-    PrimeTowerMode prime_tower_mode = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<PrimeTowerMode>("prime_tower_mode");
     std::vector<size_t> extra_primed_extruders_idx;
 
     switch (extruder_iterator->prime)
     {
     case ExtruderPrime::None:
-        if (prime_tower_mode != PrimeTowerMode::INTERLEAVED)
-        {
-            gcode_layer.setPrimeTowerIsPlanned(new_extruder_nr);
-        }
+        processExtruderNoPrime(new_extruder_nr, gcode_layer);
         break;
 
     case ExtruderPrime::Sparse:

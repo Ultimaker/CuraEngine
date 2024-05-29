@@ -36,8 +36,12 @@ protected:
 
     virtual std::map<size_t, std::map<size_t, Shape>> generateSparseInfillImpl(const std::vector<coord_t>& rings_radii) const override;
 
-    virtual std::vector<size_t>
-        findExtrudersSparseInfill(LayerPlan& gcode_layer, const std::vector<ExtruderUse>& required_extruder_prime, const std::vector<size_t>& initial_list_idx = {}) const override;
+    virtual std::vector<size_t> findExtrudersSparseInfill(
+        const LayerPlan& gcode_layer,
+        const std::vector<ExtruderUse>& required_extruder_prime,
+        const std::vector<size_t>& initial_list_idx = {}) const override;
+
+    virtual void processExtruderNoPrime(const size_t extruder_nr, LayerPlan& gcode_layer) const override;
 };
 
 } // namespace cura

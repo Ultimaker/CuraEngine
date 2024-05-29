@@ -106,7 +106,7 @@ std::map<size_t, std::map<size_t, Shape>> PrimeTowerInterleaved::generateSparseI
 }
 
 std::vector<size_t> PrimeTowerInterleaved::findExtrudersSparseInfill(
-    LayerPlan& gcode_layer,
+    const LayerPlan& gcode_layer,
     const std::vector<ExtruderUse>& required_extruder_prime,
     const std::vector<size_t>& initial_list_idx) const
 {
@@ -146,6 +146,11 @@ std::vector<size_t> PrimeTowerInterleaved::findExtrudersSparseInfill(
     }
 
     return extruders_to_prime_idx;
+}
+
+void PrimeTowerInterleaved::processExtruderNoPrime(const size_t /*extruder_nr*/, LayerPlan& /*gcode_layer*/) const
+{
+    // Do nothing because we want to know which extruder has been additionally processed
 }
 
 } // namespace cura

@@ -72,12 +72,17 @@ std::map<size_t, std::map<size_t, Shape>> PrimeTowerNormal::generateSparseInfill
 }
 
 std::vector<size_t> PrimeTowerNormal::findExtrudersSparseInfill(
-    LayerPlan& /*gcode_layer*/,
+    const LayerPlan& /*gcode_layer*/,
     const std::vector<ExtruderUse>& /*required_extruder_prime*/,
     const std::vector<size_t>& initial_list_idx) const
 {
     // In normal mode we only print what is required
     return initial_list_idx;
+}
+
+void PrimeTowerNormal::processExtruderNoPrime(const size_t extruder_nr, LayerPlan& gcode_layer) const
+{
+    gcode_layer.setPrimeTowerIsPlanned(extruder_nr);
 }
 
 } // namespace cura

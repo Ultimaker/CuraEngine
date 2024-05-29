@@ -151,8 +151,12 @@ protected:
      *                         sparse infill
      * \return The indexes of extruders to be used for sparse infill
      */
-    virtual std::vector<size_t>
-        findExtrudersSparseInfill(LayerPlan& gcode_layer, const std::vector<ExtruderUse>& required_extruder_prime, const std::vector<size_t>& initial_list_idx = {}) const = 0;
+    virtual std::vector<size_t> findExtrudersSparseInfill(
+        const LayerPlan& gcode_layer,
+        const std::vector<ExtruderUse>& required_extruder_prime,
+        const std::vector<size_t>& initial_list_idx = {}) const = 0;
+
+    virtual void processExtruderNoPrime(const size_t extruder_nr, LayerPlan& gcode_layer) const = 0;
 
     static bool extruderRequiresPrime(const std::vector<bool>& extruder_is_used_on_this_layer, size_t extruder_nr, size_t last_extruder);
 
