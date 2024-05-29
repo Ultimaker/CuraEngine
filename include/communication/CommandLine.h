@@ -5,8 +5,10 @@
 #define COMMANDLINE_H
 
 #include <filesystem>
+#include <optional>
 #include <rapidjson/document.h> //Loading JSON documents to get settings from them.
 #include <string> //To store the command line arguments.
+#include <unordered_map>
 #include <vector> //To store the command line arguments.
 
 #include "Communication.h" //The class we're implementing.
@@ -14,6 +16,9 @@
 namespace cura
 {
 class Settings;
+
+using setting_map = std::unordered_map<std::string, std::string>;
+using container_setting_map = std::unordered_map<std::string, setting_map>;
 
 /*
  * \brief When slicing via the command line, interprets the command line
@@ -212,6 +217,20 @@ private:
      * \return The first definition file that matches the definition ID.
      */
     static std::string findDefinitionFile(const std::string& definition_id, const std::vector<std::filesystem::path>& search_directories);
+
+    /*
+     * \brief Read the resolved JSON values from a file.
+     * \param element The path to the file to read the JSON values from.
+     * \return The resolved JSON values.
+     */
+    static std::optional<container_setting_map> readResolvedJsonValues(const std::filesystem::path& json_filename);
+
+    /*
+     * \brief Read the resolved JSON values from a document.
+     * \param document The document to read the JSON values from.
+     * \return The resolved JSON values.
+     */
+    static std::optional<container_setting_map> readResolvedJsonValues(const rapidjson::Document& document);
 };
 
 } // namespace cura

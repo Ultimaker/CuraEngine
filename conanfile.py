@@ -32,6 +32,7 @@ class CuraEngineConan(ConanFile):
         "enable_plugins": [True, False],
         "enable_sentry": [True, False],
         "enable_remote_plugins": [True, False],
+        "with_cura_resources": [True, False],
     }
     default_options = {
         "enable_arcus": True,
@@ -40,6 +41,7 @@ class CuraEngineConan(ConanFile):
         "enable_plugins": True,
         "enable_sentry": False,
         "enable_remote_plugins": False,
+        "with_cura_resources": False,
     }
 
     def set_version(self):
@@ -115,6 +117,9 @@ class CuraEngineConan(ConanFile):
             self.requires("asio-grpc/2.6.0")
             self.requires("grpc/1.50.1")
             for req in self.conan_data["requirements_plugins"]:
+                self.requires(req)
+        if self.options.with_cura_resources:
+            for req in self.conan_data["requirements_cura_resources"]:
                 self.requires(req)
         if self.options.enable_arcus or self.options.enable_plugins:
             self.requires("protobuf/3.21.12")
