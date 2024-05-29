@@ -1479,7 +1479,7 @@ void GCodeExport::writeFanCommand(double speed)
     current_fan_speed_ = speed;
 }
 
-void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperature& temperature, const bool wait, const bool force_same_temperature)
+void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperature& temperature, const bool wait, const bool force_write_on_equal)
 {
     const ExtruderTrain& extruder_train = Application::getInstance().current_slice_->scene.extruders[extruder];
 
@@ -1515,7 +1515,7 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperatu
         }
     }
 
-    if ((! wait || extruder_attr_[extruder].waited_for_temperature_) && ! force_same_temperature && extruder_attr_[extruder].current_temperature_ == temperature)
+    if ((! wait || extruder_attr_[extruder].waited_for_temperature_) && ! force_write_on_equal && extruder_attr_[extruder].current_temperature_ == temperature)
     {
         return;
     }

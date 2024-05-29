@@ -546,9 +546,9 @@ public:
      * \param extruder The extruder number
      * \param temperature The temperature to bo set
      * \param wait Indicates whether we should just set the temperature and keep going, or wait for the temperature to be reach before going further
-     * \param force_same_temperature When true, we should set the temperature command even if the actual set temperature is the same
+     * \param force_write_on_equal When true, we should write the temperature command even if the actual set temperature is the same
      */
-    void writeTemperatureCommand(const size_t extruder, const Temperature& temperature, const bool wait = false, const bool force_same_temperature = false);
+    void writeTemperatureCommand(const size_t extruder, const Temperature& temperature, const bool wait = false, const bool force_write_on_equal = false);
     void writeBedTemperatureCommand(const Temperature& temperature, const bool wait = false);
     void writeBuildVolumeTemperatureCommand(const Temperature& temperature, const bool wait = false);
 
