@@ -172,9 +172,14 @@ void InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed_line)
     Point2LL request_point;
     switch (z_seam_config_.type_)
     {
-    case EZSeamType::USER_SPECIFIED: request_point = z_seam_config_.pos_; break;
-    case EZSeamType::SHORTEST: request_point = gcode_layer_.getLastPlannedPositionOrStartingPosition(); break;
-    default: return;
+    case EZSeamType::USER_SPECIFIED:
+        request_point = z_seam_config_.pos_;
+        break;
+    case EZSeamType::SHORTEST:
+        request_point = gcode_layer_.getLastPlannedPositionOrStartingPosition();
+        break;
+    default:
+        return;
     }
 
     size_t closest_junction_idx = 0;
@@ -204,10 +209,7 @@ void InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed_line)
     const coord_t end_dist = vSize(closest_point - end_pt.p_);
     const coord_t w = end_pt.w_ * end_dist / total_dist + start_pt.w_ * start_dist / total_dist;
 
-    closed_line.junctions_.insert(
-        closed_line.junctions_.begin() + closest_junction_idx + 1,
-        ExtrusionJunction( closest_point, w, start_pt.perimeter_index_ )
-    );
+    closed_line.junctions_.insert(closed_line.junctions_.begin() + closest_junction_idx + 1, ExtrusionJunction(closest_point, w, start_pt.perimeter_index_));
 }
 
 InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::vector<ExtrusionLine>& extrusion_lines, const bool outer_to_inner)
