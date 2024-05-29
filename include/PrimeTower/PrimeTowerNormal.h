@@ -21,6 +21,9 @@ public:
         const SliceDataStorage& storage,
         const LayerIndex& layer_nr) const override;
 
+    virtual std::map<LayerIndex, std::map<size_t, Shape>>
+        generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage) override;
+
 protected:
     virtual bool requiresBaseExtraPrint(size_t extruder_nr) const override;
 

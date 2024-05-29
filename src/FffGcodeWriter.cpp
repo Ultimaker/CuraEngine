@@ -1509,14 +1509,16 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     size_t last_extruder;
     // set the initial extruder of this meshgroup
     Scene& scene = Application::getInstance().current_slice_->scene;
+    size_t start_extruder;
     if (scene.current_mesh_group == scene.mesh_groups.begin())
     { // first meshgroup
-        last_extruder = getStartExtruder(storage);
+        start_extruder = getStartExtruder(storage);
     }
     else
     {
-        last_extruder = gcode.getExtruderNr();
+        start_extruder = gcode.getExtruderNr();
     }
+    last_extruder = start_extruder;
 
     extruder_order_per_layer.init(true, storage.print_layer_count);
 
@@ -1534,7 +1536,7 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
 
     if (storage.prime_tower_)
     {
-        storage.prime_tower_->polishExtrudersUse(extruder_order_per_layer, storage);
+        storage.prime_tower_->processExtrudersUse(extruder_order_per_layer, storage, start_extruder);
     }
 }
 

@@ -50,6 +50,13 @@ private:
      */
     std::map<size_t, std::map<size_t, Shape>> sparse_pattern_per_extruders_;
 
+    /*
+     *  The first index is the layer number
+     *  The second index is the extruder number
+     *  The shape represents what should be printed for the given extruder at the given layer
+     */
+    std::map<LayerIndex, std::map<size_t, Shape>> moves_;
+
     MovesByLayer base_extra_moves_; //!< For each layer and each extruder, the extra moves to be processed for better adhesion/strength
     MovesByExtruder inset_extra_moves_; //!< For each extruder, the extra inset moves to be processed for better adhesion on initial layer
 
@@ -112,9 +119,7 @@ public:
         const SliceDataStorage& storage,
         const LayerIndex& layer_nr) const = 0;
 
-    virtual void polishExtrudersUse(LayerVector<std::vector<ExtruderUse>>& /*extruders_use*/, const SliceDataStorage& /*storage*/) const
-    {
-    }
+    void processExtrudersUse(LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage, const size_t start_extruder);
 
     static PrimeTower* createPrimeTower(SliceDataStorage& storage);
 
@@ -157,6 +162,16 @@ protected:
         const std::vector<size_t>& initial_list_idx = {}) const = 0;
 
     virtual void processExtruderNoPrime(const size_t extruder_nr, LayerPlan& gcode_layer) const = 0;
+
+    virtual void polishExtrudersUses(LayerVector<std::vector<ExtruderUse>>& /*extruders_use*/, const SliceDataStorage& /*storage*/, const size_t /*start_extruder*/)
+    {
+    }
+
+    virtual std::map<LayerIndex, std::map<size_t, Shape>> generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage) = 0;
+
+    std::tuple<Shape, coord_t> generatePrimeMoves(const size_t extruder_nr, const coord_t outer_radius);
+
+    Shape generateSupportMoves(const size_t extruder_nr, const coord_t outer_radius, const coord_t inner_radius);
 
     static bool extruderRequiresPrime(const std::vector<bool>& extruder_is_used_on_this_layer, size_t extruder_nr, size_t last_extruder);
 

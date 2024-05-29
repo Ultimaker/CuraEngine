@@ -34,16 +34,47 @@ ExtruderPrime PrimeTowerInterleaved::getExtruderPrime(
     }
 }
 
-void PrimeTowerInterleaved::polishExtrudersUse(LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage) const
+std::map<LayerIndex, std::map<size_t, Shape>>
+    PrimeTowerInterleaved::generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage)
 {
-    for (LayerIndex layer_nr = -Raft::getTotalExtraLayers(); layer_nr < storage.print_layer_count; ++layer_nr)
+    const Scene& scene = Application::getInstance().current_slice_->scene;
+    const Settings& mesh_group_settings = scene.current_mesh_group->settings;
+    const coord_t tower_radius = mesh_group_settings.get<coord_t>("prime_tower_size") / 2;
+    coord_t support_radius = tower_radius;
+    std::map<LayerIndex, std::map<size_t, Shape>> moves;
+
+    // Now loop again, but from top bo bottom, so that the required support increases with what is actually required
+    for (LayerIndex layer_nr = storage.max_print_height_second_to_last_extruder; layer_nr >= -Raft::getTotalExtraLayers(); --layer_nr)
     {
-        std::vector<ExtruderUse>& extruders_use_at_layer = extruders_use[layer_nr];
-        if (extruders_use_at_layer.size() == 1 && extruders_use_at_layer.front().prime == ExtruderPrime::None && layer_nr <= storage.max_print_height_second_to_last_extruder)
+        const std::vector<ExtruderUse>& extruders_use_at_layer = extruders_use[layer_nr];
+        std::map<size_t, Shape> moves_at_layer;
+
+        // Now generate actual priming patterns
+        coord_t outer_radius = tower_radius;
+        for (const ExtruderUse& extruder_use : extruders_use_at_layer)
         {
-            extruders_use_at_layer.front().prime = ExtruderPrime::Sparse;
+            if (extruder_use.prime == ExtruderPrime::Prime)
+            {
+                Shape extruder_moves;
+                std::tie(extruder_moves, outer_radius) = generatePrimeMoves(extruder_use.extruder_nr, outer_radius);
+                moves_at_layer[extruder_use.extruder_nr] = extruder_moves;
+            }
         }
+
+        // Generate extra "support" sparse pattern if required
+        if (support_radius < outer_radius)
+        {
+            Shape support_moves = generateSupportMoves(extruders_use_at_layer.back().extruder_nr, outer_radius, support_radius);
+            moves_at_layer[extruders_use_at_layer.back().extruder_nr].push_back(support_moves);
+        }
+
+        // Now decrease support radius if required
+        support_radius = std::min(support_radius, outer_radius);
+
+        moves[layer_nr] = moves_at_layer;
     }
+
+    return moves;
 }
 
 bool PrimeTowerInterleaved::requiresBaseExtraPrint(size_t /*extruder_nr*/) const
@@ -151,6 +182,35 @@ std::vector<size_t> PrimeTowerInterleaved::findExtrudersSparseInfill(
 void PrimeTowerInterleaved::processExtruderNoPrime(const size_t /*extruder_nr*/, LayerPlan& /*gcode_layer*/) const
 {
     // Do nothing because we want to know which extruder has been additionally processed
+}
+
+void PrimeTowerInterleaved::polishExtrudersUses(LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage, const size_t start_extruder)
+{
+    size_t last_used_extruder = start_extruder;
+
+    // Loop through the extruders uses from bottom to top to find the last used extruder at each layer, and make sure we always have some support to print
+    for (LayerIndex layer_nr = -Raft::getTotalExtraLayers(); layer_nr <= storage.max_print_height_second_to_last_extruder; ++layer_nr)
+    {
+        std::vector<ExtruderUse>& extruders_use_at_layer = extruders_use[layer_nr];
+
+        // Make sure we always have something to print
+        if (extruders_use_at_layer.empty())
+        {
+            extruders_use_at_layer.emplace_back(last_used_extruder, ExtruderPrime::Sparse);
+        }
+        else if (std::all_of(
+                     extruders_use_at_layer.begin(),
+                     extruders_use_at_layer.end(),
+                     [](const ExtruderUse& extruder_use)
+                     {
+                         return extruder_use.prime == ExtruderPrime::None;
+                     }))
+        {
+            extruders_use_at_layer.back().prime = ExtruderPrime::Sparse;
+        }
+
+        last_used_extruder = extruders_use_at_layer.back().extruder_nr;
+    }
 }
 
 } // namespace cura

@@ -38,6 +38,11 @@ ExtruderPrime PrimeTowerNormal::getExtruderPrime(
     }
 }
 
+std::map<LayerIndex, std::map<size_t, Shape> > PrimeTowerNormal::generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage)
+{
+    return {};
+}
+
 bool PrimeTowerNormal::requiresBaseExtraPrint(size_t extruder_nr) const
 {
     // Generate base extra rings only for the outermost printed extruder

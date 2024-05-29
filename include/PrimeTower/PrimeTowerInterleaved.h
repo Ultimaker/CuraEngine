@@ -21,8 +21,6 @@ public:
         const SliceDataStorage& storage,
         const LayerIndex& layer_nr) const override;
 
-    virtual void polishExtrudersUse(LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage) const override;
-
 protected:
     virtual bool requiresBaseExtraPrint(size_t extruder_nr) const override;
 
@@ -36,6 +34,11 @@ protected:
         const std::vector<size_t>& initial_list_idx = {}) const override;
 
     virtual void processExtruderNoPrime(const size_t extruder_nr, LayerPlan& gcode_layer) const override;
+
+    virtual void polishExtrudersUses(LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage, const size_t start_extruder) override;
+
+    virtual std::map<LayerIndex, std::map<size_t, Shape>>
+        generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage) override;
 };
 
 } // namespace cura

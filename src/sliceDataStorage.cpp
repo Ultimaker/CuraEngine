@@ -698,7 +698,6 @@ void SliceDataStorage::initializePrimeTower()
     prime_tower_ = PrimeTower::createPrimeTower(*this);
 }
 
-
 void SupportLayer::excludeAreasFromSupportInfillAreas(const Shape& exclude_polygons, const AABB& exclude_polygons_boundary_box)
 {
     // record the indexes that need to be removed and do that after

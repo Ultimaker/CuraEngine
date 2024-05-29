@@ -71,10 +71,10 @@ void PrimeTower::generatePaths()
 {
     generateGroundpoly();
 
+    generateStartLocations();
+
     std::vector<coord_t> cumulative_insets;
     generateDenseInfill(cumulative_insets);
-
-    generateStartLocations();
 
     generateSparseInfill(cumulative_insets);
 }
@@ -214,6 +214,69 @@ Shape PrimeTower::generatePath_sparseInfill(
     return pattern;
 }
 
+std::tuple<Shape, coord_t> PrimeTower::generatePrimeMoves(const size_t extruder_nr, const coord_t outer_radius)
+{
+    const Scene& scene = Application::getInstance().current_slice_->scene;
+    const Settings& mesh_group_settings = scene.current_mesh_group->settings;
+    const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
+    const coord_t tower_radius = mesh_group_settings.get<coord_t>("prime_tower_size") / 2;
+    const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
+    const double required_volume = scene.extruders[extruder_nr].settings_.get<double>("prime_tower_min_volume") * 1000000000;
+    const Ratio flow = scene.extruders[extruder_nr].settings_.get<Ratio>("prime_tower_flow");
+
+    double current_volume = 0;
+    coord_t current_outer_diameter = outer_radius;
+    Shape moves;
+    do
+    {
+        Shape shape = outer_poly_.offset(-(tower_radius - current_outer_diameter + line_width / 2));
+
+        if (! shape.empty())
+        {
+            moves.push_back(shape);
+            current_volume += static_cast<double>(shape.length() * line_width * layer_height) * flow;
+            current_outer_diameter -= line_width;
+        }
+        else
+        {
+            // Don't continue. We won't ever reach the required volume because it doesn't fit.
+            break;
+        }
+    } while (current_volume < required_volume);
+
+    return std::make_tuple(moves, current_outer_diameter);
+}
+
+Shape PrimeTower::generateSupportMoves(const size_t extruder_nr, const coord_t outer_radius, const coord_t inner_radius)
+{
+    const Scene& scene = Application::getInstance().current_slice_->scene;
+    const double max_bridging_distance = static_cast<double>(scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_max_bridging_distance"));
+    const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
+    const coord_t radius_delta = outer_radius - inner_radius;
+    const coord_t semi_line_width = line_width / 2;
+
+    Shape moves;
+
+    // Split ring according to max bridging distance
+    const coord_t nb_rings = static_cast<coord_t>(std::ceil(static_cast<double>(radius_delta) / max_bridging_distance));
+    if (nb_rings > 0)
+    {
+        const coord_t actual_radius_step = radius_delta / nb_rings;
+
+        for (coord_t i = 0; i < nb_rings; ++i)
+        {
+            const coord_t ring_inner_radius = (inner_radius + i * actual_radius_step) + semi_line_width;
+            const coord_t ring_outer_radius = (inner_radius + (i + 1) * actual_radius_step) - semi_line_width;
+
+            const size_t semi_nb_spokes = static_cast<size_t>(std::ceil((std::numbers::pi * static_cast<double>(ring_outer_radius)) / max_bridging_distance));
+
+            moves.push_back(PolygonUtils::makeWheel(middle_, ring_inner_radius, ring_outer_radius, semi_nb_spokes, ARC_RESOLUTION));
+        }
+    }
+
+    return moves;
+}
+
 void PrimeTower::generateStartLocations()
 {
     // Evenly spread out a number of dots along the prime tower's outline. This is done for the complete outline,
@@ -276,7 +339,7 @@ void PrimeTower::addToGcode(
         return;
     }
 
-    std::vector<size_t> extra_primed_extruders_idx;
+    /*std::vector<size_t> extra_primed_extruders_idx;
 
     switch (extruder_iterator->prime)
     {
@@ -306,6 +369,23 @@ void PrimeTower::addToGcode(
             }
         }
         break;
+    }*/
+
+    const Shape* moves = nullptr;
+    auto iterator_layer = moves_.find(layer_nr);
+    if (iterator_layer != moves_.end())
+    {
+        auto iterator_extruder = iterator_layer->second.find(new_extruder_nr);
+        if (iterator_extruder != iterator_layer->second.end())
+        {
+            moves = &iterator_extruder->second;
+        }
+    }
+
+    if (moves && ! moves->empty())
+    {
+        const GCodePathConfig& config = gcode_layer.configs_storage_.prime_tower_config_per_extruder[new_extruder_nr];
+        gcode_layer.addPolygonsByOptimizer(*moves, config);
     }
 
     if (! gcode_layer.getPrimeTowerBaseIsPlanned() && addToGcode_base(gcode_layer, new_extruder_nr))
@@ -318,10 +398,10 @@ void PrimeTower::addToGcode(
         gcode_layer.setPrimeTowerInsetIsPlanned();
     }
 
-    for (const size_t& primed_extruder_idx : extra_primed_extruders_idx)
+    /*for (const size_t& primed_extruder_idx : extra_primed_extruders_idx)
     {
         gcode_layer.setPrimeTowerIsPlanned(extruder_order_.at(primed_extruder_idx));
-    }
+    }*/
 
     // post-wipe:
     if (post_wipe)
@@ -477,6 +557,12 @@ const Shape& PrimeTower::getOuterPoly(const LayerIndex& layer_nr) const
 const Shape& PrimeTower::getGroundPoly() const
 {
     return getOuterPoly(-Raft::getTotalExtraLayers());
+}
+
+void PrimeTower::processExtrudersUse(LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage, const size_t start_extruder)
+{
+    polishExtrudersUses(extruders_use, storage, start_extruder);
+    moves_ = generateExtrusionsMoves(extruders_use, storage);
 }
 
 PrimeTower* PrimeTower::createPrimeTower(SliceDataStorage& storage)
