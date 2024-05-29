@@ -12,8 +12,8 @@
 namespace cura
 {
 
-PrimeTowerInterleaved::PrimeTowerInterleaved(SliceDataStorage& storage, size_t extruder_count)
-    : PrimeTower(storage, extruder_count)
+PrimeTowerInterleaved::PrimeTowerInterleaved(size_t extruder_count)
+    : PrimeTower(extruder_count)
 {
 }
 

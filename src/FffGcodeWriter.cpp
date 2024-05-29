@@ -1520,9 +1520,7 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
 
     extruder_order_per_layer.init(true, storage.print_layer_count);
 
-    size_t extruder_count = Application::getInstance().current_slice_->scene.extruders.size();
     const std::vector<bool> extruders_used = storage.getExtrudersUsed();
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     for (LayerIndex layer_nr = -Raft::getTotalExtraLayers(); layer_nr < static_cast<LayerIndex>(storage.print_layer_count); layer_nr++)
     {
         std::vector<ExtruderUse> extruder_order = getUsedExtrudersOnLayer(storage, last_extruder, layer_nr, extruders_used);

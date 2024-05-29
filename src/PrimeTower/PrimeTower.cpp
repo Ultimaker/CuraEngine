@@ -28,7 +28,7 @@
 namespace cura
 {
 
-PrimeTower::PrimeTower(SliceDataStorage& storage, size_t extruder_count)
+PrimeTower::PrimeTower(size_t extruder_count)
     : wipe_from_middle_(false)
     , extruder_order_(extruder_count)
 {
@@ -495,10 +495,10 @@ PrimeTower* PrimeTower::createPrimeTower(SliceDataStorage& storage)
         switch (method)
         {
         case PrimeTowerMode::NORMAL:
-            prime_tower = new PrimeTowerNormal(storage, scene.extruders.size());
+            prime_tower = new PrimeTowerNormal(scene.extruders.size());
             break;
         case PrimeTowerMode::INTERLEAVED:
-            prime_tower = new PrimeTowerInterleaved(storage, scene.extruders.size());
+            prime_tower = new PrimeTowerInterleaved(scene.extruders.size());
             break;
         }
     }

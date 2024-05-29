@@ -4,6 +4,7 @@
 #include "PrimeTower/PrimeTowerNormal.h"
 
 #include "Application.h"
+#include "LayerPlan.h"
 #include "Scene.h"
 #include "Slice.h"
 #include "sliceDataStorage.h"
@@ -11,8 +12,8 @@
 namespace cura
 {
 
-PrimeTowerNormal::PrimeTowerNormal(SliceDataStorage& storage, size_t extruder_count)
-    : PrimeTower(storage, extruder_count)
+PrimeTowerNormal::PrimeTowerNormal(size_t extruder_count)
+    : PrimeTower(extruder_count)
 {
 }
 

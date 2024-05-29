@@ -72,7 +72,7 @@ public:
      *
      * \param storage A storage where it retrieves the prime tower settings.
      */
-    PrimeTower(SliceDataStorage& storage, size_t extruder_count);
+    PrimeTower(size_t extruder_count);
 
     virtual ~PrimeTower() = default;
 

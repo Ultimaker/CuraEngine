@@ -12,13 +12,7 @@ namespace cura
 class PrimeTowerNormal : public PrimeTower
 {
 public:
-    /*!
-     * \brief Creates a prime tower instance that will determine where and how
-     * the prime tower gets printed.
-     *
-     * \param storage A storage where it retrieves the prime tower settings.
-     */
-    PrimeTowerNormal(SliceDataStorage& storage, size_t extruder_count);
+    PrimeTowerNormal(size_t extruder_count);
 
     virtual ExtruderPrime getExtruderPrime(
         const std::vector<bool>& extruder_is_used_on_this_layer,
