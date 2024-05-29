@@ -110,10 +110,11 @@ bool InsetOrderOptimizer::addToLayer()
         group_outer_walls,
         disallowed_areas_for_seams_);
 
-    for (const auto& line : walls_to_be_added)
+    for (auto& line : walls_to_be_added)
     {
         if (line.is_closed_)
         {
+            insertSeamPoint(line);
             order_optimizer.addPolygon(&line);
         }
         else
@@ -162,6 +163,51 @@ bool InsetOrderOptimizer::addToLayer()
         added_something = true;
     }
     return added_something;
+}
+
+void InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed_line)
+{
+    assert(closed_line.is_closed_);
+
+    Point2LL request_point;
+    switch (z_seam_config_.type_)
+    {
+    case EZSeamType::USER_SPECIFIED: request_point = z_seam_config_.pos_; break;
+    case EZSeamType::SHORTEST: request_point = gcode_layer_.getLastPlannedPositionOrStartingPosition(); break;
+    default: return;
+    }
+
+    size_t closest_junction_idx = 0;
+    coord_t closest_distance_sqd = std::numeric_limits<coord_t>::max();
+    for (const auto& [i, junction] : closed_line.junctions_ | ranges::views::enumerate)
+    {
+        const coord_t distance_sqd = vSize2(junction.p_ - request_point);
+        if (distance_sqd < closest_distance_sqd)
+        {
+            closest_distance_sqd = distance_sqd;
+            closest_junction_idx = i;
+        }
+    }
+
+    const auto& start_pt = closed_line.junctions_[closest_junction_idx];
+    const auto& end_pt = closed_line.junctions_[(closest_junction_idx + 1) % closed_line.junctions_.size()];
+    const auto closest_point = LinearAlg2D::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
+    constexpr coord_t smallest_dist_sqd = 25;
+    if (vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd || vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
+    {
+        return;
+    }
+
+    // NOTE: This could also be done on a single axis (skipping the implied sqrt), but figuring out which one and then using the right values became a bit messy/verbose.
+    const coord_t total_dist = vSize(end_pt.p_ - start_pt.p_);
+    const coord_t start_dist = vSize(closest_point - start_pt.p_);
+    const coord_t end_dist = vSize(closest_point - end_pt.p_);
+    const coord_t w = end_pt.w_ * end_dist / total_dist + start_pt.w_ * start_dist / total_dist;
+
+    closed_line.junctions_.insert(
+        closed_line.junctions_.begin() + closest_junction_idx + 1,
+        ExtrusionJunction( closest_point, w, start_pt.perimeter_index_ )
+    );
 }
 
 InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::vector<ExtrusionLine>& extrusion_lines, const bool outer_to_inner)

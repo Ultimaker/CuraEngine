@@ -113,6 +113,8 @@ private:
     Shape retraction_region_; // After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see
                               // retraction_region_calculated).
 
+    void insertSeamPoint(ExtrusionLine& closed_line);
+
     /*!
      * Determine if the paths should be reversed
      * If there is one extruder used, and we're currently printing the inner walls then Reversing the insets now depends on the inverse of
