@@ -38,7 +38,7 @@ ExtruderPrime PrimeTowerNormal::getExtruderPrime(
     }
 }
 
-std::map<LayerIndex, std::map<size_t, Shape> > PrimeTowerNormal::generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage)
+std::map<LayerIndex, std::map<size_t, Shape>> PrimeTowerNormal::generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage)
 {
     return {};
 }
