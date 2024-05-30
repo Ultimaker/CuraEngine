@@ -28,8 +28,14 @@ class LayerPlan;
  */
 class PrimeTower
 {
+protected:
+    struct ExtruderMoves
+    {
+        size_t extruder_nr;
+        Shape moves;
+    };
+
 private:
-    using MovesByExtruder = std::map<size_t, Shape>;
     using MovesByLayer = std::map<size_t, LayerVector<Shape>>;
 
     bool wipe_from_middle_; //!< Whether to wipe on the inside of the hollow prime tower
@@ -40,46 +46,24 @@ private:
     std::vector<ClosestPointPolygon> prime_tower_start_locations_; //!< The differernt locations where to pre-wipe the active nozzle
     const unsigned int number_of_prime_tower_start_locations_ = 21; //!< The required size of \ref PrimeTower::wipe_locations
 
-    MovesByExtruder prime_moves_; //!< For each extruder, the moves to be processed for actual priming.
-
-    /*
-     *  The first index is a bitmask representing an extruder combination, e.g. 0x05 for extruders 1+3.
-     *  The second index is the used extruder index, e.g. 1
-     *  The polygons represent the sparse pattern to be printed when all the given extruders are unused for this layer
-     *  and the given extruder is currently in use
-     */
-    std::map<size_t, std::map<size_t, Shape>> sparse_pattern_per_extruders_;
-
     /*
      *  The first index is the layer number
      *  The second index is the extruder number
      *  The shape represents what should be printed for the given extruder at the given layer
      */
-    std::map<LayerIndex, std::map<size_t, Shape>> moves_;
-
-    MovesByLayer base_extra_moves_; //!< For each layer and each extruder, the extra moves to be processed for better adhesion/strength
-    MovesByExtruder inset_extra_moves_; //!< For each extruder, the extra inset moves to be processed for better adhesion on initial layer
+    std::map<LayerIndex, std::vector<ExtruderMoves>> moves_;
 
     Shape outer_poly_; //!< The outline of the outermost prime tower.
     LayerVector<Shape> outer_poly_base_; //!< The outline of the layers having extra width for the base
 
 public:
-    /*
-     * In which order, from outside to inside, will we be printing the prime
-     * towers for maximum strength?
-     *
-     * This is the spatial order from outside to inside. This is NOT the actual
-     * order in time in which they are printed.
-     */
-    std::vector<size_t> extruder_order_;
-
     /*!
      * \brief Creates a prime tower instance that will determine where and how
      * the prime tower gets printed.
      *
      * \param storage A storage where it retrieves the prime tower settings.
      */
-    PrimeTower(size_t extruder_count);
+    PrimeTower();
 
     virtual ~PrimeTower() = default;
 
@@ -140,34 +124,12 @@ protected:
         const coord_t line_width,
         const size_t actual_extruder_nr) const;
 
-    virtual bool requiresBaseExtraPrint(size_t extruder_nr) const = 0;
-
-    virtual bool requiresFirstLayerExtraInnerPrint(size_t extruder_nr) const = 0;
-
-    virtual std::map<size_t, std::map<size_t, Shape>> generateSparseInfillImpl(const std::vector<coord_t>& rings_radii) const = 0;
-
-    /*!
-     * \brief Find the list of extruders that don't actually need to be primed during this layer, and for which
-     *        we want to print only the sparse infill to keep the prime tower consistent.
-     * \param gcode_layer The current gcode export
-     * \param required_extruder_prime The pre-computed list of extruders uses during this layer
-     * \param method The current prime tower strategy
-     * \param initial_list_idx A list potentially containing extruders that we already know can be used for
-     *                         sparse infill
-     * \return The indexes of extruders to be used for sparse infill
-     */
-    virtual std::vector<size_t> findExtrudersSparseInfill(
-        const LayerPlan& gcode_layer,
-        const std::vector<ExtruderUse>& required_extruder_prime,
-        const std::vector<size_t>& initial_list_idx = {}) const = 0;
-
-    virtual void processExtruderNoPrime(const size_t extruder_nr, LayerPlan& gcode_layer) const = 0;
-
     virtual void polishExtrudersUses(LayerVector<std::vector<ExtruderUse>>& /*extruders_use*/, const SliceDataStorage& /*storage*/, const size_t /*start_extruder*/)
     {
     }
 
-    virtual std::map<LayerIndex, std::map<size_t, Shape>> generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage) = 0;
+    virtual std::map<LayerIndex, std::vector<ExtruderMoves>> generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage)
+        = 0;
 
     std::tuple<Shape, coord_t> generatePrimeMoves(const size_t extruder_nr, const coord_t outer_radius);
 
@@ -176,17 +138,9 @@ protected:
     static bool extruderRequiresPrime(const std::vector<bool>& extruder_is_used_on_this_layer, size_t extruder_nr, size_t last_extruder);
 
 private:
-    /*!
-     * \brief Generate the extrude paths for each extruder on even and odd layers. Fill the ground poly with dense infill.
-     * \param cumulative_insets [in, out] The insets added to each extruder to compute the radius of its ring
-     */
-    void generateDenseInfill(std::vector<coord_t>& cumulative_insets);
+    void generateBase();
 
-    /*!
-     * \brief Generate the sparse extrude paths for each extruders combination
-     * \param cumulative_insets The insets added to each extruder to compute the radius of its ring
-     */
-    void generateSparseInfill(const std::vector<coord_t>& cumulative_insets);
+    void generateFirtLayerInset();
 
     /*!
      * Generate start locations on the prime tower. The locations are evenly spread around the prime tower's perimeter.
@@ -194,45 +148,6 @@ private:
      * be stored in "prime_tower_start_locations".
      */
     void generateStartLocations();
-
-    /*!
-     * \see PrimeTower::addToGcode
-     *
-     * Add path plans for the prime tower to the \p gcode_layer
-     *
-     * \param[in,out] gcode_layer Where to get the current extruder from. Where
-     * to store the generated layer paths.
-     * \param extruder The extruder we just switched to, with which the prime
-     * tower paths should be drawn.
-     */
-    void addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t extruder) const;
-
-    /*!
-     * \brief Add path plans for the prime tower extra outer rings to make the stronger base
-     * \param gcode_layer The gcode export to add the paths plans to
-     * \param extruder_nr The current extruder number
-     * \return True if something has actually been added, according to the extruder number
-     *         and current layer.
-     */
-    bool addToGcode_base(LayerPlan& gcode_layer, const size_t extruder_nr) const;
-
-    /*!
-     * \brief Add path plans for the prime tower extra inner rings to increase bed adhesion
-     * \param gcode_layer The gcode export to add the paths plans to
-     * \param extruder_nr The current extruder number
-     * \return True if something has actually been added, according to the extruder number
-     *         and current layer.
-     */
-    bool addToGcode_inset(LayerPlan& gcode_layer, const size_t extruder_nr) const;
-
-    /*!
-     * \brief Add path plans in the case an extruder is not to be actually primed, but we still
-     *        want to print something to make the prime tower consistent.
-     * \param gcode_layer The gcode export to add the paths plans to
-     * \param extruders_to_prime_idx The indexes of the extra extruders which also don't require being primed on this layer
-     * \param current_extruder_nr The extruder currently being used
-     */
-    void addToGcode_sparseInfill(LayerPlan& gcode_layer, const std::vector<size_t>& extruders_to_prime_idx, const size_t current_extruder_nr) const;
 
     /*!
      * For an extruder switch that happens not on the first layer, the extruder needs to be primed on the prime tower.

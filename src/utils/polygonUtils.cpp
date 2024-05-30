@@ -1631,7 +1631,7 @@ Shape PolygonUtils::generateOutset(const Shape& inner_poly, size_t count, coord_
     return outset;
 }
 
-Shape PolygonUtils::generateInset(const Shape& outer_poly, coord_t line_width, coord_t initial_inset)
+Shape PolygonUtils::generateInset(const Polygon& outer_poly, coord_t line_width, coord_t initial_inset)
 {
     Shape inset;
 

@@ -366,7 +366,7 @@ Shape SliceDataStorage::getLayerOutlines(
                 total.push_back(support_layer.support_roof);
             }
         }
-        if (include_prime_tower && prime_tower_ && (extruder_nr == -1 || (! prime_tower_->extruder_order_.empty() && extruder_nr == prime_tower_->extruder_order_[0])))
+        if (include_prime_tower && prime_tower_)
         {
             total.push_back(prime_tower_->getOuterPoly(layer_nr));
         }

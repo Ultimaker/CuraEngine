@@ -71,8 +71,6 @@ private:
 
     std::vector<Point2LL> layer_start_pos_per_extruder_; //!< The starting position of a layer for each extruder
     std::vector<bool> has_prime_tower_planned_per_extruder_; //!< For each extruder, whether the prime tower is planned yet or not.
-    bool has_prime_tower_base_planned_; //!< Whether the prime tower base is planned yet or not.
-    bool has_prime_tower_inset_planned_; //!< Whether the prime tower inset is planned yet or not.
     std::optional<Point2LL> last_planned_position_; //!< The last planned XY position of the print head (if known)
 
     std::shared_ptr<const SliceMeshStorage> current_mesh_; //!< The mesh of the last planned move.

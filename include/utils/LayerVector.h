@@ -93,6 +93,16 @@ public:
         return vector_.at(static_cast<size_t>(pos + delta_));
     }
 
+    const_reference front() const
+    {
+        return vector_.front();
+    }
+
+    reference front()
+    {
+        return vector_.front();
+    }
+
     [[nodiscard]] const_iterator iterator_at(const LayerIndex& pos) const
     {
         LayerIndex::value_type index = pos + delta_;

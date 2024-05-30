@@ -12,7 +12,7 @@ namespace cura
 class PrimeTowerInterleaved : public PrimeTower
 {
 public:
-    PrimeTowerInterleaved(size_t extruder_count);
+    PrimeTowerInterleaved();
 
     virtual ExtruderPrime getExtruderPrime(
         const std::vector<bool>& extruder_is_used_on_this_layer,
@@ -22,22 +22,9 @@ public:
         const LayerIndex& layer_nr) const override;
 
 protected:
-    virtual bool requiresBaseExtraPrint(size_t extruder_nr) const override;
-
-    virtual bool requiresFirstLayerExtraInnerPrint(size_t extruder_nr) const override;
-
-    virtual std::map<size_t, std::map<size_t, Shape>> generateSparseInfillImpl(const std::vector<coord_t>& rings_radii) const override;
-
-    virtual std::vector<size_t> findExtrudersSparseInfill(
-        const LayerPlan& gcode_layer,
-        const std::vector<ExtruderUse>& required_extruder_prime,
-        const std::vector<size_t>& initial_list_idx = {}) const override;
-
-    virtual void processExtruderNoPrime(const size_t extruder_nr, LayerPlan& gcode_layer) const override;
-
     virtual void polishExtrudersUses(LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage, const size_t start_extruder) override;
 
-    virtual std::map<LayerIndex, std::map<size_t, Shape>>
+    virtual std::map<LayerIndex, std::vector<ExtruderMoves>>
         generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage) override;
 };
 

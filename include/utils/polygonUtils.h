@@ -694,7 +694,7 @@ public:
      * \param initial_inset The inset distance to be added to the first generated polygon
      * \return The generated inset polygons
      */
-    static Shape generateInset(const Shape& outer_poly, coord_t line_width, coord_t initial_inset = 0);
+    static Shape generateInset(const Polygon &outer_poly, coord_t line_width, coord_t initial_inset = 0);
 
 private:
     /*!
