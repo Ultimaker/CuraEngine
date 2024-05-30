@@ -37,15 +37,13 @@ void PrimeTower::generateGroundpoly()
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
-    const coord_t tower_size = mesh_group_settings.get<coord_t>("prime_tower_size");
-
+    const coord_t tower_radius = mesh_group_settings.get<coord_t>("prime_tower_size") / 2;
     const coord_t x = mesh_group_settings.get<coord_t>("prime_tower_position_x");
     const coord_t y = mesh_group_settings.get<coord_t>("prime_tower_position_y");
-    const coord_t tower_radius = tower_size / 2;
-    outer_poly_.push_back(PolygonUtils::makeCircle(Point2LL(x - tower_radius, y + tower_radius), tower_radius, TAU / CIRCLE_RESOLUTION));
-    middle_ = Point2LL(x - tower_size / 2, y + tower_size / 2);
 
-    post_wipe_point_ = Point2LL(x - tower_size / 2, y + tower_size / 2);
+    middle_ = Point2LL(x - tower_radius, y + tower_radius);
+    outer_poly_.push_back(PolygonUtils::makeCircle(middle_, tower_radius, TAU / CIRCLE_RESOLUTION));
+    post_wipe_point_ = Point2LL(x - tower_radius, y + tower_radius);
 }
 
 void PrimeTower::generatePaths()
