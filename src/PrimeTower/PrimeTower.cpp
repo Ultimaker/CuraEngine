@@ -379,7 +379,7 @@ PrimeTower* PrimeTower::createPrimeTower(SliceDataStorage& storage)
         switch (method)
         {
         case PrimeTowerMode::NORMAL:
-            prime_tower = new PrimeTowerNormal(scene.extruders.size());
+            prime_tower = new PrimeTowerNormal();
             break;
         case PrimeTowerMode::INTERLEAVED:
             prime_tower = new PrimeTowerInterleaved();

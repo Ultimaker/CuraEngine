@@ -12,7 +12,7 @@ namespace cura
 class PrimeTowerNormal : public PrimeTower
 {
 public:
-    PrimeTowerNormal(size_t extruder_count);
+    PrimeTowerNormal();
 
     virtual ExtruderPrime getExtruderPrime(
         const std::vector<bool>& extruder_is_used_on_this_layer,
@@ -24,16 +24,6 @@ public:
 protected:
     virtual std::map<LayerIndex, std::vector<ExtruderMoves>>
         generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage) override;
-
-private:
-    /*
-     * In which order, from outside to inside, will we be printing the prime
-     * towers for maximum strength?
-     *
-     * This is the spatial order from outside to inside. This is NOT the actual
-     * order in time in which they are printed.
-     */
-    std::vector<size_t> extruder_order_;
 };
 
 } // namespace cura

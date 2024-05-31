@@ -43,7 +43,7 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderMoves>>
     coord_t support_radius = tower_radius;
     std::map<LayerIndex, std::vector<ExtruderMoves>> moves;
 
-    // Now loop again, but from top bo bottom, so that the required support increases with what is actually required
+    // Loop from top bo bottom, so that the required support increases with what is actually required
     for (LayerIndex layer_nr = storage.max_print_height_second_to_last_extruder; layer_nr >= -Raft::getTotalExtraLayers(); --layer_nr)
     {
         const std::vector<ExtruderUse>& extruders_use_at_layer = extruders_use[layer_nr];

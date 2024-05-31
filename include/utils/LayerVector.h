@@ -133,6 +133,16 @@ public:
         return value_type{};
     }
 
+    [[nodiscard]] LayerIndex getLayer(const const_iterator& iterator) const
+    {
+        return std::distance(begin(), iterator) - delta_;
+    }
+
+    [[nodiscard]] LayerIndex getLayer(const iterator& iterator) const
+    {
+        return std::distance(begin(), iterator) - delta_;
+    }
+
     void pop_back()
     {
         vector_.pop_back();
