@@ -83,8 +83,8 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderMoves>>
     // Now fill the extruders moves according to their use
     for (auto iterator = extruders_use.begin(); iterator != extruders_use.end(); ++iterator)
     {
-        const std::vector<ExtruderUse>& extruders_use_at_layer = *iterator;
         const LayerIndex layer_nr = extruders_use.getLayer(iterator);
+        const std::vector<ExtruderUse>& extruders_use_at_layer = *iterator;
         std::vector<ExtruderMoves> moves_at_layer;
 
         for (const ExtruderUse& extruder_use : extruders_use_at_layer)
