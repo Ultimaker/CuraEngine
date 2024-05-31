@@ -123,33 +123,23 @@ public:
         const SliceDataStorage& storage,
         const LayerIndex& layer_nr) const = 0;
 
-    void processExtrudersUse(LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage, const size_t start_extruder);
+    void processExtrudersUse(LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder);
 
     static PrimeTower* createPrimeTower(SliceDataStorage& storage);
 
 protected:
-    /*!
-     * \brief Generate the sparse extrude paths for an extruders combination
-     *
-     * \param first_extruder_nr The index of the first extruder to be pseudo-primed
-     * \param last_extruder_nr The index of the last extruder to be pseudo-primed
-     * \param rings_radii The external radii of each extruder ring, plus the internal radius of the internal ring
-     * \param line_width The actual line width of the extruder
-     * \param actual_extruder_nr The number of the actual extruder to be used
-     */
-    Shape generatePath_sparseInfill(
-        const size_t first_extruder_idx,
-        const size_t last_extruder_idx,
-        const std::vector<coord_t>& rings_radii,
-        const coord_t line_width,
-        const size_t actual_extruder_nr) const;
-
-    virtual void polishExtrudersUses(LayerVector<std::vector<ExtruderUse>>& /*extruders_use*/, const SliceDataStorage& /*storage*/, const size_t /*start_extruder*/)
+    virtual void polishExtrudersUses(LayerVector<std::vector<ExtruderUse>>& /*extruders_use*/, const size_t /*start_extruder*/)
     {
     }
 
-    virtual std::map<LayerIndex, std::vector<ExtruderMoves>> generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage)
-        = 0;
+    /*!
+     * \brief generateExtrusionsMoves
+     * \param extruders_use
+     * \param storage
+     * \return A map of extruders moves per layer. The inner list is sorted from outer rings to inner
+     *         rings, which is not the printing chronological order, but the physical arrangement. @sa moves_
+     */
+    virtual std::map<LayerIndex, std::vector<ExtruderMoves>> generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use) = 0;
 
     std::tuple<Shape, coord_t> generatePrimeMoves(const size_t extruder_nr, const coord_t outer_radius);
 

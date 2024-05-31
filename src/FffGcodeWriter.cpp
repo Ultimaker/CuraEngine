@@ -1535,7 +1535,7 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
 
     if (storage.prime_tower_)
     {
-        storage.prime_tower_->processExtrudersUse(extruder_order_per_layer, storage, start_extruder);
+        storage.prime_tower_->processExtrudersUse(extruder_order_per_layer, start_extruder);
     }
 }
 

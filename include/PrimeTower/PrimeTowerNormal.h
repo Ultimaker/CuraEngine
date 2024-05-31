@@ -22,8 +22,7 @@ public:
         const LayerIndex& layer_nr) const override;
 
 protected:
-    virtual std::map<LayerIndex, std::vector<ExtruderMoves>>
-        generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage) override;
+    virtual std::map<LayerIndex, std::vector<ExtruderMoves>> generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use) override;
 };
 
 } // namespace cura

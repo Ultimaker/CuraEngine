@@ -22,10 +22,9 @@ public:
         const LayerIndex& layer_nr) const override;
 
 protected:
-    virtual void polishExtrudersUses(LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage, const size_t start_extruder) override;
+    virtual void polishExtrudersUses(LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder) override;
 
-    virtual std::map<LayerIndex, std::vector<ExtruderMoves>>
-        generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage) override;
+    virtual std::map<LayerIndex, std::vector<ExtruderMoves>> generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use) override;
 };
 
 } // namespace cura

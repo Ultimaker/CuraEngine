@@ -126,42 +126,6 @@ void PrimeTower::generateFirtLayerInset()
     }
 }
 
-Shape PrimeTower::generatePath_sparseInfill(
-    const size_t first_extruder_idx,
-    const size_t last_extruder_idx,
-    const std::vector<coord_t>& rings_radii,
-    const coord_t line_width,
-    const size_t actual_extruder_nr) const
-{
-    const Scene& scene = Application::getInstance().current_slice_->scene;
-    const coord_t max_bridging_distance = scene.extruders[actual_extruder_nr].settings_.get<coord_t>("prime_tower_max_bridging_distance");
-    const coord_t outer_radius = rings_radii[first_extruder_idx];
-    const coord_t inner_radius = rings_radii[last_extruder_idx + 1];
-    const coord_t radius_delta = outer_radius - inner_radius;
-    const coord_t semi_line_width = line_width / 2;
-
-    Shape pattern;
-
-    // Split ring according to max bridging distance
-    const size_t nb_rings = std::ceil(static_cast<float>(radius_delta) / max_bridging_distance);
-    if (nb_rings)
-    {
-        const coord_t actual_radius_step = radius_delta / nb_rings;
-
-        for (size_t i = 0; i < nb_rings; ++i)
-        {
-            const coord_t ring_inner_radius = (inner_radius + i * actual_radius_step) + semi_line_width;
-            const coord_t ring_outer_radius = (inner_radius + (i + 1) * actual_radius_step) - semi_line_width;
-
-            const size_t semi_nb_spokes = std::ceil((std::numbers::pi * ring_outer_radius) / max_bridging_distance);
-
-            pattern.push_back(PolygonUtils::makeWheel(middle_, ring_inner_radius, ring_outer_radius, semi_nb_spokes, ARC_RESOLUTION));
-        }
-    }
-
-    return pattern;
-}
-
 std::tuple<Shape, coord_t> PrimeTower::generatePrimeMoves(const size_t extruder_nr, const coord_t outer_radius)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
@@ -355,10 +319,10 @@ void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
     }
 }
 
-void PrimeTower::processExtrudersUse(LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage, const size_t start_extruder)
+void PrimeTower::processExtrudersUse(LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder)
 {
-    polishExtrudersUses(extruders_use, storage, start_extruder);
-    moves_ = generateExtrusionsMoves(extruders_use, storage);
+    polishExtrudersUses(extruders_use, start_extruder);
+    moves_ = generateExtrusionsMoves(extruders_use);
     generateBase();
     generateFirtLayerInset();
 }

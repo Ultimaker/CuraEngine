@@ -34,8 +34,7 @@ ExtruderPrime PrimeTowerInterleaved::getExtruderPrime(
     }
 }
 
-std::map<LayerIndex, std::vector<PrimeTower::ExtruderMoves>>
-    PrimeTowerInterleaved::generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage)
+std::map<LayerIndex, std::vector<PrimeTower::ExtruderMoves>> PrimeTowerInterleaved::generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
@@ -89,14 +88,14 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderMoves>>
     return moves;
 }
 
-void PrimeTowerInterleaved::polishExtrudersUses(LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage, const size_t start_extruder)
+void PrimeTowerInterleaved::polishExtrudersUses(LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder)
 {
     size_t last_used_extruder = start_extruder;
 
     // Loop through the extruders uses from bottom to top to find the last used extruder at each layer, and make sure we always have some support to print
-    for (LayerIndex layer_nr = -Raft::getTotalExtraLayers(); layer_nr <= storage.max_print_height_second_to_last_extruder; ++layer_nr)
+    for (auto iterator = extruders_use.begin(); iterator != extruders_use.end(); ++iterator)
     {
-        std::vector<ExtruderUse>& extruders_use_at_layer = extruders_use[layer_nr];
+        std::vector<ExtruderUse>& extruders_use_at_layer = *iterator;
 
         // Make sure we always have something to print
         if (extruders_use_at_layer.empty())

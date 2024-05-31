@@ -38,8 +38,7 @@ ExtruderPrime PrimeTowerNormal::getExtruderPrime(
     }
 }
 
-std::map<LayerIndex, std::vector<PrimeTower::ExtruderMoves>>
-    PrimeTowerNormal::generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage)
+std::map<LayerIndex, std::vector<PrimeTower::ExtruderMoves>> PrimeTowerNormal::generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
