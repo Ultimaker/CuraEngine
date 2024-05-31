@@ -47,9 +47,9 @@ private:
     const unsigned int number_of_prime_tower_start_locations_ = 21; //!< The required size of \ref PrimeTower::wipe_locations
 
     /*
-     *  The first index is the layer number
-     *  The second index is the extruder number
-     *  The shape represents what should be printed for the given extruder at the given layer
+     *  The map index is the layer number
+     *  For each layer, the list contains the extruders moves to be processed. This list is sorted from outer rings to inner
+     *  rings, which is not the printing chronological order, but the physical arrangement.
      */
     std::map<LayerIndex, std::vector<ExtruderMoves>> moves_;
 

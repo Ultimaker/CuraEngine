@@ -55,10 +55,10 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderMoves>>
     }
 
     // Then sort from high adhesion to low adhesion. This will give us the outside to inside extruder processing order.
-    std::stable_sort(
+    std::sort(
         extruder_order.begin(),
         extruder_order.end(),
-        [&scene](const unsigned int& extruder_nr_a, const unsigned int& extruder_nr_b) -> bool
+        [&scene](const size_t extruder_nr_a, const size_t extruder_nr_b)
         {
             const Ratio adhesion_a = scene.extruders[extruder_nr_a].settings_.get<Ratio>("material_adhesion_tendency");
             const Ratio adhesion_b = scene.extruders[extruder_nr_b].settings_.get<Ratio>("material_adhesion_tendency");
@@ -84,9 +84,20 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderMoves>>
     for (auto iterator = extruders_use.begin(); iterator != extruders_use.end(); ++iterator)
     {
         const LayerIndex layer_nr = extruders_use.getLayer(iterator);
-        const std::vector<ExtruderUse>& extruders_use_at_layer = *iterator;
-        std::vector<ExtruderMoves> moves_at_layer;
+        std::vector<ExtruderUse> extruders_use_at_layer = *iterator;
 
+        // Sort to fit the global order, in order to insert the moves in outside to inside order
+        std::sort(
+            extruders_use_at_layer.begin(),
+            extruders_use_at_layer.end(),
+            [extruder_order](const ExtruderUse& extruder_use1, const ExtruderUse& extruder_use2)
+            {
+                return std::find(extruder_order.begin(), extruder_order.end(), extruder_use1.extruder_nr)
+                     < std::find(extruder_order.begin(), extruder_order.end(), extruder_use2.extruder_nr);
+            });
+
+        // Now put the proper moves for each extruder use
+        std::vector<ExtruderMoves> moves_at_layer;
         for (const ExtruderUse& extruder_use : extruders_use_at_layer)
         {
             switch (extruder_use.prime)
