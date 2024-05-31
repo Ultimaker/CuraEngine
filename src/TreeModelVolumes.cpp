@@ -151,7 +151,7 @@ TreeModelVolumes::TreeModelVolumes(
 
             if (storage.prime_tower_)
             {
-                anti_overhang_[layer_idx].push_back(storage.prime_tower_->getGroundPoly());
+                anti_overhang_[layer_idx].push_back(storage.prime_tower_->getOccupiedOutline(layer_idx));
             }
             anti_overhang_[layer_idx] = anti_overhang_[layer_idx].unionPolygons();
         });

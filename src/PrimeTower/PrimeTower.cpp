@@ -31,63 +31,71 @@ namespace cura
 PrimeTower::PrimeTower()
     : wipe_from_middle_(false)
 {
-}
-
-void PrimeTower::generateGroundpoly()
-{
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const coord_t tower_radius = mesh_group_settings.get<coord_t>("prime_tower_size") / 2;
     const coord_t x = mesh_group_settings.get<coord_t>("prime_tower_position_x");
     const coord_t y = mesh_group_settings.get<coord_t>("prime_tower_position_y");
+    const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
+    const bool base_enabled = mesh_group_settings.get<bool>("prime_tower_brim_enable");
+    const coord_t base_extra_radius = scene.settings.get<coord_t>("prime_tower_base_size");
+    const coord_t base_height = scene.settings.get<coord_t>("prime_tower_base_height");
+    const double base_curve_magnitude = mesh_group_settings.get<double>("prime_tower_base_curve_magnitude");
 
     middle_ = Point2LL(x - tower_radius, y + tower_radius);
     outer_poly_.push_back(PolygonUtils::makeCircle(middle_, tower_radius, TAU / CIRCLE_RESOLUTION));
     post_wipe_point_ = Point2LL(x - tower_radius, y + tower_radius);
-}
 
-void PrimeTower::generatePaths()
-{
-    generateGroundpoly();
-    generateStartLocations();
+    // Evenly spread out a number of dots along the prime tower's outline. This is done for the complete outline,
+    // so use the same start and end segments for this.
+    PolygonsPointIndex segment_start = PolygonsPointIndex(&outer_poly_, 0, 0);
+    PolygonsPointIndex segment_end = segment_start;
+
+    PolygonUtils::spreadDots(segment_start, segment_end, number_of_prime_tower_start_locations_, prime_tower_start_locations_);
+
+    // Generate the base outline
+    if (base_enabled && base_extra_radius > 0 && base_height > 0)
+    {
+        base_occupied_outline_.init(true);
+
+        for (coord_t z = 0; z < base_height; z += layer_height)
+        {
+            double brim_radius_factor = std::pow((1.0 - static_cast<double>(z) / base_height), base_curve_magnitude);
+            coord_t extra_radius = base_extra_radius * brim_radius_factor;
+            base_occupied_outline_.push_back(outer_poly_.offset(extra_radius));
+        }
+    }
 }
 
 void PrimeTower::generateBase()
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
-    const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
     const bool base_enabled = mesh_group_settings.get<bool>("prime_tower_brim_enable");
     const coord_t base_extra_radius = scene.settings.get<coord_t>("prime_tower_base_size");
-    // const bool has_raft = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT;
     const coord_t base_height = scene.settings.get<coord_t>("prime_tower_base_height");
-    const double base_curve_magnitude = mesh_group_settings.get<double>("prime_tower_base_curve_magnitude");
 
     if (base_enabled && base_extra_radius > 0 && base_height > 0)
     {
-        outer_poly_base_.init(true);
+        base_extrusion_outline_.init(true);
 
         // Generate the base outside extra rings for the first extruder of each layer
-        auto iterator = moves_.begin();
-        for (coord_t z = 0; z < base_height && iterator != moves_.end(); z += layer_height, ++iterator)
+        auto iterator_extrusion_paths = moves_.begin();
+        auto iterator_base_outline = base_occupied_outline_.begin();
+        for (; iterator_extrusion_paths != moves_.end() && iterator_base_outline != base_occupied_outline_.end(); ++iterator_extrusion_paths, ++iterator_base_outline)
         {
-            std::vector<ExtruderMoves>& moves_at_this_layer = iterator->second;
+            std::vector<ExtruderMoves>& moves_at_this_layer = iterator_extrusion_paths->second;
             if (! moves_at_this_layer.empty())
             {
+                const Shape& base_ouline_at_this_layer = *iterator_base_outline;
                 ExtruderMoves& extruder_moves = moves_at_this_layer.front();
                 const size_t extruder_nr = extruder_moves.extruder_nr;
                 const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
 
-                double brim_radius_factor = std::pow((1.0 - static_cast<double>(z) / base_height), base_curve_magnitude);
-                coord_t extra_radius = base_extra_radius * brim_radius_factor;
-                size_t extra_rings = extra_radius / line_width;
-                if (extra_rings == 0)
-                {
-                    break;
-                }
-                extra_radius = line_width * extra_rings;
-                outer_poly_base_.push_back(outer_poly_.offset(extra_radius));
-                extruder_moves.moves.push_back(PolygonUtils::generateOutset(outer_poly_, extra_rings, line_width));
+                Shape outset = PolygonUtils::generateOutset(outer_poly_, base_ouline_at_this_layer, line_width);
+                extruder_moves.moves.push_back(outset);
+
+                base_extrusion_outline_.push_back(outset.offset(line_width / 2));
             }
         }
     }
@@ -217,16 +225,6 @@ Shape PrimeTower::generateSupportMoves(const size_t extruder_nr, const coord_t o
     return moves;
 }
 
-void PrimeTower::generateStartLocations()
-{
-    // Evenly spread out a number of dots along the prime tower's outline. This is done for the complete outline,
-    // so use the same start and end segments for this.
-    PolygonsPointIndex segment_start = PolygonsPointIndex(&outer_poly_, 0, 0);
-    PolygonsPointIndex segment_end = segment_start;
-
-    PolygonUtils::spreadDots(segment_start, segment_end, number_of_prime_tower_start_locations_, prime_tower_start_locations_);
-}
-
 void PrimeTower::addToGcode(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
@@ -307,22 +305,10 @@ void PrimeTower::addToGcode(
     }
 }
 
-void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
+const Shape& PrimeTower::getOccupiedOutline(const LayerIndex& layer_nr) const
 {
-    for (size_t layer = 0; static_cast<int>(layer) <= storage.max_print_height_second_to_last_extruder + 1 && layer < storage.support.supportLayers.size(); layer++)
-    {
-        const Shape outside_polygon = getOuterPoly(layer).getOutsidePolygons();
-        AABB outside_polygon_boundary_box(outside_polygon);
-        SupportLayer& support_layer = storage.support.supportLayers[layer];
-        // take the differences of the support infill parts and the prime tower area
-        support_layer.excludeAreasFromSupportInfillAreas(outside_polygon, outside_polygon_boundary_box);
-    }
-}
-
-const Shape& PrimeTower::getOuterPoly(const LayerIndex& layer_nr) const
-{
-    auto iterator = outer_poly_base_.iterator_at(layer_nr);
-    if (iterator != outer_poly_base_.end())
+    auto iterator = base_occupied_outline_.iterator_at(layer_nr);
+    if (iterator != base_occupied_outline_.end())
     {
         return *iterator;
     }
@@ -332,9 +318,41 @@ const Shape& PrimeTower::getOuterPoly(const LayerIndex& layer_nr) const
     }
 }
 
-const Shape& PrimeTower::getGroundPoly() const
+const Shape& PrimeTower::getOccupiedGroundOutline() const
 {
-    return getOuterPoly(-Raft::getTotalExtraLayers());
+    if (! base_extrusion_outline_.empty())
+    {
+        return base_extrusion_outline_.front();
+    }
+    else
+    {
+        return outer_poly_;
+    }
+}
+
+const Shape& PrimeTower::getExtrusionOutline(const LayerIndex& layer_nr) const
+{
+    auto iterator = base_extrusion_outline_.iterator_at(layer_nr);
+    if (iterator != base_extrusion_outline_.end())
+    {
+        return *iterator;
+    }
+    else
+    {
+        return outer_poly_;
+    }
+}
+
+void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
+{
+    for (size_t layer = 0; static_cast<int>(layer) <= storage.max_print_height_second_to_last_extruder + 1 && layer < storage.support.supportLayers.size(); layer++)
+    {
+        const Shape& outside_polygon = getOccupiedOutline(layer).getOutsidePolygons();
+        AABB outside_polygon_boundary_box(outside_polygon);
+        SupportLayer& support_layer = storage.support.supportLayers[layer];
+        // take the differences of the support infill parts and the prime tower area
+        support_layer.excludeAreasFromSupportInfillAreas(outside_polygon, outside_polygon_boundary_box);
+    }
 }
 
 void PrimeTower::processExtrudersUse(LayerVector<std::vector<ExtruderUse>>& extruders_use, const SliceDataStorage& storage, const size_t start_extruder)
@@ -371,7 +389,6 @@ PrimeTower* PrimeTower::createPrimeTower(SliceDataStorage& storage)
 
     if (prime_tower)
     {
-        prime_tower->generatePaths();
         prime_tower->subtractFromSupport(storage);
     }
 

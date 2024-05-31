@@ -368,7 +368,7 @@ Shape SliceDataStorage::getLayerOutlines(
         }
         if (include_prime_tower && prime_tower_)
         {
-            total.push_back(prime_tower_->getOuterPoly(layer_nr));
+            total.push_back(prime_tower_->getOccupiedOutline(layer_nr));
         }
         return total;
     }

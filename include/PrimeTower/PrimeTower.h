@@ -53,8 +53,12 @@ private:
      */
     std::map<LayerIndex, std::vector<ExtruderMoves>> moves_;
 
-    Shape outer_poly_; //!< The outline of the outermost prime tower.
-    LayerVector<Shape> outer_poly_base_; //!< The outline of the layers having extra width for the base
+    Shape outer_poly_; //!< The outline of the prime tower, not including the base
+
+    //!< This is the exact outline of the extrusions lines of each layer, for layers having extra width for the base
+    LayerVector<Shape> base_extrusion_outline_;
+    //!< This is the approximate outline of the area filled at each layer, for layers having extra width for the base
+    LayerVector<Shape> base_occupied_outline_;
 
 public:
     /*!
@@ -84,17 +88,33 @@ public:
         const size_t new_extruder_nr) const;
 
     /*!
-     * Get the outer polygon for the given layer, which may be the priming polygon only, or a larger polygon for layers with a base
+     * Get the occupied outline of the prime tower at the given layer
      *
      * \param[in] layer_nr The index of the layer
      * \return The outer polygon for the prime tower at the given layer
+     * \note The returned outline is a close approximation of the actual toolpaths. The actual extrusion area may be slightly smaller.
+     *       Use this method only if you need to get the exclusion area of the prime tower. Otherwise use getExtrusionOutline().
+     *       This method exists because this approximate area can be calculated as soon as the prime tower is initialized.
      */
-    const Shape& getOuterPoly(const LayerIndex& layer_nr) const;
+    const Shape& getOccupiedOutline(const LayerIndex& layer_nr) const;
 
     /*!
-     * Get the outer polygon for the very first layer, which may be the priming polygon only, or a larger polygon if there is a base
+     * Get the occupied outline of the prime tower at the first layer
+     *
+     * \note @sa getOccupiedOutline()
      */
-    const Shape& getGroundPoly() const;
+    const Shape& getOccupiedGroundOutline() const;
+
+    /*!
+     * Get the extrusion outline of the prime tower at the given layer
+     *
+     * \param[in] layer_nr The index of the layer
+     * \return The extrusion outline for the prime tower at the given layer
+     * \note The returned outline is the exact outline of the extrusion path, which is useful if you need to generate a toolpath
+     *       touching the prime tower. Otherwise use getExtrusionOutline(). This method will return the valid result only after
+     *       processExtrudersUse() has been called, which is "late" is the global slicing operation.
+     */
+    const Shape& getExtrusionOutline(const LayerIndex& layer_nr) const;
 
     virtual ExtruderPrime getExtruderPrime(
         const std::vector<bool>& extruder_is_used_on_this_layer,
@@ -138,16 +158,7 @@ protected:
     static bool extruderRequiresPrime(const std::vector<bool>& extruder_is_used_on_this_layer, size_t extruder_nr, size_t last_extruder);
 
 private:
-    void generateBase();
-
     void generateFirtLayerInset();
-
-    /*!
-     * Generate start locations on the prime tower. The locations are evenly spread around the prime tower's perimeter.
-     * The number of starting points is defined by "number_of_prime_tower_start_locations". The generated points will
-     * be stored in "prime_tower_start_locations".
-     */
-    void generateStartLocations();
 
     /*!
      * For an extruder switch that happens not on the first layer, the extruder needs to be primed on the prime tower.
@@ -157,24 +168,14 @@ private:
     void gotoStartLocation(LayerPlan& gcode_layer, const size_t extruder) const;
 
     /*!
-     * Generate the prime tower area to be used on each layer
-     *
-     * Fills \ref PrimeTower::inner_poly and sets \ref PrimeTower::middle
-     */
-    void generateGroundpoly();
-
-    /*!
-     * Generate the area where the prime tower should be.
-     */
-    void generatePaths();
-
-    /*!
      * \brief Subtract the prime tower from the support areas in storage.
      *
      * \param storage The storage where to find the support from which to
      * subtract a prime tower.
      */
     void subtractFromSupport(SliceDataStorage& storage);
+
+    void generateBase();
 };
 
 } // namespace cura

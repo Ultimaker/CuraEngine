@@ -153,7 +153,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         gcode.writeTravel(p, extruder_settings.get<Velocity>("speed_travel"));
     }
 
-
     calculateExtruderOrderPerLayer(storage);
     calculatePrimeLayerPerExtruder(storage);
 
@@ -647,7 +646,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         raft_outline_paths.emplace_back(ParameterizedRaftPath{ line_spacing, storage.raft_base_outline });
         if (storage.prime_tower_)
         {
-            const Shape& raft_outline_prime_tower = storage.prime_tower_->getOuterPoly(layer_nr);
+            const Shape& raft_outline_prime_tower = storage.prime_tower_->getExtrusionOutline(layer_nr);
             if (line_spacing_prime_tower == line_spacing)
             {
                 // Base layer is shared with prime tower base
@@ -813,7 +812,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         if (storage.prime_tower_)
         {
             // Interface layer excludes prime tower base
-            raft_outline_path = raft_outline_path.difference(storage.prime_tower_->getOuterPoly(layer_nr));
+            raft_outline_path = raft_outline_path.difference(storage.prime_tower_->getExtrusionOutline(layer_nr));
         }
 
         Infill infill_comp(
@@ -973,7 +972,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         if (storage.prime_tower_)
         {
             // Surface layers exclude prime tower base
-            raft_outline_path = raft_outline_path.difference(storage.prime_tower_->getOuterPoly(layer_nr));
+            raft_outline_path = raft_outline_path.difference(storage.prime_tower_->getExtrusionOutline(layer_nr));
         }
 
         for (const Shape& raft_island : raft_outline_path.splitIntoParts())

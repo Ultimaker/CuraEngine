@@ -1617,15 +1617,18 @@ Shape PolygonUtils::clipPolygonWithAABB(const Shape& src, const AABB& aabb)
     return out;
 }
 
-Shape PolygonUtils::generateOutset(const Shape& inner_poly, size_t count, coord_t line_width)
+Shape PolygonUtils::generateOutset(const Shape& inner_poly, const Shape& outer_poly, coord_t line_width)
 {
     Shape outset;
 
-    Shape current_outset;
-    for (size_t index = 0; index < count; ++index)
+    coord_t offset = line_width / 2;
+    Shape current_outset = inner_poly.offset(offset);
+
+    while (! current_outset.empty() && current_outset.front().isValid() && outer_poly.inside(current_outset.front().front()))
     {
-        current_outset = index == 0 ? inner_poly.offset(line_width / 2) : current_outset.offset(line_width);
         outset.push_back(current_outset);
+        offset += line_width;
+        current_outset = inner_poly.offset(offset);
     }
 
     return outset;

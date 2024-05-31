@@ -680,11 +680,11 @@ public:
      * Generate a few outset polygons around the given base, according to the given line width
      *
      * \param inner_poly The inner polygon to start generating the outset from
-     * \param count The number of outer polygons to add
+     * \param outer_poly The outer polygon to fit the outset into
      * \param line_width The actual line width to distance the polygons from each other (and from the base)
      * \return The generated outset polygons
      */
-    static Shape generateOutset(const Shape& inner_poly, size_t count, coord_t line_width);
+    static Shape generateOutset(const Shape& inner_poly, const Shape& outer_poly, coord_t line_width);
 
     /*!
      * Generate inset polygons inside the given base, until there is no space left, according to the given line width

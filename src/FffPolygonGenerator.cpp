@@ -996,7 +996,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
         }
         for (LayerIndex layer_nr = 0; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
         {
-            storage.ooze_shield[layer_nr] = storage.ooze_shield[layer_nr].difference(storage.prime_tower_->getOuterPoly(layer_nr).offset(max_line_width / 2));
+            storage.ooze_shield[layer_nr] = storage.ooze_shield[layer_nr].difference(storage.prime_tower_->getOccupiedOutline(layer_nr).offset(max_line_width / 2));
         }
     }
 }
@@ -1046,7 +1046,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
                 max_line_width = std::max(max_line_width, extruders[extruder_nr].settings_.get<coord_t>("skirt_brim_line_width"));
             }
         }
-        storage.draft_protection_shield = storage.draft_protection_shield.difference(storage.prime_tower_->getGroundPoly().offset(max_line_width / 2));
+        storage.draft_protection_shield = storage.draft_protection_shield.difference(storage.prime_tower_->getOccupiedGroundOutline().offset(max_line_width / 2));
     }
 }
 
