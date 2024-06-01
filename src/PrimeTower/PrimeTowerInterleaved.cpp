@@ -43,7 +43,7 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderMoves>> PrimeTowerInterleav
     std::map<LayerIndex, std::vector<ExtruderMoves>> moves;
 
     // Loop from top bo bottom, so that the required support increases with what is actually required
-    for (auto iterator = extruders_use.begin(); iterator != extruders_use.end(); ++iterator)
+    for (auto iterator = extruders_use.rbegin(); iterator != extruders_use.rend(); ++iterator)
     {
         const LayerIndex layer_nr = extruders_use.getLayer(iterator);
         const std::vector<ExtruderUse>& extruders_use_at_layer = extruders_use[layer_nr];

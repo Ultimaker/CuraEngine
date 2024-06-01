@@ -26,6 +26,8 @@ class LayerVector
     using value_type = T;
     using iterator = typename std::vector<value_type>::iterator;
     using const_iterator = typename std::vector<value_type>::const_iterator;
+    using reverse_iterator = typename std::vector<value_type>::reverse_iterator;
+    using const_reverse_iterator = typename std::vector<value_type>::const_reverse_iterator;
     using reference = value_type&;
     using const_reference = const value_type&;
     using difference_type = typename std::vector<value_type>::difference_type;
@@ -71,6 +73,26 @@ public:
     iterator end()
     {
         return vector_.end();
+    }
+
+    const_reverse_iterator rbegin() const
+    {
+        return vector_.rbegin();
+    }
+
+    reverse_iterator rbegin()
+    {
+        return vector_.rbegin();
+    }
+
+    const_reverse_iterator rend() const
+    {
+        return vector_.rend();
+    }
+
+    reverse_iterator rend()
+    {
+        return vector_.rend();
     }
 
     const_reference operator[](const LayerIndex& pos) const
@@ -141,6 +163,16 @@ public:
     [[nodiscard]] LayerIndex getLayer(const iterator& iterator) const
     {
         return std::distance(begin(), iterator) - delta_;
+    }
+
+    [[nodiscard]] LayerIndex getLayer(const const_reverse_iterator& iterator) const
+    {
+        return std::distance(iterator, rend()) - 1 - delta_;
+    }
+
+    [[nodiscard]] LayerIndex getLayer(const reverse_iterator& iterator) const
+    {
+        return std::distance(iterator, rend()) - 1 - delta_;
     }
 
     void pop_back()
