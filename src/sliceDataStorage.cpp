@@ -634,7 +634,7 @@ Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
         Point2LL translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
         prime_pos -= translation;
         Shape prime_polygons;
-        prime_polygons.emplace_back(PolygonUtils::makeCircle(prime_pos, prime_clearance, std::numbers::pi / 32));
+        prime_polygons.emplace_back(PolygonUtils::makeCircle(prime_pos, prime_clearance, 32));
         disallowed_areas = disallowed_areas.unionPolygons(prime_polygons);
     }
 
