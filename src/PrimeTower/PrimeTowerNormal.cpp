@@ -28,7 +28,7 @@ ExtruderPrime PrimeTowerNormal::getExtruderPrime(
     {
         return ExtruderPrime::Prime;
     }
-    else if (layer_nr < storage.max_print_height_second_to_last_extruder)
+    else if (layer_nr <= storage.max_print_height_second_to_last_extruder)
     {
         return ExtruderPrime::Sparse;
     }
