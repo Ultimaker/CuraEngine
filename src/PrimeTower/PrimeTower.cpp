@@ -43,7 +43,7 @@ PrimeTower::PrimeTower()
     const double base_curve_magnitude = mesh_group_settings.get<double>("prime_tower_base_curve_magnitude");
 
     middle_ = Point2LL(x - tower_radius, y + tower_radius);
-    outer_poly_.push_back(PolygonUtils::makeCircle(middle_, tower_radius, TAU / CIRCLE_RESOLUTION));
+    outer_poly_.push_back(PolygonUtils::makeCircle(middle_, tower_radius, CIRCLE_RESOLUTION));
     post_wipe_point_ = Point2LL(x - tower_radius, y + tower_radius);
 
     // Evenly spread out a number of dots along the prime tower's outline. This is done for the complete outline,
@@ -106,10 +106,10 @@ void PrimeTower::generateFirtLayerInset()
     // Generate the base inside extra rings for the last extruder of the first layer
     if (! moves_.empty())
     {
-        const std::vector<ExtruderMoves>& moves_first_layer = moves_.begin()->second;
+        std::vector<ExtruderMoves>& moves_first_layer = moves_.begin()->second;
         if (! moves_first_layer.empty())
         {
-            ExtruderMoves extruder_moves = moves_first_layer.back();
+            ExtruderMoves& extruder_moves = moves_first_layer.back();
             const Scene& scene = Application::getInstance().current_slice_->scene;
             const size_t extruder_nr = extruder_moves.extruder_nr;
             Shape& moves_last_extruder = extruder_moves.moves;
