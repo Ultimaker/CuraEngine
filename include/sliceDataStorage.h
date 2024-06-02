@@ -399,10 +399,7 @@ public:
      */
     SliceDataStorage();
 
-    ~SliceDataStorage()
-    {
-        delete prime_tower_;
-    }
+    ~SliceDataStorage();
 
     /*!
      * Get all outlines within a given layer.

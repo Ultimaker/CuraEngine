@@ -270,6 +270,11 @@ SliceDataStorage::SliceDataStorage()
     machine_size.include(machine_max);
 }
 
+SliceDataStorage::~SliceDataStorage()
+{
+    delete prime_tower_;
+}
+
 Shape SliceDataStorage::getLayerOutlines(
     const LayerIndex layer_nr,
     const bool include_support,

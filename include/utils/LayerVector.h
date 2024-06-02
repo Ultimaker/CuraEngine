@@ -155,24 +155,24 @@ public:
         return value_type{};
     }
 
-    [[nodiscard]] LayerIndex getLayer(const const_iterator& iterator) const
+    [[nodiscard]] LayerIndex getLayer(const const_iterator& it) const
     {
-        return std::distance(begin(), iterator) - delta_;
+        return std::distance(begin(), it) - static_cast<difference_type>(delta_);
     }
 
-    [[nodiscard]] LayerIndex getLayer(const iterator& iterator) const
+    [[nodiscard]] LayerIndex getLayer(const iterator& it) const
     {
-        return std::distance(begin(), iterator) - delta_;
+        return std::distance(begin(), it) - static_cast<difference_type>(delta_);
     }
 
-    [[nodiscard]] LayerIndex getLayer(const const_reverse_iterator& iterator) const
+    [[nodiscard]] LayerIndex getLayer(const const_reverse_iterator& it) const
     {
-        return std::distance(iterator, rend()) - 1 - delta_;
+        return std::distance(it, rend()) - 1 - static_cast<difference_type>(delta_);
     }
 
-    [[nodiscard]] LayerIndex getLayer(const reverse_iterator& iterator) const
+    [[nodiscard]] LayerIndex getLayer(const reverse_iterator& it) const
     {
-        return std::distance(iterator, rend()) - 1 - delta_;
+        return std::distance(it, rend()) - 1 - static_cast<difference_type>(delta_);
     }
 
     void pop_back()
