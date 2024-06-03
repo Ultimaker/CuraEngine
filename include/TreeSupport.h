@@ -321,44 +321,97 @@ private:
         std::vector<std::vector<std::pair<LayerIndex, Polygons>>>& dropped_down_areas,
         const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order);
 
-    /*!
-     * \brief Generates support areas with high density infill to support interface above. Also unions the Polygons in support_layer_storage. Has to be called even if no support
-     skin will generate.
+
+     /*!
+     * \brief Accumulate areas needed later, union all import and add all roof to storage.
      * \param support_layer_storage[in,out] Areas where support should be generated.
-     * \param support_skin_storage[out] Areas where high density support should be generated.
+     * \param support_layer_storage_fractional[in,out] Areas where support has to be, projected up for fractional height.
      * \param support_roof_storage[in] Areas where support was replaced with roof.
      * \param support_roof_extra_wall_storage[in] Areas where support was replaced with roof, but roofs need to have a wall to print correctly.
      * \param support_roof_storage_fractional[in] Areas of roof that were projected one layer up.
      * \param support_roof_extra_wall_storage_fractional[in] Areas of roof that were projected one layer up, but roofs need to have a wall to print correctly.
-     * \param storage[in] The storage where the support should be stored.
-     * \param layer_tree_polygons[in] Resulting branch areas with the layerindex they appear on.
+     * \param fake_roof_areas_combined[out] All areas that contain the fake roofs.
+     * \param cradle_base_areas[out] Copy of all cradle base areas. Already added to correct storage.
+     * \param cradle_support_line_areas[out] All cradle lines consisting of regular support. Will still have to be added as support (Done in generateSupportSkin)
+     * \param storage[in,out] The storage where the support should be stored.
      * \param cradle_data[in] All currently existing cradles, with its corresponding cradle lines.
-
      */
-    void generateSupportSkin(
+    void prepareSupportAreas(
         std::vector<Polygons>& support_layer_storage,
         std::vector<Polygons>& support_layer_storage_fractional,
-        std::vector<Polygons>& support_skin_storage,
         std::vector<Polygons>& support_roof_storage,
         std::vector<Polygons>& support_roof_extra_wall_storage,
         std::vector<Polygons>& support_roof_storage_fractional,
         std::vector<Polygons>& support_roof_extra_wall_storage_fractional,
+        std::vector<Polygons>& fake_roof_areas_combined,
+        std::vector<Polygons>& cradle_base_areas,
+        std::vector<Polygons>& cradle_support_line_areas,
         SliceDataStorage& storage,
-        std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons,
         std::vector<std::vector<TreeSupportCradle*>>& cradle_data);
 
     /*!
-     * \brief Filters out holses that would cause support to be printed mid-air.
+     * \brief Calculates which holes are valid (rest on walls) and which holes rest on which other holes
+     * \param support_layer_storage[in] Areas where support should be generated.
+     * \param hole_parts[out] Parts of holes, ordered by layer.
+     * \param valid_holes[out] Indices of holes that rest on outer wall, by layer.
+     * \param non_removable_holes[out] Indices of holes that can not be removed, by layer.
+     * \param hole_rest_map[out] Ordered by layer, information on which hole index on the layer below a given hole rests on
+     */
+    void calculateSupportHoles(std::vector<Polygons>& support_layer_storage,
+                               std::vector<std::vector<Polygons>>& hole_parts,
+                               std::vector<std::set<size_t>>& valid_holes,
+                               std::vector<std::set<size_t>>& non_removable_holes,
+                               std::vector<std::map<size_t, std::vector<size_t>>>& hole_rest_map);
+
+    /*!
+     * \brief Generates support areas with high density infill to support interface above. Has to be called even if no support skin will generate,
+     * as cradle lines are added to the support_layer_storage here.
+
      * \param support_layer_storage[in,out] Areas where support should be generated.
      * \param support_skin_storage[out] Areas where high density support should be generated.
+     * \param fake_roof_areas_combined[in] All areas that contain the fake roofs.
+     * \param cradle_base_areas[in] Copy of all cradle base areas. Already added to correct storage.
+     * \param cradle_support_line_areas[in] All cradle lines consisting of regular support. Will be to be added as support.
+     * \param hole_parts[in] Parts of holes, ordered by layer.
+     * \param valid_holes[in] Indices of holes that rest on outer wall, by layer.
+     * \param non_removable_holes[in] Indices of holes that can not be removed, by layer.
+     * \param hole_rest_map[in] Ordered by layer, information on which hole index on the layer below a given hole rests on
+     * \param storage[in] The storage where the support should be stored.
+     * \param layer_tree_polygons[in] Resulting branch areas with the layerindex they appear on.
      */
-    void filterFloatingLines(std::vector<Polygons>& support_layer_storage, std::vector<Polygons>& support_skin_storage);
+    void generateSupportSkin(
+        std::vector<Polygons>& support_layer_storage,
+        std::vector<Polygons>& support_skin_storage,
+        std::vector<Polygons>& fake_roof_areas_combined,
+        std::vector<Polygons>& cradle_base_areas,
+        std::vector<Polygons>& cradle_support_line_areas,
+        std::vector<std::vector<Polygons>>& hole_parts,
+        std::vector<std::set<size_t>>& valid_holes,
+        std::vector<std::set<size_t>>& non_removable_holes,
+        std::vector<std::map<size_t, std::vector<size_t>>>& hole_rest_map,
+        SliceDataStorage& storage,
+        std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons);
+
+    /*!
+     * \brief Filters out holes that would cause support to be printed mid-air.
+     * \param support_layer_storage[in,out] Areas where support should be generated.
+     * \param hole_parts[in] Parts of holes, ordered by layer.
+     * \param valid_holes[in] Indices of holes that rest on outer wall, by layer.
+     * \param non_removable_holes[in] Indices of holes that can not be removed, by layer.
+     * \param hole_rest_map[in] Ordered by layer, information on which hole index on the layer below a given hole rests on
+     */
+    void removeFloatingHoles(std::vector<Polygons>& support_layer_storage,
+                             std::vector<std::vector<Polygons>>& hole_parts,
+                             std::vector<std::set<size_t>>& valid_holes,
+                             std::vector<std::set<size_t>>& non_removable_holes,
+                             std::vector<std::map<size_t, std::vector<size_t>>>& hole_rest_map);
 
     /*!
      * \brief Generates Support Floor, ensures Support Roof can not cut of branches, and saves the branches as support to storage
      *
      * \param support_layer_storage[in] Areas where support should be generated.
-     * \param support_roof_storage[in] Areas where support was replaced with roof.
+     * \param support_skin_storage[in] Areas where high density support should be generated.
+     * \param support_layer_storage_fractional[out] Areas where support has to be, projected up for fractional height.
      * \param storage[in,out] The storage where the support should be stored.
      */
     void finalizeInterfaceAndSupportAreas(
@@ -373,7 +426,6 @@ private:
      * \param move_bounds[in] All currently existing influence areas
      * \param storage[in,out] The storage where the support should be stored.
      * \param cradle_data[in] All currently existing cradles, with its corresponding cradle lines.
-
      */
     void drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<std::vector<TreeSupportCradle*>>& cradle_data);
 
