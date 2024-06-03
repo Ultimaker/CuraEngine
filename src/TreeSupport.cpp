@@ -2738,7 +2738,7 @@ void TreeSupport::generateSupportSkin(
 
                     for (Polygons part : support_on_layer.splitIntoParts())
                     {
-                        Polygons part_outline = part.getOutsidePolygons();
+                        Polygons part_outline = part.getOutsidePolygons().difference(volumes_.getCollision(0, layer_idx - support_skin_ctr, true));
                         if (! PolygonUtils::clipPolygonWithAABB(may_need_skin_area, AABB(part_outline)).empty())
                         {
                             // Use line infill to scan which area the line infill has to occupy to reach the outer outline of a branch.
