@@ -2980,14 +2980,6 @@ void TreeSupport::removeFloatingHoles(std::vector<Polygons>& support_layer_stora
                                       std::vector<std::set<size_t>>& non_removable_holes,
                                       std::vector<std::map<size_t, std::vector<size_t>>>& hole_rest_map)
 {
-    std::function<void(Polygons&)> reversePolygon = [&](Polygons& poly)
-    {
-        for (size_t idx = 0; idx < poly.size(); idx++)
-        {
-            poly[idx].reverse();
-        }
-    };
-
     std::unordered_set<size_t> removed_holes_by_idx;
     std::vector<Polygons> valid_holes_areas(hole_parts.size(), Polygons());
     // Check which holes have to be removed as they do not rest on anything. Only keep holes that have to be removed
@@ -3046,9 +3038,8 @@ void TreeSupport::removeFloatingHoles(std::vector<Polygons>& support_layer_stora
                 return;
             }
 
-            support_layer_storage[layer_idx] = support_layer_storage[layer_idx].getOutsidePolygons();
-            reversePolygon(valid_holes_areas[layer_idx]);
-            support_layer_storage[layer_idx].add(valid_holes_areas[layer_idx]);
+            //Because the support_layer_storage could be modified (e.g. because the holes are now skin), just adding back the reversed holes is no longer working. Need to do a real difference instead.
+            support_layer_storage[layer_idx] = support_layer_storage[layer_idx].getOutsidePolygons().difference(valid_holes_areas[layer_idx]);
         });
 
 }
