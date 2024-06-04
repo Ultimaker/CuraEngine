@@ -2023,6 +2023,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
                 return;
             }
 
+            Shape relevant_forbidden = volumes_.getCollision(0, layer_idx, true);
             Shape outer_walls = TreeSupportUtils::toPolylines(support_layer_storage[layer_idx - 1].getOutsidePolygons())
                                     .createTubeShape(
                                         closing_dist,
@@ -2041,6 +2042,11 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
                 hole_aabb.expand(EPSILON);
                 if (! hole.intersection(PolygonUtils::clipPolygonWithAABB(outer_walls, hole_aabb)).empty())
                 {
+                    holes_resting_outside[layer_idx].emplace(idx);
+                }
+                else if (! hole.intersection(PolygonUtils::clipPolygonWithAABB(relevant_forbidden, hole_aabb)).offset(-config.xy_min_distance / 2).empty())
+                {
+                    // technically not resting outside, also not valid, but the alternative is potentially having lines go through the model
                     holes_resting_outside[layer_idx].emplace(idx);
                 }
                 else
