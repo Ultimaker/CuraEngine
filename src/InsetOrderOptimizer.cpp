@@ -182,11 +182,13 @@ void InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed_line)
         return;
     }
 
+    //NOTE: Maybe rewrite this once we can use C++23 ranges::views::adjacent
     size_t closest_junction_idx = 0;
     coord_t closest_distance_sqd = std::numeric_limits<coord_t>::max();
     for (const auto& [i, junction] : closed_line.junctions_ | ranges::views::enumerate)
     {
-        const coord_t distance_sqd = vSize2(junction.p_ - request_point);
+        const auto& next_junction = closed_line.junctions_[(i + 1) % closed_line.junctions_.size()];
+        const coord_t distance_sqd = LinearAlg2D::getDist2FromLineSegment(junction.p_, request_point, next_junction.p_);
         if (distance_sqd < closest_distance_sqd)
         {
             closest_distance_sqd = distance_sqd;
@@ -194,29 +196,22 @@ void InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed_line)
         }
     }
 
-    const auto& before_pt = closed_line.junctions_[(closest_junction_idx + closed_line.junctions_.size() - 1) % closed_line.junctions_.size()];
     const auto& start_pt = closed_line.junctions_[closest_junction_idx];
     const auto& end_pt = closed_line.junctions_[(closest_junction_idx + 1) % closed_line.junctions_.size()];
-    const auto closest_point_a = LinearAlg2D::getClosestOnLineSegment(request_point, before_pt.p_, start_pt.p_);
-    const auto closest_point_b = LinearAlg2D::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
-    constexpr int direction_a = 0;
-    constexpr int direction_b = 1;
-    const auto& [closest_point, other_pt, direction] = vSize2(closest_point_a - request_point) < vSize2(closest_point_b - request_point)
-                                                         ? std::tie(closest_point_a, before_pt, direction_a)
-                                                         : std::tie(closest_point_b, end_pt, direction_b);
+    const auto closest_point = LinearAlg2D::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
     constexpr coord_t smallest_dist_sqd = 25;
-    if (vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd || vSize2(closest_point - other_pt.p_) <= smallest_dist_sqd)
+    if (vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd || vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
     {
         return;
     }
 
     // NOTE: This could also be done on a single axis (skipping the implied sqrt), but figuring out which one and then using the right values became a bit messy/verbose.
-    const coord_t total_dist = vSize(other_pt.p_ - start_pt.p_);
+    const coord_t total_dist = vSize(end_pt.p_ - start_pt.p_);
     const coord_t start_dist = vSize(closest_point - start_pt.p_);
-    const coord_t end_dist = vSize(closest_point - other_pt.p_);
-    const coord_t w = other_pt.w_ * end_dist / total_dist + start_pt.w_ * start_dist / total_dist;
+    const coord_t end_dist = vSize(closest_point - end_pt.p_);
+    const coord_t w = end_pt.w_ * end_dist / total_dist + start_pt.w_ * start_dist / total_dist;
 
-    closed_line.junctions_.insert(closed_line.junctions_.begin() + closest_junction_idx + direction, ExtrusionJunction(closest_point, w, start_pt.perimeter_index_));
+    closed_line.junctions_.insert(closed_line.junctions_.begin() + closest_junction_idx + 1, ExtrusionJunction(closest_point, w, start_pt.perimeter_index_));
 }
 
 InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::vector<ExtrusionLine>& extrusion_lines, const bool outer_to_inner)
