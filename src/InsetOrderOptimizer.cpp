@@ -182,7 +182,7 @@ void InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed_line)
         return;
     }
 
-    //NOTE: Maybe rewrite this once we can use C++23 ranges::views::adjacent
+    // NOTE: Maybe rewrite this once we can use C++23 ranges::views::adjacent
     size_t closest_junction_idx = 0;
     coord_t closest_distance_sqd = std::numeric_limits<coord_t>::max();
     for (const auto& [i, junction] : closed_line.junctions_ | ranges::views::enumerate)
