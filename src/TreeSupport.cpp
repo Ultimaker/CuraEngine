@@ -2727,7 +2727,7 @@ void TreeSupport::calculateSupportHoles(std::vector<Polygons>& support_layer_sto
                 }
                 else
                 {
-                    if(hole.intersection(PolygonUtils::clipPolygonWithAABB(relevant_forbidden, hole_aabb)).area() > hole.polygonLength() * EPSILON)
+                    if(!hole.intersection(PolygonUtils::clipPolygonWithAABB(relevant_forbidden, hole_aabb)).offset(- config.xy_min_distance / 2).empty())
                     {
                         non_removable_holes[layer_idx].emplace(idx); // technically not resting outside, also not valid, but the alternative is potentially having lines go though the model
                     }
