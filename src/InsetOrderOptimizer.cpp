@@ -201,10 +201,9 @@ void InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed_line)
     const auto closest_point_b = LinearAlg2D::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
     constexpr int direction_a = 0;
     constexpr int direction_b = 1;
-    const auto& [closest_point, other_pt, direction] =
-        vSize2(closest_point_a - request_point) < vSize2(closest_point_b - request_point) ?
-        std::tie(closest_point_a, before_pt, direction_a) :
-        std::tie(closest_point_b, end_pt, direction_b);
+    const auto& [closest_point, other_pt, direction] = vSize2(closest_point_a - request_point) < vSize2(closest_point_b - request_point)
+                                                         ? std::tie(closest_point_a, before_pt, direction_a)
+                                                         : std::tie(closest_point_b, end_pt, direction_b);
     constexpr coord_t smallest_dist_sqd = 25;
     if (vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd || vSize2(closest_point - other_pt.p_) <= smallest_dist_sqd)
     {
