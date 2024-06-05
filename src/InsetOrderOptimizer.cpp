@@ -114,7 +114,10 @@ bool InsetOrderOptimizer::addToLayer()
     {
         if (line.is_closed_)
         {
-            insertSeamPoint(line);
+            if (! settings_.get<bool>("z_seam_on_vertex"))
+            {
+                insertSeamPoint(line);
+            }
             order_optimizer.addPolygon(&line);
         }
         else
