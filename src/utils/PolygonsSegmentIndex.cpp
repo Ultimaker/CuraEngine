@@ -11,7 +11,7 @@ PolygonsSegmentIndex::PolygonsSegmentIndex()
 {
 }
 
-PolygonsSegmentIndex::PolygonsSegmentIndex(const Polygons* polygons, unsigned int poly_idx, unsigned int point_idx)
+PolygonsSegmentIndex::PolygonsSegmentIndex(const Shape* polygons, unsigned int poly_idx, unsigned int point_idx)
     : PolygonsPointIndex(polygons, poly_idx, point_idx)
 {
 }

@@ -9,7 +9,7 @@
 #include <utility> // pair
 #include <vector>
 
-#include "Point2LL.h"
+#include "geometry/Point2LL.h"
 
 namespace cura
 {

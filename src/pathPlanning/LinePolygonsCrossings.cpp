@@ -22,7 +22,7 @@ bool LinePolygonsCrossings::calcScanlineCrossings(bool fail_on_unavoidable_obsta
 {
     for (unsigned int poly_idx = 0; poly_idx < boundary_.size(); poly_idx++)
     {
-        ConstPolygonRef poly = boundary_[poly_idx];
+        const Polygon& poly = boundary_[poly_idx];
         Point2LL p0 = transformation_matrix_.apply(poly[poly.size() - 1]);
         for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
@@ -74,7 +74,7 @@ bool LinePolygonsCrossings::lineSegmentCollidesWithBoundary()
     transformed_start_point_ = transformation_matrix_.apply(start_point_);
     transformed_end_point_ = transformation_matrix_.apply(end_point_);
 
-    for (ConstPolygonRef poly : boundary_)
+    for (const Polygon& poly : boundary_)
     {
         Point2LL p0 = transformation_matrix_.apply(poly.back());
         for (Point2LL p1_ : poly)
@@ -152,7 +152,7 @@ void LinePolygonsCrossings::generateBasicCombingPath(const Crossing& min, const 
 {
     // minimise the path length by measuring the length of both paths around the polygon so we can determine the shorter path
 
-    ConstPolygonRef poly = boundary_[min.poly_idx_];
+    const Polygon& poly = boundary_[min.poly_idx_];
     combPath.push_back(transformation_matrix_.unapply(Point2LL(min.x_ - std::abs(dist_to_move_boundary_point_outside_), transformed_start_point_.Y)));
 
     // follow the path in the same direction as the winding order of the boundary polygon

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef CURAENGINE_INFILL_BENCHMARK_H
@@ -6,6 +6,9 @@
 
 #include <benchmark/benchmark.h>
 
+#include "geometry/OpenLinesSet.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/LinesSet.h"
 #include "infill.h"
 
 namespace cura
@@ -14,14 +17,14 @@ class InfillTest : public benchmark::Fixture
 {
 public:
     Settings settings{};
-    Polygons square_shape;
-    Polygons ff_holes;
+    Shape square_shape;
+    Shape ff_holes;
 
 
     std::vector<ExtrusionLine> all_paths;
 
 
-    Polygons outline_polygons;
+    Shape outline_polygons;
     EFillMethod pattern{ EFillMethod::LINES };
     bool zig_zagify{ true };
     bool connect_polygons{ true };
@@ -58,8 +61,8 @@ public:
         ff_holes.back().emplace_back(MM2INT(60), MM2INT(40));
         ff_holes.back().emplace_back(MM2INT(90), MM2INT(25));
 
-        outline_polygons.add(square_shape);
-        outline_polygons.add(ff_holes);
+        outline_polygons.push_back(square_shape);
+        outline_polygons.push_back(ff_holes);
 
         settings.add("fill_outline_gaps", "false");
         settings.add("meshfix_maximum_deviation", "0.1");
@@ -93,29 +96,30 @@ public:
 
 BENCHMARK_DEFINE_F(InfillTest, Infill_generate_connect)(benchmark::State& st)
 {
-    Infill infill(pattern,
-                  zig_zagify,
-                  connect_polygons,
-                  outline_polygons,
-                  INFILL_LINE_WIDTH,
-                  line_distance,
-                  INFILL_OVERLAP,
-                  INFILL_MULTIPLIER,
-                  FILL_ANGLE,
-                  Z,
-                  SHIFT,
-                  MAX_RESOLUTION,
-                  MAX_DEVIATION); // There are some optional parameters, but these will do for now (future improvement?).
+    Infill infill(
+        pattern,
+        zig_zagify,
+        connect_polygons,
+        outline_polygons,
+        INFILL_LINE_WIDTH,
+        line_distance,
+        INFILL_OVERLAP,
+        INFILL_MULTIPLIER,
+        FILL_ANGLE,
+        Z,
+        SHIFT,
+        MAX_RESOLUTION,
+        MAX_DEVIATION); // There are some optional parameters, but these will do for now (future improvement?).
 
     for (auto _ : st)
     {
         std::vector<VariableWidthLines> result_paths;
-        Polygons result_polygons;
-        Polygons result_lines;
+        Shape result_polygons;
+        OpenLinesSet result_lines;
         infill.generate(result_paths, result_polygons, result_lines, settings, 0, SectionType::INFILL, nullptr, nullptr);
     }
 }
 
-BENCHMARK_REGISTER_F(InfillTest, Infill_generate_connect)->ArgsProduct({{true, false}, {400, 800, 1200}})->Unit(benchmark::kMillisecond);
+BENCHMARK_REGISTER_F(InfillTest, Infill_generate_connect)->ArgsProduct({ { true, false }, { 400, 800, 1200 } })->Unit(benchmark::kMillisecond);
 } // namespace cura
 #endif // CURAENGINE_INFILL_BENCHMARK_H

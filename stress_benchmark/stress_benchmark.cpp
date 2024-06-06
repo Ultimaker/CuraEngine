@@ -20,12 +20,13 @@
 #include <spdlog/spdlog.h>
 
 #include "WallsComputation.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/Polygon.h"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include "settings/Settings.h"
 #include "sliceDataStorage.h"
-#include "utils/polygon.h"
 
 
 constexpr std::string_view USAGE = R"(Stress Benchmark.
@@ -53,7 +54,7 @@ struct Resource
         return wkt_file.stem().string();
     }
 
-    std::vector<cura::Polygons> polygons() const
+    std::vector<cura::Shape> polygons() const
     {
         using point_type = boost::geometry::model::d2::point_xy<double>;
         using polygon_type = boost::geometry::model::polygon<point_type>;
@@ -71,27 +72,27 @@ struct Resource
 
         boost::geometry::read_wkt(buffer.str(), boost_polygons);
 
-        std::vector<cura::Polygons> polygons;
+        std::vector<cura::Shape> polygons;
 
         for (const auto& boost_polygon : boost_polygons)
         {
-            cura::Polygons polygon;
+            cura::Shape polygon;
 
             cura::Polygon outer;
             for (const auto& point : boost_polygon.outer())
             {
-                outer.add(cura::Point2LL(point.x(), point.y()));
+                outer.push_back(cura::Point2LL(point.x(), point.y()));
             }
-            polygon.add(outer);
+            polygon.push_back(outer);
 
             for (const auto& hole : boost_polygon.inners())
             {
                 cura::Polygon inner;
                 for (const auto& point : hole)
                 {
-                    inner.add(cura::Point2LL(point.x(), point.y()));
+                    inner.push_back(cura::Point2LL(point.x(), point.y()));
                 }
-                polygon.add(inner);
+                polygon.push_back(inner);
             }
 
             polygons.push_back(polygon);
@@ -145,11 +146,11 @@ std::vector<Resource> getResources()
 void handleChildProcess(const auto& shapes, const auto& settings)
 {
     cura::SliceLayer layer;
-    for (const cura::Polygons& shape : shapes)
+    for (const cura::Shape& shape : shapes)
     {
         layer.parts.emplace_back();
         cura::SliceLayerPart& part = layer.parts.back();
-        part.outline.add(shape);
+        part.outline.push_back(shape);
     }
     cura::LayerIndex layer_idx(100);
     cura::WallsComputation walls_computation(settings, layer_idx);

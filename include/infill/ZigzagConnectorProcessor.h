@@ -4,10 +4,17 @@
 #ifndef INFILL_ZIGZAG_CONNECTOR_PROCESSOR_H
 #define INFILL_ZIGZAG_CONNECTOR_PROCESSOR_H
 
-#include "../utils/polygon.h" //TODO: We have implementation in this header file!
+#include <vector>
+
+#include "geometry/OpenLinesSet.h"
+#include "geometry/Point2LL.h"
 
 namespace cura
 {
+
+class Polygon;
+class Shape;
+class PointMatrix;
 
 /*!
  * Processor class for processing the connections between lines which makes the infill a zigzag pattern.
@@ -108,7 +115,7 @@ public:
      * \param skip_some_zags Whether to skip some zags
      * \param zag_skip_count Skip 1 zag in every N zags
      */
-    ZigzagConnectorProcessor(const PointMatrix& rotation_matrix, Polygons& result, bool use_endpieces, bool connected_endpieces, bool skip_some_zags, int zag_skip_count)
+    ZigzagConnectorProcessor(const PointMatrix& rotation_matrix, OpenLinesSet& result, bool use_endpieces, bool connected_endpieces, bool skip_some_zags, int zag_skip_count)
         : rotation_matrix_(rotation_matrix)
         , result_(result)
         , use_endpieces_(use_endpieces)
@@ -137,7 +144,7 @@ public:
      * \param intersection The intersection
      * \param scanline_index Index of the current scanline
      */
-    virtual void registerScanlineSegmentIntersection(const Point2LL& intersection, int scanline_index);
+    virtual void registerScanlineSegmentIntersection(const Point2LL& intersection, int scanline_index, coord_t min_distance_to_scanline);
 
     /*!
      * Handle the end of a polygon and prepare for the next.
@@ -156,7 +163,7 @@ protected:
      *
      * \param polyline The polyline to add
      */
-    void addPolyline(PolygonRef polyline);
+    void addPolyline(const OpenPolyline& polyline);
 
     /*!
      * Checks whether the current connector should be added or not.
@@ -167,17 +174,6 @@ protected:
     bool shouldAddCurrentConnector(int start_scanline_idx, int end_scanline_idx) const;
 
     /*!
-     * Checks whether two points are separated at least by "threshold" microns.
-     * If they are far away from each other enough, the line represented by the two points
-     * will be added; In case they are close, the second point will be set to be the same
-     * as the first and this line won't be added.
-     *
-     * \param first_point The first of the points
-     * \param second_point The second of the points
-     */
-    void checkAndAddZagConnectorLine(Point2LL* first_point, Point2LL* second_point);
-
-    /*!
      * Adds a Zag connector represented by the given points. The last line of the connector will not be
      * added if the given connector is an end piece and "connected_endpieces" is not enabled.
      *
@@ -186,9 +182,11 @@ protected:
      */
     void addZagConnector(std::vector<Point2LL>& points, bool is_endpiece);
 
+    bool handleConnectorTooCloseToSegment(const coord_t scanline_x, const coord_t min_distance_to_scanline);
+
 protected:
     const PointMatrix& rotation_matrix_; //!< The rotation matrix used to enforce the infill angle
-    Polygons& result_; //!< The result of the computation
+    OpenLinesSet& result_; //!< The result of the computation
 
     const bool use_endpieces_; //!< Whether to include end pieces or not
     const bool connected_endpieces_; //!< Whether the end pieces should be connected with the rest part of the infill
@@ -211,29 +209,6 @@ protected:
      */
     std::vector<Point2LL> current_connector_;
 };
-
-//
-// Inline functions
-//
-
-inline void ZigzagConnectorProcessor::reset()
-{
-    is_first_connector_ = true;
-    first_connector_end_scanline_index_ = 0;
-    last_connector_index_ = 0;
-    first_connector_.clear();
-    current_connector_.clear();
-}
-
-inline void ZigzagConnectorProcessor::addPolyline(PolygonRef polyline)
-{
-    result_.emplace_back(polyline);
-    for (Point2LL& p : result_.back())
-    {
-        p = rotation_matrix_.unapply(p);
-    }
-}
-
 
 } // namespace cura
 

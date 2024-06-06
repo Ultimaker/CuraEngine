@@ -33,11 +33,11 @@
 #include "communication/ArcusCommunicationPrivate.h" //Our PIMPL.
 #include "communication/Listener.h" //To listen to the Arcus socket.
 #include "communication/SliceDataStruct.h" //To store sliced layer data.
+#include "geometry/Polygon.h"
 #include "plugins/slots.h"
 #include "settings/types/LayerIndex.h" //To point to layers.
 #include "settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
 #include "utils/channel.h"
-#include "utils/polygon.h"
 
 namespace cura
 {
@@ -236,7 +236,7 @@ public:
      * \param thickness The layer thickness of the polygon.
      * \param velocity How fast the polygon is printed.
      */
-    void sendPolygon(const PrintFeatureType& print_feature_type, const ConstPolygonRef& polygon, const coord_t& width, const coord_t& thickness, const Velocity& velocity)
+    void sendPolygon(const PrintFeatureType& print_feature_type, const Polygon& polygon, const coord_t& width, const coord_t& thickness, const Velocity& velocity)
     {
         if (polygon.size() < 2) // Don't send single points or empty polygons.
         {
@@ -444,19 +444,14 @@ void ArcusCommunication::sendOptimizedLayerData()
     data.slice_data.clear();
 }
 
-void ArcusCommunication::sendPolygon(
-    const PrintFeatureType& type,
-    const ConstPolygonRef& polygon,
-    const coord_t& line_width,
-    const coord_t& line_thickness,
-    const Velocity& velocity)
+void ArcusCommunication::sendPolygon(const PrintFeatureType& type, const Polygon& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
 {
     path_compiler->sendPolygon(type, polygon, line_width, line_thickness, velocity);
 }
 
-void ArcusCommunication::sendPolygons(const PrintFeatureType& type, const Polygons& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
+void ArcusCommunication::sendPolygons(const PrintFeatureType& type, const Shape& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
 {
-    for (const std::vector<Point2LL>& polygon : polygons)
+    for (const Polygon& polygon : polygons)
     {
         path_compiler->sendPolygon(type, polygon, line_width, line_thickness, velocity);
     }

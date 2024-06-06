@@ -4,7 +4,7 @@
 #include "utils/AABB3D.h"
 #include "utils/AABB.h"
 #include "utils/Coord_t.h"
-#include "utils/polygon.h"
+#include "geometry/Polygon.h"
 #include <gtest/gtest.h>
 #include <polyclipping/clipper.hpp>
 

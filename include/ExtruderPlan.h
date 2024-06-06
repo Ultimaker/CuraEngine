@@ -7,12 +7,12 @@
 #include "FanSpeedLayerTime.h"
 #include "RetractionConfig.h"
 #include "gcodeExport.h"
+#include "geometry/Point2LL.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/NozzleTempInsert.h"
 #include "pathPlanning/TimeMaterialEstimates.h"
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Ratio.h"
-#include "utils/Point2LL.h"
 
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.

@@ -8,8 +8,9 @@
 #include <unordered_set>
 #include <vector>
 
+#include "geometry/PointMatrix.h"
+#include "geometry/Polygon.h"
 #include "utils/VoxelUtils.h"
-#include "utils/polygon.h"
 
 namespace cura
 {
@@ -106,7 +107,7 @@ protected:
      * \param detec The expand distance. (Not equal to offset, but a series of small offsets and differences).
      * \return A pair of polygons that repressent the 'borders' of a and b, but expanded 'perpendicularly'.
      */
-    std::pair<Polygons, Polygons> growBorderAreasPerpendicular(const Polygons& a, const Polygons& b, const coord_t& detect) const;
+    std::pair<Shape, Shape> growBorderAreasPerpendicular(const Shape& a, const Shape& b, const coord_t& detect) const;
 
     /*! Special handling for thin strips of material.
      *
@@ -132,7 +133,7 @@ protected:
      * \param kernel The dilation kernel to give the returned voxel shell more thickness
      * \param[out] cells The output cells which elong to the shell
      */
-    void addBoundaryCells(const std::vector<Polygons>& layers, const DilationKernel& kernel, std::unordered_set<GridPoint3>& cells) const;
+    void addBoundaryCells(const std::vector<Shape>& layers, const DilationKernel& kernel, std::unordered_set<GridPoint3>& cells) const;
 
     /*!
      * Compute the regions occupied by both models.
@@ -140,13 +141,13 @@ protected:
      * A morphological close is performed so that we don't register small gaps between the two models as being separate.
      * \return layer_regions The computed layer regions
      */
-    std::vector<Polygons> computeUnionedVolumeRegions() const;
+    std::vector<Shape> computeUnionedVolumeRegions() const;
 
     /*!
      * Generate the polygons for the beams of a single cell
      * \return cell_area_per_mesh_per_layer The output polygons for each beam
      */
-    std::vector<std::vector<Polygons>> generateMicrostructure() const;
+    std::vector<std::vector<Shape>> generateMicrostructure() const;
 
     /*!
      * Change the outlines of the meshes with the computed interlocking structure.
@@ -154,7 +155,7 @@ protected:
      * \param cells The cells where we want to apply the interlocking structure.
      * \param layer_regions The total volume of the two meshes combined (and small gaps closed)
      */
-    void applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, const std::vector<Polygons>& layer_regions) const;
+    void applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, const std::vector<Shape>& layer_regions) const;
 
     static const coord_t ignored_gap_ = 100u; //!< Distance between models to be considered next to each other so that an interlocking structure will be generated there
 

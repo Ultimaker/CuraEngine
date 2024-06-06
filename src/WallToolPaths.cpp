@@ -13,7 +13,7 @@
 
 #include "ExtruderTrain.h"
 #include "SkeletalTrapezoidation.h"
-#include "utils/PolylineStitcher.h"
+#include "utils/ExtrusionLineStitcher.h"
 #include "utils/Simplify.h"
 #include "utils/SparsePointGrid.h" //To stitch the inner contour.
 #include "utils/actions/smooth.h"
@@ -23,7 +23,7 @@ namespace cura
 {
 
 WallToolPaths::WallToolPaths(
-    const Polygons& outline,
+    const Shape& outline,
     const coord_t nominal_bead_width,
     const size_t inset_count,
     const coord_t wall_0_inset,
@@ -47,7 +47,7 @@ WallToolPaths::WallToolPaths(
 }
 
 WallToolPaths::WallToolPaths(
-    const Polygons& outline,
+    const Shape& outline,
     const coord_t bead_width_0,
     const coord_t bead_width_x,
     const size_t inset_count,
@@ -87,7 +87,7 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
 
     // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self intersections allowed:
     // TODO: Open question: Does this indeed fix all (or all-but-one-in-a-million) cases for manifold but otherwise possibly complex polygons?
-    Polygons prepared_outline = outline_.offset(-open_close_distance).offset(open_close_distance * 2).offset(-open_close_distance);
+    Shape prepared_outline = outline_.offset(-open_close_distance).offset(open_close_distance * 2).offset(-open_close_distance);
     scripta::log("prepared_outline_0", prepared_outline, section_type_, layer_idx_);
     prepared_outline.removeSmallAreas(small_area_length_ * small_area_length_, false);
     prepared_outline = Simplify(settings_).polygon(prepared_outline);
@@ -95,9 +95,9 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     {
         // No need to smooth support walls
         auto smoother = actions::smooth(settings_);
-        for (auto& polygon : prepared_outline)
+        for (Polygon& polygon : prepared_outline)
         {
-            polygon = smoother(polygon);
+            polygon.setPoints(smoother(polygon.getPoints()));
         }
     }
 
@@ -253,7 +253,7 @@ void WallToolPaths::stitchToolPaths(std::vector<VariableWidthLines>& toolpaths, 
 
         VariableWidthLines stitched_polylines;
         VariableWidthLines closed_polygons;
-        PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::stitch(wall_lines, stitched_polylines, closed_polygons, stitch_distance);
+        ExtrusionLineStitcher::stitch(wall_lines, stitched_polylines, closed_polygons, stitch_distance);
         wall_lines = stitched_polylines; // replace input toolpaths with stitched polylines
 
         for (ExtrusionLine& wall_polygon : closed_polygons)
@@ -286,7 +286,7 @@ void WallToolPaths::removeSmallLines(std::vector<VariableWidthLines>& toolpaths)
             {
                 min_width = std::min(min_width, j.w_);
             }
-            if (line.is_odd_ && ! line.is_closed_ && shorterThan(line, min_width / 2))
+            if (line.is_odd_ && ! line.is_closed_ && line.shorterThan(min_width / 2))
             { // remove line
                 line = std::move(inset.back());
                 inset.erase(--inset.end());
@@ -417,7 +417,7 @@ void WallToolPaths::separateOutInnerContour()
     inner_contour_ = inner_contour_.processEvenOdd();
 }
 
-const Polygons& WallToolPaths::getInnerContour()
+const Shape& WallToolPaths::getInnerContour()
 {
     if (! toolpaths_generated_ && inset_count_ > 0)
     {
