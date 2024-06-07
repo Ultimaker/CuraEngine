@@ -1731,7 +1731,7 @@ void LayerPlan::spiralizeWallSlice(
     }
 }
 
-void ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_plans)
+bool ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_plans)
 {
     const double minimalSpeed = fan_speed_layer_time_settings_.cool_min_speed;
     const double travelTime = estimates_.getTravelTime();
@@ -1808,7 +1808,10 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
             path.speed_factor *= slow_down_factor;
             path.estimates.extrude_time /= slow_down_factor;
         }
+
+        return true;
     }
+    return false;
 }
 
 double ExtruderPlan::getRetractTime(const GCodePath& path)
@@ -2007,7 +2010,7 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
 
     // apply minimum layer time behaviour
     ExtruderPlan& last_extruder_plan = extruder_plans_[last_extruder_idx];
-    last_extruder_plan.forceMinimalLayerTime(maximum_cool_min_layer_time, other_extr_plan_time);
+    min_layer_time_used |= last_extruder_plan.forceMinimalLayerTime(maximum_cool_min_layer_time, other_extr_plan_time);
     last_extruder_plan.processFanSpeedForMinimalLayerTime(maximum_cool_min_layer_time, other_extr_plan_time);
 }
 
@@ -2020,6 +2023,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     gcode.setLayerNr(layer_nr_);
 
     gcode.writeLayerComment(layer_nr_);
+    if (min_layer_time_used)
+    {
+        gcode.writeComment("note -- min layer time used");
+    }
 
     // flow-rate compensation
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
