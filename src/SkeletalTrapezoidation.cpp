@@ -2183,6 +2183,32 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
 void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
 {
     std::vector<VariableWidthLines>& generated_toolpaths = *p_generated_toolpaths;
+    constexpr bool is_odd = true;
+
+    std::function<void(Point2LL, coord_t, size_t)> addCircleToToolpath = [&](Point2LL center, coord_t width, size_t inset_index)
+    {
+        if (inset_index >= generated_toolpaths.size())
+        {
+            generated_toolpaths.resize(inset_index + 1);
+        }
+        generated_toolpaths[inset_index].emplace_back(inset_index, is_odd);
+        ExtrusionLine& line = generated_toolpaths[inset_index].back();
+        // total area to be extruded is pi*(w/2)^2 = pi*w*w/4
+        // Width a constant extrusion width w, that would be a length of pi*w/4
+        // If we make a small circle to fill up the hole, then that circle would have a circumference of 2*pi*r
+        // So our circle needs to be such that r=w/8
+        const coord_t r = width / 8;
+        constexpr coord_t n_segments = 6;
+        for (coord_t segment = 0; segment < n_segments; segment++)
+        {
+            double a = 2.0 * std::numbers::pi / n_segments * segment;
+            line.junctions_.emplace_back(center + Point2LL(r * cos(a), r * sin(a)), width, inset_index);
+        }
+    };
+
+    Point2LL local_maxima_accumulator;
+    coord_t width_accumulator = 0;
+    size_t accumulator_ctr = 0;
 
     for (auto& node : graph_.nodes)
     {
@@ -2191,32 +2217,47 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             continue;
         }
         Beading& beading = node.data_.getBeading()->beading_;
-        if (beading.bead_widths.size() % 2 == 1 && node.isLocalMaximum(true) && ! node.isCentral())
+        if(beading.bead_widths.size() % 2 == 1 && node.isLocalMaximum(true))
         {
             const size_t inset_index = beading.bead_widths.size() / 2;
-            constexpr bool is_odd = true;
-            if (inset_index >= generated_toolpaths.size())
-            {
-                generated_toolpaths.resize(inset_index + 1);
-            }
-            generated_toolpaths[inset_index].emplace_back(inset_index, is_odd);
-            ExtrusionLine& line = generated_toolpaths[inset_index].back();
             const coord_t width = beading.bead_widths[inset_index];
-            // total area to be extruded is pi*(w/2)^2 = pi*w*w/4
-            // Width a constant extrusion width w, that would be a length of pi*w/4
-            // If we make a small circle to fill up the hole, then that circle would have a circumference of 2*pi*r
-            // So our circle needs to be such that r=w/8
-            const coord_t r = width / 8;
-            constexpr coord_t n_segments = 6;
-            for (coord_t segment = 0; segment < n_segments; segment++)
+            local_maxima_accumulator += node.p_;
+            width_accumulator += width;
+            accumulator_ctr++;
+            if (! node.isCentral())
             {
-                double a = 2.0 * std::numbers::pi / n_segments * segment;
-                line.junctions_.emplace_back(node.p_ + Point2LL(r * cos(a), r * sin(a)), width, inset_index);
+                addCircleToToolpath(node.p_, width, inset_index);
             }
         }
     }
-}
 
+    if(accumulator_ctr > 0)
+    {
+        bool replace_with_local_maxima = generated_toolpaths.empty() || generated_toolpaths[0].empty();
+        coord_t total_path_length = 0;
+        if(! replace_with_local_maxima)
+        {
+            coord_t min_width = std::numeric_limits<coord_t>::max();
+
+            for(auto line: generated_toolpaths[0])
+            {
+                total_path_length += line.length();
+                for (const ExtrusionJunction& j : line)
+                {
+                    min_width = std::min(min_width, j.w_);
+                }
+            }
+            replace_with_local_maxima |= total_path_length <= min_width / 2;
+        }
+        if(replace_with_local_maxima)
+        {
+            const coord_t width = width_accumulator / accumulator_ctr;
+            local_maxima_accumulator = Point2LL(local_maxima_accumulator.X / accumulator_ctr, local_maxima_accumulator.Y / accumulator_ctr);
+            generated_toolpaths[0].clear();
+            addCircleToToolpath(local_maxima_accumulator, width, 0);
+        }
+    }
+}
 //
 // ^^^^^^^^^^^^^^^^^^^^^
 //  TOOLPATH GENERATION

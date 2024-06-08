@@ -281,6 +281,10 @@ void WallToolPaths::removeSmallLines(std::vector<VariableWidthLines>& toolpaths)
         for (size_t line_idx = 0; line_idx < inset.size(); line_idx++)
         {
             ExtrusionLine& line = inset[line_idx];
+            if(line.is_outer_wall())
+            {
+                continue;
+            }
             coord_t min_width = std::numeric_limits<coord_t>::max();
             for (const ExtrusionJunction& j : line)
             {
