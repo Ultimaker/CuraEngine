@@ -2691,6 +2691,19 @@ bool FffGcodeWriter::processInsets(
             gcode_layer.setOverhangMask(overhang_region);
         }
 
+        // As above, but for the seam overhang mask instead of the wall one.
+        const AngleDegrees seam_overhang_angle = mesh.settings.get<AngleDegrees>("seam_overhang_angle");
+        if (seam_overhang_angle >= 90)
+        {
+            gcode_layer.setSeamOverhangMask(Shape());
+        }
+        else
+        {
+            const coord_t overhang_width = layer_height * std::tan(seam_overhang_angle / (180 / std::numbers::pi));
+            Shape overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10 + overhang_width - half_outer_wall_width)).offset(10);
+            gcode_layer.setSeamOverhangMask(overhang_region);
+        }
+
         const auto roofing_mask_fn = [&]() -> Shape
         {
             const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
@@ -2721,6 +2734,8 @@ bool FffGcodeWriter::processInsets(
         gcode_layer.setBridgeWallMask(Shape());
         // clear to disable overhang detection
         gcode_layer.setOverhangMask(Shape());
+        // clear to disable overhang detection
+        gcode_layer.setSeamOverhangMask(Shape());
         // clear to disable use of roofing settings
         gcode_layer.setRoofingMask(Shape());
     }
