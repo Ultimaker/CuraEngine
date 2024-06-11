@@ -171,6 +171,7 @@ bool InsetOrderOptimizer::addToLayer()
 void InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed_line)
 {
     assert(closed_line.is_closed_);
+    assert(closed_line.size() >= 3);
 
     Point2LL request_point;
     switch (z_seam_config_.type_)
@@ -212,7 +213,7 @@ void InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed_line)
     const coord_t total_dist = vSize(end_pt.p_ - start_pt.p_);
     const coord_t start_dist = vSize(closest_point - start_pt.p_);
     const coord_t end_dist = vSize(closest_point - end_pt.p_);
-    const coord_t w = end_pt.w_ * end_dist / total_dist + start_pt.w_ * start_dist / total_dist;
+    const coord_t w = (end_pt.w_ * (end_dist / total_dist)) + (start_pt.w_ * (start_dist / total_dist));
 
     closed_line.junctions_.insert(closed_line.junctions_.begin() + closest_junction_idx + 1, ExtrusionJunction(closest_point, w, start_pt.perimeter_index_));
 }

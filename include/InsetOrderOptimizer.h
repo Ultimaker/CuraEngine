@@ -113,6 +113,13 @@ private:
     Shape retraction_region_; // After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see
                               // retraction_region_calculated).
 
+    /*!
+     * Given a closed polygon, insert a seam point at the point where the seam should be placed.
+     * This should result in the seam-finding algorithm finding that exact point, instead of the
+     * 'best' vertex on that polygon. Under certain circumstances, the seam-placing algorithm can
+     * however still deviate from this, for example when the seam-point placed here isn't suppored
+     * by the layer below.
+     */
     void insertSeamPoint(ExtrusionLine& closed_line);
 
     /*!
