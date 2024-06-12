@@ -217,6 +217,9 @@ class CuraEngineConan(ConanFile):
                 self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases set-commits -o {sentry_org} -p {sentry_project} --commit \"Ultimaker/CuraEngine@{self.conan_data['commit']}\" {self.version}")
                 self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases finalize -o {sentry_org} -p {sentry_project} {self.version}")
 
+    def deploy(self):
+        copy(self, "CuraEngine*", src=os.path.join(self.package_folder, "bin"), dst=self.install_folder)
+
     def package(self):
         match self.settings.os:
             case "Windows":

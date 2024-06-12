@@ -56,10 +56,10 @@ public:
     static size_t getTotalExtraLayers();
 
     /*!
-     *  \brief Get the amount of bottom for the raft interface.
-     *  \note This is currently hard-coded to 1 because we have yet no setting for the bottom
+     *  \brief Get the amount of layers for the raft base.
+     *  \note This is currently hard-coded to 1 because we have yet no setting for the base
      */
-    static size_t getBottomLayers();
+    static size_t getBaseLayers();
 
     /*! \brief Get the amount of layers for the raft interface. */
     static size_t getInterfaceLayers();
@@ -84,7 +84,13 @@ public:
     static LayerType getLayerType(LayerIndex layer_index);
 
 private:
-    static size_t getLayersAmount(const std::string& extruder_nr, const std::string& layers_nr);
+    /*!
+     * \brief Get the amount of layers to be printed for the given raft section
+     * \param extruder_nr_setting_name The name of the setting to be fetched to get the proper extruder number
+     * \param target_raft_section The name of the setting to be fetched to get the number of layers
+     * \return The number of layers for the given raft section, or 0 if raft is disabled
+     */
+    static size_t getLayersAmount(const std::string& extruder_nr_setting_name, const std::string& target_raft_section);
 };
 
 } // namespace cura

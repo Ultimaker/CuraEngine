@@ -38,7 +38,6 @@ class Comb;
 class SliceDataStorage;
 class LayerPlanBuffer;
 
-
 /*!
  * The LayerPlan class stores multiple moves that are planned.
  *
@@ -99,6 +98,8 @@ private:
     Shape bridge_wall_mask_; //!< The regions of a layer part that are not supported, used for bridging
     Shape overhang_mask_; //!< The regions of a layer part where the walls overhang
     Shape roofing_mask_; //!< The regions of a layer part where the walls are exposed to the air
+
+    bool min_layer_time_used = false; //!< Wether or not the minimum layer time (cool_min_layer_time) was actually used in this layerplan.
 
     const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_;
 
