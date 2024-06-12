@@ -17,7 +17,6 @@
 #include "utils/PairHash.h"
 #include "utils/Simplify.h"
 
-
 namespace cura
 {
 constexpr coord_t EPSILON = 5;
@@ -527,6 +526,5 @@ private:
 };
 
 } // namespace cura
-
 
 #endif // TREEMODELVOLUMES_H
