@@ -297,6 +297,7 @@ mold_angle=40
 raft_base_extruder_nr=0
 z_seam_y=230
 wall_overhang_angle=90
+seam_overhang_angle=30
 machine_steps_per_mm_e=1600
 gradual_support_infill_step_height=1
 cross_infill_pocket_size=2.5600000000000005
