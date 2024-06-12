@@ -2217,7 +2217,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             continue;
         }
         Beading& beading = node.data_.getBeading()->beading_;
-        if(beading.bead_widths.size() % 2 == 1 && node.isLocalMaximum(true))
+        if (beading.bead_widths.size() % 2 == 1 && node.isLocalMaximum(true))
         {
             const size_t inset_index = beading.bead_widths.size() / 2;
             const coord_t width = beading.bead_widths[inset_index];
@@ -2231,14 +2231,14 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
         }
     }
 
-    if(accumulator_count > 0)
+    if (accumulator_count > 0)
     {
         bool replace_with_local_maxima = generated_toolpaths.empty() || generated_toolpaths[0].empty();
         coord_t total_path_length = 0;
-        if(! replace_with_local_maxima)
+        if (! replace_with_local_maxima)
         {
             coord_t min_width = std::numeric_limits<coord_t>::max();
-            for(auto line: generated_toolpaths[0])
+            for (auto line : generated_toolpaths[0])
             {
                 total_path_length += line.length();
                 for (const ExtrusionJunction& j : line)
@@ -2248,7 +2248,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             }
             replace_with_local_maxima |= total_path_length <= min_width / 2;
         }
-        if(replace_with_local_maxima)
+        if (replace_with_local_maxima)
         {
             const coord_t width = width_accumulator / accumulator_count;
             local_maxima_accumulator = local_maxima_accumulator / accumulator_count;
