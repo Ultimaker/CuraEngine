@@ -1100,7 +1100,7 @@ void FffGcodeWriter::endRaftLayer(const SliceDataStorage& storage, LayerPlan& gc
     setExtruder_addPrime(storage, gcode_layer, current_extruder, append_to_prime_tower);
 
     // If required, fill prime tower for other extruders
-    for (const ExtruderUse& extruder_use : getExtruderUse(layer_nr))
+    for (const ExtruderUse& extruder_use : extruder_order_per_layer.get(layer_nr))
     {
         if (! append_to_prime_tower || (! gcode_layer.getPrimeTowerIsPlanned(extruder_use.extruder_nr) && extruder_use.prime != ExtruderPrime::None))
         {
