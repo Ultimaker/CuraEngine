@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_VIEWS_SMOOTH_H
@@ -6,8 +6,6 @@
 
 #include <functional>
 #include <limits>
-#include <numbers>
-#include <set>
 
 #include <range/v3/action/remove_if.hpp>
 #include <range/v3/functional/bind_back.hpp>
@@ -20,8 +18,10 @@
 #include <range/v3/view/take.hpp>
 #include <spdlog/spdlog.h>
 
+#include "geometry/Point2LL.h"
 #include "settings/Settings.h"
 #include "settings/types/Angle.h"
+#include "utils/Coord_t.h"
 #include "utils/types/arachne.h"
 #include "utils/types/generic.h"
 #include "utils/types/geometry.h"

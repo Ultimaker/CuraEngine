@@ -95,9 +95,9 @@ bool VoxelUtils::walkLine(Point3LL start, Point3LL end, const std::function<bool
 }
 
 
-bool VoxelUtils::walkPolygons(const Polygons& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const
+bool VoxelUtils::walkPolygons(const Shape& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
-    for (ConstPolygonRef poly : polys)
+    for (const Polygon& poly : polys)
     {
         Point2LL last = poly.back();
         for (Point2LL p : poly)
@@ -113,9 +113,9 @@ bool VoxelUtils::walkPolygons(const Polygons& polys, coord_t z, const std::funct
     return true;
 }
 
-bool VoxelUtils::walkDilatedPolygons(const Polygons& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const
+bool VoxelUtils::walkDilatedPolygons(const Shape& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
-    Polygons translated = polys;
+    Shape translated = polys;
     const Point3LL translation = (Point3LL(1, 1, 1) - kernel.kernel_size_ % 2) * cell_size_ / 2;
     if (translation.x_ && translation.y_)
     {
@@ -124,9 +124,9 @@ bool VoxelUtils::walkDilatedPolygons(const Polygons& polys, coord_t z, const Dil
     return walkPolygons(translated, z + translation.z_, dilate(kernel, process_cell_func));
 }
 
-bool VoxelUtils::walkAreas(const Polygons& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const
+bool VoxelUtils::walkAreas(const Shape& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
-    Polygons translated = polys;
+    Shape translated = polys;
     const Point3LL translation = -cell_size_ / 2; // offset half a cell so that the dots of spreadDotsArea are centered on the middle of the cell isntead of the lower corners.
     if (translation.x_ && translation.y_)
     {
@@ -135,7 +135,7 @@ bool VoxelUtils::walkAreas(const Polygons& polys, coord_t z, const std::function
     return _walkAreas(translated, z, process_cell_func);
 }
 
-bool VoxelUtils::_walkAreas(const Polygons& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const
+bool VoxelUtils::_walkAreas(const Shape& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
     std::vector<Point2LL> skin_points = PolygonUtils::spreadDotsArea(polys, Point2LL(cell_size_.x_, cell_size_.y_));
     for (Point2LL p : skin_points)
@@ -149,9 +149,9 @@ bool VoxelUtils::_walkAreas(const Polygons& polys, coord_t z, const std::functio
     return true;
 }
 
-bool VoxelUtils::walkDilatedAreas(const Polygons& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const
+bool VoxelUtils::walkDilatedAreas(const Shape& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
-    Polygons translated = polys;
+    Shape translated = polys;
     const Point3LL translation = (Point3LL(1, 1, 1) - kernel.kernel_size_ % 2) * cell_size_ / 2 // offset half a cell when using a n even kernel
                                - cell_size_ / 2; // offset half a cell so that the dots of spreadDotsArea are centered on the middle of the cell isntead of the lower corners.
     if (translation.x_ && translation.y_)

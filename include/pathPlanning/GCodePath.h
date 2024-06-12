@@ -10,9 +10,9 @@
 #include "GCodePathConfig.h"
 #include "SpaceFillType.h"
 #include "TimeMaterialEstimates.h"
+#include "geometry/Point2LL.h"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
-#include "utils/Point2LL.h"
 
 namespace cura
 {

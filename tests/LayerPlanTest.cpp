@@ -320,30 +320,30 @@ public:
     AddTravelTest()
         : parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>("false", "false", "off", false, false, AddTravelTestScene::OPEN))
     {
-        around_start_end.add(Point2LL(-100, -100));
-        around_start_end.add(Point2LL(500100, -100));
-        around_start_end.add(Point2LL(500100, 500100));
-        around_start_end.add(Point2LL(-100, 500100));
+        around_start_end.push_back(Point2LL(-100, -100));
+        around_start_end.push_back(Point2LL(500100, -100));
+        around_start_end.push_back(Point2LL(500100, 500100));
+        around_start_end.push_back(Point2LL(-100, 500100));
 
-        around_start.add(Point2LL(-100, -100));
-        around_start.add(Point2LL(100, -100));
-        around_start.add(Point2LL(100, 100));
-        around_start.add(Point2LL(-100, 100));
+        around_start.push_back(Point2LL(-100, -100));
+        around_start.push_back(Point2LL(100, -100));
+        around_start.push_back(Point2LL(100, 100));
+        around_start.push_back(Point2LL(-100, 100));
 
-        around_end.add(Point2LL(249900, 249900));
-        around_end.add(Point2LL(250100, 249900));
-        around_end.add(Point2LL(250100, 250100));
-        around_end.add(Point2LL(249900, 249900));
+        around_end.push_back(Point2LL(249900, 249900));
+        around_end.push_back(Point2LL(250100, 249900));
+        around_end.push_back(Point2LL(250100, 250100));
+        around_end.push_back(Point2LL(249900, 249900));
 
-        between.add(Point2LL(250000, 240000));
-        between.add(Point2LL(260000, 240000));
-        between.add(Point2LL(260000, 300000));
-        between.add(Point2LL(250000, 300000));
+        between.push_back(Point2LL(250000, 240000));
+        between.push_back(Point2LL(260000, 240000));
+        between.push_back(Point2LL(260000, 300000));
+        between.push_back(Point2LL(250000, 300000));
 
-        between_hole.add(Point2LL(250000, 240000));
-        between_hole.add(Point2LL(250000, 300000));
-        between_hole.add(Point2LL(260000, 300000));
-        between_hole.add(Point2LL(260000, 240000));
+        between_hole.push_back(Point2LL(250000, 240000));
+        between_hole.push_back(Point2LL(250000, 300000));
+        between_hole.push_back(Point2LL(260000, 300000));
+        between_hole.push_back(Point2LL(260000, 240000));
     }
 
     /*!
@@ -363,7 +363,7 @@ public:
             = settings->get<coord_t>("retraction_min_travel"); // Update the copy that the storage has of this.
         settings->add("retraction_combing_max_distance", parameters.is_long_combing ? "1" : "10000");
 
-        Polygons slice_data;
+        Shape slice_data;
         switch (parameters.scene)
         {
         case OPEN:
@@ -371,24 +371,24 @@ public:
             layer_plan.was_inside_ = false;
             break;
         case INSIDE:
-            slice_data.add(around_start_end);
+            slice_data.push_back(around_start_end);
             layer_plan.setIsInside(true);
             layer_plan.was_inside_ = true;
             break;
         case OBSTRUCTION:
-            slice_data.add(between);
+            slice_data.push_back(between);
             layer_plan.setIsInside(false);
             layer_plan.was_inside_ = false;
             break;
         case INSIDE_OBSTRUCTION:
-            slice_data.add(around_start_end);
-            slice_data.add(between_hole);
+            slice_data.push_back(around_start_end);
+            slice_data.push_back(between_hole);
             layer_plan.setIsInside(true);
             layer_plan.was_inside_ = true;
             break;
         case OTHER_PART:
-            slice_data.add(around_start);
-            slice_data.add(around_end);
+            slice_data.push_back(around_start);
+            slice_data.push_back(around_end);
             layer_plan.setIsInside(true);
             layer_plan.was_inside_ = true;
             break;

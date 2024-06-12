@@ -1,12 +1,12 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "gcodeExport.h"
 
-#include <assert.h>
+#include <cassert>
 #include <cmath>
 #include <iomanip>
-#include <stdarg.h>
+#include <numbers>
 
 #include <spdlog/spdlog.h>
 
@@ -18,6 +18,7 @@
 #include "WipeScriptConfig.h"
 #include "communication/Communication.h" //To send layer view data.
 #include "settings/types/LayerIndex.h"
+#include "sliceDataStorage.h"
 #include "utils/Date.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
 

@@ -3,7 +3,7 @@
 
 #include "SkeletalTrapezoidation.h"
 
-#include <functional>
+#include <numbers>
 #include <queue>
 #include <sstream>
 #include <stack>
@@ -370,7 +370,7 @@ void SkeletalTrapezoidation::computeSegmentCellRange(
 }
 
 SkeletalTrapezoidation::SkeletalTrapezoidation(
-    const Polygons& polys,
+    const Shape& polys,
     const BeadingStrategy& beading_strategy,
     AngleRadians transitioning_angle,
     coord_t discretization_step_size,
@@ -392,7 +392,7 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(
     constructFromPolygons(polys);
 }
 
-void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
+void SkeletalTrapezoidation::constructFromPolygons(const Shape& polys)
 {
     vd_edge_to_he_edge_.clear();
     vd_node_to_he_node_.clear();
@@ -402,7 +402,7 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
     std::vector<Segment> segments;
     for (size_t poly_idx = 0; poly_idx < polys.size(); poly_idx++)
     {
-        ConstPolygonRef poly = polys[poly_idx];
+        const Polygon& poly = polys[poly_idx];
         for (size_t point_idx = 0; point_idx < poly.size(); point_idx++)
         {
             segments.emplace_back(&polys, poly_idx, point_idx);

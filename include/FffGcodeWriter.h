@@ -9,11 +9,9 @@
 
 #include "ExtruderUse.h"
 #include "FanSpeedLayerTime.h"
+#include "GCodePathConfig.h"
 #include "LayerPlanBuffer.h"
 #include "gcodeExport.h"
-#include "settings/MeshPathConfigs.h"
-#include "settings/PathConfigStorage.h" //For the MeshPathConfigs subclass.
-#include "utils/ExtrusionLine.h" //Processing variable-width paths.
 #include "utils/NoCopy.h"
 #include "utils/gettime.h"
 
@@ -21,12 +19,13 @@ namespace cura
 {
 
 class AngleDegrees;
-class Polygons;
+class Shape;
 class SkinPart;
 class SliceDataStorage;
 class SliceMeshStorage;
 class SliceLayer;
 class SliceLayerPart;
+struct MeshPathConfigs;
 
 /*!
  * Secondary stage in Fused Filament Fabrication processing: The generated polygons are used in the gcode generation.
@@ -567,7 +566,7 @@ private:
         LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
-        const Polygons& area,
+        const Shape& area,
         const GCodePathConfig& config,
         EFillMethod pattern,
         const AngleDegrees skin_angle,
@@ -600,7 +599,7 @@ private:
      * \param last_position The position the print head is in before going to fill the part
      * \return The location near where to start filling the part
      */
-    std::optional<Point2LL> getSeamAvoidingLocation(const Polygons& filling_part, int filling_angle, Point2LL last_position) const;
+    std::optional<Point2LL> getSeamAvoidingLocation(const Shape& filling_part, int filling_angle, Point2LL last_position) const;
 
     /*!
      * Add the g-code for ironing the top surface.
@@ -645,7 +644,7 @@ private:
      * \param gcodeLayer The initial planning of the g-code of the layer.
      * \return Whether any support skin was added to the layer plan.
      */
-    bool addSupportRoofsToGCode(const SliceDataStorage& storage, const Polygons& support_roof_outlines, const GCodePathConfig& current_roof_config, LayerPlan& gcode_layer) const;
+    bool addSupportRoofsToGCode(const SliceDataStorage& storage, const Shape& support_roof_outlines, const GCodePathConfig& current_roof_config, LayerPlan& gcode_layer) const;
 
     /*!
      * Add the support bottoms to the layer plan \p gcodeLayer of the current
@@ -718,8 +717,8 @@ private:
      * \return true if there needs to be a skin edge support wall in this layer, otherwise false
      */
     static bool partitionInfillBySkinAbove(
-        Polygons& infill_below_skin,
-        Polygons& infill_not_below_skin,
+        Shape& infill_below_skin,
+        Shape& infill_not_below_skin,
         const LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
         const SliceLayerPart& part,
