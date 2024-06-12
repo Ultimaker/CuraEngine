@@ -15,8 +15,9 @@ namespace cura
 /*!
  * \brief The LayerVector class mimics a std::vector but with the index being a LayerIndex, thus it can have negative
  *        values (for raft layers).
- * \note At instantiation, LayerVector will call Raft::getTotalExtraLayers() so it requires the settings to be setup.
- *       After that, it is assumed that this value will not change while the vector is used.
+ * \note When calling the init() method, LayerVector will call Raft::getTotalExtraLayers() so it requires the settings
+ *       to be setup. This is the reason why this is not done in the constructor, and has to be called manually.
+ *       After that, it is assumed that this value will not change as long as the vector is used.
  * \warning It is assumed that items are inserted in layer order, and without missing items, like a std::vector would do
  */
 template<class T>
@@ -33,15 +34,13 @@ class LayerVector
     using difference_type = typename std::vector<value_type>::difference_type;
 
 public:
-    LayerVector()
-    {
-    }
+    LayerVector() = default;
 
     /*!
      * \brief Initializes the vector for use
      * \param contains_raft_layers Indicates whether this vector will contain raft layers
-     * \param total_print_layers The number of print layers (not including raft layers). This is only for pre-reserving
-     *                           stored data and can be safely omitted.
+     * \param print_layers The number of print layers (not including raft layers). This is only for pre-reserving
+     *                     stored data and can be safely omitted.
      * \note It is not mandatory to call this method if you do not intend to store raft layers, but still good practice
      */
     void init(bool contains_raft_layers, size_t print_layers = 0)
@@ -145,6 +144,11 @@ public:
         return end();
     }
 
+    /*!
+     * \brief Safe method to retrieve an element from the list
+     * \param pos The position of the element to be retrieved
+     * \return The element at the given position, or if there is none, a default-constructed value.
+     */
     value_type get(const LayerIndex& pos) const noexcept
     {
         LayerIndex::value_type index = pos + delta_;

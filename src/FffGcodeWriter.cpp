@@ -2463,7 +2463,7 @@ size_t FffGcodeWriter::findUsedExtruderIndex(const SliceDataStorage& storage, co
     }
     else
     {
-        // Asking for extruder on an empty layer, get the one from layer below
+        // Asking for extruder on an empty layer, get the last one from layer below
         return findUsedExtruderIndex(storage, layer_nr - 1, true);
     }
 }
