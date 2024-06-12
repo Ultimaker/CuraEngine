@@ -2183,14 +2183,14 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
 void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
 {
     std::vector<VariableWidthLines>& generated_toolpaths = *p_generated_toolpaths;
-    constexpr bool is_odd = true;
 
-    std::function<void(Point2LL, coord_t, size_t)> addCircleToToolpath = [&](Point2LL center, coord_t width, size_t inset_index)
+    const auto addCircleToToolpath = [&](Point2LL center, coord_t width, size_t inset_index)
     {
         if (inset_index >= generated_toolpaths.size())
         {
             generated_toolpaths.resize(inset_index + 1);
         }
+        constexpr bool is_odd = true;
         generated_toolpaths[inset_index].emplace_back(inset_index, is_odd);
         ExtrusionLine& line = generated_toolpaths[inset_index].back();
         // total area to be extruded is pi*(w/2)^2 = pi*w*w/4
@@ -2208,7 +2208,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
 
     Point2LL local_maxima_accumulator;
     coord_t width_accumulator = 0;
-    size_t accumulator_ctr = 0;
+    size_t accumulator_count = 0;
 
     for (auto& node : graph_.nodes)
     {
@@ -2223,7 +2223,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             const coord_t width = beading.bead_widths[inset_index];
             local_maxima_accumulator += node.p_;
             width_accumulator += width;
-            accumulator_ctr++;
+            ++accumulator_count;
             if (! node.isCentral())
             {
                 addCircleToToolpath(node.p_, width, inset_index);
@@ -2231,14 +2231,13 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
         }
     }
 
-    if(accumulator_ctr > 0)
+    if(accumulator_count > 0)
     {
         bool replace_with_local_maxima = generated_toolpaths.empty() || generated_toolpaths[0].empty();
         coord_t total_path_length = 0;
         if(! replace_with_local_maxima)
         {
             coord_t min_width = std::numeric_limits<coord_t>::max();
-
             for(auto line: generated_toolpaths[0])
             {
                 total_path_length += line.length();
@@ -2251,8 +2250,8 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
         }
         if(replace_with_local_maxima)
         {
-            const coord_t width = width_accumulator / accumulator_ctr;
-            local_maxima_accumulator = Point2LL(local_maxima_accumulator.X / accumulator_ctr, local_maxima_accumulator.Y / accumulator_ctr);
+            const coord_t width = width_accumulator / accumulator_count;
+            local_maxima_accumulator = local_maxima_accumulator / accumulator_count;
             generated_toolpaths[0].clear();
             addCircleToToolpath(local_maxima_accumulator, width, 0);
         }
