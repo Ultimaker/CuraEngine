@@ -368,22 +368,25 @@ void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const size_t extruder
 {
     // Layer number may be negative, make it positive (or null) to apply modulo operator
     LayerIndex layer_nr = gcode_layer.getLayerNr();
-    while (layer_nr < 0)
+    if (layer_nr != -Raft::getTotalExtraLayers())
     {
-        layer_nr += number_of_prime_tower_start_locations_;
+        while (layer_nr < 0)
+        {
+            layer_nr += number_of_prime_tower_start_locations_;
+        }
+
+        size_t current_start_location_idx = ((extruder_nr + 1) * static_cast<size_t>(layer_nr)) % number_of_prime_tower_start_locations_;
+
+        const ClosestPointPolygon wipe_location = prime_tower_start_locations_[current_start_location_idx];
+        const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
+        const coord_t inward_dist = train.settings_.get<coord_t>("machine_nozzle_size") * 3 / 2;
+        const coord_t start_dist = train.settings_.get<coord_t>("machine_nozzle_size") * 2;
+        const Point2LL prime_end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
+        const Point2LL outward_dir = wipe_location.location_ - prime_end;
+        const Point2LL prime_start = wipe_location.location_ + normal(outward_dir, start_dist);
+
+        gcode_layer.addTravel(prime_start);
     }
-
-    size_t current_start_location_idx = ((extruder_nr + 1) * static_cast<size_t>(layer_nr)) % number_of_prime_tower_start_locations_;
-
-    const ClosestPointPolygon wipe_location = prime_tower_start_locations_[current_start_location_idx];
-    const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
-    const coord_t inward_dist = train.settings_.get<coord_t>("machine_nozzle_size") * 3 / 2;
-    const coord_t start_dist = train.settings_.get<coord_t>("machine_nozzle_size") * 2;
-    const Point2LL prime_end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
-    const Point2LL outward_dir = wipe_location.location_ - prime_end;
-    const Point2LL prime_start = wipe_location.location_ + normal(outward_dir, start_dist);
-
-    gcode_layer.addTravel(prime_start);
 }
 
 } // namespace cura
