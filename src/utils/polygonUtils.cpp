@@ -20,6 +20,7 @@
 
 #ifdef DEBUG
 #include <spdlog/spdlog.h>
+
 #include "utils/AABB.h"
 #endif
 
