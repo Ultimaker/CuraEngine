@@ -677,24 +677,27 @@ public:
     static Shape clipPolygonWithAABB(const Shape& src, const AABB& aabb);
 
     /*!
-     * Generate a few outset polygons around the given base, according to the given line width
+     * Generate a few outset circles around a base, according to the given line width
      *
-     * \param inner_poly The inner polygon to start generating the outset from
-     * \param outer_poly The outer polygon to fit the outset into
+     * \param center The center of the outset
+     * \param inner_radius The inner radius to start generating the outset from
+     * \param outer_radius The outer radius to fit the outset into
      * \param line_width The actual line width to distance the polygons from each other (and from the base)
-     * \return The generated outset polygons
+     * \param circle_definition The definition (number of segments) of the generated circles
+     * \return The generated outset circles
      */
-    static Shape generateOutset(const Shape& inner_poly, const Shape& outer_poly, coord_t line_width);
+    static Shape generateCirculatOutset(const Point2LL& center, const coord_t inner_radius, const coord_t outer_radius, const coord_t line_width, const size_t circle_definition);
 
     /*!
-     * Generate inset polygons inside the given base, until there is no space left, according to the given line width
+     * Generate inset circles inside the given base, until there is no space left, according to the given line width
      *
-     * \param outer_poly The outer polygon to start generating the inset from
+     * \param center The center of the inset
+     * \param outer_radius The outer radius to start generating the inset from
      * \param line_width The actual line width to distance the polygons from each other (and from the base)
-     * \param initial_inset The inset distance to be added to the first generated polygon
-     * \return The generated inset polygons
+     * \param circle_definition The definition (number of segments) of the generated circles
+     * \return The generated inset circles
      */
-    static Shape generateInset(const Polygon& outer_poly, coord_t line_width, coord_t initial_inset = 0);
+    static Shape generateCircularInset(const Point2LL& center, const coord_t outer_radius, const coord_t line_width, const size_t circle_definition);
 
 private:
     /*!

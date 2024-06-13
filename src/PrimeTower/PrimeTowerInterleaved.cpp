@@ -58,9 +58,14 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerInter
         {
             if (extruder_use.prime == ExtruderPrime::Prime)
             {
-                Shape extruder_toolpaths;
-                std::tie(extruder_toolpaths, outer_radius) = generatePrimeToolpaths(extruder_use.extruder_nr, outer_radius);
-                toolpaths_at_layer.emplace_back(extruder_use.extruder_nr, extruder_toolpaths);
+                ExtruderToolPaths extruder_toolpaths;
+                extruder_toolpaths.outer_radius = outer_radius;
+                extruder_toolpaths.extruder_nr = extruder_use.extruder_nr;
+
+                std::tie(extruder_toolpaths.toolpaths, extruder_toolpaths.inner_radius) = generatePrimeToolpaths(extruder_use.extruder_nr, outer_radius);
+                toolpaths_at_layer.push_back(extruder_toolpaths);
+
+                outer_radius = extruder_toolpaths.inner_radius;
             }
             else if (extruder_use.prime == ExtruderPrime::Support)
             {
@@ -73,12 +78,13 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerInter
         {
             if (toolpaths_at_layer.empty())
             {
-                toolpaths_at_layer.emplace_back(last_extruder_support, Shape());
+                toolpaths_at_layer.emplace_back(last_extruder_support, Shape(), outer_radius, support_radius);
             }
 
             ExtruderToolPaths& last_extruder_toolpaths = toolpaths_at_layer.back();
             Shape support_toolpaths = generateSupportToolpaths(last_extruder_toolpaths.extruder_nr, outer_radius, support_radius);
             last_extruder_toolpaths.toolpaths.push_back(support_toolpaths);
+            last_extruder_toolpaths.inner_radius = support_radius;
         }
 
         // Now decrease support radius if required

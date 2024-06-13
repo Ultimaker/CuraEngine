@@ -29,10 +29,18 @@ class LayerPlan;
 class PrimeTower
 {
 protected:
+    struct OccupiedOutline
+    {
+        Shape outline;
+        coord_t outer_radius;
+    };
+
     struct ExtruderToolPaths
     {
         size_t extruder_nr;
         Shape toolpaths;
+        coord_t outer_radius;
+        coord_t inner_radius;
     };
 
 private:
@@ -56,7 +64,7 @@ private:
     //!< This is the exact outline of the extrusions lines of each layer, for layers having extra width for the base
     LayerVector<Shape> base_extrusion_outline_;
     //!< This is the approximate outline of the area filled at each layer, for layers having extra width for the base
-    LayerVector<Shape> base_occupied_outline_;
+    LayerVector<OccupiedOutline> base_occupied_outline_;
 
 public:
     /*! \brief Creates a prime tower instance that will determine where and how the prime tower gets printed. */

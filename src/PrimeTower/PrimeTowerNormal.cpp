@@ -66,17 +66,21 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerNorma
 
     // For each extruder, generate the prime and support patterns, which will always be the same across layers
     coord_t current_radius = tower_radius;
-    std::map<size_t, Shape> extruders_prime_toolpaths;
-    std::map<size_t, Shape> extruders_support_toolpaths;
+    std::map<size_t, ExtruderToolPaths> extruders_prime_toolpaths;
+    std::map<size_t, ExtruderToolPaths> extruders_support_toolpaths;
     for (size_t extruder_nr : extruder_order)
     {
-        std::tuple<Shape, coord_t> prime_toolpaths = generatePrimeToolpaths(extruder_nr, current_radius);
-        extruders_prime_toolpaths[extruder_nr] = std::get<0>(prime_toolpaths);
-        const coord_t inner_radius = std::get<1>(prime_toolpaths);
+        ExtruderToolPaths extruder_prime_toolpaths;
+        extruder_prime_toolpaths.extruder_nr = extruder_nr;
+        extruder_prime_toolpaths.outer_radius = current_radius;
+        std::tie(extruder_prime_toolpaths.toolpaths, extruder_prime_toolpaths.inner_radius) = generatePrimeToolpaths(extruder_nr, current_radius);
+        extruders_prime_toolpaths[extruder_nr] = extruder_prime_toolpaths;
 
-        extruders_support_toolpaths[extruder_nr] = generateSupportToolpaths(extruder_nr, current_radius, inner_radius);
+        ExtruderToolPaths extruder_support_toolpaths = extruder_prime_toolpaths;
+        extruder_support_toolpaths.toolpaths = generateSupportToolpaths(extruder_nr, current_radius, extruder_prime_toolpaths.inner_radius);
+        extruders_support_toolpaths[extruder_nr] = extruder_support_toolpaths;
 
-        current_radius = inner_radius;
+        current_radius = extruder_prime_toolpaths.inner_radius;
     }
 
     // Now fill the extruders toolpaths according to their use
@@ -105,11 +109,11 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerNorma
                 break;
 
             case ExtruderPrime::Prime:
-                toolpaths_at_layer.emplace_back(extruder_use.extruder_nr, extruders_prime_toolpaths[extruder_use.extruder_nr]);
+                toolpaths_at_layer.push_back(extruders_prime_toolpaths[extruder_use.extruder_nr]);
                 break;
 
             case ExtruderPrime::Support:
-                toolpaths_at_layer.emplace_back(extruder_use.extruder_nr, extruders_support_toolpaths[extruder_use.extruder_nr]);
+                toolpaths_at_layer.push_back(extruders_support_toolpaths[extruder_use.extruder_nr]);
                 break;
             }
         }

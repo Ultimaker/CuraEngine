@@ -1617,32 +1617,29 @@ Shape PolygonUtils::clipPolygonWithAABB(const Shape& src, const AABB& aabb)
     return out;
 }
 
-Shape PolygonUtils::generateOutset(const Shape& inner_poly, const Shape& outer_poly, coord_t line_width)
+Shape PolygonUtils::generateCirculatOutset(const Point2LL& center, const coord_t inner_radius, const coord_t outer_radius, coord_t line_width, const size_t circle_definition)
 {
     Shape outset;
+    coord_t radius = inner_radius + line_width / 2;
 
-    coord_t offset = line_width / 2;
-    Shape current_outset = inner_poly.offset(offset);
-
-    while (! current_outset.empty() && current_outset.front().isValid() && outer_poly.inside(current_outset.front().front()))
+    while (radius + line_width / 2 <= outer_radius)
     {
-        outset.push_back(current_outset);
-        offset += line_width;
-        current_outset = inner_poly.offset(offset);
+        outset.push_back(makeCircle(center, radius, circle_definition));
+        radius += line_width;
     }
 
     return outset;
 }
 
-Shape PolygonUtils::generateInset(const Polygon& outer_poly, coord_t line_width, coord_t initial_inset)
+Shape PolygonUtils::generateCircularInset(const Point2LL& center, const coord_t outer_radius, const coord_t line_width, const size_t circle_definition)
 {
     Shape inset;
+    coord_t radius = outer_radius - line_width / 2;
 
-    Shape current_inset = outer_poly.offset(-(initial_inset + line_width / 2));
-    while (! current_inset.empty())
+    while (radius - line_width / 2 >= line_width)
     {
-        inset.push_back(current_inset);
-        current_inset = current_inset.offset(-line_width);
+        inset.push_back(makeCircle(center, radius, circle_definition));
+        radius -= line_width;
     }
 
     return inset;
