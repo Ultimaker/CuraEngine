@@ -756,6 +756,9 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     const coord_t interface_avoid_distance = interface_settings.get<coord_t>("travel_avoid_distance");
     const coord_t interface_max_resolution = interface_settings.get<coord_t>("meshfix_maximum_resolution");
     const coord_t interface_max_deviation = interface_settings.get<coord_t>("meshfix_maximum_deviation");
+    const coord_t raft_interface_z_offset = interface_settings.get<coord_t>("raft_interface_z_offset");
+
+    z += raft_interface_z_offset;
 
     for (LayerIndex raft_interface_layer = 1; static_cast<size_t>(raft_interface_layer) <= num_interface_layers; ++raft_interface_layer)
     { // raft interface layer
@@ -912,6 +915,9 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     const coord_t surface_avoid_distance = surface_settings.get<coord_t>("travel_avoid_distance");
     const Ratio surface_fan_speed = surface_settings.get<Ratio>("raft_surface_fan_speed");
     const bool surface_monotonic = surface_settings.get<bool>("raft_surface_monotonic");
+    const coord_t raft_surface_z_offset = interface_settings.get<coord_t>("raft_surface_z_offset");
+
+    z += raft_surface_z_offset;
 
     for (LayerIndex raft_surface_layer = 1; static_cast<size_t>(raft_surface_layer) <= num_surface_layers; raft_surface_layer++)
     { // raft surface layers
