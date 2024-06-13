@@ -3399,6 +3399,12 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     const AngleDegrees support_infill_angle = get_support_infill_angle(storage.support, gcode_layer.getLayerNr());
 
     constexpr size_t infill_multiplier = 1; // there is no frontend setting for this (yet)
+    size_t infill_density_multiplier = 1;
+    if (gcode_layer.getLayerNr() <= 0)
+    {
+        infill_density_multiplier = infill_extruder.settings_.get<size_t>("support_infill_density_multiplier_layer_0");
+    }
+
     const size_t wall_line_count = infill_extruder.settings_.get<size_t>("support_wall_count");
     const coord_t max_resolution = infill_extruder.settings_.get<coord_t>("meshfix_maximum_resolution");
     const coord_t max_deviation = infill_extruder.settings_.get<coord_t>("meshfix_maximum_deviation");
@@ -3523,10 +3529,12 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 }
 
                 const unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
-                int support_line_distance_here
+                coord_t support_line_distance_here
                     = (part.custom_line_distance_ > 0
                            ? part.custom_line_distance_
                            : default_support_line_distance * density_factor); // the highest density infill combines with the next to create a grid with density_factor 1
+                support_line_distance_here /= (1 << (infill_density_multiplier - 1));
+                support_line_distance_here = std::max(support_line_distance_here, support_line_width);
                 const int support_shift = support_line_distance_here / 2;
                 if (part.custom_line_distance_ == 0 && (density_idx == max_density_idx || support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D))
                 {
