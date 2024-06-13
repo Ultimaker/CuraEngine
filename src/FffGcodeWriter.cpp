@@ -2692,22 +2692,21 @@ bool FffGcodeWriter::processInsets(
             gcode_layer.setBridgeWallMask(Shape());
         }
 
-        const AngleDegrees overhang_angle = mesh.settings.get<AngleDegrees>("wall_overhang_angle");
-        if (overhang_angle >= 90)
+        const auto get_overhang_region = [&](const AngleDegrees overhang_angle) -> Shape
         {
-            // clear to disable overhang detection
-            gcode_layer.setOverhangMask(Shape());
-        }
-        else
-        {
+            if (overhang_angle >= 90)
+            {
+                return Shape(); // keep empty to disable overhang detection
+            }
             // the overhang mask is set to the area of the current part's outline minus the region that is considered to be supported
             // the supported region is made up of those areas that really are supported by either model or support on the layer below
             // expanded to take into account the overhang angle, the greater the overhang angle, the larger the supported area is
             // considered to be
             const coord_t overhang_width = layer_height * std::tan(overhang_angle / (180 / std::numbers::pi));
-            Shape overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10 + overhang_width - half_outer_wall_width)).offset(10);
-            gcode_layer.setOverhangMask(overhang_region);
-        }
+            return part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10 + overhang_width - half_outer_wall_width)).offset(10);
+        };
+        gcode_layer.setOverhangMask(get_overhang_region(mesh.settings.get<AngleDegrees>("wall_overhang_angle")));
+        gcode_layer.setSeamOverhangMask(get_overhang_region(mesh.settings.get<AngleDegrees>("seam_overhang_angle")));
 
         const auto roofing_mask_fn = [&]() -> Shape
         {
@@ -2739,6 +2738,8 @@ bool FffGcodeWriter::processInsets(
         gcode_layer.setBridgeWallMask(Shape());
         // clear to disable overhang detection
         gcode_layer.setOverhangMask(Shape());
+        // clear to disable overhang detection
+        gcode_layer.setSeamOverhangMask(Shape());
         // clear to disable use of roofing settings
         gcode_layer.setRoofingMask(Shape());
     }

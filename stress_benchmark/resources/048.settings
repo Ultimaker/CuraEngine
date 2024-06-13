@@ -156,6 +156,7 @@ machine_settings=0
 raft_base_extruder_nr=0
 z_seam_y=235
 wall_overhang_angle=90
+seam_overhang_angle=30
 draft_shield_height=10
 _plugin__curaenginegradualflow__0_1_0__max_flow_acceleration=1
 travel_retract_before_outer_wall=True

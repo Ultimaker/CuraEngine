@@ -96,6 +96,7 @@ gradual_infill_step_height=1.5
 cool_min_speed=9
 cool_fan_enabled=False
 wall_overhang_angle=90
+seam_overhang_angle=30
 cool_fan_speed_max=100
 support_skip_some_zags=False
 layer_start_y=0.0
