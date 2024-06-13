@@ -29,15 +29,13 @@ class LayerPlan;
 class PrimeTower
 {
 protected:
-    struct ExtruderMoves
+    struct ExtruderToolPaths
     {
         size_t extruder_nr;
-        Shape moves;
+        Shape toolpaths;
     };
 
 private:
-    using MovesByLayer = std::map<size_t, LayerVector<Shape>>;
-
     bool wipe_from_middle_; //!< Whether to wipe on the inside of the hollow prime tower
     Point2LL middle_; //!< The middle of the prime tower
 
@@ -48,10 +46,10 @@ private:
 
     /*
      *  The map index is the layer number
-     *  For each layer, the list contains the extruders moves to be processed. This list is sorted from outer rings to inner
-     *  rings, which is not the printing chronological order, but the physical arrangement.
+     *  For each layer, the list contains the extruders moves to be processed. This list is sorted from outer annuli to inner
+     *  annuli, which is not the printing chronological order, but the physical arrangement.
      */
-    std::map<LayerIndex, std::vector<ExtruderMoves>> moves_;
+    std::map<LayerIndex, std::vector<ExtruderToolPaths>> toolpaths_;
 
     Shape outer_poly_; //!< The outline of the prime tower, not including the base
 
@@ -61,12 +59,7 @@ private:
     LayerVector<Shape> base_occupied_outline_;
 
 public:
-    /*!
-     * \brief Creates a prime tower instance that will determine where and how
-     * the prime tower gets printed.
-     *
-     * \param storage A storage where it retrieves the prime tower settings.
-     */
+    /*! \brief Creates a prime tower instance that will determine where and how the prime tower gets printed. */
     PrimeTower();
 
     virtual ~PrimeTower() = default;
@@ -116,6 +109,15 @@ public:
      */
     const Shape& getExtrusionOutline(const LayerIndex& layer_nr) const;
 
+    /*!
+     * \brief Get the required priming for the given extruder at the given layer
+     * \param extruder_is_used_on_this_layer A list indicating which extruders are used at this layer
+     * \param extruder_nr The extruder for which we want the priming information
+     * \param last_extruder The extruder that was in use just before using the new one
+     * \param storage The storage containing all the slice data
+     * \param layer_nr The layer at which we want to use the extruder
+     * \return An enumeration indication how the extruder will be used by the prime tower at this layer
+     */
     virtual ExtruderPrime getExtruderPrime(
         const std::vector<bool>& extruder_is_used_on_this_layer,
         size_t extruder_nr,
@@ -123,32 +125,75 @@ public:
         const SliceDataStorage& storage,
         const LayerIndex& layer_nr) const = 0;
 
+    /*!
+     * \brief This method has to be called once the extruders use for each layer have been calculated. From this point,
+     *        we can start generating the prime tower, and also polish the given extruders uses.
+     * \param extruders_use The calculated extruders uses at each layer. This may be slightly changed to make sure that
+     *                      the prime tower can be properly printed.
+     * \param start_extruder The very first used extruder
+     */
     void processExtrudersUse(LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder);
 
+    /*!
+     * \brief Create the proper prime tower object according to the current settings
+     * \param storage The storage containing all the slice data
+     * \return The proper prime tower object, which may be null if prime tower is actually disabled or not required
+     */
     static PrimeTower* createPrimeTower(SliceDataStorage& storage);
 
 protected:
+    /*!
+     * \brief Once all the extruders uses have been calculated for each layer, this method makes a global pass to make
+     *        sure that the prime tower can be properly printed. This is required because we sometimes need to know what
+     *        a layer above is made of to fix a layer below.
+     * \param extruders_use The calculated extruders uses at each layer
+     * \param start_extruder The very first used extruder
+     */
     virtual void polishExtrudersUses(LayerVector<std::vector<ExtruderUse>>& /*extruders_use*/, const size_t /*start_extruder*/)
     {
+        // Default behavior is to keep the extruders uses as they were calculated
     }
 
     /*!
-     * \brief generateExtrusionsMoves
-     * \param extruders_use
-     * \param storage
-     * \return A map of extruders moves per layer. The inner list is sorted from outer rings to inner
-     *         rings, which is not the printing chronological order, but the physical arrangement. @sa moves_
+     * \brief Generated the extruders toolpaths for each layer of the prime tower
+     * \param extruders_use The calculated extruders uses at each layer
+     * \return A map of extruders toolpaths per layer. The inner list is sorted from outer annuli to inner
+     *         annuli, which is not the printing chronological order, but the physical arrangement. @sa toolpaths_
      */
-    virtual std::map<LayerIndex, std::vector<ExtruderMoves>> generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use) = 0;
+    virtual std::map<LayerIndex, std::vector<ExtruderToolPaths>> generateToolPaths(const LayerVector<std::vector<ExtruderUse>>& extruders_use) = 0;
 
-    std::tuple<Shape, coord_t> generatePrimeMoves(const size_t extruder_nr, const coord_t outer_radius);
+    /*!
+     * \brief Generate the actual priming toolpaths for the given extruder, starting at the given outer circle radius
+     * \param extruder_nr The extruder for which we want the priming toolpath
+     * \param outer_radius The radius of the starting outer circle
+     * \return A tuple containing the newly generated toolpaths, and the inner radius of the newly generated annulus
+     */
+    std::tuple<Shape, coord_t> generatePrimeToolpaths(const size_t extruder_nr, const coord_t outer_radius);
 
-    Shape generateSupportMoves(const size_t extruder_nr, const coord_t outer_radius, const coord_t inner_radius);
+    /*!
+     * \brief Generate support toolpaths using the wheel pattern applied on an annulus
+     * \param extruder_nr The extruder for which we want the support toolpath
+     * \param outer_radius The annulus outer radius
+     * \param inner_radius The annulis inner radius
+     * \return
+     */
+    Shape generateSupportToolpaths(const size_t extruder_nr, const coord_t outer_radius, const coord_t inner_radius);
 
+    /*!
+     * \brief Calculates whether an extruder requires priming at a specific layer
+     * \param extruder_is_used_on_this_layer The list of used extruders at this layer
+     * \param extruder_nr The extruder we now want to use
+     * \param last_extruder The extruder that was in use before switching to the new one
+     * \return True if the extruder needs to be primed, false otherwise
+     */
     static bool extruderRequiresPrime(const std::vector<bool>& extruder_is_used_on_this_layer, size_t extruder_nr, size_t last_extruder);
 
 private:
+    /*! \brief Generates the extra inset used for better adhesion at the first layer */
     void generateFirtLayerInset();
+
+    /*! \brief Generates the extra annuli around the first layers of the prime tower which help make it stronger */
+    void generateBase();
 
     /*!
      * For an extruder switch that happens not on the first layer, the extruder needs to be primed on the prime tower.
@@ -159,13 +204,9 @@ private:
 
     /*!
      * \brief Subtract the prime tower from the support areas in storage.
-     *
-     * \param storage The storage where to find the support from which to
-     * subtract a prime tower.
+     * \param storage The storage where to find the support from which to subtract a prime tower.
      */
     void subtractFromSupport(SliceDataStorage& storage);
-
-    void generateBase();
 };
 
 } // namespace cura

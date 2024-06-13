@@ -79,21 +79,21 @@ void PrimeTower::generateBase()
     {
         base_extrusion_outline_.init(true);
 
-        // Generate the base outside extra rings for the first extruder of each layer
-        auto iterator_extrusion_paths = moves_.begin();
+        // Generate the base outside extra annuli for the first extruder of each layer
+        auto iterator_extrusion_paths = toolpaths_.begin();
         auto iterator_base_outline = base_occupied_outline_.begin();
-        for (; iterator_extrusion_paths != moves_.end() && iterator_base_outline != base_occupied_outline_.end(); ++iterator_extrusion_paths, ++iterator_base_outline)
+        for (; iterator_extrusion_paths != toolpaths_.end() && iterator_base_outline != base_occupied_outline_.end(); ++iterator_extrusion_paths, ++iterator_base_outline)
         {
-            std::vector<ExtruderMoves>& moves_at_this_layer = iterator_extrusion_paths->second;
+            std::vector<ExtruderToolPaths>& moves_at_this_layer = iterator_extrusion_paths->second;
             if (! moves_at_this_layer.empty())
             {
                 const Shape& base_ouline_at_this_layer = *iterator_base_outline;
-                ExtruderMoves& extruder_moves = moves_at_this_layer.front();
+                ExtruderToolPaths& extruder_moves = moves_at_this_layer.front();
                 const size_t extruder_nr = extruder_moves.extruder_nr;
                 const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
 
                 Shape outset = PolygonUtils::generateOutset(outer_poly_, base_ouline_at_this_layer, line_width);
-                extruder_moves.moves.push_back(outset);
+                extruder_moves.toolpaths.push_back(outset);
 
                 base_extrusion_outline_.push_back(outset.offset(line_width / 2));
             }
@@ -103,16 +103,16 @@ void PrimeTower::generateBase()
 
 void PrimeTower::generateFirtLayerInset()
 {
-    // Generate the base inside extra rings for the last extruder of the first layer
-    if (! moves_.empty())
+    // Generate the base inside extra disc for the last extruder of the first layer
+    if (! toolpaths_.empty())
     {
-        std::vector<ExtruderMoves>& moves_first_layer = moves_.begin()->second;
+        std::vector<ExtruderToolPaths>& moves_first_layer = toolpaths_.begin()->second;
         if (! moves_first_layer.empty())
         {
-            ExtruderMoves& extruder_moves = moves_first_layer.back();
+            ExtruderToolPaths& extruder_moves = moves_first_layer.back();
             const Scene& scene = Application::getInstance().current_slice_->scene;
             const size_t extruder_nr = extruder_moves.extruder_nr;
-            Shape& moves_last_extruder = extruder_moves.moves;
+            Shape& moves_last_extruder = extruder_moves.toolpaths;
             if (! moves_last_extruder.empty())
             {
                 const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
@@ -126,7 +126,7 @@ void PrimeTower::generateFirtLayerInset()
     }
 }
 
-std::tuple<Shape, coord_t> PrimeTower::generatePrimeMoves(const size_t extruder_nr, const coord_t outer_radius)
+std::tuple<Shape, coord_t> PrimeTower::generatePrimeToolpaths(const size_t extruder_nr, const coord_t outer_radius)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
@@ -159,7 +159,7 @@ std::tuple<Shape, coord_t> PrimeTower::generatePrimeMoves(const size_t extruder_
     return std::make_tuple(moves, current_outer_diameter);
 }
 
-Shape PrimeTower::generateSupportMoves(const size_t extruder_nr, const coord_t outer_radius, const coord_t inner_radius)
+Shape PrimeTower::generateSupportToolpaths(const size_t extruder_nr, const coord_t outer_radius, const coord_t inner_radius)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const double max_bridging_distance = static_cast<double>(scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_max_bridging_distance"));
@@ -169,20 +169,20 @@ Shape PrimeTower::generateSupportMoves(const size_t extruder_nr, const coord_t o
 
     Shape moves;
 
-    // Split ring according to max bridging distance
-    const coord_t nb_rings = static_cast<coord_t>(std::ceil(static_cast<double>(radius_delta) / max_bridging_distance));
-    if (nb_rings > 0)
+    // Split annuli according to max bridging distance
+    const coord_t nb_annuli = static_cast<coord_t>(std::ceil(static_cast<double>(radius_delta) / max_bridging_distance));
+    if (nb_annuli > 0)
     {
-        const coord_t actual_radius_step = radius_delta / nb_rings;
+        const coord_t actual_radius_step = radius_delta / nb_annuli;
 
-        for (coord_t i = 0; i < nb_rings; ++i)
+        for (coord_t i = 0; i < nb_annuli; ++i)
         {
-            const coord_t ring_inner_radius = (inner_radius + i * actual_radius_step) + semi_line_width;
-            const coord_t ring_outer_radius = (inner_radius + (i + 1) * actual_radius_step) - semi_line_width;
+            const coord_t annulus_inner_radius = (inner_radius + i * actual_radius_step) + semi_line_width;
+            const coord_t annulus_outer_radius = (inner_radius + (i + 1) * actual_radius_step) - semi_line_width;
 
-            const size_t semi_nb_spokes = static_cast<size_t>(std::ceil((std::numbers::pi * static_cast<double>(ring_outer_radius)) / max_bridging_distance));
+            const size_t semi_nb_spokes = static_cast<size_t>(std::ceil((std::numbers::pi * static_cast<double>(annulus_outer_radius)) / max_bridging_distance));
 
-            moves.push_back(PolygonUtils::makeWheel(middle_, ring_inner_radius, ring_outer_radius, semi_nb_spokes, ARC_RESOLUTION));
+            moves.push_back(PolygonUtils::makeWheel(middle_, annulus_inner_radius, annulus_outer_radius, semi_nb_spokes, ARC_RESOLUTION));
         }
     }
 
@@ -230,20 +230,20 @@ void PrimeTower::addToGcode(
     }
 
     const Shape* moves = nullptr;
-    auto iterator_layer = moves_.find(layer_nr);
-    if (iterator_layer != moves_.end())
+    auto iterator_layer = toolpaths_.find(layer_nr);
+    if (iterator_layer != toolpaths_.end())
     {
-        const std::vector<ExtruderMoves>& moves_at_this_layer = iterator_layer->second;
+        const std::vector<ExtruderToolPaths>& moves_at_this_layer = iterator_layer->second;
         auto iterator_extruder = std::find_if(
             moves_at_this_layer.begin(),
             moves_at_this_layer.end(),
-            [new_extruder_nr](const ExtruderMoves& extruder_moves)
+            [new_extruder_nr](const ExtruderToolPaths& extruder_moves)
             {
                 return extruder_moves.extruder_nr == new_extruder_nr;
             });
         if (iterator_extruder != iterator_layer->second.end())
         {
-            moves = &(iterator_extruder->moves);
+            moves = &(iterator_extruder->toolpaths);
         }
     }
 
@@ -322,7 +322,7 @@ void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
 void PrimeTower::processExtrudersUse(LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder)
 {
     polishExtrudersUses(extruders_use, start_extruder);
-    moves_ = generateExtrusionsMoves(extruders_use);
+    toolpaths_ = generateToolPaths(extruders_use);
     generateBase();
     generateFirtLayerInset();
 }

@@ -30,7 +30,7 @@ ExtruderPrime PrimeTowerNormal::getExtruderPrime(
     }
     else if (layer_nr <= storage.max_print_height_second_to_last_extruder)
     {
-        return ExtruderPrime::Sparse;
+        return ExtruderPrime::Support;
     }
     else
     {
@@ -38,12 +38,12 @@ ExtruderPrime PrimeTowerNormal::getExtruderPrime(
     }
 }
 
-std::map<LayerIndex, std::vector<PrimeTower::ExtruderMoves>> PrimeTowerNormal::generateExtrusionsMoves(const LayerVector<std::vector<ExtruderUse>>& extruders_use)
+std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerNormal::generateToolPaths(const LayerVector<std::vector<ExtruderUse>>& extruders_use)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const coord_t tower_radius = mesh_group_settings.get<coord_t>("prime_tower_size") / 2;
-    std::map<LayerIndex, std::vector<ExtruderMoves>> moves;
+    std::map<LayerIndex, std::vector<ExtruderToolPaths>> toolpaths;
 
     // First make a basic list of used extruders numbers
     std::vector<size_t> extruder_order;
@@ -66,26 +66,26 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderMoves>> PrimeTowerNormal::g
 
     // For each extruder, generate the prime and support patterns, which will always be the same across layers
     coord_t current_radius = tower_radius;
-    std::map<size_t, Shape> extruders_prime_moves;
-    std::map<size_t, Shape> extruders_support_moves;
+    std::map<size_t, Shape> extruders_prime_toolpaths;
+    std::map<size_t, Shape> extruders_support_toolpaths;
     for (size_t extruder_nr : extruder_order)
     {
-        std::tuple<Shape, coord_t> prime_moves = generatePrimeMoves(extruder_nr, current_radius);
-        extruders_prime_moves[extruder_nr] = std::get<0>(prime_moves);
-        const coord_t inner_radius = std::get<1>(prime_moves);
+        std::tuple<Shape, coord_t> prime_toolpaths = generatePrimeToolpaths(extruder_nr, current_radius);
+        extruders_prime_toolpaths[extruder_nr] = std::get<0>(prime_toolpaths);
+        const coord_t inner_radius = std::get<1>(prime_toolpaths);
 
-        extruders_support_moves[extruder_nr] = generateSupportMoves(extruder_nr, current_radius, inner_radius);
+        extruders_support_toolpaths[extruder_nr] = generateSupportToolpaths(extruder_nr, current_radius, inner_radius);
 
         current_radius = inner_radius;
     }
 
-    // Now fill the extruders moves according to their use
+    // Now fill the extruders toolpaths according to their use
     for (auto iterator = extruders_use.begin(); iterator != extruders_use.end(); ++iterator)
     {
         const LayerIndex layer_nr = extruders_use.getLayer(iterator);
         std::vector<ExtruderUse> extruders_use_at_layer = *iterator;
 
-        // Sort to fit the global order, in order to insert the moves in outside to inside order
+        // Sort to fit the global order, in order to insert the toolpaths in outside to inside order
         std::sort(
             extruders_use_at_layer.begin(),
             extruders_use_at_layer.end(),
@@ -95,8 +95,8 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderMoves>> PrimeTowerNormal::g
                      < std::find(extruder_order.begin(), extruder_order.end(), extruder_use2.extruder_nr);
             });
 
-        // Now put the proper moves for each extruder use
-        std::vector<ExtruderMoves> moves_at_layer;
+        // Now put the proper toolpaths for each extruder use
+        std::vector<ExtruderToolPaths> toolpaths_at_layer;
         for (const ExtruderUse& extruder_use : extruders_use_at_layer)
         {
             switch (extruder_use.prime)
@@ -105,19 +105,19 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderMoves>> PrimeTowerNormal::g
                 break;
 
             case ExtruderPrime::Prime:
-                moves_at_layer.emplace_back(extruder_use.extruder_nr, extruders_prime_moves[extruder_use.extruder_nr]);
+                toolpaths_at_layer.emplace_back(extruder_use.extruder_nr, extruders_prime_toolpaths[extruder_use.extruder_nr]);
                 break;
 
-            case ExtruderPrime::Sparse:
-                moves_at_layer.emplace_back(extruder_use.extruder_nr, extruders_support_moves[extruder_use.extruder_nr]);
+            case ExtruderPrime::Support:
+                toolpaths_at_layer.emplace_back(extruder_use.extruder_nr, extruders_support_toolpaths[extruder_use.extruder_nr]);
                 break;
             }
         }
 
-        moves[layer_nr] = moves_at_layer;
+        toolpaths[layer_nr] = toolpaths_at_layer;
     }
 
-    return moves;
+    return toolpaths;
 }
 
 } // namespace cura
