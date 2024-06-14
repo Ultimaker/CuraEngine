@@ -66,6 +66,9 @@ private:
     //!< This is the approximate outline of the area filled at each layer, for layers having extra width for the base
     LayerVector<OccupiedOutline> base_occupied_outline_;
 
+    static constexpr size_t circle_definition_{ 32 }; // The number of vertices in each circle.
+    static constexpr size_t arc_definition_{ 4 }; // The number of segments in each arc of a wheel
+
 public:
     /*! \brief Creates a prime tower instance that will determine where and how the prime tower gets printed. */
     PrimeTower();

@@ -21,9 +21,6 @@
 #include "raft.h"
 #include "sliceDataStorage.h"
 
-#define CIRCLE_RESOLUTION 32 // The number of vertices in each circle.
-#define ARC_RESOLUTION 4 // The number of segments in each arc of a wheel
-
 
 namespace cura
 {
@@ -43,7 +40,7 @@ PrimeTower::PrimeTower()
     const double base_curve_magnitude = mesh_group_settings.get<double>("prime_tower_base_curve_magnitude");
 
     middle_ = Point2LL(x - tower_radius, y + tower_radius);
-    outer_poly_.push_back(PolygonUtils::makeCircle(middle_, tower_radius, CIRCLE_RESOLUTION));
+    outer_poly_.push_back(PolygonUtils::makeCircle(middle_, tower_radius, circle_definition_));
     post_wipe_point_ = Point2LL(x - tower_radius, y + tower_radius);
 
     // Evenly spread out a number of dots along the prime tower's outline. This is done for the complete outline,
@@ -63,7 +60,7 @@ PrimeTower::PrimeTower()
             const double brim_radius_factor = std::pow((1.0 - static_cast<double>(z) / static_cast<double>(base_height)), base_curve_magnitude);
             const coord_t extra_radius = std::llrint(static_cast<double>(base_extra_radius) * brim_radius_factor);
             const coord_t total_radius = tower_radius + extra_radius;
-            base_occupied_outline_.emplace_back(std::vector<Polygon>({ PolygonUtils::makeCircle(middle_, total_radius, CIRCLE_RESOLUTION) }), total_radius);
+            base_occupied_outline_.emplace_back(std::vector<Polygon>({ PolygonUtils::makeCircle(middle_, total_radius, circle_definition_) }), total_radius);
         }
     }
 }
@@ -94,10 +91,10 @@ void PrimeTower::generateBase()
                 const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
 
                 std::tuple<Shape, coord_t> outset
-                    = PolygonUtils::generateCirculatOutset(middle_, first_extruder_toolpaths.outer_radius, base_ouline_at_this_layer.outer_radius, line_width, CIRCLE_RESOLUTION);
+                    = PolygonUtils::generateCirculatOutset(middle_, first_extruder_toolpaths.outer_radius, base_ouline_at_this_layer.outer_radius, line_width, circle_definition_);
                 first_extruder_toolpaths.toolpaths.push_back(std::get<0>(outset));
 
-                base_extrusion_outline_.push_back(std::vector<Polygon>({ PolygonUtils::makeCircle(middle_, std::get<1>(outset), CIRCLE_RESOLUTION) }));
+                base_extrusion_outline_.push_back(std::vector<Polygon>({ PolygonUtils::makeCircle(middle_, std::get<1>(outset), circle_definition_) }));
             }
         }
     }
@@ -115,7 +112,7 @@ void PrimeTower::generateFirtLayerInset()
             const Scene& scene = Application::getInstance().current_slice_->scene;
             const size_t extruder_nr = last_extruder_toolpaths.extruder_nr;
             const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
-            Shape pattern = PolygonUtils::generateCircularInset(middle_, last_extruder_toolpaths.inner_radius, line_width, CIRCLE_RESOLUTION);
+            Shape pattern = PolygonUtils::generateCircularInset(middle_, last_extruder_toolpaths.inner_radius, line_width, circle_definition_);
             last_extruder_toolpaths.toolpaths.push_back(pattern);
         }
     }
@@ -136,7 +133,7 @@ std::tuple<Shape, coord_t> PrimeTower::generatePrimeToolpaths(const size_t extru
     Shape toolpaths;
     while (current_volume < required_volume && current_outer_radius >= semi_line_width)
     {
-        Polygon circle = PolygonUtils::makeCircle(middle_, current_outer_radius, CIRCLE_RESOLUTION);
+        Polygon circle = PolygonUtils::makeCircle(middle_, current_outer_radius, circle_definition_);
         toolpaths.push_back(circle);
         current_volume += static_cast<double>(circle.length() * line_width * layer_height) * flow;
         current_outer_radius -= line_width;
@@ -168,7 +165,7 @@ Shape PrimeTower::generateSupportToolpaths(const size_t extruder_nr, const coord
 
             const size_t semi_nb_spokes = static_cast<size_t>(std::ceil((std::numbers::pi * static_cast<double>(annulus_outer_radius)) / max_bridging_distance));
 
-            toolpaths.push_back(PolygonUtils::makeWheel(middle_, annulus_inner_radius, annulus_outer_radius, semi_nb_spokes, ARC_RESOLUTION));
+            toolpaths.push_back(PolygonUtils::makeWheel(middle_, annulus_inner_radius, annulus_outer_radius, semi_nb_spokes, arc_definition_));
         }
     }
 
