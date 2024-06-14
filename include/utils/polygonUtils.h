@@ -95,34 +95,6 @@ public:
     static const std::function<int(Point2LL)> no_penalty_function; //!< Function always returning zero
 
     /*!
-     * compute the length of a segment of a polygon
-     *
-     * if \p end == \p start then the full polygon is taken
-     *
-     * \warning assumes that start and end lie on the same polygon!
-     *
-     * \param start The start vertex of the segment
-     * \param end the end vertex of the segment
-     * \return the total length of all the line segments in between the two vertices.
-     */
-    static int64_t segmentLength(PolygonsPointIndex start, PolygonsPointIndex end);
-
-    /*!
-     * Generate evenly spread out dots along a segment of a polygon
-     *
-     * Start at a distance from \p start and end at a distance from \p end,
-     * unless \p end == \p start; then that point is in the result
-     *
-     * \warning Assumes that start and end lie on the same polygon!
-     *
-     * \param start The start vertex of the segment
-     * \param end the end vertex of the segment
-     * \param n_dots number of dots to spread out
-     * \param result Where to store the generated points
-     */
-    static void spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, unsigned int n_dots, std::vector<ClosestPointPolygon>& result);
-
-    /*!
      * Generate a grid of dots inside of the area of the \p polygons.
      */
     static std::vector<Point2LL> spreadDotsArea(const Shape& polygons, coord_t grid_size);
@@ -159,14 +131,6 @@ public:
      * \return A point at the given distance inward from the point on the boundary polygon.
      */
     static Point2LL getBoundaryPointWithOffset(const Polyline& poly, unsigned int point_idx, int64_t offset);
-
-    /*!
-     * Move a point away from the boundary by looking at the boundary normal of the nearest vert.
-     *
-     * \param point_on_boundary The object holding the point on the boundary along with the information of which line segment the point is on.
-     * \param offset The distance the point has to be moved inward from the polygon.
-     */
-    static Point2LL moveInsideDiagonally(ClosestPointPolygon point_on_boundary, int64_t inset);
 
     /*!
      * Moves the point \p from onto the nearest polygon or leaves the point as-is, when the comb boundary is not within the root of \p max_dist2 distance.
@@ -643,7 +607,17 @@ public:
      * \param steps The numbers of segments (definition) of the generated circle.
      * \return A new Polygon containing the circle.
      */
-    static Polygon makeCircle(const Point2LL mid, const coord_t radius, const size_t steps);
+    static Polygon makeCircle(const Point2LL& mid, const coord_t radius, const size_t steps);
+
+    /*!
+     * Create a point of a circle.
+     *
+     * \param mid The center of the circle.
+     * \param radius The radius of the circle.
+     * \param angle The point angular position
+     * \return The coordinates of the point on the circle.
+     */
+    static Point2LL makeCirclePoint(const Point2LL& mid, const coord_t radius, const AngleRadians& angle);
 
     /*!
      * Create a "wheel" shape.

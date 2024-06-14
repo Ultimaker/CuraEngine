@@ -40,15 +40,8 @@ PrimeTower::PrimeTower()
     const double base_curve_magnitude = mesh_group_settings.get<double>("prime_tower_base_curve_magnitude");
 
     middle_ = Point2LL(x - tower_radius, y + tower_radius);
-    outer_poly_.push_back(PolygonUtils::makeCircle(middle_, tower_radius, circle_definition_));
+    outer_poly_ = { PolygonUtils::makeCircle(middle_, tower_radius, circle_definition_), tower_radius };
     post_wipe_point_ = Point2LL(x - tower_radius, y + tower_radius);
-
-    // Evenly spread out a number of dots along the prime tower's outline. This is done for the complete outline,
-    // so use the same start and end segments for this.
-    PolygonsPointIndex segment_start = PolygonsPointIndex(&outer_poly_, 0, 0);
-    PolygonsPointIndex segment_end = segment_start;
-
-    PolygonUtils::spreadDots(segment_start, segment_end, number_of_prime_tower_start_locations_, prime_tower_start_locations_);
 
     // Generate the base outline
     if (base_enabled && base_extra_radius > 0 && base_height > 0)
@@ -60,7 +53,7 @@ PrimeTower::PrimeTower()
             const double brim_radius_factor = std::pow((1.0 - static_cast<double>(z) / static_cast<double>(base_height)), base_curve_magnitude);
             const coord_t extra_radius = std::llrint(static_cast<double>(base_extra_radius) * brim_radius_factor);
             const coord_t total_radius = tower_radius + extra_radius;
-            base_occupied_outline_.emplace_back(std::vector<Polygon>({ PolygonUtils::makeCircle(middle_, total_radius, circle_definition_) }), total_radius);
+            base_occupied_outline_.emplace_back(PolygonUtils::makeCircle(middle_, total_radius, circle_definition_), total_radius);
         }
     }
 }
@@ -94,7 +87,7 @@ void PrimeTower::generateBase()
                     = PolygonUtils::generateCirculatOutset(middle_, first_extruder_toolpaths.outer_radius, base_ouline_at_this_layer.outer_radius, line_width, circle_definition_);
                 first_extruder_toolpaths.toolpaths.push_back(std::get<0>(outset));
 
-                base_extrusion_outline_.push_back(std::vector<Polygon>({ PolygonUtils::makeCircle(middle_, std::get<1>(outset), circle_definition_) }));
+                base_extrusion_outline_.push_back(PolygonUtils::makeCircle(middle_, std::get<1>(outset), circle_definition_));
             }
         }
     }
@@ -252,7 +245,7 @@ void PrimeTower::addToGcode(
     }
 }
 
-const Shape& PrimeTower::getOccupiedOutline(const LayerIndex& layer_nr) const
+const Polygon& PrimeTower::getOccupiedOutline(const LayerIndex& layer_nr) const
 {
     auto iterator = base_occupied_outline_.iterator_at(layer_nr);
     if (iterator != base_occupied_outline_.end())
@@ -261,11 +254,11 @@ const Shape& PrimeTower::getOccupiedOutline(const LayerIndex& layer_nr) const
     }
     else
     {
-        return outer_poly_;
+        return outer_poly_.outline;
     }
 }
 
-const Shape& PrimeTower::getOccupiedGroundOutline() const
+const Polygon& PrimeTower::getOccupiedGroundOutline() const
 {
     if (! base_extrusion_outline_.empty())
     {
@@ -273,11 +266,11 @@ const Shape& PrimeTower::getOccupiedGroundOutline() const
     }
     else
     {
-        return outer_poly_;
+        return outer_poly_.outline;
     }
 }
 
-const Shape& PrimeTower::getExtrusionOutline(const LayerIndex& layer_nr) const
+const Polygon& PrimeTower::getExtrusionOutline(const LayerIndex& layer_nr) const
 {
     auto iterator = base_extrusion_outline_.iterator_at(layer_nr);
     if (iterator != base_extrusion_outline_.end())
@@ -286,7 +279,7 @@ const Shape& PrimeTower::getExtrusionOutline(const LayerIndex& layer_nr) const
     }
     else
     {
-        return outer_poly_;
+        return outer_poly_.outline;
     }
 }
 
@@ -294,11 +287,11 @@ void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
 {
     for (size_t layer = 0; static_cast<int>(layer) <= storage.max_print_height_second_to_last_extruder + 1 && layer < storage.support.supportLayers.size(); layer++)
     {
-        const Shape& outside_polygon = getOccupiedOutline(layer).getOutsidePolygons();
+        const Polygon& outside_polygon = getOccupiedOutline(layer);
         AABB outside_polygon_boundary_box(outside_polygon);
         SupportLayer& support_layer = storage.support.supportLayers[layer];
         // take the differences of the support infill parts and the prime tower area
-        support_layer.excludeAreasFromSupportInfillAreas(outside_polygon, outside_polygon_boundary_box);
+        support_layer.excludeAreasFromSupportInfillAreas(Shape(outside_polygon), outside_polygon_boundary_box);
     }
 }
 
@@ -349,24 +342,32 @@ bool PrimeTower::extruderRequiresPrime(const std::vector<bool>& extruder_is_used
 
 void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const size_t extruder_nr) const
 {
-    // Layer number may be negative, make it positive (or null) to apply modulo operator
     LayerIndex layer_nr = gcode_layer.getLayerNr();
     if (layer_nr != -Raft::getTotalExtraLayers())
     {
+        coord_t wipe_radius;
+        auto iterator = base_occupied_outline_.iterator_at(gcode_layer.getLayerNr());
+        if (iterator != base_occupied_outline_.end())
+        {
+            wipe_radius = iterator->outer_radius;
+        }
+        else
+        {
+            wipe_radius = outer_poly_.outer_radius;
+        }
+
+        const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
+        wipe_radius += train.settings_.get<coord_t>("machine_nozzle_size") * 2;
+
+        // Layer number may be negative, make it positive (or null) before using modulo operator
         while (layer_nr < 0)
         {
             layer_nr += number_of_prime_tower_start_locations_;
         }
 
         size_t current_start_location_idx = ((extruder_nr + 1) * static_cast<size_t>(layer_nr)) % number_of_prime_tower_start_locations_;
-
-        const ClosestPointPolygon wipe_location = prime_tower_start_locations_[current_start_location_idx];
-        const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
-        const coord_t inward_dist = train.settings_.get<coord_t>("machine_nozzle_size") * 3 / 2;
-        const coord_t start_dist = train.settings_.get<coord_t>("machine_nozzle_size") * 2;
-        const Point2LL prime_end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
-        const Point2LL outward_dir = wipe_location.location_ - prime_end;
-        const Point2LL prime_start = wipe_location.location_ + normal(outward_dir, start_dist);
+        const AngleRadians angle = start_locations_step_ * current_start_location_idx;
+        const Point2LL prime_start = PolygonUtils::makeCirclePoint(middle_, wipe_radius, angle);
 
         gcode_layer.addTravel(prime_start);
     }

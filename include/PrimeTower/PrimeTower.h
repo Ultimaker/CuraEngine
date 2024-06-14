@@ -31,7 +31,7 @@ class PrimeTower
 protected:
     struct OccupiedOutline
     {
-        Shape outline;
+        Polygon outline;
         coord_t outer_radius;
     };
 
@@ -49,8 +49,8 @@ private:
 
     Point2LL post_wipe_point_; //!< Location to post-wipe the unused nozzle off on
 
-    std::vector<ClosestPointPolygon> prime_tower_start_locations_; //!< The differernt locations where to pre-wipe the active nozzle
-    const unsigned int number_of_prime_tower_start_locations_ = 21; //!< The required size of \ref PrimeTower::wipe_locations
+    static constexpr size_t number_of_prime_tower_start_locations_ = 21; //!< The required size of \ref PrimeTower::wipe_locations
+    static constexpr AngleRadians start_locations_step_ = (std::numbers::pi * 2.0) / number_of_prime_tower_start_locations_;
 
     /*
      *  The map index is the layer number
@@ -59,10 +59,10 @@ private:
      */
     std::map<LayerIndex, std::vector<ExtruderToolPaths>> toolpaths_;
 
-    Shape outer_poly_; //!< The outline of the prime tower, not including the base
+    OccupiedOutline outer_poly_; //!< The outline of the prime tower, not including the base
 
     //!< This is the exact outline of the extrusions lines of each layer, for layers having extra width for the base
-    LayerVector<Shape> base_extrusion_outline_;
+    LayerVector<Polygon> base_extrusion_outline_;
     //!< This is the approximate outline of the area filled at each layer, for layers having extra width for the base
     LayerVector<OccupiedOutline> base_occupied_outline_;
 
@@ -100,14 +100,14 @@ public:
      *       Use this method only if you need to get the exclusion area of the prime tower. Otherwise use getExtrusionOutline().
      *       This method exists because this approximate area can be calculated as soon as the prime tower is initialized.
      */
-    const Shape& getOccupiedOutline(const LayerIndex& layer_nr) const;
+    const Polygon& getOccupiedOutline(const LayerIndex& layer_nr) const;
 
     /*!
      * Get the occupied outline of the prime tower at the first layer
      *
      * \note @sa getOccupiedOutline()
      */
-    const Shape& getOccupiedGroundOutline() const;
+    const Polygon& getOccupiedGroundOutline() const;
 
     /*!
      * Get the extrusion outline of the prime tower at the given layer
@@ -118,7 +118,7 @@ public:
      *       touching the prime tower. Otherwise use getExtrusionOutline(). This method will return the valid result only after
      *       processExtrudersUse() has been called, which is "late" is the global slicing operation.
      */
-    const Shape& getExtrusionOutline(const LayerIndex& layer_nr) const;
+    const Polygon& getExtrusionOutline(const LayerIndex& layer_nr) const;
 
     /*!
      * \brief Get the required priming for the given extruder at the given layer

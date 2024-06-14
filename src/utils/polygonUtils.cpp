@@ -32,69 +32,6 @@ const std::function<int(Point2LL)> PolygonUtils::no_penalty_function = [](Point2
     return 0;
 };
 
-int64_t PolygonUtils::segmentLength(PolygonsPointIndex start, PolygonsPointIndex end)
-{
-    assert(start.poly_idx_ == end.poly_idx_);
-    int64_t segment_length = 0;
-    Point2LL prev_vert = start.p();
-    const Polygon& poly = start.getPolygon();
-    for (unsigned int point_idx = 1; point_idx <= poly.size(); point_idx++)
-    {
-        unsigned int vert_idx = (start.point_idx_ + point_idx) % poly.size();
-        Point2LL vert = poly[vert_idx];
-        segment_length += vSize(vert - prev_vert);
-
-        if (vert_idx == end.point_idx_)
-        { // break at the end of the loop, so that [end] and [start] may be the same
-            return segment_length;
-        }
-        prev_vert = vert;
-    }
-    assert(false && "The segment end should have been encountered!");
-    return segment_length;
-}
-
-void PolygonUtils::spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, unsigned int n_dots, std::vector<ClosestPointPolygon>& result)
-{
-    assert(start.poly_idx_ == end.poly_idx_);
-    int64_t segment_length = segmentLength(start, end);
-
-    const Polygon& poly = start.getPolygon();
-    unsigned int n_dots_in_between = n_dots;
-    if (start == end)
-    {
-        result.emplace_back(start.p(), start.point_idx_, &poly);
-        n_dots_in_between--; // generate one less below, because we already pushed a point to the result
-    }
-
-    int64_t wipe_point_dist = segment_length / (n_dots_in_between + 1); // distance between two wipe points; keep a distance at both sides of the segment
-
-    int64_t dist_past_vert_to_insert_point = wipe_point_dist;
-    unsigned int n_points_generated = 0;
-    PolygonsPointIndex vert = start;
-    while (true)
-    {
-        Point2LL p0 = vert.p();
-        Point2LL p1 = vert.next().p();
-        Point2LL p0p1 = p1 - p0;
-        int64_t p0p1_length = vSize(p0p1);
-
-        for (; dist_past_vert_to_insert_point < p0p1_length && n_points_generated < n_dots_in_between; dist_past_vert_to_insert_point += wipe_point_dist)
-        {
-            result.emplace_back(p0 + normal(p0p1, dist_past_vert_to_insert_point), vert.point_idx_, &poly);
-            n_points_generated++;
-        }
-        dist_past_vert_to_insert_point -= p0p1_length;
-
-        ++vert;
-        if (vert == end)
-        { // break at end of loop to allow for [start] and [end] being the same, meaning the full polygon
-            break;
-        }
-    }
-    assert(result.size() == n_dots && "we didn't generate as many wipe locations as we asked for.");
-}
-
 std::vector<Point2LL> PolygonUtils::spreadDotsArea(const Shape& polygons, coord_t grid_size)
 {
     return spreadDotsArea(polygons, Point2LL(grid_size, grid_size));
@@ -223,26 +160,6 @@ Point2LL PolygonUtils::getVertexInwardNormal(const Polyline& poly, unsigned int 
 Point2LL PolygonUtils::getBoundaryPointWithOffset(const Polyline& poly, unsigned int point_idx, int64_t offset)
 {
     return poly[point_idx] + normal(getVertexInwardNormal(poly, point_idx), -offset);
-}
-
-Point2LL PolygonUtils::moveInsideDiagonally(ClosestPointPolygon point_on_boundary, int64_t inset)
-{
-    if (! point_on_boundary.isValid())
-    {
-        return no_point;
-    }
-
-    const Polygon& poly = *point_on_boundary.poly_;
-    Point2LL p0 = poly[point_on_boundary.point_idx_];
-    Point2LL p1 = poly[(point_on_boundary.point_idx_ + 1) % poly.size()];
-    if (vSize2(p0 - point_on_boundary.location_) < vSize2(p1 - point_on_boundary.location_))
-    {
-        return point_on_boundary.location_ + normal(getVertexInwardNormal(poly, point_on_boundary.point_idx_), inset);
-    }
-    else
-    {
-        return point_on_boundary.location_ + normal(getVertexInwardNormal(poly, (point_on_boundary.point_idx_ + 1) % poly.size()), inset);
-    }
 }
 
 unsigned int PolygonUtils::moveOutside(const Shape& polygons, Point2LL& from, int distance, int64_t maxDist2)
@@ -1386,16 +1303,21 @@ double PolygonUtils::relativeHammingDistance(const Shape& poly_a, const Shape& p
     return hamming_distance / total_area;
 }
 
-Polygon PolygonUtils::makeCircle(const Point2LL mid, const coord_t radius, const size_t steps)
+Polygon PolygonUtils::makeCircle(const Point2LL& mid, const coord_t radius, const size_t steps)
 {
     Polygon circle;
-    const double step_angle = (std::numbers::pi * 2) / static_cast<double>(steps);
+    const AngleRadians step_angle = (std::numbers::pi * 2) / static_cast<double>(steps);
     for (size_t step = 0; step < steps; ++step)
     {
-        const double angle = static_cast<double>(step) * step_angle;
-        circle.emplace_back(mid + Point2LL(std::llrint(static_cast<double>(radius) * cos(angle)), std::llrint(static_cast<double>(radius) * sin(angle))));
+        const AngleRadians angle = static_cast<double>(step) * step_angle;
+        circle.emplace_back(makeCirclePoint(mid, radius, angle));
     }
     return circle;
+}
+
+Point2LL PolygonUtils::makeCirclePoint(const Point2LL& mid, const coord_t radius, const AngleRadians& angle)
+{
+    return mid + Point2LL(std::llrint(static_cast<double>(radius) * cos(angle)), std::llrint(static_cast<double>(radius) * sin(angle)));
 }
 
 Polygon PolygonUtils::makeWheel(const Point2LL& mid, const coord_t inner_radius, const coord_t outer_radius, const size_t semi_nb_spokes, const size_t arc_angle_resolution)

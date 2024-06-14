@@ -646,7 +646,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         raft_outline_paths.emplace_back(ParameterizedRaftPath{ line_spacing, storage.raft_base_outline });
         if (storage.prime_tower_)
         {
-            const Shape& raft_outline_prime_tower = storage.prime_tower_->getExtrusionOutline(layer_nr);
+            const Shape raft_outline_prime_tower = Shape(storage.prime_tower_->getExtrusionOutline(layer_nr));
             if (line_spacing_prime_tower == line_spacing)
             {
                 // Base layer is shared with prime tower base
