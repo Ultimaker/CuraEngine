@@ -1617,26 +1617,29 @@ Shape PolygonUtils::clipPolygonWithAABB(const Shape& src, const AABB& aabb)
     return out;
 }
 
-Shape PolygonUtils::generateCirculatOutset(const Point2LL& center, const coord_t inner_radius, const coord_t outer_radius, coord_t line_width, const size_t circle_definition)
+std::tuple<Shape, coord_t>
+    PolygonUtils::generateCirculatOutset(const Point2LL& center, const coord_t inner_radius, const coord_t outer_radius, coord_t line_width, const size_t circle_definition)
 {
     Shape outset;
-    coord_t radius = inner_radius + line_width / 2;
+    const coord_t semi_line_width = line_width / 2;
+    coord_t radius = inner_radius + semi_line_width;
 
-    while (radius + line_width / 2 <= outer_radius)
+    while (radius + semi_line_width <= outer_radius)
     {
         outset.push_back(makeCircle(center, radius, circle_definition));
         radius += line_width;
     }
 
-    return outset;
+    return { outset, radius - semi_line_width };
 }
 
 Shape PolygonUtils::generateCircularInset(const Point2LL& center, const coord_t outer_radius, const coord_t line_width, const size_t circle_definition)
 {
     Shape inset;
-    coord_t radius = outer_radius - line_width / 2;
+    const coord_t semi_line_width = line_width / 2;
+    coord_t radius = outer_radius - semi_line_width;
 
-    while (radius - line_width / 2 >= line_width)
+    while (radius - semi_line_width >= line_width)
     {
         inset.push_back(makeCircle(center, radius, circle_definition));
         radius -= line_width;

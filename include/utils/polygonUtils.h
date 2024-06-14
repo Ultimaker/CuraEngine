@@ -684,9 +684,10 @@ public:
      * \param outer_radius The outer radius to fit the outset into
      * \param line_width The actual line width to distance the polygons from each other (and from the base)
      * \param circle_definition The definition (number of segments) of the generated circles
-     * \return The generated outset circles
+     * \return The generated outset circles, and the outer radius or the shape
      */
-    static Shape generateCirculatOutset(const Point2LL& center, const coord_t inner_radius, const coord_t outer_radius, const coord_t line_width, const size_t circle_definition);
+    static std::tuple<Shape, coord_t>
+        generateCirculatOutset(const Point2LL& center, const coord_t inner_radius, const coord_t outer_radius, const coord_t line_width, const size_t circle_definition);
 
     /*!
      * Generate inset circles inside the given base, until there is no space left, according to the given line width

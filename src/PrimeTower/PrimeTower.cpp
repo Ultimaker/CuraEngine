@@ -93,11 +93,11 @@ void PrimeTower::generateBase()
                 const size_t extruder_nr = first_extruder_toolpaths.extruder_nr;
                 const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
 
-                Shape outset
+                std::tuple<Shape, coord_t> outset
                     = PolygonUtils::generateCirculatOutset(middle_, first_extruder_toolpaths.outer_radius, base_ouline_at_this_layer.outer_radius, line_width, CIRCLE_RESOLUTION);
-                first_extruder_toolpaths.toolpaths.push_back(outset);
+                first_extruder_toolpaths.toolpaths.push_back(std::get<0>(outset));
 
-                base_extrusion_outline_.push_back(outset.offset(line_width / 2));
+                base_extrusion_outline_.push_back(std::vector<Polygon>({ PolygonUtils::makeCircle(middle_, std::get<1>(outset), CIRCLE_RESOLUTION) }));
             }
         }
     }
@@ -126,32 +126,23 @@ std::tuple<Shape, coord_t> PrimeTower::generatePrimeToolpaths(const size_t extru
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
-    const coord_t tower_radius = mesh_group_settings.get<coord_t>("prime_tower_size") / 2;
     const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
     const double required_volume = scene.extruders[extruder_nr].settings_.get<double>("prime_tower_min_volume") * 1000000000;
     const Ratio flow = scene.extruders[extruder_nr].settings_.get<Ratio>("prime_tower_flow");
+    const coord_t semi_line_width = line_width / 2;
 
     double current_volume = 0;
-    coord_t current_outer_diameter = outer_radius;
+    coord_t current_outer_radius = outer_radius - semi_line_width;
     Shape toolpaths;
-    do
+    while (current_volume < required_volume && current_outer_radius >= semi_line_width)
     {
-        Shape shape = outer_poly_.offset(-(tower_radius - current_outer_diameter + line_width / 2));
+        Polygon circle = PolygonUtils::makeCircle(middle_, current_outer_radius, CIRCLE_RESOLUTION);
+        toolpaths.push_back(circle);
+        current_volume += static_cast<double>(circle.length() * line_width * layer_height) * flow;
+        current_outer_radius -= line_width;
+    }
 
-        if (! shape.empty())
-        {
-            toolpaths.push_back(shape);
-            current_volume += static_cast<double>(shape.length() * line_width * layer_height) * flow;
-            current_outer_diameter -= line_width;
-        }
-        else
-        {
-            // Don't continue. We won't ever reach the required volume because it doesn't fit.
-            break;
-        }
-    } while (current_volume < required_volume);
-
-    return std::make_tuple(toolpaths, current_outer_diameter);
+    return { toolpaths, current_outer_radius + semi_line_width };
 }
 
 Shape PrimeTower::generateSupportToolpaths(const size_t extruder_nr, const coord_t outer_radius, const coord_t inner_radius)
