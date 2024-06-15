@@ -2363,24 +2363,23 @@ void TreeSupport::dropNonGraciousAreas(
         });
 }
 
-void TreeSupport::generateSupportSkin(
+void TreeSupport::prepareSupportAreas(
     std::vector<Polygons>& support_layer_storage,
     std::vector<Polygons>& support_layer_storage_fractional,
-    std::vector<Polygons>& support_skin_storage,
     std::vector<Polygons>& support_roof_storage,
     std::vector<Polygons>& support_roof_extra_wall_storage,
     std::vector<Polygons>& support_roof_storage_fractional,
     std::vector<Polygons>& support_roof_extra_wall_storage_fractional,
+    std::vector<Polygons>& fake_roof_areas_combined,
+    std::vector<Polygons>& cradle_base_areas,
+    std::vector<Polygons>& cradle_support_line_areas,
     SliceDataStorage& storage,
-    std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons,
     std::vector<std::vector<TreeSupportCradle*>>& cradle_data)
 {
     const auto t_start = std::chrono::high_resolution_clock::now();
     const coord_t open_close_distance = config.fill_outline_gaps ? config.min_feature_size / 2 - 5 : config.min_wall_line_width / 2 - 5; // based on calculation in WallToolPath
     const double small_area_length = INT2MM(static_cast<double>(config.support_line_width) / 2);
 
-    std::vector<Polygons> cradle_base_areas(support_layer_storage.size()); // Copy of all cradle base areas. Already added to correct storage.
-    std::vector<Polygons> cradle_support_line_areas(support_layer_storage.size()); // All cradle lines that have to be added as support
     std::vector<Polygons> cradle_support_line_roof_areas(support_layer_storage.size()); // All cradle lines that have to be added as roof
 
     std::vector<Polygons> cradle_line_xy_distance_areas(support_layer_storage.size()); // All cradle lines offset by xy distance.
@@ -2497,8 +2496,6 @@ void TreeSupport::generateSupportSkin(
             }
         });
 
-    std::vector<Polygons> fake_roofs(fake_roof_areas.size());
-
     cura::parallel_for<coord_t>(
         0,
         support_layer_storage.size(),
@@ -2516,7 +2513,7 @@ void TreeSupport::generateSupportSkin(
             }
             fake_roof_lines = fake_roof_lines.unionPolygons();
             fake_roof = fake_roof.unionPolygons();
-            fake_roofs[layer_idx] = fake_roof;
+            fake_roof_areas_combined[layer_idx] = fake_roof;
 
 
             Polygons remove_from_support = cradle_line_xy_distance_areas[layer_idx];
@@ -2628,9 +2625,127 @@ void TreeSupport::generateSupportSkin(
             Polygons fractional_roof = support_roof_storage_fractional[layer_idx].difference(remove_from_next_fractional_roof.unionPolygons(fractional_roof_extra_wall));
             storage.support.supportLayers[layer_idx].fillRoofParts(fractional_roof, config.support_roof_line_width, config.support_roof_wall_count, true);
         });
+}
 
-    const auto t_union = std::chrono::high_resolution_clock::now();
 
+void TreeSupport::calculateSupportHoles(std::vector<Polygons>& support_layer_storage,
+                                        std::vector<std::vector<Polygons>>& hole_parts,
+                                        std::vector<std::set<size_t>>& valid_holes,
+                                        std::vector<std::set<size_t>>& non_removable_holes,
+                                        std::vector<std::map<size_t, std::vector<size_t>>>& hole_rest_map)
+{
+
+    std::function<void(Polygons&)> reversePolygon = [&](Polygons& poly)
+    {
+        for (size_t idx = 0; idx < poly.size(); idx++)
+        {
+            poly[idx].reverse();
+        }
+    };
+
+
+    std::vector<Polygons> support_holes(support_layer_storage.size(), Polygons());
+
+    // Extract all holes as polygon objects
+    cura::parallel_for<coord_t>(
+
+        0,
+        support_layer_storage.size(),
+        [&](const LayerIndex layer_idx)
+        {
+            std::vector<Polygons> parts = support_layer_storage[layer_idx].sortByNesting();
+
+            if (parts.size() <= 1)
+            {
+                return;
+            }
+
+            Polygons holes_original;
+            for (const size_t idx : ranges::views::iota(1UL, parts.size()))
+            {
+                Polygons area = parts[idx];
+                reversePolygon(area);
+                holes_original.add(area);
+            }
+            support_holes[layer_idx] = holes_original;
+        });
+
+    hole_parts.resize(support_layer_storage.size());
+    valid_holes.resize(support_layer_storage.size());
+    non_removable_holes.resize(support_layer_storage.size());
+    hole_rest_map.resize(support_layer_storage.size());
+    // Split all holes into parts
+    cura::parallel_for<coord_t>(
+        0,
+        support_layer_storage.size(),
+        [&](const LayerIndex layer_idx)
+        {
+            for (Polygons hole : support_holes[layer_idx].splitIntoParts())
+            {
+                hole_parts[layer_idx].emplace_back(hole);
+            }
+        });
+
+    // Figure out which hole rests on which other hole
+    cura::parallel_for<coord_t>(
+        1,
+        support_layer_storage.size(),
+        [&](const LayerIndex layer_idx)
+        {
+            if (hole_parts[layer_idx].empty())
+            {
+                return;
+            }
+
+            Polygons relevant_forbidden = volumes_.getCollision(0, layer_idx, true);
+            Polygons outer_walls
+                = TreeSupportUtils::toPolylines(support_layer_storage[layer_idx - 1].getOutsidePolygons()).tubeShape(config.support_line_width * config.support_wall_count, 0);
+
+
+            for (auto [idx, hole] : hole_parts[layer_idx] | ranges::views::enumerate)
+            {
+                AABB hole_aabb = AABB(hole);
+                hole_aabb.expand(EPSILON);
+                if (! hole.intersection(PolygonUtils::clipPolygonWithAABB(outer_walls, hole_aabb)).empty())
+                {
+                    valid_holes[layer_idx].emplace(idx);
+                }
+                else
+                {
+                    if(!hole.intersection(PolygonUtils::clipPolygonWithAABB(relevant_forbidden, hole_aabb)).offset(- config.xy_min_distance / 2).empty())
+                    {
+                        non_removable_holes[layer_idx].emplace(idx); // technically not resting outside, also not valid, but the alternative is potentially having lines go though the model
+                    }
+
+                    for (auto [idx2, hole2] : hole_parts[layer_idx - 1] | ranges::views::enumerate)
+                    {
+                        if (hole_aabb.hit(AABB(hole2))
+                            && ! hole.intersection(hole2).empty()) // TODO should technically be outline: Check if this is fine either way as it would save an offset
+                        {
+                            hole_rest_map[layer_idx][idx].emplace_back(idx2);
+                        }
+                    }
+                }
+            }
+        });
+}
+
+
+
+void TreeSupport::generateSupportSkin(
+    std::vector<Polygons>& support_layer_storage,
+    std::vector<Polygons>& support_skin_storage,
+    std::vector<Polygons>& fake_roof_areas_combined,
+    std::vector<Polygons>& cradle_base_areas,
+    std::vector<Polygons>& cradle_support_line_areas,
+    std::vector<std::vector<Polygons>>& hole_parts,
+    std::vector<std::set<size_t>>& valid_holes,
+    std::vector<std::set<size_t>>& non_removable_holes,
+    std::vector<std::map<size_t, std::vector<size_t>>>& hole_rest_map,
+    SliceDataStorage& storage,
+    std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons)
+{
+    std::mutex critical_support_layer_storage;
 
     if (config.support_skin_layers)
     {
@@ -2661,8 +2776,28 @@ void TreeSupport::generateSupportSkin(
                     Polygons roof_above = storage.support.supportLayers[layer_idx + 1].getTotalAreaFromParts(storage.support.supportLayers[layer_idx + 1].support_roof);
 
                     needs_supporting.add(roof_above.difference(support_shell_capable_of_supporting_roof));
-                    needs_supporting.add(fake_roofs[layer_idx + 1].difference(support_shell_capable_of_supporting_roof));
+                    needs_supporting.add(fake_roof_areas_combined[layer_idx + 1].difference(support_shell_capable_of_supporting_roof));
                     needs_supporting.add(cradle_support_line_areas[layer_idx + 1]);
+
+                    for(size_t hole_idx : non_removable_holes[layer_idx + 1])
+                    {
+                        bool rests_on_another = false;
+                        for(size_t hole_idx_below : hole_rest_map[layer_idx + 1][hole_idx])
+                        {
+                            if(valid_holes[layer_idx].contains(hole_idx_below) || non_removable_holes[layer_idx].contains(hole_idx_below))
+                            {
+                                rests_on_another = true;
+                                break;
+                            }
+                        }
+
+                        if(!rests_on_another) // Assuming that because of xy distance any hole below will be large enough to support this hole.
+                        {
+                            //Offset required as it is not the hole that needs support, but the surrounding walls!
+                            needs_supporting.add(hole_parts[layer_idx + 1][hole_idx].offset(config.support_line_width * config.support_wall_count + FUDGE_LENGTH));
+                        }
+                    }
+
                 }
                 needs_supporting.add(cradle_base_areas[layer_idx]); // cradle bases should be skin.
 
@@ -2672,7 +2807,7 @@ void TreeSupport::generateSupportSkin(
 
                 Polygons already_supports;
                 already_supports.add(existing_roof); // roof
-                already_supports.add(fake_roofs[layer_idx]);
+                already_supports.add(fake_roof_areas_combined[layer_idx]);
                 already_supports.add(support_layer_storage[layer_idx].getOutsidePolygons().tubeShape(config.support_line_width * config.support_wall_count, 0));
                 already_supports.add(cradle_support_line_areas[layer_idx]);
                 already_supports = already_supports.unionPolygons().offset(FUDGE_LENGTH).unionPolygons();
@@ -2723,7 +2858,7 @@ void TreeSupport::generateSupportSkin(
 
                     for (Polygons part : support_on_layer.splitIntoParts())
                     {
-                        Polygons part_outline = part.getOutsidePolygons();
+                        Polygons part_outline = part.getOutsidePolygons().difference(volumes_.getCollision(0, layer_idx - support_skin_ctr, true));
                         if (! PolygonUtils::clipPolygonWithAABB(may_need_skin_area, AABB(part_outline)).empty())
                         {
                             // Use line infill to scan which area the line infill has to occupy to reach the outer outline of a branch.
@@ -2802,126 +2937,49 @@ void TreeSupport::generateSupportSkin(
         {
             support_skin_storage[layer_idx] = support_skin_storage[layer_idx].unionPolygons();
             support_layer_storage[layer_idx] = support_layer_storage[layer_idx].unionPolygons(cradle_support_line_areas[layer_idx]).difference(support_skin_storage[layer_idx]);
-        });
-}
 
-void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_storage, std::vector<Polygons>& support_skin_storage)
-{
-    const auto t_start = std::chrono::high_resolution_clock::now();
-
-    std::function<void(Polygons&)> reversePolygon = [&](Polygons& poly)
-    {
-        for (size_t idx = 0; idx < poly.size(); idx++)
-        {
-            poly[idx].reverse();
-        }
-    };
-
-
-    std::vector<Polygons> support_holes(support_layer_storage.size(), Polygons());
-
-    // Extract all holes as polygon objects
-    cura::parallel_for<coord_t>(
-
-        0,
-        support_layer_storage.size(),
-        [&](const LayerIndex layer_idx)
-        {
-            std::vector<Polygons> parts = support_layer_storage[layer_idx].sortByNesting();
-
-            if (parts.size() <= 1)
+            if(layer_idx > 0)
             {
-                return;
-            }
-
-            Polygons holes_original;
-            for (const size_t idx : ranges::views::iota(1UL, parts.size()))
-            {
-                Polygons area = parts[idx];
-                reversePolygon(area);
-                holes_original.add(area);
-            }
-            support_holes[layer_idx] = holes_original;
-        });
-
-    const auto t_union = std::chrono::high_resolution_clock::now();
-
-    std::vector<std::vector<Polygons>> holeparts(support_layer_storage.size());
-    // Split all holes into parts
-    cura::parallel_for<coord_t>(
-        0,
-        support_layer_storage.size(),
-        [&](const LayerIndex layer_idx)
-        {
-            for (Polygons hole : support_holes[layer_idx].splitIntoParts())
-            {
-                holeparts[layer_idx].emplace_back(hole);
-            }
-        });
-    std::vector<std::map<size_t, std::vector<size_t>>> hole_rest_map(holeparts.size());
-    std::vector<std::set<size_t>> holes_resting_outside(holeparts.size());
-
-
-    // Figure out which hole rests on which other hole
-    cura::parallel_for<coord_t>(
-        1,
-        support_layer_storage.size(),
-        [&](const LayerIndex layer_idx)
-        {
-            if (holeparts[layer_idx].empty())
-            {
-                return;
-            }
-
-            Polygons outer_walls
-                = TreeSupportUtils::toPolylines(support_layer_storage[layer_idx - 1].getOutsidePolygons()).tubeShape(config.support_line_width * config.support_wall_count, 0);
-
-            Polygons holes_below;
-
-            for (auto poly : holeparts[layer_idx - 1])
-            {
-                holes_below.add(poly);
-            }
-
-            for (auto [idx, hole] : holeparts[layer_idx] | ranges::views::enumerate)
-            {
-                AABB hole_aabb = AABB(hole);
-                hole_aabb.expand(EPSILON);
-                if (! hole.intersection(PolygonUtils::clipPolygonWithAABB(outer_walls, hole_aabb)).empty())
+                for (auto [idx, hole] : hole_parts[layer_idx] | ranges::views::enumerate)
                 {
-                    holes_resting_outside[layer_idx].emplace(idx);
-                }
-                else if (! hole.intersection(PolygonUtils::clipPolygonWithAABB(support_skin_storage[layer_idx - 1], hole_aabb)).empty())
-                {
-                    holes_resting_outside[layer_idx].emplace(idx); // technically not resting outside, but valid the same
-                }
-                else
-                {
-                    for (auto [idx2, hole2] : holeparts[layer_idx - 1] | ranges::views::enumerate)
+                    AABB hole_aabb = AABB(hole);
+                    hole_aabb.expand(EPSILON);
+                    if(hole.difference(PolygonUtils::clipPolygonWithAABB(support_skin_storage[layer_idx], hole_aabb)).empty())
                     {
-                        if (hole_aabb.hit(AABB(hole2))
-                            && ! hole.intersection(hole2).empty()) // TODO should technically be outline: Check if this is fine either way as it would save an offset
-                        {
-                            hole_rest_map[layer_idx][idx].emplace_back(idx2);
-                        }
+                        // The Hole was replaced by skin, remove it.
+                        // All holes that rest on this are valid, but that is already ensured below
+                        hole_parts[layer_idx][idx] = Polygons();
+                    }
+                    else if (! hole.intersection(PolygonUtils::clipPolygonWithAABB(support_skin_storage[layer_idx - 1], hole_aabb)).empty())
+                    {
+                        valid_holes[layer_idx].emplace(idx);
                     }
                 }
             }
         });
+}
 
-    const auto t_hole_rest_ordering = std::chrono::high_resolution_clock::now();
-
+void TreeSupport::removeFloatingHoles(std::vector<Polygons>& support_layer_storage,
+                                      std::vector<std::vector<Polygons>>& hole_parts,
+                                      std::vector<std::set<size_t>>& valid_holes,
+                                      std::vector<std::set<size_t>>& non_removable_holes,
+                                      std::vector<std::map<size_t, std::vector<size_t>>>& hole_rest_map)
+{
     std::unordered_set<size_t> removed_holes_by_idx;
-    std::vector<Polygons> valid_holes(support_holes.size(), Polygons());
+    std::vector<Polygons> valid_holes_areas(hole_parts.size(), Polygons());
     // Check which holes have to be removed as they do not rest on anything. Only keep holes that have to be removed
-    for (const size_t layer_idx : ranges::views::iota(1UL, support_holes.size()))
+    for (const size_t layer_idx : ranges::views::iota(1UL, hole_parts.size()))
     {
         std::unordered_set<size_t> next_removed_holes_by_idx;
 
-        for (auto [idx, hole] : holeparts[layer_idx] | ranges::views::enumerate)
+        for (auto [idx, hole] : hole_parts[layer_idx] | ranges::views::enumerate)
         {
             bool found = false;
-            if (holes_resting_outside[layer_idx].contains(idx))
+            if (valid_holes[layer_idx].contains(idx))
+            {
+                found = true;
+            }
+            else if (non_removable_holes[layer_idx].contains(idx))
             {
                 found = true;
             }
@@ -2945,8 +3003,8 @@ void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_stora
             }
             else
             {
-                valid_holes[layer_idx].add(hole);
-                holeparts[layer_idx][idx] = Polygons(); // all remaining holes will have to be removed later, so removing the hole means it is confirmed valid!
+                valid_holes_areas[layer_idx].add(hole);
+                hole_parts[layer_idx][idx] = Polygons(); // all remaining holes will have to be removed later, so removing the hole means it is confirmed valid!
             }
         }
         removed_holes_by_idx = next_removed_holes_by_idx;
@@ -2960,31 +3018,15 @@ void TreeSupport::filterFloatingLines(std::vector<Polygons>& support_layer_stora
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
         {
-            if (holeparts[layer_idx].empty())
+            if (hole_parts[layer_idx].empty())
             {
                 return;
             }
 
-            support_layer_storage[layer_idx] = support_layer_storage[layer_idx].getOutsidePolygons();
-            reversePolygon(valid_holes[layer_idx]);
-            support_layer_storage[layer_idx].add(valid_holes[layer_idx]);
+            //Because the support_layer_storage could be modified (e.g. because the holes are now skin), just adding back the reversed holes is no longer working. Need to do a real difference instead.
+            support_layer_storage[layer_idx] = support_layer_storage[layer_idx].getOutsidePolygons().difference(valid_holes_areas[layer_idx]);
         });
 
-
-    const auto t_end = std::chrono::high_resolution_clock::now();
-
-    const auto dur_union = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_union - t_start).count();
-    const auto dur_hole_rest_ordering = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_hole_rest_ordering - t_union).count();
-    const auto dur_hole_removal_tagging = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_hole_removal_tagging - t_hole_rest_ordering).count();
-
-    const auto dur_hole_removal = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_hole_removal_tagging).count();
-    spdlog::debug(
-        "Time to union areas: {} ms Time to evaluate which hole rest on which other hole: {} ms Time to see which holes are not resting on anything valid: {} ms remove all holes "
-        "that are invalid and not close enough to a valid hole: {} ms",
-        dur_union,
-        dur_hole_rest_ordering,
-        dur_hole_removal_tagging,
-        dur_hole_removal);
 }
 
 void TreeSupport::finalizeInterfaceAndSupportAreas(
@@ -3240,6 +3282,13 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
     std::vector<Polygons> support_skin_storage(move_bounds.size());
     std::vector<Polygons> support_roof_storage(move_bounds.size());
     std::vector<Polygons> support_roof_extra_wall_storage(move_bounds.size());
+    std::vector<std::vector<Polygons>> hole_parts(move_bounds.size());
+    std::vector<std::set<size_t>> valid_holes(move_bounds.size());
+    std::vector<std::set<size_t>> non_removable_holes(move_bounds.size());
+    std::vector<std::map<size_t, std::vector<size_t>>> hole_rest_map(move_bounds.size());
+    std::vector<Polygons> fake_roof_areas_combined(move_bounds.size());
+    std::vector<Polygons> cradle_base_areas(move_bounds.size());
+    std::vector<Polygons> cradle_support_line_areas(move_bounds.size());
 
     std::map<TreeSupportElement*, TreeSupportElement*>
         inverse_tree_order; // In the tree structure only the parents can be accessed. Inverse this to be able to access the children.
@@ -3385,17 +3434,40 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
         }
     }
 
-    generateSupportSkin(
-        support_layer_storage,
+    prepareSupportAreas(support_layer_storage,
         support_layer_storage_fractional,
-        support_skin_storage,
         support_roof_storage,
         support_roof_extra_wall_storage,
         support_roof_storage_fractional,
         support_roof_extra_wall_storage_fractional,
+        fake_roof_areas_combined,
+        cradle_base_areas,
+        cradle_support_line_areas,
         storage,
-        layer_tree_polygons,
         cradle_data);
+
+    const auto t_union = std::chrono::high_resolution_clock::now();
+
+    calculateSupportHoles(support_layer_storage,
+                          hole_parts,
+                          valid_holes,
+                          non_removable_holes,
+                          hole_rest_map);
+
+    const auto t_holes = std::chrono::high_resolution_clock::now();
+
+    generateSupportSkin(
+        support_layer_storage,
+        support_skin_storage,
+        fake_roof_areas_combined,
+        cradle_base_areas,
+        cradle_support_line_areas,
+        hole_parts,
+        valid_holes,
+        non_removable_holes,
+        hole_rest_map,
+        storage,
+        layer_tree_polygons);
 
     for (const auto layer_idx : ranges::views::iota(0UL, support_layer_storage.size()))
     {
@@ -3404,7 +3476,11 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
     }
 
     const auto t_skin = std::chrono::high_resolution_clock::now();
-    filterFloatingLines(support_layer_storage, support_skin_storage);
+    removeFloatingHoles(support_layer_storage,
+                        hole_parts,
+                        valid_holes,
+                        non_removable_holes,
+                        hole_rest_map);
     const auto t_filter = std::chrono::high_resolution_clock::now();
 
     finalizeInterfaceAndSupportAreas(support_layer_storage, support_skin_storage, support_layer_storage_fractional, storage);
@@ -3413,15 +3489,20 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
     const auto dur_gen_tips = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_generate - t_start).count();
     const auto dur_smooth = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_smooth - t_generate).count();
     const auto dur_drop = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_drop - t_smooth).count();
-    const auto dur_skin = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_skin - t_drop).count();
+    const auto dur_union = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_union - t_drop).count();
+    const auto dur_holes = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_holes - t_union).count();
+    const auto dur_skin = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_skin - t_holes).count();
     const auto dur_filter = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_filter - t_skin).count();
     const auto dur_finalize = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_filter).count();
     spdlog::info(
-        "Time used for drawing subfuctions: generateBranchAreas: {} ms smoothBranchAreas: {} ms dropNonGraciousAreas: {} ms generateSupportSkin {} ms filterFloatingLines: {} ms "
-        "finalizeInterfaceAndSupportAreas {} ms",
+        "Time used for drawing subfuctions: generateBranchAreas: {} ms smoothBranchAreas: {} ms dropNonGraciousAreas: {} ms "
+        "prepareSupportAreas: {} ms calculateSupportHoles: {} ms generateSupportSkin {} ms "
+        "filterFloatingHoles: {} ms finalizeInterfaceAndSupportAreas {} ms",
         dur_gen_tips,
         dur_smooth,
         dur_drop,
+        dur_union,
+        dur_holes,
         dur_skin,
         dur_filter,
         dur_finalize);

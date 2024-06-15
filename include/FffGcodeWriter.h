@@ -207,6 +207,10 @@ private:
      */
     void processRaft(const SliceDataStorage& storage);
 
+    void startRaftLayer(const SliceDataStorage& storage, LayerPlan& gcode_layer, const LayerIndex layer_nr, size_t layer_extruder, size_t& current_extruder);
+
+    void endRaftLayer(const SliceDataStorage& storage, LayerPlan& gcode_layer, const LayerIndex layer_nr, size_t& current_extruder, const bool append_to_prime_tower = true);
+
     /*!
      * Convert the polygon data of a layer into a layer plan on the FffGcodeWriter::layer_plan_buffer
      *
@@ -660,8 +664,11 @@ private:
      * \param[in] storage where the slice data is stored.
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \param extruder_nr The extruder to switch to.
+     * \param append_to_prime_tower Indicates whether we should actually prime the extruder on the prime tower (normal
+     *                              case before actually using the extruder) or just do the basic priming (i.e. on first
+     *                              layer before starting the print
      */
-    void setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t extruder_nr) const;
+    void setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t extruder_nr, const bool append_to_prime_tower = true) const;
 
     /*!
      * Add the prime tower gcode for the current layer.
