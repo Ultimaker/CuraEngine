@@ -78,11 +78,11 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerInter
         {
             if (toolpaths_at_layer.empty())
             {
-                toolpaths_at_layer.emplace_back(last_extruder_support, Shape(), outer_radius, support_radius);
+                toolpaths_at_layer.emplace_back(last_extruder_support, ClosedLinesSet(), outer_radius, support_radius);
             }
 
             ExtruderToolPaths& last_extruder_toolpaths = toolpaths_at_layer.back();
-            Shape support_toolpaths = generateSupportToolpaths(last_extruder_toolpaths.extruder_nr, outer_radius, support_radius);
+            ClosedLinesSet support_toolpaths = generateSupportToolpaths(last_extruder_toolpaths.extruder_nr, outer_radius, support_radius);
             last_extruder_toolpaths.toolpaths.push_back(support_toolpaths);
             last_extruder_toolpaths.inner_radius = support_radius;
         }

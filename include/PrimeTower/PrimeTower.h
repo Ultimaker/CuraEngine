@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "ExtruderUse.h"
+#include "geometry/ClosedLinesSet.h"
 #include "geometry/Polygon.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/LayerIndex.h"
@@ -38,7 +39,7 @@ protected:
     struct ExtruderToolPaths
     {
         size_t extruder_nr;
-        Shape toolpaths;
+        ClosedLinesSet toolpaths;
         coord_t outer_radius;
         coord_t inner_radius;
     };
@@ -179,7 +180,7 @@ protected:
      * \param outer_radius The radius of the starting outer circle
      * \return A tuple containing the newly generated toolpaths, and the inner radius of the newly generated annulus
      */
-    std::tuple<Shape, coord_t> generatePrimeToolpaths(const size_t extruder_nr, const coord_t outer_radius);
+    std::tuple<ClosedLinesSet, coord_t> generatePrimeToolpaths(const size_t extruder_nr, const coord_t outer_radius);
 
     /*!
      * \brief Generate support toolpaths using the wheel pattern applied on an annulus
@@ -188,7 +189,7 @@ protected:
      * \param inner_radius The annulis inner radius
      * \return
      */
-    Shape generateSupportToolpaths(const size_t extruder_nr, const coord_t outer_radius, const coord_t inner_radius);
+    ClosedLinesSet generateSupportToolpaths(const size_t extruder_nr, const coord_t outer_radius, const coord_t inner_radius);
 
     /*!
      * \brief Calculates whether an extruder requires priming at a specific layer

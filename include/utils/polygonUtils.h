@@ -13,6 +13,7 @@
 #include "PolygonsPointIndex.h"
 #include "SparseLineGrid.h"
 #include "SparsePointGridInclusive.h"
+#include "geometry/ClosedLinesSet.h"
 #include "geometry/Polygon.h"
 
 namespace cura
@@ -599,15 +600,24 @@ public:
     static double relativeHammingDistance(const Shape& poly_a, const Shape& poly_b);
 
     /*!
-     * Create an approximation of a circle.
+     * Creates a regular polygon that is supposed to approximate a disc.
      *
-     * This creates a regular polygon that is supposed to approximate a circle.
+     * \param mid The center of the disc.
+     * \param radius The radius of the disc.
+     * \param steps The numbers of segments (definition) of the generated disc.
+     * \return A new Polygon containing the disc.
+     */
+    static Polygon makeDisc(const Point2LL& mid, const coord_t radius, const size_t steps);
+
+    /*!
+     * Creates a closed polyline that is supposed to approximate a circle.
+     *
      * \param mid The center of the circle.
      * \param radius The radius of the circle.
      * \param steps The numbers of segments (definition) of the generated circle.
      * \return A new Polygon containing the circle.
      */
-    static Polygon makeCircle(const Point2LL& mid, const coord_t radius, const size_t steps);
+    static ClosedPolyline makeCircle(const Point2LL& mid, const coord_t radius, const size_t steps);
 
     /*!
      * Create a point of a circle.
@@ -620,17 +630,16 @@ public:
     static Point2LL makeCirclePoint(const Point2LL& mid, const coord_t radius, const AngleRadians& angle);
 
     /*!
-     * Create a "wheel" shape.
+     * This creates a polyline which represents the shape of a wheel, which is kind of a "circular zigzag" pattern.
      *
-     * This creates a polygon which represents the shape of a wheel.
      * \param mid The center of the circle.
      * \param inner_radius The radius of the wheel inner circle.
      * \param outer_radius The radius of the wheel outer circle.
      * \param semi_nb_spokes The semi number of spokes in the wheel. There will actually be N*2 spokes.
-     * \param arc_angle_resolution The number of segment on each arc.
-     * \return A new Polygon containing the circle.
+     * \param arc_angle_resolution The number of segments on each arc.
+     * \return A new Polyline containing the circle.
      */
-    static Polygon makeWheel(const Point2LL& mid, const coord_t inner_radius, const coord_t outer_radius, const size_t semi_nb_spokes, const size_t arc_angle_resolution);
+    static ClosedPolyline makeWheel(const Point2LL& mid, const coord_t inner_radius, const coord_t outer_radius, const size_t semi_nb_spokes, const size_t arc_angle_resolution);
 
     /*!
      * Connect all polygons to their holes using zero widths hole channels, so that the polygons and their outlines are connected together
@@ -640,7 +649,6 @@ public:
     static void fixSelfIntersections(const coord_t epsilon, Shape& polygon);
 
     static Shape unionManySmall(const Shape& polygon);
-
 
     /*!
      * Intersects a polygon with an AABB.
@@ -660,7 +668,7 @@ public:
      * \param circle_definition The definition (number of segments) of the generated circles
      * \return The generated outset circles, and the outer radius or the shape
      */
-    static std::tuple<Shape, coord_t>
+    static std::tuple<ClosedLinesSet, coord_t>
         generateCirculatOutset(const Point2LL& center, const coord_t inner_radius, const coord_t outer_radius, const coord_t line_width, const size_t circle_definition);
 
     /*!
@@ -672,7 +680,7 @@ public:
      * \param circle_definition The definition (number of segments) of the generated circles
      * \return The generated inset circles
      */
-    static Shape generateCircularInset(const Point2LL& center, const coord_t outer_radius, const coord_t line_width, const size_t circle_definition);
+    static ClosedLinesSet generateCircularInset(const Point2LL& center, const coord_t outer_radius, const coord_t line_width, const size_t circle_definition);
 
 private:
     /*!

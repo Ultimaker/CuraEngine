@@ -40,7 +40,7 @@ PrimeTower::PrimeTower()
     const double base_curve_magnitude = mesh_group_settings.get<double>("prime_tower_base_curve_magnitude");
 
     middle_ = Point2LL(x - tower_radius, y + tower_radius);
-    outer_poly_ = { PolygonUtils::makeCircle(middle_, tower_radius, circle_definition_), tower_radius };
+    outer_poly_ = { PolygonUtils::makeDisc(middle_, tower_radius, circle_definition_), tower_radius };
     post_wipe_point_ = Point2LL(x - tower_radius, y + tower_radius);
 
     // Generate the base outline
@@ -53,7 +53,7 @@ PrimeTower::PrimeTower()
             const double brim_radius_factor = std::pow((1.0 - static_cast<double>(z) / static_cast<double>(base_height)), base_curve_magnitude);
             const coord_t extra_radius = std::llrint(static_cast<double>(base_extra_radius) * brim_radius_factor);
             const coord_t total_radius = tower_radius + extra_radius;
-            base_occupied_outline_.emplace_back(PolygonUtils::makeCircle(middle_, total_radius, circle_definition_), total_radius);
+            base_occupied_outline_.emplace_back(PolygonUtils::makeDisc(middle_, total_radius, circle_definition_), total_radius);
         }
     }
 }
@@ -83,11 +83,11 @@ void PrimeTower::generateBase()
                 const size_t extruder_nr = first_extruder_toolpaths.extruder_nr;
                 const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
 
-                std::tuple<Shape, coord_t> outset
+                std::tuple<ClosedLinesSet, coord_t> outset
                     = PolygonUtils::generateCirculatOutset(middle_, first_extruder_toolpaths.outer_radius, base_ouline_at_this_layer.outer_radius, line_width, circle_definition_);
                 first_extruder_toolpaths.toolpaths.push_back(std::get<0>(outset));
 
-                base_extrusion_outline_.push_back(PolygonUtils::makeCircle(middle_, std::get<1>(outset), circle_definition_));
+                base_extrusion_outline_.push_back(PolygonUtils::makeDisc(middle_, std::get<1>(outset), circle_definition_));
             }
         }
     }
@@ -105,13 +105,13 @@ void PrimeTower::generateFirtLayerInset()
             const Scene& scene = Application::getInstance().current_slice_->scene;
             const size_t extruder_nr = last_extruder_toolpaths.extruder_nr;
             const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
-            Shape pattern = PolygonUtils::generateCircularInset(middle_, last_extruder_toolpaths.inner_radius, line_width, circle_definition_);
+            ClosedLinesSet pattern = PolygonUtils::generateCircularInset(middle_, last_extruder_toolpaths.inner_radius, line_width, circle_definition_);
             last_extruder_toolpaths.toolpaths.push_back(pattern);
         }
     }
 }
 
-std::tuple<Shape, coord_t> PrimeTower::generatePrimeToolpaths(const size_t extruder_nr, const coord_t outer_radius)
+std::tuple<ClosedLinesSet, coord_t> PrimeTower::generatePrimeToolpaths(const size_t extruder_nr, const coord_t outer_radius)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
@@ -123,10 +123,10 @@ std::tuple<Shape, coord_t> PrimeTower::generatePrimeToolpaths(const size_t extru
 
     double current_volume = 0;
     coord_t current_outer_radius = outer_radius - semi_line_width;
-    Shape toolpaths;
+    ClosedLinesSet toolpaths;
     while (current_volume < required_volume && current_outer_radius >= semi_line_width)
     {
-        Polygon circle = PolygonUtils::makeCircle(middle_, current_outer_radius, circle_definition_);
+        ClosedPolyline circle = PolygonUtils::makeCircle(middle_, current_outer_radius, circle_definition_);
         toolpaths.push_back(circle);
         current_volume += static_cast<double>(circle.length() * line_width * layer_height) * flow;
         current_outer_radius -= line_width;
@@ -135,7 +135,7 @@ std::tuple<Shape, coord_t> PrimeTower::generatePrimeToolpaths(const size_t extru
     return { toolpaths, current_outer_radius + semi_line_width };
 }
 
-Shape PrimeTower::generateSupportToolpaths(const size_t extruder_nr, const coord_t outer_radius, const coord_t inner_radius)
+ClosedLinesSet PrimeTower::generateSupportToolpaths(const size_t extruder_nr, const coord_t outer_radius, const coord_t inner_radius)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const double max_bridging_distance = static_cast<double>(scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_max_bridging_distance"));
@@ -143,7 +143,7 @@ Shape PrimeTower::generateSupportToolpaths(const size_t extruder_nr, const coord
     const coord_t radius_delta = outer_radius - inner_radius;
     const coord_t semi_line_width = line_width / 2;
 
-    Shape toolpaths;
+    ClosedLinesSet toolpaths;
 
     // Split annuli according to max bridging distance
     const coord_t nb_annuli = static_cast<coord_t>(std::ceil(static_cast<double>(radius_delta) / max_bridging_distance));
@@ -205,7 +205,7 @@ void PrimeTower::addToGcode(
         return;
     }
 
-    const Shape* toolpaths = nullptr;
+    const ClosedLinesSet* toolpaths = nullptr;
     auto iterator_layer = toolpaths_.find(layer_nr);
     if (iterator_layer != toolpaths_.end())
     {
@@ -228,7 +228,7 @@ void PrimeTower::addToGcode(
         gotoStartLocation(gcode_layer, new_extruder_nr);
 
         const GCodePathConfig& config = gcode_layer.configs_storage_.prime_tower_config_per_extruder[new_extruder_nr];
-        gcode_layer.addPolygonsByOptimizer(*toolpaths, config);
+        gcode_layer.addLinesByOptimizer(*toolpaths, config, SpaceFillType::PolyLines);
     }
 
     gcode_layer.setPrimeTowerIsPlanned(new_extruder_nr);

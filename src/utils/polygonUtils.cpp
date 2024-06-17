@@ -1303,16 +1303,21 @@ double PolygonUtils::relativeHammingDistance(const Shape& poly_a, const Shape& p
     return hamming_distance / total_area;
 }
 
-Polygon PolygonUtils::makeCircle(const Point2LL& mid, const coord_t radius, const size_t steps)
+Polygon PolygonUtils::makeDisc(const Point2LL& mid, const coord_t radius, const size_t steps)
 {
-    Polygon circle;
+    Polygon disc;
     const AngleRadians step_angle = (std::numbers::pi * 2) / static_cast<double>(steps);
     for (size_t step = 0; step < steps; ++step)
     {
         const AngleRadians angle = static_cast<double>(step) * step_angle;
-        circle.emplace_back(makeCirclePoint(mid, radius, angle));
+        disc.push_back(makeCirclePoint(mid, radius, angle));
     }
-    return circle;
+    return disc;
+}
+
+ClosedPolyline PolygonUtils::makeCircle(const Point2LL& mid, const coord_t radius, const size_t steps)
+{
+    return makeDisc(mid, radius, steps);
 }
 
 Point2LL PolygonUtils::makeCirclePoint(const Point2LL& mid, const coord_t radius, const AngleRadians& angle)
@@ -1320,42 +1325,28 @@ Point2LL PolygonUtils::makeCirclePoint(const Point2LL& mid, const coord_t radius
     return mid + Point2LL(std::llrint(static_cast<double>(radius) * cos(angle)), std::llrint(static_cast<double>(radius) * sin(angle)));
 }
 
-Polygon PolygonUtils::makeWheel(const Point2LL& mid, const coord_t inner_radius, const coord_t outer_radius, const size_t semi_nb_spokes, const size_t arc_angle_resolution)
+ClosedPolyline PolygonUtils::makeWheel(const Point2LL& mid, const coord_t inner_radius, const coord_t outer_radius, const size_t semi_nb_spokes, const size_t arc_angle_resolution)
 {
-    Polygon wheel;
-
-    std::vector<std::pair<coord_t, coord_t>> target_radii;
-    target_radii.push_back({ inner_radius, outer_radius });
-    target_radii.push_back({ outer_radius, inner_radius });
+    ClosedPolyline wheel;
 
     const size_t nb_spokes = semi_nb_spokes * 2;
-    const float angle_step = TAU / nb_spokes;
-    const float arc_step = angle_step / arc_angle_resolution;
-    float angle = 0.0;
+    const double spoke_angle_step = TAU / static_cast<double>(nb_spokes);
+    const double arc_angle_step = spoke_angle_step / static_cast<double>(arc_angle_resolution);
+
     for (size_t spoke = 0; spoke < nb_spokes; ++spoke)
     {
-        const std::pair<coord_t, coord_t>& radii = target_radii.at(spoke % 2);
+        const double spoke_angle = static_cast<double>(spoke) * spoke_angle_step;
+        const coord_t radius = spoke % 2 == 0 ? inner_radius : outer_radius;
 
-        angle = spoke * angle_step;
-        float cos_angle = cos(angle);
-        float sin_angle = sin(angle);
-        wheel.emplace_back(mid + Point2LL(radii.first * cos_angle, radii.first * sin_angle));
-
-        for (size_t arc_part = 0; arc_part < arc_angle_resolution; ++arc_part)
+        for (size_t arc_part = 0; arc_part <= arc_angle_resolution; ++arc_part)
         {
-            wheel.emplace_back(mid + Point2LL(radii.second * cos_angle, radii.second * sin_angle));
-            if (arc_part < arc_angle_resolution - 1)
-            {
-                angle += arc_step;
-                cos_angle = cos(angle);
-                sin_angle = sin(angle);
-            }
+            const double angle = spoke_angle + static_cast<double>(arc_part) * arc_angle_step;
+            wheel.push_back(makeCirclePoint(mid, radius, angle));
         }
     }
 
     return wheel;
 }
-
 
 Shape PolygonUtils::connect(const Shape& input)
 {
@@ -1539,10 +1530,10 @@ Shape PolygonUtils::clipPolygonWithAABB(const Shape& src, const AABB& aabb)
     return out;
 }
 
-std::tuple<Shape, coord_t>
+std::tuple<ClosedLinesSet, coord_t>
     PolygonUtils::generateCirculatOutset(const Point2LL& center, const coord_t inner_radius, const coord_t outer_radius, coord_t line_width, const size_t circle_definition)
 {
-    Shape outset;
+    ClosedLinesSet outset;
     const coord_t semi_line_width = line_width / 2;
     coord_t radius = inner_radius + semi_line_width;
 
@@ -1555,9 +1546,9 @@ std::tuple<Shape, coord_t>
     return { outset, radius - semi_line_width };
 }
 
-Shape PolygonUtils::generateCircularInset(const Point2LL& center, const coord_t outer_radius, const coord_t line_width, const size_t circle_definition)
+ClosedLinesSet PolygonUtils::generateCircularInset(const Point2LL& center, const coord_t outer_radius, const coord_t line_width, const size_t circle_definition)
 {
-    Shape inset;
+    ClosedLinesSet inset;
     const coord_t semi_line_width = line_width / 2;
     coord_t radius = outer_radius - semi_line_width;
 
