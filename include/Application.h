@@ -105,9 +105,17 @@ protected:
 #endif // ARCUS
 
     /*!
-     * \brief Print the header and license to the stderr channel.
+     * \brief Print the header to the stderr channel.
+     */
+    void printHeader() const;
+
+    /*!
+     * \brief Print the license to the stderr channel.
      */
     void printLicense() const;
+
+    /*! Print a big warning when the code has been build in debug mode, otherwise just issue a small nice message. */
+    void printDebugWarning() const;
 
     /*!
      * \brief Start slicing.
