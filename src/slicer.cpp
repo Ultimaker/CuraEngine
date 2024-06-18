@@ -13,6 +13,7 @@
 #include "Application.h"
 #include "Slice.h"
 #include "geometry/OpenPolyline.h"
+#include "geometry/SingleShape.h" // Needed in order to call splitIntoParts()
 #include "plugins/slots.h"
 #include "raft.h"
 #include "settings/AdaptiveLayerHeights.h"

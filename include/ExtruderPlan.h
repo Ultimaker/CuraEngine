@@ -180,7 +180,7 @@ private:
      * \param maximum_cool_min_layer_time Maximum minimum layer time for all extruders in this layer
      * \param time_other_extr_plans Time spend on other extruders in this layer
      */
-    void forceMinimalLayerTime(double maximum_cool_min_layer_time, double time_other_extr_plans);
+    bool forceMinimalLayerTime(double maximum_cool_min_layer_time, double time_other_extr_plans);
 
     /*!
      * @return The time needed for (un)retract the path

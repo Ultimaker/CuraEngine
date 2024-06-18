@@ -43,6 +43,7 @@ cool_min_speed=10
 cool_fan_enabled=True
 cool_fan_speed_max=10.0
 wall_overhang_angle=90
+seam_overhang_angle=30
 jerk_support_infill=8
 wall_overhang_speed_factor=100
 support_roof_line_width=0.4

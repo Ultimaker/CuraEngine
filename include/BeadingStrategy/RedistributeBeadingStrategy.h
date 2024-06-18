@@ -45,7 +45,7 @@ public:
     coord_t getTransitioningLength(coord_t lower_bead_count) const override;
     double getTransitionAnchorPos(coord_t lower_bead_count) const override;
 
-    virtual std::string toString() const;
+    std::string toString() const override;
 
 protected:
     /*!

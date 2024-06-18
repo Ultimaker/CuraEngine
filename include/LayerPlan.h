@@ -38,7 +38,6 @@ class Comb;
 class SliceDataStorage;
 class LayerPlanBuffer;
 
-
 /*!
  * The LayerPlan class stores multiple moves that are planned.
  *
@@ -100,7 +99,10 @@ private:
     coord_t comb_move_inside_distance_; //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
     Shape bridge_wall_mask_; //!< The regions of a layer part that are not supported, used for bridging
     Shape overhang_mask_; //!< The regions of a layer part where the walls overhang
+    Shape seam_overhang_mask_; //!< The regions of a layer part where the walls overhang, specifically as defined for the seam
     Shape roofing_mask_; //!< The regions of a layer part where the walls are exposed to the air
+
+    bool min_layer_time_used = false; //!< Wether or not the minimum layer time (cool_min_layer_time) was actually used in this layerplan.
 
     const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_;
 
@@ -281,6 +283,13 @@ public:
      * \param polys The overhung areas of the part currently being processed that will require modified print settings
      */
     void setOverhangMask(const Shape& polys);
+
+    /*!
+     * Set seam_overhang_mask.
+     *
+     * \param polys The overhung areas of the part currently being processed that will require modified print settings w.r.t. seams
+     */
+    void setSeamOverhangMask(const Shape& polys);
 
     /*!
      * Set roofing_mask.
@@ -670,12 +679,12 @@ public:
     template<typename T>
     unsigned locateFirstSupportedVertex(const T& wall, const unsigned start_idx) const
     {
-        if (bridge_wall_mask_.empty() && overhang_mask_.empty())
+        if (bridge_wall_mask_.empty() && seam_overhang_mask_.empty())
         {
             return start_idx;
         }
 
-        const auto air_below = bridge_wall_mask_.unionPolygons(overhang_mask_);
+        const auto air_below = bridge_wall_mask_.unionPolygons(seam_overhang_mask_);
 
         unsigned curr_idx = start_idx;
 
