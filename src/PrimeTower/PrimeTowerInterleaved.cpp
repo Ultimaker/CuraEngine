@@ -41,7 +41,8 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerInter
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const coord_t tower_radius = mesh_group_settings.get<coord_t>("prime_tower_size") / 2;
-    coord_t support_radius = tower_radius;
+    const coord_t min_shell_thickness = mesh_group_settings.get<coord_t>("prime_tower_min_shell_thickness");
+    coord_t shell_thickness = 0;
     std::map<LayerIndex, std::vector<ExtruderToolPaths>> toolpaths;
 
     // Loop from top bo bottom, so that the required support increases with what is actually required
@@ -52,20 +53,20 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerInter
         std::vector<ExtruderToolPaths> toolpaths_at_layer;
         size_t last_extruder_support = 0;
 
-        // Now generate actual priming patterns
-        coord_t outer_radius = tower_radius;
+        // Generate actual priming patterns
+        coord_t prime_next_outer_radius = tower_radius;
         for (const ExtruderUse& extruder_use : extruders_use_at_layer)
         {
             if (extruder_use.prime == ExtruderPrime::Prime)
             {
                 ExtruderToolPaths extruder_toolpaths;
-                extruder_toolpaths.outer_radius = outer_radius;
+                extruder_toolpaths.outer_radius = prime_next_outer_radius;
                 extruder_toolpaths.extruder_nr = extruder_use.extruder_nr;
 
-                std::tie(extruder_toolpaths.toolpaths, extruder_toolpaths.inner_radius) = generatePrimeToolpaths(extruder_use.extruder_nr, outer_radius);
+                std::tie(extruder_toolpaths.toolpaths, extruder_toolpaths.inner_radius) = generatePrimeToolpaths(extruder_use.extruder_nr, prime_next_outer_radius);
                 toolpaths_at_layer.push_back(extruder_toolpaths);
 
-                outer_radius = extruder_toolpaths.inner_radius;
+                prime_next_outer_radius = extruder_toolpaths.inner_radius;
             }
             else if (extruder_use.prime == ExtruderPrime::Support)
             {
@@ -73,24 +74,32 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerInter
             }
         }
 
-        // Generate extra support pattern if required
-        if (support_radius < outer_radius)
+        // Increase shell thickness if required
+        const coord_t layer_prime_thickness = tower_radius - prime_next_outer_radius;
+        shell_thickness = std::max(shell_thickness, layer_prime_thickness);
+
+        if (shell_thickness > 0)
         {
-            if (toolpaths_at_layer.empty())
+            shell_thickness = std::max(shell_thickness, min_shell_thickness);
+
+            // Generate extra inner support if required
+            const coord_t inner_support_radius = tower_radius - shell_thickness;
+            if (inner_support_radius < prime_next_outer_radius)
             {
-                toolpaths_at_layer.emplace_back(last_extruder_support, ClosedLinesSet(), outer_radius, support_radius);
+                if (toolpaths_at_layer.empty())
+                {
+                    toolpaths_at_layer.emplace_back(last_extruder_support, ClosedLinesSet(), prime_next_outer_radius, inner_support_radius);
+                }
+
+                ExtruderToolPaths& last_extruder_toolpaths = toolpaths_at_layer.back();
+                ClosedLinesSet support_toolpaths = generateSupportToolpaths(last_extruder_toolpaths.extruder_nr, prime_next_outer_radius, inner_support_radius);
+                last_extruder_toolpaths.toolpaths.push_back(support_toolpaths);
+                last_extruder_toolpaths.outer_radius = prime_next_outer_radius;
+                last_extruder_toolpaths.inner_radius = inner_support_radius;
             }
 
-            ExtruderToolPaths& last_extruder_toolpaths = toolpaths_at_layer.back();
-            ClosedLinesSet support_toolpaths = generateSupportToolpaths(last_extruder_toolpaths.extruder_nr, outer_radius, support_radius);
-            last_extruder_toolpaths.toolpaths.push_back(support_toolpaths);
-            last_extruder_toolpaths.inner_radius = support_radius;
+            toolpaths[layer_nr] = toolpaths_at_layer;
         }
-
-        // Now decrease support radius if required
-        support_radius = std::min(support_radius, outer_radius);
-
-        toolpaths[layer_nr] = toolpaths_at_layer;
     }
 
     return toolpaths;
