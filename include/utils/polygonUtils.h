@@ -674,7 +674,16 @@ public:
      * \param a_step The angle between segments of the circle.
      * \return A new Polygon containing the circle.
      */
-    static Polygon makeCircle(const Point2LL mid, const coord_t radius, const AngleRadians a_step = std::numbers::pi / 8);
+    template<typename T = Polygon, typename... VA>
+    static T makeCircle(const Point2LL& mid, const coord_t radius, const AngleRadians a_step = std::numbers::pi / 8, VA... args)
+    {
+        T circle;
+        for (double a = 0; a < 2 * std::numbers::pi; a += a_step)
+        {
+            circle.emplace_back(mid + Point2LL(radius * cos(a), radius * sin(a)), args...);
+        }
+        return circle;
+    }
 
     /*!
      * Create a "wheel" shape.

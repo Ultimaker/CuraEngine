@@ -17,6 +17,7 @@
 #include "utils/VoronoiUtils.h"
 #include "utils/linearAlg2D.h"
 #include "utils/macros.h"
+#include "utils/polygonUtils.h"
 
 #define SKELETAL_TRAPEZOIDATION_BEAD_SEARCH_MAX \
     1000 // A limit to how long it'll keep searching for adjacent beads. Increasing will re-use beadings more often (saving performance), but search longer for beading (costing
@@ -2199,11 +2200,8 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
         // So our circle needs to be such that r=w/8
         const coord_t r = width / 8;
         constexpr coord_t n_segments = 6;
-        for (coord_t segment = 0; segment < n_segments; segment++)
-        {
-            double a = 2.0 * std::numbers::pi / n_segments * segment;
-            line.junctions_.emplace_back(center + Point2LL(r * cos(a), r * sin(a)), width, inset_index);
-        }
+        const auto circle = PolygonUtils::makeCircle<std::vector<ExtrusionJunction>>(center, r, 2 * std::numbers::pi / n_segments, width, inset_index);
+        line.junctions_.insert(line.junctions_.end(), circle.begin(), circle.end());
     };
 
     Point2LL local_maxima_accumulator;
