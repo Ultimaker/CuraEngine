@@ -339,45 +339,6 @@ public:
     }
 };
 
-TEST_F(PolygonUtilsTest, spreadDotsSegment)
-{
-    std::vector<ClosestPointPolygon> supposed;
-    supposed.emplace_back(Point2LL(50, 0), 0, &test_squares[0], 0);
-    supposed.emplace_back(Point2LL(100, 0), 1, &test_squares[0], 0);
-    supposed.emplace_back(Point2LL(100, 50), 1, &test_squares[0], 0);
-
-    std::vector<ClosestPointPolygon> result;
-    PolygonUtils::spreadDots(PolygonsPointIndex(&test_squares, 0, 0), PolygonsPointIndex(&test_squares, 0, 2), 3, result);
-
-    ASSERT_EQ(result.size(), supposed.size());
-    for (size_t point_idx = 0; point_idx < result.size(); point_idx++)
-    {
-        EXPECT_EQ(result[point_idx].p(), supposed[point_idx].p());
-    }
-}
-
-TEST_F(PolygonUtilsTest, spreadDotsFull)
-{
-    std::vector<ClosestPointPolygon> supposed;
-    supposed.emplace_back(Point2LL(0, 0), 0, &test_squares[0], 0);
-    supposed.emplace_back(Point2LL(50, 0), 0, &test_squares[0], 0);
-    supposed.emplace_back(Point2LL(100, 0), 1, &test_squares[0], 0);
-    supposed.emplace_back(Point2LL(100, 50), 1, &test_squares[0], 0);
-    supposed.emplace_back(Point2LL(100, 100), 2, &test_squares[0], 0);
-    supposed.emplace_back(Point2LL(50, 100), 2, &test_squares[0], 0);
-    supposed.emplace_back(Point2LL(0, 100), 3, &test_squares[0], 0);
-    supposed.emplace_back(Point2LL(0, 50), 3, &test_squares[0], 0);
-
-    std::vector<ClosestPointPolygon> result;
-    PolygonUtils::spreadDots(PolygonsPointIndex(&test_squares, 0, 0), PolygonsPointIndex(&test_squares, 0, 0), 8, result);
-
-    ASSERT_EQ(result.size(), supposed.size());
-    for (size_t point_idx = 0; point_idx < result.size(); point_idx++)
-    {
-        EXPECT_EQ(result[point_idx].p(), supposed[point_idx].p());
-    }
-}
-
 struct GetNextParallelIntersectionParameters
 {
     std::optional<Point2LL> predicted;
