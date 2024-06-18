@@ -2667,6 +2667,11 @@ void LayerPlan::setOverhangMask(const Shape& polys)
     overhang_mask_ = polys;
 }
 
+void LayerPlan::setSeamOverhangMask(const Shape& polys)
+{
+    seam_overhang_mask_ = polys;
+}
+
 void LayerPlan::setRoofingMask(const Shape& polys)
 {
     roofing_mask_ = polys;
