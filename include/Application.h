@@ -114,9 +114,6 @@ protected:
      */
     void printLicense() const;
 
-    /*! Print a big warning when the code has been build in debug mode, otherwise just issue a small nice message. */
-    void printDebugWarning() const;
-
     /*!
      * \brief Start slicing.
      * \param argc The number of arguments provided to the application.
