@@ -56,6 +56,7 @@ public:
         const size_t wall_x_extruder_nr,
         const ZSeamConfig& z_seam_config,
         const std::vector<VariableWidthLines>& paths,
+        const Point2LL& center_point,
         const Shape& disallowed_areas_for_seams = {});
 
     /*!
@@ -107,6 +108,7 @@ private:
     const ZSeamConfig& z_seam_config_;
     const std::vector<VariableWidthLines>& paths_;
     const LayerIndex layer_nr_;
+    const Point2LL center_point_;
     Shape disallowed_areas_for_seams_;
 
     std::vector<std::vector<const Polygon*>> inset_polys_; // vector of vectors holding the inset polygons

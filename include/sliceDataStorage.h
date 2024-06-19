@@ -425,6 +425,8 @@ public:
         const int extruder_nr = -1,
         const bool include_models = true) const;
 
+    AABB3D getModelBoundingBox() const;
+
     /*!
      * Get the extruders used.
      *

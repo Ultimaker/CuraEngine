@@ -51,6 +51,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const size_t wall_x_extruder_nr,
     const ZSeamConfig& z_seam_config,
     const std::vector<VariableWidthLines>& paths,
+    const Point2LL& center_point,
     const Shape& disallowed_areas_for_seams)
     : gcode_writer_(gcode_writer)
     , storage_(storage)
@@ -71,6 +72,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , z_seam_config_(z_seam_config)
     , paths_(paths)
     , layer_nr_(gcode_layer.getLayerNr())
+    , center_point_(center_point)
     , disallowed_areas_for_seams_{ disallowed_areas_for_seams }
 {
 }
@@ -186,45 +188,57 @@ void InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed_line)
         return;
     }
 
-    // Get the 'origin' point of the ray we're going to trace from there to the request_point. This is the center of the bounding box of the polygon.
-    AABB aabb;
-    for (const auto& junction : closed_line.junctions_)
-    {
-        aabb.include(junction.p_);
-    }
-    const Point2LL ray_origin{ aabb.getMiddle() };
-    request_point = ray_origin + (request_point - ray_origin) * 10;
-
     // Find the 'closest' point on the polygon to the request_point.
     // This isn't actually the closest, since that'd make for pertty messy seams on 'round' objects, but instead on a ray from the ray-origin to the request_point.
     Point2LL closest_point;
     size_t closest_junction_idx = 0;
     coord_t closest_distance_sqd = std::numeric_limits<coord_t>::max();
-    for (const auto& [i, junction] : closed_line.junctions_ | ranges::views::enumerate)
+    bool should_reclaculate_closest = false;
+    if (z_seam_config_.type_ == EZSeamType::USER_SPECIFIED)
     {
-        // NOTE: Maybe rewrite this once we can use C++23 ranges::views::adjacent
-        const auto& next_junction = closed_line.junctions_[(i + 1) % closed_line.junctions_.size()];
+        const Point2LL ray_origin = center_point_;
+        request_point = ray_origin + (request_point - ray_origin) * 10;
 
-        float t, u;
-        if (LinearAlg2D::lineSegmentLineSegmentIntersection(ray_origin, request_point, junction.p_, next_junction.p_, &t, &u))
+        for (const auto& [i, junction] : closed_line.junctions_ | ranges::views::enumerate)
         {
-            const Point2LL intersection = ray_origin + (request_point - ray_origin) * t;
-            const coord_t distance_sqd = vSize2(request_point - intersection);
-            if (distance_sqd < closest_distance_sqd)
+            // NOTE: Maybe rewrite this once we can use C++23 ranges::views::adjacent
+            const auto& next_junction = closed_line.junctions_[(i + 1) % closed_line.junctions_.size()];
+
+            float t, u;
+            if (LinearAlg2D::lineSegmentLineSegmentIntersection(ray_origin, request_point, junction.p_, next_junction.p_, &t, &u))
             {
-                closest_point = intersection;
-                closest_distance_sqd = distance_sqd;
-                closest_junction_idx = i;
+                const Point2LL intersection = ray_origin + (request_point - ray_origin) * t;
+                const coord_t distance_sqd = vSize2(request_point - intersection);
+                if (distance_sqd < closest_distance_sqd)
+                {
+                    closest_point = intersection;
+                    closest_distance_sqd = distance_sqd;
+                    closest_junction_idx = i;
+                }
             }
         }
     }
     if (closest_distance_sqd >= std::numeric_limits<coord_t>::max())
     {
-        return;
+        for (const auto& [i, junction] : closed_line.junctions_ | ranges::views::enumerate)
+        {
+            const auto& next_junction = closed_line.junctions_[(i + 1) % closed_line.junctions_.size()];
+            const coord_t distance_sqd = LinearAlg2D::getDist2FromLineSegment(junction.p_, request_point, next_junction.p_);
+            if (distance_sqd < closest_distance_sqd)
+            {
+                closest_distance_sqd = distance_sqd;
+                closest_junction_idx = i;
+            }
+        }
+        should_reclaculate_closest = true;
     }
 
     const auto& start_pt = closed_line.junctions_[closest_junction_idx];
     const auto& end_pt = closed_line.junctions_[(closest_junction_idx + 1) % closed_line.junctions_.size()];
+    if (should_reclaculate_closest)
+    {
+        closest_point = LinearAlg2D::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
+    }
     constexpr coord_t smallest_dist_sqd = 25;
     if (vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd || vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
     {
