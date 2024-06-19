@@ -42,6 +42,7 @@ class Infill
     coord_t infill_line_width_{}; //!< The line width of the infill lines to generate
     coord_t line_distance_{}; //!< The distance between two infill lines / polygons
     coord_t infill_overlap_{}; //!< the distance by which to overlap with the actual area within which to generate infill
+    coord_t pattern_overlap_{ 0 }; //!< The distance by which to overlap the inner infill pattern with the walls
     size_t infill_multiplier_{}; //!< the number of infill lines next to each other
     AngleDegrees fill_angle_{}; //!< for linear infill types: the angle of the infill lines (or the angle of the grid)
     coord_t z_{}; //!< height of the layer for which we generate infill
@@ -163,7 +164,8 @@ public:
         bool use_endpieces,
         bool skip_some_zags,
         size_t zag_skip_count,
-        coord_t pocket_size) noexcept
+        coord_t pocket_size,
+        coord_t pattern_overlap = 0) noexcept
         : pattern_{ pattern }
         , zig_zaggify_{ zig_zaggify }
         , connect_polygons_{ connect_polygons }
@@ -188,6 +190,7 @@ public:
         , zag_skip_count_{ zag_skip_count }
         , pocket_size_{ pocket_size }
         , mirror_offset_{ zig_zaggify }
+        , pattern_overlap_{ pattern_overlap }
     {
     }
 

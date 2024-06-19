@@ -103,6 +103,8 @@ void Infill::generate(
     inner_contour_ = generateWallToolPaths(toolpaths, outer_contour_, wall_line_count_, infill_line_width_, infill_overlap_, settings, layer_idx, section_type);
     scripta::log("infill_inner_contour_0", inner_contour_, section_type, layer_idx);
 
+    inner_contour_ = inner_contour_.offset(pattern_overlap_);
+
     // It does not make sense to print a pattern in a small region. So the infill region
     // is split into a small region that will be filled with walls and the normal region
     // that will be filled with the pattern. This split of regions is not needed if the
