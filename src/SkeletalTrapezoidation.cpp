@@ -2250,7 +2250,14 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
         {
             const coord_t width = width_accumulator / accumulator_count;
             local_maxima_accumulator = local_maxima_accumulator / accumulator_count;
-            generated_toolpaths[0].clear();
+            if (generated_toolpaths.empty())
+            {
+                generated_toolpaths.emplace_back();
+            }
+            else
+            {
+                generated_toolpaths[0].clear();
+            }
             addCircleToToolpath(local_maxima_accumulator, width, 0);
         }
     }
