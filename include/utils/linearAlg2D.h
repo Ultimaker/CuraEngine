@@ -67,6 +67,8 @@ public:
         return -1;
     }
 
+    static bool lineSegmentLineSegmentIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float* t, float* u);
+
     static bool lineLineIntersection(const Point2LL& a, const Point2LL& b, const Point2LL& c, const Point2LL& d, Point2LL& output);
 
     /*!

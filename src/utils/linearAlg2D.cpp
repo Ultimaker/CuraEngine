@@ -272,6 +272,31 @@ Point3Matrix LinearAlg2D::rotateAround(const Point2LL& middle, double rotation)
     return Point3Matrix::translate(middle).compose(rotation_matrix_homogeneous).compose(Point3Matrix::translate(-middle));
 }
 
+// A single-shot line-segment/line-segment intersection that returns the parameters and doesn't require a grid-calculation beforehand.
+bool LinearAlg2D::lineSegmentLineSegmentIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float* t, float* u)
+{
+    const float x1mx2 = p1.X - p2.X;
+    const float x1mx3 = p1.X - p3.X;
+    const float x3mx4 = p3.X - p4.X;
+    const float y1my2 = p1.Y - p2.Y;
+    const float y1my3 = p1.Y - p3.Y;
+    const float y3my4 = p3.Y - p4.Y;
+
+    t[0] = x1mx3 * y3my4 - y1my3 * x3mx4;
+    u[0] = x1mx3 * y1my2 - y1my3 * x1mx2;
+    const float div = x1mx2 * y3my4 - y1my2 * x3mx4;
+    if (div == 0.0f)
+    {
+        return false;
+    }
+
+    // NOTE: In theory the comparison 0 <= par <= 1 can now done without division for each parameter (as an early-out),
+    //       but this is easier & when the intersection _does_ happen and we want the normalized parameters returned anyway.
+    t[0] /= div;
+    u[0] /= div;
+    return t[0] >= 0.0f && u[0] >= 0.0f && t[0] <= 1.0f && u[0] <= 1.0f;
+}
+
 bool LinearAlg2D::lineLineIntersection(const Point2LL& a, const Point2LL& b, const Point2LL& c, const Point2LL& d, Point2LL& output)
 {
     // Adapted from Apex: https://github.com/Ghostkeeper/Apex/blob/eb75f0d96e36c7193d1670112826842d176d5214/include/apex/line_segment.hpp#L91
