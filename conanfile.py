@@ -206,6 +206,8 @@ class CuraEngineConan(ConanFile):
                     self.run("objcopy --only-keep-debug --compress-debug-sections=zlib CuraEngine CuraEngine.debug")
                     self.run("objcopy --strip-debug --strip-unneeded CuraEngine")
                     self.run("objcopy --add-gnu-debuglink=CuraEngine.debug CuraEngine")
+                elif self.settings.os == "Macos":
+                    self.run("dsymutil CuraEngine")
 
                 self.output.info("Uploading debug symbols to sentry")
                 build_source_dir = self.build_path.parent.parent.as_posix()
