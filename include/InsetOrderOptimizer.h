@@ -122,7 +122,7 @@ private:
      * however still deviate from this, for example when the seam-point placed here isn't suppored
      * by the layer below.
      */
-    void insertSeamPoint(ExtrusionLine& closed_line);
+    std::optional<size_t> insertSeamPoint(ExtrusionLine& closed_line);
 
     /*!
      * Determine if the paths should be reversed

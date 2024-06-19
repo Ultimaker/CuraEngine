@@ -130,10 +130,11 @@ public:
      * Add a new polygon to be optimized.
      * \param polygon The polygon to optimize.
      */
-    void addPolygon(const Path& polygon)
+    void addPolygon(const Path& polygon, std::optional<size_t> force_start_index = std::nullopt)
     {
         constexpr bool is_closed = true;
         paths_.emplace_back(polygon, is_closed);
+        paths_.back().force_start_index_ = force_start_index;
     }
 
     /*!
@@ -693,6 +694,11 @@ protected:
         {
             size_t vert = getRandomPointInPolygon(*path.converted_);
             return vert;
+        }
+
+        if (path.force_start_index_.has_value())
+        {
+            return path.force_start_index_.value();
         }
 
         // Precompute segments lengths because we are going to need them multiple times

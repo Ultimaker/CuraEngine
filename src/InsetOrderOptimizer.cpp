@@ -112,15 +112,17 @@ bool InsetOrderOptimizer::addToLayer()
         group_outer_walls,
         disallowed_areas_for_seams_);
 
+
     for (auto& line : walls_to_be_added)
     {
         if (line.is_closed_)
         {
+            std::optional<size_t> force_start;
             if (! settings_.get<bool>("z_seam_on_vertex"))
             {
-                insertSeamPoint(line);
+                force_start = insertSeamPoint(line);
             }
-            order_optimizer.addPolygon(&line);
+            order_optimizer.addPolygon(&line, force_start);
         }
         else
         {
@@ -170,7 +172,7 @@ bool InsetOrderOptimizer::addToLayer()
     return added_something;
 }
 
-void InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed_line)
+std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed_line)
 {
     assert(closed_line.is_closed_);
     assert(closed_line.size() >= 3);
@@ -185,7 +187,7 @@ void InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed_line)
         request_point = gcode_layer_.getLastPlannedPositionOrStartingPosition();
         break;
     default:
-        return;
+        return std::nullopt;
     }
 
     // Find the 'closest' point on the polygon to the request_point.
@@ -242,7 +244,7 @@ void InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed_line)
     constexpr coord_t smallest_dist_sqd = 25;
     if (vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd || vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
     {
-        return;
+        return std::nullopt;
     }
 
     // NOTE: This could also be done on a single axis (skipping the implied sqrt), but figuring out which one and then using the right values became a bit messy/verbose.
@@ -252,6 +254,7 @@ void InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed_line)
     const coord_t w = ((end_pt.w_ * end_dist) / total_dist) + ((start_pt.w_ * start_dist) / total_dist);
 
     closed_line.junctions_.insert(closed_line.junctions_.begin() + closest_junction_idx + 1, ExtrusionJunction(closest_point, w, start_pt.perimeter_index_));
+    return closest_junction_idx + 1;
 }
 
 InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::vector<ExtrusionLine>& extrusion_lines, const bool outer_to_inner)
