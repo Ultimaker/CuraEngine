@@ -614,10 +614,28 @@ public:
      *
      * \param mid The center of the circle.
      * \param radius The radius of the circle.
-     * \param steps The numbers of segments (definition) of the generated circle.
-     * \return A new Polygon containing the circle.
+     * \param segments The numbers of segments (definition) of the generated circle.
+     * \tparam explicitly_closed Indicates whether the circle should be explicitely (or implicitely) closed
+     * \return A new object containing the circle points.
      */
-    static ClosedPolyline makeCircle(const Point2LL& mid, const coord_t radius, const size_t steps);
+    template<typename T = ClosedPolyline, bool explicitely_closed = false, typename... VA>
+    static T makeCircle(const Point2LL& mid, const coord_t radius, const size_t segments, VA... args)
+    {
+        T circle;
+        const AngleRadians step_angle = (std::numbers::pi * 2) / static_cast<double>(segments);
+        for (size_t step = 0; step < segments; ++step)
+        {
+            const AngleRadians angle = static_cast<double>(step) * step_angle;
+            circle.emplace_back(makeCirclePoint(mid, radius, angle), args...);
+        }
+
+        if constexpr (explicitely_closed)
+        {
+            circle.push_back(circle.front());
+        }
+
+        return circle;
+    }
 
     /*!
      * Create a point of a circle.

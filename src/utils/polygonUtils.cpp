@@ -1305,19 +1305,7 @@ double PolygonUtils::relativeHammingDistance(const Shape& poly_a, const Shape& p
 
 Polygon PolygonUtils::makeDisc(const Point2LL& mid, const coord_t radius, const size_t steps)
 {
-    Polygon disc;
-    const AngleRadians step_angle = (std::numbers::pi * 2) / static_cast<double>(steps);
-    for (size_t step = 0; step < steps; ++step)
-    {
-        const AngleRadians angle = static_cast<double>(step) * step_angle;
-        disc.push_back(makeCirclePoint(mid, radius, angle));
-    }
-    return disc;
-}
-
-ClosedPolyline PolygonUtils::makeCircle(const Point2LL& mid, const coord_t radius, const size_t steps)
-{
-    return makeDisc(mid, radius, steps);
+    return makeCircle<Polygon>(mid, radius, steps);
 }
 
 Point2LL PolygonUtils::makeCirclePoint(const Point2LL& mid, const coord_t radius, const AngleRadians& angle)
