@@ -56,7 +56,7 @@ public:
         const size_t wall_x_extruder_nr,
         const ZSeamConfig& z_seam_config,
         const std::vector<VariableWidthLines>& paths,
-        const Point2LL& center_point,
+        const Point2LL& model_center_point,
         const Shape& disallowed_areas_for_seams = {});
 
     /*!
@@ -108,7 +108,7 @@ private:
     const ZSeamConfig& z_seam_config_;
     const std::vector<VariableWidthLines>& paths_;
     const LayerIndex layer_nr_;
-    const Point2LL center_point_;
+    const Point2LL model_center_point_; // Center of the model (= all meshes) axis-aligned bounding-box.
     Shape disallowed_areas_for_seams_;
 
     std::vector<std::vector<const Polygon*>> inset_polys_; // vector of vectors holding the inset polygons
@@ -121,6 +121,10 @@ private:
      * 'best' vertex on that polygon. Under certain circumstances, the seam-placing algorithm can
      * however still deviate from this, for example when the seam-point placed here isn't suppored
      * by the layer below.
+     * 
+     * \param closed_line The polygon to insert the seam point in. (It's assumed to be closed at least.)
+     * 
+     * \return The index of the inserted seam point, or std::nullopt if no seam point was inserted.
      */
     std::optional<size_t> insertSeamPoint(ExtrusionLine& closed_line);
 

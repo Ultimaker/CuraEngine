@@ -425,6 +425,9 @@ public:
         const int extruder_nr = -1,
         const bool include_models = true) const;
 
+    /*!
+     * Get the axis-aligned bounding-box of the complete model (all meshes).
+     */
     AABB3D getModelBoundingBox() const;
 
     /*!

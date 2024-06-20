@@ -698,6 +698,7 @@ protected:
 
         if (path.force_start_index_.has_value())
         {
+            // Start index already known, since we forced it, return.
             return path.force_start_index_.value();
         }
 

@@ -272,7 +272,6 @@ Point3Matrix LinearAlg2D::rotateAround(const Point2LL& middle, double rotation)
     return Point3Matrix::translate(middle).compose(rotation_matrix_homogeneous).compose(Point3Matrix::translate(-middle));
 }
 
-// A single-shot line-segment/line-segment intersection that returns the parameters and doesn't require a grid-calculation beforehand.
 bool LinearAlg2D::lineSegmentLineSegmentIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float* t, float* u)
 {
     const float x1mx2 = p1.X - p2.X;

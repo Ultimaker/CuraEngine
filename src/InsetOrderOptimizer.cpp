@@ -51,7 +51,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const size_t wall_x_extruder_nr,
     const ZSeamConfig& z_seam_config,
     const std::vector<VariableWidthLines>& paths,
-    const Point2LL& center_point,
+    const Point2LL& model_center_point,
     const Shape& disallowed_areas_for_seams)
     : gcode_writer_(gcode_writer)
     , storage_(storage)
@@ -72,7 +72,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , z_seam_config_(z_seam_config)
     , paths_(paths)
     , layer_nr_(gcode_layer.getLayerNr())
-    , center_point_(center_point)
+    , model_center_point_(model_center_point)
     , disallowed_areas_for_seams_{ disallowed_areas_for_seams }
 {
 }
@@ -112,7 +112,6 @@ bool InsetOrderOptimizer::addToLayer()
         group_outer_walls,
         disallowed_areas_for_seams_);
 
-
     for (auto& line : walls_to_be_added)
     {
         if (line.is_closed_)
@@ -120,6 +119,7 @@ bool InsetOrderOptimizer::addToLayer()
             std::optional<size_t> force_start;
             if (! settings_.get<bool>("z_seam_on_vertex"))
             {
+                // If the user indicated that we may deviate from the vertices for the seam, we can insert a seam point, if needed.
                 force_start = insertSeamPoint(line);
             }
             order_optimizer.addPolygon(&line, force_start);
@@ -191,14 +191,18 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
     }
 
     // Find the 'closest' point on the polygon to the request_point.
-    // This isn't actually the closest, since that'd make for pertty messy seams on 'round' objects, but instead on a ray from the ray-origin to the request_point.
     Point2LL closest_point;
     size_t closest_junction_idx = 0;
     coord_t closest_distance_sqd = std::numeric_limits<coord_t>::max();
     bool should_reclaculate_closest = false;
     if (z_seam_config_.type_ == EZSeamType::USER_SPECIFIED)
     {
-        const Point2LL ray_origin = center_point_;
+        // For user-defined seams you usually don't _actually_ want the _closest_ point, per-se,
+        // since you want the seam-line to be continuous in 3D space.
+        // To that end, take the center of the 3D model (not of the current polygon, as that would give the same problems)
+        // and project the point along the ray from the center to the request_point.
+
+        const Point2LL ray_origin = model_center_point_;
         request_point = ray_origin + (request_point - ray_origin) * 10;
 
         for (const auto& [i, junction] : closed_line.junctions_ | ranges::views::enumerate)
@@ -222,6 +226,10 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
     }
     if (closest_distance_sqd >= std::numeric_limits<coord_t>::max())
     {
+        // If it the method isn't 'user-defined', or the attempt to do user-defined above failed
+        // (since we don't take the center of the polygon, but of the model, there's a chance there's no intersection),
+        // then just find the closest point on the polygon.
+
         for (const auto& [i, junction] : closed_line.junctions_ | ranges::views::enumerate)
         {
             const auto& next_junction = closed_line.junctions_[(i + 1) % closed_line.junctions_.size()];
@@ -239,11 +247,16 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
     const auto& end_pt = closed_line.junctions_[(closest_junction_idx + 1) % closed_line.junctions_.size()];
     if (should_reclaculate_closest)
     {
+        // In the second case (see above) the closest point hasn't actually been calculated yet,
+        // since in that case we'de need the start and end points. So do that here.
         closest_point = LinearAlg2D::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
     }
     constexpr coord_t smallest_dist_sqd = 25;
     if (vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd || vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
     {
+        // Early out if the closest point is too close to the start or end point.
+        // NOTE: Maybe return the index here anyway, since this is the point the current caller would want to force the seam to.
+        //       However, then the index returned would have a caveat that it _can_ point to an already exisiting point then.
         return std::nullopt;
     }
 
