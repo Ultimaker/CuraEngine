@@ -133,6 +133,8 @@ public:
      * \return An open polyline instance, with the end point at the same position of the start point
      */
     [[nodiscard]] OpenPolyline toPseudoOpenPolyline() const;
+
+    [[nodiscard]] const_segments_iterator loopOverSegments(const const_segments_iterator& start, const_segments_iterator::difference_type diff) const;
 };
 
 } // namespace cura

@@ -86,6 +86,11 @@ public:
         return ClipperLib::Area(getPoints());
     }
 
+    [[nodiscard]] bool isHole() const
+    {
+        return area() < 0.0;
+    }
+
     [[nodiscard]] Point2LL centerOfMass() const;
 
     [[nodiscard]] Shape offset(int distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;

@@ -322,10 +322,10 @@ public:
      * The first travel move in a layer will result in a bogus travel move with
      * no combing and no retraction. This travel move needs to be fixed
      * afterwards.
-     * \param p The point to travel to.
+     * \param pos The point to travel to.
      * \param force_retract Whether to force a retraction to occur.
      */
-    GCodePath& addTravel(const Point2LL& p, const bool force_retract = false, const coord_t z_offset = 0);
+    GCodePath& addTravel(const Point2LL& pos, const bool force_retract = false, const coord_t z_offset = 0);
 
     /*!
      * Add a travel path to a certain point and retract if needed.
@@ -511,6 +511,8 @@ public:
      * polyline).
      * \param is_reversed Whether to print this wall in reverse direction.
      * \param is_linked_path Whether the path is a continuation off the previous path
+     * \param smooth_approach Whether we should make a smoothed approach to the first point,
+     * or just move straight to it
      */
     void addWall(
         const ExtrusionLine& wall,
@@ -524,7 +526,8 @@ public:
         bool always_retract,
         const bool is_closed,
         const bool is_reversed,
-        const bool is_linked_path);
+        const bool is_linked_path,
+        const bool smooth_approach = false);
 
     /*!
      * Add an infill wall to the g-code
@@ -815,6 +818,28 @@ private:
         const coord_t wipe_dist,
         const Ratio flow_ratio,
         const double fan_speed);
+
+    void addTravelBeforeSeam(const Point2LL& p, const GCodePathConfig& config);
+
+    /*!
+     * Begin the first wall with a travel move, executing specific procedures to optimize the process.
+     *
+     * Special conditions for this function are:
+     * - If `always_retract` is true, a retraction is always performed regardless of other factors.
+     * - If there's an optional `next` point provided, the function adds an intermediate position where the nozzle should go to begin printing the segment with optimal nozzle speed
+     * and extrusion parameters.
+     * - The focus of this method is the travel move for the first wall or layer in a print action, specifically optimizing retraction, travel speed, and the starting point for
+     * extrusion, if any.
+     *
+     * Note: This function is for handling very specific cases (such as initial layer or wall) in 3D printing G-code generation and should be used appropriately.
+     *
+     * \param pos The point to travel to.
+     * \param always_retract Whether to always enforce a retraction action.
+     * \param next the subsequent point of the segment moving towards. If provided, an intermediate travel point is added, when feasible, to optimize the start of the actual print
+     * action with proper nozzle speed and extrusion.
+     */
+
+    void addFirstWallTravel(const Point2LL& pos, const bool force_retract, const Point2LL* next, const GCodePathConfig& config, const Ratio& flow, const Ratio& width_factor);
 };
 
 } // namespace cura

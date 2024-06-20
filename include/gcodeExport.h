@@ -8,6 +8,7 @@
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //To allow tests to use protected members.
 #endif
+#include <optional>
 #include <sstream> // for stream.str()
 #include <stdio.h>
 
@@ -26,6 +27,7 @@ namespace cura
 
 class RetractionConfig;
 class SliceDataStorage;
+class SliceLayerPart;
 struct WipeScriptConfig;
 
 // The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
@@ -192,6 +194,8 @@ protected:
      */
     double mm3ToE(double mm3);
 
+    double mm3ToMm(double mm3);
+
     /*!
      * Convert a distance value to an E value (which might be linear/distance based as well) for the current extruder.
      *
@@ -250,7 +254,7 @@ public:
 
     bool getExtruderIsUsed(const int extruder_nr) const; //!< return whether the extruder has been used throughout printing all meshgroup up till now
 
-    Point2LL getGcodePos(const coord_t x, const coord_t y, const int extruder_train) const;
+    Point2LL getGcodePos(const coord_t x, const coord_t y, const size_t extruder_train) const;
 
     void setFlavor(EGCodeFlavor flavor);
     EGCodeFlavor getFlavor() const;
@@ -446,13 +450,26 @@ private:
      * Write the F, X, Y, Z and E value (if they are not different from the last)
      *
      * convenience function called from writeExtrusion and writeTravel
+     */
+    // void writeFXYZE(const Velocity& speed, const coord_t x, const coord_t y, const coord_t z, const double e, const PrintFeatureType& feature);
+
+    /*!
+     * \brief Write a G0/G1 command
      *
      * This function also applies the gcode offset by calling \ref GCodeExport::getGcodePos
      * This function updates the \ref GCodeExport::total_bounding_box
      * It estimates the time in \ref GCodeExport::estimateCalculator for the correct feature
      * It updates \ref GCodeExport::currentPosition, \ref GCodeExport::current_e_value and \ref GCodeExport::currentSpeed
+     *
+     * \param command_name The actual command name, which should be "G0" or "G1" (but no check is performed)
+     * \param Tpeed movement speed
+     * \param x Target X position
+     * \param y Target Y position
+     * \param z Target Z position
+     * \param e_delta Extrusion amount to be performed while moving
+     * \param feature The type of feature being printed
      */
-    void writeFXYZE(const Velocity& speed, const coord_t x, const coord_t y, const coord_t z, const double e, const PrintFeatureType& feature);
+    void writeGCommand(const char* command_name, const Velocity& speed, const coord_t x, const coord_t y, const coord_t z, const double e_delta, const PrintFeatureType feature);
 
     /*!
      * The writeTravel and/or writeExtrusion when flavor == BFB
@@ -470,6 +487,8 @@ private:
      */
     void processInitialLayerBedTemperature();
 
+    void sendTravelLine(const Point2LL& pos, PrintFeatureType line_type, const Velocity& speed);
+
 public:
     /*!
      * Get ready for extrusion moves:
@@ -479,7 +498,7 @@ public:
      * It estimates the time in \ref GCodeExport::estimateCalculator
      * It updates \ref GCodeExport::current_e_value and \ref GCodeExport::currentSpeed
      */
-    void writeUnretractionAndPrime();
+    void writeUnretractionAndPrime(const std::optional<Point2LL>& pos = {}, const std::optional<Velocity>& override_speed = {}, const std::optional<double>& override_amount = {});
     void writeRetraction(const RetractionConfig& config, bool force = false, bool extruder_switch = false);
 
     /*!
@@ -620,6 +639,13 @@ public:
      * \param wipe_config Config with wipe script settings.
      */
     void insertWipeScript(const WipeScriptConfig& wipe_config);
+
+    void writeApproachToSeam(
+        const Point2LL& pos,
+        const Velocity& speed,
+        const std::vector<SliceLayerPart>& current_mesh_parts,
+        const coord_t wall_line_width,
+        const coord_t z_seam_approach_inset);
 };
 
 } // namespace cura

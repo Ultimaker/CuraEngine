@@ -98,10 +98,10 @@ public:
     [[nodiscard]] const_segments_iterator endSegments() const;
 
     /*! \brief Provides a begin iterator to iterate over all the segments of the line */
-    segments_iterator beginSegments();
+    [[nodiscard]] segments_iterator beginSegments();
 
     /*! \brief Provides an end iterator to iterate over all the segments of the line */
-    segments_iterator endSegments();
+    [[nodiscard]] segments_iterator endSegments();
 
     /*!
      * Split these poly line objects into several line segment objects consisting of only two verts

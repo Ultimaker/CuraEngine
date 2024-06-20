@@ -4,6 +4,8 @@
 #ifndef UTILS_LINEAR_ALG_2D_H
 #define UTILS_LINEAR_ALG_2D_H
 
+#include <optional>
+
 #include "geometry/Point2LL.h"
 
 namespace cura
@@ -68,6 +70,8 @@ public:
     }
 
     static bool lineLineIntersection(const Point2LL& a, const Point2LL& b, const Point2LL& c, const Point2LL& d, Point2LL& output);
+
+    static std::optional<Point2LL> segmentSegmentIntersection(const Point2LL& s1_start, const Point2LL& s1_end, const Point2LL& s2_start, const Point2LL& s2_end);
 
     /*!
      * Find whether a point projected on a line segment would be projected to

@@ -304,4 +304,21 @@ bool LinearAlg2D::lineLineIntersection(const Point2LL& a, const Point2LL& b, con
     return true;
 }
 
+std::optional<Point2LL> LinearAlg2D::segmentSegmentIntersection(const Point2LL& s1_start, const Point2LL& s1_end, const Point2LL& s2_start, const Point2LL& s2_end)
+{
+    std::optional<Point2LL> result;
+
+    Point2LL line_intersection_result;
+    if (lineLineIntersection(s1_start, s1_end, s2_start, s2_end, line_intersection_result))
+    {
+        // Lines formed by the segments are not parallel, now check that the intersection is actually part of both the segments
+        if (pointIsProjectedBeyondLine(line_intersection_result, s1_start, s1_end) == 0 && pointIsProjectedBeyondLine(line_intersection_result, s2_start, s2_end) == 0)
+        {
+            result = line_intersection_result;
+        }
+    }
+
+    return result;
+}
+
 } // namespace cura

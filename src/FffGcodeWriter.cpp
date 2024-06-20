@@ -1261,7 +1261,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
         }
     }
 
-    gcode_layer.applyModifyPlugin();
+    // gcode_layer.applyModifyPlugin();
     time_keeper.registerTime("Modify plugin");
 
     gcode_layer.applyBackPressureCompensation();
@@ -2789,7 +2789,8 @@ bool FffGcodeWriter::processInsets(
             mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_,
             mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr_,
             z_seam_config,
-            part.wall_toolpaths);
+            part.wall_toolpaths,
+            true);
         added_something |= wall_orderer.addToLayer();
     }
     return added_something;
@@ -3499,6 +3500,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 extruder_nr,
                 z_seam_config,
                 wall_toolpaths,
+                false,
                 disallowed_area_for_seams);
             added_something |= wall_orderer.addToLayer();
         }

@@ -42,6 +42,10 @@ private:
     source_iterator_type before_end_;
 
 public:
+    SegmentIterator()
+    {
+    }
+
     SegmentIterator(source_iterator_type pos, source_iterator_type begin, source_iterator_type end)
         : current_pos_(pos)
         , begin_(begin)
@@ -58,9 +62,21 @@ public:
         return Segment{ *current_pos_, *std::next(current_pos_) };
     }
 
+    SegmentIterator& operator--()
+    {
+        current_pos_--;
+        return *this;
+    }
+
     SegmentIterator& operator++()
     {
         current_pos_++;
+        return *this;
+    }
+
+    SegmentIterator& operator+=(difference_type diff)
+    {
+        current_pos_ += (diff);
         return *this;
     }
 

@@ -51,6 +51,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const size_t wall_x_extruder_nr,
     const ZSeamConfig& z_seam_config,
     const std::vector<VariableWidthLines>& paths,
+    const bool is_outer_shell,
     const Shape& disallowed_areas_for_seams)
     : gcode_writer_(gcode_writer)
     , storage_(storage)
@@ -71,7 +72,9 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , z_seam_config_(z_seam_config)
     , paths_(paths)
     , layer_nr_(gcode_layer.getLayerNr())
+    , is_outer_shell_(is_outer_shell)
     , disallowed_areas_for_seams_{ disallowed_areas_for_seams }
+
 {
 }
 
@@ -162,7 +165,8 @@ bool InsetOrderOptimizer::addToLayer()
             retract_before,
             path.is_closed_,
             backwards,
-            linked_path);
+            linked_path,
+            is_outer_shell_ && is_outer_wall);
         added_something = true;
     }
     return added_something;

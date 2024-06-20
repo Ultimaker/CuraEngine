@@ -72,12 +72,12 @@ public:
     GCodePathConfig travel_config;
 
     ExtruderPlanTestPathCollection()
-        : extrusion_config(GCodePathConfig{ .type = PrintFeatureType::OuterWall,
+        : extrusion_config(GCodePathConfig{ .type_ = PrintFeatureType::OuterWall,
                                             .line_width = 400,
                                             .layer_thickness = 100,
                                             .flow = 1.0_r,
                                             .speed_derivatives = SpeedDerivatives{ .speed = 50.0, .acceleration = 1000.0, .jerk = 10.0 } })
-        , travel_config(GCodePathConfig{ .type = PrintFeatureType::MoveCombing,
+        , travel_config(GCodePathConfig{ .type_ = PrintFeatureType::MoveCombing,
                                          .line_width = 0,
                                          .layer_thickness = 100,
                                          .flow = 0.0_r,

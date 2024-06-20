@@ -17,9 +17,12 @@
 #include "Slice.h"
 #include "WipeScriptConfig.h"
 #include "communication/Communication.h" //To send layer view data.
+#include "geometry/OpenPolyline.h"
+#include "geometry/Point2D.h"
 #include "settings/types/LayerIndex.h"
 #include "sliceDataStorage.h"
 #include "utils/Date.h"
+#include "utils/linearAlg2D.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
 
 namespace cura
@@ -359,7 +362,7 @@ bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
     return extruder_attr_[extruder_nr].is_used_;
 }
 
-Point2LL GCodeExport::getGcodePos(const coord_t x, const coord_t y, const int extruder_train) const
+Point2LL GCodeExport::getGcodePos(const coord_t x, const coord_t y, const size_t extruder_train) const
 {
     return Point2LL(x, y) - extruder_attr_[extruder_train].nozzle_offset_;
 }
@@ -478,8 +481,13 @@ double GCodeExport::mm3ToE(double mm3)
     }
     else
     {
-        return mm3 / extruder_attr_[current_extruder_].filament_area_;
+        return mm3ToMm(mm3);
     }
+}
+
+double GCodeExport::mm3ToMm(double mm3)
+{
+    return mm3 / extruder_attr_[current_extruder_].filament_area_;
 }
 
 double GCodeExport::mmToE(double mm)
@@ -612,6 +620,7 @@ void GCodeExport::writeTypeComment(const PrintFeatureType& type)
         break;
     case PrintFeatureType::MoveCombing:
     case PrintFeatureType::MoveRetraction:
+    case PrintFeatureType::MoveUnretraction:
     case PrintFeatureType::NoneType:
     case PrintFeatureType::NumPrintFeatureTypes:
         // do nothing
@@ -763,6 +772,14 @@ void GCodeExport::processInitialLayerBedTemperature()
     }
 }
 
+void GCodeExport::sendTravelLine(const Point2LL& pos, PrintFeatureType line_type, const Velocity& speed)
+{
+    const int display_width = (line_type == PrintFeatureType::MoveRetraction || line_type == PrintFeatureType::MoveUnretraction) ? MM2INT(0.2) : MM2INT(0.1);
+    const double layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<double>("layer_height");
+
+    Application::getInstance().communication_->sendLineTo(line_type, pos, display_width, layer_height, speed);
+}
+
 void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage, const size_t start_extruder_nr)
 {
     Scene& scene = Application::getInstance().current_slice_->scene;
@@ -875,6 +892,181 @@ void GCodeExport::writeTravel(const Point3LL& p, const Velocity& speed)
     writeTravel(p.x_, p.y_, p.z_ + is_z_hopped_, speed);
 }
 
+void GCodeExport::writeApproachToSeam(
+    const Point2LL& pos,
+    const Velocity& speed,
+    const std::vector<SliceLayerPart>& current_mesh_parts,
+    const coord_t wall_line_width,
+    const coord_t z_seam_approach_inset)
+{
+    Point2LL current_position{ current_position_.x_, current_position_.y_ };
+
+    if (pos != current_position)
+    {
+        // Find current model part
+        const SliceLayerPart* current_part = nullptr;
+        for (const SliceLayerPart& slice_layer_part : current_mesh_parts)
+        {
+            if (! current_part && slice_layer_part.outline.inside(pos, true))
+            {
+                current_part = &slice_layer_part;
+            }
+        }
+
+        if (! current_part)
+        {
+            spdlog::error("Unable to find associated mesh layer part");
+            assert(false && "Unable to find associated mesh layer part");
+            std::exit(1);
+        }
+
+        coord_t inset = wall_line_width / 2; // Move to the middle of the wall extrusion line
+        inset += std::max(z_seam_approach_inset, 10_mu); // Move inside the model, with a minimum value because 0 may cause unwanted intersections
+        Shape model_outline = current_part->outline.offset(-inset);
+
+        // Compute required unretraction duration
+        const double total_unretraction_amount
+            = eToMm(extruder_attr_[current_extruder_].retraction_e_amount_current_) + mm3ToMm(extruder_attr_[current_extruder_].prime_volume_); // in mm
+        const double unretraction_speed = extruder_attr_[current_extruder_].last_retraction_prime_speed_; // in mm/s
+        const double total_unretraction_duration = total_unretraction_amount / unretraction_speed; // in seconds
+
+        // Compute straight approach vector
+        const Point2LL approach_vector = pos - current_position; // in µm
+        const coord_t approach_distance = vSize(approach_vector); // in µm
+        const double approach_duration = INT2MM(approach_distance) / speed; // in seconds
+        const Point2D approach_direction_vector = Point2D(approach_vector).normalized(); // unitary vector, no unit
+
+        // If true, we have enough time to unretract during the approach, split it into one travel move and one unretraction move.
+        // If false, We don't have enough time to unretract during the approach, so first make a partial static unretract, then do the full move while unretracting
+        bool approach_longer_than_unretract = approach_duration > total_unretraction_duration;
+        coord_t unretraction_path_length; // in µm
+
+        if (approach_longer_than_unretract)
+        {
+            unretraction_path_length = MM2INT(total_unretraction_duration * speed);
+        }
+        else
+        {
+            unretraction_path_length = approach_distance;
+        }
+
+        // Generate best-case scenario full straight segment
+        const Point2LL full_straight_vector = (approach_direction_vector * unretraction_path_length).toPoint2LL(); // in µm
+        const OpenPolyline full_straight_segment({ pos - full_straight_vector, pos }); // in µm
+        OpenPolyline unretract_move({ pos }); // in µm
+
+        // Compute intersections of the full straight segment with the model
+        struct ModelIntersection
+        {
+            coord_t distance2_to_pos; // in µm2
+            Point2LL intersection; // in µm
+            const Polygon* intersected_polygon;
+            Polyline::const_segments_iterator segment_iterator;
+        };
+
+        std::vector<ModelIntersection> intersections;
+        for (const Polygon& polygon : model_outline)
+        {
+            for (auto segment_it = polygon.beginSegments(); segment_it != polygon.endSegments(); ++segment_it)
+            {
+                std::optional<Point2LL> intersection // in µm
+                    = LinearAlg2D::segmentSegmentIntersection(full_straight_segment[0], full_straight_segment[1], (*segment_it).start, (*segment_it).end);
+                if (intersection.has_value())
+                {
+                    const coord_t distance2_to_pos = vSize2(pos - intersection.value()); // in µm2
+                    intersections.emplace_back(distance2_to_pos, intersection.value(), &polygon, segment_it);
+                }
+            }
+        }
+
+        // Now interpret the intersections: as the model outline has been offsetted inwards, the target position should now be outside the outline.
+        if (intersections.size() == 1)
+        {
+            // 1 intersection means the segment comes once inside the model and doesn't get out => that's the best case scenario, keep it as is
+            unretract_move = full_straight_segment;
+        }
+        else
+        {
+            const Polygon* walk_around_polygon{ nullptr };
+            Polyline::const_segments_iterator segment_iterator;
+            if (! intersections.empty())
+            {
+                // 2+ intersection means the segment comes inside the model but later gets out => keep the first part and generate the rest by following the external wall
+                // Sort intersection by closeness to the target position: the first in the list is the closest
+                std::sort(
+                    intersections.begin(),
+                    intersections.end(),
+                    [](const ModelIntersection& intersection1, const ModelIntersection& intersection2)
+                    {
+                        return intersection1.distance2_to_pos < intersection2.distance2_to_pos;
+                    });
+
+                unretract_move.insert(unretract_move.begin(), intersections[1].intersection);
+                walk_around_polygon = intersections[1].intersected_polygon;
+                segment_iterator = intersections[1].segment_iterator;
+            }
+            else
+            {
+                // 0 intersection means the full segment is outside the model => We have to create a path inside by following the external wall
+                ClosestPointPolygon closest_point = PolygonUtils::findClosest(pos, model_outline);
+                if (closest_point.isValid())
+                {
+                    walk_around_polygon = closest_point.poly_;
+                    segment_iterator = walk_around_polygon->loopOverSegments(
+                        walk_around_polygon->beginSegments(),
+                        static_cast<Polyline::const_segments_iterator::difference_type>(closest_point.point_idx_) + 2);
+                }
+            }
+
+            if (walk_around_polygon)
+            {
+                do
+                {
+                    const coord_t current_unretraction_path_length = unretract_move.length(); // in µm
+                    Point2LL new_segment = unretract_move.front() - (*segment_iterator).start; // in µm
+                    const coord_t new_segment_length = vSize(new_segment); // in µm
+                    const coord_t new_retraction_path_length = current_unretraction_path_length + new_segment_length; // in µm
+
+                    if (new_retraction_path_length > unretraction_path_length)
+                    {
+                        // Shorten segment
+                        new_segment = vResize(new_segment, unretraction_path_length - current_unretraction_path_length);
+                    }
+
+                    unretract_move.insert(unretract_move.begin(), unretract_move.front() - new_segment);
+
+                    segment_iterator = walk_around_polygon->loopOverSegments(segment_iterator, 1);
+                } while (unretract_move.length() < unretraction_path_length);
+            }
+        }
+
+        // Whatever comes after, travel at print speed to start of unretract move
+        if (vSize2(unretract_move.front() - current_position_) > (1000 * 1000))
+        {
+            writeTravel(unretract_move.front(), speed);
+        }
+
+        const coord_t actual_unretraction_path_length = unretract_move.length(); // in µm
+        const double actual_unretraction_duration = INT2MM(actual_unretraction_path_length) / speed; // in seconds
+        const double actual_unretracted_amount = actual_unretraction_duration * unretraction_speed; // in mm
+        const double missing_unretraction_amount = total_unretraction_amount - actual_unretracted_amount; // in mm
+
+        if (missing_unretraction_amount > 0.001)
+        {
+            // Unretraction path is too short for some reason, first make a partial static unretract
+            writeUnretractionAndPrime({}, {}, mmToE(missing_unretraction_amount));
+        }
+
+        // Now process the different parts of the unretraction move
+        for (auto it = unretract_move.beginSegments(); it != unretract_move.endSegments(); ++it)
+        {
+            double unretraction_factor = static_cast<double>(vSize((*it).end - (*it).start)) / static_cast<double>(actual_unretraction_path_length);
+            double unretraction_amount_segment = unretraction_factor * actual_unretracted_amount;
+            writeUnretractionAndPrime((*it).end, speed, mmToE(unretraction_amount_segment));
+        }
+    }
+}
+
 void GCodeExport::writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
 {
     if (flavor_ == EGCodeFlavor::BFB)
@@ -901,8 +1093,6 @@ void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Velo
     }
 
     double extrusion_per_mm = mm3ToE(extrusion_mm3_per_mm);
-
-    Point2LL gcode_pos = getGcodePos(x, y, current_extruder_);
 
     // For Bits From Bytes machines, we need to handle this completely differently. As they do not use E values but RPM values.
     double fspeed = speed * 60;
@@ -943,14 +1133,8 @@ void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Velo
                 = 1.0; // 1.0 used as stub; BFB doesn't use the actual retraction amount; it performs retraction on the firmware automatically
         }
     }
-    *output_stream_ << "G1 X" << MMtoStream{ gcode_pos.X } << " Y" << MMtoStream{ gcode_pos.Y } << " Z" << MMtoStream{ z };
-    *output_stream_ << " F" << PrecisionedDouble{ 1, fspeed } << new_line_;
 
-    current_position_ = Point3LL(x, y, z);
-    estimate_calculator_.plan(
-        TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
-        speed,
-        feature);
+    writeGCommand("G1", fspeed, x, y, z, 0.0, feature);
 }
 
 void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed)
@@ -968,12 +1152,9 @@ void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z,
 #endif // ASSERT_INSANE_OUTPUT
 
     const PrintFeatureType travel_move_type = extruder_attr_[current_extruder_].retraction_e_amount_current_ ? PrintFeatureType::MoveRetraction : PrintFeatureType::MoveCombing;
-    const int display_width = extruder_attr_[current_extruder_].retraction_e_amount_current_ ? MM2INT(0.2) : MM2INT(0.1);
-    const double layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<double>("layer_height");
-    Application::getInstance().communication_->sendLineTo(travel_move_type, Point2LL(x, y), display_width, layer_height, speed);
+    sendTravelLine(Point2LL(x, y), travel_move_type, speed);
 
-    *output_stream_ << "G0";
-    writeFXYZE(speed, x, y, z, current_e_value_, travel_move_type);
+    writeGCommand("G0", speed, x, y, z, 0.0, travel_move_type);
 }
 
 void GCodeExport::writeExtrusion(
@@ -1048,98 +1229,120 @@ void GCodeExport::writeExtrusion(
     }
 
     extruder_attr_[current_extruder_].last_e_value_after_wipe_ += extrusion_per_mm * diff_length;
-    const double new_e_value = current_e_value_ + extrusion_per_mm * diff_length;
+    const double e_delta = extrusion_per_mm * diff_length;
 
-    *output_stream_ << "G1";
-    writeFXYZE(speed, x, y, z, new_e_value, feature);
+    writeGCommand("G1", speed, x, y, z, e_delta, feature);
 }
 
-void GCodeExport::writeFXYZE(const Velocity& speed, const coord_t x, const coord_t y, const coord_t z, const double e, const PrintFeatureType& feature)
+void GCodeExport::writeGCommand(
+    const char* command_name,
+    const Velocity& speed,
+    const coord_t x,
+    const coord_t y,
+    const coord_t z,
+    const double e_delta,
+    const PrintFeatureType feature)
 {
-    if (current_speed_ != speed)
-    {
-        *output_stream_ << " F" << PrecisionedDouble{ 1, speed * 60 };
-        current_speed_ = speed;
-    }
-
-    Point2LL gcode_pos = getGcodePos(x, y, current_extruder_);
+    const Point2LL gcode_pos = getGcodePos(x, y, current_extruder_);
     total_bounding_box_.include(Point3LL(gcode_pos.X, gcode_pos.Y, z));
 
-    *output_stream_ << " X" << MMtoStream{ gcode_pos.X } << " Y" << MMtoStream{ gcode_pos.Y };
-    if (z != current_position_.z_)
-    {
-        *output_stream_ << " Z" << MMtoStream{ z };
-    }
-    if (e + current_e_offset_ != current_e_value_)
-    {
-        const double output_e = (relative_extrusion_) ? e + current_e_offset_ - current_e_value_ : e + current_e_offset_;
-        *output_stream_ << " " << extruder_attr_[current_extruder_].extruder_character_ << PrecisionedDouble{ 5, output_e };
-    }
-    *output_stream_ << new_line_;
+    const double actual_e_delta = e_delta + current_e_offset_;
+    const bool add_speed = current_speed_ != speed;
+    const bool add_x = gcode_pos.X != current_position_.x_;
+    const bool add_y = gcode_pos.Y != current_position_.y_;
+    const bool add_z = z != current_position_.z_;
+    const bool add_e = std::fabs(actual_e_delta) >= 0.00001;
 
-    current_position_ = Point3LL(x, y, z);
-    current_e_value_ = e;
-    estimate_calculator_.plan(TimeEstimateCalculator::Position(INT2MM(x), INT2MM(y), INT2MM(z), eToMm(e)), speed, feature);
+    if (add_speed || add_x || add_y || add_z || add_e)
+    {
+        *output_stream_ << command_name;
+
+        if (add_speed)
+        {
+            *output_stream_ << " F" << PrecisionedDouble{ 1, speed * 60 };
+            current_speed_ = speed;
+        }
+
+        if (add_x)
+        {
+            *output_stream_ << " X" << MMtoStream{ gcode_pos.X };
+            current_position_.x_ = x;
+        }
+        if (add_y)
+        {
+            *output_stream_ << " Y" << MMtoStream{ gcode_pos.Y };
+            current_position_.y_ = y;
+        }
+        if (add_z)
+        {
+            *output_stream_ << " Z" << MMtoStream{ z };
+            current_position_.z_ = z;
+        }
+
+        if (add_e)
+        {
+            current_e_value_ += actual_e_delta;
+            const double output_e = (relative_extrusion_) ? actual_e_delta : current_e_value_;
+            *output_stream_ << " " << extruder_attr_[current_extruder_].extruder_character_ << PrecisionedDouble{ 5, output_e };
+        }
+
+        *output_stream_ << new_line_;
+
+        estimate_calculator_.plan(TimeEstimateCalculator::Position(INT2MM(x), INT2MM(y), INT2MM(z), eToMm(current_e_value_)), speed, feature);
+    }
 }
 
-void GCodeExport::writeUnretractionAndPrime()
+void GCodeExport::writeUnretractionAndPrime(const std::optional<Point2LL>& pos, const std::optional<Velocity>& override_speed, const std::optional<double>& override_amount)
 {
     const double prime_volume = extruder_attr_[current_extruder_].prime_volume_;
     const double prime_volume_e = mm3ToE(prime_volume);
-    current_e_value_ += prime_volume_e;
-    if (extruder_attr_[current_extruder_].retraction_e_amount_current_)
-    {
-        if (extruder_attr_[current_extruder_].machine_firmware_retract_)
-        { // note that BFB is handled differently
-            *output_stream_ << "G11" << new_line_;
-            // Assume default UM2 retraction settings.
-            if (prime_volume != 0)
-            {
-                const double output_e = (relative_extrusion_) ? prime_volume_e : current_e_value_;
-                *output_stream_ << "G1 F" << PrecisionedDouble{ 1, extruder_attr_[current_extruder_].last_retraction_prime_speed_ * 60 } << " "
-                                << extruder_attr_[current_extruder_].extruder_character_ << PrecisionedDouble{ 5, output_e } << new_line_;
-                current_speed_ = extruder_attr_[current_extruder_].last_retraction_prime_speed_;
-            }
-            estimate_calculator_.plan(
-                TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
-                25.0,
-                PrintFeatureType::MoveRetraction);
-        }
-        else
-        {
-            current_e_value_ += extruder_attr_[current_extruder_].retraction_e_amount_current_;
-            const double output_e = (relative_extrusion_) ? extruder_attr_[current_extruder_].retraction_e_amount_current_ + prime_volume_e : current_e_value_;
-            *output_stream_ << "G1 F" << PrecisionedDouble{ 1, extruder_attr_[current_extruder_].last_retraction_prime_speed_ * 60 } << " "
-                            << extruder_attr_[current_extruder_].extruder_character_ << PrecisionedDouble{ 5, output_e } << new_line_;
-            current_speed_ = extruder_attr_[current_extruder_].last_retraction_prime_speed_;
-            estimate_calculator_.plan(
-                TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
-                current_speed_,
-                PrintFeatureType::MoveRetraction);
-        }
-    }
-    else if (prime_volume != 0.0)
-    {
-        const double output_e = (relative_extrusion_) ? prime_volume_e : current_e_value_;
-        *output_stream_ << "G1 F" << PrecisionedDouble{ 1, extruder_attr_[current_extruder_].last_retraction_prime_speed_ * 60 } << " "
-                        << extruder_attr_[current_extruder_].extruder_character_;
-        *output_stream_ << PrecisionedDouble{ 5, output_e } << new_line_;
-        current_speed_ = extruder_attr_[current_extruder_].last_retraction_prime_speed_;
+    double unretract_e = extruder_attr_[current_extruder_].retraction_e_amount_current_;
+    const Point2LL actual_pos = pos.value_or(Point2LL(current_position_.x_, current_position_.y_));
+
+    if (extruder_attr_[current_extruder_].machine_firmware_retract_)
+    { // note that BFB unretract is handled differently
+        *output_stream_ << "G11" << new_line_;
+        current_e_value_ += unretract_e;
+        unretract_e = 0.0;
+
+        // Assume default UM2 retraction settings.
         estimate_calculator_.plan(
             TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
-            current_speed_,
-            PrintFeatureType::NoneType);
+            25.0,
+            PrintFeatureType::MoveUnretraction);
     }
+
+    const double total_remaining_unretract = unretract_e + prime_volume_e;
+    const double actual_total_remaining_unretract = override_amount.value_or(total_remaining_unretract);
+
+    if (actual_total_remaining_unretract != 0.0)
+    {
+        Velocity actual_speed = override_speed.value_or(extruder_attr_[current_extruder_].last_retraction_prime_speed_);
+
+        PrintFeatureType line_type = unretract_e != 0.0 ? PrintFeatureType::MoveUnretraction : PrintFeatureType::NoneType;
+        writeGCommand("G1", actual_speed, actual_pos.X, actual_pos.Y, current_position_.z_, actual_total_remaining_unretract, line_type);
+
+        if (pos.has_value())
+        {
+            sendTravelLine(pos.value(), line_type, actual_speed);
+        }
+    }
+
     extruder_attr_[current_extruder_].prime_volume_ = 0.0;
 
-    if (getCurrentExtrudedVolume() > 10000.0 && flavor_ != EGCodeFlavor::BFB
-        && flavor_ != EGCodeFlavor::MAKERBOT) // According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it
-                                              // every 10m, just to be sure.
+    if (override_amount.has_value())
     {
-        resetExtrusionValue();
+        extruder_attr_[current_extruder_].retraction_e_amount_current_ = total_remaining_unretract - override_amount.value();
     }
-    if (extruder_attr_[current_extruder_].retraction_e_amount_current_)
+    else
     {
+        if (getCurrentExtrudedVolume() > 10000.0 && flavor_ != EGCodeFlavor::BFB
+            && flavor_ != EGCodeFlavor::MAKERBOT) // According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset
+                                                  // it every 10m, just to be sure.
+        {
+            resetExtrusionValue();
+        }
+
         extruder_attr_[current_extruder_].retraction_e_amount_current_ = 0.0;
     }
 }
@@ -1219,15 +1422,9 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
     else
     {
         double speed = ((retraction_diff_e_amount < 0.0) ? config.speed : extr_attr.last_retraction_prime_speed_);
-        current_e_value_ += retraction_diff_e_amount;
-        const double output_e = (relative_extrusion_) ? retraction_diff_e_amount : current_e_value_;
-        *output_stream_ << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " " << extr_attr.extruder_character_ << PrecisionedDouble{ 5, output_e } << new_line_;
-        current_speed_ = speed;
-        estimate_calculator_.plan(
-            TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
-            current_speed_,
-            PrintFeatureType::MoveRetraction);
         extr_attr.last_retraction_prime_speed_ = config.primeSpeed;
+
+        writeGCommand("G1", speed, current_position_.x_, current_position_.y_, current_position_.z_, retraction_diff_e_amount, PrintFeatureType::MoveRetraction);
     }
 
     extr_attr.retraction_e_amount_current_ = new_retraction_e_amount; // suppose that for UM2 the retraction amount in the firmware is equal to the provided amount

@@ -40,7 +40,7 @@ namespace cura
 
 [[nodiscard]] PrintFeatureType GCodePathConfig::getPrintFeatureType() const noexcept
 {
-    return type;
+    return type_;
 }
 
 [[nodiscard]] bool GCodePathConfig::isTravelPath() const noexcept
@@ -66,6 +66,11 @@ namespace cura
 [[nodiscard]] double GCodePathConfig::calculateExtrusion() const noexcept
 {
     return INT2MM(line_width) * INT2MM(layer_thickness) * double(flow);
+}
+
+void GCodePathConfig::setPrintFeatureType(PrintFeatureType type)
+{
+    type_ = type;
 }
 
 

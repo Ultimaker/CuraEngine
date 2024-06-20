@@ -115,21 +115,6 @@ public:
     [[nodiscard]] bool inside(const Point2LL& p, bool border_result = false) const;
 
     /*!
-     * Find the polygon inside which point \p p resides.
-     *
-     * We do this by tracing from the point towards the positive X direction,
-     * every line we cross increments the crossings counter. If we have an even number of crossings then we are not inside the polygon.
-     * We then find the polygon with an uneven number of crossings which is closest to \p p.
-     *
-     * If \p border_result, we return the first polygon which is exactly on \p p.
-     *
-     * \param p The point for which to check in which polygon it is.
-     * \param border_result Whether a point exactly on a polygon counts as inside
-     * \return The index of the polygon inside which the point \p p resides
-     */
-    [[nodiscard]] size_t findInside(const Point2LL& p, bool border_result = false) const;
-
-    /*!
      * \brief Approximates the convex hull of the polygons.
      * \p extra_outset Extra offset outward
      * \return the convex hull (approximately)
