@@ -121,9 +121,9 @@ private:
      * 'best' vertex on that polygon. Under certain circumstances, the seam-placing algorithm can
      * however still deviate from this, for example when the seam-point placed here isn't suppored
      * by the layer below.
-     * 
+     *
      * \param closed_line The polygon to insert the seam point in. (It's assumed to be closed at least.)
-     * 
+     *
      * \return The index of the inserted seam point, or std::nullopt if no seam point was inserted.
      */
     std::optional<size_t> insertSeamPoint(ExtrusionLine& closed_line);
