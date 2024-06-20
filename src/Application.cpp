@@ -148,10 +148,49 @@ void Application::printHelp() const
     fmt::print("\n");
 }
 
-void Application::printLicense() const
+void Application::printHeader() const
 {
     fmt::print("\n");
     fmt::print("Cura_SteamEngine version {}\n", CURA_ENGINE_VERSION);
+
+#ifdef DEBUG
+    fmt::print("\n");
+    fmt::print(" _______   ________  _______   __    __   ______\n");
+    fmt::print("/       \\ /        |/       \\ /  |  /  | /      \\\n");
+    fmt::print("███████  |████████/ ███████  |██ |  ██ |/██████  |\n");
+    fmt::print("██ |  ██ |██ |__    ██ |__██ |██ |  ██ |██ | _██/\n");
+    fmt::print("██ |  ██ |██    |   ██    ██< ██ |  ██ |██ |/    |\n");
+    fmt::print("██ |  ██ |█████/    ███████  |██ |  ██ |██ |████ |\n");
+    fmt::print("██ |__██ |██ |_____ ██ |__██ |██ \\__██ |██ \\__██ |\n");
+    fmt::print("██    ██/ ██       |██    ██/ ██    ██/ ██    ██/\n");
+    fmt::print("███████/  ████████/ ███████/   ██████/   ██████/\n");
+    fmt::print("\n");
+    fmt::print(" __       __   ______   _______   ________\n");
+    fmt::print("/  \\     /  | /      \\ /       \\ /        |\n");
+    fmt::print("██  \\   /██ |/██████  |███████  |████████/\n");
+    fmt::print("███  \\ /███ |██ |  ██ |██ |  ██ |██ |__\n");
+    fmt::print("████  /████ |██ |  ██ |██ |  ██ |██    |\n");
+    fmt::print("██ ██ ██/██ |██ |  ██ |██ |  ██ |█████/\n");
+    fmt::print("██ |███/ ██ |██ \\__██ |██ |__██ |██ |_____\n");
+    fmt::print("██ | █/  ██ |██    ██/ ██    ██/ ██       |\n");
+    fmt::print("██/      ██/  ██████/  ███████/  ████████/\n");
+    fmt::print("\n");
+
+    fmt::print("#########################################################\n");
+    fmt::print("#########################################################\n");
+    fmt::print("## WARNING: This version of CuraEngine has been built  ##\n");
+    fmt::print("## in developper mode. This may impact performances,   ##\n");
+    fmt::print("## provoke unexpected results or crashes.              ##\n");
+    fmt::print("## If you downloaded an official version of CuraEngine ##\n");
+    fmt::print("## and see this message, please report the issue.      ##\n");
+    fmt::print("#########################################################\n");
+    fmt::print("#########################################################\n");
+#endif
+}
+
+void Application::printLicense() const
+{
+    fmt::print("\n");
     fmt::print("Copyright (C) 2024 Ultimaker\n");
     fmt::print("\n");
     fmt::print("This program is free software: you can redistribute it and/or modify\n");
@@ -184,6 +223,7 @@ void Application::run(const size_t argc, char** argv)
     argc_ = argc;
     argv_ = argv;
 
+    printHeader();
     printLicense();
     Progress::init();
 

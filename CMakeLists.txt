@@ -191,9 +191,6 @@ target_compile_definitions(_CuraEngine
         $<$<CONFIG:Debug>:ASSERT_INSANE_OUTPUT>
         $<$<CONFIG:Debug>:USE_CPU_TIME>
         $<$<CONFIG:Debug>:DEBUG>
-        $<$<CONFIG:RelWithDebInfo>:ASSERT_INSANE_OUTPUT>
-        $<$<CONFIG:RelWithDebInfo>:USE_CPU_TIME>
-        $<$<CONFIG:RelWithDebInfo>:DEBUG>
 )
 
 enable_sanitizers(_CuraEngine)
