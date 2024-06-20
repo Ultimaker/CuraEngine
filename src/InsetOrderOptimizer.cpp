@@ -211,7 +211,7 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
             const auto& next_junction = closed_line.junctions_[(i + 1) % closed_line.junctions_.size()];
 
             float t, u;
-            if (LinearAlg2D::lineSegmentLineSegmentIntersection(ray_origin, request_point, junction.p_, next_junction.p_, &t, &u))
+            if (LinearAlg2D::segmentSegmentIntersection(ray_origin, request_point, junction.p_, next_junction.p_, &t, &u))
             {
                 const Point2LL intersection = ray_origin + (request_point - ray_origin) * t;
                 const coord_t distance_sqd = vSize2(request_point - intersection);
