@@ -1386,16 +1386,6 @@ double PolygonUtils::relativeHammingDistance(const Shape& poly_a, const Shape& p
     return hamming_distance / total_area;
 }
 
-Polygon PolygonUtils::makeCircle(const Point2LL mid, const coord_t radius, const AngleRadians a_step)
-{
-    Polygon circle;
-    for (double a = 0; a < 2 * std::numbers::pi; a += a_step)
-    {
-        circle.emplace_back(mid + Point2LL(radius * cos(a), radius * sin(a)));
-    }
-    return circle;
-}
-
 Polygon PolygonUtils::makeWheel(const Point2LL& mid, const coord_t inner_radius, const coord_t outer_radius, const size_t semi_nb_spokes, const size_t arc_angle_resolution)
 {
     Polygon wheel;
