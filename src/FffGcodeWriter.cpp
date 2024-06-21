@@ -623,8 +623,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         const size_t wall_line_count = base_settings.get<size_t>("raft_base_wall_count");
         const coord_t small_area_width = 0; // A raft never has a small region due to the large horizontal expansion.
         const coord_t line_spacing = base_settings.get<coord_t>("raft_base_line_spacing");
-        constexpr coord_t infill_overlap = 0;
-        const coord_t pattern_overlap = base_settings.get<coord_t>("raft_base_infill_overlap_mm");
+        const coord_t infill_overlap = base_settings.get<coord_t>("raft_base_infill_overlap_mm");
         const coord_t line_spacing_prime_tower = base_settings.get<coord_t>("prime_tower_raft_base_line_spacing");
         const Point2LL& infill_origin = Point2LL();
         constexpr bool skip_stitching = false;
@@ -685,8 +684,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 use_endpieces,
                 skip_some_zags,
                 zag_skip_count,
-                pocket_size,
-                pattern_overlap);
+                pocket_size);
             std::vector<VariableWidthLines> raft_paths;
             infill_comp.generate(raft_paths, raft_polygons, raft_lines, base_settings, layer_nr, SectionType::ADHESION);
             if (! raft_paths.empty())
@@ -755,8 +753,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     const coord_t interface_line_spacing = interface_settings.get<coord_t>("raft_interface_line_spacing");
     const Ratio interface_fan_speed = interface_settings.get<Ratio>("raft_interface_fan_speed");
     const coord_t interface_line_width = interface_settings.get<coord_t>("raft_interface_line_width");
-    constexpr coord_t interface_infill_overlap = 0;
-    const coord_t interface_pattern_overlap = interface_settings.get<coord_t>("raft_interface_infill_overlap_mm");
+    const coord_t interface_infill_overlap = interface_settings.get<coord_t>("raft_interface_infill_overlap_mm");
     const coord_t interface_avoid_distance = interface_settings.get<coord_t>("travel_avoid_distance");
     const coord_t interface_max_resolution = interface_settings.get<coord_t>("meshfix_maximum_resolution");
     const coord_t interface_max_deviation = interface_settings.get<coord_t>("meshfix_maximum_deviation");
@@ -846,8 +843,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             use_endpieces,
             skip_some_zags,
             zag_skip_count,
-            pocket_size,
-            interface_pattern_overlap);
+            pocket_size);
         std::vector<VariableWidthLines> raft_paths;
         infill_comp.generate(raft_paths, raft_polygons, raft_lines, interface_settings, layer_nr, SectionType::ADHESION);
         if (! raft_paths.empty())
@@ -917,8 +913,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     const coord_t surface_max_resolution = surface_settings.get<coord_t>("meshfix_maximum_resolution");
     const coord_t surface_max_deviation = surface_settings.get<coord_t>("meshfix_maximum_deviation");
     const coord_t surface_line_width = surface_settings.get<coord_t>("raft_surface_line_width");
-    constexpr coord_t surface_infill_overlap = 0;
-    const coord_t surface_pattern_overlap = surface_settings.get<coord_t>("raft_surface_infill_overlap_mm");
+    const coord_t surface_infill_overlap = surface_settings.get<coord_t>("raft_surface_infill_overlap_mm");
     const coord_t surface_avoid_distance = surface_settings.get<coord_t>("travel_avoid_distance");
     const Ratio surface_fan_speed = surface_settings.get<Ratio>("raft_surface_fan_speed");
     const bool surface_monotonic = surface_settings.get<bool>("raft_surface_monotonic");
@@ -1014,8 +1009,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 use_endpieces,
                 skip_some_zags,
                 zag_skip_count,
-                pocket_size,
-                surface_pattern_overlap);
+                pocket_size);
 
             std::vector<VariableWidthLines> raft_paths;
             infill_comp.generate(raft_paths, raft_polygons, raft_lines, surface_settings, layer_nr, SectionType::ADHESION);
@@ -1933,7 +1927,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
 
             constexpr size_t wall_line_count = 0; // wall toolpaths are when gradual infill areas are determined
             const coord_t small_area_width = 0;
-            constexpr coord_t infill_overlap = 0; // Overlap is handled when the wall toolpaths are generated
+            const coord_t infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
             constexpr bool skip_stitching = false;
             constexpr bool connected_zigzags = false;
             constexpr bool use_endpieces = true;
@@ -2214,7 +2208,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
 
         constexpr size_t wall_line_count_here = 0; // Wall toolpaths were generated in generateGradualInfill for the sparsest density, denser parts don't have walls by default
         const coord_t small_area_width = 0;
-        constexpr coord_t overlap = 0; // overlap is already applied for the sparsest density in the generateGradualInfill
+        const coord_t overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
 
         wall_tool_paths.emplace_back();
         Infill infill_comp(

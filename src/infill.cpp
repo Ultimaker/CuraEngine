@@ -57,17 +57,13 @@ namespace cura
 
 Shape Infill::generateWallToolPaths(
     std::vector<VariableWidthLines>& toolpaths,
-    Shape& outer_contour,
+    const Shape& outer_contour,
     const size_t wall_line_count,
     const coord_t line_width,
-    const coord_t infill_overlap,
     const Settings& settings,
     int layer_idx,
     SectionType section_type)
 {
-    outer_contour = outer_contour.offset(infill_overlap);
-    scripta::log("infill_outer_contour", outer_contour, section_type, layer_idx, scripta::CellVDI{ "infill_overlap", infill_overlap });
-
     Shape inner_contour;
     if (wall_line_count > 0)
     {
@@ -100,10 +96,10 @@ void Infill::generate(
         return;
     }
 
-    inner_contour_ = generateWallToolPaths(toolpaths, outer_contour_, wall_line_count_, infill_line_width_, infill_overlap_, settings, layer_idx, section_type);
+    inner_contour_ = generateWallToolPaths(toolpaths, outer_contour_, wall_line_count_, infill_line_width_, settings, layer_idx, section_type);
     scripta::log("infill_inner_contour_0", inner_contour_, section_type, layer_idx);
 
-    inner_contour_ = inner_contour_.offset(pattern_overlap_);
+    inner_contour_ = inner_contour_.offset(infill_overlap_);
 
     // It does not make sense to print a pattern in a small region. So the infill region
     // is split into a small region that will be filled with walls and the normal region
