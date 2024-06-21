@@ -272,7 +272,7 @@ Point3Matrix LinearAlg2D::rotateAround(const Point2LL& middle, double rotation)
     return Point3Matrix::translate(middle).compose(rotation_matrix_homogeneous).compose(Point3Matrix::translate(-middle));
 }
 
-bool LinearAlg2D::lineLineIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float* t, float* u)
+bool LinearAlg2D::lineLineIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float& t, float& u)
 {
     const float x1mx2 = p1.X - p2.X;
     const float x1mx3 = p1.X - p3.X;
@@ -281,8 +281,8 @@ bool LinearAlg2D::lineLineIntersection(const Point2LL& p1, const Point2LL& p2, c
     const float y1my3 = p1.Y - p3.Y;
     const float y3my4 = p3.Y - p4.Y;
 
-    t[0] = x1mx3 * y3my4 - y1my3 * x3mx4;
-    u[0] = x1mx3 * y1my2 - y1my3 * x1mx2;
+    t = x1mx3 * y3my4 - y1my3 * x3mx4;
+    u = x1mx3 * y1my2 - y1my3 * x1mx2;
     const float div = x1mx2 * y3my4 - y1my2 * x3mx4;
     if (div == 0.0f)
     {
@@ -291,20 +291,20 @@ bool LinearAlg2D::lineLineIntersection(const Point2LL& p1, const Point2LL& p2, c
 
     // NOTE: In theory the comparison 0 <= par <= 1 can now done without division for each parameter (as an early-out),
     //       but this is easier & when the intersection _does_ happen and we want the normalized parameters returned anyway.
-    t[0] /= div;
-    u[0] /= div;
+    t /= div;
+    u /= div;
     return true;
 }
 
-bool LinearAlg2D::segmentSegmentIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float* t, float* u)
+bool LinearAlg2D::segmentSegmentIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float& t, float& u)
 {
-    return lineLineIntersection(p1, p2, p3, p4, t, u) && t[0] >= 0.0f && u[0] >= 0.0f && t[0] <= 1.0f && u[0] <= 1.0f;
+    return lineLineIntersection(p1, p2, p3, p4, t, u) && t >= 0.0f && u >= 0.0f && t <= 1.0f && u <= 1.0f;
 }
 
 bool LinearAlg2D::lineLineIntersection(const Point2LL& a, const Point2LL& b, const Point2LL& c, const Point2LL& d, Point2LL& output)
 {
     float t, u;
-    if (! lineLineIntersection(a, b, c, d, &t, &u))
+    if (! lineLineIntersection(a, b, c, d, t, u))
     {
         return false;
     }
