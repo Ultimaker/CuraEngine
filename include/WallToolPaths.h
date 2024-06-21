@@ -110,9 +110,9 @@ protected:
     static void stitchToolPaths(std::vector<VariableWidthLines>& toolpaths, const Settings& settings);
 
     /*!
-     * Remove polylines shorter than half the smallest line width along that polyline.
+     * Remove polylines shorter than half the smallest line width along that polyline, if that polyline isn't part of an outer wall.
      */
-    static void removeSmallLines(std::vector<VariableWidthLines>& toolpaths);
+    static void removeSmallFillLines(std::vector<VariableWidthLines>& toolpaths);
 
     /*!
      * Simplifies the variable-width toolpaths by calling the simplify on every line in the toolpath using the provided

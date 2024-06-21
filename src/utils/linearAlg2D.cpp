@@ -272,28 +272,43 @@ Point3Matrix LinearAlg2D::rotateAround(const Point2LL& middle, double rotation)
     return Point3Matrix::translate(middle).compose(rotation_matrix_homogeneous).compose(Point3Matrix::translate(-middle));
 }
 
-bool LinearAlg2D::lineLineIntersection(const Point2LL& a, const Point2LL& b, const Point2LL& c, const Point2LL& d, Point2LL& output)
+bool LinearAlg2D::lineLineIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float& t, float& u)
 {
-    // Adapted from Apex: https://github.com/Ghostkeeper/Apex/blob/eb75f0d96e36c7193d1670112826842d176d5214/include/apex/line_segment.hpp#L91
-    // Adjusted to work with lines instead of line segments.
-    const Point2LL l1_delta = b - a;
-    const Point2LL l2_delta = d - c;
-    const coord_t divisor = cross(l1_delta, l2_delta); // Pre-compute divisor needed for the intersection check.
-    if (divisor == 0)
+    const float x1mx2 = p1.X - p2.X;
+    const float x1mx3 = p1.X - p3.X;
+    const float x3mx4 = p3.X - p4.X;
+    const float y1my2 = p1.Y - p2.Y;
+    const float y1my3 = p1.Y - p3.Y;
+    const float y3my4 = p3.Y - p4.Y;
+
+    t = x1mx3 * y3my4 - y1my3 * x3mx4;
+    u = x1mx3 * y1my2 - y1my3 * x1mx2;
+    const float div = x1mx2 * y3my4 - y1my2 * x3mx4;
+    if (div == 0.0f)
     {
-        // The lines are parallel if the cross product of their directions is zero.
         return false;
     }
 
-    // Create a parametric representation of each line.
-    // We'll equate the parametric equations to each other to find the intersection then.
-    // Parametric equation is L = P + Vt (where P and V are a starting point and directional vector).
-    // We'll map the starting point of one line onto the parameter system of the other line.
-    // Then using the divisor we can see whether and where they cross.
-    const Point2LL starts_delta = a - c;
-    const coord_t l1_parametric = cross(l2_delta, starts_delta);
-    Point2LL result = a + Point2LL(round_divide_signed(l1_parametric * l1_delta.X, divisor), round_divide_signed(l1_parametric * l1_delta.Y, divisor));
+    // NOTE: In theory the comparison 0 <= par <= 1 can now done without division for each parameter (as an early-out),
+    //       but this is easier & when the intersection _does_ happen and we want the normalized parameters returned anyway.
+    t /= div;
+    u /= div;
+    return true;
+}
 
+bool LinearAlg2D::segmentSegmentIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float& t, float& u)
+{
+    return lineLineIntersection(p1, p2, p3, p4, t, u) && t >= 0.0f && u >= 0.0f && t <= 1.0f && u <= 1.0f;
+}
+
+bool LinearAlg2D::lineLineIntersection(const Point2LL& a, const Point2LL& b, const Point2LL& c, const Point2LL& d, Point2LL& output)
+{
+    float t, u;
+    if (! lineLineIntersection(a, b, c, d, t, u))
+    {
+        return false;
+    }
+    const Point2LL result = a + (b - a) * t;
     if (std::abs(result.X) > std::numeric_limits<int32_t>::max() || std::abs(result.Y) > std::numeric_limits<int32_t>::max())
     {
         // Intersection is so far away that it could lead to integer overflows.
