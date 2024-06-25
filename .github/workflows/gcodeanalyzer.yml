@@ -185,13 +185,10 @@ jobs:
               infilename = os.path.join(folder_path, filename)
               with open(infilename.rsplit(".", 1)[0] + ".time", "r") as f:
                   content = f.read()
-                  print("File content:", content) # Debug
                   match = re.search(r"^real\s+(\d+)m(\d+\.\d+)s", content, re.MULTILINE)
                   if match:
-                      print("Match groups:", match.groups())  # Debugging line
                       timer = float(match.group(1)) * 60 + float(match.group(2))
                   else:
-                      print("No match found")  # Debugging line
                       timer = 0
 
               frame = GCodeAnalyzer.DataFrame(infilename)
