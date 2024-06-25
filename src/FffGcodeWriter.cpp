@@ -710,7 +710,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                     base_extruder_nr,
                     base_extruder_nr,
                     z_seam_config,
-                    raft_paths);
+                    raft_paths,
+                    storage.getModelBoundingBox().flatten().getMiddle());
                 wall_orderer.addToLayer();
             }
 
@@ -865,7 +866,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 interface_extruder_nr,
                 interface_extruder_nr,
                 z_seam_config,
-                raft_paths);
+                raft_paths,
+                storage.getModelBoundingBox().flatten().getMiddle());
             wall_orderer.addToLayer();
         }
 
@@ -1028,7 +1030,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                     surface_extruder_nr,
                     surface_extruder_nr,
                     z_seam_config,
-                    raft_paths);
+                    raft_paths,
+                    storage.getModelBoundingBox().flatten().getMiddle());
                 wall_orderer.addToLayer();
             }
 
@@ -2297,7 +2300,8 @@ bool FffGcodeWriter::processSingleLayerInfill(
                     extruder_nr,
                     extruder_nr,
                     z_seam_config,
-                    tool_paths);
+                    tool_paths,
+                    storage.getModelBoundingBox().flatten().getMiddle());
                 added_something |= wall_orderer.addToLayer();
             }
         }
@@ -2739,7 +2743,8 @@ bool FffGcodeWriter::processInsets(
             mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_,
             mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr_,
             z_seam_config,
-            part.wall_toolpaths);
+            part.wall_toolpaths,
+            storage.getModelBoundingBox().flatten().getMiddle());
         added_something |= wall_orderer.addToLayer();
     }
     return added_something;
@@ -3164,7 +3169,8 @@ void FffGcodeWriter::processSkinPrintFeature(
                     skin_extruder_nr,
                     skin_extruder_nr,
                     z_seam_config,
-                    skin_paths);
+                    skin_paths,
+                    storage.getModelBoundingBox().flatten().getMiddle());
                 added_something |= wall_orderer.addToLayer();
             }
         }
@@ -3450,6 +3456,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 extruder_nr,
                 z_seam_config,
                 wall_toolpaths,
+                storage.getModelBoundingBox().flatten().getMiddle(),
                 disallowed_area_for_seams);
             added_something |= wall_orderer.addToLayer();
         }
@@ -3628,7 +3635,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     extruder_nr,
                     extruder_nr,
                     z_seam_config,
-                    wall_toolpaths_here);
+                    wall_toolpaths_here,
+                    storage.getModelBoundingBox().flatten().getMiddle());
                 added_something |= wall_orderer.addToLayer();
             }
         }
@@ -3763,7 +3771,8 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, con
             roof_extruder_nr,
             roof_extruder_nr,
             z_seam_config,
-            roof_paths);
+            roof_paths,
+            storage.getModelBoundingBox().flatten().getMiddle());
         wall_orderer.addToLayer();
     }
     gcode_layer.addLinesByOptimizer(roof_lines, current_roof_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
@@ -3876,7 +3885,8 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
             bottom_extruder_nr,
             bottom_extruder_nr,
             z_seam_config,
-            bottom_paths);
+            bottom_paths,
+            storage.getModelBoundingBox().flatten().getMiddle());
         wall_orderer.addToLayer();
     }
     gcode_layer.addLinesByOptimizer(

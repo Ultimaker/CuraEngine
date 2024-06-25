@@ -105,7 +105,12 @@ protected:
 #endif // ARCUS
 
     /*!
-     * \brief Print the header and license to the stderr channel.
+     * \brief Print the header to the stderr channel.
+     */
+    void printHeader() const;
+
+    /*!
+     * \brief Print the license to the stderr channel.
      */
     void printLicense() const;
 

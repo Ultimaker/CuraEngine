@@ -67,6 +67,21 @@ public:
         return -1;
     }
 
+    /*!
+     * A single-shot line-segment/line-segment intersection that returns the parameters and doesn't require a grid-calculation beforehand.
+     *
+     * \param p1 The start point of the first line segment.
+     * \param p2 The end point of the first line segment.
+     * \param p3 The start point of the second line segment.
+     * \param p4 The end point of the second line segment.
+     * \param t The parameter of the intersection on the first line segment (intersection = p1 + t * (p2 - p1)).
+     * \param u The parameter of the intersection on the second line segment (intersection = p3 + u * (p4 - p3)).
+     *
+     * \return Whether the two line segments intersect.
+     */
+    static bool segmentSegmentIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float& t, float& u);
+    static bool lineLineIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float& t, float& u);
+
     static bool lineLineIntersection(const Point2LL& a, const Point2LL& b, const Point2LL& c, const Point2LL& d, Point2LL& output);
 
     /*!

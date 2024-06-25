@@ -383,6 +383,16 @@ Shape SliceDataStorage::getLayerOutlines(
     }
 }
 
+AABB3D SliceDataStorage::getModelBoundingBox() const
+{
+    AABB3D bounding_box;
+    for (const auto& mesh : meshes)
+    {
+        bounding_box.include(mesh->bounding_box);
+    }
+    return bounding_box;
+}
+
 std::vector<bool> SliceDataStorage::getExtrudersUsed() const
 {
     std::vector<bool> ret;

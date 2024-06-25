@@ -77,6 +77,12 @@ struct PathOrdering
     bool backwards_;
 
     /*!
+     * Force the start point of the path to be at a specific location.
+     * Will only happen if not empty, and this point is actually on the path.
+     */
+    std::optional<size_t> force_start_index_;
+
+    /*!
      * Get vertex data from the custom path type.
      *
      * This is a function that allows the reordering algorithm to work with any
