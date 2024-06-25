@@ -3417,7 +3417,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     size_t infill_density_multiplier = 1;
     if (gcode_layer.getLayerNr() <= 0)
     {
-        infill_density_multiplier = infill_extruder.settings_.get<size_t>("support_infill_density_multiplier_layer_0");
+        infill_density_multiplier = infill_extruder.settings_.get<size_t>("support_infill_density_multiplier_initial_layer");
     }
 
     const size_t wall_line_count = infill_extruder.settings_.get<size_t>("support_wall_count");
