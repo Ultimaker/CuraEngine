@@ -3549,8 +3549,11 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     = (part.custom_line_distance_ > 0
                            ? part.custom_line_distance_
                            : default_support_line_distance * density_factor); // the highest density infill combines with the next to create a grid with density_factor 1
-                support_line_distance_here /= (1 << (infill_density_multiplier - 1));
-                support_line_distance_here = std::max(support_line_distance_here, support_line_width);
+                if (support_line_distance_here != 0 && infill_density_multiplier > 1)
+                {
+                    support_line_distance_here /= (1 << (infill_density_multiplier - 1));
+                    support_line_distance_here = std::max(support_line_distance_here, support_line_width);
+                }
                 const int support_shift = support_line_distance_here / 2;
                 if (part.custom_line_distance_ == 0 && (density_idx == max_density_idx || support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D))
                 {
