@@ -184,9 +184,13 @@ jobs:
                   continue
               infilename = os.path.join(folder_path, filename)
               with open(infilename.rsplit(".", 1)[0] + ".time", "r") as f:
-                  match = re.match(r"^.*?real\s+(\d+)m(\d+\.\d+)s", f.read())
-                  timer = 0 if not match else float(match[1])
-          
+                  content = f.read()
+                  match = re.search(r"^real\s+(\d+)m(\d+\.\d+)s", content, re.MULTILINE)
+                  if match:
+                      timer = float(match.group(1)) * 60 + float(match.group(2))
+                  else:
+                      timer = 0
+
               frame = GCodeAnalyzer.DataFrame(infilename)
           
               line_lengths = frame.gc.extrusions['length'].describe()
