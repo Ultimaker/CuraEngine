@@ -347,6 +347,7 @@ gcode_paths_modify_request::value_type
         gcode_path->set_speed_factor(path.speed_factor);
         gcode_path->set_speed_back_pressure_factor(path.speed_back_pressure_factor);
         gcode_path->set_retract(path.retract);
+        gcode_path->set_retract_for_nozzle_switch(path.retract_for_nozzle_switch);
         gcode_path->set_unretract_before_last_travel_move(path.unretract_before_last_travel_move);
         gcode_path->set_perform_z_hop(path.perform_z_hop);
         gcode_path->set_perform_prime(path.perform_prime);
@@ -464,6 +465,7 @@ gcode_paths_modify_response::native_value_type
             .speed_factor = gcode_path_msg.speed_factor(),
             .speed_back_pressure_factor = gcode_path_msg.speed_back_pressure_factor(),
             .retract = gcode_path_msg.retract(),
+            .retract_for_nozzle_switch = gcode_path_msg.retract_for_nozzle_switch(),
             .unretract_before_last_travel_move = gcode_path_msg.unretract_before_last_travel_move(),
             .perform_z_hop = gcode_path_msg.perform_z_hop(),
             .perform_prime = gcode_path_msg.perform_prime(),
