@@ -2079,6 +2079,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.switchExtruder(extruder_nr, prev_retraction_config.extruder_switch_retraction_config);
             }
 
+            gcode.writePrepareFansForNozzleSwitch();
+
             { // require printing temperature to be met
                 constexpr bool wait = true;
                 gcode.writeTemperatureCommand(extruder_nr, extruder_plan.required_start_temperature_, wait);
@@ -2227,10 +2229,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             if (path.retract)
             {
                 retraction_config = path.mesh ? &path.mesh->retraction_wipe_config : retraction_config;
-                if (path.retract_for_nozzle_switch)
-                {
-                    gcode.writePrepareFansForNozzleSwitch();
-                }
                 gcode.writeRetraction(retraction_config->retraction_config);
                 if (path.retract_for_nozzle_switch)
                 {

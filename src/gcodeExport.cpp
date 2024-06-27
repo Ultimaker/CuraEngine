@@ -1319,8 +1319,6 @@ void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& re
         return;
     }
 
-    writePrepareFansForNozzleSwitch();
-
     const Settings& old_extruder_settings = Application::getInstance().current_slice_->scene.extruders[current_extruder_].settings_;
     if (old_extruder_settings.get<bool>("retraction_enable"))
     {
@@ -1746,42 +1744,26 @@ void GCodeExport::insertWipeScript(const WipeScriptConfig& wipe_config)
 
 void GCodeExport::writePrepareFansForNozzleSwitch()
 {
-    if (saved_cool_fan_speeds_.empty()) // Otherwise we are already during an extruder switch
+    const Settings& settings = Application::getInstance().current_slice_->scene.settings;
+    const auto cool_during_switch = settings.get<CoolDuringExtruderSwitch>("cool_during_extruder_switch");
+
+    if (cool_during_switch != CoolDuringExtruderSwitch::UNCHANGED)
     {
-        const Settings& settings = Application::getInstance().current_slice_->scene.settings;
-        const auto cool_during_switch = settings.get<CoolDuringExtruderSwitch>("cool_during_extruder_switch");
+        const size_t current_extruder_fan_number = extruder_attr_[current_extruder_].fan_number_;
 
-        if (cool_during_switch != CoolDuringExtruderSwitch::UNCHANGED)
+        for (size_t fan_number = 0; fan_number < fans_count_; ++fan_number)
         {
-            const size_t current_extruder_fan_number = extruder_attr_[current_extruder_].fan_number_;
-            saved_cool_fan_speeds_.resize(fans_count_);
-
-            for (size_t fan_number = 0; fan_number < fans_count_; ++fan_number)
+            double fan_speed;
+            if (cool_during_switch == CoolDuringExtruderSwitch::ALL_FANS || fan_number == current_extruder_fan_number)
             {
-                auto iterator = current_fans_speeds_.find(fan_number);
-                if (iterator != current_fans_speeds_.end())
-                {
-                    saved_cool_fan_speeds_[fan_number] = iterator->second;
-                }
-                else
-                {
-                    // The fan speed has never been set yet, but we have to save its actual speed in order to restore it
-                    // later, so assume its actual speed is 0.
-                    saved_cool_fan_speeds_[fan_number] = 0.0;
-                }
-
-                double fan_speed;
-                if (cool_during_switch == CoolDuringExtruderSwitch::ALL_FANS || fan_number == current_extruder_fan_number)
-                {
-                    fan_speed = 100.0;
-                }
-                else
-                {
-                    fan_speed = 0.0;
-                }
-
-                writeSpecificFanCommand(fan_speed, fan_number);
+                fan_speed = 100.0;
             }
+            else
+            {
+                fan_speed = 0.0;
+            }
+
+            writeSpecificFanCommand(fan_speed, fan_number);
         }
     }
 }
@@ -1790,27 +1772,18 @@ void GCodeExport::writePrepareFansForExtrusion(double current_extruder_new_speed
 {
     const size_t current_extruder_fan_number = extruder_attr_[current_extruder_].fan_number_;
 
-    if (! saved_cool_fan_speeds_.empty())
+    for (size_t fan_number = 0; fan_number < fans_count_; ++fan_number)
     {
-        for (size_t fan_number = 0; fan_number < fans_count_; ++fan_number)
+        double new_fan_speed;
+        if (fan_number == current_extruder_fan_number)
         {
-            double new_fan_speed;
-            if (fan_number == current_extruder_fan_number)
-            {
-                new_fan_speed = current_extruder_new_speed;
-            }
-            else
-            {
-                new_fan_speed = saved_cool_fan_speeds_[fan_number];
-            }
-            writeSpecificFanCommand(new_fan_speed, fan_number);
+            new_fan_speed = current_extruder_new_speed;
         }
-
-        saved_cool_fan_speeds_.clear();
-    }
-    else
-    {
-        writeSpecificFanCommand(current_extruder_new_speed, current_extruder_fan_number);
+        else
+        {
+            new_fan_speed = 0.0;
+        }
+        writeSpecificFanCommand(new_fan_speed, fan_number);
     }
 }
 

@@ -152,7 +152,6 @@ private:
 
     size_t current_extruder_;
     std::map<size_t, double> current_fans_speeds_; //!< Current fan speed, by fan index. No value means the speed has never been set yet.
-    std::vector<double> saved_cool_fan_speeds_; //!< The saved cool fan speeds before an extruder switch, by fan index
     size_t fans_count_{ 0 };
     EGCodeFlavor flavor_;
 
