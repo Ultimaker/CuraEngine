@@ -1770,6 +1770,8 @@ void GCodeExport::writePrepareFansForNozzleSwitch()
 
 void GCodeExport::writePrepareFansForExtrusion(double current_extruder_new_speed)
 {
+    const Settings& settings = Application::getInstance().current_slice_->scene.settings;
+    const auto cool_during_switch = settings.get<CoolDuringExtruderSwitch>("cool_during_extruder_switch");
     const size_t current_extruder_fan_number = extruder_attr_[current_extruder_].fan_number_;
 
     for (size_t fan_number = 0; fan_number < fans_count_; ++fan_number)
@@ -1778,6 +1780,10 @@ void GCodeExport::writePrepareFansForExtrusion(double current_extruder_new_speed
         if (fan_number == current_extruder_fan_number)
         {
             new_fan_speed = current_extruder_new_speed;
+        }
+        else if (cool_during_switch == CoolDuringExtruderSwitch::UNCHANGED)
+        {
+            continue;
         }
         else
         {
