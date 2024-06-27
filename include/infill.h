@@ -41,7 +41,7 @@ class Infill
     Shape inner_contour_{}; //!< The part of the contour that will get filled with an infill pattern. Equals outer_contour minus the extra infill walls.
     coord_t infill_line_width_{}; //!< The line width of the infill lines to generate
     coord_t line_distance_{}; //!< The distance between two infill lines / polygons
-    coord_t infill_overlap_{}; //!< the distance by which to overlap with the actual area within which to generate infill
+    coord_t infill_overlap_{}; //!< The distance by which to overlap the inner infill pattern with the infill walls
     size_t infill_multiplier_{}; //!< the number of infill lines next to each other
     AngleDegrees fill_angle_{}; //!< for linear infill types: the angle of the infill lines (or the angle of the grid)
     coord_t z_{}; //!< height of the layer for which we generate infill
@@ -219,19 +219,17 @@ public:
      * This function is called within the generate() function but can also be called stand-alone
      *
      * \param toolpaths [out] The generated toolpaths. Binned by inset_idx.
-     * \param outer_contour [in,out] the outer contour, this is offsetted with the infill overlap
+     * \param outer_contour [in] the outer contour
      * \param wall_line_count [in] The number of walls that needs to be generated
      * \param line_width [in] The optimum wall line width of the walls
-     * \param infill_overlap [in] The overlap of the infill
      * \param settings [in] A settings storage to use for generating variable-width walls.
      * \return The inner contour of the wall toolpaths
      */
     static Shape generateWallToolPaths(
         std::vector<VariableWidthLines>& toolpaths,
-        Shape& outer_contour,
+        const Shape& outer_contour,
         const size_t wall_line_count,
         const coord_t line_width,
-        const coord_t infill_overlap,
         const Settings& settings,
         int layer_idx,
         SectionType section_type);

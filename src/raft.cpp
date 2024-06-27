@@ -130,12 +130,12 @@ void Raft::generate(SliceDataStorage& storage)
 coord_t Raft::getTotalThickness()
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    const ExtruderTrain& base_train = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr");
-    const ExtruderTrain& interface_train = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr");
-    const ExtruderTrain& surface_train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
-    return base_train.settings_.get<coord_t>("raft_base_thickness")
-         + interface_train.settings_.get<size_t>("raft_interface_layers") * interface_train.settings_.get<coord_t>("raft_interface_thickness")
-         + surface_train.settings_.get<size_t>("raft_surface_layers") * surface_train.settings_.get<coord_t>("raft_surface_thickness");
+    const Settings& base_train = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_;
+    const Settings& interface_train = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_;
+    const Settings& surface_train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings_;
+    return base_train.get<coord_t>("raft_base_thickness") + interface_train.get<size_t>("raft_interface_layers") * interface_train.get<coord_t>("raft_interface_thickness")
+         + interface_train.get<coord_t>("raft_interface_z_offset") + surface_train.get<size_t>("raft_surface_layers") * surface_train.get<coord_t>("raft_surface_thickness")
+         + interface_train.get<coord_t>("raft_surface_z_offset");
 }
 
 coord_t Raft::getZdiffBetweenRaftAndLayer0()
