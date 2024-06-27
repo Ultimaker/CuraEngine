@@ -536,11 +536,26 @@ public:
     /*!
      * \brief Write a set fan speed command, if different from the actual speed
      * \param speed The new fan speed, which should be [0.0, 100.0]
-     * \param extruder The extruder for which we want to set the cooling fan value, or nullopt to use the current extruder
+     * \param extruder The extruder for which we want to set the cooling fan speed, or nullopt to use the current extruder
      */
     void writeFanCommand(double speed, std::optional<size_t> extruder = std::nullopt);
 
+    /*!
+     * \brief Write a set fan speed command for the given fan, if different from the actual speed
+     * \param speed The new fan speed, which should be [0.0, 100.0]
+     * \param fan_number The fan for which we want to set the speed
+     */
     void writeSpecificFanCommand(double speed, size_t fan_number);
+
+    /*! Write cooling fan speeds before proceeding an extruder switch */
+    void writePrepareFansForNozzleSwitch();
+
+    /*!
+     * \brief Write the cooling fan speeds before starting an actual extrusion
+     * \param current_extruder_new_speed The new speed for the currently active extruder
+     * \note All other cooling fans but the active one will be deactivaed
+     */
+    void writePrepareFansForExtrusion(double current_extruder_new_speed);
 
     /*!
      * \brief Write a GCode temperature command
@@ -621,10 +636,6 @@ public:
      * \param wipe_config Config with wipe script settings.
      */
     void insertWipeScript(const WipeScriptConfig& wipe_config);
-
-    void writePrepareFansForNozzleSwitch();
-
-    void writePrepareFansForExtrusion(double current_extruder_new_speed);
 };
 
 } // namespace cura
