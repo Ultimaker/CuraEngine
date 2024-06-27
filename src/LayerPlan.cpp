@@ -2121,7 +2121,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
             }
         }
-        gcode.writeFanCommand(extruder_plan.getFanSpeed());
+        gcode.writePrepareFansForExtrusion(extruder_plan.getFanSpeed());
         std::vector<GCodePath>& paths = extruder_plan.paths_;
 
         extruder_plan.inserts_.sort();
@@ -2227,6 +2227,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             if (path.retract)
             {
                 retraction_config = path.mesh ? &path.mesh->retraction_wipe_config : retraction_config;
+                if (path.retract_for_nozzle_switch)
+                {
+                    gcode.writePrepareFansForNozzleSwitch();
+                }
                 gcode.writeRetraction(retraction_config->retraction_config);
                 if (path.retract_for_nozzle_switch)
                 {
