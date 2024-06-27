@@ -580,7 +580,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     const size_t num_surface_layers = surface_settings.get<size_t>("raft_surface_layers");
 
     // some infill config for all lines infill generation below
-    constexpr double fill_overlap = 0; // raft line shouldn't be expanded - there is no boundary polygon printed
     constexpr int infill_multiplier = 1; // rafts use single lines
     constexpr int extra_infill_shift = 0;
     constexpr bool fill_gaps = true;
@@ -624,6 +623,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         const size_t wall_line_count = base_settings.get<size_t>("raft_base_wall_count");
         const coord_t small_area_width = 0; // A raft never has a small region due to the large horizontal expansion.
         const coord_t line_spacing = base_settings.get<coord_t>("raft_base_line_spacing");
+        const coord_t infill_overlap = base_settings.get<coord_t>("raft_base_infill_overlap_mm");
         const coord_t line_spacing_prime_tower = base_settings.get<coord_t>("prime_tower_raft_base_line_spacing");
         const Point2LL& infill_origin = Point2LL();
         constexpr bool skip_stitching = false;
@@ -668,7 +668,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 raft_outline_path.outline,
                 gcode_layer.configs_storage_.raft_base_config.getLineWidth(),
                 raft_outline_path.line_spacing,
-                fill_overlap,
+                infill_overlap,
                 infill_multiplier,
                 fill_angle,
                 z,
@@ -754,9 +754,13 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     const coord_t interface_line_spacing = interface_settings.get<coord_t>("raft_interface_line_spacing");
     const Ratio interface_fan_speed = interface_settings.get<Ratio>("raft_interface_fan_speed");
     const coord_t interface_line_width = interface_settings.get<coord_t>("raft_interface_line_width");
+    const coord_t interface_infill_overlap = interface_settings.get<coord_t>("raft_interface_infill_overlap_mm");
     const coord_t interface_avoid_distance = interface_settings.get<coord_t>("travel_avoid_distance");
     const coord_t interface_max_resolution = interface_settings.get<coord_t>("meshfix_maximum_resolution");
     const coord_t interface_max_deviation = interface_settings.get<coord_t>("meshfix_maximum_deviation");
+    const coord_t raft_interface_z_offset = interface_settings.get<coord_t>("raft_interface_z_offset");
+
+    z += raft_interface_z_offset;
 
     for (LayerIndex raft_interface_layer = 1; static_cast<size_t>(raft_interface_layer) <= num_interface_layers; ++raft_interface_layer)
     { // raft interface layer
@@ -824,7 +828,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             raft_outline_path,
             infill_outline_width,
             interface_line_spacing,
-            fill_overlap,
+            interface_infill_overlap,
             infill_multiplier,
             fill_angle,
             z,
@@ -911,9 +915,13 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     const coord_t surface_max_resolution = surface_settings.get<coord_t>("meshfix_maximum_resolution");
     const coord_t surface_max_deviation = surface_settings.get<coord_t>("meshfix_maximum_deviation");
     const coord_t surface_line_width = surface_settings.get<coord_t>("raft_surface_line_width");
+    const coord_t surface_infill_overlap = surface_settings.get<coord_t>("raft_surface_infill_overlap_mm");
     const coord_t surface_avoid_distance = surface_settings.get<coord_t>("travel_avoid_distance");
     const Ratio surface_fan_speed = surface_settings.get<Ratio>("raft_surface_fan_speed");
     const bool surface_monotonic = surface_settings.get<bool>("raft_surface_monotonic");
+    const coord_t raft_surface_z_offset = interface_settings.get<coord_t>("raft_surface_z_offset");
+
+    z += raft_surface_z_offset;
 
     for (LayerIndex raft_surface_layer = 1; static_cast<size_t>(raft_surface_layer) <= num_surface_layers; raft_surface_layer++)
     { // raft surface layers
@@ -987,7 +995,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 raft_island,
                 infill_outline_width,
                 surface_line_spacing,
-                fill_overlap,
+                surface_infill_overlap,
                 infill_multiplier,
                 fill_angle,
                 z,
@@ -1922,7 +1930,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
 
             constexpr size_t wall_line_count = 0; // wall toolpaths are when gradual infill areas are determined
             const coord_t small_area_width = 0;
-            constexpr coord_t infill_overlap = 0; // Overlap is handled when the wall toolpaths are generated
+            const coord_t infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
             constexpr bool skip_stitching = false;
             constexpr bool connected_zigzags = false;
             constexpr bool use_endpieces = true;
@@ -2203,7 +2211,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
 
         constexpr size_t wall_line_count_here = 0; // Wall toolpaths were generated in generateGradualInfill for the sparsest density, denser parts don't have walls by default
         const coord_t small_area_width = 0;
-        constexpr coord_t overlap = 0; // overlap is already applied for the sparsest density in the generateGradualInfill
+        const coord_t overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
 
         wall_tool_paths.emplace_back();
         Infill infill_comp(
@@ -3406,6 +3414,12 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     const AngleDegrees support_infill_angle = get_support_infill_angle(storage.support, gcode_layer.getLayerNr());
 
     constexpr size_t infill_multiplier = 1; // there is no frontend setting for this (yet)
+    size_t infill_density_multiplier = 1;
+    if (gcode_layer.getLayerNr() <= 0)
+    {
+        infill_density_multiplier = infill_extruder.settings_.get<size_t>("support_infill_density_multiplier_initial_layer");
+    }
+
     const size_t wall_line_count = infill_extruder.settings_.get<size_t>("support_wall_count");
     const coord_t max_resolution = infill_extruder.settings_.get<coord_t>("meshfix_maximum_resolution");
     const coord_t max_deviation = infill_extruder.settings_.get<coord_t>("meshfix_maximum_deviation");
@@ -3531,10 +3545,15 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 }
 
                 const unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
-                int support_line_distance_here
+                coord_t support_line_distance_here
                     = (part.custom_line_distance_ > 0
                            ? part.custom_line_distance_
                            : default_support_line_distance * density_factor); // the highest density infill combines with the next to create a grid with density_factor 1
+                if (support_line_distance_here != 0 && infill_density_multiplier > 1)
+                {
+                    support_line_distance_here /= (1 << (infill_density_multiplier - 1));
+                    support_line_distance_here = std::max(support_line_distance_here, support_line_width);
+                }
                 const int support_shift = support_line_distance_here / 2;
                 if (part.custom_line_distance_ == 0 && (density_idx == max_density_idx || support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D))
                 {
