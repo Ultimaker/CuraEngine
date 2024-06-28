@@ -3937,12 +3937,14 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
 
 void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t prev_extruder) const
 {
-    if (storage.prime_tower_)
+    if (! storage.prime_tower_)
     {
-        LayerIndex layer_nr = gcode_layer.getLayerNr();
-        const std::vector<ExtruderUse> extruder_order = extruder_order_per_layer.get(layer_nr);
-        storage.prime_tower_->addToGcode(storage, gcode_layer, extruder_order, prev_extruder, gcode_layer.getExtruder());
+        return;
     }
+
+    const LayerIndex layer_nr = gcode_layer.getLayerNr();
+    const std::vector<ExtruderUse> extruder_order = extruder_order_per_layer.get(layer_nr);
+    storage.prime_tower_->addToGcode(storage, gcode_layer, extruder_order, prev_extruder, gcode_layer.getExtruder());
 }
 
 void FffGcodeWriter::finalize()
