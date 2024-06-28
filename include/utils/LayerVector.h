@@ -14,7 +14,7 @@ namespace cura
 
 /*!
  * \brief The LayerVector class mimics a std::vector but with the index being a LayerIndex, thus it can have negative
- *        values (for raft layers). it also ensure that the first element in the list is always on the very first layer.
+ *        values (for raft layers). It also ensures that the first element in the list is always on the very first layer.
  * \note When calling the init() method, LayerVector will call Raft::getTotalExtraLayers() so it requires the settings
  *       to be setup. This is the reason why this is not done in the constructor, and has to be called manually.
  *       After that, it is assumed that this value will not change as long as the vector is used.

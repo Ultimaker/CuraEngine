@@ -22,10 +22,18 @@ class SliceDataStorage;
 class LayerPlan;
 
 /*!
- * Class for everything to do with the prime tower:
- * - Generating the areas.
+ * Abstract class for everything to do with the prime tower:
+ * - Generating the occupation areas.
  * - Checking up untill which height the prime tower has to be printed.
- * - Generating the paths and adding them to the layer plan.
+ * - Inserting priming commands in extruders uses
+ * - Generating priming paths and adding them to the layer plan.
+ *
+ * We may adopt different strategies to generate the prime tower, thus this class is abstract and different
+ * implementations may co-exist. The common behavior implemented in the main class is:
+ * - Generate occupation areas as a cylinder with a flared base
+ * - Generate the base extra extrusion discs around the base cylinder
+ * - Generate the first layer extra inset inside the base cylinder
+ * Then it is the job of the specific implementation to handle the generation of extrusion paths for the base cylinder
  */
 class PrimeTower
 {

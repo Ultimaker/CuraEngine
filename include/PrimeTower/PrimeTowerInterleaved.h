@@ -9,6 +9,14 @@
 namespace cura
 {
 
+/*!
+ * Specific prime tower implementation that generates interleaved priming paths. It is optimized to waste as few
+ * filament as possible, while ensuring that the prime tower is still robust even if it gets very high.
+ * When there is no actual priming required for extruders, it will create a kind of circular zigzag pattern that acts as
+ * a sparse support. Otherwise it will create priming annuli, stacked on top of each other.
+ * This is very effective when doing multi-color printing, however it can be used only if all the filaments properly
+ * adhere to each other. Otherwise there is a high risk that the tower will collapse during the print.
+ */
 class PrimeTowerInterleaved : public PrimeTower
 {
 public:
