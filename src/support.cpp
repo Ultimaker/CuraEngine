@@ -226,7 +226,6 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
                 original_area,
                 support_infill_part.inset_count_to_generate_,
                 wall_width,
-                0,
                 infill_extruder.settings_,
                 layer_nr,
                 SectionType::SUPPORT);

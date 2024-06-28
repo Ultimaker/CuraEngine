@@ -265,7 +265,8 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
         }
         if (end_pos_absolute || last_planned_position_)
         {
-            addTravel(end_pos); //  + extruder_offset cause it
+            GCodePath& path = addTravel(end_pos); //  + extruder_offset cause it
+            path.retract_for_nozzle_switch = true;
         }
     }
     if (extruder_plans_.back().paths_.empty() && extruder_plans_.back().inserts_.empty())
@@ -2205,6 +2206,12 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             {
                 retraction_config = path.mesh ? &path.mesh->retraction_wipe_config : retraction_config;
                 gcode.writeRetraction(retraction_config->retraction_config);
+                if (path.retract_for_nozzle_switch)
+                {
+                    constexpr bool force = true;
+                    constexpr bool extruder_switch = true;
+                    gcode.writeRetraction(retraction_config->extruder_switch_retraction_config, force, extruder_switch);
+                }
                 insertTempOnTime(extruder_plan.getRetractTime(path), path_idx);
                 if (path.perform_z_hop)
                 {
