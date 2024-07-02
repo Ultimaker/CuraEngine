@@ -105,17 +105,17 @@ public:
     /*
      * \brief Default constructor setting the angle to 0.
      */
-    AngleRadians() noexcept = default;
+    constexpr AngleRadians() noexcept = default;
 
     /*!
      * \brief Converts an angle from degrees into radians.
      */
-    AngleRadians(const AngleDegrees& value);
+    constexpr AngleRadians(const AngleDegrees& value);
 
     /*
      * \brief Translate the double value in degrees to an AngleRadians instance.
      */
-    AngleRadians(double value)
+    constexpr AngleRadians(double value)
         : value_(std::fmod(std::fmod(value, TAU) + TAU, TAU))
     {
     }
@@ -166,7 +166,7 @@ inline AngleDegrees::AngleDegrees(const AngleRadians& value)
 {
 }
 
-inline AngleRadians::AngleRadians(const AngleDegrees& value)
+constexpr inline AngleRadians::AngleRadians(const AngleDegrees& value)
     : value_(static_cast<double>(value) * TAU / 360.0)
 {
 }

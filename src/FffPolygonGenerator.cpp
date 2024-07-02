@@ -49,6 +49,7 @@
 #include "utils/ThreadPool.h"
 #include "utils/gettime.h"
 #include "utils/math.h"
+#include "PrimeTower/PrimeTower.h"
 #include "geometry/OpenPolyline.h"
 #include "utils/Simplify.h"
 // clang-format on
@@ -405,8 +406,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);
 
-    storage.primeTower.initializeExtruders(storage.getExtrudersUsed());
-
     AreaSupport::generateOverhangAreas(storage);
     AreaSupport::generateSupportAreas(storage);
     TreeSupport tree_support_generator(storage);
@@ -415,8 +414,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     computePrintHeightStatistics(storage);
 
     // handle helpers
-    storage.primeTower.generatePaths(storage);
-    storage.primeTower.subtractFromSupport(storage);
+    storage.initializePrimeTower();
 
     spdlog::debug("Processing ooze shield");
     processOozeShield(storage);
@@ -426,7 +424,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     // This catches a special case in which the models are in the air, and then
     // the adhesion mustn't be calculated.
-    if (! isEmptyLayer(storage, 0) || storage.primeTower.enabled_)
+    if (! isEmptyLayer(storage, 0) || storage.prime_tower_)
     {
         spdlog::debug("Processing platform adhesion");
         processPlatformAdhesion(storage);
@@ -983,7 +981,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
     {
         storage.ooze_shield[layer_nr].removeSmallAreas(largest_printed_area);
     }
-    if (mesh_group_settings.get<bool>("prime_tower_enable"))
+    if (storage.prime_tower_)
     {
         coord_t max_line_width = 0;
         { // compute max_line_width
@@ -998,7 +996,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
         }
         for (LayerIndex layer_nr = 0; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
         {
-            storage.ooze_shield[layer_nr] = storage.ooze_shield[layer_nr].difference(storage.primeTower.getOuterPoly(layer_nr).offset(max_line_width / 2));
+            storage.ooze_shield[layer_nr] = storage.ooze_shield[layer_nr].difference(storage.prime_tower_->getOccupiedOutline(layer_nr).offset(max_line_width / 2));
         }
     }
 }
@@ -1035,7 +1033,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
         maximum_deviation = std::min(maximum_deviation, extruder.settings_.get<coord_t>("meshfix_maximum_deviation"));
     }
     storage.draft_protection_shield = Simplify(maximum_resolution, maximum_deviation, 0).polygon(storage.draft_protection_shield);
-    if (mesh_group_settings.get<bool>("prime_tower_enable"))
+    if (storage.prime_tower_)
     {
         coord_t max_line_width = 0;
         { // compute max_line_width
@@ -1048,7 +1046,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
                 max_line_width = std::max(max_line_width, extruders[extruder_nr].settings_.get<coord_t>("skirt_brim_line_width"));
             }
         }
-        storage.draft_protection_shield = storage.draft_protection_shield.difference(storage.primeTower.getGroundPoly().offset(max_line_width / 2));
+        storage.draft_protection_shield = storage.draft_protection_shield.difference(storage.prime_tower_->getOccupiedGroundOutline().offset(max_line_width / 2));
     }
 }
 

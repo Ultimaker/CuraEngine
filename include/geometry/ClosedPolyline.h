@@ -32,14 +32,17 @@ private:
     bool explicitely_closed_{ false };
 
 public:
+    /*!
+     * \brief Builds an empty closed polyline
+     * \warning By default, the line is tagged as non explicitely closed. We need this default
+     *          constructor in various places, but be careful that the interpretation of the points
+     *          added later will depend on this.
+     */
     ClosedPolyline() = default;
 
     /*!
      * \brief Builds an empty closed polyline
      * \param explicitely_closed Indicates whether the line will be explicitely closed
-     * \warning By default, the line is tagged as explicitely closed. We need this default
-     *          constructor in various places, but be careful that the interpretation of the points
-     *          added later will depend on this.
      */
     explicit ClosedPolyline(const bool explicitely_closed)
         : explicitely_closed_{ explicitely_closed }

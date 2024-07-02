@@ -2200,7 +2200,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
         // So our circle needs to be such that r=w/8
         const coord_t r = width / 8;
         constexpr coord_t n_segments = 6;
-        const auto circle = PolygonUtils::makeCircle<std::vector<ExtrusionJunction>>(center, r, 2 * std::numbers::pi / n_segments, width, inset_index);
+        const auto circle = PolygonUtils::makeCircle<std::vector<ExtrusionJunction>, true>(center, r, n_segments, width, inset_index);
         line.junctions_.insert(line.junctions_.end(), circle.begin(), circle.end());
     };
 

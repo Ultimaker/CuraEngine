@@ -65,6 +65,12 @@ public:
     {
     }
 
+    /*! \brief Constructor with a single existing line */
+    explicit LinesSet(const LineType& line)
+        : lines_({ line })
+    {
+    }
+
     /*!
      * \brief Constructor that takes ownership of the data from the given set of lines
      * \warning This constructor is actually only defined for a LinesSet containing OpenPolyline
@@ -260,6 +266,13 @@ public:
      * \note This method needs to be public but you shouldn't need to use it from outside
      */
     void addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const;
+
+    /*!
+     * \brief Utility method to add a line to a ClipperLib::Clipper object
+     * \note This method needs to be public but you shouldn't need to use it from outside
+     */
+    template<class OtherLineLine>
+    void addPath(ClipperLib::Clipper& clipper, const OtherLineLine& line, ClipperLib::PolyType poly_typ) const;
 
     /*!
      * \brief Utility method to add all the lines to a ClipperLib::ClipperOffset object

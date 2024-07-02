@@ -8,8 +8,6 @@
 #include <memory>
 #include <optional>
 
-#include "PrimeTower.h"
-#include "RetractionConfig.h"
 #include "SupportInfillPart.h"
 #include "TopSurface.h"
 #include "WipeScriptConfig.h"
@@ -27,15 +25,13 @@
 #include "utils/AABB3D.h"
 #include "utils/NoCopy.h"
 
-// libArachne
-#include "utils/ExtrusionLine.h"
-
 namespace cura
 {
 
 class Mesh;
 class SierpinskiFillProvider;
 class LightningGenerator;
+class PrimeTower;
 
 /*!
  * A SkinPart is a connected area designated as top and/or bottom skin.
@@ -391,7 +387,8 @@ public:
     std::vector<int> spiralize_seam_vertex_indices; //!< the index of the seam vertex for each layer
     std::vector<Shape*> spiralize_wall_outlines; //!< the wall outline polygons for each layer
 
-    PrimeTower primeTower;
+    //!< Pointer to primer tower handler object (a null pointer indicates that there is no prime tower)
+    PrimeTower* prime_tower_{ nullptr };
 
     std::vector<Shape> ooze_shield; // oozeShield per layer
     Shape draft_protection_shield; //!< The polygons for a heightened skirt which protects from warping by gusts of wind and acts as a heated chamber.
@@ -402,9 +399,7 @@ public:
      */
     SliceDataStorage();
 
-    ~SliceDataStorage()
-    {
-    }
+    ~SliceDataStorage();
 
     /*!
      * Get all outlines within a given layer.
@@ -461,6 +456,8 @@ public:
      * \return the Shape representing the usable area of the print bed.
      */
     Shape getMachineBorder(int extruder_nr = -1) const;
+
+    void initializePrimeTower();
 
 private:
     /*!
