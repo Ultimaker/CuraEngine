@@ -115,7 +115,7 @@ public:
     /*
      * \brief Translate the double value in degrees to an AngleRadians instance.
      */
-    const AngleRadians(double value)
+    AngleRadians(double value)
         : value_(std::fmod(std::fmod(value, TAU) + TAU, TAU))
     {
     }
