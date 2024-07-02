@@ -51,7 +51,6 @@ public:
         gcode.current_e_value_ = 0;
         gcode.current_e_offset_ = 0;
         gcode.current_extruder_ = 0;
-        gcode.current_fan_speed_ = -1;
         gcode.total_print_times_ = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
         gcode.current_speed_ = 1.0;
         gcode.current_print_acceleration_ = -1.0;
@@ -61,7 +60,6 @@ public:
         gcode.setFlavor(EGCodeFlavor::MARLIN);
         gcode.bed_temperature_ = 0;
         gcode.initial_bed_temp_ = 0;
-        gcode.fan_number_ = 0;
         gcode.total_bounding_box_ = AABB3D();
         gcode.current_layer_z_ = 0;
         gcode.relative_extrusion_ = false;
@@ -211,7 +209,6 @@ public:
         gcode.layer_nr_ = 0;
         gcode.current_e_value_ = 0;
         gcode.current_extruder_ = 0;
-        gcode.current_fan_speed_ = -1;
         gcode.total_print_times_ = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
         gcode.current_speed_ = 1.0;
         gcode.current_print_acceleration_ = -1.0;
@@ -221,7 +218,6 @@ public:
         gcode.setFlavor(EGCodeFlavor::MARLIN);
         gcode.initial_bed_temp_ = 0;
         gcode.bed_temperature_ = 0;
-        gcode.fan_number_ = 0;
         gcode.total_bounding_box_ = AABB3D();
 
         gcode.new_line_ = "\n"; // Not BFB flavour by default.
