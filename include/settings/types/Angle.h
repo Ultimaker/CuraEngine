@@ -171,6 +171,19 @@ constexpr inline AngleRadians::AngleRadians(const AngleDegrees& value)
 {
 }
 
+/*!
+ * \brief Safe call to "std::tan" which limits the higher angle value to something slightly less that π/2 so that when
+ *        the given angle is higher that this value, the returned value is not a huge number
+ * \param angle The input angle, which should be [0, π/2]
+ * \return The tangent value of the angle, limited
+ * \note This method exists as a convenience because this is a common case in the engine, as we have many settings that
+ *       are angles setup on [0, π/2] and which translate to a distance
+ */
+inline double boundedTan(const AngleRadians& angle)
+{
+    return std::tan(std::min(static_cast<double>(angle), std::numbers::pi / 2.0 - 0.001));
+}
+
 } // namespace cura
 
 #endif // ANGLE_H
