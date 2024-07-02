@@ -471,11 +471,11 @@ Shape AreaSupport::join(const SliceDataStorage& storage, const Shape& supportLay
     coord_t conical_support_offset;
     if (conical_support_angle > 0)
     { // outward ==> wider base than overhang
-        conical_support_offset = -(tan(conical_support_angle) - 0.01) * layer_thickness;
+        conical_support_offset = -boundedTan(conical_support_angle) * layer_thickness;
     }
     else
     { // inward ==> smaller base than overhang
-        conical_support_offset = (tan(-conical_support_angle) - 0.01) * layer_thickness;
+        conical_support_offset = boundedTan(-conical_support_angle) * layer_thickness;
     }
     const bool conical_support = infill_settings.get<bool>("support_conical_enabled") && conical_support_angle != 0;
     if (conical_support)
@@ -888,7 +888,7 @@ Shape AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& stora
         const auto support_distance = z_delta_poly.support_distance;
         const auto delta_z = z_delta_poly.delta_z;
         const auto layer_delta = z_delta_poly.layer_delta;
-        const auto xy_distance_natural = support_distance * std::tan(overhang_angle);
+        const auto xy_distance_natural = support_distance * boundedTan(overhang_angle);
 
         for (auto [current_poly_idx, current_poly] : layer_current | ranges::views::enumerate)
         {
@@ -1244,11 +1244,11 @@ void AreaSupport::generateSupportAreasForMesh(
         coord_t conical_support_offset;
         if (conical_support_angle > 0)
         { // outward ==> wider base than overhang
-            conical_support_offset = -(tan(conical_support_angle) - 0.01) * layer_thickness;
+            conical_support_offset = -boundedTan(conical_support_angle) * layer_thickness;
         }
         else
         { // inward ==> smaller base than overhang
-            conical_support_offset = (tan(-conical_support_angle) - 0.01) * layer_thickness;
+            conical_support_offset = boundedTan(-conical_support_angle) * layer_thickness;
         }
         const bool conical_support = infill_settings.get<bool>("support_conical_enabled") && conical_support_angle != 0;
         for (LayerIndex layer_idx = 1; layer_idx < storage.support.supportLayers.size(); layer_idx++)
@@ -1447,7 +1447,7 @@ std::pair<Shape, Shape> AreaSupport::computeBasicAndFullOverhang(const SliceData
 
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const AngleRadians support_angle = mesh.settings.get<AngleRadians>("support_angle");
-    const double tan_angle = tan(support_angle) - 0.01; // The X/Y component of the support angle. 0.01 to make 90 degrees work too.
+    const double tan_angle = boundedTan(support_angle); // The X/Y component of the support angle
     // overhang areas protruding less then `max_dist_from_lower_layer` don't need support
     const coord_t max_dist_from_lower_layer = tan_angle * layer_height; // Maximum horizontal distance that can be bridged.
 
@@ -1576,7 +1576,7 @@ void AreaSupport::handleTowers(
     }
     else
     {
-        const double tan_tower_roof_angle = tan(tower_roof_angle);
+        const double tan_tower_roof_angle = boundedTan(tower_roof_angle);
         tower_roof_expansion_distance = layer_thickness / tan_tower_roof_angle;
     }
 
