@@ -59,7 +59,7 @@ private:
     Point2LL post_wipe_point_; //!< Location to post-wipe the unused nozzle off on
 
     static constexpr size_t number_of_prime_tower_start_locations_ = 21; //!< The required size of \ref PrimeTower::wipe_locations
-    static constexpr AngleRadians start_locations_step_ = (std::numbers::pi * 2.0) / number_of_prime_tower_start_locations_;
+    inline static const AngleRadians start_locations_step_ = (std::numbers::pi * 2.0) / number_of_prime_tower_start_locations_;
 
     /*
      *  The map index is the layer number

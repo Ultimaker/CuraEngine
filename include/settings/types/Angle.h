@@ -115,7 +115,7 @@ public:
     /*
      * \brief Translate the double value in degrees to an AngleRadians instance.
      */
-    constexpr AngleRadians(double value)
+    const AngleRadians(double value)
         : value_(std::fmod(std::fmod(value, TAU) + TAU, TAU))
     {
     }
@@ -162,12 +162,12 @@ public:
 };
 
 inline AngleDegrees::AngleDegrees(const AngleRadians& value)
-    : value_(value * 360 / TAU)
+    : value_(value.value_ * 360 / TAU)
 {
 }
 
 constexpr inline AngleRadians::AngleRadians(const AngleDegrees& value)
-    : value_(static_cast<double>(value) * TAU / 360.0)
+    : value_(value.value_ * TAU / 360.0)
 {
 }
 
