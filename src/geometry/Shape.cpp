@@ -47,6 +47,11 @@ Shape::Shape(const std::vector<Polygon>& polygons)
 {
 }
 
+Shape::Shape(const Polygon& polygon)
+    : LinesSet<Polygon>(polygon)
+{
+}
+
 void Shape::emplace_back(ClipperLib::Paths&& paths, bool explicitely_closed)
 {
     reserve(size() + paths.size());
@@ -152,6 +157,24 @@ Shape Shape::difference(const Shape& other) const
     return Shape(std::move(ret));
 }
 
+Shape Shape::difference(const Polygon& other) const
+{
+    if (empty())
+    {
+        return {};
+    }
+    if (other.empty())
+    {
+        return *this;
+    }
+    ClipperLib::Paths ret;
+    ClipperLib::Clipper clipper(clipper_init);
+    addPaths(clipper, ClipperLib::ptSubject);
+    addPath(clipper, other, ClipperLib::ptClip);
+    clipper.Execute(ClipperLib::ctDifference, ret);
+    return Shape(std::move(ret));
+}
+
 Shape Shape::unionPolygons(const Shape& other, ClipperLib::PolyFillType fill_type) const
 {
     if (empty() && other.empty())
@@ -170,6 +193,28 @@ Shape Shape::unionPolygons(const Shape& other, ClipperLib::PolyFillType fill_typ
     ClipperLib::Clipper clipper(clipper_init);
     addPaths(clipper, ClipperLib::ptSubject);
     other.addPaths(clipper, ClipperLib::ptSubject);
+    clipper.Execute(ClipperLib::ctUnion, ret, fill_type, fill_type);
+    return Shape{ std::move(ret) };
+}
+
+Shape Shape::unionPolygons(const Polygon& polygon, ClipperLib::PolyFillType fill_type) const
+{
+    if (empty() && polygon.empty())
+    {
+        return {};
+    }
+    if (empty())
+    {
+        return Shape(polygon);
+    }
+    if (polygon.empty() && size() <= 1)
+    {
+        return *this;
+    }
+    ClipperLib::Paths ret;
+    ClipperLib::Clipper clipper(clipper_init);
+    addPaths(clipper, ClipperLib::ptSubject);
+    addPath(clipper, polygon, ClipperLib::ptSubject);
     clipper.Execute(ClipperLib::ctUnion, ret, fill_type, fill_type);
     return Shape{ std::move(ret) };
 }

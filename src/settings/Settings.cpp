@@ -680,15 +680,15 @@ InsetDirection Settings::get<InsetDirection>(const std::string& key) const
 }
 
 template<>
-PrimeTowerMethod Settings::get<PrimeTowerMethod>(const std::string& key) const
+PrimeTowerMode Settings::get<PrimeTowerMode>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
     if (value == "interleaved")
     {
-        return PrimeTowerMethod::INTERLEAVED;
+        return PrimeTowerMode::INTERLEAVED;
     }
 
-    return PrimeTowerMethod::NORMAL;
+    return PrimeTowerMode::NORMAL;
 }
 
 template<>

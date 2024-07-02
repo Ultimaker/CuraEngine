@@ -10,6 +10,7 @@
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "FffProcessor.h" //To create a mesh group with if none is provided.
+#include "PrimeTower/PrimeTower.h"
 #include "Slice.h"
 #include "geometry/OpenPolyline.h"
 #include "infill/DensityProvider.h" // for destructor
@@ -17,6 +18,7 @@
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h" // For the destructor
 #include "raft.h"
+#include "utils/ExtrusionLine.h"
 #include "utils/math.h" //For PI.
 
 namespace cura
@@ -268,6 +270,11 @@ SliceDataStorage::SliceDataStorage()
     machine_size.include(machine_max);
 }
 
+SliceDataStorage::~SliceDataStorage()
+{
+    delete prime_tower_;
+}
+
 Shape SliceDataStorage::getLayerOutlines(
     const LayerIndex layer_nr,
     const bool include_support,
@@ -364,9 +371,9 @@ Shape SliceDataStorage::getLayerOutlines(
                 total.push_back(support_layer.support_roof);
             }
         }
-        if (include_prime_tower && primeTower.enabled_ && (extruder_nr == -1 || (! primeTower.extruder_order_.empty() && extruder_nr == primeTower.extruder_order_[0])))
+        if (include_prime_tower && prime_tower_)
         {
-            total.push_back(primeTower.getOuterPoly(layer_nr));
+            total.push_back(prime_tower_->getOccupiedOutline(layer_nr));
         }
         return total;
     }
@@ -641,9 +648,8 @@ Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
         }
         Point2LL translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
         prime_pos -= translation;
-        Shape prime_polygons;
-        prime_polygons.emplace_back(PolygonUtils::makeCircle(prime_pos, prime_clearance, std::numbers::pi / 32));
-        disallowed_areas = disallowed_areas.unionPolygons(prime_polygons);
+        Polygon prime_polygon = PolygonUtils::makeDisc(prime_pos, prime_clearance, 64);
+        disallowed_areas = disallowed_areas.unionPolygons(prime_polygon);
     }
 
     Shape disallowed_all_extruders;
@@ -701,6 +707,10 @@ Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
     return border;
 }
 
+void SliceDataStorage::initializePrimeTower()
+{
+    prime_tower_ = PrimeTower::createPrimeTower(*this);
+}
 
 void SupportLayer::excludeAreasFromSupportInfillAreas(const Shape& exclude_polygons, const AABB& exclude_polygons_boundary_box)
 {

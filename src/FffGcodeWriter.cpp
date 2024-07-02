@@ -21,6 +21,7 @@
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
 #include "PathOrderMonotonic.h" //Monotonic ordering of skin lines.
+#include "PrimeTower/PrimeTower.h"
 #include "Slice.h"
 #include "WallToolPaths.h"
 #include "bridge.h"
@@ -279,7 +280,7 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceDataStorage& storage, size_
         bool done_this_layer = false;
 
         // iterate through extruders until we find a mesh that has a part with insets
-        const std::vector<ExtruderUse> extruder_order = getExtruderUse(layer_nr);
+        const std::vector<ExtruderUse> extruder_order = extruder_order_per_layer.get(layer_nr);
         for (unsigned int extruder_idx = 0; ! done_this_layer && extruder_idx < extruder_order.size(); ++extruder_idx)
         {
             const size_t extruder_nr = extruder_order[extruder_idx].extruder_nr;
@@ -643,9 +644,9 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         std::vector<ParameterizedRaftPath> raft_outline_paths;
         raft_outline_paths.emplace_back(ParameterizedRaftPath{ line_spacing, storage.raft_base_outline });
-        if (storage.primeTower.enabled_)
+        if (storage.prime_tower_)
         {
-            const Shape& raft_outline_prime_tower = storage.primeTower.getOuterPoly(layer_nr);
+            const Shape raft_outline_prime_tower = Shape(storage.prime_tower_->getExtrusionOutline(layer_nr));
             if (line_spacing_prime_tower == line_spacing)
             {
                 // Base layer is shared with prime tower base
@@ -815,10 +816,10 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr int zag_skip_count = 0;
         constexpr coord_t pocket_size = 0;
 
-        if (storage.primeTower.enabled_)
+        if (storage.prime_tower_)
         {
             // Interface layer excludes prime tower base
-            raft_outline_path = raft_outline_path.difference(storage.primeTower.getOuterPoly(layer_nr));
+            raft_outline_path = raft_outline_path.difference(storage.prime_tower_->getExtrusionOutline(layer_nr));
         }
 
         Infill infill_comp(
@@ -980,10 +981,10 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr size_t zag_skip_count = 0;
         constexpr coord_t pocket_size = 0;
 
-        if (storage.primeTower.enabled_)
+        if (storage.prime_tower_)
         {
             // Surface layers exclude prime tower base
-            raft_outline_path = raft_outline_path.difference(storage.primeTower.getOuterPoly(layer_nr));
+            raft_outline_path = raft_outline_path.difference(storage.prime_tower_->getExtrusionOutline(layer_nr));
         }
 
         for (const Shape& raft_island : raft_outline_path.splitIntoParts())
@@ -1110,7 +1111,7 @@ void FffGcodeWriter::endRaftLayer(const SliceDataStorage& storage, LayerPlan& gc
     setExtruder_addPrime(storage, gcode_layer, current_extruder, append_to_prime_tower);
 
     // If required, fill prime tower for other extruders
-    for (const ExtruderUse& extruder_use : getExtruderUse(layer_nr))
+    for (const ExtruderUse& extruder_use : extruder_order_per_layer.get(layer_nr))
     {
         if (! append_to_prime_tower || (! gcode_layer.getPrimeTowerIsPlanned(extruder_use.extruder_nr) && extruder_use.prime != ExtruderPrime::None))
         {
@@ -1193,12 +1194,9 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
     }
     const coord_t comb_offset_from_outlines = max_inner_wall_width * 2;
 
-    assert(
-        static_cast<LayerIndex>(extruder_order_per_layer_negative_layers.size()) + layer_nr >= 0 && "Layer numbers shouldn't get more negative than there are raft/filler layers");
-
     const size_t first_extruder = findUsedExtruderIndex(storage, layer_nr, false);
 
-    const std::vector<ExtruderUse> extruder_order = getExtruderUse(layer_nr);
+    const std::vector<ExtruderUse> extruder_order = extruder_order_per_layer.get(layer_nr);
 
     const coord_t first_outer_wall_line_width = scene.extruders[first_extruder].settings_.get<coord_t>("wall_line_width_0");
     LayerPlan& gcode_layer = *new LayerPlan(
@@ -1238,7 +1236,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
 
     for (const ExtruderUse& extruder_use : extruder_order)
     {
-        size_t extruder_nr = extruder_use.extruder_nr;
+        const size_t extruder_nr = extruder_use.extruder_nr;
 
         // Set extruder (if needed) and prime (if needed)
         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
@@ -1523,29 +1521,34 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     size_t last_extruder;
     // set the initial extruder of this meshgroup
     Scene& scene = Application::getInstance().current_slice_->scene;
+    size_t start_extruder;
     if (scene.current_mesh_group == scene.mesh_groups.begin())
     { // first meshgroup
-        last_extruder = getStartExtruder(storage);
+        start_extruder = getStartExtruder(storage);
     }
     else
     {
-        last_extruder = gcode.getExtruderNr();
+        start_extruder = gcode.getExtruderNr();
     }
+    last_extruder = start_extruder;
 
-    size_t extruder_count = Application::getInstance().current_slice_->scene.extruders.size();
+    extruder_order_per_layer.init(true, storage.print_layer_count);
+
     const std::vector<bool> extruders_used = storage.getExtrudersUsed();
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    PrimeTowerMethod prime_tower_mode = mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode");
     for (LayerIndex layer_nr = -Raft::getTotalExtraLayers(); layer_nr < static_cast<LayerIndex>(storage.print_layer_count); layer_nr++)
     {
-        std::vector<std::vector<ExtruderUse>>& extruder_order_per_layer_here = (layer_nr < 0) ? extruder_order_per_layer_negative_layers : extruder_order_per_layer;
         std::vector<ExtruderUse> extruder_order = getUsedExtrudersOnLayer(storage, last_extruder, layer_nr, extruders_used);
-        extruder_order_per_layer_here.push_back(extruder_order);
+        extruder_order_per_layer.push_back(extruder_order);
 
         if (! extruder_order.empty())
         {
             last_extruder = extruder_order.back().extruder_nr;
         }
+    }
+
+    if (storage.prime_tower_)
+    {
+        storage.prime_tower_->processExtrudersUse(extruder_order_per_layer, start_extruder);
     }
 }
 
@@ -1585,8 +1588,6 @@ std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
     assert(static_cast<int>(extruder_count) > 0);
     std::vector<ExtruderUse> ret;
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
-    const auto method = mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode");
-    const auto prime_tower_enable = mesh_group_settings.get<bool>("prime_tower_enable");
     const LayerIndex raft_base_layer_nr = -Raft::getTotalExtraLayers();
     Raft::LayerType layer_type = Raft::getLayerType(layer_nr);
 
@@ -1641,28 +1642,9 @@ std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
     {
         ExtruderPrime prime = ExtruderPrime::None;
 
-        if (prime_tower_enable)
+        if (storage.prime_tower_)
         {
-            switch (method)
-            {
-            case PrimeTowerMethod::NORMAL:
-                if (extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder)
-                {
-                    prime = ExtruderPrime::Prime;
-                }
-                else if (layer_nr < storage.max_print_height_second_to_last_extruder)
-                {
-                    prime = ExtruderPrime::Sparse;
-                }
-                break;
-
-            case PrimeTowerMethod::INTERLEAVED:
-                if (extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder)
-                {
-                    prime = ExtruderPrime::Prime;
-                }
-                break;
-            }
+            prime = storage.prime_tower_->getExtruderPrime(extruder_is_used_on_this_layer, extruder_nr, last_extruder, storage, layer_nr);
         }
 
         if (extruder_is_used_on_this_layer[extruder_nr] || prime != ExtruderPrime::None)
@@ -1670,11 +1652,6 @@ std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
             ret.push_back(ExtruderUse{ extruder_nr, prime });
             last_extruder = extruder_nr;
         }
-    }
-
-    if (method == PrimeTowerMethod::INTERLEAVED && ret.size() == 1 && ret.front().prime == ExtruderPrime::None && layer_nr <= storage.max_print_height_second_to_last_extruder)
-    {
-        ret.front().prime = ExtruderPrime::Sparse;
     }
 
     assert(ret.size() <= (size_t)extruder_count && "Not more extruders may be planned in a layer than there are extruders!");
@@ -2485,48 +2462,21 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(
 
 size_t FffGcodeWriter::findUsedExtruderIndex(const SliceDataStorage& storage, const LayerIndex& layer_nr, bool last) const
 {
-    const std::vector<ExtruderUse> extruder_use = getExtruderUse(layer_nr);
+    const std::vector<ExtruderUse> extruder_use = extruder_order_per_layer.get(layer_nr);
 
     if (! extruder_use.empty())
     {
         return last ? extruder_use.back().extruder_nr : extruder_use.front().extruder_nr;
     }
-    else if (layer_nr <= -extruder_order_per_layer_negative_layers.size())
+    else if (layer_nr <= -Raft::getTotalExtraLayers())
     {
         // Asking for extruder use below first layer, give first extruder
         return getStartExtruder(storage);
     }
     else
     {
-        // Asking for extruder on an empty layer, get the one from layer below
+        // Asking for extruder on an empty layer, get the last one from layer below
         return findUsedExtruderIndex(storage, layer_nr - 1, true);
-    }
-}
-
-std::vector<ExtruderUse> FffGcodeWriter::getExtruderUse(const LayerIndex& layer_nr) const
-{
-    int layer_index;
-    const std::vector<std::vector<ExtruderUse>>* extruder_order;
-
-    if (layer_nr >= 0)
-    {
-        layer_index = layer_nr;
-        extruder_order = &extruder_order_per_layer;
-    }
-    else
-    {
-        layer_index = extruder_order_per_layer_negative_layers.size() + layer_nr;
-        extruder_order = &extruder_order_per_layer_negative_layers;
-    }
-
-    if (layer_index >= 0 && layer_index < extruder_order->size())
-    {
-        return (*extruder_order)[layer_index];
-    }
-    else
-    {
-        // No extruder use registered for this layer, which may happen in some edge-cases
-        return {};
     }
 }
 
@@ -3480,15 +3430,16 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             const GCodePathConfig& config = configs[0];
             constexpr bool retract_before_outer_wall = false;
             constexpr coord_t wipe_dist = 0;
+            const LayerIndex layer_nr = gcode_layer.getLayerNr();
             ZSeamConfig z_seam_config
                 = ZSeamConfig(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
             Shape disallowed_area_for_seams{};
-            if (infill_extruder.settings_.get<bool>("support_z_seam_away_from_model") && (gcode_layer.getLayerNr() >= 0))
+            if (infill_extruder.settings_.get<bool>("support_z_seam_away_from_model") && (layer_nr >= 0))
             {
                 for (std::shared_ptr<SliceMeshStorage> mesh_ptr : storage.meshes)
                 {
                     auto& mesh = *mesh_ptr;
-                    for (auto& part : mesh.layers[gcode_layer.getLayerNr()].parts)
+                    for (auto& part : mesh.layers[layer_nr].parts)
                     {
                         disallowed_area_for_seams.push_back(part.print_outline);
                     }
@@ -4005,14 +3956,14 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
 
 void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t prev_extruder) const
 {
-    if (! storage.primeTower.enabled_)
+    if (! storage.prime_tower_)
     {
         return;
     }
 
-    LayerIndex layer_nr = gcode_layer.getLayerNr();
-    const std::vector<ExtruderUse> extruder_order = getExtruderUse(layer_nr);
-    storage.primeTower.addToGcode(storage, gcode_layer, extruder_order, prev_extruder, gcode_layer.getExtruder());
+    const LayerIndex layer_nr = gcode_layer.getLayerNr();
+    const std::vector<ExtruderUse> extruder_order = extruder_order_per_layer.get(layer_nr);
+    storage.prime_tower_->addToGcode(storage, gcode_layer, extruder_order, prev_extruder, gcode_layer.getExtruder());
 }
 
 void FffGcodeWriter::finalize()

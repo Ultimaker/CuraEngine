@@ -43,6 +43,9 @@ public:
     /*! \brief Constructor with an existing set of polygons */
     Shape(const std::vector<Polygon>& polygons);
 
+    /*! \brief Constructor with a single existing polygon */
+    explicit Shape(const Polygon& polygon);
+
     /*!
      * \brief Constructor that takes ownership of the given list of points
      * \param explicitely_closed Specify whether the given points form an explicitely closed line
@@ -66,7 +69,11 @@ public:
 
     [[nodiscard]] Shape difference(const Shape& other) const;
 
+    [[nodiscard]] Shape difference(const Polygon& polygon) const;
+
     [[nodiscard]] Shape unionPolygons(const Shape& other, ClipperLib::PolyFillType fill_type = ClipperLib::pftNonZero) const;
+
+    [[nodiscard]] Shape unionPolygons(const Polygon& polygon, ClipperLib::PolyFillType fill_type = ClipperLib::pftNonZero) const;
 
     /*!
      * Union all polygons with each other (When polygons.add(polygon) has been called for overlapping polygons)

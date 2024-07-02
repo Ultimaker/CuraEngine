@@ -277,20 +277,27 @@ void LinesSet<LineType>::removeDegenerateVerts()
 }
 
 template<class LineType>
+template<class OtherLineLine>
+void LinesSet<LineType>::addPath(ClipperLib::Clipper& clipper, const OtherLineLine& line, ClipperLib::PolyType poly_typ) const
+{
+    // In this context, the "Closed" argument means "Is a surface" so it should be only
+    // true for actual filled polygons. Closed polylines are to be treated as lines here.
+    if constexpr (std::is_same<OtherLineLine, Polygon>::value)
+    {
+        clipper.AddPath(line.getPoints(), poly_typ, true);
+    }
+    else
+    {
+        clipper.AddPath(line.getPoints(), poly_typ, false);
+    }
+}
+
+template<class LineType>
 void LinesSet<LineType>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const
 {
     for (const LineType& line : getLines())
     {
-        // In this context, the "Closed" argument means "Is a surface" so it should be only
-        // true for actual filled polygons. Closed polylines are to be treated as lines here.
-        if constexpr (std::is_same<LineType, Polygon>::value)
-        {
-            clipper.AddPath(line.getPoints(), poly_typ, true);
-        }
-        else
-        {
-            clipper.AddPath(line.getPoints(), poly_typ, false);
-        }
+        addPath(clipper, line, poly_typ);
     }
 }
 
@@ -345,5 +352,6 @@ template void LinesSet<Polygon>::addPaths(ClipperLib::ClipperOffset& clipper, Cl
 template void LinesSet<Polygon>::push_back(const Polygon& line, CheckNonEmptyParam checkNonEmpty);
 template void LinesSet<Polygon>::push_back(Polygon&& line, CheckNonEmptyParam checkNonEmpty);
 template void LinesSet<Polygon>::push_back(LinesSet<Polygon>&& lines_set);
+template void LinesSet<Polygon>::addPath(ClipperLib::Clipper& clipper, const Polygon& line, ClipperLib::PolyType poly_typ) const;
 
 } // namespace cura

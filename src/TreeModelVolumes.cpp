@@ -8,6 +8,7 @@
 #include <range/v3/view/reverse.hpp>
 #include <spdlog/spdlog.h>
 
+#include "PrimeTower/PrimeTower.h"
 #include "TreeSupport.h"
 #include "TreeSupportEnums.h"
 #include "progress/Progress.h"
@@ -148,9 +149,9 @@ TreeModelVolumes::TreeModelVolumes(
                 anti_overhang_[layer_idx].push_back(storage.support.supportLayers[layer_idx].anti_overhang);
             }
 
-            if (storage.primeTower.enabled_)
+            if (storage.prime_tower_)
             {
-                anti_overhang_[layer_idx].push_back(storage.primeTower.getGroundPoly());
+                anti_overhang_[layer_idx].push_back(storage.prime_tower_->getOccupiedOutline(layer_idx));
             }
             anti_overhang_[layer_idx] = anti_overhang_[layer_idx].unionPolygons();
         });
