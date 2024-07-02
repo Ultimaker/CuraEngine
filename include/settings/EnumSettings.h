@@ -246,9 +246,9 @@ enum class InsetDirection
 };
 
 /*!
- * Method used for prime tower generation
+ * Prime tower generation mode
  */
-enum class PrimeTowerMethod
+enum class PrimeTowerMode
 {
     /*!
      * Prime tower that minimizes time and used filament as much as possible.

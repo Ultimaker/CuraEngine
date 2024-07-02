@@ -13,6 +13,7 @@
 #include "PolygonsPointIndex.h"
 #include "SparseLineGrid.h"
 #include "SparsePointGridInclusive.h"
+#include "geometry/ClosedLinesSet.h"
 #include "geometry/Polygon.h"
 
 namespace cura
@@ -78,37 +79,6 @@ struct ClosestPoint
 
 using ClosestPointPolygon = ClosestPoint<Polygon>;
 
-} // namespace cura
-
-namespace std
-{
-template<>
-struct hash<cura::ClosestPointPolygon>
-{
-    size_t operator()(const cura::ClosestPointPolygon& cpp) const
-    {
-        return std::hash<cura::Point2LL>()(cpp.p());
-    }
-};
-} // namespace std
-
-
-namespace std
-{
-template<typename S, typename T>
-struct hash<std::pair<S, T>>
-{
-    size_t operator()(const std::pair<S, T>& pair) const
-    {
-        return 31 * std::hash<S>()(pair.first) + 59 * std::hash<T>()(pair.second);
-    }
-};
-} // namespace std
-
-
-namespace cura
-{
-
 /*!
  * A point within a polygon and the index of which segment in the polygon the point lies on.
  */
@@ -124,34 +94,6 @@ class PolygonUtils
 {
 public:
     static const std::function<int(Point2LL)> no_penalty_function; //!< Function always returning zero
-
-    /*!
-     * compute the length of a segment of a polygon
-     *
-     * if \p end == \p start then the full polygon is taken
-     *
-     * \warning assumes that start and end lie on the same polygon!
-     *
-     * \param start The start vertex of the segment
-     * \param end the end vertex of the segment
-     * \return the total length of all the line segments in between the two vertices.
-     */
-    static int64_t segmentLength(PolygonsPointIndex start, PolygonsPointIndex end);
-
-    /*!
-     * Generate evenly spread out dots along a segment of a polygon
-     *
-     * Start at a distance from \p start and end at a distance from \p end,
-     * unless \p end == \p start; then that point is in the result
-     *
-     * \warning Assumes that start and end lie on the same polygon!
-     *
-     * \param start The start vertex of the segment
-     * \param end the end vertex of the segment
-     * \param n_dots number of dots to spread out
-     * \param result Where to store the generated points
-     */
-    static void spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, unsigned int n_dots, std::vector<ClosestPointPolygon>& result);
 
     /*!
      * Generate a grid of dots inside of the area of the \p polygons.
@@ -190,14 +132,6 @@ public:
      * \return A point at the given distance inward from the point on the boundary polygon.
      */
     static Point2LL getBoundaryPointWithOffset(const Polyline& poly, unsigned int point_idx, int64_t offset);
-
-    /*!
-     * Move a point away from the boundary by looking at the boundary normal of the nearest vert.
-     *
-     * \param point_on_boundary The object holding the point on the boundary along with the information of which line segment the point is on.
-     * \param offset The distance the point has to be moved inward from the polygon.
-     */
-    static Point2LL moveInsideDiagonally(ClosestPointPolygon point_on_boundary, int64_t inset);
 
     /*!
      * Moves the point \p from onto the nearest polygon or leaves the point as-is, when the comb boundary is not within the root of \p max_dist2 distance.
@@ -666,37 +600,64 @@ public:
     static double relativeHammingDistance(const Shape& poly_a, const Shape& poly_b);
 
     /*!
-     * Create an approximation of a circle.
+     * Creates a regular polygon that is supposed to approximate a disc.
      *
-     * This creates a regular polygon that is supposed to approximate a circle.
+     * \param mid The center of the disc.
+     * \param radius The radius of the disc.
+     * \param steps The numbers of segments (definition) of the generated disc.
+     * \return A new Polygon containing the disc.
+     */
+    static Polygon makeDisc(const Point2LL& mid, const coord_t radius, const size_t steps);
+
+    /*!
+     * Creates a closed polyline that is supposed to approximate a circle.
+     *
      * \param mid The center of the circle.
      * \param radius The radius of the circle.
-     * \param a_step The angle between segments of the circle.
-     * \return A new Polygon containing the circle.
+     * \param segments The numbers of segments (definition) of the generated circle.
+     * \tparam explicitly_closed Indicates whether the circle should be explicitely (or implicitely) closed
+     * \return A new object containing the circle points.
      */
-    template<typename T = Polygon, typename... VA>
-    static T makeCircle(const Point2LL& mid, const coord_t radius, const AngleRadians a_step = std::numbers::pi / 8, VA... args)
+    template<typename T = ClosedPolyline, bool explicitely_closed = false, typename... VA>
+    static T makeCircle(const Point2LL& mid, const coord_t radius, const size_t segments, VA... args)
     {
         T circle;
-        for (double a = 0; a < 2 * std::numbers::pi; a += a_step)
+        const AngleRadians step_angle = (std::numbers::pi * 2) / static_cast<double>(segments);
+        for (size_t step = 0; step < segments; ++step)
         {
-            circle.emplace_back(mid + Point2LL(radius * cos(a), radius * sin(a)), args...);
+            const AngleRadians angle = static_cast<double>(step) * step_angle;
+            circle.emplace_back(makeCirclePoint(mid, radius, angle), args...);
         }
+
+        if constexpr (explicitely_closed)
+        {
+            circle.push_back(circle.front());
+        }
+
         return circle;
     }
 
     /*!
-     * Create a "wheel" shape.
+     * Create a point of a circle.
      *
-     * This creates a polygon which represents the shape of a wheel.
+     * \param mid The center of the circle.
+     * \param radius The radius of the circle.
+     * \param angle The point angular position
+     * \return The coordinates of the point on the circle.
+     */
+    static Point2LL makeCirclePoint(const Point2LL& mid, const coord_t radius, const AngleRadians& angle);
+
+    /*!
+     * This creates a polyline which represents the shape of a wheel, which is kind of a "circular zigzag" pattern.
+     *
      * \param mid The center of the circle.
      * \param inner_radius The radius of the wheel inner circle.
      * \param outer_radius The radius of the wheel outer circle.
      * \param semi_nb_spokes The semi number of spokes in the wheel. There will actually be N*2 spokes.
-     * \param arc_angle_resolution The number of segment on each arc.
-     * \return A new Polygon containing the circle.
+     * \param arc_angle_resolution The number of segments on each arc.
+     * \return A new Polyline containing the circle.
      */
-    static Polygon makeWheel(const Point2LL& mid, const coord_t inner_radius, const coord_t outer_radius, const size_t semi_nb_spokes, const size_t arc_angle_resolution);
+    static ClosedPolyline makeWheel(const Point2LL& mid, const coord_t inner_radius, const coord_t outer_radius, const size_t semi_nb_spokes, const size_t arc_angle_resolution);
 
     /*!
      * Connect all polygons to their holes using zero widths hole channels, so that the polygons and their outlines are connected together
@@ -707,7 +668,6 @@ public:
 
     static Shape unionManySmall(const Shape& polygon);
 
-
     /*!
      * Intersects a polygon with an AABB.
      * \param src The polygon that has to be intersected with an AABB
@@ -717,24 +677,28 @@ public:
     static Shape clipPolygonWithAABB(const Shape& src, const AABB& aabb);
 
     /*!
-     * Generate a few outset polygons around the given base, according to the given line width
+     * Generate a few outset circles around a base, according to the given line width
      *
-     * \param inner_poly The inner polygon to start generating the outset from
-     * \param count The number of outer polygons to add
+     * \param center The center of the outset
+     * \param inner_radius The inner radius to start generating the outset from
+     * \param outer_radius The outer radius to fit the outset into
      * \param line_width The actual line width to distance the polygons from each other (and from the base)
-     * \return The generated outset polygons
+     * \param circle_definition The definition (number of segments) of the generated circles
+     * \return The generated outset circles, and the outer radius or the shape
      */
-    static Shape generateOutset(const Shape& inner_poly, size_t count, coord_t line_width);
+    static std::tuple<ClosedLinesSet, coord_t>
+        generateCirculatOutset(const Point2LL& center, const coord_t inner_radius, const coord_t outer_radius, const coord_t line_width, const size_t circle_definition);
 
     /*!
-     * Generate inset polygons inside the given base, until there is no space left, according to the given line width
+     * Generate inset circles inside the given base, until there is no space left, according to the given line width
      *
-     * \param outer_poly The outer polygon to start generating the inset from
+     * \param center The center of the inset
+     * \param outer_radius The outer radius to start generating the inset from
      * \param line_width The actual line width to distance the polygons from each other (and from the base)
-     * \param initial_inset The inset distance to be added to the first generated polygon
-     * \return The generated inset polygons
+     * \param circle_definition The definition (number of segments) of the generated circles
+     * \return The generated inset circles
      */
-    static Shape generateInset(const Shape& outer_poly, coord_t line_width, coord_t initial_inset = 0);
+    static ClosedLinesSet generateCircularInset(const Point2LL& center, const coord_t outer_radius, const coord_t line_width, const size_t circle_definition);
 
 private:
     /*!
@@ -750,7 +714,20 @@ private:
     static ClosestPointPolygon _moveInside2(const ClosestPointPolygon& closest_polygon_point, const int distance, Point2LL& from, const int64_t max_dist2);
 };
 
-
 } // namespace cura
 
-#endif // POLYGON_OPTIMIZER_H
+namespace std
+{
+
+template<>
+struct hash<cura::ClosestPointPolygon>
+{
+    size_t operator()(const cura::ClosestPointPolygon& cpp) const
+    {
+        return std::hash<cura::Point2LL>()(cpp.p());
+    }
+};
+
+} // namespace std
+
+#endif // UTILS_POLYGON_UTILS_H
