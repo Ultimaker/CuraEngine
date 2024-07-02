@@ -710,6 +710,24 @@ BrimLocation Settings::get<BrimLocation>(const std::string& key) const
 }
 
 template<>
+CoolDuringExtruderSwitch Settings::get<CoolDuringExtruderSwitch>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "all_fans")
+    {
+        return CoolDuringExtruderSwitch::ALL_FANS;
+    }
+    else if (value == "only_last_extruder")
+    {
+        return CoolDuringExtruderSwitch::ONLY_LAST_EXTRUDER;
+    }
+    else // Default.
+    {
+        return CoolDuringExtruderSwitch::UNCHANGED;
+    }
+}
+
+template<>
 std::vector<double> Settings::get<std::vector<double>>(const std::string& key) const
 {
     const std::string& value_string = get<std::string>(key);
