@@ -1126,8 +1126,8 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                         const auto total_area_size = thick_outline.area();
                         const auto open_area_size = thick_outline.difference(near_shape_area).area();
 
-                        constexpr double max_ratio = 0.45;  // TODO: make this a setting
-                        constexpr coord_t min_part_area = 1000000;  // TODO: make this a setting
+                        constexpr double max_ratio = 0.45; // TODO: make this a setting
+                        constexpr coord_t min_part_area = 1000000; // TODO: make this a setting
                         if ((open_area_size == 0 || hole_part.area() >= min_part_area) && (open_area_size / total_area_size) < max_ratio)
                         {
                             hole_area.push_back(hole_part);
