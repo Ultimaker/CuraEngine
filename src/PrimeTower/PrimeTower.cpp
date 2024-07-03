@@ -53,7 +53,7 @@ PrimeTower::PrimeTower()
             const double brim_radius_factor = std::pow((1.0 - static_cast<double>(z) / static_cast<double>(base_height)), base_curve_magnitude);
             const coord_t extra_radius = std::llrint(static_cast<double>(base_extra_radius) * brim_radius_factor);
             const coord_t total_radius = tower_radius + extra_radius;
-            base_occupied_outline_.emplace_back(OccupiedOutline{ PolygonUtils::makeDisc(middle_, total_radius, circle_definition_), total_radius });
+            base_occupied_outline_.push_back(OccupiedOutline{ PolygonUtils::makeDisc(middle_, total_radius, circle_definition_), total_radius });
         }
     }
 }
