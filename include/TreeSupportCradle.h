@@ -414,12 +414,13 @@ private:
 
     struct UnsupportedAreaInformation
     {
-        UnsupportedAreaInformation(const Polygons area, size_t index, size_t height, coord_t accumulated_supportable_overhang, double deformation)
+        UnsupportedAreaInformation(const Polygons area, size_t index, size_t height, coord_t accumulated_supportable_overhang, double deformation, Point2LL assumed_center)
             : area{ area }
             , index{ index }
             , height{ height }
             , accumulated_supportable_overhang{ accumulated_supportable_overhang }
             , deformation{ deformation }
+            , assumed_center {assumed_center}
         {
         }
         const Polygons area;
@@ -427,8 +428,14 @@ private:
         size_t height;
         coord_t accumulated_supportable_overhang;
         double deformation;
+        double total_deformation_limit = -1;
+        bool support_required = false;
+        Point2LL assumed_center;
     };
 
+
+//todo doku
+double getTotalDeformation(size_t mesh_idx, LayerIndex layer_idx, size_t element_idx);
 
 /*!
  * \brief Provides areas that do not have a connection to the buildplate or a certain height.

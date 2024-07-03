@@ -22,6 +22,60 @@ SupportCradleGeneration::SupportCradleGeneration(const SliceDataStorage& storage
 
 }
 
+double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, LayerIndex layer_idx, size_t element_idx)
+{
+
+    std::vector<std::vector<size_t>> areas_per_layer_by_idx(layer_idx + 1);
+    std::vector<size_t> all_scan_idx {element_idx};
+    LayerIndex scan_layer_idx = layer_idx;
+    while(!all_scan_idx.empty() && scan_layer_idx > 0)
+    {
+        std::vector<size_t> next_scan_idx;
+
+        for(size_t current_scan_idx : all_scan_idx)
+        {
+            for(auto& floating: getUnsupportedArea(mesh_idx, scan_layer_idx, current_scan_idx, false))
+            {
+                if(floating.height > 0)
+                {
+                    next_scan_idx.emplace_back(floating.index);
+                }
+                areas_per_layer_by_idx[scan_layer_idx].emplace_back(floating.index);
+            }
+        }
+        scan_layer_idx--;
+        all_scan_idx = next_scan_idx;
+    }
+    double total_deformation = 0;
+    //todo proper hirachy, stabilising one leg does not stabilize all Todo better merge function than min
+    for (auto [layer_idx_iter, all_areas] : areas_per_layer_by_idx | ranges::views::enumerate)
+    {
+
+        double deformation_influence = 0;
+        for(size_t element_idx_iter : all_areas)
+        {
+            UnsupportedAreaInformation& area_data = floating_parts_cache_[mesh_idx][layer_idx_iter][element_idx_iter];
+            if(deformation_influence == 0)
+            {
+                deformation_influence = area_data.deformation;
+            }
+            else
+            {
+                deformation_influence = std::min(deformation_influence, area_data.deformation);
+            }
+
+            total_deformation += deformation_influence * (layer_idx - layer_idx_iter);
+
+            if(area_data.total_deformation_limit > 0)
+            {
+                total_deformation = std::min(total_deformation, area_data.total_deformation_limit);
+            }
+        }
+    }
+    return total_deformation;
+
+}
+
 
 void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mesh, size_t mesh_idx)
 {
@@ -32,8 +86,7 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
     const double cradle_area_threshold = 1000 * 1000 * retrieveSetting<double>(mesh.settings, "support_tree_maximum_pointy_area");
     LayerIndex max_layer = mesh.layers.size();
     const coord_t stable_radius = 50000;
-    const double deformation_constant = 2.5 * double(layer_height) / 1000.0;
-    const double support_deformation_threshold = 600;
+    const double deformation_constant = 0.005 * double(layer_height) / 1000.0;
 
     LayerIndex start_layer = 1;
     floating_parts_cache_[mesh_idx].resize(max_layer + 1);
@@ -62,7 +115,7 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
                 if (! has_support_below || layer_idx == start_layer)
                 {
                     std::lock_guard<std::mutex> critical_section_add(critical_sections);
-                    floating_parts_cache_[mesh_idx][layer_idx].emplace_back(part, floating_parts_cache_[mesh_idx][layer_idx].size(), 0, overhang_area, 0);
+                    floating_parts_cache_[mesh_idx][layer_idx].emplace_back(part, floating_parts_cache_[mesh_idx][layer_idx].size(), 0, overhang_area, 0, part.outerPolygon().centerOfMass());
                     floating_parts_map_[mesh_idx][layer_idx].emplace_back(std::vector<size_t>());
                     floating_parts_map_below_[mesh_idx][layer_idx].emplace_back(std::vector<size_t>());
                     return;
@@ -71,15 +124,20 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
 
                 coord_t radius_min = 0;
                 coord_t radius_max = 2*stable_radius;
+                Point2LL assumed_center = part.outerPolygon().centerOfMass(); //todo should be from area_with_material_below
+                Polygons area_with_material_below = part.getOutsidePolygons().intersection(mesh.layers[layer_idx - 1].getOutlines());
                 while(radius_max-radius_min > 500)
                 {
-                    if(part.getOutsidePolygons().offset(-(radius_min+radius_max)/2).empty())
+                    coord_t offset_distance = (radius_min+radius_max)/2;
+                    Polygons radius_estimate_polygon = area_with_material_below.offset(offset_distance).offset(-offset_distance * 2);
+                    if(radius_estimate_polygon.empty())
                     {
                         radius_max = (radius_min+radius_max)/2;
                     }
                     else
                     {
                         radius_min = (radius_min+radius_max)/2;
+                        //Todo update assumed center. Also save assumed center for length calc
                     }
                 }
                 double deform_radius =  double(radius_max+radius_min) / 2000.0;
@@ -90,36 +148,19 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
                 coord_t supported_overhang_area = 0;
                 bool add = false;
                 std::vector<size_t> idx_of_floating_below;
-                double deform_total = 0;
 
                 for (auto [idx, floating] : floating_parts_cache_[mesh_idx][layer_idx - 1] | ranges::views::enumerate)
                 {
                     if (layer_idx > 1 && ! floating.area.intersection(part).empty())
                     {
+                        //Todo idea: Iterate over all parts below. accumulate bendability as angle. Estimate angle forces with assumed center vs prev center => just dist and height.
                         idx_of_floating_below.emplace_back(idx);
-                        if(deform_total == 0)
-                        {
-                            deform_total = floating.deformation;
-                        }
-                        else
-                        {
-                            deform_total = std::min(deform_total, floating.deformation);
-                        }
+
                         supported_overhang_area += floating.accumulated_supportable_overhang;
                         min_resting_on_layers = std::max(min_resting_on_layers, floating.height);
                         add = true;
                     }
                 }
-                std::cout << "at " << layer_idx<< ": " << deform_total << " deformation with part deform " << deform_part << " with constant " << deformation_constant << " deform rad of " << deform_radius
-                          <<std::endl ;
-
-                if(deform_total > support_deformation_threshold)
-                {
-                    deform_total = 0;
-                }
-
-                deform_total *= 1.0 + 0.05* double(layer_height) / 1000.0;
-                deform_total += deform_part;
 
 
                 if (add)
@@ -129,11 +170,22 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
                     {
                         floating_parts_map_[mesh_idx][layer_idx - 1][idx].emplace_back(floating_parts_cache_[mesh_idx][layer_idx].size());
                     }
-
+                    size_t floating_idx = floating_parts_cache_[mesh_idx][layer_idx].size();
                     floating_parts_map_[mesh_idx][layer_idx].emplace_back(std::vector<size_t>());
                     floating_parts_map_below_[mesh_idx][layer_idx].emplace_back(idx_of_floating_below);
                     floating_parts_cache_[mesh_idx][layer_idx]
-                        .emplace_back(part, floating_parts_cache_[mesh_idx][layer_idx].size(), min_resting_on_layers + 1, overhang_area + supported_overhang_area, deform_total);
+                        .emplace_back(part, floating_idx, min_resting_on_layers + 1, overhang_area + supported_overhang_area, deform_part, assumed_center);
+
+                    double estimated_deformation = getTotalDeformation(mesh_idx, layer_idx, floating_idx);
+                    std::cout << "at " << layer_idx<< ": " << " with part deform " << deform_part << " with constant " << deformation_constant << " deform rad of " << deform_radius << " resulting estimation of " << estimated_deformation
+                              <<std::endl ;
+                    if(estimated_deformation > 400)
+                    {
+                        floating_parts_cache_[mesh_idx][layer_idx][floating_idx].support_required = true;
+                        floating_parts_cache_[mesh_idx][layer_idx][floating_idx].total_deformation_limit = 100;
+                        std::cout << "at " << layer_idx<< ": " << " Mark for support "
+                                  <<std::endl ;
+                    }
                 }
                 else
                 {
@@ -208,7 +260,7 @@ std::vector<SupportCradleGeneration::UnsupportedAreaInformation> SupportCradleGe
         std::lock_guard<std::mutex> critical_section(*critical_floating_parts_cache_);
         for (auto [idx, floating_data] : floating_parts_cache_[mesh_idx][layer_idx] | ranges::views::enumerate)
         {
-            if (floating_data.height == 0 || floating_data.deformation > 600)
+            if (floating_data.height == 0 || floating_data.support_required)
             {
                 result.emplace_back(floating_data);
             }
