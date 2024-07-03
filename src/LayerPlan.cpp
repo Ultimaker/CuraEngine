@@ -2057,6 +2057,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.switchExtruder(extruder_nr, prev_retraction_config.extruder_switch_retraction_config);
             }
 
+            gcode.writePrepareFansForNozzleSwitch();
+
             { // require printing temperature to be met
                 constexpr bool wait = true;
                 gcode.writeTemperatureCommand(extruder_nr, extruder_plan.required_start_temperature_, wait);
@@ -2099,7 +2101,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
             }
         }
-        gcode.writeFanCommand(extruder_plan.getFanSpeed());
+        gcode.writePrepareFansForExtrusion(extruder_plan.getFanSpeed());
         std::vector<GCodePath>& paths = extruder_plan.paths_;
 
         extruder_plan.inserts_.sort();

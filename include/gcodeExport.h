@@ -8,6 +8,7 @@
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //To allow tests to use protected members.
 #endif
+#include <optional>
 #include <sstream> // for stream.str()
 #include <stdio.h>
 
@@ -89,7 +90,7 @@ private:
 
         double last_e_value_after_wipe_; //!< The current material amount extruded since last wipe
 
-        unsigned fan_number_; // nozzle print cooling fan number
+        size_t fan_number_; // nozzle print cooling fan number
         Point2LL nozzle_offset_; //!< Cache of setting machine_nozzle_offset_[xy]
         bool machine_firmware_retract_; //!< Cache of setting machine_firmware_retract
 
@@ -150,8 +151,8 @@ private:
                           //!< other layer parts)
 
     size_t current_extruder_;
-    double current_fan_speed_;
-    unsigned fan_number_; // current print cooling fan number
+    std::map<size_t, double> current_fans_speeds_; //!< Current fan speed, by fan index. No value means the speed has never been set yet.
+    size_t fans_count_{ 0 };
     EGCodeFlavor flavor_;
 
     std::vector<Duration> total_print_times_; //!< The total estimated print time in seconds for each feature
@@ -533,13 +534,28 @@ public:
     void writePrimeTrain(const Velocity& travel_speed);
 
     /*!
-     * Set the print cooling fan number (used as P parameter to M10[67]) for the specified extruder
-     *
-     * \param extruder The current extruder
+     * \brief Write a set fan speed command, if different from the actual speed
+     * \param speed The new fan speed, which should be [0.0, 100.0]
+     * \param extruder The extruder for which we want to set the cooling fan speed, or nullopt to use the current extruder
      */
-    void setExtruderFanNumber(int extruder);
+    void writeFanCommand(double speed, std::optional<size_t> extruder = std::nullopt);
 
-    void writeFanCommand(double speed);
+    /*!
+     * \brief Write a set fan speed command for the given fan, if different from the actual speed
+     * \param speed The new fan speed, which should be [0.0, 100.0]
+     * \param fan_number The fan for which we want to set the speed
+     */
+    void writeSpecificFanCommand(double speed, size_t fan_number);
+
+    /*! Write cooling fan speeds before proceeding an extruder switch */
+    void writePrepareFansForNozzleSwitch();
+
+    /*!
+     * \brief Write the cooling fan speeds before starting an actual extrusion
+     * \param current_extruder_new_speed The new speed for the currently active extruder
+     * \note All other cooling fans but the active one will be deactivaed
+     */
+    void writePrepareFansForExtrusion(double current_extruder_new_speed);
 
     /*!
      * \brief Write a GCode temperature command

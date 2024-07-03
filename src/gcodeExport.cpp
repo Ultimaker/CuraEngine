@@ -47,7 +47,6 @@ GCodeExport::GCodeExport()
 
     current_e_value_ = 0;
     current_extruder_ = 0;
-    current_fan_speed_ = -1;
 
     total_print_times_ = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
 
@@ -64,7 +63,6 @@ GCodeExport::GCodeExport()
     machine_heated_build_volume_ = false;
     ppr_enable_ = false;
 
-    fan_number_ = 0;
     use_extruder_offset_to_offset_coords_ = false;
     machine_name_ = "";
     relative_extrusion_ = false;
@@ -96,6 +94,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
         extruder_attr_[extruder_nr].last_retraction_prime_speed_
             = train.settings_.get<Velocity>("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
         extruder_attr_[extruder_nr].fan_number_ = train.settings_.get<size_t>("machine_extruder_cooling_fan_number");
+        fans_count_ = std::max(fans_count_, extruder_attr_[extruder_nr].fan_number_ + 1);
 
         // Cache some settings that we use frequently.
         const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_;
@@ -747,8 +746,6 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
         }
     }
 
-    setExtruderFanNumber(start_extruder_nr);
-
     return should_prime_extruder;
 }
 
@@ -1313,8 +1310,6 @@ void GCodeExport::startExtruder(const size_t new_extruder)
 
     // Change the Z position so it gets re-written again. We do not know if the switch code modified the Z position.
     current_position_.z_ += 1;
-
-    setExtruderFanNumber(new_extruder);
 }
 
 void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, coord_t perform_z_hop /*= 0*/)
@@ -1429,21 +1424,23 @@ void GCodeExport::writePrimeTrain(const Velocity& travel_speed)
     extruder_attr_[current_extruder_].is_primed_ = true;
 }
 
-void GCodeExport::setExtruderFanNumber(int extruder)
+void GCodeExport::writeFanCommand(double speed, std::optional<size_t> extruder)
 {
-    if (extruder_attr_[extruder].fan_number_ != fan_number_)
-    {
-        fan_number_ = extruder_attr_[extruder].fan_number_;
-        current_fan_speed_ = -1; // ensure fan speed gcode gets output for this fan
-    }
+    const size_t extruder_set_fan = extruder.value_or(current_extruder_);
+    const size_t fan_number = extruder_attr_[extruder_set_fan].fan_number_;
+
+    writeSpecificFanCommand(speed, fan_number);
 }
 
-void GCodeExport::writeFanCommand(double speed)
+void GCodeExport::writeSpecificFanCommand(double speed, size_t fan_number)
 {
-    if (std::abs(current_fan_speed_ - speed) < 0.1)
+    auto iterator = current_fans_speeds_.find(fan_number);
+
+    if (iterator != current_fans_speeds_.end() && std::abs(iterator->second - speed) < 0.1)
     {
         return;
     }
+
     if (flavor_ == EGCodeFlavor::MAKERBOT)
     {
         if (speed >= 50)
@@ -1461,23 +1458,23 @@ void GCodeExport::writeFanCommand(double speed)
         *output_stream_ << "M106 S"
                         << PrecisionedDouble{ (should_scale_zero_to_one ? static_cast<uint8_t>(2) : static_cast<uint8_t>(1)),
                                               (should_scale_zero_to_one ? speed : speed * 255) / 100 };
-        if (fan_number_)
+        if (fan_number)
         {
-            *output_stream_ << " P" << fan_number_;
+            *output_stream_ << " P" << fan_number;
         }
         *output_stream_ << new_line_;
     }
     else
     {
         *output_stream_ << "M107";
-        if (fan_number_)
+        if (fan_number)
         {
-            *output_stream_ << " P" << fan_number_;
+            *output_stream_ << " P" << fan_number;
         }
         *output_stream_ << new_line_;
     }
 
-    current_fan_speed_ = speed;
+    current_fans_speeds_[fan_number] = speed;
 }
 
 void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperature& temperature, const bool wait, const bool force_write_on_equal)
@@ -1743,6 +1740,57 @@ void GCodeExport::insertWipeScript(const WipeScriptConfig& wipe_config)
     }
 
     writeComment("WIPE_SCRIPT_END");
+}
+
+void GCodeExport::writePrepareFansForNozzleSwitch()
+{
+    const Settings& settings = Application::getInstance().current_slice_->scene.settings;
+    const auto cool_during_switch = settings.get<CoolDuringExtruderSwitch>("cool_during_extruder_switch");
+
+    if (cool_during_switch != CoolDuringExtruderSwitch::UNCHANGED)
+    {
+        const size_t current_extruder_fan_number = extruder_attr_[current_extruder_].fan_number_;
+
+        for (size_t fan_number = 0; fan_number < fans_count_; ++fan_number)
+        {
+            double fan_speed;
+            if (cool_during_switch == CoolDuringExtruderSwitch::ALL_FANS || fan_number == current_extruder_fan_number)
+            {
+                fan_speed = 100.0;
+            }
+            else
+            {
+                fan_speed = 0.0;
+            }
+
+            writeSpecificFanCommand(fan_speed, fan_number);
+        }
+    }
+}
+
+void GCodeExport::writePrepareFansForExtrusion(double current_extruder_new_speed)
+{
+    const Settings& settings = Application::getInstance().current_slice_->scene.settings;
+    const auto cool_during_switch = settings.get<CoolDuringExtruderSwitch>("cool_during_extruder_switch");
+    const size_t current_extruder_fan_number = extruder_attr_[current_extruder_].fan_number_;
+
+    for (size_t fan_number = 0; fan_number < fans_count_; ++fan_number)
+    {
+        double new_fan_speed;
+        if (fan_number == current_extruder_fan_number)
+        {
+            new_fan_speed = current_extruder_new_speed;
+        }
+        else if (cool_during_switch == CoolDuringExtruderSwitch::UNCHANGED)
+        {
+            continue;
+        }
+        else
+        {
+            new_fan_speed = 0.0;
+        }
+        writeSpecificFanCommand(new_fan_speed, fan_number);
+    }
 }
 
 void GCodeExport::setSliceUUID(const std::string& slice_uuid)
