@@ -4,6 +4,7 @@
 #ifndef UTILS_STRING_H
 #define UTILS_STRING_H
 
+#include <cmath>
 #include <cstdio> // sprintf
 #include <ctype.h>
 #include <sstream> // ostringstream
@@ -168,6 +169,11 @@ struct PrecisionedDouble
 {
     uint8_t precision; //!< Number of digits after the decimal mark with which to convert to string
     double value; //!< The double value
+
+    bool wouldWriteZero() const
+    {
+        return (std::abs(value) * std::pow(10.0, precision)) < 1.0;
+    }
 
     friend inline std::ostream& operator<<(std::ostream& out, const PrecisionedDouble precision_and_input)
     {

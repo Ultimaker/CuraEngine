@@ -1471,7 +1471,8 @@ void GCodeExport::writeSpecificFanCommand(double speed, size_t fan_number)
 		};
         bool write_value = true;
         std::ostringstream new_value;
-        new_value << scale_zero_to_one_optional(speed);
+        const auto num_new_val = scale_zero_to_one_optional(speed);
+        new_value << num_new_val;
         const std::string new_value_str = new_value.str();
         if (current_fan_speed.has_value())
         {
@@ -1482,14 +1483,9 @@ void GCodeExport::writeSpecificFanCommand(double speed, size_t fan_number)
 
         if (write_value)
         {
-            // Check if the value to be written is only made with zeroes, in which case it is actually a turn off
-            std::string new_value_str_reduced = new_value_str;
-            std::erase(new_value_str_reduced, '0');
-            std::erase(new_value_str_reduced, '.');
-            const bool turn_off = new_value_str_reduced.empty();
-
-            if (turn_off)
+            if (num_new_val.wouldWriteZero())
             {
+                // Turn off when the fan value is zero.
                 *output_stream_ << "M107";
             }
             else
