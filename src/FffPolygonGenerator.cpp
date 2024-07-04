@@ -1084,6 +1084,8 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
     constexpr coord_t epsilon = 5; // the distance between two points that are considered to be the same
     const coord_t line_width = mesh.settings.get<coord_t>("line_width");
     const bool apply_outside_only = mesh.settings.get<bool>("magic_fuzzy_skin_outside_only");
+    const Ratio inside_max_part_ratio = mesh.settings.get<Ratio>("magic_fuzzy_skin_outside_convex_ratio");
+    const double inside_min_part_area = MM2_2INT(mesh.settings.get<double>("magic_fuzzy_skin_outside_min_area"));
     const coord_t fuzziness = mesh.settings.get<coord_t>("magic_fuzzy_skin_thickness");
     const coord_t avg_dist_between_points = mesh.settings.get<coord_t>("magic_fuzzy_skin_point_dist");
     const coord_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
@@ -1125,10 +1127,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                         const auto thick_outline = hole_part.createTubeShape(line_width / 2, 0);
                         const auto total_area_size = thick_outline.area();
                         const auto open_area_size = thick_outline.difference(near_shape_area).area();
-
-                        constexpr double max_ratio = 0.45; // TODO: make this a setting
-                        constexpr coord_t min_part_area = 1000000; // TODO: make this a setting
-                        if ((open_area_size == 0 || hole_part.area() >= min_part_area) && (open_area_size / total_area_size) < max_ratio)
+                        if ((open_area_size == 0 || hole_part.area() >= inside_min_part_area) && (open_area_size / total_area_size) <= inside_max_part_ratio)
                         {
                             hole_area.push_back(hole_part);
                         }
