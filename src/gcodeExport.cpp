@@ -1434,8 +1434,6 @@ void GCodeExport::writeFanCommand(double speed, std::optional<size_t> extruder)
 
 void GCodeExport::writeSpecificFanCommand(double speed, size_t fan_number)
 {
-
-
     const auto iterator = current_fans_speeds_.find(fan_number);
     const std::optional<double> current_fan_speed = (iterator != current_fans_speeds_.end()) ? std::optional<double>(iterator->second) : std::nullopt;
 
@@ -1466,9 +1464,10 @@ void GCodeExport::writeSpecificFanCommand(double speed, size_t fan_number)
     else
     {
         const bool should_scale_zero_to_one = Application::getInstance().current_slice_->scene.settings.get<bool>("machine_scale_fan_speed_zero_to_one");
-        const auto scale_zero_to_one_optional = [should_scale_zero_to_one](double value) -> PrecisionedDouble {
+        const auto scale_zero_to_one_optional = [should_scale_zero_to_one](double value) -> PrecisionedDouble
+        {
             return { (should_scale_zero_to_one ? static_cast<uint8_t>(2) : static_cast<uint8_t>(1)), (should_scale_zero_to_one ? value : value * 255.0) / 100.0 };
-		};
+        };
         bool write_value = true;
         std::ostringstream new_value;
         const auto num_new_val = scale_zero_to_one_optional(speed);
