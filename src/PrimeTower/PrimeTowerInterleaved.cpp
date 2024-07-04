@@ -88,7 +88,7 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerInter
             {
                 if (toolpaths_at_layer.empty())
                 {
-                    toolpaths_at_layer.emplace_back(last_extruder_support, ClosedLinesSet(), prime_next_outer_radius, inner_support_radius);
+                    toolpaths_at_layer.push_back(ExtruderToolPaths{ last_extruder_support, ClosedLinesSet(), prime_next_outer_radius, inner_support_radius });
                 }
 
                 ExtruderToolPaths& last_extruder_toolpaths = toolpaths_at_layer.back();
@@ -117,7 +117,7 @@ void PrimeTowerInterleaved::polishExtrudersUses(LayerVector<std::vector<Extruder
         // Make sure we always have something to print
         if (extruders_use_at_layer.empty())
         {
-            extruders_use_at_layer.emplace_back(last_used_extruder, ExtruderPrime::Support);
+            extruders_use_at_layer.push_back(ExtruderUse{ last_used_extruder, ExtruderPrime::Support });
         }
         else if (std::all_of(
                      extruders_use_at_layer.begin(),
