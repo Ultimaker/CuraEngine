@@ -322,7 +322,7 @@ std::vector<std::vector<TreeSupportCradle*>> SupportCradleGeneration::generateCr
                     }
                 }
 
-                std::vector<Polygons> accumulated_model(std::min(cradle_config->cradle_layers_ + z_distance_delta_, mesh.overhang_areas.size() - layer_idx), Polygons());
+                std::vector<Polygons> accumulated_model(std::min(cradle_config->cradle_layers_ + cradle_config->cradle_z_distance_layers_ + 1, mesh.overhang_areas.size() - layer_idx), Polygons());
                 std::vector<UnsupportedAreaInformation*> all_pointy{ pointy_info };
 
                 Point2LL center_prev = Polygon(pointy_info->area.getOutsidePolygons()[0]).centerOfMass();
@@ -421,7 +421,7 @@ std::vector<std::vector<TreeSupportCradle*>> SupportCradleGeneration::generateCr
                             // To reduce the impact an area is estimated where the cradle should be for these areas.
                             Polygons previous_area = shadow;
                             for (size_t cradle_up_layer_z_distance = cradle_up_layer;
-                                 cradle_up_layer_z_distance < std::min(cradle_up_layer + z_distance_delta_ - 1, accumulated_model.size() - z_distance_top_layers);
+                                 cradle_up_layer_z_distance < std::min(cradle_up_layer + cradle_config->cradle_z_distance_layers_, accumulated_model.size() - z_distance_top_layers);
                                  cradle_up_layer_z_distance++)
                             {
                                 accumulated_model[cradle_up_layer_z_distance + z_distance_top_layers] = unsupported_model[cradle_up_layer_z_distance].unionPolygons();
