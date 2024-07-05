@@ -414,9 +414,9 @@ private:
 
     struct UnsupportedAreaInformation
     {
-        UnsupportedAreaInformation(const Polygons area, size_t index, size_t height, coord_t accumulated_supportable_overhang, double deformation, Point2LL assumed_center)
+        UnsupportedAreaInformation(const Polygons area, LayerIndex layer_idx, size_t height, coord_t accumulated_supportable_overhang, double deformation, Point2LL assumed_center)
             : area{ area }
-            , index{ index }
+            , layer_idx{ layer_idx }
             , height{ height }
             , accumulated_supportable_overhang{ accumulated_supportable_overhang }
             , deformation{ deformation }
@@ -424,28 +424,23 @@ private:
         {
         }
         const Polygons area;
-        size_t index;
+        LayerIndex layer_idx;
         size_t height;
         coord_t accumulated_supportable_overhang;
         double deformation;
         double total_deformation_limit = -1;
+        double total_deformation = -1;
         bool support_required = false;
         Point2LL assumed_center;
+
+        std::vector<UnsupportedAreaInformation*> areas_above;
+        std::vector<UnsupportedAreaInformation*> areas_below;
     };
 
 
 //todo doku
-double getTotalDeformation(size_t mesh_idx, LayerIndex layer_idx, size_t element_idx);
+double getTotalDeformation(size_t mesh_idx, const SliceMeshStorage& mesh, UnsupportedAreaInformation* element);
 
-/*!
- * \brief Provides areas that do not have a connection to the buildplate or a certain height.
- * \param mesh_idx[in] The idx of the mesh.
- * \param layer_idx The layer said area is on.
- * \param idx_of_area The index of the area. Only areas that either rest on this area or this area rests on (depending on above) will be returned
- * \param above Should the areas above it, that rest on this area should be returned (if true) or if areas that this area rests on (if false) should be returned.
- * \return A vector containing the areas, how many layers of material they have below them and the idx of each area usable to get the next one layer above.
- */
-std::vector<UnsupportedAreaInformation> getUnsupportedArea(size_t mesh_idx, LayerIndex layer_idx, size_t idx_of_area, bool above);
 
 /*!
      * \brief Provides areas that do not have a connection to the buildplate or any other non support material below it.
@@ -453,7 +448,7 @@ std::vector<UnsupportedAreaInformation> getUnsupportedArea(size_t mesh_idx, Laye
      * \param layer_idx The layer said area is on.
      * \return A vector containing the areas, how many layers of material they have below them (always 0) and the idx of each area usable to get the next one layer above.
  */
-std::vector<UnsupportedAreaInformation> getFullyUnsupportedArea(size_t mesh_idx, LayerIndex layer_idx);
+std::vector<UnsupportedAreaInformation*> getFullyUnsupportedArea(size_t mesh_idx, LayerIndex layer_idx);
 
 /*!
      * \brief Calculates which parts of the model to not connect with the buildplate and how many layers of material is below them (height).
@@ -513,9 +508,9 @@ TreeModelVolumes& volumes_;
  */
 const bool only_gracious_ = false;
 
-mutable std::vector<std::vector<std::vector<UnsupportedAreaInformation>>> floating_parts_cache_;
-mutable std::vector<std::vector<std::vector<std::vector<size_t>>>> floating_parts_map_;
-mutable std::vector<std::vector<std::vector<std::vector<size_t>>>> floating_parts_map_below_;
+const double wiggle_support_threshold = 400;
+
+mutable std::vector<std::vector<std::vector<UnsupportedAreaInformation*>>> floating_parts_cache_;
 
 std::unique_ptr<std::mutex> critical_floating_parts_cache_ = std::make_unique<std::mutex>();
 
