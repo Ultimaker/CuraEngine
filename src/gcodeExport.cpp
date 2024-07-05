@@ -1434,44 +1434,71 @@ void GCodeExport::writeFanCommand(double speed, std::optional<size_t> extruder)
 
 void GCodeExport::writeSpecificFanCommand(double speed, size_t fan_number)
 {
-    auto iterator = current_fans_speeds_.find(fan_number);
-
-    if (iterator != current_fans_speeds_.end() && std::abs(iterator->second - speed) < 0.1)
-    {
-        return;
-    }
+    const auto iterator = current_fans_speeds_.find(fan_number);
+    const std::optional<double> current_fan_speed = (iterator != current_fans_speeds_.end()) ? std::optional<double>(iterator->second) : std::nullopt;
 
     if (flavor_ == EGCodeFlavor::MAKERBOT)
     {
-        if (speed >= 50)
+        // Makerbot cannot PWM the fan speed, only turn it on or off
+
+        bool write_value = true;
+        const bool new_on = speed >= 50;
+        if (current_fan_speed.has_value())
         {
-            *output_stream_ << "M126 T0" << new_line_; // Makerbot cannot PWM the fan speed...
+            const bool old_on = current_fan_speed.value() >= 50;
+            write_value = new_on != old_on;
         }
-        else
+
+        if (write_value)
         {
-            *output_stream_ << "M127 T0" << new_line_;
+            if (new_on)
+            {
+                *output_stream_ << "M126 T0" << new_line_;
+            }
+            else
+            {
+                *output_stream_ << "M127 T0" << new_line_;
+            }
         }
-    }
-    else if (speed > 0)
-    {
-        const bool should_scale_zero_to_one = Application::getInstance().current_slice_->scene.settings.get<bool>("machine_scale_fan_speed_zero_to_one");
-        *output_stream_ << "M106 S"
-                        << PrecisionedDouble{ (should_scale_zero_to_one ? static_cast<uint8_t>(2) : static_cast<uint8_t>(1)),
-                                              (should_scale_zero_to_one ? speed : speed * 255) / 100 };
-        if (fan_number)
-        {
-            *output_stream_ << " P" << fan_number;
-        }
-        *output_stream_ << new_line_;
     }
     else
     {
-        *output_stream_ << "M107";
-        if (fan_number)
+        const bool should_scale_zero_to_one = Application::getInstance().current_slice_->scene.settings.get<bool>("machine_scale_fan_speed_zero_to_one");
+        const auto scale_zero_to_one_optional = [should_scale_zero_to_one](double value) -> PrecisionedDouble
         {
-            *output_stream_ << " P" << fan_number;
+            return { (should_scale_zero_to_one ? static_cast<uint8_t>(2) : static_cast<uint8_t>(1)), (should_scale_zero_to_one ? value : value * 255.0) / 100.0 };
+        };
+        bool write_value = true;
+        std::ostringstream new_value;
+        const auto num_new_val = scale_zero_to_one_optional(speed);
+        new_value << num_new_val;
+        const std::string new_value_str = new_value.str();
+        if (current_fan_speed.has_value())
+        {
+            std::ostringstream old_value;
+            old_value << scale_zero_to_one_optional(current_fan_speed.value());
+            write_value = new_value_str != old_value.str();
         }
-        *output_stream_ << new_line_;
+
+        if (write_value)
+        {
+            if (num_new_val.wouldWriteZero())
+            {
+                // Turn off when the fan value is zero.
+                *output_stream_ << "M107";
+            }
+            else
+            {
+                *output_stream_ << "M106 S" << new_value_str;
+            }
+
+            if (fan_number)
+            {
+                *output_stream_ << " P" << fan_number;
+            }
+
+            *output_stream_ << new_line_;
+        }
     }
 
     current_fans_speeds_[fan_number] = speed;

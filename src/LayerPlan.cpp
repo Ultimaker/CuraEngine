@@ -1881,7 +1881,8 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point2LL starting_
 
 void ExtruderPlan::processFanSpeedForMinimalLayerTime(Duration minTime, double time_other_extr_plans)
 {
-    /*
+    /* interpolate fan speed
+
                    min layer time
                    :
                    :  min layer time fan speed min
@@ -1892,28 +1893,12 @@ void ExtruderPlan::processFanSpeedForMinimalLayerTime(Duration minTime, double t
     speed  min..|... \:___________
                 |________________
                   layer time >
-
-
     */
-    // interpolate fan speed (for cool_fan_full_layer and for cool_min_layer_time_fan_speed_max)
-    double totalLayerTime = estimates_.getTotalTime() + time_other_extr_plans;
-    if (totalLayerTime < minTime)
-    {
-        fan_speed = fan_speed_layer_time_settings_.cool_fan_speed_max;
-    }
-    else if (minTime >= fan_speed_layer_time_settings_.cool_min_layer_time_fan_speed_max)
-    {
-        // ignore gradual increase of fan speed
-        return;
-    }
-    else if (totalLayerTime < fan_speed_layer_time_settings_.cool_min_layer_time_fan_speed_max)
-    {
-        // when forceMinimalLayerTime didn't change the extrusionSpeedFactor, we adjust the fan speed
-        double fan_speed_diff = fan_speed_layer_time_settings_.cool_fan_speed_max - fan_speed;
-        double layer_time_diff = fan_speed_layer_time_settings_.cool_min_layer_time_fan_speed_max - minTime;
-        double fraction_of_slope = (totalLayerTime - minTime) / layer_time_diff;
-        fan_speed = fan_speed_layer_time_settings_.cool_fan_speed_max - fan_speed_diff * fraction_of_slope;
-    }
+
+    const double total_layer_time = estimates_.getTotalTime() + time_other_extr_plans;
+    const double layer_time_diff = fan_speed_layer_time_settings_.cool_min_layer_time_fan_speed_max - minTime;
+    const double fraction_of_slope = std::clamp((total_layer_time - minTime) / layer_time_diff, 0.0, 1.0);
+    fan_speed = std::lerp(fan_speed_layer_time_settings_.cool_fan_speed_max, fan_speed, fraction_of_slope);
 }
 
 void ExtruderPlan::processFanSpeedForFirstLayers()
