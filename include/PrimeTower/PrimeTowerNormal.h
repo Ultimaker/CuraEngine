@@ -18,8 +18,11 @@ namespace cura
  */
 class PrimeTowerNormal : public PrimeTower
 {
+private:
+    const std::vector<size_t> used_extruders_;
+
 public:
-    PrimeTowerNormal();
+    PrimeTowerNormal(const std::vector<size_t>& used_extruders);
 
     virtual ExtruderPrime getExtruderPrime(
         const std::vector<bool>& extruder_is_used_on_this_layer,
