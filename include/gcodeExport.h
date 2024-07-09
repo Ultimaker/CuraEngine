@@ -471,6 +471,8 @@ private:
      */
     void processInitialLayerBedTemperature();
 
+    void processInitialLayerExtrudersTemperatures(const SliceDataStorage& storage, const bool wait_start_extruder, const size_t start_extruder_nr);
+
 public:
     /*!
      * Get ready for extrusion moves:
