@@ -12,8 +12,9 @@
 namespace cura
 {
 
-PrimeTowerNormal::PrimeTowerNormal()
+PrimeTowerNormal::PrimeTowerNormal(const std::vector<size_t>& used_extruders)
     : PrimeTower()
+    , used_extruders_(used_extruders)
 {
 }
 
@@ -45,13 +46,8 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerNorma
     const coord_t tower_radius = mesh_group_settings.get<coord_t>("prime_tower_size") / 2;
     std::map<LayerIndex, std::vector<ExtruderToolPaths>> toolpaths;
 
-    // First make a basic list of used extruders numbers
-    std::vector<size_t> extruder_order;
-    extruder_order.reserve(scene.extruders.size());
-    for (const ExtruderTrain& extruder : scene.extruders)
-    {
-        extruder_order.push_back(extruder.extruder_nr_);
-    }
+    // First take all the used extruders numbers, unsorted
+    std::vector<size_t> extruder_order = used_extruders_;
 
     // Then sort from high adhesion to low adhesion. This will give us the outside to inside extruder processing order.
     std::sort(
