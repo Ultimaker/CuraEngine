@@ -1897,7 +1897,7 @@ void ExtruderPlan::processFanSpeedForMinimalLayerTime(Duration minTime, double t
 
     const double total_layer_time = estimates_.getTotalTime() + time_other_extr_plans;
     const double layer_time_diff = fan_speed_layer_time_settings_.cool_min_layer_time_fan_speed_max - minTime;
-    const double fraction_of_slope = std::clamp((total_layer_time - minTime) / layer_time_diff, 0.0, 1.0);
+    const double fraction_of_slope = (layer_time_diff != 0.0) ? std::clamp((total_layer_time - minTime) / layer_time_diff, 0.0, 1.0) : 1.0;
     fan_speed = std::lerp(fan_speed_layer_time_settings_.cool_fan_speed_max, fan_speed, fraction_of_slope);
 }
 
