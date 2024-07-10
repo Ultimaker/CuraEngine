@@ -2043,7 +2043,8 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
                 }
                 else if (hole.intersection(PolygonUtils::clipPolygonWithAABB(relevant_forbidden, hole_aabb)).area() > hole.length() * EPSILON)
                 {
-                    holes_resting_outside[layer_idx].emplace(idx); // technically not resting outside, also not valid, but the alternative is potentially having lines go though the model
+                    holes_resting_outside[layer_idx].emplace(
+                        idx); // technically not resting outside, also not valid, but the alternative is potentially having lines go though the model
                 }
                 else
                 {
