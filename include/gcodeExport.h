@@ -471,6 +471,15 @@ private:
      */
     void processInitialLayerBedTemperature();
 
+    /*!
+     * Set extruders temperatures for the initial layer. Called by 'processInitialLayerTemperatures'.
+     *
+     * \param storage The slice data storage
+     * \param wait_start_extruder Indicates whether we should always wait for the start extruder temperature to be reached
+     * \param start_extruder_nr The index of the start extruder
+     */
+    void processInitialLayerExtrudersTemperatures(const SliceDataStorage& storage, const bool wait_start_extruder, const size_t start_extruder_nr);
+
 public:
     /*!
      * Get ready for extrusion moves:
