@@ -1151,7 +1151,7 @@ void LayerPlan::addWall(
         for (size_t piece = 0; piece < pieces; ++piece)
         {
             const double average_progress = (double(piece) + 0.5) / pieces; // How far along this line to sample the line width in the middle of this piece.
-            const coord_t line_width = p0.w_ + average_progress * delta_line_width;
+            const coord_t line_width = std::lrint(p0.w_ + average_progress * delta_line_width);
             const Point2LL destination = p0.p_ + normal(line_vector, piece_length * (piece + 1));
             if (is_small_feature)
             {
