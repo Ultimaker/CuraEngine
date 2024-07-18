@@ -1991,6 +1991,57 @@ bool FffGcodeWriter::processMultiLayerInfill(
     return added_something;
 }
 
+// Return a set of parallel lines at a given angle within an area
+// which cover a set of points
+void getLinesForArea(OpenLinesSet& result_lines, const Shape& area, const AngleDegrees& angle, const PointsSet& points, coord_t line_width)
+{
+    OpenLinesSet candidate_lines;
+    Shape unused_skin_polygons;
+    std::vector<VariableWidthLines> unused_skin_paths;
+
+    // We just want a set of lines which cover a Shape, and reusing this
+    // code seems like the best way.
+    Infill infill_comp(EFillMethod::LINES, false, false, area, line_width, line_width, 0, 1, angle, 0, 0, 0, 0);
+
+    infill_comp.generate(unused_skin_paths, unused_skin_polygons, candidate_lines, {}, 0, SectionType::SKIN);
+
+    // Select only lines which are needed to support points
+    for (const auto& line : candidate_lines)
+    {
+        const Shape line_shape = OpenLinesSet(line).offset(line_width / 2);
+        for (const auto& point : points)
+        {
+            if (line_shape.inside(point))
+            {
+                result_lines.push_back(line);
+                break;
+            }
+        }
+    }
+}
+
+// Return a set of parallel lines within an area which
+// fully support (cover) a set of points.
+void getBestAngledLinesToSupportPoints(OpenLinesSet& result_lines, const Shape& area, const PointsSet& points, coord_t line_width)
+{
+    OpenLinesSet candidate_lines;
+
+    const int numAngles = 16;
+    const double angleStep = 180.0 / numAngles; // Step size between angles
+
+    for (int i = 0; i < numAngles; ++i)
+    {
+        const AngleDegrees angle{ i * angleStep };
+        candidate_lines.clear();
+        getLinesForArea(candidate_lines, area, angle, points, line_width);
+        if (candidate_lines.length() < result_lines.length() || result_lines.length() == 0)
+        {
+            result_lines = candidate_lines;
+        }
+    }
+}
+
+
 bool FffGcodeWriter::processSingleLayerInfill(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
@@ -2235,6 +2286,111 @@ bool FffGcodeWriter::processSingleLayerInfill(
         infill_polygons.push_back(infill_polygons_here);
     }
 
+    /* Create a set of extra lines to support skins above.
+     *
+     * Skins above need their boundaries supported at a minimum.
+     * A straight line needs support just at the ends.
+     * A curve needs support at various points along the curve.
+     * We find these points by finding the minimal polygon which is
+     * always within line_width of the desired support.
+     *
+     * The strategy here is to figure out what is currently printed on
+     * this layer within the infill area by taking all currently printed
+     * lines and turning them into a giant hole-y shape.
+     *
+     * Then figure out extra lines to add to support all points
+     * that are unsupported.  The extra lines will always be straight
+     * and will always go between existing infill lines.
+     */
+
+    OpenLinesSet support_lines;
+    support_lines.push_back(infill_lines);
+    for (const auto& poly : part.getOwnInfillArea())
+    {
+        support_lines.push_back(poly.toPseudoOpenPolyline());
+    }
+
+    // We just want to grab all lines out of this datastructure
+    for (const auto& a : wall_tool_paths)
+    {
+        for (const VariableWidthLines& b : a)
+        {
+            for (const ExtrusionLine& c : b)
+            {
+                const Polygon& poly = c.toPolygon();
+                if (c.is_closed_)
+                    support_lines.push_back(poly.toPseudoOpenPolyline());
+            }
+        }
+    }
+
+    Shape supported_area = support_lines.offset(infill_line_width / 2);
+
+    PointsSet requires_support;
+
+    const size_t skin_layer_nr = gcode_layer.getLayerNr() + 1;
+    if (skin_layer_nr < mesh.layers.size())
+    {
+        for (const SliceLayerPart& part_i : mesh.layers[skin_layer_nr].parts)
+        {
+            for (const SkinPart& skin_part : part_i.skin_parts)
+            {
+                Shape outline = skin_part.outline;
+                Simplify s{ MM2INT(1000), // max() doesnt work here, so just pick a big number.
+                            infill_line_width,
+                            std::numeric_limits<coord_t>::max() };
+                outline = s.polygon(outline);
+
+                // infill_lines.push_back(outline[0].toPseudoOpenPolyline());
+
+                const Shape& infill_area = part.getOwnInfillArea();
+
+                for (const PointsSet& poly : outline)
+                {
+                    for (const Point2LL& point : poly)
+                    {
+                        if (infill_area.inside(point) && ! supported_area.inside(point))
+                        {
+                            requires_support.push_back(point);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // invert the supported_area by adding one huge polygon around the outside
+    if (! supported_area.empty())
+    {
+        AABB worldbound{ supported_area };
+        supported_area.push_back(worldbound.toPolygon());
+    }
+
+    // map each point into its area
+    std::map<size_t, PointsSet> map;
+    for (const Point2LL& point : requires_support)
+    {
+        size_t idx = supported_area.findInside(point);
+        if (idx == NO_INDEX)
+            continue;
+        if (supported_area.empty())
+            continue;
+
+        map[idx].push_back(point);
+    }
+
+    OpenLinesSet supporting_lines;
+    for (const auto& pair : map)
+    {
+        const Polygon& area = supported_area[pair.first];
+        const PointsSet& points = pair.second;
+
+        OpenLinesSet result_lines;
+        getBestAngledLinesToSupportPoints(result_lines, Shape(area).offset(infill_line_width / 2), points, infill_line_width);
+
+        supporting_lines.push_back(result_lines);
+    }
+
     wall_tool_paths.emplace_back(part.infill_wall_toolpaths); // The extra infill walls were generated separately. Add these too.
     const bool walls_generated = std::any_of(
         wall_tool_paths.cbegin(),
@@ -2251,7 +2407,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
                         return vwl.empty();
                     }));
         });
-    if (! infill_lines.empty() || ! infill_polygons.empty() || walls_generated)
+    if (! infill_lines.empty() || ! infill_polygons.empty() || walls_generated || ! supporting_lines.empty())
     {
         added_something = true;
         gcode_layer.setIsInside(true); // going to print stuff inside print object
@@ -2344,6 +2500,14 @@ bool FffGcodeWriter::processSingleLayerInfill(
                 /*float_ratio = */ 1.0,
                 near_start_location);
         }
+        gcode_layer.addLinesByOptimizer(
+            supporting_lines,
+            mesh_config.infill_config[0],
+            SpaceFillType::Lines,
+            enable_travel_optimization,
+            mesh.settings.get<coord_t>("infill_wipe_dist"),
+            /*float_ratio = */ 1.0,
+            near_start_location);
     }
     return added_something;
 }
