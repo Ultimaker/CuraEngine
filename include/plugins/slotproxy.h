@@ -83,24 +83,21 @@ public:
         return std::invoke(default_process, std::forward<decltype(args)>(args)...);
     }
 
-    constexpr auto modify(auto& original_value, auto&&... args)
+    constexpr auto modify(auto& value, auto&&... args)
     {
         if (! plugins_.empty())
         {
-            auto modified_value = original_value;
-
             for (value_type& plugin : plugins_)
             {
-                modified_value = plugin.modify(modified_value, std::forward<decltype(args)>(args)...);
+                plugin.modify(value, std::forward<decltype(args)>(args)...);
             }
-
-            return modified_value;
+            return;
         }
         if constexpr (sizeof...(args) == 0)
         {
-            return std::invoke(default_process, original_value);
+            return std::invoke(default_process, value);
         }
-        return std::invoke(default_process, original_value, std::forward<decltype(args)>(args)...);
+        return std::invoke(default_process, value, std::forward<decltype(args)>(args)...);
     }
 
     template<v0::SlotID S>

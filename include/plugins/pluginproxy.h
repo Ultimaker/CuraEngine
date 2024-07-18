@@ -198,17 +198,16 @@ public:
         return ret_value;
     }
 
-    value_type modify(auto& original_value, auto&&... args)
+    void modify(value_type& value, auto&&... args)
     {
         agrpc::GrpcContext grpc_context;
-        value_type ret_value{};
         grpc::Status status;
 
         boost::asio::co_spawn(
             grpc_context,
-            [this, &grpc_context, &status, &ret_value, &original_value, &args...]()
+            [this, &grpc_context, &status, &value, &args...]()
             {
-                return this->modifyCall(grpc_context, status, ret_value, original_value, std::forward<decltype(args)>(args)...);
+                return this->modifyCall(grpc_context, status, value, std::forward<decltype(args)>(args)...);
             },
             boost::asio::detached);
         grpc_context.run();
@@ -228,7 +227,6 @@ public:
             spdlog::error("Plugin for slot {} failed with error: {}", slot_info_.slot_id, status.error_message());
             throw exceptions::RemoteException(slot_info_, status.error_message());
         }
-        return ret_value;
     }
 
     template<plugins::v0::SlotID Subscription>
@@ -305,19 +303,19 @@ private:
         co_return;
     }
 
-    boost::asio::awaitable<void> modifyCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, value_type& ret_value, auto& original_value, auto&&... args)
+    boost::asio::awaitable<void> modifyCall(agrpc::GrpcContext& grpc_context, grpc::Status& status, value_type& value, auto&&... args)
     {
         using RPC = agrpc::ClientRPC<&invoke_stub_t::PrepareAsyncCall>;
         grpc::ClientContext client_context{};
         prep_client_context(client_context, slot_info_);
 
         // Construct request
-        auto request{ req_(original_value, std::forward<decltype(args)>(args)...) };
+        auto request{ req_(value, std::forward<decltype(args)>(args)...) };
 
         // Make unary request
         rsp_msg_type response;
         status = co_await RPC::request(grpc_context, invoke_stub_, client_context, request, response, boost::asio::use_awaitable);
-        ret_value = std::move(rsp_(original_value, response));
+        rsp_(value, response);
         co_return;
     }
 

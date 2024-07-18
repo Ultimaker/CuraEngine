@@ -126,7 +126,7 @@ struct gcode_paths_modify_response : public details::converter<gcode_paths_modif
     [[nodiscard]] static constexpr PrintFeatureType getPrintFeatureType(const v0::PrintFeature feature) noexcept;
     [[nodiscard]] static GCodePathConfig buildConfig(const v0::GCodePath& path);
     [[nodiscard]] static constexpr SpaceFillType getSpaceFillType(const v0::SpaceFillType space_fill_type) noexcept;
-    native_value_type operator()(native_value_type& original_value, const value_type& message) const;
+    void operator()(native_value_type& value, const value_type& message) const;
 };
 
 } // namespace cura::plugins

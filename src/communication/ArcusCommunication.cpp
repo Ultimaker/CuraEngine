@@ -356,13 +356,13 @@ void ArcusCommunication::beginGCode()
 void ArcusCommunication::flushGCode()
 {
     std::string gcode_output_stream = private_data->gcode_output_stream.str();
-    auto message_str = slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(gcode_output_stream);
-    if (message_str.size() == 0)
+    slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(gcode_output_stream);
+    if (gcode_output_stream.size() == 0)
     {
         return;
     }
     std::shared_ptr<proto::GCodeLayer> message = std::make_shared<proto::GCodeLayer>();
-    message->set_data(message_str);
+    message->set_data(gcode_output_stream);
 
     // Send the g-code to the front-end! Yay!
     private_data->socket->sendMessage(message);
@@ -390,7 +390,8 @@ void ArcusCommunication::sendGCodePrefix(const std::string& prefix) const
 {
     std::shared_ptr<proto::GCodePrefix> message = std::make_shared<proto::GCodePrefix>();
     std::string message_str = prefix;
-    message->set_data(slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(message_str));
+    slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(message_str);
+    message->set_data(message_str);
     private_data->socket->sendMessage(message);
 }
 

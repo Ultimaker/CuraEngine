@@ -434,12 +434,10 @@ gcode_paths_modify_request::value_type
              .fan_speed = path.fan_speed() };
 }
 
-gcode_paths_modify_response::native_value_type
-    gcode_paths_modify_response::operator()(gcode_paths_modify_response::native_value_type& original_value, const gcode_paths_modify_response::value_type& message) const
+void gcode_paths_modify_response::operator()(gcode_paths_modify_response::native_value_type& value, const gcode_paths_modify_response::value_type& message) const
 {
-    std::vector<GCodePath> paths;
     using map_t = std::unordered_map<std::string, std::shared_ptr<const SliceMeshStorage>>;
-    auto meshes = original_value
+    auto meshes = value
                 | ranges::views::filter(
                       [](const auto& path)
                       {
@@ -451,6 +449,9 @@ gcode_paths_modify_response::native_value_type
                           return { path.mesh->mesh_name, path.mesh };
                       })
                 | ranges::to<map_t>;
+
+    value.clear();
+    value.reserve(message.gcode_paths().size());
 
     for (const auto& gcode_path_msg : message.gcode_paths())
     {
@@ -482,10 +483,8 @@ gcode_paths_modify_response::native_value_type
                           })
                     | ranges::to_vector;
 
-        paths.emplace_back(path);
+        value.push_back(path);
     }
-
-    return paths;
 }
 } // namespace cura::plugins
 
