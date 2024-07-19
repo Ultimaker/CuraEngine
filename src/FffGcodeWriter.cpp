@@ -2041,6 +2041,229 @@ void getBestAngledLinesToSupportPoints(OpenLinesSet& result_lines, const Shape& 
     }
 }
 
+// Add a supporting line by cutting a few existing lines.
+// We do this because supporting lines are hanging over air,
+// and therefore print best as part of a continuous print move,
+// rather than having a travel move before and after them.
+//
+// We also double-insert most lines, since that allows the
+// elimination of all travel moves, and overlap isn't an issue
+// because the lines are hanging.
+void integrateSupportingLine(OpenLinesSet& infill_lines, const OpenPolyline& line_to_add)
+{
+    // Returns the line index and the index of the point within an infill_line, null for no match found.
+    auto findMatchingSegment = [&](Point2LL p) -> std::optional<std::tuple<int, int>>
+    {
+        for (size_t i = 0; i < infill_lines.size(); ++i)
+        {
+            for (size_t j = 1; j < infill_lines[i].size(); ++j)
+            {
+                Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(p, infill_lines[i][j - 1], infill_lines[i][j]);
+                int64_t dist = vSize2(p - closest_here);
+
+                if (dist < 25) // rounding
+                {
+                    return std::make_tuple(i, j);
+                }
+            }
+        }
+        return std::nullopt;
+    };
+
+    auto front_match = findMatchingSegment(line_to_add.front());
+    auto back_match = findMatchingSegment(line_to_add.back());
+
+    if (front_match && back_match)
+    {
+        auto [front_line_index, front_point_index] = *front_match;
+        auto [back_line_index, back_point_index] = *back_match;
+
+        if (front_line_index == back_line_index)
+        {
+            /* both ends intersect with the same line.
+             * If the inserted line has ends x, y
+             * and the original line was A--(x)--B---C--(y)--D
+             * Then the new line will be A--x--y--C---B--x--y--D
+             * Note that the middle part of the line is reversed.
+             */
+            OpenPolyline& old_line = infill_lines[front_line_index];
+            OpenPolyline new_line;
+            Point2LL x, y;
+            size_t x_index, y_index;
+            if (front_point_index < back_point_index)
+            {
+                x = line_to_add.front();
+                y = line_to_add.back();
+                x_index = front_point_index;
+                y_index = back_point_index;
+            }
+            else
+            {
+                y = line_to_add.front();
+                x = line_to_add.back();
+                y_index = front_point_index;
+                x_index = back_point_index;
+            }
+            new_line.insert(new_line.end(), old_line.begin(), old_line.begin() + x_index);
+            new_line.push_back(x);
+            new_line.push_back(y);
+            new_line.insert(new_line.end(), old_line.rend() - y_index, old_line.rend() - x_index);
+            new_line.push_back(x);
+            new_line.push_back(y);
+            new_line.insert(new_line.end(), old_line.begin() + y_index, old_line.end());
+            old_line.setPoints(std::move(new_line.getPoints()));
+        }
+        else
+        {
+            /* Different lines
+             * If the line_to_add has ends [front, back]
+             * Existing line (intersects front):       A B front C D E
+             * Other existing line (intersects back):  M N back O P Q
+             * Result is Line:   A B front back O P Q
+             * And line:         M N back front C D E
+             */
+            OpenPolyline& old_front = infill_lines[front_line_index];
+            OpenPolyline& old_back = infill_lines[back_line_index];
+            OpenPolyline new_front, new_back;
+            new_front.insert(new_front.end(), old_front.begin(), old_front.begin() + front_point_index);
+            new_front.push_back(line_to_add.front());
+            new_front.push_back(line_to_add.back());
+            new_front.insert(new_front.end(), old_back.begin() + back_point_index, old_back.end());
+            new_back.insert(new_back.end(), old_back.begin(), old_back.begin() + back_point_index);
+            new_back.push_back(line_to_add.back());
+            new_back.push_back(line_to_add.front());
+            new_back.insert(new_back.end(), old_front.begin() + front_point_index, old_front.end());
+            old_front.setPoints(std::move(new_front.getPoints()));
+            old_back.setPoints(std::move(new_back.getPoints()));
+        }
+    }
+    else
+    {
+        // One or other end touches something other than infill
+        // we will just suffer a travel move in this case
+        infill_lines.push_back(line_to_add);
+    }
+}
+
+/* Create a set of extra lines to support skins above.
+ *
+ * Skins above need their boundaries supported at a minimum.
+ * A straight line needs support just at the ends.
+ * A curve needs support at various points along the curve.
+ * We find these points by finding the minimal polygon which is
+ * always within line_width of the desired support.
+ *
+ * The strategy here is to figure out what is currently printed on
+ * this layer within the infill area by taking all currently printed
+ * lines and turning them into a giant hole-y shape.
+ *
+ * Then figure out extra infill_lines to add to support all points
+ * that are unsupported.  The extra lines will always be straight
+ * and will always go between existing infill lines.
+ *
+ * Results get added to infill_lines.
+ */
+void addExtraLinesToSupportSurfacesAbove(
+    OpenLinesSet& infill_lines,
+    const Shape& infill_polygons,
+    const std::vector<std::vector<VariableWidthLines>>& wall_tool_paths,
+    const SliceLayerPart& part,
+    coord_t infill_line_width,
+    const LayerPlan& gcode_layer,
+    const SliceMeshStorage& mesh)
+{
+    OpenLinesSet support_lines;
+    support_lines.push_back(infill_lines);
+    for (const auto& poly : part.getOwnInfillArea())
+    {
+        support_lines.push_back(poly.toPseudoOpenPolyline());
+    }
+
+    // We just want to grab all lines out of this datastructure
+    for (const auto& a : wall_tool_paths)
+    {
+        for (const VariableWidthLines& b : a)
+        {
+            for (const ExtrusionLine& c : b)
+            {
+                const Polygon& poly = c.toPolygon();
+                if (c.is_closed_)
+                    support_lines.push_back(poly.toPseudoOpenPolyline());
+            }
+        }
+    }
+
+    Shape supported_area = support_lines.offset(infill_line_width / 2);
+
+    PointsSet requires_support;
+
+    const size_t skin_layer_nr = gcode_layer.getLayerNr() + 1 + mesh.settings.get<size_t>("skin_edge_support_layers");
+    if (skin_layer_nr < mesh.layers.size())
+    {
+        for (const SliceLayerPart& part_i : mesh.layers[skin_layer_nr].parts)
+        {
+            for (const SkinPart& skin_part : part_i.skin_parts)
+            {
+                Shape outline = skin_part.outline;
+                Simplify s{ MM2INT(1000), // max() doesnt work here, so just pick a big number.
+                            infill_line_width,
+                            std::numeric_limits<coord_t>::max() };
+                outline = s.polygon(outline);
+
+                // Uncomment this line to add a debug line showing
+                // the supported points.
+                // for (auto poly: outline ) infill_lines.push_back(poly.toPseudoOpenPolyline());
+
+                const Shape& infill_area = part.getOwnInfillArea();
+
+                for (const PointsSet& poly : outline)
+                {
+                    for (const Point2LL& point : poly)
+                    {
+                        if (infill_area.inside(point) && ! supported_area.inside(point))
+                        {
+                            requires_support.push_back(point);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // invert the supported_area by adding one huge polygon around the outside
+    if (! supported_area.empty())
+    {
+        AABB worldbound{ supported_area };
+        supported_area.push_back(worldbound.toPolygon());
+    }
+
+    // map each point into its area
+    std::map<size_t, PointsSet> map;
+    for (const Point2LL& point : requires_support)
+    {
+        size_t idx = supported_area.findInside(point);
+        if (idx == NO_INDEX)
+            continue;
+        if (supported_area.empty())
+            continue;
+
+        map[idx].push_back(point);
+    }
+
+    for (const auto& pair : map)
+    {
+        const Polygon& area = supported_area[pair.first];
+        const PointsSet& points = pair.second;
+
+        OpenLinesSet result_lines;
+        getBestAngledLinesToSupportPoints(result_lines, Shape(area).offset(infill_line_width / 2), points, infill_line_width);
+
+        for (const auto& line : part.getOwnInfillArea().intersection(result_lines))
+        {
+            integrateSupportingLine(infill_lines, line);
+        }
+    }
+}
 
 bool FffGcodeWriter::processSingleLayerInfill(
     const SliceDataStorage& storage,
@@ -2286,112 +2509,15 @@ bool FffGcodeWriter::processSingleLayerInfill(
         infill_polygons.push_back(infill_polygons_here);
     }
 
-    /* Create a set of extra lines to support skins above.
-     *
-     * Skins above need their boundaries supported at a minimum.
-     * A straight line needs support just at the ends.
-     * A curve needs support at various points along the curve.
-     * We find these points by finding the minimal polygon which is
-     * always within line_width of the desired support.
-     *
-     * The strategy here is to figure out what is currently printed on
-     * this layer within the infill area by taking all currently printed
-     * lines and turning them into a giant hole-y shape.
-     *
-     * Then figure out extra lines to add to support all points
-     * that are unsupported.  The extra lines will always be straight
-     * and will always go between existing infill lines.
-     */
-
-    OpenLinesSet support_lines;
-    support_lines.push_back(infill_lines);
-    for (const auto& poly : part.getOwnInfillArea())
-    {
-        support_lines.push_back(poly.toPseudoOpenPolyline());
-    }
-
-    // We just want to grab all lines out of this datastructure
-    for (const auto& a : wall_tool_paths)
-    {
-        for (const VariableWidthLines& b : a)
-        {
-            for (const ExtrusionLine& c : b)
-            {
-                const Polygon& poly = c.toPolygon();
-                if (c.is_closed_)
-                    support_lines.push_back(poly.toPseudoOpenPolyline());
-            }
-        }
-    }
-
-    Shape supported_area = support_lines.offset(infill_line_width / 2);
-
-    PointsSet requires_support;
-
-    const size_t skin_layer_nr = gcode_layer.getLayerNr() + 1;
-    if (skin_layer_nr < mesh.layers.size())
-    {
-        for (const SliceLayerPart& part_i : mesh.layers[skin_layer_nr].parts)
-        {
-            for (const SkinPart& skin_part : part_i.skin_parts)
-            {
-                Shape outline = skin_part.outline;
-                Simplify s{ MM2INT(1000), // max() doesnt work here, so just pick a big number.
-                            infill_line_width,
-                            std::numeric_limits<coord_t>::max() };
-                outline = s.polygon(outline);
-
-                // infill_lines.push_back(outline[0].toPseudoOpenPolyline());
-
-                const Shape& infill_area = part.getOwnInfillArea();
-
-                for (const PointsSet& poly : outline)
-                {
-                    for (const Point2LL& point : poly)
-                    {
-                        if (infill_area.inside(point) && ! supported_area.inside(point))
-                        {
-                            requires_support.push_back(point);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // invert the supported_area by adding one huge polygon around the outside
-    if (! supported_area.empty())
-    {
-        AABB worldbound{ supported_area };
-        supported_area.push_back(worldbound.toPolygon());
-    }
-
-    // map each point into its area
-    std::map<size_t, PointsSet> map;
-    for (const Point2LL& point : requires_support)
-    {
-        size_t idx = supported_area.findInside(point);
-        if (idx == NO_INDEX)
-            continue;
-        if (supported_area.empty())
-            continue;
-
-        map[idx].push_back(point);
-    }
-
-    OpenLinesSet supporting_lines;
-    for (const auto& pair : map)
-    {
-        const Polygon& area = supported_area[pair.first];
-        const PointsSet& points = pair.second;
-
-        OpenLinesSet result_lines;
-        getBestAngledLinesToSupportPoints(result_lines, Shape(area).offset(infill_line_width / 2), points, infill_line_width);
-
-        supporting_lines.push_back(result_lines);
-    }
-
     wall_tool_paths.emplace_back(part.infill_wall_toolpaths); // The extra infill walls were generated separately. Add these too.
+
+    if (mesh.settings.get<coord_t>("wall_line_count") // Disable feature if no walls - it can leave dangling lines at edges
+        && pattern != EFillMethod::LIGHTNING // Lightning doesn't make enclosed regions
+        && pattern != EFillMethod::CONCENTRIC // Doesn't handle 'holes' in infill lines very well
+        && pattern != EFillMethod::CROSS // Ditto
+        && pattern != EFillMethod::CROSS_3D) // Ditto
+        addExtraLinesToSupportSurfacesAbove(infill_lines, infill_polygons, wall_tool_paths, part, infill_line_width, gcode_layer, mesh);
+
     const bool walls_generated = std::any_of(
         wall_tool_paths.cbegin(),
         wall_tool_paths.cend(),
@@ -2407,7 +2533,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
                         return vwl.empty();
                     }));
         });
-    if (! infill_lines.empty() || ! infill_polygons.empty() || walls_generated || ! supporting_lines.empty())
+    if (! infill_lines.empty() || ! infill_polygons.empty() || walls_generated)
     {
         added_something = true;
         gcode_layer.setIsInside(true); // going to print stuff inside print object
@@ -2500,14 +2626,6 @@ bool FffGcodeWriter::processSingleLayerInfill(
                 /*float_ratio = */ 1.0,
                 near_start_location);
         }
-        gcode_layer.addLinesByOptimizer(
-            supporting_lines,
-            mesh_config.infill_config[0],
-            SpaceFillType::Lines,
-            enable_travel_optimization,
-            mesh.settings.get<coord_t>("infill_wipe_dist"),
-            /*float_ratio = */ 1.0,
-            near_start_location);
     }
     return added_something;
 }
