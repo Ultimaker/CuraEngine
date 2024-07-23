@@ -35,14 +35,6 @@ struct default_process
     };
 };
 
-struct modify_default
-{
-    constexpr void operator()(auto&& arg, auto&&...)
-    {
-        return; // Do nothing, but add some code for clangd-format not to mess up the syntax
-    };
-};
-
 struct simplify_default
 {
     auto operator()(auto&& arg, auto&&... args)
@@ -226,9 +218,9 @@ struct Holder
 
 } // namespace details
 
-using slot_gcode_paths_modify = details::slot_gcode_paths_modify_<details::modify_default>;
+using slot_gcode_paths_modify = details::slot_gcode_paths_modify_<>;
 using slot_infill_generate = details::slot_infill_generate_<details::infill_generate_default>;
-using slot_postprocess = details::slot_postprocess_<details::modify_default>;
+using slot_postprocess = details::slot_postprocess_<>;
 using slot_settings_broadcast = details::slot_settings_broadcast_<>;
 using slot_simplify = details::slot_simplify_<details::simplify_default>;
 

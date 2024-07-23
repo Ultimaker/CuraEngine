@@ -91,7 +91,7 @@ public:
             {
                 plugin.modify(value, std::forward<decltype(args)>(args)...);
             }
-            return;
+            return value;
         }
         if constexpr (sizeof...(args) == 0)
         {
