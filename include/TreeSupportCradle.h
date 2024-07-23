@@ -10,6 +10,7 @@
 #include "utils/polygon.h"
 #include "TreeModelVolumes.h"
 #include "TreeSupportEnums.h"
+#include "mfem/mfem.hpp"
 
 namespace cura
 {
@@ -459,6 +460,9 @@ std::vector<UnsupportedAreaInformation*> getFullyUnsupportedArea(size_t mesh_idx
  */
 void calculateFloatingParts(const SliceMeshStorage& mesh, size_t mesh_idx);
 
+mfem::Mesh* toMfemMesh(const SliceMeshStorage& mesh, size_t mesh_idx, UnsupportedAreaInformation* element);
+void runMfemExample(mfem::Mesh* mesh, std::string prefix_name);
+
 /*!
      * \brief Generate the center points of all generated cradles.
      * \param mesh[in] The mesh that is currently processed.
@@ -513,6 +517,8 @@ const double wiggle_support_threshold = 400;
 mutable std::vector<std::vector<std::vector<UnsupportedAreaInformation*>>> floating_parts_cache_;
 
 std::unique_ptr<std::mutex> critical_floating_parts_cache_ = std::make_unique<std::mutex>();
+
+const double deformation_constant = 0.0075 * 200; //todo 200 = layer_height
 
 };
 

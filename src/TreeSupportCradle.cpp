@@ -134,7 +134,6 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
     const double cradle_area_threshold = 1000 * 1000 * retrieveSetting<double>(mesh.settings, "support_tree_maximum_pointy_area");
     LayerIndex max_layer = mesh.layers.size();
     const coord_t stable_radius = 50000;
-    const double deformation_constant = 0.005 * double(layer_height);
 
     LayerIndex start_layer = 1;
     floating_parts_cache_[mesh_idx].resize(max_layer + 1);
@@ -227,9 +226,18 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
                     size_t floating_idx = floating_parts_cache_[mesh_idx][layer_idx].size(); // todo remove
                     floating_parts_cache_[mesh_idx][layer_idx].emplace_back(area_info);
 
+                    if(layer_idx % 200 == 0 && layer_idx > 20)
+                    {
+                        mfem::Mesh* mfem_mesh =toMfemMesh(mesh, mesh_idx, area_info);
+                        std::ofstream mesh_ofs(std::to_string(layer_idx) + "gen.mesh");
+                        mesh_ofs.precision(8);
+                        mfem_mesh->Print(mesh_ofs);
+                        //toMfemMeshString(mesh, mesh_idx, area_info)->Print(std::cout);
+                        runMfemExample(mfem_mesh, std::to_string(layer_idx));
+                    }
                     double estimated_deformation = getTotalDeformation(mesh_idx, mesh, area_info);
-                    std::cout << "at " << layer_idx<< ": " << " with part deform " << deform_part << " with constant " << deformation_constant << " deform rad of " << deform_radius << " resulting estimation of " << estimated_deformation
-                              <<std::endl ;
+                    /*std::cout << "at " << layer_idx<< ": " << " with part deform " << deform_part << " with constant " << deformation_constant << " deform rad of " << deform_radius << " resulting estimation of " << estimated_deformation
+                              <<std::endl ;*/
                     if(estimated_deformation > wiggle_support_threshold)
                     {
                         floating_parts_cache_[mesh_idx][layer_idx][floating_idx]->support_required = true;
@@ -244,6 +252,321 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
                 }
             });
         layer_below = layer;
+    }
+}
+
+mfem::Mesh* SupportCradleGeneration::toMfemMesh(const SliceMeshStorage& mesh, size_t mesh_idx, UnsupportedAreaInformation* element)
+{
+    mfem::Mesh* mfem_mesh = new mfem::Mesh(3,0,0);
+    const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
+
+
+    // idea Every layer one square.
+    // splits: if below make current square two squares
+    // merges dont matter. we look at it top down!
+
+    int64_t last_added_vertex = -1;
+
+    {
+        std::vector<UnsupportedAreaInformation*> all_scan_elements {element};
+
+        std::unordered_map<UnsupportedAreaInformation*, std::vector<int>> square_element_map;// contains to which vertices the upside of the cube of said element should connect
+        LayerIndex scan_layer_idx = element->layer_idx;
+        while(!all_scan_elements.empty() && scan_layer_idx > 0)
+        {
+            std::vector<UnsupportedAreaInformation*> next_scan_elements;
+
+            for(UnsupportedAreaInformation* current_scan_element : all_scan_elements)
+            {
+
+                std::vector<int> top_vertices = square_element_map[current_scan_element]; //todo
+                std::vector<int> cube_vertices = top_vertices; //mirrored below!
+                bool add_top_bdr = top_vertices.empty();
+
+                for(int i = cube_vertices.size(); i<8; i++)
+                {
+                    cube_vertices.emplace_back(last_added_vertex+1);
+                    if(i<4)
+                    {
+                        top_vertices.emplace_back(last_added_vertex+1);
+                        Point2LL direction((i>0&& i<=2)?1:-1, i<=1?1:-1);
+                        double deform_radius = 2.0*deformation_constant/current_scan_element->deformation;
+                        Point2LL position = current_scan_element->assumed_center + direction * deform_radius;
+                        mfem_mesh->AddVertex(position.X, position.Y, layer_height*(scan_layer_idx+1));
+                    }
+                    else
+                    {
+                        Point2LL direction((i>4&& i<=6)?1:-1, i<=5?1:-1);
+                        double deform_radius = 2.0*deformation_constant/current_scan_element->deformation;
+                        Point2LL position = current_scan_element->assumed_center + direction * deform_radius;
+                        mfem_mesh->AddVertex(position.X, position.Y, layer_height*(scan_layer_idx));
+
+                    }
+                    mfem_mesh->SetNode(last_added_vertex+1, mfem_mesh->GetVertex(last_added_vertex+1));
+                    last_added_vertex = last_added_vertex+1;
+                }
+
+                mfem::Hexahedron* cube = new mfem::Hexahedron(cube_vertices.data(), current_scan_element->height >0 ? 2:1);
+                mfem_mesh->AddElement(cube);
+                if(add_top_bdr)
+                {
+                    //  top element, add top square as boundary
+                    mfem_mesh->AddBdrQuad(cube_vertices[0],cube_vertices[1],cube_vertices[2],cube_vertices[3], 2);
+                }
+                //add all sides as boundaries
+                for(size_t face = 0; face < 6; face++) //todo 1 to 5
+                {
+
+                    const int* face_verts = cube->GetFaceVertices(face);
+                    bool top = true;
+                    bool bottom = true;
+                    for(int vertex_pos = 0; vertex_pos < 4; vertex_pos ++)
+                    {
+                        int face_ver_iter = cube_vertices[face_verts[vertex_pos]];
+                        if(std::find(top_vertices.begin(), top_vertices.end(), face_ver_iter) != top_vertices.end())
+                        {
+                            bottom = false;
+                        }
+                        else
+                        {
+                            top = false;
+                        }
+                    }
+
+                    if(top == false && bottom == false)
+                    {
+                        mfem_mesh->AddBdrQuad(cube_vertices[face_verts[0]],cube_vertices[face_verts[1]],cube_vertices[face_verts[2]],cube_vertices[face_verts[3]], 3);
+                    }
+
+                }
+
+                if(current_scan_element->height == 0)
+                {
+                    //add bottom boundary
+                    mfem_mesh->AddBdrQuad(cube_vertices[4],cube_vertices[5],cube_vertices[6],cube_vertices[7],1);
+                }
+
+                for(UnsupportedAreaInformation* scan_element_below: current_scan_element->areas_below)
+                {
+                    next_scan_elements.emplace_back(scan_element_below);
+                    for(int i = 4; i<8; i++)
+                    {
+                        square_element_map[scan_element_below].emplace_back(cube_vertices[i]);
+                    }
+                }
+            }
+            scan_layer_idx--;
+            all_scan_elements = next_scan_elements;
+        }
+    }
+
+    //Rotate Mesh
+
+    mfem::Mesh* mfem_mesh_rotated = new mfem::Mesh(3,0,0);
+
+    for(int elem_ctr = mfem_mesh->GetNE()-1; elem_ctr>=0;elem_ctr--)
+    {
+        int* verts = mfem_mesh->GetElement(elem_ctr)->GetVertices();
+        verts[0] = std::abs(verts[0]-last_added_vertex);
+        verts[1] = std::abs(verts[1]-last_added_vertex);
+        verts[2] = std::abs(verts[2]-last_added_vertex);
+        verts[3] = std::abs(verts[3]-last_added_vertex);
+        verts[4] = std::abs(verts[4]-last_added_vertex);
+        verts[5] = std::abs(verts[5]-last_added_vertex);
+        verts[6] = std::abs(verts[6]-last_added_vertex);
+        verts[7] = std::abs(verts[7]-last_added_vertex);
+        mfem::Hexahedron* rotated_element = new mfem::Hexahedron(verts,mfem_mesh->GetElement(elem_ctr)->GetAttribute());
+        mfem_mesh_rotated->AddElement(rotated_element);
+    }
+    for(int vert_ctr = last_added_vertex; vert_ctr>=0;vert_ctr--)
+    {
+        mfem_mesh_rotated->AddVertex(mfem_mesh->GetVertex(vert_ctr));
+        mfem_mesh_rotated->SetNode(std::abs(vert_ctr-last_added_vertex), mfem_mesh->GetVertex(vert_ctr));
+    }
+    for(int elem_ctr = mfem_mesh->GetNBE()-1; elem_ctr>=0;elem_ctr--)
+    {
+        int* verts = mfem_mesh->GetBdrElement(elem_ctr)->GetVertices();
+        verts[0] = std::abs(verts[0]-last_added_vertex);
+        verts[1] = std::abs(verts[1]-last_added_vertex);
+        verts[2] = std::abs(verts[2]-last_added_vertex);
+        verts[3] = std::abs(verts[3]-last_added_vertex);
+        mfem_mesh_rotated->AddBdrQuad(verts,mfem_mesh->GetBdrElement(elem_ctr)->GetAttribute());
+    }
+
+
+
+    mfem_mesh_rotated->FinalizeTopology();
+    mfem_mesh_rotated->Finalize(false,true);
+
+    return mfem_mesh_rotated;
+
+}
+
+void SupportCradleGeneration::runMfemExample(mfem::Mesh* mesh, std::string prefix_name)
+{
+    int dim = mesh->Dimension();
+    int order = 1;
+    bool static_cond = false;
+    bool visualization = 1;
+    if (mesh->attributes.Max() < 2 || mesh->bdr_attributes.Max() < 2)
+    {
+        std::cerr << "\nInput mesh should have at least two materials and "
+             << "two boundary attributes! (See schematic in ex2.cpp)\n"
+             << std::endl;
+        return;
+    }
+
+    // 3. Select the order of the finite element discretization space. For NURBS
+    //    meshes, we increase the order by degree elevation.
+    if (mesh->NURBSext)
+    {
+        mesh->DegreeElevate(order, order);
+    }
+
+    // 4. Refine the mesh to increase the resolution. In this example we do
+    //    'ref_levels' of uniform refinement. We choose 'ref_levels' to be the
+    //    largest number that gives a final mesh with no more than 5,000
+    //    elements.
+    /*{
+        int ref_levels =
+            (int)floor(log(5000./mesh->GetNE())/log(2.)/dim);
+        for (int l = 0; l < ref_levels; l++)
+        {
+            mesh->UniformRefinement();
+        }
+    }*/
+
+    // 5. Define a finite element space on the mesh. Here we use vector finite
+    //    elements, i.e. dim copies of a scalar finite element space. The vector
+    //    dimension is specified by the last argument of the FiniteElementSpace
+    //    constructor. For NURBS meshes, we use the (degree elevated) NURBS space
+    //    associated with the mesh nodes.
+    mfem::FiniteElementCollection *fec;
+    mfem::FiniteElementSpace *fespace;
+    if (mesh->NURBSext)
+    {
+        fec = NULL;
+        fespace = mesh->GetNodes()->FESpace();
+    }
+    else
+    {
+        fec = new mfem::H1_FECollection(order, dim);
+        fespace = new mfem::FiniteElementSpace(mesh, fec, dim);
+    }
+    std::cout << "Number of finite element unknowns: " << fespace->GetTrueVSize()
+         << std::endl << "Assembling: " << std::flush;
+
+    // 6. Determine the list of true (i.e. conforming) essential boundary dofs.
+    //    In this example, the boundary conditions are defined by marking only
+    //    boundary attribute 1 from the mesh as essential and converting it to a
+    //    list of true dofs.
+    mfem::Array<int> ess_tdof_list, ess_bdr(mesh->bdr_attributes.Max());
+    ess_bdr = 0;
+    ess_bdr[0] = 1;
+    fespace->GetEssentialTrueDofs(ess_bdr, ess_tdof_list);
+
+    // 7. Set up the linear form b(.) which corresponds to the right-hand side of
+    //    the FEM linear system. In this case, b_i equals the boundary integral
+    //    of f*phi_i where f represents a "pull down" force on the Neumann part
+    //    of the boundary and phi_i are the basis functions in the finite element
+    //    fespace. The force is defined by the VectorArrayCoefficient object f,
+    //    which is a vector of Coefficient objects. The fact that f is non-zero
+    //    on boundary attribute 2 is indicated by the use of piece-wise constants
+    //    coefficient for its last component.
+    mfem::VectorArrayCoefficient f(dim);
+    {
+        mfem::Vector pull_force(mesh->bdr_attributes.Max());
+        pull_force = 0.0;
+        pull_force(1) = -1.0e-2;
+        f.Set(0, new mfem::PWConstCoefficient(pull_force));
+    }
+    for (int i = 1; i < dim; i++)
+    {
+        f.Set(i, new mfem::ConstantCoefficient(0.0));
+    }
+
+    mfem::LinearForm *b = new mfem::LinearForm(fespace);
+    b->AddBoundaryIntegrator(new mfem::VectorBoundaryLFIntegrator(f));
+    std::cout << "r.h.s. ... " << std::flush;
+    b->Assemble();
+
+    // 8. Define the solution vector x as a finite element grid function
+    //    corresponding to fespace. Initialize x with initial guess of zero,
+    //    which satisfies the boundary conditions.
+    mfem::GridFunction x(fespace);
+    x = 0.0;
+
+    // 9. Set up the bilinear form a(.,.) on the finite element space
+    //    corresponding to the linear elasticity integrator with piece-wise
+    //    constants coefficient lambda and mu.
+    mfem::Vector lambda(mesh->attributes.Max());
+    lambda = 1.0;
+    lambda(0) = lambda(1)*50;
+    mfem::PWConstCoefficient lambda_func(lambda);
+    mfem::Vector mu(mesh->attributes.Max());
+    mu = 1.0;
+    mu(0) = mu(1)*50;
+    mfem::PWConstCoefficient mu_func(mu);
+
+    mfem::BilinearForm *a = new mfem::BilinearForm(fespace);
+    a->AddDomainIntegrator(new mfem::ElasticityIntegrator(lambda_func,mu_func));
+
+    // 10. Assemble the bilinear form and the corresponding linear system,
+    //     applying any necessary transformations such as: eliminating boundary
+    //     conditions, applying conforming constraints for non-conforming AMR,
+    //     static condensation, etc.
+    std::cout << "matrix ... " << std::flush;
+    if (static_cond) { a->EnableStaticCondensation(); }
+    a->Assemble();
+
+    mfem::SparseMatrix A;
+    mfem::Vector B, X;
+    a->FormLinearSystem(ess_tdof_list, x, *b, A, X, B);
+    std::cout << "done." << std::endl;
+
+    std::cout << "Size of linear system: " << A.Height() << std::endl;
+
+#ifndef MFEM_USE_SUITESPARSE
+    // 11. Define a simple symmetric Gauss-Seidel preconditioner and use it to
+    //     solve the system Ax=b with PCG.
+    mfem::GSSmoother M(A);
+    PCG(A, M, B, X, false, 5000, 1e-8, 0.0);
+#else
+    // 11. If MFEM was compiled with SuiteSparse, use UMFPACK to solve the system.
+    UMFPackSolver umf_solver;
+    umf_solver.Control[UMFPACK_ORDERING] = UMFPACK_ORDERING_METIS;
+    umf_solver.SetOperator(A);
+    umf_solver.Mult(B, X);
+#endif
+
+    // 12. Recover the solution as a finite element grid function.
+    a->RecoverFEMSolution(X, *b, x);
+
+    // 13. For non-NURBS meshes, make the mesh curved based on the finite element
+    //     space. This means that we define the mesh elements through a fespace
+    //     based transformation of the reference element. This allows us to save
+    //     the displaced mesh as a curved mesh when using high-order finite
+    //     element displacement field. We assume that the initial mesh (read from
+    //     the file) is not higher order curved mesh compared to the chosen FE
+    //     space.
+    if (!mesh->NURBSext)
+    {
+        mesh->SetNodalFESpace(fespace);
+    }
+
+    // 14. Save the displaced mesh and the inverted solution (which gives the
+    //     backward displacements to the original grid). This output can be
+    //     viewed later using GLVis: "glvis -m displaced.mesh -g sol.gf".
+    {
+        mfem::GridFunction *nodes = mesh->GetNodes();
+        *nodes += x;
+        x *= -1;
+        std::ofstream mesh_ofs(prefix_name + "displaced.mesh");
+        mesh_ofs.precision(8);
+        mesh->Print(mesh_ofs);
+        std::ofstream sol_ofs(prefix_name+"sol.gf");
+        sol_ofs.precision(8);
+        x.Save(sol_ofs);
     }
 }
 
