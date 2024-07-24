@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef LIGHTNING_LAYER_H
@@ -9,9 +9,11 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../utils/SquareGrid.h"
-#include "../utils/polygonUtils.h"
+#include "geometry/LinesSet.h"
+#include "geometry/OpenLinesSet.h"
 #include "infill/LightningTreeNode.h"
+#include "utils/SquareGrid.h"
+#include "utils/polygonUtils.h"
 
 namespace cura
 {
@@ -21,7 +23,7 @@ using SparseLightningTreeNodeGrid = SparsePointGridInclusive<std::weak_ptr<Light
 struct GroundingLocation
 {
     LightningTreeNodeSPtr tree_node; //!< not null if the gounding location is on a tree
-    std::optional<ClosestPolygonPoint> boundary_location; //!< in case the gounding location is on the boundary
+    std::optional<ClosestPointPolygon> boundary_location; //!< in case the gounding location is on the boundary
     Point2LL p() const;
 };
 
@@ -36,8 +38,8 @@ public:
     std::vector<LightningTreeNodeSPtr> tree_roots;
 
     void generateNewTrees(
-        const Polygons& current_overhang,
-        const Polygons& current_outlines,
+        const Shape& current_overhang,
+        const Shape& current_outlines,
         const LocToLineGrid& outline_locator,
         const coord_t supporting_radius,
         const coord_t wall_supporting_radius);
@@ -47,7 +49,7 @@ public:
      */
     GroundingLocation getBestGroundingLocation(
         const Point2LL& unsupported_location,
-        const Polygons& current_outlines,
+        const Shape& current_outlines,
         const LocToLineGrid& outline_locator,
         const coord_t supporting_radius,
         const coord_t wall_supporting_radius,
@@ -63,18 +65,17 @@ public:
 
     void reconnectRoots(
         std::vector<LightningTreeNodeSPtr>& to_be_reconnected_tree_roots,
-        const Polygons& current_outlines,
+        const Shape& current_outlines,
         const LocToLineGrid& outline_locator,
         const coord_t supporting_radius,
         const coord_t wall_supporting_radius);
 
-    Polygons convertToLines(const Polygons& limit_to_outline, const coord_t line_width) const;
+    OpenLinesSet convertToLines(const Shape& limit_to_outline, const coord_t line_width) const;
 
     coord_t getWeightedDistance(const Point2LL& boundary_loc, const Point2LL& unsupported_location);
 
     void fillLocator(SparseLightningTreeNodeGrid& tree_node_locator);
 };
-
 } // namespace cura
 
 #endif // LIGHTNING_LAYER_H

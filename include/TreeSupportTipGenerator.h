@@ -12,11 +12,13 @@
 #include "TreeSupportEnums.h"
 #include "TreeSupportSettings.h"
 #include "boost/functional/hash.hpp" // For combining hashes
+#include "geometry/LinesSet.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/Polygon.h"
 #include "polyclipping/clipper.hpp"
 #include "settings/EnumSettings.h"
 #include "sliceDataStorage.h"
 #include "utils/Coord_t.h"
-#include "utils/polygon.h"
 
 namespace cura
 {
@@ -43,7 +45,7 @@ public:
         const SliceMeshStorage& mesh,
         std::vector<std::set<TreeSupportElement*>>& move_bounds,
         std::vector<std::vector<FakeRoofArea>>& placed_fake_roof_areas,
-        std::vector<Polygons>& support_free_areas,
+        std::vector<Shape>& support_free_areas,
         std::vector<std::vector<TreeSupportCradle*>>& cradle_data);
 
 private:
@@ -74,7 +76,7 @@ private:
      * \param layer_idx[in] The current layer.
      * \return All lines of the \p polylines object, with information for each point regarding in which avoidance it is currently valid in.
      */
-    std::vector<LineInformation> convertLinesToInternal(Polygons polylines, LayerIndex layer_idx);
+    std::vector<LineInformation> convertLinesToInternal(const OpenLinesSet& polylines, LayerIndex layer_idx);
 
     /*!
      * \brief Converts lines in internal format into a Polygons object representing these lines.
@@ -82,7 +84,7 @@ private:
      * \param lines[in] The lines that will be converted.
      * \return All lines of the \p lines object as a Polygons object.
      */
-    Polygons convertInternalToLines(std::vector<TreeSupportTipGenerator::LineInformation> lines);
+    OpenLinesSet convertInternalToLines(std::vector<TreeSupportTipGenerator::LineInformation> lines);
 
     /*!
      * \brief Returns a function, evaluating if a point has to be added now. Required for a splitLines call in generateInitialAreas.
@@ -113,7 +115,7 @@ private:
      * \param enforce_distance[in] If points should not be added if they are closer than distance to other points.
      * \return A Polygons object containing the evenly spaced points. Does not represent an area, more a collection of points on lines.
      */
-    Polygons ensureMaximumDistancePolyline(const Polygons& input, coord_t distance, size_t min_points, bool enforce_distance) const;
+    OpenLinesSet ensureMaximumDistancePolyline(const OpenLinesSet& input, coord_t distance, size_t min_points, bool enforce_distance) const;
 
     /*!
      * \brief Creates a valid CrossInfillProvider
@@ -131,7 +133,7 @@ private:
      * \param result[out] The dropped overhang ares
      * \param roof[in] Whether the result is for roof generation.
      */
-    void dropOverhangAreas(const SliceMeshStorage& mesh, std::vector<Polygons>& result, bool roof);
+    void dropOverhangAreas(const SliceMeshStorage& mesh, std::vector<Shape>& result, bool roof);
 
     /*!
      * \brief Calculates which areas should be supported with roof, and saves these in roof support_roof_drawn
@@ -305,12 +307,12 @@ private:
     /*!
      * \brief Areas that will be saved as support roof
      */
-    std::vector<Polygons> support_roof_drawn_;
+    std::vector<Shape> support_roof_drawn_;
 
     /*!
      * \brief Areas that should have fractional roof above it.
      */
-    std::vector<Polygons> support_roof_drawn_fractional_;
+    std::vector<Shape> support_roof_drawn_fractional_;
 
     /*!
      * \brief If the cradle lines should also be supported by larger tips.

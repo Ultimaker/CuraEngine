@@ -14,12 +14,12 @@
 #include "SkeletalTrapezoidationEdge.h"
 #include "SkeletalTrapezoidationGraph.h"
 #include "SkeletalTrapezoidationJoint.h"
+#include "geometry/Polygon.h"
 #include "settings/types/Ratio.h"
 #include "utils/ExtrusionJunction.h"
 #include "utils/ExtrusionLine.h"
 #include "utils/HalfEdgeGraph.h"
 #include "utils/PolygonsSegmentIndex.h"
-#include "utils/polygon.h"
 #include "utils/section_type.h"
 
 namespace cura
@@ -110,7 +110,7 @@ public:
      * distance.
      */
     SkeletalTrapezoidation(
-        const Polygons& polys,
+        const Shape& polys,
         const BeadingStrategy& beading_strategy,
         AngleRadians transitioning_angle,
         coord_t discretization_step_size,
@@ -165,7 +165,7 @@ protected:
      * Another complication arises because the VD uses floating logic, which can result in zero-length segments after rounding to integers.
      * We therefore collapse edges and their whole cells afterwards.
      */
-    void constructFromPolygons(const Polygons& polys);
+    void constructFromPolygons(const Shape& polys);
 
     node_t& makeNode(vd_t::vertex_type& vd_node, Point2LL p); //!< Get the node which the VD node maps to, or create a new mapping if there wasn't any yet.
 

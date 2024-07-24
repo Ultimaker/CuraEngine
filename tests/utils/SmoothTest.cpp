@@ -1,15 +1,16 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <gtest/gtest.h>
+#include "utils/actions/smooth.h"
 
-#include <set>
+#include <numbers>
 
 #include <range/v3/all.hpp>
 
-#include "utils/Point2LL.h"
-#include "utils/actions/smooth.h"
-#include "utils/polygon.h"
+#include <gtest/gtest.h>
+
+#include "geometry/Point2LL.h"
+#include "geometry/Polygon.h"
 
 namespace cura
 {
@@ -30,10 +31,10 @@ TEST(SmoothTest, TestSmooth)
          *
          */
 
-        auto A = cura::Point2LL { 0, 0 };
-        auto B = cura::Point2LL { 0, 100 };
-        auto C = cura::Point2LL { 1, 100 };
-        auto D = cura::Point2LL { 1, 200 };
+        auto A = cura::Point2LL{ 0, 0 };
+        auto B = cura::Point2LL{ 0, 100 };
+        auto C = cura::Point2LL{ 1, 100 };
+        auto D = cura::Point2LL{ 1, 200 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, false);
@@ -51,10 +52,10 @@ TEST(SmoothTest, TestSmooth)
          *                  D
          *
          */
-        auto A = cura::Point2LL { 0, 0 };
-        auto B = cura::Point2LL { 100, 0 };
-        auto C = cura::Point2LL { 101, 1 };
-        auto D = cura::Point2LL { 101, 101 };
+        auto A = cura::Point2LL{ 0, 0 };
+        auto B = cura::Point2LL{ 100, 0 };
+        auto C = cura::Point2LL{ 101, 1 };
+        auto D = cura::Point2LL{ 101, 101 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, true);
@@ -66,10 +67,10 @@ TEST(SmoothTest, TestSmooth)
          *  A ----------- B - C -------------D
          *
          */
-        auto A = cura::Point2LL { 0, 0 };
-        auto B = cura::Point2LL { 100, 0 };
-        auto C = cura::Point2LL { 101, 0 };
-        auto D = cura::Point2LL { 201, 0 };
+        auto A = cura::Point2LL{ 0, 0 };
+        auto B = cura::Point2LL{ 100, 0 };
+        auto C = cura::Point2LL{ 101, 0 };
+        auto D = cura::Point2LL{ 201, 0 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, true);
@@ -81,10 +82,10 @@ TEST(SmoothTest, TestSmooth)
          *  D ----------- C - B -------------A
          *
          */
-        auto A = cura::Point2LL { 201, 0 };
-        auto B = cura::Point2LL { 101, 0 };
-        auto C = cura::Point2LL { 100, 0 };
-        auto D = cura::Point2LL { 0, 0 };
+        auto A = cura::Point2LL{ 201, 0 };
+        auto B = cura::Point2LL{ 101, 0 };
+        auto C = cura::Point2LL{ 100, 0 };
+        auto D = cura::Point2LL{ 0, 0 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, true);
@@ -105,10 +106,10 @@ TEST(SmoothTest, TestSmooth)
          *                      D
          *
          */
-        auto A = cura::Point2LL { 0, 0 };
-        auto B = cura::Point2LL { 100, 0 };
-        auto C = cura::Point2LL { 99, -1 };
-        auto D = cura::Point2LL { 199, 99 };
+        auto A = cura::Point2LL{ 0, 0 };
+        auto B = cura::Point2LL{ 100, 0 };
+        auto C = cura::Point2LL{ 99, -1 };
+        auto D = cura::Point2LL{ 199, 99 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, false);
@@ -127,10 +128,10 @@ TEST(SmoothTest, TestSmooth)
          *                       D
          *
          */
-        auto A = cura::Point2LL { 0, 0 };
-        auto B = cura::Point2LL { 100, 0 };
-        auto C = cura::Point2LL { 101, 1 };
-        auto D = cura::Point2LL { 201, 101 };
+        auto A = cura::Point2LL{ 0, 0 };
+        auto B = cura::Point2LL{ 100, 0 };
+        auto C = cura::Point2LL{ 101, 1 };
+        auto D = cura::Point2LL{ 201, 101 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, true);
@@ -166,6 +167,5 @@ TEST(SmoothTest, TestSmooth)
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, false);
     };
-
 }
 } // namespace cura

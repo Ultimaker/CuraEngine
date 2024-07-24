@@ -34,7 +34,7 @@ public:
                                                          std::filesystem::path(__FILE__).parent_path().append("tests/resources/slice_polygon_3.txt").string(),
                                                          std::filesystem::path(__FILE__).parent_path().append("tests/resources/slice_polygon_4.txt").string() };
 
-    std::vector<Polygons> shapes;
+    std::vector<Shape> shapes;
 
     void SetUp(const ::benchmark::State& state)
     {
@@ -51,7 +51,7 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_local)(benchmark::State& st)
     Simplify simplify(MM2INT(0.25), MM2INT(0.025), 50000);
     for (auto _ : st)
     {
-        Polygons simplified;
+        Shape simplified;
         for (const auto& polys : shapes)
         {
             benchmark::DoNotOptimize(simplified = simplify.polygon(polys));
@@ -66,7 +66,7 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_noplugin)(benchmark::State
 {
     for (auto _ : st)
     {
-        Polygons simplified;
+        Shape simplified;
         for (const auto& polys : shapes)
         {
             benchmark::DoNotOptimize(simplified = slots::instance().modify<plugins::v0::SlotID::SIMPLIFY_MODIFY>(polys, MM2INT(0.25), MM2INT(0.025), 50000));

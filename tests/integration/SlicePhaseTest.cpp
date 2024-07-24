@@ -1,17 +1,18 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <filesystem>
+#include <numbers>
 
 #include <gtest/gtest.h>
 
 #include "Application.h" // To set up a slice with settings.
 #include "Slice.h" // To set up a scene to slice.
+#include "geometry/Polygon.h" // Creating polygons to compare to sliced layers.
 #include "slicer.h" // Starts the slicing phase that we want to test.
 #include "utils/Coord_t.h"
 #include "utils/Matrix4x3D.h" // To load STL files.
-#include "utils/polygon.h" // Creating polygons to compare to sliced layers.
-#include "utils/polygonUtils.h" // Comparing similarity of polygons.
+#include "utils/polygonUtils.h" // Comparing similarity of polygons_.
 
 namespace cura
 {
@@ -95,10 +96,10 @@ TEST_F(SlicePhaseTest, Cube)
     for (size_t layer_nr = 0; layer_nr < num_layers; layer_nr++)
     {
         const SlicerLayer& layer = slicer.layers[layer_nr];
-        EXPECT_EQ(layer.polygons.size(), 1);
-        if (layer.polygons.size() == 1)
+        EXPECT_EQ(layer.polygons_.size(), 1);
+        if (layer.polygons_.size() == 1)
         {
-            Polygon sliced_polygon = layer.polygons[0];
+            Polygon sliced_polygon = layer.polygons_[0];
             EXPECT_EQ(sliced_polygon.size(), square.size());
             if (sliced_polygon.size() == square.size())
             {
@@ -157,19 +158,19 @@ TEST_F(SlicePhaseTest, Cylinder1000)
         const coord_t y = std::sin(std::numbers::pi * 2 / num_vertices * i) * radius;
         circle.emplace_back(x, y);
     }
-    Polygons circles;
-    circles.add(circle);
+    Shape circles;
+    circles.push_back(circle);
 
     for (size_t layer_nr = 0; layer_nr < num_layers; layer_nr++)
     {
         const SlicerLayer& layer = slicer.layers[layer_nr];
-        EXPECT_EQ(layer.polygons.size(), 1);
-        if (layer.polygons.size() == 1)
+        EXPECT_EQ(layer.polygons_.size(), 1);
+        if (layer.polygons_.size() == 1)
         {
-            Polygon sliced_polygon = layer.polygons[0];
+            Polygon sliced_polygon = layer.polygons_[0];
             // Due to the reduction in resolution, the final slice will not have the same vertices as the input.
             // Let's say that are allowed to be up to 1/500th of the surface area off.
-            EXPECT_LE(PolygonUtils::relativeHammingDistance(layer.polygons, circles), 0.002);
+            EXPECT_LE(PolygonUtils::relativeHammingDistance(layer.polygons_, circles), 0.002);
         }
     }
 }

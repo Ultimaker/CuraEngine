@@ -1,3 +1,4 @@
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef TREESUPPORTSETTINGS_H
@@ -10,8 +11,11 @@
 #include "settings/EnumSettings.h"
 #include "settings/Settings.h"
 #include "settings/types/Angle.h"
+#include "settings/types/Ratio.h"
 #include "utils/Coord_t.h"
 #include "utils/Simplify.h"
+#include "utils/math.h"
+
 
 namespace cura
 {

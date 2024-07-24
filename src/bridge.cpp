@@ -3,31 +3,33 @@
 
 #include "bridge.h"
 
+#include "geometry/OpenLinesSet.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/Polygon.h"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "utils/AABB.h"
-#include "utils/polygon.h"
 
 namespace cura
 {
 
 double bridgeAngle(
     const Settings& settings,
-    const Polygons& skin_outline,
+    const Shape& skin_outline,
     const SliceDataStorage& storage,
     const unsigned layer_nr,
     const unsigned bridge_layer,
     const SupportLayer* support_layer,
-    Polygons& supported_regions)
+    Shape& supported_regions)
 {
     assert(! skin_outline.empty());
     AABB boundary_box(skin_outline);
 
     // To detect if we have a bridge, first calculate the intersection of the current layer with the previous layer.
     //  This gives us the islands that the layer rests on.
-    Polygons islands;
+    Shape islands;
 
-    Polygons prev_layer_outline; // we also want the complete outline of the previous layer
+    Shape prev_layer_outline; // we also want the complete outline of the previous layer
 
     const Ratio sparse_infill_max_density = settings.get<Ratio>("bridge_sparse_infill_max_density");
 
@@ -44,17 +46,17 @@ double bridgeAngle(
 
             for (const SliceLayerPart& prev_layer_part : mesh.layers[layer_nr - bridge_layer].parts)
             {
-                Polygons solid_below(prev_layer_part.outline);
+                Shape solid_below(prev_layer_part.outline);
                 if (bridge_layer == 1 && part_has_sparse_infill)
                 {
                     solid_below = solid_below.difference(prev_layer_part.getOwnInfillArea());
                 }
-                prev_layer_outline.add(solid_below); // not intersected with skin
+                prev_layer_outline.push_back(solid_below); // not intersected with skin
 
                 if (! boundary_box.hit(prev_layer_part.boundaryBox))
                     continue;
 
-                islands.add(skin_outline.intersection(solid_below));
+                islands.push_back(skin_outline.intersection(solid_below));
             }
         }
     }
@@ -74,12 +76,12 @@ double bridgeAngle(
             AABB support_roof_bb(all_roofs);
             if (boundary_box.hit(support_roof_bb))
             {
-                prev_layer_outline.add(all_roofs); // not intersected with skin
+                prev_layer_outline.push_back(all_roofs); // not intersected with skin
 
-                Polygons supported_skin(skin_outline.intersection(all_roofs));
+                Shape supported_skin(skin_outline.intersection(all_roofs));
                 if (! supported_skin.empty())
                 {
-                    supported_regions.add(supported_skin);
+                    supported_regions.push_back(supported_skin);
                 }
             }
         }
@@ -90,12 +92,12 @@ double bridgeAngle(
                 AABB support_part_bb(support_part.getInfillArea());
                 if (boundary_box.hit(support_part_bb))
                 {
-                    prev_layer_outline.add(support_part.getInfillArea()); // not intersected with skin
+                    prev_layer_outline.push_back(support_part.getInfillArea()); // not intersected with skin
 
-                    Polygons supported_skin(skin_outline.intersection(support_part.getInfillArea()));
+                    Shape supported_skin(skin_outline.intersection(support_part.getInfillArea()));
                     if (! supported_skin.empty())
                     {
-                        supported_regions.add(supported_skin);
+                        supported_regions.push_back(supported_skin);
                     }
                 }
             }
@@ -112,45 +114,43 @@ double bridgeAngle(
 
     if (support_threshold > 0 && (supported_regions.area() / (skin_outline.area() + 1)) < support_threshold)
     {
-        Polygons bb_poly;
-        bb_poly.add(boundary_box.toPolygon());
+        Shape bb_poly;
+        bb_poly.push_back(boundary_box.toPolygon());
 
         // airBelow is the region below the skin that is not supported, it extends well past the boundary of the skin.
         // It needs to be shrunk slightly so that the vertices of the skin polygon that would otherwise fall exactly on
         // the air boundary do appear to be supported
 
         const coord_t bb_max_dim = std::max(boundary_box.max_.X - boundary_box.min_.X, boundary_box.max_.Y - boundary_box.min_.Y);
-        const Polygons air_below(bb_poly.offset(bb_max_dim).difference(prev_layer_outline).offset(-10));
+        const Shape air_below(bb_poly.offset(bb_max_dim).difference(prev_layer_outline).offset(-10));
 
-        Polygons skin_perimeter_lines;
-        for (ConstPolygonRef poly : skin_outline)
+        OpenLinesSet skin_perimeter_lines;
+        for (const Polygon& poly : skin_outline)
         {
-            if (poly.empty())
-                continue;
-            skin_perimeter_lines.add(poly);
-            skin_perimeter_lines.back().emplace_back(poly.front());
+            if (! poly.empty())
+            {
+                skin_perimeter_lines.emplace_back(poly.toPseudoOpenPolyline());
+            }
         }
 
-        Polygons skin_perimeter_lines_over_air(air_below.intersectionPolyLines(skin_perimeter_lines));
+        OpenLinesSet skin_perimeter_lines_over_air(air_below.intersection(skin_perimeter_lines));
 
         if (skin_perimeter_lines_over_air.size())
         {
             // one or more edges of the skin region are unsupported, determine the longest
             coord_t max_dist2 = 0;
             double line_angle = -1;
-            for (PolygonRef air_line : skin_perimeter_lines_over_air)
+            for (const OpenPolyline& air_line : skin_perimeter_lines_over_air)
             {
-                Point2LL p0 = air_line[0];
-                for (unsigned i = 1; i < air_line.size(); ++i)
+                for (auto iterator = air_line.beginSegments(); iterator != air_line.endSegments(); ++iterator)
                 {
-                    const Point2LL& p1(air_line[i]);
-                    coord_t dist2 = vSize2(p0 - p1);
+                    const Point2LL vector = (*iterator).start - (*iterator).end;
+                    coord_t dist2 = vSize2(vector);
                     if (dist2 > max_dist2)
                     {
                         max_dist2 = dist2;
-                        line_angle = angle(p0 - p1);
+                        line_angle = angle(vector);
                     }
-                    p0 = p1;
                 }
             }
             return line_angle;

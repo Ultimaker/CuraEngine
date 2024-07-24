@@ -18,7 +18,7 @@ class PolygonsSegmentIndex : public PolygonsPointIndex
 {
 public:
     PolygonsSegmentIndex();
-    PolygonsSegmentIndex(const Polygons* polygons, unsigned int poly_idx, unsigned int point_idx);
+    PolygonsSegmentIndex(const Shape* polygons, unsigned int poly_idx, unsigned int point_idx);
 
     Point2LL from() const;
 

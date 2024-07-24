@@ -7,12 +7,17 @@
 #include <list>
 #include <vector>
 
-#include "Point2LL.h"
-#include "polygon.h"
+#include "geometry/Point2LL.h"
 
 
 namespace cura
 {
+
+class Polygon;
+class Shape;
+
+using ListPolygon = std::list<Point2LL>; //!< A polygon represented by a linked list instead of a vector
+using ListPolygons = std::vector<ListPolygon>; //!< Polygons represented by a vector of linked lists instead of a vector of vectors
 
 /*!
  * A wrapper class for a ListPolygon::iterator and a reference to the containing ListPolygon
@@ -110,7 +115,7 @@ public:
      * \param polys The polygons to convert
      * \param result The converted polygons
      */
-    static void convertPolygonsToLists(const Polygons& polys, ListPolygons& result);
+    static void convertPolygonsToLists(const Shape& shape, ListPolygons& result);
 
     /*!
      * Convert Polygons to ListPolygons
@@ -118,7 +123,7 @@ public:
      * \param polys The polygons to convert
      * \param result The converted polygons
      */
-    static void convertPolygonToList(ConstPolygonRef poly, ListPolygon& result);
+    static void convertPolygonToList(const Polygon& poly, ListPolygon& result);
 
     /*!
      * Convert ListPolygons to Polygons
@@ -126,7 +131,7 @@ public:
      * \param list_polygons The polygons to convert
      * \param polygons The converted polygons
      */
-    static void convertListPolygonsToPolygons(const ListPolygons& list_polygons, Polygons& polygons);
+    static void convertListPolygonsToPolygons(const ListPolygons& list_polygons, Shape& polygons);
 
     /*!
      * Convert ListPolygons to Polygons
@@ -134,7 +139,7 @@ public:
      * \param list_polygons The polygons to convert
      * \param polygons The converted polygons
      */
-    static void convertListPolygonToPolygon(const ListPolygon& list_polygon, PolygonRef polygon);
+    static void convertListPolygonToPolygon(const ListPolygon& list_polygon, Polygon& polygon);
 
     /*!
      * Insert a point into a ListPolygon if it's not a duplicate of the point before or the point after.

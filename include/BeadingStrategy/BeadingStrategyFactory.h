@@ -1,11 +1,13 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef BEADING_STRATEGY_FACTORY_H
 #define BEADING_STRATEGY_FACTORY_H
 
-#include "../settings/types/Ratio.h"
+#include <numbers>
+
 #include "BeadingStrategy.h"
+#include "settings/types/Ratio.h"
 
 namespace cura
 {

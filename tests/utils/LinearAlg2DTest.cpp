@@ -1,11 +1,14 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/linearAlg2D.h"
 
 #include <cstdint>
+#include <numbers>
 
 #include <gtest/gtest.h>
+
+#include "geometry/Point3Matrix.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura

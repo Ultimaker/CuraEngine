@@ -9,11 +9,10 @@
 
 #include "ExtruderUse.h"
 #include "FanSpeedLayerTime.h"
+#include "GCodePathConfig.h"
 #include "LayerPlanBuffer.h"
 #include "gcodeExport.h"
-#include "settings/MeshPathConfigs.h"
-#include "settings/PathConfigStorage.h" //For the MeshPathConfigs subclass.
-#include "utils/ExtrusionLine.h" //Processing variable-width paths.
+#include "utils/LayerVector.h"
 #include "utils/NoCopy.h"
 #include "utils/gettime.h"
 
@@ -21,12 +20,13 @@ namespace cura
 {
 
 class AngleDegrees;
-class Polygons;
+class Shape;
 class SkinPart;
 class SliceDataStorage;
 class SliceMeshStorage;
 class SliceLayer;
 class SliceLayerPart;
+struct MeshPathConfigs;
 
 /*!
  * Secondary stage in Fused Filament Fabrication processing: The generated polygons are used in the gcode generation.
@@ -61,13 +61,8 @@ private:
      */
     std::ofstream output_file;
 
-    /*!
-     * For each raft/filler layer, the extruders to be used in that layer in the order in which they are going to be used.
-     * The first number is the first raft layer. Indexing is shifted compared to normal negative layer numbers for raft/filler layers.
-     */
-    std::vector<std::vector<ExtruderUse>> extruder_order_per_layer_negative_layers;
-
-    std::vector<std::vector<ExtruderUse>> extruder_order_per_layer; //!< For each layer, the extruders to be used in that layer in the order in which they are going to be used
+    //!< For each layer, the extruders to be used in that layer in the order in which they are going to be used
+    LayerVector<std::vector<ExtruderUse>> extruder_order_per_layer;
 
     std::vector<std::vector<size_t>> mesh_order_per_extruder; //!< For each extruder, the order of the meshes (first element is first mesh to be printed)
 
@@ -567,7 +562,7 @@ private:
         LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
-        const Polygons& area,
+        const Shape& area,
         const GCodePathConfig& config,
         EFillMethod pattern,
         const AngleDegrees skin_angle,
@@ -600,7 +595,7 @@ private:
      * \param last_position The position the print head is in before going to fill the part
      * \return The location near where to start filling the part
      */
-    std::optional<Point2LL> getSeamAvoidingLocation(const Polygons& filling_part, int filling_angle, Point2LL last_position) const;
+    std::optional<Point2LL> getSeamAvoidingLocation(const Shape& filling_part, int filling_angle, Point2LL last_position) const;
 
     /*!
      * Add the g-code for ironing the top surface.
@@ -717,8 +712,8 @@ private:
      * \return true if there needs to be a skin edge support wall in this layer, otherwise false
      */
     static bool partitionInfillBySkinAbove(
-        Polygons& infill_below_skin,
-        Polygons& infill_not_below_skin,
+        Shape& infill_below_skin,
+        Shape& infill_not_below_skin,
         const LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
         const SliceLayerPart& part,
@@ -735,14 +730,6 @@ private:
      * \return The first or last exruder used at the given index
      */
     size_t findUsedExtruderIndex(const SliceDataStorage& storage, const LayerIndex& layer_nr, bool last) const;
-
-    /*!
-     * Get the extruders use at the given layer
-     *
-     * \param layer_nr The index of the layer at which we want the extruders uses
-     * \return The extruders use at the given layer, which may be empty in some cases
-     */
-    std::vector<ExtruderUse> getExtruderUse(const LayerIndex& layer_nr) const;
 };
 
 } // namespace cura

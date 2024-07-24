@@ -50,7 +50,7 @@ struct PathOrdering
      * Vertex data, converted into a Polygon so that the orderer knows how
      * to deal with this data.
      */
-    ConstPolygonPointer converted_;
+    const PointsSet* converted_{ nullptr };
 
     /*!
      * Which vertex along the path to start printing with.
@@ -76,6 +76,11 @@ struct PathOrdering
      */
     bool backwards_;
 
+    /*!
+     * Force the start point of the path to be at a specific location.
+     * Will only happen if not empty, and this point is actually on the path.
+     */
+    std::optional<size_t> force_start_index_;
 
     /*!
      * Get vertex data from the custom path type.
@@ -89,7 +94,7 @@ struct PathOrdering
      * for each different type that this class is used with. See the .cpp file
      * for examples and where to add a new specialization.
      */
-    ConstPolygonRef getVertexData();
+    const PointsSet& getVertexData();
 
 protected:
     /*!
@@ -100,7 +105,7 @@ protected:
      * For example, if the ``PathType`` is a list of ``ExtrusionJunction``s,
      * this will store the coordinates of those junctions.
      */
-    std::optional<Polygon> cached_vertices_;
+    std::optional<PointsSet> cached_vertices_;
 };
 
 } // namespace cura

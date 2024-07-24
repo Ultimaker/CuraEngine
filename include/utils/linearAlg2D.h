@@ -4,10 +4,13 @@
 #ifndef UTILS_LINEAR_ALG_2D_H
 #define UTILS_LINEAR_ALG_2D_H
 
-#include "Point2LL.h"
+#include "geometry/Point2LL.h"
 
 namespace cura
 {
+
+class Point3Matrix;
+
 class LinearAlg2D
 {
 public:
@@ -64,37 +67,22 @@ public:
         return -1;
     }
 
-    static bool lineLineIntersection(const Point2LL& a, const Point2LL& b, const Point2LL& c, const Point2LL& d, Point2LL& output)
-    {
-        // Adapted from Apex: https://github.com/Ghostkeeper/Apex/blob/eb75f0d96e36c7193d1670112826842d176d5214/include/apex/line_segment.hpp#L91
-        // Adjusted to work with lines instead of line segments.
-        const Point2LL l1_delta = b - a;
-        const Point2LL l2_delta = d - c;
-        const coord_t divisor = cross(l1_delta, l2_delta); // Pre-compute divisor needed for the intersection check.
-        if (divisor == 0)
-        {
-            // The lines are parallel if the cross product of their directions is zero.
-            return false;
-        }
+    /*!
+     * A single-shot line-segment/line-segment intersection that returns the parameters and doesn't require a grid-calculation beforehand.
+     *
+     * \param p1 The start point of the first line segment.
+     * \param p2 The end point of the first line segment.
+     * \param p3 The start point of the second line segment.
+     * \param p4 The end point of the second line segment.
+     * \param t The parameter of the intersection on the first line segment (intersection = p1 + t * (p2 - p1)).
+     * \param u The parameter of the intersection on the second line segment (intersection = p3 + u * (p4 - p3)).
+     *
+     * \return Whether the two line segments intersect.
+     */
+    static bool segmentSegmentIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float& t, float& u);
+    static bool lineLineIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float& t, float& u);
 
-        // Create a parametric representation of each line.
-        // We'll equate the parametric equations to each other to find the intersection then.
-        // Parametric equation is L = P + Vt (where P and V are a starting point and directional vector).
-        // We'll map the starting point of one line onto the parameter system of the other line.
-        // Then using the divisor we can see whether and where they cross.
-        const Point2LL starts_delta = a - c;
-        const coord_t l1_parametric = cross(l2_delta, starts_delta);
-        Point2LL result = a + Point2LL(round_divide_signed(l1_parametric * l1_delta.X, divisor), round_divide_signed(l1_parametric * l1_delta.Y, divisor));
-
-        if (std::abs(result.X) > std::numeric_limits<int32_t>::max() || std::abs(result.Y) > std::numeric_limits<int32_t>::max())
-        {
-            // Intersection is so far away that it could lead to integer overflows.
-            // Even though the lines aren't 100% parallel, it's better to pretend they are. They are practically parallel.
-            return false;
-        }
-        output = result;
-        return true;
-    }
+    static bool lineLineIntersection(const Point2LL& a, const Point2LL& b, const Point2LL& c, const Point2LL& d, Point2LL& output);
 
     /*!
      * Find whether a point projected on a line segment would be projected to
@@ -403,12 +391,7 @@ public:
     /*!
      * Get the rotation matrix for rotating around a specific point in place.
      */
-    static Point3Matrix rotateAround(const Point2LL& middle, double rotation)
-    {
-        PointMatrix rotation_matrix(rotation);
-        Point3Matrix rotation_matrix_homogeneous(rotation_matrix);
-        return Point3Matrix::translate(middle).compose(rotation_matrix_homogeneous).compose(Point3Matrix::translate(-middle));
-    }
+    static Point3Matrix rotateAround(const Point2LL& middle, double rotation);
 
     /*!
      * Test whether a point is inside a corner.

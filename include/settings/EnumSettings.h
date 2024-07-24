@@ -246,9 +246,9 @@ enum class InsetDirection
 };
 
 /*!
- * Method used for prime tower generation
+ * Prime tower generation mode
  */
-enum class PrimeTowerMethod
+enum class PrimeTowerMode
 {
     /*!
      * Prime tower that minimizes time and used filament as much as possible.
@@ -273,9 +273,19 @@ enum class BrimLocation
 };
 
 /*!
+ * How to enable/disable cooling fan(s) during extruder switch
+ */
+enum class CoolDuringExtruderSwitch
+{
+    UNCHANGED, // Let fans as they are during nozzle switch (historical behavior)
+    ONLY_LAST_EXTRUDER, // Turn on fan of the previously used extruder to cool it down, turn others off
+    ALL_FANS, // Turn on all fans
+};
+
+/*!
  * Convenience binary operator to allow testing brim location easily, like (actual_location & BrimLocation::OUTSIDE)
  */
-static int operator&(BrimLocation location1, BrimLocation location2)
+[[maybe_unused]] static int operator&(BrimLocation location1, BrimLocation location2)
 {
     return static_cast<int>(location1) & static_cast<int>(location2);
 }

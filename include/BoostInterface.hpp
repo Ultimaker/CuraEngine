@@ -7,9 +7,9 @@
 #include <boost/polygon/polygon.hpp>
 #include <boost/polygon/voronoi.hpp>
 
-#include "utils/Point2LL.h"
+#include "geometry/Point2LL.h"
+#include "geometry/Polygon.h"
 #include "utils/PolygonsSegmentIndex.h"
-#include "utils/polygon.h"
 
 
 using CSegment = cura::PolygonsSegmentIndex;

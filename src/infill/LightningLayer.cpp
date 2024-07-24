@@ -5,6 +5,7 @@
 
 #include <iterator> // advance
 
+#include "geometry/OpenPolyline.h"
 #include "infill/LightningDistanceField.h"
 #include "infill/LightningTreeNode.h"
 #include "sliceDataStorage.h"
@@ -45,8 +46,8 @@ void LightningLayer::fillLocator(SparseLightningTreeNodeGrid& tree_node_locator)
 }
 
 void LightningLayer::generateNewTrees(
-    const Polygons& current_overhang,
-    const Polygons& current_outlines,
+    const Shape& current_overhang,
+    const Shape& current_outlines,
     const LocToLineGrid& outlines_locator,
     const coord_t supporting_radius,
     const coord_t wall_supporting_radius)
@@ -80,14 +81,14 @@ void LightningLayer::generateNewTrees(
 
 GroundingLocation LightningLayer::getBestGroundingLocation(
     const Point2LL& unsupported_location,
-    const Polygons& current_outlines,
+    const Shape& current_outlines,
     const LocToLineGrid& outline_locator,
     const coord_t supporting_radius,
     const coord_t wall_supporting_radius,
     const SparseLightningTreeNodeGrid& tree_node_locator,
     const LightningTreeNodeSPtr& exclude_tree)
 {
-    ClosestPolygonPoint cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
+    ClosestPointPolygon cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
     Point2LL node_location = cpp.p();
     const coord_t within_dist = vSize(node_location - unsupported_location);
 
@@ -120,7 +121,7 @@ GroundingLocation LightningLayer::getBestGroundingLocation(
     }
     else
     {
-        return GroundingLocation{ sub_tree, std::optional<ClosestPolygonPoint>() };
+        return GroundingLocation{ sub_tree, std::optional<ClosestPointPolygon>() };
     }
 }
 
@@ -143,7 +144,7 @@ bool LightningLayer::attach(const Point2LL& unsupported_location, const Groundin
 
 void LightningLayer::reconnectRoots(
     std::vector<LightningTreeNodeSPtr>& to_be_reconnected_tree_roots,
-    const Polygons& current_outlines,
+    const Shape& current_outlines,
     const LocToLineGrid& outline_locator,
     const coord_t supporting_radius,
     const coord_t wall_supporting_radius)
@@ -217,19 +218,19 @@ void LightningLayer::reconnectRoots(
 }
 
 // Returns 'added someting'.
-Polygons LightningLayer::convertToLines(const Polygons& limit_to_outline, const coord_t line_width) const
+OpenLinesSet LightningLayer::convertToLines(const Shape& limit_to_outline, const coord_t line_width) const
 {
-    Polygons result_lines;
+    OpenLinesSet result_lines;
     if (tree_roots.empty())
     {
         return result_lines;
     }
 
-    for (const auto& tree : tree_roots)
+    for (const LightningTreeNodeSPtr& tree : tree_roots)
     {
         tree->convertToPolylines(result_lines, line_width);
     }
-    result_lines = limit_to_outline.intersectionPolyLines(result_lines);
+    result_lines = limit_to_outline.intersection(result_lines);
 
     return result_lines;
 }

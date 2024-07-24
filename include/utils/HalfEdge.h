@@ -7,8 +7,8 @@
 #include <forward_list>
 #include <optional>
 
-#include "../utils/Point2LL.h"
 #include "Coord_t.h"
+#include "geometry/Point2LL.h"
 
 namespace cura
 {

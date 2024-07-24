@@ -10,7 +10,7 @@ namespace cura
 enum class ExtruderPrime
 {
     None, // Do not prime at all for this extruder on this layer
-    Sparse, // Just extrude a sparse priming which purpose is to make the tower stronger
+    Support, // Just extrude a sparse pattern which purpose is to support the upper parts of the prime tower
     Prime, // Do an actual prime
 };
 
