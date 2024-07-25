@@ -715,7 +715,7 @@ void SliceDataStorage::initializePrimeTower()
     prime_tower_ = PrimeTower::createPrimeTower(*this);
 }
 
-void SupportLayer::excludeAreasFromSupportParts(std::vector<SupportInfillPart>& parts, const Shape& exclude_polygons, const AABB& exclude_polygons_boundary_box)
+void SupportLayer::excludeAreasFromSupportInfillAreas(std::vector<SupportInfillPart>& parts, const Shape& exclude_polygons, const AABB& exclude_polygons_boundary_box)
 {
     // record the indexes that need to be removed and do that after
     std::list<size_t> to_remove_part_indices; // LIFO for removing

@@ -2604,7 +2604,7 @@ bool FffGcodeWriter::processInsets(
 
                 if (! support_layer.support_roof.empty())
                 {
-                    Polygons roof = support_layer.getTotalAreaFromParts(support_layer.support_roof);
+                    Shape roof = support_layer.getTotalAreaFromParts(support_layer.support_roof);
                     AABB support_roof_bb(roof);
                     if (boundaryBox.hit(support_roof_bb))
                     {
@@ -3022,7 +3022,7 @@ void FffGcodeWriter::processTopBottom(
 
         if (! support_layer->support_roof.empty())
         {
-            Polygons roofs = support_layer->getTotalAreaFromParts(support_layer->support_roof);
+            Shape roofs = support_layer->getTotalAreaFromParts(support_layer->support_roof);
             AABB support_roof_bb(roofs);
             if (skin_bb.hit(support_roof_bb))
             {

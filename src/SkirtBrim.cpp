@@ -386,10 +386,10 @@ Shape SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
                 }
 
                 AABB model_brim_covered_area_boundary_box(model_brim_covered_area);
-                support_layer.excludeAreasFromSupportParts(support_layer.support_infill_parts, model_brim_covered_area, model_brim_covered_area_boundary_box);
+                support_layer.excludeAreasFromSupportInfillAreas(support_layer.support_infill_parts, model_brim_covered_area, model_brim_covered_area_boundary_box);
 
                 // If the gap between the model and the BP is small enough, support starts with the interface instead, so remove it there as well:
-                support_layer.excludeAreasFromSupportParts(support_layer.support_roof, model_brim_covered_area, model_brim_covered_area_boundary_box);
+                support_layer.excludeAreasFromSupportInfillAreas(support_layer.support_roof, model_brim_covered_area, model_brim_covered_area_boundary_box);
             }
 
             first_layer_outline.push_back(support_layer.getTotalAreaFromParts(support_layer.support_infill_parts));
@@ -674,7 +674,7 @@ void SkirtBrim::generateSupportBrim()
         support_outline.push_back(part.outline_);
     }
     const Shape brim_area = support_outline.difference(support_outline.offset(-brim_width));
-    support_layer.excludeAreasFromSupportParts(support_layer.support_infill_parts, brim_area, AABB(brim_area));
+    support_layer.excludeAreasFromSupportInfillAreas(support_layer.support_infill_parts, brim_area, AABB(brim_area));
 
     coord_t offset_distance = brim_line_width / 2;
     for (size_t skirt_brim_number = 0; skirt_brim_number < line_count; skirt_brim_number++)

@@ -72,7 +72,7 @@ double bridgeAngle(
 
         if (! support_layer->support_roof.empty())
         {
-            Polygons all_roofs = support_layer->getTotalAreaFromParts(support_layer->support_roof);
+            Shape all_roofs = support_layer->getTotalAreaFromParts(support_layer->support_roof);
             AABB support_roof_bb(all_roofs);
             if (boundary_box.hit(support_roof_bb))
             {

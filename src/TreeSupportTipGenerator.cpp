@@ -51,8 +51,8 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, T
     , z_distance_delta_(std::min(config_.z_distance_top_layers + 1, mesh.overhang_areas.size()))
     , xy_overrides_(config_.support_overrides == SupportDistPriority::XY_OVERRIDES_Z)
     , already_inserted_(mesh.overhang_areas.size())
-    , support_roof_drawn_(mesh.overhang_areas.size(), Polygons())
-    , support_roof_drawn_fractional_(mesh.overhang_areas.size(), Polygons())
+    , support_roof_drawn_(mesh.overhang_areas.size(), Shape())
+    , support_roof_drawn_fractional_(mesh.overhang_areas.size(), Shape())
     , force_minimum_roof_area_(use_fake_roof_ || SUPPORT_TREE_MINIMUM_ROOF_AREA_HARD_LIMIT)
     , force_initial_layer_radius_(retrieveSetting<bool>(mesh.settings, "support_tree_enforce_initial_layer_diameter"))
     , large_cradle_line_tips_(retrieveSetting<bool>(mesh.settings, "support_tree_large_cradle_line_tips"))
@@ -482,7 +482,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
         dropOverhangAreas(mesh, dropped_overhangs, true);
     }
 
-    std::vector<Polygons> all_cradle_areas(cradle_data.size()); // All cradle areas. Later offset by min xy distance.
+    std::vector<Shape> all_cradle_areas(cradle_data.size()); // All cradle areas. Later offset by min xy distance.
     for (LayerIndex layer_idx = 0; layer_idx < cradle_data.size(); layer_idx++)
     {
         for (size_t cradle_idx = 0; cradle_idx < cradle_data[layer_idx].size(); cradle_idx++)
@@ -491,12 +491,12 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
             {
                 for (auto [height_idx, line] : lines | ranges::views::enumerate)
                 {
-                    all_cradle_areas[line.layer_idx_].add(line.area_);
+                    all_cradle_areas[line.layer_idx_].push_back(line.area_);
                 }
             }
             for (auto [base_idx, base] : cradle_data[layer_idx][cradle_idx]->base_below_ | ranges::views::enumerate)
             {
-                all_cradle_areas[layer_idx - base_idx].add(base);
+                all_cradle_areas[layer_idx - base_idx].push_back(base);
             }
         }
     }
@@ -807,7 +807,7 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
 
 void TreeSupportTipGenerator::removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<std::vector<TreeSupportCradle*>>& cradle_data)
 {
-    std::vector<Polygons> all_cradle_roofs(storage.support.supportLayers.size());
+    std::vector<Shape> all_cradle_roofs(storage.support.supportLayers.size());
     for (auto [layer_idx, cradles] : cradle_data | ranges::views::enumerate)
     {
         for (auto cradle : cradles)
@@ -816,7 +816,7 @@ void TreeSupportTipGenerator::removeUselessAddedPoints(std::vector<std::set<Tree
             {
                 for (auto [base_idx, base] : cradle->base_below_ | ranges::views::enumerate)
                 {
-                    all_cradle_roofs[layer_idx - base_idx].add(base);
+                    all_cradle_roofs[layer_idx - base_idx].push_back(base);
                 }
             }
         }
@@ -906,7 +906,7 @@ void TreeSupportTipGenerator::generateTips(
 
 
     std::vector<std::vector<TreeSupportCradle*>> all_cradles_requiring_support(cradle_data.size());
-    std::vector<Polygons> all_cradle_areas(cradle_data.size());
+    std::vector<Shape> all_cradle_areas(cradle_data.size());
     for (LayerIndex layer_idx = 0; layer_idx < cradle_data.size(); layer_idx++)
     {
         for (size_t cradle_idx = 0; cradle_idx < cradle_data[layer_idx].size(); cradle_idx++)
@@ -929,12 +929,12 @@ void TreeSupportTipGenerator::generateTips(
                         all_cradle_areas.resize(line.layer_idx_+1);
                     }
 
-                    all_cradle_areas[line.layer_idx_].add(line.area_);
+                    all_cradle_areas[line.layer_idx_].push_back(line.area_);
                 }
             }
             for (auto [base_idx, base] : cradle_data[layer_idx][cradle_idx]->base_below_ | ranges::views::enumerate)
             {
-                all_cradle_areas[layer_idx - base_idx].add(base);
+                all_cradle_areas[layer_idx - base_idx].push_back(base);
             }
         }
     }
@@ -957,7 +957,7 @@ void TreeSupportTipGenerator::generateTips(
                 = (config_.support_pattern == EFillMethod::TRIANGLES ? 3 : (config_.support_pattern == EFillMethod::GRID ? 2 : 1)) * connect_length;
             bool force_tip_to_roof = (current_tip_radius * current_tip_radius * std::numbers::pi > minimum_roof_area_ * (1000 * 1000)) && ! use_fake_roof_ && support_roof_layers_;
 
-            Polygons relevant_forbidden = volumes_.getAvoidance(
+            Shape relevant_forbidden = volumes_.getAvoidance(
                 config_.getRadius(0),
                 layer_idx,
                 (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
@@ -1045,9 +1045,9 @@ void TreeSupportTipGenerator::generateTips(
             // Offset the area to compensate for large tip radiis. Offset happens in multiple steps to ensure the tip is as close to the original overhang as possible.
 
             {
-                Polygons already_supported = support_roof_drawn_[layer_idx];
-                already_supported.add(all_cradle_areas[layer_idx]);
-                already_supported.add(support_free_areas[layer_idx]); // While point there are not supported, there may be no support anyway.
+                Shape already_supported = support_roof_drawn_[layer_idx];
+                already_supported.push_back(all_cradle_areas[layer_idx]);
+                already_supported.push_back(support_free_areas[layer_idx]); // While point there are not supported, there may be no support anyway.
                 already_supported = already_supported.unionPolygons();
                 while (extra_total_offset_acc + config_.support_line_width / 8
                        < extra_outset) //+mesh_config_.support_line_width / 8  to avoid calculating very small (useless) offsets because of rounding errors.
@@ -1132,8 +1132,8 @@ void TreeSupportTipGenerator::generateTips(
                             return relevant_forbidden_below.inside(p.first, true);
                         };
 
-                        Polygons already_supported = support_roof_drawn_[layer_idx - lag_ctr];
-                        already_supported.add(support_free_areas[layer_idx - lag_ctr]); // While point there are not supported, there may be no support anyway.
+                        Shape already_supported = support_roof_drawn_[layer_idx - lag_ctr];
+                        already_supported.push_back(support_free_areas[layer_idx - lag_ctr]); // While point there are not supported, there may be no support anyway.
                         already_supported = already_supported.unionPolygons();
 
                         // Remove all points that are for some reason are already supported
@@ -1173,12 +1173,12 @@ void TreeSupportTipGenerator::generateTips(
 
             for (OverhangInformation overhang_data : overhang_processing)
             {
-                Polygons overhang_outset = overhang_data.overhang_;
-                const size_t min_support_points = std::max(coord_t(2), std::min(coord_t(EPSILON), overhang_outset.polygonLength() / connect_length));
+                Shape overhang_outset = overhang_data.overhang_;
+                const size_t min_support_points = std::max(coord_t(2), std::min(coord_t(EPSILON), overhang_outset.length() / connect_length));
                 std::vector<LineInformation> overhang_lines;
 
                 bool only_lines = true;
-                Polygons polylines;
+                OpenLinesSet polylines;
                 // The tip positions are determined here.
                 if (overhang_data.isCradleLine() &&
                     overhang_data.cradle_->config_->cradle_line_width_ / 2 < std::max(current_tip_radius, overhang_data.cradle_->config_->cradle_support_base_area_radius_))
@@ -1187,7 +1187,8 @@ void TreeSupportTipGenerator::generateTips(
                         = overhang_data.cradle_->getCradleLineOfIndex(overhang_data.cradle_layer_idx_, overhang_data.cradle_line_idx_);
                     if(cradle_line_opt)
                     {
-                        Polygons line = cradle_line_opt.value()->line_.offset(0);
+                        OpenLinesSet line;
+                        line.push_back(cradle_line_opt.value()->line_);
                         coord_t cradle_line_tip_radius = std::max(current_tip_radius, overhang_data.cradle_->config_->cradle_support_base_area_radius_);
                         polylines = ensureMaximumDistancePolyline(line, cradle_line_tip_radius, 2, false);
                     }
@@ -1289,7 +1290,7 @@ void TreeSupportTipGenerator::generateTips(
 
                 if (config_.z_distance_top % config_.layer_height != 0 && layer_idx > 0)
                 {
-                    Polygons all_roof_fractional = support_roof_drawn_fractional_[layer_idx - 1];
+                    Shape all_roof_fractional = support_roof_drawn_fractional_[layer_idx - 1];
                     placed_fake_roof_areas[layer_idx].emplace_back(all_roof_fractional, support_roof_line_distance_, true);
                 }
             }
@@ -1297,8 +1298,8 @@ void TreeSupportTipGenerator::generateTips(
             {
                 if (config_.z_distance_top % config_.layer_height != 0 && layer_idx > 0)
                 {
-                    Polygons all_roof_below = support_roof_drawn_[layer_idx - 1];
-                    Polygons all_roof_fractional = support_roof_drawn_fractional_[layer_idx - 1].intersection(all_roof_below).difference(support_roof_drawn_[layer_idx]);
+                    Shape all_roof_below = support_roof_drawn_[layer_idx - 1];
+                    Shape all_roof_fractional = support_roof_drawn_fractional_[layer_idx - 1].intersection(all_roof_below).difference(support_roof_drawn_[layer_idx]);
 
                     if (config_.support_wall_count > 0 && config_.support_roof_wall_count == 0) // Need to check every area whether it has lines
                     {

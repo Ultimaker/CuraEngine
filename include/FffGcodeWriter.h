@@ -11,6 +11,7 @@
 #include "FanSpeedLayerTime.h"
 #include "GCodePathConfig.h"
 #include "LayerPlanBuffer.h"
+#include "SupportInfillPart.h"
 #include "gcodeExport.h"
 #include "utils/LayerVector.h"
 #include "utils/NoCopy.h"

@@ -47,33 +47,33 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
     floating_parts_map_below_[mesh_idx].resize(max_layer + 1);
     std::mutex critical_sections;
 
-    Polygons completely_supported = volumes_.getCollision(0, 0, true);
-    Polygons layer_below = completely_supported; // technically wrong, but the xy distance error on layer 1 should not matter
+    Shape completely_supported = volumes_.getCollision(0, 0, true);
+    Shape layer_below = completely_supported; // technically wrong, but the xy distance error on layer 1 should not matter
     for (size_t layer_idx = start_layer; layer_idx < max_layer; layer_idx++)
     {
-        Polygons next_completely_supported;
+        Shape next_completely_supported;
 
         // As the collision contains z distance and xy distance it cant be used to clearly identify which parts of the model are connected to the buildplate.
-        Polygons layer = mesh.layers[layer_idx].getOutlines();
+        Shape layer = mesh.layers[layer_idx].getOutlines();
 
-        const std::vector<PolygonsPart> layer_parts = layer.splitIntoParts();
+        const std::vector<SingleShape> layer_parts = layer.splitIntoParts();
         cura::parallel_for<size_t>(
             0,
             layer_parts.size(),
             [&](const size_t part_idx)
             {
-                const PolygonsPart& part = layer_parts[part_idx];
+                const SingleShape& part = layer_parts[part_idx];
                 AABB part_aabb(part);
                 bool has_support_below = ! PolygonUtils::clipPolygonWithAABB(layer_below, part_aabb).intersection(part).empty();
 
                 if (! completely_supported.intersection(part).empty() || (! has_support_below && part.area() > cradle_area_threshold))
                 {
                     std::lock_guard<std::mutex> critical_section_add(critical_sections);
-                    next_completely_supported.add(part);
+                    next_completely_supported.push_back(part);
                     return;
                 }
 
-                Polygons overhang = mesh.overhang_areas[layer_idx].intersection(part);
+                Shape overhang = mesh.overhang_areas[layer_idx].intersection(part);
                 coord_t overhang_area = std::max(overhang.area(), std::numbers::pi * min_wall_line_width * min_wall_line_width);
                 if (! has_support_below)
                 {
@@ -116,7 +116,7 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
                 else
                 {
                     std::lock_guard<std::mutex> critical_section_add(critical_sections);
-                    next_completely_supported.add(part);
+                    next_completely_supported.push_back(part);
                 }
             });
         layer_below = layer;
@@ -238,7 +238,7 @@ std::vector<std::vector<TreeSupportCradle*>> SupportCradleGeneration::generateCr
                     continue;
                 }
 
-                std::vector<Polygons> accumulated_model(std::min(cradle_config->cradle_layers_ + cradle_config->cradle_z_distance_layers_ + 1, mesh.overhang_areas.size() - layer_idx), Polygons());
+                std::vector<Shape> accumulated_model(std::min(cradle_config->cradle_layers_ + cradle_config->cradle_z_distance_layers_ + 1, mesh.overhang_areas.size() - layer_idx), Shape());
                 std::vector<size_t> all_pointy_idx{ pointy_info.index };
 
                 Point2LL center_prev = Polygon(pointy_info.area.getOutsidePolygons()[0]).centerOfMass();
@@ -250,17 +250,17 @@ std::vector<std::vector<TreeSupportCradle*>> SupportCradleGeneration::generateCr
                     accumulated_model[z_distance] = pointy_info.area;
                     cradle_main->centers_.emplace_back(center_prev);
                 }
-                Polygons shadow; // A combination of all outlines of the model that will be supported with a cradle.
+                Shape shadow; // A combination of all outlines of the model that will be supported with a cradle.
                 bool aborted = false;
                 bool contacted_other_pointy = false;
-                std::vector<Polygons> unsupported_model(accumulated_model.size());
+                std::vector<Shape> unsupported_model(accumulated_model.size());
                 for (size_t cradle_up_layer = 0; cradle_up_layer < accumulated_model.size() - z_distance_top_layers; cradle_up_layer++)
                 {
                     // shadow model up => not cradle where model
                     // then drop cradle down
                     // cut into parts => get close to original pointy that are far enough from each other.
                     std::vector<size_t> next_pointy_idx;
-                    Polygons model_outline;
+                    Shape model_outline;
                     bool blocked_by_dedupe = false;
                     // The cradle base is below the bottommost unsupported and the first cradle layer is around it, so this will be needed only for the second one and up
                     if (cradle_up_layer > 1)
@@ -275,13 +275,13 @@ std::vector<std::vector<TreeSupportCradle*>> SupportCradleGeneration::generateCr
                                     contacted_other_pointy = true;
                                     continue;
                                 }
-                                unsupported_model[cradle_up_layer].add(next_pointy_data.area);
+                                unsupported_model[cradle_up_layer].push_back(next_pointy_data.area);
                                 // Ensure each area is only handles once
                                 std::lock_guard<std::mutex> critical_section_cradle(critical_dedupe);
                                 if (! dedupe[layer_idx + cradle_up_layer].contains(next_pointy_data.index))
                                 {
                                     dedupe[layer_idx + cradle_up_layer].emplace(next_pointy_data.index);
-                                    model_outline.add(next_pointy_data.area);
+                                    model_outline.push_back(next_pointy_data.area);
                                     next_pointy_idx.emplace_back(next_pointy_data.index);
                                 }
                                 else
@@ -303,7 +303,7 @@ std::vector<std::vector<TreeSupportCradle*>> SupportCradleGeneration::generateCr
                                                 // Only add if area below does not have it's own cradle.
                                                 if (prev_pointy_data.height < cradle_config->cradle_layers_min_)
                                                 {
-                                                    accumulated_model[cradle_down_layer].add(prev_pointy_data.area);
+                                                    accumulated_model[cradle_down_layer].push_back(prev_pointy_data.area);
                                                     next_all_pointy_idx_below.emplace_back(prev_pointy_data.index);
                                                 }
                                             }
@@ -318,7 +318,7 @@ std::vector<std::vector<TreeSupportCradle*>> SupportCradleGeneration::generateCr
                     }
                     else
                     {
-                        model_outline.add(pointy_info.area);
+                        model_outline.push_back(pointy_info.area);
                     }
 
                     if (model_outline.empty())
@@ -335,7 +335,7 @@ std::vector<std::vector<TreeSupportCradle*>> SupportCradleGeneration::generateCr
                             // When an area that should have a cradle merges with a buildplate supported area above, it will no longer exist for a cradle.
                             // But if the cradle stops there will be z distance layer between the end of the cradle and said merge.
                             // To reduce the impact an area is estimated where the cradle should be for these areas.
-                            Polygons previous_area = shadow;
+                            Shape previous_area = shadow;
                             for (size_t cradle_up_layer_z_distance = cradle_up_layer;
                                  cradle_up_layer_z_distance < std::min(cradle_up_layer + cradle_config->cradle_z_distance_layers_, accumulated_model.size() - z_distance_top_layers);
                                  cradle_up_layer_z_distance++)
@@ -365,7 +365,7 @@ std::vector<std::vector<TreeSupportCradle*>> SupportCradleGeneration::generateCr
                     // If aborted remove all model information for the cradle generation except the pointy overhang, as it may be needed to cut a small hole in the large interface
                     // base. todo reimplement that
 
-                    Polygons cradle_0 = accumulated_model[0];
+                    Shape cradle_0 = accumulated_model[0];
                     accumulated_model.clear();
                     accumulated_model.emplace_back(cradle_0);
                     delete cradle_main;
@@ -416,18 +416,18 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
 
                     if (idx > cradle->config_->cradle_z_distance_layers_ && ! model_shadow.empty())
                     {
-                        Polygons relevant_forbidden = volumes_.getAvoidance(
+                        Shape relevant_forbidden = volumes_.getAvoidance(
                             0,
                             layer_idx + idx,
                             (only_gracious_ || ! support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
                             support_rests_on_model,
                             true);
 
-                        Polygons this_part_influence = model_shadow.offset(current_cradle_xy_distance + cradle->config_->cradle_line_width_ / 2);
+                        Shape this_part_influence = model_shadow.offset(current_cradle_xy_distance + cradle->config_->cradle_line_width_ / 2);
 
                         for (size_t layer_offset = 1; layer_offset <= z_distance_bottom_layers && layer_offset <= idx; layer_offset++)
                         {
-                            this_part_influence.add(accumulated_model[idx - layer_offset].offset(current_cradle_xy_distance + cradle->config_->cradle_line_width_ / 2));
+                            this_part_influence.push_back(accumulated_model[idx - layer_offset].offset(current_cradle_xy_distance + cradle->config_->cradle_line_width_ / 2));
                         }
 
                         for (coord_t layer_offset = 1; layer_offset <= z_distance_top_layers && layer_offset + idx < accumulated_model.size(); layer_offset++)
@@ -436,7 +436,7 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
                                 (current_cradle_xy_distance + cradle->config_->cradle_line_width_ / 2)
                                 - ((layer_offset - (z_distance_top_layers == 1 ? 0.5 : 0)) * (current_cradle_xy_distance + cradle->config_->cradle_line_width_ / 2)
                                    / z_distance_top_layers));
-                            this_part_influence.add(accumulated_model[idx + layer_offset].offset(required_range_x));
+                            this_part_influence.push_back(accumulated_model[idx + layer_offset].offset(required_range_x));
                         }
 
                         this_part_influence = this_part_influence.unionPolygons();
@@ -459,52 +459,52 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
                             }
                         }
 
-                        Polygon max_outer_points = PolygonUtils::makeCircle(
+                        ClosedPolyline max_outer_points = PolygonUtils::makeCircle(
                             center,
                             sqrt(max_distance2) + current_cradle_length * 2.0,
-                            std::min((2.0 * std::numbers::pi) / double(cradle->config_->cradle_line_count_), 1.9 * std::numbers::pi));
+                            cradle->config_->cradle_line_count_);
 
                         // create lines that go from the furthest possible location to the center
-                        Polygons lines_to_center;
+                        OpenLinesSet lines_to_center;
                         for (Point2LL p : max_outer_points)
                         {
                             Point2LL direction = p - center;
-                            lines_to_center.addLine(p, center + normal(direction, support_line_width));
+                            lines_to_center.addSegment(p, center + normal(direction, support_line_width));
                         }
 
                         // Subtract the model shadow up until this layer from the lines.
                         if (idx > 0)
                         {
-                            lines_to_center = model_shadow.offset(current_cradle_xy_distance + cradle->config_->cradle_line_width_ / 2).unionPolygons().differencePolyLines(lines_to_center, false);
+                            lines_to_center = model_shadow.offset(current_cradle_xy_distance + cradle->config_->cradle_line_width_ / 2).unionPolygons().difference(lines_to_center, false);
                         }
 
                         // shorten lines to be at most SUPPORT_TREE_CRADLE_WIDTH long, with the location closest to the center not changing
-                        Polygons shortened_lines_to_center;
+                        OpenLinesSet shortened_lines_to_center;
                         for (auto [line_idx, line] : lines_to_center | ranges::views::enumerate)
                         {
                             bool front_closer = vSize2(line.front() - center) < vSize2(line.back() - center);
                             Point2LL closer = front_closer ? line.front() : line.back();
                             Point2LL further = front_closer ? line.back() : line.front();
-                            coord_t cradle_line_length = Polygon(line).polylineLength();
+                            coord_t cradle_line_length = line.length();
                             if (cradle_line_length < cradle->config_->cradle_length_min_)
                             {
                                 continue;
                             }
-                            if (Polygon(line).polylineLength() <= current_cradle_length)
+                            if (line.length() <= current_cradle_length)
                             {
-                                shortened_lines_to_center.add(line);
+                                shortened_lines_to_center.push_back(line);
                             }
                             else
                             {
                                 double scale = (double(current_cradle_length) / double(vSize(further - closer)));
                                 Point2LL correct_length = closer + (further - closer) * scale;
-                                shortened_lines_to_center.addLine(correct_length, closer);
+                                shortened_lines_to_center.addSegment(correct_length, closer);
                             }
                         }
                         // If a line is drawn, but half of it removed as it would collide with the collision, there may not actually be a print line. The offset should prevent
                         // this.
-                        shortened_lines_to_center = relevant_forbidden.differencePolyLines(shortened_lines_to_center, false);
-                        std::vector<Polygon> ordered_lines_to_center(cradle->config_->cradle_line_count_);
+                        shortened_lines_to_center = relevant_forbidden.difference(shortened_lines_to_center, false);
+                        std::vector<OpenPolyline> ordered_lines_to_center(cradle->config_->cradle_line_count_);
 
                         // Evaluate which lines are still valid after the avoidance was subtracted
                         for (auto [line_idx, line] : shortened_lines_to_center | ranges::views::enumerate)
@@ -529,20 +529,22 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
                             // a cradle line should also be removed if there will be no way to support it
                             if (idx >= cradle->config_->cradle_z_distance_layers_ + 1)
                             {
-                                const Polygons actually_forbidden = volumes_.getAvoidance(
+                                const Shape& actually_forbidden = volumes_.getAvoidance(
                                     minimum_area_to_be_supportable,
                                     layer_idx + idx - (cradle->config_->cradle_z_distance_layers_ + 1),
                                     (only_gracious_ || ! support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
                                     support_rests_on_model,
                                     true);
-                                too_short |= actually_forbidden.differencePolyLines(shortened_lines_to_center[line_idx].offset(0)).polyLineLength() < support_line_width;
+                                OpenLinesSet current_shortened;
+                                current_shortened.push_back(shortened_lines_to_center[line_idx]);
+                                too_short |= actually_forbidden.difference(current_shortened).length() < support_line_width;
                             }
                             if (! too_short && ! too_long_jump)
                             {
                                 if (ordered_lines_to_center[angle_idx].empty())
                                 {
-                                    ordered_lines_to_center[angle_idx].add(closer);
-                                    ordered_lines_to_center[angle_idx].add(further);
+                                    ordered_lines_to_center[angle_idx].push_back(closer);
+                                    ordered_lines_to_center[angle_idx].push_back(further);
                                 }
                                 else
                                 {
@@ -552,14 +554,14 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
                                         if (vSize(ordered_lines_to_center[angle_idx].front() - center) < FUDGE_LENGTH)
                                         {
                                             ordered_lines_to_center[angle_idx].clear();
-                                            ordered_lines_to_center[angle_idx].add(closer);
-                                            ordered_lines_to_center[angle_idx].add(further);
+                                            ordered_lines_to_center[angle_idx].push_back(closer);
+                                            ordered_lines_to_center[angle_idx].push_back(further);
                                         }
                                         else if (distance_from_center < vSize(ordered_lines_to_center[angle_idx].front() - center))
                                         {
                                             ordered_lines_to_center[angle_idx].clear();
-                                            ordered_lines_to_center[angle_idx].add(closer);
-                                            ordered_lines_to_center[angle_idx].add(further);
+                                            ordered_lines_to_center[angle_idx].push_back(closer);
+                                            ordered_lines_to_center[angle_idx].push_back(further);
                                         }
                                     }
                                 }
@@ -573,7 +575,7 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
                                 removed_directions[angle_idx] = true;
                                 continue;
                             }
-                            Polygon line(next_line);
+                            OpenPolyline line(next_line);
                             // Handle cradle_z_distance_layers by overwriting first element in the vector until valid distance is reached.
                             if (idx <= cradle->config_->cradle_z_distance_layers_ + 1 && ! cradle->lines_[angle_idx].empty())
                             {
@@ -598,18 +600,18 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
                             Point2LL center = cradle->getCenter(line.layer_idx_);
                             if (vSize2(line_end - center) > vSize2(line.line_.back() - center))
                             {
-                                Polygons line_extension;
-                                line_extension.addLine(line.line_.back(), line_end);
-                                coord_t line_length_before = line_extension.polyLineLength();
-                                Polygons actually_forbidden = volumes_.getAvoidance(
+                                OpenLinesSet line_extension;
+                                line_extension.addSegment(line.line_.back(), line_end);
+                                coord_t line_length_before = line_extension.length();
+                                Shape actually_forbidden = volumes_.getAvoidance(
                                     0,
                                     line.layer_idx_,
                                     (only_gracious_ || ! support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
                                     support_rests_on_model,
                                     true);
-                                line_extension = actually_forbidden.differencePolyLines(line_extension);
+                                line_extension = actually_forbidden.difference(line_extension);
 
-                                if (line_extension.polyLineLength() + EPSILON < line_length_before)
+                                if (line_extension.length() + EPSILON < line_length_before)
                                 {
                                     for (auto line_part : line_extension)
                                     {
@@ -703,8 +705,8 @@ void SupportCradleGeneration::cleanCradleLineOverlaps()
                     }
                     if (bounding_box_current.hit(AABB(cradle_line_inner->line_)))
                     {
-                        Polygon& outer_line = cradle_line->line_;
-                        Polygon& inner_line = cradle_line_inner->line_;
+                        OpenPolyline& outer_line = cradle_line->line_;
+                        OpenPolyline& inner_line = cradle_line_inner->line_;
                         Point2LL intersect;
                         if (LinearAlg2D::lineLineIntersection(outer_line.front(), outer_line.back(), inner_line.front(), inner_line.back(), intersect)
                             && ! LinearAlg2D::pointIsProjectedBeyondLine(intersect, outer_line.front(), outer_line.back())
@@ -872,8 +874,6 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
 
                     for (size_t cradle_height = 0; cradle_height <= cradle.config_->cradle_layers_; cradle_height++)
                     {
-                        Polygons line_tips;
-
                         std::vector<std::pair<Point2LL, Point2LL>> all_tips_center;
                         // generate trapezoid line tip with front width of support line width, back cradle_width.
 
@@ -885,7 +885,7 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                                 continue;
                             }
                             TreeSupportCradleLine* cradle_line = line_opt.value();
-                            Polygon line = cradle_line->line_;
+                            OpenPolyline line = cradle_line->line_;
 
                             coord_t current_cradle_line_width = cradle.config_->cradle_line_width_;
 
@@ -893,7 +893,7 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                             coord_t triangle_length
                                 = cradle.config_->cradle_line_count_ <= 2 ? 0 : ((current_cradle_line_width - support_line_width) / 2) * tan(std::numbers::pi / 2 - assumed_half_center_angle);
 
-                            const coord_t line_length = line.polylineLength();
+                            const coord_t line_length = line.length();
                             if (triangle_length >= line_length + cradle.config_->cradle_line_width_)
                             {
                                 triangle_length = line_length + cradle.config_->cradle_line_width_;
@@ -936,25 +936,25 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                             all_tips_center.emplace_back(center_up, center_down);
 
                             Polygon line_tip;
-                            line_tip.add(back_down);
+                            line_tip.push_back(back_down);
                             if (current_cradle_line_width == cradle.config_->cradle_line_width_)
                             {
                                 coord_t distance_end_front = line_length - triangle_length + cradle.config_->cradle_line_width_ - tip_shift;
                                 Point2LL line_end_down = back_down + normal(direction, distance_end_front);
                                 Point2LL line_end_up = back_up + normal(direction, distance_end_front);
-                                line_tip.add(line_end_down);
-                                line_tip.add(line_end_up);
+                                line_tip.push_back(line_end_down);
+                                line_tip.push_back(line_end_up);
                             }
-                            line_tip.add(back_up);
-                            line_tip.add(center_up);
-                            line_tip.add(center_down);
+                            line_tip.push_back(back_up);
+                            line_tip.push_back(center_up);
+                            line_tip.push_back(center_down);
                             if (line_tip.area() < 0)
                             {
                                 line_tip.reverse();
                             }
-                            cradle_line->area_.add(line_tip);
+                            cradle_line->area_.push_back(line_tip);
 
-                            Polygons anti_preferred = cradle_line->area_.offset(xy_distance);
+                            Shape anti_preferred = cradle_line->area_.offset(xy_distance);
                             std::lock_guard<std::mutex> critical_section_cradle(critical_support_free_areas_and_cradle_areas);
                             for (size_t z_distance_idx = 0; z_distance_idx < z_distance_top_layers; z_distance_idx++)
                             {
@@ -963,35 +963,34 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                         }
                     }
 
-                    Polygons shadow = cradle.shadow_[0];
-                    Polygons cradle_base = shadow;
+                    Shape shadow = cradle.shadow_[0];
+                    Shape cradle_base = shadow;
 
                     if (support_roof_layers)
                     {
-                        Polygons cut_line_base;
-                        Polygons first_cradle_areas;
+                        Shape cut_line_base;
+                        Shape first_cradle_areas;
                         if (cradle.config_->large_cradle_base_)
                         {
                             // If a large cradle base is used there needs to be a small hole cut into it to ensure that there will be a line for the pointy overhang to rest
                             // on. This line is just a diagonal though the original pointy overhang area (from min to max). Technically this line is covering more than just
                             // the overhang, but that should not cause any issues.
-                            Point2LL min_p = cradle_base.min();
-                            Point2LL max_p = cradle_base.max();
-                            Polygons rest_line;
-                            rest_line.addLine(min_p, max_p);
-                            cut_line_base = rest_line.offsetPolyLine(small_hole_size);
+                            AABB cradle_base_aabb = AABB(cradle_base);
+                            OpenLinesSet rest_line;
+                            rest_line.addSegment(cradle_base_aabb.min_, cradle_base_aabb.max_);
+                            cut_line_base = rest_line.offset(small_hole_size);
                         }
                         {
                             std::lock_guard<std::mutex> critical_section_cradle(critical_support_free_areas_and_cradle_areas);
                             for (size_t interface_down = 0; interface_down < layer_idx && interface_down < support_roof_layers; interface_down++)
                             {
-                                support_free_areas_[layer_idx - interface_down].add(cut_line_base);
+                                support_free_areas_[layer_idx - interface_down].push_back(cut_line_base);
                             }
                         }
                         if (cradle.config_->large_cradle_base_)
                         {
                             cradle_base = cradle_base.offset(cradle.config_->cradle_support_base_area_radius_, ClipperLib::jtRound);
-                            Polygons center_removed = cradle_base.difference(cut_line_base);
+                            Shape center_removed = cradle_base.difference(cut_line_base);
                             if (center_removed.area() > 1)
                             {
                                 cradle_base = center_removed;
@@ -1000,16 +999,16 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                         else if (cradle.config_->cradle_base_roof_)
                         {
                             // collect all inner points and connect to center for thin cradle base
-                            Polygons connected_cradle_base;
+                            OpenLinesSet connected_cradle_base;
                             for (size_t line_idx = 0; line_idx < cradle.lines_.size(); line_idx++)
                             {
                                 std::optional<TreeSupportCradleLine*> line_opt = cradle.getCradleLineOfIndex(layer_idx + cradle.config_->cradle_z_distance_layers_ + 1, line_idx);
                                 if (line_opt)
                                 {
-                                    connected_cradle_base.addLine(cradle.getCenter(line_opt.value()->layer_idx_), line_opt.value()->line_.front());
+                                    connected_cradle_base.addSegment(cradle.getCenter(line_opt.value()->layer_idx_), line_opt.value()->line_.front());
                                 }
                             }
-                            cradle_base = connected_cradle_base.offsetPolyLine(cradle.config_->cradle_line_width_ / 2 + EPSILON).unionPolygons(cradle_base);
+                            cradle_base = connected_cradle_base.offset(cradle.config_->cradle_line_width_ / 2 + EPSILON).unionPolygons(cradle_base);
                         }
                     }
 
@@ -1017,13 +1016,13 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
 
                     if (cradle.config_->cradle_lines_roof_)
                     {
-                        Polygons forbidden_here = volumes_.getAvoidance(
+                        Shape forbidden_here = volumes_.getAvoidance(
                             0,
                             layer_idx,
                             (only_gracious_ || ! support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
                             support_rests_on_model,
                             ! xy_overrides);
-                        std::vector<std::pair<Polygons, int32_t>> roofs;
+                        std::vector<std::pair<Shape, int32_t>> roofs;
 
                         if(cradle.is_roof_)
                         {
@@ -1045,8 +1044,8 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
 
                         for (auto roof_area_pair : roofs)
                         {
-                            Polygons roof_area_before = roof_area_pair.first;
-                            Polygons full_overhang_area = TreeSupportUtils::safeOffsetInc(
+                            Shape roof_area_before = roof_area_pair.first;
+                            Shape full_overhang_area = TreeSupportUtils::safeOffsetInc(
                                 roof_area_pair.first,
                                 roof_outset,
                                 forbidden_here,
@@ -1057,7 +1056,7 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                                 &simplifyer);
                             for (LayerIndex dtt_roof = 0; dtt_roof <= support_roof_layers && layer_idx - dtt_roof >= 1; dtt_roof++)
                             {
-                                const Polygons forbidden_next = volumes_.getAvoidance(
+                                const Shape forbidden_next = volumes_.getAvoidance(
                                     0,
                                     layer_idx - (dtt_roof + 1),
                                     (only_gracious_ || ! support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
@@ -1080,21 +1079,21 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                                     {
                                         if (dtt_roof < cradle.base_below_.size())
                                         {
-                                            cradle.base_below_[dtt_roof].add(full_overhang_area);
+                                            cradle.base_below_[dtt_roof].push_back(full_overhang_area);
                                         }
                                         else
                                         {
                                             cradle.base_below_.emplace_back(full_overhang_area);
                                         }
                                     }
-                                    const Polygons forbidden_before = volumes_.getAvoidance(
+                                    const Shape forbidden_before = volumes_.getAvoidance(
                                         0,
                                         layer_idx - dtt_roof,
                                         (only_gracious_ || ! support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
                                         support_rests_on_model,
                                         ! xy_overrides);
 
-                                    Polygons supported_by_roof_below = TreeSupportUtils::safeOffsetInc( //todo better safeStepOffset values to improve performance
+                                    Shape supported_by_roof_below = TreeSupportUtils::safeOffsetInc( //todo better safeStepOffset values to improve performance
                                         full_overhang_area,
                                         max_roof_movement,
                                         forbidden_before,
@@ -1103,7 +1102,7 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                                         1,
                                         support_line_width,
                                         &simplifyer);
-                                    Polygons overhang_part = roof_area_before.difference(supported_by_roof_below);
+                                    Shape overhang_part = roof_area_before.difference(supported_by_roof_below);
                                     if (overhang_part.area() > EPSILON)
                                     {
                                         OverhangInformation cradle_overhang(overhang_part, false, cradle_data_[mesh_idx][layer_idx][cradle_idx], layer_idx - dtt_roof, roof_area_pair.second);
@@ -1133,7 +1132,7 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
 
                     if(!cradle.is_roof_)
                     {
-                        Polygons forbidden_here = volumes_.getAvoidance(
+                        Shape forbidden_here = volumes_.getAvoidance(
                             0,
                             layer_idx,
                             (only_gracious_ || ! support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
@@ -1207,7 +1206,7 @@ void SupportCradleGeneration::generate(const SliceDataStorage& storage)
     generateCradleLineAreasAndBase(storage);
 }
 
-void SupportCradleGeneration::pushCradleData(std::vector<std::vector<TreeSupportCradle*>>& target, std::vector<Polygons>& support_free_areas, size_t mesh_idx)
+void SupportCradleGeneration::pushCradleData(std::vector<std::vector<TreeSupportCradle*>>& target, std::vector<Shape>& support_free_areas, size_t mesh_idx)
 {
 
     if(target.size() < cradle_data_[mesh_idx].size())
@@ -1226,7 +1225,7 @@ void SupportCradleGeneration::pushCradleData(std::vector<std::vector<TreeSupport
     }
     for (auto [layer_idx, support_free_on_layer] : support_free_areas_ | ranges::views::enumerate)
     {
-        support_free_areas[layer_idx].add(support_free_on_layer);
+        support_free_areas[layer_idx].push_back(support_free_on_layer);
     }
 }
 

@@ -1721,7 +1721,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     const double minimum_roof_area = mesh.settings.get<double>("minimum_roof_area");
 
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
-    Polygons roofs_before;
+    Shape roofs_before;
     for (LayerIndex layer_idx = static_cast<int>(support_layers.size() - z_distance_top) - 1; layer_idx >= 0; --layer_idx)
     {
         const LayerIndex top_layer_idx_above{

@@ -217,16 +217,16 @@ public:
     Shape support_mesh; //!< Areas from support meshes which should NOT be supported by more support
     Shape anti_overhang; //!< Areas where no overhang should be detected.
 
-    Polygons getTotalAreaFromParts(const std::vector<SupportInfillPart>& parts, PartsFilter filter = PartsFilter::NoFilter) const
+    Shape getTotalAreaFromParts(const std::vector<SupportInfillPart>& parts, PartsFilter filter = PartsFilter::NoFilter) const
     {
-        Polygons result;
+        Shape result;
         for (const SupportInfillPart& part : parts)
         {
             if(filter == PartsFilter::NoFilter ||
                 (part.use_fractional_config_ && filter == PartsFilter::FractionalParts) ||
                 (!part.use_fractional_config_ && filter == PartsFilter::RegularParts))
             {
-                result.add(part.outline_);
+                result.push_back(part.outline_);
             }
         }
         return result.unionPolygons();
@@ -239,7 +239,7 @@ public:
      * \param exclude_polygons The polygons to exclude
      * \param exclude_polygons_boundary_box The boundary box for the polygons to exclude
      */
-    void excludeAreasFromSupportParts(std::vector<SupportInfillPart>& parts, const Shape& exclude_polygons, const AABB& exclude_polygons_boundary_box);
+    void excludeAreasFromSupportInfillAreas(std::vector<SupportInfillPart>& parts, const Shape& exclude_polygons, const AABB& exclude_polygons_boundary_box);
 
     /* Fill up the infill parts for the support with the given support polygons. The support polygons will be split into parts.
      *
@@ -251,7 +251,7 @@ public:
      * \param custom_line_distance (optional, default to 0) Distance between lines of the infill pattern. custom_line_distance of 0 means use the default instead.
      * \param custom_pattern (optional, default to EFillMethod::NONE) Set if a non default infill pattern should be used
      */
-    void fillInfillParts(const Polygons& area,
+    void fillInfillParts(const Shape& area,
                          const coord_t support_line_width,
                          const coord_t wall_line_count,
                          const bool use_fractional_config = false,
@@ -259,7 +259,7 @@ public:
                          const coord_t custom_line_distance = 0,
                          EFillMethod custom_pattern = EFillMethod::NONE)
     {
-        for (const PolygonsPart& island_outline : area.splitIntoParts(unionAll))
+        for (const SingleShape& island_outline : area.splitIntoParts(unionAll))
         {
             support_infill_parts.emplace_back(island_outline, support_line_width, use_fractional_config, wall_line_count, custom_line_distance, custom_pattern);
         }

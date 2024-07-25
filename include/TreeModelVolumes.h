@@ -159,7 +159,7 @@ public:
      * \param area The area that should be avoided in the future.
      * \param layer_idx The layer said area is on.
      */
-    void addAreaToAntiPreferred(const Polygons area, LayerIndex layer_idx);
+    void addAreaToAntiPreferred(const Shape area, LayerIndex layer_idx);
 
     void precalculateAntiPreferred();
 
@@ -169,7 +169,7 @@ public:
      * \param radius The radius of the node of interest.
      * \returns The area that should be avoided
      */
-    const Polygons& getAntiPreferredAreas(LayerIndex layer_idx, coord_t radius);
+    const Shape& getAntiPreferredAreas(LayerIndex layer_idx, coord_t radius);
 
     /*!
      * \brief Get avoidance areas for areas that were additionally set to be avoided
@@ -177,14 +177,14 @@ public:
      * \param radius The radius of the node of interest.
      * \returns The area that should be avoided
      */
-    const Polygons& getAntiPreferredAvoidance(coord_t radius, LayerIndex layer_idx, AvoidanceType type, bool to_model, bool min_xy_dist);
+    const Shape& getAntiPreferredAvoidance(coord_t radius, LayerIndex layer_idx, AvoidanceType type, bool to_model, bool min_xy_dist);
 
     /*!
      * \brief Get areas that were are classified as support blocker
      * \param layer_idx The layer said area is on.
      * \returns The area should not contain support
      */
-    const Polygons& getSupportBlocker(LayerIndex layer_idx);
+    const Shape& getSupportBlocker(LayerIndex layer_idx);
 
 
 private:
@@ -585,12 +585,12 @@ private:
     mutable std::unordered_map<RadiusLayerPair, Shape> wall_restrictions_cache_min_;
     std::unique_ptr<std::mutex> critical_wall_restrictions_cache_min_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<RadiusLayerPair, Polygons> anti_preferred_;
+    mutable std::unordered_map<RadiusLayerPair, Shape> anti_preferred_;
     std::unique_ptr<std::mutex> critical_anti_preferred_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<RadiusLayerPair, Polygons> anti_preferred_cache_;
-    mutable std::unordered_map<RadiusLayerPair, Polygons> anti_preferred_cache_to_model_;
-    mutable std::unordered_map<RadiusLayerPair, Polygons> anti_preferred_cache_collision;
+    mutable std::unordered_map<RadiusLayerPair, Shape> anti_preferred_cache_;
+    mutable std::unordered_map<RadiusLayerPair, Shape> anti_preferred_cache_to_model_;
+    mutable std::unordered_map<RadiusLayerPair, Shape> anti_preferred_cache_collision;
     std::unique_ptr<std::mutex> critical_anti_preferred_caches = std::make_unique<std::mutex>();
 
 
@@ -598,7 +598,7 @@ private:
 
     Simplify simplifier_ = Simplify(0, 0, 0); // a simplifier to simplify polygons. Will be properly initialised in the constructor.
 
-    Polygons empty_polygon = Polygons();
+    Shape empty_polygon = Shape();
 };
 
 } // namespace cura

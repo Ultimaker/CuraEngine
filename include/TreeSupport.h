@@ -337,15 +337,15 @@ private:
      * \param cradle_data[in] All currently existing cradles, with its corresponding cradle lines.
      */
     void prepareSupportAreas(
-        std::vector<Polygons>& support_layer_storage,
-        std::vector<Polygons>& support_layer_storage_fractional,
-        std::vector<Polygons>& support_roof_storage,
-        std::vector<Polygons>& support_roof_extra_wall_storage,
-        std::vector<Polygons>& support_roof_storage_fractional,
-        std::vector<Polygons>& support_roof_extra_wall_storage_fractional,
-        std::vector<Polygons>& fake_roof_areas_combined,
-        std::vector<Polygons>& cradle_base_areas,
-        std::vector<Polygons>& cradle_support_line_areas,
+        std::vector<Shape>& support_layer_storage,
+        std::vector<Shape>& support_layer_storage_fractional,
+        std::vector<Shape>& support_roof_storage,
+        std::vector<Shape>& support_roof_extra_wall_storage,
+        std::vector<Shape>& support_roof_storage_fractional,
+        std::vector<Shape>& support_roof_extra_wall_storage_fractional,
+        std::vector<Shape>& fake_roof_areas_combined,
+        std::vector<Shape>& cradle_base_areas,
+        std::vector<Shape>& cradle_support_line_areas,
         SliceDataStorage& storage,
         std::vector<std::vector<TreeSupportCradle*>>& cradle_data);
 
@@ -357,8 +357,8 @@ private:
      * \param non_removable_holes[out] Indices of holes that can not be removed, by layer.
      * \param hole_rest_map[out] Ordered by layer, information on which hole index on the layer below a given hole rests on
      */
-    void calculateSupportHoles(std::vector<Polygons>& support_layer_storage,
-                               std::vector<std::vector<Polygons>>& hole_parts,
+    void calculateSupportHoles(std::vector<Shape>& support_layer_storage,
+                               std::vector<std::vector<Shape>>& hole_parts,
                                std::vector<std::set<size_t>>& valid_holes,
                                std::vector<std::set<size_t>>& non_removable_holes,
                                std::vector<std::map<size_t, std::vector<size_t>>>& hole_rest_map);
@@ -380,17 +380,17 @@ private:
      * \param layer_tree_polygons[in] Resulting branch areas with the layerindex they appear on.
      */
     void generateSupportSkin(
-        std::vector<Polygons>& support_layer_storage,
-        std::vector<Polygons>& support_skin_storage,
-        std::vector<Polygons>& fake_roof_areas_combined,
-        std::vector<Polygons>& cradle_base_areas,
-        std::vector<Polygons>& cradle_support_line_areas,
-        std::vector<std::vector<Polygons>>& hole_parts,
+        std::vector<Shape>& support_layer_storage,
+        std::vector<Shape>& support_skin_storage,
+        std::vector<Shape>& fake_roof_areas_combined,
+        std::vector<Shape>& cradle_base_areas,
+        std::vector<Shape>& cradle_support_line_areas,
+        std::vector<std::vector<Shape>>& hole_parts,
         std::vector<std::set<size_t>>& valid_holes,
         std::vector<std::set<size_t>>& non_removable_holes,
         std::vector<std::map<size_t, std::vector<size_t>>>& hole_rest_map,
         SliceDataStorage& storage,
-        std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons);
+        std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons);
 
     /*!
      * \brief Filters out holes that would cause support to be printed mid-air.
@@ -401,7 +401,7 @@ private:
      * \param hole_rest_map[in] Ordered by layer, information on which hole index on the layer below a given hole rests on
      */
     void removeFloatingHoles(std::vector<Shape>& support_layer_storage,
-                             std::vector<std::vector<Polygons>>& hole_parts,
+                             std::vector<std::vector<Shape>>& hole_parts,
                              std::vector<std::set<size_t>>& valid_holes,
                              std::vector<std::set<size_t>>& non_removable_holes,
                              std::vector<std::map<size_t, std::vector<size_t>>>& hole_rest_map);
@@ -442,7 +442,7 @@ private:
     /*!
      * \brief Areas where no support may be. Areas will be subtracted from support areas.
      */
-    std::vector<Polygons> support_free_areas;
+    std::vector<Shape> support_free_areas;
 
     /*!
      * \brief Generator for model collision, avoidance and internal guide volumes.
