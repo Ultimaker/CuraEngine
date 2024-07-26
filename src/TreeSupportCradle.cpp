@@ -400,6 +400,8 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
         {
             for (auto [center_idx, cradle] : cradle_data_mesh[layer_idx] | ranges::views::enumerate)
             {
+                const coord_t max_cradle_jump_length_forward = cradle->config_->cradle_length_ / 3;
+                constexpr bool ignore_xy_dist_for_jumps = true;
                 const coord_t max_cradle_xy_distance = *std::max_element(cradle->config_->cradle_xy_distance_.begin(), cradle->config_->cradle_xy_distance_.end());
                 std::vector<bool> removed_directions(cradle->config_->cradle_line_count_);
                 const auto& accumulated_model = cradle->shadow_;
@@ -407,6 +409,7 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
                 {
                     Point2LL center = cradle->getCenter(layer_idx + idx);
                     const coord_t current_cradle_xy_distance = cradle->config_->cradle_xy_distance_[idx];
+                    const coord_t previous_cradle_xy_distance = idx > 0 ? cradle->config_->cradle_xy_distance_[idx-1] : current_cradle_xy_distance;
                     const coord_t current_cradle_length = cradle->config_->cradle_length_ + max_cradle_xy_distance - current_cradle_xy_distance;
 
                     if (cradle->lines_.empty())
@@ -524,9 +527,18 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
                             bool keep_line = false;
                             bool found_candidate = false;
                             bool too_short = (vSize(closer - further)) < cradle->config_->cradle_length_min_;
-                            bool too_long_jump
-                                = ! cradle->lines_[angle_idx].empty() && vSize(cradle->lines_[angle_idx].back().line_.front() - closer) > cradle->config_->cradle_length_ / 3; //todo better non arbitrary limit
-                            // a cradle line should also be removed if there will be no way to support it
+                            bool too_long_jump = false;
+                            Point2LL closest_on_prev_segment;
+                            if(! cradle->lines_[angle_idx].empty())
+                            {
+                                closest_on_prev_segment = LinearAlg2D::getClosestOnLineSegment(closer, cradle->lines_[angle_idx].back().line_.front(), cradle->lines_[angle_idx].back().line_.back());
+                                Point2LL closest_on_prev_line = LinearAlg2D::getClosestOnLine(closer, cradle->lines_[angle_idx].back().line_.front(), cradle->lines_[angle_idx].back().line_.back());
+                                coord_t xy_distance_jump = std::max(coord_t(0), previous_cradle_xy_distance - current_cradle_xy_distance);
+                                //todo if jump too long check if line could be shortened. Do that above!
+                                too_long_jump = vSize(closest_on_prev_segment - closest_on_prev_line)  - (ignore_xy_dist_for_jumps? xy_distance_jump : 0)  >
+                                          max_cradle_jump_length_forward; //todo better non arbitrary limit
+                            }
+                            // a cradle line should also be removed if there will no way to support it
                             if (idx >= cradle->config_->cradle_z_distance_layers_ + 1)
                             {
                                 const Shape& actually_forbidden = volumes_.getAvoidance(
