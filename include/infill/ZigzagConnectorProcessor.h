@@ -4,10 +4,17 @@
 #ifndef INFILL_ZIGZAG_CONNECTOR_PROCESSOR_H
 #define INFILL_ZIGZAG_CONNECTOR_PROCESSOR_H
 
-#include "../utils/polygon.h" //TODO: We have implementation in this header file!
+#include <vector>
+
+#include "geometry/OpenLinesSet.h"
+#include "geometry/Point2LL.h"
 
 namespace cura
 {
+
+class Polygon;
+class Shape;
+class PointMatrix;
 
 /*!
  * Processor class for processing the connections between lines which makes the infill a zigzag pattern.
@@ -108,7 +115,7 @@ public:
      * \param skip_some_zags Whether to skip some zags
      * \param zag_skip_count Skip 1 zag in every N zags
      */
-    ZigzagConnectorProcessor(const PointMatrix& rotation_matrix, Polygons& result, bool use_endpieces, bool connected_endpieces, bool skip_some_zags, int zag_skip_count)
+    ZigzagConnectorProcessor(const PointMatrix& rotation_matrix, OpenLinesSet& result, bool use_endpieces, bool connected_endpieces, bool skip_some_zags, int zag_skip_count)
         : rotation_matrix_(rotation_matrix)
         , result_(result)
         , use_endpieces_(use_endpieces)
@@ -156,7 +163,7 @@ protected:
      *
      * \param polyline The polyline to add
      */
-    void addPolyline(PolygonRef polyline);
+    void addPolyline(const OpenPolyline& polyline);
 
     /*!
      * Checks whether the current connector should be added or not.
@@ -179,7 +186,7 @@ protected:
 
 protected:
     const PointMatrix& rotation_matrix_; //!< The rotation matrix used to enforce the infill angle
-    Polygons& result_; //!< The result of the computation
+    OpenLinesSet& result_; //!< The result of the computation
 
     const bool use_endpieces_; //!< Whether to include end pieces or not
     const bool connected_endpieces_; //!< Whether the end pieces should be connected with the rest part of the infill
@@ -202,29 +209,6 @@ protected:
      */
     std::vector<Point2LL> current_connector_;
 };
-
-//
-// Inline functions
-//
-
-inline void ZigzagConnectorProcessor::reset()
-{
-    is_first_connector_ = true;
-    first_connector_end_scanline_index_ = 0;
-    last_connector_index_ = 0;
-    first_connector_.clear();
-    current_connector_.clear();
-}
-
-inline void ZigzagConnectorProcessor::addPolyline(PolygonRef polyline)
-{
-    result_.emplace_back(polyline);
-    for (Point2LL& p : result_.back())
-    {
-        p = rotation_matrix_.unapply(p);
-    }
-}
-
 
 } // namespace cura
 

@@ -5,6 +5,11 @@
 
 #include <cassert>
 
+#include "geometry/OpenPolyline.h"
+#include "geometry/PointMatrix.h"
+#include "geometry/Polygon.h"
+#include "geometry/Shape.h"
+
 using namespace cura;
 
 
@@ -19,7 +24,6 @@ void ZigzagConnectorProcessor::registerVertex(const Point2LL& vertex)
         current_connector_.push_back(vertex);
     }
 }
-
 
 bool ZigzagConnectorProcessor::shouldAddCurrentConnector(int start_scanline_idx, int end_scanline_idx) const
 {
@@ -161,10 +165,28 @@ void ZigzagConnectorProcessor::addZagConnector(std::vector<Point2LL>& points, bo
     {
         return;
     }
-    Polygon polyline(points);
+    OpenPolyline polyline(points);
     if (is_endpiece && ! connected_endpieces_)
     {
         polyline.pop_back();
     }
     addPolyline(polyline);
+}
+
+void cura::ZigzagConnectorProcessor::reset()
+{
+    is_first_connector_ = true;
+    first_connector_end_scanline_index_ = 0;
+    last_connector_index_ = 0;
+    first_connector_.clear();
+    current_connector_.clear();
+}
+
+void cura::ZigzagConnectorProcessor::addPolyline(const OpenPolyline& polyline)
+{
+    result_.emplace_back(polyline);
+    for (Point2LL& p : result_.back())
+    {
+        p = rotation_matrix_.unapply(p);
+    }
 }

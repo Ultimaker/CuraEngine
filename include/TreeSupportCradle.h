@@ -7,7 +7,6 @@
 #include "settings/types/LayerIndex.h"
 #include "sliceDataStorage.h"
 #include "utils/Coord_t.h"
-#include "utils/polygon.h"
 #include "TreeModelVolumes.h"
 #include "TreeSupportEnums.h"
 #include "mfem/mfem.hpp"
@@ -19,7 +18,7 @@ struct TreeSupportCradle;
 
 struct OverhangInformation
 {
-    OverhangInformation(Polygons overhang, bool roof)
+    OverhangInformation(Shape overhang, bool roof)
         : overhang_(overhang)
         , is_roof_(roof)
         , is_cradle_(false)
@@ -29,7 +28,7 @@ struct OverhangInformation
     {
     }
 
-    OverhangInformation(Polygons overhang, bool roof, TreeSupportCradle* cradle, int32_t cradle_layer_idx = -1, int32_t cradle_line_idx = -1)
+    OverhangInformation(Shape overhang, bool roof, TreeSupportCradle* cradle, int32_t cradle_layer_idx = -1, int32_t cradle_line_idx = -1)
         : overhang_(overhang)
         , is_roof_(roof)
         , is_cradle_(true)
@@ -39,7 +38,7 @@ struct OverhangInformation
     {
     }
 
-    Polygons overhang_;
+    Shape overhang_;
     bool is_roof_;
     bool is_cradle_;
     int32_t cradle_layer_idx_;
@@ -59,25 +58,25 @@ struct TreeSupportCradleLine
         spdlog::error("Dummy TreeSupportCradleLine constructor called");
     }
 
-    TreeSupportCradleLine(Polygon line, LayerIndex layer_idx, bool is_roof)
+    TreeSupportCradleLine(OpenPolyline line, LayerIndex layer_idx, bool is_roof)
         : line_(line)
         , layer_idx_(layer_idx)
         , is_roof_(is_roof)
     {
     }
-    Polygons area_;
-    Polygon line_;
-    Polygon removed_line_;
+    Shape area_;
+    OpenPolyline line_;
+    OpenPolyline removed_line_;
     LayerIndex layer_idx_;
     bool is_base_ = false;
     bool is_roof_;
 
-    void addLineToRemoved(Polygon& line_to_add)
+    void addLineToRemoved(OpenPolyline& line_to_add)
     {
         if (removed_line_.empty())
         {
-            removed_line_.add(line_to_add.front());
-            removed_line_.add(line_to_add.back());
+            removed_line_.push_back(line_to_add.front());
+            removed_line_.push_back(line_to_add.back());
         }
         else
         {
@@ -244,9 +243,9 @@ struct TreeSupportCradle
     std::vector<std::deque<TreeSupportCradleLine>> lines_;
     bool is_roof_;
     LayerIndex layer_idx_;
-    std::vector<Polygons> base_below_;
+    std::vector<Shape> base_below_;
     std::vector<Point2LL> centers_;
-    std::vector<Polygons> shadow_;
+    std::vector<Shape> shadow_;
     std::unordered_map<LayerIndex, std::vector<OverhangInformation>> overhang_;
 
     const std::shared_ptr<const CradleConfig> config_;
@@ -322,7 +321,7 @@ struct TreeSupportCradle
                 {
                     previous_layer_idx = lines_[line_idx][up_idx].layer_idx_;
                     if (lines_[line_idx][up_idx].layer_idx_ > previous_layer_idx + up_idx || lines_[line_idx][up_idx].line_.size() < 2
-                        || lines_[line_idx][up_idx].line_.polylineLength() < config_->cradle_length_min_)
+                        || lines_[line_idx][up_idx].line_.length() < config_->cradle_length_min_)
                     {
                         lines_[line_idx].clear();
                     }
@@ -334,7 +333,7 @@ struct TreeSupportCradle
                 if (! lines_[line_idx][up_idx].is_base_)
                 {
                     if (lines_[line_idx][up_idx].layer_idx_ > previous_layer_idx + up_idx || lines_[line_idx][up_idx].line_.size() < 2
-                        || lines_[line_idx][up_idx].line_.polylineLength() < config_->cradle_length_min_)
+                        || lines_[line_idx][up_idx].line_.length() < config_->cradle_length_min_)
                     {
                         if (up_idx <= config_->cradle_layers_min_)
                         {
@@ -407,7 +406,7 @@ public:
      * \param support_free_areas[out] Areas where support should be removed to ensure the pointy overhang to supported.
      * \param mesh_idx[in] The idx of the mesh for which the cradles are retrieved.
      */
-    void pushCradleData(std::vector<std::vector<TreeSupportCradle*>>& target, std::vector<Polygons>& support_free_areas, size_t mesh_idx);
+    void pushCradleData(std::vector<std::vector<TreeSupportCradle*>>& target, std::vector<Shape>& support_free_areas, size_t mesh_idx);
 
 
     SupportCradleGeneration(const SliceDataStorage& storage, TreeModelVolumes& volumes_);
@@ -415,7 +414,7 @@ private:
 
     struct UnsupportedAreaInformation
     {
-        UnsupportedAreaInformation(const Polygons area, LayerIndex layer_idx, size_t height, coord_t accumulated_supportable_overhang, double deformation, Point2LL assumed_center)
+        UnsupportedAreaInformation(const Shape area, LayerIndex layer_idx, size_t height, coord_t accumulated_supportable_overhang, double deformation, Point2LL assumed_center)
             : area{ area }
             , layer_idx{ layer_idx }
             , height{ height }
@@ -424,7 +423,7 @@ private:
             , assumed_center {assumed_center}
         {
         }
-        const Polygons area;
+        const Shape area;
         LayerIndex layer_idx;
         size_t height;
         coord_t accumulated_supportable_overhang;
@@ -500,7 +499,7 @@ std::vector<std::vector<std::vector<TreeSupportCradle*>>> cradle_data_;
 /*!
      * \brief Representation of areas that have to be removed to ensure lines below the pointy overhang.
  */
-std::vector<Polygons> support_free_areas_;
+std::vector<Shape> support_free_areas_;
 
 /*!
      * \brief Generator for model collision, avoidance and internal guide volumes.

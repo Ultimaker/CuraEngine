@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/linearAlg2D.h"
@@ -6,8 +6,11 @@
 #include <algorithm> // swap
 #include <cassert>
 #include <cmath> // atan2
+#include <numbers>
 
-#include "utils/Point2LL.h" // dot
+#include "geometry/Point3Matrix.h"
+#include "geometry/PointMatrix.h"
+#include "utils/math.h"
 
 namespace cura
 {
@@ -260,6 +263,60 @@ Point2LL LinearAlg2D::getBisectorVector(const Point2LL& intersect, const Point2L
     const auto a0 = a - intersect;
     const auto b0 = b - intersect;
     return (((a0 * vec_len) / std::max(1LL, vSize(a0))) + ((b0 * vec_len) / std::max(1LL, vSize(b0)))) / 2;
+}
+
+Point3Matrix LinearAlg2D::rotateAround(const Point2LL& middle, double rotation)
+{
+    PointMatrix rotation_matrix(rotation);
+    Point3Matrix rotation_matrix_homogeneous(rotation_matrix);
+    return Point3Matrix::translate(middle).compose(rotation_matrix_homogeneous).compose(Point3Matrix::translate(-middle));
+}
+
+bool LinearAlg2D::lineLineIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float& t, float& u)
+{
+    const float x1mx2 = p1.X - p2.X;
+    const float x1mx3 = p1.X - p3.X;
+    const float x3mx4 = p3.X - p4.X;
+    const float y1my2 = p1.Y - p2.Y;
+    const float y1my3 = p1.Y - p3.Y;
+    const float y3my4 = p3.Y - p4.Y;
+
+    t = x1mx3 * y3my4 - y1my3 * x3mx4;
+    u = x1mx3 * y1my2 - y1my3 * x1mx2;
+    const float div = x1mx2 * y3my4 - y1my2 * x3mx4;
+    if (div == 0.0f)
+    {
+        return false;
+    }
+
+    // NOTE: In theory the comparison 0 <= par <= 1 can now done without division for each parameter (as an early-out),
+    //       but this is easier & when the intersection _does_ happen and we want the normalized parameters returned anyway.
+    t /= div;
+    u /= div;
+    return true;
+}
+
+bool LinearAlg2D::segmentSegmentIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float& t, float& u)
+{
+    return lineLineIntersection(p1, p2, p3, p4, t, u) && t >= 0.0f && u >= 0.0f && t <= 1.0f && u <= 1.0f;
+}
+
+bool LinearAlg2D::lineLineIntersection(const Point2LL& a, const Point2LL& b, const Point2LL& c, const Point2LL& d, Point2LL& output)
+{
+    float t, u;
+    if (! lineLineIntersection(a, b, c, d, t, u))
+    {
+        return false;
+    }
+    const Point2LL result = a + (b - a) * t;
+    if (std::abs(result.X) > std::numeric_limits<int32_t>::max() || std::abs(result.Y) > std::numeric_limits<int32_t>::max())
+    {
+        // Intersection is so far away that it could lead to integer overflows.
+        // Even though the lines aren't 100% parallel, it's better to pretend they are. They are practically parallel.
+        return false;
+    }
+    output = result;
+    return true;
 }
 
 } // namespace cura

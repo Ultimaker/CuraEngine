@@ -10,9 +10,9 @@
 #include "TreeModelVolumes.h"
 #include "TreeSupportBaseCircle.h"
 #include "TreeSupportEnums.h"
+#include "geometry/Shape.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
-#include "utils/polygon.h"
 
 namespace cura
 {
@@ -106,7 +106,7 @@ struct TreeSupportElement
         RecreateInfluenceLimitArea();
     }
 
-    TreeSupportElement(const TreeSupportElement& elem, Polygons* new_area)
+    TreeSupportElement(const TreeSupportElement& elem, Shape* new_area)
         : // copy constructor that sets a new area
         TreeSupportElement(elem)
     {
@@ -249,7 +249,7 @@ struct TreeSupportElement
      * \brief The resulting influence area.
      * Will only be set in the results of createLayerPathing, and will be nullptr inside!
      */
-    Polygons* area_;
+    Shape* area_;
 
     /*!
      * \brief The resulting center point around which a circle will be drawn later.
@@ -343,7 +343,7 @@ struct TreeSupportElement
     /*!
      * \brief Area that influence area has to be inside to conform to influence_area_limit_range.
      */
-    Polygons influence_area_limit_area_;
+    Shape influence_area_limit_area_;
 
     /*!
      * \brief Additional locations that the tip should reach
@@ -404,7 +404,7 @@ struct TreeSupportElement
                 Polygon circle;
                 for (Point2LL corner : TreeSupportBaseCircle::getBaseCircle())
                 {
-                    circle.add(p + corner * influence_area_limit_range_ / double(TreeSupportBaseCircle::base_radius));
+                    circle.push_back(p + corner * influence_area_limit_range_ / double(TreeSupportBaseCircle::base_radius));
                 }
                 if (influence_area_limit_area_.empty())
                 {

@@ -25,7 +25,7 @@ public:
     coord_t getOptimalBeadCount(coord_t thickness) const override;
     coord_t getTransitioningLength(coord_t lower_bead_count) const override;
 
-    virtual std::string toString() const;
+    std::string toString() const override;
 
 private:
     BeadingStrategyPtr parent_;

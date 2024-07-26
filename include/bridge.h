@@ -7,7 +7,7 @@
 namespace cura
 {
 
-class Polygons;
+class Shape;
 class Settings;
 class SliceDataStorage;
 class SupportLayer;
@@ -29,12 +29,12 @@ class SupportLayer;
  */
 double bridgeAngle(
     const Settings& settings,
-    const Polygons& skin_outline,
+    const Shape& skin_outline,
     const SliceDataStorage& storage,
     const unsigned layer_nr,
     const unsigned bridge_layer,
     const SupportLayer* support_layer,
-    Polygons& supported_regions);
+    Shape& supported_regions);
 
 } // namespace cura
 

@@ -95,7 +95,7 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
     }
 
     fake_roof_areas = std::vector<std::vector<FakeRoofArea>>(storage.support.supportLayers.size(), std::vector<FakeRoofArea>());
-    support_free_areas = std::vector<Polygons>(storage.support.supportLayers.size(), Polygons());
+    support_free_areas = std::vector<Shape>(storage.support.supportLayers.size(), Shape());
 }
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
@@ -119,7 +119,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                 .size()); // Value is the area where support may be placed. As this is calculated in CreateLayerPathing it is saved and reused in drawAreas.
 
         spdlog::info("Processing support tree mesh group {} of {} containing {} meshes.", counter + 1, grouped_meshes.size(), grouped_meshes[counter].second.size());
-        std::vector<Polygons> exclude(storage.support.supportLayers.size());
+        std::vector<Shape> exclude(storage.support.supportLayers.size());
         auto t_start = std::chrono::high_resolution_clock::now();
 
         // get all already existing support areas and exclude them
@@ -128,10 +128,10 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             LayerIndex(storage.support.supportLayers.size()),
             [&](const LayerIndex layer_idx)
             {
-                Polygons exlude_at_layer;
-                exlude_at_layer.add(storage.support.supportLayers[layer_idx].support_bottom);
-                exlude_at_layer.add(storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof));
-                exlude_at_layer.add(storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_infill_parts));
+                Shape exlude_at_layer;
+                exlude_at_layer.push_back(storage.support.supportLayers[layer_idx].support_bottom);
+                exlude_at_layer.push_back(storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof));
+                exlude_at_layer.push_back(storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_infill_parts));
                 exclude[layer_idx] = exlude_at_layer.unionPolygons();
                 scripta::log("tree_support_exclude", exclude[layer_idx], SectionType::SUPPORT, layer_idx);
             });
@@ -345,28 +345,27 @@ void TreeSupport::mergeHelper(
                     continue;
                 }
 
-                Polygons relevant_infl;
-                Polygons relevant_redu;
+                Shape relevant_infl;
+                Shape relevant_redu;
                 if (merging_to_bp)
                 {
                     relevant_infl = to_bp_areas.count(influence.first) ? to_bp_areas.at(influence.first)
-                                                                       : Polygons(); // influence.first is a new element => not required to check if it was changed
+                                                                       : Shape(); // influence.first is a new element => not required to check if it was changed
                     relevant_redu = insert_bp_areas.count(reduced_check.first) ? insert_bp_areas[reduced_check.first]
-                                                                               : (to_bp_areas.count(reduced_check.first) ? to_bp_areas.at(reduced_check.first) : Polygons());
+                                                                               : (to_bp_areas.count(reduced_check.first) ? to_bp_areas.at(reduced_check.first) : Shape());
                 }
                 else
                 {
-                    relevant_infl = to_model_areas.count(influence.first) ? to_model_areas.at(influence.first) : Polygons();
-                    relevant_redu = insert_model_areas.count(reduced_check.first)
-                                      ? insert_model_areas[reduced_check.first]
-                                      : (to_model_areas.count(reduced_check.first) ? to_model_areas.at(reduced_check.first) : Polygons());
+                    relevant_infl = to_model_areas.count(influence.first) ? to_model_areas.at(influence.first) : Shape();
+                    relevant_redu = insert_model_areas.count(reduced_check.first) ? insert_model_areas[reduced_check.first]
+                                                                                  : (to_model_areas.count(reduced_check.first) ? to_model_areas.at(reduced_check.first) : Shape());
                 }
 
                 const bool red_bigger = config.getCollisionRadius(reduced_check.first) > config.getCollisionRadius(influence.first);
-                std::pair<TreeSupportElement, Polygons> smaller_rad = red_bigger ? std::pair<TreeSupportElement, Polygons>(influence.first, relevant_infl)
-                                                                                 : std::pair<TreeSupportElement, Polygons>(reduced_check.first, relevant_redu);
-                std::pair<TreeSupportElement, Polygons> bigger_rad = red_bigger ? std::pair<TreeSupportElement, Polygons>(reduced_check.first, relevant_redu)
-                                                                                : std::pair<TreeSupportElement, Polygons>(influence.first, relevant_infl);
+                std::pair<TreeSupportElement, Shape> smaller_rad
+                    = red_bigger ? std::pair<TreeSupportElement, Shape>(influence.first, relevant_infl) : std::pair<TreeSupportElement, Shape>(reduced_check.first, relevant_redu);
+                std::pair<TreeSupportElement, Shape> bigger_rad
+                    = red_bigger ? std::pair<TreeSupportElement, Shape>(reduced_check.first, relevant_redu) : std::pair<TreeSupportElement, Shape>(influence.first, relevant_infl);
                 const coord_t real_radius_delta = std::abs(config.getRadius(bigger_rad.first) - config.getRadius(smaller_rad.first));
                 const coord_t smaller_collision_radius = config.getCollisionRadius(smaller_rad.first);
 
@@ -386,7 +385,7 @@ void TreeSupport::mergeHelper(
                 //   a branch (of the larger collision radius) placed in this intersection, has already engulfed the branch of the smaller collision radius.
                 // Because of this a merge may happen even if the influence areas (that represent possible center points of branches) do not intersect yet.
                 // Remember that collision radius <= real radius as otherwise this assumption would be false.
-                const Polygons small_rad_increased_by_big_minus_small = TreeSupportUtils::safeOffsetInc(
+                const Shape small_rad_increased_by_big_minus_small = TreeSupportUtils::safeOffsetInc(
                     smaller_rad.second,
                     real_radius_delta,
                     volumes_.getCollision(smaller_collision_radius, layer_idx - 1, use_min_radius),
@@ -395,7 +394,7 @@ void TreeSupport::mergeHelper(
                     0,
                     config.support_line_distance / 2,
                     &config.simplifier);
-                Polygons intersect = small_rad_increased_by_big_minus_small.intersection(bigger_rad.second);
+                Shape intersect = small_rad_increased_by_big_minus_small.intersection(bigger_rad.second);
 
                 if (intersect.area()
                     > 1) // dont use empty as a line is not empty, but for this use-case it very well may be (and would be one layer down as union does not keep lines)
@@ -436,11 +435,11 @@ void TreeSupport::mergeHelper(
 
                     const auto getIntersectInfluence = [&](const PropertyAreasUnordered& insert_infl, const PropertyAreas& infl_areas)
                     {
-                        const Polygons infl_small = insert_infl.count(smaller_rad.first) ? insert_infl.at(smaller_rad.first)
-                                                                                         : (infl_areas.count(smaller_rad.first) ? infl_areas.at(smaller_rad.first) : Polygons());
-                        const Polygons infl_big = insert_infl.count(bigger_rad.first) ? insert_infl.at(bigger_rad.first)
-                                                                                      : (infl_areas.count(bigger_rad.first) ? infl_areas.at(bigger_rad.first) : Polygons());
-                        const Polygons small_rad_increased_by_big_minus_small_infl = TreeSupportUtils::safeOffsetInc(
+                        const Shape infl_small = insert_infl.count(smaller_rad.first) ? insert_infl.at(smaller_rad.first)
+                                                                                      : (infl_areas.count(smaller_rad.first) ? infl_areas.at(smaller_rad.first) : Shape());
+                        const Shape infl_big = insert_infl.count(bigger_rad.first) ? insert_infl.at(bigger_rad.first)
+                                                                                   : (infl_areas.count(bigger_rad.first) ? infl_areas.at(bigger_rad.first) : Shape());
+                        const Shape small_rad_increased_by_big_minus_small_infl = TreeSupportUtils::safeOffsetInc(
                             infl_small,
                             real_radius_delta,
                             volumes_.getCollision(smaller_collision_radius, layer_idx - 1, use_min_radius),
@@ -453,11 +452,11 @@ void TreeSupport::mergeHelper(
                             infl_big); // If the one with the bigger radius with the lower radius removed overlaps we can merge.
                     };
 
-                    Polygons intersect_influence;
+                    Shape intersect_influence;
                     intersect_influence
                         = TreeSupportUtils::safeUnion(intersect, getIntersectInfluence(insert_influence, influence_areas)); // Rounding errors again. Do not ask me where or why.
 
-                    Polygons intersect_to_model;
+                    Shape intersect_to_model;
                     if (merging_to_bp && config.support_rests_on_model)
                     {
                         intersect_to_model = getIntersectInfluence(insert_model_areas, to_model_areas);
@@ -481,7 +480,7 @@ void TreeSupport::mergeHelper(
 
                     erase.emplace_back(reduced_check.first);
                     erase.emplace_back(influence.first);
-                    const Polygons merge
+                    const Shape merge
                         = intersect.unionPolygons(intersect_to_model).offset(config.getRadius(key), ClipperLib::jtRound).difference(volumes_.getCollision(0, layer_idx - 1));
                     // ^^^ Regular union should be preferable here as Polygons tend to only become smaller through rounding errors (smaller!=has smaller area as holes have a
                     // negative area.).
@@ -561,7 +560,7 @@ void TreeSupport::mergeInfluenceAreas(PropertyAreasUnordered& to_bp_areas, Prope
         [&](size_t idx) // +=2 as in the beginning only uneven buckets will be filled
         {
             idx = idx * 2 + 1; // this is eqivalent to a parallel for(size_t idx=1;idx<buckets_area.size(),idx+=2)
-            for (const std::pair<TreeSupportElement, Polygons>& input_pair : buckets_area[idx])
+            for (const std::pair<TreeSupportElement, Shape>& input_pair : buckets_area[idx])
             {
                 AABB outer_support_wall_aabb = AABB(input_pair.second);
                 outer_support_wall_aabb.expand(config.getRadius(input_pair.first));
@@ -609,16 +608,16 @@ void TreeSupport::mergeInfluenceAreas(PropertyAreasUnordered& to_bp_areas, Prope
                 influence_areas.erase(del);
             }
 
-            for (const std::pair<TreeSupportElement, Polygons>& tup : insert_main[i])
+            for (const std::pair<TreeSupportElement, Shape>& tup : insert_main[i])
             {
                 to_bp_areas.emplace(tup);
             }
 
-            for (const std::pair<TreeSupportElement, Polygons>& tup : insert_secondary[i])
+            for (const std::pair<TreeSupportElement, Shape>& tup : insert_secondary[i])
             {
                 to_model_areas.emplace(tup);
             }
-            for (const std::pair<TreeSupportElement, Polygons>& tup : insert_influence[i])
+            for (const std::pair<TreeSupportElement, Shape>& tup : insert_influence[i])
             {
                 influence_areas.emplace(tup);
             }
@@ -648,15 +647,15 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
     AreaIncreaseSettings settings,
     LayerIndex layer_idx,
     TreeSupportElement* parent,
-    const Polygons& relevant_offset,
-    Polygons& to_bp_data,
-    Polygons& to_model_data,
-    Polygons& increased,
+    const Shape& relevant_offset,
+    Shape& to_bp_data,
+    Shape& to_model_data,
+    Shape& increased,
     const coord_t overspeed,
     const bool mergelayer)
 {
     TreeSupportElement current_elem = parent->createNewElement(); // Also increases DTT by one.
-    Polygons check_layer_data;
+    Shape check_layer_data;
     if (settings.increase_radius_)
     {
         current_elem.effective_radius_height_ += 1;
@@ -707,7 +706,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
         // Other solution would be to apply a morphological closure for the avoidances, but as this issue occurs very rarely it may not be worth the performance impact.
         if (! settings.no_error_ && ! to_bp_data.empty() && to_bp_data.area() < 1)
         {
-            to_bp_data = to_bp_data.unionPolygons(to_bp_data.offsetPolyLine(1));
+            to_bp_data = to_bp_data.unionPolygons(TreeSupportUtils::toPolylines(to_bp_data).offset(1));
             spdlog::warn("Detected very small influence area, possible caused by a small hole in the avoidance. Compensating.");
         }
     }
@@ -738,14 +737,14 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
         // Other solution would be to apply a morphological closure for the avoidances, but as this issue occurs very rarely it may not be worth the performance impact.
         if (! settings.no_error_ && ! to_model_data.empty() && to_model_data.area() < 1)
         {
-            to_model_data = to_model_data.unionPolygons(to_model_data.offsetPolyLine(1));
+            to_model_data = to_model_data.unionPolygons(TreeSupportUtils::toPolylines(to_model_data).offset(1));
             spdlog::warn("Detected very small influence area, possible caused by a small hole in the avoidance. Compensating.");
         }
     }
 
     coord_t actual_radius = config.getRadius(current_elem);
     // Removing cradle areas from influence areas if possible.
-    Polygons anti_preferred_areas = volumes_.getAntiPreferredAreas(layer_idx - 1, actual_radius);
+    Shape anti_preferred_areas = volumes_.getAntiPreferredAreas(layer_idx - 1, actual_radius);
     bool anti_preferred_exists = volumes_.getFirstAntiPreferredLayerIdx() < layer_idx;
     if (! anti_preferred_areas.empty())
     {
@@ -758,25 +757,25 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
         }
         if (current_elem.to_buildplate_)
         {
-            Polygons to_bp_without_anti = to_bp_data.difference(anti_preferred_areas);
+            Shape to_bp_without_anti = to_bp_data.difference(anti_preferred_areas);
             // If already moving fast there is not much to do. The anti preferred with collision radius will then later be subtracted if it is not subtracted here.
             if (to_bp_without_anti.area() > EPSILON || (settings.use_anti_preferred_ && ! is_fast))
             {
                 to_bp_data = to_bp_without_anti;
-                Polygons to_model_data_without_anti = to_model_data.difference(anti_preferred_areas);
+                Shape to_model_data_without_anti = to_model_data.difference(anti_preferred_areas);
                 to_model_data = to_model_data_without_anti;
-                Polygons increased_without_anti = increased.difference(anti_preferred_areas);
+                Shape increased_without_anti = increased.difference(anti_preferred_areas);
                 increased = increased_without_anti;
                 current_elem.ensure_valid_anti_preferred_ = true;
             }
         }
         else
         {
-            Polygons to_model_data_without_anti = to_model_data.difference(anti_preferred_areas);
+            Shape to_model_data_without_anti = to_model_data.difference(anti_preferred_areas);
             if (to_model_data_without_anti.area() > EPSILON || (settings.use_anti_preferred_ && ! is_fast))
             {
                 to_model_data = to_model_data_without_anti;
-                Polygons increased_without_anti = increased.difference(anti_preferred_areas);
+                Shape increased_without_anti = increased.difference(anti_preferred_areas);
                 increased = increased_without_anti;
                 current_elem.ensure_valid_anti_preferred_ = true;
             }
@@ -792,7 +791,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
     // Has to be also subtracted from increased, as otherwise a merge directly below the anti-preferred area may force a branch inside it.
     if (anti_preferred_exists && settings.use_anti_preferred_)
     {
-        const Polygons anti_preferred = volumes_.getAntiPreferredAvoidance(radius, layer_idx - 1, settings.type_, ! current_elem.to_buildplate_, settings.use_min_distance_);
+        const Shape& anti_preferred = volumes_.getAntiPreferredAvoidance(radius, layer_idx - 1, settings.type_, ! current_elem.to_buildplate_, settings.use_min_distance_);
         if (current_elem.to_buildplate_)
         {
             to_bp_data = to_bp_data.difference(anti_preferred);
@@ -830,7 +829,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
                 return true;
             }
 
-            Polygons to_bp_data_2;
+            Shape to_bp_data_2;
             if (current_elem.to_buildplate_)
             {
                 // Regular union as output will not be used later => this area should always be a subset of the safeUnion one.
@@ -852,7 +851,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
                     to_bp_data_2 = to_bp_data_2.difference(volumes_.getAvoidance(next_radius, layer_idx - 1, settings.type_, false, settings.use_min_distance_));
                 }
             }
-            Polygons to_model_data_2;
+            Shape to_model_data_2;
             if (config.support_rests_on_model && ! current_elem.to_buildplate_)
             {
                 to_model_data_2 = increased;
@@ -881,7 +880,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
                         settings.use_min_distance_));
                 }
             }
-            Polygons check_layer_data_2 = current_elem.to_buildplate_ ? to_bp_data_2 : to_model_data_2;
+            Shape check_layer_data_2 = current_elem.to_buildplate_ ? to_bp_data_2 : to_model_data_2;
 
             return check_layer_data_2.area() > 1;
         };
@@ -914,8 +913,8 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
             // wall of the bowl if possible.
             if (config.getCollisionRadius(current_elem) < config.increase_radius_until_radius && config.getCollisionRadius(current_elem) < config.getRadius(current_elem))
             {
-                Polygons new_to_bp_data;
-                Polygons new_to_model_data;
+                Shape new_to_bp_data;
+                Shape new_to_model_data;
 
                 if (current_elem.to_buildplate_)
                 {
@@ -963,8 +962,8 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
             //Try to ensure the branch stays away from potential walls if possible.
             if (config.getCollisionRadius(current_elem) < config.getRadius(current_elem))
             {
-                Polygons new_to_bp_data;
-                Polygons new_to_model_data;
+                Shape new_to_bp_data;
+                Shape new_to_model_data;
 
                 if (current_elem.to_buildplate_)
                 {
@@ -1083,7 +1082,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
         {
             if (current_elem.to_buildplate_)
             {
-                Polygons limited_to_bp = to_bp_data.intersection((current_elem.influence_area_limit_area_));
+                Shape limited_to_bp = to_bp_data.intersection((current_elem.influence_area_limit_area_));
                 if (limited_to_bp.area() > 1)
                 {
                     to_bp_data = limited_to_bp;
@@ -1093,7 +1092,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
             }
             else
             {
-                Polygons limited_to_model_data = to_model_data.intersection((current_elem.influence_area_limit_area_));
+                Shape limited_to_model_data = to_model_data.intersection((current_elem.influence_area_limit_area_));
                 if (limited_to_model_data.area() > 1)
                 {
                     to_bp_data = to_bp_data.intersection((current_elem.influence_area_limit_area_));
@@ -1131,10 +1130,10 @@ void TreeSupport::increaseAreas(
             TreeSupportElement* parent = last_layer[idx];
             TreeSupportElement elem = parent->createNewElement(); // Also increases dtt.
             // Abstract representation of the model outline. If an influence area would move through it, it could teleport through a wall.
-            const Polygons wall_restriction = volumes_.getWallRestriction(config.getCollisionRadius(*parent), layer_idx, parent->use_min_xy_dist_);
+            const Shape wall_restriction = volumes_.getWallRestriction(config.getCollisionRadius(*parent), layer_idx, parent->use_min_xy_dist_);
 
-            Polygons to_bp_data;
-            Polygons to_model_data;
+            Shape to_bp_data;
+            Shape to_model_data;
             coord_t radius = config.getCollisionRadius(elem);
 
             // When the radius increases, the outer "support wall" of the branch will have been moved farther away from the center (as this is the definition of radius).
@@ -1194,8 +1193,8 @@ void TreeSupport::increaseAreas(
             const coord_t fast_speed = config.maximum_move_distance + extra_speed;
             const coord_t slow_speed = config.maximum_move_distance_slow + extra_speed + extra_slow_speed;
 
-            Polygons offset_slow;
-            Polygons offset_fast;
+            Shape offset_slow;
+            Shape offset_fast;
 
             bool add = false;
             bool bypass_merge = false;
@@ -1358,7 +1357,7 @@ void TreeSupport::increaseAreas(
                     false); // Only do not move when already in a no hole avoidance with the regular xy distance.
             }
 
-            Polygons inc_wo_collision;
+            Shape inc_wo_collision;
             // Check whether it is faster to calculate the area increased with the fast speed independently from the slow area, or time could be saved by reusing the slow area to
             // calculate the fast one. Calculated by comparing the steps saved when calculating independently with the saved steps when not.
             const bool offset_independent_faster = (radius / safe_movement_distance - (((config.maximum_move_distance + extra_speed) < (radius + safe_movement_distance)) ? 1 : 0))
@@ -1420,8 +1419,8 @@ void TreeSupport::increaseAreas(
                 {
                     // If the area becomes for whatever reason something that clipper sees as a line, offset would stop working, so ensure that even if if wrongly would be a line,
                     // it still actually has an area that can be increased
-                    Polygons lines_offset = TreeSupportUtils::toPolylines(*parent->area_).offsetPolyLine(EPSILON);
-                    Polygons base_error_area = parent->area_->unionPolygons(lines_offset);
+                    Shape lines_offset = TreeSupportUtils::toPolylines(*parent->area_).offset(EPSILON);
+                    Shape base_error_area = parent->area_->unionPolygons(lines_offset);
                     result = increaseSingleArea(settings, layer_idx, parent, base_error_area, to_bp_data, to_model_data, inc_wo_collision, settings.increase_speed_, mergelayer);
 
                     if (fast_speed < settings.increase_speed_)
@@ -1507,7 +1506,7 @@ void TreeSupport::increaseAreas(
 
             if (add)
             {
-                Polygons max_influence_area = TreeSupportUtils::safeUnion(
+                Shape max_influence_area = TreeSupportUtils::safeUnion(
                     inc_wo_collision.difference(volumes_.getCollision(radius, layer_idx - 1, elem.use_min_xy_dist_)),
                     TreeSupportUtils::safeUnion(to_bp_data, to_model_data));
                 // ^^^ Note: union seems useless, but some rounding errors somewhere can cause to_bp_data to be slightly bigger than it should be
@@ -1585,8 +1584,8 @@ void TreeSupport::handleCradleLineValidity(
                 bool immutable = elem->area_ != nullptr;
                 bool to_bp = elem->to_buildplate_;
 
-                Polygons relevant_influence;
-                Polygons full_influence;
+                Shape relevant_influence;
+                Shape full_influence;
                 if (! immutable)
                 {
                     relevant_influence = to_bp ? to_bp_areas[*elem] : to_model_areas[*elem];
@@ -1608,7 +1607,7 @@ void TreeSupport::handleCradleLineValidity(
                         cradle_area_aabb.expand(config.getRadius(*elem) + config.xy_distance);
                         if (cradle_area_aabb.hit(relevant_influence_aabb))
                         {
-                            Polygons cradle_influence = TreeSupportUtils::safeOffsetInc(
+                            Shape cradle_influence = TreeSupportUtils::safeOffsetInc(
                                 cradle.getCradleLine()->area_,
                                 config.getRadius(*elem) + config.xy_distance,
                                 volumes_.getCollision(config.getCollisionRadius(*elem), layer_idx, true),
@@ -1617,7 +1616,7 @@ void TreeSupport::handleCradleLineValidity(
                                 1,
                                 config.support_line_distance / 2,
                                 &config.simplifier);
-                            Polygons next_relevant_influence = relevant_influence.difference(cradle_influence);
+                            Shape next_relevant_influence = relevant_influence.difference(cradle_influence);
 
                             if (next_relevant_influence.area() > EPSILON)
                             {
@@ -1757,10 +1756,10 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>&
         dur_cradle += time_d - time_c;
 
         // Save calculated elements to output, and allocate Polygons on heap, as they will not be changed again.
-        for (std::pair<TreeSupportElement, Polygons> tup : influence_areas)
+        for (std::pair<TreeSupportElement, Shape> tup : influence_areas)
         {
             const TreeSupportElement elem = tup.first;
-            Polygons* new_area = new Polygons(TreeSupportUtils::safeUnion(tup.second));
+            Shape* new_area = new Shape(TreeSupportUtils::safeUnion(tup.second));
             TreeSupportElement* next = new TreeSupportElement(elem, new_area);
             move_bounds[layer_idx - 1].emplace(next);
 
@@ -1771,10 +1770,10 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>&
         }
 
         // Place already fully constructed elements in the output.
-        for (std::pair<TreeSupportElement, Polygons> tup : bypass_merge_areas)
+        for (std::pair<TreeSupportElement, Shape> tup : bypass_merge_areas)
         {
             const TreeSupportElement elem = tup.first;
-            Polygons* new_area = new Polygons(TreeSupportUtils::safeUnion(tup.second));
+            Shape* new_area = new Shape(TreeSupportUtils::safeUnion(tup.second));
             TreeSupportElement* next = new TreeSupportElement(elem, new_area);
             move_bounds[layer_idx - 1].emplace(next);
             if (new_area->area() < 1)
@@ -1842,13 +1841,13 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement*>>& 
             set = true;
         }
 
-        Polygons valid_place_area;
+        Shape valid_place_area;
 
         // Check for every layer upwards, up to the point where this influence area was created (either by initial insert or merge) if the branch could be placed on it, and highest
         // up layer index.
         for (LayerIndex layer_check = layer_idx; check->next_height_ >= layer_check; layer_check++)
         {
-            Polygons check_valid_place_area = check->area_->intersection(volumes_.getPlaceableAreas(config.getCollisionRadius(*check), layer_check));
+            Shape check_valid_place_area = check->area_->intersection(volumes_.getPlaceableAreas(config.getCollisionRadius(*check), layer_check));
 
             if (! check_valid_place_area.empty())
             {
@@ -1919,7 +1918,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement*>>& 
     else // can not add graceful => just place it here and hope for the best
     {
         Point2LL best = first_elem->next_position_;
-        Polygons valid_place_area
+        Shape valid_place_area
             = first_elem->area_->difference(volumes_.getAvoidance(config.getCollisionRadius(*first_elem), layer_idx, AvoidanceType::COLLISION, first_elem->use_min_xy_dist_));
 
         if (! valid_place_area.inside(best, true))
@@ -2059,7 +2058,7 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<TreeSupportElement*>>
 
 void TreeSupport::generateBranchAreas(
     std::vector<std::pair<LayerIndex, TreeSupportElement*>>& linear_data,
-    std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons,
+    std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons,
     const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order)
 {
     double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES + TREE_PROGRESS_AREA_CALC;
@@ -2071,11 +2070,11 @@ void TreeSupport::generateBranchAreas(
         for (Point2LL vertex : base_circle)
         {
             vertex = Point2LL(vertex.X * config.branch_radius / TreeSupportBaseCircle::base_radius, vertex.Y * config.branch_radius / TreeSupportBaseCircle::base_radius);
-            branch_circle.add(vertex);
+            branch_circle.push_back(vertex);
         }
     }
 
-    std::vector<Polygons> linear_inserts(linear_data.size());
+    std::vector<Shape> linear_inserts(linear_data.size());
     const size_t progress_inserts_check_interval = std::max(linear_data.size() / progress_report_steps, size_t(1));
 
     std::mutex critical_sections;
@@ -2113,9 +2112,9 @@ void TreeSupport::generateBranchAreas(
             }
 
             coord_t max_speed_sqd = 0;
-            std::function<Polygons(coord_t)> generateArea = [&](coord_t offset)
+            std::function<Shape(coord_t)> generateArea = [&](coord_t offset)
             {
-                Polygons poly;
+                Shape poly;
 
                 for (std::pair<Point2LL, coord_t> movement : movement_directions)
                 {
@@ -2139,9 +2138,9 @@ void TreeSupport::generateBranchAreas(
                     for (Point2LL vertex : branch_circle)
                     {
                         vertex = Point2LL(matrix[0] * vertex.X + matrix[1] * vertex.Y, matrix[2] * vertex.X + matrix[3] * vertex.Y);
-                        circle.add(center_position + vertex);
+                        circle.push_back(center_position + vertex);
                     }
-                    poly.add(circle.offset(0));
+                    poly.push_back(circle.offset(0));
                 }
 
                 poly = poly.unionPolygons()
@@ -2163,7 +2162,7 @@ void TreeSupport::generateBranchAreas(
             {
                 // Simulate the path the nozzle will take on the outermost wall.
                 // If multiple parts exist, the outer line will not go all around the support part potentially causing support material to be printed mid air.
-                Polygons nozzle_path = linear_inserts[idx].offset(-config.support_line_width / 2);
+                Shape nozzle_path = linear_inserts[idx].offset(-config.support_line_width / 2);
                 if (nozzle_path.splitIntoParts(false).size() > 1)
                 {
                     // Just try to make the area a tiny bit larger.
@@ -2173,8 +2172,8 @@ void TreeSupport::generateBranchAreas(
                     // if larger area did not fix the problem, all parts off the nozzle path that do not contain the center point are removed, hoping for the best
                     if (nozzle_path.splitIntoParts(false).size() > 1)
                     {
-                        Polygons polygons_with_correct_center;
-                        for (PolygonsPart part : nozzle_path.splitIntoParts(false))
+                        Shape polygons_with_correct_center;
+                        for (SingleShape part : nozzle_path.splitIntoParts(false))
                         {
                             if (part.inside(elem->result_on_layer_, true))
                             {
@@ -2216,7 +2215,7 @@ void TreeSupport::generateBranchAreas(
     }
 }
 
-void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons)
+void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons)
 {
     double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES + TREE_PROGRESS_AREA_CALC + TREE_PROGRESS_GENERATE_BRANCH_AREAS;
     const coord_t max_radius_change_per_layer = 1 + config.support_line_width / 2; // This is the upper limit a radius may change per layer. +1 to avoid rounding errors.
@@ -2224,15 +2223,15 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
     // Smooth upward.
     for (const auto layer_idx : ranges::views::iota(0UL, std::max<size_t>(layer_tree_polygons.size(), 1UL) - 1UL))
     {
-        std::vector<std::pair<TreeSupportElement*, Polygons>> processing;
+        std::vector<std::pair<TreeSupportElement*, Shape>> processing;
         processing.insert(processing.end(), layer_tree_polygons[layer_idx].begin(), layer_tree_polygons[layer_idx].end());
-        std::vector<std::vector<std::pair<TreeSupportElement*, Polygons>>> update_next(processing.size()); // With this a lock can be avoided.
+        std::vector<std::vector<std::pair<TreeSupportElement*, Shape>>> update_next(processing.size()); // With this a lock can be avoided.
         cura::parallel_for<size_t>(
             0,
             processing.size(),
             [&](const size_t processing_idx)
             {
-                std::pair<TreeSupportElement*, Polygons> data_pair = processing[processing_idx];
+                std::pair<TreeSupportElement*, Shape> data_pair = processing[processing_idx];
 
                 coord_t max_outer_wall_distance = 0;
                 bool do_something = false;
@@ -2250,21 +2249,21 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
                     += max_radius_change_per_layer; // As this change is a bit larger than what usually appears, lost radius can be slowly reclaimed over the layers.
                 if (do_something)
                 {
-                    Polygons max_allowed_area = data_pair.second.offset(max_outer_wall_distance);
+                    Shape max_allowed_area = data_pair.second.offset(max_outer_wall_distance);
                     for (TreeSupportElement* parent : data_pair.first->parents_)
                     {
                         if (config.getRadius(*parent) != config.getCollisionRadius(*parent))
                         {
                             update_next[processing_idx].emplace_back(
-                                std::pair<TreeSupportElement*, Polygons>(parent, layer_tree_polygons[layer_idx + 1][parent].intersection(max_allowed_area)));
+                                std::pair<TreeSupportElement*, Shape>(parent, layer_tree_polygons[layer_idx + 1][parent].intersection(max_allowed_area)));
                         }
                     }
                 }
             });
 
-        for (std::vector<std::pair<TreeSupportElement*, Polygons>> data_vector : update_next)
+        for (std::vector<std::pair<TreeSupportElement*, Shape>> data_vector : update_next)
         {
-            for (std::pair<TreeSupportElement*, Polygons> data_pair : data_vector)
+            for (std::pair<TreeSupportElement*, Shape> data_pair : data_vector)
             {
                 layer_tree_polygons[layer_idx + 1][data_pair.first] = data_pair.second;
             }
@@ -2280,25 +2279,25 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
     std::unordered_set<TreeSupportElement*> updated_last_iteration;
     for (const auto layer_idx : ranges::views::iota(0UL, std::max<size_t>(layer_tree_polygons.size(), 1UL) - 1UL) | ranges::views::reverse)
     {
-        std::vector<std::pair<TreeSupportElement*, Polygons>> processing;
+        std::vector<std::pair<TreeSupportElement*, Shape>> processing;
         processing.insert(processing.end(), layer_tree_polygons[layer_idx].begin(), layer_tree_polygons[layer_idx].end());
-        std::vector<std::pair<TreeSupportElement*, Polygons>> update_next(
+        std::vector<std::pair<TreeSupportElement*, Shape>> update_next(
             processing.size(),
-            std::pair<TreeSupportElement*, Polygons>(nullptr, Polygons())); // With this a lock can be avoided.
+            std::pair<TreeSupportElement*, Shape>(nullptr, Shape())); // With this a lock can be avoided.
 
         cura::parallel_for<size_t>(
             0,
             processing.size(),
             [&](const size_t processing_idx)
             {
-                std::pair<TreeSupportElement*, Polygons> data_pair = processing[processing_idx];
+                std::pair<TreeSupportElement*, Shape> data_pair = processing[processing_idx];
                 bool do_something = false;
-                Polygons max_allowed_area;
+                Shape max_allowed_area;
                 for (size_t idx = 0; idx < data_pair.first->parents_.size(); idx++)
                 {
                     TreeSupportElement* parent = data_pair.first->parents_[idx];
                     const coord_t max_outer_line_increase = max_radius_change_per_layer;
-                    Polygons result = layer_tree_polygons[layer_idx + 1][parent].offset(max_outer_line_increase);
+                    Shape result = layer_tree_polygons[layer_idx + 1][parent].offset(max_outer_line_increase);
                     const Point2LL direction = data_pair.first->result_on_layer_ - parent->result_on_layer_;
                     // Move the polygons object.
                     for (auto& outer : result)
@@ -2308,22 +2307,22 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
                             p += direction;
                         }
                     }
-                    max_allowed_area.add(result);
+                    max_allowed_area.push_back(result);
                     do_something = do_something || updated_last_iteration.count(parent) || config.getCollisionRadius(*parent) != config.getRadius(*parent);
                 }
 
                 if (do_something)
                 {
-                    const Polygons result = max_allowed_area.unionPolygons().intersection(data_pair.second);
+                    const Shape result = max_allowed_area.unionPolygons().intersection(data_pair.second);
                     if (result.area() < data_pair.second.area())
                     {
-                        update_next[processing_idx] = std::pair<TreeSupportElement*, Polygons>(data_pair.first, result);
+                        update_next[processing_idx] = std::pair<TreeSupportElement*, Shape>(data_pair.first, result);
                     }
                 }
             });
 
         updated_last_iteration.clear();
-        for (std::pair<TreeSupportElement*, Polygons> data_pair : update_next)
+        for (std::pair<TreeSupportElement*, Shape> data_pair : update_next)
         {
             if (data_pair.first != nullptr)
             {
@@ -2338,9 +2337,9 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
 }
 
 void TreeSupport::dropNonGraciousAreas(
-    std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons,
+    std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons,
     const std::vector<std::pair<LayerIndex, TreeSupportElement*>>& linear_data,
-    std::vector<std::vector<std::pair<LayerIndex, Polygons>>>& dropped_down_areas,
+    std::vector<std::vector<std::pair<LayerIndex, Shape>>>& dropped_down_areas,
     const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order)
 {
     cura::parallel_for<size_t>(
@@ -2353,7 +2352,7 @@ void TreeSupport::dropNonGraciousAreas(
                                            && ! elem->to_buildplate_; // If an element has no child, it connects to whatever is below as no support further down for it will exist.
             if (non_gracious_model_contact)
             {
-                Polygons rest_support = layer_tree_polygons[linear_data[idx].first][elem].intersection(volumes_.getAccumulatedPlaceable0(linear_data[idx].first));
+                Shape rest_support = layer_tree_polygons[linear_data[idx].first][elem].intersection(volumes_.getAccumulatedPlaceable0(linear_data[idx].first));
                 for (LayerIndex counter = 1; rest_support.area() > 1 && counter < linear_data[idx].first; ++counter)
                 {
                     rest_support = rest_support.difference(volumes_.getCollision(0, linear_data[idx].first - counter));
@@ -2364,15 +2363,15 @@ void TreeSupport::dropNonGraciousAreas(
 }
 
 void TreeSupport::prepareSupportAreas(
-    std::vector<Polygons>& support_layer_storage,
-    std::vector<Polygons>& support_layer_storage_fractional,
-    std::vector<Polygons>& support_roof_storage,
-    std::vector<Polygons>& support_roof_extra_wall_storage,
-    std::vector<Polygons>& support_roof_storage_fractional,
-    std::vector<Polygons>& support_roof_extra_wall_storage_fractional,
-    std::vector<Polygons>& fake_roof_areas_combined,
-    std::vector<Polygons>& cradle_base_areas,
-    std::vector<Polygons>& cradle_support_line_areas,
+    std::vector<Shape>& support_layer_storage,
+    std::vector<Shape>& support_layer_storage_fractional,
+    std::vector<Shape>& support_roof_storage,
+    std::vector<Shape>& support_roof_extra_wall_storage,
+    std::vector<Shape>& support_roof_storage_fractional,
+    std::vector<Shape>& support_roof_extra_wall_storage_fractional,
+    std::vector<Shape>& fake_roof_areas_combined,
+    std::vector<Shape>& cradle_base_areas,
+    std::vector<Shape>& cradle_support_line_areas,
     SliceDataStorage& storage,
     std::vector<std::vector<TreeSupportCradle*>>& cradle_data)
 {
@@ -2380,10 +2379,10 @@ void TreeSupport::prepareSupportAreas(
     const coord_t open_close_distance = config.fill_outline_gaps ? config.min_feature_size / 2 - 5 : config.min_wall_line_width / 2 - 5; // based on calculation in WallToolPath
     const double small_area_length = INT2MM(static_cast<double>(config.support_line_width) / 2);
 
-    std::vector<Polygons> cradle_support_line_roof_areas(support_layer_storage.size()); // All cradle lines that have to be added as roof
+    std::vector<Shape> cradle_support_line_roof_areas(support_layer_storage.size()); // All cradle lines that have to be added as roof
 
-    std::vector<Polygons> cradle_line_xy_distance_areas(support_layer_storage.size()); // All cradle lines offset by xy distance.
-    std::vector<Polygons> missing_cradle_line_xy_distance_areas(support_layer_storage.size()); // All missing (because of cradle z distance) cradle lines offset by xy distance.
+    std::vector<Shape> cradle_line_xy_distance_areas(support_layer_storage.size()); // All cradle lines offset by xy distance.
+    std::vector<Shape> missing_cradle_line_xy_distance_areas(support_layer_storage.size()); // All missing (because of cradle z distance) cradle lines offset by xy distance.
 
     std::mutex critical_cradle_line_xy_distance_areas;
     std::mutex critical_cradle_support_line_areas;
@@ -2402,22 +2401,22 @@ void TreeSupport::prepareSupportAreas(
                     if (cradle_data[layer_idx][cradle_idx]->is_roof_)
                     {
                         std::lock_guard<std::mutex> critical_section_cradle(critical_support_roof_storage);
-                        cradle_base_areas[layer_idx - base_idx].add(base);
-                        (config.support_roof_wall_count ? support_roof_storage : support_roof_extra_wall_storage)[layer_idx - base_idx].add(base);
+                        cradle_base_areas[layer_idx - base_idx].push_back(base);
+                        (config.support_roof_wall_count ? support_roof_storage : support_roof_extra_wall_storage)[layer_idx - base_idx].push_back(base);
                         if (base_idx == 0 && config.z_distance_top % config.layer_height != 0 && layer_idx + 1 < support_roof_extra_wall_storage_fractional.size())
                         {
-                            (config.support_roof_wall_count ? support_roof_storage_fractional : support_roof_extra_wall_storage_fractional)[layer_idx + 1].add(base);
+                            (config.support_roof_wall_count ? support_roof_storage_fractional : support_roof_extra_wall_storage_fractional)[layer_idx + 1].push_back(base);
                         }
                     }
                     else
                     {
                         // Dead code. Currently, Cradles that are not roofs do not have a base area, just a tip. This is just here for the case that this changes
                         std::lock_guard<std::mutex> critical_section_cradle(critical_support_layer_storage);
-                        cradle_base_areas[layer_idx - base_idx].add(base);
-                        support_layer_storage[layer_idx - base_idx].add(base);
+                        cradle_base_areas[layer_idx - base_idx].push_back(base);
+                        support_layer_storage[layer_idx - base_idx].push_back(base);
                         if (base_idx == 0 && config.z_distance_top % config.layer_height != 0 && layer_idx + 1 < support_layer_storage_fractional.size())
                         {
-                            support_layer_storage_fractional[layer_idx + 1].add(base);
+                            support_layer_storage_fractional[layer_idx + 1].push_back(base);
                         }
                     }
                 }
@@ -2426,11 +2425,11 @@ void TreeSupport::prepareSupportAreas(
                 {
                     if (! cradle_data[layer_idx][cradle_idx]->lines_[line_idx].empty())
                     {
-                        Polygons previous_line_area = cradle_data[layer_idx][cradle_idx]->lines_[line_idx].back().area_;
+                        Shape previous_line_area = cradle_data[layer_idx][cradle_idx]->lines_[line_idx].back().area_;
                         LayerIndex previous_layer_idx = cradle_data[layer_idx][cradle_idx]->lines_[line_idx].back().layer_idx_;
                         for (int64_t height_idx = cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size() - 1; height_idx >= 0; height_idx--)
                         {
-                            Polygons line_area = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].area_;
+                            Shape line_area = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].area_;
                             bool is_roof = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].is_roof_;
                             LayerIndex cradle_line_layer_idx = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].layer_idx_;
                             bool is_base = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].is_base_;
@@ -2440,7 +2439,7 @@ void TreeSupport::prepareSupportAreas(
                             {
                                 for (LayerIndex xy_dist_layer_idx = previous_layer_idx - 1; xy_dist_layer_idx > cradle_line_layer_idx; xy_dist_layer_idx--)
                                 {
-                                    Polygons line_areas = TreeSupportUtils::safeOffsetInc(
+                                    Shape line_areas = TreeSupportUtils::safeOffsetInc(
                                         previous_line_area,
                                         config.xy_distance,
                                         volumes_.getCollision(0, xy_dist_layer_idx),
@@ -2450,7 +2449,7 @@ void TreeSupport::prepareSupportAreas(
                                         config.min_feature_size,
                                         &config.simplifier);
                                     std::lock_guard<std::mutex> critical_section_cradle(critical_cradle_line_xy_distance_areas);
-                                    missing_cradle_line_xy_distance_areas[xy_dist_layer_idx].add(line_areas);
+                                    missing_cradle_line_xy_distance_areas[xy_dist_layer_idx].push_back(line_areas);
                                 }
                             }
 
@@ -2462,7 +2461,7 @@ void TreeSupport::prepareSupportAreas(
                                 {
                                     cradle_support_line_roof_areas.resize(layer_idx + 1 + cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size() - height_idx);
                                 }
-                                cradle_support_line_roof_areas[cradle_line_layer_idx].add(line_area);
+                                cradle_support_line_roof_areas[cradle_line_layer_idx].push_back(line_area);
                             }
                             else
                             {
@@ -2472,11 +2471,11 @@ void TreeSupport::prepareSupportAreas(
                                 {
                                     cradle_support_line_areas.resize(layer_idx + 1 + cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size() - height_idx);
                                 }
-                                cradle_support_line_areas[cradle_line_layer_idx].add(line_area);
+                                cradle_support_line_areas[cradle_line_layer_idx].push_back(line_area);
                             }
                             if (! is_base)
                             {
-                                Polygons line_areas = TreeSupportUtils::safeOffsetInc(
+                                Shape line_areas = TreeSupportUtils::safeOffsetInc(
                                     line_area,
                                     config.xy_distance,
                                     volumes_.getCollision(0, cradle_line_layer_idx),
@@ -2486,7 +2485,7 @@ void TreeSupport::prepareSupportAreas(
                                     config.min_feature_size,
                                     &config.simplifier);
                                 std::lock_guard<std::mutex> critical_section_cradle(critical_cradle_line_xy_distance_areas);
-                                cradle_line_xy_distance_areas[cradle_line_layer_idx].add(line_areas);
+                                cradle_line_xy_distance_areas[cradle_line_layer_idx].push_back(line_areas);
                             }
                             previous_layer_idx = cradle_line_layer_idx;
                             previous_line_area = line_area;
@@ -2501,25 +2500,25 @@ void TreeSupport::prepareSupportAreas(
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
         {
-            Polygons fake_roof;
-            Polygons fake_roof_lines;
+            Shape fake_roof;
+            Shape fake_roof_lines;
 
             for (FakeRoofArea& f_roof : fake_roof_areas[layer_idx])
             {
-                fake_roof.add(f_roof.area_);
-                fake_roof_lines.add(
+                fake_roof.push_back(f_roof.area_);
+                fake_roof_lines.push_back(
                     TreeSupportUtils::generateSupportInfillLines(f_roof.area_, config, false, layer_idx, f_roof.line_distance_, storage.support.cross_fill_provider, 0)
-                        .offsetPolyLine(config.support_line_width / 2));
+                        .offset(config.support_line_width / 2));
             }
             fake_roof_lines = fake_roof_lines.unionPolygons();
             fake_roof = fake_roof.unionPolygons();
             fake_roof_areas_combined[layer_idx] = fake_roof;
 
 
-            Polygons remove_from_support = cradle_line_xy_distance_areas[layer_idx];
-            remove_from_support.add(missing_cradle_line_xy_distance_areas[layer_idx]);
-            remove_from_support.add(fake_roof_lines);
-            remove_from_support.add(support_free_areas[layer_idx]);
+            Shape remove_from_support = cradle_line_xy_distance_areas[layer_idx];
+            remove_from_support.push_back(missing_cradle_line_xy_distance_areas[layer_idx]);
+            remove_from_support.push_back(fake_roof_lines);
+            remove_from_support.push_back(support_free_areas[layer_idx]);
             remove_from_support = remove_from_support.unionPolygons();
 
             support_layer_storage[layer_idx] = config.simplifier.polygon(PolygonUtils::unionManySmall(support_layer_storage[layer_idx].smooth(FUDGE_LENGTH)))
@@ -2527,7 +2526,7 @@ void TreeSupport::prepareSupportAreas(
                                                    .offset(open_close_distance * 2)
                                                    .offset(-open_close_distance);
             support_layer_storage_fractional[layer_idx] = support_layer_storage_fractional[layer_idx].unionPolygons();
-            Polygons original_fractional = support_layer_storage_fractional[layer_idx];
+            Shape original_fractional = support_layer_storage_fractional[layer_idx];
             support_layer_storage_fractional[layer_idx] = support_layer_storage_fractional[layer_idx].difference(support_layer_storage[layer_idx]);
             // ensure there is at lease one line space for fractional support. Overlap is removed later!
             support_layer_storage_fractional[layer_idx] = support_layer_storage_fractional[layer_idx].offset(config.support_line_width).intersection(original_fractional);
@@ -2554,11 +2553,11 @@ void TreeSupport::prepareSupportAreas(
                 {
                 case InterfacePreference::INTERFACE_AREA_OVERWRITES_SUPPORT:
                 {
-                    Polygons all_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
-                    all_roof.add(support_roof_storage[layer_idx]);
-                    all_roof.add(support_roof_storage_fractional[layer_idx]);
-                    all_roof.add(support_roof_extra_wall_storage[layer_idx]);
-                    all_roof.add(support_roof_extra_wall_storage_fractional[layer_idx]);
+                    Shape all_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
+                    all_roof.push_back(support_roof_storage[layer_idx]);
+                    all_roof.push_back(support_roof_storage_fractional[layer_idx]);
+                    all_roof.push_back(support_roof_extra_wall_storage[layer_idx]);
+                    all_roof.push_back(support_roof_extra_wall_storage_fractional[layer_idx]);
                     all_roof = all_roof.unionPolygons();
                     support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(all_roof);
                     support_layer_storage_fractional[layer_idx] = support_layer_storage_fractional[layer_idx].difference(all_roof);
@@ -2567,11 +2566,11 @@ void TreeSupport::prepareSupportAreas(
 
                 case InterfacePreference::SUPPORT_AREA_OVERWRITES_INTERFACE:
                 {
-                    Polygons existing_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
-                    Polygons support_areas = support_layer_storage[layer_idx].unionPolygons(support_layer_storage_fractional[layer_idx]);
-                    Polygons invalid_roof = existing_roof.intersection(support_layer_storage[layer_idx]);
+                    Shape existing_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
+                    Shape support_areas = support_layer_storage[layer_idx].unionPolygons(support_layer_storage_fractional[layer_idx]);
+                    Shape invalid_roof = existing_roof.intersection(support_layer_storage[layer_idx]);
                     AABB invalid_roof_aabb = AABB(invalid_roof);
-                    storage.support.supportLayers[layer_idx].excludeAreasFromSupportParts(storage.support.supportLayers[layer_idx].support_roof, invalid_roof, invalid_roof_aabb);
+                    storage.support.supportLayers[layer_idx].excludeAreasFromSupportInfillAreas(storage.support.supportLayers[layer_idx].support_roof, invalid_roof, invalid_roof_aabb);
                     support_roof_storage[layer_idx] = support_roof_storage[layer_idx].difference(support_areas);
                     support_roof_extra_wall_storage[layer_idx] = support_roof_extra_wall_storage[layer_idx].difference(support_areas);
                     support_roof_storage_fractional[layer_idx] = support_roof_storage_fractional[layer_idx].difference(support_areas);
@@ -2582,25 +2581,25 @@ void TreeSupport::prepareSupportAreas(
                     break;
                 }
             }
-            Polygons cradle_lines_roof = cradle_support_line_roof_areas[layer_idx].unionPolygons();
-            Polygons remove_from_next_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof).unionPolygons();
+            Shape cradle_lines_roof = cradle_support_line_roof_areas[layer_idx].unionPolygons();
+            Shape remove_from_next_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof).unionPolygons();
             if (! support_free_areas[layer_idx].empty())
             {
-                remove_from_next_roof.add(support_free_areas[layer_idx]);
+                remove_from_next_roof.push_back(support_free_areas[layer_idx]);
             }
             //Remove only already added roof from line areas. Should not be needed, but better safe than sorry.
             cradle_lines_roof = cradle_lines_roof.difference(remove_from_next_roof);
             cradle_support_line_areas[layer_idx] = cradle_support_line_areas[layer_idx].unionPolygons().difference(remove_from_next_roof);
 
             //Collect remaining parts that non cradle line roof areas may not intersect with.
-            remove_from_next_roof.add(cradle_line_xy_distance_areas[layer_idx]);
+            remove_from_next_roof.push_back(cradle_line_xy_distance_areas[layer_idx]);
             remove_from_next_roof = remove_from_next_roof.unionPolygons();
 
-            Polygons remove_from_next_fractional_roof = remove_from_next_roof;
+            Shape remove_from_next_fractional_roof = remove_from_next_roof;
             remove_from_next_roof = remove_from_next_roof.unionPolygons(missing_cradle_line_xy_distance_areas[layer_idx]);
 
-            Polygons roof_extra_wall = support_roof_extra_wall_storage[layer_idx].difference(remove_from_next_roof);
-            Polygons roof = support_roof_storage[layer_idx];
+            Shape roof_extra_wall = support_roof_extra_wall_storage[layer_idx].difference(remove_from_next_roof);
+            Shape roof = support_roof_storage[layer_idx];
             if (config.support_roof_wall_count)
             {
                 roof = roof.difference(remove_from_next_roof);
@@ -2615,27 +2614,27 @@ void TreeSupport::prepareSupportAreas(
             storage.support.supportLayers[layer_idx].fillRoofParts(roof_extra_wall, config.support_roof_line_width, config.support_wall_count, false);
             storage.support.supportLayers[layer_idx].fillRoofParts(roof, config.support_roof_line_width, config.support_roof_wall_count, false);
 
-            remove_from_next_fractional_roof.add(roof_extra_wall);
-            remove_from_next_fractional_roof.add(roof);
+            remove_from_next_fractional_roof.push_back(roof_extra_wall);
+            remove_from_next_fractional_roof.push_back(roof);
             remove_from_next_fractional_roof = remove_from_next_fractional_roof.unionPolygons();
 
-            Polygons fractional_roof_extra_wall = support_roof_extra_wall_storage_fractional[layer_idx].difference(remove_from_next_fractional_roof);
+            Shape fractional_roof_extra_wall = support_roof_extra_wall_storage_fractional[layer_idx].difference(remove_from_next_fractional_roof);
             storage.support.supportLayers[layer_idx].fillRoofParts(fractional_roof_extra_wall, config.support_roof_line_width, config.support_wall_count, true);
 
-            Polygons fractional_roof = support_roof_storage_fractional[layer_idx].difference(remove_from_next_fractional_roof.unionPolygons(fractional_roof_extra_wall));
+            Shape fractional_roof = support_roof_storage_fractional[layer_idx].difference(remove_from_next_fractional_roof.unionPolygons(fractional_roof_extra_wall));
             storage.support.supportLayers[layer_idx].fillRoofParts(fractional_roof, config.support_roof_line_width, config.support_roof_wall_count, true);
         });
 }
 
 
-void TreeSupport::calculateSupportHoles(std::vector<Polygons>& support_layer_storage,
-                                        std::vector<std::vector<Polygons>>& hole_parts,
+void TreeSupport::calculateSupportHoles(std::vector<Shape>& support_layer_storage,
+                                        std::vector<std::vector<Shape>>& hole_parts,
                                         std::vector<std::set<size_t>>& valid_holes,
                                         std::vector<std::set<size_t>>& non_removable_holes,
                                         std::vector<std::map<size_t, std::vector<size_t>>>& hole_rest_map)
 {
 
-    std::function<void(Polygons&)> reversePolygon = [&](Polygons& poly)
+    std::function<void(Shape&)> reversePolygon = [&](Shape& poly)
     {
         for (size_t idx = 0; idx < poly.size(); idx++)
         {
@@ -2644,7 +2643,7 @@ void TreeSupport::calculateSupportHoles(std::vector<Polygons>& support_layer_sto
     };
 
 
-    std::vector<Polygons> support_holes(support_layer_storage.size(), Polygons());
+    std::vector<Shape> support_holes(support_layer_storage.size(), Shape());
 
     // Extract all holes as polygon objects
     cura::parallel_for<coord_t>(
@@ -2653,19 +2652,19 @@ void TreeSupport::calculateSupportHoles(std::vector<Polygons>& support_layer_sto
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
         {
-            std::vector<Polygons> parts = support_layer_storage[layer_idx].sortByNesting();
+            std::vector<Shape> parts = support_layer_storage[layer_idx].sortByNesting();
 
             if (parts.size() <= 1)
             {
                 return;
             }
 
-            Polygons holes_original;
+            Shape holes_original;
             for (const size_t idx : ranges::views::iota(1UL, parts.size()))
             {
-                Polygons area = parts[idx];
+                Shape area = parts[idx];
                 reversePolygon(area);
-                holes_original.add(area);
+                holes_original.push_back(area);
             }
             support_holes[layer_idx] = holes_original;
         });
@@ -2680,7 +2679,7 @@ void TreeSupport::calculateSupportHoles(std::vector<Polygons>& support_layer_sto
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
         {
-            for (Polygons hole : support_holes[layer_idx].splitIntoParts())
+            for (Shape hole : support_holes[layer_idx].splitIntoParts())
             {
                 hole_parts[layer_idx].emplace_back(hole);
             }
@@ -2697,9 +2696,9 @@ void TreeSupport::calculateSupportHoles(std::vector<Polygons>& support_layer_sto
                 return;
             }
 
-            Polygons relevant_forbidden = volumes_.getCollision(0, layer_idx, true);
-            Polygons outer_walls
-                = TreeSupportUtils::toPolylines(support_layer_storage[layer_idx - 1].getOutsidePolygons()).tubeShape(config.support_line_width * config.support_wall_count, 0);
+            const Shape& relevant_forbidden = volumes_.getCollision(0, layer_idx, true);
+            Shape outer_walls
+                = TreeSupportUtils::toPolylines(support_layer_storage[layer_idx - 1].getOutsidePolygons()).createTubeShape(config.support_line_width * config.support_wall_count, 0);
 
 
             for (auto [idx, hole] : hole_parts[layer_idx] | ranges::views::enumerate)
@@ -2733,17 +2732,17 @@ void TreeSupport::calculateSupportHoles(std::vector<Polygons>& support_layer_sto
 
 
 void TreeSupport::generateSupportSkin(
-    std::vector<Polygons>& support_layer_storage,
-    std::vector<Polygons>& support_skin_storage,
-    std::vector<Polygons>& fake_roof_areas_combined,
-    std::vector<Polygons>& cradle_base_areas,
-    std::vector<Polygons>& cradle_support_line_areas,
-    std::vector<std::vector<Polygons>>& hole_parts,
+    std::vector<Shape>& support_layer_storage,
+    std::vector<Shape>& support_skin_storage,
+    std::vector<Shape>& fake_roof_areas_combined,
+    std::vector<Shape>& cradle_base_areas,
+    std::vector<Shape>& cradle_support_line_areas,
+    std::vector<std::vector<Shape>>& hole_parts,
     std::vector<std::set<size_t>>& valid_holes,
     std::vector<std::set<size_t>>& non_removable_holes,
     std::vector<std::map<size_t, std::vector<size_t>>>& hole_rest_map,
     SliceDataStorage& storage,
-    std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons)
+    std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons)
 {
     std::mutex critical_support_layer_storage;
 
@@ -2760,24 +2759,24 @@ void TreeSupport::generateSupportSkin(
                 }
 
                 const coord_t roof_stable_range_after_contact = config.support_roof_line_width * (config.support_roof_wall_count + 0.5);
-                Polygons support_shell_capable_of_supporting_roof
+                Shape support_shell_capable_of_supporting_roof
                     = support_layer_storage[layer_idx]
                           .getOutsidePolygons()
-                          .tubeShape(
+                          .createTubeShape(
                               config.support_line_width * (config.support_wall_count + 0.5) + roof_stable_range_after_contact,
                               roof_stable_range_after_contact,
                               ClipperLib::JoinType::jtRound)
                           .unionPolygons()
                           .offset(-config.support_line_width / 4)
                           .offset(config.support_line_width / 4); // Getting rid of small rounding errors. If an area thinner than 1/2 line-width said it needs skin, it is lying.
-                Polygons needs_supporting;
+                Shape needs_supporting;
                 if (storage.support.supportLayers.size() > layer_idx + 1)
                 {
-                    Polygons roof_above = storage.support.supportLayers[layer_idx + 1].getTotalAreaFromParts(storage.support.supportLayers[layer_idx + 1].support_roof);
+                    Shape roof_above = storage.support.supportLayers[layer_idx + 1].getTotalAreaFromParts(storage.support.supportLayers[layer_idx + 1].support_roof);
 
-                    needs_supporting.add(roof_above.difference(support_shell_capable_of_supporting_roof));
-                    needs_supporting.add(fake_roof_areas_combined[layer_idx + 1].difference(support_shell_capable_of_supporting_roof));
-                    needs_supporting.add(cradle_support_line_areas[layer_idx + 1]);
+                    needs_supporting.push_back(roof_above.difference(support_shell_capable_of_supporting_roof));
+                    needs_supporting.push_back(fake_roof_areas_combined[layer_idx + 1].difference(support_shell_capable_of_supporting_roof));
+                    needs_supporting.push_back(cradle_support_line_areas[layer_idx + 1]);
 
                     for(size_t hole_idx : non_removable_holes[layer_idx + 1])
                     {
@@ -2794,27 +2793,27 @@ void TreeSupport::generateSupportSkin(
                         if(!rests_on_another) // Assuming that because of xy distance any hole below will be large enough to support this hole.
                         {
                             //Offset required as it is not the hole that needs support, but the surrounding walls!
-                            needs_supporting.add(hole_parts[layer_idx + 1][hole_idx].offset(config.support_line_width * config.support_wall_count + FUDGE_LENGTH));
+                            needs_supporting.push_back(hole_parts[layer_idx + 1][hole_idx].offset(config.support_line_width * config.support_wall_count + FUDGE_LENGTH));
                         }
                     }
 
                 }
-                needs_supporting.add(cradle_base_areas[layer_idx]); // cradle bases should be skin.
+                needs_supporting.push_back(cradle_base_areas[layer_idx]); // cradle bases should be skin.
 
                 needs_supporting = needs_supporting.unionPolygons();
 
-                Polygons existing_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
+                Shape existing_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
 
-                Polygons already_supports;
-                already_supports.add(existing_roof); // roof
-                already_supports.add(fake_roof_areas_combined[layer_idx]);
-                already_supports.add(support_layer_storage[layer_idx].getOutsidePolygons().tubeShape(config.support_line_width * config.support_wall_count, 0));
-                already_supports.add(cradle_support_line_areas[layer_idx]);
+                Shape already_supports;
+                already_supports.push_back(existing_roof); // roof
+                already_supports.push_back(fake_roof_areas_combined[layer_idx]);
+                already_supports.push_back(support_layer_storage[layer_idx].getOutsidePolygons().createTubeShape(config.support_line_width * config.support_wall_count, 0));
+                already_supports.push_back(cradle_support_line_areas[layer_idx]);
                 already_supports = already_supports.unionPolygons().offset(FUDGE_LENGTH).unionPolygons();
 
-                Polygons may_need_skin_area_topmost = needs_supporting.difference(already_supports);
+                Shape may_need_skin_area_topmost = needs_supporting.difference(already_supports);
 
-                for (std::pair<TreeSupportElement*, Polygons> data_pair : layer_tree_polygons[layer_idx])
+                for (std::pair<TreeSupportElement*, Shape> data_pair : layer_tree_polygons[layer_idx])
                 {
                     bool has_parent_roof = false;
 
@@ -2832,19 +2831,19 @@ void TreeSupport::generateSupportSkin(
 
                     if (element_viable_for_skin)
                     {
-                        may_need_skin_area_topmost.add(data_pair.second);
+                        may_need_skin_area_topmost.push_back(data_pair.second);
                     }
                 }
 
                 may_need_skin_area_topmost = may_need_skin_area_topmost.unionPolygons();
-                Polygons may_need_skin_area = may_need_skin_area_topmost;
+                Shape may_need_skin_area = may_need_skin_area_topmost;
 
                 for (LayerIndex support_skin_ctr = 0; support_skin_ctr < std::min(LayerIndex(config.support_skin_layers), layer_idx); support_skin_ctr++)
                 {
-                    Polygons next_skin;
-                    Polygons support_on_layer;
+                    Shape next_skin;
+                    Shape support_on_layer;
 
-                    Polygons remaining_regular_areas;
+                    Shape remaining_regular_areas;
 
                     {
                         std::lock_guard<std::mutex> critical_section_cradle(critical_support_layer_storage);
@@ -2856,13 +2855,13 @@ void TreeSupport::generateSupportSkin(
                         may_need_skin_area_topmost = may_need_skin_area_topmost.intersection(support_on_layer);
                     }
 
-                    for (Polygons part : support_on_layer.splitIntoParts())
+                    for (Shape part : support_on_layer.splitIntoParts())
                     {
-                        Polygons part_outline = part.getOutsidePolygons().difference(volumes_.getCollision(0, layer_idx - support_skin_ctr, true));
+                        Shape part_outline = part.getOutsidePolygons().difference(volumes_.getCollision(0, layer_idx - support_skin_ctr, true));
                         if (! PolygonUtils::clipPolygonWithAABB(may_need_skin_area, AABB(part_outline)).empty())
                         {
                             // Use line infill to scan which area the line infill has to occupy to reach the outer outline of a branch.
-                            Polygons scan_lines = TreeSupportUtils::generateSupportInfillLines(
+                            OpenLinesSet scan_lines = TreeSupportUtils::generateSupportInfillLines(
                                 part_outline,
                                 config,
                                 false,
@@ -2872,7 +2871,7 @@ void TreeSupport::generateSupportSkin(
                                 0,
                                 EFillMethod::LINES,
                                 true);
-                            Polygons intersecting_lines;
+                            OpenLinesSet intersecting_lines;
                             for (auto line : scan_lines)
                             {
                                 bool valid_for_may_need_skin = PolygonUtils::polygonCollidesWithLineSegment(may_need_skin_area, line.front(), line.back())
@@ -2881,21 +2880,21 @@ void TreeSupport::generateSupportSkin(
                                                                          || may_need_skin_area_topmost.inside(line.front()) || may_need_skin_area_topmost.inside(line.back());
                                 if (valid_for_may_need_skin && valid_for_may_need_skin_area_topmost)
                                 {
-                                    intersecting_lines.addLine(line.front(), line.back());
+                                    intersecting_lines.addSegment(line.front(), line.back());
                                 }
                             }
-                            Polygons partial_skin_area
-                                = intersecting_lines.offsetPolyLine(config.support_skin_line_distance + FUDGE_LENGTH).unionPolygons().intersection(part_outline);
+                            Shape partial_skin_area
+                                = intersecting_lines.offset(config.support_skin_line_distance + FUDGE_LENGTH).unionPolygons().intersection(part_outline);
 
                             // If a some scan lines had contact with two parts of part_outline, but the second part is outside of may_need_skin_area it could cause a separate skin
                             // area, that then cuts a branch in half that could have been completely normal. This area that does not need to be skin will be filtered out here.
                             {
-                                Polygons filtered_partial_skin_area;
+                                Shape filtered_partial_skin_area;
                                 for (auto p_skin : partial_skin_area.splitIntoParts())
                                 {
                                     if (! PolygonUtils::clipPolygonWithAABB(may_need_skin_area, AABB(p_skin)).intersection(p_skin).empty())
                                     {
-                                        filtered_partial_skin_area.add(p_skin);
+                                        filtered_partial_skin_area.push_back(p_skin);
                                     }
                                 }
                                 partial_skin_area = filtered_partial_skin_area;
@@ -2903,7 +2902,7 @@ void TreeSupport::generateSupportSkin(
 
                             double part_area = part.area();
                             part = part.difference(partial_skin_area);
-                            Polygons remaining_part;
+                            Shape remaining_part;
                             for (auto sub_part : part.splitIntoParts())
                             {
                                 // Prevent small slivers of a branch to generate as support. The heuristic to detect if a part is too small or thin could maybe be improved.
@@ -2914,16 +2913,16 @@ void TreeSupport::generateSupportSkin(
                                 }
                                 else
                                 {
-                                    remaining_part.add(sub_part);
+                                    remaining_part.push_back(sub_part);
                                 }
                             }
                             part = remaining_part;
-                            next_skin.add(partial_skin_area.intersection(may_need_skin_area_topmost));
+                            next_skin.push_back(partial_skin_area.intersection(may_need_skin_area_topmost));
                             std::lock_guard<std::mutex> critical_section_cradle(critical_support_layer_storage);
-                            support_skin_storage[layer_idx - support_skin_ctr].add(partial_skin_area);
+                            support_skin_storage[layer_idx - support_skin_ctr].push_back(partial_skin_area);
                         }
 
-                        remaining_regular_areas.add(part);
+                        remaining_regular_areas.push_back(part);
                     }
                     may_need_skin_area = next_skin.unionPolygons();
                 }
@@ -2948,7 +2947,7 @@ void TreeSupport::generateSupportSkin(
                     {
                         // The Hole was replaced by skin, remove it.
                         // All holes that rest on this are valid, but that is already ensured below
-                        hole_parts[layer_idx][idx] = Polygons();
+                        hole_parts[layer_idx][idx] = Shape();
                     }
                     else if (! hole.intersection(PolygonUtils::clipPolygonWithAABB(support_skin_storage[layer_idx - 1], hole_aabb)).empty())
                     {
@@ -2959,14 +2958,14 @@ void TreeSupport::generateSupportSkin(
         });
 }
 
-void TreeSupport::removeFloatingHoles(std::vector<Polygons>& support_layer_storage,
-                                      std::vector<std::vector<Polygons>>& hole_parts,
+void TreeSupport::removeFloatingHoles(std::vector<Shape>& support_layer_storage,
+                                      std::vector<std::vector<Shape>>& hole_parts,
                                       std::vector<std::set<size_t>>& valid_holes,
                                       std::vector<std::set<size_t>>& non_removable_holes,
                                       std::vector<std::map<size_t, std::vector<size_t>>>& hole_rest_map)
 {
     std::unordered_set<size_t> removed_holes_by_idx;
-    std::vector<Polygons> valid_holes_areas(hole_parts.size(), Polygons());
+    std::vector<Shape> valid_holes_areas(hole_parts.size(), Shape());
     // Check which holes have to be removed as they do not rest on anything. Only keep holes that have to be removed
     for (const size_t layer_idx : ranges::views::iota(1UL, hole_parts.size()))
     {
@@ -3003,8 +3002,8 @@ void TreeSupport::removeFloatingHoles(std::vector<Polygons>& support_layer_stora
             }
             else
             {
-                valid_holes_areas[layer_idx].add(hole);
-                hole_parts[layer_idx][idx] = Polygons(); // all remaining holes will have to be removed later, so removing the hole means it is confirmed valid!
+                valid_holes_areas[layer_idx].push_back(hole);
+                hole_parts[layer_idx][idx] = Shape(); // all remaining holes will have to be removed later, so removing the hole means it is confirmed valid!
             }
         }
         removed_holes_by_idx = next_removed_holes_by_idx;
@@ -3030,9 +3029,9 @@ void TreeSupport::removeFloatingHoles(std::vector<Polygons>& support_layer_stora
 }
 
 void TreeSupport::finalizeInterfaceAndSupportAreas(
-    std::vector<Polygons>& support_layer_storage,
-    std::vector<Polygons>& support_skin_storage,
-    std::vector<Polygons>& support_layer_storage_fractional,
+    std::vector<Shape>& support_layer_storage,
+    std::vector<Shape>& support_skin_storage,
+    std::vector<Shape>& support_layer_storage_fractional,
     SliceDataStorage& storage)
 {
     InterfacePreference interface_pref = config.interface_preference; // InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE;
@@ -3052,7 +3051,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 {
                 case InterfacePreference::INTERFACE_AREA_OVERWRITES_SUPPORT:
                 {
-                    Polygons existing_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
+                    Shape existing_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
                     support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(existing_roof);
                     support_skin_storage[layer_idx] = support_skin_storage[layer_idx].difference(existing_roof);
                     support_layer_storage_fractional[layer_idx] = support_layer_storage_fractional[layer_idx].difference(existing_roof);
@@ -3061,23 +3060,23 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
 
                 case InterfacePreference::SUPPORT_AREA_OVERWRITES_INTERFACE:
                 {
-                    Polygons existing_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
-                    Polygons support_areas = support_layer_storage[layer_idx];
-                    support_areas.add(support_skin_storage[layer_idx]);
-                    support_areas.add(support_layer_storage_fractional[layer_idx]);
-                    Polygons invalid_roof = existing_roof.intersection(support_areas.unionPolygons());
+                    Shape existing_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
+                    Shape support_areas = support_layer_storage[layer_idx];
+                    support_areas.push_back(support_skin_storage[layer_idx]);
+                    support_areas.push_back(support_layer_storage_fractional[layer_idx]);
+                    Shape invalid_roof = existing_roof.intersection(support_areas.unionPolygons());
                     AABB invalid_roof_aabb = AABB(invalid_roof);
-                    storage.support.supportLayers[layer_idx].excludeAreasFromSupportParts(storage.support.supportLayers[layer_idx].support_roof, invalid_roof, invalid_roof_aabb);
+                    storage.support.supportLayers[layer_idx].excludeAreasFromSupportInfillAreas(storage.support.supportLayers[layer_idx].support_roof, invalid_roof, invalid_roof_aabb);
                     break;
                 }
 
                 case InterfacePreference::INTERFACE_LINES_OVERWRITE_SUPPORT:
                 {
-                    Polygons interface_lines;
+                    Shape interface_lines;
 
                     for (SupportInfillPart& roof_part : storage.support.supportLayers[layer_idx].support_roof)
                     {
-                        interface_lines.add(TreeSupportUtils::generateSupportInfillLines(
+                        interface_lines.push_back(TreeSupportUtils::generateSupportInfillLines(
                                                 roof_part.outline_,
                                                 config,
                                                 true,
@@ -3086,10 +3085,9 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                                                 storage.support.cross_fill_provider,
                                                 roof_part.inset_count_to_generate_,
                                                 roof_part.custom_line_pattern_)
-                                                .offsetPolyLine(config.support_roof_line_width / 2));
+                                                .offset(config.support_roof_line_width / 2));
                     }
                     interface_lines = interface_lines.unionPolygons();
-
                     support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(interface_lines);
                     support_skin_storage[layer_idx] = support_skin_storage[layer_idx].difference(interface_lines);
                     support_layer_storage_fractional[layer_idx] = support_layer_storage_fractional[layer_idx].difference(interface_lines);
@@ -3098,9 +3096,9 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
 
                 case InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE:
                 {
-                    Polygons existing_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
+                    Shape existing_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
 
-                    Polygons tree_lines;
+                    Shape tree_lines;
                     tree_lines = tree_lines.unionPolygons(TreeSupportUtils::generateSupportInfillLines(
                                                               support_layer_storage[layer_idx],
                                                               config,
@@ -3109,9 +3107,9 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                                                               config.support_line_distance,
                                                               storage.support.cross_fill_provider,
                                                               config.support_wall_count)
-                                                              .offsetPolyLine(config.support_line_width / 2));
+                                                              .offset(config.support_line_width / 2));
 
-                    Polygons support_skin_lines;
+                    Shape support_skin_lines;
                     support_skin_lines = support_skin_lines.unionPolygons(TreeSupportUtils::generateSupportInfillLines(
                                                                               support_skin_storage[layer_idx],
                                                                               config,
@@ -3121,11 +3119,11 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                                                                               storage.support.cross_fill_provider,
                                                                               std::max(0, config.support_wall_count - 1),
                                                                               EFillMethod::LINES)
-                                                                              .offsetPolyLine(config.support_line_width / 2));
+                                                                              .offset(config.support_line_width / 2));
 
-                    Polygons invalid_roof = existing_roof.intersection(support_skin_lines.unionPolygons(tree_lines));
+                    Shape invalid_roof = existing_roof.intersection(support_skin_lines.unionPolygons(tree_lines));
                     AABB invalid_roof_aabb = AABB(invalid_roof);
-                    storage.support.supportLayers[layer_idx].excludeAreasFromSupportParts(storage.support.supportLayers[layer_idx].support_roof, invalid_roof, invalid_roof_aabb);
+                    storage.support.supportLayers[layer_idx].excludeAreasFromSupportInfillAreas(storage.support.supportLayers[layer_idx].support_roof, invalid_roof, invalid_roof_aabb);
                     // Do not draw roof where the tree is. I prefer it this way as otherwise the roof may cut of a branch from its support below.
                 }
                 break;
@@ -3138,8 +3136,8 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
             // Subtract support floors from the support area and add them to the support floor instead.
             if (config.support_bottom_layers > 0 && ! (support_layer_storage[layer_idx].empty() || support_skin_storage[layer_idx].empty()))
             {
-                Polygons floor_layer = storage.support.supportLayers[layer_idx].support_bottom;
-                Polygons layer_outset = support_layer_storage[layer_idx]
+                Shape floor_layer = storage.support.supportLayers[layer_idx].support_bottom;
+                Shape layer_outset = support_layer_storage[layer_idx]
                                             .unionPolygons(support_skin_storage[layer_idx])
                                             .offset(config.support_bottom_offset)
                                             .difference(volumes_.getCollision(0, layer_idx, false));
@@ -3151,7 +3149,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                         = static_cast<size_t>(std::max(0, (static_cast<int>(layer_idx) - static_cast<int>(layers_below)) - static_cast<int>(config.z_distance_bottom_layers)));
                     constexpr bool no_support = false;
                     constexpr bool no_prime_tower = false;
-                    floor_layer.add(layer_outset.intersection(storage.getLayerOutlines(sample_layer, no_support, no_prime_tower)));
+                    floor_layer.push_back(layer_outset.intersection(storage.getLayerOutlines(sample_layer, no_support, no_prime_tower)));
                     if (layers_below < config.support_bottom_layers)
                     {
                         layers_below = std::min(layers_below + 1UL, config.support_bottom_layers);
@@ -3173,14 +3171,13 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
         {
-            constexpr bool convert_every_part = true; // Convert every part into a PolygonsPart for the support.
-
+            constexpr bool convert_every_part = true; // Convert every part into a SingleShape for the support.
             // This only works because fractional support is always just projected upwards regular support or skin.
             // Also technically violates skin height, but there is no good way to prevent that.
-            Polygons fractional_support;
-            Polygons fractional_skin;
-            Polygons support_areas = support_layer_storage[layer_idx];
-            Polygons skin_areas = support_skin_storage[layer_idx];
+            Shape fractional_support;
+            Shape fractional_skin;
+            Shape support_areas = support_layer_storage[layer_idx];
+            Shape skin_areas = support_skin_storage[layer_idx];
 
             if (layer_idx > 0)
             {
@@ -3191,8 +3188,8 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 //  todo deduplicate code
                 if (interface_pref == InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE)
                 {
-                    Polygons existing_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
-                    Polygons tree_lines;
+                    Shape existing_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
+                    Shape tree_lines;
                     tree_lines = tree_lines.unionPolygons(TreeSupportUtils::generateSupportInfillLines(
                                                               fractional_support,
                                                               config,
@@ -3201,9 +3198,9 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                                                               config.support_line_distance,
                                                               storage.support.cross_fill_provider,
                                                               config.support_wall_count)
-                                                              .offsetPolyLine(config.support_line_width / 2));
+                                                              .offset(config.support_line_width / 2));
 
-                    Polygons support_skin_lines;
+                    Shape support_skin_lines;
                     support_skin_lines = support_skin_lines.unionPolygons(TreeSupportUtils::generateSupportInfillLines(
                                                                               fractional_skin,
                                                                               config,
@@ -3213,10 +3210,10 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                                                                               storage.support.cross_fill_provider,
                                                                               std::max(0, config.support_wall_count - 1),
                                                                               EFillMethod::LINES)
-                                                                              .offsetPolyLine(config.support_line_width / 2));
-                    Polygons invalid_roof = existing_roof.intersection(tree_lines);
+                                                                              .offset(config.support_line_width / 2));
+                    Shape invalid_roof = existing_roof.intersection(tree_lines);
                     AABB invalid_roof_aabb = AABB(invalid_roof);
-                    storage.support.supportLayers[layer_idx].excludeAreasFromSupportParts(storage.support.supportLayers[layer_idx].support_roof, invalid_roof, invalid_roof_aabb);
+                    storage.support.supportLayers[layer_idx].excludeAreasFromSupportInfillAreas(storage.support.supportLayers[layer_idx].support_roof, invalid_roof, invalid_roof_aabb);
                 }
 
                 // Remove overlap between fractional and regular support that may have been created in generateSupportSkin.
@@ -3275,21 +3272,20 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
 
 void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<std::vector<TreeSupportCradle*>>& cradle_data)
 {
-    std::vector<Polygons> support_layer_storage(move_bounds.size());
-    std::vector<Polygons> support_layer_storage_fractional(move_bounds.size());
-    std::vector<Polygons> support_roof_storage_fractional(move_bounds.size());
-    std::vector<Polygons> support_roof_extra_wall_storage_fractional(move_bounds.size());
-    std::vector<Polygons> support_skin_storage(move_bounds.size());
-    std::vector<Polygons> support_roof_storage(move_bounds.size());
-    std::vector<Polygons> support_roof_extra_wall_storage(move_bounds.size());
-    std::vector<std::vector<Polygons>> hole_parts(move_bounds.size());
+    std::vector<Shape> support_layer_storage(move_bounds.size());
+    std::vector<Shape> support_layer_storage_fractional(move_bounds.size());
+    std::vector<Shape> support_roof_storage_fractional(move_bounds.size());
+    std::vector<Shape> support_roof_extra_wall_storage_fractional(move_bounds.size());
+    std::vector<Shape> support_skin_storage(move_bounds.size());
+    std::vector<Shape> support_roof_storage(move_bounds.size());
+    std::vector<Shape> support_roof_extra_wall_storage(move_bounds.size());
+    std::vector<std::vector<Shape>> hole_parts(move_bounds.size());
     std::vector<std::set<size_t>> valid_holes(move_bounds.size());
     std::vector<std::set<size_t>> non_removable_holes(move_bounds.size());
     std::vector<std::map<size_t, std::vector<size_t>>> hole_rest_map(move_bounds.size());
-    std::vector<Polygons> fake_roof_areas_combined(move_bounds.size());
-    std::vector<Polygons> cradle_base_areas(move_bounds.size());
-    std::vector<Polygons> cradle_support_line_areas(move_bounds.size());
-
+    std::vector<Shape> fake_roof_areas_combined(move_bounds.size());
+    std::vector<Shape> cradle_base_areas(move_bounds.size());
+    std::vector<Shape> cradle_support_line_areas(move_bounds.size());
     std::map<TreeSupportElement*, TreeSupportElement*>
         inverse_tree_order; // In the tree structure only the parents can be accessed. Inverse this to be able to access the children.
     std::vector<std::pair<LayerIndex, TreeSupportElement*>>
@@ -3320,8 +3316,8 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
     }
 
 
-    // Reorder the processed data by layers again. The map also could be a vector<pair<SupportElement*,Polygons>>:
-    std::vector<std::unordered_map<TreeSupportElement*, Polygons>> layer_tree_polygons(move_bounds.size());
+    // Reorder the processed data by layers again. The map also could be a vector<pair<SupportElement*,Shape>>:
+    std::vector<std::unordered_map<TreeSupportElement*, Shape>> layer_tree_polygons(move_bounds.size());
     const auto t_start = std::chrono::high_resolution_clock::now();
 
     // Generate the circles that will be the branches.
@@ -3334,16 +3330,16 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
     const auto t_smooth = std::chrono::high_resolution_clock::now();
 
     // Drop down all trees that connect non gracefully with the model.
-    std::vector<std::vector<std::pair<LayerIndex, Polygons>>> dropped_down_areas(linear_data.size());
+    std::vector<std::vector<std::pair<LayerIndex, Shape>>> dropped_down_areas(linear_data.size());
     dropNonGraciousAreas(layer_tree_polygons, linear_data, dropped_down_areas, inverse_tree_order);
     const auto t_drop = std::chrono::high_resolution_clock::now();
 
     // single threaded combining all dropped down support areas to the right layers. ONLY COPYS DATA!
     for (const coord_t i : ranges::views::iota(0UL, dropped_down_areas.size()))
     {
-        for (std::pair<LayerIndex, Polygons> pair : dropped_down_areas[i])
+        for (std::pair<LayerIndex, Shape> pair : dropped_down_areas[i])
         {
-            support_layer_storage[pair.first].add(pair.second);
+            support_layer_storage[pair.first].push_back(pair.second);
         }
     }
 
@@ -3353,11 +3349,11 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
         layer_tree_polygons.size(),
         [&](const size_t layer_idx)
         {
-            for (std::pair<TreeSupportElement*, Polygons> data_pair : layer_tree_polygons[layer_idx])
+            for (std::pair<TreeSupportElement*, Shape> data_pair : layer_tree_polygons[layer_idx])
             {
                 if (data_pair.first->missing_roof_layers_ > data_pair.first->distance_to_top_ && config.support_roof_wall_count == 0)
                 {
-                    Polygons roof_lines = TreeSupportUtils::generateSupportInfillLines(
+                    OpenLinesSet roof_lines = TreeSupportUtils::generateSupportInfillLines(
                         data_pair.second,
                         config,
                         true,
@@ -3365,7 +3361,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
                         config.support_roof_line_distance,
                         nullptr,
                         config.support_roof_wall_count);
-                    if (roof_lines.polyLineLength() < data_pair.second.polyLineLength()) // arbitrary threshold to check if the interface pattern is propper.
+                    if (roof_lines.length() < data_pair.second.length()) // arbitrary threshold to check if the interface pattern is propper.
                     {
                         std::vector<TreeSupportElement*> to_disable_roofs;
                         to_disable_roofs.emplace_back(data_pair.first);
@@ -3389,7 +3385,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
 
     for (const auto layer_idx : ranges::views::iota(0UL, layer_tree_polygons.size()))
     {
-        for (std::pair<TreeSupportElement*, Polygons> data_pair : layer_tree_polygons[layer_idx])
+        for (std::pair<TreeSupportElement*, Shape> data_pair : layer_tree_polygons[layer_idx])
         {
             if (data_pair.first->parents_.empty() && ! data_pair.first->supports_roof_ && ! data_pair.first->cradle_line_ && layer_idx + 1 < support_roof_storage_fractional.size()
                 && config.z_distance_top % config.layer_height > 0)
@@ -3398,32 +3394,32 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
                 {
                     if (data_pair.first->roof_with_enforced_walls)
                     {
-                        support_roof_extra_wall_storage_fractional[layer_idx + 1].add(data_pair.second);
+                        support_roof_extra_wall_storage_fractional[layer_idx + 1].push_back(data_pair.second);
                     }
                     else
                     {
-                        support_roof_storage_fractional[layer_idx + 1].add(data_pair.second);
+                        support_roof_storage_fractional[layer_idx + 1].push_back(data_pair.second);
                     }
                 }
                 else
                 {
-                    support_layer_storage_fractional[layer_idx + 1].add(data_pair.second);
+                    support_layer_storage_fractional[layer_idx + 1].push_back(data_pair.second);
                 }
             }
             if (data_pair.first->missing_roof_layers_ > data_pair.first->distance_to_top_)
             {
                 if (data_pair.first->roof_with_enforced_walls)
                 {
-                    support_roof_extra_wall_storage[layer_idx].add(data_pair.second);
+                    support_roof_extra_wall_storage[layer_idx].push_back(data_pair.second);
                 }
                 else
                 {
-                    support_roof_storage[layer_idx].add(data_pair.second);
+                    support_roof_storage[layer_idx].push_back(data_pair.second);
                 }
             }
             else
             {
-                support_layer_storage[layer_idx].add(data_pair.second);
+                support_layer_storage[layer_idx].push_back(data_pair.second);
             }
         }
         if (layer_idx + 1 < support_roof_storage_fractional.size())

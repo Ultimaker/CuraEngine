@@ -4,7 +4,7 @@
 #ifndef PATHORDER_H
 #define PATHORDER_H
 
-#include "PathOrdering.h"
+#include "path_ordering.h"
 #include "settings/ZSeamConfig.h" //To get the seam settings.
 #include "utils/polygonUtils.h"
 

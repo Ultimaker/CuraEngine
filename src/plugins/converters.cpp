@@ -11,11 +11,12 @@
 
 #include "GCodePathConfig.h"
 #include "WallToolPaths.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/Polygon.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/SpeedDerivatives.h"
 #include "settings/Settings.h"
 #include "settings/types/LayerIndex.h"
-#include "utils/polygon.h"
 
 namespace cura::plugins
 {
@@ -102,7 +103,7 @@ simplify_request::value_type simplify_request::operator()(
     auto* msg_polygon = msg_polygons->add_polygons();
     auto* msg_outline = msg_polygon->mutable_outline();
 
-    for (const auto& point : ranges::front(polygons.paths))
+    for (const auto& point : ranges::front(polygons))
     {
         auto* msg_outline_path = msg_outline->add_path();
         msg_outline_path->set_x(point.X);
@@ -110,7 +111,7 @@ simplify_request::value_type simplify_request::operator()(
     }
 
     auto* msg_holes = msg_polygon->mutable_holes();
-    for (const auto& polygon : polygons.paths | ranges::views::drop(1))
+    for (const auto& polygon : polygons | ranges::views::drop(1))
     {
         auto* msg_hole = msg_holes->Add();
         for (const auto& point : polygon)
@@ -136,18 +137,18 @@ simplify_response::native_value_type
         Polygon o{};
         for (const auto& point : paths.outline().path())
         {
-            o.add(Point2LL{ point.x(), point.y() });
+            o.push_back(Point2LL{ point.x(), point.y() });
         }
-        poly.add(o);
+        poly.push_back(o);
 
         for (const auto& hole : paths.holes())
         {
             Polygon h{};
             for (const auto& point : hole.path())
             {
-                h.add(Point2LL{ point.x(), point.y() });
+                h.push_back(Point2LL{ point.x(), point.y() });
             }
-            poly.add(h);
+            poly.push_back(h);
         }
     }
     return poly;
@@ -186,7 +187,7 @@ infill_generate_request::value_type
     auto* msg_polygon = msg_polygons->add_polygons();
     auto* msg_outline = msg_polygon->mutable_outline();
 
-    for (const auto& point : ranges::front(inner_contour.paths))
+    for (const auto& point : ranges::front(inner_contour))
     {
         auto* msg_outline_path = msg_outline->add_path();
         msg_outline_path->set_x(point.X);
@@ -194,7 +195,7 @@ infill_generate_request::value_type
     }
 
     auto* msg_holes = msg_polygon->mutable_holes();
-    for (const auto& polygon : inner_contour.paths | ranges::views::drop(1))
+    for (const auto& polygon : inner_contour | ranges::views::drop(1))
     {
         auto* msg_hole = msg_holes->Add();
         for (const auto& point : polygon)
@@ -211,8 +212,8 @@ infill_generate_request::value_type
 infill_generate_response::native_value_type infill_generate_response::operator()(const infill_generate_response::value_type& message) const
 {
     VariableWidthLines toolpaths;
-    Polygons result_polygons;
-    Polygons result_lines;
+    Shape result_polygons;
+    OpenLinesSet result_lines;
 
     for (auto& tool_path : message.tool_paths().tool_paths())
     {
@@ -232,14 +233,14 @@ infill_generate_response::native_value_type infill_generate_response::operator()
 
     for (auto& polygon_msg : message.polygons().polygons())
     {
-        Polygons polygon{};
+        Shape polygon{};
 
         Polygon outline{};
         for (auto& path_msg : polygon_msg.outline().path())
         {
-            outline.add(Point2LL{ path_msg.x(), path_msg.y() });
+            outline.push_back(Point2LL{ path_msg.x(), path_msg.y() });
         }
-        polygon.add(outline);
+        polygon.push_back(outline);
 
 
         for (auto& hole_msg : polygon_msg.holes())
@@ -247,20 +248,20 @@ infill_generate_response::native_value_type infill_generate_response::operator()
             Polygon hole{};
             for (auto& path_msg : hole_msg.path())
             {
-                hole.add(Point2LL{ path_msg.x(), path_msg.y() });
+                hole.emplace_back(path_msg.x(), path_msg.y());
             }
-            polygon.add(hole);
+            polygon.push_back(hole);
         }
 
-        result_polygons.add(polygon);
+        result_polygons.push_back(polygon);
     }
 
     for (auto& polygon : message.poly_lines().paths())
     {
-        Polygon poly_line;
+        OpenPolyline poly_line;
         for (auto& p : polygon.path())
         {
-            poly_line.emplace_back(Point2LL{ p.x(), p.y() });
+            poly_line.emplace_back(p.x(), p.y());
         }
         result_lines.emplace_back(poly_line);
     }
@@ -346,6 +347,7 @@ gcode_paths_modify_request::value_type
         gcode_path->set_speed_factor(path.speed_factor);
         gcode_path->set_speed_back_pressure_factor(path.speed_back_pressure_factor);
         gcode_path->set_retract(path.retract);
+        gcode_path->set_retract_for_nozzle_switch(path.retract_for_nozzle_switch);
         gcode_path->set_unretract_before_last_travel_move(path.unretract_before_last_travel_move);
         gcode_path->set_perform_z_hop(path.perform_z_hop);
         gcode_path->set_perform_prime(path.perform_prime);
@@ -463,6 +465,7 @@ gcode_paths_modify_response::native_value_type
             .speed_factor = gcode_path_msg.speed_factor(),
             .speed_back_pressure_factor = gcode_path_msg.speed_back_pressure_factor(),
             .retract = gcode_path_msg.retract(),
+            .retract_for_nozzle_switch = gcode_path_msg.retract_for_nozzle_switch(),
             .unretract_before_last_travel_move = gcode_path_msg.unretract_before_last_travel_move(),
             .perform_z_hop = gcode_path_msg.perform_z_hop(),
             .perform_prime = gcode_path_msg.perform_prime(),

@@ -5,7 +5,7 @@
 #define LIGHTNING_DISTANCE_FIELD_H
 
 #include "../utils/SquareGrid.h" //Tracking for each location the distance to overhang.
-#include "../utils/polygon.h" //Using outlines to fill and tracking overhang.
+#include "geometry/Polygon.h" //Using outlines to fill and tracking overhang.
 
 namespace cura
 {
@@ -29,7 +29,7 @@ public:
      * \param current_overhang The overhang that needs to be supported on this
      * layer.
      */
-    LightningDistanceField(const coord_t& radius, const Polygons& current_outline, const Polygons& current_overhang);
+    LightningDistanceField(const coord_t& radius, const Shape& current_outline, const Shape& current_overhang);
 
     /*!
      * Gets the next unsupported location to be supported by a new branch.
@@ -76,13 +76,13 @@ protected:
     /*!
      * The total infill area on the current layer.
      */
-    const Polygons& current_outline_;
+    const Shape& current_outline_;
 
     /*!
      * The overhang that gets introduced on this layer, which the infill will
      * need to support.
      */
-    const Polygons& current_overhang_;
+    const Shape& current_overhang_;
 
     /*!
      * Represents a small discrete area of infill that needs to be supported.

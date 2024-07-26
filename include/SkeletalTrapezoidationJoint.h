@@ -7,7 +7,7 @@
 #include <memory> // smart pointers
 
 #include "BeadingStrategy/BeadingStrategy.h"
-#include "utils/Point2LL.h"
+#include "geometry/Point2LL.h"
 
 namespace cura
 {
@@ -51,7 +51,7 @@ public:
     {
         beading_ = storage;
     }
-    std::shared_ptr<BeadingPropagation> getBeading()
+    std::shared_ptr<BeadingPropagation> getBeading() const
     {
         return beading_.lock();
     }

@@ -11,11 +11,11 @@
 #include "TreeSupportEnums.h"
 #include "TreeSupportSettings.h"
 #include "boost/functional/hash.hpp" // For combining hashes
+#include "geometry/Polygon.h"
 #include "polyclipping/clipper.hpp"
 #include "settings/EnumSettings.h"
 #include "sliceDataStorage.h"
 #include "utils/Coord_t.h"
-#include "utils/polygon.h"
 
 namespace cura
 {
@@ -43,12 +43,12 @@ constexpr auto SUPPORT_TREE_EXPONENTIAL_FACTOR = 1.5;
 constexpr size_t SUPPORT_TREE_PRE_EXPONENTIAL_STEPS = 1;
 constexpr coord_t SUPPORT_TREE_COLLISION_RESOLUTION = 500; // Only has an effect if SUPPORT_TREE_USE_EXPONENTIAL_COLLISION_RESOLUTION is false
 
-using PropertyAreasUnordered = std::unordered_map<TreeSupportElement, Polygons>;
-using PropertyAreas = std::map<TreeSupportElement, Polygons>;
+using PropertyAreasUnordered = std::unordered_map<TreeSupportElement, Shape>;
+using PropertyAreas = std::map<TreeSupportElement, Shape>;
 
 struct FakeRoofArea
 {
-    FakeRoofArea(Polygons area, coord_t line_distance, bool fractional)
+    FakeRoofArea(Shape area, coord_t line_distance, bool fractional)
         : area_(area)
         , line_distance_(line_distance)
         , fractional_(fractional)
@@ -57,7 +57,7 @@ struct FakeRoofArea
     /*!
      * \brief Area that should be a fake roof.
      */
-    Polygons area_;
+    Shape area_;
 
     /*!
      * \brief Distance between support lines
@@ -193,10 +193,10 @@ private:
         AreaIncreaseSettings settings,
         LayerIndex layer_idx,
         TreeSupportElement* parent,
-        const Polygons& relevant_offset,
-        Polygons& to_bp_data,
-        Polygons& to_model_data,
-        Polygons& increased,
+        const Shape& relevant_offset,
+        Shape& to_bp_data,
+        Shape& to_model_data,
+        Shape& increased,
         const coord_t overspeed,
         const bool mergelayer);
 
@@ -297,7 +297,7 @@ private:
      */
     void generateBranchAreas(
         std::vector<std::pair<LayerIndex, TreeSupportElement*>>& linear_data,
-        std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons,
+        std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons,
         const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order);
 
     /*!
@@ -305,7 +305,7 @@ private:
      *
      * \param layer_tree_polygons[in,out] Resulting branch areas with the layerindex they appear on.
      */
-    void smoothBranchAreas(std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons);
+    void smoothBranchAreas(std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons);
 
     /*!
      * \brief Drop down areas that do rest non-gracefully on the model to ensure the branch actually rests on something.
@@ -316,9 +316,9 @@ private:
      * \param inverse_tree_order[in] A mapping that returns the child of every influence area.
      */
     void dropNonGraciousAreas(
-        std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons,
+        std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons,
         const std::vector<std::pair<LayerIndex, TreeSupportElement*>>& linear_data,
-        std::vector<std::vector<std::pair<LayerIndex, Polygons>>>& dropped_down_areas,
+        std::vector<std::vector<std::pair<LayerIndex, Shape>>>& dropped_down_areas,
         const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order);
 
 
@@ -337,15 +337,15 @@ private:
      * \param cradle_data[in] All currently existing cradles, with its corresponding cradle lines.
      */
     void prepareSupportAreas(
-        std::vector<Polygons>& support_layer_storage,
-        std::vector<Polygons>& support_layer_storage_fractional,
-        std::vector<Polygons>& support_roof_storage,
-        std::vector<Polygons>& support_roof_extra_wall_storage,
-        std::vector<Polygons>& support_roof_storage_fractional,
-        std::vector<Polygons>& support_roof_extra_wall_storage_fractional,
-        std::vector<Polygons>& fake_roof_areas_combined,
-        std::vector<Polygons>& cradle_base_areas,
-        std::vector<Polygons>& cradle_support_line_areas,
+        std::vector<Shape>& support_layer_storage,
+        std::vector<Shape>& support_layer_storage_fractional,
+        std::vector<Shape>& support_roof_storage,
+        std::vector<Shape>& support_roof_extra_wall_storage,
+        std::vector<Shape>& support_roof_storage_fractional,
+        std::vector<Shape>& support_roof_extra_wall_storage_fractional,
+        std::vector<Shape>& fake_roof_areas_combined,
+        std::vector<Shape>& cradle_base_areas,
+        std::vector<Shape>& cradle_support_line_areas,
         SliceDataStorage& storage,
         std::vector<std::vector<TreeSupportCradle*>>& cradle_data);
 
@@ -357,8 +357,8 @@ private:
      * \param non_removable_holes[out] Indices of holes that can not be removed, by layer.
      * \param hole_rest_map[out] Ordered by layer, information on which hole index on the layer below a given hole rests on
      */
-    void calculateSupportHoles(std::vector<Polygons>& support_layer_storage,
-                               std::vector<std::vector<Polygons>>& hole_parts,
+    void calculateSupportHoles(std::vector<Shape>& support_layer_storage,
+                               std::vector<std::vector<Shape>>& hole_parts,
                                std::vector<std::set<size_t>>& valid_holes,
                                std::vector<std::set<size_t>>& non_removable_holes,
                                std::vector<std::map<size_t, std::vector<size_t>>>& hole_rest_map);
@@ -380,17 +380,17 @@ private:
      * \param layer_tree_polygons[in] Resulting branch areas with the layerindex they appear on.
      */
     void generateSupportSkin(
-        std::vector<Polygons>& support_layer_storage,
-        std::vector<Polygons>& support_skin_storage,
-        std::vector<Polygons>& fake_roof_areas_combined,
-        std::vector<Polygons>& cradle_base_areas,
-        std::vector<Polygons>& cradle_support_line_areas,
-        std::vector<std::vector<Polygons>>& hole_parts,
+        std::vector<Shape>& support_layer_storage,
+        std::vector<Shape>& support_skin_storage,
+        std::vector<Shape>& fake_roof_areas_combined,
+        std::vector<Shape>& cradle_base_areas,
+        std::vector<Shape>& cradle_support_line_areas,
+        std::vector<std::vector<Shape>>& hole_parts,
         std::vector<std::set<size_t>>& valid_holes,
         std::vector<std::set<size_t>>& non_removable_holes,
         std::vector<std::map<size_t, std::vector<size_t>>>& hole_rest_map,
         SliceDataStorage& storage,
-        std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons);
+        std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons);
 
     /*!
      * \brief Filters out holes that would cause support to be printed mid-air.
@@ -400,8 +400,8 @@ private:
      * \param non_removable_holes[in] Indices of holes that can not be removed, by layer.
      * \param hole_rest_map[in] Ordered by layer, information on which hole index on the layer below a given hole rests on
      */
-    void removeFloatingHoles(std::vector<Polygons>& support_layer_storage,
-                             std::vector<std::vector<Polygons>>& hole_parts,
+    void removeFloatingHoles(std::vector<Shape>& support_layer_storage,
+                             std::vector<std::vector<Shape>>& hole_parts,
                              std::vector<std::set<size_t>>& valid_holes,
                              std::vector<std::set<size_t>>& non_removable_holes,
                              std::vector<std::map<size_t, std::vector<size_t>>>& hole_rest_map);
@@ -415,9 +415,9 @@ private:
      * \param storage[in,out] The storage where the support should be stored.
      */
     void finalizeInterfaceAndSupportAreas(
-        std::vector<Polygons>& support_layer_storage,
-        std::vector<Polygons>& support_skin_storage,
-        std::vector<Polygons>& support_layer_storage_fractional,
+        std::vector<Shape>& support_layer_storage,
+        std::vector<Shape>& support_skin_storage,
+        std::vector<Shape>& support_layer_storage_fractional,
         SliceDataStorage& storage);
 
     /*!
@@ -442,7 +442,7 @@ private:
     /*!
      * \brief Areas where no support may be. Areas will be subtracted from support areas.
      */
-    std::vector<Polygons> support_free_areas;
+    std::vector<Shape> support_free_areas;
 
     /*!
      * \brief Generator for model collision, avoidance and internal guide volumes.

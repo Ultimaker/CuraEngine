@@ -6,10 +6,11 @@
 
 #include <vector>
 
+#include "geometry/Polygon.h"
+#include "geometry/SingleShape.h"
 #include "settings/EnumSettings.h"
 #include "utils/AABB.h"
 #include "utils/ExtrusionLine.h"
-#include "utils/polygon.h"
 
 
 namespace cura
@@ -26,24 +27,24 @@ namespace cura
 class SupportInfillPart
 {
 public:
-    PolygonsPart outline_; //!< The outline of the support infill area
+    SingleShape outline_; //!< The outline of the support infill area
     AABB outline_boundary_box_; //!< The boundary box for the infill area
     coord_t support_line_width_; //!< The support line width
     int inset_count_to_generate_; //!< The number of insets need to be generated from the outline. This is not the actual insets that will be generated.
-    std::vector<std::vector<Polygons>> infill_area_per_combine_per_density_; //!< a list of separated sub-areas which requires different infill densities and combined thicknesses
-                                                                             //   for infill_areas[x][n], x means the density level and n means the thickness
+    std::vector<std::vector<Shape>> infill_area_per_combine_per_density_; //!< a list of separated sub-areas which requires different infill densities and combined thicknesses
+                                                                          //   for infill_areas[x][n], x means the density level and n means the thickness
     std::vector<VariableWidthLines> wall_toolpaths_; //!< Any walls go here, not in the areas, where they could be combined vertically (don't combine walls). Binned by inset_idx.
 
     coord_t custom_line_distance_; //!< The distance between support infill lines. 0 means use the default line distance instead.
     bool use_fractional_config_; //!< Request to use the configuration used to fill a partial layer height here, instead of the normal full layer height configuration.
     EFillMethod custom_line_pattern_;
 
-    SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, bool use_fractional_config, int inset_count_to_generate = 0, coord_t custom_line_distance = 0, EFillMethod custom_line_pattern = EFillMethod::NONE );
+    SupportInfillPart(const SingleShape& outline, coord_t support_line_width, bool use_fractional_config, int inset_count_to_generate = 0, coord_t custom_line_distance = 0, EFillMethod custom_line_pattern = EFillMethod::NONE );
 
-    const Polygons& getInfillArea() const;
+    const Shape& getInfillArea() const;
 };
 
-inline const Polygons& SupportInfillPart::getInfillArea() const
+inline const Shape& SupportInfillPart::getInfillArea() const
 {
     // if there is no wall, we use the original outline as the infill area
     return outline_;

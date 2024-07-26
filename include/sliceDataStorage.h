@@ -8,22 +8,22 @@
 #include <memory>
 #include <optional>
 
-#include "PrimeTower.h"
-#include "RetractionConfig.h"
 #include "SupportInfillPart.h"
 #include "TopSurface.h"
 #include "WipeScriptConfig.h"
+#include "geometry/LinesSet.h"
+#include "geometry/MixedLinesSet.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/Point2LL.h"
+#include "geometry/Polygon.h"
+#include "geometry/SingleShape.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
 #include "settings/types/Angle.h" //Infill angles.
 #include "settings/types/LayerIndex.h"
 #include "utils/AABB.h"
 #include "utils/AABB3D.h"
 #include "utils/NoCopy.h"
-#include "utils/Point2LL.h"
-#include "utils/polygon.h"
-
-// libArachne
-#include "utils/ExtrusionLine.h"
 
 namespace cura
 {
@@ -31,6 +31,7 @@ namespace cura
 class Mesh;
 class SierpinskiFillProvider;
 class LightningGenerator;
+class PrimeTower;
 
 /*!
  * A SkinPart is a connected area designated as top and/or bottom skin.
@@ -40,12 +41,12 @@ class LightningGenerator;
 class SkinPart
 {
 public:
-    PolygonsPart outline; //!< The skinOutline is the area which needs to be 100% filled to generate a proper top&bottom filling. It's filled by the "skin" module. Includes both
-                          //!< roofing and non-roofing.
-    Polygons skin_fill; //!< The part of the skin which is not roofing.
-    Polygons roofing_fill; //!< The inner infill which has air directly above
-    Polygons top_most_surface_fill; //!< The inner infill of the uppermost top layer which has air directly above.
-    Polygons bottom_most_surface_fill; //!< The inner infill of the bottommost bottom layer which has air directly below.
+    SingleShape outline; //!< The skinOutline is the area which needs to be 100% filled to generate a proper top&bottom filling. It's filled by the "skin" module. Includes both
+                         //!< roofing and non-roofing.
+    Shape skin_fill; //!< The part of the skin which is not roofing.
+    Shape roofing_fill; //!< The inner infill which has air directly above
+    Shape top_most_surface_fill; //!< The inner infill of the uppermost top layer which has air directly above.
+    Shape bottom_most_surface_fill; //!< The inner infill of the bottommost bottom layer which has air directly below.
 };
 
 /*!
@@ -59,13 +60,12 @@ public:
     AABB boundaryBox; //!< The boundaryBox is an axis-aligned boundary box which is used to quickly check for possible
                       //!< collision between different parts on different layers. It's an optimization used during
                       //!< skin calculations.
-    PolygonsPart outline; //!< The outline is the first member that is filled, and it's filled with polygons that match
-                          //!< a cross-section of the 3D model. The first polygon is the outer boundary polygon and the
-                          //!< rest are holes.
-    Polygons print_outline; //!< An approximation to the outline of what's actually printed, based on the outer wall.
-                            //!< Too small parts will be omitted compared to the outline.
-    Polygons spiral_wall; //!< The centerline of the wall used by spiralize mode. Only computed if spiralize mode is enabled.
-    Polygons inner_area; //!< The area of the outline, minus the walls. This will be filled with either skin or infill.
+    SingleShape outline; //!< The outline is the first member that is filled, and it's filled with polygons that match
+                         //!< a cross-section of the 3D model.
+    Shape print_outline; //!< An approximation to the outline of what's actually printed, based on the outer wall.
+                         //!< Too small parts will be omitted compared to the outline.
+    Shape spiral_wall; //!< The centerline of the wall used by spiralize mode. Only computed if spiralize mode is enabled.
+    Shape inner_area; //!< The area of the outline, minus the walls. This will be filled with either skin or infill.
     std::vector<SkinPart> skin_parts; //!< The skin parts which are filled for 100% with lines and/or insets.
     std::vector<VariableWidthLines> wall_toolpaths; //!< toolpaths for walls, will replace(?) the insets. Binned by inset_idx.
     std::vector<VariableWidthLines> infill_wall_toolpaths; //!< toolpaths for the walls of the infill areas. Binned by inset_idx.
@@ -75,7 +75,7 @@ public:
      * Like SliceLayerPart::outline, this class member is not used to actually determine the feature area,
      * but is used to compute the inside comb boundary.
      */
-    Polygons infill_area;
+    Shape infill_area;
 
     /*!
      * The areas which need to be filled with sparse (0-99%) infill.
@@ -86,7 +86,7 @@ public:
      *
      * If these polygons are not initialized, simply use the normal infill area.
      */
-    std::optional<Polygons> infill_area_own;
+    std::optional<Shape> infill_area_own;
 
     /*!
      * The areas which need to be filled with sparse (0-99%) infill for different thicknesses.
@@ -133,21 +133,21 @@ public:
      * infill_area[x] will lie fully inside infill_area[x+1].
      * infill_area_per_combine_per_density.back()[0] == part.infill area initially
      */
-    std::vector<std::vector<Polygons>> infill_area_per_combine_per_density;
+    std::vector<std::vector<Shape>> infill_area_per_combine_per_density;
 
     /*!
      * Get the infill_area_own (or when it's not instantiated: the normal infill_area)
      * \see SliceLayerPart::infill_area_own
      * \return the own infill area
      */
-    Polygons& getOwnInfillArea();
+    Shape& getOwnInfillArea();
 
     /*!
      * Get the infill_area_own (or when it's not instantiated: the normal infill_area)
      * \see SliceLayerPart::infill_area_own
      * \return the own infill area
      */
-    const Polygons& getOwnInfillArea() const;
+    const Shape& getOwnInfillArea() const;
 
     /*!
      * Searches whether the part has any walls in the specified inset index
@@ -166,7 +166,7 @@ public:
     coord_t printZ; //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
     coord_t thickness; //!< The thickness of this layer. Can be different when using variable layer heights.
     std::vector<SliceLayerPart> parts; //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
-    Polygons openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
+    OpenLinesSet open_polylines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
 
     /*!
      * \brief The parts of the model that are exposed at the very top of the
@@ -181,7 +181,7 @@ public:
      *
      * Note: Filled only when needed.
      */
-    Polygons bottom_surface;
+    Shape bottom_surface;
 
     /*!
      * Get the all outlines of all layer parts in this layer.
@@ -189,7 +189,7 @@ public:
      * \param external_polys_only Whether to only include the outermost outline of each layer part
      * \return A collection of all the outline polygons
      */
-    Polygons getOutlines(bool external_polys_only = false) const;
+    Shape getOutlines(bool external_polys_only = false) const;
 
     /*!
      * Get the all outlines of all layer parts in this layer.
@@ -198,7 +198,7 @@ public:
      * \param external_polys_only Whether to only include the outermost outline of each layer part
      * \param result The result: a collection of all the outline polygons
      */
-    void getOutlines(Polygons& result, bool external_polys_only = false) const;
+    void getOutlines(Shape& result, bool external_polys_only = false) const;
 
     ~SliceLayer();
 };
@@ -211,22 +211,22 @@ class SupportLayer
 public:
     enum class PartsFilter{NoFilter, RegularParts, FractionalParts};
     std::vector<SupportInfillPart> support_infill_parts; //!< a list of support infill parts
-    Polygons support_bottom; //!< Piece of support below the support and above the model. This must not overlap with any of the support_infill_parts or support_roof.
+    Shape support_bottom; //!< Piece of support below the support and above the model. This must not overlap with any of the support_infill_parts or support_roof.
     std::vector<SupportInfillPart> support_roof; //!< Piece of support above the support and below the model. This must not overlap with any of the support_infill_parts or support_bottom.
-    Polygons support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support
-    Polygons support_mesh; //!< Areas from support meshes which should NOT be supported by more support
-    Polygons anti_overhang; //!< Areas where no overhang should be detected.
+    Shape support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support
+    Shape support_mesh; //!< Areas from support meshes which should NOT be supported by more support
+    Shape anti_overhang; //!< Areas where no overhang should be detected.
 
-    Polygons getTotalAreaFromParts(const std::vector<SupportInfillPart>& parts, PartsFilter filter = PartsFilter::NoFilter) const
+    Shape getTotalAreaFromParts(const std::vector<SupportInfillPart>& parts, PartsFilter filter = PartsFilter::NoFilter) const
     {
-        Polygons result;
+        Shape result;
         for (const SupportInfillPart& part : parts)
         {
             if(filter == PartsFilter::NoFilter ||
                 (part.use_fractional_config_ && filter == PartsFilter::FractionalParts) ||
                 (!part.use_fractional_config_ && filter == PartsFilter::RegularParts))
             {
-                result.add(part.outline_);
+                result.push_back(part.outline_);
             }
         }
         return result.unionPolygons();
@@ -239,7 +239,7 @@ public:
      * \param exclude_polygons The polygons to exclude
      * \param exclude_polygons_boundary_box The boundary box for the polygons to exclude
      */
-    void excludeAreasFromSupportParts(std::vector<SupportInfillPart>& parts, const Polygons& exclude_polygons, const AABB& exclude_polygons_boundary_box);
+    void excludeAreasFromSupportInfillAreas(std::vector<SupportInfillPart>& parts, const Shape& exclude_polygons, const AABB& exclude_polygons_boundary_box);
 
     /* Fill up the infill parts for the support with the given support polygons. The support polygons will be split into parts.
      *
@@ -251,7 +251,7 @@ public:
      * \param custom_line_distance (optional, default to 0) Distance between lines of the infill pattern. custom_line_distance of 0 means use the default instead.
      * \param custom_pattern (optional, default to EFillMethod::NONE) Set if a non default infill pattern should be used
      */
-    void fillInfillParts(const Polygons& area,
+    void fillInfillParts(const Shape& area,
                          const coord_t support_line_width,
                          const coord_t wall_line_count,
                          const bool use_fractional_config = false,
@@ -259,7 +259,7 @@ public:
                          const coord_t custom_line_distance = 0,
                          EFillMethod custom_pattern = EFillMethod::NONE)
     {
-        for (const PolygonsPart& island_outline : area.splitIntoParts(unionAll))
+        for (const SingleShape& island_outline : area.splitIntoParts(unionAll))
         {
             support_infill_parts.emplace_back(island_outline, support_line_width, use_fractional_config, wall_line_count, custom_line_distance, custom_pattern);
         }
@@ -275,7 +275,7 @@ public:
      * \param custom_line_distance (optional, default to 0) Distance between lines of the infill pattern. custom_line_distance of 0 means use the default instead.
      * \param custom_pattern (optional, default to EFillMethod::NONE) Set if a non default infill pattern should be used
      */
-    void fillRoofParts(const Polygons& area,
+    void fillRoofParts(const Shape& area,
                          const coord_t support_line_width,
                          const coord_t wall_line_count,
                          const bool use_fractional_config = false,
@@ -283,7 +283,7 @@ public:
                          const coord_t custom_line_distance = 0,
                          EFillMethod custom_pattern = EFillMethod::NONE)
     {
-        for (const PolygonsPart& island_outline : area.splitIntoParts(unionAll))
+        for (const SingleShape& island_outline : area.splitIntoParts(unionAll))
         {
             support_roof.emplace_back(island_outline, support_line_width, use_fractional_config, wall_line_count, custom_line_distance, custom_pattern);
         }
@@ -305,7 +305,7 @@ public:
      */
     void fillInfillParts(
         const LayerIndex layer_nr,
-        const std::vector<Polygons>& support_fill_per_layer,
+        const std::vector<Shape>& support_fill_per_layer,
         const coord_t infill_layer_height,
         const std::vector<std::shared_ptr<SliceMeshStorage>>& meshes,
         const coord_t support_line_width,
@@ -351,11 +351,11 @@ public:
     std::vector<AngleDegrees> infill_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
     std::vector<AngleDegrees> roofing_angles; //!< a list of angle values which is cycled through to determine the roofing angle of each layer
     std::vector<AngleDegrees> skin_angles; //!< a list of angle values which is cycled through to determine the skin angle of each layer
-    std::vector<Polygons> overhang_areas; //!< For each layer the areas that are classified as overhang on this mesh.
-    std::vector<Polygons> full_overhang_areas; //!< For each layer the full overhang without the tangent of the overhang angle removed, such that the overhang area adjoins the
-                                               //!< areas of the next layers.
-    std::vector<std::vector<Polygons>> overhang_points; //!< For each layer a list of points where point-overhang is detected. This is overhang that hasn't got any surface area,
-                                                        //!< such as a corner pointing downwards.
+    std::vector<Shape> overhang_areas; //!< For each layer the areas that are classified as overhang on this mesh.
+    std::vector<Shape> full_overhang_areas; //!< For each layer the full overhang without the tangent of the overhang angle removed, such that the overhang area adjoins the
+                                            //!< areas of the next layers.
+    std::vector<std::vector<Shape>> overhang_points; //!< For each layer a list of points where point-overhang is detected. This is overhang that hasn't got any surface area,
+                                                     //!< such as a corner pointing downwards.
     AABB3D bounding_box; //!< the mesh's bounding box
 
     std::shared_ptr<SubDivCube> base_subdiv_cube;
@@ -400,15 +400,6 @@ public:
     Point2LL getZSeamHint() const;
 };
 
-/*!
- * Class to store all open polylines or closed polygons related to one outset index of brim/skirt.
- */
-struct SkirtBrimLine
-{
-    Polygons open_polylines;
-    Polygons closed_polygons;
-};
-
 class SliceDataStorage : public NoCopy
 {
 public:
@@ -422,25 +413,26 @@ public:
 
     SupportStorage support;
 
-    std::vector<SkirtBrimLine> skirt_brim[MAX_EXTRUDERS]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
-    Polygons support_brim; //!< brim lines for support, going from the edge of the support inward. \note Not ordered by inset.
+    std::vector<MixedLinesSet> skirt_brim[MAX_EXTRUDERS]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
+    ClosedLinesSet support_brim; //!< brim lines for support, going from the edge of the support inward. \note Not ordered by inset.
 
     // Storage for the outline of the raft-parts. Will be filled with lines when the GCode is generated.
-    Polygons raftBaseOutline;
-    Polygons raftInterfaceOutline;
-    Polygons raftSurfaceOutline;
+    Shape raft_base_outline;
+    Shape raft_interface_outline;
+    Shape raft_surface_outline;
 
     int max_print_height_second_to_last_extruder; //!< Used in multi-extrusion: the layer number beyond which all models are printed with the same extruder
     std::vector<int> max_print_height_per_extruder; //!< For each extruder the highest layer number at which it is used.
     std::vector<size_t> max_print_height_order; //!< Ordered indices into max_print_height_per_extruder: back() will return the extruder number with the highest print height.
 
     std::vector<int> spiralize_seam_vertex_indices; //!< the index of the seam vertex for each layer
-    std::vector<Polygons*> spiralize_wall_outlines; //!< the wall outline polygons for each layer
+    std::vector<Shape*> spiralize_wall_outlines; //!< the wall outline polygons for each layer
 
-    PrimeTower primeTower;
+    //!< Pointer to primer tower handler object (a null pointer indicates that there is no prime tower)
+    PrimeTower* prime_tower_{ nullptr };
 
-    std::vector<Polygons> oozeShield; // oozeShield per layer
-    Polygons draft_protection_shield; //!< The polygons for a heightened skirt which protects from warping by gusts of wind and acts as a heated chamber.
+    std::vector<Shape> ooze_shield; // oozeShield per layer
+    Shape draft_protection_shield; //!< The polygons for a heightened skirt which protects from warping by gusts of wind and acts as a heated chamber.
 
     /*!
      * \brief Creates a new slice data storage that stores the slice data of the
@@ -448,9 +440,7 @@ public:
      */
     SliceDataStorage();
 
-    ~SliceDataStorage()
-    {
-    }
+    ~SliceDataStorage();
 
     /*!
      * Get all outlines within a given layer.
@@ -463,13 +453,18 @@ public:
      * \param external_polys_only Whether to disregard all hole polygons.
      * \param extruder_nr (optional) only give back outlines for this extruder (where the walls are printed with this extruder)
      */
-    Polygons getLayerOutlines(
+    Shape getLayerOutlines(
         const LayerIndex layer_nr,
         const bool include_support,
         const bool include_prime_tower,
         const bool external_polys_only = false,
         const int extruder_nr = -1,
         const bool include_models = true) const;
+
+    /*!
+     * Get the axis-aligned bounding-box of the complete model (all meshes).
+     */
+    AABB3D getModelBoundingBox() const;
 
     /*!
      * Get the extruders used.
@@ -499,9 +494,11 @@ public:
      * Gets the border of the usable print area for this machine.
      *
      * \param extruder_nr The extruder for which to return the allowed areas. -1 if the areas allowed for all extruders should be returned.
-     * \return the Polygons representing the usable area of the print bed.
+     * \return the Shape representing the usable area of the print bed.
      */
-    Polygons getMachineBorder(int extruder_nr = -1) const;
+    Shape getMachineBorder(int extruder_nr = -1) const;
+
+    void initializePrimeTower();
 
 private:
     /*!

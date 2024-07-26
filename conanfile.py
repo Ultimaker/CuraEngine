@@ -32,6 +32,7 @@ class CuraEngineConan(ConanFile):
         "enable_plugins": [True, False],
         "enable_sentry": [True, False],
         "enable_remote_plugins": [True, False],
+        "with_cura_resources": [True, False],
     }
     default_options = {
         "enable_arcus": True,
@@ -40,6 +41,7 @@ class CuraEngineConan(ConanFile):
         "enable_plugins": True,
         "enable_sentry": False,
         "enable_remote_plugins": False,
+        "with_cura_resources": False,
     }
 
     def set_version(self):
@@ -115,6 +117,9 @@ class CuraEngineConan(ConanFile):
             self.requires("asio-grpc/2.6.0")
             self.requires("grpc/1.50.1")
             for req in self.conan_data["requirements_plugins"]:
+                self.requires(req)
+        if self.options.with_cura_resources:
+            for req in self.conan_data["requirements_cura_resources"]:
                 self.requires(req)
         if self.options.enable_arcus or self.options.enable_plugins:
             self.requires("protobuf/3.21.12")
@@ -202,6 +207,8 @@ class CuraEngineConan(ConanFile):
                     self.run("objcopy --only-keep-debug --compress-debug-sections=zlib CuraEngine CuraEngine.debug")
                     self.run("objcopy --strip-debug --strip-unneeded CuraEngine")
                     self.run("objcopy --add-gnu-debuglink=CuraEngine.debug CuraEngine")
+                elif self.settings.os == "Macos":
+                    self.run("dsymutil CuraEngine")
 
                 self.output.info("Uploading debug symbols to sentry")
                 build_source_dir = self.build_path.parent.parent.as_posix()
@@ -212,6 +219,9 @@ class CuraEngineConan(ConanFile):
                 self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases new -o {sentry_org} -p {sentry_project} {self.version}")
                 self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases set-commits -o {sentry_org} -p {sentry_project} --commit \"Ultimaker/CuraEngine@{self.conan_data['commit']}\" {self.version}")
                 self.run(f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases finalize -o {sentry_org} -p {sentry_project} {self.version}")
+
+    def deploy(self):
+        copy(self, "CuraEngine*", src=os.path.join(self.package_folder, "bin"), dst=self.install_folder)
 
     def package(self):
         match self.settings.os:

@@ -3,7 +3,7 @@
 
 #include "SkeletalTrapezoidation.h"
 
-#include <functional>
+#include <numbers>
 #include <queue>
 #include <sstream>
 #include <stack>
@@ -17,6 +17,7 @@
 #include "utils/VoronoiUtils.h"
 #include "utils/linearAlg2D.h"
 #include "utils/macros.h"
+#include "utils/polygonUtils.h"
 
 #define SKELETAL_TRAPEZOIDATION_BEAD_SEARCH_MAX \
     1000 // A limit to how long it'll keep searching for adjacent beads. Increasing will re-use beadings more often (saving performance), but search longer for beading (costing
@@ -370,7 +371,7 @@ void SkeletalTrapezoidation::computeSegmentCellRange(
 }
 
 SkeletalTrapezoidation::SkeletalTrapezoidation(
-    const Polygons& polys,
+    const Shape& polys,
     const BeadingStrategy& beading_strategy,
     AngleRadians transitioning_angle,
     coord_t discretization_step_size,
@@ -392,7 +393,7 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(
     constructFromPolygons(polys);
 }
 
-void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
+void SkeletalTrapezoidation::constructFromPolygons(const Shape& polys)
 {
     vd_edge_to_he_edge_.clear();
     vd_node_to_he_node_.clear();
@@ -402,7 +403,7 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
     std::vector<Segment> segments;
     for (size_t poly_idx = 0; poly_idx < polys.size(); poly_idx++)
     {
-        ConstPolygonRef poly = polys[poly_idx];
+        const Polygon& poly = polys[poly_idx];
         for (size_t point_idx = 0; point_idx < poly.size(); point_idx++)
         {
             segments.emplace_back(&polys, poly_idx, point_idx);
@@ -2184,39 +2185,83 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
 {
     std::vector<VariableWidthLines>& generated_toolpaths = *p_generated_toolpaths;
 
-    for (auto& node : graph_.nodes)
+    const auto addCircleToToolpath = [&](const Point2LL& center, coord_t width, size_t inset_index)
+    {
+        if (inset_index >= generated_toolpaths.size())
+        {
+            generated_toolpaths.resize(inset_index + 1);
+        }
+        constexpr bool is_odd = true;
+        generated_toolpaths[inset_index].emplace_back(inset_index, is_odd);
+        ExtrusionLine& line = generated_toolpaths[inset_index].back();
+        // total area to be extruded is pi*(w/2)^2 = pi*w*w/4
+        // Width a constant extrusion width w, that would be a length of pi*w/4
+        // If we make a small circle to fill up the hole, then that circle would have a circumference of 2*pi*r
+        // So our circle needs to be such that r=w/8
+        const coord_t r = width / 8;
+        constexpr coord_t n_segments = 6;
+        const auto circle = PolygonUtils::makeCircle<std::vector<ExtrusionJunction>, true>(center, r, n_segments, width, inset_index);
+        line.junctions_.insert(line.junctions_.end(), circle.begin(), circle.end());
+    };
+
+    Point2LL local_maxima_accumulator;
+    coord_t width_accumulator = 0;
+    size_t accumulator_count = 0;
+
+    for (const auto& node : graph_.nodes)
     {
         if (! node.data_.hasBeading())
         {
             continue;
         }
-        Beading& beading = node.data_.getBeading()->beading_;
-        if (beading.bead_widths.size() % 2 == 1 && node.isLocalMaximum(true) && ! node.isCentral())
+        const Beading& beading = node.data_.getBeading()->beading_;
+        if (beading.bead_widths.size() % 2 == 1 && node.isLocalMaximum(true))
         {
             const size_t inset_index = beading.bead_widths.size() / 2;
-            constexpr bool is_odd = true;
-            if (inset_index >= generated_toolpaths.size())
-            {
-                generated_toolpaths.resize(inset_index + 1);
-            }
-            generated_toolpaths[inset_index].emplace_back(inset_index, is_odd);
-            ExtrusionLine& line = generated_toolpaths[inset_index].back();
             const coord_t width = beading.bead_widths[inset_index];
-            // total area to be extruded is pi*(w/2)^2 = pi*w*w/4
-            // Width a constant extrusion width w, that would be a length of pi*w/4
-            // If we make a small circle to fill up the hole, then that circle would have a circumference of 2*pi*r
-            // So our circle needs to be such that r=w/8
-            const coord_t r = width / 8;
-            constexpr coord_t n_segments = 6;
-            for (coord_t segment = 0; segment < n_segments; segment++)
+            local_maxima_accumulator += node.p_;
+            width_accumulator += width;
+            ++accumulator_count;
+            if (! node.isCentral())
             {
-                double a = 2.0 * std::numbers::pi / n_segments * segment;
-                line.junctions_.emplace_back(node.p_ + Point2LL(r * cos(a), r * sin(a)), width, inset_index);
+                addCircleToToolpath(node.p_, width, inset_index);
             }
         }
     }
-}
 
+    if (accumulator_count > 0)
+    {
+        bool replace_with_local_maxima = generated_toolpaths.empty() || generated_toolpaths[0].empty();
+        coord_t total_path_length = 0;
+        if (! replace_with_local_maxima)
+        {
+            coord_t min_width = std::numeric_limits<coord_t>::max();
+            for (const auto& line : generated_toolpaths[0])
+            {
+                total_path_length += line.length();
+                for (const ExtrusionJunction& j : line)
+                {
+                    min_width = std::min(min_width, j.w_);
+                }
+            }
+            replace_with_local_maxima |= total_path_length <= min_width / 2;
+        }
+        if (replace_with_local_maxima)
+        {
+            const coord_t width = width_accumulator / accumulator_count;
+            local_maxima_accumulator = local_maxima_accumulator / accumulator_count;
+            if (generated_toolpaths.empty())
+            {
+                generated_toolpaths.emplace_back();
+            }
+            else
+            {
+                generated_toolpaths[0].clear();
+            }
+            addCircleToToolpath(local_maxima_accumulator, width, 0);
+        }
+    }
+}
 //
 // ^^^^^^^^^^^^^^^^^^^^^
 //  TOOLPATH GENERATION

@@ -1,14 +1,14 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef CURAENGINE_GENERIC_H
 #define CURAENGINE_GENERIC_H
 
-#include <range/v3/range/concepts.hpp>
-
 #include <concepts>
 #include <functional>
 #include <type_traits>
+
+#include <range/v3/range/concepts.hpp>
 
 namespace cura::utils
 {
@@ -63,6 +63,12 @@ concept floating_point = std::floating_point<Tp>;
 
 template<typename Tp>
 concept numeric = std::is_arithmetic_v<std::remove_cvref_t<Tp>>;
+
+template<typename T>
+concept multipliable = requires(T a, T b)
+{
+    { a * b };
+};
 } // namespace cura::utils
 
 #endif // CURAENGINE_GENERIC_H

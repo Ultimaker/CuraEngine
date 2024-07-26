@@ -8,9 +8,9 @@
 #include <vector>
 
 #include "ExtruderUse.h"
+#include "geometry/Polygon.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/LayerIndex.h"
-#include "utils/polygon.h" // Polygons
 #include "utils/polygonUtils.h"
 
 namespace cura
@@ -28,8 +28,8 @@ class LayerPlan;
 class PrimeTower
 {
 private:
-    using MovesByExtruder = std::map<size_t, Polygons>;
-    using MovesByLayer = std::map<size_t, std::vector<Polygons>>;
+    using MovesByExtruder = std::map<size_t, Shape>;
+    using MovesByLayer = std::map<size_t, std::vector<Shape>>;
 
     size_t extruder_count_; //!< Number of extruders
 
@@ -38,7 +38,7 @@ private:
 
     Point2LL post_wipe_point_; //!< Location to post-wipe the unused nozzle off on
 
-    std::vector<ClosestPolygonPoint> prime_tower_start_locations_; //!< The differernt locations where to pre-wipe the active nozzle
+    std::vector<ClosestPointPolygon> prime_tower_start_locations_; //!< The differernt locations where to pre-wipe the active nozzle
     const unsigned int number_of_prime_tower_start_locations_ = 21; //!< The required size of \ref PrimeTower::wipe_locations
 
     MovesByExtruder prime_moves_; //!< For each extruder, the moves to be processed for actual priming.
@@ -49,13 +49,13 @@ private:
      *  The polygons represent the sparse pattern to be printed when all the given extruders are unused for this layer
      *  and the given extruder is currently in use
      */
-    std::map<size_t, std::map<size_t, Polygons>> sparse_pattern_per_extruders_;
+    std::map<size_t, std::map<size_t, Shape>> sparse_pattern_per_extruders_;
 
     MovesByLayer base_extra_moves_; //!< For each layer and each extruder, the extra moves to be processed for better adhesion/strength
     MovesByExtruder inset_extra_moves_; //!< For each extruder, the extra inset moves to be processed for better adhesion on initial layer
 
-    Polygons outer_poly_; //!< The outline of the outermost prime tower.
-    std::vector<Polygons> outer_poly_base_; //!< The outline of the layers having extra width for the base
+    Shape outer_poly_; //!< The outline of the outermost prime tower.
+    std::vector<Shape> outer_poly_base_; //!< The outline of the layers having extra width for the base
 
 public:
     bool enabled_; //!< Whether the prime tower is enabled.
@@ -126,12 +126,12 @@ public:
      * \param[in] layer_nr The index of the layer
      * \return The outer polygon for the prime tower at the given layer
      */
-    const Polygons& getOuterPoly(const LayerIndex& layer_nr) const;
+    const Shape& getOuterPoly(const LayerIndex& layer_nr) const;
 
     /*!
      * Get the outer polygon for the very first layer, which may be the priming polygon only, or a larger polygon if there is a base
      */
-    const Polygons& getGroundPoly() const;
+    const Shape& getGroundPoly() const;
 
 private:
     /*!
@@ -160,7 +160,7 @@ private:
      * \param line_width The actual line width of the extruder
      * \param actual_extruder_nr The number of the actual extruder to be used
      */
-    Polygons generatePath_sparseInfill(
+    Shape generatePath_sparseInfill(
         const size_t first_extruder_idx,
         const size_t last_extruder_idx,
         const std::vector<coord_t>& rings_radii,

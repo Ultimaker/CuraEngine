@@ -10,7 +10,7 @@
 namespace cura
 {
 
-class Polygons;
+class Shape;
 class SkinPart;
 class SliceLayerPart;
 class SliceMeshStorage;
@@ -96,7 +96,7 @@ protected:
      * above. The input is the area within the inner walls (or an empty Polygons
      * object).
      */
-    void calculateTopSkin(const SliceLayerPart& part, Polygons& upskin);
+    void calculateTopSkin(const SliceLayerPart& part, Shape& upskin);
 
     /*!
      * \brief Calculate the basic areas which have air below.
@@ -105,7 +105,7 @@ protected:
      * layers above. The input is the area within the inner walls (or an empty
      * Polygons object).
      */
-    void calculateBottomSkin(const SliceLayerPart& part, Polygons& downskin);
+    void calculateBottomSkin(const SliceLayerPart& part, Shape& downskin);
 
     /*!
      * Apply skin expansion:
@@ -116,7 +116,7 @@ protected:
      * \param[in,out] upskin The top skin areas to grow
      * \param[in,out] downskin The bottom skin areas to grow
      */
-    void applySkinExpansion(const Polygons& original_outline, Polygons& upskin, Polygons& downskin);
+    void applySkinExpansion(const Shape& original_outline, Shape& upskin, Shape& downskin);
 
     /*!
      * Generate infill of a given part
@@ -150,7 +150,7 @@ protected:
      * \param part Where to get the SkinParts to get the outline info from
      * \param roofing_layer_count The number of layers above the layer which we are looking into
      */
-    Polygons generateFilledAreaAbove(SliceLayerPart& part, size_t roofing_layer_count);
+    Shape generateFilledAreaAbove(SliceLayerPart& part, size_t roofing_layer_count);
 
     /*!
      * Helper function to calculate and return the areas which are 'directly' above air.
@@ -158,7 +158,7 @@ protected:
      * \param part Where to get the SkinParts to get the outline info from
      * \param flooring_layer_count The number of layers below the layer which we are looking into
      */
-    Polygons generateFilledAreaBelow(SliceLayerPart& part, size_t flooring_layer_count);
+    Shape generateFilledAreaBelow(SliceLayerPart& part, size_t flooring_layer_count);
 
 protected:
     LayerIndex layer_nr_; //!< The index of the layer for which to generate the skins and infill.
@@ -191,7 +191,7 @@ private:
      * \param part_here The part for which to check.
      * \param layer2_nr The layer index from which to gather the outlines.
      */
-    Polygons getOutlineOnLayer(const SliceLayerPart& part_here, const LayerIndex layer2_nr);
+    Shape getOutlineOnLayer(const SliceLayerPart& part_here, const LayerIndex layer2_nr);
 };
 
 } // namespace cura
