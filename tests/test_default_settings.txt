@@ -750,6 +750,7 @@ machine_nozzle_heat_up_speed=2.0
 jerk_wall_0=20
 retraction_extra_prime_amount=0
 skin_edge_support_thickness=0
+extra_infill_lines_to_support_skins=walls_and_lines
 speed_topbottom=40.0
 jerk_prime_tower=20
 retraction_hop=1

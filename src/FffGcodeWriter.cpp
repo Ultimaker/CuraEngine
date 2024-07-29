@@ -2195,6 +2195,10 @@ void addExtraLinesToSupportSurfacesAbove(
 {
     // Where needs support?
 
+    const auto enabled = mesh.settings.get<EExtraInfillLinesToSupportSkins>("extra_infill_lines_to_support_skins");
+    if (enabled == EExtraInfillLinesToSupportSkins::NONE)
+        return;
+
     const size_t skin_layer_nr = gcode_layer.getLayerNr() + 1 + mesh.settings.get<size_t>("skin_edge_support_layers");
     if (skin_layer_nr >= mesh.layers.size())
         return;
@@ -2236,9 +2240,31 @@ void addExtraLinesToSupportSurfacesAbove(
             infill_comp.generate(skin_paths, skin_polygons, skin_lines, mesh.settings, 0, SectionType::SKIN);
 
             wall_tool_paths2lines({ skin_paths }, printed_lines_on_layer_above);
-            for (const Polygon& poly : skin_polygons)
-                printed_lines_on_layer_above.push_back(poly.toPseudoOpenPolyline());
-            printed_lines_on_layer_above.push_back(skin_lines);
+            if (enabled == EExtraInfillLinesToSupportSkins::WALLS_AND_LINES)
+            {
+                for (const Polygon& poly : skin_polygons)
+                    printed_lines_on_layer_above.push_back(poly.toPseudoOpenPolyline());
+                printed_lines_on_layer_above.push_back(skin_lines);
+            }
+        }
+    }
+
+    /* move all points "inwards" by line_width to ensure a good overlap.
+     * Eg.     Old Point                New Point
+     *              |                       |
+     *              |                      X|
+     *       -------X               ---------
+     */
+    for (OpenPolyline& poly : printed_lines_on_layer_above)
+    {
+        OpenPolyline copy = poly;
+        auto orig_it = poly.begin();
+        for (auto it = copy.begin(); it != copy.end(); ++it, ++orig_it)
+        {
+            if (it > copy.begin())
+                *orig_it += normal(*(it) - *(it - 1), infill_line_width / 2);
+            if (it < copy.end() - 1)
+                *orig_it += normal(*(it + 1) - *(it), infill_line_width / 2);
         }
     }
 
@@ -2248,12 +2274,15 @@ void addExtraLinesToSupportSurfacesAbove(
     // What shape is the supporting infill?
     OpenLinesSet support_lines;
     support_lines.push_back(infill_lines);
+    // The edge of the infill area is also considered supported
     for (const auto& poly : part.getOwnInfillArea())
     {
         support_lines.push_back(poly.toPseudoOpenPolyline());
     }
+    // Infill walls can support the layer above
     wall_tool_paths2lines(wall_tool_paths, support_lines);
 
+    // Turn the lines into a giant shape.
     Shape supported_area = support_lines.offset(infill_line_width / 2);
     if (supported_area.empty())
         return;
@@ -2293,7 +2322,7 @@ void addExtraLinesToSupportSurfacesAbove(
         const PointsSet& points = pair.second;
 
         OpenLinesSet result_lines;
-        getBestAngledLinesToSupportPoints(result_lines, Shape(area).offset(infill_line_width / 2), points, infill_line_width);
+        getBestAngledLinesToSupportPoints(result_lines, Shape(area).offset(infill_line_width / 2 + 10), points, infill_line_width);
 
         for (const auto& line : part.getOwnInfillArea().intersection(result_lines))
         {
