@@ -2145,20 +2145,41 @@ void integrateSupportingLine(OpenLinesSet& infill_lines, const OpenPolyline& lin
     }
 }
 
+void wall_tool_paths2lines(const std::vector<std::vector<VariableWidthLines>>& wall_tool_paths, OpenLinesSet& result)
+{
+    // We just want to grab all lines out of this datastructure
+    for (const auto& a : wall_tool_paths)
+    {
+        for (const VariableWidthLines& b : a)
+        {
+            for (const ExtrusionLine& c : b)
+            {
+                const Polygon& poly = c.toPolygon();
+                if (c.is_closed_)
+                    result.push_back(poly.toPseudoOpenPolyline());
+            }
+        }
+    }
+}
+
 /* Create a set of extra lines to support skins above.
  *
- * Skins above need their boundaries supported at a minimum.
+ * Skins above need to be held up.
  * A straight line needs support just at the ends.
  * A curve needs support at various points along the curve.
- * We find these points by finding the minimal polygon which is
- * always within line_width of the desired support.
  *
- * The strategy here is to figure out what is currently printed on
+ * The strategy here is to figure out is currently printed on
  * this layer within the infill area by taking all currently printed
  * lines and turning them into a giant hole-y shape.
  *
+ * Then figure out what will be printed on the layer above
+ * (all extruded lines, walls, polygons, all combined).
+ *
+ * Then intersect these two things.   For every 'hole', we 'simplify'
+ * the line through the hole, reducing curves to a few points.
+ *
  * Then figure out extra infill_lines to add to support all points
- * that are unsupported.  The extra lines will always be straight
+ * that lie within a hole.  The extra lines will always be straight
  * and will always go between existing infill lines.
  *
  * Results get added to infill_lines.
@@ -2172,87 +2193,103 @@ void addExtraLinesToSupportSurfacesAbove(
     const LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh)
 {
+    // Where needs support?
+
+    const size_t skin_layer_nr = gcode_layer.getLayerNr() + 1 + mesh.settings.get<size_t>("skin_edge_support_layers");
+    if (skin_layer_nr >= mesh.layers.size())
+        return;
+
+    OpenLinesSet printed_lines_on_layer_above;
+    for (const SliceLayerPart& part_i : mesh.layers[skin_layer_nr].parts)
+    {
+        for (const SkinPart& skin_part : part_i.skin_parts)
+        {
+            OpenLinesSet skin_lines;
+            Shape skin_polygons;
+            std::vector<VariableWidthLines> skin_paths;
+
+            AngleDegrees skin_angle = 45;
+            if (mesh.skin_angles.size() > 0)
+            {
+                skin_angle = mesh.skin_angles.at(skin_layer_nr % mesh.skin_angles.size());
+            }
+
+            // Approximation of the skin.
+            Infill infill_comp(
+                mesh.settings.get<EFillMethod>("top_bottom_pattern"),
+                false,
+                false,
+                skin_part.outline,
+                infill_line_width,
+                infill_line_width,
+                0,
+                1,
+                skin_angle,
+                0,
+                0,
+                0,
+                0,
+                mesh.settings.get<size_t>("skin_outline_count"),
+                0,
+                {},
+                false);
+            infill_comp.generate(skin_paths, skin_polygons, skin_lines, mesh.settings, 0, SectionType::SKIN);
+
+            wall_tool_paths2lines({ skin_paths }, printed_lines_on_layer_above);
+            for (const Polygon& poly : skin_polygons)
+                printed_lines_on_layer_above.push_back(poly.toPseudoOpenPolyline());
+            printed_lines_on_layer_above.push_back(skin_lines);
+        }
+    }
+
+    if (printed_lines_on_layer_above.empty())
+        return;
+
+    // What shape is the supporting infill?
     OpenLinesSet support_lines;
     support_lines.push_back(infill_lines);
     for (const auto& poly : part.getOwnInfillArea())
     {
         support_lines.push_back(poly.toPseudoOpenPolyline());
     }
-
-    // We just want to grab all lines out of this datastructure
-    for (const auto& a : wall_tool_paths)
-    {
-        for (const VariableWidthLines& b : a)
-        {
-            for (const ExtrusionLine& c : b)
-            {
-                const Polygon& poly = c.toPolygon();
-                if (c.is_closed_)
-                    support_lines.push_back(poly.toPseudoOpenPolyline());
-            }
-        }
-    }
+    wall_tool_paths2lines(wall_tool_paths, support_lines);
 
     Shape supported_area = support_lines.offset(infill_line_width / 2);
-
-    PointsSet requires_support;
-
-    const size_t skin_layer_nr = gcode_layer.getLayerNr() + 1 + mesh.settings.get<size_t>("skin_edge_support_layers");
-    if (skin_layer_nr < mesh.layers.size())
-    {
-        for (const SliceLayerPart& part_i : mesh.layers[skin_layer_nr].parts)
-        {
-            for (const SkinPart& skin_part : part_i.skin_parts)
-            {
-                Shape outline = skin_part.outline;
-                Simplify s{ MM2INT(1000), // max() doesnt work here, so just pick a big number.
-                            infill_line_width,
-                            std::numeric_limits<coord_t>::max() };
-                outline = s.polygon(outline);
-
-                // Uncomment this line to add a debug line showing
-                // the supported points.
-                // for (auto poly: outline ) infill_lines.push_back(poly.toPseudoOpenPolyline());
-
-                const Shape& infill_area = part.getOwnInfillArea();
-
-                for (const PointsSet& poly : outline)
-                {
-                    for (const Point2LL& point : poly)
-                    {
-                        if (infill_area.inside(point) && ! supported_area.inside(point))
-                        {
-                            requires_support.push_back(point);
-                        }
-                    }
-                }
-            }
-        }
-    }
+    if (supported_area.empty())
+        return;
 
     // invert the supported_area by adding one huge polygon around the outside
-    if (! supported_area.empty())
-    {
-        AABB worldbound{ supported_area };
-        supported_area.push_back(worldbound.toPolygon());
-    }
+    supported_area.push_back(AABB{ supported_area }.toPolygon());
 
+    const Shape& inv_supported_area = supported_area.intersection(part.getOwnInfillArea());
+
+    OpenLinesSet unsupported_line_segments = inv_supported_area.intersection(printed_lines_on_layer_above);
+
+    // This is to work around a rounding issue in the shape library with border points.
+    const Shape& expanded_inv_supported_area = inv_supported_area.offset(-10);
+
+    Simplify s{ MM2INT(1000), // max() doesnt work here, so just pick a big number.
+                infill_line_width,
+                std::numeric_limits<coord_t>::max() };
     // map each point into its area
     std::map<size_t, PointsSet> map;
-    for (const Point2LL& point : requires_support)
-    {
-        size_t idx = supported_area.findInside(point);
-        if (idx == NO_INDEX)
-            continue;
-        if (supported_area.empty())
-            continue;
 
-        map[idx].push_back(point);
+    for (const OpenPolyline& a : unsupported_line_segments)
+    {
+        const OpenPolyline& simplified = s.polyline(a);
+        for (const Point2LL& point : simplified)
+        {
+            size_t idx = expanded_inv_supported_area.findInside(point);
+            if (idx == NO_INDEX)
+                continue;
+
+            map[idx].push_back(point);
+        }
     }
 
     for (const auto& pair : map)
     {
-        const Polygon& area = supported_area[pair.first];
+        const Polygon& area = expanded_inv_supported_area[pair.first];
         const PointsSet& points = pair.second;
 
         OpenLinesSet result_lines;
