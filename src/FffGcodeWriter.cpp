@@ -2262,7 +2262,7 @@ void addExtraLinesToSupportSurfacesAbove(
         for (auto it = copy.begin(); it != copy.end(); ++it, ++orig_it)
         {
             if (it > copy.begin())
-                *orig_it += normal(*(it) - *(it - 1), infill_line_width / 2);
+                *orig_it += normal(*(it - 1) - *(it), infill_line_width / 2);
             if (it < copy.end() - 1)
                 *orig_it += normal(*(it + 1) - *(it), infill_line_width / 2);
         }
