@@ -177,7 +177,11 @@ Shape Shape::difference(const Polygon& other) const
 
 Shape Shape::unionPolygons(const Shape& other, ClipperLib::PolyFillType fill_type) const
 {
-    // No early out, as shapes should be able to be 'unioned' with themselves, which will resolve certain issues like self-overlapping polygons.
+    if (empty() && other.empty())
+    {
+        return {};
+    }
+    // No further early outs, as shapes should be able to be 'unioned' with themselves, which will resolve certain issues like self-overlapping polygons.
     ClipperLib::Paths ret;
     ClipperLib::Clipper clipper(clipper_init);
     addPaths(clipper, ClipperLib::ptSubject);
@@ -188,7 +192,11 @@ Shape Shape::unionPolygons(const Shape& other, ClipperLib::PolyFillType fill_typ
 
 Shape Shape::unionPolygons(const Polygon& polygon, ClipperLib::PolyFillType fill_type) const
 {
-    // No early out, as unioning even with another empty polygon has some beneficial side-effects, such as removing self-overlapping polygons.
+    if (empty() && polygon.empty())
+    {
+        return {};
+    }
+    // No further early outs, as unioning even with another empty polygon has some beneficial side-effects, such as removing self-overlapping polygons.
     ClipperLib::Paths ret;
     ClipperLib::Clipper clipper(clipper_init);
     addPaths(clipper, ClipperLib::ptSubject);
