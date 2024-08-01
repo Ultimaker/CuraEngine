@@ -6,6 +6,9 @@
 #include "geometry/Polygon.h"
 #include "geometry/SingleShape.h"
 
+#include <algorithm>
+#include <vector>
+
 namespace cura
 {
 

@@ -13,6 +13,8 @@
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
 
+#include <algorithm>
+
 namespace cura
 {
 

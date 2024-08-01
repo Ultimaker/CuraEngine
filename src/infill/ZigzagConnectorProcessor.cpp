@@ -10,6 +10,8 @@
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
 
+#include <algorithm>
+
 using namespace cura;
 
 
@@ -93,17 +95,14 @@ bool ZigzagConnectorProcessor::handleConnectorTooCloseToSegment(const coord_t sc
     {
         return false;
     }
-    else
-    {
-        return std::find_if(
-                   current_connector_.begin(),
-                   current_connector_.end(),
-                   [scanline_x, min_distance_to_scanline](const Point2LL& point)
-                   {
-                       return std::abs(point.X - scanline_x) >= min_distance_to_scanline;
-                   })
-            == current_connector_.end();
-    }
+    return std::find_if(
+               current_connector_.begin(),
+               current_connector_.end(),
+               [scanline_x, min_distance_to_scanline](const Point2LL& point)
+               {
+                   return std::abs(point.X - scanline_x) >= min_distance_to_scanline;
+               })
+        == current_connector_.end();
 }
 
 void ZigzagConnectorProcessor::registerScanlineSegmentIntersection(const Point2LL& intersection, int scanline_index, coord_t min_distance_to_scanline)
