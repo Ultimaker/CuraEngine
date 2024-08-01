@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <memory>
 #include <string>
 
 #include "utils/NoCopy.h"
@@ -38,7 +39,7 @@ public:
      * can assume that it is safe to access this without checking whether it is
      * initialised.
      */
-    Communication* communication_ = nullptr;
+    std::unique_ptr<Communication> communication_ { nullptr };
 
     /*
      * \brief The slice that is currently ongoing.

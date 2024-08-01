@@ -1983,7 +1983,7 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
 
 void LayerPlan::writeGCode(GCodeExport& gcode)
 {
-    Communication* communication = Application::getInstance().communication_;
+    auto& communication = Application::getInstance().communication_;
     communication->setLayerForSend(layer_nr_);
     communication->sendCurrentPosition(gcode.getPositionXY());
     gcode.setLayerNr(layer_nr_);
@@ -2536,7 +2536,7 @@ bool LayerPlan::writePathWithCoasting(
 
     Point2LL prev_pt = gcode.getPositionXY();
     { // write normal extrude path:
-        Communication* communication = Application::getInstance().communication_;
+        auto& communication = Application::getInstance().communication_;
         for (size_t point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
         {
             auto [_, time] = extruder_plan.getPointToPointTime(prev_pt, path.points[point_idx], path);

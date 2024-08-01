@@ -45,7 +45,6 @@ Application::Application()
 
 Application::~Application()
 {
-    delete communication_;
     delete thread_pool_;
 }
 
@@ -100,9 +99,9 @@ void Application::connect()
         }
     }
 
-    ArcusCommunication* arcus_communication = new ArcusCommunication();
+    auto arcus_communication = std::make_unique<ArcusCommunication>();
     arcus_communication->connect(ip, port);
-    communication_ = arcus_communication;
+    communication_ = std::move(arcus_communication);
 }
 #endif // ARCUS
 
@@ -214,8 +213,7 @@ void Application::slice()
     {
         arguments.emplace_back(argv_[argument_index]);
     }
-
-    communication_ = new CommandLine(arguments);
+    communication_ = std::make_unique<CommandLine>(arguments);
 }
 
 void Application::run(const size_t argc, char** argv)
