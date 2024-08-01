@@ -3,14 +3,13 @@
 
 #include "infill/ZigzagConnectorProcessor.h"
 
+#include <algorithm>
 #include <cassert>
 
 #include "geometry/OpenPolyline.h"
 #include "geometry/PointMatrix.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
-
-#include <algorithm>
 
 using namespace cura;
 
