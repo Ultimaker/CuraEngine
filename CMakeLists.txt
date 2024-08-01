@@ -97,6 +97,7 @@ set(engine_SRCS # Except main.cpp.
         src/communication/ArcusCommunication.cpp
         src/communication/ArcusCommunicationPrivate.cpp
         src/communication/CommandLine.cpp
+        src/communication/EmscriptenCommunication.cpp
         src/communication/Listener.cpp
 
         src/infill/ImageBasedDensityProvider.cpp

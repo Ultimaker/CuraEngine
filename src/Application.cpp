@@ -20,6 +20,7 @@
 
 #include "communication/ArcusCommunication.h" //To connect via Arcus to the front-end.
 #include "communication/CommandLine.h" //To use the command line to slice stuff.
+#include "communication/EmscriptenCommunication.h" // To use Emscripten to slice stuff.
 #include "progress/Progress.h"
 #include "utils/ThreadPool.h"
 #include "utils/string.h" //For stringcasecompare.
@@ -213,7 +214,11 @@ void Application::slice()
     {
         arguments.emplace_back(argv_[argument_index]);
     }
-    communication_ = std::make_unique<CommandLine>(arguments);
+    // #ifdef __EMSCRIPTEN__
+    communication_ = std::make_unique<EmscriptenCommunication>(arguments);
+    // #else
+    // communication_ = std::make_unique<CommandLine>(arguments);
+    // #endif
 }
 
 void Application::run(const size_t argc, char** argv)
