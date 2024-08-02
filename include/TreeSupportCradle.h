@@ -511,13 +511,9 @@ TreeModelVolumes& volumes_;
  */
 const bool only_gracious_ = false;
 
-const double wiggle_support_threshold = 400;
-
 mutable std::vector<std::vector<std::vector<UnsupportedAreaInformation*>>> floating_parts_cache_;
 
 std::unique_ptr<std::mutex> critical_floating_parts_cache_ = std::make_unique<std::mutex>();
-
-const double deformation_constant = 0.0075 * 200; //todo 200 = layer_height
 
 };
 

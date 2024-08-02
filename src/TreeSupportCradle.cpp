@@ -25,8 +25,8 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
 
     LayerIndex layer_idx = element->layer_idx;
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
-    const double horizontal_movement_weight = 5;
-
+    const double horizontal_movement_weight = retrieveSetting<double>(mesh.settings, "support_tree_side_cradle_xy_factor");
+    std::unordered_set<UnsupportedAreaInformation*> elements_on_path_down {element};
     std::vector<std::vector<UnsupportedAreaInformation*>> root_areas(layer_idx + 1);
     {
         // Using a unordered_set to ensure no duplicates!
@@ -48,6 +48,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
                     {
                         root_areas[scan_layer_idx-1].emplace_back(scan_element_below);
                     }
+                    elements_on_path_down.emplace(scan_element_below);
                 }
             }
             scan_layer_idx--;
@@ -73,11 +74,24 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
 
             for(UnsupportedAreaInformation* element_below: current_area->areas_below)
             {
-                double deformation_below = known_deformation_map[element_below];
-                coord_t distance_below = largest_center_distance_map[element_below];
+                double deformation_below = 0;
+                coord_t distance_below;
+                if(largest_center_distance_map.contains(element_below))
+                {
+                    distance_below = largest_center_distance_map[element_below];
+                }
+                else
+                {
+                    distance_below = vSize(element->assumed_center - element_below->assumed_center);
+                }
+
+                if(known_deformation_map.contains(element_below))
+                {
+                    deformation_below = known_deformation_map[element_below];
+                }
 
                 //todo better merge
-                //todo idea. Keep direction vector if two combine. Use this vector for better combine function.
+                //todo Store direction vector. Then if two combine use this vector for better combine function?
                 if(element_deformation == 0)
                 {
                     element_deformation = deformation_below;
@@ -91,13 +105,13 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
             }
             for(UnsupportedAreaInformation* element_above: current_area->areas_above)
             {
-                //todo only if they lead to target element
-                next_iterate_elements.emplace_back(element_above);
+                if(elements_on_path_down.contains(element_above))
+                {
+                    next_iterate_elements.emplace_back(element_above);
+                }
             }
             distance_from_top_below = std::max(distance_from_top_below, (vSize(element->assumed_center - current_area->assumed_center)));
             element_deformation+=current_area->deformation * (layer_idx - iterate_layer_idx + (horizontal_movement_weight*distance_from_top_below / layer_height));
-
-
             if(current_area->total_deformation_limit > 0)
             {
                 element_deformation = std::min(element_deformation, current_area->total_deformation_limit);
@@ -120,7 +134,6 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
         spdlog::error("Could not determine largest center distance at {}", layer_idx);
     }
 
-
     return known_deformation_map[element];
 
 }
@@ -133,8 +146,12 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
     const coord_t min_wall_line_width = mesh.settings.get<coord_t>("min_wall_line_width");
     const size_t cradle_layers = retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_height") / layer_height;
     const double cradle_area_threshold = 1000 * 1000 * retrieveSetting<double>(mesh.settings, "support_tree_maximum_pointy_area");
+    const bool side_cradle_enabled = retrieveSetting<bool>(mesh.settings, "support_tree_side_cradle_enabled");
+    const coord_t part_stable_radius = retrieveSetting<coord_t>(mesh.settings, "support_tree_part_deformation_diameter") / 2;
+    const double deformation_constant = retrieveSetting<double>(mesh.settings, "support_tree_part_deformation_constant") / 1000.0;
+    const coord_t side_cradle_support_threshold = retrieveSetting<coord_t>(mesh.settings, "support_tree_part_side_cradle_support_threshold");
+
     LayerIndex max_layer = mesh.layers.size();
-    const coord_t stable_radius = 50000;
 
     LayerIndex start_layer = 1;
     floating_parts_cache_[mesh_idx].resize(max_layer + 1);
@@ -145,7 +162,6 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
     {
         // As the collision contains z distance and xy distance it cant be used to clearly identify which parts of the model are connected to the buildplate.
         Shape layer = mesh.layers[layer_idx].getOutlines();
-
         const std::vector<SingleShape> layer_parts = layer.splitIntoParts();
         cura::parallel_for<size_t>(
             0,
@@ -166,36 +182,60 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
                     return;
                 }
 
-
-                coord_t radius_min = 0;
-                coord_t radius_max = 2*stable_radius;
-                Point2LL assumed_center = part.outerPolygon().centerOfMass(); //todo should be from area_with_material_below
-                Shape area_with_material_below = part.getOutsidePolygons().intersection(mesh.layers[layer_idx - 1].getOutlines());
-                while(radius_max-radius_min > 500)
+                double deform_part = 0;
+                double deform_radius = 0;
+                Point2LL assumed_center(-1,-1);
+                if(side_cradle_enabled)
                 {
-                    coord_t offset_distance = (radius_min+radius_max)/2;
-                    Shape radius_estimate_polygon = area_with_material_below.offset(offset_distance).offset(-offset_distance * 2);
-                    if(radius_estimate_polygon.empty())
+                    coord_t radius_min = 0;
+                    coord_t radius_max = 2 * part_stable_radius;
+                    assumed_center = part.outerPolygon().centerOfMass();
+                    Shape area_with_material_below = part.getOutsidePolygons().intersection(mesh.layers[layer_idx - 1].getOutlines());
+
+                    while(radius_max-radius_min > 500)
                     {
-                        radius_max = (radius_min+radius_max)/2;
+                        coord_t offset_distance = (radius_min+radius_max)/2;
+                        Shape radius_estimate_polygon = area_with_material_below.offset(offset_distance).offset(-offset_distance * 2);
+                        if(radius_estimate_polygon.empty())
+                        {
+                            radius_max = (radius_min+radius_max)/2;
+                        }
+                        else
+                        {
+                            radius_min = (radius_min+radius_max)/2;
+                        }
+                    }
+                    deform_radius =  double(radius_max+radius_min) / 2.0;
+                    if(radius_max >= part_stable_radius)
+                    {
+                        deform_part = 0;
                     }
                     else
                     {
-                        radius_min = (radius_min+radius_max)/2;
+                        double scan_height = deform_radius * 10;
+                        for(LayerIndex scan_down_layer_idx = layer_idx - 1; scan_down_layer_idx > 0 && (layer_idx - scan_down_layer_idx) * layer_height < deform_radius * 10; scan_down_layer_idx--)
+                        {
+                            if(mesh.layers[scan_down_layer_idx].getOutlines().intersection(part).empty())
+                            {
+                                scan_height = (layer_idx - scan_down_layer_idx) * layer_height;
+                                break;
+                            }
+                        }
+                        //assume 90° triangle, get thickness of part. Thats not exactly correct, but close enough for now.
+                        double assumed_part_thickness;
+                        {
+                            //triangle sides
+                            double a = deform_radius*2;
+                            double b = scan_height;
+                            double c = std::sqrt(a*a+b*b);
+                            double area = 0.25 * std::sqrt(a+b+c) * std::sqrt(-a+b+c) * std::sqrt(a-b+c) *std::sqrt(a+b-c);
+                            assumed_part_thickness = 2 * area;
+                        }
+                        deform_radius = std::min(assumed_part_thickness, std::min(scan_height, deform_radius));
+
+                        deform_part = (2.0*deformation_constant * layer_height)/deform_radius;
                     }
                 }
-                double deform_radius =  double(radius_max+radius_min) / 2.0;
-
-                for(LayerIndex scan_down_layer_idx = layer_idx - 1; scan_down_layer_idx > 0 && (layer_idx - scan_down_layer_idx) * layer_height < deform_radius; scan_down_layer_idx--)
-                {
-                    if(mesh.layers[scan_down_layer_idx].getOutlines().intersection(part).empty())
-                    {
-                        deform_radius = (layer_idx - scan_down_layer_idx) * layer_height;
-                        break;
-                    }
-                }
-
-                double deform_part = 2.0*deformation_constant/deform_radius;
 
                 size_t min_resting_on_layers = 0;
                 coord_t supported_overhang_area = 0;
@@ -218,6 +258,7 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
                 if (add)
                 {
                     std::lock_guard<std::mutex> critical_section_add(critical_sections);
+                    //todo instead of assumed center, get a center line from SkeletalTrapezediation, Put center as a collection of squares for mfem for more accurate model representation?
                     UnsupportedAreaInformation* area_info = new UnsupportedAreaInformation(part, layer_idx, min_resting_on_layers + 1, overhang_area + supported_overhang_area, deform_part, assumed_center);
                     for (size_t idx : idx_of_floating_below)
                     {
@@ -229,20 +270,19 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
 
                     if(layer_idx % 200 == 0 && layer_idx > 20)
                     {
-                        mfem::Mesh* mfem_mesh =toMfemMesh(mesh, mesh_idx, area_info);
+                        mfem::Mesh* mfem_mesh = toMfemMesh(mesh, mesh_idx, area_info);
                         std::ofstream mesh_ofs(std::to_string(layer_idx) + "gen.mesh");
                         mesh_ofs.precision(8);
                         mfem_mesh->Print(mesh_ofs);
-                        //toMfemMeshString(mesh, mesh_idx, area_info)->Print(std::cout);
                         runMfemExample(mfem_mesh, std::to_string(layer_idx));
                     }
                     double estimated_deformation = getTotalDeformation(mesh_idx, mesh, area_info);
                     /*std::cout << "at " << layer_idx<< ": " << " with part deform " << deform_part << " with constant " << deformation_constant << " deform rad of " << deform_radius << " resulting estimation of " << estimated_deformation
                               <<std::endl ;*/
-                    if(estimated_deformation > wiggle_support_threshold)
+                    if(estimated_deformation > side_cradle_support_threshold) // todo additional cradle if it rests on cradle earlier
                     {
                         floating_parts_cache_[mesh_idx][layer_idx][floating_idx]->support_required = true;
-                        floating_parts_cache_[mesh_idx][layer_idx][floating_idx]->total_deformation_limit = 100;
+                        floating_parts_cache_[mesh_idx][layer_idx][floating_idx]->total_deformation_limit = EPSILON; //todo do I want to use min cradle xy distance here?
                         std::cout << "at " << layer_idx<< ": " << " Mark for support "
                                   <<std::endl ;
                     }
@@ -260,6 +300,7 @@ mfem::Mesh* SupportCradleGeneration::toMfemMesh(const SliceMeshStorage& mesh, si
 {
     mfem::Mesh* mfem_mesh = new mfem::Mesh(3,0,0);
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
+    const double deformation_constant = retrieveSetting<double>(mesh.settings, "support_tree_part_deformation_constant") / 1000.0;
 
 
     // idea Every layer one square.
@@ -291,22 +332,20 @@ mfem::Mesh* SupportCradleGeneration::toMfemMesh(const SliceMeshStorage& mesh, si
                     {
                         top_vertices.emplace_back(last_added_vertex+1);
                         Point2LL direction((i>0&& i<=2)?1:-1, i<=1?1:-1);
-                        double deform_radius = 2.0*deformation_constant/current_scan_element->deformation;
+                        double deform_radius = (2.0*deformation_constant * layer_height)/current_scan_element->deformation; // todo deformation 0
                         Point2LL position = current_scan_element->assumed_center + direction * deform_radius;
-                        mfem_mesh->AddVertex(position.X, position.Y, layer_height*(scan_layer_idx+1));
+                        mfem_mesh->AddVertex(INT2MM2(position.X), INT2MM2(position.Y), INT2MM2(layer_height*(scan_layer_idx+1)));
                     }
                     else
                     {
                         Point2LL direction((i>4&& i<=6)?1:-1, i<=5?1:-1);
-                        double deform_radius = 2.0*deformation_constant/current_scan_element->deformation;
+                        double deform_radius = (2.0*deformation_constant * layer_height)/current_scan_element->deformation;
                         Point2LL position = current_scan_element->assumed_center + direction * deform_radius;
-                        mfem_mesh->AddVertex(position.X, position.Y, layer_height*(scan_layer_idx));
-
+                        mfem_mesh->AddVertex(INT2MM2(position.X), INT2MM2(position.Y), INT2MM2(layer_height*(scan_layer_idx)));
                     }
                     mfem_mesh->SetNode(last_added_vertex+1, mfem_mesh->GetVertex(last_added_vertex+1));
                     last_added_vertex = last_added_vertex+1;
                 }
-
                 mfem::Hexahedron* cube = new mfem::Hexahedron(cube_vertices.data(), current_scan_element->height >0 ? 2:1);
                 mfem_mesh->AddElement(cube);
                 if(add_top_bdr)
@@ -361,7 +400,7 @@ mfem::Mesh* SupportCradleGeneration::toMfemMesh(const SliceMeshStorage& mesh, si
         }
     }
 
-    //Rotate Mesh
+    //Rotate Mesh. Todo evaluate if required!
 
     mfem::Mesh* mfem_mesh_rotated = new mfem::Mesh(3,0,0);
 
@@ -393,8 +432,6 @@ mfem::Mesh* SupportCradleGeneration::toMfemMesh(const SliceMeshStorage& mesh, si
         verts[3] = std::abs(verts[3]-last_added_vertex);
         mfem_mesh_rotated->AddBdrQuad(verts,mfem_mesh->GetBdrElement(elem_ctr)->GetAttribute());
     }
-
-
 
     mfem_mesh_rotated->FinalizeTopology();
     mfem_mesh_rotated->Finalize(false,true);
@@ -478,7 +515,7 @@ void SupportCradleGeneration::runMfemExample(mfem::Mesh* mesh, std::string prefi
     {
         mfem::Vector pull_force(mesh->bdr_attributes.Max());
         pull_force = 0.0;
-        pull_force(1) = -1.0e-2;
+        pull_force(1) = -1.0e-5;
         f.Set(0, new mfem::PWConstCoefficient(pull_force));
     }
     for (int i = 1; i < dim; i++)
