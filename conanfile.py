@@ -231,6 +231,7 @@ class CuraEngineConan(ConanFile):
                 ext = ""
         copy(self, f"CuraEngine{ext}", src=self.build_folder, dst=path.join(self.package_folder, "bin"))
         copy(self, f"*.d.ts", src=self.build_folder, dst=path.join(self.package_folder, "bin"))
+        copy(self, f"*.worker.js", src=self.build_folder, dst=path.join(self.package_folder, "bin"))
         copy(self, f"_CuraEngine.*", src=self.build_folder, dst=path.join(self.package_folder, "lib"))
         copy(self, "LICENSE*", src=self.source_folder, dst=path.join(self.package_folder, "license"))
 
