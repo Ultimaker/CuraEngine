@@ -288,7 +288,6 @@ if (CMAKE_CXX_PLATFORM_ID STREQUAL "emscripten")
             "SHELL:-sWASM_MEM_MAX=2GB"
             "SHELL:-sSHARED_MEMORY=1"
             "SHELL:-sSUPPORT_LONGJMP=1"
-            "SHELL:-sALLOW_MEMORY_GROWTH=1"
             "SHELL:-sSTACK_SIZE=196608" # three times the default stack size https://emscripten.org/docs/tools_reference/settings_reference.html?highlight=environment#stack-size
             $<$<CONFIG:Debug>:SHELL:-sASSERTIONS=2>
             $<$<CONFIG:Debug>:SHELL:-sSAFE_HEAP=1>
