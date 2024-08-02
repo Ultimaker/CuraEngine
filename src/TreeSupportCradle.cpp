@@ -321,6 +321,11 @@ mfem::Mesh* SupportCradleGeneration::toMfemMesh(const SliceMeshStorage& mesh, si
             for(UnsupportedAreaInformation* current_scan_element : all_scan_elements)
             {
 
+                if(current_scan_element->height == 0)
+                {
+                    continue;
+                }
+
                 std::vector<int> top_vertices = square_element_map[current_scan_element]; //todo
                 std::vector<int> cube_vertices = top_vertices; //mirrored below!
                 bool add_top_bdr = top_vertices.empty();
@@ -380,7 +385,7 @@ mfem::Mesh* SupportCradleGeneration::toMfemMesh(const SliceMeshStorage& mesh, si
 
                 }
 
-                if(current_scan_element->height == 0)
+                if(current_scan_element->height == 1)
                 {
                     //add bottom boundary
                     mfem_mesh->AddBdrQuad(cube_vertices[4],cube_vertices[5],cube_vertices[6],cube_vertices[7],1);
