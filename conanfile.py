@@ -145,7 +145,6 @@ class CuraEngineConan(ConanFile):
         tc.variables["ENABLE_BENCHMARKS"] = self.options.enable_benchmarks
         tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
         tc.variables["OLDER_APPLE_CLANG"] = self.settings.compiler == "apple-clang" and Version(self.settings.compiler.version) < "14"
-        tc.variables["ENABLE_THREADING"] = not (self.settings.arch == "wasm" and self.settings.os == "Emscripten")
         if self.options.get_safe("enable_sentry", False):
             tc.variables["ENABLE_SENTRY"] = True
             tc.variables["SENTRY_URL"] = self.conf.get("user.curaengine:sentry_url", "", check_type=str)
