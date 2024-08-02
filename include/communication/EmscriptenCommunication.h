@@ -25,7 +25,6 @@ public:
     void sendProgress(double progress) const override;
 
     void sliceNext() override;
-
 };
 
 } // namespace cura

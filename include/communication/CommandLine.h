@@ -158,10 +158,10 @@ public:
     void sliceNext() override;
 
 protected:
- /*
- * \brief The command line arguments that the application was called with.
- */
- std::vector<std::string> arguments_;
+    /*
+     * \brief The command line arguments that the application was called with.
+     */
+    std::vector<std::string> arguments_;
 
 private:
     std::vector<std::filesystem::path> search_directories_;

@@ -3,11 +3,11 @@
 
 #include "geometry/PartsView.h"
 
-#include "geometry/Polygon.h"
-#include "geometry/SingleShape.h"
-
 #include <algorithm>
 #include <vector>
+
+#include "geometry/Polygon.h"
+#include "geometry/SingleShape.h"
 
 namespace cura
 {
