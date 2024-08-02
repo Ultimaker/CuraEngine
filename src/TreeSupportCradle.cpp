@@ -29,11 +29,12 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
 
     std::vector<std::vector<UnsupportedAreaInformation*>> root_areas(layer_idx + 1);
     {
-        std::vector<UnsupportedAreaInformation*> all_scan_elements {element};
+        // Using a unordered_set to ensure no duplicates!
+        std::unordered_set<UnsupportedAreaInformation*> all_scan_elements {element};
         LayerIndex scan_layer_idx = element->layer_idx;
         while(!all_scan_elements.empty() && scan_layer_idx > 0)
         {
-            std::vector<UnsupportedAreaInformation*> next_scan_elements;
+            std::unordered_set<UnsupportedAreaInformation*> next_scan_elements;
 
             for(UnsupportedAreaInformation* current_scan_element : all_scan_elements)
             {
@@ -41,7 +42,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
                 {
                     if(scan_element_below->height > 0)
                     {
-                        next_scan_elements.emplace_back(scan_element_below);
+                        next_scan_elements.emplace(scan_element_below);
                     }
                     else
                     {
