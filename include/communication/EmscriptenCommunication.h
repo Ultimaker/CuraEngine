@@ -3,7 +3,7 @@
 
 #ifndef EMSCRIPTENCOMMUNICATION_H
 #define EMSCRIPTENCOMMUNICATION_H
-// #ifdef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__
 
 #include "communication/CommandLine.h"
 
@@ -13,9 +13,10 @@ class Settings;
 
 class EmscriptenCommunication : public CommandLine
 {
+    std::string progressHandler;
+
 public:
-    EmscriptenCommunication(const std::vector<std::string>& arguments)
-        : CommandLine(arguments){};
+    EmscriptenCommunication(const std::vector<std::string>& arguments);
 
     void sendSliceUUID(const std::string& slice_uuid) const override;
 
@@ -28,5 +29,6 @@ public:
 };
 
 } // namespace cura
-// #endif // __EMSCRIPTEN__
+
+#endif // __EMSCRIPTEN__
 #endif // EMSCRIPTENCOMMUNICATION_H

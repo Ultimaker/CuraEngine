@@ -214,11 +214,11 @@ void Application::slice()
     {
         arguments.emplace_back(argv_[argument_index]);
     }
-    // #ifdef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__
     communication_ = std::make_unique<EmscriptenCommunication>(arguments);
-    // #else
-    // communication_ = std::make_unique<CommandLine>(arguments);
-    // #endif
+#else
+    communication_ = std::make_unique<CommandLine>(arguments);
+#endif
 }
 
 void Application::run(const size_t argc, char** argv)
