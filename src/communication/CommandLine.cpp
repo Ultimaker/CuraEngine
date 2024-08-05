@@ -192,12 +192,13 @@ void CommandLine::sliceNext()
                     force_read_parent = false;
                     force_read_nondefault = false;
                 }
-                else if (argument.find("--progress") == 0)
+#ifdef __EMSCRIPTEN__
+                else if (argument.starts_with("--progress_cb") || argument.starts_with("--slice_info_cb"))
                 {
-                    // Store progress handler name
                     argument_index++;
                     argument = arguments_[argument_index];
                 }
+#endif // __EMSCRIPTEN__
                 else
                 {
                     spdlog::error("Unknown option: {}", argument);

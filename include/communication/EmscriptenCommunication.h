@@ -14,13 +14,12 @@ class Settings;
 class EmscriptenCommunication : public CommandLine
 {
     std::string progressHandler;
+    std::string sliceInfoHandler;
+
+    [[nodiscard]] std::string createSliceInfoMessage() const;
 
 public:
     EmscriptenCommunication(const std::vector<std::string>& arguments);
-
-    void sendSliceUUID(const std::string& slice_uuid) const override;
-
-    void sendPrintTimeMaterialEstimates() const override;
 
     void sendProgress(double progress) const override;
 
