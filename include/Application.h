@@ -46,7 +46,7 @@ public:
      *
      * If no slice has started yet, this will be a nullptr.
      */
-    Slice* current_slice_ = nullptr;
+    std::shared_ptr<Slice> current_slice_{ nullptr };
 
     /*!
      * \brief ThreadPool with lifetime tied to Application

@@ -9,14 +9,13 @@
 
 namespace cura
 {
-class Settings;
 
 class EmscriptenCommunication : public CommandLine
 {
-    std::string progressHandler;
-    std::string sliceInfoHandler;
+    std::string progress_handler_;
+    std::string slice_info_handler_;
 
-    [[nodiscard]] std::string createSliceInfoMessage() const;
+    [[nodiscard]] static std::string createSliceInfoMessage() ;
 
 public:
     EmscriptenCommunication(const std::vector<std::string>& arguments);
