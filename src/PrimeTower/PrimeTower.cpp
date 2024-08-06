@@ -306,20 +306,28 @@ void PrimeTower::processExtrudersUse(LayerVector<std::vector<ExtruderUse>>& extr
 PrimeTower* PrimeTower::createPrimeTower(SliceDataStorage& storage)
 {
     PrimeTower* prime_tower = nullptr;
-    const Scene& scene = Application::getInstance().current_slice_->scene;
+    const Settings& settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const size_t raft_total_extra_layers = Raft::getTotalExtraLayers();
+    const std::vector<bool> extruders_used = storage.getExtrudersUsed();
 
-    if (scene.extruders.size() > 1 && scene.current_mesh_group->settings.get<bool>("prime_tower_enable")
-        && scene.current_mesh_group->settings.get<coord_t>("prime_tower_min_volume") > 10 && scene.current_mesh_group->settings.get<coord_t>("prime_tower_size") > 10
-        && storage.max_print_height_second_to_last_extruder >= -static_cast<int>(raft_total_extra_layers))
+    std::vector<size_t> used_extruders_nrs;
+    for (size_t extruder_nr = 0; extruder_nr < extruders_used.size(); extruder_nr++)
     {
-        const Settings& mesh_group_settings = scene.current_mesh_group->settings;
-        const PrimeTowerMode method = mesh_group_settings.get<PrimeTowerMode>("prime_tower_mode");
+        if (extruders_used[extruder_nr])
+        {
+            used_extruders_nrs.push_back(extruder_nr);
+        }
+    }
+
+    if (used_extruders_nrs.size() > 1 && settings.get<bool>("prime_tower_enable") && settings.get<coord_t>("prime_tower_min_volume") > 10
+        && settings.get<coord_t>("prime_tower_size") > 10 && storage.max_print_height_second_to_last_extruder >= -static_cast<int>(raft_total_extra_layers))
+    {
+        const PrimeTowerMode method = settings.get<PrimeTowerMode>("prime_tower_mode");
 
         switch (method)
         {
         case PrimeTowerMode::NORMAL:
-            prime_tower = new PrimeTowerNormal();
+            prime_tower = new PrimeTowerNormal(used_extruders_nrs);
             break;
         case PrimeTowerMode::INTERLEAVED:
             prime_tower = new PrimeTowerInterleaved();
