@@ -270,7 +270,33 @@ endif ()
 
 if (CMAKE_CXX_PLATFORM_ID STREQUAL "emscripten")
     message(STATUS "Building for Emscripten")
-    target_link_options(_CuraEngine PUBLIC -Wno-unused-command-line-argument -sINVOKE_RUN=0 -sEXPORT_NAME=CuraEngine -sEXPORTED_RUNTIME_METHODS=[callMain,FS] -sFORCE_FILESYSTEM=1 -sALLOW_MEMORY_GROWTH=1 -sEXPORT_ES6=1 -sMODULARIZE=1 -sSINGLE_FILE=1 -sENVIRONMENT=worker -sERROR_ON_UNDEFINED_SYMBOLS=0 -lembind --embind-emit-tsd CuraEngine.d.ts)
+    target_link_options(_CuraEngine
+            PUBLIC
+            "SHELL:-sINVOKE_RUN=0"
+            "SHELL:-sEXPORT_NAME=CuraEngine"
+            "SHELL:-sEXPORTED_RUNTIME_METHODS=[callMain,FS]"
+            "SHELL:-sFORCE_FILESYSTEM=1"
+            "SHELL:-sALLOW_MEMORY_GROWTH=1" # TODO: Figure out what to do with this ALLOW_MEMORY_GROWTH may run non-wasm code slowly, see https://github.com/WebAssembly/design/issues/1271
+            "SHELL:-sEXPORT_ES6=1"
+            "SHELL:-sMODULARIZE=1"
+            "SHELL:-sSINGLE_FILE=1"
+            "SHELL:-sENVIRONMENT=worker"
+            "SHELL:-sERROR_ON_UNDEFINED_SYMBOLS=0"
+            "SHELL:-sWASM_BIGINT=1"
+            "SHELL:-sUSE_PTHREADS=1"
+            "SHELL:-sPTHREAD_POOL_SIZE_STRICT=0"
+            "SHELL:-sWASM_MEM_MAX=2GB"
+            "SHELL:-sSHARED_MEMORY=1"
+            "SHELL:-sSUPPORT_LONGJMP=1"
+            "SHELL:-sSTACK_SIZE=196608" # three times the default stack size https://emscripten.org/docs/tools_reference/settings_reference.html?highlight=environment#stack-size
+            $<$<CONFIG:Debug>:SHELL:-sASSERTIONS=2>
+            $<$<CONFIG:Debug>:SHELL:-sSAFE_HEAP=1>
+            $<$<CONFIG:Debug>:SHELL:-sSTACK_OVERFLOW_CHECK=2>
+            $<$<CONFIG:Debug>:SHELL:-g3>
+            $<$<CONFIG:Debug>:SHELL:-gsource-map>
+            "SHELL:-lembind"
+            "SHELL:--embind-emit-tsd CuraEngine.d.ts"
+    )
 endif ()
 
 target_link_libraries(CuraEngine PRIVATE
