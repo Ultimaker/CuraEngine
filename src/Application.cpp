@@ -101,9 +101,9 @@ void Application::connect()
         }
     }
 
-    auto arcus_communication = std::make_unique<ArcusCommunication>();
+    auto arcus_communication = std::make_shared<ArcusCommunication>();
     arcus_communication->connect(ip, port);
-    communication_ = std::move(arcus_communication);
+    communication_ = arcus_communication;
 }
 #endif // ARCUS
 
@@ -216,9 +216,9 @@ void Application::slice()
         arguments.emplace_back(argv_[argument_index]);
     }
 #ifdef __EMSCRIPTEN__
-    communication_ = std::make_unique<EmscriptenCommunication>(arguments);
+    communication_ = std::make_shared<EmscriptenCommunication>(arguments);
 #else
-    communication_ = std::make_unique<CommandLine>(arguments);
+    communication_ = std::make_shared<CommandLine>(arguments);
 #endif
 }
 

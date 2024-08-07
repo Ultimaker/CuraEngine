@@ -39,7 +39,7 @@ public:
      * can assume that it is safe to access this without checking whether it is
      * initialised.
      */
-    std::unique_ptr<Communication> communication_{ nullptr };
+    std::shared_ptr<Communication> communication_{ nullptr };
 
     /*
      * \brief The slice that is currently ongoing.
