@@ -15,7 +15,7 @@ class EmscriptenCommunication : public CommandLine
     std::string progress_handler_;
     std::string slice_info_handler_;
 
-    [[nodiscard]] static std::string createSliceInfoMessage() ;
+    [[nodiscard]] static std::string createSliceInfoMessage();
 
 public:
     EmscriptenCommunication(const std::vector<std::string>& arguments);
