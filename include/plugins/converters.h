@@ -105,7 +105,7 @@ struct postprocess_response : public details::converter<postprocess_response, sl
 
 struct infill_generate_request : public details::converter<infill_generate_request, slots::infill::v0::generate::CallRequest, Shape>
 {
-    value_type operator()(const native_value_type& inner_contour, const std::string& pattern, const Settings& settings) const;
+    value_type operator()(const native_value_type& inner_contour, const std::string& pattern, const Settings& settings, const coord_t z) const;
 };
 
 struct infill_generate_response
