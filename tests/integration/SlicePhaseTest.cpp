@@ -31,7 +31,7 @@ class SlicePhaseTest : public testing::Test
         Application::getInstance().startThreadPool();
 
         // Set up a scene so that we may request settings.
-        Application::getInstance().current_slice_ = new Slice(1);
+        Application::getInstance().current_slice_ = std::make_shared<Slice>(1);
 
         // And a few settings that we want to default.
         Scene& scene = Application::getInstance().current_slice_->scene;

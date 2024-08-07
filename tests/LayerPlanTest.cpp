@@ -80,7 +80,7 @@ public:
     SliceDataStorage* setUpStorage()
     {
         constexpr size_t num_mesh_groups = 1;
-        Application::getInstance().current_slice_ = new Slice(num_mesh_groups);
+        Application::getInstance().current_slice_ = std::make_shared<Slice>(num_mesh_groups);
 
         // Define all settings in the mesh group. The extruder train and model settings will fall back on that then.
         settings = &Application::getInstance().current_slice_->scene.current_mesh_group->settings;
@@ -228,7 +228,6 @@ public:
     void TearDown() override
     {
         delete storage;
-        delete Application::getInstance().current_slice_;
     }
 };
 

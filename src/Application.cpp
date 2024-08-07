@@ -18,8 +18,10 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
+#include "Slice.h"
 #include "communication/ArcusCommunication.h" //To connect via Arcus to the front-end.
 #include "communication/CommandLine.h" //To use the command line to slice stuff.
+#include "communication/EmscriptenCommunication.h" // To use Emscripten to slice stuff.
 #include "progress/Progress.h"
 #include "utils/ThreadPool.h"
 #include "utils/string.h" //For stringcasecompare.
@@ -45,7 +47,6 @@ Application::Application()
 
 Application::~Application()
 {
-    delete communication_;
     delete thread_pool_;
 }
 
@@ -100,7 +101,7 @@ void Application::connect()
         }
     }
 
-    ArcusCommunication* arcus_communication = new ArcusCommunication();
+    auto arcus_communication = std::make_shared<ArcusCommunication>();
     arcus_communication->connect(ip, port);
     communication_ = arcus_communication;
 }
@@ -214,8 +215,11 @@ void Application::slice()
     {
         arguments.emplace_back(argv_[argument_index]);
     }
-
-    communication_ = new CommandLine(arguments);
+#ifdef __EMSCRIPTEN__
+    communication_ = std::make_shared<EmscriptenCommunication>(arguments);
+#else
+    communication_ = std::make_shared<CommandLine>(arguments);
+#endif
 }
 
 void Application::run(const size_t argc, char** argv)

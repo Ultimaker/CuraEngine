@@ -27,6 +27,8 @@ using container_setting_map = std::unordered_map<std::string, setting_map>;
 class CommandLine : public Communication
 {
 public:
+    CommandLine() = default;
+
     /*
      * \brief Construct a new communicator that interprets the command line to
      * start a slice.
@@ -155,17 +157,14 @@ public:
      */
     void sliceNext() override;
 
-private:
-#ifdef __EMSCRIPTEN__
-    std::string progressHandler;
-#endif
-
-    std::vector<std::filesystem::path> search_directories_;
-
+protected:
     /*
      * \brief The command line arguments that the application was called with.
      */
     std::vector<std::string> arguments_;
+
+private:
+    std::vector<std::filesystem::path> search_directories_;
 
     /*
      * The last progress update that we output to stdcerr.
