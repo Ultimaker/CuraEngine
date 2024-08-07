@@ -1151,7 +1151,9 @@ void LayerPlan::addWall(
         for (size_t piece = 0; piece < pieces; ++piece)
         {
             const double average_progress = (double(piece) + 0.5) / pieces; // How far along this line to sample the line width in the middle of this piece.
-            const coord_t line_width = p0.w_ + average_progress * delta_line_width;
+            // Round the line_width value to overcome floating point rounding issues, otherwise we may end up with slightly different values
+            // and the generated GCodePath objects will not be merged together, which some subsequent algorithms rely on (e.g. coasting)
+            const coord_t line_width = std::lrint(static_cast<double>(p0.w_) + average_progress * static_cast<double>(delta_line_width));
             const Point2LL destination = p0.p_ + normal(line_vector, piece_length * (piece + 1));
             if (is_small_feature)
             {
@@ -1897,7 +1899,7 @@ void ExtruderPlan::processFanSpeedForMinimalLayerTime(Duration minTime, double t
 
     const double total_layer_time = estimates_.getTotalTime() + time_other_extr_plans;
     const double layer_time_diff = fan_speed_layer_time_settings_.cool_min_layer_time_fan_speed_max - minTime;
-    const double fraction_of_slope = std::clamp((total_layer_time - minTime) / layer_time_diff, 0.0, 1.0);
+    const double fraction_of_slope = (layer_time_diff != 0.0) ? std::clamp((total_layer_time - minTime) / layer_time_diff, 0.0, 1.0) : 1.0;
     fan_speed = std::lerp(fan_speed_layer_time_settings_.cool_fan_speed_max, fan_speed, fraction_of_slope);
 }
 
@@ -2004,6 +2006,15 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         constexpr bool wait = false;
         gcode.writeBedTemperatureCommand(mesh_group_settings.get<Temperature>("material_bed_temperature"), wait);
     }
+    if (mesh_group_settings.get<size_t>("build_volume_fan_nr") != 0)
+    {
+        // The machine has a build volume fan.
+        if (layer_nr_ == mesh_group_settings.get<size_t>("build_fan_full_layer"))
+        {
+            gcode.writeSpecificFanCommand(100, mesh_group_settings.get<size_t>("build_volume_fan_nr"));
+        }
+    }
+
 
     gcode.setZ(z_);
 

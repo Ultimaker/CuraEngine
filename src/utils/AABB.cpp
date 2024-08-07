@@ -3,6 +3,7 @@
 
 #include "utils/AABB.h"
 
+#include <algorithm>
 #include <limits>
 
 #include "geometry/Polygon.h"

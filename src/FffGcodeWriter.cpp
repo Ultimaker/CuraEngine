@@ -2657,7 +2657,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
                     extruder_nr,
                     z_seam_config,
                     tool_paths,
-                    storage.getModelBoundingBox().flatten().getMiddle());
+                    mesh.bounding_box.flatten().getMiddle());
                 added_something |= wall_orderer.addToLayer();
             }
         }
@@ -3100,7 +3100,7 @@ bool FffGcodeWriter::processInsets(
             mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr_,
             z_seam_config,
             part.wall_toolpaths,
-            storage.getModelBoundingBox().flatten().getMiddle());
+            mesh.bounding_box.flatten().getMiddle());
         added_something |= wall_orderer.addToLayer();
     }
     return added_something;
@@ -3526,7 +3526,7 @@ void FffGcodeWriter::processSkinPrintFeature(
                     skin_extruder_nr,
                     z_seam_config,
                     skin_paths,
-                    storage.getModelBoundingBox().flatten().getMiddle());
+                    mesh.bounding_box.flatten().getMiddle());
                 added_something |= wall_orderer.addToLayer();
             }
         }
