@@ -760,32 +760,17 @@ void GCodeExport::processInitialLayerBedTemperature()
     }
 }
 
-void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage, const size_t start_extruder_nr)
+void GCodeExport::processInitialLayerExtrudersTemperatures(const SliceDataStorage& storage, const bool wait_start_extruder, const size_t start_extruder_nr)
 {
     Scene& scene = Application::getInstance().current_slice_->scene;
-    const size_t num_extruders = scene.extruders.size();
     const bool material_print_temp_prepend = scene.current_mesh_group->settings.get<bool>("material_print_temp_prepend");
     const bool material_print_temp_wait = scene.current_mesh_group->settings.get<bool>("material_print_temp_wait");
-    bool wait_start_extruder = false;
 
-    switch (getFlavor())
+    if (! material_print_temp_prepend && (scene.current_mesh_group == scene.mesh_groups.begin()))
     {
-    case EGCodeFlavor::ULTIGCODE:
+        // Nozzle initial temperatures are handled by start GCode, ignore
         return;
-    case EGCodeFlavor::GRIFFIN:
-        wait_start_extruder = true;
-        break;
-    default:
-        if (num_extruders > 1 || getFlavor() == EGCodeFlavor::REPRAP)
-        {
-            std::ostringstream tmp;
-            tmp << "T" << start_extruder_nr;
-            writeLine(tmp.str().c_str());
-        }
-        break;
     }
-
-    processInitialLayerBedTemperature();
 
     struct ExtruderInitialize
     {
@@ -816,23 +801,46 @@ void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage
     }
 
     // First set all the required temperatures at once, but without waiting so that all heaters start heating right now
-    const bool prepend_all_temperatures = material_print_temp_prepend || (scene.current_mesh_group != scene.mesh_groups.begin());
     for (ExtruderInitialize& extruder : all_extruders)
     {
-        if (extruder.nr == start_extruder_nr || prepend_all_temperatures)
-        {
-            writeTemperatureCommand(extruder.nr, extruder.temperature, false, true);
-        }
+        writeTemperatureCommand(extruder.nr, extruder.temperature, false, true);
     }
 
     // Now wait for all the required temperatures one after the other
     for (ExtruderInitialize& extruder : all_extruders)
     {
-        if (material_print_temp_wait || (extruder.nr == start_extruder_nr && wait_start_extruder))
+        if (material_print_temp_wait || ((extruder.nr == start_extruder_nr) && wait_start_extruder))
         {
             writeTemperatureCommand(extruder.nr, extruder.temperature, true, true);
         }
     }
+}
+
+void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage, const size_t start_extruder_nr)
+{
+    Scene& scene = Application::getInstance().current_slice_->scene;
+    const size_t num_extruders = scene.extruders.size();
+    bool wait_start_extruder = false;
+
+    switch (getFlavor())
+    {
+    case EGCodeFlavor::ULTIGCODE:
+        return;
+    case EGCodeFlavor::GRIFFIN:
+        wait_start_extruder = true;
+        break;
+    default:
+        if (num_extruders > 1 || getFlavor() == EGCodeFlavor::REPRAP)
+        {
+            std::ostringstream tmp;
+            tmp << "T" << start_extruder_nr;
+            writeLine(tmp.str().c_str());
+        }
+        break;
+    }
+
+    processInitialLayerBedTemperature();
+    processInitialLayerExtrudersTemperatures(storage, wait_start_extruder, start_extruder_nr);
 }
 
 bool GCodeExport::needPrimeBlob() const

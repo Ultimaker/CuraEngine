@@ -1,4 +1,4 @@
-version: "5.8.0-alpha.0"
+version: "5.9.0-alpha.0"
 requirements:
   - "scripta/0.1.0@ultimaker/testing"
 requirements_arcus:
