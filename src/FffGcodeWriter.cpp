@@ -41,6 +41,7 @@
 
 namespace cura
 {
+constexpr coord_t EPSILON = 5;
 
 FffGcodeWriter::FffGcodeWriter()
     : max_object_height(0)
@@ -2003,15 +2004,14 @@ void getLinesForArea(OpenLinesSet& result_lines, const Shape& area, const AngleD
     // code seems like the best way.
     Infill infill_comp(EFillMethod::LINES, false, false, area, line_width, line_width, 0, 1, angle, 0, 0, 0, 0);
 
-    infill_comp.generate(unused_skin_paths, unused_skin_polygons, candidate_lines, {}, 0, SectionType::SKIN);
+    infill_comp.generate(unused_skin_paths, unused_skin_polygons, candidate_lines, {}, 0, SectionType::INFILL);
 
     // Select only lines which are needed to support points
     for (const auto& line : candidate_lines)
     {
-        const Shape line_shape = OpenLinesSet(line).offset(line_width / 2);
         for (const auto& point : points)
         {
-            if (line_shape.inside(point))
+            if (LinearAlg2D::getDist2FromLineSegment(line.front(), point, line.back()) <= (line_width / 2) * (line_width / 2))
             {
                 result_lines.push_back(line);
                 break;
@@ -2026,17 +2026,35 @@ void getBestAngledLinesToSupportPoints(OpenLinesSet& result_lines, const Shape& 
 {
     OpenLinesSet candidate_lines;
 
-    const int numAngles = 16;
-    const double angleStep = 180.0 / numAngles; // Step size between angles
-
-    for (int i = 0; i < numAngles; ++i)
+    struct CompareAngles
     {
-        const AngleDegrees angle{ i * angleStep };
+        bool operator()(const AngleDegrees& a, const AngleDegrees& b) const
+        {
+            constexpr double small_angle = 5;
+            if (std::fmod(a - b + 360, 180) < small_angle)
+            {
+                return false; // Consider them as equal (near duplicates)
+            }
+            return (a < b);
+        }
+    };
+    std::set<AngleDegrees, CompareAngles> candidate_angles;
+
+    // heuristic that usually chooses a goodish angle
+    for (size_t i = 1; i < points.size(); i *= 2)
+    {
+        candidate_angles.insert(angle(points[i] - points[i / 2]));
+    }
+
+    candidate_angles.insert({ 0, 90 });
+
+    for (const auto& angle : candidate_angles)
+    {
         candidate_lines.clear();
         getLinesForArea(candidate_lines, area, angle, points, line_width);
         if (candidate_lines.length() < result_lines.length() || result_lines.length() == 0)
         {
-            result_lines = candidate_lines;
+            result_lines = std::move(candidate_lines);
         }
     }
 }
@@ -2061,7 +2079,7 @@ void integrateSupportingLine(OpenLinesSet& infill_lines, const OpenPolyline& lin
                 Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(p, infill_lines[i][j - 1], infill_lines[i][j]);
                 int64_t dist = vSize2(p - closest_here);
 
-                if (dist < 25) // rounding
+                if (dist < EPSILON * EPSILON) // rounding
                 {
                     return std::make_tuple(i, j);
                 }
@@ -2295,7 +2313,7 @@ void addExtraLinesToSupportSurfacesAbove(
     OpenLinesSet unsupported_line_segments = inv_supported_area.intersection(printed_lines_on_layer_above);
 
     // This is to work around a rounding issue in the shape library with border points.
-    const Shape& expanded_inv_supported_area = inv_supported_area.offset(-10);
+    const Shape& expanded_inv_supported_area = inv_supported_area.offset(-EPSILON);
 
     Simplify s{ MM2INT(1000), // max() doesnt work here, so just pick a big number.
                 infill_line_width,
@@ -2322,7 +2340,7 @@ void addExtraLinesToSupportSurfacesAbove(
         const PointsSet& points = pair.second;
 
         OpenLinesSet result_lines;
-        getBestAngledLinesToSupportPoints(result_lines, Shape(area).offset(infill_line_width / 2 + 10), points, infill_line_width);
+        getBestAngledLinesToSupportPoints(result_lines, Shape(area).offset(infill_line_width / 2 + EPSILON), points, infill_line_width);
 
         for (const auto& line : part.getOwnInfillArea().intersection(result_lines))
         {
