@@ -2026,7 +2026,7 @@ void getBestAngledLinesToSupportPoints(OpenLinesSet& result_lines, const Shape& 
 {
     OpenLinesSet candidate_lines;
 
-    const int numAngles = 16;
+    constexpr int numAngles = 16;
     const double angleStep = 180.0 / numAngles; // Step size between angles
 
     for (int i = 0; i < numAngles; ++i)
@@ -2052,7 +2052,7 @@ void getBestAngledLinesToSupportPoints(OpenLinesSet& result_lines, const Shape& 
 void integrateSupportingLine(OpenLinesSet& infill_lines, const OpenPolyline& line_to_add)
 {
     // Returns the line index and the index of the point within an infill_line, null for no match found.
-    auto findMatchingSegment = [&](Point2LL p) -> std::optional<std::tuple<int, int>>
+    const auto findMatchingSegment = [&](Point2LL p) -> std::optional<std::tuple<int, int>>
     {
         for (size_t i = 0; i < infill_lines.size(); ++i)
         {
@@ -2075,8 +2075,8 @@ void integrateSupportingLine(OpenLinesSet& infill_lines, const OpenPolyline& lin
 
     if (front_match && back_match)
     {
-        auto [front_line_index, front_point_index] = *front_match;
-        auto [back_line_index, back_point_index] = *back_match;
+        const auto& [front_line_index, front_point_index] = *front_match;
+        const auto& [back_line_index, back_point_index] = *back_match;
 
         if (front_line_index == back_line_index)
         {
@@ -2156,7 +2156,9 @@ void wall_tool_paths2lines(const std::vector<std::vector<VariableWidthLines>>& w
             {
                 const Polygon& poly = c.toPolygon();
                 if (c.is_closed_)
+                {
                     result.push_back(poly.toPseudoOpenPolyline());
+                }
             }
         }
     }
@@ -2197,11 +2199,15 @@ void addExtraLinesToSupportSurfacesAbove(
 
     const auto enabled = mesh.settings.get<EExtraInfillLinesToSupportSkins>("extra_infill_lines_to_support_skins");
     if (enabled == EExtraInfillLinesToSupportSkins::NONE)
+    {
         return;
+    }
 
     const size_t skin_layer_nr = gcode_layer.getLayerNr() + 1 + mesh.settings.get<size_t>("skin_edge_support_layers");
     if (skin_layer_nr >= mesh.layers.size())
+    {
         return;
+    }
 
     OpenLinesSet printed_lines_on_layer_above;
     for (const SliceLayerPart& part_i : mesh.layers[skin_layer_nr].parts)
@@ -2243,7 +2249,9 @@ void addExtraLinesToSupportSurfacesAbove(
             if (enabled == EExtraInfillLinesToSupportSkins::WALLS_AND_LINES)
             {
                 for (const Polygon& poly : skin_polygons)
+                {
                     printed_lines_on_layer_above.push_back(poly.toPseudoOpenPolyline());
+                }
                 printed_lines_on_layer_above.push_back(skin_lines);
             }
         }
@@ -2262,14 +2270,20 @@ void addExtraLinesToSupportSurfacesAbove(
         for (auto it = copy.begin(); it != copy.end(); ++it, ++orig_it)
         {
             if (it > copy.begin())
+            {
                 *orig_it += normal(*(it - 1) - *(it), infill_line_width / 2);
+            }
             if (it < copy.end() - 1)
+            {
                 *orig_it += normal(*(it + 1) - *(it), infill_line_width / 2);
+            }
         }
     }
 
     if (printed_lines_on_layer_above.empty())
+    {
         return;
+    }
 
     // What shape is the supporting infill?
     OpenLinesSet support_lines;
@@ -2285,7 +2299,9 @@ void addExtraLinesToSupportSurfacesAbove(
     // Turn the lines into a giant shape.
     Shape supported_area = support_lines.offset(infill_line_width / 2);
     if (supported_area.empty())
+    {
         return;
+    }
 
     // invert the supported_area by adding one huge polygon around the outside
     supported_area.push_back(AABB{ supported_area }.toPolygon());
@@ -2310,7 +2326,9 @@ void addExtraLinesToSupportSurfacesAbove(
         {
             size_t idx = expanded_inv_supported_area.findInside(point);
             if (idx == NO_INDEX)
+            {
                 continue;
+            }
 
             map[idx].push_back(point);
         }
