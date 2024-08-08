@@ -459,6 +459,24 @@ EPlatformAdhesion Settings::get<EPlatformAdhesion>(const std::string& key) const
 }
 
 template<>
+EExtraInfillLinesToSupportSkins Settings::get<EExtraInfillLinesToSupportSkins>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    using namespace cura::utils;
+    switch (hash_enum(value))
+    {
+    case "walls_and_lines"_sw:
+        return EExtraInfillLinesToSupportSkins::WALLS_AND_LINES;
+    case "walls"_sw:
+        return EExtraInfillLinesToSupportSkins::WALLS;
+    case "none"_sw:
+        return EExtraInfillLinesToSupportSkins::NONE;
+    default:
+        return EExtraInfillLinesToSupportSkins::WALLS_AND_LINES;
+    }
+}
+
+template<>
 ESupportType Settings::get<ESupportType>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);

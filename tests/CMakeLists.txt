@@ -7,6 +7,7 @@ include(GoogleTest)
 set(TESTS_SRC_BASE
         ClipperTest
         ExtruderPlanTest
+        FffGcodeWriterTest
         GCodeExportTest
         InfillTest
         LayerPlanTest
