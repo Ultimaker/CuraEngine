@@ -2311,6 +2311,11 @@ void addExtraLinesToSupportSurfacesAbove(
     {
         support_lines.push_back(poly.toPseudoOpenPolyline());
     }
+    for (const auto& poly : infill_polygons)
+    {
+        support_lines.push_back(poly.toPseudoOpenPolyline());
+    }
+
     // Infill walls can support the layer above
     wall_tool_paths2lines(wall_tool_paths, support_lines);
 
