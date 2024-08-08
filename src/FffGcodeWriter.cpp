@@ -2623,7 +2623,9 @@ bool FffGcodeWriter::processSingleLayerInfill(
         && pattern != EFillMethod::CONCENTRIC // Doesn't handle 'holes' in infill lines very well
         && pattern != EFillMethod::CROSS // Ditto
         && pattern != EFillMethod::CROSS_3D) // Ditto
+    {
         addExtraLinesToSupportSurfacesAbove(infill_lines, infill_polygons, wall_tool_paths, part, infill_line_width, gcode_layer, mesh);
+    }
 
     const bool walls_generated = std::any_of(
         wall_tool_paths.cbegin(),
