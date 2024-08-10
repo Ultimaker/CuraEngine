@@ -787,6 +787,7 @@ void GCodeExport::processInitialLayerExtrudersTemperatures(const SliceDataStorag
     };
 
     std::vector<ExtruderInitialize> all_extruders;
+    std::vector<bool> extruders_used = storage.getExtrudersUsed();
     for (size_t extruder_nr = 0; extruder_nr < extruders_used.size(); ++extruder_nr)
     {
         if (extruders_used[extruder_nr])
