@@ -18,6 +18,8 @@ namespace cura
  */
 struct GCodePathConfig
 {
+    static constexpr double FAN_SPEED_DEFAULT = -1.0;
+
     coord_t z_offset{}; //<! vertical offset from 'full' layer height
     PrintFeatureType type{}; //!< name of the feature type
     coord_t line_width{}; //!< width of the line extruded
@@ -27,7 +29,6 @@ struct GCodePathConfig
     bool is_bridge_path{ false }; //!< whether current config is used when bridging
     double fan_speed{ FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
     double extrusion_mm3_per_mm{ calculateExtrusion() }; //!< current mm^3 filament moved per mm line traversed
-    static constexpr double FAN_SPEED_DEFAULT = -1;
 
     [[nodiscard]] constexpr bool operator==(const GCodePathConfig& other) const noexcept = default;
     [[nodiscard]] constexpr auto operator<=>(const GCodePathConfig& other) const = default;

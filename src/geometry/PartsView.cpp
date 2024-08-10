@@ -3,6 +3,9 @@
 
 #include "geometry/PartsView.h"
 
+#include <algorithm>
+#include <vector>
+
 #include "geometry/Polygon.h"
 #include "geometry/SingleShape.h"
 

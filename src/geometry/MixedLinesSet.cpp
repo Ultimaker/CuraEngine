@@ -42,16 +42,17 @@ Shape MixedLinesSet::offset(coord_t distance, ClipperLib::JoinType join_type, do
         }
         else
         {
-            static auto end_type_fn = [&line, &join_type]()
-            {
-                if (line->hasClosingSegment())
-                {
-                    return ClipperLib::etClosedLine;
-                }
-                return join_type == ClipperLib::jtMiter ? ClipperLib::etOpenSquare : ClipperLib::etOpenRound;
-            };
+            ClipperLib::EndType end_type;
 
-            const ClipperLib::EndType end_type{ end_type_fn() };
+            if (line->hasClosingSegment())
+            {
+                end_type = ClipperLib::etClosedLine;
+            }
+            else
+            {
+                end_type = (join_type == ClipperLib::jtMiter) ? ClipperLib::etOpenSquare : ClipperLib::etOpenRound;
+            }
+
             clipper.AddPath(line->getPoints(), join_type, end_type);
         }
     }
