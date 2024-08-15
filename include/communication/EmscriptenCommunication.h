@@ -10,18 +10,40 @@
 namespace cura
 {
 
+/**
+ * \class EmscriptenCommunication
+ * \brief A class for handling communication in an Emscripten environment.
+ *
+ * This class extends the CommandLine class and provides specific implementations
+ * for sending progress and handling slice information in an Emscripten environment.
+ */
 class EmscriptenCommunication : public CommandLine
 {
-    std::string progress_handler_;
-    std::string slice_info_handler_;
+    std::string progress_handler_; ///< Handler for progress messages.
+    std::string slice_info_handler_; ///< Handler for slice information messages.
 
+    /**
+     * \brief Creates a message containing slice information.
+     * \return A string containing the slice information message.
+     */
     [[nodiscard]] static std::string createSliceInfoMessage();
 
 public:
+    /**
+     * \brief Constructor for EmscriptenCommunication.
+     * \param arguments A vector of strings containing the command line arguments.
+     */
     EmscriptenCommunication(const std::vector<std::string>& arguments);
 
+    /**
+     * \brief Sends the progress of the current operation.
+     * \param progress A double representing the progress percentage.
+     */
     void sendProgress(double progress) const override;
 
+    /**
+     * \brief Initiates the slicing of the next item.
+     */
     void sliceNext() override;
 };
 
