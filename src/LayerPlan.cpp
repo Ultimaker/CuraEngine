@@ -2006,6 +2006,15 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         constexpr bool wait = false;
         gcode.writeBedTemperatureCommand(mesh_group_settings.get<Temperature>("material_bed_temperature"), wait);
     }
+    if (mesh_group_settings.get<size_t>("build_volume_fan_nr") != 0)
+    {
+        // The machine has a build volume fan.
+        if (layer_nr_ == mesh_group_settings.get<size_t>("build_fan_full_layer"))
+        {
+            gcode.writeSpecificFanCommand(100, mesh_group_settings.get<size_t>("build_volume_fan_nr"));
+        }
+    }
+
 
     gcode.setZ(z_);
 
