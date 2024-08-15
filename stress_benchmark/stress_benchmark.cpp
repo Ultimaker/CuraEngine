@@ -195,7 +195,7 @@ void createAndWriteJson(const std::filesystem::path& out_file, double stress_lev
 {
     rapidjson::Document doc;
     doc.SetArray();
-        rapidjson::Document::AllocatorType& allocator = doc.GetAllocator();
+    rapidjson::Document::AllocatorType& allocator = doc.GetAllocator();
     auto no_test_cases_obj = createRapidJSONObject(allocator, "Number of test cases", no_test_cases, "-", "");
     doc.PushBack(no_test_cases_obj, allocator);
 

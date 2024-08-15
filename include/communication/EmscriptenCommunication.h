@@ -19,6 +19,7 @@ namespace cura
  */
 class EmscriptenCommunication : public CommandLine
 {
+private:
     std::string progress_handler_; ///< Handler for progress messages.
     std::string slice_info_handler_; ///< Handler for slice information messages.
 

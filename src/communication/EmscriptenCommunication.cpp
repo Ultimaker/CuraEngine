@@ -87,7 +87,7 @@ std::string EmscriptenCommunication::createSliceInfoMessage()
     }
     doc.AddMember("material_estimates", material_estimates_json, allocator);
 
-    // Set CureEngine information
+    // Set CuraEngine information
     rapidjson::Value slicer_info_json(rapidjson::kObjectType);
     rapidjson::Value slicer_version(CURA_ENGINE_VERSION, allocator);
     doc.AddMember("slicer_info", slicer_info_json, allocator);
