@@ -13,7 +13,7 @@
 #include <range/v3/view/take.hpp>
 #include <spdlog/spdlog.h>
 
-#include "gradual_flow/PointContainer.h"
+#include "geometry/PointsSet.h"
 #include "gradual_flow/Utils.h"
 #include "pathPlanning/GCodePath.h"
 
@@ -30,7 +30,7 @@ enum class FlowState
 struct FlowLimitedPath
 {
     const GCodePath* original_gcode_path_data;
-    geometry::Polyline<> points;
+    PointsSet points;
     double speed{ targetSpeed() }; // um/s
     double flow_{ extrusionVolumePerMm() * speed }; // um/s
     double total_length{ totalLength() }; // um
@@ -227,7 +227,7 @@ struct FlowLimitedPath
                 const auto partition_point_index = direction == utils::Direction::Forward ? partition_index + 1 : partition_index;
 
                 // points left of the partition_index
-                geometry::Polyline<> left_points;
+                PointsSet left_points;
                 for (unsigned int i = 0; i < partition_point_index; ++i)
                 {
                     left_points.emplace_back(points[i]);
@@ -235,7 +235,7 @@ struct FlowLimitedPath
                 left_points.emplace_back(partition_point);
 
                 // points right of the partition_index
-                geometry::Polyline<> right_points;
+                PointsSet right_points;
                 right_points.emplace_back(partition_point);
                 for (unsigned int i = partition_point_index; i < points.size(); ++i)
                 {

@@ -78,6 +78,12 @@ public:
         points_.push_back(point);
     }
 
+    /*! \brief Pushes an entire set at the end */
+    void push_back(const PointsSet& other)
+    {
+        points_.insert(points_.end(), other.points_.begin(), other.points_.end());
+    }
+
     void emplace_back(auto&&... args)
     {
         points_.emplace_back(std::forward<decltype(args)>(args)...);
