@@ -1270,6 +1270,8 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
         }
     }
 
+    gcode_layer.applyGradualFlow();
+
     gcode_layer.applyModifyPlugin();
     time_keeper.registerTime("Modify plugin");
 

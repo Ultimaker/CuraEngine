@@ -778,6 +778,8 @@ public:
      */
     void applyBackPressureCompensation();
 
+    void applyGradualFlow();
+
 private:
     /*!
      * \brief Compute the preferred or minimum combing boundary
