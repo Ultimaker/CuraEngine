@@ -414,12 +414,13 @@ private:
 
     struct UnsupportedAreaInformation
     {
-        UnsupportedAreaInformation(const Shape area, LayerIndex layer_idx, size_t height, coord_t accumulated_supportable_overhang, double deformation, Point2LL assumed_center)
+        UnsupportedAreaInformation(const Shape area, LayerIndex layer_idx, size_t height, coord_t accumulated_supportable_overhang, double deformation, Point2LL assumed_center, LayerIndex last_cradle_at_layer_idx)
             : area{ area }
             , layer_idx{ layer_idx }
             , height{ height }
             , accumulated_supportable_overhang{ accumulated_supportable_overhang }
             , deformation{ deformation }
+            , last_cradle_at_layer_idx(last_cradle_at_layer_idx)
             , assumed_center {assumed_center}
         {
         }
@@ -430,6 +431,7 @@ private:
         double deformation;
         double total_deformation_limit = -1;
         double total_deformation = -1;
+        LayerIndex last_cradle_at_layer_idx = -1;
         bool support_required = false;
         Point2LL assumed_center;
 
@@ -460,7 +462,9 @@ std::vector<UnsupportedAreaInformation*> getFullyUnsupportedArea(size_t mesh_idx
 void calculateFloatingParts(const SliceMeshStorage& mesh, size_t mesh_idx);
 
 mfem::Mesh* toMfemMesh(const SliceMeshStorage& mesh, size_t mesh_idx, UnsupportedAreaInformation* element);
-void runMfemExample(mfem::Mesh* mesh, std::string prefix_name);
+mfem::Mesh* toMfemMeshRasterized(const SliceMeshStorage& mesh, size_t mesh_idx, UnsupportedAreaInformation* element);
+
+void runMfemExample(mfem::Mesh* mesh, std::string prefix_name, double top_area, double force);
 
 /*!
      * \brief Generate the center points of all generated cradles.

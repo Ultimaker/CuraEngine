@@ -23,6 +23,11 @@ SupportCradleGeneration::SupportCradleGeneration(const SliceDataStorage& storage
 double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const SliceMeshStorage& mesh, UnsupportedAreaInformation* element)
 {
 
+    if(element->total_deformation >= 0)
+    {
+        return element->total_deformation;
+    }
+
     LayerIndex layer_idx = element->layer_idx;
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const double horizontal_movement_weight = retrieveSetting<double>(mesh.settings, "support_tree_side_cradle_xy_factor");
@@ -134,6 +139,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
         spdlog::error("Could not determine largest center distance at {}", layer_idx);
     }
 
+    element->total_deformation = known_deformation_map[element];
     return known_deformation_map[element];
 
 }
@@ -158,7 +164,7 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
     std::mutex critical_sections;
 
     Shape layer_below = volumes_.getCollision(0, 0, true); // technically wrong, but the xy distance error on layer 1 should not matter
-    for (size_t layer_idx = start_layer; layer_idx < max_layer; layer_idx++)
+    for (LayerIndex layer_idx = start_layer; layer_idx < max_layer; layer_idx++)
     {
         // As the collision contains z distance and xy distance it cant be used to clearly identify which parts of the model are connected to the buildplate.
         Shape layer = mesh.layers[layer_idx].getOutlines();
@@ -176,8 +182,10 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
                 coord_t overhang_area = std::max(overhang.area(), std::numbers::pi * min_wall_line_width * min_wall_line_width);
                 if (! has_support_below || layer_idx == start_layer)
                 {
+                    bool required_cradle = !has_support_below && overhang_area < cradle_area_threshold;
                     std::lock_guard<std::mutex> critical_section_add(critical_sections);
-                    UnsupportedAreaInformation* area_info = new UnsupportedAreaInformation(part, layer_idx, 0, overhang_area, 0, part.outerPolygon().centerOfMass());
+                    UnsupportedAreaInformation* area_info = new UnsupportedAreaInformation(part, layer_idx, 0, overhang_area, 0, part.outerPolygon().centerOfMass(), required_cradle ? layer_idx : LayerIndex(-1));
+                    area_info->support_required = required_cradle;
                     floating_parts_cache_[mesh_idx][layer_idx].emplace_back(area_info);
                     return;
                 }
@@ -241,6 +249,7 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
                 coord_t supported_overhang_area = 0;
                 bool add = false;
                 std::vector<size_t> idx_of_floating_below;
+                LayerIndex last_cradle_below = -1;
 
                 for (auto [idx, floating] : floating_parts_cache_[mesh_idx][layer_idx - 1] | ranges::views::enumerate)
                 {
@@ -250,6 +259,7 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
 
                         supported_overhang_area += floating->accumulated_supportable_overhang;
                         min_resting_on_layers = std::max(min_resting_on_layers, floating->height);
+                        last_cradle_below = std::max(last_cradle_below, floating->last_cradle_at_layer_idx);
                         add = true;
                     }
                 }
@@ -259,37 +269,45 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
                 {
                     std::lock_guard<std::mutex> critical_section_add(critical_sections);
                     //todo instead of assumed center, get a center line from SkeletalTrapezediation, Put center as a collection of squares for mfem for more accurate model representation?
-                    UnsupportedAreaInformation* area_info = new UnsupportedAreaInformation(part, layer_idx, min_resting_on_layers + 1, overhang_area + supported_overhang_area, deform_part, assumed_center);
+                    UnsupportedAreaInformation* area_info = new UnsupportedAreaInformation(part, layer_idx, min_resting_on_layers + 1, overhang_area + supported_overhang_area, deform_part, assumed_center, last_cradle_below > 0 ? last_cradle_below : LayerIndex(-1));
                     for (size_t idx : idx_of_floating_below)
                     {
                         area_info->areas_below.emplace_back(floating_parts_cache_[mesh_idx][layer_idx - 1][idx]);
                         floating_parts_cache_[mesh_idx][layer_idx - 1][idx]->areas_above.emplace_back(area_info);
                     }
-                    size_t floating_idx = floating_parts_cache_[mesh_idx][layer_idx].size(); // todo remove
                     floating_parts_cache_[mesh_idx][layer_idx].emplace_back(area_info);
 
                     if(layer_idx % 200 == 0 && layer_idx > 20)
                     {
-                        mfem::Mesh* mfem_mesh = toMfemMesh(mesh, mesh_idx, area_info);
+                        mfem::Mesh* mfem_mesh = toMfemMeshRasterized(mesh, mesh_idx, area_info);
                         std::ofstream mesh_ofs(std::to_string(layer_idx) + "gen.mesh");
                         mesh_ofs.precision(8);
                         mfem_mesh->Print(mesh_ofs);
-                        runMfemExample(mfem_mesh, std::to_string(layer_idx));
+                        std::cout.precision(16);
+                        std::cout << 100.0 / (part.area()/1000.0*1000.0) <<std::endl ;
+                        runMfemExample(mfem_mesh, std::to_string(layer_idx), part.area()/1000.0*1000.0, 100.0); // Calculation uses meter I think. Todo change to mm?
+                        double estimated_deformation = getTotalDeformation(mesh_idx, mesh, area_info);
+                        printf("My estimation was %lf\n",estimated_deformation);
                     }
-                    double estimated_deformation = getTotalDeformation(mesh_idx, mesh, area_info);
                     /*std::cout << "at " << layer_idx<< ": " << " with part deform " << deform_part << " with constant " << deformation_constant << " deform rad of " << deform_radius << " resulting estimation of " << estimated_deformation
                               <<std::endl ;*/
-                    if(estimated_deformation > side_cradle_support_threshold) // todo additional cradle if it rests on cradle earlier
+
+                    if(layer_idx - area_info->last_cradle_at_layer_idx < cradle_layers) // Assume any cradle reaches full height. This can be wrong! TODO
                     {
-                        floating_parts_cache_[mesh_idx][layer_idx][floating_idx]->support_required = true;
-                        floating_parts_cache_[mesh_idx][layer_idx][floating_idx]->total_deformation_limit = EPSILON; //todo do I want to use min cradle xy distance here?
-                        std::cout << "at " << layer_idx<< ": " << " Mark for support "
-                                  <<std::endl ;
+                        area_info->total_deformation_limit = EPSILON; //todo do I want to use min cradle xy distance here?
                     }
-                }
-                else
-                {
-                    std::lock_guard<std::mutex> critical_section_add(critical_sections); //todo
+                    else
+                    {
+                        double estimated_deformation = getTotalDeformation(mesh_idx, mesh, area_info);
+                        if(estimated_deformation > side_cradle_support_threshold) // todo additional cradle if it rests on cradle earlier
+                        {
+                            area_info->support_required = true;
+                            area_info->total_deformation_limit = EPSILON; //todo do I want to use min cradle xy distance here?
+                            area_info->last_cradle_at_layer_idx = layer_idx;
+                            std::cout << "at " << layer_idx<< ": " << " Mark for support "
+                                      <<std::endl ;
+                        }
+                    }
                 }
             });
         layer_below = layer;
@@ -380,6 +398,7 @@ mfem::Mesh* SupportCradleGeneration::toMfemMesh(const SliceMeshStorage& mesh, si
 
                     if(top == false && bottom == false)
                     {
+                        printf("%d is %d %d %d %d\n", face, face_verts[0],face_verts[1],face_verts[2],face_verts[3]);
                         mfem_mesh->AddBdrQuad(cube_vertices[face_verts[0]],cube_vertices[face_verts[1]],cube_vertices[face_verts[2]],cube_vertices[face_verts[3]], 3);
                     }
 
@@ -445,8 +464,182 @@ mfem::Mesh* SupportCradleGeneration::toMfemMesh(const SliceMeshStorage& mesh, si
 
 }
 
-void SupportCradleGeneration::runMfemExample(mfem::Mesh* mesh, std::string prefix_name)
+mfem::Mesh* SupportCradleGeneration::toMfemMeshRasterized(const SliceMeshStorage& mesh, size_t mesh_idx, UnsupportedAreaInformation* element)
 {
+    mfem::Mesh* mfem_mesh = new mfem::Mesh(3,0,0);
+    const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
+    const double deformation_constant = retrieveSetting<double>(mesh.settings, "support_tree_part_deformation_constant") / 1000.0;
+    coord_t raster_size = 1000;
+
+    // idea Every layer one square.
+    // splits: if below make current square two squares
+    // merges dont matter. we look at it top down!
+
+    struct ComparePoint2LL {
+        bool operator()(const Point2LL& a, const Point2LL& b) const {
+            return a < b;
+        }
+    };
+
+    struct ComparePoint3LL {
+        bool operator()(const Point3LL& p0, const Point3LL& p1) const {
+            if(p0.z_ < p1.z_)
+            {
+                return true;
+            }
+            else if(p0.z_ ==  p1.z_)
+            {
+                return p0.x_ < p1.x_ || (p0.x_ == p1.x_ && p0.y_ < p1.y_);
+            }
+            return false;
+        }
+    };
+
+
+    std::vector<std::map<Point2LL, std::vector<Point3LL>,ComparePoint2LL>> square_element_map(element->layer_idx+2);// contains to which vertices the upside of the cube of said element should connect
+    std::map<Point3LL, int64_t,ComparePoint3LL> coordinate_id_map;
+    int64_t last_added_vertex = -1;
+
+    {
+        std::unordered_set<UnsupportedAreaInformation*> all_scan_elements {element};
+
+
+        LayerIndex scan_layer_idx = element->layer_idx;
+        while(!all_scan_elements.empty() && scan_layer_idx > 0)
+        {
+            std::unordered_set<UnsupportedAreaInformation*> next_scan_elements;
+
+            for(UnsupportedAreaInformation* current_scan_element : all_scan_elements)
+            {
+                if (current_scan_element->height == 0)
+                {
+                    continue;
+                }
+
+                if(scan_layer_idx != current_scan_element->layer_idx)
+                {
+                    printf("Mismattching layer idx  %d %D\n",scan_layer_idx, current_scan_element->layer_idx);
+                }
+
+                AABB scan_area(current_scan_element->area);
+
+                for (coord_t x_scan = scan_area.min_.X; x_scan <= scan_area.max_.X; x_scan += raster_size)
+                {
+                    for (coord_t y_scan = scan_area.min_.Y; y_scan <= scan_area.max_.Y; y_scan += raster_size)
+                    {
+                        // calc dist to inside
+                        // if smaller than raster/2 assume filled and add block
+
+                        Point2LL center_of_raster(x_scan + raster_size / 2, y_scan + raster_size / 2);
+                        Point2LL center_moved = center_of_raster;
+                        PolygonUtils::moveInside(current_scan_element->area, center_moved);
+                        if (current_scan_element->area.inside(center_of_raster) || vSize2(center_moved - center_of_raster) < raster_size * raster_size)
+                        {
+                            for (int i = 0; i < 8; i++)
+                            {
+                                if (i < 4)
+                                {
+                                    Point2LL direction(i == 1 || i == 2 ? 1 : -1, i == 2 || i== 3  ? 1 : -1);
+                                    Point2LL x_direction_check(direction.X,0);
+                                    Point2LL y_direction_check(0,direction.Y);
+                                    Point2LL position = center_of_raster + direction * raster_size / 2;
+                                    Point3LL full_position = Point3LL(position.X,position.Y,layer_height * (scan_layer_idx));
+                                    square_element_map[scan_layer_idx][center_of_raster].emplace_back(full_position);
+                                    coordinate_id_map[full_position] = -1;
+                                }
+                                else
+                                {
+                                    Point2LL direction( i == 5 || i == 6 ? 1 : -1, i == 6 || i ==7 ? 1 : -1);
+                                    Point2LL x_direction_check(direction.X,0);
+                                    Point2LL y_direction_check(0,direction.Y);
+                                    Point2LL position = center_of_raster + direction * raster_size / 2;
+                                    Point3LL full_position = Point3LL(position.X,position.Y,layer_height * (scan_layer_idx + 1));
+                                    coordinate_id_map[full_position] = -1;
+                                    square_element_map[scan_layer_idx][center_of_raster].emplace_back(full_position);
+                                }
+                        }
+                    }
+                }
+                for(UnsupportedAreaInformation* scan_element_below: current_scan_element->areas_below)
+                {
+                    next_scan_elements.emplace(scan_element_below);
+                }
+            }
+        }
+        scan_layer_idx--;
+        all_scan_elements = next_scan_elements;
+    }
+    }
+
+    for(auto& elem: coordinate_id_map)
+    {
+        last_added_vertex++;
+        coordinate_id_map[elem.first] = last_added_vertex;
+        mfem_mesh->AddVertex(INT2MM2(elem.first.x_), INT2MM2(elem.first.y_), INT2MM2(elem.first.z_));
+        mfem_mesh->SetNode(last_added_vertex, mfem_mesh->GetVertex(last_added_vertex));
+    }
+    for(LayerIndex scan_layer_idx = 0; scan_layer_idx <= element->layer_idx;  scan_layer_idx++)
+    {
+
+        for(auto& elem: square_element_map[scan_layer_idx])
+        {
+            std::vector<int> cube_vertices;
+            for(Point3LL p:elem.second)
+            {
+                cube_vertices.emplace_back(coordinate_id_map[p]);
+            }
+
+            bool has_element_below = scan_layer_idx > 0 && square_element_map[scan_layer_idx-1].contains(elem.first) ;
+            bool has_element_above = square_element_map[scan_layer_idx+1].contains(elem.first);
+            bool has_element_left = square_element_map[scan_layer_idx].count(Point2LL(elem.first.X - raster_size, elem.first.Y));
+            bool has_element_right = square_element_map[scan_layer_idx].count(Point2LL(elem.first.X + raster_size, elem.first.Y));
+            bool has_element_up = square_element_map[scan_layer_idx].count(Point2LL(elem.first.X, elem.first.Y + raster_size));
+            bool has_element_down = square_element_map[scan_layer_idx].count(Point2LL(elem.first.X, elem.first.Y - raster_size));
+
+            mfem::Hexahedron* cube = new mfem::Hexahedron(cube_vertices.data(), has_element_below ? 2 : 1);
+            mfem_mesh->AddElement(cube);
+            //Add boundaries
+            if(!has_element_left)
+            {
+                mfem_mesh->AddBdrQuad(cube_vertices[3],cube_vertices[0],cube_vertices[4],cube_vertices[7],3);
+            }
+            if(!has_element_right)
+            {
+                mfem_mesh->AddBdrQuad(cube_vertices[1],cube_vertices[2],cube_vertices[6],cube_vertices[5],3);
+            }
+            if(!has_element_down)
+            {
+                mfem_mesh->AddBdrQuad(cube_vertices[0],cube_vertices[1],cube_vertices[5],cube_vertices[4],3);
+            }
+            if(!has_element_up)
+            {
+                mfem_mesh->AddBdrQuad(cube_vertices[2],cube_vertices[3],cube_vertices[7],cube_vertices[6],3);
+            }
+            if(!has_element_below)
+            {
+                mfem_mesh->AddBdrQuad(cube_vertices[0], cube_vertices[1], cube_vertices[2], cube_vertices[3], 1);
+            }
+            if(!has_element_above)
+            {
+                mfem_mesh->AddBdrQuad(cube_vertices[4], cube_vertices[5], cube_vertices[6], cube_vertices[7], 2);
+            }
+        }
+    }
+    mfem_mesh->FinalizeTopology();
+    mfem_mesh->Finalize(false,true);
+
+    return mfem_mesh;
+
+}
+
+
+void SupportCradleGeneration::runMfemExample(mfem::Mesh* mesh, std::string prefix_name, double top_area, double force)
+{
+    int vert_idx = mesh->GetNV()-1;
+
+    mfem::real_t vertex_before[3];
+    mesh->GetNode(vert_idx,vertex_before);
+
     int dim = mesh->Dimension();
     int order = 1;
     bool static_cond = false;
@@ -517,15 +710,17 @@ void SupportCradleGeneration::runMfemExample(mfem::Mesh* mesh, std::string prefi
     //    on boundary attribute 2 is indicated by the use of piece-wise constants
     //    coefficient for its last component.
     mfem::VectorArrayCoefficient f(dim);
-    {
-        mfem::Vector pull_force(mesh->bdr_attributes.Max());
-        pull_force = 0.0;
-        pull_force(1) = -1.0e-5;
-        f.Set(0, new mfem::PWConstCoefficient(pull_force));
-    }
     for (int i = 1; i < dim; i++)
     {
         f.Set(i, new mfem::ConstantCoefficient(0.0));
+    }
+    {
+        mfem::Vector pull_force(mesh->bdr_attributes.Max());
+        pull_force = 0.0;
+        pull_force(1) = force/top_area;
+        f.Set(0, new mfem::PWConstCoefficient(pull_force));
+        f.Set(1, new mfem::PWConstCoefficient(pull_force));
+
     }
 
     mfem::LinearForm *b = new mfem::LinearForm(fespace);
@@ -611,6 +806,15 @@ void SupportCradleGeneration::runMfemExample(mfem::Mesh* mesh, std::string prefi
         sol_ofs.precision(8);
         x.Save(sol_ofs);
     }
+
+    mfem::real_t vertex_after[3];
+    mesh->GetNode(vert_idx,vertex_after);
+    Point2LL point_before(vertex_before[0]*1000*1000,vertex_before[1]*1000*1000);
+    Point2LL point_after(vertex_after[0]*1000*1000,vertex_after[1]*1000*1000);
+
+    printf("%d was %lf %lf %lf, Now %lf %lf %lf \n", vert_idx,vertex_before[0],vertex_before[1],vertex_before[2],vertex_after[0],vertex_after[1],vertex_after[2]);
+    printf("Estimated deformation is %ld \n", vSize(point_before-point_after));
+
 }
 
 
@@ -634,7 +838,7 @@ std::vector<SupportCradleGeneration::UnsupportedAreaInformation*> SupportCradleG
         std::lock_guard<std::mutex> critical_section(*critical_floating_parts_cache_);
         for (auto [idx, floating_data] : floating_parts_cache_[mesh_idx][layer_idx] | ranges::views::enumerate)
         {
-            if (floating_data->height == 0 || floating_data->support_required)
+            if (floating_data->support_required)
             {
                 result.emplace_back(floating_data);
             }
