@@ -63,7 +63,7 @@ void process(std::vector<cura::GCodePath>& extruder_plan_paths, const size_t ext
                                                 });
         auto gcode_paths_non_zero_flow_view = gcode_paths | non_zero_flow_view;
 
-        const auto flow_limit = extruder_settings.get<double>(layer_nr == 0 ? "layer_0_max_flow_acceleration" : "max_flow_acceleration");
+        const auto flow_limit = extruder_settings.get<double>(layer_nr == 0 ? "layer_0_max_flow_acceleration" : "max_flow_acceleration") * 1e9;
 
         auto target_flow = ranges::empty(gcode_paths_non_zero_flow_view) ? 0.0 : ranges::front(gcode_paths_non_zero_flow_view);
 
