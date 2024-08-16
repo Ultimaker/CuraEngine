@@ -11,6 +11,14 @@
 
 namespace cura::gradual_flow::Processor
 {
+
+/*!
+ * \brief Processes the gradual flow acceleration splitting
+ * \param extruder_plan_paths The paths of the extruder plan to be processed. I gradual flow is enabled, they will be
+ *                            completely rewritten, very likely with a different amout of output paths.
+ * \param extruder_nr The used extruder number
+ * \param layer_nr The current layer number
+ */
 void process(std::vector<GCodePath>& extruder_plan_paths, const size_t extruder_nr, const size_t layer_nr)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;

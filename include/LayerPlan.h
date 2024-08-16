@@ -778,6 +778,10 @@ public:
      */
     void applyBackPressureCompensation();
 
+    /*!
+     * If enabled, applies the gradual flow acceleration splitting, that improves printing quality when printing at very high speed
+     * with a bowden extruder.
+     */
     void applyGradualFlow();
 
 private:
