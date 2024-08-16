@@ -18,7 +18,8 @@
 
 namespace cura::gradual_flow
 {
-enum class direction
+
+enum class Direction
 {
     NA,
     CW,
@@ -29,43 +30,43 @@ namespace concepts
 {
 
 template<class T>
-concept closable = requires(T t)
+concept Closable = requires(T t)
 {
     requires ranges::convertible_to<decltype(t.is_closed), bool>;
 };
 
 template<class T>
-concept is_closed_point_container = closable<T> && requires(T t)
+concept IsClosedPointContainer = Closable<T> && requires(T t)
 {
     t.is_closed == true;
 };
 
 template<class T>
-concept is_open_point_container = closable<T> && requires(T t)
+concept IsOpenPointContainer = Closable<T> && requires(T t)
 {
     t.is_closed == false;
 };
 
 template<class T>
-concept directional = requires(T t)
+concept Directional = requires(T t)
 {
-    requires std::is_same_v<decltype(t.winding), direction>;
+    requires std::is_same_v<decltype(t.winding), Direction>;
 };
 
 template<class T>
-concept is_clockwise_point_container = directional<T> && requires(T t)
+concept IsClockwisePointContainer = Directional<T> && requires(T t)
 {
-    t.winding == direction::CW;
+    t.winding == Direction::CW;
 };
 
 template<class T>
-concept is_counterclockwise_point_container = directional<T> && requires(T t)
+concept IsCounterclockwisePointContainer = Directional<T> && requires(T t)
 {
-    t.winding == direction::CCW;
+    t.winding == Direction::CCW;
 };
 
 template<class T>
-concept point2d_named = requires(T point)
+concept Point2DNamed = requires(T point)
 {
     point.X;
     point.Y;
@@ -77,10 +78,10 @@ concept point2d_named = requires(T point)
  * @tparam T Type to check
  */
 template<class T>
-concept point2d = point2d_named<T> ||(ranges::range<T>&& ranges::integral<typename T::value_type>&& std::tuple_size_v<T> == 2);
+concept Point2D = Point2DNamed<T> ||(ranges::range<T>&& ranges::integral<typename T::value_type>&& std::tuple_size_v<T> == 2);
 
 template<class T>
-concept point3d_named = requires(T point)
+concept Point3DNamed = requires(T point)
 {
     point.x;
     point.y;
@@ -93,10 +94,10 @@ concept point3d_named = requires(T point)
  * @tparam T Type to check
  */
 template<class T>
-concept point3d = point3d_named<T> ||(ranges::range<T>&& ranges::integral<typename T::value_type>&& std::tuple_size_v<T> == 3);
+concept Point3D = Point3DNamed<T> ||(ranges::range<T>&& ranges::integral<typename T::value_type>&& std::tuple_size_v<T> == 3);
 
 template<class T>
-concept point_named = point2d_named<T> || point3d_named<T>;
+concept PointNamed = Point2DNamed<T> || Point3DNamed<T>;
 
 /*!
  * @brief Either a Point2D or a Point3D
@@ -104,22 +105,22 @@ concept point_named = point2d_named<T> || point3d_named<T>;
  * @tparam T Type to check
  */
 template<class T>
-concept point = point2d<T> || point3d<T>;
+concept Point = Point2D<T> || Point3D<T>;
 
 template<class T>
-concept point_ranged = point<T> && ! point2d_named<T> && ! point3d_named<T>;
+concept PointRanged = Point<T> && ! Point2DNamed<T> && ! Point3DNamed<T>;
 
 template<class T>
-concept polyline = ranges::range<T> && is_open_point_container<T> && point<typename T::value_type>;
+concept Polyline = ranges::range<T> && IsOpenPointContainer<T> && Point<typename T::value_type>;
 
 template<class T>
-concept polygon = ranges::range<T> && is_closed_point_container<T> && point<typename T::value_type>;
+concept Polygon = ranges::range<T> && IsClosedPointContainer<T> && Point<typename T::value_type>;
 
 template<class T>
-concept polygons = ranges::range<T> && polygon<typename T::value_type>;
+concept Polygons = ranges::range<T> && Polygon<typename T::value_type>;
 
 template<class T>
-concept poly_range = polygon<T> || polyline<T>;
+concept PolyRange = Polygon<T> || Polyline<T>;
 
 } // namespace concepts
 } // namespace cura::gradual_flow

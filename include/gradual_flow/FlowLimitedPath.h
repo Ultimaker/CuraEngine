@@ -13,8 +13,8 @@
 #include <range/v3/view/take.hpp>
 #include <spdlog/spdlog.h>
 
-#include "gradual_flow/point_container.h"
-#include "gradual_flow/utils.h"
+#include "gradual_flow/PointContainer.h"
+#include "gradual_flow/Utils.h"
 #include "pathPlanning/GCodePath.h"
 
 namespace cura::gradual_flow
@@ -27,10 +27,10 @@ enum class FlowState
     UNDEFINED
 };
 
-struct GCodePath
+struct FlowLimitedPath
 {
-    const cura::GCodePath* original_gcode_path_data;
-    geometry::polyline<> points;
+    const GCodePath* original_gcode_path_data;
+    geometry::Polyline<> points;
     double speed{ targetSpeed() }; // um/s
     double flow_{ extrusionVolumePerMm() * speed }; // um/s
     double total_length{ totalLength() }; // um
@@ -165,13 +165,14 @@ struct GCodePath
      * partitioned path is equal or longer than the duration of the original
      * path
      */
-    std::tuple<GCodePath, std::optional<GCodePath>, double> partition(const double partition_duration, const double partition_speed, const utils::Direction direction) const
+    std::tuple<FlowLimitedPath, std::optional<FlowLimitedPath>, double>
+        partition(const double partition_duration, const double partition_speed, const utils::Direction direction) const
     {
         const auto total_path_duration = total_length / partition_speed;
         if (partition_duration >= total_path_duration)
         {
             const auto remaining_partition_duration = partition_duration - total_path_duration;
-            const GCodePath gcode_path{ .original_gcode_path_data = original_gcode_path_data, .points = points, .speed = partition_speed };
+            const FlowLimitedPath gcode_path{ .original_gcode_path_data = original_gcode_path_data, .points = points, .speed = partition_speed };
             return std::make_tuple(gcode_path, std::nullopt, remaining_partition_duration);
         }
 
@@ -226,7 +227,7 @@ struct GCodePath
                 const auto partition_point_index = direction == utils::Direction::Forward ? partition_index + 1 : partition_index;
 
                 // points left of the partition_index
-                geometry::polyline<> left_points;
+                geometry::Polyline<> left_points;
                 for (unsigned int i = 0; i < partition_point_index; ++i)
                 {
                     left_points.emplace_back(points[i]);
@@ -234,7 +235,7 @@ struct GCodePath
                 left_points.emplace_back(partition_point);
 
                 // points right of the partition_index
-                geometry::polyline<> right_points;
+                geometry::Polyline<> right_points;
                 right_points.emplace_back(partition_point);
                 for (unsigned int i = partition_point_index; i < points.size(); ++i)
                 {
@@ -245,12 +246,12 @@ struct GCodePath
                 {
                 case utils::Direction::Forward:
                 {
-                    const GCodePath partition_gcode_path{
+                    const FlowLimitedPath partition_gcode_path{
                         .original_gcode_path_data = original_gcode_path_data,
                         .points = left_points,
                         .speed = partition_speed,
                     };
-                    const GCodePath remaining_gcode_path{
+                    const FlowLimitedPath remaining_gcode_path{
                         .original_gcode_path_data = original_gcode_path_data,
                         .points = right_points,
                         .speed = speed,
@@ -259,12 +260,12 @@ struct GCodePath
                 };
                 case utils::Direction::Backward:
                 {
-                    const GCodePath partition_gcode_path{
+                    const FlowLimitedPath partition_gcode_path{
                         .original_gcode_path_data = original_gcode_path_data,
                         .points = right_points,
                         .speed = partition_speed,
                     };
-                    const GCodePath remaining_gcode_path{
+                    const FlowLimitedPath remaining_gcode_path{
                         .original_gcode_path_data = original_gcode_path_data,
                         .points = left_points,
                         .speed = speed,
@@ -276,9 +277,9 @@ struct GCodePath
         }
     }
 
-    cura::GCodePath toClassicPath(const bool include_first_point) const
+    GCodePath toClassicPath(const bool include_first_point) const
     {
-        cura::GCodePath output_path = *original_gcode_path_data;
+        GCodePath output_path = *original_gcode_path_data;
 
         output_path.points.clear();
         for (auto& point : points | ranges::views::drop(include_first_point ? 0 : 1))
@@ -303,12 +304,12 @@ struct GCodeState
     double reset_flow_duration{ 0.0 }; // s
     FlowState flow_state{ FlowState::UNDEFINED };
 
-    std::vector<GCodePath> processGcodePaths(const std::vector<GCodePath>& gcode_paths)
+    std::vector<FlowLimitedPath> processGcodePaths(const std::vector<FlowLimitedPath>& gcode_paths)
     {
         // reset the discretized_duration_remaining
         discretized_duration_remaining = 0;
 
-        std::vector<gradual_flow::GCodePath> forward_pass_gcode_paths;
+        std::vector<FlowLimitedPath> forward_pass_gcode_paths;
         for (auto& gcode_path : gcode_paths)
         {
             auto discretized_paths = processGcodePath(gcode_path, gradual_flow::utils::Direction::Forward);
@@ -327,7 +328,7 @@ struct GCodeState
         // instead.
         current_flow = std::min(current_flow, target_end_flow);
 
-        std::list<gradual_flow::GCodePath> backward_pass_gcode_paths;
+        std::list<FlowLimitedPath> backward_pass_gcode_paths;
         for (auto& gcode_path : forward_pass_gcode_paths | ranges::views::reverse)
         {
             auto discretized_paths = processGcodePath(gcode_path, gradual_flow::utils::Direction::Backward);
@@ -337,7 +338,7 @@ struct GCodeState
             }
         }
 
-        return std::vector<gradual_flow::GCodePath>(backward_pass_gcode_paths.begin(), backward_pass_gcode_paths.end());
+        return std::vector<FlowLimitedPath>(backward_pass_gcode_paths.begin(), backward_pass_gcode_paths.end());
     }
 
     /*
@@ -347,7 +348,7 @@ struct GCodeState
      *
      * @return a vector of discretized paths with a gradual increase in flow
      */
-    std::vector<GCodePath> processGcodePath(const GCodePath& path, const utils::Direction direction)
+    std::vector<FlowLimitedPath> processGcodePath(const FlowLimitedPath& path, const utils::Direction direction)
     {
         if (path.isTravel())
         {
@@ -375,9 +376,9 @@ struct GCodeState
 
         const auto extrusion_volume_per_mm = path.extrusionVolumePerMm(); // um^3/um
 
-        std::vector<GCodePath> discretized_paths;
+        std::vector<FlowLimitedPath> discretized_paths;
 
-        GCodePath remaining_path = path;
+        FlowLimitedPath remaining_path = path;
 
         if (discretized_duration_remaining > 0.)
         {
