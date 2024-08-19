@@ -1,82 +1,83 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/PolygonConnector.h"
 
-#include "utils/linearAlg2D.h"
 #include "utils/AABB.h"
+#include "utils/linearAlg2D.h"
 
-namespace cura 
+namespace cura
 {
 
 PolygonConnector::PolygonConnector(const coord_t line_width)
-: line_width(line_width)
-{}
-
-void PolygonConnector::add(const Polygons& input)
+    : line_width_(line_width)
 {
-    for (ConstPolygonRef poly : input)
+}
+
+void PolygonConnector::add(const Shape& input)
+{
+    for (const Polygon& poly : input)
     {
-        input_polygons.push_back(poly);
+        input_polygons_.push_back(poly);
     }
 }
 
 void PolygonConnector::add(const std::vector<VariableWidthLines>& input)
 {
-    for(const VariableWidthLines& lines : input)
+    for (const VariableWidthLines& lines : input)
     {
-        for(const ExtrusionLine& line : lines)
+        for (const ExtrusionLine& line : lines)
         {
-            input_paths.push_back(line);
+            input_paths_.push_back(line);
         }
     }
 }
 
-void PolygonConnector::connect(Polygons& output_polygons, std::vector<VariableWidthLines>& output_paths)
+void PolygonConnector::connect(Shape& output_polygons, std::vector<VariableWidthLines>& output_paths)
 {
-    std::vector<Polygon> result_polygons = connectGroup(input_polygons);
-    for(Polygon& polygon : result_polygons)
+    std::vector<Polygon> result_polygons = connectGroup(input_polygons_);
+    for (const Polygon& polygon : result_polygons)
     {
-        output_polygons.add(polygon);
+        output_polygons.push_back(polygon);
     }
 
-    std::vector<ExtrusionLine> result_paths = connectGroup(input_paths);
+    std::vector<ExtrusionLine> result_paths = connectGroup(input_paths_);
     output_paths.push_back(result_paths);
 }
 
-Point PolygonConnector::getPosition(const Point& vertex) const
+Point2LL PolygonConnector::getPosition(const Point2LL& vertex) const
 {
     return vertex;
 }
 
-Point PolygonConnector::getPosition(const ExtrusionJunction& junction) const
+Point2LL PolygonConnector::getPosition(const ExtrusionJunction& junction) const
 {
-    return junction.p;
+    return junction.p_;
 }
 
-coord_t PolygonConnector::getWidth(const Point&) const
+coord_t PolygonConnector::getWidth(const Point2LL&) const
 {
-    return line_width;
+    return line_width_;
 }
 
 coord_t PolygonConnector::getWidth(const ExtrusionJunction& junction) const
 {
-    return junction.w;
+    return junction.w_;
 }
 
-void PolygonConnector::addVertex(Polygon& polygonal, const Point& position, const coord_t) const
+void PolygonConnector::addVertex(Polygon& polygonal, const Point2LL& position, const coord_t) const
 {
-    polygonal.add(position);
+    polygonal.push_back(position);
 }
 
-void PolygonConnector::addVertex(Polygon& polygonal, const Point& vertex) const
+void PolygonConnector::addVertex(Polygon& polygonal, const Point2LL& vertex) const
 {
-    polygonal.add(vertex);
+    polygonal.push_back(vertex);
 }
 
-void PolygonConnector::addVertex(ExtrusionLine& polygonal, const Point& position, const coord_t width) const
+void PolygonConnector::addVertex(ExtrusionLine& polygonal, const Point2LL& position, const coord_t width) const
 {
-    polygonal.emplace_back(position, width, 1); //Perimeter indices don't make sense any more once perimeters are merged. Use 1 as placeholder, being the first "normal" wall.
+    polygonal.emplace_back(position, width, 1); // Perimeter indices don't make sense any more once perimeters are merged. Use 1 as placeholder, being the first "normal" wall.
 }
 
 void PolygonConnector::addVertex(ExtrusionLine& polygonal, const ExtrusionJunction& vertex) const
@@ -97,12 +98,11 @@ bool PolygonConnector::isClosed(ExtrusionLine& polygonal) const
 template<>
 ExtrusionLine PolygonConnector::createEmpty<ExtrusionLine>() const
 {
-    constexpr size_t inset_index = 1; //Specialising to set inset_index to 1 instead of maximum int. Connected polys are not specific to any inset.
+    constexpr size_t inset_index = 1; // Specialising to set inset_index to 1 instead of maximum int. Connected polys are not specific to any inset.
     constexpr bool is_odd = false;
     ExtrusionLine result(inset_index, is_odd);
-    result.is_closed = true;
-    return result; //No copy, via RVO.
+    result.is_closed_ = true;
+    return result; // No copy, via RVO.
 }
 
-}//namespace cura
-
+} // namespace cura

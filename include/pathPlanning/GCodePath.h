@@ -10,9 +10,9 @@
 #include "GCodePathConfig.h"
 #include "SpaceFillType.h"
 #include "TimeMaterialEstimates.h"
+#include "geometry/Point2LL.h"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
-#include "utils/IntPoint.h"
 
 namespace cura
 {
@@ -40,12 +40,13 @@ struct GCodePath
     Ratio speed_factor{ 1.0 }; //!< A speed factor that is multiplied with the travel speed. This factor can be used to change the travel speed.
     Ratio speed_back_pressure_factor{ 1.0 }; // <! The factor the (non-travel) speed should be multiplied with as a consequence of back pressure compensation.
     bool retract{ false }; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path.
+    bool retract_for_nozzle_switch{ false }; //! Also retract to prepare for a nozzle switch
     bool unretract_before_last_travel_move{ false }; //!< Whether the last move of the path should be preceded by an unretraction. Used to unretract in the last travel move before
                                                      //!< an outer wall
     bool perform_z_hop{ false }; //!< Whether to perform a z_hop in this path, which is assumed to be a travel path.
     bool perform_prime{ false }; //!< Whether this path is preceded by a prime (blob)
     bool skip_agressive_merge_hint{ false }; //!< Wheter this path needs to skip merging if any travel paths are in between the extrusions.
-    std::vector<Point> points; //!< The points constituting this path.
+    std::vector<Point2LL> points{}; //!< The points constituting this path.
     bool done{ false }; //!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
     double fan_speed{ GCodePathConfig::FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
     TimeMaterialEstimates estimates{}; //!< Naive time and material estimates

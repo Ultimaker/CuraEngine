@@ -1,19 +1,23 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef CURAENGINE_WALL_BENCHMARK_H
 #define CURAENGINE_WALL_BENCHMARK_H
 
+#include <benchmark/benchmark.h>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
 #include <string>
 
-#include <benchmark/benchmark.h>
 #include <range/v3/view/join.hpp>
+#include <spdlog/spdlog.h>
 
 #include "InsetOrderOptimizer.h"
 #include "WallsComputation.h"
+#include "geometry/Polygon.h"
 #include "settings/Settings.h"
 #include "sliceDataStorage.h"
-#include "utils/polygon.h"
 
 namespace cura
 {
@@ -22,8 +26,8 @@ class WallTestFixture : public benchmark::Fixture
 public:
     Settings settings{};
     WallsComputation walls_computation{ settings, LayerIndex(100) };
-    Polygons square_shape;
-    Polygons ff_holes;
+    Shape square_shape;
+    Shape ff_holes;
     bool outer_to_inner;
     SliceLayer layer;
 
@@ -80,7 +84,68 @@ public:
         layer.parts.emplace_back();
 
         SliceLayerPart& part = layer.parts.back();
-        part.outline.add(ff_holes);
+        part.outline.push_back(ff_holes);
+    }
+
+    void TearDown(const ::benchmark::State& state)
+    {
+    }
+};
+
+class HolesWallTestFixture : public benchmark::Fixture
+{
+public:
+    Settings settings{};
+    WallsComputation walls_computation{ settings, LayerIndex(100) };
+    Shape shape;
+    Shape ff_holes;
+    bool outer_to_inner;
+    SliceLayer layer;
+
+
+    void SetUp(const ::benchmark::State& state)
+    {
+        auto wkt_file = std::filesystem::path(__FILE__).parent_path().append("holes.wkt");
+        std::ifstream file{ wkt_file };
+
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        const auto wkt = buffer.str();
+
+        const auto shape = Shape::fromWkt(buffer.str());
+
+        // Settings for a simple 2 walls, about as basic as possible.
+        settings.add("alternate_extra_perimeter", "false");
+        settings.add("fill_outline_gaps", "false");
+        settings.add("initial_layer_line_width_factor", "100");
+        settings.add("magic_spiralize", "false");
+        settings.add("meshfix_maximum_deviation", "0.1");
+        settings.add("meshfix_maximum_extrusion_area_deviation", "0.01");
+        settings.add("meshfix_maximum_resolution", "0.01");
+        settings.add("meshfix_fluid_motion_enabled", "false");
+        settings.add("min_wall_line_width", "0.3");
+        settings.add("min_bead_width", "0");
+        settings.add("min_feature_size", "0");
+        settings.add("wall_0_extruder_nr", "0");
+        settings.add("wall_0_inset", "0");
+        settings.add("wall_line_count", "2");
+        settings.add("wall_line_width_0", "0.4");
+        settings.add("wall_line_width_x", "0.4");
+        settings.add("min_even_wall_line_width", "0.34");
+        settings.add("min_odd_wall_line_width", "0.34");
+        settings.add("wall_transition_angle", "10");
+        settings.add("wall_transition_filter_distance", "1");
+        settings.add("wall_transition_filter_deviation", ".2");
+        settings.add("wall_transition_length", "1");
+        settings.add("wall_x_extruder_nr", "0");
+        settings.add("wall_distribution_count", "2");
+        settings.add("wall_line_count", std::to_string(state.range(0)));
+        outer_to_inner = false;
+        layer.parts.emplace_back();
+
+        SliceLayerPart& part = layer.parts.back();
+        part.outline.push_back(shape.front());
+        part.print_outline = shape;
     }
 
     void TearDown(const ::benchmark::State& state)
@@ -102,7 +167,7 @@ BENCHMARK_DEFINE_F(WallTestFixture, InsetOrderOptimizer_getRegionOrder)(benchmar
 {
     walls_computation.generateWalls(&layer, SectionType::WALL);
     std::vector<ExtrusionLine> all_paths;
-    for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join )
+    for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join)
     {
         all_paths.emplace_back(line);
     }
@@ -118,7 +183,7 @@ BENCHMARK_DEFINE_F(WallTestFixture, InsetOrderOptimizer_getInsetOrder)(benchmark
 {
     walls_computation.generateWalls(&layer, SectionType::WALL);
     std::vector<ExtrusionLine> all_paths;
-    for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join )
+    for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join)
     {
         all_paths.emplace_back(line);
     }
@@ -129,6 +194,48 @@ BENCHMARK_DEFINE_F(WallTestFixture, InsetOrderOptimizer_getInsetOrder)(benchmark
 }
 
 BENCHMARK_REGISTER_F(WallTestFixture, InsetOrderOptimizer_getInsetOrder)->Arg(3)->Arg(15)->Arg(9999)->Unit(benchmark::kMillisecond);
+
+BENCHMARK_DEFINE_F(HolesWallTestFixture, generateWalls)(benchmark::State& st)
+{
+    for (auto _ : st)
+    {
+        walls_computation.generateWalls(&layer, SectionType::WALL);
+    }
+}
+
+BENCHMARK_REGISTER_F(HolesWallTestFixture, generateWalls)->Arg(3)->Arg(15)->Arg(9999)->Unit(benchmark::kMillisecond);
+
+BENCHMARK_DEFINE_F(HolesWallTestFixture, InsetOrderOptimizer_getRegionOrder)(benchmark::State& st)
+{
+    walls_computation.generateWalls(&layer, SectionType::WALL);
+    std::vector<ExtrusionLine> all_paths;
+    for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join)
+    {
+        all_paths.emplace_back(line);
+    }
+    for (auto _ : st)
+    {
+        auto order = InsetOrderOptimizer::getRegionOrder(all_paths, outer_to_inner);
+    }
+}
+
+BENCHMARK_REGISTER_F(HolesWallTestFixture, InsetOrderOptimizer_getRegionOrder)->Arg(3)->Arg(15)->Arg(9999)->Unit(benchmark::kMillisecond);
+
+BENCHMARK_DEFINE_F(HolesWallTestFixture, InsetOrderOptimizer_getInsetOrder)(benchmark::State& st)
+{
+    walls_computation.generateWalls(&layer, SectionType::WALL);
+    std::vector<ExtrusionLine> all_paths;
+    for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join)
+    {
+        all_paths.emplace_back(line);
+    }
+    for (auto _ : st)
+    {
+        auto order = InsetOrderOptimizer::getInsetOrder(all_paths, outer_to_inner);
+    }
+}
+
+BENCHMARK_REGISTER_F(HolesWallTestFixture, InsetOrderOptimizer_getInsetOrder)->Arg(3)->Arg(15)->Arg(9999)->Unit(benchmark::kMillisecond);
 
 } // namespace cura
 #endif // CURAENGINE_WALL_BENCHMARK_H

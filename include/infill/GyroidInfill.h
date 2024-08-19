@@ -1,12 +1,13 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2024 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "../utils/Coord_t.h"
+#include "geometry/LinesSet.h"
+#include "geometry/OpenLinesSet.h"
+#include "utils/Coord_t.h"
 
 namespace cura
 {
-
-class Polygons;
+class Shape;
 
 class GyroidInfill
 {
@@ -33,11 +34,8 @@ public:
      * \param z The Z coordinate of this layer. Different Z coordinates cause the pattern to vary, producing a 3D
      * pattern.
      */
-    static void generateTotalGyroidInfill(Polygons& result_lines, bool zig_zaggify, coord_t line_distance, const Polygons& in_outline, coord_t z);
-    
+    static void generateTotalGyroidInfill(OpenLinesSet& result_lines, bool zig_zaggify, coord_t line_distance, const Shape& in_outline, coord_t z);
+
 private:
-
 };
-
 } // namespace cura
-

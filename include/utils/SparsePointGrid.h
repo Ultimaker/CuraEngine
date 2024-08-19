@@ -1,6 +1,6 @@
-//Copyright (c) 2016 Scott Lenser
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2016 Scott Lenser
+// Copyright (c) 2020 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_SPARSE_POINT_GRID_H
 #define UTILS_SPARSE_POINT_GRID_H
@@ -9,10 +9,11 @@
 #include <unordered_map>
 #include <vector>
 
-#include "IntPoint.h"
 #include "SparseGrid.h"
+#include "geometry/Point2LL.h"
 
-namespace cura {
+namespace cura
+{
 
 /*! \brief Sparse grid which can locate spatially nearby elements efficiently.
  *
@@ -34,13 +35,13 @@ public:
      * \param[in] elem_reserve Number of elements to research space for.
      * \param[in] max_load_factor Maximum average load factor before rehashing.
      */
-    SparsePointGrid(coord_t cell_size, size_t elem_reserve=0U, float max_load_factor=1.0f);
+    SparsePointGrid(coord_t cell_size, size_t elem_reserve = 0U, double max_load_factor = 1.0);
 
     /*! \brief Inserts elem into the sparse grid.
      *
      * \param[in] elem The element to be inserted.
      */
-    void insert(const Elem &elem);
+    void insert(const Elem& elem);
 
     /*!
      * Get just any element that's within a certain radius of a point.
@@ -50,7 +51,7 @@ public:
      * \param query_pt The point to query for an object nearby.
      * \param radius The radius of what is considered "nearby".
      */
-    const ElemT* getAnyNearby(const Point& query_pt, coord_t radius);
+    const ElemT* getAnyNearby(const Point2LL& query_pt, coord_t radius);
 
 protected:
     using GridPoint = typename SparseGrid<ElemT>::GridPoint;
@@ -60,38 +61,37 @@ protected:
 };
 
 
-
 #define SGI_TEMPLATE template<class ElemT, class Locator>
 #define SGI_THIS SparsePointGrid<ElemT, Locator>
 
 SGI_TEMPLATE
-SGI_THIS::SparsePointGrid(coord_t cell_size, size_t elem_reserve, float max_load_factor)
- : SparseGrid<ElemT>(cell_size, elem_reserve, max_load_factor)
+SGI_THIS::SparsePointGrid(coord_t cell_size, size_t elem_reserve, double max_load_factor)
+    : SparseGrid<ElemT>(cell_size, elem_reserve, max_load_factor)
 {
 }
 
 SGI_TEMPLATE
-void SGI_THIS::insert(const Elem &elem)
+void SGI_THIS::insert(const Elem& elem)
 {
-    Point loc = m_locator(elem);
+    Point2LL loc = m_locator(elem);
     GridPoint grid_loc = SparseGrid<ElemT>::toGridPoint(loc);
 
-    SparseGrid<ElemT>::m_grid.emplace(grid_loc,elem);
+    SparseGrid<ElemT>::grid_.emplace(grid_loc, elem);
 }
 
 SGI_TEMPLATE
-const ElemT* SGI_THIS::getAnyNearby(const Point& query_pt, coord_t radius)
+const ElemT* SGI_THIS::getAnyNearby(const Point2LL& query_pt, coord_t radius)
 {
     const ElemT* ret = nullptr;
-    const std::function<bool (const ElemT&)>& process_func = [&ret, query_pt, radius, this](const ElemT& maybe_nearby)
+    const std::function<bool(const ElemT&)>& process_func = [&ret, query_pt, radius, this](const ElemT& maybe_nearby)
+    {
+        if (shorterThen(m_locator(maybe_nearby) - query_pt, radius))
         {
-            if (shorterThen(m_locator(maybe_nearby) - query_pt, radius))
-            {
-                ret = &maybe_nearby;
-                return false;
-            }
-            return true;
-        };
+            ret = &maybe_nearby;
+            return false;
+        }
+        return true;
+    };
     SparseGrid<ElemT>::processNearby(query_pt, radius, process_func);
 
     return ret;

@@ -1,5 +1,5 @@
-//Copyright (c) 2019 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2019 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef BRIDGE_H
 #define BRIDGE_H
@@ -7,7 +7,7 @@
 namespace cura
 {
 
-class Polygons;
+class Shape;
 class Settings;
 class SliceDataStorage;
 class SupportLayer;
@@ -27,8 +27,15 @@ class SupportLayer;
  * \param supported_regions Pre-computed regions that the support layer would
  * support.
  */
-int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const SliceDataStorage& storage, const unsigned layer_nr, const unsigned bridge_layer, const SupportLayer* support_layer, Polygons& supported_regions);
+double bridgeAngle(
+    const Settings& settings,
+    const Shape& skin_outline,
+    const SliceDataStorage& storage,
+    const unsigned layer_nr,
+    const unsigned bridge_layer,
+    const SupportLayer* support_layer,
+    Shape& supported_regions);
 
-}//namespace cura
+} // namespace cura
 
-#endif//BRIDGE_H
+#endif // BRIDGE_H

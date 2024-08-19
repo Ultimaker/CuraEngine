@@ -1,12 +1,26 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "settings/Settings.h"
+
+#include <cctype>
+#include <cstdio>
+#include <fstream>
+#include <numbers>
+#include <regex> // regex parsing for temp flow graph
+#include <sstream> // ostringstream
+#include <string> //Parsing strings (stod, stoul).
+
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/map.hpp>
+#include <spdlog/spdlog.h>
 
 #include "Application.h" //To get the extruders.
 #include "BeadingStrategy/BeadingStrategyFactory.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
+#include "geometry/Polygon.h"
+#include "geometry/Shape.h"
 #include "settings/EnumSettings.h"
 #include "settings/FlowTempGraph.h"
 #include "settings/types/Angle.h"
@@ -15,21 +29,9 @@
 #include "settings/types/Ratio.h" //For ratio settings and percentages.
 #include "settings/types/Temperature.h" //For temperature settings.
 #include "settings/types/Velocity.h" //For velocity settings.
-#include "utils/FMatrix4x3.h"
-#include "utils/polygon.h"
+#include "utils/Matrix4x3D.h"
 #include "utils/string.h" //For Escaped.
 #include "utils/types/string_switch.h" //For string switch.
-
-#include <range/v3/range/conversion.hpp>
-#include <range/v3/view/map.hpp>
-#include <spdlog/spdlog.h>
-
-#include <cctype>
-#include <fstream>
-#include <regex> // regex parsing for temp flow graph
-#include <sstream> // ostringstream
-#include <stdio.h>
-#include <string> //Parsing strings (stod, stoul).
 
 namespace cura
 {
@@ -60,10 +62,10 @@ std::string Settings::get<std::string>(const std::string& key) const
         return settings.at(key);
     }
 
-    const std::unordered_map<std::string, ExtruderTrain*>& limit_to_extruder = Application::getInstance().current_slice->scene.limit_to_extruder;
+    const std::unordered_map<std::string, ExtruderTrain*>& limit_to_extruder = Application::getInstance().current_slice_->scene.limit_to_extruder;
     if (limit_to_extruder.find(key) != limit_to_extruder.end())
     {
-        return limit_to_extruder.at(key)->settings.getWithoutLimiting(key);
+        return limit_to_extruder.at(key)->settings_.getWithoutLimiting(key);
     }
 
     if (parent)
@@ -113,7 +115,7 @@ ExtruderTrain& Settings::get<ExtruderTrain&>(const std::string& key) const
     {
         extruder_nr = get<size_t>("extruder_nr");
     }
-    return Application::getInstance().current_slice->scene.extruders[extruder_nr];
+    return Application::getInstance().current_slice_->scene.extruders[extruder_nr];
 }
 
 template<>
@@ -123,14 +125,14 @@ std::vector<ExtruderTrain*> Settings::get<std::vector<ExtruderTrain*>>(const std
     std::vector<ExtruderTrain*> ret;
     if (extruder_nr < 0)
     {
-        for (ExtruderTrain& train : Application::getInstance().current_slice->scene.extruders)
+        for (ExtruderTrain& train : Application::getInstance().current_slice_->scene.extruders)
         {
             ret.emplace_back(&train);
         }
     }
     else
     {
-        ret.emplace_back(&Application::getInstance().current_slice->scene.extruders[extruder_nr]);
+        ret.emplace_back(&Application::getInstance().current_slice_->scene.extruders[extruder_nr]);
     }
     return ret;
 }
@@ -151,7 +153,7 @@ coord_t Settings::get<coord_t>(const std::string& key) const
 template<>
 AngleRadians Settings::get<AngleRadians>(const std::string& key) const
 {
-    return get<double>(key) * M_PI / 180; // The settings are all in degrees, but we need to interpret them as radians.
+    return get<double>(key) * std::numbers::pi / 180; // The settings are all in degrees, but we need to interpret them as radians.
 }
 
 template<>
@@ -245,7 +247,7 @@ FlowTempGraph Settings::get<FlowTempGraph>(const std::string& key) const
         {
             double first = std::stod(first_substring);
             double second = std::stod(second_substring);
-            result.data.emplace_back(first, second);
+            result.data_.emplace_back(first, second);
         }
         catch (const std::invalid_argument& e)
         {
@@ -257,11 +259,11 @@ FlowTempGraph Settings::get<FlowTempGraph>(const std::string& key) const
 }
 
 template<>
-Polygons Settings::get<Polygons>(const std::string& key) const
+Shape Settings::get<Shape>(const std::string& key) const
 {
     std::string value_string = get<std::string>(key);
 
-    Polygons result;
+    Shape result;
     if (value_string.empty())
     {
         return result; // Empty at this point.
@@ -287,8 +289,7 @@ Polygons Settings::get<Polygons>(const std::string& key) const
         {
             std::string polygon_str = *polygon_match_iter++;
 
-            result.emplace_back();
-            PolygonRef poly = result.back();
+            Polygon& poly = result.newLine();
 
             std::regex point2D_regex(R"(\[([^,\[]*),([^,\]]*)\])"); // matches to a list of exactly two things
 
@@ -319,11 +320,11 @@ Polygons Settings::get<Polygons>(const std::string& key) const
 }
 
 template<>
-FMatrix4x3 Settings::get<FMatrix4x3>(const std::string& key) const
+Matrix4x3D Settings::get<Matrix4x3D>(const std::string& key) const
 {
     const std::string value_string = get<std::string>(key);
 
-    FMatrix4x3 result;
+    Matrix4x3D result;
     if (value_string.empty())
     {
         return result; // Standard matrix ([[1,0,0], [0,1,0], [0,0,1]]).
@@ -675,6 +676,54 @@ InsetDirection Settings::get<InsetDirection>(const std::string& key) const
         return InsetDirection::PLUGIN;
     default:
         return InsetDirection::INSIDE_OUT;
+    }
+}
+
+template<>
+PrimeTowerMode Settings::get<PrimeTowerMode>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "interleaved")
+    {
+        return PrimeTowerMode::INTERLEAVED;
+    }
+
+    return PrimeTowerMode::NORMAL;
+}
+
+template<>
+BrimLocation Settings::get<BrimLocation>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "everywhere")
+    {
+        return BrimLocation::EVERYWHERE;
+    }
+    else if (value == "inside")
+    {
+        return BrimLocation::INSIDE;
+    }
+    else // Default.
+    {
+        return BrimLocation::OUTSIDE;
+    }
+}
+
+template<>
+CoolDuringExtruderSwitch Settings::get<CoolDuringExtruderSwitch>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "all_fans")
+    {
+        return CoolDuringExtruderSwitch::ALL_FANS;
+    }
+    else if (value == "only_last_extruder")
+    {
+        return CoolDuringExtruderSwitch::ONLY_LAST_EXTRUDER;
+    }
+    else // Default.
+    {
+        return CoolDuringExtruderSwitch::UNCHANGED;
     }
 }
 

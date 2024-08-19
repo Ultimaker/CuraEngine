@@ -1,5 +1,5 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2020 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_POLYGONS_SEGMENT_INDEX_H
 #define UTILS_POLYGONS_SEGMENT_INDEX_H
@@ -8,7 +8,7 @@
 
 #include "PolygonsPointIndex.h"
 
-namespace cura 
+namespace cura
 {
 
 /*!
@@ -18,15 +18,15 @@ class PolygonsSegmentIndex : public PolygonsPointIndex
 {
 public:
     PolygonsSegmentIndex();
-    PolygonsSegmentIndex(const Polygons* polygons, unsigned int poly_idx, unsigned int point_idx);
+    PolygonsSegmentIndex(const Shape* polygons, unsigned int poly_idx, unsigned int point_idx);
 
-    Point from() const;
+    Point2LL from() const;
 
-    Point to() const;
+    Point2LL to() const;
 };
 
 
 } // namespace cura
 
 
-#endif//UTILS_POLYGONS_SEGMENT_INDEX_H
+#endif // UTILS_POLYGONS_SEGMENT_INDEX_H

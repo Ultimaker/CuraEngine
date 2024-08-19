@@ -3,6 +3,8 @@
 
 #include "gcodeExport.h" // The unit under test.
 
+#include <gtest/gtest.h>
+
 #include "Application.h" // To set up a slice with settings.
 #include "RetractionConfig.h" // For extruder switch tests.
 #include "Slice.h" // To set up a slice with settings.
@@ -10,8 +12,6 @@
 #include "arcus/MockCommunication.h" // To prevent calls to any missing Communication class.
 #include "utils/Coord_t.h"
 #include "utils/Date.h" // To check the Griffin header.
-
-#include <gtest/gtest.h>
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
@@ -43,43 +43,41 @@ public:
     void SetUp() override
     {
         output << std::fixed;
-        gcode.output_stream = &output;
+        gcode.output_stream_ = &output;
 
         // Since GCodeExport doesn't support copying, we have to reset everything in-place.
-        gcode.currentPosition = Point3(0, 0, MM2INT(20));
-        gcode.layer_nr = 0;
-        gcode.current_e_value = 0;
-        gcode.current_e_offset = 0;
-        gcode.current_extruder = 0;
-        gcode.current_fan_speed = -1;
-        gcode.total_print_times = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
-        gcode.currentSpeed = 1.0;
-        gcode.current_print_acceleration = -1.0;
-        gcode.current_travel_acceleration = -1.0;
-        gcode.current_jerk = -1.0;
-        gcode.is_z_hopped = 0;
+        gcode.current_position_ = Point3LL(0, 0, MM2INT(20));
+        gcode.layer_nr_ = 0;
+        gcode.current_e_value_ = 0;
+        gcode.current_e_offset_ = 0;
+        gcode.current_extruder_ = 0;
+        gcode.total_print_times_ = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
+        gcode.current_speed_ = 1.0;
+        gcode.current_print_acceleration_ = -1.0;
+        gcode.current_travel_acceleration_ = -1.0;
+        gcode.current_jerk_ = -1.0;
+        gcode.is_z_hopped_ = 0;
         gcode.setFlavor(EGCodeFlavor::MARLIN);
-        gcode.bed_temperature = 0;
-        gcode.initial_bed_temp = 0;
-        gcode.fan_number = 0;
-        gcode.total_bounding_box = AABB3D();
-        gcode.current_layer_z = 0;
-        gcode.relative_extrusion = false;
+        gcode.bed_temperature_ = 0;
+        gcode.initial_bed_temp_ = 0;
+        gcode.total_bounding_box_ = AABB3D();
+        gcode.current_layer_z_ = 0;
+        gcode.relative_extrusion_ = false;
 
-        gcode.new_line = "\n"; // Not BFB flavour by default.
-        gcode.machine_name = "Your favourite 3D printer";
+        gcode.new_line_ = "\n"; // Not BFB flavour by default.
+        gcode.machine_name_ = "Your favourite 3D printer";
 
         // Set up a scene so that we may request settings.
-        Application::getInstance().current_slice = new Slice(1);
+        Application::getInstance().current_slice_ = new Slice(1);
         mock_communication = new MockCommunication();
-        Application::getInstance().communication = mock_communication;
+        Application::getInstance().communication_ = mock_communication;
     }
 
     void TearDown() override
     {
-        delete Application::getInstance().current_slice;
-        delete Application::getInstance().communication;
-        Application::getInstance().communication = nullptr;
+        delete Application::getInstance().current_slice_;
+        delete Application::getInstance().communication_;
+        Application::getInstance().communication_ = nullptr;
     }
 };
 // NOLINTEND(misc-non-private-member-variables-in-classes)
@@ -204,36 +202,34 @@ public:
     void SetUp() override
     {
         output << std::fixed;
-        gcode.output_stream = &output;
+        gcode.output_stream_ = &output;
 
         // Since GCodeExport doesn't support copying, we have to reset everything in-place.
-        gcode.currentPosition = Point3(0, 0, MM2INT(20));
-        gcode.layer_nr = 0;
-        gcode.current_e_value = 0;
-        gcode.current_extruder = 0;
-        gcode.current_fan_speed = -1;
-        gcode.total_print_times = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
-        gcode.currentSpeed = 1.0;
-        gcode.current_print_acceleration = -1.0;
-        gcode.current_travel_acceleration = -1.0;
-        gcode.current_jerk = -1.0;
-        gcode.is_z_hopped = 0;
+        gcode.current_position_ = Point3LL(0, 0, MM2INT(20));
+        gcode.layer_nr_ = 0;
+        gcode.current_e_value_ = 0;
+        gcode.current_extruder_ = 0;
+        gcode.total_print_times_ = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
+        gcode.current_speed_ = 1.0;
+        gcode.current_print_acceleration_ = -1.0;
+        gcode.current_travel_acceleration_ = -1.0;
+        gcode.current_jerk_ = -1.0;
+        gcode.is_z_hopped_ = 0;
         gcode.setFlavor(EGCodeFlavor::MARLIN);
-        gcode.initial_bed_temp = 0;
-        gcode.bed_temperature = 0;
-        gcode.fan_number = 0;
-        gcode.total_bounding_box = AABB3D();
+        gcode.initial_bed_temp_ = 0;
+        gcode.bed_temperature_ = 0;
+        gcode.total_bounding_box_ = AABB3D();
 
-        gcode.new_line = "\n"; // Not BFB flavour by default.
-        gcode.machine_name = "Your favourite 3D printer";
+        gcode.new_line_ = "\n"; // Not BFB flavour by default.
+        gcode.machine_name_ = "Your favourite 3D printer";
 
         // Set up a scene so that we may request settings.
-        Application::getInstance().current_slice = new Slice(0);
+        Application::getInstance().current_slice_ = new Slice(0);
     }
 
     void TearDown() override
     {
-        delete Application::getInstance().current_slice;
+        delete Application::getInstance().current_slice_;
     }
 };
 // NOLINTEND(misc-non-private-member-variables-in-classes)
@@ -241,13 +237,13 @@ public:
 TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
 {
     const size_t num_extruders = GetParam();
-    gcode.flavor = EGCodeFlavor::GRIFFIN;
+    gcode.flavor_ = EGCodeFlavor::GRIFFIN;
     for (size_t extruder_index = 0; extruder_index < num_extruders; extruder_index++)
     {
-        Application::getInstance().current_slice->scene.extruders.emplace_back(extruder_index, nullptr);
-        ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders.back();
-        train.settings.add("machine_nozzle_size", "0.4");
-        train.settings.add("machine_nozzle_id", "TestNozzle");
+        Application::getInstance().current_slice_->scene.extruders.emplace_back(extruder_index, nullptr);
+        ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders.back();
+        train.settings_.add("machine_nozzle_size", "0.4");
+        train.settings_.add("machine_nozzle_id", "TestNozzle");
     }
 
     const std::vector<bool> extruder_is_used(num_extruders, true);
@@ -270,7 +266,7 @@ TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
     EXPECT_EQ(Date::getDate().toStringDashed(), token.substr(22));
     std::getline(result, token, '\n');
     EXPECT_EQ(std::string(";TARGET_MACHINE.NAME:"), token.substr(0, 21));
-    EXPECT_EQ(gcode.machine_name, token.substr(21));
+    EXPECT_EQ(gcode.machine_name_, token.substr(21));
 
     for (size_t extruder_nr = 0; extruder_nr < num_extruders; extruder_nr++)
     {
@@ -317,18 +313,18 @@ INSTANTIATE_TEST_SUITE_P(GriffinHeaderTestInstantiation, GriffinHeaderTest, test
  */
 TEST_F(GCodeExportTest, HeaderUltiGCode)
 {
-    gcode.flavor = EGCodeFlavor::ULTIGCODE;
+    gcode.flavor_ = EGCodeFlavor::ULTIGCODE;
     constexpr size_t num_extruders = 2;
     const std::vector<bool> extruder_is_used(num_extruders, true);
     constexpr Duration print_time = 1337;
     const std::vector<double> filament_used = { 100, 200 };
     for (size_t extruder_index = 0; extruder_index < num_extruders; extruder_index++)
     {
-        Application::getInstance().current_slice->scene.extruders.emplace_back(extruder_index, nullptr);
-        ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders.back();
-        train.settings.add("machine_nozzle_size", "0.4");
+        Application::getInstance().current_slice_->scene.extruders.emplace_back(extruder_index, nullptr);
+        ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders.back();
+        train.settings_.add("machine_nozzle_size", "0.4");
     }
-    gcode.total_bounding_box = AABB3D(Point3(0, 0, 0), Point3(1000, 1000, 1000));
+    gcode.total_bounding_box_ = AABB3D(Point3LL(0, 0, 0), Point3LL(1000, 1000, 1000));
 
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
@@ -340,15 +336,15 @@ TEST_F(GCodeExportTest, HeaderUltiGCode)
 
 TEST_F(GCodeExportTest, HeaderRepRap)
 {
-    Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.123");
-    gcode.flavor = EGCodeFlavor::REPRAP;
-    gcode.extruder_attr[0].filament_area = 5.0;
-    gcode.extruder_attr[1].filament_area = 4.0;
+    Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.123");
+    gcode.flavor_ = EGCodeFlavor::REPRAP;
+    gcode.extruder_attr_[0].filament_area_ = 5.0;
+    gcode.extruder_attr_[1].filament_area_ = 4.0;
     constexpr size_t num_extruders = 2;
     const std::vector<bool> extruder_is_used(num_extruders, true);
     constexpr Duration print_time = 1337;
     const std::vector<double> filament_used = { 100, 200 };
-    gcode.total_bounding_box = AABB3D(Point3(0, 0, 0), Point3(1000, 1000, 1000));
+    gcode.total_bounding_box_ = AABB3D(Point3LL(0, 0, 0), Point3LL(1000, 1000, 1000));
 
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
@@ -360,15 +356,15 @@ TEST_F(GCodeExportTest, HeaderRepRap)
 
 TEST_F(GCodeExportTest, HeaderMarlin)
 {
-    Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.123");
-    gcode.flavor = EGCodeFlavor::MARLIN;
-    gcode.extruder_attr[0].filament_area = 5.0;
-    gcode.extruder_attr[1].filament_area = 4.0;
+    Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.123");
+    gcode.flavor_ = EGCodeFlavor::MARLIN;
+    gcode.extruder_attr_[0].filament_area_ = 5.0;
+    gcode.extruder_attr_[1].filament_area_ = 4.0;
     constexpr size_t num_extruders = 2;
     const std::vector<bool> extruder_is_used(num_extruders, true);
     constexpr Duration print_time = 1337;
     const std::vector<double> filament_used = { 100, 200 };
-    gcode.total_bounding_box = AABB3D(Point3(0, 0, 0), Point3(1000, 1000, 1000));
+    gcode.total_bounding_box_ = AABB3D(Point3LL(0, 0, 0), Point3LL(1000, 1000, 1000));
 
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
@@ -380,13 +376,13 @@ TEST_F(GCodeExportTest, HeaderMarlin)
 
 TEST_F(GCodeExportTest, HeaderMarlinVolumetric)
 {
-    Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.123");
-    gcode.flavor = EGCodeFlavor::MARLIN_VOLUMATRIC;
+    Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.123");
+    gcode.flavor_ = EGCodeFlavor::MARLIN_VOLUMATRIC;
     constexpr size_t num_extruders = 2;
     const std::vector<bool> extruder_is_used(num_extruders, true);
     constexpr Duration print_time = 1337;
     const std::vector<double> filament_used = { 100, 200 };
-    gcode.total_bounding_box = AABB3D(Point3(0, 0, 0), Point3(1000, 1000, 1000));
+    gcode.total_bounding_box_ = AABB3D(Point3LL(0, 0, 0), Point3LL(1000, 1000, 1000));
 
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
@@ -403,8 +399,8 @@ TEST_F(GCodeExportTest, HeaderMarlinVolumetric)
 TEST_F(GCodeExportTest, EVsMmVolumetric)
 {
     constexpr double filament_area = 10.0;
-    gcode.extruder_attr[0].filament_area = filament_area;
-    gcode.is_volumetric = true;
+    gcode.extruder_attr_[0].filament_area_ = filament_area;
+    gcode.is_volumetric_ = true;
 
     constexpr double mm3_input = 15.0;
     EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input) << "Since the E is volumetric and the input mm3 is also volumetric, the output needs to be the same.";
@@ -428,8 +424,8 @@ TEST_F(GCodeExportTest, EVsMmVolumetric)
 TEST_F(GCodeExportTest, EVsMmLinear)
 {
     constexpr double filament_area = 10.0;
-    gcode.extruder_attr[0].filament_area = filament_area;
-    gcode.is_volumetric = false;
+    gcode.extruder_attr_[0].filament_area_ = filament_area;
+    gcode.is_volumetric_ = false;
 
     EXPECT_EQ(gcode.mmToE(15.0), 15.0) << "Since the E is linear and the input mm is also linear, the output needs to be the same.";
     EXPECT_EQ(gcode.eToMm(15.0), 15.0) << "Since the E is linear and the output mm is also linear, the output needs to be the same.";
@@ -455,20 +451,27 @@ TEST_F(GCodeExportTest, EVsMmLinear)
  */
 TEST_F(GCodeExportTest, SwitchExtruderSimple)
 {
-    Scene& scene = Application::getInstance().current_slice->scene;
+    Scene& scene = Application::getInstance().current_slice_->scene;
 
     scene.extruders.emplace_back(0, nullptr);
     ExtruderTrain& train1 = scene.extruders.back();
-    train1.settings.add("machine_extruder_start_code", ";FIRST EXTRUDER START G-CODE!");
-    train1.settings.add("machine_extruder_end_code", ";FIRST EXTRUDER END G-CODE!");
-    train1.settings.add("machine_firmware_retract", "True");
-    train1.settings.add("retraction_enable", "True");
+
+    train1.settings_.add("machine_extruder_start_code", ";FIRST EXTRUDER START G-CODE!");
+    train1.settings_.add("machine_extruder_end_code", ";FIRST EXTRUDER END G-CODE!");
+    train1.settings_.add("machine_extruder_start_code_duration", "0.0");
+    train1.settings_.add("machine_extruder_end_code_duration", "0.0");
+    train1.settings_.add("machine_firmware_retract", "True");
+    train1.settings_.add("retraction_enable", "True");
+
     scene.extruders.emplace_back(1, nullptr);
     ExtruderTrain& train2 = scene.extruders.back();
-    train2.settings.add("machine_extruder_start_code", ";SECOND EXTRUDER START G-CODE!");
-    train2.settings.add("machine_extruder_end_code", ";SECOND EXTRUDER END G-CODE!");
-    train2.settings.add("machine_firmware_retract", "True");
-    train2.settings.add("retraction_enable", "True");
+
+    train2.settings_.add("machine_extruder_start_code", ";SECOND EXTRUDER START G-CODE!");
+    train2.settings_.add("machine_extruder_end_code", ";SECOND EXTRUDER END G-CODE!");
+    train2.settings_.add("machine_extruder_start_code_duration", "0.0");
+    train2.settings_.add("machine_extruder_end_code_duration", "0.0");
+    train2.settings_.add("machine_firmware_retract", "True");
+    train2.settings_.add("retraction_enable", "True");
 
     RetractionConfig no_retraction;
     no_retraction.distance = 0;
@@ -488,9 +491,9 @@ TEST_F(GCodeExportTest, WriteZHopStartZero)
 
 TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
 {
-    Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
-    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); // 60mm/min.
-    gcode.current_layer_z = 2000;
+    Application::getInstance().current_slice_->scene.extruders.emplace_back(0, nullptr);
+    Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1"); // 60mm/min.
+    gcode.current_layer_z_ = 2000;
     constexpr coord_t hop_height = 3000;
     gcode.writeZhopStart(hop_height);
     EXPECT_EQ(std::string("G1 F60 Z5\n"), output.str());
@@ -498,9 +501,9 @@ TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
 
 TEST_F(GCodeExportTest, WriteZHopStartCustomSpeed)
 {
-    Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
-    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); // 60mm/min.
-    gcode.current_layer_z = 2000;
+    Application::getInstance().current_slice_->scene.extruders.emplace_back(0, nullptr);
+    Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1"); // 60mm/min.
+    gcode.current_layer_z_ = 2000;
     constexpr coord_t hop_height = 3000;
     constexpr Velocity speed{ 4.0 }; // 240 mm/min.
     gcode.writeZhopStart(hop_height, speed);
@@ -509,27 +512,27 @@ TEST_F(GCodeExportTest, WriteZHopStartCustomSpeed)
 
 TEST_F(GCodeExportTest, WriteZHopEndZero)
 {
-    gcode.is_z_hopped = 0;
+    gcode.is_z_hopped_ = 0;
     gcode.writeZhopEnd();
     EXPECT_EQ(std::string(""), output.str()) << "Zero length z hop shouldn't affect gcode output.";
 }
 
 TEST_F(GCodeExportTest, WriteZHopEndDefaultSpeed)
 {
-    Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
-    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); // 60mm/min.
-    gcode.current_layer_z = 2000;
-    gcode.is_z_hopped = 3000;
+    Application::getInstance().current_slice_->scene.extruders.emplace_back(0, nullptr);
+    Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1"); // 60mm/min.
+    gcode.current_layer_z_ = 2000;
+    gcode.is_z_hopped_ = 3000;
     gcode.writeZhopEnd();
     EXPECT_EQ(std::string("G1 F60 Z2\n"), output.str());
 }
 
 TEST_F(GCodeExportTest, WriteZHopEndCustomSpeed)
 {
-    Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
-    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1");
-    gcode.current_layer_z = 2000;
-    gcode.is_z_hopped = 3000;
+    Application::getInstance().current_slice_->scene.extruders.emplace_back(0, nullptr);
+    Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1");
+    gcode.current_layer_z_ = 2000;
+    gcode.is_z_hopped_ = 3000;
     constexpr Velocity speed{ 4.0 }; // 240 mm/min.
     gcode.writeZhopEnd(speed);
     EXPECT_EQ(std::string("G1 F240 Z2\n"), output.str()) << "Custom provided speed should be used.";
@@ -537,10 +540,10 @@ TEST_F(GCodeExportTest, WriteZHopEndCustomSpeed)
 
 TEST_F(GCodeExportTest, insertWipeScriptSingleMove)
 {
-    gcode.currentPosition = Point3(1000, 1000, 1000);
-    gcode.current_layer_z = 1000;
-    gcode.use_extruder_offset_to_offset_coords = false;
-    Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
+    gcode.current_position_ = Point3LL(1000, 1000, 1000);
+    gcode.current_layer_z_ = 1000;
+    gcode.use_extruder_offset_to_offset_coords_ = false;
+    Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
 
     WipeScriptConfig config;
     config.retraction_enable = false;
@@ -569,10 +572,10 @@ TEST_F(GCodeExportTest, insertWipeScriptSingleMove)
 
 TEST_F(GCodeExportTest, insertWipeScriptMultipleMoves)
 {
-    gcode.currentPosition = Point3(1000, 1000, 1000);
-    gcode.current_layer_z = 1000;
-    gcode.use_extruder_offset_to_offset_coords = false;
-    Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
+    gcode.current_position_ = Point3LL(1000, 1000, 1000);
+    gcode.current_layer_z_ = 1000;
+    gcode.use_extruder_offset_to_offset_coords_ = false;
+    Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
 
     WipeScriptConfig config;
     config.retraction_enable = false;
@@ -607,10 +610,10 @@ TEST_F(GCodeExportTest, insertWipeScriptMultipleMoves)
 
 TEST_F(GCodeExportTest, insertWipeScriptOptionalDelay)
 {
-    gcode.currentPosition = Point3(1000, 1000, 1000);
-    gcode.current_layer_z = 1000;
-    gcode.use_extruder_offset_to_offset_coords = false;
-    Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
+    gcode.current_position_ = Point3LL(1000, 1000, 1000);
+    gcode.current_layer_z_ = 1000;
+    gcode.use_extruder_offset_to_offset_coords_ = false;
+    Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
 
     WipeScriptConfig config;
     config.retraction_enable = false;
@@ -638,25 +641,24 @@ TEST_F(GCodeExportTest, insertWipeScriptOptionalDelay)
 
 TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
 {
-    gcode.currentPosition = Point3(1000, 1000, 1000);
-    gcode.current_layer_z = 1000;
-    gcode.current_e_value = 100;
-    gcode.use_extruder_offset_to_offset_coords = false;
-    gcode.is_volumetric = false;
-    gcode.current_extruder = 0;
-    gcode.extruder_attr[0].filament_area = 10.0;
-    gcode.relative_extrusion = false;
-    gcode.currentSpeed = 1.0;
-    Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
-    Application::getInstance().current_slice->scene.extruders.emplace_back(0, &Application::getInstance().current_slice->scene.current_mesh_group->settings);
-    Application::getInstance().current_slice->scene.extruders.back().settings.add("machine_firmware_retract", "false");
+    gcode.current_position_ = Point3LL(1000, 1000, 1000);
+    gcode.current_layer_z_ = 1000;
+    gcode.current_e_value_ = 100;
+    gcode.use_extruder_offset_to_offset_coords_ = false;
+    gcode.is_volumetric_ = false;
+    gcode.current_extruder_ = 0;
+    gcode.extruder_attr_[0].filament_area_ = 10.0;
+    gcode.extruder_attr_[0].machine_firmware_retract_ = false;
+    gcode.relative_extrusion_ = false;
+    gcode.current_speed_ = 1.0;
+    Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
 
     WipeScriptConfig config;
     config.retraction_enable = true;
     config.retraction_config.distance = 1;
     config.retraction_config.speed = 2.0; // 120 mm/min.
     config.retraction_config.primeSpeed = 3.0; // 180 mm/min.
-    config.retraction_config.prime_volume = gcode.extruder_attr[0].filament_area * 4; // 4mm in linear dimensions
+    config.retraction_config.prime_volume = gcode.extruder_attr_[0].filament_area_ * 4; // 4mm in linear dimensions
     config.retraction_config.retraction_count_max = 100; // Practically no limit.
     config.retraction_config.retraction_extrusion_window = 1;
     config.retraction_config.retraction_min_travel_distance = 0; // Don't limit retractions for being too short.
@@ -686,11 +688,11 @@ TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
 
 TEST_F(GCodeExportTest, insertWipeScriptHopEnable)
 {
-    gcode.currentPosition = Point3(1000, 1000, 1000);
-    gcode.current_layer_z = 1000;
-    gcode.use_extruder_offset_to_offset_coords = false;
-    gcode.currentSpeed = 1.0;
-    Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
+    gcode.current_position_ = Point3LL(1000, 1000, 1000);
+    gcode.current_layer_z_ = 1000;
+    gcode.use_extruder_offset_to_offset_coords_ = false;
+    gcode.current_speed_ = 1.0;
+    Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
 
     WipeScriptConfig config;
     config.retraction_enable = false;

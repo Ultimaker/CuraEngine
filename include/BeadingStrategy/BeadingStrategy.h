@@ -1,14 +1,15 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef BEADING_STRATEGY_H
 #define BEADING_STRATEGY_H
 
 #include <memory>
+#include <numbers>
 
-#include "../settings/types/Angle.h"
-#include "../settings/types/Ratio.h" //For the wall transition threshold.
-#include "../utils/IntPoint.h"
+#include "geometry/Point2LL.h"
+#include "settings/types/Angle.h"
+#include "settings/types/Ratio.h" //For the wall transition threshold.
 
 namespace cura
 {
@@ -36,13 +37,16 @@ public:
         coord_t left_over; //! The distance not covered by any bead; gap area.
     };
 
-    BeadingStrategy(coord_t optimal_width, Ratio wall_split_middle_threshold, Ratio wall_add_middle_threshold, coord_t default_transition_length, float transitioning_angle = pi_div(3));
+    BeadingStrategy(
+        coord_t optimal_width,
+        Ratio wall_split_middle_threshold,
+        Ratio wall_add_middle_threshold,
+        coord_t default_transition_length,
+        double transitioning_angle = std::numbers::pi / 3.0);
 
     BeadingStrategy(const BeadingStrategy& other);
 
-    virtual ~BeadingStrategy()
-    {
-    }
+    virtual ~BeadingStrategy() = default;
 
     /*!
      * Retrieve the bead widths with which to cover a given thickness.
@@ -80,7 +84,7 @@ public:
      *
      * Transitions are used to smooth out the jumps in integer bead count; the jumps turn into ramps which could be positioned relative to the jump location.
      */
-    virtual float getTransitionAnchorPos(coord_t lower_bead_count) const;
+    virtual double getTransitionAnchorPos(coord_t lower_bead_count) const;
 
     /*!
      * Get the locations in a bead count region where \ref BeadingStrategy::compute exhibits a bend in the widths.
@@ -99,21 +103,21 @@ public:
     AngleRadians getTransitioningAngle() const;
 
 protected:
-    std::string name;
+    std::string name_;
 
-    coord_t optimal_width; //! Optimal bead width, nominal width off the walls in 'ideal' circumstances.
+    coord_t optimal_width_; //! Optimal bead width, nominal width off the walls in 'ideal' circumstances.
 
-    Ratio wall_split_middle_threshold; //! Threshold when a middle wall should be split into two, as a ratio of the optimal wall width.
+    Ratio wall_split_middle_threshold_; //! Threshold when a middle wall should be split into two, as a ratio of the optimal wall width.
 
-    Ratio wall_add_middle_threshold; //! Threshold when a new middle wall should be added between an even number of walls, as a ratio of the optimal wall width.
+    Ratio wall_add_middle_threshold_; //! Threshold when a new middle wall should be added between an even number of walls, as a ratio of the optimal wall width.
 
-    coord_t default_transition_length; //! The length of the region to smoothly transfer between bead counts
+    coord_t default_transition_length_; //! The length of the region to smoothly transfer between bead counts
 
     /*!
      * The maximum angle between outline segments smaller than which we are going to add transitions
      * Equals 180 - the "limit bisector angle" from the paper
      */
-    AngleRadians transitioning_angle;
+    AngleRadians transitioning_angle_;
 };
 
 using BeadingStrategyPtr = std::unique_ptr<BeadingStrategy>;

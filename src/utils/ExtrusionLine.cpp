@@ -1,48 +1,63 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
+
+#include "utils/ExtrusionLine.h"
 
 #include <algorithm>
 
-#include "utils/ExtrusionLine.h"
-#include "utils/linearAlg2D.h"
 #include "utils/Simplify.h"
+#include "utils/linearAlg2D.h"
 
 namespace cura
 {
 
-ExtrusionLine::ExtrusionLine(const size_t inset_idx, const bool is_odd)
-: inset_idx(inset_idx)
-, is_odd(is_odd)
-, is_closed(false)
-{}
 
-coord_t ExtrusionLine::getLength() const
+coord_t ExtrusionLine::length() const
 {
-    if (junctions.empty())
+    if (junctions_.empty())
     {
         return 0;
     }
     coord_t len = 0;
-    ExtrusionJunction prev = junctions.front();
-    for (const ExtrusionJunction& next : junctions)
+    ExtrusionJunction prev = junctions_.front();
+    for (const ExtrusionJunction& next : junctions_)
     {
-        len += vSize(next.p - prev.p);
+        len += vSize(next.p_ - prev.p_);
         prev = next;
     }
-    if (is_closed)
+    if (is_closed_)
     {
-        len += vSize(front().p - back().p);
+        len += vSize(front().p_ - back().p_);
     }
     return len;
 }
 
 coord_t ExtrusionLine::getMinimalWidth() const
 {
-    return std::min_element(junctions.cbegin(), junctions.cend(),
-                            [](const ExtrusionJunction& l, const ExtrusionJunction& r)
-                            {
-                                return l.w < r.w;
-                            })->w;
+    return std::min_element(
+               junctions_.cbegin(),
+               junctions_.cend(),
+               [](const ExtrusionJunction& l, const ExtrusionJunction& r)
+               {
+                   return l.w_ < r.w_;
+               })
+        ->w_;
 }
 
+bool ExtrusionLine::shorterThan(const coord_t check_length) const
+{
+    const ExtrusionJunction* p0 = &back();
+    int64_t length = 0;
+    for (const ExtrusionJunction& p1 : (*this))
+    {
+        length += vSize(*p0 - p1);
+        if (length >= check_length)
+        {
+            return false;
+        }
+        p0 = &p1;
+    }
+    return true;
 }
+
+} // namespace cura

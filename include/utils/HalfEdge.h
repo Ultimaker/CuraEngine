@@ -7,8 +7,8 @@
 #include <forward_list>
 #include <optional>
 
-#include "../utils/IntPoint.h"
 #include "Coord_t.h"
+#include "geometry/Point2LL.h"
 
 namespace cura
 {
@@ -18,23 +18,25 @@ class HalfEdge
 {
     using edge_t = derived_edge_t;
     using node_t = derived_node_t;
+
 public:
-    edge_data_t data;
-    edge_t* twin = nullptr;
-    edge_t* next = nullptr;
-    edge_t* prev = nullptr;
-    node_t* from = nullptr;
-    node_t* to = nullptr;
+    edge_data_t data_;
+    edge_t* twin_ = nullptr;
+    edge_t* next_ = nullptr;
+    edge_t* prev_ = nullptr;
+    node_t* from_ = nullptr;
+    node_t* to_ = nullptr;
+
     HalfEdge(edge_data_t data)
-    : data(data)
-    {}
+        : data_(data)
+    {
+    }
+
     bool operator==(const edge_t& other)
     {
         return this == &other;
     }
 };
-
-
 
 
 } // namespace cura

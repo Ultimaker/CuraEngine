@@ -1,5 +1,5 @@
-//  Copyright (c) 2022 Ultimaker B.V.
-//  CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef ARCUSCOMMUNICATION_H
 #define ARCUSCOMMUNICATION_H
@@ -8,10 +8,10 @@
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h>
 #endif
+#include <memory> //For unique_ptr and shared_ptr.
+
 #include "Communication.h" //The class we're implementing.
 #include "Cura.pb.h" //To create Protobuf messages for Cura's front-end.
-
-#include <memory> //For unique_ptr and shared_ptr.
 
 // Forward declarations to speed up compilation.
 namespace Arcus
@@ -21,6 +21,8 @@ class Socket;
 
 namespace cura
 {
+
+class Polygon;
 
 /*
  * \brief Communication class that connects via libArcus to Cura's front-end.
@@ -84,7 +86,7 @@ public:
      * This may indicate the starting position (or any other jump in the path).
      * \param position The current position to start the next line at.
      */
-    void sendCurrentPosition(const Point& position) override;
+    void sendCurrentPosition(const Point2LL& position) override;
 
     /*
      * \brief Sends a message to indicate that all the slicing is done.
@@ -130,7 +132,7 @@ public:
      * \param line_thickness The thickness (in the Z direction) of the line.
      * \param velocity The velocity of printing this polygon.
      */
-    void sendLineTo(const PrintFeatureType& type, const Point& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
+    void sendLineTo(const PrintFeatureType& type, const Point2LL& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
 
     /*
      * \brief Send the sliced layer data to the front-end after the optimisation
@@ -152,7 +154,7 @@ public:
      * \param line_thickness The thickness (in the Z direction) of the polygon.
      * \param velocity The velocity of printing this polygon.
      */
-    void sendPolygon(const PrintFeatureType& type, const ConstPolygonRef& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
+    void sendPolygon(const PrintFeatureType& type, const Polygon& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
 
     /*
      * \brief Send polygons to the front-end to display in layer view.
@@ -166,7 +168,7 @@ public:
      * \param line_thickness The thickness (in the Z direction) of the polygons.
      * \param velocity The velocity of printing these polygons.
      */
-    void sendPolygons(const PrintFeatureType& type, const Polygons& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
+    void sendPolygons(const PrintFeatureType& type, const Shape& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
 
     /*
      * \brief Send an estimate of how long the print would take and how much
@@ -177,7 +179,7 @@ public:
     /*
      * \brief Communicate to Arcus what our progress is.
      */
-    void sendProgress(const float& progress) const override;
+    void sendProgress(double progress) const override;
 
     /*
      * \brief Set which extruder is being used for the following calls to

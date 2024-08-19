@@ -7,9 +7,9 @@
 #include <memory>
 
 #include "BeadingStrategy/BeadingStrategyFactory.h"
+#include "geometry/Polygon.h"
 #include "settings/Settings.h"
 #include "utils/ExtrusionLine.h"
-#include "utils/polygon.h"
 #include "utils/section_type.h"
 
 namespace cura
@@ -25,7 +25,14 @@ public:
      * \param wall_0_inset How far to inset the outer wall, to make it adhere better to other walls.
      * \param settings The settings as provided by the user
      */
-    WallToolPaths(const Polygons& outline, const coord_t nominal_bead_width, const size_t inset_count, const coord_t wall_0_inset, const Settings& settings, const int layer_idx, SectionType section_type);
+    WallToolPaths(
+        const Shape& outline,
+        const coord_t nominal_bead_width,
+        const size_t inset_count,
+        const coord_t wall_0_inset,
+        const Settings& settings,
+        const int layer_idx,
+        SectionType section_type);
 
     /*!
      * A class that creates the toolpaths given an outline, nominal bead width and maximum amount of walls
@@ -36,7 +43,15 @@ public:
      * \param wall_0_inset How far to inset the outer wall, to make it adhere better to other walls.
      * \param settings The settings as provided by the user
      */
-    WallToolPaths(const Polygons& outline, const coord_t bead_width_0, const coord_t bead_width_x, const size_t inset_count, const coord_t wall_0_inset, const Settings& settings, const int layer_idx, SectionType section_type);
+    WallToolPaths(
+        const Shape& outline,
+        const coord_t bead_width_0,
+        const coord_t bead_width_x,
+        const size_t inset_count,
+        const coord_t wall_0_inset,
+        const Settings& settings,
+        const int layer_idx,
+        SectionType section_type);
 
     /*!
      * Generates the Toolpaths
@@ -75,7 +90,7 @@ public:
      * If there are no walls, the outline will be returned.
      * \return The inner contour of the generated walls.
      */
-    const Polygons& getInnerContour();
+    const Shape& getInnerContour();
 
     /*!
      * Removes empty paths from the toolpaths
@@ -87,17 +102,17 @@ public:
 protected:
     /*!
      * Stitch the polylines together and form closed polygons.
-     * 
+     *
      * Works on both toolpaths and inner contours simultaneously.
-     * 
+     *
      * \param settings The settings as provided by the user
      */
     static void stitchToolPaths(std::vector<VariableWidthLines>& toolpaths, const Settings& settings);
 
     /*!
-     * Remove polylines shorter than half the smallest line width along that polyline.
+     * Remove polylines shorter than half the smallest line width along that polyline, if that polyline isn't part of an outer wall.
      */
-    static void removeSmallLines(std::vector<VariableWidthLines>& toolpaths);
+    static void removeSmallFillLines(std::vector<VariableWidthLines>& toolpaths);
 
     /*!
      * Simplifies the variable-width toolpaths by calling the simplify on every line in the toolpath using the provided
@@ -107,22 +122,23 @@ protected:
     static void simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths, const Settings& settings);
 
 private:
-    const Polygons& outline; //<! A reference to the outline polygon that is the designated area
-    coord_t bead_width_0; //<! The nominal or first extrusion line width with which libArachne generates its walls
-    coord_t bead_width_x; //<! The subsequently extrusion line width with which libArachne generates its walls if WallToolPaths was called with the nominal_bead_width Constructor this is the same as bead_width_0
-    size_t inset_count; //<! The maximum number of walls to generate
-    coord_t wall_0_inset; //<! How far to inset the outer wall. Should only be applied when printing the actual walls, not extra infill/skin/support walls.
-    bool print_thin_walls; //<! Whether to enable the widening beading meta-strategy for thin features
-    coord_t min_feature_size; //<! The minimum size of the features that can be widened by the widening beading meta-strategy. Features thinner than that will not be printed
-    coord_t min_bead_width;  //<! The minimum bead size to use when widening thin model features with the widening beading meta-strategy
-    double small_area_length; //<! The length of the small features which are to be filtered out, this is squared into a surface
-    coord_t transition_length; //<! The transitioning length when the amount of extrusion lines changes
-    bool toolpaths_generated; //<! Are the toolpaths generated
-    std::vector<VariableWidthLines> toolpaths; //<! The generated toolpaths binned by inset_idx.
-    Polygons inner_contour;  //<! The inner contour of the generated toolpaths
-    const Settings& settings;
-    int layer_idx;
-    SectionType section_type;
+    const Shape& outline_; //<! A reference to the outline polygon that is the designated area
+    coord_t bead_width_0_; //<! The nominal or first extrusion line width with which libArachne generates its walls
+    coord_t bead_width_x_; //<! The subsequently extrusion line width with which libArachne generates its walls if WallToolPaths was called with the nominal_bead_width Constructor
+                           // this is the same as bead_width_0
+    size_t inset_count_; //<! The maximum number of walls to generate
+    coord_t wall_0_inset_; //<! How far to inset the outer wall. Should only be applied when printing the actual walls, not extra infill/skin/support walls.
+    bool print_thin_walls_; //<! Whether to enable the widening beading meta-strategy for thin features
+    coord_t min_feature_size_; //<! The minimum size of the features that can be widened by the widening beading meta-strategy. Features thinner than that will not be printed
+    coord_t min_bead_width_; //<! The minimum bead size to use when widening thin model features with the widening beading meta-strategy
+    double small_area_length_; //<! The length of the small features which are to be filtered out, this is squared into a surface
+    coord_t transition_length_; //<! The transitioning length when the amount of extrusion lines changes
+    bool toolpaths_generated_; //<! Are the toolpaths generated
+    std::vector<VariableWidthLines> toolpaths_; //<! The generated toolpaths binned by inset_idx.
+    Shape inner_contour_; //<! The inner contour of the generated toolpaths
+    const Settings& settings_;
+    int layer_idx_;
+    SectionType section_type_;
 };
 } // namespace cura
 

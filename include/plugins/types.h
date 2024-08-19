@@ -4,15 +4,13 @@
 #ifndef PLUGINS_TYPES_H
 #define PLUGINS_TYPES_H
 
-#include "cura/plugins/v0/slot_id.pb.h"
-#include "utils/IntPoint.h"
-#include "utils/polygon.h"
-
-#include <fmt/format.h>
-
 #include <grpcpp/support/string_ref.h>
 #include <memory>
 #include <tuple>
+
+#include <fmt/format.h>
+
+#include "cura/plugins/v0/slot_id.pb.h"
 
 namespace fmt
 {

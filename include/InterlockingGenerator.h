@@ -1,14 +1,15 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef INTERLOCKING_GENERATOR_H
 #define INTERLOCKING_GENERATOR_H
 
-#include <vector>
 #include <cassert>
 #include <unordered_set>
+#include <vector>
 
-#include "utils/polygon.h"
+#include "geometry/PointMatrix.h"
+#include "geometry/Polygon.h"
 #include "utils/VoxelUtils.h"
 
 namespace cura
@@ -18,17 +19,17 @@ class Slicer;
 
 /*!
  * Class for generating an interlocking structure between two adjacent models of a different extruder.
- * 
+ *
  * The structure consists of horizontal beams of the two materials interlaced.
  * In the z direction the direction of these beams is alternated with 90*.
- * 
+ *
  * Example with two materials # and O
  * Even beams:      Odd beams:
  * ######           ##OO##OO
  * OOOOOO           ##OO##OO
  * ######           ##OO##OO
  * OOOOOO           ##OO##OO
- * 
+ *
  * One material of a single cell of the structure looks like this:
  *                    .-*-.
  *                .-*       *-.
@@ -41,7 +42,7 @@ class Slicer;
  *   |    *-.-*     .-*           *-|-*
  *    *-.   |   .-*
  *        *-|-*
- * 
+ *
  * We set up a voxel grid of (2*beam_w,2*beam_w,2*beam_h) and mark all the voxels which contain both meshes.
  * We then remove all voxels which also contain air, so that the interlocking pattern will not be visible from the outside.
  * We then generate and combine the polygons for each voxel and apply those areas to the outlines ofthe meshes.
@@ -71,21 +72,33 @@ protected:
      * \param beam_layer_count The number of layers for the height of the beams
      * \param interface_dilation The thicknening kernel for the interface
      * \param air_dilation The thickening kernel applied to air so that cells near the outside of the model won't be generated
-     * \param air_filtering Whether to fully remove all of the interlocking cells which would be visible on the outside (i.e. touching air). If no air filtering then those cells will be cut off in the middle of a beam.
+     * \param air_filtering Whether to fully remove all of the interlocking cells which would be visible on the outside (i.e. touching air). If no air filtering then those cells
+     * will be cut off in the middle of a beam.
      */
-    InterlockingGenerator(Slicer& mesh_a, Slicer& mesh_b, coord_t beam_width_a, coord_t beam_width_b, const PointMatrix& rotation, Point3 cell_size, coord_t beam_layer_count, DilationKernel interface_dilation, DilationKernel air_dilation, bool air_filtering)
-    : mesh_a(mesh_a)
-    , mesh_b(mesh_b)
-    , beam_width_a(beam_width_a)
-    , beam_width_b(beam_width_b)
-    , vu(cell_size)
-    , rotation(rotation)
-    , cell_size(cell_size)
-    , beam_layer_count(beam_layer_count)
-    , interface_dilation(interface_dilation)
-    , air_dilation(air_dilation)
-    , air_filtering(air_filtering)
-    {}
+    InterlockingGenerator(
+        Slicer& mesh_a,
+        Slicer& mesh_b,
+        coord_t beam_width_a,
+        coord_t beam_width_b,
+        const PointMatrix& rotation,
+        Point3LL cell_size,
+        coord_t beam_layer_count,
+        DilationKernel interface_dilation,
+        DilationKernel air_dilation,
+        bool air_filtering)
+        : mesh_a_(mesh_a)
+        , mesh_b_(mesh_b)
+        , beam_width_a_(beam_width_a)
+        , beam_width_b_(beam_width_b)
+        , vu_(cell_size)
+        , rotation_(rotation)
+        , cell_size_(cell_size)
+        , beam_layer_count_(beam_layer_count)
+        , interface_dilation_(interface_dilation)
+        , air_dilation_(air_dilation)
+        , air_filtering_(air_filtering)
+    {
+    }
 
     /*! Given two polygons, return the parts that border on air, and grow 'perpendicular' up to 'detect' distance.
      *
@@ -94,7 +107,7 @@ protected:
      * \param detec The expand distance. (Not equal to offset, but a series of small offsets and differences).
      * \return A pair of polygons that repressent the 'borders' of a and b, but expanded 'perpendicularly'.
      */
-    std::pair<Polygons, Polygons> growBorderAreasPerpendicular(const Polygons& a, const Polygons& b, const coord_t& detect) const;
+    std::pair<Shape, Shape> growBorderAreasPerpendicular(const Shape& a, const Shape& b, const coord_t& detect) const;
 
     /*! Special handling for thin strips of material.
      *
@@ -106,61 +119,62 @@ protected:
     /*!
      * Compute the voxels overlapping with the shell of both models.
      * This includes the walls, but also top/bottom skin.
-     * 
+     *
      * \param kernel The dilation kernel to give the returned voxel shell more thickness
      * \return The shell voxels for mesh a and those for mesh b
      */
     std::vector<std::unordered_set<GridPoint3>> getShellVoxels(const DilationKernel& kernel) const;
-    
+
     /*!
      * Compute the voxels overlapping with the shell of some layers.
      * This includes the walls, but also top/bottom skin.
-     * 
+     *
      * \param layers The layer outlines for which to compute the shell voxels
      * \param kernel The dilation kernel to give the returned voxel shell more thickness
      * \param[out] cells The output cells which elong to the shell
      */
-    void addBoundaryCells(const std::vector<Polygons>& layers, const DilationKernel& kernel, std::unordered_set<GridPoint3>& cells) const;
+    void addBoundaryCells(const std::vector<Shape>& layers, const DilationKernel& kernel, std::unordered_set<GridPoint3>& cells) const;
 
     /*!
      * Compute the regions occupied by both models.
-     * 
+     *
      * A morphological close is performed so that we don't register small gaps between the two models as being separate.
      * \return layer_regions The computed layer regions
      */
-    std::vector<Polygons> computeUnionedVolumeRegions() const;
+    std::vector<Shape> computeUnionedVolumeRegions() const;
 
     /*!
      * Generate the polygons for the beams of a single cell
      * \return cell_area_per_mesh_per_layer The output polygons for each beam
      */
-    std::vector<std::vector<Polygons>> generateMicrostructure() const;
+    std::vector<std::vector<Shape>> generateMicrostructure() const;
 
     /*!
      * Change the outlines of the meshes with the computed interlocking structure.
-     * 
+     *
      * \param cells The cells where we want to apply the interlocking structure.
      * \param layer_regions The total volume of the two meshes combined (and small gaps closed)
      */
-    void applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, const std::vector<Polygons>& layer_regions) const;
+    void applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, const std::vector<Shape>& layer_regions) const;
 
-    static const coord_t ignored_gap = 100u; //!< Distance between models to be considered next to each other so that an interlocking structure will be generated there
+    static const coord_t ignored_gap_ = 100u; //!< Distance between models to be considered next to each other so that an interlocking structure will be generated there
 
-    Slicer& mesh_a;
-    Slicer& mesh_b;
-    coord_t beam_width_a;
-    coord_t beam_width_b;
+    Slicer& mesh_a_;
+    Slicer& mesh_b_;
+    coord_t beam_width_a_;
+    coord_t beam_width_b_;
 
-    const VoxelUtils vu;
+    const VoxelUtils vu_;
 
-    const PointMatrix rotation;
-    const Point3 cell_size;
-    const coord_t beam_layer_count;
-    const DilationKernel interface_dilation;
-    const DilationKernel air_dilation;
-    const bool air_filtering; //!< Whether to fully remove all of the interlocking cells which would be visible on the outside. If no air filtering then those cells will be cut off midway in a beam.
+    const PointMatrix rotation_;
+    const Point3LL cell_size_;
+    const coord_t beam_layer_count_;
+    const DilationKernel interface_dilation_;
+    const DilationKernel air_dilation_;
+    const bool air_filtering_; //!< Whether to fully remove all of the interlocking cells which would be visible on the outside. If no air filtering then those cells will be cut
+                               //!< off midway in a beam.
 };
 
-}//namespace cura
+} // namespace cura
 
-#endif//INTERLOCKING_GENERATOR_H
+#endif // INTERLOCKING_GENERATOR_H
