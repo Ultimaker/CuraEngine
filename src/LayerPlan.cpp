@@ -2088,8 +2088,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
             }
         }
-        // Fan speed may already be set by plugin. Prevents two fan speed commands without move in between.
-        if(!extruder_plan.paths.empty() && extruder_plan.paths.front().fan_speed == -1)
+        // Fan speed may already be set by a plugin. Prevents two fan speed commands without move in between.
+        if(!extruder_plan.paths_.empty() && extruder_plan.paths_.front().fan_speed == -1)
         {
             gcode.writePrepareFansForExtrusion(extruder_plan.getFanSpeed());
         }
@@ -2115,8 +2115,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             GCodePath& path = paths[path_idx];
 
-            // Fans need time to reach the new setting. Adjust fan speed as early as possible. If travel paths have a non default fan speed for some reason set it as fan speed.
-            // As such modification could be made by a plugin.
+            // If travel paths have a non default fan speed for some reason set it as fan speed as such modification could be made by a plugin.
             if(!path.isTravelPath() || path.fan_speed >= 0)
             {
                 const double path_fan_speed = path.getFanSpeed();
@@ -2603,13 +2602,13 @@ void LayerPlan::applyModifyPlugin()
         // Check if the plugin changed first_travel_destination and update it accordingly if it has
         if (! handled_initial_travel)
         {
-            for (auto& path : extruder_plan.paths)
+            for (auto& path : extruder_plan.paths_)
             {
                 if (path.isTravelPath() && path.points.size() > 0)
                 {
-                    if (path.points.front() != first_travel_destination)
+                    if (path.points.front() != first_travel_destination_)
                     {
-                        first_travel_destination = path.points.front();
+                        first_travel_destination_ = path.points.front();
                     }
                     handled_initial_travel = true;
                     break;
@@ -2618,7 +2617,7 @@ void LayerPlan::applyModifyPlugin()
         }
 
         size_t removed_count = std::erase_if(
-            extruder_plan.paths,
+            extruder_plan.paths_,
             [](GCodePath& path)
             {
                 return path.points.empty();
@@ -2628,10 +2627,10 @@ void LayerPlan::applyModifyPlugin()
             spdlog::warn("Removed {} empty paths after plugin slot GCODE_PATHS_MODIFY was executed", removed_count);
         }
         // Ensure that the output is at least valid enough to not cause crashes.
-        if (extruder_plan.paths.size() == 0)
+        if (extruder_plan.paths_.size() == 0)
         {
-            GCodePath* reinstated_path = getLatestPathWithConfig(configs_storage.travel_config_per_extruder[getExtruder()], SpaceFillType::None);
-            addTravel_simple(first_travel_destination.value_or(getLastPlannedPositionOrStartingPosition()), reinstated_path);
+            GCodePath* reinstated_path = getLatestPathWithConfig(configs_storage_.travel_config_per_extruder[getExtruder()], SpaceFillType::None);
+            addTravel_simple(first_travel_destination_.value_or(getLastPlannedPositionOrStartingPosition()), reinstated_path);
         }
 
         scripta::log(
@@ -2652,7 +2651,6 @@ void LayerPlan::applyModifyPlugin()
             scripta::CellVDI{ "is_travel_path", &GCodePath::isTravelPath },
             scripta::CellVDI{ "extrusion_mm3_per_mm", &GCodePath::getExtrusionMM3perMM });
     }
-
 }
 
 void LayerPlan::applyBackPressureCompensation()
