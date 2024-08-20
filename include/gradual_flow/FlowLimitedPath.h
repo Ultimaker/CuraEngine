@@ -30,7 +30,7 @@ enum class FlowState
 struct FlowLimitedPath
 {
     const GCodePath* original_gcode_path_data;
-    PointsSet points;
+    PointsSet points{};
     double speed{ targetSpeed() }; // um/s
     double flow_{ extrusionVolumePerMm() * speed }; // um/s
     double total_length{ totalLength() }; // um
@@ -135,11 +135,14 @@ struct FlowLimitedPath
     double totalLength() const // um
     {
         double path_length = 0;
-        auto last_point = points.front();
-        for (const auto& point : points | ranges::views::drop(1))
+        if (! points.empty())
         {
-            path_length += std::hypot(point.X - last_point.X, point.Y - last_point.Y);
-            last_point = point;
+            auto last_point = points.front();
+            for (const auto& point : points | ranges::views::drop(1))
+            {
+                path_length += std::hypot(point.X - last_point.X, point.Y - last_point.Y);
+                last_point = point;
+            }
         }
         return path_length;
     }

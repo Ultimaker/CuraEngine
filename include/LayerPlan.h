@@ -819,6 +819,17 @@ private:
         const coord_t wipe_dist,
         const Ratio flow_ratio,
         const double fan_speed);
+
+    void writeTravelRelativeZ(GCodeExport& gcode, const Point3LL& position, const Velocity& speed, const coord_t path_z_offset);
+
+    void writeExtrusionRelativeZ(
+        GCodeExport& gcode,
+        const Point3LL& position,
+        const Velocity& speed,
+        const coord_t path_z_offset,
+        double extrusion_mm3_per_mm,
+        PrintFeatureType feature,
+        bool update_extrusion_offset = false);
 };
 
 } // namespace cura

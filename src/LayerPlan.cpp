@@ -448,7 +448,7 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const bool force_retract, con
                 }
                 for (Point2LL& comb_point : combPath)
                 {
-                    if (path->points.empty() || vSize2(path->points.back() - comb_point) > maximum_travel_resolution * maximum_travel_resolution)
+                    if (path->points.empty() || (path->points.back() - comb_point).vSize2() > maximum_travel_resolution * maximum_travel_resolution)
                     {
                         path->points.push_back(comb_point);
                         distance += vSize(last_point - comb_point);
@@ -1497,6 +1497,23 @@ void LayerPlan::addLinesInGivenOrder(
     }
 }
 
+void LayerPlan::writeTravelRelativeZ(GCodeExport& gcode, const Point3LL& position, const Velocity& speed, const coord_t path_z_offset)
+{
+    gcode.writeTravel(position + Point3LL(0, 0, z_ + path_z_offset), speed);
+}
+
+void LayerPlan::writeExtrusionRelativeZ(
+    GCodeExport& gcode,
+    const Point3LL& position,
+    const Velocity& speed,
+    const coord_t path_z_offset,
+    double extrusion_mm3_per_mm,
+    PrintFeatureType feature,
+    bool update_extrusion_offset)
+{
+    gcode.writeExtrusion(position + Point3LL(0, 0, z_ + path_z_offset), speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
+}
+
 void LayerPlan::addLinesMonotonic(
     const Shape& area,
     const OpenLinesSet& lines,
@@ -1799,15 +1816,15 @@ double ExtruderPlan::getRetractTime(const GCodePath& path)
     return retraction_config_.distance / (path.retract ? retraction_config_.speed : retraction_config_.primeSpeed);
 }
 
-std::pair<double, double> ExtruderPlan::getPointToPointTime(const Point2LL& p0, const Point2LL& p1, const GCodePath& path)
+std::pair<double, double> ExtruderPlan::getPointToPointTime(const Point3LL& p0, const Point3LL& p1, const GCodePath& path)
 {
-    const double length = vSizeMM(p0 - p1);
+    const double length = (p0 - p1).vSizeMM();
     return { length, length / (path.config.getSpeed() * path.speed_factor) };
 }
 
 TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point2LL starting_position)
 {
-    Point2LL p0 = starting_position;
+    Point3LL p0 = starting_position;
 
     const double min_path_speed = fan_speed_layer_time_settings_.cool_min_speed;
     slowest_path_speed_ = std::accumulate(
@@ -1859,9 +1876,9 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point2LL starting_
                 path.estimates.unretracted_travel_time += 0.5 * retract_unretract_time;
             }
         }
-        for (Point2LL& p1 : path.points)
+        for (Point3LL& p1 : path.points)
         {
-            double length = vSizeMM(p0 - p1);
+            double length = (p0 - p1).vSizeMM();
             if (is_extrusion_path)
             {
                 if (length > 0)
@@ -1968,7 +1985,7 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
 
             if (! extruder_plan.paths_.empty() && ! extruder_plan.paths_.back().points.empty())
             {
-                starting_position = extruder_plan.paths_.back().points.back();
+                starting_position = extruder_plan.paths_.back().points.back().toPoint2LL();
             }
         }
     }
@@ -2119,6 +2136,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             GCodePath& path = paths[path_idx];
 
+            assert(! path.points.empty());
+
             if (path.perform_prime)
             {
                 gcode.writePrimeTrain(extruder.settings_.get<Velocity>("speed_travel"));
@@ -2218,6 +2237,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 else
                 {
                     gcode.writeZhopEnd();
+
                     if (z_ > 0 && path.z_offset != 0)
                     {
                         gcode.setZ(z_ + path.z_offset);
@@ -2254,10 +2274,11 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.writeComment(ss.str());
             }
 
-            if (! path.spiralize && (! path.retract || ! path.perform_z_hop) && (z_ + path.z_offset != gcode.getPositionZ()) && (path_idx > 0 || layer_nr_ > 0))
+            if (! path.spiralize && (! path.retract || ! path.perform_z_hop) && (z_ + path.z_offset + path.points.front().z_ != gcode.getPositionZ())
+                && (path_idx > 0 || layer_nr_ > 0))
             {
                 // First move to desired height to then make a plain horizontal move
-                gcode.writeTravel(Point3LL(gcode.getPosition().x_, gcode.getPosition().y_, z_ + path.z_offset), speed);
+                gcode.writeTravel(Point3LL(gcode.getPosition().x_, gcode.getPosition().y_, z_ + path.z_offset + path.points.front().z_), speed);
             }
 
             if (path.config.isTravelPath())
@@ -2274,7 +2295,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
                 for (size_t point_idx = 0; point_idx + 1 < path.points.size(); point_idx++)
                 {
-                    gcode.writeTravel(path.points[point_idx], speed);
+                    writeTravelRelativeZ(gcode, path.points[point_idx], speed, path.z_offset);
                 }
                 if (path.unretract_before_last_travel_move && final_travel_z_ == z_)
                 {
@@ -2283,7 +2304,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
                 if (! path.points.empty())
                 {
-                    gcode.writeTravel(path.points.back(), speed);
+                    writeTravelRelativeZ(gcode, path.points.back(), speed, path.z_offset);
                 }
                 continue;
             }
@@ -2302,15 +2323,23 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
                 if (! coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
                 { // normal path to gcode algorithm
-                    Point2LL prev_point = gcode.getPositionXY();
+                    Point3LL prev_point = gcode.getPosition();
                     for (unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                     {
                         const auto [_, time] = extruder_plan.getPointToPointTime(prev_point, path.points[point_idx], path);
                         insertTempOnTime(time, path_idx);
 
                         const double extrude_speed = speed * path.speed_back_pressure_factor;
-                        communication->sendLineTo(path.config.type, path.points[point_idx], path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
-                        gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config.type, update_extrusion_offset);
+                        communication
+                            ->sendLineTo(path.config.type, path.points[point_idx].toPoint2LL(), path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
+                        writeExtrusionRelativeZ(
+                            gcode,
+                            path.points[point_idx],
+                            extrude_speed,
+                            path.z_offset,
+                            path.getExtrusionMM3perMM(),
+                            path.config.type,
+                            update_extrusion_offset);
 
                         prev_point = path.points[point_idx];
                     }
@@ -2326,7 +2355,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     GCodePath& _path = paths[_path_idx];
                     for (unsigned int point_idx = 0; point_idx < _path.points.size(); point_idx++)
                     {
-                        Point2LL p1 = _path.points[point_idx];
+                        Point2LL p1 = _path.points[point_idx].toPoint2LL();
                         totalLength += vSizeMM(p0 - p1);
                         p0 = p1;
                     }
@@ -2340,7 +2369,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
                     for (unsigned int point_idx = 0; point_idx < spiral_path.points.size(); point_idx++)
                     {
-                        const Point2LL p1 = spiral_path.points[point_idx];
+                        const Point2LL p1 = spiral_path.points[point_idx].toPoint2LL();
                         length += vSizeMM(p0 - p1);
                         p0 = p1;
                         gcode.setZ(std::round(z_ + layer_thickness_ * length / totalLength));
@@ -2348,11 +2377,18 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         const double extrude_speed = speed * spiral_path.speed_back_pressure_factor;
                         communication->sendLineTo(
                             spiral_path.config.type,
-                            spiral_path.points[point_idx],
+                            spiral_path.points[point_idx].toPoint2LL(),
                             spiral_path.getLineWidthForLayerView(),
                             spiral_path.config.getLayerThickness(),
                             extrude_speed);
-                        gcode.writeExtrusion(spiral_path.points[point_idx], extrude_speed, spiral_path.getExtrusionMM3perMM(), spiral_path.config.type, update_extrusion_offset);
+                        writeExtrusionRelativeZ(
+                            gcode,
+                            spiral_path.points[point_idx],
+                            extrude_speed,
+                            path.z_offset,
+                            spiral_path.getExtrusionMM3perMM(),
+                            spiral_path.config.type,
+                            update_extrusion_offset);
                     }
                     // for layer display only - the loop finished at the seam vertex but as we started from
                     // the location of the previous layer's seam vertex the loop may have a gap if this layer's
@@ -2363,8 +2399,12 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     // vertex would not be shifted (as it's the last vertex in the sequence). The smoother the model,
                     // the less the vertices are shifted and the less obvious is the ridge. If the layer display
                     // really displayed a spiral rather than slices of a spiral, this would not be required.
-                    communication
-                        ->sendLineTo(spiral_path.config.type, spiral_path.points[0], spiral_path.getLineWidthForLayerView(), spiral_path.config.getLayerThickness(), speed);
+                    communication->sendLineTo(
+                        spiral_path.config.type,
+                        spiral_path.points[0].toPoint2LL(),
+                        spiral_path.getLineWidthForLayerView(),
+                        spiral_path.config.getLayerThickness(),
+                        speed);
                 }
                 path_idx--; // the last path_idx didnt spiralize, so it's not part of the current spiralize path
             }
@@ -2485,11 +2525,11 @@ bool LayerPlan::writePathWithCoasting(
     std::optional<size_t> acc_dist_idx_gt_coast_dist; // the index of the first point with accumulated_dist more than coasting_dist (= index into accumulated_dist_per_point)
                                                       // == the point printed BEFORE the start point for coasting
 
-    const Point2LL* last = &path.points[path.points.size() - 1];
+    const Point3LL* last = &path.points[path.points.size() - 1];
     for (unsigned int backward_point_idx = 1; backward_point_idx < path.points.size(); backward_point_idx++)
     {
-        const Point2LL& point = path.points[path.points.size() - 1 - backward_point_idx];
-        const coord_t distance = vSize(point - *last);
+        const Point3LL& point = path.points[path.points.size() - 1 - backward_point_idx];
+        const coord_t distance = (point - *last).vSize();
         accumulated_dist += distance;
         accumulated_dist_per_point.push_back(accumulated_dist);
 
@@ -2534,15 +2574,15 @@ bool LayerPlan::writePathWithCoasting(
 
     const size_t point_idx_before_start = path.points.size() - 1 - acc_dist_idx_gt_coast_dist.value();
 
-    Point2LL start;
+    Point3LL start;
     { // computation of begin point of coasting
         const coord_t residual_dist = actual_coasting_dist - accumulated_dist_per_point[acc_dist_idx_gt_coast_dist.value() - 1];
-        const Point2LL& a = path.points[point_idx_before_start];
-        const Point2LL& b = path.points[point_idx_before_start + 1];
-        start = b + normal(a - b, residual_dist);
+        const Point3LL& a = path.points[point_idx_before_start];
+        const Point3LL& b = path.points[point_idx_before_start + 1];
+        start = b + (a - b).resized(residual_dist);
     }
 
-    Point2LL prev_pt = gcode.getPositionXY();
+    Point3LL prev_pt = gcode.getPositionXY();
     { // write normal extrude path:
         Communication* communication = Application::getInstance().communication_;
         for (size_t point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
@@ -2550,12 +2590,12 @@ bool LayerPlan::writePathWithCoasting(
             auto [_, time] = extruder_plan.getPointToPointTime(prev_pt, path.points[point_idx], path);
             insertTempOnTime(time, path_idx);
 
-            communication->sendLineTo(path.config.type, path.points[point_idx], path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
-            gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config.type);
+            communication->sendLineTo(path.config.type, path.points[point_idx].toPoint2LL(), path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
+            writeExtrusionRelativeZ(gcode, path.points[point_idx], extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type);
 
             prev_pt = path.points[point_idx];
         }
-        communication->sendLineTo(path.config.type, start, path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
+        communication->sendLineTo(path.config.type, start.toPoint2LL(), path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
         gcode.writeExtrusion(start, extrude_speed, path.getExtrusionMM3perMM(), path.config.type);
     }
 
@@ -2567,7 +2607,7 @@ bool LayerPlan::writePathWithCoasting(
 
         const Ratio coasting_speed_modifier = extruder.settings_.get<Ratio>("coasting_speed");
         const Velocity speed = Velocity(coasting_speed_modifier * path.config.getSpeed());
-        gcode.writeTravel(path.points[point_idx], speed);
+        writeTravelRelativeZ(gcode, path.points[point_idx], speed, path.z_offset);
 
         prev_pt = path.points[point_idx];
     }
