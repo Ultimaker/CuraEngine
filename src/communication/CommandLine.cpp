@@ -71,12 +71,6 @@ void CommandLine::sendLineTo(const PrintFeatureType&, const Point2LL&, const coo
 void CommandLine::sendOptimizedLayerData()
 {
 }
-void CommandLine::sendPolygon(const PrintFeatureType&, const Polygon&, const coord_t&, const coord_t&, const Velocity&)
-{
-}
-void CommandLine::sendPolygons(const PrintFeatureType&, const Shape&, const coord_t&, const coord_t&, const Velocity&)
-{
-}
 void CommandLine::setExtruderForSend(const ExtruderTrain&)
 {
 }

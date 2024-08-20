@@ -227,42 +227,6 @@ public:
         }
     }
 
-    /*!
-     * \brief Adds closed polygon to the current path.
-     * \param print_feature_type The type of feature that the polygon is part of
-     * (infill, wall, etc).
-     * \param polygon The shape of the polygon.
-     * \param width The width of the lines of the polygon.
-     * \param thickness The layer thickness of the polygon.
-     * \param velocity How fast the polygon is printed.
-     */
-    void sendPolygon(const PrintFeatureType& print_feature_type, const Polygon& polygon, const coord_t& width, const coord_t& thickness, const Velocity& velocity)
-    {
-        if (polygon.size() < 2) // Don't send single points or empty polygons.
-        {
-            return;
-        }
-
-        ClipperLib::Path::const_iterator point = polygon.begin();
-        handleInitialPoint(*point);
-
-        // Send all coordinates one by one.
-        while (++point != polygon.end())
-        {
-            if (*point == last_point)
-            {
-                continue; // Ignore zero-length segments.
-            }
-            addLineSegment(print_feature_type, *point, width, thickness, velocity);
-        }
-
-        // Make sure the polygon is closed.
-        if (*polygon.begin() != polygon.back())
-        {
-            addLineSegment(print_feature_type, *polygon.begin(), width, thickness, velocity);
-        }
-    }
-
 private:
     /*!
      * \brief Convert and add a point to the points buffer.
@@ -442,19 +406,6 @@ void ArcusCommunication::sendOptimizedLayerData()
     data.current_layer_count = 0;
     data.current_layer_offset = 0;
     data.slice_data.clear();
-}
-
-void ArcusCommunication::sendPolygon(const PrintFeatureType& type, const Polygon& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
-{
-    path_compiler->sendPolygon(type, polygon, line_width, line_thickness, velocity);
-}
-
-void ArcusCommunication::sendPolygons(const PrintFeatureType& type, const Shape& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
-{
-    for (const Polygon& polygon : polygons)
-    {
-        path_compiler->sendPolygon(type, polygon, line_width, line_thickness, velocity);
-    }
 }
 
 void ArcusCommunication::sendPrintTimeMaterialEstimates() const

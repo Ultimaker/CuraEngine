@@ -65,34 +65,6 @@ public:
     virtual void sendLayerComplete(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness) = 0;
 
     /*
-     * \brief Send polygons to the user to visualise.
-     *
-     * The polygons may not actually be flushed until ``sendLayerComplete`` is
-     * called.
-     * \param type The type of print feature the polygons represent (infill,
-     * wall, support, etc).
-     * \param polygons The shapes to visualise.
-     * \param line_width The width of the lines in these polygons.
-     * \param line_thickness The thickness (in the Z direction) of the polygons.
-     * \param velocity The velocity of printing these polygons.
-     */
-    virtual void sendPolygons(const PrintFeatureType& type, const Shape& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) = 0;
-
-    /*
-     * \brief Send a polygon to the user to visualise.
-     *
-     * The polygons may not actually be flushed until ``sendLayerComplete`` is
-     * called.
-     * \param type The type of print feature the polygon represents (infill,
-     * wall, support, etc).
-     * \param polygon The shape to visualise.
-     * \param line_width The width of the lines in this polygon.
-     * \param line_thickness The thickness (in the Z direction) of the polygon.
-     * \param velocity The velocity of printing this polygon.
-     */
-    virtual void sendPolygon(const PrintFeatureType& type, const Polygon& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) = 0;
-
-    /*
      * \brief Send a line to the user to visualise.
      *
      * The line may not actually be flushed until ``sendLayerComplete`` is
