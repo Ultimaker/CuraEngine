@@ -31,6 +31,19 @@ enum class EFillMethod
     PLUGIN, // Place plugin after none to prevent it from being tested in the gtest suite.
 };
 
+
+/*!
+ * Enum for the value of extra_infill_lines_to_support_skins
+ * This enum defines what extra lines should be added to infill to support
+ * skins above.
+ */
+enum class EExtraInfillLinesToSupportSkins
+{
+    WALLS_AND_LINES,
+    WALLS,
+    NONE,
+};
+
 /*!
  * Type of platform adhesion.
  */

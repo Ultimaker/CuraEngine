@@ -19,6 +19,7 @@
 #include "WipeScriptConfig.h"
 #include "communication/Communication.h"
 #include "geometry/OpenPolyline.h"
+#include "gradual_flow/Processor.h"
 #include "pathPlanning/Comb.h"
 #include "pathPlanning/CombPaths.h"
 #include "plugins/slots.h"
@@ -644,8 +645,6 @@ void LayerPlan::addPolygonsByOptimizer(
 }
 
 static constexpr double max_non_bridge_line_volume = MM2INT(100); // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
-
-static int i = 0;
 
 void LayerPlan::addWallLine(
     const Point2LL& p0,
@@ -2629,6 +2628,14 @@ void LayerPlan::applyBackPressureCompensation()
         {
             extruder_plan.applyBackPressureCompensation(back_pressure_compensation);
         }
+    }
+}
+
+void LayerPlan::applyGradualFlow()
+{
+    for (ExtruderPlan& extruder_plan : extruder_plans_)
+    {
+        gradual_flow::Processor::process(extruder_plan.paths_, extruder_plan.extruder_nr_, layer_nr_);
     }
 }
 

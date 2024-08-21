@@ -53,6 +53,7 @@ class LayerPlan : public NoCopy
     friend class LayerPlanBuffer;
 #ifdef BUILD_TESTS
     friend class AddTravelTest;
+    friend class FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
 #endif
 
 public:
@@ -777,6 +778,12 @@ public:
      * the back-pressure is compensated for. This is conjectured to be especially important if the printer has a Bowden-tube style setup.
      */
     void applyBackPressureCompensation();
+
+    /*!
+     * If enabled, applies the gradual flow acceleration splitting, that improves printing quality when printing at very high speed,
+     * especially with a bowden extruder.
+     */
+    void applyGradualFlow();
 
 private:
     /*!
