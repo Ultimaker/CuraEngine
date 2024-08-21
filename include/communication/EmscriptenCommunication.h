@@ -46,7 +46,7 @@ public:
     /**
      * \brief Sends GcodeHeader
      */
-    void ::sendGCodePrefix(const std::string& prefix) const override;
+    void sendGCodePrefix(const std::string& prefix) const override;
 
     /**
      * \brief Initiates the slicing of the next item.
