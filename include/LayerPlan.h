@@ -820,6 +820,8 @@ private:
         const Ratio flow_ratio,
         const double fan_speed);
 
+    void sendLineTo(const GCodePath& path, const Point3LL& position, const double extrude_speed);
+
     void writeTravelRelativeZ(GCodeExport& gcode, const Point3LL& position, const Velocity& speed, const coord_t path_z_offset);
 
     void writeExtrusionRelativeZ(

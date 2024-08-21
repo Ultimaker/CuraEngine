@@ -1497,6 +1497,17 @@ void LayerPlan::addLinesInGivenOrder(
     }
 }
 
+void LayerPlan::sendLineTo(const GCodePath& path, const Point3LL& position, const double extrude_speed)
+{
+    coord_t total_z_offset = path.z_offset + position.z_;
+    Application::getInstance().communication_->sendLineTo(
+        path.config.type,
+        position + Point3LL(0, 0, z_ + total_z_offset),
+        path.getLineWidthForLayerView(),
+        path.config.getLayerThickness() + total_z_offset,
+        extrude_speed);
+}
+
 void LayerPlan::writeTravelRelativeZ(GCodeExport& gcode, const Point3LL& position, const Velocity& speed, const coord_t path_z_offset)
 {
     gcode.writeTravel(position + Point3LL(0, 0, z_ + path_z_offset), speed);
@@ -2330,8 +2341,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         insertTempOnTime(time, path_idx);
 
                         const double extrude_speed = speed * path.speed_back_pressure_factor;
-                        communication
-                            ->sendLineTo(path.config.type, path.points[point_idx].toPoint2LL(), path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
                         writeExtrusionRelativeZ(
                             gcode,
                             path.points[point_idx],
@@ -2340,6 +2349,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                             path.getExtrusionMM3perMM(),
                             path.config.type,
                             update_extrusion_offset);
+                        sendLineTo(path, path.points[point_idx], extrude_speed);
 
                         prev_point = path.points[point_idx];
                     }
@@ -2375,12 +2385,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         gcode.setZ(std::round(z_ + layer_thickness_ * length / totalLength));
 
                         const double extrude_speed = speed * spiral_path.speed_back_pressure_factor;
-                        communication->sendLineTo(
-                            spiral_path.config.type,
-                            spiral_path.points[point_idx].toPoint2LL(),
-                            spiral_path.getLineWidthForLayerView(),
-                            spiral_path.config.getLayerThickness(),
-                            extrude_speed);
                         writeExtrusionRelativeZ(
                             gcode,
                             spiral_path.points[point_idx],
@@ -2389,6 +2393,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                             spiral_path.getExtrusionMM3perMM(),
                             spiral_path.config.type,
                             update_extrusion_offset);
+                        sendLineTo(spiral_path, spiral_path.points[point_idx], extrude_speed);
                     }
                     // for layer display only - the loop finished at the seam vertex but as we started from
                     // the location of the previous layer's seam vertex the loop may have a gap if this layer's
@@ -2399,12 +2404,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     // vertex would not be shifted (as it's the last vertex in the sequence). The smoother the model,
                     // the less the vertices are shifted and the less obvious is the ridge. If the layer display
                     // really displayed a spiral rather than slices of a spiral, this would not be required.
-                    communication->sendLineTo(
-                        spiral_path.config.type,
-                        spiral_path.points[0].toPoint2LL(),
-                        spiral_path.getLineWidthForLayerView(),
-                        spiral_path.config.getLayerThickness(),
-                        speed);
+                    sendLineTo(spiral_path, spiral_path.points[0], speed);
                 }
                 path_idx--; // the last path_idx didnt spiralize, so it's not part of the current spiralize path
             }
@@ -2584,19 +2584,18 @@ bool LayerPlan::writePathWithCoasting(
 
     Point3LL prev_pt = gcode.getPositionXY();
     { // write normal extrude path:
-        Communication* communication = Application::getInstance().communication_;
         for (size_t point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
         {
             auto [_, time] = extruder_plan.getPointToPointTime(prev_pt, path.points[point_idx], path);
             insertTempOnTime(time, path_idx);
 
-            communication->sendLineTo(path.config.type, path.points[point_idx].toPoint2LL(), path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
             writeExtrusionRelativeZ(gcode, path.points[point_idx], extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type);
+            sendLineTo(path, path.points[point_idx], extrude_speed);
 
             prev_pt = path.points[point_idx];
         }
-        communication->sendLineTo(path.config.type, start.toPoint2LL(), path.getLineWidthForLayerView(), path.config.getLayerThickness(), extrude_speed);
         gcode.writeExtrusion(start, extrude_speed, path.getExtrusionMM3perMM(), path.config.type);
+        sendLineTo(path, start, extrude_speed);
     }
 
     // write coasting path
