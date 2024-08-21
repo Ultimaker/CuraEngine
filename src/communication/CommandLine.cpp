@@ -192,13 +192,12 @@ void CommandLine::sliceNext()
                     force_read_parent = false;
                     force_read_nondefault = false;
                 }
-#ifdef __EMSCRIPTEN__
                 else if (argument.starts_with("--progress_cb") || argument.starts_with("--slice_info_cb") || argument.starts_with("--gcode_prefix_cb"))
                 {
+                    // Unused in command line slicing, but used in EmscriptenCommunication.
                     argument_index++;
                     argument = arguments_[argument_index];
                 }
-#endif // __EMSCRIPTEN__
                 else
                 {
                     spdlog::error("Unknown option: {}", argument);
