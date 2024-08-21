@@ -21,6 +21,7 @@ class EmscriptenCommunication : public CommandLine
 {
 private:
     std::string progress_handler_; ///< Handler for progress messages.
+    std::string gcode_prefix_handler_; /// <Handler for getting gcode_prefix.
     std::string slice_info_handler_; ///< Handler for slice information messages.
 
     /**
@@ -41,6 +42,11 @@ public:
      * \param progress A double representing the progress percentage.
      */
     void sendProgress(double progress) const override;
+
+    /**
+     * \brief Sends GcodeHeader
+     */
+    void sendGCodePrefix(const std::string& prefix) const override;
 
     /**
      * \brief Initiates the slicing of the next item.

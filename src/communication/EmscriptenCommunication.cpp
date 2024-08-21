@@ -33,6 +33,15 @@ EmscriptenCommunication::EmscriptenCommunication(const std::vector<std::string>&
     {
         slice_info_handler_ = *ranges::next(slice_info_flag);
     }
+    if (auto gcode_prefix_flag = ranges::find(arguments_, "--gcode_prefix_cb"); gcode_prefix_flag != arguments_.end())
+    {
+        gcode_prefix_handler_ = *ranges::next(gcode_prefix_flag);
+    }
+}
+
+void EmscriptenCommunication::sendGCodePrefix(const std::string& prefix) const
+{
+    emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", gcode_prefix_handler_, prefix).c_str());
 }
 
 void EmscriptenCommunication::sendProgress(double progress) const

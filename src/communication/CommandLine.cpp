@@ -193,7 +193,7 @@ void CommandLine::sliceNext()
                     force_read_nondefault = false;
                 }
 #ifdef __EMSCRIPTEN__
-                else if (argument.starts_with("--progress_cb") || argument.starts_with("--slice_info_cb"))
+                else if (argument.starts_with("--progress_cb") || argument.starts_with("--slice_info_cb") || argument.starts_with("--gcode_prefix_cb"))
                 {
                     argument_index++;
                     argument = arguments_[argument_index];
