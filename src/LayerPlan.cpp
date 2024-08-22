@@ -1132,13 +1132,15 @@ void LayerPlan::addWall(
     const int direction = is_reversed ? -1 : 1;
     const size_t max_index = is_closed ? wall.size() + 1 : wall.size();
 
-    double scarf_factor_origin = 0.0;
-    Point3LL scarf_origin = p0.p_;
-    scarf_origin.z_ = scarf_max_z_offset;
-
     auto addScarfedWall = [&](const bool is_scarf_closure)
     {
         coord_t scarf_processed_distance = 0;
+        double scarf_factor_origin = 0.0;
+        Point3LL scarf_origin = p0.p_;
+        if (! is_scarf_closure)
+        {
+            scarf_origin.z_ = scarf_max_z_offset;
+        }
 
         for (size_t point_idx = 1; point_idx < max_index; point_idx++)
         {
