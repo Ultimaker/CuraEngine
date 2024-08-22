@@ -21,7 +21,7 @@ class EmscriptenCommunication : public CommandLine
 {
 private:
     std::string progress_handler_; ///< Handler for progress messages.
-    std::string gcode_prefix_handler_; /// <Handler for getting gcode_prefix.
+    std::string gcode_header_handler_; ///< Handler for getting the GCode handler.
     std::string slice_info_handler_; ///< Handler for slice information messages.
 
     /**

@@ -33,9 +33,9 @@ EmscriptenCommunication::EmscriptenCommunication(const std::vector<std::string>&
     {
         slice_info_handler_ = *ranges::next(slice_info_flag);
     }
-    if (auto gcode_prefix_flag = ranges::find(arguments_, "--gcode_prefix_cb"); gcode_prefix_flag != arguments_.end())
+    if (auto gcode_header_flag = ranges::find(arguments_, "--gcode_header_cb"); gcode_header_flag != arguments_.end())
     {
-        gcode_prefix_handler_ = *ranges::next(gcode_prefix_flag);
+        gcode_header_handler_ = *ranges::next(gcode_header_flag);
     }
 }
 
