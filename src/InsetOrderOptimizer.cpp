@@ -52,7 +52,8 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const ZSeamConfig& z_seam_config,
     const std::vector<VariableWidthLines>& paths,
     const Point2LL& model_center_point,
-    const Shape& disallowed_areas_for_seams)
+    const Shape& disallowed_areas_for_seams,
+    const bool scarf_seam)
     : gcode_writer_(gcode_writer)
     , storage_(storage)
     , gcode_layer_(gcode_layer)
@@ -74,6 +75,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , layer_nr_(gcode_layer.getLayerNr())
     , model_center_point_(model_center_point)
     , disallowed_areas_for_seams_{ disallowed_areas_for_seams }
+    , scarf_seam_(scarf_seam)
 {
 }
 
@@ -146,6 +148,8 @@ bool InsetOrderOptimizer::addToLayer()
         const GCodePathConfig& bridge_config = is_outer_wall ? inset_0_bridge_config_ : inset_X_bridge_config_;
         const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist_ : wall_x_wipe_dist_;
         const bool retract_before = is_outer_wall ? retract_before_outer_wall_ : false;
+        const coord_t scarf_seam_length = scarf_seam_ && is_outer_wall ? settings_.get<coord_t>("scarf_joint_seam_length") : 0;
+        const Ratio scarf_seam_start_ratio = scarf_seam_ && is_outer_wall ? settings_.get<Ratio>("scarf_joint_seam_start_height_ratio") : 1.0_r;
 
         const bool revert_inset = alternate_walls && (path.vertices_->inset_idx_ % 2 != 0);
         const bool revert_layer = alternate_walls && (layer_nr_ % 2 != 0);
@@ -166,7 +170,9 @@ bool InsetOrderOptimizer::addToLayer()
             retract_before,
             path.is_closed_,
             backwards,
-            linked_path);
+            linked_path,
+            scarf_seam_length,
+            scarf_seam_start_ratio);
         added_something = true;
     }
     return added_something;

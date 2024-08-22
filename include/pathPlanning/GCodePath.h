@@ -50,6 +50,7 @@ struct GCodePath
     bool done{ false }; //!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
     double fan_speed{ GCodePathConfig::FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
     TimeMaterialEstimates estimates{}; //!< Naive time and material estimates
+    bool travel_to_z{ true }; //! Indicates whether we should add a travel move to the Z height of the first point before processing the path
 
     /*!
      * Whether this config is the config of a travel path.

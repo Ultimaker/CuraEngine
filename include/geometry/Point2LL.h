@@ -220,7 +220,7 @@ Point3LL operator-(const Point3LL& p3, const Point2LL& p2);
 
 Point3LL& operator-=(Point3LL& p3, const Point2LL& p2);
 
-inline Point2LL operator-(const Point2LL& p2, const Point3LL& p3);
+Point2LL operator-(const Point2LL& p2, const Point3LL& p3);
 
 } // namespace cura
 

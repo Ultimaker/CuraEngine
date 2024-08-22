@@ -359,14 +359,15 @@ public:
      * \param fan_speed Fan speed override for this path.
      */
     void addExtrusionMove(
-        const Point2LL p,
+        const Point3LL& p,
         const GCodePathConfig& config,
         const SpaceFillType space_fill_type,
         const Ratio& flow = 1.0_r,
         const Ratio width_factor = 1.0_r,
         const bool spiralize = false,
         const Ratio speed_factor = 1.0_r,
-        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
+        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
+        const bool travel_to_z = true);
 
     /*!
      * Add polygon to the gcode starting at vertex \p startIdx
@@ -451,8 +452,8 @@ public:
      * the first bridge segment.
      */
     void addWallLine(
-        const Point2LL& p0,
-        const Point2LL& p1,
+        const Point3LL& p0,
+        const Point3LL& p1,
         const Settings& settings,
         const GCodePathConfig& default_config,
         const GCodePathConfig& roofing_config,
@@ -461,7 +462,8 @@ public:
         const Ratio width_factor,
         double& non_bridge_line_volume,
         Ratio speed_factor,
-        double distance_to_bridge_start);
+        double distance_to_bridge_start,
+        const bool travel_to_z = true);
 
     /*!
      * Add a wall to the g-code starting at vertex \p start_idx
@@ -522,7 +524,9 @@ public:
         bool always_retract,
         const bool is_closed,
         const bool is_reversed,
-        const bool is_linked_path);
+        const bool is_linked_path,
+        coord_t scarf_seam_length = 0,
+        Ratio scarf_seam_start_ratio = 1.0);
 
     /*!
      * Add an infill wall to the g-code

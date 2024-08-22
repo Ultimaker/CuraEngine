@@ -133,6 +133,11 @@ public:
         return x_ * x_ + y_ * y_ + z_ * z_;
     }
 
+    [[nodiscard]] double vSize2f()
+    {
+        return static_cast<double>(x_) * static_cast<double>(x_) + static_cast<double>(y_) * static_cast<double>(y_) + static_cast<double>(z_) * static_cast<double>(z_);
+    }
+
     [[nodiscard]] coord_t vSize() const
     {
         return std::llrint(sqrt(static_cast<double>(vSize2())));

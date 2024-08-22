@@ -2735,6 +2735,8 @@ bool FffGcodeWriter::processInsets(
             mesh.getZSeamHint(),
             mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
             mesh.settings.get<coord_t>("wall_line_width_0") * 2);
+        constexpr Shape disallowed_areas_for_seams;
+        constexpr bool scarf_seam = true;
         InsetOrderOptimizer wall_orderer(
             *this,
             storage,
@@ -2754,7 +2756,9 @@ bool FffGcodeWriter::processInsets(
             mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr_,
             z_seam_config,
             part.wall_toolpaths,
-            mesh.bounding_box.flatten().getMiddle());
+            mesh.bounding_box.flatten().getMiddle(),
+            disallowed_areas_for_seams,
+            scarf_seam);
         added_something |= wall_orderer.addToLayer();
     }
     return added_something;

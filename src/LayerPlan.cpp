@@ -531,23 +531,25 @@ void LayerPlan::planPrime(double prime_blob_wipe_length)
 }
 
 void LayerPlan::addExtrusionMove(
-    const Point2LL p,
+    const Point3LL& p,
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
     const Ratio& flow,
     const Ratio width_factor,
     const bool spiralize,
     const Ratio speed_factor,
-    const double fan_speed)
+    const double fan_speed,
+    const bool travel_to_z)
 {
     GCodePath* path = getLatestPathWithConfig(config, space_fill_type, config.z_offset, flow, width_factor, spiralize, speed_factor);
     path->points.push_back(p);
     path->setFanSpeed(fan_speed);
+    path->travel_to_z = travel_to_z;
     if (! static_cast<bool>(first_extrusion_acc_jerk_))
     {
         first_extrusion_acc_jerk_ = std::make_pair(path->config.getAcceleration(), path->config.getJerk());
     }
-    last_planned_position_ = p;
+    last_planned_position_ = p.toPoint2LL();
 }
 
 void LayerPlan::addPolygon(
@@ -647,8 +649,8 @@ void LayerPlan::addPolygonsByOptimizer(
 static constexpr double max_non_bridge_line_volume = MM2INT(100); // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
 
 void LayerPlan::addWallLine(
-    const Point2LL& p0,
-    const Point2LL& p1,
+    const Point3LL& p0,
+    const Point3LL& p1,
     const Settings& settings,
     const GCodePathConfig& default_config,
     const GCodePathConfig& roofing_config,
@@ -657,7 +659,8 @@ void LayerPlan::addWallLine(
     const Ratio width_factor,
     double& non_bridge_line_volume,
     Ratio speed_factor,
-    double distance_to_bridge_start)
+    double distance_to_bridge_start,
+    const bool travel_to_z)
 {
     const coord_t min_line_len = 5; // we ignore lines less than 5um long
     const double acceleration_segment_len = MM2INT(1); // accelerate using segments of this length
@@ -668,7 +671,7 @@ void LayerPlan::addWallLine(
     const Ratio bridge_wall_coast = settings.get<Ratio>("bridge_wall_coast");
     const Ratio overhang_speed_factor = settings.get<Ratio>("wall_overhang_speed_factor");
 
-    Point2LL cur_point = p0;
+    Point3LL cur_point = p0;
 
     // helper function to add a single non-bridge line
 
@@ -676,14 +679,14 @@ void LayerPlan::addWallLine(
 
     // alternatively, if the line follows a bridge line, it may be segmented and the print speed gradually increased to reduce under-extrusion
 
-    auto addNonBridgeLine = [&](const Point2LL& line_end)
+    auto addNonBridgeLine = [&](const Point3LL& line_end)
     {
-        coord_t distance_to_line_end = vSize(cur_point - line_end);
+        coord_t distance_to_line_end = (cur_point - line_end).vSize();
 
         while (distance_to_line_end > min_line_len)
         {
             // if we are accelerating after a bridge line, the segment length is less than the whole line length
-            Point2LL segment_end = (speed_factor == 1 || distance_to_line_end < acceleration_segment_len)
+            Point3LL segment_end = (speed_factor == 1 || distance_to_line_end < acceleration_segment_len)
                                      ? line_end
                                      : cur_point + (line_end - cur_point) * acceleration_segment_len / distance_to_line_end;
 
@@ -708,7 +711,7 @@ void LayerPlan::addWallLine(
                     segment_end = line_end;
                 }
 
-                const coord_t len = vSize(cur_point - segment_end);
+                const coord_t len = (cur_point - segment_end).vSize();
                 if (coast_dist > 0 && ((distance_to_bridge_start - len) <= coast_dist))
                 {
                     if ((len - coast_dist) > min_line_len)
@@ -721,7 +724,9 @@ void LayerPlan::addWallLine(
                             segment_flow,
                             width_factor,
                             spiralize,
-                            speed_factor);
+                            speed_factor,
+                            GCodePathConfig::FAN_SPEED_DEFAULT,
+                            travel_to_z);
                     }
                     // then coast to start of bridge segment
                     constexpr Ratio no_flow = 0.0_r; // Coasting has no flow rate.
@@ -737,7 +742,10 @@ void LayerPlan::addWallLine(
                         segment_flow,
                         width_factor,
                         spiralize,
-                        (overhang_mask_.empty() || (! overhang_mask_.inside(p0, true) && ! overhang_mask_.inside(p1, true))) ? speed_factor : overhang_speed_factor);
+                        (overhang_mask_.empty() || (! overhang_mask_.inside(p0.toPoint2LL(), true) && ! overhang_mask_.inside(p1.toPoint2LL(), true))) ? speed_factor
+                                                                                                                                                       : overhang_speed_factor,
+                        GCodePathConfig::FAN_SPEED_DEFAULT,
+                        travel_to_z);
                 }
 
                 distance_to_bridge_start -= len;
@@ -752,16 +760,19 @@ void LayerPlan::addWallLine(
                     segment_flow,
                     width_factor,
                     spiralize,
-                    (overhang_mask_.empty() || (! overhang_mask_.inside(p0, true) && ! overhang_mask_.inside(p1, true))) ? speed_factor : overhang_speed_factor);
+                    (overhang_mask_.empty() || (! overhang_mask_.inside(p0.toPoint2LL(), true) && ! overhang_mask_.inside(p1.toPoint2LL(), true))) ? speed_factor
+                                                                                                                                                   : overhang_speed_factor,
+                    GCodePathConfig::FAN_SPEED_DEFAULT,
+                    travel_to_z);
             }
-            non_bridge_line_volume += vSize(cur_point - segment_end) * segment_flow * width_factor * speed_factor * default_config.getSpeed();
+            non_bridge_line_volume += (cur_point - segment_end).vSize() * segment_flow * width_factor * speed_factor * default_config.getSpeed();
             cur_point = segment_end;
             speed_factor = 1 - (1 - speed_factor) * acceleration_factor;
             if (speed_factor >= 0.9)
             {
                 speed_factor = 1.0;
             }
-            distance_to_line_end = vSize(cur_point - line_end);
+            distance_to_line_end = (cur_point - line_end).vSize();
         }
     };
 
@@ -773,7 +784,7 @@ void LayerPlan::addWallLine(
             // what part of the line segment will be printed with what config.
             return false;
         }
-        return PolygonUtils::polygonCollidesWithLineSegment(roofing_mask_, p0, p1) || roofing_mask_.inside(p1, true);
+        return PolygonUtils::polygonCollidesWithLineSegment(roofing_mask_, p0.toPoint2LL(), p1.toPoint2LL()) || roofing_mask_.inside(p1.toPoint2LL(), true);
     }();
 
     if (use_roofing_config)
@@ -785,7 +796,7 @@ void LayerPlan::addWallLine(
         // to the first and last point of the intersected line segments alternating between
         // roofing and default_config's.
         OpenLinesSet line_polys;
-        line_polys.addSegment(p0, p1);
+        line_polys.addSegment(p0.toPoint2LL(), p1.toPoint2LL());
         constexpr bool restitch = false; // only a single line doesn't need stitching
         auto roofing_line_segments = roofing_mask_.intersection(line_polys, restitch);
 
@@ -794,7 +805,7 @@ void LayerPlan::addWallLine(
             // roofing_line_segments should never be empty since we already checked that the line segment
             // intersects with the roofing area. But if it is empty then just print the line segment
             // using the default_config.
-            addExtrusionMove(p1, default_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
+            addExtrusionMove(p1, default_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
         }
         else
         {
@@ -823,16 +834,25 @@ void LayerPlan::addWallLine(
                 // if the start of the line segment is not at minimum distance from p0
                 if (vSize2(line_poly.front() - p0) > min_line_len * min_line_len)
                 {
-                    addExtrusionMove(line_poly.front(), default_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
+                    addExtrusionMove(
+                        line_poly.front(),
+                        default_config,
+                        SpaceFillType::Polygons,
+                        flow,
+                        width_factor,
+                        spiralize,
+                        1.0_r,
+                        GCodePathConfig::FAN_SPEED_DEFAULT,
+                        travel_to_z);
                 }
 
-                addExtrusionMove(line_poly.back(), roofing_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
+                addExtrusionMove(line_poly.back(), roofing_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
             }
 
             // if the last point is not yet at a minimum distance from p1 then add a move to p1
             if (vSize2(roofing_line_segments.back().back() - p1) > min_line_len * min_line_len)
             {
-                addExtrusionMove(p1, default_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r);
+                addExtrusionMove(p1, default_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
             }
         }
     }
@@ -846,19 +866,21 @@ void LayerPlan::addWallLine(
             flow,
             width_factor,
             spiralize,
-            (overhang_mask_.empty() || (! overhang_mask_.inside(p0, true) && ! overhang_mask_.inside(p1, true))) ? 1.0_r : overhang_speed_factor);
+            (overhang_mask_.empty() || (! overhang_mask_.inside(p0.toPoint2LL(), true) && ! overhang_mask_.inside(p1.toPoint2LL(), true))) ? 1.0_r : overhang_speed_factor,
+            GCodePathConfig::FAN_SPEED_DEFAULT,
+            travel_to_z);
     }
     else
     {
         // bridges may be required
-        if (PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0, p1))
+        if (PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.toPoint2LL(), p1.toPoint2LL()))
         {
             // the line crosses the boundary between supported and non-supported regions so one or more bridges are required
 
             // determine which segments of the line are bridges
 
             OpenLinesSet line_polys;
-            line_polys.addSegment(p0, p1);
+            line_polys.addSegment(p0.toPoint2LL(), p1.toPoint2LL());
             constexpr bool restitch = false; // only a single line doesn't need stitching
             line_polys = bridge_wall_mask_.intersection(line_polys, restitch);
 
@@ -868,10 +890,10 @@ void LayerPlan::addWallLine(
             {
                 // find the bridge line segment that's nearest to the current point
                 size_t nearest = 0;
-                double smallest_dist2 = vSize2f(cur_point - line_polys[0][0]);
+                double smallest_dist2 = (cur_point - line_polys[0][0]).vSize2f();
                 for (size_t i = 1; i < line_polys.size(); ++i)
                 {
-                    double dist2 = vSize2f(cur_point - line_polys[i][0]);
+                    double dist2 = (cur_point - line_polys[i][0]).vSize2f();
                     if (dist2 < smallest_dist2)
                     {
                         nearest = i;
@@ -881,10 +903,10 @@ void LayerPlan::addWallLine(
                 const OpenPolyline& bridge = line_polys[nearest];
 
                 // set b0 to the nearest vertex and b1 the furthest
-                Point2LL b0 = bridge[0];
-                Point2LL b1 = bridge[1];
+                Point3LL b0 = bridge[0];
+                Point3LL b1 = bridge[1];
 
-                if (vSize2f(cur_point - b1) < vSize2f(cur_point - b0))
+                if ((cur_point - b1).vSize2f() < (cur_point - b0).vSize2f())
                 {
                     // swap vertex order
                     b0 = bridge[1];
@@ -895,7 +917,7 @@ void LayerPlan::addWallLine(
 
                 addNonBridgeLine(b0);
 
-                const double bridge_line_len = vSize(b1 - cur_point);
+                const double bridge_line_len = (b1 - cur_point).vSize();
 
                 if (bridge_line_len >= min_bridge_line_len)
                 {
@@ -903,7 +925,7 @@ void LayerPlan::addWallLine(
 
                     if (bridge_line_len > min_line_len)
                     {
-                        addExtrusionMove(b1, bridge_config, SpaceFillType::Polygons, flow, width_factor);
+                        addExtrusionMove(b1, bridge_config, SpaceFillType::Polygons, flow, width_factor, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
                         non_bridge_line_volume = 0;
                         cur_point = b1;
                         // after a bridge segment, start slow and accelerate to avoid under-extrusion due to extruder lag
@@ -924,7 +946,7 @@ void LayerPlan::addWallLine(
             // if we haven't yet reached p1, fill the gap with default_config line
             addNonBridgeLine(p1);
         }
-        else if (bridge_wall_mask_.inside(p0, true) && vSize(p0 - p1) >= min_bridge_line_len)
+        else if (bridge_wall_mask_.inside(p0.toPoint2LL(), true) && (p0 - p1).vSize() >= min_bridge_line_len)
         {
             // both p0 and p1 must be above air (the result will be ugly!)
             addExtrusionMove(p1, bridge_config, SpaceFillType::Polygons, flow, width_factor);
@@ -983,11 +1005,13 @@ void LayerPlan::addWall(
     const GCodePathConfig& roofing_config,
     const GCodePathConfig& bridge_config,
     coord_t wall_0_wipe_dist,
-    double flow_ratio,
+    const double flow_ratio,
     bool always_retract,
     const bool is_closed,
     const bool is_reversed,
-    const bool is_linked_path)
+    const bool is_linked_path,
+    coord_t scarf_seam_length,
+    Ratio scarf_seam_start_ratio)
 {
     if (wall.empty())
     {
@@ -1091,6 +1115,7 @@ void LayerPlan::addWall(
     };
 
     bool first_line = true;
+    bool first_scarf = true;
     const coord_t small_feature_max_length = settings.get<coord_t>("small_feature_max_length");
     const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr_ == 0 || wall.inset_idx_ == 0) && wall.shorterThan(small_feature_max_length);
     Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr_ == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
@@ -1098,93 +1123,170 @@ void LayerPlan::addWall(
     small_feature_speed_factor = std::max((double)small_feature_speed_factor, (double)(min_speed / default_config.getSpeed()));
     const coord_t max_area_deviation = std::max(settings.get<int>("meshfix_maximum_extrusion_area_deviation"), 1); // Square micrometres!
     const coord_t max_resolution = std::max(settings.get<coord_t>("meshfix_maximum_resolution"), coord_t(1));
+    const auto scarf_split_distance = settings.get<coord_t>("scarf_split_distance");
+    const coord_t scarf_max_z_offset = -(1.0 - scarf_seam_start_ratio) * layer_thickness_;
 
     ExtrusionJunction p0 = wall[start_idx];
 
     const int direction = is_reversed ? -1 : 1;
     const size_t max_index = is_closed ? wall.size() + 1 : wall.size();
-    for (size_t point_idx = 1; point_idx < max_index; point_idx++)
+
+    auto addScarfedWall = [&](const bool is_scarf_closure)
     {
-        const ExtrusionJunction& p1 = wall[(wall.size() + start_idx + point_idx * direction) % wall.size()];
+        coord_t scarf_processed_distance = 0;
 
-        if (! bridge_wall_mask_.empty())
+        for (size_t point_idx = 1; point_idx < max_index; point_idx++)
         {
-            computeDistanceToBridgeStart((wall.size() + start_idx + point_idx * direction - 1) % wall.size());
-        }
+            const ExtrusionJunction& p1 = wall[(wall.size() + start_idx + point_idx * direction) % wall.size()];
 
-        if (first_line)
-        {
-            addTravel(p0.p_, always_retract);
-            first_line = false;
-        }
-
-        /*
-        If the line has variable width, break it up into pieces with the
-        following constraints:
-        - Each piece must be smaller than the Maximum Resolution setting.
-        - The difference between the trapezoidal shape of the line and the
-          rectangular shape of the line may not exceed the Maximum Extrusion
-          Area Deviation setting, unless required by the first constraint.
-        Since breaking up a line segment into N pieces (each with averaged
-        width) divides the area deviation by N, we can simply check how many
-        pieces we'd want to get low enough deviation, then check if each piece
-        is not too short at the end.
-        */
-        const coord_t delta_line_width = p1.w_ - p0.w_;
-        const Point2LL line_vector = p1.p_ - p0.p_;
-        const coord_t line_length = vSize(line_vector);
-        /*
-        Calculate how much the line would deviate from the trapezoidal shape if printed at average width.
-        This formula is:
-        - Half the length times half the delta width, for the rectangular shape of the deviating side.
-        - Half of that because the ideal line width is trapezoidal, making the deviating part triangular.
-        - Double of that because the deviation occurs on both sides of the idealised line width.
-        This results in delta_line_width / 2 * line_length / 2 / 2 * 2 == delta_line_width * line_length / 4.
-        */
-        const coord_t line_area_deviation = std::abs(delta_line_width) * line_length / 4;
-        const size_t pieces_limit_deviation = round_up_divide(line_area_deviation, max_area_deviation); // How many pieces we'd need to stay beneath the max area deviation.
-        const size_t pieces_limit_resolution = line_length / max_resolution; // Round down this time, to not exceed the maximum resolution.
-        const size_t pieces = std::max(size_t(1), std::min(pieces_limit_deviation, pieces_limit_resolution)); // Resolution overrides deviation, if resolution is a constraint.
-        const coord_t piece_length = round_divide(line_length, pieces);
-
-        for (size_t piece = 0; piece < pieces; ++piece)
-        {
-            const double average_progress = (double(piece) + 0.5) / pieces; // How far along this line to sample the line width in the middle of this piece.
-            // Round the line_width value to overcome floating point rounding issues, otherwise we may end up with slightly different values
-            // and the generated GCodePath objects will not be merged together, which some subsequent algorithms rely on (e.g. coasting)
-            const coord_t line_width = std::lrint(static_cast<double>(p0.w_) + average_progress * static_cast<double>(delta_line_width));
-            const Point2LL destination = p0.p_ + normal(line_vector, piece_length * (piece + 1));
-            if (is_small_feature)
+            if (! bridge_wall_mask_.empty())
             {
-                constexpr bool spiralize = false;
-                addExtrusionMove(
-                    destination,
-                    default_config,
-                    SpaceFillType::Polygons,
-                    flow_ratio,
-                    line_width * nominal_line_width_multiplier,
-                    spiralize,
-                    small_feature_speed_factor);
+                computeDistanceToBridgeStart((wall.size() + start_idx + point_idx * direction - 1) % wall.size());
             }
-            else
-            {
-                const Point2LL origin = p0.p_ + normal(line_vector, piece_length * piece);
-                addWallLine(
-                    origin,
-                    destination,
-                    settings,
-                    default_config,
-                    roofing_config,
-                    bridge_config,
-                    flow_ratio,
-                    line_width * nominal_line_width_multiplier,
-                    non_bridge_line_volume,
-                    speed_factor,
-                    distance_to_bridge_start);
-            }
-        }
 
-        p0 = p1;
+            if (first_line)
+            {
+                addTravel(p0.p_, always_retract);
+                first_line = false;
+            }
+
+            /*
+            If the line has variable width, break it up into pieces with the
+            following constraints:
+            - Each piece must be smaller than the Maximum Resolution setting.
+            - The difference between the trapezoidal shape of the line and the
+              rectangular shape of the line may not exceed the Maximum Extrusion
+              Area Deviation setting, unless required by the first constraint.
+            Since breaking up a line segment into N pieces (each with averaged
+            width) divides the area deviation by N, we can simply check how many
+            pieces we'd want to get low enough deviation, then check if each piece
+            is not too short at the end.
+            */
+            const coord_t delta_line_width = p1.w_ - p0.w_;
+            const Point2LL line_vector = p1.p_ - p0.p_;
+            const coord_t line_length = vSize(line_vector);
+            /*
+            Calculate how much the line would deviate from the trapezoidal shape if printed at average width.
+            This formula is:
+            - Half the length times half the delta width, for the rectangular shape of the deviating side.
+            - Half of that because the ideal line width is trapezoidal, making the deviating part triangular.
+            - Double of that because the deviation occurs on both sides of the idealised line width.
+            This results in delta_line_width / 2 * line_length / 2 / 2 * 2 == delta_line_width * line_length / 4.
+            */
+            const coord_t line_area_deviation = std::abs(delta_line_width) * line_length / 4;
+            const size_t pieces_limit_deviation = round_up_divide(line_area_deviation, max_area_deviation); // How many pieces we'd need to stay beneath the max area deviation.
+            const size_t pieces_limit_resolution = line_length / max_resolution; // Round down this time, to not exceed the maximum resolution.
+            const size_t pieces = std::max(size_t(1), std::min(pieces_limit_deviation, pieces_limit_resolution)); // Resolution overrides deviation, if resolution is a constraint.
+            const coord_t piece_length = round_divide(line_length, pieces);
+
+            for (size_t piece = 0; piece < pieces; ++piece)
+            {
+                const double average_progress = (double(piece) + 0.5) / pieces; // How far along this line to sample the line width in the middle of this piece.
+                // Round the line_width value to overcome floating point rounding issues, otherwise we may end up with slightly different values
+                // and the generated GCodePath objects will not be merged together, which some subsequent algorithms rely on (e.g. coasting)
+                const coord_t line_width = std::lrint(static_cast<double>(p0.w_) + average_progress * static_cast<double>(delta_line_width));
+                const Point2LL destination = p0.p_ + normal(line_vector, piece_length * (piece + 1));
+                if (is_small_feature && ! is_scarf_closure)
+                {
+                    constexpr bool spiralize = false;
+                    addExtrusionMove(
+                        destination,
+                        default_config,
+                        SpaceFillType::Polygons,
+                        flow_ratio,
+                        line_width * nominal_line_width_multiplier,
+                        spiralize,
+                        small_feature_speed_factor);
+                }
+                else
+                {
+                    coord_t piece_processed_distance = 0;
+
+                    // Cut piece into smaller parts for scarf seam
+                    while (scarf_processed_distance < scarf_seam_length && piece_processed_distance < piece_length)
+                    {
+                        const double scarf_factor_origin = static_cast<double>(scarf_processed_distance) / static_cast<double>(scarf_seam_length);
+                        Point3LL scarf_origin = p0.p_ + normal(line_vector, piece_length * piece + piece_processed_distance);
+                        if (! is_scarf_closure)
+                        {
+                            scarf_origin.z_ = std::lerp(scarf_max_z_offset, 0.0, scarf_factor_origin);
+                        }
+
+                        coord_t length_to_process = std::min({ scarf_seam_length - scarf_processed_distance, piece_length - piece_processed_distance, scarf_split_distance });
+                        const double scarf_factor_destination = static_cast<double>(scarf_processed_distance + length_to_process) / static_cast<double>(scarf_seam_length);
+                        Point3LL scarf_destination = scarf_origin + normal(line_vector, length_to_process);
+                        if (! is_scarf_closure)
+                        {
+                            scarf_destination.z_ = std::lerp(scarf_max_z_offset, 0.0, scarf_factor_destination);
+                        }
+
+                        const double scarf_factor_average = (scarf_factor_origin + scarf_factor_destination) / 2.0;
+                        double scarf_segment_flow_ratio;
+                        if (is_scarf_closure)
+                        {
+                            scarf_segment_flow_ratio = std::lerp(1.0, scarf_seam_start_ratio, scarf_factor_average);
+                        }
+                        else
+                        {
+                            scarf_segment_flow_ratio = std::lerp(scarf_seam_start_ratio, 1.0, scarf_factor_average);
+                        }
+
+                        if (first_scarf)
+                        {
+                            // Manually add a Z-only travel move to set the nozzle at the height of the first point
+                            addTravel(p0.p_, always_retract, scarf_origin.z_);
+                            first_scarf = false;
+                        }
+
+                        constexpr bool travel_to_z = false;
+                        addWallLine(
+                            scarf_origin,
+                            scarf_destination,
+                            settings,
+                            default_config,
+                            roofing_config,
+                            bridge_config,
+                            flow_ratio * scarf_segment_flow_ratio,
+                            line_width * nominal_line_width_multiplier,
+                            non_bridge_line_volume,
+                            speed_factor,
+                            distance_to_bridge_start,
+                            travel_to_z);
+
+                        piece_processed_distance += length_to_process;
+                        scarf_processed_distance += length_to_process;
+                    }
+
+                    if (piece_processed_distance < piece_length && ! is_scarf_closure)
+                    {
+                        const Point2LL origin = p0.p_ + normal(line_vector, piece_length * piece + piece_processed_distance);
+                        addWallLine(
+                            origin,
+                            destination,
+                            settings,
+                            default_config,
+                            roofing_config,
+                            bridge_config,
+                            flow_ratio,
+                            line_width * nominal_line_width_multiplier,
+                            non_bridge_line_volume,
+                            speed_factor,
+                            distance_to_bridge_start);
+                    }
+                }
+            }
+
+            p0 = p1;
+        }
+    };
+
+    // First pass to add the wall with the scarf beginning
+    addScarfedWall(false);
+
+    if (scarf_seam_length)
+    {
+        // Second pass to add the scarf closure
+        addScarfedWall(true);
     }
 
     if (wall.size() >= 2)
@@ -1499,12 +1601,11 @@ void LayerPlan::addLinesInGivenOrder(
 
 void LayerPlan::sendLineTo(const GCodePath& path, const Point3LL& position, const double extrude_speed)
 {
-    coord_t total_z_offset = path.z_offset + position.z_;
     Application::getInstance().communication_->sendLineTo(
         path.config.type,
-        position + Point3LL(0, 0, z_ + total_z_offset),
+        position + Point3LL(0, 0, z_ + path.z_offset),
         path.getLineWidthForLayerView(),
-        path.config.getLayerThickness() + total_z_offset,
+        path.config.getLayerThickness() + path.z_offset + position.z_,
         extrude_speed);
 }
 
@@ -2285,7 +2386,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.writeComment(ss.str());
             }
 
-            if (! path.spiralize && (! path.retract || ! path.perform_z_hop) && (z_ + path.z_offset + path.points.front().z_ != gcode.getPositionZ())
+            if (! path.spiralize && path.travel_to_z && (! path.retract || ! path.perform_z_hop) && (z_ + path.z_offset + path.points.front().z_ != gcode.getPositionZ())
                 && (path_idx > 0 || layer_nr_ > 0))
             {
                 // First move to desired height to then make a plain horizontal move
