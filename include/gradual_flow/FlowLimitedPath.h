@@ -327,7 +327,7 @@ struct GCodeState
         discretized_duration_remaining = 0;
 
         // set the current flow to the target end flow. When executing the backward pass we want to
-        // we start with this flow and gradually increase it to the target flow. However, if the
+        // start with this flow and gradually increase it to the target flow. However, if the
         // highest flow we can achieve is lower than this target flow we want to use that flow
         // instead.
         current_flow = std::min(current_flow, target_end_flow);
