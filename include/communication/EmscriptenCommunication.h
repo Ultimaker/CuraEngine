@@ -52,6 +52,8 @@ public:
      * \brief Initiates the slicing of the next item.
      */
     void sliceNext() override;
+
+    bool isSequential() const { return false; }
 };
 
 } // namespace cura
