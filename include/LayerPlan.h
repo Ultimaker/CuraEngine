@@ -779,6 +779,12 @@ public:
      */
     void applyBackPressureCompensation();
 
+    /*!
+     * If enabled, applies the gradual flow acceleration splitting, that improves printing quality when printing at very high speed,
+     * especially with a bowden extruder.
+     */
+    void applyGradualFlow();
+
 private:
     /*!
      * \brief Compute the preferred or minimum combing boundary
