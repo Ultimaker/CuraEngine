@@ -1125,6 +1125,7 @@ void LayerPlan::addWall(
     const coord_t max_resolution = std::max(settings.get<coord_t>("meshfix_maximum_resolution"), coord_t(1));
     const auto scarf_split_distance = settings.get<coord_t>("scarf_split_distance");
     const coord_t scarf_max_z_offset = -(1.0 - scarf_seam_start_ratio) * layer_thickness_;
+    scarf_seam_length = std::min(scarf_seam_length, wall.length());
 
     ExtrusionJunction p0 = wall[start_idx];
 
