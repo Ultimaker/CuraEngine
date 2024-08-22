@@ -53,7 +53,7 @@ public:
      */
     void sliceNext() override;
 
-    bool isSequential() const
+    bool isSequential() const override
     {
         return false;
     }
