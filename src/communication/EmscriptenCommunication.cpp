@@ -13,10 +13,11 @@
 #include <range/v3/algorithm/contains.hpp>
 #include <range/v3/iterator/operations.hpp>
 #include <spdlog/spdlog.h>
-#include "utils/string.h"
+
 #include "Application.h"
 #include "FffProcessor.h"
 #include "Slice.h"
+#include "utils/string.h"
 
 namespace cura
 {
