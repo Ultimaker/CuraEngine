@@ -53,7 +53,10 @@ public:
      */
     void sliceNext() override;
 
-    bool isSequential() const { return false; }
+    bool isSequential() const
+    {
+        return false;
+    }
 };
 
 } // namespace cura
