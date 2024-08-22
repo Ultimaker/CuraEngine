@@ -47,17 +47,7 @@ void process(std::vector<GCodePath>& extruder_plan_paths, const size_t extruder_
         for (const auto& path : extruder_plan_paths | ranges::views::drop(1))
         {
             std::vector<Point3LL> points{ gcode_paths.back().points.back() };
-
-#warning this is probably not necessary
-            points.reserve(path.points.size() + 1);
-            std::transform(
-                path.points.begin(),
-                path.points.end(),
-                std::back_inserter(points),
-                [](const Point3LL& point)
-                {
-                    return point;
-                });
+            points.insert(points.end(), path.points.begin(), path.points.end());
 
             gcode_paths.emplace_back(FlowLimitedPath{ .original_gcode_path_data = &path, .points = std::move(points) });
         }
