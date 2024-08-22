@@ -42,7 +42,7 @@ EmscriptenCommunication::EmscriptenCommunication(const std::vector<std::string>&
 
 void EmscriptenCommunication::sendGCodePrefix(const std::string& prefix) const
 {
-    emscripten_run_script(fmt::format("globalThis[\"{}\"](\"{}\")", gcode_prefix_handler_, convertTobase64(prefix)).c_str());
+    emscripten_run_script(fmt::format("globalThis[\"{}\"](\"{}\")", gcode_header_handler_, convertTobase64(prefix)).c_str());
 }
 
 void EmscriptenCommunication::sendProgress(double progress) const
