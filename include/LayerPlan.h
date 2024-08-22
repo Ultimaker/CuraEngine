@@ -525,8 +525,7 @@ public:
         const bool is_closed,
         const bool is_reversed,
         const bool is_linked_path,
-        coord_t scarf_seam_length = 0,
-        Ratio scarf_seam_start_ratio = 1.0);
+        const bool scarf_seam = false);
 
     /*!
      * Add an infill wall to the g-code

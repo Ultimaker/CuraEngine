@@ -1010,8 +1010,7 @@ void LayerPlan::addWall(
     const bool is_closed,
     const bool is_reversed,
     const bool is_linked_path,
-    coord_t scarf_seam_length,
-    Ratio scarf_seam_start_ratio)
+    const bool scarf_seam)
 {
     if (wall.empty())
     {
@@ -1022,6 +1021,7 @@ void LayerPlan::addWall(
         // make sure wall start point is not above air!
         start_idx = locateFirstSupportedVertex(wall, start_idx);
     }
+    const bool actual_scarf_seam = scarf_seam && is_closed;
 
     double non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
     double speed_factor = 1.0; // start first line at normal speed
@@ -1123,9 +1123,10 @@ void LayerPlan::addWall(
     small_feature_speed_factor = std::max((double)small_feature_speed_factor, (double)(min_speed / default_config.getSpeed()));
     const coord_t max_area_deviation = std::max(settings.get<int>("meshfix_maximum_extrusion_area_deviation"), 1); // Square micrometres!
     const coord_t max_resolution = std::max(settings.get<coord_t>("meshfix_maximum_resolution"), coord_t(1));
+    const coord_t scarf_seam_length = std::min(wall.length(), actual_scarf_seam ? settings.get<coord_t>("scarf_joint_seam_length") : 0);
+    const Ratio scarf_seam_start_ratio = actual_scarf_seam ? settings.get<Ratio>("scarf_joint_seam_start_height_ratio") : 1.0_r;
     const auto scarf_split_distance = settings.get<coord_t>("scarf_split_distance");
     const coord_t scarf_max_z_offset = -(1.0 - scarf_seam_start_ratio) * layer_thickness_;
-    scarf_seam_length = std::min(scarf_seam_length, wall.length());
 
     ExtrusionJunction p0 = wall[start_idx];
 
