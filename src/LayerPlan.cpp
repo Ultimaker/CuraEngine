@@ -1132,6 +1132,10 @@ void LayerPlan::addWall(
     const int direction = is_reversed ? -1 : 1;
     const size_t max_index = is_closed ? wall.size() + 1 : wall.size();
 
+    double scarf_factor_origin = 0.0;
+    Point3LL scarf_origin = p0.p_;
+    scarf_origin.z_ = scarf_max_z_offset;
+
     auto addScarfedWall = [&](const bool is_scarf_closure)
     {
         coord_t scarf_processed_distance = 0;
@@ -1206,13 +1210,6 @@ void LayerPlan::addWall(
                     // Cut piece into smaller parts for scarf seam
                     while (scarf_processed_distance < scarf_seam_length && piece_processed_distance < piece_length)
                     {
-                        const double scarf_factor_origin = static_cast<double>(scarf_processed_distance) / static_cast<double>(scarf_seam_length);
-                        Point3LL scarf_origin = p0.p_ + normal(line_vector, piece_length * piece + piece_processed_distance);
-                        if (! is_scarf_closure)
-                        {
-                            scarf_origin.z_ = std::lerp(scarf_max_z_offset, 0.0, scarf_factor_origin);
-                        }
-
                         coord_t length_to_process = std::min({ scarf_seam_length - scarf_processed_distance, piece_length - piece_processed_distance, scarf_split_distance });
                         const double scarf_factor_destination = static_cast<double>(scarf_processed_distance + length_to_process) / static_cast<double>(scarf_seam_length);
                         Point3LL scarf_destination = scarf_origin + normal(line_vector, length_to_process);
@@ -1256,6 +1253,8 @@ void LayerPlan::addWall(
 
                         piece_processed_distance += length_to_process;
                         scarf_processed_distance += length_to_process;
+                        scarf_origin = scarf_destination;
+                        scarf_factor_origin = scarf_factor_destination;
                     }
 
                     if (piece_processed_distance < piece_length && ! is_scarf_closure)
