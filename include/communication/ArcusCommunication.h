@@ -86,7 +86,7 @@ public:
      * This may indicate the starting position (or any other jump in the path).
      * \param position The current position to start the next line at.
      */
-    void sendCurrentPosition(const Point3LL &position) override;
+    void sendCurrentPosition(const Point3LL& position) override;
 
     /*
      * \brief Sends a message to indicate that all the slicing is done.
