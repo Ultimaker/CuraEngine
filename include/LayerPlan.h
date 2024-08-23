@@ -482,7 +482,7 @@ public:
      */
     void addWall(
         const Polygon& wall,
-        int start_idx,
+        size_t start_idx,
         const Settings& settings,
         const GCodePathConfig& default_config,
         const GCodePathConfig& roofing_config,
@@ -514,7 +514,7 @@ public:
      */
     void addWall(
         const ExtrusionLine& wall,
-        int start_idx,
+        size_t start_idx,
         const Settings& settings,
         const GCodePathConfig& default_config,
         const GCodePathConfig& roofing_config,
@@ -679,7 +679,7 @@ public:
      * \return The index of the first supported vertex - if no vertices are supported, start_idx is returned
      */
     template<typename T>
-    unsigned locateFirstSupportedVertex(const T& wall, const unsigned start_idx) const
+    size_t locateFirstSupportedVertex(const T& wall, const size_t start_idx) const
     {
         if (bridge_wall_mask_.empty() && seam_overhang_mask_.empty())
         {
@@ -688,7 +688,7 @@ public:
 
         const auto air_below = bridge_wall_mask_.unionPolygons(seam_overhang_mask_);
 
-        unsigned curr_idx = start_idx;
+        size_t curr_idx = start_idx;
 
         while (true)
         {
@@ -836,6 +836,36 @@ private:
         double extrusion_mm3_per_mm,
         PrintFeatureType feature,
         bool update_extrusion_offset = false);
+
+    void addWallSplitted(
+        const ExtrusionLine& wall,
+        size_t start_idx,
+        const int direction,
+        const size_t max_index,
+        const Settings& settings,
+        const GCodePathConfig& default_config,
+        const GCodePathConfig& roofing_config,
+        const GCodePathConfig& bridge_config,
+        const double flow_ratio,
+        const Ratio nominal_line_width_multiplier,
+        double& non_bridge_line_volume,
+        const coord_t min_bridge_line_len,
+        const bool always_retract,
+        const bool is_small_feature,
+        Ratio small_feature_speed_factor,
+        const coord_t max_area_deviation,
+        const auto max_resolution,
+        const auto scarf_seam_length,
+        const auto scarf_seam_start_ratio,
+        const auto scarf_split_distance,
+        const coord_t scarf_max_z_offset,
+        const Ratio start_speed_ratio,
+        const coord_t accelerate_split_distance,
+        const coord_t accelerate_length,
+        const bool is_scarf_closure);
+
+    // helper function to calculate the distance from the start of the current wall line to the first bridge segment
+    coord_t computeDistanceToBridgeStart(const ExtrusionLine& wall, const size_t current_index, const coord_t min_bridge_line_len) const;
 };
 
 } // namespace cura

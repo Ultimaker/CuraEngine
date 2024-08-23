@@ -962,7 +962,7 @@ void LayerPlan::addWallLine(
 
 void LayerPlan::addWall(
     const Polygon& wall,
-    int start_idx,
+    size_t start_idx,
     const Settings& settings,
     const GCodePathConfig& default_config,
     const GCodePathConfig& roofing_config,
@@ -997,9 +997,307 @@ void LayerPlan::addWall(
     addWall(ewall, start_idx, settings, default_config, roofing_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, is_closed, is_reversed, is_linked_path);
 }
 
+void LayerPlan::addWallSplitted(
+    const ExtrusionLine& wall,
+    size_t start_idx,
+    const int direction,
+    const size_t max_index,
+    const Settings& settings,
+    const GCodePathConfig& default_config,
+    const GCodePathConfig& roofing_config,
+    const GCodePathConfig& bridge_config,
+    const double flow_ratio,
+    const Ratio nominal_line_width_multiplier,
+    double& non_bridge_line_volume,
+    const coord_t min_bridge_line_len,
+    const bool always_retract,
+    const bool is_small_feature,
+    Ratio small_feature_speed_factor,
+    const coord_t max_area_deviation,
+    const auto max_resolution,
+    const auto scarf_seam_length,
+    const auto scarf_seam_start_ratio,
+    const auto scarf_split_distance,
+    const coord_t scarf_max_z_offset,
+    const Ratio start_speed_ratio,
+    const coord_t accelerate_split_distance,
+    const coord_t accelerate_length,
+    const bool is_scarf_closure)
+{
+    constexpr double speed_factor = 1.0;
+
+    coord_t distance_to_bridge_start = 0; // will be updated before each line is processed
+    ExtrusionJunction p0 = wall[start_idx];
+    bool first_line = ! is_scarf_closure;
+    bool first_split = ! is_scarf_closure;
+    Point3LL split_origin = p0.p_;
+    if (! is_scarf_closure)
+    {
+        split_origin.z_ = scarf_max_z_offset;
+    }
+
+    coord_t scarf_remaining_distance = scarf_seam_length;
+    double scarf_factor_origin = 0.0;
+
+    coord_t accelerate_remaining_distance = accelerate_length;
+    double accelerate_factor_origin = 0.0;
+
+    for (size_t point_idx = 1; point_idx < max_index; point_idx++)
+    {
+        const ExtrusionJunction& p1 = wall[(wall.size() + start_idx + point_idx * direction) % wall.size()];
+
+        if (! bridge_wall_mask_.empty())
+        {
+            distance_to_bridge_start = computeDistanceToBridgeStart(wall, (wall.size() + start_idx + point_idx * direction - 1) % wall.size(), min_bridge_line_len);
+        }
+
+        if (first_line)
+        {
+            addTravel(p0.p_, always_retract);
+            first_line = false;
+        }
+
+        /*
+        If the line has variable width, break it up into pieces with the
+        following constraints:
+        - Each piece must be smaller than the Maximum Resolution setting.
+        - The difference between the trapezoidal shape of the line and the
+          rectangular shape of the line may not exceed the Maximum Extrusion
+          Area Deviation setting, unless required by the first constraint.
+        Since breaking up a line segment into N pieces (each with averaged
+        width) divides the area deviation by N, we can simply check how many
+        pieces we'd want to get low enough deviation, then check if each piece
+        is not too short at the end.
+        */
+        const coord_t delta_line_width = p1.w_ - p0.w_;
+        const Point2LL line_vector = p1.p_ - p0.p_;
+        const coord_t line_length = vSize(line_vector);
+        /*
+        Calculate how much the line would deviate from the trapezoidal shape if printed at average width.
+        This formula is:
+        - Half the length times half the delta width, for the rectangular shape of the deviating side.
+        - Half of that because the ideal line width is trapezoidal, making the deviating part triangular.
+        - Double of that because the deviation occurs on both sides of the idealised line width.
+        This results in delta_line_width / 2 * line_length / 2 / 2 * 2 == delta_line_width * line_length / 4.
+        */
+        const coord_t line_area_deviation = std::abs(delta_line_width) * line_length / 4;
+        const size_t pieces_limit_deviation = round_up_divide(line_area_deviation, max_area_deviation); // How many pieces we'd need to stay beneath the max area deviation.
+        const size_t pieces_limit_resolution = line_length / max_resolution; // Round down this time, to not exceed the maximum resolution.
+        const size_t pieces = std::max(size_t(1), std::min(pieces_limit_deviation, pieces_limit_resolution)); // Resolution overrides deviation, if resolution is a constraint.
+        const coord_t piece_length = round_divide(line_length, pieces);
+
+        for (size_t piece = 0; piece < pieces; ++piece)
+        {
+            const double average_progress = (double(piece) + 0.5) / pieces; // How far along this line to sample the line width in the middle of this piece.
+            // Round the line_width value to overcome floating point rounding issues, otherwise we may end up with slightly different values
+            // and the generated GCodePath objects will not be merged together, which some subsequent algorithms rely on (e.g. coasting)
+            const coord_t line_width = std::lrint(static_cast<double>(p0.w_) + average_progress * static_cast<double>(delta_line_width));
+            const Point2LL destination = p0.p_ + normal(line_vector, piece_length * (piece + 1));
+            if (is_small_feature && ! is_scarf_closure)
+            {
+                constexpr bool spiralize = false;
+                addExtrusionMove(
+                    destination,
+                    default_config,
+                    SpaceFillType::Polygons,
+                    flow_ratio,
+                    line_width * nominal_line_width_multiplier,
+                    spiralize,
+                    small_feature_speed_factor);
+            }
+            else
+            {
+                coord_t piece_remaining_distance = piece_length;
+
+                // Cut piece into smaller parts for scarf seam
+                while ((scarf_remaining_distance > 0 || accelerate_remaining_distance > 0) && piece_remaining_distance > 0)
+                {
+                    std::vector<coord_t> split_distances{ piece_remaining_distance };
+                    if (scarf_remaining_distance > 0)
+                    {
+                        split_distances.push_back(scarf_remaining_distance);
+                        split_distances.push_back(scarf_split_distance);
+                    }
+                    if (! is_scarf_closure && accelerate_remaining_distance > 0)
+                    {
+                        split_distances.push_back(accelerate_remaining_distance);
+                        split_distances.push_back(accelerate_split_distance);
+                    }
+
+                    coord_t length_to_process = *std::min_element(split_distances.begin(), split_distances.end());
+                    Point3LL split_destination = split_origin + normal(line_vector, length_to_process);
+
+                    double scarf_segment_flow_ratio = 1.0;
+                    double scarf_factor_destination = 1.0;
+                    if (scarf_remaining_distance > 0)
+                    {
+                        scarf_factor_destination = 1.0 - (static_cast<double>(scarf_remaining_distance - length_to_process) / static_cast<double>(scarf_seam_length));
+                        if (! is_scarf_closure)
+                        {
+                            split_destination.z_ = std::llrint(std::lerp(scarf_max_z_offset, 0.0, scarf_factor_destination));
+                        }
+
+                        const double scarf_factor_average = (scarf_factor_origin + scarf_factor_destination) / 2.0;
+                        if (is_scarf_closure)
+                        {
+                            scarf_segment_flow_ratio = std::lerp(1.0, scarf_seam_start_ratio, scarf_factor_average);
+                        }
+                        else
+                        {
+                            scarf_segment_flow_ratio = std::lerp(scarf_seam_start_ratio, 1.0, scarf_factor_average);
+                        }
+
+                        if (first_split)
+                        {
+                            // Manually add a Z-only travel move to set the nozzle at the height of the first point
+                            addTravel(p0.p_, always_retract, split_origin.z_);
+                            first_split = false;
+                        }
+                    }
+
+                    double accelerate_speed_factor = 1.0;
+                    double accelerate_factor_destination = 1.0;
+                    if (accelerate_remaining_distance > 0)
+                    {
+                        accelerate_factor_destination = 1.0 - (static_cast<double>(accelerate_remaining_distance - length_to_process) / static_cast<double>(accelerate_length));
+
+                        const double accelerate_factor_average = (accelerate_factor_origin + accelerate_factor_destination) / 2.0;
+
+                        accelerate_speed_factor = std::lerp(start_speed_ratio, 1.0, accelerate_factor_average);
+                    }
+
+                    constexpr bool travel_to_z = false;
+                    addWallLine(
+                        split_origin,
+                        split_destination,
+                        settings,
+                        default_config,
+                        roofing_config,
+                        bridge_config,
+                        flow_ratio * scarf_segment_flow_ratio,
+                        line_width * nominal_line_width_multiplier,
+                        non_bridge_line_volume,
+                        accelerate_speed_factor,
+                        distance_to_bridge_start,
+                        travel_to_z);
+
+                    piece_remaining_distance -= length_to_process;
+                    split_origin = split_destination;
+
+                    scarf_remaining_distance -= length_to_process;
+                    scarf_factor_origin = scarf_factor_destination;
+
+                    accelerate_remaining_distance -= length_to_process;
+                    accelerate_factor_origin = accelerate_factor_destination;
+                }
+
+                if (piece_remaining_distance > 0 && ! is_scarf_closure)
+                {
+                    const Point2LL origin = p0.p_ + normal(line_vector, piece_length * (piece + 1) - piece_remaining_distance);
+                    addWallLine(
+                        origin,
+                        destination,
+                        settings,
+                        default_config,
+                        roofing_config,
+                        bridge_config,
+                        flow_ratio,
+                        line_width * nominal_line_width_multiplier,
+                        non_bridge_line_volume,
+                        speed_factor,
+                        distance_to_bridge_start);
+                }
+            }
+        }
+
+        p0 = p1;
+    }
+}
+
+coord_t LayerPlan::computeDistanceToBridgeStart(const ExtrusionLine& wall, const size_t current_index, const coord_t min_bridge_line_len) const
+{
+    coord_t distance_to_bridge_start = 0;
+
+    if (! bridge_wall_mask_.empty())
+    {
+        // there is air below the part so iterate through the lines that have not yet been output accumulating the total distance to the first bridge segment
+        for (unsigned point_idx = current_index; point_idx < wall.size(); ++point_idx)
+        {
+            const ExtrusionJunction& p0 = wall[point_idx];
+            const ExtrusionJunction& p1 = wall[(point_idx + 1) % wall.size()];
+
+            if (PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.p_, p1.p_))
+            {
+                // the line crosses the boundary between supported and non-supported regions so it will contain one or more bridge segments
+
+                // determine which segments of the line are bridges
+
+                OpenLinesSet line_polys;
+                line_polys.addSegment(p0.p_, p1.p_);
+                constexpr bool restitch = false; // only a single line doesn't need stitching
+                line_polys = bridge_wall_mask_.intersection(line_polys, restitch);
+
+                while (line_polys.size() > 0)
+                {
+                    // find the bridge line segment that's nearest to p0
+                    size_t nearest = 0;
+                    double smallest_dist2 = vSize2f(p0.p_ - line_polys[0][0]);
+                    for (unsigned i = 1; i < line_polys.size(); ++i)
+                    {
+                        double dist2 = vSize2f(p0.p_ - line_polys[i][0]);
+                        if (dist2 < smallest_dist2)
+                        {
+                            nearest = i;
+                            smallest_dist2 = dist2;
+                        }
+                    }
+                    const OpenPolyline& bridge = line_polys[nearest];
+
+                    // set b0 to the nearest vertex and b1 the furthest
+                    Point2LL b0 = bridge[0];
+                    Point2LL b1 = bridge[1];
+
+                    if (vSize2f(p0.p_ - b1) < vSize2f(p0.p_ - b0))
+                    {
+                        // swap vertex order
+                        b0 = bridge[1];
+                        b1 = bridge[0];
+                    }
+
+                    distance_to_bridge_start += vSize(b0 - p0.p_);
+
+                    const double bridge_line_len = vSize(b1 - b0);
+
+                    if (bridge_line_len >= min_bridge_line_len)
+                    {
+                        // job done, we have found the first bridge line
+                        return distance_to_bridge_start;
+                    }
+
+                    distance_to_bridge_start += bridge_line_len;
+
+                    // finished with this segment
+                    line_polys.removeAt(nearest);
+                }
+            }
+            else if (! bridge_wall_mask_.inside(p0.p_, true))
+            {
+                // none of the line is over air
+                distance_to_bridge_start += vSize(p1.p_ - p0.p_);
+            }
+        }
+
+        // we have got all the way to the end of the wall without finding a bridge segment so disable coasting by setting distance_to_bridge_start back to 0
+
+        distance_to_bridge_start = 0;
+    }
+
+    return distance_to_bridge_start;
+}
+
 void LayerPlan::addWall(
     const ExtrusionLine& wall,
-    int start_idx,
+    size_t start_idx,
     const Settings& settings,
     const GCodePathConfig& default_config,
     const GCodePathConfig& roofing_config,
@@ -1025,8 +1323,6 @@ void LayerPlan::addWall(
     const bool actual_scarf_seam = scarf_seam && is_closed;
 
     double non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
-    double speed_factor = 1.0; // start first line at normal speed
-    coord_t distance_to_bridge_start = 0; // will be updated before each line is processed
 
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
 
@@ -1034,93 +1330,10 @@ void LayerPlan::addWall(
         1.0 / Ratio{ static_cast<Ratio::value_type>(default_config.getLineWidth()) }
     }; // we multiply the flow with the actual wanted line width (for that junction), and then multiply with this
 
-    // helper function to calculate the distance from the start of the current wall line to the first bridge segment
-
-    auto computeDistanceToBridgeStart = [&](unsigned current_index)
-    {
-        distance_to_bridge_start = 0;
-
-        if (! bridge_wall_mask_.empty())
-        {
-            // there is air below the part so iterate through the lines that have not yet been output accumulating the total distance to the first bridge segment
-            for (unsigned point_idx = current_index; point_idx < wall.size(); ++point_idx)
-            {
-                const ExtrusionJunction& p0 = wall[point_idx];
-                const ExtrusionJunction& p1 = wall[(point_idx + 1) % wall.size()];
-
-                if (PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.p_, p1.p_))
-                {
-                    // the line crosses the boundary between supported and non-supported regions so it will contain one or more bridge segments
-
-                    // determine which segments of the line are bridges
-
-                    OpenLinesSet line_polys;
-                    line_polys.addSegment(p0.p_, p1.p_);
-                    constexpr bool restitch = false; // only a single line doesn't need stitching
-                    line_polys = bridge_wall_mask_.intersection(line_polys, restitch);
-
-                    while (line_polys.size() > 0)
-                    {
-                        // find the bridge line segment that's nearest to p0
-                        size_t nearest = 0;
-                        double smallest_dist2 = vSize2f(p0.p_ - line_polys[0][0]);
-                        for (unsigned i = 1; i < line_polys.size(); ++i)
-                        {
-                            double dist2 = vSize2f(p0.p_ - line_polys[i][0]);
-                            if (dist2 < smallest_dist2)
-                            {
-                                nearest = i;
-                                smallest_dist2 = dist2;
-                            }
-                        }
-                        const OpenPolyline& bridge = line_polys[nearest];
-
-                        // set b0 to the nearest vertex and b1 the furthest
-                        Point2LL b0 = bridge[0];
-                        Point2LL b1 = bridge[1];
-
-                        if (vSize2f(p0.p_ - b1) < vSize2f(p0.p_ - b0))
-                        {
-                            // swap vertex order
-                            b0 = bridge[1];
-                            b1 = bridge[0];
-                        }
-
-                        distance_to_bridge_start += vSize(b0 - p0.p_);
-
-                        const double bridge_line_len = vSize(b1 - b0);
-
-                        if (bridge_line_len >= min_bridge_line_len)
-                        {
-                            // job done, we have found the first bridge line
-                            return;
-                        }
-
-                        distance_to_bridge_start += bridge_line_len;
-
-                        // finished with this segment
-                        line_polys.removeAt(nearest);
-                    }
-                }
-                else if (! bridge_wall_mask_.inside(p0.p_, true))
-                {
-                    // none of the line is over air
-                    distance_to_bridge_start += vSize(p1.p_ - p0.p_);
-                }
-            }
-
-            // we have got all the way to the end of the wall without finding a bridge segment so disable coasting by setting distance_to_bridge_start back to 0
-
-            distance_to_bridge_start = 0;
-        }
-    };
-
-    bool first_line = true;
-    bool first_scarf = true;
     const coord_t small_feature_max_length = settings.get<coord_t>("small_feature_max_length");
     const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr_ == 0 || wall.inset_idx_ == 0) && wall.shorterThan(small_feature_max_length);
-    Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr_ == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
     const Velocity min_speed = fan_speed_layer_time_settings_per_extruder_[getLastPlannedExtruderTrain()->extruder_nr_].cool_min_speed;
+    Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr_ == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
     small_feature_speed_factor = std::max(static_cast<double>(small_feature_speed_factor), static_cast<double>(min_speed / default_config.getSpeed()));
     const coord_t max_area_deviation = std::max(settings.get<int>("meshfix_maximum_extrusion_area_deviation"), 1); // Square micrometres!
     const auto max_resolution = std::max(settings.get<coord_t>("meshfix_maximum_resolution"), coord_t(1));
@@ -1133,220 +1346,59 @@ void LayerPlan::addWall(
     const Velocity top_speed = default_config.getSpeed();
     const double start_speed = top_speed * start_speed_ratio; // mm/s
     const coord_t accelerate_split_distance = settings.get<coord_t>("wall_0_speed_split_distance"); // mm
-    const coord_t accelerate_length = (smooth_speed && start_speed_ratio < 1.0) ? MM2INT((std::pow(top_speed.value, 2) - std::pow(start_speed, 2)) / (2.0 * acceleration)) : 0;
-
-    ExtrusionJunction p0 = wall[start_idx];
-
+    const coord_t accelerate_length = (smooth_speed && start_speed_ratio < 1.0) ? MM2INT((square(top_speed.value) - square(start_speed)) / (2.0 * acceleration)) : 0;
     const int direction = is_reversed ? -1 : 1;
     const size_t max_index = is_closed ? wall.size() + 1 : wall.size();
 
-    auto addScarfedWall = [&](const bool is_scarf_closure)
+    auto addWallSplittedPass = [&](bool is_scarf_closure)
     {
-        coord_t scarf_remaining_distance = scarf_seam_length;
-        double scarf_factor_origin = 0.0;
-
-        Point3LL split_origin = p0.p_;
-        if (! is_scarf_closure)
-        {
-            split_origin.z_ = scarf_max_z_offset;
-        }
-
-        coord_t accelerate_remaining_distance = accelerate_length;
-        double accelerate_factor_origin = 0.0;
-
-        for (size_t point_idx = 1; point_idx < max_index; point_idx++)
-        {
-            const ExtrusionJunction& p1 = wall[(wall.size() + start_idx + point_idx * direction) % wall.size()];
-
-            if (! bridge_wall_mask_.empty())
-            {
-                computeDistanceToBridgeStart((wall.size() + start_idx + point_idx * direction - 1) % wall.size());
-            }
-
-            if (first_line)
-            {
-                addTravel(p0.p_, always_retract);
-                first_line = false;
-            }
-
-            /*
-            If the line has variable width, break it up into pieces with the
-            following constraints:
-            - Each piece must be smaller than the Maximum Resolution setting.
-            - The difference between the trapezoidal shape of the line and the
-              rectangular shape of the line may not exceed the Maximum Extrusion
-              Area Deviation setting, unless required by the first constraint.
-            Since breaking up a line segment into N pieces (each with averaged
-            width) divides the area deviation by N, we can simply check how many
-            pieces we'd want to get low enough deviation, then check if each piece
-            is not too short at the end.
-            */
-            const coord_t delta_line_width = p1.w_ - p0.w_;
-            const Point2LL line_vector = p1.p_ - p0.p_;
-            const coord_t line_length = vSize(line_vector);
-            /*
-            Calculate how much the line would deviate from the trapezoidal shape if printed at average width.
-            This formula is:
-            - Half the length times half the delta width, for the rectangular shape of the deviating side.
-            - Half of that because the ideal line width is trapezoidal, making the deviating part triangular.
-            - Double of that because the deviation occurs on both sides of the idealised line width.
-            This results in delta_line_width / 2 * line_length / 2 / 2 * 2 == delta_line_width * line_length / 4.
-            */
-            const coord_t line_area_deviation = std::abs(delta_line_width) * line_length / 4;
-            const size_t pieces_limit_deviation = round_up_divide(line_area_deviation, max_area_deviation); // How many pieces we'd need to stay beneath the max area deviation.
-            const size_t pieces_limit_resolution = line_length / max_resolution; // Round down this time, to not exceed the maximum resolution.
-            const size_t pieces = std::max(size_t(1), std::min(pieces_limit_deviation, pieces_limit_resolution)); // Resolution overrides deviation, if resolution is a constraint.
-            const coord_t piece_length = round_divide(line_length, pieces);
-
-            for (size_t piece = 0; piece < pieces; ++piece)
-            {
-                const double average_progress = (double(piece) + 0.5) / pieces; // How far along this line to sample the line width in the middle of this piece.
-                // Round the line_width value to overcome floating point rounding issues, otherwise we may end up with slightly different values
-                // and the generated GCodePath objects will not be merged together, which some subsequent algorithms rely on (e.g. coasting)
-                const coord_t line_width = std::lrint(static_cast<double>(p0.w_) + average_progress * static_cast<double>(delta_line_width));
-                const Point2LL destination = p0.p_ + normal(line_vector, piece_length * (piece + 1));
-                if (is_small_feature && ! is_scarf_closure)
-                {
-                    constexpr bool spiralize = false;
-                    addExtrusionMove(
-                        destination,
-                        default_config,
-                        SpaceFillType::Polygons,
-                        flow_ratio,
-                        line_width * nominal_line_width_multiplier,
-                        spiralize,
-                        small_feature_speed_factor);
-                }
-                else
-                {
-                    coord_t piece_remaining_distance = piece_length;
-
-                    // Cut piece into smaller parts for scarf seam
-                    while ((scarf_remaining_distance > 0 || accelerate_remaining_distance > 0) && piece_remaining_distance > 0)
-                    {
-                        std::vector<coord_t> split_distances{ piece_remaining_distance };
-                        if (scarf_remaining_distance > 0)
-                        {
-                            split_distances.push_back(scarf_remaining_distance);
-                            split_distances.push_back(scarf_split_distance);
-                        }
-                        if (! is_scarf_closure && accelerate_remaining_distance > 0)
-                        {
-                            split_distances.push_back(accelerate_remaining_distance);
-                            split_distances.push_back(accelerate_split_distance);
-                        }
-
-                        coord_t length_to_process = *std::min_element(split_distances.begin(), split_distances.end());
-                        Point3LL split_destination = split_origin + normal(line_vector, length_to_process);
-
-                        double scarf_segment_flow_ratio = 1.0;
-                        double scarf_factor_destination = 1.0;
-                        if (scarf_remaining_distance > 0)
-                        {
-                            scarf_factor_destination = 1.0 - (static_cast<double>(scarf_remaining_distance - length_to_process) / static_cast<double>(scarf_seam_length));
-                            if (! is_scarf_closure)
-                            {
-                                split_destination.z_ = std::llrint(std::lerp(scarf_max_z_offset, 0.0, scarf_factor_destination));
-                            }
-
-                            const double scarf_factor_average = (scarf_factor_origin + scarf_factor_destination) / 2.0;
-                            double scarf_segment_flow_ratio;
-                            if (is_scarf_closure)
-                            {
-                                scarf_segment_flow_ratio = std::lerp(1.0, scarf_seam_start_ratio, scarf_factor_average);
-                            }
-                            else
-                            {
-                                scarf_segment_flow_ratio = std::lerp(scarf_seam_start_ratio, 1.0, scarf_factor_average);
-                            }
-
-                            if (first_scarf)
-                            {
-                                // Manually add a Z-only travel move to set the nozzle at the height of the first point
-                                addTravel(p0.p_, always_retract, split_origin.z_);
-                                first_scarf = false;
-                            }
-                        }
-
-                        double acceleration_speed_factor = 1.0;
-                        double acceleration_factor_destination = 1.0;
-                        if (accelerate_remaining_distance > 0)
-                        {
-                            acceleration_factor_destination
-                                = 1.0 - (static_cast<double>(accelerate_remaining_distance - length_to_process) / static_cast<double>(accelerate_length));
-
-                            const double acceleration_factor_average = (accelerate_factor_origin + acceleration_factor_destination) / 2.0;
-
-                            acceleration_speed_factor = std::lerp(start_speed_ratio, 1.0, acceleration_factor_average);
-                        }
-
-                        constexpr bool travel_to_z = false;
-                        addWallLine(
-                            split_origin,
-                            split_destination,
-                            settings,
-                            default_config,
-                            roofing_config,
-                            bridge_config,
-                            flow_ratio * scarf_segment_flow_ratio,
-                            line_width * nominal_line_width_multiplier,
-                            non_bridge_line_volume,
-                            speed_factor * acceleration_speed_factor,
-                            distance_to_bridge_start,
-                            travel_to_z);
-
-                        piece_remaining_distance -= length_to_process;
-                        split_origin = split_destination;
-
-                        scarf_remaining_distance -= length_to_process;
-                        scarf_factor_origin = scarf_factor_destination;
-
-                        accelerate_remaining_distance -= length_to_process;
-                        accelerate_factor_origin = acceleration_factor_destination;
-                    }
-
-                    if (piece_remaining_distance > 0 && ! is_scarf_closure)
-                    {
-                        const Point2LL origin = p0.p_ + normal(line_vector, piece_length * (piece + 1) - piece_remaining_distance);
-                        addWallLine(
-                            origin,
-                            destination,
-                            settings,
-                            default_config,
-                            roofing_config,
-                            bridge_config,
-                            flow_ratio,
-                            line_width * nominal_line_width_multiplier,
-                            non_bridge_line_volume,
-                            speed_factor,
-                            distance_to_bridge_start);
-                    }
-                }
-            }
-
-            p0 = p1;
-        }
+        addWallSplitted(
+            wall,
+            start_idx,
+            direction,
+            max_index,
+            settings,
+            default_config,
+            roofing_config,
+            bridge_config,
+            flow_ratio,
+            nominal_line_width_multiplier,
+            non_bridge_line_volume,
+            min_bridge_line_len,
+            always_retract,
+            is_small_feature,
+            small_feature_speed_factor,
+            max_area_deviation,
+            max_resolution,
+            scarf_seam_length,
+            scarf_seam_start_ratio,
+            scarf_split_distance,
+            scarf_max_z_offset,
+            start_speed_ratio,
+            accelerate_split_distance,
+            accelerate_length,
+            is_scarf_closure);
     };
 
-    // First pass to add the wall with the scarf beginning
-    addScarfedWall(false);
+    // First pass to add the wall with the scarf beginning and acceleration
+    addWallSplittedPass(false);
 
     if (scarf_seam_length)
     {
         // Second pass to add the scarf closure
-        addScarfedWall(true);
+        addWallSplittedPass(true);
     }
 
     if (wall.size() >= 2)
     {
         if (! bridge_wall_mask_.empty())
         {
-            computeDistanceToBridgeStart((start_idx + wall.size() - 1) % wall.size());
+            computeDistanceToBridgeStart(wall, (start_idx + wall.size() - 1) % wall.size(), min_bridge_line_len);
         }
 
         if (wall_0_wipe_dist > 0 && ! is_linked_path)
         { // apply outer wall wipe
-            p0 = wall[start_idx];
+            ExtrusionJunction p0 = wall[start_idx];
             int distance_traversed = 0;
             for (unsigned int point_idx = 1;; point_idx++)
             {
