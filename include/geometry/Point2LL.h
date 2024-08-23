@@ -10,8 +10,8 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 */
 #define INLINE static inline
 
+#include <cmath>
 #include <limits>
-#include <math.h>
 #include <numbers>
 #include <polyclipping/clipper.hpp>
 
