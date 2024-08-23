@@ -999,6 +999,7 @@ void LayerPlan::addWall(
 
 void LayerPlan::addWallSplitted(
     const ExtrusionLine& wall,
+    const coord_t wall_length,
     size_t start_idx,
     const int direction,
     const size_t max_index,
@@ -1019,13 +1020,13 @@ void LayerPlan::addWallSplitted(
     const auto scarf_seam_start_ratio,
     const auto scarf_split_distance,
     const coord_t scarf_max_z_offset,
+    const coord_t speed_split_distance,
     const Ratio start_speed_ratio,
-    const coord_t accelerate_split_distance,
     const coord_t accelerate_length,
+    const Ratio end_speed_ratio,
+    const coord_t decelerate_length,
     const bool is_scarf_closure)
 {
-    constexpr double speed_factor = 1.0;
-
     coord_t distance_to_bridge_start = 0; // will be updated before each line is processed
     ExtrusionJunction p0 = wall[start_idx];
     bool first_line = ! is_scarf_closure;
@@ -1036,11 +1037,11 @@ void LayerPlan::addWallSplitted(
         split_origin.z_ = scarf_max_z_offset;
     }
 
-    coord_t scarf_remaining_distance = scarf_seam_length;
+    coord_t wall_processed_distance = 0;
     double scarf_factor_origin = 0.0;
-
-    coord_t accelerate_remaining_distance = accelerate_length;
     double accelerate_factor_origin = 0.0;
+    double decelerate_factor_origin = 0.0;
+    const coord_t start_decelerating_position = wall_length - decelerate_length;
 
     for (size_t point_idx = 1; point_idx < max_index; point_idx++)
     {
@@ -1109,29 +1110,48 @@ void LayerPlan::addWallSplitted(
             {
                 coord_t piece_remaining_distance = piece_length;
 
-                // Cut piece into smaller parts for scarf seam
-                while ((scarf_remaining_distance > 0 || accelerate_remaining_distance > 0) && piece_remaining_distance > 0)
+                // Cut piece into smaller parts for scarf seam and acceleration/deceleration
+                while ((! is_scarf_closure && piece_remaining_distance > 0) || (is_scarf_closure && wall_processed_distance < scarf_seam_length))
                 {
-                    std::vector<coord_t> split_distances{ piece_remaining_distance };
-                    if (scarf_remaining_distance > 0)
+                    std::vector<coord_t> split_positions{ wall_processed_distance + piece_remaining_distance };
+
+                    const bool process_scarf = wall_processed_distance < scarf_seam_length;
+                    if (process_scarf)
                     {
-                        split_distances.push_back(scarf_remaining_distance);
-                        split_distances.push_back(scarf_split_distance);
-                    }
-                    if (! is_scarf_closure && accelerate_remaining_distance > 0)
-                    {
-                        split_distances.push_back(accelerate_remaining_distance);
-                        split_distances.push_back(accelerate_split_distance);
+                        split_positions.push_back(scarf_seam_length);
+                        split_positions.push_back(wall_processed_distance + scarf_split_distance);
                     }
 
-                    coord_t length_to_process = *std::min_element(split_distances.begin(), split_distances.end());
+                    const bool process_acceleration = ! is_scarf_closure && wall_processed_distance < accelerate_length;
+                    if (process_acceleration)
+                    {
+                        split_positions.push_back(accelerate_length);
+                        split_positions.push_back(wall_processed_distance + speed_split_distance);
+                    }
+
+                    bool deceleration_started = false;
+                    if (! is_scarf_closure && decelerate_length > 0)
+                    {
+                        deceleration_started = wall_processed_distance >= start_decelerating_position;
+                        if (deceleration_started)
+                        {
+                            split_positions.push_back(wall_processed_distance + speed_split_distance);
+                        }
+                        else
+                        {
+                            split_positions.push_back(start_decelerating_position);
+                        }
+                    }
+
+                    const coord_t destination_position = *std::min_element(split_positions.begin(), split_positions.end());
+                    const coord_t length_to_process = destination_position - wall_processed_distance;
                     Point3LL split_destination = split_origin + normal(line_vector, length_to_process);
 
                     double scarf_segment_flow_ratio = 1.0;
                     double scarf_factor_destination = 1.0;
-                    if (scarf_remaining_distance > 0)
+                    if (process_scarf)
                     {
-                        scarf_factor_destination = 1.0 - (static_cast<double>(scarf_remaining_distance - length_to_process) / static_cast<double>(scarf_seam_length));
+                        scarf_factor_destination = static_cast<double>(destination_position) / static_cast<double>(scarf_seam_length);
                         if (! is_scarf_closure)
                         {
                             split_destination.z_ = std::llrint(std::lerp(scarf_max_z_offset, 0.0, scarf_factor_destination));
@@ -1155,15 +1175,22 @@ void LayerPlan::addWallSplitted(
                         }
                     }
 
-                    double accelerate_speed_factor = 1.0;
+                    Ratio accelerate_speed_factor = 1.0_r;
                     double accelerate_factor_destination = 1.0;
-                    if (accelerate_remaining_distance > 0)
+                    if (process_acceleration)
                     {
-                        accelerate_factor_destination = 1.0 - (static_cast<double>(accelerate_remaining_distance - length_to_process) / static_cast<double>(accelerate_length));
-
+                        accelerate_factor_destination = static_cast<double>(destination_position) / static_cast<double>(accelerate_length);
                         const double accelerate_factor_average = (accelerate_factor_origin + accelerate_factor_destination) / 2.0;
-
                         accelerate_speed_factor = std::lerp(start_speed_ratio, 1.0, accelerate_factor_average);
+                    }
+
+                    Ratio decelerate_speed_factor = is_scarf_closure ? end_speed_ratio : 1.0_r;
+                    double decelerate_factor_destination = 0.0;
+                    if (deceleration_started)
+                    {
+                        decelerate_factor_destination = 1.0 - (static_cast<double>(wall_length - destination_position) / static_cast<double>(decelerate_length));
+                        const double decelerate_factor_average = (decelerate_factor_origin + decelerate_factor_destination) / 2.0;
+                        decelerate_speed_factor = std::lerp(1.0, end_speed_ratio, decelerate_factor_average);
                     }
 
                     constexpr bool travel_to_z = false;
@@ -1177,35 +1204,16 @@ void LayerPlan::addWallSplitted(
                         flow_ratio * scarf_segment_flow_ratio,
                         line_width * nominal_line_width_multiplier,
                         non_bridge_line_volume,
-                        accelerate_speed_factor,
+                        accelerate_speed_factor * decelerate_speed_factor,
                         distance_to_bridge_start,
                         travel_to_z);
 
+                    wall_processed_distance = destination_position;
                     piece_remaining_distance -= length_to_process;
                     split_origin = split_destination;
-
-                    scarf_remaining_distance -= length_to_process;
                     scarf_factor_origin = scarf_factor_destination;
-
-                    accelerate_remaining_distance -= length_to_process;
                     accelerate_factor_origin = accelerate_factor_destination;
-                }
-
-                if (piece_remaining_distance > 0 && ! is_scarf_closure)
-                {
-                    const Point2LL origin = p0.p_ + normal(line_vector, piece_length * (piece + 1) - piece_remaining_distance);
-                    addWallLine(
-                        origin,
-                        destination,
-                        settings,
-                        default_config,
-                        roofing_config,
-                        bridge_config,
-                        flow_ratio,
-                        line_width * nominal_line_width_multiplier,
-                        non_bridge_line_volume,
-                        speed_factor,
-                        distance_to_bridge_start);
+                    decelerate_factor_origin = decelerate_factor_destination;
                 }
             }
         }
@@ -1221,7 +1229,7 @@ coord_t LayerPlan::computeDistanceToBridgeStart(const ExtrusionLine& wall, const
     if (! bridge_wall_mask_.empty())
     {
         // there is air below the part so iterate through the lines that have not yet been output accumulating the total distance to the first bridge segment
-        for (unsigned point_idx = current_index; point_idx < wall.size(); ++point_idx)
+        for (size_t point_idx = current_index; point_idx < wall.size(); ++point_idx)
         {
             const ExtrusionJunction& p0 = wall[point_idx];
             const ExtrusionJunction& p1 = wall[(point_idx + 1) % wall.size()];
@@ -1330,6 +1338,7 @@ void LayerPlan::addWall(
         1.0 / Ratio{ static_cast<Ratio::value_type>(default_config.getLineWidth()) }
     }; // we multiply the flow with the actual wanted line width (for that junction), and then multiply with this
 
+    const coord_t wall_length = wall.length();
     const coord_t small_feature_max_length = settings.get<coord_t>("small_feature_max_length");
     const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr_ == 0 || wall.inset_idx_ == 0) && wall.shorterThan(small_feature_max_length);
     const Velocity min_speed = fan_speed_layer_time_settings_per_extruder_[getLastPlannedExtruderTrain()->extruder_nr_].cool_min_speed;
@@ -1337,23 +1346,31 @@ void LayerPlan::addWall(
     small_feature_speed_factor = std::max(static_cast<double>(small_feature_speed_factor), static_cast<double>(min_speed / default_config.getSpeed()));
     const coord_t max_area_deviation = std::max(settings.get<int>("meshfix_maximum_extrusion_area_deviation"), 1); // Square micrometres!
     const auto max_resolution = std::max(settings.get<coord_t>("meshfix_maximum_resolution"), coord_t(1));
-    const auto scarf_seam_length = std::min(wall.length(), actual_scarf_seam ? settings.get<coord_t>("scarf_joint_seam_length") : 0);
+    const int direction = is_reversed ? -1 : 1;
+    const size_t max_index = is_closed ? wall.size() + 1 : wall.size();
+
+    const auto scarf_seam_length = std::min(wall_length, actual_scarf_seam ? settings.get<coord_t>("scarf_joint_seam_length") : 0);
     const auto scarf_seam_start_ratio = actual_scarf_seam ? settings.get<Ratio>("scarf_joint_seam_start_height_ratio") : 1.0_r;
     const auto scarf_split_distance = settings.get<coord_t>("scarf_split_distance");
     const coord_t scarf_max_z_offset = static_cast<coord_t>(-(1.0 - scarf_seam_start_ratio) * static_cast<double>(layer_thickness_));
+
+    const Velocity top_speed = default_config.getSpeed();
+    const coord_t speed_split_distance = settings.get<coord_t>("wall_0_speed_split_distance"); // mm
     const Ratio start_speed_ratio = smooth_speed ? settings.get<Ratio>("wall_0_start_speed_ratio") : 1.0_r;
     const int acceleration = settings.get<int>("wall_0_acceleration"); // mm/s²
-    const Velocity top_speed = default_config.getSpeed();
-    const double start_speed = top_speed * start_speed_ratio; // mm/s
-    const coord_t accelerate_split_distance = settings.get<coord_t>("wall_0_speed_split_distance"); // mm
-    const coord_t accelerate_length = (smooth_speed && start_speed_ratio < 1.0) ? MM2INT((square(top_speed.value) - square(start_speed)) / (2.0 * acceleration)) : 0;
-    const int direction = is_reversed ? -1 : 1;
-    const size_t max_index = is_closed ? wall.size() + 1 : wall.size();
+    const Velocity start_speed = top_speed * start_speed_ratio; // mm/s
+    const coord_t accelerate_length = (smooth_speed && start_speed_ratio < 1.0) ? MM2INT((square(top_speed) - square(start_speed)) / (2.0 * acceleration)) : 0; // µm
+
+    const Ratio end_speed_ratio = smooth_speed ? settings.get<Ratio>("wall_0_end_speed_ratio") : 1.0_r;
+    const int deceleration = settings.get<int>("wall_0_deceleration"); // mm/s²
+    const Velocity end_speed = top_speed * end_speed_ratio; // mm/s
+    const coord_t decelerate_length = (smooth_speed && end_speed_ratio < 1.0) ? MM2INT((square(top_speed) - square(end_speed)) / (2.0 * deceleration)) : 0; // µm
 
     auto addWallSplittedPass = [&](bool is_scarf_closure)
     {
         addWallSplitted(
             wall,
+            wall_length,
             start_idx,
             direction,
             max_index,
@@ -1374,16 +1391,18 @@ void LayerPlan::addWall(
             scarf_seam_start_ratio,
             scarf_split_distance,
             scarf_max_z_offset,
+            speed_split_distance,
             start_speed_ratio,
-            accelerate_split_distance,
             accelerate_length,
+            end_speed_ratio,
+            decelerate_length,
             is_scarf_closure);
     };
 
     // First pass to add the wall with the scarf beginning and acceleration
     addWallSplittedPass(false);
 
-    if (scarf_seam_length)
+    if (scarf_seam_length > 0)
     {
         // Second pass to add the scarf closure
         addWallSplittedPass(true);
@@ -1399,7 +1418,7 @@ void LayerPlan::addWall(
         if (wall_0_wipe_dist > 0 && ! is_linked_path)
         { // apply outer wall wipe
             ExtrusionJunction p0 = wall[start_idx];
-            int distance_traversed = 0;
+            coord_t distance_traversed = 0;
             for (unsigned int point_idx = 1;; point_idx++)
             {
                 if (point_idx > wall.size() && distance_traversed == 0) // Wall has a total circumference of 0. This loop would never end.
@@ -1407,7 +1426,7 @@ void LayerPlan::addWall(
                     break; // No wipe if the wall has no circumference.
                 }
                 ExtrusionJunction p1 = wall[(start_idx + point_idx) % wall.size()];
-                int p0p1_dist = vSize(p1 - p0);
+                coord_t p0p1_dist = vSize(p1 - p0);
                 if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
                 {
                     Point2LL vector = p1.p_ - p0.p_;

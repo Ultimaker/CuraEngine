@@ -839,6 +839,7 @@ private:
 
     void addWallSplitted(
         const ExtrusionLine& wall,
+        const coord_t wall_length,
         size_t start_idx,
         const int direction,
         const size_t max_index,
@@ -859,9 +860,11 @@ private:
         const auto scarf_seam_start_ratio,
         const auto scarf_split_distance,
         const coord_t scarf_max_z_offset,
+        const coord_t speed_split_distance,
         const Ratio start_speed_ratio,
-        const coord_t accelerate_split_distance,
         const coord_t accelerate_length,
+        const Ratio end_speed_ratio,
+        const coord_t decelerate_length,
         const bool is_scarf_closure);
 
     // helper function to calculate the distance from the start of the current wall line to the first bridge segment
