@@ -866,7 +866,7 @@ void LayerPlan::addWallLine(
             flow,
             width_factor,
             spiralize,
-            (overhang_mask_.empty() || (! overhang_mask_.inside(p0.toPoint2LL(), true) && ! overhang_mask_.inside(p1.toPoint2LL(), true))) ? 1.0_r : overhang_speed_factor,
+            (overhang_mask_.empty() || (! overhang_mask_.inside(p0.toPoint2LL(), true) && ! overhang_mask_.inside(p1.toPoint2LL(), true))) ? speed_factor : overhang_speed_factor,
             GCodePathConfig::FAN_SPEED_DEFAULT,
             travel_to_z);
     }
@@ -1010,7 +1010,8 @@ void LayerPlan::addWall(
     const bool is_closed,
     const bool is_reversed,
     const bool is_linked_path,
-    const bool scarf_seam)
+    const bool scarf_seam,
+    const bool smooth_speed)
 {
     if (wall.empty())
     {
@@ -1120,13 +1121,19 @@ void LayerPlan::addWall(
     const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr_ == 0 || wall.inset_idx_ == 0) && wall.shorterThan(small_feature_max_length);
     Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr_ == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
     const Velocity min_speed = fan_speed_layer_time_settings_per_extruder_[getLastPlannedExtruderTrain()->extruder_nr_].cool_min_speed;
-    small_feature_speed_factor = std::max((double)small_feature_speed_factor, (double)(min_speed / default_config.getSpeed()));
+    small_feature_speed_factor = std::max(static_cast<double>(small_feature_speed_factor), static_cast<double>(min_speed / default_config.getSpeed()));
     const coord_t max_area_deviation = std::max(settings.get<int>("meshfix_maximum_extrusion_area_deviation"), 1); // Square micrometres!
-    const coord_t max_resolution = std::max(settings.get<coord_t>("meshfix_maximum_resolution"), coord_t(1));
-    const coord_t scarf_seam_length = std::min(wall.length(), actual_scarf_seam ? settings.get<coord_t>("scarf_joint_seam_length") : 0);
-    const Ratio scarf_seam_start_ratio = actual_scarf_seam ? settings.get<Ratio>("scarf_joint_seam_start_height_ratio") : 1.0_r;
+    const auto max_resolution = std::max(settings.get<coord_t>("meshfix_maximum_resolution"), coord_t(1));
+    const auto scarf_seam_length = std::min(wall.length(), actual_scarf_seam ? settings.get<coord_t>("scarf_joint_seam_length") : 0);
+    const auto scarf_seam_start_ratio = actual_scarf_seam ? settings.get<Ratio>("scarf_joint_seam_start_height_ratio") : 1.0_r;
     const auto scarf_split_distance = settings.get<coord_t>("scarf_split_distance");
-    const coord_t scarf_max_z_offset = -(1.0 - scarf_seam_start_ratio) * layer_thickness_;
+    const coord_t scarf_max_z_offset = static_cast<coord_t>(-(1.0 - scarf_seam_start_ratio) * static_cast<double>(layer_thickness_));
+    const Ratio start_speed_ratio = smooth_speed ? settings.get<Ratio>("wall_0_start_speed_ratio") : 1.0_r;
+    const int acceleration = settings.get<int>("wall_0_acceleration"); // mm/s²
+    const Velocity top_speed = default_config.getSpeed();
+    const double start_speed = top_speed * start_speed_ratio; // mm/s
+    const coord_t accelerate_split_distance = settings.get<coord_t>("wall_0_speed_split_distance"); // mm
+    const coord_t accelerate_length = (smooth_speed && start_speed_ratio < 1.0) ? MM2INT((std::pow(top_speed.value, 2) - std::pow(start_speed, 2)) / (2.0 * acceleration)) : 0;
 
     ExtrusionJunction p0 = wall[start_idx];
 
@@ -1135,13 +1142,17 @@ void LayerPlan::addWall(
 
     auto addScarfedWall = [&](const bool is_scarf_closure)
     {
-        coord_t scarf_processed_distance = 0;
+        coord_t scarf_remaining_distance = scarf_seam_length;
         double scarf_factor_origin = 0.0;
-        Point3LL scarf_origin = p0.p_;
+
+        Point3LL split_origin = p0.p_;
         if (! is_scarf_closure)
         {
-            scarf_origin.z_ = scarf_max_z_offset;
+            split_origin.z_ = scarf_max_z_offset;
         }
+
+        coord_t accelerate_remaining_distance = accelerate_length;
+        double accelerate_factor_origin = 0.0;
 
         for (size_t point_idx = 1; point_idx < max_index; point_idx++)
         {
@@ -1208,41 +1219,71 @@ void LayerPlan::addWall(
                 }
                 else
                 {
-                    coord_t piece_processed_distance = 0;
+                    coord_t piece_remaining_distance = piece_length;
 
                     // Cut piece into smaller parts for scarf seam
-                    while (scarf_processed_distance < scarf_seam_length && piece_processed_distance < piece_length)
+                    while ((scarf_remaining_distance > 0 || accelerate_remaining_distance > 0) && piece_remaining_distance > 0)
                     {
-                        coord_t length_to_process = std::min({ scarf_seam_length - scarf_processed_distance, piece_length - piece_processed_distance, scarf_split_distance });
-                        const double scarf_factor_destination = static_cast<double>(scarf_processed_distance + length_to_process) / static_cast<double>(scarf_seam_length);
-                        Point3LL scarf_destination = scarf_origin + normal(line_vector, length_to_process);
-                        if (! is_scarf_closure)
+                        std::vector<coord_t> split_distances{ piece_remaining_distance };
+                        if (scarf_remaining_distance > 0)
                         {
-                            scarf_destination.z_ = std::lerp(scarf_max_z_offset, 0.0, scarf_factor_destination);
+                            split_distances.push_back(scarf_remaining_distance);
+                            split_distances.push_back(scarf_split_distance);
+                        }
+                        if (! is_scarf_closure && accelerate_remaining_distance > 0)
+                        {
+                            split_distances.push_back(accelerate_remaining_distance);
+                            split_distances.push_back(accelerate_split_distance);
                         }
 
-                        const double scarf_factor_average = (scarf_factor_origin + scarf_factor_destination) / 2.0;
-                        double scarf_segment_flow_ratio;
-                        if (is_scarf_closure)
+                        coord_t length_to_process = *std::min_element(split_distances.begin(), split_distances.end());
+                        Point3LL split_destination = split_origin + normal(line_vector, length_to_process);
+
+                        double scarf_segment_flow_ratio = 1.0;
+                        double scarf_factor_destination = 1.0;
+                        if (scarf_remaining_distance > 0)
                         {
-                            scarf_segment_flow_ratio = std::lerp(1.0, scarf_seam_start_ratio, scarf_factor_average);
-                        }
-                        else
-                        {
-                            scarf_segment_flow_ratio = std::lerp(scarf_seam_start_ratio, 1.0, scarf_factor_average);
+                            scarf_factor_destination = 1.0 - (static_cast<double>(scarf_remaining_distance - length_to_process) / static_cast<double>(scarf_seam_length));
+                            if (! is_scarf_closure)
+                            {
+                                split_destination.z_ = std::llrint(std::lerp(scarf_max_z_offset, 0.0, scarf_factor_destination));
+                            }
+
+                            const double scarf_factor_average = (scarf_factor_origin + scarf_factor_destination) / 2.0;
+                            double scarf_segment_flow_ratio;
+                            if (is_scarf_closure)
+                            {
+                                scarf_segment_flow_ratio = std::lerp(1.0, scarf_seam_start_ratio, scarf_factor_average);
+                            }
+                            else
+                            {
+                                scarf_segment_flow_ratio = std::lerp(scarf_seam_start_ratio, 1.0, scarf_factor_average);
+                            }
+
+                            if (first_scarf)
+                            {
+                                // Manually add a Z-only travel move to set the nozzle at the height of the first point
+                                addTravel(p0.p_, always_retract, split_origin.z_);
+                                first_scarf = false;
+                            }
                         }
 
-                        if (first_scarf)
+                        double acceleration_speed_factor = 1.0;
+                        double acceleration_factor_destination = 1.0;
+                        if (accelerate_remaining_distance > 0)
                         {
-                            // Manually add a Z-only travel move to set the nozzle at the height of the first point
-                            addTravel(p0.p_, always_retract, scarf_origin.z_);
-                            first_scarf = false;
+                            acceleration_factor_destination
+                                = 1.0 - (static_cast<double>(accelerate_remaining_distance - length_to_process) / static_cast<double>(accelerate_length));
+
+                            const double acceleration_factor_average = (accelerate_factor_origin + acceleration_factor_destination) / 2.0;
+
+                            acceleration_speed_factor = std::lerp(start_speed_ratio, 1.0, acceleration_factor_average);
                         }
 
                         constexpr bool travel_to_z = false;
                         addWallLine(
-                            scarf_origin,
-                            scarf_destination,
+                            split_origin,
+                            split_destination,
                             settings,
                             default_config,
                             roofing_config,
@@ -1250,19 +1291,23 @@ void LayerPlan::addWall(
                             flow_ratio * scarf_segment_flow_ratio,
                             line_width * nominal_line_width_multiplier,
                             non_bridge_line_volume,
-                            speed_factor,
+                            speed_factor * acceleration_speed_factor,
                             distance_to_bridge_start,
                             travel_to_z);
 
-                        piece_processed_distance += length_to_process;
-                        scarf_processed_distance += length_to_process;
-                        scarf_origin = scarf_destination;
+                        piece_remaining_distance -= length_to_process;
+                        split_origin = split_destination;
+
+                        scarf_remaining_distance -= length_to_process;
                         scarf_factor_origin = scarf_factor_destination;
+
+                        accelerate_remaining_distance -= length_to_process;
+                        accelerate_factor_origin = acceleration_factor_destination;
                     }
 
-                    if (piece_processed_distance < piece_length && ! is_scarf_closure)
+                    if (piece_remaining_distance > 0 && ! is_scarf_closure)
                     {
-                        const Point2LL origin = p0.p_ + normal(line_vector, piece_length * piece + piece_processed_distance);
+                        const Point2LL origin = p0.p_ + normal(line_vector, piece_length * (piece + 1) - piece_remaining_distance);
                         addWallLine(
                             origin,
                             destination,

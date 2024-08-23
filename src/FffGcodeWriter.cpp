@@ -2737,6 +2737,7 @@ bool FffGcodeWriter::processInsets(
             mesh.settings.get<coord_t>("wall_line_width_0") * 2);
         constexpr Shape disallowed_areas_for_seams;
         constexpr bool scarf_seam = true;
+        constexpr bool smooth_speed = true;
         InsetOrderOptimizer wall_orderer(
             *this,
             storage,
@@ -2758,7 +2759,8 @@ bool FffGcodeWriter::processInsets(
             part.wall_toolpaths,
             mesh.bounding_box.flatten().getMiddle(),
             disallowed_areas_for_seams,
-            scarf_seam);
+            scarf_seam,
+            smooth_speed);
         added_something |= wall_orderer.addToLayer();
     }
     return added_something;

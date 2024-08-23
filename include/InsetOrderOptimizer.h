@@ -58,7 +58,8 @@ public:
         const std::vector<VariableWidthLines>& paths,
         const Point2LL& model_center_point,
         const Shape& disallowed_areas_for_seams = {},
-        const bool scarf_seam = false);
+        const bool scarf_seam = false,
+        const bool smooth_speed = false);
 
     /*!
      * Adds the insets to the given layer plan.
@@ -112,6 +113,7 @@ private:
     const Point2LL model_center_point_; // Center of the model (= all meshes) axis-aligned bounding-box.
     Shape disallowed_areas_for_seams_;
     const bool scarf_seam_;
+    const bool smooth_speed_;
 
     std::vector<std::vector<const Polygon*>> inset_polys_; // vector of vectors holding the inset polygons
     Shape retraction_region_; // After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see

@@ -525,7 +525,8 @@ public:
         const bool is_closed,
         const bool is_reversed,
         const bool is_linked_path,
-        const bool scarf_seam = false);
+        const bool scarf_seam = false,
+        const bool smooth_speed = false);
 
     /*!
      * Add an infill wall to the g-code
