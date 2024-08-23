@@ -3126,7 +3126,7 @@ bool FffGcodeWriter::processInsets(
             mesh.getZSeamHint(),
             mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
             mesh.settings.get<coord_t>("wall_line_width_0") * 2);
-        constexpr Shape disallowed_areas_for_seams;
+        const Shape disallowed_areas_for_seams;
         constexpr bool scarf_seam = true;
         constexpr bool smooth_speed = true;
         InsetOrderOptimizer wall_orderer(
