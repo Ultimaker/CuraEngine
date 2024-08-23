@@ -1008,7 +1008,7 @@ void LayerPlan::addWallSplitted(
     const GCodePathConfig& roofing_config,
     const GCodePathConfig& bridge_config,
     const double flow_ratio,
-    const Ratio nominal_line_width_multiplier,
+    const Ratio line_width_ratio,
     double& non_bridge_line_volume,
     const coord_t min_bridge_line_len,
     const bool always_retract,
@@ -1037,11 +1037,11 @@ void LayerPlan::addWallSplitted(
         split_origin.z_ = scarf_max_z_offset;
     }
 
-    coord_t wall_processed_distance = 0;
-    double scarf_factor_origin = 0.0;
-    double accelerate_factor_origin = 0.0;
-    double decelerate_factor_origin = 0.0;
-    const coord_t start_decelerating_position = wall_length - decelerate_length;
+    coord_t wall_processed_distance = 0; // This will grow while we travel along the wall, to the total wall length
+    double scarf_factor_origin = 0.0; // Interpolation factor at the current point for the scarf
+    double accelerate_factor_origin = 0.0; // Interpolation factor at the current point for the acceleration
+    double decelerate_factor_origin = 0.0; // Interpolation factor at the current point for the deceleration
+    const coord_t start_decelerate_position = wall_length - decelerate_length;
 
     for (size_t point_idx = 1; point_idx < max_index; point_idx++)
     {
@@ -1097,14 +1097,7 @@ void LayerPlan::addWallSplitted(
             if (is_small_feature && ! is_scarf_closure)
             {
                 constexpr bool spiralize = false;
-                addExtrusionMove(
-                    destination,
-                    default_config,
-                    SpaceFillType::Polygons,
-                    flow_ratio,
-                    line_width * nominal_line_width_multiplier,
-                    spiralize,
-                    small_feature_speed_factor);
+                addExtrusionMove(destination, default_config, SpaceFillType::Polygons, flow_ratio, line_width * line_width_ratio, spiralize, small_feature_speed_factor);
             }
             else
             {
@@ -1113,6 +1106,8 @@ void LayerPlan::addWallSplitted(
                 // Cut piece into smaller parts for scarf seam and acceleration/deceleration
                 while ((! is_scarf_closure && piece_remaining_distance > 0) || (is_scarf_closure && wall_processed_distance < scarf_seam_length))
                 {
+                    // Make a list of all the possible incoming positions where we would eventually want to stop next
+                    // The positions are expressed in distance from wall start along the wall segments
                     std::vector<coord_t> split_positions{ wall_processed_distance + piece_remaining_distance };
 
                     const bool process_scarf = wall_processed_distance < scarf_seam_length;
@@ -1132,31 +1127,37 @@ void LayerPlan::addWallSplitted(
                     bool deceleration_started = false;
                     if (! is_scarf_closure && decelerate_length > 0)
                     {
-                        deceleration_started = wall_processed_distance >= start_decelerating_position;
+                        deceleration_started = wall_processed_distance >= start_decelerate_position;
                         if (deceleration_started)
                         {
                             split_positions.push_back(wall_processed_distance + speed_split_distance);
                         }
                         else
                         {
-                            split_positions.push_back(start_decelerating_position);
+                            split_positions.push_back(start_decelerate_position);
                         }
                     }
 
+                    // Now take the closest position candidate and make a sub-segment to it
                     const coord_t destination_position = *std::min_element(split_positions.begin(), split_positions.end());
                     const coord_t length_to_process = destination_position - wall_processed_distance;
                     Point3LL split_destination = split_origin + normal(line_vector, length_to_process);
 
                     double scarf_segment_flow_ratio = 1.0;
-                    double scarf_factor_destination = 1.0;
+                    double scarf_factor_destination = 1.0; // Out of range, scarf is done => 1.0
                     if (process_scarf)
                     {
+                        // Calculate scarf interpolation factor on the destination point
                         scarf_factor_destination = static_cast<double>(destination_position) / static_cast<double>(scarf_seam_length);
+
+                        // Interpolate Z offset according to interpolation factor
                         if (! is_scarf_closure)
                         {
                             split_destination.z_ = std::llrint(std::lerp(scarf_max_z_offset, 0.0, scarf_factor_destination));
                         }
 
+                        // Interpolate flow according to interpolation factor average, because it can't be different
+                        // at start and end positions
                         const double scarf_factor_average = (scarf_factor_origin + scarf_factor_destination) / 2.0;
                         if (is_scarf_closure)
                         {
@@ -1176,23 +1177,28 @@ void LayerPlan::addWallSplitted(
                     }
 
                     Ratio accelerate_speed_factor = 1.0_r;
-                    double accelerate_factor_destination = 1.0;
+                    double accelerate_factor_destination = 1.0; // Out of range, acceleration is done => 1.0
                     if (process_acceleration)
                     {
+                        // Interpolate speed according to interpolation factor average, because it can't be different
+                        // at start and end positions
                         accelerate_factor_destination = static_cast<double>(destination_position) / static_cast<double>(accelerate_length);
                         const double accelerate_factor_average = (accelerate_factor_origin + accelerate_factor_destination) / 2.0;
                         accelerate_speed_factor = std::lerp(start_speed_ratio, 1.0, accelerate_factor_average);
                     }
 
                     Ratio decelerate_speed_factor = is_scarf_closure ? end_speed_ratio : 1.0_r;
-                    double decelerate_factor_destination = 0.0;
+                    double decelerate_factor_destination = 0.0; // Out of range, deceleration is not started => 0.0
                     if (deceleration_started)
                     {
+                        // Interpolate speed according to interpolation factor average, because it can't be different
+                        // at start and end positions
                         decelerate_factor_destination = 1.0 - (static_cast<double>(wall_length - destination_position) / static_cast<double>(decelerate_length));
                         const double decelerate_factor_average = (decelerate_factor_origin + decelerate_factor_destination) / 2.0;
                         decelerate_speed_factor = std::lerp(1.0, end_speed_ratio, decelerate_factor_average);
                     }
 
+                    // now add the (sub-)segment
                     constexpr bool travel_to_z = false;
                     addWallLine(
                         split_origin,
@@ -1202,7 +1208,7 @@ void LayerPlan::addWallSplitted(
                         roofing_config,
                         bridge_config,
                         flow_ratio * scarf_segment_flow_ratio,
-                        line_width * nominal_line_width_multiplier,
+                        line_width * line_width_ratio,
                         non_bridge_line_volume,
                         accelerate_speed_factor * decelerate_speed_factor,
                         distance_to_bridge_start,
@@ -1340,7 +1346,7 @@ void LayerPlan::addWall(
 
     const coord_t wall_length = wall.length();
     const coord_t small_feature_max_length = settings.get<coord_t>("small_feature_max_length");
-    const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr_ == 0 || wall.inset_idx_ == 0) && wall.shorterThan(small_feature_max_length);
+    const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr_ == 0 || wall.inset_idx_ == 0) && wall_length < small_feature_max_length;
     const Velocity min_speed = fan_speed_layer_time_settings_per_extruder_[getLastPlannedExtruderTrain()->extruder_nr_].cool_min_speed;
     Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr_ == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
     small_feature_speed_factor = std::max(static_cast<double>(small_feature_speed_factor), static_cast<double>(min_speed / default_config.getSpeed()));

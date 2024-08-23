@@ -824,10 +824,34 @@ private:
         const Ratio flow_ratio,
         const double fan_speed);
 
+    /*!
+     *  @brief Send a GCodePath line to the communication object, applying proper Z offsets
+     *  @param path The path to be sent
+     *  @param position The start position (which is not included in the path points)
+     *  @param extrude_speed The actual used extrusion speed
+     */
     void sendLineTo(const GCodePath& path, const Point3LL& position, const double extrude_speed);
 
+    /*!
+     *  @brief Write a travel move and properly apply the various Z offsets
+     *  @param gcode The actual GCode exporter
+     *  @param position The position to move to. The Z coordinate is an offset to the current layer position
+     *  @param speed The actual used speed
+     *  @param path_z_offset The global path Z offset to be applied
+     *  @note This function is to be used when dealing with 3D coordinates. If you have 2D coordinates, just call gcode.writeTravel()
+     */
     void writeTravelRelativeZ(GCodeExport& gcode, const Point3LL& position, const Velocity& speed, const coord_t path_z_offset);
 
+    /*!
+     * \brief Write an extrusion move and properly apply the various Z offsets
+     * \param gcode The actual GCode exporter
+     * \param position The position to move to. The Z coordinate is an offset to the current layer position
+     * \param speed The actual used speed
+     * \param path_z_offset The global path Z offset to be applied
+     * \param extrusion_mm3_per_mm The desired flow rate
+     * \param feature The current feature being printed
+     * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
+     */
     void writeExtrusionRelativeZ(
         GCodeExport& gcode,
         const Point3LL& position,
@@ -837,6 +861,38 @@ private:
         PrintFeatureType feature,
         bool update_extrusion_offset = false);
 
+    /*!
+     * \brief Add a wall to the gcode with optimized order
+     * \param wall The full wall to be added
+     * \param wall_length The pre-calculated full wall length
+     * \param start_idx The index of the point where to start printing the wall
+     * \param direction The direction along which to print the wall, which should be 1 or -1
+     * \param max_index The last index to be used when iterating over the wall segments
+     * \param settings The settings which should apply to this wall added to the layer plan
+     * \param default_config The config with which to print the wall lines that are not spanning a bridge or are exposed to air
+     * \param roofing_config The config with which to print the wall lines that are exposed to air
+     * \param bridge_config The config with which to print the wall lines that are spanning a bridge
+     * \param flow_ratio The ratio with which to multiply the extrusion amount
+     * \param line_width_ratio The line width ratio to be applied
+     * \param non_bridge_line_volume A pseudo-volume that is derived from the print speed and flow of the non-bridge lines that have preceded this lin
+     * \param min_bridge_line_len The minimum line width to allow an extrusion move to be processed as a bridge move
+     * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
+     * \param is_small_feature Indicates whether the wall is so small that it should be processed differently
+     * \param small_feature_speed_factor The speed factor to be applied to small feature walls
+     * \param max_area_deviation The maximum allowed area deviation to split a segment into pieces
+     * \param max_resolution The maximum resolution to split a segment into pieces
+     * \param scarf_seam_length The length of the scarf joint seam, which may be 0 if there is none
+     * \param scarf_seam_start_ratio The ratio of the line thickness to start the scarf seam with
+     * \param scarf_split_distance The maximum length of a segment to apply the scarf seam gradient, longer segments will be splitted
+     * \param scarf_max_z_offset The maximum Z offset te be applied at the lowest position of the scarf seam
+     * \param speed_split_distance The maximum length of a segment to apply the acceleration/deceleration gradient, longer segments will be splitted
+     * \param start_speed_ratio The ratio of the top speed to be applied when starting the segment, then accelerate gradually to full speed
+     * \param accelerate_length The pre-calculated length of the acceleration phase
+     * \param end_speed_ratio The ratio of the top speed to be applied when finishing a segment
+     * \param decelerate_length The pre-calculated length of the deceleration phase
+     * \param is_scarf_closure Indicates whether this function is called to make the scarf closure (overlap over the first scarf pass) or
+     *                         the normal first pass of the wall
+     */
     void addWallSplitted(
         const ExtrusionLine& wall,
         const coord_t wall_length,
@@ -848,7 +904,7 @@ private:
         const GCodePathConfig& roofing_config,
         const GCodePathConfig& bridge_config,
         const double flow_ratio,
-        const Ratio nominal_line_width_multiplier,
+        const Ratio line_width_ratio,
         double& non_bridge_line_volume,
         const coord_t min_bridge_line_len,
         const bool always_retract,
@@ -867,7 +923,13 @@ private:
         const coord_t decelerate_length,
         const bool is_scarf_closure);
 
-    // helper function to calculate the distance from the start of the current wall line to the first bridge segment
+    /*!
+     * \brief Helper function to calculate the distance from the start of the current wall line to the first bridge segment
+     * \param wall The currently processed wall
+     * \param current_index The index of the currently processed point
+     * \param min_bridge_line_len The minimum line width to allow an extrusion move to be processed as a bridge move
+     * \return The distance from the start of the current wall line to the first bridge segment
+     */
     coord_t computeDistanceToBridgeStart(const ExtrusionLine& wall, const size_t current_index, const coord_t min_bridge_line_len) const;
 };
 
