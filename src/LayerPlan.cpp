@@ -2238,7 +2238,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 {
     Communication* communication = Application::getInstance().communication_;
     communication->setLayerForSend(layer_nr_);
-    communication->sendCurrentPosition(gcode.getPositionXY());
+    communication->sendCurrentPosition(gcode.getPosition());
     gcode.setLayerNr(layer_nr_);
 
     gcode.writeLayerComment(layer_nr_);
