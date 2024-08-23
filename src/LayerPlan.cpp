@@ -1032,7 +1032,7 @@ void LayerPlan::addWallSplitted(
     bool first_line = ! is_scarf_closure;
     bool first_split = ! is_scarf_closure;
     Point3LL split_origin = p0.p_;
-    if (! is_scarf_closure)
+    if (! is_scarf_closure && scarf_seam_length > 0)
     {
         split_origin.z_ = scarf_max_z_offset;
     }
@@ -1104,7 +1104,7 @@ void LayerPlan::addWallSplitted(
                 coord_t piece_remaining_distance = piece_length;
 
                 // Cut piece into smaller parts for scarf seam and acceleration/deceleration
-                while ((! is_scarf_closure && piece_remaining_distance > 0) || (is_scarf_closure && wall_processed_distance < scarf_seam_length))
+                while (piece_remaining_distance > 0 && (! is_scarf_closure || wall_processed_distance < scarf_seam_length))
                 {
                     // Make a list of all the possible incoming positions where we would eventually want to stop next
                     // The positions are expressed in distance from wall start along the wall segments
