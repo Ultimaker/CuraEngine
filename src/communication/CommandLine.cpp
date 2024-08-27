@@ -437,23 +437,19 @@ void CommandLine::sliceNext()
                     for (const auto& [key, values] : model_settings)
                     {
                         const auto& model_name = key;
-
-                        cura::MeshGroup mesh_group;
                         for (const auto& [setting_key, setting_value] : values)
                         {
-                            mesh_group.settings.add(setting_key, setting_value);
+                            slice->scene.mesh_groups[mesh_group_index].settings.add(setting_key, setting_value);
                         }
 
-                        const auto transformation = mesh_group.settings.get<Matrix4x3D>("mesh_rotation_matrix");
-                        const auto extruder_nr = mesh_group.settings.get<size_t>("extruder_nr");
+                        const auto transformation = slice->scene.mesh_groups[mesh_group_index].settings.get<Matrix4x3D>("mesh_rotation_matrix");
+                        const auto extruder_nr = slice->scene.mesh_groups[mesh_group_index].settings.get<size_t>("extruder_nr");
 
-                        if (! loadMeshIntoMeshGroup(&mesh_group, model_name.c_str(), transformation, slice->scene.extruders[extruder_nr].settings_))
+                        if (! loadMeshIntoMeshGroup(&slice->scene.mesh_groups[mesh_group_index], model_name.c_str(), transformation, slice->scene.extruders[extruder_nr].settings_))
                         {
                             spdlog::error("Failed to load model: {}. (error number {})", model_name, errno);
                             exit(1);
                         }
-
-                        slice->scene.mesh_groups.push_back(std::move(mesh_group));
                     }
                     for (const auto& [key, value] : limit_to_extruder)
                     {
