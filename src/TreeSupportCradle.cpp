@@ -241,7 +241,7 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
                         }
                         deform_radius = std::min(assumed_part_thickness, std::min(scan_height, deform_radius));
 
-                        deform_part = (2.0*deformation_constant * layer_height)/deform_radius;
+                        deform_part = (deformation_constant * layer_height)/(deform_radius * deform_radius); // todo should be quadratic with radius
                     }
                 }
 
@@ -283,9 +283,7 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
                         std::ofstream mesh_ofs(std::to_string(layer_idx) + "gen.mesh");
                         mesh_ofs.precision(8);
                         mfem_mesh->Print(mesh_ofs);
-                        std::cout.precision(16);
-                        std::cout << 100.0 / (part.area()/1000.0*1000.0) <<std::endl ;
-                        runMfemExample(mfem_mesh, std::to_string(layer_idx), part.area()/1000.0*1000.0, 100.0); // Calculation uses meter I think. Todo change to mm?
+                        runMfemExample(mfem_mesh, std::to_string(layer_idx), part.area()/(1000.0*1000.0*1000.0*1000.0), 0.0005); // Calculation uses meter I think
                         double estimated_deformation = getTotalDeformation(mesh_idx, mesh, area_info);
                         printf("My estimation was %lf\n",estimated_deformation);
                     }
@@ -468,8 +466,15 @@ mfem::Mesh* SupportCradleGeneration::toMfemMeshRasterized(const SliceMeshStorage
 {
     mfem::Mesh* mfem_mesh = new mfem::Mesh(3,0,0);
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
+    const coord_t simulation_layer_height = layer_height * 5;
+    const size_t layers_per_simulation_step = simulation_layer_height/layer_height;
     const double deformation_constant = retrieveSetting<double>(mesh.settings, "support_tree_part_deformation_constant") / 1000.0;
     coord_t raster_size = 1000;
+    coord_t raster_size = 400;
+    const coord_t wall_thickness = (mesh.settings.get<size_t>("wall_line_count") - 1) * mesh.settings.get<coord_t>("wall_line_width_x") +
+                                   mesh.settings.get<coord_t>("wall_line_width_0");
+
+    const coord_t simulated_infill_line_width_raster_multiplier = 10;
 
     // idea Every layer one square.
     // splits: if below make current square two squares
@@ -496,7 +501,7 @@ mfem::Mesh* SupportCradleGeneration::toMfemMeshRasterized(const SliceMeshStorage
     };
 
 
-    std::vector<std::map<Point2LL, std::vector<Point3LL>,ComparePoint2LL>> square_element_map(element->layer_idx+2);// contains to which vertices the upside of the cube of said element should connect
+    std::vector<std::map<Point2LL, std::vector<Point3LL>,ComparePoint2LL>> square_element_map(element->layer_idx+1+layers_per_simulation_step);// contains to which vertices the upside of the cube of said element should connect
     std::map<Point3LL, int64_t,ComparePoint3LL> coordinate_id_map;
     int64_t last_added_vertex = -1;
 
@@ -521,49 +526,57 @@ mfem::Mesh* SupportCradleGeneration::toMfemMeshRasterized(const SliceMeshStorage
                     printf("Mismattching layer idx  %d %D\n",scan_layer_idx, current_scan_element->layer_idx);
                 }
 
-                AABB scan_area(current_scan_element->area);
-
-                for (coord_t x_scan = scan_area.min_.X; x_scan <= scan_area.max_.X; x_scan += raster_size)
+                if(scan_layer_idx % layers_per_simulation_step == 0)
                 {
-                    for (coord_t y_scan = scan_area.min_.Y; y_scan <= scan_area.max_.Y; y_scan += raster_size)
-                    {
-                        // calc dist to inside
-                        // if smaller than raster/2 assume filled and add block
+                    AABB scan_area(current_scan_element->area);
 
-                        Point2LL center_of_raster(x_scan + raster_size / 2, y_scan + raster_size / 2);
-                        Point2LL center_moved = center_of_raster;
-                        PolygonUtils::moveInside(current_scan_element->area, center_moved);
-                        if (current_scan_element->area.inside(center_of_raster) || vSize2(center_moved - center_of_raster) < raster_size * raster_size)
+                    for (coord_t x_scan = scan_area.min_.X; x_scan <= scan_area.max_.X; x_scan += raster_size)
+                    {
+                        for (coord_t y_scan = scan_area.min_.Y; y_scan <= scan_area.max_.Y; y_scan += raster_size)
                         {
-                            for (int i = 0; i < 8; i++)
+                            // calc dist to inside
+                            // if smaller than raster/2 assume filled and add block
+
+                            Point2LL center_of_raster(x_scan + raster_size / 2, y_scan + raster_size / 2);
+                            Point2LL center_moved = center_of_raster;
+                            PolygonUtils::moveInside(current_scan_element->area, center_moved);
+                            bool is_inside= current_scan_element->area.inside(center_of_raster);
+                            bool is_in_wall = (is_inside && vSize2(center_moved - center_of_raster) < wall_thickness * wall_thickness);
+                            bool is_close_to_wall_outside = false; // was vSize2(center_moved - center_of_raster) <= raster_size/2 * raster_size/2; todo find other way to ensure small objects are not discarded
+                            bool is_infill = is_inside && !is_in_wall &&  ((center_of_raster.X / raster_size) % simulated_infill_line_width_raster_multiplier == 0 ||
+                                                                           (center_of_raster.Y / raster_size) % simulated_infill_line_width_raster_multiplier == 0 );
+                            if (is_in_wall || is_close_to_wall_outside || is_infill)
                             {
-                                if (i < 4)
+                                for (int i = 0; i < 8; i++)
                                 {
-                                    Point2LL direction(i == 1 || i == 2 ? 1 : -1, i == 2 || i== 3  ? 1 : -1);
-                                    Point2LL x_direction_check(direction.X,0);
-                                    Point2LL y_direction_check(0,direction.Y);
-                                    Point2LL position = center_of_raster + direction * raster_size / 2;
-                                    Point3LL full_position = Point3LL(position.X,position.Y,layer_height * (scan_layer_idx));
-                                    square_element_map[scan_layer_idx][center_of_raster].emplace_back(full_position);
-                                    coordinate_id_map[full_position] = -1;
-                                }
-                                else
-                                {
-                                    Point2LL direction( i == 5 || i == 6 ? 1 : -1, i == 6 || i ==7 ? 1 : -1);
-                                    Point2LL x_direction_check(direction.X,0);
-                                    Point2LL y_direction_check(0,direction.Y);
-                                    Point2LL position = center_of_raster + direction * raster_size / 2;
-                                    Point3LL full_position = Point3LL(position.X,position.Y,layer_height * (scan_layer_idx + 1));
-                                    coordinate_id_map[full_position] = -1;
-                                    square_element_map[scan_layer_idx][center_of_raster].emplace_back(full_position);
-                                }
+                                    if (i < 4)
+                                    {
+                                        Point2LL direction(i == 1 || i == 2 ? 1 : -1, i == 2 || i== 3  ? 1 : -1);
+                                        Point2LL x_direction_check(direction.X,0);
+                                        Point2LL y_direction_check(0,direction.Y);
+                                        Point2LL position = center_of_raster + direction * raster_size / 2;
+                                        Point3LL full_position = Point3LL(position.X,position.Y,layer_height * (scan_layer_idx));
+                                        square_element_map[scan_layer_idx][center_of_raster].emplace_back(full_position);
+                                        coordinate_id_map[full_position] = -1;
+                                    }
+                                    else
+                                    {
+                                        Point2LL direction( i == 5 || i == 6 ? 1 : -1, i == 6 || i ==7 ? 1 : -1);
+                                        Point2LL x_direction_check(direction.X,0);
+                                        Point2LL y_direction_check(0,direction.Y);
+                                        Point2LL position = center_of_raster + direction * raster_size / 2;
+                                        Point3LL full_position = Point3LL(position.X,position.Y,layer_height * (scan_layer_idx + layers_per_simulation_step));
+                                        coordinate_id_map[full_position] = -1;
+                                        square_element_map[scan_layer_idx][center_of_raster].emplace_back(full_position);
+                                    }
+                            }
                         }
                     }
                 }
-                for(UnsupportedAreaInformation* scan_element_below: current_scan_element->areas_below)
-                {
-                    next_scan_elements.emplace(scan_element_below);
-                }
+            }
+            for(UnsupportedAreaInformation* scan_element_below: current_scan_element->areas_below)
+            {
+                next_scan_elements.emplace(scan_element_below);
             }
         }
         scan_layer_idx--;
@@ -589,8 +602,8 @@ mfem::Mesh* SupportCradleGeneration::toMfemMeshRasterized(const SliceMeshStorage
                 cube_vertices.emplace_back(coordinate_id_map[p]);
             }
 
-            bool has_element_below = scan_layer_idx > 0 && square_element_map[scan_layer_idx-1].contains(elem.first) ;
-            bool has_element_above = square_element_map[scan_layer_idx+1].contains(elem.first);
+            bool has_element_below = scan_layer_idx > layers_per_simulation_step && square_element_map[scan_layer_idx-layers_per_simulation_step].contains(elem.first);
+            bool has_element_above = square_element_map[scan_layer_idx+layers_per_simulation_step].contains(elem.first);
             bool has_element_left = square_element_map[scan_layer_idx].count(Point2LL(elem.first.X - raster_size, elem.first.Y));
             bool has_element_right = square_element_map[scan_layer_idx].count(Point2LL(elem.first.X + raster_size, elem.first.Y));
             bool has_element_up = square_element_map[scan_layer_idx].count(Point2LL(elem.first.X, elem.first.Y + raster_size));
@@ -738,12 +751,12 @@ void SupportCradleGeneration::runMfemExample(mfem::Mesh* mesh, std::string prefi
     //    corresponding to the linear elasticity integrator with piece-wise
     //    constants coefficient lambda and mu.
     mfem::Vector lambda(mesh->attributes.Max());
-    lambda = 1.0;
-    lambda(0) = lambda(1)*50;
+    lambda = 3.500 * 1000.0 * 1000.0 * 1000.0;
+    //lambda(0) = lambda(1)*50;
     mfem::PWConstCoefficient lambda_func(lambda);
     mfem::Vector mu(mesh->attributes.Max());
-    mu = 1.0;
-    mu(0) = mu(1)*50;
+    mu = 0.800  * 1000.0 * 1000.0 * 1000.0;;
+    //mu(0) = mu(1)*50;
     mfem::PWConstCoefficient mu_func(mu);
 
     mfem::BilinearForm *a = new mfem::BilinearForm(fespace);
@@ -768,7 +781,7 @@ void SupportCradleGeneration::runMfemExample(mfem::Mesh* mesh, std::string prefi
     // 11. Define a simple symmetric Gauss-Seidel preconditioner and use it to
     //     solve the system Ax=b with PCG.
     mfem::GSSmoother M(A);
-    PCG(A, M, B, X, false, 5000, 1e-8, 0.0);
+    PCG(A, M, B, X, false, 10000, 1e-8, 0.0);
 #else
     // 11. If MFEM was compiled with SuiteSparse, use UMFPACK to solve the system.
     UMFPackSolver umf_solver;
