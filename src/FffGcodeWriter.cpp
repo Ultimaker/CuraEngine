@@ -1827,8 +1827,7 @@ void FffGcodeWriter::addMeshPartToGCode(
     added_something = added_something | processSkin(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
 
     // After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
-    if (added_something
-        && (! mesh_group_settings.get<bool>("magic_spiralize") || gcode_layer.getLayerNr() < LayerIndex(mesh.settings.get<size_t>("initial_bottom_layers"))))
+    if (added_something && (! mesh_group_settings.get<bool>("magic_spiralize") || gcode_layer.getLayerNr() < LayerIndex(mesh.settings.get<size_t>("initial_bottom_layers"))))
     {
         coord_t innermost_wall_line_width = mesh.settings.get<coord_t>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
         if (gcode_layer.getLayerNr() == 0)
@@ -2931,8 +2930,7 @@ bool FffGcodeWriter::processInsets(
     {
         const size_t initial_bottom_layers = mesh.settings.get<size_t>("initial_bottom_layers");
         const auto layer_nr = gcode_layer.getLayerNr();
-        if ((layer_nr < LayerIndex(initial_bottom_layers)
-             && part.wall_toolpaths.empty()) // The bottom layers in spiralize mode are generated using the variable width paths
+        if ((layer_nr < LayerIndex(initial_bottom_layers) && part.wall_toolpaths.empty()) // The bottom layers in spiralize mode are generated using the variable width paths
             || (layer_nr >= LayerIndex(initial_bottom_layers) && part.spiral_wall.empty())) // The rest of the layers in spiralize mode are using the spiral wall
         {
             // nothing to do
@@ -2942,8 +2940,7 @@ bool FffGcodeWriter::processInsets(
         {
             spiralize = true;
         }
-        if (spiralize && gcode_layer.getLayerNr() == LayerIndex(initial_bottom_layers)
-            && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)
+        if (spiralize && gcode_layer.getLayerNr() == LayerIndex(initial_bottom_layers) && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)
         { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
             added_something = true;
             gcode_layer.setIsInside(true); // going to print stuff inside print object
