@@ -54,12 +54,12 @@ public:
         inner_square.back().emplace_back(MM2INT(60), MM2INT(60));
         inner_square.back().emplace_back(MM2INT(10), MM2INT(60));
 
-        Application::getInstance().communication_ = new MockCommunication();
+        Application::getInstance().communication_ = std::make_shared<MockCommunication>();
     }
 
     SliceDataStorage* setUpStorage()
     {
-        Application::getInstance().current_slice_ = new Slice(1);
+        Application::getInstance().current_slice_ = std::make_shared<Slice>(1);
 
         // Define all settings in the mesh group. The extruder train and model settings will fall back on that then.
         settings = &Application::getInstance().current_slice_->scene.settings;
@@ -100,7 +100,7 @@ TEST_F(FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
 {
     // SETUP
     SliceDataStorage* storage = setUpStorage();
-    
+
     // Set the fan speed layer time settings (since the LayerPlan constructor copies these).
     FanSpeedLayerTimeSettings fan_settings;
     fan_settings.cool_min_layer_time = settings->get<Duration>("cool_min_layer_time");
@@ -110,7 +110,7 @@ TEST_F(FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
     fan_settings.cool_fan_speed_max = settings->get<Ratio>("cool_fan_speed_max");
     fan_settings.cool_min_speed = settings->get<Velocity>("cool_min_speed");
     fan_settings.cool_fan_full_layer = settings->get<LayerIndex>("cool_fan_full_layer");
-    
+
     Mesh mesh(*settings);
 
     LayerPlan gcode_layer(*storage, 100, 10000, 100, 0, {fan_settings}, 20, 10, 5000 );
@@ -165,7 +165,7 @@ TEST_F(FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
         }
         return false;
     };
-    
+
     // Check the results
     for (auto poly:inner_square)
         for (auto point:poly)

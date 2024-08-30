@@ -14,6 +14,7 @@
 #include "geometry/Shape.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
+#include "utils/string.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
@@ -123,15 +124,16 @@ TEST_F(ArcusCommunicationTest, HasSlice)
 
 TEST_F(ArcusCommunicationTest, SendGCodePrefix)
 {
-    const std::string& prefix = "bladibla";
+    const std::string prefix = ";bladiblhjvouyvu\n;iuboua";
+    const std::string& encoded_prefix = convertTobase64(prefix);
 
-    ac->sendGCodePrefix(prefix);
+    ac->sendGCodePrefix(encoded_prefix);
     ac->flushGCode();
     EXPECT_GT(socket->sent_messages.size(), 0);
     bool found_prefix = false;
     for (const auto& message : socket->sent_messages)
     {
-        if (message->DebugString().find(prefix) != std::string::npos)
+        if (message->DebugString().find(encoded_prefix) != std::string::npos)
         {
             found_prefix = true;
             break;
