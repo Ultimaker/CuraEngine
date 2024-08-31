@@ -32,6 +32,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const double horizontal_movement_weight = retrieveSetting<double>(mesh.settings, "support_tree_side_cradle_xy_factor");
     std::unordered_set<UnsupportedAreaInformation*> elements_on_path_down {element};
+    const double layer_per_mm = 1000.0 / double(layer_height);
     std::vector<std::vector<UnsupportedAreaInformation*>> root_areas(layer_idx + 1);
     {
         // Using a unordered_set to ensure no duplicates!
@@ -116,7 +117,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
                 }
             }
             distance_from_top_below = std::max(distance_from_top_below, (vSize(element->assumed_center - current_area->assumed_center)));
-            element_deformation+=current_area->deformation * (layer_idx - iterate_layer_idx + (horizontal_movement_weight*distance_from_top_below / layer_height));
+            element_deformation+=(tan(current_area->deformation) * (layer_idx - iterate_layer_idx + (horizontal_movement_weight*distance_from_top_below / layer_height)))/layer_per_mm;
             if(current_area->total_deformation_limit > 0)
             {
                 element_deformation = std::min(element_deformation, current_area->total_deformation_limit);
@@ -241,7 +242,8 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
                         }
                         deform_radius = std::min(assumed_part_thickness, std::min(scan_height, deform_radius));
 
-                        deform_part = (deformation_constant * layer_height)/(deform_radius * deform_radius); // todo should be quadratic with radius
+                        deform_part = (deformation_constant * layer_height)/(deform_radius * deform_radius);
+                        //todo need 2 deforms with direction. Need fill percent? Technically radius is 3 values, x y of a bounding box and and z
                     }
                 }
 
@@ -285,7 +287,7 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
                         mfem_mesh->Print(mesh_ofs);
                         runMfemExample(mfem_mesh, std::to_string(layer_idx), part.area()/(1000.0*1000.0*1000.0*1000.0), 0.0005); // Calculation uses meter I think
                         double estimated_deformation = getTotalDeformation(mesh_idx, mesh, area_info);
-                        printf("My estimation was %lf\n",estimated_deformation);
+                        printf("My estimation was %lf layer is %d\n",estimated_deformation, layer_idx);
                     }
                     /*std::cout << "at " << layer_idx<< ": " << " with part deform " << deform_part << " with constant " << deformation_constant << " deform rad of " << deform_radius << " resulting estimation of " << estimated_deformation
                               <<std::endl ;*/
@@ -469,7 +471,6 @@ mfem::Mesh* SupportCradleGeneration::toMfemMeshRasterized(const SliceMeshStorage
     const coord_t simulation_layer_height = layer_height * 5;
     const size_t layers_per_simulation_step = simulation_layer_height/layer_height;
     const double deformation_constant = retrieveSetting<double>(mesh.settings, "support_tree_part_deformation_constant") / 1000.0;
-    coord_t raster_size = 1000;
     coord_t raster_size = 400;
     const coord_t wall_thickness = (mesh.settings.get<size_t>("wall_line_count") - 1) * mesh.settings.get<coord_t>("wall_line_width_x") +
                                    mesh.settings.get<coord_t>("wall_line_width_0");
