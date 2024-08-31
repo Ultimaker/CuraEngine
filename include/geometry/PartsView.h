@@ -5,6 +5,7 @@
 #define GEOMETRY_PARTS_VIEW_H
 
 #include <vector>
+#include <cstddef> //For size_t.
 
 namespace cura
 {
