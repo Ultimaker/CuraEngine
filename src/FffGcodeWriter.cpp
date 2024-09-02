@@ -2928,25 +2928,25 @@ bool FffGcodeWriter::processInsets(
     bool spiralize = false;
     if (Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
     {
-        const size_t initial_bottom_layers = mesh.settings.get<size_t>("initial_bottom_layers");
+        const auto initial_bottom_layers = LayerIndex(mesh.settings.get<size_t>("initial_bottom_layers"));
         const auto layer_nr = gcode_layer.getLayerNr();
-        if ((layer_nr < LayerIndex(initial_bottom_layers) && part.wall_toolpaths.empty()) // The bottom layers in spiralize mode are generated using the variable width paths
-            || (layer_nr >= LayerIndex(initial_bottom_layers) && part.spiral_wall.empty())) // The rest of the layers in spiralize mode are using the spiral wall
+        if ((layer_nr < initial_bottom_layers && part.wall_toolpaths.empty()) // The bottom layers in spiralize mode are generated using the variable width paths
+            || (layer_nr >= initial_bottom_layers && part.spiral_wall.empty())) // The rest of the layers in spiralize mode are using the spiral wall
         {
             // nothing to do
             return false;
         }
-        if (gcode_layer.getLayerNr() >= LayerIndex(initial_bottom_layers))
+        if (gcode_layer.getLayerNr() >= initial_bottom_layers)
         {
             spiralize = true;
         }
-        if (spiralize && gcode_layer.getLayerNr() == LayerIndex(initial_bottom_layers) && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)
+        if (spiralize && gcode_layer.getLayerNr() == initial_bottom_layers && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)
         { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
             added_something = true;
             gcode_layer.setIsInside(true); // going to print stuff inside print object
             // start this first wall at the same vertex the spiral starts
             const Polygon& spiral_inset = part.spiral_wall[0];
-            const size_t spiral_start_vertex = storage.spiralize_seam_vertex_indices[initial_bottom_layers];
+            const size_t spiral_start_vertex = storage.spiralize_seam_vertex_indices[static_cast<size_t>(initial_bottom_layers.value)];
             if (spiral_start_vertex < spiral_inset.size())
             {
                 gcode_layer.addTravel(spiral_inset[spiral_start_vertex]);
