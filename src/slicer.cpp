@@ -1017,13 +1017,13 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
     switch (slicing_tolerance)
     {
     case SlicingTolerance::INCLUSIVE:
-        for (LayerIndex layer_nr = 0; layer_nr + 1 < layers.size(); layer_nr++)
+        for (size_t layer_nr = 0; layer_nr + 1 < layers.size(); layer_nr++)
         {
             layers[layer_nr].polygons_ = layers[layer_nr].polygons_.unionPolygons(layers[layer_nr + 1].polygons_);
         }
         break;
     case SlicingTolerance::EXCLUSIVE:
-        for (LayerIndex layer_nr = 0; layer_nr + 1 < layers.size(); layer_nr++)
+        for (size_t layer_nr = 0; layer_nr + 1 < layers.size(); layer_nr++)
         {
             layers[layer_nr].polygons_ = layers[layer_nr].polygons_.intersection(layers[layer_nr + 1].polygons_);
         }
