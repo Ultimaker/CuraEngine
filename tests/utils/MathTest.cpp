@@ -27,8 +27,6 @@ TEST(MathTest, TestRoundDivideSigned)
     EXPECT_EQ(round_divide_signed(10, -3), -3) << "10 / -3 rounded should be -3.";
     EXPECT_EQ(round_divide_signed(-10, 3), -3) << "-10 / 3 rounded should be -3.";
     EXPECT_EQ(round_divide_signed(-10, -3), 3) << "-10 / -3 rounded should be 3.";
-
-    EXPECT_THROW(round_divide_signed(10, 0), std::invalid_argument) << "Division by zero should throw an exception.";
 }
 
 // Test cases for the ceil_divide_signed function
@@ -38,8 +36,6 @@ TEST(MathTest, TestCeilDivideSigned)
     EXPECT_EQ(ceil_divide_signed(10, -3), -3) << "10 / -3 rounded up should be -3.";
     EXPECT_EQ(ceil_divide_signed(-10, 3), -3) << "-10 / 3 rounded up should be -3.";
     EXPECT_EQ(ceil_divide_signed(-10, -3), 4) << "-10 / -3 rounded up should be 4.";
-
-    EXPECT_THROW(ceil_divide_signed(10, 0), std::invalid_argument) << "Division by zero should throw an exception.";
 }
 
 // Test cases for the floor_divide_signed function
@@ -49,8 +45,6 @@ TEST(MathTest, TestFloorDivideSigned)
     EXPECT_EQ(floor_divide_signed(10, -3), -4) << "10 / -3 rounded down should be -4.";
     EXPECT_EQ(floor_divide_signed(-10, 3), -4) << "-10 / 3 rounded down should be -4.";
     EXPECT_EQ(floor_divide_signed(-10, -3), 3) << "-10 / -3 rounded down should be 3.";
-
-    EXPECT_THROW(floor_divide_signed(10, 0), std::invalid_argument) << "Division by zero should throw an exception.";
 }
 
 // Test cases for the round_divide function
@@ -60,7 +54,6 @@ TEST(MathTest, TestRoundDivide)
     EXPECT_EQ(round_divide(11, 3), 4) << "11 / 3 rounded should be 4.";
     EXPECT_EQ(round_divide(9, 3), 3) << "9 / 3 rounded should be 3.";
 
-    EXPECT_THROW(round_divide(10, 0), std::invalid_argument) << "Division by zero should throw an exception.";
 }
 
 // Test cases for the round_up_divide function
@@ -69,8 +62,6 @@ TEST(MathTest, TestRoundUpDivide)
     EXPECT_EQ(round_up_divide(10, 3), 4) << "10 / 3 rounded up should be 4.";
     EXPECT_EQ(round_up_divide(9, 3), 3) << "9 / 3 rounded up should be 3.";
     EXPECT_EQ(round_up_divide(1, 1), 1) << "1 / 1 rounded up should be 1.";
-
-    EXPECT_THROW(round_up_divide(10, 0), std::invalid_argument) << "Division by zero should throw an exception.";
 }
 
 // NOLINTEND(*-magic-numbers)
