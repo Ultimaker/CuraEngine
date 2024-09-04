@@ -36,11 +36,6 @@ template<utils::multipliable T>
  */
 [[nodiscard]] inline int64_t round_divide_signed(const int64_t dividend, const int64_t divisor)
 {
-    if (divisor == 0)
-    {
-        throw std::invalid_argument("Divisor cannot be zero");
-    }
-
     if ((dividend < 0) ^ (divisor < 0))
     {
         return (dividend - divisor / 2) / divisor;
@@ -58,11 +53,6 @@ template<utils::multipliable T>
  */
 [[nodiscard]] inline int64_t ceil_divide_signed(const int64_t dividend, const int64_t divisor)
 {
-    if (divisor == 0)
-    {
-        throw std::invalid_argument("Divisor cannot be zero");
-    }
-
     int64_t quotient = dividend / divisor;
     int64_t remainder = dividend % divisor;
 
@@ -85,19 +75,12 @@ template<utils::multipliable T>
  */
 [[nodiscard]] inline int64_t floor_divide_signed(const int64_t dividend, const int64_t divisor)
 {
-    if (divisor == 0)
-    {
-        throw std::invalid_argument("Divisor cannot be zero");
-    }
-
-    int64_t quotient = dividend / divisor;
-    int64_t remainder = dividend % divisor;
-
+    const int64_t quotient = dividend / divisor;
+    const int64_t remainder = dividend % divisor;
     if (remainder != 0 && ((dividend > 0 && divisor < 0) || (dividend < 0 && divisor > 0)))
     {
-        quotient -= 1;
+        return quotient - 1;
     }
-
     return quotient;
 }
 
@@ -110,11 +93,6 @@ template<utils::multipliable T>
  */
 [[nodiscard]] inline uint64_t round_divide(const uint64_t dividend, const uint64_t divisor)
 {
-    if (divisor == 0)
-    {
-        throw std::invalid_argument("Divisor cannot be zero");
-    }
-
     return (dividend + divisor / 2) / divisor;
 }
 
@@ -127,11 +105,6 @@ template<utils::multipliable T>
  */
 [[nodiscard]] inline uint64_t round_up_divide(const uint64_t dividend, const uint64_t divisor)
 {
-    if (divisor == 0)
-    {
-        throw std::invalid_argument("Divisor cannot be zero");
-    }
-
     return (dividend + divisor - 1) / divisor;
 }
 
