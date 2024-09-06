@@ -246,15 +246,16 @@ struct TreeSupportCradle
     std::vector<Point2LL> centers_;
     std::vector<Shape> shadow_;
     std::unordered_map<LayerIndex, std::vector<OverhangInformation>> overhang_;
-
+    CradlePlacementMethod cradle_placement_method_;
     const std::shared_ptr<const CradleConfig> config_;
     size_t mesh_idx_;
 
 
-    TreeSupportCradle(LayerIndex layer_idx, Point2LL center, bool roof, std::shared_ptr<const CradleConfig> config, size_t mesh_idx)
+    TreeSupportCradle(LayerIndex layer_idx, Point2LL center, bool roof, CradlePlacementMethod cradle_placement_method, std::shared_ptr<const CradleConfig> config, size_t mesh_idx)
         : layer_idx_(layer_idx)
         , centers_({ center })
         , is_roof_(roof)
+        , cradle_placement_method_(cradle_placement_method)
         , config_ (config)
         , mesh_idx_(mesh_idx)
     {
@@ -383,14 +384,19 @@ struct CradlePresenceInformation
 class SupportCradleGeneration
 {
 public:
-
-
     /*!
-     * \brief Add meshes to generate cradles and generate cradle centers. Not threadsafe!
-     * \param mesh[in] The mesh that is currently processed.
+     * \brief Add meshes to generate cradles.
+     * \param storage[in] The storage that the mesh is in.
      * \param mesh_idx[in] The idx of the mesh that is currently processed.
      */
-    void addMeshToCradleCalculation(const SliceMeshStorage& mesh, size_t mesh_idx);
+    void addMeshToCradleCalculation(const SliceDataStorage& storage, size_t mesh_idx);
+
+    /*!
+     * \brief Generates mesh-specific cradle data. Calls addMeshToCradleCalculation if mesh was not already added. Not threadsafe!
+     * \param storage[in] The storage that the mesh is in.
+     * \param mesh_idx[in] The idx of the mesh that is currently processed.
+     */
+    void generateCradleForMesh(const SliceDataStorage& storage, size_t mesh_idx);
 
     /*!
      * \brief Generate all cradle areas and line areas for the previously added meshes. Not threadsafe! Should only called once.
@@ -407,54 +413,57 @@ public:
      */
     void pushCradleData(std::vector<std::vector<TreeSupportCradle*>>& target, std::vector<Shape>& support_free_areas, size_t mesh_idx);
 
+    /*!
+     * \brief Give the largest layer index that contains the first layer of a cradle. Only considers meshes that were added with addMeshToCradleCalculation.
+     */
+    LayerIndex getTopMostCradleLayer()
+    {
+        return top_most_cradle_layer_;
+    }
 
     SupportCradleGeneration(const SliceDataStorage& storage, TreeModelVolumes& volumes_);
 private:
 
     struct UnsupportedAreaInformation
     {
-        UnsupportedAreaInformation(const Shape area, size_t index, size_t height, coord_t accumulated_supportable_overhang)
+        UnsupportedAreaInformation(const Shape area, LayerIndex layer_idx, size_t height, coord_t accumulated_supportable_overhang)
             : area{ area }
-            , index{ index }
+            , layer_idx{ layer_idx }
             , height{ height }
             , accumulated_supportable_overhang{ accumulated_supportable_overhang }
         {
         }
         const Shape area;
-        size_t index;
+        LayerIndex layer_idx;
         size_t height;
         coord_t accumulated_supportable_overhang;
+        CradlePlacementMethod support_required = CradlePlacementMethod::NONE;
+
+        // Contains identifiers of all cradles below
+        std::vector<UnsupportedAreaInformation*> cradles_below;
+
+        std::vector<UnsupportedAreaInformation*> areas_above;
+        std::vector<UnsupportedAreaInformation*> areas_below;
     };
 
-
-/*!
- * \brief Provides areas that do not have a connection to the buildplate or a certain height.
- * \param mesh_idx[in] The idx of the mesh.
- * \param layer_idx The layer said area is on.
- * \param idx_of_area The index of the area. Only areas that either rest on this area or this area rests on (depending on above) will be returned
- * \param above Should the areas above it, that rest on this area should be returned (if true) or if areas that this area rests on (if false) should be returned.
- * \return A vector containing the areas, how many layers of material they have below them and the idx of each area usable to get the next one layer above.
- */
-std::vector<UnsupportedAreaInformation> getUnsupportedArea(size_t mesh_idx, LayerIndex layer_idx, size_t idx_of_area, bool above);
-
-/*!
+    /*!
      * \brief Provides areas that do not have a connection to the buildplate or any other non support material below it.
      * \param mesh_idx[in] The idx of the mesh.
      * \param layer_idx The layer said area is on.
      * \return A vector containing the areas, how many layers of material they have below them (always 0) and the idx of each area usable to get the next one layer above.
  */
-std::vector<UnsupportedAreaInformation> getFullyUnsupportedArea(size_t mesh_idx, LayerIndex layer_idx);
+    std::vector<UnsupportedAreaInformation*> getFullyUnsupportedArea(size_t mesh_idx, LayerIndex layer_idx);
 
-/*!
+    /*!
      * \brief Calculates which parts of the model to not connect with the buildplate and how many layers of material is below them (height).
      * Results are stored in a cache.
      * Only area up to the required maximum height are stored.
-     * \param mesh[in] The mesh that is currently processed.
+     * \param storage[in] The storage meshes are in.
      * \param mesh_idx[in] The idx of the mesh.
- */
-void calculateFloatingParts(const SliceMeshStorage& mesh, size_t mesh_idx);
+     */
+    void calculateFloatingParts(const SliceDataStorage& storage, size_t mesh_idx);
 
-/*!
+    /*!
      * \brief Generate the center points of all generated cradles.
      * \param mesh[in] The mesh that is currently processed.
      * \param mesh_idx[in] The idx of the mesh.
@@ -503,9 +512,9 @@ TreeModelVolumes& volumes_;
  */
 const bool only_gracious_ = false;
 
-mutable std::vector<std::vector<std::vector<UnsupportedAreaInformation>>> floating_parts_cache_;
-mutable std::vector<std::vector<std::vector<std::vector<size_t>>>> floating_parts_map_;
-mutable std::vector<std::vector<std::vector<std::vector<size_t>>>> floating_parts_map_below_;
+LayerIndex top_most_cradle_layer_ = -1;
+
+mutable std::vector<std::vector<std::vector<UnsupportedAreaInformation*>>> floating_parts_cache_;
 
 std::unique_ptr<std::mutex> critical_floating_parts_cache_ = std::make_unique<std::mutex>();
 

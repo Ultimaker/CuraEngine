@@ -15,47 +15,32 @@ SupportCradleGeneration::SupportCradleGeneration(const SliceDataStorage& storage
     : volumes_(volumes_s)
     , cradle_data_(storage.meshes.size(), std::vector<std::vector<TreeSupportCradle*>>(storage.print_layer_count))
     , floating_parts_cache_(storage.meshes.size())
-    , floating_parts_map_(storage.meshes.size())
-    , floating_parts_map_below_(storage.meshes.size())
     , support_free_areas_(storage.print_layer_count)
 {
 
 }
 
 
-void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mesh, size_t mesh_idx)
+void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& storage, size_t mesh_idx)
 {
-
+    const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const coord_t min_wall_line_width = mesh.settings.get<coord_t>("min_wall_line_width");
     const size_t cradle_layers = retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_height") / layer_height;
     const double cradle_area_threshold = 1000 * 1000 * retrieveSetting<double>(mesh.settings, "support_tree_maximum_pointy_area");
-    LayerIndex max_layer = 0;
 
-    for (LayerIndex layer_idx = 0; layer_idx < mesh.overhang_areas.size(); layer_idx++)
-    {
-        if (! mesh.overhang_areas[layer_idx].empty())
-        {
-            max_layer = layer_idx;
-        }
-    }
-    max_layer = std::min(max_layer + cradle_layers, LayerIndex(mesh.overhang_areas.size() - 1));
+    LayerIndex max_layer = mesh.layers.size();
 
     LayerIndex start_layer = 1;
     floating_parts_cache_[mesh_idx].resize(max_layer + 1);
-    floating_parts_map_[mesh_idx].resize(max_layer + 1);
-    floating_parts_map_below_[mesh_idx].resize(max_layer + 1);
-    std::mutex critical_sections;
+    std::mutex critical_floating_parts_cache;
+    std::mutex critical_manual_cradle_map;
+    std::vector<std::unordered_set<UnsupportedAreaInformation*>> manual_cradle_map(storage.support.supportGenerationModifiers.size());
 
-    Shape completely_supported = volumes_.getCollision(0, 0, true);
-    Shape layer_below = completely_supported; // technically wrong, but the xy distance error on layer 1 should not matter
-    for (size_t layer_idx = start_layer; layer_idx < max_layer; layer_idx++)
+    for (LayerIndex layer_idx = start_layer; layer_idx < max_layer; layer_idx++)
     {
-        Shape next_completely_supported;
-
         // As the collision contains z distance and xy distance it cant be used to clearly identify which parts of the model are connected to the buildplate.
         Shape layer = mesh.layers[layer_idx].getOutlines();
-
         const std::vector<SingleShape> layer_parts = layer.splitIntoParts();
         cura::parallel_for<size_t>(
             0,
@@ -64,23 +49,45 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
             {
                 const SingleShape& part = layer_parts[part_idx];
                 AABB part_aabb(part);
-                bool has_support_below = ! PolygonUtils::clipPolygonWithAABB(layer_below, part_aabb).intersection(part).empty();
-
-                if (! completely_supported.intersection(part).empty() || (! has_support_below && part.area() > cradle_area_threshold))
-                {
-                    std::lock_guard<std::mutex> critical_section_add(critical_sections);
-                    next_completely_supported.push_back(part);
-                    return;
-                }
+                // Use all models not only this mesh to determine if it rests on something as otherwise cutting meshes lead to issues
+                bool has_support_below = ! PolygonUtils::clipPolygonWithAABB(storage.getLayerOutlines(layer_idx - 1, false, false), part_aabb).intersection(part).empty();
 
                 Shape overhang = mesh.overhang_areas[layer_idx].intersection(part);
                 coord_t overhang_area = std::max(overhang.area(), std::numbers::pi * min_wall_line_width * min_wall_line_width);
-                if (! has_support_below)
+                if (! has_support_below || layer_idx == start_layer)
                 {
-                    std::lock_guard<std::mutex> critical_section_add(critical_sections);
-                    floating_parts_cache_[mesh_idx][layer_idx].emplace_back(part, floating_parts_cache_[mesh_idx][layer_idx].size(), 0, overhang_area);
-                    floating_parts_map_[mesh_idx][layer_idx].emplace_back(std::vector<size_t>());
-                    floating_parts_map_below_[mesh_idx][layer_idx].emplace_back(std::vector<size_t>());
+                    UnsupportedAreaInformation* area_info = new UnsupportedAreaInformation(part, layer_idx, 0, overhang_area);
+                    bool add_manual_cradle = false;
+                    if (! has_support_below)
+                    {
+                        for (auto [idx, support_modifier] : storage.support.supportGenerationModifiers | ranges::views::enumerate)
+                        {
+                            bool possible_manual_cradle = support_modifier.isCradleModifier() && layer_idx < support_modifier.areas_.size()
+                                                       && ! PolygonUtils::clipPolygonWithAABB(support_modifier.areas_[layer_idx], part_aabb).intersection(part).empty();
+
+                            if (possible_manual_cradle)
+                            {
+                                add_manual_cradle = true;
+                                std::lock_guard<std::mutex> critical_section_add(critical_manual_cradle_map);
+                                manual_cradle_map[idx].emplace(area_info);
+                            }
+                        }
+                    }
+                    bool add_automatic_cradle = ! has_support_below && overhang_area < cradle_area_threshold;
+                    if (add_manual_cradle)
+                    {
+                        area_info->support_required = CradlePlacementMethod::MANUAL_POINTY;
+                        ;
+                        top_most_cradle_layer_ = layer_idx + cradle_layers + 1;
+                    }
+                    else if (add_automatic_cradle)
+                    {
+                        area_info->support_required = CradlePlacementMethod::AUTOMATIC_POINTY;
+                        ;
+                        top_most_cradle_layer_ = layer_idx + cradle_layers + 1;
+                    }
+                    std::lock_guard<std::mutex> critical_section_add(critical_floating_parts_cache);
+                    floating_parts_cache_[mesh_idx][layer_idx].emplace_back(area_info);
                     return;
                 }
 
@@ -88,88 +95,87 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceMeshStorage& mes
                 coord_t supported_overhang_area = 0;
                 bool add = false;
                 std::vector<size_t> idx_of_floating_below;
+                std::vector<UnsupportedAreaInformation*> cradles_below;
                 for (auto [idx, floating] : floating_parts_cache_[mesh_idx][layer_idx - 1] | ranges::views::enumerate)
                 {
-                    if (layer_idx > 1 && floating.height < cradle_layers - 1 && ! floating.area.intersection(part).empty())
+                    if (layer_idx > 1 && ! floating->area.intersection(part).empty())
                     {
                         idx_of_floating_below.emplace_back(idx);
-                        supported_overhang_area += floating.accumulated_supportable_overhang;
-                        min_resting_on_layers = std::max(min_resting_on_layers, floating.height);
+
+                        supported_overhang_area += floating->accumulated_supportable_overhang;
+                        min_resting_on_layers = std::max(min_resting_on_layers, floating->height);
+                        cradles_below.insert(cradles_below.end(), floating->cradles_below.begin(), floating->cradles_below.end());
+                        if (floating->support_required != CradlePlacementMethod::NONE)
+                        {
+                            cradles_below.emplace_back(floating);
+                        }
                         add = true;
                     }
                 }
-
-
-                if (min_resting_on_layers < cradle_layers && add && overhang_area + supported_overhang_area < cradle_area_threshold)
+                bool add_manual_cradle = false;
+                std::vector<size_t> manual_cradle_causes;
+                for (auto [idx, support_modifier] : storage.support.supportGenerationModifiers | ranges::views::enumerate)
                 {
-                    std::lock_guard<std::mutex> critical_section_add(critical_sections);
+                    bool possible_manual_cradle = support_modifier.isCradleModifier() && layer_idx < support_modifier.areas_.size();
+                    LayerIndex previous_cradle_layer_idx = -1;
+                    if (possible_manual_cradle)
+                    {
+                        {
+                            std::lock_guard<std::mutex> critical_section_add(critical_manual_cradle_map);
+                            for (UnsupportedAreaInformation* cradle_below : cradles_below)
+                            {
+                                previous_cradle_layer_idx = std::max(previous_cradle_layer_idx, cradle_below->layer_idx);
+                                if (manual_cradle_map[idx].contains(cradle_below))
+                                {
+                                    possible_manual_cradle = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    possible_manual_cradle &= previous_cradle_layer_idx == -1 || previous_cradle_layer_idx + cradle_layers < layer_idx;
+                    Shape clipped_modifier = PolygonUtils::clipPolygonWithAABB(support_modifier.areas_[layer_idx], part_aabb);
+                    if (possible_manual_cradle && ! clipped_modifier.intersection(part).empty())
+                    {
+                        std::lock_guard<std::mutex> critical_section_add(critical_manual_cradle_map);
+                        for (UnsupportedAreaInformation* cradle_below : cradles_below)
+                        {
+                            manual_cradle_map[idx].emplace(cradle_below);
+                        }
+                        add_manual_cradle = true;
+                        manual_cradle_causes.emplace_back(idx);
+                    }
+                }
+                if (add)
+                {
+                    std::lock_guard<std::mutex> critical_section_add(critical_floating_parts_cache);
+                    UnsupportedAreaInformation* area_info = new UnsupportedAreaInformation(part, layer_idx, min_resting_on_layers + 1, overhang_area + supported_overhang_area);
+                    if (add_manual_cradle)
+                    {
+                        top_most_cradle_layer_ = layer_idx + cradle_layers + 1;
+                        area_info->support_required = CradlePlacementMethod::MANUAL_SIDE;
+                        std::lock_guard<std::mutex> critical_section_add_to_manual_cradle_map(critical_manual_cradle_map);
+                        for (size_t manual_cradle_idx : manual_cradle_causes)
+                        {
+                            manual_cradle_map[manual_cradle_idx].emplace(area_info);
+                        }
+                        spdlog::debug("Adding manual side-cradle at layer {}", layer_idx);
+                    }
                     for (size_t idx : idx_of_floating_below)
                     {
-                        floating_parts_map_[mesh_idx][layer_idx - 1][idx].emplace_back(floating_parts_cache_[mesh_idx][layer_idx].size());
+                        area_info->areas_below.emplace_back(floating_parts_cache_[mesh_idx][layer_idx - 1][idx]);
+                        area_info->cradles_below = cradles_below;
+                        floating_parts_cache_[mesh_idx][layer_idx - 1][idx]->areas_above.emplace_back(area_info);
                     }
-
-                    floating_parts_map_[mesh_idx][layer_idx].emplace_back(std::vector<size_t>());
-                    floating_parts_map_below_[mesh_idx][layer_idx].emplace_back(idx_of_floating_below);
-                    floating_parts_cache_[mesh_idx][layer_idx]
-                        .emplace_back(part, floating_parts_cache_[mesh_idx][layer_idx].size(), min_resting_on_layers + 1, overhang_area + supported_overhang_area);
-                }
-                else
-                {
-                    std::lock_guard<std::mutex> critical_section_add(critical_sections);
-                    next_completely_supported.push_back(part);
+                    floating_parts_cache_[mesh_idx][layer_idx].emplace_back(area_info);
                 }
             });
-        layer_below = layer;
-        completely_supported = next_completely_supported;
     }
 }
 
-std::vector<SupportCradleGeneration::UnsupportedAreaInformation> SupportCradleGeneration::getUnsupportedArea(size_t mesh_idx, LayerIndex layer_idx, size_t idx_of_area, bool above)
+std::vector<SupportCradleGeneration::UnsupportedAreaInformation*> SupportCradleGeneration::getFullyUnsupportedArea(size_t mesh_idx, LayerIndex layer_idx)
 {
-    std::vector<UnsupportedAreaInformation> result;
-
-    if (layer_idx == 0)
-    {
-        return result;
-    }
-
-    bool has_result = false;
-
-    {
-        std::lock_guard<std::mutex> critical_section(*critical_floating_parts_cache_);
-        has_result = layer_idx < floating_parts_cache_[mesh_idx].size();
-    }
-
-    if (has_result)
-    {
-        std::lock_guard<std::mutex> critical_section(*critical_floating_parts_cache_);
-        if (! floating_parts_cache_[mesh_idx][layer_idx].empty() && above)
-        {
-            for (size_t resting_idx : floating_parts_map_[mesh_idx][layer_idx - 1][idx_of_area])
-            {
-                result.emplace_back(floating_parts_cache_[mesh_idx][layer_idx][resting_idx]);
-            }
-        }
-        else if (! floating_parts_cache_[mesh_idx][layer_idx - 1].empty() && ! above)
-        {
-            for (size_t resting_idx : floating_parts_map_below_[mesh_idx][layer_idx][idx_of_area])
-            {
-                result.emplace_back(floating_parts_cache_[mesh_idx][layer_idx - 1][resting_idx]);
-            }
-        }
-    }
-    else
-    {
-        spdlog::error("Requested not calculated unsupported area.");
-        return result;
-    }
-    return result;
-}
-
-
-std::vector<SupportCradleGeneration::UnsupportedAreaInformation> SupportCradleGeneration::getFullyUnsupportedArea(size_t mesh_idx, LayerIndex layer_idx)
-{
-    std::vector<UnsupportedAreaInformation> result;
+    std::vector<UnsupportedAreaInformation*> result;
 
     if (layer_idx == 0)
     {
@@ -187,7 +193,7 @@ std::vector<SupportCradleGeneration::UnsupportedAreaInformation> SupportCradleGe
         std::lock_guard<std::mutex> critical_section(*critical_floating_parts_cache_);
         for (auto [idx, floating_data] : floating_parts_cache_[mesh_idx][layer_idx] | ranges::views::enumerate)
         {
-            if (floating_data.height == 0)
+            if (floating_data->support_required != CradlePlacementMethod::NONE)
             {
                 result.emplace_back(floating_data);
             }
@@ -217,37 +223,40 @@ std::vector<std::vector<TreeSupportCradle*>> SupportCradleGeneration::generateCr
         maximum_move_distance_slow = config.maximum_move_distance_slow;
     }
     std::mutex critical_dedupe;
-    std::vector<std::unordered_set<size_t>> dedupe(mesh.overhang_areas.size());
+    std::vector<std::unordered_set<UnsupportedAreaInformation*>> dedupe(mesh.overhang_areas.size());
     std::vector<std::vector<TreeSupportCradle*>> result(mesh.overhang_areas.size());
     cura::parallel_for<coord_t>(
         1,
-        mesh.overhang_areas.size() - (z_distance_delta_ + 1),
+        mesh.layers.size() - (z_distance_delta_ + 1),
         [&](const LayerIndex layer_idx)
         {
-            if (mesh.overhang_areas[layer_idx + z_distance_delta_].empty() || getFullyUnsupportedArea(mesh_idx, layer_idx + z_distance_delta_).empty())
+            if (getFullyUnsupportedArea(mesh_idx, layer_idx + z_distance_delta_).empty())
             {
                 return;
             }
 
             for (auto pointy_info : getFullyUnsupportedArea(mesh_idx, layer_idx + z_distance_delta_))
             {
-                AABB overhang_aabb(mesh.overhang_areas[layer_idx + z_distance_delta_]);
-                if (PolygonUtils::clipPolygonWithAABB(mesh.overhang_areas[layer_idx + z_distance_delta_], overhang_aabb).intersection(pointy_info.area).empty())
+                if (pointy_info->height == 0)
                 {
-                    // It will be assumed that if it touches this mesh's overhang, it will be part of that mesh.
-                    continue;
+                    AABB overhang_aabb(mesh.overhang_areas[layer_idx + z_distance_delta_]);
+                    if (PolygonUtils::clipPolygonWithAABB(mesh.overhang_areas[layer_idx + z_distance_delta_], overhang_aabb).intersection(pointy_info->area).empty())
+                    {
+                        // It will be assumed that if it touches this mesh's overhang, it will be part of that mesh.
+                        continue;
+                    }
                 }
 
                 std::vector<Shape> accumulated_model(std::min(cradle_config->cradle_layers_ + cradle_config->cradle_z_distance_layers_ + 1, mesh.overhang_areas.size() - layer_idx), Shape());
-                std::vector<size_t> all_pointy_idx{ pointy_info.index };
+                std::vector<UnsupportedAreaInformation*> all_pointy{ pointy_info };
 
-                Point2LL center_prev = Polygon(pointy_info.area.getOutsidePolygons()[0]).centerOfMass();
+                Point2LL center_prev = Polygon(pointy_info->area.getOutsidePolygons()[0]).centerOfMass();
                 std::vector<Point2LL> additional_centers;
                 TreeSupportCradle* cradle_main
-                    = new TreeSupportCradle(layer_idx, center_prev, cradle_config->cradle_base_roof_, cradle_config, mesh_idx);
+                    = new TreeSupportCradle(layer_idx, center_prev, cradle_config->cradle_base_roof_, pointy_info->support_required, cradle_config, mesh_idx);
                 for (size_t z_distance = 0; z_distance < z_distance_top_layers; z_distance++)
                 {
-                    accumulated_model[z_distance] = pointy_info.area;
+                    accumulated_model[z_distance] = pointy_info->area;
                     cradle_main->centers_.emplace_back(center_prev);
                 }
                 Shape shadow; // A combination of all outlines of the model that will be supported with a cradle.
@@ -259,66 +268,66 @@ std::vector<std::vector<TreeSupportCradle*>> SupportCradleGeneration::generateCr
                     // shadow model up => not cradle where model
                     // then drop cradle down
                     // cut into parts => get close to original pointy that are far enough from each other.
-                    std::vector<size_t> next_pointy_idx;
+                    std::vector<UnsupportedAreaInformation*> next_pointy;
                     Shape model_outline;
                     bool blocked_by_dedupe = false;
                     // The cradle base is below the bottommost unsupported and the first cradle layer is around it, so this will be needed only for the second one and up
                     if (cradle_up_layer > 1)
                     {
-                        for (size_t pointy_idx : all_pointy_idx)
+                        for (UnsupportedAreaInformation* pointy : all_pointy)
                         {
-                            for (auto next_pointy_data : getUnsupportedArea(mesh_idx, layer_idx + cradle_up_layer - 1 + z_distance_delta_, pointy_idx, true))
+                            for (auto next_pointy_data : pointy->areas_above)
                             {
-                                if (next_pointy_data.height
-                                    != (cradle_up_layer - 1) + pointy_info.height) // If the area belongs to another pointy overhang stop and let this other overhang handle it
+                                if (next_pointy_data->height
+                                    != (cradle_up_layer - 1) + pointy_info->height) // If the area belongs to another pointy overhang stop and let this other overhang handle it
                                 {
                                     contacted_other_pointy = true;
                                     continue;
                                 }
-                                unsupported_model[cradle_up_layer].push_back(next_pointy_data.area);
+                                unsupported_model[cradle_up_layer].push_back(next_pointy_data->area);
                                 // Ensure each area is only handles once
                                 std::lock_guard<std::mutex> critical_section_cradle(critical_dedupe);
-                                if (! dedupe[layer_idx + cradle_up_layer].contains(next_pointy_data.index))
+                                if (! dedupe[layer_idx + cradle_up_layer].contains(next_pointy_data))
                                 {
-                                    dedupe[layer_idx + cradle_up_layer].emplace(next_pointy_data.index);
-                                    model_outline.push_back(next_pointy_data.area);
-                                    next_pointy_idx.emplace_back(next_pointy_data.index);
+                                    dedupe[layer_idx + cradle_up_layer].emplace(next_pointy_data);
+                                    model_outline.push_back(next_pointy_data->area);
+                                    next_pointy.emplace_back(next_pointy_data);
                                 }
                                 else
                                 {
                                     blocked_by_dedupe = true;
                                 }
 
-                                std::vector<size_t> all_pointy_idx_below{ next_pointy_data.index };
-                                for (int64_t cradle_down_layer = cradle_up_layer; cradle_down_layer > 0 && ! all_pointy_idx_below.empty(); cradle_down_layer--)
+                                std::vector<UnsupportedAreaInformation*> all_pointy_below{ next_pointy_data };
+                                for (int64_t cradle_down_layer = cradle_up_layer; cradle_down_layer > 0 && ! all_pointy_below.empty(); cradle_down_layer--)
                                 {
-                                    std::vector<size_t> next_all_pointy_idx_below;
+                                    std::vector<UnsupportedAreaInformation*> next_all_pointy_below;
 
-                                    for (size_t pointy_idx_below : all_pointy_idx_below)
+                                    for (UnsupportedAreaInformation* pointy_below : all_pointy_below)
                                     {
-                                        for (auto prev_pointy_data : getUnsupportedArea(mesh_idx, layer_idx + cradle_down_layer - 1 + z_distance_delta_, pointy_idx_below, false))
+                                        for (UnsupportedAreaInformation* prev_pointy_data : pointy_below->areas_below)
                                         {
-                                            if (prev_pointy_data.index != pointy_idx || cradle_down_layer != cradle_up_layer)
+                                            if (prev_pointy_data != pointy || cradle_down_layer != cradle_up_layer)
                                             {
                                                 // Only add if area below does not have it's own cradle.
-                                                if (prev_pointy_data.height < cradle_config->cradle_layers_min_)
+                                                if (prev_pointy_data->height < cradle_config->cradle_layers_min_)
                                                 {
-                                                    accumulated_model[cradle_down_layer].push_back(prev_pointy_data.area);
-                                                    next_all_pointy_idx_below.emplace_back(prev_pointy_data.index);
+                                                    accumulated_model[cradle_down_layer].push_back(prev_pointy_data->area);
+                                                    next_all_pointy_below.emplace_back(prev_pointy_data);
                                                 }
                                             }
                                         }
                                     }
-                                    all_pointy_idx_below = next_all_pointy_idx_below;
+                                    all_pointy_below = next_all_pointy_below;
                                     accumulated_model[cradle_down_layer] = accumulated_model[cradle_down_layer].unionPolygons();
                                 }
                             }
                         }
-                        all_pointy_idx = next_pointy_idx;
+                        all_pointy = next_pointy;
                     }
                     else
                     {
-                        model_outline.push_back(pointy_info.area);
+                        model_outline.push_back(pointy_info->area);
                     }
 
                     if (model_outline.empty())
@@ -975,10 +984,10 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                         }
                     }
 
-                    Shape shadow = cradle.shadow_[0];
-                    Shape cradle_base = shadow;
+                    bool is_side_cradle = cradle.cradle_placement_method_ == CradlePlacementMethod::MANUAL_SIDE || cradle.cradle_placement_method_ == CradlePlacementMethod::AUTOMATIC_SIDE;
+                    Shape cradle_base = is_side_cradle ? Shape() : cradle.shadow_[0];
 
-                    if (support_roof_layers)
+                    if (support_roof_layers && ! is_side_cradle)
                     {
                         Shape cut_line_base;
                         Shape first_cradle_areas;
@@ -1192,13 +1201,27 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
 }
 
 
-void SupportCradleGeneration::addMeshToCradleCalculation(const SliceMeshStorage& mesh, size_t mesh_idx)
+void SupportCradleGeneration::addMeshToCradleCalculation(const SliceDataStorage& storage, size_t mesh_idx)
 {
-    if(retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_height") < mesh.settings.get<coord_t>("layer_height"))
+    const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
+    if (! retrieveSetting<bool>(mesh.settings, "support_tree_cradle_enable"))
     {
         return;
     }
-    calculateFloatingParts(mesh, mesh_idx);
+    calculateFloatingParts(storage, mesh_idx);
+}
+
+void SupportCradleGeneration::generateCradleForMesh(const SliceDataStorage& storage, size_t mesh_idx)
+{
+    const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
+    if (! retrieveSetting<bool>(mesh.settings, "support_tree_cradle_enable"))
+    {
+        return;
+    }
+    if (floating_parts_cache_[mesh_idx].empty())
+    {
+        addMeshToCradleCalculation(storage, mesh_idx);
+    }
     std::vector<std::vector<TreeSupportCradle*>> cradle_data_mesh = generateCradleCenters(mesh, mesh_idx);
     generateCradleLines(cradle_data_mesh, mesh);
     if(cradle_data_[mesh_idx].size() < cradle_data_mesh.size())
@@ -1209,7 +1232,6 @@ void SupportCradleGeneration::addMeshToCradleCalculation(const SliceMeshStorage&
     {
         cradle_data_[mesh_idx][layer_idx].insert(cradle_data_[mesh_idx][layer_idx].end(), cradles_on_layer.begin(), cradles_on_layer.end());
     }
-
 }
 
 void SupportCradleGeneration::generate(const SliceDataStorage& storage)

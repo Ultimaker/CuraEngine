@@ -512,11 +512,6 @@ private:
     RestPreference support_rest_preference_;
 
     /*!
-     * \brief How tall the cradle will at most be.
-     */
-    size_t max_cradle_layers = 0;
-
-    /*!
      * \brief Largest DTT a cradle supporting tip may have.
      */
     size_t max_cradle_dtt = 0;

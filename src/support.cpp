@@ -53,8 +53,17 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
         SUPPORT_DROP_DOWN,
         SUPPORT_VANILLA
     };
-    ModifierType modifier_type
-        = (mesh_settings.get<bool>("anti_overhang_mesh")) ? ANTI_OVERHANG : ((mesh_settings.get<bool>("support_mesh_drop_down")) ? SUPPORT_DROP_DOWN : SUPPORT_VANILLA);
+    ModifierType modifier_type;
+    if (mesh_settings.get<bool>("anti_overhang_mesh")) // todo [TR] refactor to support_modifier_mesh
+    {
+        modifier_type = ANTI_OVERHANG;
+        storage.support.supportGenerationModifiers.emplace_back(mesh_settings, slicer->layers.size());
+    }
+    else
+    {
+        modifier_type = mesh_settings.get<bool>("support_mesh_drop_down") ? SUPPORT_DROP_DOWN : SUPPORT_VANILLA;
+    }
+
     for (LayerIndex layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
     {
         SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
@@ -62,7 +71,7 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
         switch (modifier_type)
         {
         case ANTI_OVERHANG:
-            support_layer.anti_overhang.push_back(slicer_layer.polygons_);
+            storage.support.supportGenerationModifiers.back().addArea(slicer_layer.polygons_, layer_nr);
             break;
         case SUPPORT_DROP_DOWN:
             support_layer.support_mesh_drop_down.push_back(slicer_layer.polygons_);
@@ -623,7 +632,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
     for (int layer_nr = 0; layer_nr < max_layer_nr_support_mesh_filled; layer_nr++)
     {
         SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
-        support_layer.anti_overhang = support_layer.anti_overhang.unionPolygons();
         support_layer.support_mesh_drop_down = support_layer.support_mesh_drop_down.unionPolygons();
         support_layer.support_mesh = support_layer.support_mesh.unionPolygons();
     }
@@ -1036,6 +1044,12 @@ void AreaSupport::generateSupportAreasForMesh(
     // The maximum width of an odd wall = 2 * minimum even wall width.
     auto half_min_feature_width = min_even_wall_line_width + 10;
 
+    bool anti_support_meshes_present = false;
+    for (const SupportGenerationModifier& support_modifier : storage.support.supportGenerationModifiers)
+    {
+        anti_support_meshes_present |= support_modifier.isAntiSupport();
+    }
+
     cura::parallel_for<size_t>(
         1,
         layer_count,
@@ -1083,6 +1097,25 @@ void AreaSupport::generateSupportAreasForMesh(
                 xy_disallowed_per_layer[layer_idx] = outlines.offset(xy_distance);
             }
         });
+
+    std::vector<Shape> anti_support_areas(mesh.layers.size());
+    if (anti_support_meshes_present)
+    {
+        cura::parallel_for<size_t>(
+            1,
+            layer_count,
+            [&](const size_t layer_idx)
+            {
+                for (const SupportGenerationModifier& support_modifier : storage.support.supportGenerationModifiers)
+                {
+                    if (support_modifier.isAntiSupport() && layer_idx < support_modifier.areas_.size())
+                    {
+                        anti_support_areas[layer_idx].push_back(support_modifier.areas_[layer_idx]);
+                    }
+                }
+                anti_support_areas[layer_idx] = anti_support_areas[layer_idx].unionPolygons();
+            });
+    }
 
     std::vector<Shape> tower_roofs;
     Shape stair_removal; // polygons to subtract from support because of stair-stepping
@@ -1171,6 +1204,11 @@ void AreaSupport::generateSupportAreasForMesh(
                 layer_this = layer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
             }
             layer_this = AreaSupport::join(storage, *layer_above, layer_this).difference(model_mesh_on_layer);
+            // Ensure support does not continue below anti support
+            if (anti_support_meshes_present && ! anti_support_areas[layer_idx].empty())
+            {
+                layer_this = layer_this.difference(anti_support_areas[layer_idx]);
+            }
         }
 
         // make towers for small support
@@ -1237,9 +1275,10 @@ void AreaSupport::generateSupportAreasForMesh(
     }
 
     // do stuff for when support on buildplate only
-    if (support_type == ESupportType::PLATFORM_ONLY)
+    if (! is_support_mesh_nondrop_place_holder && (support_type == ESupportType::PLATFORM_ONLY || anti_support_meshes_present))
     {
         Shape touching_buildplate = support_areas[0]; // TODO: not working for conical support!
+        Shape touching_anti_support;
         const AngleRadians conical_support_angle = infill_settings.get<AngleRadians>("support_conical_angle");
         coord_t conical_support_offset;
         if (conical_support_angle > 0)
@@ -1258,6 +1297,7 @@ void AreaSupport::generateSupportAreasForMesh(
             if (conical_support)
             { // with conical support the next layer is allowed to be larger than the previous
                 touching_buildplate = touching_buildplate.offset(std::abs(conical_support_offset) + 10, ClipperLib::jtMiter, 10);
+                touching_anti_support = touching_anti_support.offset(-(std::abs(conical_support_offset) + 10), ClipperLib::jtMiter, 10);
                 // + 10 and larger miter limit cause performing an outward offset after an inward offset can disregard sharp corners
                 //
                 // conical support can make
@@ -1274,9 +1314,17 @@ void AreaSupport::generateSupportAreasForMesh(
                 //
             }
 
-            touching_buildplate = layer.intersection(touching_buildplate); // from bottom to top, support areas can only decrease!
-
-            support_areas[layer_idx] = touching_buildplate;
+            if (support_type == ESupportType::PLATFORM_ONLY)
+            {
+                touching_buildplate = layer.intersection(touching_buildplate); // from bottom to top, support areas can only decrease!
+                support_areas[layer_idx] = touching_buildplate;
+            }
+            if (anti_support_meshes_present)
+            {
+                touching_anti_support.push_back(anti_support_areas[layer_idx]);
+                touching_anti_support = touching_anti_support.unionPolygons().difference(storage.getLayerOutlines(layer_idx, false, false));
+                support_areas[layer_idx] = support_areas[layer_idx].difference(touching_anti_support);
+            }
         }
     }
 
@@ -1464,11 +1512,20 @@ std::pair<Shape, Shape> AreaSupport::computeBasicAndFullOverhang(const SliceData
     Shape basic_overhang = outlines.difference(outlines_below);
 
     const SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
-    if (! support_layer.anti_overhang.empty())
+
+    Shape anti_overhang;
+    for (const SupportGenerationModifier& support_modifier : storage.support.supportGenerationModifiers)
+    {
+        if (support_modifier.isAntiOverhang() && layer_idx < support_modifier.areas_.size())
+        {
+            anti_overhang.push_back(support_modifier.areas_[layer_idx]);
+        }
+    }
+    if (! anti_overhang.empty())
     {
         // Merge anti overhang into one polygon, otherwise overlapping polygons
         // will create opposite effect.
-        Shape merged_polygons = support_layer.anti_overhang.unionPolygons();
+        Shape merged_polygons = anti_overhang.unionPolygons();
 
         basic_overhang = basic_overhang.difference(merged_polygons);
     }
@@ -1494,6 +1551,16 @@ void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMes
         const SliceLayer& layer = mesh.layers[layer_idx];
         const SliceLayer& layer_below = mesh.layers[layer_idx - 1];
 
+        Shape anti_overhang;
+        for (const SupportGenerationModifier& support_modifier : storage.support.supportGenerationModifiers)
+        {
+            if (support_modifier.isAntiOverhang() && layer_idx < support_modifier.areas_.size())
+            {
+                anti_overhang.push_back(support_modifier.areas_[layer_idx]);
+            }
+        }
+        anti_overhang = anti_overhang.unionPolygons();
+
         for (const SliceLayerPart& part : layer.parts)
         {
             if (part.outline.empty())
@@ -1512,7 +1579,7 @@ void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMes
                 continue;
             }
 
-            const Shape overhang = part.outline.difference(storage.support.supportLayers[layer_idx].anti_overhang);
+            const Shape overhang = part.outline.difference(anti_overhang);
             if (! overhang.empty())
             {
                 scripta::log("support_overhangs", overhang, SectionType::SUPPORT, layer_idx);

@@ -80,9 +80,6 @@ TreeModelVolumes::TreeModelVolumes(
         min_maximum_deviation = std::min(min_maximum_deviation, data_pair.first.get<coord_t>("meshfix_maximum_deviation"));
         min_maximum_resolution = std::min(min_maximum_resolution, data_pair.first.get<coord_t>("meshfix_maximum_resolution"));
         min_maximum_area_deviation = std::min(min_maximum_area_deviation, data_pair.first.get<coord_t>("meshfix_maximum_extrusion_area_deviation"));
-        const coord_t extra_cradle_distance = round_divide(retrieveSetting<coord_t>(data_pair.first, "support_tree_cradle_z_distance"), config.layer_height);
-        max_cradle_layers
-            = std::max(coord_t(max_cradle_layers), extra_cradle_distance + retrieveSetting<coord_t>(data_pair.first, "support_tree_cradle_height") / config.layer_height);
         max_cradle_dtt = std::max(max_cradle_dtt, config.tip_layers); // todo better estimation
     }
 
@@ -151,10 +148,12 @@ TreeModelVolumes::TreeModelVolumes(
             {
                 anti_overhang_[layer_idx].push_back(additional_excluded_areas[layer_idx]);
             }
-
-            if (SUPPORT_TREE_AVOID_SUPPORT_BLOCKER)
+            for (const SupportGenerationModifier& support_modifier : storage.support.supportGenerationModifiers)
             {
-                anti_overhang_[layer_idx].push_back(storage.support.supportLayers[layer_idx].anti_overhang);
+                if (support_modifier.isAntiSupport() && layer_idx < support_modifier.areas_.size())
+                {
+                    anti_overhang_[layer_idx].push_back(support_modifier.areas_[layer_idx]);
+                }
             }
 
             if (storage.prime_tower_)
@@ -182,7 +181,6 @@ void TreeModelVolumes::precalculate(LayerIndex max_layer)
 {
     const auto t_start = std::chrono::high_resolution_clock::now();
     precalculated_ = true;
-    max_layer = std::min(max_layer + max_cradle_layers, LayerIndex(layer_outlines_[current_outline_idx_].second.size() - 1));
 
     // Get the config corresponding to one mesh that is in the current group. Which one has to be irrelevant.
     // Not the prettiest way to do this, but it ensures some calculations that may be a bit more complex like initial layer diameter are only done in once.
