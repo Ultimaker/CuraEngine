@@ -401,7 +401,7 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
     const coord_t xy_min_distance = !xy_overrides ? mesh.settings.get<coord_t>("support_xy_distance_overhang") : xy_distance;
     const bool support_moves = mesh.settings.get<ESupportStructure>("support_structure") != ESupportStructure::NORMAL;
 
-    const coord_t minimum_area_to_be_supportable = support_moves ? mesh.settings.get<coord_t>("support_tree_tip_diameter") / 2 : mesh.settings.get<coord_t>("support_line_distance");
+    const coord_t minimum_area_to_be_supportable = support_moves ? mesh.settings.get<coord_t>("support_tree_tip_diameter") / 2 : 0;
     cura::parallel_for<coord_t>(
         1,
         cradle_data_mesh.size(),
@@ -1161,9 +1161,10 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                             ! xy_overrides);
 
                         coord_t offset_radius = cradle.config_->cradle_support_base_area_radius_;
-                        if (cradle_base.offset(offset_radius, ClipperLib::jtRound).difference(forbidden_here).area() > 1)
+                        Shape cradle_base_offset = cradle_base.offset(offset_radius, ClipperLib::jtRound);
+                        if (cradle_base_offset.difference(forbidden_here).area() > 1)
                         {
-                            OverhangInformation cradle_overhang(cradle_base, false, cradle_data_[mesh_idx][layer_idx][cradle_idx]);
+                            OverhangInformation cradle_overhang(support_moves ? cradle_base : cradle_base_offset, false, cradle_data_[mesh_idx][layer_idx][cradle_idx]);
                             cradle.overhang_[layer_idx].emplace_back(cradle_overhang);
                         }
                     }
@@ -1195,8 +1196,6 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                 }
                 cradle_data_[mesh_idx][layer_idx] = valid_cradles;
             });
-
-
     }
 }
 

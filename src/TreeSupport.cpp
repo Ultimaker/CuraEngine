@@ -144,6 +144,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             config.maximum_move_distance,
             config.maximum_move_distance_slow,
             config.support_line_width / 2,
+            config.getRadius(0),
             processing.second.front(),
             progress_multiplier,
             progress_offset,
