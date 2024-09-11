@@ -24,6 +24,7 @@ TreeModelVolumes::TreeModelVolumes(
     const coord_t max_move,
     const coord_t max_move_slow,
     const coord_t min_offset_per_step,
+    const coord_t min_radius,
     size_t current_mesh_idx,
     double progress_multiplier,
     double progress_offset,
@@ -33,6 +34,7 @@ TreeModelVolumes::TreeModelVolumes(
     max_move_slow_{ std::max(max_move_slow - 2, coord_t(0)) }
     , // -2 to avoid rounding errors
     min_offset_per_step_{ min_offset_per_step }
+    , radius_0_(min_radius)
     , progress_multiplier_{ progress_multiplier }
     , progress_offset_{ progress_offset }
     , machine_border_{ calculateMachineBorderCollision(storage.getMachineBorder()) }
@@ -80,9 +82,6 @@ TreeModelVolumes::TreeModelVolumes(
         min_maximum_deviation = std::min(min_maximum_deviation, data_pair.first.get<coord_t>("meshfix_maximum_deviation"));
         min_maximum_resolution = std::min(min_maximum_resolution, data_pair.first.get<coord_t>("meshfix_maximum_resolution"));
         min_maximum_area_deviation = std::min(min_maximum_area_deviation, data_pair.first.get<coord_t>("meshfix_maximum_extrusion_area_deviation"));
-        const coord_t extra_cradle_distance = round_divide(retrieveSetting<coord_t>(data_pair.first, "support_tree_cradle_z_distance"), config.layer_height);
-        max_cradle_layers
-            = std::max(coord_t(max_cradle_layers), extra_cradle_distance + retrieveSetting<coord_t>(data_pair.first, "support_tree_cradle_height") / config.layer_height);
         max_cradle_dtt = std::max(max_cradle_dtt, config.tip_layers); // todo better estimation
     }
 
@@ -151,10 +150,12 @@ TreeModelVolumes::TreeModelVolumes(
             {
                 anti_overhang_[layer_idx].push_back(additional_excluded_areas[layer_idx]);
             }
-
-            if (SUPPORT_TREE_AVOID_SUPPORT_BLOCKER)
+            for (const SupportGenerationModifier& support_modifier : storage.support.supportGenerationModifiers)
             {
-                anti_overhang_[layer_idx].push_back(storage.support.supportLayers[layer_idx].anti_overhang);
+                if (support_modifier.isAntiSupport() && layer_idx < support_modifier.areas_.size())
+                {
+                    anti_overhang_[layer_idx].push_back(support_modifier.areas_[layer_idx]);
+                }
             }
 
             if (storage.prime_tower_)
@@ -173,7 +174,6 @@ TreeModelVolumes::TreeModelVolumes(
     }
 
     // Cache some handy settings in the object itself.
-    radius_0_ = config.getRadius(0);
     support_rest_preference_ = config.support_rest_preference;
     simplifier_ = Simplify(min_maximum_resolution, min_maximum_deviation, min_maximum_area_deviation);
 }
@@ -182,7 +182,6 @@ void TreeModelVolumes::precalculate(LayerIndex max_layer)
 {
     const auto t_start = std::chrono::high_resolution_clock::now();
     precalculated_ = true;
-    max_layer = std::min(max_layer + max_cradle_layers, LayerIndex(layer_outlines_[current_outline_idx_].second.size() - 1));
 
     // Get the config corresponding to one mesh that is in the current group. Which one has to be irrelevant.
     // Not the prettiest way to do this, but it ensures some calculations that may be a bit more complex like initial layer diameter are only done in once.
@@ -497,18 +496,23 @@ const Shape& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_idx
 
     if (orig_radius == 0)
     {
+        // calculateFake0Avoidances may case a regular avoidance calculation using getAvoidance if used lazy. To prevent issues using a recursive_mutex here.
+        std::lock_guard<std::recursive_mutex> critical_section(*critical_calculation_);
         calculateFake0Avoidances(layer_idx);
     }
     else if (type == AvoidanceType::COLLISION)
     {
+        std::lock_guard<std::recursive_mutex> critical_section(*critical_calculation_);
         calculateCollisionAvoidance(key);
     }
     else if (to_model)
     {
+        std::lock_guard<std::recursive_mutex> critical_section(*critical_calculation_);
         calculateAvoidanceToModel(key);
     }
     else
     {
+        std::lock_guard<std::recursive_mutex> critical_section(*critical_calculation_);
         calculateAvoidance(key);
     }
     return getAvoidance(orig_radius, layer_idx, type, to_model, min_xy_dist); // retrive failed and correct result was calculated. Now it has to be retrived.
@@ -1170,7 +1174,7 @@ Shape TreeModelVolumes::safeOffset(const Shape& me, coord_t distance, ClipperLib
     return ret.unionPolygons(collision);
 }
 
-void TreeModelVolumes::calculateAvoidance(const std::deque<RadiusLayerPair>& keys)
+void TreeModelVolumes::calculateAvoidance(const std::deque<RadiusLayerPair>& keys) // todo limit to certain avoidance types for better normal support performance
 {
     // For every RadiusLayer pair there are 3 avoidances that have to be calculate, calculated in the same paralell_for loop for better parallelization.
     const std::vector<AvoidanceType> all_types = { AvoidanceType::SLOW, AvoidanceType::FAST_SAFE, AvoidanceType::FAST };
@@ -1417,7 +1421,16 @@ void TreeModelVolumes::calculateFake0Avoidances(const LayerIndex max_layer)
         std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_);
         start_layer = 1 + getMaxCalculatedLayer(0, avoidance_cache_);
     }
-
+    // Ensure all avoidances are calculated
+    if (! precalculated_)
+    {
+        getAvoidance(1, max_layer, AvoidanceType::SLOW, false, true);
+        getAvoidance(1, max_layer, AvoidanceType::FAST, false, true);
+        getAvoidance(1, max_layer, AvoidanceType::FAST_SAFE, false, true);
+        getAvoidance(1, max_layer, AvoidanceType::SLOW, true, true);
+        getAvoidance(1, max_layer, AvoidanceType::FAST, true, true);
+        getAvoidance(1, max_layer, AvoidanceType::FAST_SAFE, true, true);
+    }
     const coord_t radius_offset = -radius_0_;
     cura::parallel_for<size_t>(
         start_layer,

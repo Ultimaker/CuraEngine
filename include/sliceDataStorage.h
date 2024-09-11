@@ -215,7 +215,6 @@ public:
     std::vector<SupportInfillPart> support_roof; //!< Piece of support above the support and below the model. This must not overlap with any of the support_infill_parts or support_bottom.
     Shape support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support
     Shape support_mesh; //!< Areas from support meshes which should NOT be supported by more support
-    Shape anti_overhang; //!< Areas where no overhang should be detected.
 
     Shape getTotalAreaFromParts(const std::vector<SupportInfillPart>& parts, PartsFilter filter = PartsFilter::NoFilter) const
     {
@@ -317,6 +316,50 @@ public:
 
 };
 
+class SupportGenerationModifier
+{
+    bool is_anti_support_;
+    bool is_cradle_modifier_;
+    bool is_anti_overhang_;
+
+public:
+    SupportGenerationModifier(Settings settings, size_t size)
+        : settings_(settings)
+        , areas_(size)
+        , is_anti_support_(settings.get<bool>("anti_support_mesh"))
+        , is_cradle_modifier_(settings.get<bool>("cradle_modifier_mesh"))
+        , is_anti_overhang_(! is_anti_support_ && ! is_cradle_modifier_ && settings.get<bool>("anti_overhang_mesh"))
+    {
+    }
+
+    Settings settings_;
+    std::vector<Shape> areas_;
+
+    bool isAntiOverhang() const
+    {
+        return is_anti_overhang_;
+    }
+
+    bool isAntiSupport() const
+    {
+        return is_anti_support_;
+    }
+
+    bool isCradleModifier() const
+    {
+        return is_cradle_modifier_;
+    }
+
+    void addArea(const Shape& area, LayerIndex layer_idx)
+    {
+        if (areas_.size() <= layer_idx)
+        {
+            areas_.resize(layer_idx + 1);
+        }
+        areas_[layer_idx].push_back(area);
+    }
+};
+
 class SupportStorage
 {
 public:
@@ -330,6 +373,7 @@ public:
     std::vector<AngleDegrees> support_bottom_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
 
     std::vector<SupportLayer> supportLayers;
+    std::vector<SupportGenerationModifier> supportGenerationModifiers;
     std::shared_ptr<SierpinskiFillProvider> cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
 
     SupportStorage();

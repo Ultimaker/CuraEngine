@@ -247,15 +247,16 @@ struct TreeSupportCradle
     std::vector<Point2LL> centers_;
     std::vector<Shape> shadow_;
     std::unordered_map<LayerIndex, std::vector<OverhangInformation>> overhang_;
-
+    CradlePlacementMethod cradle_placement_method_;
     const std::shared_ptr<const CradleConfig> config_;
     size_t mesh_idx_;
 
 
-    TreeSupportCradle(LayerIndex layer_idx, Point2LL center, bool roof, std::shared_ptr<const CradleConfig> config, size_t mesh_idx)
+    TreeSupportCradle(LayerIndex layer_idx, Point2LL center, bool roof, CradlePlacementMethod cradle_placement_method, std::shared_ptr<const CradleConfig> config, size_t mesh_idx)
         : layer_idx_(layer_idx)
         , centers_({ center })
         , is_roof_(roof)
+        , cradle_placement_method_(cradle_placement_method)
         , config_ (config)
         , mesh_idx_(mesh_idx)
     {
@@ -384,14 +385,19 @@ struct CradlePresenceInformation
 class SupportCradleGeneration
 {
 public:
-
-
     /*!
-     * \brief Add meshes to generate cradles and generate cradle centers. Not threadsafe!
-     * \param mesh[in] The mesh that is currently processed.
+     * \brief Add meshes to generate cradles.
+     * \param storage[in] The storage that the mesh is in.
      * \param mesh_idx[in] The idx of the mesh that is currently processed.
      */
-    void addMeshToCradleCalculation(const SliceMeshStorage& mesh, size_t mesh_idx);
+    void addMeshToCradleCalculation(const SliceDataStorage& storage, size_t mesh_idx);
+
+    /*!
+     * \brief Generates mesh-specific cradle data. Calls addMeshToCradleCalculation if mesh was not already added. Not threadsafe!
+     * \param storage[in] The storage that the mesh is in.
+     * \param mesh_idx[in] The idx of the mesh that is currently processed.
+     */
+    void generateCradleForMesh(const SliceDataStorage& storage, size_t mesh_idx);
 
     /*!
      * \brief Generate all cradle areas and line areas for the previously added meshes. Not threadsafe! Should only called once.
@@ -408,19 +414,25 @@ public:
      */
     void pushCradleData(std::vector<std::vector<TreeSupportCradle*>>& target, std::vector<Shape>& support_free_areas, size_t mesh_idx);
 
+    /*!
+     * \brief Give the largest layer index that contains the first layer of a cradle. Only considers meshes that were added with addMeshToCradleCalculation.
+     */
+    LayerIndex getTopMostCradleLayer()
+    {
+        return top_most_cradle_layer_;
+    }
 
     SupportCradleGeneration(const SliceDataStorage& storage, TreeModelVolumes& volumes_);
 private:
 
     struct UnsupportedAreaInformation
     {
-        UnsupportedAreaInformation(const Shape area, LayerIndex layer_idx, size_t height, coord_t accumulated_supportable_overhang, double deformation, Point2LL assumed_center, LayerIndex last_cradle_at_layer_idx)
+        UnsupportedAreaInformation(const Shape area, LayerIndex layer_idx, size_t height, coord_t accumulated_supportable_overhang, double deformation, Point2LL assumed_center)
             : area{ area }
             , layer_idx{ layer_idx }
             , height{ height }
             , accumulated_supportable_overhang{ accumulated_supportable_overhang }
             , deformation{ deformation }
-            , last_cradle_at_layer_idx(last_cradle_at_layer_idx)
             , assumed_center {assumed_center}
         {
         }
@@ -428,40 +440,42 @@ private:
         LayerIndex layer_idx;
         size_t height;
         coord_t accumulated_supportable_overhang;
+        CradlePlacementMethod support_required = CradlePlacementMethod::NONE;
         double deformation;
         double total_deformation_limit = -1;
         double total_deformation = -1;
-        LayerIndex last_cradle_at_layer_idx = -1;
-        bool support_required = false;
         Point2LL assumed_center;
 
+        // Contains identifiers of all cradles below
+        std::vector<UnsupportedAreaInformation*> cradles_below;
         std::vector<UnsupportedAreaInformation*> areas_above;
         std::vector<UnsupportedAreaInformation*> areas_below;
     };
 
+        // Contains identifiers of all cradles below
+        std::vector<UnsupportedAreaInformation*> cradles_below;
 
-//todo doku
-double getTotalDeformation(size_t mesh_idx, const SliceMeshStorage& mesh, UnsupportedAreaInformation* element);
+    //todo doku
+    double getTotalDeformation(size_t mesh_idx, const SliceMeshStorage& mesh, UnsupportedAreaInformation* element);
 
-
-/*!
+    /*!
      * \brief Provides areas that do not have a connection to the buildplate or any other non support material below it.
      * \param mesh_idx[in] The idx of the mesh.
      * \param layer_idx The layer said area is on.
      * \return A vector containing the areas, how many layers of material they have below them (always 0) and the idx of each area usable to get the next one layer above.
  */
-std::vector<UnsupportedAreaInformation*> getFullyUnsupportedArea(size_t mesh_idx, LayerIndex layer_idx);
+    std::vector<UnsupportedAreaInformation*> getFullyUnsupportedArea(size_t mesh_idx, LayerIndex layer_idx);
 
-/*!
+    /*!
      * \brief Calculates which parts of the model to not connect with the buildplate and how many layers of material is below them (height).
      * Results are stored in a cache.
      * Only area up to the required maximum height are stored.
-     * \param mesh[in] The mesh that is currently processed.
+     * \param storage[in] The storage meshes are in.
      * \param mesh_idx[in] The idx of the mesh.
- */
-void calculateFloatingParts(const SliceMeshStorage& mesh, size_t mesh_idx);
+     */
+    void calculateFloatingParts(const SliceDataStorage& storage, size_t mesh_idx);
 
-mfem::Mesh* toMfemMesh(const SliceMeshStorage& mesh, size_t mesh_idx, UnsupportedAreaInformation* element);
+    mfem::Mesh* toMfemMesh(const SliceMeshStorage& mesh, size_t mesh_idx, UnsupportedAreaInformation* element);
 mfem::Mesh* toMfemMeshRasterized(const SliceMeshStorage& mesh, size_t mesh_idx, UnsupportedAreaInformation* element);
 
 void runMfemExample(mfem::Mesh* mesh, std::string prefix_name, double top_area, double force);
@@ -514,6 +528,8 @@ TreeModelVolumes& volumes_;
      * \brief Whether only support that can rest on a flat surface should be supported. todo
  */
 const bool only_gracious_ = false;
+
+LayerIndex top_most_cradle_layer_ = -1;
 
 mutable std::vector<std::vector<std::vector<UnsupportedAreaInformation*>>> floating_parts_cache_;
 

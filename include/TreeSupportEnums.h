@@ -28,6 +28,15 @@ enum class AvoidanceType
     COLLISION
 };
 
+enum class CradlePlacementMethod
+{
+    NONE,
+    AUTOMATIC_POINTY,
+    AUTOMATIC_SIDE,
+    MANUAL_POINTY,
+    MANUAL_SIDE
+};
+
 } // namespace cura
 
 #endif // CURAENGINE_TREESUPPORTENUMS_H

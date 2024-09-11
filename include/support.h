@@ -128,6 +128,15 @@ private:
     static void generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& mesh);
 
     /*!
+     * \brief Generate cradles for pointy overhangs
+     *
+     * \param storage[in,out] Data storage containing the mesh object and used to store cradles as support.
+     * \param mesh_idx[in] The index of the mesh object for which to generate cradles.
+     * \param cradle_overhang_reserved_areas[out] Areas that need to be supported to support generated cradles.
+     */
+    static void generateCradlesForMesh(SliceDataStorage& storage, size_t mesh_idx, std::vector<Shape>& cradle_overhang_reserved_areas);
+
+    /*!
      * \brief Generate support polygons over all layers for one object.
      *
      * This function also handles small overhang areas (creates towers with
@@ -148,6 +157,7 @@ private:
      * the support.
      * \param bottom_settings The settings base to get the bottom interface of
      * the support.
+     * \param cradle_overhang_reserved_areas[in] Overhang from cradle areas, required to support said cradles.
      * \param mesh_idx The index of the object for which to generate support
      * areas.
      * \param layer_count Total number of layers.
@@ -157,6 +167,7 @@ private:
         const Settings& infill_settings,
         const Settings& roof_settings,
         const Settings& bottom_settings,
+        const std::vector<Shape>& cradle_overhang_reserved_areas,
         const size_t mesh_idx,
         const size_t layer_count,
         std::vector<Shape>& support_areas);
@@ -185,9 +196,10 @@ private:
      * \param storage Where to find the previously generated support areas and
      * where to output the new support roof areas.
      * \param mesh The mesh to generate support roof for.
+     * \param global_handled_by_cradle_areas_per_layer[in] Areas that are supported by cradles, to be excluded from roof generation.
      * \param global_support_areas_per_layer the global support areas on each layer.
      */
-    static void generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Shape>& global_support_areas_per_layer);
+    static void generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Shape>& global_support_areas_per_layer, std::vector<Shape>& global_handled_by_cradle_areas_per_layer);
 
     /*!
      * \brief Generate a single layer of support interface.

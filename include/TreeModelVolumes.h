@@ -41,6 +41,7 @@ public:
         coord_t max_move,
         coord_t max_move_slow,
         coord_t min_offset_per_step,
+        const coord_t min_radius,
         size_t current_mesh_idx,
         double progress_multiplier,
         double progress_offset,
@@ -512,11 +513,6 @@ private:
     RestPreference support_rest_preference_;
 
     /*!
-     * \brief How tall the cradle will at most be.
-     */
-    size_t max_cradle_layers = 0;
-
-    /*!
      * \brief Largest DTT a cradle supporting tip may have.
      */
     size_t max_cradle_dtt = 0;
@@ -593,6 +589,7 @@ private:
     mutable std::unordered_map<RadiusLayerPair, Shape> anti_preferred_cache_collision;
     std::unique_ptr<std::mutex> critical_anti_preferred_caches = std::make_unique<std::mutex>();
 
+    std::unique_ptr<std::recursive_mutex> critical_calculation_ = std::make_unique<std::recursive_mutex>();
 
     std::unique_ptr<std::mutex> critical_progress_ = std::make_unique<std::mutex>();
 

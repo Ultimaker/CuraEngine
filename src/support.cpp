@@ -24,6 +24,7 @@
 #include "ExtruderTrain.h"
 #include "SkeletalTrapezoidation.h"
 #include "Slice.h"
+#include "TreeSupportCradle.h"
 #include "infill.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/UniformDensityProvider.h"
@@ -53,8 +54,17 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
         SUPPORT_DROP_DOWN,
         SUPPORT_VANILLA
     };
-    ModifierType modifier_type
-        = (mesh_settings.get<bool>("anti_overhang_mesh")) ? ANTI_OVERHANG : ((mesh_settings.get<bool>("support_mesh_drop_down")) ? SUPPORT_DROP_DOWN : SUPPORT_VANILLA);
+    ModifierType modifier_type;
+    if (mesh_settings.get<bool>("anti_overhang_mesh")) // todo [TR] refactor to support_modifier_mesh
+    {
+        modifier_type = ANTI_OVERHANG;
+        storage.support.supportGenerationModifiers.emplace_back(mesh_settings, slicer->layers.size());
+    }
+    else
+    {
+        modifier_type = mesh_settings.get<bool>("support_mesh_drop_down") ? SUPPORT_DROP_DOWN : SUPPORT_VANILLA;
+    }
+
     for (LayerIndex layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
     {
         SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
@@ -62,7 +72,7 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
         switch (modifier_type)
         {
         case ANTI_OVERHANG:
-            support_layer.anti_overhang.push_back(slicer_layer.polygons_);
+            storage.support.supportGenerationModifiers.back().addArea(slicer_layer.polygons_, layer_nr);
             break;
         case SUPPORT_DROP_DOWN:
             support_layer.support_mesh_drop_down.push_back(slicer_layer.polygons_);
@@ -106,8 +116,6 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
         const Shape& global_support_areas = global_support_areas_per_layer[layer_nr];
         if (global_support_areas.size() == 0 || layer_nr < min_layer || layer_nr > max_layer)
         {
-            // Initialize support_infill_parts empty
-            storage.support.supportLayers[layer_nr].support_infill_parts.clear();
             continue;
         }
 
@@ -609,6 +617,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
 {
     std::vector<Shape> global_support_areas_per_layer;
     global_support_areas_per_layer.resize(storage.print_layer_count);
+    std::vector<Shape> global_handled_by_cradle_areas_per_layer(storage.print_layer_count);
 
     int max_layer_nr_support_mesh_filled;
     for (max_layer_nr_support_mesh_filled = storage.support.supportLayers.size() - 1; max_layer_nr_support_mesh_filled >= 0; max_layer_nr_support_mesh_filled--)
@@ -623,7 +632,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
     for (int layer_nr = 0; layer_nr < max_layer_nr_support_mesh_filled; layer_nr++)
     {
         SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
-        support_layer.anti_overhang = support_layer.anti_overhang.unionPolygons();
         support_layer.support_mesh_drop_down = support_layer.support_mesh_drop_down.unionPolygons();
         support_layer.support_mesh = support_layer.support_mesh.unionPolygons();
     }
@@ -672,11 +680,21 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
         }
         std::vector<Shape> mesh_support_areas_per_layer;
         mesh_support_areas_per_layer.resize(storage.print_layer_count, Shape());
-
-        generateSupportAreasForMesh(storage, *infill_settings, *roof_settings, *bottom_settings, mesh_idx, storage.print_layer_count, mesh_support_areas_per_layer);
+        std::vector<Shape> cradle_overhang_reserved_areas(storage.print_layer_count);
+        generateCradlesForMesh(storage, mesh_idx, cradle_overhang_reserved_areas);
+        generateSupportAreasForMesh(
+            storage,
+            *infill_settings,
+            *roof_settings,
+            *bottom_settings,
+            cradle_overhang_reserved_areas,
+            mesh_idx,
+            storage.print_layer_count,
+            mesh_support_areas_per_layer);
         for (size_t layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
         {
             global_support_areas_per_layer[layer_idx].push_back(mesh_support_areas_per_layer[layer_idx]);
+            global_handled_by_cradle_areas_per_layer[layer_idx].push_back(cradle_overhang_reserved_areas[layer_idx]);
         }
     }
 
@@ -695,7 +713,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
 
         if (mesh->settings.get<bool>("support_roof_enable"))
         {
-            generateSupportRoof(storage, *mesh, global_support_areas_per_layer);
+            generateSupportRoof(storage, *mesh, global_support_areas_per_layer, global_handled_by_cradle_areas_per_layer);
         }
         if (mesh->settings.get<bool>("support_bottom_enable"))
         {
@@ -967,6 +985,219 @@ Shape AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& stora
     return varying_xy_disallowed_areas;
 }
 
+void AreaSupport::generateCradlesForMesh(SliceDataStorage& storage, size_t mesh_idx, std::vector<Shape>& cradle_overhang_reserved_areas)
+{
+    SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const coord_t support_line_width = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings_.get<coord_t>("support_line_width");
+    const coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
+    const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
+    const size_t layer_z_distance_top = (z_distance_top / layer_thickness) + 1;
+    const size_t support_roof_wall_count = mesh.settings.get<int>("support_roof_wall_count");
+    const coord_t support_roof_line_width = mesh.settings.get<coord_t>("support_roof_line_width");
+    const size_t support_wall_count = mesh.settings.get<int>("support_wall_count");
+    const bool fractional_support_present = z_distance_top % layer_thickness != 0;
+
+    TreeModelVolumes volumes = TreeModelVolumes(
+        storage,
+        0,
+        0,
+        support_line_width / 2,
+        std::min(support_line_width, support_roof_line_width),
+        mesh_idx,
+        0,
+        0,
+        std::vector<Shape>(storage.support.supportLayers.size()));
+    // Don't precalculate TreeModelVolumes. Most will not be used so using it lazily generating areas should be faster.
+    SupportCradleGeneration cradle_gen(storage, volumes);
+    cradle_gen.addMeshToCradleCalculation(storage, mesh_idx);
+    cradle_gen.generateCradleForMesh(storage, mesh_idx);
+    cradle_gen.generate(storage);
+    std::vector<std::vector<TreeSupportCradle*>> cradle_data_mesh(storage.support.supportLayers.size());
+    std::vector<Shape> support_free_areas = std::vector<Shape>(storage.support.supportLayers.size(), Shape());
+    cradle_gen.pushCradleData(cradle_data_mesh, support_free_areas, mesh_idx);
+
+    // todo figure out what to do if regular support collides with cradle. make it anti_support?
+    // todo figure out what to do if two cradles block each other with regular support caused by one of them
+
+    std::vector<Shape> support_layer_extra_wall_storage(cradle_data_mesh.size());
+    std::vector<Shape> support_layer_storage_fractional(cradle_data_mesh.size());
+    std::vector<Shape> support_roof_extra_wall_storage(cradle_data_mesh.size());
+    std::vector<Shape> support_roof_extra_wall_storage_fractional(cradle_data_mesh.size());
+    std::vector<Shape> support_roof_storage(cradle_data_mesh.size());
+    std::vector<Shape> support_roof_storage_fractional(cradle_data_mesh.size());
+    cradle_overhang_reserved_areas.resize(cradle_data_mesh.size());
+    std::mutex critical_support_roof_storage;
+    std::mutex critical_support_layer_storage;
+    std::mutex critical_cradle_reserved_areas;
+
+    cura::parallel_for<coord_t>(
+        0,
+        cradle_data_mesh.size(),
+        [&](const LayerIndex layer_idx)
+        {
+            for (size_t cradle_idx = 0; cradle_idx < cradle_data_mesh[layer_idx].size(); cradle_idx++)
+            {
+                TreeSupportCradle* cradle = cradle_data_mesh[layer_idx][cradle_idx];
+                Shape overhang_outer_area;
+                for (auto overhang_pair : cradle->overhang_)
+                {
+                    Point2LL center = cradle_data_mesh[layer_idx][cradle_idx]->getCenter(layer_idx);
+                    Polygon overhang_outer_area_part;
+                    bool includes_lines = false;
+                    for (OverhangInformation& overhang : overhang_pair.second)
+                    {
+                        if (overhang.isCradleLine())
+                        {
+                            std::optional<TreeSupportCradleLine*> cradle_line_opt = cradle->getCradleLineOfIndex(overhang.cradle_layer_idx_, overhang.cradle_line_idx_);
+                            if (cradle_line_opt)
+                            {
+                                overhang_outer_area_part.emplace_back(cradle_line_opt.value()->line_.back());
+                                includes_lines = true;
+                            }
+                        }
+                        else
+                        {
+                            overhang_outer_area.push_back(overhang.overhang_);
+                            if (fractional_support_present)
+                            {
+                                support_layer_storage_fractional[overhang_pair.first + 1].push_back(overhang.overhang_);
+                            }
+                        }
+                    }
+
+                    overhang_outer_area.push_back(overhang_outer_area_part);
+                    overhang_outer_area.makeConvex();
+                    if (includes_lines)
+                    {
+                        bool large_base_roof = cradle->config_->large_cradle_base_ && cradle->config_->cradle_lines_roof_;
+                        coord_t offset_distance = cradle->config_->cradle_line_width_ / 2 + (large_base_roof ? cradle->config_->cradle_support_base_area_radius_ : 0);
+                        overhang_outer_area = overhang_outer_area.offset(offset_distance);
+                    }
+                    overhang_outer_area = overhang_outer_area.difference(volumes.getCollision(0, overhang_pair.first, true));
+                    std::lock_guard<std::mutex> critical_section_cradle(critical_cradle_reserved_areas);
+                    cradle_overhang_reserved_areas[overhang_pair.first].push_back(overhang_outer_area);
+                }
+
+                for (auto [base_idx, base] : cradle_data_mesh[layer_idx][cradle_idx]->base_below_ | ranges::views::enumerate)
+                {
+                    if (cradle_data_mesh[layer_idx][cradle_idx]->is_roof_)
+                    {
+                        std::lock_guard<std::mutex> critical_section_cradle(critical_support_roof_storage);
+                        (support_roof_wall_count ? support_roof_storage : support_roof_extra_wall_storage)[layer_idx - base_idx].push_back(base);
+                        if (base_idx == 0 && z_distance_top % layer_thickness != 0 && layer_idx + 1 < support_roof_extra_wall_storage_fractional.size())
+                        {
+                            (support_roof_wall_count ? support_roof_storage_fractional : support_roof_extra_wall_storage_fractional)[layer_idx + 1].push_back(base);
+                        }
+                    }
+                    else
+                    {
+                        // Dead code. Currently, Cradles that are not roofs do not have a base area, just a tip. This is just here for the case that this changes
+                        std::lock_guard<std::mutex> critical_section_cradle(critical_support_layer_storage);
+                        support_layer_extra_wall_storage[layer_idx - base_idx].push_back(base);
+                        if (base_idx == 0 && z_distance_top % layer_thickness != 0 && layer_idx + 1 < support_layer_storage_fractional.size())
+                        {
+                            support_layer_storage_fractional[layer_idx + 1].push_back(base);
+                        }
+                    }
+                }
+
+                for (size_t line_idx = 0; line_idx < cradle_data_mesh[layer_idx][cradle_idx]->lines_.size(); line_idx++)
+                {
+                    if (! cradle_data_mesh[layer_idx][cradle_idx]->lines_[line_idx].empty())
+                    {
+                        for (int64_t height_idx = cradle_data_mesh[layer_idx][cradle_idx]->lines_[line_idx].size() - 1; height_idx >= 0; height_idx--)
+                        {
+                            Shape line_area = cradle_data_mesh[layer_idx][cradle_idx]->lines_[line_idx][height_idx].area_;
+                            bool is_roof = cradle_data_mesh[layer_idx][cradle_idx]->lines_[line_idx][height_idx].is_roof_;
+                            LayerIndex cradle_line_layer_idx = cradle_data_mesh[layer_idx][cradle_idx]->lines_[line_idx][height_idx].layer_idx_;
+                            bool is_base = cradle_data_mesh[layer_idx][cradle_idx]->lines_[line_idx][height_idx].is_base_;
+
+                            if (is_roof)
+                            {
+                                std::lock_guard<std::mutex> critical_section_cradle(critical_support_roof_storage);
+                                support_roof_extra_wall_storage[cradle_line_layer_idx].push_back(line_area);
+                            }
+                            else
+                            {
+                                std::lock_guard<std::mutex> critical_section_cradle(critical_support_layer_storage);
+                                support_layer_extra_wall_storage[cradle_line_layer_idx].push_back(line_area);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+    cura::parallel_for<coord_t>(
+        0,
+        cradle_data_mesh.size(),
+        [&](const LayerIndex layer_idx)
+        {
+            // union everything and add
+
+            support_layer_storage_fractional[layer_idx] = support_layer_storage_fractional[layer_idx].unionPolygons();
+            support_layer_extra_wall_storage[layer_idx] = support_layer_extra_wall_storage[layer_idx].unionPolygons();
+
+            support_roof_storage[layer_idx] = support_roof_storage[layer_idx].unionPolygons();
+            support_roof_storage_fractional[layer_idx] = support_roof_storage_fractional[layer_idx].unionPolygons();
+
+            support_roof_extra_wall_storage[layer_idx] = support_roof_extra_wall_storage[layer_idx].unionPolygons();
+            support_roof_extra_wall_storage_fractional[layer_idx] = support_roof_extra_wall_storage_fractional[layer_idx].unionPolygons();
+
+            cradle_overhang_reserved_areas[layer_idx] = cradle_overhang_reserved_areas[layer_idx].unionPolygons();
+
+            Shape remove_from_next_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof).unionPolygons();
+            if (! support_free_areas[layer_idx].empty())
+            {
+                remove_from_next_roof.push_back(support_free_areas[layer_idx]);
+            }
+
+            remove_from_next_roof = remove_from_next_roof.unionPolygons();
+
+            Shape remove_from_next_fractional_roof = remove_from_next_roof;
+
+            Shape roof_extra_wall = support_roof_extra_wall_storage[layer_idx].difference(remove_from_next_roof);
+            Shape roof = support_roof_storage[layer_idx];
+            if (support_roof_wall_count)
+            {
+                roof = roof.difference(remove_from_next_roof);
+                roof = roof.unionPolygons(roof_extra_wall);
+                roof_extra_wall.clear();
+            }
+            else
+            {
+                roof = roof.difference(remove_from_next_roof.unionPolygons(roof_extra_wall));
+            }
+
+            storage.support.supportLayers[layer_idx].fillRoofParts(roof_extra_wall, support_roof_line_width, std::max(size_t(1), support_roof_wall_count), false);
+            storage.support.supportLayers[layer_idx].fillRoofParts(roof, support_roof_line_width, support_roof_wall_count, false);
+
+            remove_from_next_fractional_roof.push_back(roof_extra_wall);
+            remove_from_next_fractional_roof.push_back(roof);
+            remove_from_next_fractional_roof = remove_from_next_fractional_roof.unionPolygons();
+
+            Shape fractional_roof_extra_wall = support_roof_extra_wall_storage_fractional[layer_idx].difference(remove_from_next_fractional_roof);
+            storage.support.supportLayers[layer_idx].fillRoofParts(fractional_roof_extra_wall, support_roof_line_width, std::max(size_t(1), support_roof_wall_count), true);
+
+            Shape fractional_roof = support_roof_storage_fractional[layer_idx].difference(remove_from_next_fractional_roof.unionPolygons(fractional_roof_extra_wall));
+            storage.support.supportLayers[layer_idx].fillRoofParts(fractional_roof, support_roof_line_width, support_roof_wall_count, true);
+
+            Shape fractional_base = support_layer_storage_fractional[layer_idx].difference(remove_from_next_fractional_roof);
+
+            storage.support.supportLayers[layer_idx]
+                .fillInfillParts(support_layer_extra_wall_storage[layer_idx], support_line_width, std::max(size_t(1), support_wall_count), false, true);
+            storage.support.supportLayers[layer_idx].fillInfillParts(fractional_base, support_line_width, support_wall_count, true, true);
+            if (! (fractional_base.empty() && support_layer_extra_wall_storage[layer_idx].empty() && fractional_roof.empty() && fractional_roof_extra_wall.empty() && roof.empty()
+                   && roof_extra_wall.empty()))
+            {
+                std::lock_guard<std::mutex> critical_section_storage(critical_support_layer_storage);
+                storage.support.layer_nr_max_filled_layer = std::max(layer_idx, LayerIndex(storage.support.layer_nr_max_filled_layer));
+            }
+        });
+}
+
+
 /*
  * Algorithm:
  * From top layer to bottom layer:
@@ -984,6 +1215,7 @@ void AreaSupport::generateSupportAreasForMesh(
     const Settings& infill_settings,
     const Settings& roof_settings,
     const Settings& bottom_settings,
+    const std::vector<Shape>& cradle_overhang_reserved_areas,
     const size_t mesh_idx,
     const size_t layer_count,
     std::vector<Shape>& support_areas)
@@ -1034,7 +1266,13 @@ void AreaSupport::generateSupportAreasForMesh(
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, no_support, no_prime_tower).offset(xy_distance);
 
     // The maximum width of an odd wall = 2 * minimum even wall width.
-    auto half_min_feature_width = min_even_wall_line_width + 10;
+    auto half_min_feature_width = min_even_wall_line_width / 2 + 5;
+
+    bool anti_support_meshes_present = false;
+    for (const SupportGenerationModifier& support_modifier : storage.support.supportGenerationModifiers)
+    {
+        anti_support_meshes_present |= support_modifier.isAntiSupport();
+    }
 
     cura::parallel_for<size_t>(
         1,
@@ -1084,6 +1322,25 @@ void AreaSupport::generateSupportAreasForMesh(
             }
         });
 
+    std::vector<Shape> anti_support_areas(mesh.layers.size());
+    if (anti_support_meshes_present)
+    {
+        cura::parallel_for<size_t>(
+            1,
+            layer_count,
+            [&](const size_t layer_idx)
+            {
+                for (const SupportGenerationModifier& support_modifier : storage.support.supportGenerationModifiers)
+                {
+                    if (support_modifier.isAntiSupport() && layer_idx < support_modifier.areas_.size())
+                    {
+                        anti_support_areas[layer_idx].push_back(support_modifier.areas_[layer_idx]);
+                    }
+                }
+                anti_support_areas[layer_idx] = anti_support_areas[layer_idx].unionPolygons();
+            });
+    }
+
     std::vector<Shape> tower_roofs;
     Shape stair_removal; // polygons to subtract from support because of stair-stepping
 
@@ -1129,6 +1386,10 @@ void AreaSupport::generateSupportAreasForMesh(
     for (size_t layer_idx = layer_count - 1 - layer_z_distance_top; layer_idx != static_cast<size_t>(-1); layer_idx--)
     {
         Shape layer_this = mesh.full_overhang_areas[layer_idx + layer_z_distance_top];
+        if (layer_idx < cradle_overhang_reserved_areas.size())
+        {
+            layer_this = layer_this.unionPolygons(cradle_overhang_reserved_areas[layer_idx]);
+        }
 
         if (extension_offset && ! is_support_mesh_place_holder)
         {
@@ -1171,6 +1432,11 @@ void AreaSupport::generateSupportAreasForMesh(
                 layer_this = layer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
             }
             layer_this = AreaSupport::join(storage, *layer_above, layer_this).difference(model_mesh_on_layer);
+            // Ensure support does not continue below anti support
+            if (anti_support_meshes_present && ! anti_support_areas[layer_idx].empty())
+            {
+                layer_this = layer_this.difference(anti_support_areas[layer_idx]);
+            }
         }
 
         // make towers for small support
@@ -1237,9 +1503,10 @@ void AreaSupport::generateSupportAreasForMesh(
     }
 
     // do stuff for when support on buildplate only
-    if (support_type == ESupportType::PLATFORM_ONLY)
+    if (! is_support_mesh_nondrop_place_holder && (support_type == ESupportType::PLATFORM_ONLY || anti_support_meshes_present))
     {
         Shape touching_buildplate = support_areas[0]; // TODO: not working for conical support!
+        Shape touching_anti_support;
         const AngleRadians conical_support_angle = infill_settings.get<AngleRadians>("support_conical_angle");
         coord_t conical_support_offset;
         if (conical_support_angle > 0)
@@ -1258,6 +1525,7 @@ void AreaSupport::generateSupportAreasForMesh(
             if (conical_support)
             { // with conical support the next layer is allowed to be larger than the previous
                 touching_buildplate = touching_buildplate.offset(std::abs(conical_support_offset) + 10, ClipperLib::jtMiter, 10);
+                touching_anti_support = touching_anti_support.offset(-(std::abs(conical_support_offset) + 10), ClipperLib::jtMiter, 10);
                 // + 10 and larger miter limit cause performing an outward offset after an inward offset can disregard sharp corners
                 //
                 // conical support can make
@@ -1274,9 +1542,17 @@ void AreaSupport::generateSupportAreasForMesh(
                 //
             }
 
-            touching_buildplate = layer.intersection(touching_buildplate); // from bottom to top, support areas can only decrease!
-
-            support_areas[layer_idx] = touching_buildplate;
+            if (support_type == ESupportType::PLATFORM_ONLY)
+            {
+                touching_buildplate = layer.intersection(touching_buildplate); // from bottom to top, support areas can only decrease!
+                support_areas[layer_idx] = touching_buildplate;
+            }
+            if (anti_support_meshes_present)
+            {
+                touching_anti_support.push_back(anti_support_areas[layer_idx]);
+                touching_anti_support = touching_anti_support.unionPolygons().difference(storage.getLayerOutlines(layer_idx, false, false));
+                support_areas[layer_idx] = support_areas[layer_idx].difference(touching_anti_support);
+            }
         }
     }
 
@@ -1464,11 +1740,20 @@ std::pair<Shape, Shape> AreaSupport::computeBasicAndFullOverhang(const SliceData
     Shape basic_overhang = outlines.difference(outlines_below);
 
     const SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
-    if (! support_layer.anti_overhang.empty())
+
+    Shape anti_overhang;
+    for (const SupportGenerationModifier& support_modifier : storage.support.supportGenerationModifiers)
+    {
+        if (support_modifier.isAntiOverhang() && layer_idx < support_modifier.areas_.size())
+        {
+            anti_overhang.push_back(support_modifier.areas_[layer_idx]);
+        }
+    }
+    if (! anti_overhang.empty())
     {
         // Merge anti overhang into one polygon, otherwise overlapping polygons
         // will create opposite effect.
-        Shape merged_polygons = support_layer.anti_overhang.unionPolygons();
+        Shape merged_polygons = anti_overhang.unionPolygons();
 
         basic_overhang = basic_overhang.difference(merged_polygons);
     }
@@ -1494,6 +1779,16 @@ void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMes
         const SliceLayer& layer = mesh.layers[layer_idx];
         const SliceLayer& layer_below = mesh.layers[layer_idx - 1];
 
+        Shape anti_overhang;
+        for (const SupportGenerationModifier& support_modifier : storage.support.supportGenerationModifiers)
+        {
+            if (support_modifier.isAntiOverhang() && layer_idx < support_modifier.areas_.size())
+            {
+                anti_overhang.push_back(support_modifier.areas_[layer_idx]);
+            }
+        }
+        anti_overhang = anti_overhang.unionPolygons();
+
         for (const SliceLayerPart& part : layer.parts)
         {
             if (part.outline.empty())
@@ -1512,7 +1807,7 @@ void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMes
                 continue;
             }
 
-            const Shape overhang = part.outline.difference(storage.support.supportLayers[layer_idx].anti_overhang);
+            const Shape overhang = part.outline.difference(anti_overhang);
             if (! overhang.empty())
             {
                 scripta::log("support_overhangs", overhang, SectionType::SUPPORT, layer_idx);
@@ -1703,7 +1998,11 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
     }
 }
 
-void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Shape>& global_support_areas_per_layer)
+void AreaSupport::generateSupportRoof(
+    SliceDataStorage& storage,
+    const SliceMeshStorage& mesh,
+    std::vector<Shape>& global_support_areas_per_layer,
+    std::vector<Shape>& global_handled_by_cradle_areas_per_layer)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
@@ -1712,7 +2011,8 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     {
         return;
     }
-    const coord_t z_distance_top = round_up_divide(mesh.settings.get<coord_t>("support_top_distance"), layer_height); // Number of layers between support roof and model.
+    const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
+    const coord_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height); // Number of layers between support roof and model.
     const coord_t roof_line_width = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings_.get<coord_t>("support_roof_line_width");
     const coord_t roof_outline_offset = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings_.get<coord_t>("support_roof_offset");
     const coord_t roof_line_distance = mesh.settings.get<coord_t>("support_roof_line_distance");
@@ -1722,21 +2022,29 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
 
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
     Shape roofs_before;
-    for (LayerIndex layer_idx = static_cast<int>(support_layers.size() - z_distance_top) - 1; layer_idx >= 0; --layer_idx)
+    for (LayerIndex layer_idx = static_cast<int>(support_layers.size() - z_distance_top_layers) - 1; layer_idx >= 0; --layer_idx)
     {
         const LayerIndex top_layer_idx_above{
-            std::min(LayerIndex{ support_layers.size() - 1 }, LayerIndex{ layer_idx + roof_layer_count + z_distance_top })
+            std::min(LayerIndex{ support_layers.size() - 1 }, LayerIndex{ layer_idx + roof_layer_count + z_distance_top_layers })
         }; // Maximum layer of the model that generates support roof.
         Shape mesh_outlines;
-        for (auto layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top - 1; layer_idx_above -= 1)
+        for (auto layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top_layers - 1; layer_idx_above -= 1)
         {
             mesh_outlines.push_back(mesh.layers[layer_idx_above].getOutlines());
         }
+
+        // Todo [TR] this is a rough way to prevent not wanted roofs. But there may be a good reason why one would want roof on a part of the cradle-line supporting support.
+        // Do more investigation into if this is good enough!
+        for (auto layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top_layers - 1; layer_idx_above -= 1)
+        {
+            mesh_outlines = mesh_outlines.difference(global_handled_by_cradle_areas_per_layer[layer_idx_above]);
+        }
+
         Shape roofs;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roof_outline_offset, minimum_roof_area, roofs);
         // If roof is added as fractional, even though non can exist because remaining z distance is 0 it will be regular roof.
-        support_layers[layer_idx].fillRoofParts(layer_idx > 0 ? roofs.intersection(roofs_before) : roofs, roof_line_width, roof_wall_line_count);
-        if (layer_idx > 0)
+        support_layers[layer_idx].fillRoofParts(layer_idx > 0 && z_distance_top % layer_height != 0? roofs.intersection(roofs_before) : roofs, roof_line_width, roof_wall_line_count);
+        if (layer_idx > 0 && z_distance_top % layer_height != 0)
         {
             support_layers[layer_idx].fillRoofParts(roofs.difference(roofs_before), roof_line_width, roof_wall_line_count, true);
         }
@@ -1745,7 +2053,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     }
 
     // Remove support in between the support roof and the model. Subtracts the roof polygons from the support polygons on the layers above it.
-    for (auto [layer_idx, support_layer] : support_layers | ranges::views::enumerate | ranges::views::drop(1) | ranges::views::drop_last(z_distance_top))
+    for (auto [layer_idx, support_layer] : support_layers | ranges::views::enumerate | ranges::views::drop(1) | ranges::views::drop_last(z_distance_top_layers))
     {
         if (support_layer.support_roof.empty())
         {
@@ -1753,7 +2061,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         }
 
         int lower = static_cast<int>(layer_idx);
-        int upper = std::min(static_cast<int>(layer_idx + roof_layer_count + z_distance_top + 5), static_cast<int>(global_support_areas_per_layer.size()) - 1);
+        int upper = std::min(static_cast<int>(layer_idx + roof_layer_count + z_distance_top_layers + 5), static_cast<int>(global_support_areas_per_layer.size()) - 1);
         for (Shape& global_support : global_support_areas_per_layer | ranges::views::slice(lower, upper))
         {
             global_support = global_support.difference(support_layer.getTotalAreaFromParts(support_layer.support_roof));

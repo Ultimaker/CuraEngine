@@ -144,13 +144,24 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             config.maximum_move_distance,
             config.maximum_move_distance_slow,
             config.support_line_width / 2,
+            config.getRadius(0),
             processing.second.front(),
             progress_multiplier,
             progress_offset,
             exclude);
 
+        const auto t_cradle_init = std::chrono::high_resolution_clock::now();
+
+        // ### Evaluate cradle placement. Topmost cradle layer is needed tor precalculation
+        std::vector<std::vector<TreeSupportCradle*>> cradle_data;
+        SupportCradleGeneration cradle_gen(storage, volumes_);
+        for (size_t mesh_idx : processing.second)
+        {
+            cradle_gen.addMeshToCradleCalculation(storage, mesh_idx);
+        }
+
         // ### Precalculate avoidances, collision etc.
-        const LayerIndex max_required_layer = precalculate(storage, processing.second);
+        const LayerIndex max_required_layer = precalculate(storage, processing.second, cradle_gen.getTopMostCradleLayer());
         if (max_required_layer < 0)
         {
             spdlog::info("Support tree mesh group {} does not have any overhang. Skipping tree support generation for this support tree mesh group.", counter + 1);
@@ -158,12 +169,9 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         }
         const auto t_precalc = std::chrono::high_resolution_clock::now();
 
-        std::vector<std::vector<TreeSupportCradle*>> cradle_data;
-
-        SupportCradleGeneration cradle_gen(storage, volumes_);
         for (size_t mesh_idx : processing.second)
         {
-            cradle_gen.addMeshToCradleCalculation(*storage.meshes[mesh_idx], mesh_idx);
+            cradle_gen.generateCradleForMesh(storage, mesh_idx);
         }
         cradle_gen.generate(storage);
         const auto t_cradle = std::chrono::high_resolution_clock::now();
@@ -198,9 +206,9 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         drawAreas(move_bounds, storage, cradle_data);
 
         const auto t_draw = std::chrono::high_resolution_clock::now();
-        const auto dur_pre_gen = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_precalc - t_start).count();
+        const auto dur_cradle_init = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_cradle_init - t_start).count();
+        const auto dur_pre_gen = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_precalc - t_cradle_init).count();
         const auto dur_cradle = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_cradle - t_precalc).count();
-
         const auto dur_gen = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_gen - t_cradle).count();
         const auto dur_path = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_path - t_gen).count();
         const auto dur_place = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_place - t_path).count();
@@ -208,16 +216,16 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         const auto dur_total = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_draw - t_start).count();
         spdlog::info(
             "Total time used creating Tree support for the currently grouped meshes: {} ms. Different subtasks:\n"
-            "Calculating Avoidance: {} ms Calculating Cradle: {} ms Creating initial influence areas: {} ms Influence area creation: {} ms Placement of Points in InfluenceAreas: {} ms Drawing result as "
+            "Calculating Avoidance: {} ms Calculating Cradle: {} ms of which {} ms were initialising Creating initial influence areas: {} ms Influence area creation: {} ms Placement of Points in InfluenceAreas: {} ms Drawing result as "
             "support {} ms",
             dur_total,
             dur_pre_gen,
             dur_cradle,
+            dur_cradle_init,
             dur_gen,
             dur_path,
             dur_place,
             dur_draw);
-
 
         for (auto& layer : move_bounds)
         {
@@ -232,10 +240,11 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     storage.support.generated = true;
 }
 
-LayerIndex TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes)
+LayerIndex TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes, LayerIndex top_most_cradle_layer_idx)
 {
+
     // Calculate top most layer that is relevant for support.
-    LayerIndex max_layer = -1;
+    LayerIndex max_layer = top_most_cradle_layer_idx;
     for (size_t mesh_idx : currently_processing_meshes)
     {
         const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
@@ -243,29 +252,22 @@ LayerIndex TreeSupport::precalculate(const SliceDataStorage& storage, std::vecto
         const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
         const size_t z_distance_top_layers = round_up_divide(z_distance_top,
                                                              layer_height) + 1; // Support must always be 1 layer below overhang.
-        if(retrieveSetting<bool>(mesh.settings, "support_tree_side_cradle_enabled"))
+        if (mesh.overhang_areas.size() <= z_distance_top_layers)
         {
-            max_layer = std::max(max_layer, LayerIndex(mesh.layers.size())-1);
+            continue;
         }
-        else
-        {
-            if (mesh.overhang_areas.size() <= z_distance_top_layers)
-            {
-                continue;
-            }
 
-            for (const auto layer_idx : ranges::views::iota(1UL, mesh.overhang_areas.size() - z_distance_top_layers) | ranges::views::reverse)
+        for (const auto layer_idx : ranges::views::iota(1UL, mesh.overhang_areas.size() - z_distance_top_layers) | ranges::views::reverse)
+        {
+            // Look for max relevant layer.
+            const Shape& overhang = mesh.overhang_areas[layer_idx + z_distance_top_layers];
+            if (! overhang.empty())
             {
-                // Look for max relevant layer.
-                const Shape& overhang = mesh.overhang_areas[layer_idx + z_distance_top_layers];
-                if (! overhang.empty())
+                if (layer_idx > max_layer) // iterates over multiple meshes
                 {
-                    if (layer_idx > max_layer) // iterates over multiple meshes
-                    {
-                        max_layer = 1 + layer_idx; // plus one to avoid problems if something is of by one
-                    }
-                    break;
+                    max_layer = 1 + layer_idx; // plus one to avoid problems if something is of by one
                 }
+                break;
             }
         }
     }

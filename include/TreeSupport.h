@@ -37,7 +37,6 @@ constexpr auto SUPPORT_TREE_MINIMUM_FAKE_ROOF_AREA = 100.0;
 constexpr auto SUPPORT_TREE_MINIMUM_FAKE_ROOF_LAYERS = 1;
 constexpr auto SUPPORT_TREE_MINIMUM_ROOF_AREA_HARD_LIMIT = false;
 constexpr auto SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL = false;
-constexpr auto SUPPORT_TREE_AVOID_SUPPORT_BLOCKER = true;
 constexpr coord_t SUPPORT_TREE_EXPONENTIAL_THRESHOLD = 1000;
 constexpr auto SUPPORT_TREE_EXPONENTIAL_FACTOR = 1.5;
 constexpr size_t SUPPORT_TREE_PRE_EXPONENTIAL_STEPS = 1;
@@ -100,9 +99,10 @@ private:
      *
      * \param storage[in] Background storage to access meshes.
      * \param currently_processing_meshes[in] Indexes of all meshes that are processed in this iteration
+     * \param top_most_cradle_layer_idx[in] Layer_idx of the top-most cradle.
      * \return Uppermost layer precalculated. -1 if no layer were precalculated as no overhang is present.
      */
-    LayerIndex precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes);
+    LayerIndex precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes, LayerIndex top_most_cradle_layer_idx);
 
 
     /*!
