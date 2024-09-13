@@ -989,6 +989,7 @@ void AreaSupport::generateCradlesForMesh(SliceDataStorage& storage, size_t mesh_
 {
     SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const bool is_support_mesh_place_holder = mesh.settings.get<bool>("support_mesh");
     const coord_t support_line_width = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings_.get<coord_t>("support_line_width");
     const coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
     const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
@@ -997,6 +998,12 @@ void AreaSupport::generateCradlesForMesh(SliceDataStorage& storage, size_t mesh_
     const coord_t support_roof_line_width = mesh.settings.get<coord_t>("support_roof_line_width");
     const size_t support_wall_count = mesh.settings.get<int>("support_wall_count");
     const bool fractional_support_present = z_distance_top % layer_thickness != 0;
+
+    const ESupportStructure support_structure = mesh.settings.get<ESupportStructure>("support_structure");
+    if ((! mesh.settings.get<bool>("support_enable") || support_structure != ESupportStructure::NORMAL) && ! is_support_mesh_place_holder)
+    {
+        return;
+    }
 
     TreeModelVolumes volumes = TreeModelVolumes(
         storage,
