@@ -19,6 +19,7 @@
 #include "WipeScriptConfig.h"
 #include "communication/Communication.h"
 #include "geometry/OpenPolyline.h"
+#include "gradual_flow/Processor.h"
 #include "pathPlanning/Comb.h"
 #include "pathPlanning/CombPaths.h"
 #include "plugins/slots.h"
@@ -644,8 +645,6 @@ void LayerPlan::addPolygonsByOptimizer(
 }
 
 static constexpr double max_non_bridge_line_volume = MM2INT(100); // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
-
-static int i = 0;
 
 void LayerPlan::addWallLine(
     const Point2LL& p0,
@@ -1983,7 +1982,7 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
 
 void LayerPlan::writeGCode(GCodeExport& gcode)
 {
-    Communication* communication = Application::getInstance().communication_;
+    auto communication = Application::getInstance().communication_;
     communication->setLayerForSend(layer_nr_);
     communication->sendCurrentPosition(gcode.getPositionXY());
     gcode.setLayerNr(layer_nr_);
@@ -2006,6 +2005,15 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         constexpr bool wait = false;
         gcode.writeBedTemperatureCommand(mesh_group_settings.get<Temperature>("material_bed_temperature"), wait);
     }
+    if (mesh_group_settings.get<size_t>("build_volume_fan_nr") != 0)
+    {
+        // The machine has a build volume fan.
+        if (layer_nr_ == mesh_group_settings.get<size_t>("build_fan_full_layer"))
+        {
+            gcode.writeSpecificFanCommand(100, mesh_group_settings.get<size_t>("build_volume_fan_nr"));
+        }
+    }
+
 
     gcode.setZ(z_);
 
@@ -2544,7 +2552,7 @@ bool LayerPlan::writePathWithCoasting(
 
     Point2LL prev_pt = gcode.getPositionXY();
     { // write normal extrude path:
-        Communication* communication = Application::getInstance().communication_;
+        auto communication = Application::getInstance().communication_;
         for (size_t point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
         {
             auto [_, time] = extruder_plan.getPointToPointTime(prev_pt, path.points[point_idx], path);
@@ -2663,6 +2671,14 @@ void LayerPlan::applyBackPressureCompensation()
         {
             extruder_plan.applyBackPressureCompensation(back_pressure_compensation);
         }
+    }
+}
+
+void LayerPlan::applyGradualFlow()
+{
+    for (ExtruderPlan& extruder_plan : extruder_plans_)
+    {
+        gradual_flow::Processor::process(extruder_plan.paths_, extruder_plan.extruder_nr_, layer_nr_);
     }
 }
 

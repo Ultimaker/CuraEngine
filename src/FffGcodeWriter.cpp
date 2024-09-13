@@ -41,6 +41,7 @@
 
 namespace cura
 {
+constexpr coord_t EPSILON = 5;
 
 FffGcodeWriter::FffGcodeWriter()
     : max_object_height(0)
@@ -574,7 +575,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     const size_t surface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr_;
 
     coord_t z = 0;
-    const LayerIndex initial_raft_layer_nr = -Raft::getTotalExtraLayers();
+    const LayerIndex initial_raft_layer_nr = -LayerIndex(Raft::getTotalExtraLayers());
     const Settings& interface_settings = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_;
     const size_t num_interface_layers = interface_settings.get<size_t>("raft_interface_layers");
     const Settings& surface_settings = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings_;
@@ -763,7 +764,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
     z += raft_interface_z_offset;
 
-    for (LayerIndex raft_interface_layer = 1; static_cast<size_t>(raft_interface_layer) <= num_interface_layers; ++raft_interface_layer)
+    for (LayerIndex raft_interface_layer = 1; raft_interface_layer <= LayerIndex(num_interface_layers); ++raft_interface_layer)
     { // raft interface layer
         const LayerIndex layer_nr = initial_raft_layer_nr + raft_interface_layer;
         z += interface_layer_height;
@@ -924,7 +925,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
     z += raft_surface_z_offset;
 
-    for (LayerIndex raft_surface_layer = 1; static_cast<size_t>(raft_surface_layer) <= num_surface_layers; raft_surface_layer++)
+    for (LayerIndex raft_surface_layer = 1; raft_surface_layer <= LayerIndex(num_surface_layers); raft_surface_layer++)
     { // raft surface layers
         const LayerIndex layer_nr = initial_raft_layer_nr + 1 + num_interface_layers + raft_surface_layer - 1; // +1: 1 base layer
         z += surface_layer_height;
@@ -1270,6 +1271,8 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
         }
     }
 
+    gcode_layer.applyGradualFlow();
+
     gcode_layer.applyModifyPlugin();
     time_keeper.registerTime("Modify plugin");
 
@@ -1535,7 +1538,7 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     extruder_order_per_layer.init(true, storage.print_layer_count);
 
     const std::vector<bool> extruders_used = storage.getExtrudersUsed();
-    for (LayerIndex layer_nr = -Raft::getTotalExtraLayers(); layer_nr < static_cast<LayerIndex>(storage.print_layer_count); layer_nr++)
+    for (LayerIndex layer_nr = -LayerIndex(Raft::getTotalExtraLayers()); layer_nr < LayerIndex(storage.print_layer_count); layer_nr++)
     {
         std::vector<ExtruderUse> extruder_order = getUsedExtrudersOnLayer(storage, last_extruder, layer_nr, extruders_used);
         extruder_order_per_layer.push_back(extruder_order);
@@ -1554,7 +1557,7 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
 
 void FffGcodeWriter::calculatePrimeLayerPerExtruder(const SliceDataStorage& storage)
 {
-    LayerIndex first_print_layer = -Raft::getTotalExtraLayers();
+    LayerIndex first_print_layer = -LayerIndex(Raft::getTotalExtraLayers());
     for (size_t extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; ++extruder_nr)
     {
         if (getExtruderNeedPrimeBlobDuringFirstLayer(storage, extruder_nr))
@@ -1564,7 +1567,7 @@ void FffGcodeWriter::calculatePrimeLayerPerExtruder(const SliceDataStorage& stor
         }
     }
 
-    for (LayerIndex layer_nr = first_print_layer; layer_nr < static_cast<LayerIndex>(storage.print_layer_count); ++layer_nr)
+    for (LayerIndex layer_nr = first_print_layer; layer_nr < LayerIndex(storage.print_layer_count); ++layer_nr)
     {
         const std::vector<bool> used_extruders = storage.getExtrudersUsed(layer_nr);
         for (size_t extruder_nr = 0; extruder_nr < used_extruders.size(); ++extruder_nr)
@@ -1588,7 +1591,7 @@ std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
     assert(static_cast<int>(extruder_count) > 0);
     std::vector<ExtruderUse> ret;
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
-    const LayerIndex raft_base_layer_nr = -Raft::getTotalExtraLayers();
+    const LayerIndex raft_base_layer_nr = -LayerIndex(Raft::getTotalExtraLayers());
     Raft::LayerType layer_type = Raft::getLayerType(layer_nr);
 
     if (layer_type == Raft::RaftBase)
@@ -1824,8 +1827,7 @@ void FffGcodeWriter::addMeshPartToGCode(
     added_something = added_something | processSkin(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
 
     // After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
-    if (added_something
-        && (! mesh_group_settings.get<bool>("magic_spiralize") || gcode_layer.getLayerNr() < static_cast<LayerIndex>(mesh.settings.get<size_t>("initial_bottom_layers"))))
+    if (added_something && (! mesh_group_settings.get<bool>("magic_spiralize") || gcode_layer.getLayerNr() < LayerIndex(mesh.settings.get<size_t>("initial_bottom_layers"))))
     {
         coord_t innermost_wall_line_width = mesh.settings.get<coord_t>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
         if (gcode_layer.getLayerNr() == 0)
@@ -1989,6 +1991,386 @@ bool FffGcodeWriter::processMultiLayerInfill(
         }
     }
     return added_something;
+}
+
+// Return a set of parallel lines at a given angle within an area
+// which cover a set of points
+void getLinesForArea(OpenLinesSet& result_lines, const Shape& area, const AngleDegrees& angle, const PointsSet& points, coord_t line_width)
+{
+    OpenLinesSet candidate_lines;
+    Shape unused_skin_polygons;
+    std::vector<VariableWidthLines> unused_skin_paths;
+
+    // We just want a set of lines which cover a Shape, and reusing this
+    // code seems like the best way.
+    Infill infill_comp(EFillMethod::LINES, false, false, area, line_width, line_width, 0, 1, angle, 0, 0, 0, 0);
+
+    infill_comp.generate(unused_skin_paths, unused_skin_polygons, candidate_lines, {}, 0, SectionType::INFILL);
+
+    // Select only lines which are needed to support points
+    for (const auto& line : candidate_lines)
+    {
+        for (const auto& point : points)
+        {
+            if (LinearAlg2D::getDist2FromLineSegment(line.front(), point, line.back()) <= (line_width / 2) * (line_width / 2))
+            {
+                result_lines.push_back(line);
+                break;
+            }
+        }
+    }
+}
+
+// Return a set of parallel lines within an area which
+// fully support (cover) a set of points.
+void getBestAngledLinesToSupportPoints(OpenLinesSet& result_lines, const Shape& area, const PointsSet& points, coord_t line_width)
+{
+    OpenLinesSet candidate_lines;
+
+    struct CompareAngles
+    {
+        bool operator()(const AngleDegrees& a, const AngleDegrees& b) const
+        {
+            constexpr double small_angle = 5;
+            if (std::fmod(a - b + 360, 180) < small_angle)
+            {
+                return false; // Consider them as equal (near duplicates)
+            }
+            return (a < b);
+        }
+    };
+    std::set<AngleDegrees, CompareAngles> candidate_angles;
+
+    // heuristic that usually chooses a goodish angle
+    for (size_t i = 1; i < points.size(); i *= 2)
+    {
+        candidate_angles.insert(angle(points[i] - points[i / 2]));
+    }
+
+    candidate_angles.insert({ 0, 90 });
+
+    for (const auto& angle : candidate_angles)
+    {
+        candidate_lines.clear();
+        getLinesForArea(candidate_lines, area, angle, points, line_width);
+        if (candidate_lines.length() < result_lines.length() || result_lines.length() == 0)
+        {
+            result_lines = std::move(candidate_lines);
+        }
+    }
+}
+
+// Add a supporting line by cutting a few existing lines.
+// We do this because supporting lines are hanging over air,
+// and therefore print best as part of a continuous print move,
+// rather than having a travel move before and after them.
+//
+// We also double-insert most lines, since that allows the
+// elimination of all travel moves, and overlap isn't an issue
+// because the lines are hanging.
+void integrateSupportingLine(OpenLinesSet& infill_lines, const OpenPolyline& line_to_add)
+{
+    // Returns the line index and the index of the point within an infill_line, null for no match found.
+    const auto findMatchingSegment = [&](Point2LL p) -> std::optional<std::tuple<int, int>>
+    {
+        for (size_t i = 0; i < infill_lines.size(); ++i)
+        {
+            for (size_t j = 1; j < infill_lines[i].size(); ++j)
+            {
+                Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(p, infill_lines[i][j - 1], infill_lines[i][j]);
+                int64_t dist = vSize2(p - closest_here);
+
+                if (dist < EPSILON * EPSILON) // rounding
+                {
+                    return std::make_tuple(i, j);
+                }
+            }
+        }
+        return std::nullopt;
+    };
+
+    auto front_match = findMatchingSegment(line_to_add.front());
+    auto back_match = findMatchingSegment(line_to_add.back());
+
+    if (front_match && back_match)
+    {
+        const auto& [front_line_index, front_point_index] = *front_match;
+        const auto& [back_line_index, back_point_index] = *back_match;
+
+        if (front_line_index == back_line_index)
+        {
+            /* both ends intersect with the same line.
+             * If the inserted line has ends x, y
+             * and the original line was A--(x)--B---C--(y)--D
+             * Then the new line will be A--x--y--C---B--x--y--D
+             * Note that the middle part of the line is reversed.
+             */
+            OpenPolyline& old_line = infill_lines[front_line_index];
+            OpenPolyline new_line;
+            Point2LL x, y;
+            size_t x_index, y_index;
+            if (front_point_index < back_point_index)
+            {
+                x = line_to_add.front();
+                y = line_to_add.back();
+                x_index = front_point_index;
+                y_index = back_point_index;
+            }
+            else
+            {
+                y = line_to_add.front();
+                x = line_to_add.back();
+                y_index = front_point_index;
+                x_index = back_point_index;
+            }
+            new_line.insert(new_line.end(), old_line.begin(), old_line.begin() + x_index);
+            new_line.push_back(x);
+            new_line.push_back(y);
+            new_line.insert(new_line.end(), old_line.rend() - y_index, old_line.rend() - x_index);
+            new_line.push_back(x);
+            new_line.push_back(y);
+            new_line.insert(new_line.end(), old_line.begin() + y_index, old_line.end());
+            old_line.setPoints(std::move(new_line.getPoints()));
+        }
+        else
+        {
+            /* Different lines
+             * If the line_to_add has ends [front, back]
+             * Existing line (intersects front):       A B front C D E
+             * Other existing line (intersects back):  M N back O P Q
+             * Result is Line:   A B front back O P Q
+             * And line:         M N back front C D E
+             */
+            OpenPolyline& old_front = infill_lines[front_line_index];
+            OpenPolyline& old_back = infill_lines[back_line_index];
+            OpenPolyline new_front, new_back;
+            new_front.insert(new_front.end(), old_front.begin(), old_front.begin() + front_point_index);
+            new_front.push_back(line_to_add.front());
+            new_front.push_back(line_to_add.back());
+            new_front.insert(new_front.end(), old_back.begin() + back_point_index, old_back.end());
+            new_back.insert(new_back.end(), old_back.begin(), old_back.begin() + back_point_index);
+            new_back.push_back(line_to_add.back());
+            new_back.push_back(line_to_add.front());
+            new_back.insert(new_back.end(), old_front.begin() + front_point_index, old_front.end());
+            old_front.setPoints(std::move(new_front.getPoints()));
+            old_back.setPoints(std::move(new_back.getPoints()));
+        }
+    }
+    else
+    {
+        // One or other end touches something other than infill
+        // we will just suffer a travel move in this case
+        infill_lines.push_back(line_to_add);
+    }
+}
+
+void wall_tool_paths2lines(const std::vector<std::vector<VariableWidthLines>>& wall_tool_paths, OpenLinesSet& result)
+{
+    // We just want to grab all lines out of this datastructure
+    for (const auto& a : wall_tool_paths)
+    {
+        for (const VariableWidthLines& b : a)
+        {
+            for (const ExtrusionLine& c : b)
+            {
+                const Polygon& poly = c.toPolygon();
+                if (c.is_closed_)
+                {
+                    result.push_back(poly.toPseudoOpenPolyline());
+                }
+            }
+        }
+    }
+}
+
+/* Create a set of extra lines to support skins above.
+ *
+ * Skins above need to be held up.
+ * A straight line needs support just at the ends.
+ * A curve needs support at various points along the curve.
+ *
+ * The strategy here is to figure out is currently printed on
+ * this layer within the infill area by taking all currently printed
+ * lines and turning them into a giant hole-y shape.
+ *
+ * Then figure out what will be printed on the layer above
+ * (all extruded lines, walls, polygons, all combined).
+ *
+ * Then intersect these two things.   For every 'hole', we 'simplify'
+ * the line through the hole, reducing curves to a few points.
+ *
+ * Then figure out extra infill_lines to add to support all points
+ * that lie within a hole.  The extra lines will always be straight
+ * and will always go between existing infill lines.
+ *
+ * Results get added to infill_lines.
+ */
+void addExtraLinesToSupportSurfacesAbove(
+    OpenLinesSet& infill_lines,
+    const Shape& infill_polygons,
+    const std::vector<std::vector<VariableWidthLines>>& wall_tool_paths,
+    const SliceLayerPart& part,
+    coord_t infill_line_width,
+    const LayerPlan& gcode_layer,
+    const SliceMeshStorage& mesh)
+{
+    // Where needs support?
+
+    const auto enabled = mesh.settings.get<EExtraInfillLinesToSupportSkins>("extra_infill_lines_to_support_skins");
+    if (enabled == EExtraInfillLinesToSupportSkins::NONE)
+    {
+        return;
+    }
+
+    const size_t skin_layer_nr = gcode_layer.getLayerNr() + 1 + mesh.settings.get<size_t>("skin_edge_support_layers");
+    if (skin_layer_nr >= mesh.layers.size())
+    {
+        return;
+    }
+
+    OpenLinesSet printed_lines_on_layer_above;
+    for (const SliceLayerPart& part_i : mesh.layers[skin_layer_nr].parts)
+    {
+        for (const SkinPart& skin_part : part_i.skin_parts)
+        {
+            OpenLinesSet skin_lines;
+            Shape skin_polygons;
+            std::vector<VariableWidthLines> skin_paths;
+
+            AngleDegrees skin_angle = 45;
+            if (mesh.skin_angles.size() > 0)
+            {
+                skin_angle = mesh.skin_angles.at(skin_layer_nr % mesh.skin_angles.size());
+            }
+
+            // Approximation of the skin.
+            Infill infill_comp(
+                mesh.settings.get<EFillMethod>("top_bottom_pattern"),
+                false,
+                false,
+                skin_part.outline,
+                infill_line_width,
+                infill_line_width,
+                0,
+                1,
+                skin_angle,
+                0,
+                0,
+                0,
+                0,
+                mesh.settings.get<size_t>("skin_outline_count"),
+                0,
+                {},
+                false);
+            infill_comp.generate(skin_paths, skin_polygons, skin_lines, mesh.settings, 0, SectionType::SKIN);
+
+            wall_tool_paths2lines({ skin_paths }, printed_lines_on_layer_above);
+            if (enabled == EExtraInfillLinesToSupportSkins::WALLS_AND_LINES)
+            {
+                for (const Polygon& poly : skin_polygons)
+                {
+                    printed_lines_on_layer_above.push_back(poly.toPseudoOpenPolyline());
+                }
+                printed_lines_on_layer_above.push_back(skin_lines);
+            }
+        }
+    }
+
+    /* move all points "inwards" by line_width to ensure a good overlap.
+     * Eg.     Old Point                New Point
+     *              |                       |
+     *              |                      X|
+     *       -------X               ---------
+     */
+    for (OpenPolyline& poly : printed_lines_on_layer_above)
+    {
+        OpenPolyline copy = poly;
+        auto orig_it = poly.begin();
+        for (auto it = copy.begin(); it != copy.end(); ++it, ++orig_it)
+        {
+            if (it > copy.begin())
+            {
+                *orig_it += normal(*(it - 1) - *(it), infill_line_width / 2);
+            }
+            if (it < copy.end() - 1)
+            {
+                *orig_it += normal(*(it + 1) - *(it), infill_line_width / 2);
+            }
+        }
+    }
+
+    if (printed_lines_on_layer_above.empty())
+    {
+        return;
+    }
+
+    // What shape is the supporting infill?
+    OpenLinesSet support_lines;
+    support_lines.push_back(infill_lines);
+    // The edge of the infill area is also considered supported
+    for (const auto& poly : part.getOwnInfillArea())
+    {
+        support_lines.push_back(poly.toPseudoOpenPolyline());
+    }
+    for (const auto& poly : infill_polygons)
+    {
+        support_lines.push_back(poly.toPseudoOpenPolyline());
+    }
+
+    // Infill walls can support the layer above
+    wall_tool_paths2lines(wall_tool_paths, support_lines);
+
+    // Turn the lines into a giant shape.
+    Shape supported_area = support_lines.offset(infill_line_width / 2);
+    if (supported_area.empty())
+    {
+        return;
+    }
+
+    // invert the supported_area by adding one huge polygon around the outside
+    supported_area.push_back(AABB{ supported_area }.toPolygon());
+
+    const Shape& inv_supported_area = supported_area.intersection(part.getOwnInfillArea());
+
+    OpenLinesSet unsupported_line_segments = inv_supported_area.intersection(printed_lines_on_layer_above);
+
+    // This is to work around a rounding issue in the shape library with border points.
+    const Shape& expanded_inv_supported_area = inv_supported_area.offset(-EPSILON);
+
+    Simplify s{ MM2INT(1000), // max() doesnt work here, so just pick a big number.
+                infill_line_width,
+                std::numeric_limits<coord_t>::max() };
+    // map each point into its area
+    std::map<size_t, PointsSet> map;
+
+    for (const OpenPolyline& a : unsupported_line_segments)
+    {
+        const OpenPolyline& simplified = s.polyline(a);
+        for (const Point2LL& point : simplified)
+        {
+            size_t idx = expanded_inv_supported_area.findInside(point);
+            if (idx == NO_INDEX)
+            {
+                continue;
+            }
+
+            map[idx].push_back(point);
+        }
+    }
+
+    for (const auto& pair : map)
+    {
+        const Polygon& area = expanded_inv_supported_area[pair.first];
+        const PointsSet& points = pair.second;
+
+        OpenLinesSet result_lines;
+        getBestAngledLinesToSupportPoints(result_lines, Shape(area).offset(infill_line_width / 2 + EPSILON), points, infill_line_width);
+
+        for (const auto& line : part.getOwnInfillArea().intersection(result_lines))
+        {
+            integrateSupportingLine(infill_lines, line);
+        }
+    }
 }
 
 bool FffGcodeWriter::processSingleLayerInfill(
@@ -2236,6 +2618,16 @@ bool FffGcodeWriter::processSingleLayerInfill(
     }
 
     wall_tool_paths.emplace_back(part.infill_wall_toolpaths); // The extra infill walls were generated separately. Add these too.
+
+    if (mesh.settings.get<coord_t>("wall_line_count") // Disable feature if no walls - it can leave dangling lines at edges
+        && pattern != EFillMethod::LIGHTNING // Lightning doesn't make enclosed regions
+        && pattern != EFillMethod::CONCENTRIC // Doesn't handle 'holes' in infill lines very well
+        && pattern != EFillMethod::CROSS // Ditto
+        && pattern != EFillMethod::CROSS_3D) // Ditto
+    {
+        addExtraLinesToSupportSurfacesAbove(infill_lines, infill_polygons, wall_tool_paths, part, infill_line_width, gcode_layer, mesh);
+    }
+
     const bool walls_generated = std::any_of(
         wall_tool_paths.cbegin(),
         wall_tool_paths.cend(),
@@ -2536,27 +2928,25 @@ bool FffGcodeWriter::processInsets(
     bool spiralize = false;
     if (Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
     {
-        const size_t initial_bottom_layers = mesh.settings.get<size_t>("initial_bottom_layers");
-        const int layer_nr = gcode_layer.getLayerNr();
-        if ((layer_nr < static_cast<LayerIndex>(initial_bottom_layers)
-             && part.wall_toolpaths.empty()) // The bottom layers in spiralize mode are generated using the variable width paths
-            || (layer_nr >= static_cast<LayerIndex>(initial_bottom_layers) && part.spiral_wall.empty())) // The rest of the layers in spiralize mode are using the spiral wall
+        const auto initial_bottom_layers = LayerIndex(mesh.settings.get<size_t>("initial_bottom_layers"));
+        const auto layer_nr = gcode_layer.getLayerNr();
+        if ((layer_nr < initial_bottom_layers && part.wall_toolpaths.empty()) // The bottom layers in spiralize mode are generated using the variable width paths
+            || (layer_nr >= initial_bottom_layers && part.spiral_wall.empty())) // The rest of the layers in spiralize mode are using the spiral wall
         {
             // nothing to do
             return false;
         }
-        if (gcode_layer.getLayerNr() >= static_cast<LayerIndex>(initial_bottom_layers))
+        if (gcode_layer.getLayerNr() >= initial_bottom_layers)
         {
             spiralize = true;
         }
-        if (spiralize && gcode_layer.getLayerNr() == static_cast<LayerIndex>(initial_bottom_layers)
-            && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)
+        if (spiralize && gcode_layer.getLayerNr() == initial_bottom_layers && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)
         { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
             added_something = true;
             gcode_layer.setIsInside(true); // going to print stuff inside print object
             // start this first wall at the same vertex the spiral starts
             const Polygon& spiral_inset = part.spiral_wall[0];
-            const size_t spiral_start_vertex = storage.spiralize_seam_vertex_indices[initial_bottom_layers];
+            const size_t spiral_start_vertex = storage.spiralize_seam_vertex_indices[static_cast<size_t>(initial_bottom_layers.value)];
             if (spiral_start_vertex < spiral_inset.size())
             {
                 gcode_layer.addTravel(spiral_inset[spiral_start_vertex]);
