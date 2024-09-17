@@ -365,7 +365,7 @@ const Shape& TreeModelVolumes::getCollision(coord_t radius, LayerIndex layer_idx
     RadiusLayerPair key{ radius, layer_idx };
 
     {
-        std::lock_guard<std::mutex> critical_section_support_max_layer_nr(*critical_avoidance_cache_);
+        std::lock_guard<std::mutex> critical_critical_collision_cache_(*critical_collision_cache_);
         result = getArea(collision_cache_, key);
     }
     if (result)
@@ -376,7 +376,11 @@ const Shape& TreeModelVolumes::getCollision(coord_t radius, LayerIndex layer_idx
     {
         spdlog::warn("Had to calculate collision at radius {} and layer {}, but precalculate was called. Performance may suffer!", key.first, key.second);
     }
-    calculateCollision(key);
+
+    {
+        std::lock_guard<std::mutex> critical_section(*getLockForCalculation(radius, CalculationType::COLLISION));
+        calculateCollision(key);
+    }
     return getCollision(orig_radius, layer_idx, min_xy_dist);
 }
 
@@ -406,7 +410,10 @@ const Shape& TreeModelVolumes::getCollisionHolefree(coord_t radius, LayerIndex l
     {
         spdlog::warn("Had to calculate collision holefree at radius {} and layer {}, but precalculate was called. Performance may suffer!", key.first, key.second);
     }
-    calculateCollisionHolefree(key);
+    {
+        std::lock_guard<std::mutex> critical_section(*getLockForCalculation(radius, CalculationType::COLLISION_HOLEFREE));
+        calculateCollisionHolefree(key);
+    }
     return getCollisionHolefree(orig_radius, layer_idx, min_xy_dist);
 }
 
@@ -419,7 +426,10 @@ const Shape& TreeModelVolumes::getAccumulatedPlaceable0(LayerIndex layer_idx)
             return accumulated_placeables_cache_radius_0_[layer_idx];
         }
     }
-    calculateAccumulatedPlaceable0(layer_idx);
+    {
+        std::lock_guard<std::mutex> critical_section(*getLockForCalculation(0, CalculationType::PLACEABLE_ACCUMULATED));
+        calculateAccumulatedPlaceable0(layer_idx);
+    }
     return getAccumulatedPlaceable0(layer_idx);
 }
 
@@ -496,23 +506,22 @@ const Shape& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_idx
 
     if (orig_radius == 0)
     {
-        // calculateFake0Avoidances may case a regular avoidance calculation using getAvoidance if used lazy. To prevent issues using a recursive_mutex here.
-        std::lock_guard<std::recursive_mutex> critical_section(*critical_calculation_);
+        std::lock_guard<std::mutex> critical_section(*getLockForCalculation(radius, CalculationType::AVOIDANCE_0));
         calculateFake0Avoidances(layer_idx);
     }
     else if (type == AvoidanceType::COLLISION)
     {
-        std::lock_guard<std::recursive_mutex> critical_section(*critical_calculation_);
+        std::lock_guard<std::mutex> critical_section(*getLockForCalculation(radius, CalculationType::AVOIDANCE_COLLISION));
         calculateCollisionAvoidance(key);
     }
     else if (to_model)
     {
-        std::lock_guard<std::recursive_mutex> critical_section(*critical_calculation_);
+        std::lock_guard<std::mutex> critical_section(*getLockForCalculation(radius, CalculationType::AVOIDANCE_TO_MODEL));
         calculateAvoidanceToModel(key);
     }
     else
     {
-        std::lock_guard<std::recursive_mutex> critical_section(*critical_calculation_);
+        std::lock_guard<std::mutex> critical_section(*getLockForCalculation(radius, CalculationType::AVOIDANCE));
         calculateAvoidance(key);
     }
     return getAvoidance(orig_radius, layer_idx, type, to_model, min_xy_dist); // retrive failed and correct result was calculated. Now it has to be retrived.
@@ -524,7 +533,6 @@ const Shape& TreeModelVolumes::getPlaceableAreas(coord_t radius, LayerIndex laye
     const coord_t orig_radius = radius;
     radius = ceilRadius(radius);
     RadiusLayerPair key{ radius, layer_idx };
-
     {
         std::lock_guard<std::mutex> critical_section(*critical_placeable_areas_cache_);
         result = getArea(placeable_areas_cache_, key);
@@ -539,11 +547,13 @@ const Shape& TreeModelVolumes::getPlaceableAreas(coord_t radius, LayerIndex laye
     }
     if (radius != 0)
     {
+        std::lock_guard<std::mutex> critical_section(*getLockForCalculation(radius, CalculationType::PLACEABLE));
         calculatePlaceables(key);
     }
     else
     {
-        getCollision(0, layer_idx, true);
+        std::lock_guard<std::mutex> critical_section(*getLockForCalculation(radius, CalculationType::COLLISION));
+        calculateCollision(key);
     }
     return getPlaceableAreas(orig_radius, layer_idx);
 }
@@ -578,7 +588,10 @@ const Shape& TreeModelVolumes::getWallRestriction(coord_t radius, LayerIndex lay
         spdlog::warn("Had to calculate Wall restrictions at radius {} and layer {}, but precalculate was called. Performance may suffer!", key.first, key.second);
     }
 
-    calculateWallRestrictions(key);
+    {
+        std::lock_guard<std::mutex> critical_section(*getLockForCalculation(radius, CalculationType::WALL_RESTRICTION));
+        calculateWallRestrictions(key);
+    }
     return getWallRestriction(orig_radius, layer_idx, min_xy_dist); // Retrieve failed and correct result was calculated. Now it has to be retrieved.
 }
 
@@ -897,18 +910,26 @@ void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& key
                 const coord_t xy_distance = outline_idx == current_outline_idx_ ? current_min_xy_dist_ : layer_outlines_[outline_idx].first.get<coord_t>("support_xy_distance");
                 // Technically this causes collision for the normal xy_distance to be larger by current_min_xy_dist_delta for all not currently processing meshes as this delta will
                 // be added at request time. Avoiding this would require saving each collision for each outline_idx separately,
-                //   and later for each avoidance... But avoidance calculation has to be for the whole scene and can NOT be done for each outline_idx separately and combined later.
+                // and later for each avoidance... But avoidance calculation has to be for the whole scene and can NOT be done for each outline_idx separately and combined later.
                 // So avoiding this inaccuracy seems infeasible as it would require 2x the avoidance calculations => 0.5x the performance.
                 coord_t min_layer_bottom;
+                coord_t min_layer_insert;
                 {
                     std::lock_guard<std::mutex> critical_section(*critical_collision_cache_);
-                    min_layer_bottom = getMaxCalculatedLayer(radius, collision_cache_) - z_distance_bottom_layers;
+                    min_layer_insert = getMaxCalculatedLayer(radius, collision_cache_) + 1;
+                    min_layer_bottom = min_layer_insert - z_distance_bottom_layers;
                 }
 
                 if (min_layer_bottom < 0)
                 {
                     min_layer_bottom = 0;
                 }
+
+                if (max_required_layer < min_layer_bottom)
+                {
+                    continue;
+                }
+
                 for (const auto layer_idx : ranges::views::iota(min_layer_bottom, max_required_layer + 1))
                 {
                     key.second = layer_idx;
@@ -984,9 +1005,15 @@ void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& key
                     data[key] = data[key].unionPolygons(max_anti_overhang_layer >= layer_idx ? anti_overhang_[layer_idx].offset(radius) : Shape());
                 }
 
-                for (const auto layer_idx : ranges::views::iota(static_cast<size_t>(keys[i].second) + 1UL, max_required_layer + 1UL) | ranges::views::reverse)
+                for (const auto layer_idx : ranges::views::iota(static_cast<size_t>(keys[i].second) + 1UL, max_required_layer + 1UL))
                 {
                     data.erase(RadiusLayerPair(radius, layer_idx)); // all these dont have the correct z_distance_top_layers as they can still have areas above them
+                }
+                for (const auto layer_idx : ranges::views::iota(min_layer_bottom, min_layer_insert))
+                {
+                    // Those were already inserted
+                    data.erase(RadiusLayerPair(radius, layer_idx));
+                    data_placeable.erase(RadiusLayerPair(radius, layer_idx));
                 }
 
                 for (auto pair : data)
@@ -1016,13 +1043,39 @@ void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& key
 
             {
                 std::lock_guard<std::mutex> critical_section(*critical_collision_cache_);
-                collision_cache_.insert(data_outer.begin(), data_outer.end());
+                bool added_requested = false;
+                for (const std::pair<RadiusLayerPair, Shape>& ins_elem : data_outer)
+                {
+                    added_requested |= ins_elem.first.second == keys[i].second;
+                    if (collision_cache_.contains(ins_elem.first))
+                    {
+                        spdlog::warn("Recalculated collision for {} on layer {}", ins_elem.first.first, ins_elem.first.second);
+                    }
+                    else
+                    {
+                        collision_cache_[ins_elem.first] = ins_elem.second;
+                    }
+                }
+                if (! added_requested && ! collision_cache_.contains(keys[i]))
+                {
+                    printf("ERROR %d, %d\n\n", keys[i].second);
+                }
             }
             if (radius == 0)
             {
                 {
                     std::lock_guard<std::mutex> critical_section(*critical_placeable_areas_cache_);
-                    placeable_areas_cache_.insert(data_placeable_outer.begin(), data_placeable_outer.end());
+                    for (const std::pair<RadiusLayerPair, Shape>& ins_elem : data_placeable_outer)
+                    {
+                        if (placeable_areas_cache_.contains(ins_elem.first))
+                        {
+                            spdlog::warn("Recalculated placeable radius 0 for {} on layer {}", ins_elem.first.first, ins_elem.first.second);
+                        }
+                        else
+                        {
+                            placeable_areas_cache_[ins_elem.first] = ins_elem.second;
+                        }
+                    }
                 }
             }
         });
@@ -1030,20 +1083,33 @@ void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& key
 
 void TreeModelVolumes::calculateCollisionHolefree(const std::deque<RadiusLayerPair>& keys)
 {
+    std::vector<LayerIndex> min_layer_per_key(keys.size());
+    LayerIndex min_layer = 0;
     LayerIndex max_layer = 0;
     for (long long unsigned int i = 0; i < keys.size(); i++)
     {
         max_layer = std::max(max_layer, keys[i].second);
+        LayerIndex start_layer;
+        {
+            std::lock_guard<std::mutex> critical_section(*critical_collision_cache_holefree_);
+            start_layer = 1 + getMaxCalculatedLayer(keys[i].first, collision_cache_holefree_);
+        }
+        min_layer = std::max(min_layer, start_layer);
+        min_layer_per_key[i] = start_layer;
     }
 
     cura::parallel_for<coord_t>(
-        0,
+        min_layer,
         LayerIndex(max_layer + 1),
         [&](const LayerIndex layer_idx)
         {
             std::unordered_map<RadiusLayerPair, Shape> data;
-            for (RadiusLayerPair key : keys)
+            for (auto [key_idx, key] : keys | ranges::views::enumerate)
             {
+                if (layer_idx < min_layer_per_key[key_idx])
+                {
+                    continue;
+                }
                 // Logically increase the collision by increase_until_radius
                 const coord_t radius = key.first;
                 const coord_t increase_radius_ceil = ceilRadius(increase_until_radius_, false) - ceilRadius(radius, true);
@@ -1055,7 +1121,17 @@ void TreeModelVolumes::calculateCollisionHolefree(const std::deque<RadiusLayerPa
 
             {
                 std::lock_guard<std::mutex> critical_section(*critical_collision_cache_holefree_);
-                collision_cache_holefree_.insert(data.begin(), data.end());
+                for (const std::pair<RadiusLayerPair, Shape>& ins_elem : data)
+                {
+                    if (collision_cache_holefree_.contains(ins_elem.first))
+                    {
+                        spdlog::warn("Recalculated collision holefree for {} on layer {}", ins_elem.first.first, ins_elem.first.second);
+                    }
+                    else
+                    {
+                        collision_cache_holefree_[ins_elem.first] = ins_elem.second;
+                    }
+                }
             }
         });
 }
@@ -1101,7 +1177,17 @@ void TreeModelVolumes::calculateAccumulatedPlaceable0(const LayerIndex max_layer
         });
     {
         std::lock_guard<std::mutex> critical_section(*critical_accumulated_placeables_cache_radius_0_);
-        accumulated_placeables_cache_radius_0_.insert(data.begin(), data.end());
+        for (const std::pair<LayerIndex, Shape>& ins_elem : data)
+        {
+            if (accumulated_placeables_cache_radius_0_.contains(ins_elem.first))
+            {
+                spdlog::warn("Recalculated accumulated_placeables_cache_radius_0_ on layer {}", ins_elem.first);
+            }
+            else
+            {
+                accumulated_placeables_cache_radius_0_[ins_elem.first] = ins_elem.second;
+            }
+        }
     }
 }
 
@@ -1151,7 +1237,17 @@ void TreeModelVolumes::calculateCollisionAvoidance(const std::deque<RadiusLayerP
 
             {
                 std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_collision_);
-                avoidance_cache_collision_.insert(data.begin(), data.end());
+                for (const std::pair<RadiusLayerPair, Shape>& ins_elem : data)
+                {
+                    if (avoidance_cache_collision_.contains(ins_elem.first))
+                    {
+                        spdlog::warn("Recalculated collision avoidance for {} on layer {}", ins_elem.first.first, ins_elem.first.second);
+                    }
+                    else
+                    {
+                        avoidance_cache_collision_[ins_elem.first] = ins_elem.second;
+                    }
+                }
             }
         });
 }
@@ -1257,7 +1353,23 @@ void TreeModelVolumes::calculateAvoidance(const std::deque<RadiusLayerPair>& key
 
             {
                 std::lock_guard<std::mutex> critical_section(*(slow ? critical_avoidance_cache_slow_ : holefree ? critical_avoidance_cache_holefree_ : critical_avoidance_cache_));
-                (slow ? avoidance_cache_slow_ : holefree ? avoidance_cache_hole_ : avoidance_cache_).insert(data.begin(), data.end());
+                auto* cache = &(slow ? avoidance_cache_slow_ : holefree ? avoidance_cache_hole_ : avoidance_cache_);
+                for (const std::pair<RadiusLayerPair, Shape>& ins_elem : data)
+                {
+                    if (ins_elem.first.second == -1)
+                    {
+                        // Layer was not calculated
+                        continue;
+                    }
+                    if (cache->contains(ins_elem.first))
+                    {
+                        spdlog::warn("Recalculated avoidance for {} on layer {} Slow:{} holefree:{}", ins_elem.first.first, ins_elem.first.second, slow, holefree);
+                    }
+                    else
+                    {
+                        (*cache)[ins_elem.first] = ins_elem.second;
+                    }
+                }
             }
         });
 }
@@ -1266,6 +1378,7 @@ void TreeModelVolumes::calculatePlaceables(const std::deque<RadiusLayerPair>& ke
 {
     // TODO: This should be a parallel for nowait (non-blocking), but as the parallel-for situation (as in, proper compiler support) continues to change, we're using the 'normal'
     // one right now.
+
     cura::parallel_for<size_t>(
         0,
         keys.size(),
@@ -1314,7 +1427,22 @@ void TreeModelVolumes::calculatePlaceables(const std::deque<RadiusLayerPair>& ke
 
             {
                 std::lock_guard<std::mutex> critical_section(*critical_placeable_areas_cache_);
-                placeable_areas_cache_.insert(data.begin(), data.end());
+                for (const std::pair<RadiusLayerPair, Shape>& ins_elem : data)
+                {
+                    if (ins_elem.first.second == -1)
+                    {
+                        // Layer was not calculated
+                        continue;
+                    }
+                    if (placeable_areas_cache_.contains(ins_elem.first))
+                    {
+                        spdlog::warn("Recalculated placeables for {} on layer {}", ins_elem.first.first, ins_elem.first.second);
+                    }
+                    else
+                    {
+                        placeable_areas_cache_[ins_elem.first] = ins_elem.second;
+                    }
+                }
             }
         });
 }
@@ -1409,7 +1537,23 @@ void TreeModelVolumes::calculateAvoidanceToModel(const std::deque<RadiusLayerPai
                     *(slow       ? critical_avoidance_cache_to_model_slow_
                       : holefree ? critical_avoidance_cache_holefree_to_model_
                                  : critical_avoidance_cache_to_model_));
-                (slow ? avoidance_cache_to_model_slow_ : holefree ? avoidance_cache_hole_to_model_ : avoidance_cache_to_model_).insert(data.begin(), data.end());
+                auto* cache = &(slow ? avoidance_cache_to_model_slow_ : holefree ? avoidance_cache_hole_to_model_ : avoidance_cache_to_model_);
+                for (const std::pair<RadiusLayerPair, Shape>& ins_elem : data)
+                {
+                    if (ins_elem.first.second == -1)
+                    {
+                        // Layer was not calculated
+                        continue;
+                    }
+                    if (cache->contains(ins_elem.first))
+                    {
+                        spdlog::warn("Recalculated avoidance to model for {} on layer {} Slow:{} holefree:{}", ins_elem.first.first, ins_elem.first.second, slow, holefree);
+                    }
+                    else
+                    {
+                        (*cache)[ins_elem.first] = ins_elem.second;
+                    }
+                }
             }
         });
 }
@@ -1420,16 +1564,6 @@ void TreeModelVolumes::calculateFake0Avoidances(const LayerIndex max_layer)
     {
         std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_);
         start_layer = 1 + getMaxCalculatedLayer(0, avoidance_cache_);
-    }
-    // Ensure all avoidances are calculated
-    if (! precalculated_)
-    {
-        getAvoidance(1, max_layer, AvoidanceType::SLOW, false, true);
-        getAvoidance(1, max_layer, AvoidanceType::FAST, false, true);
-        getAvoidance(1, max_layer, AvoidanceType::FAST_SAFE, false, true);
-        getAvoidance(1, max_layer, AvoidanceType::SLOW, true, true);
-        getAvoidance(1, max_layer, AvoidanceType::FAST, true, true);
-        getAvoidance(1, max_layer, AvoidanceType::FAST_SAFE, true, true);
     }
     const coord_t radius_offset = -radius_0_;
     cura::parallel_for<size_t>(
@@ -1445,15 +1579,36 @@ void TreeModelVolumes::calculateFake0Avoidances(const LayerIndex max_layer)
                 Shape smaller_avoidance_fast_safe = getAvoidance(1, layer_idx, AvoidanceType::FAST_SAFE, false, true).offset(radius_offset, ClipperLib::jtRound);
                 {
                     std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_slow_);
-                    avoidance_cache_slow_[key] = smaller_avoidance_slow;
+                    if (avoidance_cache_slow_.contains(key))
+                    {
+                        spdlog::warn("Recalculated fake 0 avoidance slow for {} on layer {}", key.first, key.second);
+                    }
+                    else
+                    {
+                        avoidance_cache_slow_[key] = smaller_avoidance_slow;
+                    }
                 }
                 {
                     std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_);
-                    avoidance_cache_[key] = smaller_avoidance_fast;
+                    if (avoidance_cache_.contains(key))
+                    {
+                        spdlog::warn("Recalculated fake 0 avoidance for {} on layer {}", key.first, key.second);
+                    }
+                    else
+                    {
+                        avoidance_cache_[key] = smaller_avoidance_fast;
+                    }
                 }
                 {
                     std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_holefree_);
-                    avoidance_cache_hole_[key] = smaller_avoidance_fast_safe;
+                    if (avoidance_cache_hole_.contains(key))
+                    {
+                        spdlog::warn("Recalculated fake 0 avoidance holefree for {} on layer {}", key.first, key.second);
+                    }
+                    else
+                    {
+                        avoidance_cache_hole_[key] = smaller_avoidance_fast_safe;
+                    }
                 }
             }
 
@@ -1465,21 +1620,49 @@ void TreeModelVolumes::calculateFake0Avoidances(const LayerIndex max_layer)
 
                 {
                     std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_to_model_slow_);
-                    avoidance_cache_to_model_slow_[key] = smaller_avoidance_to_model_slow;
+                    if (avoidance_cache_to_model_slow_.contains(key))
+                    {
+                        spdlog::warn("Recalculated fake 0 avoidance to model slow for {} on layer {}", key.first, key.second);
+                    }
+                    else
+                    {
+                        avoidance_cache_to_model_slow_[key] = smaller_avoidance_to_model_slow;
+                    }
                 }
                 {
                     std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_to_model_);
-                    avoidance_cache_to_model_[key] = smaller_avoidance_to_model_fast;
+                    if (avoidance_cache_to_model_.contains(key))
+                    {
+                        spdlog::warn("Recalculated fake 0 avoidance to model for {} on layer {}", key.first, key.second);
+                    }
+                    else
+                    {
+                        avoidance_cache_to_model_[key] = smaller_avoidance_to_model_fast;
+                    }
                 }
                 {
                     std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_holefree_to_model_);
-                    avoidance_cache_hole_to_model_[key] = smaller_avoidance_to_model_fast_safe;
+                    if (avoidance_cache_hole_to_model_.contains(key))
+                    {
+                        spdlog::warn("Recalculated fake 0 avoidance to model holefree for {} on layer {}", key.first, key.second);
+                    }
+                    else
+                    {
+                        avoidance_cache_hole_to_model_[key] = smaller_avoidance_to_model_fast_safe;
+                    }
                 }
                 if (layer_idx > max_layer_idx_without_blocker_)
                 {
                     Shape smaller_avoidance_collision = getAvoidance(1, layer_idx, AvoidanceType::COLLISION, true, true).offset(radius_offset, ClipperLib::jtRound);
                     std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_collision_);
-                    avoidance_cache_collision_[key] = smaller_avoidance_collision;
+                    if (avoidance_cache_collision_.contains(key))
+                    {
+                        spdlog::warn("Recalculated fake 0 collision avoidance for {} on layer {}", key.first, key.second);
+                    }
+                    else
+                    {
+                        avoidance_cache_collision_[key] = smaller_avoidance_collision;
+                    }
                 }
             }
         });
@@ -1562,12 +1745,32 @@ void TreeModelVolumes::calculateWallRestrictions(const std::deque<RadiusLayerPai
 
             {
                 std::lock_guard<std::mutex> critical_section(*critical_wall_restrictions_cache_);
-                wall_restrictions_cache_.insert(data.begin(), data.end());
+                for (const std::pair<RadiusLayerPair, Shape>& ins_elem : data)
+                {
+                    if (wall_restrictions_cache_.contains(ins_elem.first))
+                    {
+                        spdlog::warn("Recalculated wall restriction for {} on layer {}", ins_elem.first.first, ins_elem.first.second);
+                    }
+                    else
+                    {
+                        wall_restrictions_cache_[ins_elem.first] = ins_elem.second;
+                    }
+                }
             }
 
             {
                 std::lock_guard<std::mutex> critical_section(*critical_wall_restrictions_cache_min_);
-                wall_restrictions_cache_min_.insert(data_min.begin(), data_min.end());
+                for (const std::pair<RadiusLayerPair, Shape>& ins_elem : data)
+                {
+                    if (wall_restrictions_cache_min_.contains(ins_elem.first))
+                    {
+                        spdlog::warn("Recalculated wall restriction min for {} on layer {}", ins_elem.first.first, ins_elem.first.second);
+                    }
+                    else
+                    {
+                        wall_restrictions_cache_min_[ins_elem.first] = ins_elem.second;
+                    }
+                }
             }
         });
 }

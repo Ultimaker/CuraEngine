@@ -589,7 +589,31 @@ private:
     mutable std::unordered_map<RadiusLayerPair, Shape> anti_preferred_cache_collision;
     std::unique_ptr<std::mutex> critical_anti_preferred_caches = std::make_unique<std::mutex>();
 
-    std::unique_ptr<std::recursive_mutex> critical_calculation_ = std::make_unique<std::recursive_mutex>();
+    enum class CalculationType
+    {
+        AVOIDANCE,
+        AVOIDANCE_0,
+        AVOIDANCE_TO_MODEL,
+        AVOIDANCE_COLLISION,
+        COLLISION,
+        COLLISION_HOLEFREE,
+        PLACEABLE,
+        PLACEABLE_ACCUMULATED,
+        WALL_RESTRICTION
+    };
+    std::unique_ptr<std::mutex> critical_calculation_request_ = std::make_unique<std::mutex>();
+    std::unordered_map<std::pair<coord_t, CalculationType>, std::shared_ptr<std::mutex>> critical_calculation_map_;
+
+    std::shared_ptr<std::mutex> getLockForCalculation(coord_t radius, CalculationType type)
+    {
+        std::lock_guard<std::mutex> critical_section(*critical_calculation_request_);
+        std::pair<coord_t, CalculationType> key(radius, type);
+        if (! critical_calculation_map_.contains(key))
+        {
+            critical_calculation_map_[key] = std::make_shared<std::mutex>();
+        }
+        return critical_calculation_map_[key];
+    }
 
     std::unique_ptr<std::mutex> critical_progress_ = std::make_unique<std::mutex>();
 

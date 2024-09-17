@@ -15,6 +15,18 @@ ThreadPool::ThreadPool(size_t nthreads)
     }
 }
 
+bool ThreadPool::isInPool()
+{
+    for (size_t i = 0; i < threads.size(); i++)
+    {
+        if (threads[i].get_id() == std::this_thread::get_id())
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 void ThreadPool::worker()
 {
     lock_t lock = get_lock();
