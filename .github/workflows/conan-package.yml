@@ -40,68 +40,9 @@ on:
 
 jobs:
 # FIXME: Use main once merged
-  conan-recipe-version:
-    uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml@CURA-11622_conan_v2
+  conan-package:
+    uses: ultimaker/cura-workflows/.github/workflows/conan-package.yml@CURA-11622_conan_v2
     with:
       project_name: curaengine
-
-# FIXME: Use main once merged
-  conan-package-export:
-    needs: [ conan-recipe-version ]
-    uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-export.yml@CURA-11622_conan_v2
-    with:
-      recipe_id_name: ${{ needs.conan-recipe-version.outputs.project_name }}
-      recipe_id_version: ${{ needs.conan-recipe-version.outputs.recipe_semver_full }}
-      recipe_id_user: ${{ needs.conan-recipe-version.outputs.user }}
-      recipe_id_channel: ${{ needs.conan-recipe-version.outputs.channel }}
-      recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
-    secrets: inherit
-
-# FIXME: Use main once merged
-  conan-package-create-macos:
-    needs: [ conan-recipe-version, conan-package-export ]
-
-    if: ${{ ((github.event_name == 'push' && (github.ref_name == 'main' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) || github.event_name == 'pull_request') }}
-    uses: ultimaker/cura-workflows/.github/workflows/conan-package-create-macos.yml@CURA-11622_conan_v2
-    with:
-      recipe_id_name: ${{ needs.conan-recipe-version.outputs.project_name }}
-      recipe_id_version: ${{ needs.conan-recipe-version.outputs.recipe_semver_full }}
-      recipe_id_user: ${{ needs.conan-recipe-version.outputs.user }}
-      recipe_id_channel: ${{ needs.conan-recipe-version.outputs.channel }}
-      recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
-    secrets: inherit
-
-# FIXME: Use main once merged
-  conan-package-create-windows:
-    needs: [ conan-recipe-version, conan-package-export ]
-
-    if: ${{ ((github.event_name == 'push' && (github.ref_name == 'main' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) || github.event_name == 'pull_request') }}
-    uses: ultimaker/cura-workflows/.github/workflows/conan-package-create-windows.yml@CURA-11622_conan_v2
-    with:
-      recipe_id_name: ${{ needs.conan-recipe-version.outputs.project_name }}
-      recipe_id_version: ${{ needs.conan-recipe-version.outputs.recipe_semver_full }}
-      recipe_id_user: ${{ needs.conan-recipe-version.outputs.user }}
-      recipe_id_channel: ${{ needs.conan-recipe-version.outputs.channel }}
-      recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
-    secrets: inherit
-
-# FIXME: Use main once merged
-  conan-package-create-linux:
-    needs: [ conan-recipe-version, conan-package-export ]
-    if: ${{ ((github.event_name == 'push' && (github.ref_name == 'main' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) || github.event_name == 'pull_request') }}
-    uses: ultimaker/cura-workflows/.github/workflows/conan-package-create-linux.yml@CURA-11622_conan_v2
-    with:
-      recipe_id_name: ${{ needs.conan-recipe-version.outputs.project_name }}
-      recipe_id_version: ${{ needs.conan-recipe-version.outputs.recipe_semver_full }}
-      recipe_id_user: ${{ needs.conan-recipe-version.outputs.user }}
-      recipe_id_channel: ${{ needs.conan-recipe-version.outputs.channel }}
-      recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
-    secrets: inherit
-
-  conan-package-create-wasm:
-    needs: [ conan-recipe-version, conan-package-export ]
-    if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) }}
-    uses: ultimaker/cura-workflows/.github/workflows/conan-package-create-wasm.yml@main
-    with:
-      recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
+      platform_wasm: true
     secrets: inherit
