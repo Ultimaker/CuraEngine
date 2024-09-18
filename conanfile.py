@@ -10,7 +10,7 @@ from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
 from conan.tools.scm import Version, Git
 
-required_conan_version = ">=1.58.0"
+required_conan_version = ">=2.7.0"
 
 
 class CuraEngineConan(ConanFile):
@@ -122,7 +122,7 @@ class CuraEngineConan(ConanFile):
                 self.requires(req)
         if self.options.enable_arcus or self.options.enable_plugins:
             self.requires("protobuf/3.21.12")
-        self.requires("clipper/6.4.2@ultimaker/cura_11622")
+        self.requires("clipper/6.4.2@ultimaker/cura_11622") # FIXME: use main after merge
         self.requires("boost/1.83.0")
         self.requires("rapidjson/cci.20230929")
         self.requires("stb/cci.20230920")
@@ -131,7 +131,7 @@ class CuraEngineConan(ConanFile):
         self.requires("range-v3/0.12.0")
         self.requires("zlib/1.3.1")
         self.requires("openssl/3.2.1")
-        self.requires("mapbox-wagyu/0.5.0@ultimaker/cura_11622")
+        self.requires("mapbox-wagyu/0.5.0@ultimaker/cura_11622") # FIXME: use main after merge
 
     def generate(self):
         deps = CMakeDeps(self)
