@@ -82,6 +82,8 @@ public:
         }
     }
 
+    bool isInPool();
+
 private:
     void worker();
 
@@ -130,9 +132,27 @@ void parallel_for(T first, T last, F&& loop_body, size_t chunk_size_factor = 1, 
     {
         return;
     }
+
+    // No need to move the work to another thread if there is only work for one thread.
+    if (dist <= 1)
+    {
+        loop_body(first);
+        return;
+    }
+    ThreadPool* const thread_pool = Application::getInstance().thread_pool_;
+
+    // This implementation does not really play nice if called nested, so lets not do that.
+    if (thread_pool->isInPool())
+    {
+        for (T val = first; val < last; val++)
+        {
+            loop_body(val);
+        }
+        return;
+    }
+
     const size_t nitems = dist;
 
-    ThreadPool* const thread_pool = Application::getInstance().thread_pool_;
     assert(thread_pool);
     const size_t nworkers = thread_pool->thread_count() + 1; // One task per std::thread + 1 for main thread
 

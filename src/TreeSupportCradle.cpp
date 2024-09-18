@@ -1803,7 +1803,6 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
 
                         for (auto roof_area_pair : roofs)
                         {
-                            Shape roof_area_before = roof_area_pair.first;
                             Shape full_overhang_area = TreeSupportUtils::safeOffsetInc(
                                 roof_area_pair.first,
                                 roof_outset,
@@ -1813,6 +1812,7 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                                 1,
                                 support_line_width,
                                 &simplifyer);
+                            Shape roof_area_before = full_overhang_area;
                             for (LayerIndex dtt_roof = 0; dtt_roof <= support_roof_layers && layer_idx - dtt_roof >= 1; dtt_roof++)
                             {
                                 const Shape forbidden_next = volumes_.getAvoidance(

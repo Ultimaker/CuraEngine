@@ -989,6 +989,7 @@ void AreaSupport::generateCradlesForMesh(SliceDataStorage& storage, size_t mesh_
 {
     SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const bool is_support_mesh_place_holder = mesh.settings.get<bool>("support_mesh");
     const coord_t support_line_width = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings_.get<coord_t>("support_line_width");
     const coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
     const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
@@ -997,6 +998,12 @@ void AreaSupport::generateCradlesForMesh(SliceDataStorage& storage, size_t mesh_
     const coord_t support_roof_line_width = mesh.settings.get<coord_t>("support_roof_line_width");
     const size_t support_wall_count = mesh.settings.get<int>("support_wall_count");
     const bool fractional_support_present = z_distance_top % layer_thickness != 0;
+
+    const ESupportStructure support_structure = mesh.settings.get<ESupportStructure>("support_structure");
+    if ((! mesh.settings.get<bool>("support_enable") || support_structure != ESupportStructure::NORMAL) && ! is_support_mesh_place_holder)
+    {
+        return;
+    }
 
     TreeModelVolumes volumes = TreeModelVolumes(
         storage,
@@ -1039,14 +1046,19 @@ void AreaSupport::generateCradlesForMesh(SliceDataStorage& storage, size_t mesh_
             for (size_t cradle_idx = 0; cradle_idx < cradle_data_mesh[layer_idx].size(); cradle_idx++)
             {
                 TreeSupportCradle* cradle = cradle_data_mesh[layer_idx][cradle_idx];
-                Shape overhang_outer_area;
                 for (auto overhang_pair : cradle->overhang_)
                 {
+                    if(overhang_pair.second.empty())
+                    {
+                        continue;
+                    }
+                    Shape overhang_area_regular;
                     Point2LL center = cradle_data_mesh[layer_idx][cradle_idx]->getCenter(layer_idx);
                     Polygon overhang_outer_area_part;
                     bool includes_lines = false;
                     for (OverhangInformation& overhang : overhang_pair.second)
                     {
+                        overhang_area_regular.push_back(overhang.overhang_);
                         if (overhang.isCradleLine())
                         {
                             std::optional<TreeSupportCradleLine*> cradle_line_opt = cradle->getCradleLineOfIndex(overhang.cradle_layer_idx_, overhang.cradle_line_idx_);
@@ -1058,25 +1070,27 @@ void AreaSupport::generateCradlesForMesh(SliceDataStorage& storage, size_t mesh_
                         }
                         else
                         {
-                            overhang_outer_area.push_back(overhang.overhang_);
                             if (fractional_support_present)
                             {
                                 support_layer_storage_fractional[overhang_pair.first + 1].push_back(overhang.overhang_);
                             }
                         }
                     }
-
-                    overhang_outer_area.push_back(overhang_outer_area_part);
-                    overhang_outer_area.makeConvex();
+                    Shape line_support;
+                    line_support.push_back(overhang_outer_area_part);
+                    line_support.makeConvex();
                     if (includes_lines)
                     {
                         bool large_base_roof = cradle->config_->large_cradle_base_ && cradle->config_->cradle_lines_roof_;
-                        coord_t offset_distance = cradle->config_->cradle_line_width_ / 2 + (large_base_roof ? cradle->config_->cradle_support_base_area_radius_ : 0);
-                        overhang_outer_area = overhang_outer_area.offset(offset_distance);
+                        coord_t offset_distance = std::max(cradle->config_->cradle_line_width_ / 2, (large_base_roof ? cradle->config_->cradle_support_base_area_radius_ : 0));
+                        line_support = line_support.offset(offset_distance, ClipperLib::jtRound);
                     }
-                    overhang_outer_area = overhang_outer_area.difference(volumes.getCollision(0, overhang_pair.first, true));
+                    overhang_area_regular = overhang_area_regular.unionPolygons(line_support);
+                    overhang_area_regular = overhang_area_regular.difference(volumes.getCollision(0, overhang_pair.first, true));
+
                     std::lock_guard<std::mutex> critical_section_cradle(critical_cradle_reserved_areas);
-                    cradle_overhang_reserved_areas[overhang_pair.first].push_back(overhang_outer_area);
+                    cradle_overhang_reserved_areas[overhang_pair.first].push_back(overhang_area_regular);
+
                 }
 
                 for (auto [base_idx, base] : cradle_data_mesh[layer_idx][cradle_idx]->base_below_ | ranges::views::enumerate)
