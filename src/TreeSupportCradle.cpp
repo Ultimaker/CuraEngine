@@ -64,14 +64,14 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
     std::unordered_map<UnsupportedAreaInformation*, double> known_deformation_map;
     std::unordered_map<UnsupportedAreaInformation*, coord_t> largest_center_distance_map;
 
-    std::vector<UnsupportedAreaInformation*> iterate_elements;
+    std::unordered_set<UnsupportedAreaInformation*> iterate_elements;
     LayerIndex last_z_stable_layer = 0;
 
     for(LayerIndex iterate_layer_idx = 0; iterate_layer_idx <= layer_idx; iterate_layer_idx++)
     {
-        std::vector<UnsupportedAreaInformation*> next_iterate_elements;
+        std::unordered_set<UnsupportedAreaInformation*> next_iterate_elements;
 
-        iterate_elements.insert(iterate_elements.end(),root_areas[iterate_layer_idx].begin(),root_areas[iterate_layer_idx].end());
+        iterate_elements.insert(root_areas[iterate_layer_idx].begin(),root_areas[iterate_layer_idx].end());
         for(UnsupportedAreaInformation* current_area : iterate_elements)
         {
             double element_deformation = 0;
@@ -113,7 +113,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
             {
                 if(elements_on_path_down.contains(element_above))
                 {
-                    next_iterate_elements.emplace_back(element_above);
+                    next_iterate_elements.emplace(element_above);
                 }
             }
             distance_from_top_below = std::max(distance_from_top_below, (vSize(element->assumed_center - current_area->assumed_center)));
@@ -351,40 +351,43 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
                     }
                     floating_parts_cache_[mesh_idx][layer_idx].emplace_back(area_info);
 
-                    if(layer_idx % 200 == 0 && layer_idx > 20)
+                    if(side_cradle_enabled)
                     {
-                        mfem::Mesh* mfem_mesh = toMfemMeshRasterized(mesh, mesh_idx, area_info);
-                        std::ofstream mesh_ofs(std::to_string(layer_idx) + "gen.mesh");
-                        mesh_ofs.precision(8);
-                        mfem_mesh->Print(mesh_ofs);
-                        runMfemExample(mfem_mesh, std::to_string(layer_idx), part.area()/(1000.0*1000.0*1000.0*1000.0), 0.0005); // Calculation uses meter I think
-                        double estimated_deformation = getTotalDeformation(mesh_idx, mesh, area_info);
-                        printf("My estimation was %lf layer is %d\n",estimated_deformation, layer_idx);
-                    }
-                    /*std::cout << "at " << layer_idx<< ": " << " with part deform " << deform_part << " with constant " << deformation_constant << " deform rad of " << deform_radius << " resulting estimation of " << estimated_deformation
-                              <<std::endl ;*/
-                    LayerIndex last_cradle_at_layer_idx = -1;
-                    for(auto& cradle : cradles_below)
-                    {
-                        last_cradle_at_layer_idx = std::max(last_cradle_at_layer_idx, cradle->layer_idx);
-                    }
-                    if(last_cradle_at_layer_idx != -1 && last_cradle_at_layer_idx < cradle_layers) // Assume any cradle reaches full height. This can be wrong! TODO
-                    {
-                        area_info->total_deformation_limit = EPSILON; //todo do I want to use min cradle xy distance here?
-                    }
-                    else
-                    {
-                        double estimated_deformation = getTotalDeformation(mesh_idx, mesh, area_info);
-                        if(estimated_deformation > side_cradle_support_threshold) // todo additional cradle if it rests on cradle earlier
+
+                        if(layer_idx * layer_height % 50000 == 0 && layer_idx > 20)
                         {
-                            top_most_cradle_layer_ = layer_idx + cradle_layers + 1;
-                            area_info->support_required = CradlePlacementMethod::AUTOMATIC_SIDE;
+                            mfem::Mesh* mfem_mesh = toMfemMeshRasterized(mesh, mesh_idx, area_info);
+                            std::ofstream mesh_ofs(std::to_string(layer_idx) + "gen.mesh");
+                            mesh_ofs.precision(8);
+                            mfem_mesh->Print(mesh_ofs);
+                            runMfemExample(mfem_mesh, std::to_string(layer_idx), part.area()/(1000.0*1000.0*1000.0*1000.0), 0.0005); // Calculation uses meter I think
+                            double estimated_deformation = getTotalDeformation(mesh_idx, mesh, area_info);
+                            printf("My estimation was %lf layer is %d\n",estimated_deformation, layer_idx);
+                        }
+                        /*std::cout << "at " << layer_idx<< ": " << " with part deform " << deform_part << " with constant " << deformation_constant << " deform rad of " << deform_radius << " resulting estimation of " << estimated_deformation
+                                  <<std::endl ;*/
+                        LayerIndex last_cradle_at_layer_idx = -1;
+                        for(auto& cradle : cradles_below)
+                        {
+                            last_cradle_at_layer_idx = std::max(last_cradle_at_layer_idx, cradle->layer_idx);
+                        }
+                        if(last_cradle_at_layer_idx != -1 && last_cradle_at_layer_idx < cradle_layers) // Assume any cradle reaches full height. This can be wrong! TODO
+                        {
                             area_info->total_deformation_limit = EPSILON; //todo do I want to use min cradle xy distance here?
-                            std::cout << "at " << layer_idx<< ": " << " Mark for support "
-                                      <<std::endl ;
+                        }
+                        else
+                        {
+                            double estimated_deformation = getTotalDeformation(mesh_idx, mesh, area_info);
+                            if(estimated_deformation > side_cradle_support_threshold) // todo additional cradle if it rests on cradle earlier
+                            {
+                                top_most_cradle_layer_ = layer_idx + cradle_layers + 1;
+                                area_info->support_required = CradlePlacementMethod::AUTOMATIC_SIDE;
+                                area_info->total_deformation_limit = EPSILON; //todo do I want to use min cradle xy distance here?
+                                std::cout << "at " << layer_idx<< ": " << " Mark for support "
+                                          <<std::endl ;
+                            }
                         }
                     }
-                    floating_parts_cache_[mesh_idx][layer_idx].emplace_back(area_info);
                 }
             });
     }
@@ -544,7 +547,7 @@ mfem::Mesh* SupportCradleGeneration::toMfemMeshRasterized(const SliceMeshStorage
 {
     mfem::Mesh* mfem_mesh = new mfem::Mesh(3,0,0);
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
-    const coord_t simulation_layer_height = layer_height * 5;
+    const coord_t simulation_layer_height = layer_height * 20;
     const size_t layers_per_simulation_step = simulation_layer_height/layer_height;
     const double deformation_constant = retrieveSetting<double>(mesh.settings, "support_tree_part_deformation_constant") / 1000.0;
     coord_t raster_size = 400;
@@ -858,7 +861,7 @@ void SupportCradleGeneration::runMfemExample(mfem::Mesh* mesh, std::string prefi
     // 11. Define a simple symmetric Gauss-Seidel preconditioner and use it to
     //     solve the system Ax=b with PCG.
     mfem::GSSmoother M(A);
-    PCG(A, M, B, X, false, 10000, 1e-8, 0.0);
+    PCG(A, M, B, X, false, 100000, 1e-8, 0.0);
 #else
     // 11. If MFEM was compiled with SuiteSparse, use UMFPACK to solve the system.
     UMFPackSolver umf_solver;
