@@ -7,17 +7,15 @@
 #include <list>
 #include <vector>
 
-#include "ExtruderPlan.h"
-#include "LayerPlan.h"
 #include "Preheat.h"
-#include "gcodeExport.h"
 #include "settings/Settings.h"
 #include "settings/types/Duration.h"
 
 namespace cura
 {
 
-
+class LayerPlan;
+class ExtruderPlan;
 class GCodeExport;
 
 /*!
@@ -211,7 +209,6 @@ private:
      */
     void handleStandbyTemp(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx, double standby_temp);
 };
-
 
 } // namespace cura
 

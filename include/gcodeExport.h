@@ -8,24 +8,25 @@
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //To allow tests to use protected members.
 #endif
+#include <optional>
 #include <sstream> // for stream.str()
 #include <stdio.h>
 
+#include "geometry/Point2LL.h"
 #include "settings/EnumSettings.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Temperature.h" //Bed temperature.
 #include "settings/types/Velocity.h"
-#include "sliceDataStorage.h"
 #include "timeEstimate.h"
 #include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
 #include "utils/NoCopy.h"
-#include "utils/Point2LL.h"
 
 namespace cura
 {
 
 class RetractionConfig;
+class SliceDataStorage;
 struct WipeScriptConfig;
 
 // The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
@@ -89,7 +90,7 @@ private:
 
         double last_e_value_after_wipe_; //!< The current material amount extruded since last wipe
 
-        unsigned fan_number_; // nozzle print cooling fan number
+        size_t fan_number_; // nozzle print cooling fan number
         Point2LL nozzle_offset_; //!< Cache of setting machine_nozzle_offset_[xy]
         bool machine_firmware_retract_; //!< Cache of setting machine_firmware_retract
 
@@ -150,8 +151,8 @@ private:
                           //!< other layer parts)
 
     size_t current_extruder_;
-    double current_fan_speed_;
-    unsigned fan_number_; // current print cooling fan number
+    std::map<size_t, double> current_fans_speeds_; //!< Current fan speed, by fan index. No value means the speed has never been set yet.
+    size_t fans_count_{ 0 };
     EGCodeFlavor flavor_;
 
     std::vector<Duration> total_print_times_; //!< The total estimated print time in seconds for each feature
@@ -266,7 +267,7 @@ public:
      */
     void addExtraPrimeAmount(double extra_prime_volume);
 
-    Point3LL getPosition() const;
+    const Point3LL& getPosition() const;
 
     Point2LL getPositionXY() const;
 
@@ -470,6 +471,15 @@ private:
      */
     void processInitialLayerBedTemperature();
 
+    /*!
+     * Set extruders temperatures for the initial layer. Called by 'processInitialLayerTemperatures'.
+     *
+     * \param storage The slice data storage
+     * \param wait_start_extruder Indicates whether we should always wait for the start extruder temperature to be reached
+     * \param start_extruder_nr The index of the start extruder
+     */
+    void processInitialLayerExtrudersTemperatures(const SliceDataStorage& storage, const bool wait_start_extruder, const size_t start_extruder_nr);
+
 public:
     /*!
      * Get ready for extrusion moves:
@@ -533,15 +543,37 @@ public:
     void writePrimeTrain(const Velocity& travel_speed);
 
     /*!
-     * Set the print cooling fan number (used as P parameter to M10[67]) for the specified extruder
-     *
-     * \param extruder The current extruder
+     * \brief Write a set fan speed command, if different from the actual speed
+     * \param speed The new fan speed, which should be [0.0, 100.0]
+     * \param extruder The extruder for which we want to set the cooling fan speed, or nullopt to use the current extruder
      */
-    void setExtruderFanNumber(int extruder);
+    void writeFanCommand(double speed, std::optional<size_t> extruder = std::nullopt);
 
-    void writeFanCommand(double speed);
+    /*!
+     * \brief Write a set fan speed command for the given fan, if different from the actual speed
+     * \param speed The new fan speed, which should be [0.0, 100.0]
+     * \param fan_number The fan for which we want to set the speed
+     */
+    void writeSpecificFanCommand(double speed, size_t fan_number);
 
-    void writeTemperatureCommand(const size_t extruder, const Temperature& temperature, const bool wait = false);
+    /*! Write cooling fan speeds before proceeding an extruder switch */
+    void writePrepareFansForNozzleSwitch();
+
+    /*!
+     * \brief Write the cooling fan speeds before starting an actual extrusion
+     * \param current_extruder_new_speed The new speed for the currently active extruder
+     * \note All other cooling fans but the active one will be deactivaed
+     */
+    void writePrepareFansForExtrusion(double current_extruder_new_speed);
+
+    /*!
+     * \brief Write a GCode temperature command
+     * \param extruder The extruder number
+     * \param temperature The temperature to bo set
+     * \param wait Indicates whether we should just set the temperature and keep going, or wait for the temperature to be reach before going further
+     * \param force_write_on_equal When true, we should write the temperature command even if the actual set temperature is the same
+     */
+    void writeTemperatureCommand(const size_t extruder, const Temperature& temperature, const bool wait = false, const bool force_write_on_equal = false);
     void writeBedTemperatureCommand(const Temperature& temperature, const bool wait = false);
     void writeBuildVolumeTemperatureCommand(const Temperature& temperature, const bool wait = false);
 

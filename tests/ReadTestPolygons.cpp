@@ -2,8 +2,11 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ReadTestPolygons.h"
-#include "utils/Coord_t.h"
+
 #include <cstdio>
+
+#include "geometry/Shape.h"
+#include "utils/Coord_t.h"
 
 // NOTE: See the documentation in the header-file for an explanation of this simple file format.
 
@@ -11,7 +14,7 @@ namespace cura
 {
 // Read multiple files to the collection of polygons.
 // Returns boolean success/failure (read errors, not found, etc.).
-bool readTestPolygons(const std::vector<std::string>& filenames, std::vector<Polygons>& polygons_out)
+bool readTestPolygons(const std::vector<std::string>& filenames, std::vector<Shape>& polygons_out)
 {
     for (const std::string& filename : filenames)
     {
@@ -25,7 +28,7 @@ bool readTestPolygons(const std::vector<std::string>& filenames, std::vector<Pol
 
 // Read a single file to the collection of polygons.
 // Returns boolean success/failure (read errors, not found, etc.).
-bool readTestPolygons(const std::string& filename, std::vector<Polygons>& polygons_out)
+bool readTestPolygons(const std::string& filename, std::vector<Shape>& polygons_out)
 {
     FILE* handle = std::fopen(filename.c_str(), "r");
     if (! handle)
@@ -34,7 +37,7 @@ bool readTestPolygons(const std::string& filename, std::vector<Polygons>& polygo
     }
 
     Polygon next_path;
-    Polygons next_shape;
+    Shape next_shape;
 
     char command = '_';
     int read = 0;
@@ -68,7 +71,7 @@ bool readTestPolygons(const std::string& filename, std::vector<Polygons>& polygo
         case '#': // end of file
             if (! next_path.empty())
             {
-                next_shape.add(Polygon(next_path)); // copy and add
+                next_shape.push_back(Polygon(next_path)); // copy and add
                 next_path.clear();
             }
             if (command != 'x' && ! next_shape.empty())

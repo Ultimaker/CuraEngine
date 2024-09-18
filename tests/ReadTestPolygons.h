@@ -4,7 +4,7 @@
 #ifndef READ_TEST_POLYGONS_H
 #define READ_TEST_POLYGONS_H
 
-#include "utils/polygon.h"
+#include "geometry/Polygon.h"
 #include <string>
 #include <vector>
 
@@ -34,8 +34,8 @@ v 50000 50000
 
 namespace cura
 {
-bool readTestPolygons(const std::vector<std::string>& filenames, std::vector<Polygons>& polygons_out);
-bool readTestPolygons(const std::string& filename, std::vector<Polygons>& polygons_out);
+bool readTestPolygons(const std::vector<std::string>& filenames, std::vector<Shape>& polygons_out);
+bool readTestPolygons(const std::string& filename, std::vector<Shape>& polygons_out);
 } // namespace cura
 
 #endif // READ_TEST_POLYGONS_H

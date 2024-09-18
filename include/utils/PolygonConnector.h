@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_POLYGON_CONNECTOR_H
@@ -9,10 +9,12 @@
 #endif
 #include <vector>
 
-#include "Point2LL.h"
+#include "geometry/Point2LL.h"
+#include "geometry/Polygon.h"
 #include "linearAlg2D.h"
-#include "polygon.h"
 #include "polygonUtils.h"
+#include "settings/types/Ratio.h"
+#include "utils/math.h"
 
 namespace cura
 {
@@ -75,7 +77,7 @@ public:
     /*!
      * Add polygons to be connected by a future call to \ref PolygonConnector::connect()
      */
-    void add(const Polygons& input);
+    void add(const Shape& input);
 
     /*!
      * Add variable-width paths to be connected by a future call to
@@ -98,7 +100,7 @@ public:
      * \param output_paths Paths that were connected as much as possible. These
      * are expected to be empty to start with.
      */
-    void connect(Polygons& output_polygons, std::vector<VariableWidthLines>& output_paths);
+    void connect(Shape& output_polygons, std::vector<VariableWidthLines>& output_paths);
 
 protected:
     coord_t line_width_; //!< The distance between the line segments which connect two polygons.

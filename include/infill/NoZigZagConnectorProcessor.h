@@ -5,11 +5,15 @@
 #define INFILL_NO_ZIGZAG_CONNECTOR_PROCESSOR_H
 
 #include "ZigzagConnectorProcessor.h"
+#include "geometry/OpenLinesSet.h"
 
 namespace cura
 {
 
-class Polygons;
+class OpenPolyline;
+
+template<class T>
+class LinesSet;
 
 /*!
  * This processor adds no connection. This is for line infill pattern.
@@ -17,7 +21,7 @@ class Polygons;
 class NoZigZagConnectorProcessor : public ZigzagConnectorProcessor
 {
 public:
-    NoZigZagConnectorProcessor(const PointMatrix& rotation_matrix, Polygons& result)
+    NoZigZagConnectorProcessor(const PointMatrix& rotation_matrix, OpenLinesSet& result)
         : ZigzagConnectorProcessor(
             rotation_matrix,
             result,
@@ -29,7 +33,7 @@ public:
     }
 
     void registerVertex(const Point2LL& vertex);
-    void registerScanlineSegmentIntersection(const Point2LL& intersection, int scanline_index);
+    void registerScanlineSegmentIntersection(const Point2LL& intersection, int scanline_index, coord_t min_distance_to_scanline);
     void registerPolyFinished();
 };
 

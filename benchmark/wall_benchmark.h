@@ -4,21 +4,20 @@
 #ifndef CURAENGINE_WALL_BENCHMARK_H
 #define CURAENGINE_WALL_BENCHMARK_H
 
-#include <string>
-
 #include <benchmark/benchmark.h>
-#include <range/v3/view/join.hpp>
-
-#include "InsetOrderOptimizer.h"
-#include "WallsComputation.h"
-#include "settings/Settings.h"
-#include "sliceDataStorage.h"
-#include "utils/polygon.h"
-
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <string>
+
+#include <range/v3/view/join.hpp>
 #include <spdlog/spdlog.h>
+
+#include "InsetOrderOptimizer.h"
+#include "WallsComputation.h"
+#include "geometry/Polygon.h"
+#include "settings/Settings.h"
+#include "sliceDataStorage.h"
 
 namespace cura
 {
@@ -27,8 +26,8 @@ class WallTestFixture : public benchmark::Fixture
 public:
     Settings settings{};
     WallsComputation walls_computation{ settings, LayerIndex(100) };
-    Polygons square_shape;
-    Polygons ff_holes;
+    Shape square_shape;
+    Shape ff_holes;
     bool outer_to_inner;
     SliceLayer layer;
 
@@ -85,7 +84,7 @@ public:
         layer.parts.emplace_back();
 
         SliceLayerPart& part = layer.parts.back();
-        part.outline.add(ff_holes);
+        part.outline.push_back(ff_holes);
     }
 
     void TearDown(const ::benchmark::State& state)
@@ -98,8 +97,8 @@ class HolesWallTestFixture : public benchmark::Fixture
 public:
     Settings settings{};
     WallsComputation walls_computation{ settings, LayerIndex(100) };
-    Polygons shape;
-    Polygons ff_holes;
+    Shape shape;
+    Shape ff_holes;
     bool outer_to_inner;
     SliceLayer layer;
 
@@ -113,7 +112,7 @@ public:
         buffer << file.rdbuf();
         const auto wkt = buffer.str();
 
-        const auto shape = Polygons::fromWkt(buffer.str());
+        const auto shape = Shape::fromWkt(buffer.str());
 
         // Settings for a simple 2 walls, about as basic as possible.
         settings.add("alternate_extra_perimeter", "false");
@@ -145,7 +144,7 @@ public:
         layer.parts.emplace_back();
 
         SliceLayerPart& part = layer.parts.back();
-        part.outline.add(shape.paths.front());
+        part.outline.push_back(shape.front());
         part.print_outline = shape;
     }
 
@@ -168,7 +167,7 @@ BENCHMARK_DEFINE_F(WallTestFixture, InsetOrderOptimizer_getRegionOrder)(benchmar
 {
     walls_computation.generateWalls(&layer, SectionType::WALL);
     std::vector<ExtrusionLine> all_paths;
-    for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join )
+    for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join)
     {
         all_paths.emplace_back(line);
     }
@@ -184,7 +183,7 @@ BENCHMARK_DEFINE_F(WallTestFixture, InsetOrderOptimizer_getInsetOrder)(benchmark
 {
     walls_computation.generateWalls(&layer, SectionType::WALL);
     std::vector<ExtrusionLine> all_paths;
-    for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join )
+    for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join)
     {
         all_paths.emplace_back(line);
     }
@@ -210,7 +209,7 @@ BENCHMARK_DEFINE_F(HolesWallTestFixture, InsetOrderOptimizer_getRegionOrder)(ben
 {
     walls_computation.generateWalls(&layer, SectionType::WALL);
     std::vector<ExtrusionLine> all_paths;
-    for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join )
+    for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join)
     {
         all_paths.emplace_back(line);
     }
@@ -226,7 +225,7 @@ BENCHMARK_DEFINE_F(HolesWallTestFixture, InsetOrderOptimizer_getInsetOrder)(benc
 {
     walls_computation.generateWalls(&layer, SectionType::WALL);
     std::vector<ExtrusionLine> all_paths;
-    for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join )
+    for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join)
     {
         all_paths.emplace_back(line);
     }

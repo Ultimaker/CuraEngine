@@ -1,8 +1,17 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef PLUGINS_CONVERTERS_H
 #define PLUGINS_CONVERTERS_H
+#ifdef ENABLE_PLUGINS
+
+#include <google/protobuf/empty.pb.h>
+#include <string>
+#include <tuple>
+
+#include <range/v3/range/operations.hpp>
+#include <range/v3/view/drop.hpp>
+#include <spdlog/spdlog.h>
 
 #include "Cura.pb.h"
 #include "WallToolPaths.h"
@@ -18,21 +27,15 @@
 #include "cura/plugins/slots/postprocess/v0/modify.pb.h"
 #include "cura/plugins/slots/simplify/v0/modify.grpc.pb.h"
 #include "cura/plugins/slots/simplify/v0/modify.pb.h"
+#include "geometry/LinesSet.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/Polygon.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/SpeedDerivatives.h"
 #include "plugins/metadata.h"
 #include "plugins/types.h"
 #include "settings/Settings.h"
 #include "settings/types/LayerIndex.h"
-#include "utils/polygon.h"
-
-#include <range/v3/range/operations.hpp>
-#include <range/v3/view/drop.hpp>
-#include <spdlog/spdlog.h>
-
-#include <google/protobuf/empty.pb.h>
-#include <string>
-#include <tuple>
 
 
 namespace cura::plugins
@@ -80,12 +83,12 @@ struct handshake_response : public details::converter<handshake_response, slots:
     native_value_type operator()(const value_type& message, std::string_view peer) const;
 };
 
-struct simplify_request : public details::converter<simplify_request, slots::simplify::v0::modify::CallRequest, Polygons>
+struct simplify_request : public details::converter<simplify_request, slots::simplify::v0::modify::CallRequest, Shape>
 {
     value_type operator()(const native_value_type& polygons, const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation) const;
 };
 
-struct simplify_response : public details::converter<simplify_response, slots::simplify::v0::modify::CallResponse, Polygons>
+struct simplify_response : public details::converter<simplify_response, slots::simplify::v0::modify::CallResponse, Shape>
 {
     native_value_type operator()([[maybe_unused]] const native_value_type& original_value, const value_type& message) const;
 };
@@ -100,13 +103,13 @@ struct postprocess_response : public details::converter<postprocess_response, sl
     native_value_type operator()([[maybe_unused]] const native_value_type& original_value, const value_type& message) const;
 };
 
-struct infill_generate_request : public details::converter<infill_generate_request, slots::infill::v0::generate::CallRequest, Polygons>
+struct infill_generate_request : public details::converter<infill_generate_request, slots::infill::v0::generate::CallRequest, Shape>
 {
     value_type operator()(const native_value_type& inner_contour, const std::string& pattern, const Settings& settings) const;
 };
 
 struct infill_generate_response
-    : public details::converter<infill_generate_response, slots::infill::v0::generate::CallResponse, std::tuple<std::vector<std::vector<ExtrusionLine>>, Polygons, Polygons>>
+    : public details::converter<infill_generate_response, slots::infill::v0::generate::CallResponse, std::tuple<std::vector<std::vector<ExtrusionLine>>, Shape, OpenLinesSet>>
 {
     native_value_type operator()(const value_type& message) const;
 };
@@ -128,5 +131,5 @@ struct gcode_paths_modify_response : public details::converter<gcode_paths_modif
 
 } // namespace cura::plugins
 
-
+#endif // ENABLE_PLUGINS
 #endif

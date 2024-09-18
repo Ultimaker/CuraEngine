@@ -20,7 +20,7 @@ namespace cura
 void Raft::generate(SliceDataStorage& storage)
 {
     assert(
-        storage.raftBaseOutline.size() == 0 && storage.raftInterfaceOutline.size() == 0 && storage.raftSurfaceOutline.size() == 0
+        storage.raft_base_outline.size() == 0 && storage.raft_interface_outline.size() == 0 && storage.raft_surface_outline.size() == 0
         && "Raft polygon isn't generated yet, so should be empty!");
     const Settings& settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_;
     constexpr bool include_support = true;
@@ -29,35 +29,35 @@ void Raft::generate(SliceDataStorage& storage)
     const auto raft_interface_margin = settings.get<coord_t>("raft_interface_margin");
     const auto raft_surface_margin = settings.get<coord_t>("raft_surface_margin");
 
-    storage.raftBaseOutline = storage.raftSurfaceOutline = storage.raftInterfaceOutline = storage.getLayerOutlines(0, include_support, dont_include_prime_tower);
-    storage.raftBaseOutline = storage.raftBaseOutline.offset(raft_base_margin, ClipperLib::jtRound);
-    storage.raftInterfaceOutline = storage.raftInterfaceOutline.offset(raft_interface_margin, ClipperLib::jtRound);
-    storage.raftSurfaceOutline = storage.raftSurfaceOutline.offset(raft_surface_margin, ClipperLib::jtRound);
+    storage.raft_base_outline = storage.raft_surface_outline = storage.raft_interface_outline = storage.getLayerOutlines(0, include_support, dont_include_prime_tower);
+    storage.raft_base_outline = storage.raft_base_outline.offset(raft_base_margin, ClipperLib::jtRound);
+    storage.raft_interface_outline = storage.raft_interface_outline.offset(raft_interface_margin, ClipperLib::jtRound);
+    storage.raft_surface_outline = storage.raft_surface_outline.offset(raft_surface_margin, ClipperLib::jtRound);
 
     const coord_t shield_line_width_layer0 = settings.get<coord_t>("skirt_brim_line_width");
     const coord_t max_raft_distance = std::max(std::max(raft_base_margin, raft_interface_margin), raft_surface_margin);
     if (storage.draft_protection_shield.size() > 0)
     {
-        Polygons draft_shield_raft
+        Shape draft_shield_raft
             = storage.draft_protection_shield
                   .offset(shield_line_width_layer0) // start half a line width outside shield
                   .difference(storage.draft_protection_shield.offset(-max_raft_distance - shield_line_width_layer0 / 2, ClipperLib::jtRound)); // end distance inside shield
-        storage.raftBaseOutline = storage.raftBaseOutline.unionPolygons(draft_shield_raft);
-        storage.raftSurfaceOutline = storage.raftSurfaceOutline.unionPolygons(draft_shield_raft);
-        storage.raftInterfaceOutline = storage.raftInterfaceOutline.unionPolygons(draft_shield_raft);
+        storage.raft_base_outline = storage.raft_base_outline.unionPolygons(draft_shield_raft);
+        storage.raft_surface_outline = storage.raft_surface_outline.unionPolygons(draft_shield_raft);
+        storage.raft_interface_outline = storage.raft_interface_outline.unionPolygons(draft_shield_raft);
     }
-    if (storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0)
+    if (storage.ooze_shield.size() > 0 && storage.ooze_shield[0].size() > 0)
     {
-        const Polygons& ooze_shield = storage.oozeShield[0];
-        Polygons ooze_shield_raft = ooze_shield
-                                        .offset(shield_line_width_layer0) // start half a line width outside shield
-                                        .difference(ooze_shield.offset(-max_raft_distance - shield_line_width_layer0 / 2, ClipperLib::jtRound)); // end distance inside shield
-        storage.raftBaseOutline = storage.raftBaseOutline.unionPolygons(ooze_shield_raft);
-        storage.raftSurfaceOutline = storage.raftSurfaceOutline.unionPolygons(ooze_shield_raft);
-        storage.raftInterfaceOutline = storage.raftInterfaceOutline.unionPolygons(ooze_shield_raft);
+        const Shape& ooze_shield = storage.ooze_shield[0];
+        Shape ooze_shield_raft = ooze_shield
+                                     .offset(shield_line_width_layer0) // start half a line width outside shield
+                                     .difference(ooze_shield.offset(-max_raft_distance - shield_line_width_layer0 / 2, ClipperLib::jtRound)); // end distance inside shield
+        storage.raft_base_outline = storage.raft_base_outline.unionPolygons(ooze_shield_raft);
+        storage.raft_surface_outline = storage.raft_surface_outline.unionPolygons(ooze_shield_raft);
+        storage.raft_interface_outline = storage.raft_interface_outline.unionPolygons(ooze_shield_raft);
     }
 
-    const auto remove_inside_corners = [](Polygons& outline, bool remove_inside_corners, coord_t smoothing, coord_t line_width)
+    const auto remove_inside_corners = [](Shape& outline, bool remove_inside_corners, coord_t smoothing, coord_t line_width)
     {
         if (remove_inside_corners)
         {
@@ -80,7 +80,7 @@ void Raft::generate(SliceDataStorage& storage)
                 for (auto& part : outline_parts)
                 {
                     part.makeConvex();
-                    outline.add(part);
+                    outline.push_back(part);
                 }
 
                 outline = outline.unionPolygons();
@@ -114,42 +114,28 @@ void Raft::generate(SliceDataStorage& storage)
         }
     };
     const auto nominal_raft_line_width = settings.get<coord_t>("skirt_brim_line_width");
-    remove_inside_corners(storage.raftBaseOutline, settings.get<bool>("raft_base_remove_inside_corners"), settings.get<coord_t>("raft_base_smoothing"), nominal_raft_line_width);
+    remove_inside_corners(storage.raft_base_outline, settings.get<bool>("raft_base_remove_inside_corners"), settings.get<coord_t>("raft_base_smoothing"), nominal_raft_line_width);
     remove_inside_corners(
-        storage.raftInterfaceOutline,
+        storage.raft_interface_outline,
         settings.get<bool>("raft_interface_remove_inside_corners"),
         settings.get<coord_t>("raft_interface_smoothing"),
         nominal_raft_line_width);
     remove_inside_corners(
-        storage.raftSurfaceOutline,
+        storage.raft_surface_outline,
         settings.get<bool>("raft_surface_remove_inside_corners"),
         settings.get<coord_t>("raft_surface_smoothing"),
         nominal_raft_line_width);
-
-    if (storage.primeTower.enabled_ && ! storage.primeTower.would_have_actual_tower_)
-    {
-        // Find out if the prime-tower part of the raft still needs to be printed, even if there is no actual tower.
-        // This will only happen if the different raft layers are printed by different extruders.
-        const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-        const size_t base_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_;
-        const size_t interface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr_;
-        const size_t surface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr_;
-        if (base_extruder_nr == interface_extruder_nr && base_extruder_nr == surface_extruder_nr)
-        {
-            return;
-        }
-    }
 }
 
 coord_t Raft::getTotalThickness()
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    const ExtruderTrain& base_train = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr");
-    const ExtruderTrain& interface_train = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr");
-    const ExtruderTrain& surface_train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
-    return base_train.settings_.get<coord_t>("raft_base_thickness")
-         + interface_train.settings_.get<size_t>("raft_interface_layers") * interface_train.settings_.get<coord_t>("raft_interface_thickness")
-         + surface_train.settings_.get<size_t>("raft_surface_layers") * surface_train.settings_.get<coord_t>("raft_surface_thickness");
+    const Settings& base_train = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_;
+    const Settings& interface_train = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_;
+    const Settings& surface_train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings_;
+    return base_train.get<coord_t>("raft_base_thickness") + interface_train.get<size_t>("raft_interface_layers") * interface_train.get<coord_t>("raft_interface_thickness")
+         + interface_train.get<coord_t>("raft_interface_z_offset") + surface_train.get<size_t>("raft_surface_layers") * surface_train.get<coord_t>("raft_surface_thickness")
+         + interface_train.get<coord_t>("raft_surface_z_offset");
 }
 
 coord_t Raft::getZdiffBetweenRaftAndLayer0()
@@ -182,39 +168,46 @@ coord_t Raft::getFillerLayerHeight()
     return round_divide(getZdiffBetweenRaftAndLayer0(), getFillerLayerCount());
 }
 
-
 size_t Raft::getTotalExtraLayers()
 {
+    return getBaseLayers() + getInterfaceLayers() + getSurfaceLayers() + getFillerLayerCount();
+}
+
+size_t Raft::getBaseLayers()
+{
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    const ExtruderTrain& base_train = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr");
-    const ExtruderTrain& interface_train = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr");
-    const ExtruderTrain& surface_train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
-    if (base_train.settings_.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
+    if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
     {
         return 0;
     }
-    return 1 + interface_train.settings_.get<size_t>("raft_interface_layers") + surface_train.settings_.get<size_t>("raft_surface_layers") + getFillerLayerCount();
+    return 1;
+}
+
+size_t Raft::getInterfaceLayers()
+{
+    return getLayersAmount("raft_interface_extruder_nr", "raft_interface_layers");
+}
+
+size_t Raft::getSurfaceLayers()
+{
+    return getLayersAmount("raft_surface_extruder_nr", "raft_surface_layers");
 }
 
 Raft::LayerType Raft::getLayerType(LayerIndex layer_index)
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    const ExtruderTrain& base_train = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr");
-    const ExtruderTrain& interface_train = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr");
-    const ExtruderTrain& surface_train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
     const auto airgap = Raft::getFillerLayerCount();
-    const auto interface_layers = interface_train.settings_.get<size_t>("raft_interface_layers");
-    const auto surface_layers = surface_train.settings_.get<size_t>("raft_surface_layers");
+    const auto interface_layers = Raft::getInterfaceLayers();
+    const auto surface_layers = Raft::getSurfaceLayers();
 
     if (layer_index < -airgap - surface_layers - interface_layers)
     {
         return LayerType::RaftBase;
     }
-    if (layer_index < -airgap - surface_layers)
+    else if (layer_index < -airgap - surface_layers)
     {
         return LayerType::RaftInterface;
     }
-    if (layer_index < -airgap)
+    else if (layer_index < -airgap)
     {
         return LayerType::RaftSurface;
     }
@@ -226,6 +219,18 @@ Raft::LayerType Raft::getLayerType(LayerIndex layer_index)
     {
         return LayerType::Model;
     }
+}
+
+size_t Raft::getLayersAmount(const std::string& extruder_nr_setting_name, const std::string& target_raft_section)
+{
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
+    {
+        return 0;
+    }
+
+    const ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>(extruder_nr_setting_name);
+    return train.settings_.get<size_t>(target_raft_section);
 }
 
 

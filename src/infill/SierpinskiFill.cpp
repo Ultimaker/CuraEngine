@@ -10,11 +10,11 @@
 
 #include <spdlog/spdlog.h>
 
+#include "geometry/Polygon.h"
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/UniformDensityProvider.h"
 #include "utils/AABB3D.h"
 #include "utils/SVG.h"
-#include "utils/polygon.h"
 
 namespace cura
 {
@@ -718,10 +718,10 @@ Polygon SierpinskiFill::generateCross() const
             edge_middle -= triangle.a_;
             break;
         }
-        ret.add(edge_middle / 2);
+        ret.push_back(edge_middle / 2);
     }
 
-    double realized_length = INT2MM(ret.polygonLength());
+    double realized_length = INT2MM(ret.length());
     double requested_length = root_.requested_length_;
     double error = (realized_length - requested_length) / requested_length;
     spdlog::debug("realized_length: {}, requested_length: {}  :: {}% error", realized_length, requested_length, 0.01 * static_cast<int>(10000 * error));
@@ -759,13 +759,13 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
         sides. The steeper overhang is then only in the corner, which is deemed
         acceptable since the corners are never too sharp. */
         const coord_t period = vSize(triangle.straight_corner_ - triangle.a_);
-        ret.add(get_edge_crossing_location(period, triangle.getFromEdge()));
+        ret.push_back(get_edge_crossing_location(period, triangle.getFromEdge()));
 
         last_triangle = &triangle;
     }
     assert(last_triangle);
     const coord_t period = vSize(last_triangle->straight_corner_ - last_triangle->a_);
-    ret.add(get_edge_crossing_location(period, last_triangle->getToEdge()));
+    ret.push_back(get_edge_crossing_location(period, last_triangle->getToEdge()));
 
     if (pocket_size > 10)
     {
@@ -793,12 +793,12 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
             {
                 coord_t pocket_rounding
                     = std::min(std::min(pocket_size_side, vSize(v0) / 3), vSize(v1) / 3); // a third so that if a line segment is shortened on both sides the middle remains
-                pocketed.add(p1 + normal(v0, pocket_rounding));
-                pocketed.add(p1 + normal(v1, pocket_rounding));
+                pocketed.push_back(p1 + normal(v0, pocket_rounding));
+                pocketed.push_back(p1 + normal(v1, pocket_rounding));
             }
             else
             {
-                pocketed.add(p1);
+                pocketed.push_back(p1);
             }
             p0 = p1;
         }

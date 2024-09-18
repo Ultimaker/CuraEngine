@@ -31,6 +31,19 @@ enum class EFillMethod
     PLUGIN, // Place plugin after none to prevent it from being tested in the gtest suite.
 };
 
+
+/*!
+ * Enum for the value of extra_infill_lines_to_support_skins
+ * This enum defines what extra lines should be added to infill to support
+ * skins above.
+ */
+enum class EExtraInfillLinesToSupportSkins
+{
+    WALLS_AND_LINES,
+    WALLS,
+    NONE,
+};
+
 /*!
  * Type of platform adhesion.
  */
@@ -244,6 +257,51 @@ enum class InsetDirection
     CENTER_LAST,
     PLUGIN,
 };
+
+/*!
+ * Prime tower generation mode
+ */
+enum class PrimeTowerMode
+{
+    /*!
+     * Prime tower that minimizes time and used filament as much as possible.
+     */
+    INTERLEAVED,
+
+    /*!
+     * Prime tower that minimizes time and used filament, but doesn't allow
+     * for printing two different filaments over each other.
+     */
+    NORMAL,
+};
+
+/*!
+ * Brim location, inside, outside or both
+ */
+enum class BrimLocation
+{
+    OUTSIDE = 0x01, // Brim only on the outside of the model
+    INSIDE = 0x02, // Brim only on the inside of the model
+    EVERYWHERE = 0x03, // Brim on both the outside and inside of the model
+};
+
+/*!
+ * How to enable/disable cooling fan(s) during extruder switch
+ */
+enum class CoolDuringExtruderSwitch
+{
+    UNCHANGED, // Let fans as they are during nozzle switch (historical behavior)
+    ONLY_LAST_EXTRUDER, // Turn on fan of the previously used extruder to cool it down, turn others off
+    ALL_FANS, // Turn on all fans
+};
+
+/*!
+ * Convenience binary operator to allow testing brim location easily, like (actual_location & BrimLocation::OUTSIDE)
+ */
+[[maybe_unused]] static int operator&(BrimLocation location1, BrimLocation location2)
+{
+    return static_cast<int>(location1) & static_cast<int>(location2);
+}
 
 } // namespace cura
 

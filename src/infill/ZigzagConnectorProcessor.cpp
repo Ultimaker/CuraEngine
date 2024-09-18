@@ -3,7 +3,13 @@
 
 #include "infill/ZigzagConnectorProcessor.h"
 
+#include <algorithm>
 #include <cassert>
+
+#include "geometry/OpenPolyline.h"
+#include "geometry/PointMatrix.h"
+#include "geometry/Polygon.h"
+#include "geometry/Shape.h"
 
 using namespace cura;
 
@@ -19,7 +25,6 @@ void ZigzagConnectorProcessor::registerVertex(const Point2LL& vertex)
         current_connector_.push_back(vertex);
     }
 }
-
 
 bool ZigzagConnectorProcessor::shouldAddCurrentConnector(int start_scanline_idx, int end_scanline_idx) const
 {
@@ -83,8 +88,23 @@ bool ZigzagConnectorProcessor::shouldAddCurrentConnector(int start_scanline_idx,
     return should_add;
 }
 
+bool ZigzagConnectorProcessor::handleConnectorTooCloseToSegment(const coord_t scanline_x, const coord_t min_distance_to_scanline)
+{
+    if (current_connector_.empty())
+    {
+        return false;
+    }
+    return std::find_if(
+               current_connector_.begin(),
+               current_connector_.end(),
+               [scanline_x, min_distance_to_scanline](const Point2LL& point)
+               {
+                   return std::abs(point.X - scanline_x) >= min_distance_to_scanline;
+               })
+        == current_connector_.end();
+}
 
-void ZigzagConnectorProcessor::registerScanlineSegmentIntersection(const Point2LL& intersection, int scanline_index)
+void ZigzagConnectorProcessor::registerScanlineSegmentIntersection(const Point2LL& intersection, int scanline_index, coord_t min_distance_to_scanline)
 {
     if (is_first_connector_)
     {
@@ -97,7 +117,7 @@ void ZigzagConnectorProcessor::registerScanlineSegmentIntersection(const Point2L
     else
     {
         // add the current connector if needed
-        if (shouldAddCurrentConnector(last_connector_index_, scanline_index))
+        if (shouldAddCurrentConnector(last_connector_index_, scanline_index) && ! handleConnectorTooCloseToSegment(intersection.X, min_distance_to_scanline))
         {
             const bool is_this_endpiece = scanline_index == last_connector_index_;
             current_connector_.push_back(intersection);
@@ -143,10 +163,28 @@ void ZigzagConnectorProcessor::addZagConnector(std::vector<Point2LL>& points, bo
     {
         return;
     }
-    Polygon polyline(points);
+    OpenPolyline polyline(points);
     if (is_endpiece && ! connected_endpieces_)
     {
         polyline.pop_back();
     }
     addPolyline(polyline);
+}
+
+void cura::ZigzagConnectorProcessor::reset()
+{
+    is_first_connector_ = true;
+    first_connector_end_scanline_index_ = 0;
+    last_connector_index_ = 0;
+    first_connector_.clear();
+    current_connector_.clear();
+}
+
+void cura::ZigzagConnectorProcessor::addPolyline(const OpenPolyline& polyline)
+{
+    result_.emplace_back(polyline);
+    for (Point2LL& p : result_.back())
+    {
+        p = rotation_matrix_.unapply(p);
+    }
 }

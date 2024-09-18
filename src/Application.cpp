@@ -18,10 +18,10 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
-#include "FffProcessor.h"
+#include "Slice.h"
 #include "communication/ArcusCommunication.h" //To connect via Arcus to the front-end.
 #include "communication/CommandLine.h" //To use the command line to slice stuff.
-#include "plugins/slots.h"
+#include "communication/EmscriptenCommunication.h" // To use Emscripten to slice stuff.
 #include "progress/Progress.h"
 #include "utils/ThreadPool.h"
 #include "utils/string.h" //For stringcasecompare.
@@ -47,7 +47,6 @@ Application::Application()
 
 Application::~Application()
 {
-    delete communication_;
     delete thread_pool_;
 }
 
@@ -102,7 +101,7 @@ void Application::connect()
         }
     }
 
-    ArcusCommunication* arcus_communication = new ArcusCommunication();
+    auto arcus_communication = std::make_shared<ArcusCommunication>();
     arcus_communication->connect(ip, port);
     communication_ = arcus_communication;
 }
@@ -131,7 +130,9 @@ void Application::printHelp() const
     fmt::print("  -v\n\tIncrease the verbose level (show log messages).\n");
     fmt::print("  -m<thread_count>\n\tSet the desired number of threads.\n");
     fmt::print("  -p\n\tLog progress information.\n");
+    fmt::print("  -d Add definition search paths seperated by a `:` (Unix) or `;` (Windows)\n");
     fmt::print("  -j\n\tLoad settings.def.json file to register all settings and their defaults.\n");
+    fmt::print("  -r\n\tLoad a json file containing resolved setting values.\n");
     fmt::print("  -s <setting>=<value>\n\tSet a setting to a value for the last supplied object, \n\textruder train, or general settings.\n");
     fmt::print("  -l <model_file>\n\tLoad an STL model. \n");
     fmt::print("  -g\n\tSwitch setting focus to the current mesh group only.\n\tUsed for one-at-a-time printing.\n");
@@ -148,11 +149,50 @@ void Application::printHelp() const
     fmt::print("\n");
 }
 
-void Application::printLicense() const
+void Application::printHeader() const
 {
     fmt::print("\n");
     fmt::print("Cura_SteamEngine version {}\n", CURA_ENGINE_VERSION);
-    fmt::print("Copyright (C) 2023 Ultimaker\n");
+
+#ifdef DEBUG
+    fmt::print("\n");
+    fmt::print(" _______   ________  _______   __    __   ______\n");
+    fmt::print("/       \\ /        |/       \\ /  |  /  | /      \\\n");
+    fmt::print("███████  |████████/ ███████  |██ |  ██ |/██████  |\n");
+    fmt::print("██ |  ██ |██ |__    ██ |__██ |██ |  ██ |██ | _██/\n");
+    fmt::print("██ |  ██ |██    |   ██    ██< ██ |  ██ |██ |/    |\n");
+    fmt::print("██ |  ██ |█████/    ███████  |██ |  ██ |██ |████ |\n");
+    fmt::print("██ |__██ |██ |_____ ██ |__██ |██ \\__██ |██ \\__██ |\n");
+    fmt::print("██    ██/ ██       |██    ██/ ██    ██/ ██    ██/\n");
+    fmt::print("███████/  ████████/ ███████/   ██████/   ██████/\n");
+    fmt::print("\n");
+    fmt::print(" __       __   ______   _______   ________\n");
+    fmt::print("/  \\     /  | /      \\ /       \\ /        |\n");
+    fmt::print("██  \\   /██ |/██████  |███████  |████████/\n");
+    fmt::print("███  \\ /███ |██ |  ██ |██ |  ██ |██ |__\n");
+    fmt::print("████  /████ |██ |  ██ |██ |  ██ |██    |\n");
+    fmt::print("██ ██ ██/██ |██ |  ██ |██ |  ██ |█████/\n");
+    fmt::print("██ |███/ ██ |██ \\__██ |██ |__██ |██ |_____\n");
+    fmt::print("██ | █/  ██ |██    ██/ ██    ██/ ██       |\n");
+    fmt::print("██/      ██/  ██████/  ███████/  ████████/\n");
+    fmt::print("\n");
+
+    fmt::print("#########################################################\n");
+    fmt::print("#########################################################\n");
+    fmt::print("## WARNING: This version of CuraEngine has been built  ##\n");
+    fmt::print("## in developper mode. This may impact performances,   ##\n");
+    fmt::print("## provoke unexpected results or crashes.              ##\n");
+    fmt::print("## If you downloaded an official version of CuraEngine ##\n");
+    fmt::print("## and see this message, please report the issue.      ##\n");
+    fmt::print("#########################################################\n");
+    fmt::print("#########################################################\n");
+#endif
+}
+
+void Application::printLicense() const
+{
+    fmt::print("\n");
+    fmt::print("Copyright (C) 2024 Ultimaker\n");
     fmt::print("\n");
     fmt::print("This program is free software: you can redistribute it and/or modify\n");
     fmt::print("it under the terms of the GNU Affero General Public License as published by\n");
@@ -175,8 +215,11 @@ void Application::slice()
     {
         arguments.emplace_back(argv_[argument_index]);
     }
-
-    communication_ = new CommandLine(arguments);
+#ifdef __EMSCRIPTEN__
+    communication_ = std::make_shared<EmscriptenCommunication>(arguments);
+#else
+    communication_ = std::make_shared<CommandLine>(arguments);
+#endif
 }
 
 void Application::run(const size_t argc, char** argv)
@@ -184,6 +227,7 @@ void Application::run(const size_t argc, char** argv)
     argc_ = argc;
     argv_ = argv;
 
+    printHeader();
     printLicense();
     Progress::init();
 

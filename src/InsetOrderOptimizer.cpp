@@ -50,7 +50,9 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const size_t wall_0_extruder_nr,
     const size_t wall_x_extruder_nr,
     const ZSeamConfig& z_seam_config,
-    const std::vector<VariableWidthLines>& paths)
+    const std::vector<VariableWidthLines>& paths,
+    const Point2LL& model_center_point,
+    const Shape& disallowed_areas_for_seams)
     : gcode_writer_(gcode_writer)
     , storage_(storage)
     , gcode_layer_(gcode_layer)
@@ -70,6 +72,8 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , z_seam_config_(z_seam_config)
     , paths_(paths)
     , layer_nr_(gcode_layer.getLayerNr())
+    , model_center_point_(model_center_point)
+    , disallowed_areas_for_seams_{ disallowed_areas_for_seams }
 {
 }
 
@@ -94,18 +98,31 @@ bool InsetOrderOptimizer::addToLayer()
     bool added_something = false;
 
     constexpr bool detect_loops = false;
-    constexpr Polygons* combing_boundary = nullptr;
+    constexpr Shape* combing_boundary = nullptr;
     const auto group_outer_walls = settings_.get<bool>("group_outer_walls");
     // When we alternate walls, also alternate the direction at which the first wall starts in.
     // On even layers we start with normal direction, on odd layers with inverted direction.
-    PathOrderOptimizer<const ExtrusionLine*>
-        order_optimizer(gcode_layer_.getLastPlannedPositionOrStartingPosition(), z_seam_config_, detect_loops, combing_boundary, reverse, order, group_outer_walls);
+    PathOrderOptimizer<const ExtrusionLine*> order_optimizer(
+        gcode_layer_.getLastPlannedPositionOrStartingPosition(),
+        z_seam_config_,
+        detect_loops,
+        combing_boundary,
+        reverse,
+        order,
+        group_outer_walls,
+        disallowed_areas_for_seams_);
 
-    for (const auto& line : walls_to_be_added)
+    for (auto& line : walls_to_be_added)
     {
         if (line.is_closed_)
         {
-            order_optimizer.addPolygon(&line);
+            std::optional<size_t> force_start;
+            if (! settings_.get<bool>("z_seam_on_vertex"))
+            {
+                // If the user indicated that we may deviate from the vertices for the seam, we can insert a seam point, if needed.
+                force_start = insertSeamPoint(line);
+            }
+            order_optimizer.addPolygon(&line, force_start);
         }
         else
         {
@@ -155,6 +172,104 @@ bool InsetOrderOptimizer::addToLayer()
     return added_something;
 }
 
+std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed_line)
+{
+    assert(closed_line.is_closed_);
+    assert(closed_line.size() >= 3);
+
+    Point2LL request_point;
+    switch (z_seam_config_.type_)
+    {
+    case EZSeamType::USER_SPECIFIED:
+        request_point = z_seam_config_.pos_;
+        break;
+    case EZSeamType::SHORTEST:
+        request_point = gcode_layer_.getLastPlannedPositionOrStartingPosition();
+        break;
+    default:
+        return std::nullopt;
+    }
+
+    // Find the 'closest' point on the polygon to the request_point.
+    Point2LL closest_point;
+    size_t closest_junction_idx = 0;
+    coord_t closest_distance_sqd = std::numeric_limits<coord_t>::max();
+    bool should_reclaculate_closest = false;
+    if (z_seam_config_.type_ == EZSeamType::USER_SPECIFIED)
+    {
+        // For user-defined seams you usually don't _actually_ want the _closest_ point, per-se,
+        // since you want the seam-line to be continuous in 3D space.
+        // To that end, take the center of the 3D model (not of the current polygon, as that would give the same problems)
+        // and project the point along the ray from the center to the request_point.
+
+        const Point2LL ray_origin = model_center_point_;
+        request_point = ray_origin + (request_point - ray_origin) * 10;
+
+        for (const auto& [i, junction] : closed_line.junctions_ | ranges::views::enumerate)
+        {
+            // NOTE: Maybe rewrite this once we can use C++23 ranges::views::adjacent
+            const auto& next_junction = closed_line.junctions_[(i + 1) % closed_line.junctions_.size()];
+
+            float t, u;
+            if (LinearAlg2D::segmentSegmentIntersection(ray_origin, request_point, junction.p_, next_junction.p_, t, u))
+            {
+                const Point2LL intersection = ray_origin + (request_point - ray_origin) * t;
+                const coord_t distance_sqd = vSize2(request_point - intersection);
+                if (distance_sqd < closest_distance_sqd)
+                {
+                    closest_point = intersection;
+                    closest_distance_sqd = distance_sqd;
+                    closest_junction_idx = i;
+                }
+            }
+        }
+    }
+    if (closest_distance_sqd >= std::numeric_limits<coord_t>::max())
+    {
+        // If it the method isn't 'user-defined', or the attempt to do user-defined above failed
+        // (since we don't take the center of the polygon, but of the model, there's a chance there's no intersection),
+        // then just find the closest point on the polygon.
+
+        for (const auto& [i, junction] : closed_line.junctions_ | ranges::views::enumerate)
+        {
+            const auto& next_junction = closed_line.junctions_[(i + 1) % closed_line.junctions_.size()];
+            const coord_t distance_sqd = LinearAlg2D::getDist2FromLineSegment(junction.p_, request_point, next_junction.p_);
+            if (distance_sqd < closest_distance_sqd)
+            {
+                closest_distance_sqd = distance_sqd;
+                closest_junction_idx = i;
+            }
+        }
+        should_reclaculate_closest = true;
+    }
+
+    const auto& start_pt = closed_line.junctions_[closest_junction_idx];
+    const auto& end_pt = closed_line.junctions_[(closest_junction_idx + 1) % closed_line.junctions_.size()];
+    if (should_reclaculate_closest)
+    {
+        // In the second case (see above) the closest point hasn't actually been calculated yet,
+        // since in that case we'de need the start and end points. So do that here.
+        closest_point = LinearAlg2D::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
+    }
+    constexpr coord_t smallest_dist_sqd = 25;
+    if (vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd || vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
+    {
+        // Early out if the closest point is too close to the start or end point.
+        // NOTE: Maybe return the index here anyway, since this is the point the current caller would want to force the seam to.
+        //       However, then the index returned would have a caveat that it _can_ point to an already exisiting point then.
+        return std::nullopt;
+    }
+
+    // NOTE: This could also be done on a single axis (skipping the implied sqrt), but figuring out which one and then using the right values became a bit messy/verbose.
+    const coord_t total_dist = vSize(end_pt.p_ - start_pt.p_);
+    const coord_t start_dist = vSize(closest_point - start_pt.p_);
+    const coord_t end_dist = vSize(closest_point - end_pt.p_);
+    const coord_t w = ((end_pt.w_ * end_dist) / total_dist) + ((start_pt.w_ * start_dist) / total_dist);
+
+    closed_line.junctions_.insert(closed_line.junctions_.begin() + closest_junction_idx + 1, ExtrusionJunction(closest_point, w, start_pt.perimeter_index_));
+    return closest_junction_idx + 1;
+}
+
 InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::vector<ExtrusionLine>& extrusion_lines, const bool outer_to_inner)
 {
     if (extrusion_lines.empty())
@@ -170,7 +285,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
                                   | ranges::views::transform(
                                         [](const ExtrusionLine* line)
                                         {
-                                            const auto poly = line->toPolygon();
+                                            const Polygon poly = line->toPolygon();
                                             AABB aabb;
                                             aabb.include(poly);
                                             return std::make_pair(line, aabb.area());
@@ -203,10 +318,10 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
     {
         // Create a polygon representing the inner area of the extrusion line; any
         // point inside this polygon is considered to the child of the extrusion line.
-        Polygons hole_polygons;
+        Shape hole_polygons;
         if (extrusion_line->is_closed_)
         {
-            hole_polygons.add(extrusion_line->toPolygon());
+            hole_polygons.push_back(extrusion_line->toPolygon());
         }
 
         if (hole_polygons.empty())

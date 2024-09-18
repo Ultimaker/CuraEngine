@@ -14,6 +14,7 @@
 #include "settings/types/Angle.h" //For the infill support angle.
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
+#include "utils/Simplify.h"
 #include "utils/math.h"
 #include "utils/polygonUtils.h"
 
@@ -55,9 +56,9 @@ SkinInfillAreaComputation::SkinInfillAreaComputation(const LayerIndex& layer_nr,
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-Polygons SkinInfillAreaComputation::getOutlineOnLayer(const SliceLayerPart& part_here, const LayerIndex layer2_nr)
+Shape SkinInfillAreaComputation::getOutlineOnLayer(const SliceLayerPart& part_here, const LayerIndex layer2_nr)
 {
-    Polygons result;
+    Shape result;
     if (layer2_nr >= static_cast<int>(mesh_.layers.size()))
     {
         return result;
@@ -67,7 +68,7 @@ Polygons SkinInfillAreaComputation::getOutlineOnLayer(const SliceLayerPart& part
     {
         if (part_here.boundaryBox.hit(part2.boundaryBox))
         {
-            result.add(part2.outline);
+            result.push_back(part2.outline);
         }
     }
     return result;
@@ -126,15 +127,15 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas()
 void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
 {
     // Make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
-    Polygons top_skin;
+    Shape top_skin;
     if (top_layer_count_ > 0)
     {
-        top_skin = Polygons(part.inner_area);
+        top_skin = Shape(part.inner_area);
     }
-    Polygons bottom_skin;
+    Shape bottom_skin;
     if (bottom_layer_count_ > 0 || layer_nr_ < LayerIndex(initial_bottom_layer_count_))
     {
-        bottom_skin = Polygons(part.inner_area);
+        bottom_skin = Shape(part.inner_area);
     }
 
     calculateBottomSkin(part, bottom_skin);
@@ -143,7 +144,7 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
     applySkinExpansion(part.inner_area, top_skin, bottom_skin);
 
     // Now combine the resized top skin and bottom skin.
-    Polygons skin = top_skin.unionPolygons(bottom_skin);
+    Shape skin = top_skin.unionPolygons(bottom_skin);
 
     skin.removeSmallAreas(MIN_AREA_SIZE);
     // Create infill area irrespective if the infill is to be generated or not(would be used for bridging).
@@ -154,8 +155,12 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
         generateInfill(part);
     }
 
-    for (PolygonsPart& skin_area_part : skin.splitIntoParts())
+    for (const SingleShape& skin_area_part : skin.splitIntoParts())
     {
+        if (skin_area_part.empty())
+        {
+            continue;
+        }
         part.skin_parts.emplace_back();
         part.skin_parts.back().outline = skin_area_part;
     }
@@ -167,7 +172,7 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, Polygons& downskin)
+void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, Shape& downskin)
 {
     if (bottom_layer_count_ == 0 && initial_bottom_layer_count_ == 0)
     {
@@ -178,7 +183,7 @@ void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, 
         return; // don't subtract anything form the downskin
     }
     LayerIndex bottom_check_start_layer_idx{ std::max(LayerIndex{ 0 }, LayerIndex{ layer_nr_ - bottom_layer_count_ }) };
-    Polygons not_air = getOutlineOnLayer(part, bottom_check_start_layer_idx);
+    Shape not_air = getOutlineOnLayer(part, bottom_check_start_layer_idx);
     if (! no_small_gaps_heuristic_)
     {
         for (int downskin_layer_nr = bottom_check_start_layer_idx + 1; downskin_layer_nr < layer_nr_; downskin_layer_nr++)
@@ -194,7 +199,7 @@ void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, 
     downskin = downskin.difference(not_air); // skin overlaps with the walls
 }
 
-void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Polygons& upskin)
+void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Shape& upskin)
 {
     if (layer_nr_ > LayerIndex(mesh_.layers.size()) - top_layer_count_ || top_layer_count_ <= 0)
     {
@@ -203,7 +208,7 @@ void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Pol
         return;
     }
 
-    Polygons not_air = getOutlineOnLayer(part, layer_nr_ + top_layer_count_);
+    Shape not_air = getOutlineOnLayer(part, layer_nr_ + top_layer_count_);
     if (! no_small_gaps_heuristic_)
     {
         for (int upskin_layer_nr = layer_nr_ + 1; upskin_layer_nr < layer_nr_ + top_layer_count_; upskin_layer_nr++)
@@ -227,7 +232,7 @@ void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Pol
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outline, Polygons& upskin, Polygons& downskin)
+void SkinInfillAreaComputation::applySkinExpansion(const Shape& original_outline, Shape& upskin, Shape& downskin)
 {
     const coord_t min_width = mesh_.settings.get<coord_t>("min_skin_width_for_expansion") / 2;
 
@@ -238,13 +243,13 @@ void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outl
         // The expansion is only applied to that opened shape.
         if (bottom_skin_expand_distance_ != 0)
         {
-            const Polygons expanded = downskin.offset(-min_width).offset(min_width + bottom_skin_expand_distance_);
+            const Shape expanded = downskin.offset(-min_width).offset(min_width + bottom_skin_expand_distance_);
             // And then re-joined with the original part that was not offset, to retain parts smaller than min_width.
             downskin = downskin.unionPolygons(expanded);
         }
         if (top_skin_expand_distance_ != 0)
         {
-            const Polygons expanded = upskin.offset(-min_width).offset(min_width + top_skin_expand_distance_);
+            const Shape expanded = upskin.offset(-min_width).offset(min_width + top_skin_expand_distance_);
             upskin = upskin.unionPolygons(expanded);
         }
     }
@@ -326,7 +331,7 @@ void SkinInfillAreaComputation::generateRoofingFillAndSkinFill(SliceLayerPart& p
         const size_t roofing_layer_count = std::min(mesh_.settings.get<size_t>("roofing_layer_count"), mesh_.settings.get<size_t>("top_layers"));
         const coord_t skin_overlap = mesh_.settings.get<coord_t>("skin_overlap_mm");
 
-        Polygons filled_area_above = generateFilledAreaAbove(part, roofing_layer_count);
+        Shape filled_area_above = generateFilledAreaAbove(part, roofing_layer_count);
 
         skin_part.roofing_fill = skin_part.outline.difference(filled_area_above);
         skin_part.skin_fill = skin_part.outline.intersection(filled_area_above);
@@ -344,14 +349,14 @@ void SkinInfillAreaComputation::generateRoofingFillAndSkinFill(SliceLayerPart& p
  *
  * this function may only read the skin and infill from the *current* layer.
  */
-Polygons SkinInfillAreaComputation::generateFilledAreaAbove(SliceLayerPart& part, size_t roofing_layer_count)
+Shape SkinInfillAreaComputation::generateFilledAreaAbove(SliceLayerPart& part, size_t roofing_layer_count)
 {
-    Polygons filled_area_above = getOutlineOnLayer(part, layer_nr_ + roofing_layer_count);
+    Shape filled_area_above = getOutlineOnLayer(part, layer_nr_ + roofing_layer_count);
     if (! no_small_gaps_heuristic_)
     {
         for (int layer_nr_above = layer_nr_ + 1; layer_nr_above < layer_nr_ + roofing_layer_count; layer_nr_above++)
         {
-            Polygons outlines_above = getOutlineOnLayer(part, layer_nr_above);
+            Shape outlines_above = getOutlineOnLayer(part, layer_nr_above);
             filled_area_above = filled_area_above.intersection(outlines_above);
         }
     }
@@ -363,7 +368,7 @@ Polygons SkinInfillAreaComputation::generateFilledAreaAbove(SliceLayerPart& part
         // has air below (fixes https://github.com/Ultimaker/Cura/issues/2656)
 
         // set air_below to the skin area for the current layer that has air below it
-        Polygons air_below = getOutlineOnLayer(part, layer_nr_).difference(getOutlineOnLayer(part, layer_nr_ - 1));
+        Shape air_below = getOutlineOnLayer(part, layer_nr_).difference(getOutlineOnLayer(part, layer_nr_ - 1));
 
         if (! air_below.empty())
         {
@@ -380,21 +385,21 @@ Polygons SkinInfillAreaComputation::generateFilledAreaAbove(SliceLayerPart& part
  *
  * this function may only read the skin and infill from the *current* layer.
  */
-Polygons SkinInfillAreaComputation::generateFilledAreaBelow(SliceLayerPart& part, size_t flooring_layer_count)
+Shape SkinInfillAreaComputation::generateFilledAreaBelow(SliceLayerPart& part, size_t flooring_layer_count)
 {
     if (layer_nr_ < flooring_layer_count)
     {
         return {};
     }
     const int lowest_flooring_layer = layer_nr_ - flooring_layer_count;
-    Polygons filled_area_below = getOutlineOnLayer(part, lowest_flooring_layer);
+    Shape filled_area_below = getOutlineOnLayer(part, lowest_flooring_layer);
 
     if (! no_small_gaps_heuristic_)
     {
         const int next_lowest_flooring_layer = lowest_flooring_layer + 1;
         for (int layer_nr_below = next_lowest_flooring_layer; layer_nr_below < layer_nr_; layer_nr_below++)
         {
-            Polygons outlines_below = getOutlineOnLayer(part, layer_nr_below);
+            Shape outlines_below = getOutlineOnLayer(part, layer_nr_below);
             filled_area_below = filled_area_below.intersection(outlines_below);
         }
     }
@@ -413,27 +418,27 @@ void SkinInfillAreaComputation::generateInfillSupport(SliceMeshStorage& mesh)
         SliceLayer& layer = mesh.layers[layer_idx];
         SliceLayer& layer_above = mesh.layers[layer_idx + 1];
 
-        Polygons inside_above;
-        Polygons infill_above;
+        Shape inside_above;
+        Shape infill_above;
         for (SliceLayerPart& part_above : layer_above.parts)
         {
-            inside_above.add(part_above.infill_area);
-            infill_above.add(part_above.getOwnInfillArea());
+            inside_above.push_back(part_above.infill_area);
+            infill_above.push_back(part_above.getOwnInfillArea());
         }
 
         for (SliceLayerPart& part : layer.parts)
         {
-            const Polygons& infill_area = part.infill_area;
+            const Shape& infill_area = part.infill_area;
             if (infill_area.empty())
             {
                 continue;
             }
 
-            const Polygons unsupported = infill_area.offset(-max_dist_from_lower_layer);
-            const Polygons basic_overhang = unsupported.difference(inside_above);
-            const Polygons overhang_extented = basic_overhang.offset(max_dist_from_lower_layer + 50); // +50 for easier joining with support from layer above
-            const Polygons full_overhang = overhang_extented.difference(inside_above);
-            const Polygons infill_support = infill_above.unionPolygons(full_overhang);
+            const Shape unsupported = infill_area.offset(-max_dist_from_lower_layer);
+            const Shape basic_overhang = unsupported.difference(inside_above);
+            const Shape overhang_extented = basic_overhang.offset(max_dist_from_lower_layer + 50); // +50 for easier joining with support from layer above
+            const Shape full_overhang = overhang_extented.difference(inside_above);
+            const Shape infill_support = infill_above.unionPolygons(full_overhang);
 
             part.infill_area_own = infill_support.intersection(part.getOwnInfillArea());
         }
@@ -461,9 +466,11 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
     const LayerIndex mesh_min_layer = mesh.settings.get<size_t>("initial_bottom_layers");
     const LayerIndex mesh_max_layer = mesh.layers.size() - 1 - mesh.settings.get<size_t>("top_layers");
 
+    const Simplify simplifier(mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").settings_);
+
     const auto infill_wall_count = mesh.settings.get<size_t>("infill_wall_line_count");
     const auto infill_wall_width = mesh.settings.get<coord_t>("infill_line_width");
-    const auto infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
+    const auto is_connected = mesh.settings.get<bool>("zig_zaggify_infill") || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::ZIG_ZAG;
     for (LayerIndex layer_idx = 0; layer_idx < static_cast<LayerIndex>(mesh.layers.size()); layer_idx++)
     { // loop also over layers which don't contain infill cause of bottom_ and top_layer to initialize their infill_area_per_combine_per_density
         SliceLayer& layer = mesh.layers[layer_idx];
@@ -472,12 +479,11 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
         {
             assert((part.infill_area_per_combine_per_density.empty() && "infill_area_per_combine_per_density is supposed to be uninitialized"));
 
-            const Polygons& infill_area = Infill::generateWallToolPaths(
+            const Shape& infill_area = Infill::generateWallToolPaths(
                 part.infill_wall_toolpaths,
                 part.getOwnInfillArea(),
                 infill_wall_count,
                 infill_wall_width,
-                infill_overlap,
                 mesh.settings,
                 layer_idx,
                 SectionType::SKIN);
@@ -489,7 +495,8 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                 // note: no need to copy part.infill_area, cause it's the empty vector anyway
                 continue;
             }
-            Polygons less_dense_infill = infill_area; // one step less dense with each infill_step
+            Shape less_dense_infill = infill_area; // one step less dense with each infill_step
+            Shape sum_more_dense; // NOTE: Only used for zig-zag or connected fills.
             for (size_t infill_step = 0; infill_step < max_infill_steps; infill_step++)
             {
                 LayerIndex min_layer = layer_idx + infill_step * gradual_infill_step_layer_count + static_cast<size_t>(layer_skip_count);
@@ -503,14 +510,14 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                         break;
                     }
                     const SliceLayer& upper_layer = mesh.layers[static_cast<size_t>(upper_layer_idx)];
-                    Polygons relevent_upper_polygons;
+                    Shape relevent_upper_polygons;
                     for (const SliceLayerPart& upper_layer_part : upper_layer.parts)
                     {
                         if (! upper_layer_part.boundaryBox.hit(part.boundaryBox))
                         {
                             continue;
                         }
-                        relevent_upper_polygons.add(upper_layer_part.getOwnInfillArea());
+                        relevent_upper_polygons.push_back(upper_layer_part.getOwnInfillArea());
                     }
                     less_dense_infill = less_dense_infill.intersection(relevent_upper_polygons);
                 }
@@ -520,13 +527,18 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                 }
                 // add new infill_area_per_combine for the current density
                 part.infill_area_per_combine_per_density.emplace_back();
-                std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
-                const Polygons more_dense_infill = infill_area.difference(less_dense_infill);
-                infill_area_per_combine_current_density.push_back(more_dense_infill);
+                std::vector<Shape>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
+                const Shape more_dense_infill = infill_area.difference(less_dense_infill);
+                infill_area_per_combine_current_density.push_back(
+                    simplifier.polygon(more_dense_infill.difference(sum_more_dense).offset(-infill_wall_width).offset(infill_wall_width)));
+                if (is_connected)
+                {
+                    sum_more_dense = sum_more_dense.unionPolygons(more_dense_infill);
+                }
             }
             part.infill_area_per_combine_per_density.emplace_back();
-            std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
-            infill_area_per_combine_current_density.push_back(infill_area);
+            std::vector<Shape>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
+            infill_area_per_combine_current_density.push_back(simplifier.polygon(infill_area.difference(sum_more_dense).offset(-infill_wall_width).offset(infill_wall_width)));
             part.infill_area_own = std::nullopt; // clear infill_area_own, it's not needed any more.
             assert(! part.infill_area_per_combine_per_density.empty() && "infill_area_per_combine_per_density is now initialized");
         }
@@ -581,14 +593,14 @@ void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh)
             {
                 for (unsigned int density_idx = 0; density_idx < part.infill_area_per_combine_per_density.size(); density_idx++)
                 { // go over each density of gradual infill (these density areas overlap!)
-                    std::vector<Polygons>& infill_area_per_combine = part.infill_area_per_combine_per_density[density_idx];
-                    Polygons result;
+                    std::vector<Shape>& infill_area_per_combine = part.infill_area_per_combine_per_density[density_idx];
+                    Shape result;
                     for (SliceLayerPart& lower_layer_part : lower_layer->parts)
                     {
                         if (part.boundaryBox.hit(lower_layer_part.boundaryBox))
                         {
-                            Polygons intersection = infill_area_per_combine[combine_count_here - 1].intersection(lower_layer_part.infill_area).offset(-200).offset(200);
-                            result.add(intersection); // add area to be thickened
+                            Shape intersection = infill_area_per_combine[combine_count_here - 1].intersection(lower_layer_part.infill_area).offset(-200).offset(200);
+                            result.push_back(intersection); // add area to be thickened
                             infill_area_per_combine[combine_count_here - 1]
                                 = infill_area_per_combine[combine_count_here - 1].difference(intersection); // remove thickened area from less thick layer here
                             unsigned int max_lower_density_idx = density_idx;
@@ -608,7 +620,7 @@ void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh)
                                  lower_density_idx <= max_lower_density_idx && lower_density_idx < lower_layer_part.infill_area_per_combine_per_density.size();
                                  lower_density_idx++)
                             {
-                                std::vector<Polygons>& lower_infill_area_per_combine = lower_layer_part.infill_area_per_combine_per_density[lower_density_idx];
+                                std::vector<Shape>& lower_infill_area_per_combine = lower_layer_part.infill_area_per_combine_per_density[lower_density_idx];
                                 lower_infill_area_per_combine[0]
                                     = lower_infill_area_per_combine[0].difference(intersection); // remove thickened area from lower (single thickness) layer
                             }
@@ -633,10 +645,10 @@ void SkinInfillAreaComputation::generateTopAndBottomMostSkinFill(SliceLayerPart&
 {
     for (SkinPart& skin_part : part.skin_parts)
     {
-        Polygons filled_area_above = generateFilledAreaAbove(part, 1);
+        Shape filled_area_above = generateFilledAreaAbove(part, 1);
         skin_part.top_most_surface_fill = skin_part.outline.difference(filled_area_above);
 
-        Polygons filled_area_below = generateFilledAreaBelow(part, 1);
+        Shape filled_area_below = generateFilledAreaBelow(part, 1);
         skin_part.bottom_most_surface_fill = skin_part.skin_fill.difference(filled_area_below);
     }
 }

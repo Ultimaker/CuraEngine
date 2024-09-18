@@ -33,11 +33,11 @@
 #include "communication/ArcusCommunicationPrivate.h" //Our PIMPL.
 #include "communication/Listener.h" //To listen to the Arcus socket.
 #include "communication/SliceDataStruct.h" //To store sliced layer data.
+#include "geometry/Polygon.h"
 #include "plugins/slots.h"
 #include "settings/types/LayerIndex.h" //To point to layers.
 #include "settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
 #include "utils/channel.h"
-#include "utils/polygon.h"
 
 namespace cura
 {
@@ -236,7 +236,7 @@ public:
      * \param thickness The layer thickness of the polygon.
      * \param velocity How fast the polygon is printed.
      */
-    void sendPolygon(const PrintFeatureType& print_feature_type, const ConstPolygonRef& polygon, const coord_t& width, const coord_t& thickness, const Velocity& velocity)
+    void sendPolygon(const PrintFeatureType& print_feature_type, const Polygon& polygon, const coord_t& width, const coord_t& thickness, const Velocity& velocity)
     {
         if (polygon.size() < 2) // Don't send single points or empty polygons.
         {
@@ -444,19 +444,14 @@ void ArcusCommunication::sendOptimizedLayerData()
     data.slice_data.clear();
 }
 
-void ArcusCommunication::sendPolygon(
-    const PrintFeatureType& type,
-    const ConstPolygonRef& polygon,
-    const coord_t& line_width,
-    const coord_t& line_thickness,
-    const Velocity& velocity)
+void ArcusCommunication::sendPolygon(const PrintFeatureType& type, const Polygon& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
 {
     path_compiler->sendPolygon(type, polygon, line_width, line_thickness, velocity);
 }
 
-void ArcusCommunication::sendPolygons(const PrintFeatureType& type, const Polygons& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
+void ArcusCommunication::sendPolygons(const PrintFeatureType& type, const Shape& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
 {
-    for (const std::vector<Point2LL>& polygon : polygons)
+    for (const Polygon& polygon : polygons)
     {
         path_compiler->sendPolygon(type, polygon, line_width, line_thickness, velocity);
     }
@@ -525,7 +520,7 @@ void ArcusCommunication::sliceNext()
 
     // Handle the main Slice message.
     const cura::proto::Slice* slice_message = dynamic_cast<cura::proto::Slice*>(message.get()); // See if the message is of the message type Slice. Returns nullptr otherwise.
-    if (! slice_message)
+    if (slice_message == nullptr)
     {
         return;
     }
@@ -558,15 +553,15 @@ void ArcusCommunication::sliceNext()
     }
 #endif // ENABLE_PLUGINS
 
-    Slice slice(slice_message->object_lists().size());
-    Application::getInstance().current_slice_ = &slice;
+    auto slice = std::make_shared<Slice>(slice_message->object_lists().size());
+    Application::getInstance().current_slice_ = slice;
 
     private_data->readGlobalSettingsMessage(slice_message->global_settings());
     private_data->readExtruderSettingsMessage(slice_message->extruders());
 
     // Broadcast the settings to the plugins
     slots::instance().broadcast<plugins::v0::SlotID::SETTINGS_BROADCAST>(*slice_message);
-    const size_t extruder_count = slice.scene.extruders.size();
+    const size_t extruder_count = slice->scene.extruders.size();
 
     // For each setting, register what extruder it should be obtained from (if this is limited to an extruder).
     for (const cura::proto::SettingExtruder& setting_extruder : slice_message->limit_to_extruder())
@@ -577,8 +572,8 @@ void ArcusCommunication::sliceNext()
             // If it's -1 it should be ignored as per the spec. Let's also ignore it if it's beyond range.
             continue;
         }
-        ExtruderTrain& extruder = slice.scene.extruders[setting_extruder.extruder()];
-        slice.scene.limit_to_extruder.emplace(setting_extruder.name(), &extruder);
+        ExtruderTrain& extruder = slice->scene.extruders[setting_extruder.extruder()];
+        slice->scene.limit_to_extruder.emplace(setting_extruder.name(), &extruder);
     }
 
     // Load all mesh groups, meshes and their settings.
@@ -589,9 +584,9 @@ void ArcusCommunication::sliceNext()
     }
     spdlog::debug("Done reading Slice message.");
 
-    if (! slice.scene.mesh_groups.empty())
+    if (! slice->scene.mesh_groups.empty())
     {
-        slice.compute();
+        slice->compute();
         FffProcessor::getInstance()->finalize();
         flushGCode();
         sendPrintTimeMaterialEstimates();

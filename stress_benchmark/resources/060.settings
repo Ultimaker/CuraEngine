@@ -248,6 +248,7 @@ z_seam_corner=z_seam_corner_weighted
 meshfix_fluid_motion_enabled=True
 machine_show_variants=False
 wall_overhang_angle=90
+seam_overhang_angle=30
 z_seam_y=350
 acceleration_skirt_brim=500
 skin_no_small_gaps_heuristic=False

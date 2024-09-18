@@ -1,5 +1,9 @@
-version: "5.7.0-alpha.1"
+version: "5.9.0-alpha.0"
 requirements:
-  - "arcus/[>=5.4.0]@ultimaker/cura_11622"
-  - "curaengine_grpc_definitions/[>=0.2.0]@ultimaker/cura_11622"
   - "scripta/[>=1.1.0]@ultimaker/cura_11622"
+requirements_arcus:
+  - "arcus/[>=5.4.0]@ultimaker/cura_11622"
+requirements_plugins:
+  - "curaengine_grpc_definitions/[>=0.2.0]@ultimaker/cura_11622"
+requirements_cura_resources:
+  - "cura_resources/(latest)@ultimaker/testing"

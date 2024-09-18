@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <algorithm>
@@ -49,6 +49,8 @@
 #include "utils/ThreadPool.h"
 #include "utils/gettime.h"
 #include "utils/math.h"
+#include "PrimeTower/PrimeTower.h"
+#include "geometry/OpenPolyline.h"
 #include "utils/Simplify.h"
 // clang-format on
 
@@ -412,10 +414,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     computePrintHeightStatistics(storage);
 
     // handle helpers
-    storage.primeTower.checkUsed(storage);
-    storage.primeTower.generateGroundpoly();
-    storage.primeTower.generatePaths(storage);
-    storage.primeTower.subtractFromSupport(storage);
+    storage.initializePrimeTower();
 
     spdlog::debug("Processing ooze shield");
     processOozeShield(storage);
@@ -425,7 +424,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     // This catches a special case in which the models are in the air, and then
     // the adhesion mustn't be calculated.
-    if (! isEmptyLayer(storage, 0) || storage.primeTower.enabled_)
+    if (! isEmptyLayer(storage, 0) || storage.prime_tower_)
     {
         spdlog::debug("Processing platform adhesion");
         processPlatformAdhesion(storage);
@@ -558,7 +557,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
     coord_t surface_line_width = mesh.settings.get<coord_t>("wall_line_width_0");
 
     mesh.layer_nr_max_filled_layer = -1;
-    for (LayerIndex layer_idx = 0; layer_idx < static_cast<LayerIndex>(mesh.layers.size()); layer_idx++)
+    for (LayerIndex layer_idx = 0; layer_idx < LayerIndex(mesh.layers.size()); layer_idx++)
     {
         SliceLayer& layer = mesh.layers[layer_idx];
 
@@ -568,17 +567,16 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
             // they have to be polylines, because they might break up further when doing the cutting
             for (SliceLayerPart& part : layer.parts)
             {
-                for (PolygonRef poly : part.outline)
+                for (const Polygon& poly : part.outline)
                 {
-                    layer.openPolyLines.add(poly);
-                    layer.openPolyLines.back().add(layer.openPolyLines.back()[0]); // add the segment which closes the polygon
+                    layer.open_polylines.push_back(poly.toPseudoOpenPolyline());
                 }
             }
             layer.parts.clear();
         }
 
-        std::vector<PolygonsPart> new_parts;
-        Polygons new_polylines;
+        std::vector<SingleShape> new_parts;
+        OpenLinesSet new_polylines;
 
         for (const size_t other_mesh_idx : mesh_order)
         { // limit the infill mesh's outline to within the infill of all meshes with lower order
@@ -587,7 +585,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
                 break; // all previous meshes have been processed
             }
             SliceMeshStorage& other_mesh = *storage.meshes[other_mesh_idx];
-            if (layer_idx >= static_cast<LayerIndex>(other_mesh.layers.size()))
+            if (layer_idx >= LayerIndex(other_mesh.layers.size()))
             { // there can be no interaction between the infill mesh and this other non-infill mesh
                 continue;
             }
@@ -604,17 +602,17 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
                         { // early out
                             continue;
                         }
-                        Polygons new_outline = part.outline.intersection(other_part.getOwnInfillArea());
+                        Shape new_outline = part.outline.intersection(other_part.getOwnInfillArea());
                         if (new_outline.size() == 1)
                         { // we don't have to call splitIntoParts, because a single polygon can only be a single part
-                            PolygonsPart outline_part_here;
-                            outline_part_here.add(new_outline[0]);
+                            SingleShape outline_part_here;
+                            outline_part_here.push_back(new_outline[0]);
                             new_parts.push_back(outline_part_here);
                         }
                         else if (new_outline.size() > 1)
                         { // we don't know whether it's a multitude of parts because of newly introduced holes, or because the polygon has been split up
-                            std::vector<PolygonsPart> new_parts_here = new_outline.splitIntoParts();
-                            for (PolygonsPart& new_part_here : new_parts_here)
+                            std::vector<SingleShape> new_parts_here = new_outline.splitIntoParts();
+                            for (SingleShape& new_part_here : new_parts_here)
                             {
                                 new_parts.push_back(new_part_here);
                             }
@@ -627,21 +625,25 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
                 }
                 if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
-                    const Polygons& own_infill_area = other_part.getOwnInfillArea();
-                    Polygons cut_lines = own_infill_area.intersectionPolyLines(layer.openPolyLines);
-                    new_polylines.add(cut_lines);
+                    const Shape& own_infill_area = other_part.getOwnInfillArea();
+                    OpenLinesSet cut_lines = own_infill_area.intersection(layer.open_polylines);
+                    new_polylines.push_back(cut_lines);
                     // NOTE: closed polygons will be represented as polylines, which will be closed automatically in the PathOrderOptimizer
                     if (! own_infill_area.empty())
                     {
-                        other_part.infill_area_own = own_infill_area.difference(layer.openPolyLines.offsetPolyLine(surface_line_width / 2));
+                        other_part.infill_area_own = own_infill_area.difference(layer.open_polylines.offset(surface_line_width / 2));
                     }
                 }
             }
         }
 
         layer.parts.clear();
-        for (PolygonsPart& part : new_parts)
+        for (SingleShape& part : new_parts)
         {
+            if (part.empty())
+            {
+                continue;
+            }
             layer.parts.emplace_back();
             layer.parts.back().outline = part;
             layer.parts.back().boundaryBox.calculate(part);
@@ -649,10 +651,10 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
 
         if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
         {
-            layer.openPolyLines = new_polylines;
+            layer.open_polylines = new_polylines;
         }
 
-        if (layer.parts.size() > 0 || (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.openPolyLines.size() > 0))
+        if (layer.parts.size() > 0 || (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.open_polylines.size() > 0))
         {
             mesh.layer_nr_max_filled_layer = layer_idx; // last set by the highest non-empty layer
         }
@@ -750,7 +752,7 @@ bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const LayerInd
             continue;
         }
         SliceLayer& layer = mesh.layers[layer_idx];
-        if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.openPolyLines.size() > 0)
+        if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.open_polylines.size() > 0)
         {
             return false;
         }
@@ -768,11 +770,20 @@ bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const LayerInd
 void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size_t& total_layers)
 {
     size_t n_empty_first_layers = 0;
+    coord_t hightest_empty_layer = 0;
     for (size_t layer_idx = 0; layer_idx < total_layers; layer_idx++)
     {
         if (isEmptyLayer(storage, layer_idx))
         {
             n_empty_first_layers++;
+
+            coord_t layer_highest_z = 0;
+            for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
+            {
+                const auto& mesh = *mesh_ptr;
+                layer_highest_z = layer_idx >= mesh.layers.size() ? layer_highest_z : std::max(layer_highest_z, mesh.layers[layer_idx].printZ);
+            }
+            hightest_empty_layer = std::max(hightest_empty_layer, layer_highest_z);
         }
         else
         {
@@ -796,7 +807,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size
             layers.erase(layers.begin(), layers.begin() + n_empty_first_layers);
             for (SliceLayer& layer : layers)
             {
-                layer.printZ -= n_empty_first_layers * layer_height;
+                layer.printZ -= hightest_empty_layer;
             }
             mesh.layer_nr_max_filled_layer -= n_empty_first_layers;
         }
@@ -864,7 +875,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
             }
             for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
             {
-                for (LayerIndex layer_nr = static_cast<LayerIndex>(mesh.layers.size()) - 1; layer_nr > max_print_height_per_extruder[extruder_nr]; layer_nr--)
+                for (LayerIndex layer_nr = LayerIndex(mesh.layers.size()) - 1; layer_nr > max_print_height_per_extruder[extruder_nr]; layer_nr--)
                 {
                     if (mesh.getExtruderIsUsed(extruder_nr, layer_nr))
                     {
@@ -947,7 +958,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
     {
         constexpr bool around_support = true;
         constexpr bool around_prime_tower = false;
-        storage.oozeShield.push_back(storage.getLayerOutlines(layer_nr, around_support, around_prime_tower).offset(ooze_shield_dist, ClipperLib::jtRound).getOutsidePolygons());
+        storage.ooze_shield.push_back(storage.getLayerOutlines(layer_nr, around_support, around_prime_tower).offset(ooze_shield_dist, ClipperLib::jtRound).getOutsidePolygons());
     }
 
     const AngleDegrees angle = mesh_group_settings.get<AngleDegrees>("ooze_shield_angle");
@@ -957,20 +968,20 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
             = tan(mesh_group_settings.get<AngleRadians>("ooze_shield_angle")) * mesh_group_settings.get<coord_t>("layer_height"); // Allow for a 60deg angle in the oozeShield.
         for (LayerIndex layer_nr = 1; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
         {
-            storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].unionPolygons(storage.oozeShield[layer_nr - 1].offset(-allowed_angle_offset));
+            storage.ooze_shield[layer_nr] = storage.ooze_shield[layer_nr].unionPolygons(storage.ooze_shield[layer_nr - 1].offset(-allowed_angle_offset));
         }
         for (LayerIndex layer_nr = storage.max_print_height_second_to_last_extruder; layer_nr > 0; layer_nr--)
         {
-            storage.oozeShield[layer_nr - 1] = storage.oozeShield[layer_nr - 1].unionPolygons(storage.oozeShield[layer_nr].offset(-allowed_angle_offset));
+            storage.ooze_shield[layer_nr - 1] = storage.ooze_shield[layer_nr - 1].unionPolygons(storage.ooze_shield[layer_nr].offset(-allowed_angle_offset));
         }
     }
 
     const double largest_printed_area = 1.0; // TODO: make var a parameter, and perhaps even a setting?
     for (LayerIndex layer_nr = 0; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
     {
-        storage.oozeShield[layer_nr].removeSmallAreas(largest_printed_area);
+        storage.ooze_shield[layer_nr].removeSmallAreas(largest_printed_area);
     }
-    if (mesh_group_settings.get<bool>("prime_tower_enable"))
+    if (storage.prime_tower_)
     {
         coord_t max_line_width = 0;
         { // compute max_line_width
@@ -985,7 +996,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
         }
         for (LayerIndex layer_nr = 0; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
         {
-            storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].difference(storage.primeTower.getOuterPoly(layer_nr).offset(max_line_width / 2));
+            storage.ooze_shield[layer_nr] = storage.ooze_shield[layer_nr].difference(storage.prime_tower_->getOccupiedOutline(layer_nr).offset(max_line_width / 2));
         }
     }
 }
@@ -1002,7 +1013,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
 
     const LayerIndex layer_skip{ 500 / layer_height + 1 };
 
-    Polygons& draft_shield = storage.draft_protection_shield;
+    Shape& draft_shield = storage.draft_protection_shield;
     for (LayerIndex layer_nr = 0; layer_nr < storage.print_layer_count && layer_nr < draft_shield_layers; layer_nr += layer_skip)
     {
         constexpr bool around_support = true;
@@ -1022,7 +1033,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
         maximum_deviation = std::min(maximum_deviation, extruder.settings_.get<coord_t>("meshfix_maximum_deviation"));
     }
     storage.draft_protection_shield = Simplify(maximum_resolution, maximum_deviation, 0).polygon(storage.draft_protection_shield);
-    if (mesh_group_settings.get<bool>("prime_tower_enable"))
+    if (storage.prime_tower_)
     {
         coord_t max_line_width = 0;
         { // compute max_line_width
@@ -1035,7 +1046,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
                 max_line_width = std::max(max_line_width, extruders[extruder_nr].settings_.get<coord_t>("skirt_brim_line_width"));
             }
         }
-        storage.draft_protection_shield = storage.draft_protection_shield.difference(storage.primeTower.getGroundPoly().offset(max_line_width / 2));
+        storage.draft_protection_shield = storage.draft_protection_shield.difference(storage.prime_tower_->getOccupiedGroundOutline().offset(max_line_width / 2));
     }
 }
 
@@ -1060,16 +1071,6 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     {
         skirt_brim.generateSupportBrim();
     }
-
-    for (const auto& extruder : Application::getInstance().current_slice_->scene.extruders)
-    {
-        Simplify simplifier(extruder.settings_);
-        for (auto skirt_brim_line : storage.skirt_brim[extruder.extruder_nr_])
-        {
-            skirt_brim_line.closed_polygons = simplifier.polygon(skirt_brim_line.closed_polygons);
-            skirt_brim_line.open_polylines = simplifier.polyline(skirt_brim_line.open_polylines);
-        }
-    }
 }
 
 
@@ -1089,14 +1090,14 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
     unsigned int start_layer_nr
         = (mesh.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM) ? 1 : 0; // don't make fuzzy skin on first layer if there's a brim
 
-    auto hole_area = Polygons();
+    auto hole_area = Shape();
     std::function<bool(const bool&, const ExtrusionJunction&)> accumulate_is_in_hole
         = []([[maybe_unused]] const bool& prev_result, [[maybe_unused]] const ExtrusionJunction& junction)
     {
         return false;
     };
 
-    for (LayerIndex layer_nr = start_layer_nr; layer_nr < mesh.layers.size(); layer_nr++)
+    for (LayerIndex layer_nr = start_layer_nr; layer_nr < LayerIndex(mesh.layers.size()); layer_nr++)
     {
         SliceLayer& layer = mesh.layers[layer_nr];
         for (SliceLayerPart& part : layer.parts)

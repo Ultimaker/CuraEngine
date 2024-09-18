@@ -1,3 +1,4 @@
+// Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef TREESUPPORTSETTINGS_H
@@ -10,8 +11,11 @@
 #include "settings/EnumSettings.h"
 #include "settings/Settings.h"
 #include "settings/types/Angle.h"
+#include "settings/types/Ratio.h"
 #include "utils/Coord_t.h"
 #include "utils/Simplify.h"
+#include "utils/math.h"
+
 
 namespace cura
 {
@@ -50,11 +54,12 @@ struct TreeSupportSettings
                                                                                                                              : RestPreference::BUILDPLATE)
         , xy_distance(mesh_group_settings.get<coord_t>("support_xy_distance"))
         , bp_radius(mesh_group_settings.get<coord_t>("support_tree_bp_diameter") / 2)
-        , diameter_scale_bp_radius(std::min(sin(0.7) * static_cast<double>(layer_height / branch_radius), 1.0 / (branch_radius / (support_line_width / 2.0))))
+        , diameter_scale_bp_radius(std::min(sin(0.7) * static_cast<double>(layer_height) / static_cast<double>(branch_radius), 1.0 / (branch_radius / (support_line_width / 2.0))))
         , // Either 40° or as much as possible so that 2 lines will overlap by at least 50%, whichever is smaller.
         support_overrides(mesh_group_settings.get<SupportDistPriority>("support_xy_overrides_z"))
         , xy_min_distance(support_overrides == SupportDistPriority::Z_OVERRIDES_XY ? mesh_group_settings.get<coord_t>("support_xy_distance_overhang") : xy_distance)
-        , z_distance_top_layers(round_up_divide(mesh_group_settings.get<coord_t>("support_top_distance"), layer_height))
+        , z_distance_top(mesh_group_settings.get<coord_t>("support_top_distance"))
+        , z_distance_top_layers(round_up_divide(z_distance_top, layer_height))
         , z_distance_bottom_layers(round_up_divide(mesh_group_settings.get<coord_t>("support_bottom_distance"), layer_height))
         , support_infill_angles(mesh_group_settings.get<std::vector<AngleDegrees>>("support_infill_angles"))
         , support_roof_angles(mesh_group_settings.get<std::vector<AngleDegrees>>("support_roof_angles"))
@@ -258,6 +263,11 @@ public:
     coord_t xy_min_distance;
 
     /*!
+     * \brief Distance required the top of the support to the model
+     */
+    coord_t z_distance_top;
+
+    /*!
      * \brief Amount of layers distance required the top of the support to the model
      */
     size_t z_distance_top_layers;
@@ -397,7 +407,7 @@ public:
             && // can not be set on a per-mesh basis currently, so code to enable processing different roof patterns in the same iteration seems useless.
                support_roof_angles == other.support_roof_angles && support_infill_angles == other.support_infill_angles
             && increase_radius_until_radius == other.increase_radius_until_radius && support_bottom_layers == other.support_bottom_layers && layer_height == other.layer_height
-            && z_distance_top_layers == other.z_distance_top_layers && maximum_deviation == other.maximum_deviation && // Infill generation depends on deviation and resolution.
+            && z_distance_top == other.z_distance_top && maximum_deviation == other.maximum_deviation && // Infill generation depends on deviation and resolution.
                maximum_resolution == other.maximum_resolution && support_roof_line_distance == other.support_roof_line_distance && skip_some_zags == other.skip_some_zags
             && zag_skip_count == other.zag_skip_count && connect_zigzags == other.connect_zigzags && interface_preference == other.interface_preference
             && min_feature_size == other.min_feature_size && // interface_preference should be identical to ensure the tree will correctly interact with the roof.

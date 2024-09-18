@@ -21,6 +21,7 @@ on:
       - main
       - 'CURA-*'
       - 'PP-*'
+      - 'NP-*'
       - '[0-9]+.[0-9]+'
 
 permissions:

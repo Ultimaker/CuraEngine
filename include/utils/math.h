@@ -6,42 +6,104 @@
 
 #include <cmath>
 #include <cstdint>
-#include <numbers>
+
+#include "utils/types/generic.h"
 
 
 namespace cura
 {
 
-template<typename T>
-inline T square(const T& a)
+/**
+ * @brief Returns the square of a value.
+ *
+ * @tparam T A multipliable type (arithmetic types such as int, float, double, etc.)
+ * @param a The value to be squared.
+ * @return T The square of the input value.
+ */
+template<utils::multipliable T>
+[[nodiscard]] T square(const T& a)
 {
     return a * a;
 }
 
-inline int64_t round_divide_signed(const int64_t dividend, const int64_t divisor) //!< Return dividend divided by divisor rounded to the nearest integer
+/**
+ * @brief Returns the quotient of the division of two signed integers, rounded to the nearest integer.
+ *
+ * @param dividend The numerator.
+ * @param divisor The denominator (must not be zero).
+ * @return int64_t The result of the division rounded to the nearest integer.
+ * @throws std::invalid_argument If the divisor is zero.
+ */
+[[nodiscard]] inline int64_t round_divide_signed(const int64_t dividend, const int64_t divisor)
 {
-    if ((dividend < 0) ^ (divisor < 0)) // Either the numerator or the denominator is negative, so the result must be negative.
+    if ((dividend < 0) ^ (divisor < 0))
     {
-        return (dividend - divisor / 2) / divisor; // Flip the .5 offset to do proper rounding in the negatives too.
+        return (dividend - divisor / 2) / divisor;
     }
-    else
+    return (dividend + divisor / 2) / divisor;
+}
+
+/**
+ * @brief Returns the quotient of the division of two signed integers, rounded up towards positive infinity.
+ *
+ * @param dividend The numerator.
+ * @param divisor The denominator (must not be zero).
+ * @return int64_t The result of the division rounded up.
+ * @throws std::invalid_argument If the divisor is zero.
+ */
+[[nodiscard]] inline int64_t ceil_divide_signed(const int64_t dividend, const int64_t divisor)
+{
+    int64_t quotient = dividend / divisor;
+    int64_t remainder = dividend % divisor;
+
+    // Round up if there's a remainder and the signs of dividend and divisor are the same
+    if (remainder != 0 && ((dividend > 0 && divisor > 0) || (dividend < 0 && divisor < 0)))
     {
-        return (dividend + divisor / 2) / divisor;
+        quotient += 1;
     }
+
+    return quotient;
 }
-inline uint64_t ceil_divide_signed(const int64_t dividend, const int64_t divisor) //!< Return dividend divided by divisor rounded up towards positive infinity.
+
+/**
+ * @brief Returns the quotient of the division of two signed integers, rounded down towards negative infinity.
+ *
+ * @param dividend The numerator.
+ * @param divisor The denominator (must not be zero).
+ * @return int64_t The result of the division rounded down.
+ * @throws std::invalid_argument If the divisor is zero.
+ */
+[[nodiscard]] inline int64_t floor_divide_signed(const int64_t dividend, const int64_t divisor)
 {
-    return static_cast<uint64_t>((dividend / divisor) + (dividend * divisor > 0 ? 1 : 0));
+    const int64_t quotient = dividend / divisor;
+    const int64_t remainder = dividend % divisor;
+    if (remainder != 0 && ((dividend > 0 && divisor < 0) || (dividend < 0 && divisor > 0)))
+    {
+        return quotient - 1;
+    }
+    return quotient;
 }
-inline uint64_t floor_divide_signed(const int64_t dividend, const int64_t divisor) //!< Return dividend divided by divisor rounded down towards negative infinity.
-{
-    return static_cast<uint64_t>((dividend / divisor) + (dividend * divisor > 0 ? 0 : -1));
-}
-inline uint64_t round_divide(const uint64_t dividend, const uint64_t divisor) //!< Return dividend divided by divisor rounded to the nearest integer
+
+/**
+ * @brief Returns the quotient of the division of two unsigned integers, rounded to the nearest integer.
+ *
+ * @param dividend The numerator.
+ * @param divisor The denominator (must not be zero).
+ * @return uint64_t The result of the division rounded to the nearest integer.
+ */
+[[nodiscard]] inline uint64_t round_divide(const uint64_t dividend, const uint64_t divisor)
 {
     return (dividend + divisor / 2) / divisor;
 }
-inline uint64_t round_up_divide(const uint64_t dividend, const uint64_t divisor) //!< Return dividend divided by divisor rounded to the nearest integer
+
+/**
+ * @brief Returns the quotient of the division of two unsigned integers, rounded up towards positive infinity.
+ *
+ * @param dividend The numerator.
+ * @param divisor The denominator (must not be zero).
+ * @return uint64_t The result of the division rounded up.
+ */
+[[nodiscard]] inline uint64_t round_up_divide(const uint64_t dividend, const uint64_t divisor)
 {
     return (dividend + divisor - 1) / divisor;
 }
