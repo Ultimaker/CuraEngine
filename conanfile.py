@@ -73,7 +73,6 @@ class CuraEngineConan(ConanFile):
             del self.options.enable_sentry
 
     def configure(self):
-        self.options["boost"].header_only = True
         self.options["clipper"].shared = True
         if self.options.enable_arcus or self.options.enable_plugins:
             self.options["protobuf"].shared = False
@@ -114,7 +113,6 @@ class CuraEngineConan(ConanFile):
         if self.options.enable_plugins:
             self.requires("neargye-semver/0.3.0")
             self.requires("asio-grpc/2.9.2")
-            self.requires("grpc/1.54.3")
             for req in self.conan_data["requirements_plugins"]:
                 self.requires(req)
         if self.options.with_cura_resources:
