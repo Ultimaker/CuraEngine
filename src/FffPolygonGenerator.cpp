@@ -213,15 +213,6 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
         slicerList.push_back(slicer);
 
-        /*
-        for(SlicerLayer& layer : slicer->layers)
-        {
-            //Reporting the outline here slows down the engine quite a bit, so only do so when debugging.
-            sendPolygons("outline", layer_nr, layer.z, layer.polygonList);
-            sendPolygons("openoutline", layer_nr, layer.openPolygonList);
-        }
-        */
-
         Progress::messageProgress(Progress::Stage::SLICING, mesh_idx + 1, meshgroup->meshes.size());
     }
 

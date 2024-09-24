@@ -1248,8 +1248,8 @@ void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed /*= 0*
             const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[current_extruder_];
             speed = extruder.settings_.get<Velocity>("speed_z_hop");
         }
-        const coord_t target_z = current_layer_z_ + is_z_hopped_;
         is_z_hopped_ = hop_height;
+        const coord_t target_z = current_layer_z_ + is_z_hopped_;
         current_speed_ = speed;
         *output_stream_ << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " Z" << MMtoStream{ target_z } << new_line_;
         Application::getInstance().communication_->sendLineTo(PrintFeatureType::MoveRetraction, Point3LL(current_position_.x_, current_position_.y_, target_z), 0, 0, speed);

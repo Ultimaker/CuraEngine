@@ -25,10 +25,8 @@ public:
     MOCK_CONST_METHOD0(isSequential, bool());
     MOCK_CONST_METHOD1(sendProgress, void(double progress));
     MOCK_METHOD3(sendLayerComplete, void(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness));
-    MOCK_METHOD5(sendPolygons, void(const PrintFeatureType& type, const Shape& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity));
-    MOCK_METHOD5(sendPolygon, void(const PrintFeatureType& type, const Polygon& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity));
-    MOCK_METHOD5(sendLineTo, void(const PrintFeatureType& type, const Point2LL& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity));
-    MOCK_METHOD1(sendCurrentPosition, void(const Point2LL& position));
+    MOCK_METHOD5(sendLineTo, void(const PrintFeatureType& type, const Point3LL& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity));
+    MOCK_METHOD1(sendCurrentPosition, void(const Point3LL& position));
     MOCK_METHOD1(setExtruderForSend, void(const ExtruderTrain& extruder));
     MOCK_METHOD1(setLayerForSend, void(const LayerIndex::value_type& layer_nr));
     MOCK_METHOD0(sendOptimizedLayerData, void());

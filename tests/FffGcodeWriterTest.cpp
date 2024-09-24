@@ -155,12 +155,12 @@ TEST_F(FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
         Point2LL last;
         for (const auto& path:gcode_layer.extruder_plans_[0].paths_) {
             for (const auto& point: path.points) {
-                Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(p, point, last);
+                Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(p, point.toPoint2LL(), last);
                 int64_t dist = vSize2(p - closest_here);
 
                 if (dist<margin*margin) return true;
 
-                last=point;
+                last = point.toPoint2LL();
             }
         }
         return false;
