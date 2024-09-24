@@ -575,7 +575,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     const size_t surface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr_;
 
     coord_t z = 0;
-    const LayerIndex initial_raft_layer_nr = -Raft::getTotalExtraLayers();
+    const LayerIndex initial_raft_layer_nr = -LayerIndex(Raft::getTotalExtraLayers());
     const Settings& interface_settings = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_;
     const size_t num_interface_layers = interface_settings.get<size_t>("raft_interface_layers");
     const Settings& surface_settings = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings_;
@@ -764,7 +764,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
     z += raft_interface_z_offset;
 
-    for (LayerIndex raft_interface_layer = 1; static_cast<size_t>(raft_interface_layer) <= num_interface_layers; ++raft_interface_layer)
+    for (LayerIndex raft_interface_layer = 1; raft_interface_layer <= LayerIndex(num_interface_layers); ++raft_interface_layer)
     { // raft interface layer
         const LayerIndex layer_nr = initial_raft_layer_nr + raft_interface_layer;
         z += interface_layer_height;
@@ -925,7 +925,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
     z += raft_surface_z_offset;
 
-    for (LayerIndex raft_surface_layer = 1; static_cast<size_t>(raft_surface_layer) <= num_surface_layers; raft_surface_layer++)
+    for (LayerIndex raft_surface_layer = 1; raft_surface_layer <= LayerIndex(num_surface_layers); raft_surface_layer++)
     { // raft surface layers
         const LayerIndex layer_nr = initial_raft_layer_nr + 1 + num_interface_layers + raft_surface_layer - 1; // +1: 1 base layer
         z += surface_layer_height;
@@ -1538,7 +1538,7 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     extruder_order_per_layer.init(true, storage.print_layer_count);
 
     const std::vector<bool> extruders_used = storage.getExtrudersUsed();
-    for (LayerIndex layer_nr = -Raft::getTotalExtraLayers(); layer_nr < static_cast<LayerIndex>(storage.print_layer_count); layer_nr++)
+    for (LayerIndex layer_nr = -LayerIndex(Raft::getTotalExtraLayers()); layer_nr < LayerIndex(storage.print_layer_count); layer_nr++)
     {
         std::vector<ExtruderUse> extruder_order = getUsedExtrudersOnLayer(storage, last_extruder, layer_nr, extruders_used);
         extruder_order_per_layer.push_back(extruder_order);
@@ -1557,7 +1557,7 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
 
 void FffGcodeWriter::calculatePrimeLayerPerExtruder(const SliceDataStorage& storage)
 {
-    LayerIndex first_print_layer = -Raft::getTotalExtraLayers();
+    LayerIndex first_print_layer = -LayerIndex(Raft::getTotalExtraLayers());
     for (size_t extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; ++extruder_nr)
     {
         if (getExtruderNeedPrimeBlobDuringFirstLayer(storage, extruder_nr))
@@ -1567,7 +1567,7 @@ void FffGcodeWriter::calculatePrimeLayerPerExtruder(const SliceDataStorage& stor
         }
     }
 
-    for (LayerIndex layer_nr = first_print_layer; layer_nr < static_cast<LayerIndex>(storage.print_layer_count); ++layer_nr)
+    for (LayerIndex layer_nr = first_print_layer; layer_nr < LayerIndex(storage.print_layer_count); ++layer_nr)
     {
         const std::vector<bool> used_extruders = storage.getExtrudersUsed(layer_nr);
         for (size_t extruder_nr = 0; extruder_nr < used_extruders.size(); ++extruder_nr)
@@ -1591,7 +1591,7 @@ std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
     assert(static_cast<int>(extruder_count) > 0);
     std::vector<ExtruderUse> ret;
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
-    const LayerIndex raft_base_layer_nr = -Raft::getTotalExtraLayers();
+    const LayerIndex raft_base_layer_nr = -LayerIndex(Raft::getTotalExtraLayers());
     Raft::LayerType layer_type = Raft::getLayerType(layer_nr);
 
     if (layer_type == Raft::RaftBase)
@@ -1827,8 +1827,7 @@ void FffGcodeWriter::addMeshPartToGCode(
     added_something = added_something | processSkin(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
 
     // After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
-    if (added_something
-        && (! mesh_group_settings.get<bool>("magic_spiralize") || gcode_layer.getLayerNr() < static_cast<LayerIndex>(mesh.settings.get<size_t>("initial_bottom_layers"))))
+    if (added_something && (! mesh_group_settings.get<bool>("magic_spiralize") || gcode_layer.getLayerNr() < LayerIndex(mesh.settings.get<size_t>("initial_bottom_layers"))))
     {
         coord_t innermost_wall_line_width = mesh.settings.get<coord_t>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
         if (gcode_layer.getLayerNr() == 0)
@@ -2929,27 +2928,25 @@ bool FffGcodeWriter::processInsets(
     bool spiralize = false;
     if (Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
     {
-        const size_t initial_bottom_layers = mesh.settings.get<size_t>("initial_bottom_layers");
-        const int layer_nr = gcode_layer.getLayerNr();
-        if ((layer_nr < static_cast<LayerIndex>(initial_bottom_layers)
-             && part.wall_toolpaths.empty()) // The bottom layers in spiralize mode are generated using the variable width paths
-            || (layer_nr >= static_cast<LayerIndex>(initial_bottom_layers) && part.spiral_wall.empty())) // The rest of the layers in spiralize mode are using the spiral wall
+        const auto initial_bottom_layers = LayerIndex(mesh.settings.get<size_t>("initial_bottom_layers"));
+        const auto layer_nr = gcode_layer.getLayerNr();
+        if ((layer_nr < initial_bottom_layers && part.wall_toolpaths.empty()) // The bottom layers in spiralize mode are generated using the variable width paths
+            || (layer_nr >= initial_bottom_layers && part.spiral_wall.empty())) // The rest of the layers in spiralize mode are using the spiral wall
         {
             // nothing to do
             return false;
         }
-        if (gcode_layer.getLayerNr() >= static_cast<LayerIndex>(initial_bottom_layers))
+        if (gcode_layer.getLayerNr() >= initial_bottom_layers)
         {
             spiralize = true;
         }
-        if (spiralize && gcode_layer.getLayerNr() == static_cast<LayerIndex>(initial_bottom_layers)
-            && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)
+        if (spiralize && gcode_layer.getLayerNr() == initial_bottom_layers && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)
         { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
             added_something = true;
             gcode_layer.setIsInside(true); // going to print stuff inside print object
             // start this first wall at the same vertex the spiral starts
             const Polygon& spiral_inset = part.spiral_wall[0];
-            const size_t spiral_start_vertex = storage.spiralize_seam_vertex_indices[initial_bottom_layers];
+            const size_t spiral_start_vertex = storage.spiralize_seam_vertex_indices[static_cast<size_t>(initial_bottom_layers.value)];
             if (spiral_start_vertex < spiral_inset.size())
             {
                 gcode_layer.addTravel(spiral_inset[spiral_start_vertex]);

@@ -2236,7 +2236,7 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
 
 void LayerPlan::writeGCode(GCodeExport& gcode)
 {
-    Communication* communication = Application::getInstance().communication_;
+    auto communication = Application::getInstance().communication_;
     communication->setLayerForSend(layer_nr_);
     communication->sendCurrentPosition(gcode.getPosition());
     gcode.setLayerNr(layer_nr_);

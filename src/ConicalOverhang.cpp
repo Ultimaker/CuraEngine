@@ -23,7 +23,7 @@ void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
     const coord_t layer_thickness = mesh.settings_.get<coord_t>("layer_height");
     coord_t max_dist_from_lower_layer = std::llround(tan_angle * static_cast<double>(layer_thickness)); // max dist which can be bridged
 
-    for (LayerIndex layer_nr = slicer->layers.size() - 2; static_cast<int>(layer_nr) >= 0; layer_nr--)
+    for (LayerIndex layer_nr = LayerIndex(slicer->layers.size()) - 2; layer_nr >= 0; layer_nr--)
     {
         SlicerLayer& layer = slicer->layers[static_cast<size_t>(layer_nr)];
         SlicerLayer& layer_above = slicer->layers[static_cast<size_t>(layer_nr) + 1ul];
