@@ -73,7 +73,6 @@ class CuraEngineConan(ConanFile):
             del self.options.enable_sentry
 
     def configure(self):
-        self.options["clipper"].shared = True
         if self.options.enable_arcus or self.options.enable_plugins:
             self.options["protobuf"].shared = False
         if self.options.enable_arcus:
