@@ -1394,7 +1394,7 @@ void LayerPlan::addWall(
             small_feature_speed_factor,
             max_area_deviation,
             max_resolution,
-            scarf_seam_length,
+            layer_nr_ > 0 ? scarf_seam_length : 0,
             scarf_seam_start_ratio,
             scarf_split_distance,
             scarf_max_z_offset,
