@@ -168,7 +168,7 @@ postprocess_response::native_value_type
 }
 
 infill_generate_request::value_type
-    infill_generate_request::operator()(const infill_generate_request::native_value_type& inner_contour, const std::string& pattern, const Settings& settings) const
+    infill_generate_request::operator()(const infill_generate_request::native_value_type& inner_contour, const std::string& pattern, const Settings& settings, const coord_t z) const
 {
     value_type message{};
     message.set_pattern(pattern);
@@ -177,6 +177,11 @@ infill_generate_request::value_type
     {
         msg_settings->insert({ key, value });
     }
+
+    // ------------------------------------------------------------
+    // Add current z height to settings message
+    // ------------------------------------------------------------
+    msg_settings->insert({ "z" , std::to_string(z) });
 
     if (inner_contour.empty())
     {
