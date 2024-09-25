@@ -2367,18 +2367,25 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             extruder_plan.handleInserts(path_idx, gcode, cumulative_path_time);
         };
 
-        const double coasting_volume = extruder.settings_.get<double>("coasting_volume");
-        std::vector<AdjustCoasting> coasting_adjust_per_path(paths.size(), AdjustCoasting::AsNormal);
-        if (coasting_volume > 0)
+        std::vector<std::pair<AdjustCoasting, double>> coasting_adjust_per_path;
+        if (extruder.settings_.get<bool>("coasting_enable"))
         {
             // Chunk paths by travel paths, and find out which paths are a 'continuation' w.r.t. coasting (and which need to be 'coasted away' entirely).
             // Note that this doesn't perform the coasting itself, it just calculates the 'adjust coasting' vector needed by the 'writePathWithCoasting' func.
             // All of this is nescesary since we split up paths because of scarf and accelleration-adjustments (start/end), so we need to have adjacency info.
+
+            const double coasting_volume = extruder.settings_.get<double>("coasting_volume");
+            coasting_adjust_per_path.assign(paths.size(), { AdjustCoasting::AsNormal, coasting_volume });
+
             for (const auto& reversed_chunk :
                 paths |
                 ranges::views::enumerate |
                 ranges::views::reverse |
-                ranges::views::chunk_by([](const auto& path_a, const auto& path_b) { return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath(); }))
+                ranges::views::chunk_by(
+                    [](const auto& path_a, const auto& path_b)
+                    {
+                        return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
+                    }))
             {
                 double coasting_left = coasting_volume;
                 for (const auto& [path_idx, path] : reversed_chunk)
@@ -2395,7 +2402,14 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     }
                     const double path_volume = INT2MM2(INT2MM(accumulated_length * path.config.getLineWidth()) * layer_thickness_);
 
-                    coasting_adjust_per_path[path_idx] = path_volume < coasting_left ? AdjustCoasting::CoastEntirePath : AdjustCoasting::ContinueCoasting;
+                    if (path_volume < coasting_left)
+                    {
+                        coasting_adjust_per_path[path_idx].first = AdjustCoasting::CoastEntirePath;
+                    }
+                    else
+                    {
+                        coasting_adjust_per_path[path_idx] = { AdjustCoasting::ContinueCoasting, coasting_left };
+                    }
 
                     coasting_left -= path_volume;
                     if (coasting_left <= 0)
@@ -2755,18 +2769,18 @@ bool LayerPlan::writePathWithCoasting(
     const size_t path_idx,
     const coord_t layer_thickness,
     const std::function<void(const double, const int64_t)> insertTempOnTime,
-    const AdjustCoasting coasting_adjust)
+    const std::pair<AdjustCoasting, double> coasting_adjust)
 {
     ExtruderPlan& extruder_plan = extruder_plans_[extruder_plan_idx];
     const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[extruder_plan.extruder_nr_];
-    const double coasting_volume = extruder.settings_.get<double>("coasting_volume");
+    const double coasting_volume = std::min(extruder.settings_.get<double>("coasting_volume"), coasting_adjust.second);
     if (coasting_volume <= 0)
     {
         return false;
     }
     const std::vector<GCodePath>& paths = extruder_plan.paths_;
     const GCodePath& path = paths[path_idx];
-    if (path_idx + 1 >= paths.size() || (path.isTravelPath() || !(paths[path_idx + 1].config.isTravelPath() || coasting_adjust == AdjustCoasting::ContinueCoasting)) || path.points.size() < 2)
+    if (path_idx + 1 >= paths.size() || (path.isTravelPath() || !(paths[path_idx + 1].config.isTravelPath() || coasting_adjust.first == AdjustCoasting::ContinueCoasting)) || path.points.size() < 2)
     {
         return false;
     }
@@ -2776,7 +2790,7 @@ bool LayerPlan::writePathWithCoasting(
     const double extrude_speed = path.config.getSpeed() * path.speed_factor * path.speed_back_pressure_factor;
 
     coord_t coasting_dist
-        = coasting_adjust == AdjustCoasting::CoastEntirePath
+        = coasting_adjust.first == AdjustCoasting::CoastEntirePath
         ? std::numeric_limits<coord_t>::max() / 2
         : MM2INT(MM2_2INT(coasting_volume) / layer_thickness) / path.config.getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
     const double coasting_min_volume = extruder.settings_.get<double>("coasting_min_volume");

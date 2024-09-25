@@ -758,7 +758,7 @@ public:
         const size_t path_idx,
         const coord_t layer_thickness,
         const std::function<void(const double, const int64_t)> insertTempOnTime,
-        const AdjustCoasting coasting_adjust);
+        const std::pair<AdjustCoasting, double> coasting_adjust);
 
     /*!
      * Applying speed corrections for minimal layer times and determine the fanSpeed.
