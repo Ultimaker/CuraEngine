@@ -57,6 +57,14 @@ class LayerPlan : public NoCopy
 #endif
 
 public:
+    // 'AdjustCoasting'; because split-up paths from the same extruder (with no travel moves between them) should count as the same path w.r.t. coasting.
+    enum class AdjustCoasting
+    {
+        AsNormal,
+        CoastEntirePath,
+        ContinueCoasting
+    };
+
     const PathConfigStorage configs_storage_; //!< The line configs for this layer for each feature type
     const coord_t z_;
     coord_t final_travel_z_;
@@ -740,6 +748,8 @@ public:
      * \param path_idx The index into LayerPlan::paths for the next path to be
      * written to GCode.
      * \param layer_thickness The height of the current layer.
+     * \param insertTempOnTime A function that inserts temperature changes at a given time.
+     * \param coasting_adjust Paths can be split up, so we need to know when to continue coasting from last, or even coast the entire path.
      * \return Whether any GCode has been written for the path.
      */
     bool writePathWithCoasting(
@@ -747,7 +757,8 @@ public:
         const size_t extruder_plan_idx,
         const size_t path_idx,
         const coord_t layer_thickness,
-        const std::function<void(const double, const int64_t)> insertTempOnTime);
+        const std::function<void(const double, const int64_t)> insertTempOnTime,
+        const AdjustCoasting coasting_adjust);
 
     /*!
      * Applying speed corrections for minimal layer times and determine the fanSpeed.
