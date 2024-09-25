@@ -997,7 +997,7 @@ void LayerPlan::addWall(
     addWall(ewall, start_idx, settings, default_config, roofing_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, is_closed, is_reversed, is_linked_path);
 }
 
-void LayerPlan::addWallSplitted(
+void LayerPlan::addSplitWall(
     const ExtrusionLine& wall,
     const coord_t wall_length,
     size_t start_idx,
@@ -1372,9 +1372,9 @@ void LayerPlan::addWall(
     const Velocity end_speed = top_speed * end_speed_ratio; // mm/s
     const coord_t decelerate_length = (smooth_speed && end_speed_ratio < 1.0) ? MM2INT((square(top_speed) - square(end_speed)) / (2.0 * deceleration)) : 0; // µm
 
-    auto addWallSplittedPass = [&](bool is_scarf_closure)
+    auto addSplitWallPass = [&](bool is_scarf_closure)
     {
-        addWallSplitted(
+        addSplitWall(
             wall,
             wall_length,
             start_idx,
@@ -1406,12 +1406,12 @@ void LayerPlan::addWall(
     };
 
     // First pass to add the wall with the scarf beginning and acceleration
-    addWallSplittedPass(false);
+    addSplitWallPass(false);
 
     if (scarf_seam_length > 0)
     {
         // Second pass to add the scarf closure
-        addWallSplittedPass(true);
+        addSplitWallPass(true);
     }
 
     if (wall.size() >= 2)
@@ -2232,7 +2232,6 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
     min_layer_time_used |= last_extruder_plan.forceMinimalLayerTime(maximum_cool_min_layer_time, other_extr_plan_time);
     last_extruder_plan.processFanSpeedForMinimalLayerTime(maximum_cool_min_layer_time, other_extr_plan_time);
 }
-
 
 void LayerPlan::writeGCode(GCodeExport& gcode)
 {

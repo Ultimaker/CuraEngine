@@ -894,7 +894,7 @@ private:
      * \param is_scarf_closure Indicates whether this function is called to make the scarf closure (overlap over the first scarf pass) or
      *                         the normal first pass of the wall
      */
-    void addWallSplitted(
+    void addSplitWall(
         const ExtrusionLine& wall,
         const coord_t wall_length,
         size_t start_idx,
