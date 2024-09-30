@@ -2097,7 +2097,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             }
         }
         // Fan speed may already be set by a plugin. Prevents two fan speed commands without move in between.
-        if(!extruder_plan.paths_.empty() && extruder_plan.paths_.front().fan_speed == -1)
+        if (! extruder_plan.paths_.empty() && extruder_plan.paths_.front().fan_speed == -1)
         {
             gcode.writePrepareFansForExtrusion(extruder_plan.getFanSpeed());
         }
@@ -2124,7 +2124,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             GCodePath& path = paths[path_idx];
 
             // If travel paths have a non default fan speed for some reason set it as fan speed as such modification could be made by a plugin.
-            if(!path.isTravelPath() || path.fan_speed >= 0)
+            if (! path.isTravelPath() || path.fan_speed >= 0)
             {
                 const double path_fan_speed = path.getFanSpeed();
                 gcode.writeFanCommand(path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : extruder_plan.getFanSpeed());
@@ -2302,7 +2302,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             bool spiralize = path.spiralize;
             if (! spiralize) // normal (extrusion) move (with coasting)
             {
-
                 bool coasting = extruder.settings_.get<bool>("coasting_enable");
                 if (coasting)
                 {
