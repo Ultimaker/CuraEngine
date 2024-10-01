@@ -2350,7 +2350,11 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
             }
         }
-        gcode.writePrepareFansForExtrusion(extruder_plan.getFanSpeed());
+        // Fan speed may already be set by a plugin. Prevents two fan speed commands without move in between.
+        if (! extruder_plan.paths_.empty() && extruder_plan.paths_.front().fan_speed == -1)
+        {
+            gcode.writePrepareFansForExtrusion(extruder_plan.getFanSpeed());
+        }
         std::vector<GCodePath>& paths = extruder_plan.paths_;
 
         extruder_plan.inserts_.sort();
@@ -2424,6 +2428,13 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             GCodePath& path = paths[path_idx];
 
             assert(! path.points.empty());
+
+            // If travel paths have a non default fan speed for some reason set it as fan speed as such modification could be made by a plugin.
+            if (! path.isTravelPath() || path.fan_speed >= 0)
+            {
+                const double path_fan_speed = path.getFanSpeed();
+                gcode.writeFanCommand(path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : extruder_plan.getFanSpeed());
+            }
 
             if (path.perform_prime)
             {
@@ -2599,10 +2610,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             bool spiralize = path.spiralize;
             if (! spiralize) // normal (extrusion) move (with coasting)
             {
-                // if path provides a valid (in range 0-100) fan speed, use it
-                const double path_fan_speed = path.getFanSpeed();
-                gcode.writeFanCommand(path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : extruder_plan.getFanSpeed());
-
                 bool coasting = extruder.settings_.get<bool>("coasting_enable");
                 if (coasting)
                 {
@@ -2895,6 +2902,7 @@ bool LayerPlan::writePathWithCoasting(
 
 void LayerPlan::applyModifyPlugin()
 {
+    bool handled_initial_travel = false;
     for (auto& extruder_plan : extruder_plans_)
     {
         scripta::log(
@@ -2916,6 +2924,40 @@ void LayerPlan::applyModifyPlugin()
             scripta::CellVDI{ "extrusion_mm3_per_mm", &GCodePath::getExtrusionMM3perMM });
 
         extruder_plan.paths_ = slots::instance().modify<plugins::v0::SlotID::GCODE_PATHS_MODIFY>(extruder_plan.paths_, extruder_plan.extruder_nr_, layer_nr_);
+
+        // Check if the plugin changed first_travel_destination and update it accordingly if it has
+        if (! handled_initial_travel)
+        {
+            for (auto& path : extruder_plan.paths_)
+            {
+                if (path.isTravelPath() && path.points.size() > 0)
+                {
+                    if (path.points.front() != first_travel_destination_)
+                    {
+                        first_travel_destination_ = path.points.front().toPoint2LL();
+                    }
+                    handled_initial_travel = true;
+                    break;
+                }
+            }
+        }
+
+        size_t removed_count = std::erase_if(
+            extruder_plan.paths_,
+            [](GCodePath& path)
+            {
+                return path.points.empty();
+            });
+        if (removed_count > 0)
+        {
+            spdlog::warn("Removed {} empty paths after plugin slot GCODE_PATHS_MODIFY was executed", removed_count);
+        }
+        // Ensure that the output is at least valid enough to not cause crashes.
+        if (extruder_plan.paths_.size() == 0)
+        {
+            GCodePath* reinstated_path = getLatestPathWithConfig(configs_storage_.travel_config_per_extruder[getExtruder()], SpaceFillType::None);
+            addTravel_simple(first_travel_destination_.value_or(getLastPlannedPositionOrStartingPosition()), reinstated_path);
+        }
 
         scripta::log(
             "extruder_plan_1",
