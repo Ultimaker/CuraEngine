@@ -874,7 +874,7 @@ private:
         bool update_extrusion_offset = false);
 
     /*!
-     * \brief Add a wall to the gcode with optimized order
+     * \brief Add a wall to the gcode with optimized order, but split into pieces in order to facilitate the scarf seam and/or speed gradient.
      * \param wall The full wall to be added
      * \param wall_length The pre-calculated full wall length
      * \param start_idx The index of the point where to start printing the wall
