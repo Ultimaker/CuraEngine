@@ -902,8 +902,7 @@ private:
      * \param accelerate_length The pre-calculated length of the acceleration phase
      * \param end_speed_ratio The ratio of the top speed to be applied when finishing a segment
      * \param decelerate_length The pre-calculated length of the deceleration phase
-     * \param is_scarf_closure Indicates whether this function is called to make the scarf closure (overlap over the first scarf pass) or
-     *                         the normal first pass of the wall
+     * \param is_scarf_closure Indicates whether this function is called to make the scarf closure (overlap over the first scarf pass) or the normal first pass of the wall
      */
     void addSplitWall(
         const ExtrusionLine& wall,
