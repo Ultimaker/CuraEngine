@@ -4,6 +4,6 @@ requirements:
 requirements_arcus:
   - "arcus/5.4.1"
 requirements_plugins:
-  - "curaengine_grpc_definitions/0.2.1"
+  - "curaengine_grpc_definitions/0.2.1+910f59@ultimaker/cura_12081"
 requirements_cura_resources:
   - "cura_resources/(latest)@ultimaker/testing"
