@@ -1712,7 +1712,8 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     {
         return;
     }
-    const coord_t z_distance_top = round_up_divide(mesh.settings.get<coord_t>("support_top_distance"), layer_height); // Number of layers between support roof and model.
+    const coord_t support_top_distance = mesh.settings.get<coord_t>("support_top_distance");
+    const coord_t z_distance_top = round_up_divide(support_top_distance, layer_height); // Number of layers between support roof and model.
     const coord_t roof_line_width = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings_.get<coord_t>("support_roof_line_width");
     const coord_t roof_outline_offset = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings_.get<coord_t>("support_roof_offset");
 
@@ -1732,7 +1733,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         Shape roofs;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roof_outline_offset, minimum_roof_area, roofs);
         support_layers[layer_idx].support_roof.push_back(roofs);
-        if (layer_idx > 0 && layer_idx < support_layers.size() - 1)
+        if (layer_idx > 0 && layer_idx < support_layers.size() - 1 && support_top_distance % layer_height != 0)
         {
             support_layers[layer_idx].support_fractional_roof.push_back(roofs.difference(support_layers[layer_idx + 1].support_roof));
         }
