@@ -142,7 +142,6 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ListPolyIt.cpp
         src/utils/Matrix4x3D.cpp
         src/utils/MinimumSpanningTree.cpp
-        src/utils/Point3LL.cpp
         src/utils/PolygonConnector.cpp
         src/utils/PolygonsPointIndex.cpp
         src/utils/PolygonsSegmentIndex.cpp
@@ -157,6 +156,8 @@ set(engine_SRCS # Except main.cpp.
         src/utils/VoxelUtils.cpp
         src/utils/MixedPolylineStitcher.cpp
 
+        src/geometry/Point2LL.cpp
+        src/geometry/Point3LL.cpp
         src/geometry/Polygon.cpp
         src/geometry/Shape.cpp
         src/geometry/PointsSet.cpp

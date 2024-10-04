@@ -91,7 +91,7 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
     Point2LL first_location_new_layer = new_layer_destination_state->first;
 
     assert(newest_layer->extruder_plans_.front().paths_[0].points.size() == 1);
-    assert(newest_layer->extruder_plans_.front().paths_[0].points[0] == first_location_new_layer);
+    assert(newest_layer->extruder_plans_.front().paths_[0].points[0].toPoint2LL() == first_location_new_layer);
 
     // if the last planned position in the previous layer isn't the same as the first location of the new layer, travel to the new location
     if (! prev_layer->last_planned_position_ || *prev_layer->last_planned_position_ != first_location_new_layer)

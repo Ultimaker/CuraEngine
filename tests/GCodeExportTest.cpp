@@ -698,7 +698,7 @@ TEST_F(GCodeExportTest, insertWipeScriptHopEnable)
     config.move_speed = 10.0;
     config.pause = 0;
 
-    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(3);
+    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(5);
     gcode.insertWipeScript(config);
 
     std::string token;
