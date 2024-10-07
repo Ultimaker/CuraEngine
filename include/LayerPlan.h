@@ -948,7 +948,7 @@ private:
      * \param p0 The start point of the segment
      * \param p1 The end point of the segment
      */
-    bool segmentIsOnOverhang(const Point3LL &p0, const Point3LL &p1) const;
+    bool segmentIsOnOverhang(const Point3LL& p0, const Point3LL& p1) const;
 };
 
 } // namespace cura
