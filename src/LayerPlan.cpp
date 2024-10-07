@@ -737,7 +737,7 @@ void LayerPlan::addWallLine(
                         segment_flow,
                         width_factor,
                         spiralize,
-                        (overhang_mask_.empty() || (! overhang_mask_.inside(p0, true) && ! overhang_mask_.inside(p1, true))) ? speed_factor : overhang_speed_factor);
+                        segmentIsOnOverhang(p0, p1) ? overhang_speed_factor : speed_factor);
                 }
 
                 distance_to_bridge_start -= len;
@@ -752,7 +752,7 @@ void LayerPlan::addWallLine(
                     segment_flow,
                     width_factor,
                     spiralize,
-                    (overhang_mask_.empty() || (! overhang_mask_.inside(p0, true) && ! overhang_mask_.inside(p1, true))) ? speed_factor : overhang_speed_factor);
+                    segmentIsOnOverhang(p0, p1) ? overhang_speed_factor : speed_factor);
             }
             non_bridge_line_volume += vSize(cur_point - segment_end) * segment_flow * width_factor * speed_factor * default_config.getSpeed();
             cur_point = segment_end;
@@ -839,14 +839,7 @@ void LayerPlan::addWallLine(
     else if (bridge_wall_mask_.empty())
     {
         // no bridges required
-        addExtrusionMove(
-            p1,
-            default_config,
-            SpaceFillType::Polygons,
-            flow,
-            width_factor,
-            spiralize,
-            (overhang_mask_.empty() || (! overhang_mask_.inside(p0, true) && ! overhang_mask_.inside(p1, true))) ? 1.0_r : overhang_speed_factor);
+        addExtrusionMove(p1, default_config, SpaceFillType::Polygons, flow, width_factor, spiralize, segmentIsOnOverhang(p0, p1) ? overhang_speed_factor : 1.0_r);
     }
     else
     {
@@ -1495,6 +1488,13 @@ void LayerPlan::addLinesInGivenOrder(
             }
         }
     }
+}
+
+bool LayerPlan::segmentIsOnOverhang(const Point2LL& p0, const Point2LL& p1) const
+{
+    const OpenPolyline segment{ p0, p1 };
+    const OpenLinesSet intersected_lines = overhang_mask_.intersection(OpenLinesSet{ segment });
+    return ! intersected_lines.empty() && (static_cast<double>(intersected_lines.length()) / segment.length()) > 0.5;
 }
 
 void LayerPlan::addLinesMonotonic(

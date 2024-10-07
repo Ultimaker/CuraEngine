@@ -820,6 +820,13 @@ private:
         const coord_t wipe_dist,
         const Ratio flow_ratio,
         const double fan_speed);
+
+    /*!
+     * \brief Calculates whether the given segment is to be treated as overhanging
+     * \param p0 The start point of the segment
+     * \param p1 The end point of the segment
+     */
+    bool segmentIsOnOverhang(const Point2LL& p0, const Point2LL& p1) const;
 };
 
 } // namespace cura
