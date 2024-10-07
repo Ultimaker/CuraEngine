@@ -32,7 +32,7 @@ void process(std::vector<GCodePath>& extruder_plan_paths, const size_t extruder_
         // Process first path
         for (const GCodePath& path : extruder_plan_paths | ranges::views::take(1))
         {
-            gcode_paths.emplace_back(FlowLimitedPath{ .original_gcode_path_data = &path, .points = PointsSet(path.points) });
+            gcode_paths.push_back(FlowLimitedPath{ .original_gcode_path_data = &path, .points = path.points });
         }
 
         /* Process remaining paths
@@ -46,9 +46,10 @@ void process(std::vector<GCodePath>& extruder_plan_paths, const size_t extruder_
          */
         for (const auto& path : extruder_plan_paths | ranges::views::drop(1))
         {
-            PointsSet points{ gcode_paths.back().points.back() };
-            points.push_back(PointsSet(path.points));
-            gcode_paths.emplace_back(FlowLimitedPath{ .original_gcode_path_data = &path, .points = points });
+            std::vector<Point3LL> points{ gcode_paths.back().points.back() };
+            points.insert(points.end(), path.points.begin(), path.points.end());
+
+            gcode_paths.emplace_back(FlowLimitedPath{ .original_gcode_path_data = &path, .points = std::move(points) });
         }
 
         constexpr auto non_zero_flow_view = ranges::views::transform(

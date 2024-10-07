@@ -30,7 +30,7 @@ enum class FlowState
 struct FlowLimitedPath
 {
     const GCodePath* original_gcode_path_data;
-    PointsSet points;
+    std::vector<Point3LL> points{};
     double speed{ targetSpeed() }; // um/s
     double flow_{ extrusionVolumePerMm() * speed }; // um/s
     double total_length{ totalLength() }; // um
@@ -102,7 +102,7 @@ struct FlowLimitedPath
         for (auto point : points)
         {
             const auto identifier = is_first_point ? "M" : "L";
-            path_data += fmt::format("{}{} {} ", identifier, point.X * 1e-3, point.Y * 1e-3);
+            path_data += fmt::format("{}{} {} ", identifier, point.x_ * 1e-3, point.y_ * 1e-3);
             is_first_point = false;
         }
         return path_data;
@@ -135,11 +135,14 @@ struct FlowLimitedPath
     double totalLength() const // um
     {
         double path_length = 0;
-        auto last_point = points.front();
-        for (const auto& point : points | ranges::views::drop(1))
+        if (! points.empty())
         {
-            path_length += std::hypot(point.X - last_point.X, point.Y - last_point.Y);
-            last_point = point;
+            auto last_point = points.front();
+            for (const auto& point : points | ranges::views::drop(1))
+            {
+                path_length += std::hypot(point.x_ - last_point.x_, point.y_ - last_point.y_);
+                last_point = point;
+            }
         }
         return path_length;
     }
@@ -179,12 +182,12 @@ struct FlowLimitedPath
         auto current_partition_duration = 0.0;
         auto partition_index = direction == utils::Direction::Forward ? 0 : points.size() - 1;
         auto iteration_direction = direction == utils::Direction::Forward ? 1 : -1;
-        auto prev_point = points[partition_index];
+        Point3LL prev_point = points[partition_index];
 
         while (true)
         {
-            const auto next_point = points[partition_index + iteration_direction];
-            const auto segment_length = std::hypot(next_point.X - prev_point.X, next_point.Y - prev_point.Y);
+            const Point3LL next_point = points[partition_index + iteration_direction];
+            const auto segment_length = std::hypot(next_point.x_ - prev_point.x_, next_point.y_ - prev_point.y_);
             const auto segment_duration = segment_length / partition_speed;
 
             if (current_partition_duration + segment_duration < partition_duration)
@@ -198,9 +201,10 @@ struct FlowLimitedPath
                 const auto duration_left = partition_duration - current_partition_duration;
                 auto segment_ratio = duration_left / segment_duration;
                 assert(segment_ratio >= -1e-6 && segment_ratio <= 1. + 1e-6);
-                const auto partition_x = prev_point.X + static_cast<long long>(static_cast<double>(next_point.X - prev_point.X) * segment_ratio);
-                const auto partition_y = prev_point.Y + static_cast<long long>(static_cast<double>(next_point.Y - prev_point.Y) * segment_ratio);
-                const auto partition_point = ClipperLib::IntPoint(partition_x, partition_y);
+                const auto partition_x = prev_point.x_ + static_cast<long long>(static_cast<double>(next_point.x_ - prev_point.x_) * segment_ratio);
+                const auto partition_y = prev_point.y_ + static_cast<long long>(static_cast<double>(next_point.y_ - prev_point.y_) * segment_ratio);
+                const auto partition_z = prev_point.z_ + static_cast<long long>(static_cast<double>(next_point.z_ - prev_point.z_) * segment_ratio);
+                const Point3LL partition_point(partition_x, partition_y, partition_z);
 
                 /*
                  *                       partition point
@@ -227,7 +231,7 @@ struct FlowLimitedPath
                 const auto partition_point_index = direction == utils::Direction::Forward ? partition_index + 1 : partition_index;
 
                 // points left of the partition_index
-                PointsSet left_points;
+                std::vector<Point3LL> left_points;
                 for (unsigned int i = 0; i < partition_point_index; ++i)
                 {
                     left_points.emplace_back(points[i]);
@@ -235,7 +239,7 @@ struct FlowLimitedPath
                 left_points.emplace_back(partition_point);
 
                 // points right of the partition_index
-                PointsSet right_points;
+                std::vector<Point3LL> right_points;
                 right_points.emplace_back(partition_point);
                 for (unsigned int i = partition_point_index; i < points.size(); ++i)
                 {
@@ -323,7 +327,7 @@ struct GCodeState
         discretized_duration_remaining = 0;
 
         // set the current flow to the target end flow. When executing the backward pass we want to
-        // we start with this flow and gradually increase it to the target flow. However, if the
+        // start with this flow and gradually increase it to the target flow. However, if the
         // highest flow we can achieve is lower than this target flow we want to use that flow
         // instead.
         current_flow = std::min(current_flow, target_end_flow);

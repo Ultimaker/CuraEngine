@@ -86,7 +86,7 @@ public:
      * This may indicate the starting position (or any other jump in the path).
      * \param position The current position to start the next line at.
      */
-    void sendCurrentPosition(const Point2LL& position) override;
+    void sendCurrentPosition(const Point3LL& position) override;
 
     /*
      * \brief Sends a message to indicate that all the slicing is done.
@@ -113,7 +113,7 @@ public:
      * visualisation of the layer.
      *
      * This will be called after all the polygons and lines of this layer are
-     * sent via sendPolygons, sendPolygon and sendLineTo. This will flush all
+     * sent via sendLineTo. This will flush all
      * visualised data for one layer in one go.
      * \param layer_nr The layer that was completed.
      * \param z The z-coordinate of the top side of the layer.
@@ -132,7 +132,7 @@ public:
      * \param line_thickness The thickness (in the Z direction) of the line.
      * \param velocity The velocity of printing this polygon.
      */
-    void sendLineTo(const PrintFeatureType& type, const Point2LL& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
+    void sendLineTo(const PrintFeatureType& type, const Point3LL& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
 
     /*
      * \brief Send the sliced layer data to the front-end after the optimisation
@@ -141,34 +141,6 @@ public:
      * This layer data will be shown in the layer view of the front end.
      */
     void sendOptimizedLayerData() override;
-
-    /*
-     * \brief Send a polygon to the front-end to display in layer view.
-     *
-     * The polygons are not actually flushed until ``sendLayerComplete`` is
-     * called.
-     * \param type The type of print feature the polygon represents (infill,
-     * wall, support, etc).
-     * \param polygon The shape to visualise.
-     * \param line_width The width of the lines in this polygon.
-     * \param line_thickness The thickness (in the Z direction) of the polygon.
-     * \param velocity The velocity of printing this polygon.
-     */
-    void sendPolygon(const PrintFeatureType& type, const Polygon& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
-
-    /*
-     * \brief Send polygons to the front-end to display in layer view.
-     *
-     * The polygons may not actually be flushed until ``sendLayerComplete`` is
-     * called.
-     * \param type The type of print feature the polygons represent (infill,
-     * wall, support, etc).
-     * \param polygons The shapes to visualise.
-     * \param line_width The width of the lines in these polygons.
-     * \param line_thickness The thickness (in the Z direction) of the polygons.
-     * \param velocity The velocity of printing these polygons.
-     */
-    void sendPolygons(const PrintFeatureType& type, const Shape& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
 
     /*
      * \brief Send an estimate of how long the print would take and how much
@@ -182,15 +154,13 @@ public:
     void sendProgress(double progress) const override;
 
     /*
-     * \brief Set which extruder is being used for the following calls to
-     * ``sendPolygon``, ``sendPolygons`` and ``sendLineTo``.
+     * \brief Set which extruder is being used for the following calls to ``sendLineTo``.
      * \param extruder The new extruder to send data for.
      */
     void setExtruderForSend(const ExtruderTrain& extruder) override;
 
     /*
-     * \brief Set which layer is being used for the following calls to
-     * ``sendPolygon``, ``sendPolygons`` and ``sendLineTo``.
+     * \brief Set which layer is being used for the following calls to ``sendLineTo``.
      * \param layer_nr The index of the layer to send data for. This is zero-
      * indexed but may be negative for raft layers.
      */

@@ -52,7 +52,7 @@ void CommandLine::beginGCode()
 void CommandLine::flushGCode()
 {
 }
-void CommandLine::sendCurrentPosition(const Point2LL&)
+void CommandLine::sendCurrentPosition(const Point3LL&)
 {
 }
 void CommandLine::sendFinishedSlicing() const
@@ -61,16 +61,10 @@ void CommandLine::sendFinishedSlicing() const
 void CommandLine::sendLayerComplete(const LayerIndex::value_type&, const coord_t&, const coord_t&)
 {
 }
-void CommandLine::sendLineTo(const PrintFeatureType&, const Point2LL&, const coord_t&, const coord_t&, const Velocity&)
+void CommandLine::sendLineTo(const PrintFeatureType&, const Point3LL&, const coord_t&, const coord_t&, const Velocity&)
 {
 }
 void CommandLine::sendOptimizedLayerData()
-{
-}
-void CommandLine::sendPolygon(const PrintFeatureType&, const Polygon&, const coord_t&, const coord_t&, const Velocity&)
-{
-}
-void CommandLine::sendPolygons(const PrintFeatureType&, const Shape&, const coord_t&, const coord_t&, const Velocity&)
 {
 }
 void CommandLine::setExtruderForSend(const ExtruderTrain&)

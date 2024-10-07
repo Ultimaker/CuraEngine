@@ -52,7 +52,9 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const ZSeamConfig& z_seam_config,
     const std::vector<VariableWidthLines>& paths,
     const Point2LL& model_center_point,
-    const Shape& disallowed_areas_for_seams)
+    const Shape& disallowed_areas_for_seams,
+    const bool scarf_seam,
+    const bool smooth_speed)
     : gcode_writer_(gcode_writer)
     , storage_(storage)
     , gcode_layer_(gcode_layer)
@@ -74,6 +76,8 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , layer_nr_(gcode_layer.getLayerNr())
     , model_center_point_(model_center_point)
     , disallowed_areas_for_seams_{ disallowed_areas_for_seams }
+    , scarf_seam_(scarf_seam)
+    , smooth_speed_(smooth_speed)
 {
 }
 
@@ -146,6 +150,8 @@ bool InsetOrderOptimizer::addToLayer()
         const GCodePathConfig& bridge_config = is_outer_wall ? inset_0_bridge_config_ : inset_X_bridge_config_;
         const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist_ : wall_x_wipe_dist_;
         const bool retract_before = is_outer_wall ? retract_before_outer_wall_ : false;
+        const bool scarf_seam = scarf_seam_ && is_outer_wall;
+        const bool smooth_speed = smooth_speed_ && is_outer_wall;
 
         const bool revert_inset = alternate_walls && (path.vertices_->inset_idx_ % 2 != 0);
         const bool revert_layer = alternate_walls && (layer_nr_ % 2 != 0);
@@ -166,7 +172,9 @@ bool InsetOrderOptimizer::addToLayer()
             retract_before,
             path.is_closed_,
             backwards,
-            linked_path);
+            linked_path,
+            scarf_seam,
+            smooth_speed);
         added_something = true;
     }
     return added_something;
