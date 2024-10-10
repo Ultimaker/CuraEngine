@@ -698,7 +698,7 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
         processInitialLayerTemperature(storage, start_extruder_nr);
     }
 
-    if (!mesh_group_settings.get<bool>("machine_start_gcode_first"))
+    if (! mesh_group_settings.get<bool>("machine_start_gcode_first"))
     {
         writeCode(mesh_group_settings.get<std::string>("machine_start_gcode").c_str());
     }
