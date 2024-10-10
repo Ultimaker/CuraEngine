@@ -1,4 +1,5 @@
 version: "5.9.0-alpha.0"
+commit: "unknown"
 requirements:
   - "scripta/0.1.0@ultimaker/testing"
 requirements_arcus:
