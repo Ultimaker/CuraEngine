@@ -188,7 +188,7 @@ void CommandLine::sliceNext()
                 }
                 else if (
                     argument.starts_with("--progress_cb") || argument.starts_with("--slice_info_cb") || argument.starts_with("--gcode_header_cb")
-                    || argument.starts_with("engine_info_cb"))
+                    || argument.starts_with("--engine_info_cb"))
                 {
                     // Unused in command line slicing, but used in EmscriptenCommunication.
                     argument_index++;
