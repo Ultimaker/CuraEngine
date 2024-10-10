@@ -137,7 +137,7 @@ std::string EmscriptenCommunication::createEngineInfoMessage()
     return buffer.GetString();
 }
 
-void EmscriptionCommunication::beginGCode()
+void EmscriptenCommunication::beginGCode()
 {
     auto engine_info = createEngineInfoMessage();
     emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", engine_info_handler_, engine_info).c_str());
