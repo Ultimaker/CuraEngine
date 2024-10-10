@@ -137,11 +137,14 @@ std::string EmscriptenCommunication::createEngineInfoMessage()
     return buffer.GetString();
 }
 
+void EmscriptionCommunication::beginGCode()
+{
+    auto engine_info = createEngineInfoMessage();
+    emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", engine_info_handler_, engine_info).c_str());
+}
 void EmscriptenCommunication::sliceNext()
 {
     CommandLine::sliceNext();
-    auto engine_info = createEngineInfoMessage();
-    emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", engine_info_handler_, engine_info).c_str());
     auto slice_info = createSliceInfoMessage();
     emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", slice_info_handler_, slice_info).c_str());
 };

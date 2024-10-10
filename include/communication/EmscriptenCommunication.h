@@ -50,6 +50,11 @@ public:
      */
     void sendGCodePrefix(const std::string& prefix) const override;
 
+     /**
+     * \brief Indicate that we're beginning to send g-code.
+     */
+    void beginGCode() override;
+
     /**
      * \brief Initiates the slicing of the next item.
      */
