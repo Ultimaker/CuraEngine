@@ -743,8 +743,7 @@ void LayerPlan::addWallLine(
                         segment_flow,
                         width_factor,
                         spiralize,
-                        (overhang_mask_.empty() || (! overhang_mask_.inside(p0.toPoint2LL(), true) && ! overhang_mask_.inside(p1.toPoint2LL(), true))) ? speed_factor
-                                                                                                                                                       : overhang_speed_factor,
+                        segmentIsOnOverhang(p0, p1) ? overhang_speed_factor : speed_factor,
                         GCodePathConfig::FAN_SPEED_DEFAULT,
                         travel_to_z);
                 }
@@ -761,8 +760,7 @@ void LayerPlan::addWallLine(
                     segment_flow,
                     width_factor,
                     spiralize,
-                    (overhang_mask_.empty() || (! overhang_mask_.inside(p0.toPoint2LL(), true) && ! overhang_mask_.inside(p1.toPoint2LL(), true))) ? speed_factor
-                                                                                                                                                   : overhang_speed_factor,
+                    segmentIsOnOverhang(p0, p1) ? overhang_speed_factor : speed_factor,
                     GCodePathConfig::FAN_SPEED_DEFAULT,
                     travel_to_z);
             }
@@ -867,7 +865,7 @@ void LayerPlan::addWallLine(
             flow,
             width_factor,
             spiralize,
-            (overhang_mask_.empty() || (! overhang_mask_.inside(p0.toPoint2LL(), true) && ! overhang_mask_.inside(p1.toPoint2LL(), true))) ? speed_factor : overhang_speed_factor,
+            segmentIsOnOverhang(p0, p1) ? overhang_speed_factor : 1.0_r,
             GCodePathConfig::FAN_SPEED_DEFAULT,
             travel_to_z);
     }
@@ -1723,6 +1721,13 @@ void LayerPlan::addLinesInGivenOrder(
             }
         }
     }
+}
+
+bool LayerPlan::segmentIsOnOverhang(const Point3LL& p0, const Point3LL& p1) const
+{
+    const OpenPolyline segment{ p0.toPoint2LL(), p1.toPoint2LL() };
+    const OpenLinesSet intersected_lines = overhang_mask_.intersection(OpenLinesSet{ segment });
+    return ! intersected_lines.empty() && (static_cast<double>(intersected_lines.length()) / segment.length()) > 0.5;
 }
 
 void LayerPlan::sendLineTo(const GCodePath& path, const Point3LL& position, const double extrude_speed)

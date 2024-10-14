@@ -942,6 +942,13 @@ private:
      * \return The distance from the start of the current wall line to the first bridge segment
      */
     coord_t computeDistanceToBridgeStart(const ExtrusionLine& wall, const size_t current_index, const coord_t min_bridge_line_len) const;
+
+    /*!
+     * \brief Calculates whether the given segment is to be treated as overhanging
+     * \param p0 The start point of the segment
+     * \param p1 The end point of the segment
+     */
+    bool segmentIsOnOverhang(const Point3LL& p0, const Point3LL& p1) const;
 };
 
 } // namespace cura
